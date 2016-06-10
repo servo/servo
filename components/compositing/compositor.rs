@@ -2486,9 +2486,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             _ => return,
         }
 
-        if let Some(ref webrender_api) = self.webrender_api {
-            webrender_api.tick_scrolling_bounce_animations()
+        match self.webrender_api {
+            Some(ref webrender_api) => webrender_api.tick_scrolling_bounce_animations(),
+            None => return,
         }
+
+        self.send_webrender_viewport_rects()
     }
 
     pub fn handle_events(&mut self, messages: Vec<WindowEvent>) -> bool {
