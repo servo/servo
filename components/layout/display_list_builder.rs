@@ -377,7 +377,7 @@ impl FragmentDisplayListBuilding for Fragment {
         let base = state.create_base_display_item(&bounds,
                                                   &clip,
                                                   self.node,
-                                                  style.get_cursor(Cursor::DefaultCursor),
+                                                  style.get_cursor(Cursor::Default),
                                                   display_list_section);
         state.add_display_item(
             DisplayItem::SolidColorClass(box SolidColorDisplayItem {
@@ -569,7 +569,7 @@ impl FragmentDisplayListBuilding for Fragment {
             let base = state.create_base_display_item(&bounds,
                                                       &clip,
                                                       self.node,
-                                                      style.get_cursor(Cursor::DefaultCursor),
+                                                      style.get_cursor(Cursor::Default),
                                                       display_list_section);
             state.add_display_item(DisplayItem::ImageClass(box ImageDisplayItem {
                 base: base,
@@ -697,7 +697,7 @@ impl FragmentDisplayListBuilding for Fragment {
         let base = state.create_base_display_item(absolute_bounds,
                                                   &clip,
                                                   self.node,
-                                                  style.get_cursor(Cursor::DefaultCursor),
+                                                  style.get_cursor(Cursor::Default),
                                                   display_list_section);
         let gradient_display_item = DisplayItem::GradientClass(box GradientDisplayItem {
             base: base,
@@ -727,7 +727,7 @@ impl FragmentDisplayListBuilding for Fragment {
             let base = state.create_base_display_item(&bounds,
                                                       &clip,
                                                       self.node,
-                                                      style.get_cursor(Cursor::DefaultCursor),
+                                                      style.get_cursor(Cursor::Default),
                                                       display_list_section);
             state.add_display_item(DisplayItem::BoxShadowClass(box BoxShadowDisplayItem {
                 base: base,
@@ -799,7 +799,7 @@ impl FragmentDisplayListBuilding for Fragment {
         let base = state.create_base_display_item(&bounds,
                                                   &clip,
                                                   self.node,
-                                                  style.get_cursor(Cursor::DefaultCursor),
+                                                  style.get_cursor(Cursor::Default),
                                                   display_list_section);
         state.add_display_item(DisplayItem::BorderClass(box BorderDisplayItem {
             base: base,
@@ -842,7 +842,7 @@ impl FragmentDisplayListBuilding for Fragment {
         let base = state.create_base_display_item(&bounds,
                                                   &clip,
                                                   self.node,
-                                                  style.get_cursor(Cursor::DefaultCursor),
+                                                  style.get_cursor(Cursor::Default),
                                                   DisplayListSection::Outlines);
         state.add_display_item(DisplayItem::BorderClass(box BorderDisplayItem {
             base: base,
@@ -867,7 +867,7 @@ impl FragmentDisplayListBuilding for Fragment {
         let base = state.create_base_display_item(stacking_relative_border_box,
                                                   clip,
                                                   self.node,
-                                                  style.get_cursor(Cursor::DefaultCursor),
+                                                  style.get_cursor(Cursor::Default),
                                                   DisplayListSection::Content);
         state.add_display_item(DisplayItem::BorderClass(box BorderDisplayItem {
             base: base,
@@ -888,7 +888,7 @@ impl FragmentDisplayListBuilding for Fragment {
         let base = state.create_base_display_item(&baseline,
                                                   clip,
                                                   self.node,
-                                                  style.get_cursor(Cursor::DefaultCursor),
+                                                  style.get_cursor(Cursor::Default),
                                                   DisplayListSection::Content);
         state.add_display_item(DisplayItem::LineClass(box LineDisplayItem {
             base: base,
@@ -905,7 +905,7 @@ impl FragmentDisplayListBuilding for Fragment {
         let base = state.create_base_display_item(stacking_relative_border_box,
                                                   clip,
                                                   self.node,
-                                                  self.style.get_cursor(Cursor::DefaultCursor),
+                                                  self.style.get_cursor(Cursor::Default),
                                                   DisplayListSection::Content);
         state.add_display_item(DisplayItem::BorderClass(box BorderDisplayItem {
             base: base,
@@ -956,7 +956,7 @@ impl FragmentDisplayListBuilding for Fragment {
             let base = state.create_base_display_item(stacking_relative_border_box,
                                                       &clip,
                                                       self.node,
-                                                      self.style.get_cursor(Cursor::DefaultCursor),
+                                                      self.style.get_cursor(Cursor::Default),
                                                       display_list_section);
             state.add_display_item(
                 DisplayItem::SolidColorClass(box SolidColorDisplayItem {
@@ -981,14 +981,14 @@ impl FragmentDisplayListBuilding for Fragment {
                                        stacking_relative_border_box.origin.y),
                           Size2D::new(INSERTION_POINT_LOGICAL_WIDTH,
                                       stacking_relative_border_box.size.height));
-            cursor = Cursor::TextCursor;
+            cursor = Cursor::Text;
         } else {
             insertion_point_bounds =
                 Rect::new(Point2D::new(stacking_relative_border_box.origin.x,
                                        stacking_relative_border_box.origin.y + advance),
                           Size2D::new(stacking_relative_border_box.size.width,
                                       INSERTION_POINT_LOGICAL_WIDTH));
-            cursor = Cursor::VerticalTextCursor;
+            cursor = Cursor::VerticalText;
         };
 
         let base = state.create_base_display_item(&insertion_point_bounds,
@@ -1208,7 +1208,7 @@ impl FragmentDisplayListBuilding for Fragment {
                         &stacking_relative_content_box,
                         clip,
                         self.node,
-                        self.style.get_cursor(Cursor::DefaultCursor),
+                        self.style.get_cursor(Cursor::Default),
                         DisplayListSection::Content);
                     let item = DisplayItem::IframeClass(box IframeDisplayItem {
                         base: base,
@@ -1235,7 +1235,7 @@ impl FragmentDisplayListBuilding for Fragment {
                         &stacking_relative_content_box,
                         clip,
                         self.node,
-                        self.style.get_cursor(Cursor::DefaultCursor),
+                        self.style.get_cursor(Cursor::Default),
                         DisplayListSection::Content);
                     state.add_display_item(DisplayItem::ImageClass(box ImageDisplayItem {
                         base: base,
@@ -1271,7 +1271,7 @@ impl FragmentDisplayListBuilding for Fragment {
                         &stacking_relative_content_box,
                         clip,
                         self.node,
-                        self.style.get_cursor(Cursor::DefaultCursor),
+                        self.style.get_cursor(Cursor::Default),
                         DisplayListSection::Content);
                     let display_item = match canvas_data {
                         CanvasData::Pixels(canvas_data) => {
@@ -1545,12 +1545,12 @@ impl FragmentDisplayListBuilding for Fragment {
         // Determine the orientation and cursor to use.
         let (orientation, cursor) = if self.style.writing_mode.is_vertical() {
             if self.style.writing_mode.is_sideways_left() {
-                (TextOrientation::SidewaysLeft, Cursor::VerticalTextCursor)
+                (TextOrientation::SidewaysLeft, Cursor::VerticalText)
             } else {
-                (TextOrientation::SidewaysRight, Cursor::VerticalTextCursor)
+                (TextOrientation::SidewaysRight, Cursor::VerticalText)
             }
         } else {
-            (TextOrientation::Upright, Cursor::TextCursor)
+            (TextOrientation::Upright, Cursor::Text)
         };
 
         // Compute location of the baseline.
@@ -1649,7 +1649,7 @@ impl FragmentDisplayListBuilding for Fragment {
             &shadow_bounds(&stacking_relative_box, blur_radius, Au(0)),
             clip,
             self.node,
-            self.style.get_cursor(Cursor::DefaultCursor),
+            self.style.get_cursor(Cursor::Default),
             DisplayListSection::Content);
         state.add_display_item(DisplayItem::BoxShadowClass(box BoxShadowDisplayItem {
             base: base,
