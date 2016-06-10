@@ -2487,7 +2487,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
 
         if let Some(ref webrender_api) = self.webrender_api {
-            webrender_api.tick_scrolling_bounce_animations()
+            webrender_api.tick_scrolling_bounce_animations();
+            self.send_webrender_viewport_rects()
         }
     }
 
