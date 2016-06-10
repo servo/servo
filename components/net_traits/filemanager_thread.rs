@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use blob_url_store::BlobURLStoreMsg;
 use ipc_channel::ipc::IpcSender;
 use std::path::PathBuf;
 use super::{LoadConsumer, LoadData};
@@ -31,6 +32,9 @@ pub enum FileManagerThreadMsg {
 
     /// Delete the FileID entry
     DeleteFileID(SelectedFileId),
+
+    // Blob URL message
+    BlobURLStoreMsg(BlobURLStoreMsg),
 
     /// Load resource by Blob URL
     LoadBlob(LoadData, LoadConsumer),
