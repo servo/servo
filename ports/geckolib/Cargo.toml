@@ -43,6 +43,7 @@ time = {version = "0.1", optional = true, features = ["rustc-serialize"]}
 util = {path = "../../components/util"}
 uuid = {version = "0.2", optional = true, features = ["v4", "serde"]}
 style = {path = "../../components/style", features = ["gecko"]}
+style_traits = {path = "../../components/style_traits"}
 env_logger = "0.3"
 
 [replace]
