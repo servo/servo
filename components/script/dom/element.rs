@@ -1538,7 +1538,7 @@ impl ElementMethods for Element {
     // https://dom.spec.whatwg.org/#dom-element-getelementsbytagname
     fn GetElementsByTagName(&self, localname: DOMString) -> Root<HTMLCollection> {
         let window = window_from_node(self);
-        HTMLCollection::by_tag_name(window.r(), self.upcast(), localname)
+        HTMLCollection::match_elements_by_qualified_name(window.r(), self.upcast(), localname)
     }
 
     // https://dom.spec.whatwg.org/#dom-element-getelementsbytagnamens
