@@ -1087,7 +1087,7 @@ impl ScriptThread {
             load.window_size = Some(size);
             return;
         }
-        panic!("resize sent to nonexistent pipeline");
+        warn!("resize sent to nonexistent pipeline");
     }
 
     fn handle_viewport(&self, id: PipelineId, rect: Rect<f32>) {
