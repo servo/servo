@@ -6,7 +6,7 @@ use blob_loader;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use mime_classifier::MIMEClassifier;
 use mime_guess::guess_mime_type_opt;
-use net_traits::blob_url_store::{BlobURLStoreEntry, BlobURLStoreError};
+use net_traits::blob_url_store::{BlobURLStoreEntry, BlobURLStoreError, BlobURLStoreMsg};
 use net_traits::filemanager_thread::{FileManagerThreadMsg, FileManagerResult};
 use net_traits::filemanager_thread::{SelectedFile, FileManagerThreadError, SelectedFileId};
 use std::collections::HashMap;
@@ -14,7 +14,7 @@ use std::fs::File;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
-use url::Origin;
+use url::{Url, Origin};
 use util::thread::spawn_named;
 use uuid::Uuid;
 
@@ -65,6 +65,7 @@ impl FileManager {
                     }
                 }
                 FileManagerThreadMsg::DeleteFileID(id) => self.delete_fileid(id),
+                FileManagerThreadMsg::BlobURLStoreMsg(msg) => self.blob_url_store.write().unwrap().process(msg),
                 FileManagerThreadMsg::LoadBlob(load_data, consumer) => {
                     blob_loader::load(load_data, consumer,
                                       self.blob_url_store.clone(),
@@ -171,6 +172,29 @@ impl BlobURLStore {
     pub fn new() -> BlobURLStore {
         BlobURLStore {
             entries: HashMap::new(),
+        }
+    }
+
+    fn process(&mut self, msg: BlobURLStoreMsg) {
+        match msg {
+            BlobURLStoreMsg::AddEntry(entry, origin_str, sender) => {
+                match Url::parse(&origin_str) {
+                    Ok(base_url) => {
+                        let id = Uuid::new_v4();
+                        self.add_entry(id, base_url.origin(), entry);
+
+                        let _ = sender.send(Ok(id.simple().to_string()));
+                    }
+                    Err(_) => {
+                        let _ = sender.send(Err(BlobURLStoreError::InvalidOrigin));
+                    }
+                }
+            }
+            BlobURLStoreMsg::DeleteEntry(id) => {
+                if let Ok(id) = Uuid::parse_str(&id) {
+                    self.delete_entry(id);
+                }
+            },
         }
     }
 
