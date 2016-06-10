@@ -1559,7 +1559,7 @@ impl Document {
     }
 
     /// https://html.spec.whatwg.org/multipage/#cookie-averse-document-object
-    fn is_cookie_averse(&self) -> bool {
+    pub fn is_cookie_averse(&self) -> bool {
         self.browsing_context.is_none() || !url_has_network_scheme(&self.url)
     }
 

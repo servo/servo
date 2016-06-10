@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use cookie_rs;
 use dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
@@ -26,12 +27,16 @@ use dom::window::ScriptHelpers;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::size::Size2D;
-use ipc_channel::ipc::IpcSender;
+use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::JSContext;
 use js::jsapi::{HandleValue, RootedValue};
 use js::jsval::UndefinedValue;
 use msg::constellation_msg::PipelineId;
+use msg::webdriver_msg::WebDriverCookieError;
 use msg::webdriver_msg::{WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue};
+use net_traits::CookieSource::{HTTP, NonHTTP};
+use net_traits::CoreResourceMsg::{GetCookiesDataForUrl, SetCookiesForUrlWithData};
+use net_traits::IpcSend;
 use script_thread::get_browsing_context;
 use url::Url;
 
@@ -175,6 +180,64 @@ pub fn handle_get_active_element(context: &BrowsingContext,
                                  reply: IpcSender<Option<String>>) {
     reply.send(context.active_document().GetActiveElement().map(
         |elem| elem.upcast::<Node>().unique_id())).unwrap();
+}
+
+pub fn handle_get_cookies(context: &BrowsingContext,
+                         _pipeline: PipelineId,
+                         reply: IpcSender<Vec<cookie_rs::Cookie>>) {
+    let document = context.active_document();
+    let url = document.url();
+    let (sender, receiver) = ipc::channel().unwrap();
+    let _ = document.window().resource_threads().send(
+        GetCookiesDataForUrl(url.clone(), sender, NonHTTP)
+        );
+    let cookies = receiver.recv().unwrap();
+    reply.send(cookies).unwrap();
+}
+
+pub fn handle_get_cookie(context: &BrowsingContext,
+                         _pipeline: PipelineId,
+                         name: String,
+                         reply: IpcSender<Vec<cookie_rs::Cookie>>) {
+    let document = context.active_document();
+    let url = document.url();
+    let (sender, receiver) = ipc::channel().unwrap();
+    let _ = document.window().resource_threads().send(
+        GetCookiesDataForUrl(url.clone(), sender, NonHTTP)
+        );
+    let cookies = receiver.recv().unwrap();
+    reply.send(cookies.into_iter().filter(|c| c.name == &*name).collect()).unwrap();
+}
+
+pub fn handle_add_cookie(context: &BrowsingContext,
+                         _pipeline: PipelineId,
+                         cookie: cookie_rs::Cookie,
+                         reply: IpcSender<Result<(), WebDriverCookieError>>) {
+    let document = context.active_document();
+    let url = document.url();
+    let method = if cookie.httponly {
+        HTTP
+    } else {
+        NonHTTP
+    };
+    reply.send(match (document.is_cookie_averse(), cookie.domain.clone()) {
+        (true, _) => Err(WebDriverCookieError::InvalidDomain),
+        (false, Some(ref domain)) if url.host_str().map(|x| { x == &**domain }).unwrap_or(false) => {
+            let _ = document.window().resource_threads().send(
+                SetCookiesForUrlWithData(url.clone(), cookie, method)
+                );
+            Ok(())
+        },
+        (false, None) => {
+            let _ = document.window().resource_threads().send(
+                SetCookiesForUrlWithData(url.clone(), cookie, method)
+                );
+            Ok(())
+        },
+        (_, _) => {
+            Err(WebDriverCookieError::UnableToSetCookie)
+        },
+    }).unwrap();
 }
 
 pub fn handle_get_title(context: &BrowsingContext, _pipeline: PipelineId, reply: IpcSender<String>) {
