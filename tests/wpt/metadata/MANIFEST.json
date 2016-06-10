@@ -11252,10 +11252,6 @@
         "url": "/FileAPI/url/url_createobjecturl_blob.html"
       },
       {
-        "path": "FileAPI/url/url_xmlhttprequest.html",
-        "url": "/FileAPI/url/url_xmlhttprequest.html"
-      },
-      {
         "path": "IndexedDB/abort-in-initial-upgradeneeded.html",
         "url": "/IndexedDB/abort-in-initial-upgradeneeded.html"
       },
