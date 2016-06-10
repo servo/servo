@@ -1916,7 +1916,6 @@ dependencies = [
  "style 0.0.1",
  "time 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)",
  "tinyfiledialogs 0.1.0 (git+https://github.com/jdm/tinyfiledialogs)",
- "unicase 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
  "uuid 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",

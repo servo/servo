@@ -236,16 +236,15 @@ impl XMLHttpRequest {
                     self.xhr.root().process_data_available(self.gen_id, self.buf.borrow().clone());
                 }
                 fn process_response_eof(&mut self, response: Result<(), NetworkError>) {
-                    match response {
+                    let rv = match response {
                         Ok(()) => {
-                            let rv = self.xhr.root().process_response_complete(self.gen_id, Ok(()));
-                            *self.sync_status.borrow_mut() = Some(rv);
+                            self.xhr.root().process_response_complete(self.gen_id, Ok(()))
                         }
                         Err(e) => {
-                            let rv = self.xhr.root().process_response_complete(self.gen_id, Err(e));
-                            *self.sync_status.borrow_mut() = Some(rv);
+                            self.xhr.root().process_response_complete(self.gen_id, Err(e))
                         }
-                    }
+                    };
+                    *self.sync_status.borrow_mut() = Some(rv);
                 }
         }
 
@@ -569,7 +568,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             CredentialsMode::CredentialsSameOrigin
         };
         let use_url_credentials = if let Some(ref url) = *self.request_url.borrow() {
-            url.username().len() != 0 || url.password().is_some()
+            !url.username().is_empty() || url.password().is_some()
         } else {
             unreachable!()
         };
@@ -887,8 +886,6 @@ impl XMLHttpRequest {
                 return Err(Error::Network);
             },
         };
-
-        // todo allow cors in mozbrowser
 
         *self.response_url.borrow_mut() = metadata.final_url[..Position::AfterQuery].to_owned();
 

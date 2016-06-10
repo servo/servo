@@ -226,8 +226,12 @@ impl Response {
         let mut metadata = if let Some(ref url) = self.url {
             Metadata::default(url.clone())
         } else {
-            return Err(NetworkError::Internal("No url found".to_string()));
+            return Err(NetworkError::Internal("No url found in response".to_string()));
         };
+
+        if self.is_network_error() {
+            return Err(NetworkError::Internal("Cannot extract metadata from network error".to_string()));
+        }
 
         metadata.set_content_type(match self.headers.get() {
             Some(&ContentType(ref mime)) => Some(mime),

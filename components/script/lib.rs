@@ -79,7 +79,6 @@ extern crate style;
 extern crate time;
 #[cfg(any(target_os = "macos", target_os = "linux"))]
 extern crate tinyfiledialogs;
-extern crate unicase;
 extern crate url;
 #[macro_use]
 extern crate util;
@@ -91,7 +90,6 @@ extern crate xml5ever;
 mod blob_url_store;
 pub mod bluetooth_blacklist;
 pub mod clipboard_provider;
-pub mod cors;
 mod devtools;
 pub mod document_loader;
 #[macro_use]

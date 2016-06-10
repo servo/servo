@@ -312,6 +312,8 @@ fn main_fetch(request: Rc<Request>, cache: &mut CORSCache, cors_flag: bool,
             if let Some(ref mut target) = *target {
                 target.process_response_chunk(vec.clone());
             }
+        } else {
+            assert!(*response.body.lock().unwrap() == ResponseBody::Empty)
         }
 
         // overloaded similarly to process_response
@@ -358,6 +360,8 @@ fn main_fetch(request: Rc<Request>, cache: &mut CORSCache, cors_flag: bool,
             // We should still send the body across as a chunk
             target.process_response_chunk(vec.clone());
         }
+    } else {
+        assert!(*response.body.lock().unwrap() == ResponseBody::Empty)
     }
 
     // Step 23
@@ -820,8 +824,10 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
                 if !http_request.use_url_credentials || !has_credentials(&current_url) {
                     authorization_value = Some(basic);
                 }
-            } else if authentication_fetch_flag {
-                // Substep 5
+            }
+
+            // Substep 5
+            if authentication_fetch_flag && authorization_value.is_none() {
                 if has_credentials(&current_url) {
                     authorization_value = Some(Basic {
                         username: current_url.username().to_owned(),
