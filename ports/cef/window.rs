@@ -105,27 +105,27 @@ impl Window {
 
     fn cursor_type_for_cursor(&self, cursor: Cursor) -> cef_cursor_type_t {
         match cursor {
-            Cursor::NoCursor => return cef_cursor_type_t::CT_NONE,
-            Cursor::ContextMenuCursor => return cef_cursor_type_t::CT_CONTEXTMENU,
-            Cursor::GrabbingCursor => return cef_cursor_type_t::CT_GRABBING,
-            Cursor::CrosshairCursor => return cef_cursor_type_t::CT_CROSS,
-            Cursor::CopyCursor => return cef_cursor_type_t::CT_COPY,
-            Cursor::AliasCursor => return cef_cursor_type_t::CT_ALIAS,
-            Cursor::TextCursor => return cef_cursor_type_t::CT_IBEAM,
-            Cursor::GrabCursor | Cursor::AllScrollCursor =>
+            Cursor::None => return cef_cursor_type_t::CT_NONE,
+            Cursor::ContextMenu => return cef_cursor_type_t::CT_CONTEXTMENU,
+            Cursor::Grabbing => return cef_cursor_type_t::CT_GRABBING,
+            Cursor::Crosshair => return cef_cursor_type_t::CT_CROSS,
+            Cursor::Copy => return cef_cursor_type_t::CT_COPY,
+            Cursor::Alias => return cef_cursor_type_t::CT_ALIAS,
+            Cursor::Text => return cef_cursor_type_t::CT_IBEAM,
+            Cursor::Grab | Cursor::AllScroll =>
                 return cef_cursor_type_t::CT_GRAB,
-            Cursor::NoDropCursor => return cef_cursor_type_t::CT_NODROP,
-            Cursor::NotAllowedCursor => return cef_cursor_type_t::CT_NOTALLOWED,
-            Cursor::PointerCursor => return cef_cursor_type_t::CT_POINTER,
-            Cursor::SResizeCursor => return cef_cursor_type_t::CT_SOUTHRESIZE,
-            Cursor::WResizeCursor => return cef_cursor_type_t::CT_WESTRESIZE,
-            Cursor::EwResizeCursor => return cef_cursor_type_t::CT_EASTWESTRESIZE,
-            Cursor::ColResizeCursor => return cef_cursor_type_t::CT_COLUMNRESIZE,
-            Cursor::EResizeCursor => return cef_cursor_type_t::CT_EASTRESIZE,
-            Cursor::NResizeCursor => return cef_cursor_type_t::CT_NORTHRESIZE,
-            Cursor::NsResizeCursor => return cef_cursor_type_t::CT_NORTHSOUTHRESIZE,
-            Cursor::RowResizeCursor => return cef_cursor_type_t::CT_ROWRESIZE,
-            Cursor::VerticalTextCursor => return cef_cursor_type_t::CT_VERTICALTEXT,
+            Cursor::NoDrop => return cef_cursor_type_t::CT_NODROP,
+            Cursor::NotAllowed => return cef_cursor_type_t::CT_NOTALLOWED,
+            Cursor::Pointer => return cef_cursor_type_t::CT_POINTER,
+            Cursor::SResize => return cef_cursor_type_t::CT_SOUTHRESIZE,
+            Cursor::WResize => return cef_cursor_type_t::CT_WESTRESIZE,
+            Cursor::EwResize => return cef_cursor_type_t::CT_EASTWESTRESIZE,
+            Cursor::ColResize => return cef_cursor_type_t::CT_COLUMNRESIZE,
+            Cursor::EResize => return cef_cursor_type_t::CT_EASTRESIZE,
+            Cursor::NResize => return cef_cursor_type_t::CT_NORTHRESIZE,
+            Cursor::NsResize => return cef_cursor_type_t::CT_NORTHSOUTHRESIZE,
+            Cursor::RowResize => return cef_cursor_type_t::CT_ROWRESIZE,
+            Cursor::VerticalText => return cef_cursor_type_t::CT_VERTICALTEXT,
             _ => return cef_cursor_type_t::CT_POINTER,
         }
     }
@@ -138,27 +138,27 @@ impl Window {
 
         unsafe {
             match cursor {
-                Cursor::NoCursor => return 0 as cef_cursor_handle_t,
-                Cursor::ContextMenuCursor => msg_send![class("NSCursor"), contextualMenuCursor],
-                Cursor::GrabbingCursor => msg_send![class("NSCursor"), closedHandCursor],
-                Cursor::CrosshairCursor => msg_send![class("NSCursor"), crosshairCursor],
-                Cursor::CopyCursor => msg_send![class("NSCursor"), dragCopyCursor],
-                Cursor::AliasCursor => msg_send![class("NSCursor"), dragLinkCursor],
-                Cursor::TextCursor => msg_send![class("NSCursor"), IBeamCursor],
-                Cursor::GrabCursor | Cursor::AllScrollCursor =>
+                Cursor::None => return 0 as cef_cursor_handle_t,
+                Cursor::ContextMenu => msg_send![class("NSCursor"), contextualMenuCursor],
+                Cursor::Grabbing => msg_send![class("NSCursor"), closedHandCursor],
+                Cursor::Crosshair => msg_send![class("NSCursor"), crosshairCursor],
+                Cursor::Copy => msg_send![class("NSCursor"), dragCopyCursor],
+                Cursor::Alias => msg_send![class("NSCursor"), dragLinkCursor],
+                Cursor::Text => msg_send![class("NSCursor"), IBeamCursor],
+                Cursor::Grab | Cursor::AllScroll =>
                     msg_send![class("NSCursor"), openHandCursor],
-                Cursor::NoDropCursor | Cursor::NotAllowedCursor =>
+                Cursor::NoDrop | Cursor::NotAllowed =>
                     msg_send![class("NSCursor"), operationNotAllowedCursor],
-                Cursor::PointerCursor => msg_send![class("NSCursor"), pointingHandCursor],
-                Cursor::SResizeCursor => msg_send![class("NSCursor"), resizeDownCursor],
-                Cursor::WResizeCursor => msg_send![class("NSCursor"), resizeLeftCursor],
-                Cursor::EwResizeCursor | Cursor::ColResizeCursor =>
+                Cursor::Pointer => msg_send![class("NSCursor"), pointingHandCursor],
+                Cursor::SResize => msg_send![class("NSCursor"), resizeDownCursor],
+                Cursor::WResize => msg_send![class("NSCursor"), resizeLeftCursor],
+                Cursor::EwResize | Cursor::ColResize =>
                     msg_send![class("NSCursor"), resizeLeftRightCursor],
-                Cursor::EResizeCursor => msg_send![class("NSCursor"), resizeRightCursor],
-                Cursor::NResizeCursor => msg_send![class("NSCursor"), resizeUpCursor],
-                Cursor::NsResizeCursor | Cursor::RowResizeCursor =>
+                Cursor::EResize => msg_send![class("NSCursor"), resizeRightCursor],
+                Cursor::NResize => msg_send![class("NSCursor"), resizeUpCursor],
+                Cursor::NsResize | Cursor::RowResize =>
                     msg_send![class("NSCursor"), resizeUpDownCursor],
-                Cursor::VerticalTextCursor => msg_send![class("NSCursor"), IBeamCursorForVerticalLayout],
+                Cursor::VerticalText => msg_send![class("NSCursor"), IBeamCursorForVerticalLayout],
                 _ => msg_send![class("NSCursor"), arrowCursor],
             }
         }
