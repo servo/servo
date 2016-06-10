@@ -27,9 +27,14 @@ interface MediaSource : EventTarget {
     readonly    attribute SourceBufferList    activeSourceBuffers;
     readonly    attribute ReadyState          readyState;
                 attribute unrestricted double duration;
+                attribute EventHandler        onsourceopen;
+                attribute EventHandler        onsourceended;
+                attribute EventHandler        onsourceclose;
     SourceBuffer   addSourceBuffer (DOMString type);
     void           removeSourceBuffer (SourceBuffer sourceBuffer);
     void           endOfStream (optional EndOfStreamError error);
+    void           setLiveSeekableRange (double start, double end);
+    void           clearLiveSeekableRange ();
     static boolean isTypeSupported (DOMString type);
 };
 
@@ -43,15 +48,23 @@ interface SourceBuffer : EventTarget {
     readonly    attribute TextTrackList       textTracks;
                 attribute double              appendWindowStart;
                 attribute unrestricted double appendWindowEnd;
+                attribute EventHandler        onupdatestart;
+                attribute EventHandler        onupdate;
+                attribute EventHandler        onupdateend;
+                attribute EventHandler        onerror;
+                attribute EventHandler        onabort;
     void appendBuffer (ArrayBuffer data);
     void appendBuffer (ArrayBufferView data);
-    void appendStream (Stream stream, [EnforceRange] optional unsigned long long maxSize);
+    void appendStream (ReadableStream stream, [EnforceRange] optional unsigned long long maxSize);
     void abort ();
-    void remove (double start, double end);
+    void remove (double start, unrestricted double end);
+                    attribute TrackDefaultList    trackDefaults;
 };
 
 interface SourceBufferList : EventTarget {
     readonly    attribute unsigned long length;
+                attribute EventHandler  onaddsourcebuffer;
+                attribute EventHandler  onremovesourcebuffer;
     getter SourceBuffer (unsigned long index);
 };
 
@@ -63,6 +76,22 @@ interface VideoPlaybackQuality {
     readonly    attribute double              totalFrameDelay;
 };
 
+[ Constructor (TrackDefaultType type, DOMString language, DOMString label, sequence<DOMString> kinds, optional DOMString byteStreamTrackID = "")]
+interface TrackDefault {
+    readonly    attribute TrackDefaultType    type;
+    readonly    attribute DOMString           byteStreamTrackID;
+    readonly    attribute DOMString           language;
+    readonly    attribute DOMString           label;
+    sequence<DOMString> getKinds ();
+};
+
+[ Constructor (optional sequence<TrackDefault> trackDefaults = [])]
+interface TrackDefaultList {
+    readonly    attribute unsigned long length;
+    getter TrackDefault (unsigned long index);
+};
+
+[Exposed=Window,DedicatedWorker,SharedWorker]
 partial interface URL {
     static DOMString createObjectURL (MediaSource mediaSource);
 };
@@ -72,20 +101,14 @@ partial interface HTMLVideoElement {
 };
 
 partial interface AudioTrack {
-                attribute DOMString     kind;
-                attribute DOMString     language;
     readonly    attribute SourceBuffer? sourceBuffer;
 };
 
 partial interface VideoTrack {
-                attribute DOMString     kind;
-                attribute DOMString     language;
     readonly    attribute SourceBuffer? sourceBuffer;
 };
 
 partial interface TextTrack {
-                attribute DOMString     kind;
-                attribute DOMString     language;
     readonly    attribute SourceBuffer? sourceBuffer;
 };
 
@@ -93,6 +116,7 @@ enum EndOfStreamError {
     "network",
     "decode"
 };
+
 enum AppendMode {
     "segments",
     "sequence"
@@ -104,6 +128,11 @@ enum ReadyState {
     "ended"
 };
 
+enum TrackDefaultType {
+    "audio",
+    "video",
+    "text"
+};
 </script>
 <script>
 "use strict";
@@ -124,6 +153,7 @@ var idlCheck = function() {
     SourceBuffer: ['sourceBuffer'],
     SourceBufferList: ['mediaSource.sourceBuffers'],
     VideoPlaybackQuality: ['video.getVideoPlaybackQuality()'],
+    TrackDefaultList: ['sourceBuffer.trackDefaults']
   });
   idlArray.test();
 }

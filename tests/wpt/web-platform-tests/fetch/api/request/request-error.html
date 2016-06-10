@@ -63,6 +63,12 @@
       },"RequestInit's mode is no-cors and integrity is not empty");
 
       test(function() {
+        assert_throws(new TypeError() ,
+                      function() { new Request("", {"mode" : "cors", "cache" : "only-if-cached"}); },
+                      "Expect TypeError exception");
+      },"RequestInit's cache mode is only-if-cached and mode is not same-origin");
+
+      test(function() {
         var initialHeaders = new Headers([["Content-Type", "potato"]]);
         var initialRequest = new Request("", {"headers" : initialHeaders});
         var request = new Request(initialRequest);
