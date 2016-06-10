@@ -25,7 +25,9 @@
     <div id="thediv"></div>
 </body>
 <script>
-
+// Testing for html body element's scroll- x, y, width, height behaviour in quirks mode
+// https://drafts.csswg.org/cssom-view/#potentially-scrollable
+// https://drafts.csswg.org/cssom-view/#dom-element-scrollheight
 test(function() {
     // can i get the div element?
     var thediv = document.getElementById("thediv");
@@ -43,8 +45,6 @@ test(function() {
     document.documentElement.style.overflowY = "scroll";
     assert_equals(document.documentElement.style.overflowY, "scroll", "Could not set document.documentElement.style.overflow to 'scroll'.");
 }, "Ensure that style.overflowY can be set properly.")
-// most of the quirks mode tests are 'stolen' from `scrollingElement.html`
-// avoiding (currently not implemented) overflow shorthand by using overflowY instead
 
 test(function() {
     assert_equals(document.compatMode, "BackCompat", "Should be in quirks mode.");
@@ -65,9 +65,15 @@ test(function() {
     assert_equals(thebody.id, "thebody");
     thebody.style.overflowY="scroll";
     assert_equals(document.body.style.overflowY, "scroll", "Could not set document.body.style.overflowY to 'scroll'.");
+    // Body and document now both have overflow != visible
+    // => body `potentially scrollable`
+
+    // In quirks, when body is not `potentially scrollable`
+    //    document.scrollingElment returns the body, otherwise null
+    // https://drafts.csswg.org/cssom-view/#dom-document-scrollingelement
     assert_equals(document.scrollingElement, null,
-                  "scrollingElement in quirks mode should be null if overflow of body and root element isn't visible.");
-}, "scrollingElement in quiks should be null when overflow of body and document is not visible.")
+                  "In quirks, we would expect null here (because of potentially scrollable body)");
+}, "scrollingElement in quirks should be null when body is potentially scrollable.")
 
 test(function() {
     document.documentElement.style.overflowY = "visible";
@@ -85,7 +91,6 @@ test(function() {
     assert_equals(document.scrollingElement, document.body);
 }, "scrollingElement in quirks should be body if any of document and body has a visible overflow.")
 
-// https://drafts.csswg.org/cssom-view/#potentially-scrollable
 // no overflow property set to `visible` => pot. scrollable
 test(function() {
     document.body.style.overflowY = "scroll";
