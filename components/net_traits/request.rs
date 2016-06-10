@@ -117,7 +117,7 @@ pub struct RequestInit {
     pub unsafe_request: bool,
     pub same_origin_data: bool,
     pub body: Option<Vec<u8>>,
-    // TODO: cleint object
+    // TODO: client object
     pub destination: Destination,
     pub synchronous: bool,
     pub mode: RequestMode,
@@ -214,7 +214,8 @@ impl Request {
     }
 
     pub fn from_init(init: RequestInit) -> Request {
-        let mut req = Request::new(init.url, None, false);
+        let mut req = Request::new(init.url,
+                                   Some(Origin::Origin(init.origin.origin())), false);
         *req.method.borrow_mut() = init.method;
         *req.headers.borrow_mut() = init.headers;
         req.unsafe_request = init.unsafe_request;
@@ -226,7 +227,6 @@ impl Request {
         req.use_cors_preflight = init.use_cors_preflight;
         req.credentials_mode = init.credentials_mode;
         req.use_url_credentials = init.use_url_credentials;
-        *req.origin.borrow_mut() = Origin::Origin(init.origin.origin());
         *req.referer.borrow_mut() = if let Some(url) = init.referer_url {
             Referer::RefererUrl(url)
         } else {

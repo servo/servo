@@ -418,9 +418,9 @@ fn strip_url(mut referrer_url: Url, origin_only: bool) -> Option<Url> {
 
 /// https://w3c.github.io/webappsec-referrer-policy/#determine-requests-referrer
 pub fn determine_request_referrer(headers: &mut Headers,
-                              referrer_policy: Option<ReferrerPolicy>,
-                              referrer_url: Option<Url>,
-                              url: Url) -> Option<Url> {
+                                  referrer_policy: Option<ReferrerPolicy>,
+                                  referrer_url: Option<Url>,
+                                  url: Url) -> Option<Url> {
     //TODO - algorithm step 2 not addressed
     assert!(!headers.has::<Referer>());
     if let Some(ref_url) = referrer_url {
