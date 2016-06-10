@@ -62,7 +62,7 @@ use rustc_serialize::base64::{FromBase64, STANDARD, ToBase64};
 use script_runtime::{ScriptChan, ScriptPort};
 use script_thread::SendableMainThreadScriptChan;
 use script_thread::{MainThreadScriptChan, MainThreadScriptMsg, RunnableWrapper};
-use script_traits::{ConstellationControlMsg, UntrustedNodeAddress};
+use script_traits::{ConstellationControlMsg, MozBrowserEvent, UntrustedNodeAddress};
 use script_traits::{DocumentState, MsDuration, TimerEvent, TimerEventId};
 use script_traits::{ScriptMsg as ConstellationMsg, TimerEventRequest, TimerSource};
 use std::ascii::AsciiExt;
@@ -464,7 +464,12 @@ impl WindowMethods for Window {
 
     // https://html.spec.whatwg.org/multipage/#dom-window-close
     fn Close(&self) {
-        self.main_thread_script_chan().send(MainThreadScriptMsg::ExitWindow(self.id.clone())).unwrap();
+        if !self.is_mozbrowser() {
+            self.main_thread_script_chan().send(MainThreadScriptMsg::ExitWindow(self.id.clone())).unwrap();
+            return;
+        }
+        // TODO(aneeshusa): do this more efficiently (avoid round-tripping to constellation)
+        self.Document().trigger_mozbrowser_event(MozBrowserEvent::Close);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-2
