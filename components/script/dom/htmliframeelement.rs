@@ -125,7 +125,7 @@ impl HTMLIFrameElement {
 
         let load_info = IFrameLoadInfo {
             load_data: load_data,
-            containing_pipeline_id: window.pipeline_id(),
+            parent_pipeline_id: window.pipeline_id(),
             new_subpage_id: new_subpage_id,
             old_subpage_id: old_subpage_id,
             new_pipeline_id: new_pipeline_id,
