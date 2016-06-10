@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use ipc_channel::ipc::IpcSender;
 use std::str::FromStr;
 use url::Url;
 use uuid::Uuid;
@@ -13,6 +14,14 @@ pub enum BlobURLStoreError {
     InvalidKey,
     /// Invalid URL origin
     InvalidOrigin,
+}
+
+#[derive(Serialize, Deserialize)]
+pub enum BlobURLStoreMsg {
+    /// Add an entry and send back the associated uuid
+    AddEntry(BlobURLStoreEntry, IpcSender<String>),
+    /// Delete an entry by uuid
+    DeleteEntry(String),
 }
 
 /// Blob URL store entry, a packaged form of Blob DOM object

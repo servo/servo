@@ -6,7 +6,7 @@ use blob_loader;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use mime_classifier::MIMEClassifier;
 use mime_guess::guess_mime_type_opt;
-use net_traits::blob_url_store::{BlobURLStoreEntry, BlobURLStoreError};
+use net_traits::blob_url_store::{BlobURLStoreEntry, BlobURLStoreError, BlobURLStoreMsg};
 use net_traits::filemanager_thread::{FileManagerThreadMsg, FileManagerResult};
 use net_traits::filemanager_thread::{SelectedFile, FileManagerThreadError, SelectedFileId};
 use std::collections::HashMap;
@@ -65,6 +65,7 @@ impl FileManager {
                     }
                 }
                 FileManagerThreadMsg::DeleteFileID(id) => self.delete_fileid(id),
+                FileManagerThreadMsg::BlobURLStoreMsg(msg) => self.blob_url_store.write().unwrap().process(msg),
                 FileManagerThreadMsg::LoadBlob(load_data, consumer) => {
                     blob_loader::load(load_data, consumer,
                                       self.blob_url_store.clone(),
@@ -171,6 +172,23 @@ impl BlobURLStore {
     pub fn new() -> BlobURLStore {
         BlobURLStore {
             entries: HashMap::new(),
+        }
+    }
+
+    fn process(&mut self, msg: BlobURLStoreMsg) {
+        match msg {
+            BlobURLStoreMsg::AddEntry(entry, sender) => {
+                let origin = unimplemented!(); // XXX: Where to get Origin? From script?
+                let id = Uuid::new_v4();
+                self.add_entry(id, origin, entry);
+
+                let _ = sender.send(id.simple().to_string());
+            }
+            BlobURLStoreMsg::DeleteEntry(id) => {
+                if let Ok(id) = Uuid::parse_str(&id) {
+                    self.delete_entry(id);
+                }
+            },
         }
     }
 

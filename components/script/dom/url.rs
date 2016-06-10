@@ -3,18 +3,25 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::cell::DOMRefCell;
+use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use dom::bindings::codegen::Bindings::URLBinding::{self, URLMethods};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::{DOMString, USVString};
+use dom::blob::Blob;
 use dom::urlhelper::UrlHelper;
 use dom::urlsearchparams::URLSearchParams;
+use ipc_channel::ipc;
+use net_traits::IpcSend;
+use net_traits::blob_url_store::{BlobURLStoreEntry, BlobURLStoreMsg, parse_blob_url};
+use net_traits::filemanager_thread::FileManagerThreadMsg;
 use std::borrow::ToOwned;
 use std::default::Default;
 use url::quirks::domain_to_unicode;
 use url::{Host, Url};
+use uuid::Uuid;
 
 // https://url.spec.whatwg.org/#url
 #[dom_struct]
@@ -104,6 +111,71 @@ impl URL {
 
     pub fn DomainToUnicode(_: GlobalRef, origin: USVString) -> USVString {
         USVString(domain_to_unicode(&origin.0))
+    }
+
+    // https://w3c.github.io/FileAPI/#dfn-createObjectURL
+    pub fn CreateObjectURL(global: GlobalRef, blob: &Blob) -> DOMString {
+        if blob.IsClosed() {
+            // Generate a dummy id
+            let id = Uuid::new_v4().simple().to_string();
+            return DOMString::from(URL::unicode_serialization_blob_url(id));
+        }
+
+        let filemanager = global.resource_threads().sender();
+
+        // let origin = global.get_url().origin().unicode_serialization();
+        // XXX: Should we send this?
+
+        let slice = blob.get_slice_or_empty();
+        let bytes = slice.get_bytes();
+
+        let entry = BlobURLStoreEntry {
+            type_string: blob.Type().to_string(),
+            filename: None, // XXX: the filename is currently only in File object now
+            size: blob.Size(),
+            bytes: bytes.to_vec(),
+        };
+
+
+        let (tx, rx) = ipc::channel().unwrap();
+
+        let msg = BlobURLStoreMsg::AddEntry(entry, tx);
+
+        let _ = filemanager.send(FileManagerThreadMsg::BlobURLStoreMsg(msg));
+
+        let id = rx.recv().unwrap();
+
+        DOMString::from(URL::unicode_serialization_blob_url(id))
+    }
+
+    // https://w3c.github.io/FileAPI/#dfn-revokeObjectURL
+    pub fn RevokeObjectURL(global: GlobalRef, url: DOMString) {
+        /*
+            If the url refers to a Blob that has a readability state of CLOSED OR
+            if the value provided for the url argument is not a Blob URL, OR
+            if the value provided for the url argument does not have an entry in the Blob URL Store,
+
+            this method call does nothing. User agents may display a message on the error console.
+
+            XXX: First condition can't be enforced given current design
+        */
+
+        match Url::parse(&url) {
+            Ok(url) => match parse_blob_url(&url) {
+                Some((id, _)) => {
+                    let filemanager = global.resource_threads().sender();
+                    let msg = BlobURLStoreMsg::DeleteEntry(id.simple().to_string());
+                    let _ = filemanager.send(FileManagerThreadMsg::BlobURLStoreMsg(msg));
+                }
+                None => {}
+            },
+            Err(_) => {}
+        }
+    }
+
+    // https://w3c.github.io/FileAPI/#unicodeSerializationOfBlobURL
+    fn unicode_serialization_blob_url(id: String) -> String {
+        unimplemented!()
     }
 }
 
