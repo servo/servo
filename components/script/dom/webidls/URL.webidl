@@ -23,6 +23,11 @@ interface URL {
   readonly attribute URLSearchParams searchParams;
            attribute USVString hash;
 
+  // https://w3c.github.io/FileAPI/#creating-revoking
+  static DOMString createObjectURL(Blob blob);
+  // static DOMString createFor(Blob blob);
+  static void revokeObjectURL(DOMString url);
+
   // This is only doing as well as gecko right now.
   // https://github.com/servo/servo/issues/7590 is on file for
   // adding attribute stringifier support.
