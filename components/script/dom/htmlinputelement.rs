@@ -33,7 +33,7 @@ use dom::validation::Validatable;
 use dom::virtualmethods::VirtualMethods;
 use ipc_channel::ipc::{self, IpcSender};
 use net_traits::IpcSend;
-use net_traits::filemanager_thread::FileManagerThreadMsg;
+use net_traits::filemanager_thread::{FileManagerThreadMsg, FilterPattern};
 use script_traits::ScriptMsg as ConstellationMsg;
 use std::borrow::ToOwned;
 use std::cell::Cell;
@@ -993,7 +993,7 @@ impl Activatable for HTMLInputElement {
             // https://html.spec.whatwg.org/multipage/#reset-button-state-%28type=reset%29:activation-behaviour-2
             // https://html.spec.whatwg.org/multipage/#checkbox-state-%28type=checkbox%29:activation-behaviour-2
             // https://html.spec.whatwg.org/multipage/#radio-button-state-%28type=radio%29:activation-behaviour-2
-            InputType::InputSubmit | InputType::InputReset
+            InputType::InputSubmit | InputType::InputReset | InputType::InputFile
             | InputType::InputCheckbox | InputType::InputRadio => self.is_mutable(),
             _ => false
         }
@@ -1140,9 +1140,11 @@ impl Activatable for HTMLInputElement {
                 let mut files: Vec<Root<File>> = vec![];
                 let mut error = None;
 
+                let filter = filter_from_accept(self.Accept());
+
                 if self.Multiple() {
                     let (chan, recv) = ipc::channel().expect("Error initializing channel");
-                    let msg = FileManagerThreadMsg::SelectFiles(chan);
+                    let msg = FileManagerThreadMsg::SelectFiles(filter, chan);
                     let _ = filemanager.send(msg).unwrap();
 
                     match recv.recv().expect("IpcSender side error") {
@@ -1155,7 +1157,7 @@ impl Activatable for HTMLInputElement {
                     };
                 } else {
                     let (chan, recv) = ipc::channel().expect("Error initializing channel");
-                    let msg = FileManagerThreadMsg::SelectFile(chan);
+                    let msg = FileManagerThreadMsg::SelectFile(filter, chan);
                     let _ = filemanager.send(msg).unwrap();
 
                     match recv.recv().expect("IpcSender side error") {
@@ -1228,3 +1230,10 @@ impl Activatable for HTMLInputElement {
         }
     }
 }
+
+fn filter_from_accept(_s: DOMString) -> Vec<FilterPattern> {
+    /// TODO: it means not pattern restriction now
+    /// Blocked by https://github.com/cybergeek94/mime_guess/issues/19
+    vec![]
+}
+

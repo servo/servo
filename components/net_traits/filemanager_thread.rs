@@ -18,13 +18,16 @@ pub struct SelectedFile {
     pub type_string: String,
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct FilterPattern(pub String);
+
 #[derive(Deserialize, Serialize)]
 pub enum FileManagerThreadMsg {
     /// Select a single file, return triple (FileID, FileName, lastModified)
-    SelectFile(IpcSender<FileManagerResult<SelectedFile>>),
+    SelectFile(Vec<FilterPattern>, IpcSender<FileManagerResult<SelectedFile>>),
 
     /// Select multiple files, return a vector of triples
-    SelectFiles(IpcSender<FileManagerResult<Vec<SelectedFile>>>),
+    SelectFiles(Vec<FilterPattern>, IpcSender<FileManagerResult<Vec<SelectedFile>>>),
 
     /// Read file, return the bytes
     ReadFile(IpcSender<FileManagerResult<Vec<u8>>>, SelectedFileId),
@@ -43,8 +46,10 @@ pub type FileManagerResult<T> = Result<T, FileManagerThreadError>;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum FileManagerThreadError {
-    /// The selection action is invalid, nothing is selected
+    /// The selection action is invalid due to exceptional reason
     InvalidSelection,
+    /// The selection action is cancelled by user
+    UserCancelled,
     /// Failure to process file information such as file name, modified time etc.
     FileInfoProcessingError,
     /// Failure to read the file content
