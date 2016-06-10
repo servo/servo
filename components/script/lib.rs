@@ -91,7 +91,6 @@ extern crate xml5ever;
 mod blob_url_store;
 pub mod bluetooth_blacklist;
 pub mod clipboard_provider;
-pub mod cors;
 mod devtools;
 pub mod document_loader;
 #[macro_use]

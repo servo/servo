@@ -568,7 +568,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             CredentialsMode::CredentialsSameOrigin
         };
         let use_url_credentials = if let Some(ref url) = *self.request_url.borrow() {
-            url.username().len() != 0 || url.password().is_some()
+            !url.username().is_empty() || url.password().is_some()
         } else {
             unreachable!()
         };
@@ -886,8 +886,6 @@ impl XMLHttpRequest {
                 return Err(Error::Network);
             },
         };
-
-        // todo allow cors in mozbrowser
 
         *self.response_url.borrow_mut() = metadata.final_url[..Position::AfterQuery].to_owned();
 

@@ -312,6 +312,8 @@ fn main_fetch(request: Rc<Request>, cache: &mut CORSCache, cors_flag: bool,
             if let Some(ref mut target) = *target {
                 target.process_response_chunk(vec.clone());
             }
+        } else {
+            assert!(*response.body.lock().unwrap() == ResponseBody::Empty)
         }
 
         // overloaded similarly to process_response
@@ -358,6 +360,8 @@ fn main_fetch(request: Rc<Request>, cache: &mut CORSCache, cors_flag: bool,
             // We should still send the body across as a chunk
             target.process_response_chunk(vec.clone());
         }
+    } else {
+        assert!(*response.body.lock().unwrap() == ResponseBody::Empty)
     }
 
     // Step 23
