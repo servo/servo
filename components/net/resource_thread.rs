@@ -12,7 +12,7 @@ use cookie_storage::CookieStorage;
 use data_loader;
 use devtools_traits::DevtoolsControlMsg;
 use file_loader;
-use filemanager_thread::FileManagerThreadFactory;
+use filemanager_thread::{FileManagerThreadFactory, TFDProvider};
 use hsts::HstsList;
 use http_loader::{self, HttpState};
 use hyper::client::pool::Pool;
@@ -44,6 +44,8 @@ use util::opts;
 use util::prefs;
 use util::thread::spawn_named;
 use websocket_loader;
+
+const TFD_PROVIDER: &'static TFDProvider = &TFDProvider;
 
 pub enum ProgressSender {
     Channel(IpcSender<ProgressMsg>),
@@ -157,7 +159,7 @@ pub fn new_resource_threads(user_agent: String,
                             profiler_chan: ProfilerChan) -> ResourceThreads {
     ResourceThreads::new(new_core_resource_thread(user_agent, devtools_chan, profiler_chan),
                          StorageThreadFactory::new(),
-                         FileManagerThreadFactory::new())
+                         FileManagerThreadFactory::new(TFD_PROVIDER))
 }
 
 

@@ -7,48 +7,73 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use mime_classifier::MIMEClassifier;
 use mime_guess::guess_mime_type_opt;
 use net_traits::blob_url_store::{BlobURLStoreEntry, BlobURLStoreError};
-use net_traits::filemanager_thread::{FileManagerThreadMsg, FileManagerResult};
+use net_traits::filemanager_thread::{FileManagerThreadMsg, FileManagerResult, FilterPattern};
 use net_traits::filemanager_thread::{SelectedFile, FileManagerThreadError, SelectedFileId};
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
+use tinyfiledialogs;
 use url::Origin;
 use util::thread::spawn_named;
 use uuid::Uuid;
 
-pub trait FileManagerThreadFactory {
-    fn new() -> Self;
+pub trait FileManagerThreadFactory<UI: 'static + UIProvider> {
+    fn new(&'static UI) -> Self;
 }
 
-impl FileManagerThreadFactory for IpcSender<FileManagerThreadMsg> {
+pub trait UIProvider where Self: Sync {
+    fn open_file_dialog(&self, path: &str,
+                        filter: Option<(&[&str], &str)>) -> Option<String>;
+
+    fn open_file_dialog_multi(&self, path: &str,
+                              filter: Option<(&[&str], &str)>) -> Option<Vec<String>>;
+}
+
+pub struct TFDProvider;
+
+impl UIProvider for TFDProvider {
+    fn open_file_dialog(&self, path: &str,
+                        filter: Option<(&[&str], &str)>) -> Option<String> {
+        tinyfiledialogs::open_file_dialog("Pick a file", path, filter)
+    }
+
+    fn open_file_dialog_multi(&self, path: &str,
+                              filter: Option<(&[&str], &str)>) -> Option<Vec<String>> {
+        tinyfiledialogs::open_file_dialog_multi("Pick files", path, filter)
+    }
+}
+
+impl<UI: 'static + UIProvider> FileManagerThreadFactory<UI> for IpcSender<FileManagerThreadMsg> {
     /// Create a FileManagerThread
-    fn new() -> IpcSender<FileManagerThreadMsg> {
+    fn new(ui: &'static UI) -> IpcSender<FileManagerThreadMsg> {
         let (chan, recv) = ipc::channel().unwrap();
 
         spawn_named("FileManager".to_owned(), move || {
-            FileManager::new(recv).start();
+            FileManager::new(recv, ui).start();
         });
 
         chan
     }
 }
 
-struct FileManager {
+struct FileManager<UI: 'static + UIProvider> {
     receiver: IpcReceiver<FileManagerThreadMsg>,
     idmap: HashMap<Uuid, PathBuf>,
     classifier: Arc<MIMEClassifier>,
     blob_url_store: Arc<RwLock<BlobURLStore>>,
+    ui: &'static UI,
 }
 
-impl FileManager {
-    fn new(recv: IpcReceiver<FileManagerThreadMsg>) -> FileManager {
+impl<UI: 'static + UIProvider> FileManager<UI> {
+    fn new(recv: IpcReceiver<FileManagerThreadMsg>, ui: &'static UI) -> FileManager<UI> {
         FileManager {
             receiver: recv,
             idmap: HashMap::new(),
             classifier: Arc::new(MIMEClassifier::new()),
             blob_url_store: Arc::new(RwLock::new(BlobURLStore::new())),
+            ui: ui
         }
     }
 
@@ -56,8 +81,8 @@ impl FileManager {
     fn start(&mut self) {
         loop {
             match self.receiver.recv().unwrap() {
-                FileManagerThreadMsg::SelectFile(sender) => self.select_file(sender),
-                FileManagerThreadMsg::SelectFiles(sender) => self.select_files(sender),
+                FileManagerThreadMsg::SelectFile(filter, sender) => self.select_file(filter, sender),
+                FileManagerThreadMsg::SelectFiles(filter, sender) => self.select_files(filter, sender),
                 FileManagerThreadMsg::ReadFile(sender, id) => {
                     match self.try_read_file(id) {
                         Ok(buffer) => { let _ = sender.send(Ok(buffer)); }
@@ -74,33 +99,51 @@ impl FileManager {
             };
         }
     }
-}
 
-impl FileManager {
-    fn select_file(&mut self, sender: IpcSender<FileManagerResult<SelectedFile>>) {
-        // TODO: Pull the dialog UI in and get selected
-        // XXX: "test.txt" is "tests/unit/net/test.txt", for temporary testing purpose
-        let selected_path = Path::new("test.txt");
+    fn select_file(&mut self, _filter: Vec<FilterPattern>,
+                   sender: IpcSender<FileManagerResult<SelectedFile>>) {
+        match self.ui.open_file_dialog("", None) {
+            Some(s) => {
+                let selected_path = Path::new(&s);
 
-        match self.create_entry(selected_path) {
-            Some(triple) => { let _ = sender.send(Ok(triple)); }
-            None => { let _ = sender.send(Err(FileManagerThreadError::InvalidSelection)); }
-        };
+                match self.create_entry(selected_path) {
+                    Some(triple) => { let _ = sender.send(Ok(triple)); }
+                    None => { let _ = sender.send(Err(FileManagerThreadError::InvalidSelection)); }
+                };
+            }
+            None => {
+                let _ = sender.send(Err(FileManagerThreadError::UserCancelled));
+                return;
+            }
+        }
     }
 
-    fn select_files(&mut self, sender: IpcSender<FileManagerResult<Vec<SelectedFile>>>) {
-        let selected_paths = vec![Path::new("test.txt")];
+    fn select_files(&mut self, _filter: Vec<FilterPattern>,
+                    sender: IpcSender<FileManagerResult<Vec<SelectedFile>>>) {
+        match self.ui.open_file_dialog_multi("", None) {
+            Some(v) => {
+                let mut selected_paths = vec![];
 
-        let mut replies = vec![];
+                for s in &v {
+                    selected_paths.push(Path::new(s));
+                }
 
-        for path in selected_paths {
-            match self.create_entry(path) {
-                Some(triple) => replies.push(triple),
-                None => { let _ = sender.send(Err(FileManagerThreadError::InvalidSelection)); }
-            };
+                let mut replies = vec![];
+
+                for path in selected_paths {
+                    match self.create_entry(path) {
+                        Some(triple) => replies.push(triple),
+                        None => { let _ = sender.send(Err(FileManagerThreadError::InvalidSelection)); }
+                    };
+                }
+
+                let _ = sender.send(Ok(replies));
+            }
+            None => {
+                let _ = sender.send(Err(FileManagerThreadError::UserCancelled));
+                return;
+            }
         }
-
-        let _ = sender.send(Ok(replies));
     }
 
     fn create_entry(&mut self, file_path: &Path) -> Option<SelectedFile> {
@@ -195,4 +238,3 @@ impl BlobURLStore {
         self.entries.remove(&id);
     }
 }
-
