@@ -568,7 +568,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             CredentialsMode::CredentialsSameOrigin
         };
         let use_url_credentials = if let Some(ref url) = *self.request_url.borrow() {
-            url.username().len() != 0 || url.password().is_some()
+            !url.username().is_empty() || url.password().is_some()
         } else {
             unreachable!()
         };
