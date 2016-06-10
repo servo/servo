@@ -236,16 +236,15 @@ impl XMLHttpRequest {
                     self.xhr.root().process_data_available(self.gen_id, self.buf.borrow().clone());
                 }
                 fn process_response_eof(&mut self, response: Result<(), NetworkError>) {
-                    match response {
+                    let rv = match response {
                         Ok(()) => {
-                            let rv = self.xhr.root().process_response_complete(self.gen_id, Ok(()));
-                            *self.sync_status.borrow_mut() = Some(rv);
+                            self.xhr.root().process_response_complete(self.gen_id, Ok(()))
                         }
                         Err(e) => {
-                            let rv = self.xhr.root().process_response_complete(self.gen_id, Err(e));
-                            *self.sync_status.borrow_mut() = Some(rv);
+                            self.xhr.root().process_response_complete(self.gen_id, Err(e))
                         }
-                    }
+                    };
+                    *self.sync_status.borrow_mut() = Some(rv);
                 }
         }
 
