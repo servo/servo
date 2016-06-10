@@ -358,21 +358,19 @@ fn add_font_face_rules(stylesheet: &Stylesheet,
     if opts::get().load_webfonts_synchronously {
         let (sender, receiver) = ipc::channel().unwrap();
         for font_face in stylesheet.effective_rules(&device).font_face() {
-            for source in font_face.effective_sources() {
-                font_cache_thread.add_web_font(font_face.family.clone(),
-                                              (*source).clone(),
-                                              sender.clone());
-                receiver.recv().unwrap();
-            }
+            let effective_sources = font_face.effective_sources();
+            font_cache_thread.add_web_font(font_face.family.clone(),
+                                           effective_sources,
+                                           sender.clone());
+            receiver.recv().unwrap();
         }
     } else {
         for font_face in stylesheet.effective_rules(&device).font_face() {
-            for source in font_face.effective_sources() {
-                outstanding_web_fonts_counter.fetch_add(1, Ordering::SeqCst);
-                font_cache_thread.add_web_font(font_face.family.clone(),
-                                              (*source).clone(),
-                                              (*font_cache_sender).clone());
-            }
+            let effective_sources = font_face.effective_sources();
+            outstanding_web_fonts_counter.fetch_add(1, Ordering::SeqCst);
+            font_cache_thread.add_web_font(font_face.family.clone(),
+                                          effective_sources,
+                                          (*font_cache_sender).clone());
         }
     }
 }
