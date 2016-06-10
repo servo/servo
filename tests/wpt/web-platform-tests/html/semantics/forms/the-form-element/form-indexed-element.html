@@ -20,5 +20,7 @@ test(function() {
   var form = document.getElementById("form");
   assert_equals(form[0], document.getElementById("r1"));
   assert_equals(form[1], document.getElementById("r2"));
+  assert_equals(form[2], undefined);
+  assert_equals(form[-1], undefined);
   }, "form.elements should be accessed correctly by index")
 </script>
