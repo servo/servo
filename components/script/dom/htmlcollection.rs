@@ -114,37 +114,44 @@ impl HTMLCollection {
         }
     }
 
-    pub fn by_tag_name(window: &Window, root: &Node, mut tag: DOMString)
-                       -> Root<HTMLCollection> {
-        let tag_atom = Atom::from(&*tag);
-        tag.make_ascii_lowercase();
-        let ascii_lower_tag = Atom::from(tag); // FIXME(ajeffrey): don't clone atom if it was already lowercased.
-        HTMLCollection::by_atomic_tag_name(window, root, tag_atom, ascii_lower_tag)
-    }
+    pub fn match_elements_by_qualified_name(window: &Window, root: &Node, mut qualified_name: DOMString)
+                                            -> Root<HTMLCollection> {
+        let qualified_name_atom = Atom::from(&*qualified_name);
+        qualified_name.make_ascii_lowercase();
+        // FIXME(ajeffrey): don't clone atom if it was already lowercased.
+        let ascii_lower_qualified_name = Atom::from(qualified_name);
 
-    pub fn by_atomic_tag_name(window: &Window, root: &Node, tag_atom: Atom, ascii_lower_tag: Atom)
-                       -> Root<HTMLCollection> {
         #[derive(JSTraceable, HeapSizeOf)]
         struct TagNameFilter {
-            tag: Atom,
-            ascii_lower_tag: Atom,
+            qualified_name: Atom,
+            ascii_lower_qualified_name: Atom,
         }
         impl CollectionFilter for TagNameFilter {
             fn filter(&self, elem: &Element, _root: &Node) -> bool {
-                if self.tag == atom!("*") {
+                if self.qualified_name == atom!("*") {
                     true
                 } else if elem.html_element_in_html_document() {
-                    *elem.local_name() == self.ascii_lower_tag
+                    HTMLCollection::match_element(elem, self.ascii_lower_qualified_name.clone())
                 } else {
-                    *elem.local_name() == self.tag
+                    HTMLCollection::match_element(elem, self.qualified_name.clone())
                 }
             }
         }
         let filter = TagNameFilter {
-            tag: tag_atom,
-            ascii_lower_tag: ascii_lower_tag,
+            qualified_name: qualified_name_atom,
+            ascii_lower_qualified_name: ascii_lower_qualified_name,
         };
         HTMLCollection::create(window, root, box filter)
+    }
+
+    fn match_element(elem: &Element, qualified_name: Atom) -> bool {
+        match *elem.prefix() {
+            None => *elem.local_name() == qualified_name,
+            Some(ref prefix) => qualified_name.starts_with(prefix as &str) &&
+            // TODO(kevgs): replace find() with char access
+                qualified_name.find(":") == Some((prefix as &str).len()) &&
+                qualified_name.ends_with(elem.local_name() as &str),
+        }
     }
 
     pub fn by_tag_name_ns(window: &Window, root: &Node, tag: DOMString,
