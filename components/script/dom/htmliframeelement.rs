@@ -63,13 +63,13 @@ pub struct HTMLIFrameElement {
     htmlelement: HTMLElement,
     pipeline_id: Cell<Option<PipelineId>>,
     subpage_id: Cell<Option<SubpageId>>,
-    sandbox: Cell<Option<u8>>,
+    sandbox_allowance: Cell<Option<u8>>,
     load_blocker: DOMRefCell<Option<LoadBlocker>>,
 }
 
 impl HTMLIFrameElement {
     pub fn is_sandboxed(&self) -> bool {
-        self.sandbox.get().is_some()
+        self.sandbox_allowance.get().is_some()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#otherwise-steps-for-iframe-or-frame-elements>,
@@ -193,7 +193,7 @@ impl HTMLIFrameElement {
             htmlelement: HTMLElement::new_inherited(localName, prefix, document),
             pipeline_id: Cell::new(None),
             subpage_id: Cell::new(None),
-            sandbox: Cell::new(None),
+            sandbox_allowance: Cell::new(None),
             load_blocker: DOMRefCell::new(None),
         }
     }
@@ -515,7 +515,7 @@ impl VirtualMethods for HTMLIFrameElement {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
             &atom!("sandbox") => {
-                self.sandbox.set(mutation.new_value(attr).map(|value| {
+                self.sandbox_allowance.set(mutation.new_value(attr).map(|value| {
                     let mut modes = SandboxAllowance::AllowNothing as u8;
                     for token in value.as_tokens() {
                         modes |= match &*token.to_ascii_lowercase() {
