@@ -15,7 +15,7 @@ fn test_local_web_font() {
   let family_name = FontFamily::FamilyName(From::from("test family"));
   let variant_name = FontFamily::FamilyName(From::from("test font face"));
 
-  font_cache_thread.add_web_font(family_name, Source::Local(variant_name), out_chan);
+  font_cache_thread.add_web_font(family_name, vec![Source::Local(variant_name)], out_chan);
 
   assert_eq!(out_receiver.recv().unwrap(), ());
 }
