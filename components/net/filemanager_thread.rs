@@ -8,7 +8,7 @@ use mime_classifier::MIMEClassifier;
 use mime_guess::guess_mime_type_opt;
 use net_traits::blob_url_store::{BlobURLStoreEntry, BlobURLStoreError};
 use net_traits::filemanager_thread::{FileManagerThreadMsg, FileManagerResult};
-use net_traits::filemanager_thread::{SelectedFile, FileManagerThreadError};
+use net_traits::filemanager_thread::{SelectedFile, FileManagerThreadError, SelectedFileId};
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::Read;
@@ -17,13 +17,6 @@ use std::sync::{Arc, RwLock};
 use url::Origin;
 use util::thread::spawn_named;
 use uuid::Uuid;
-
-pub struct FileManager {
-    receiver: IpcReceiver<FileManagerThreadMsg>,
-    idmap: HashMap<Uuid, PathBuf>,
-    classifier: Arc<MIMEClassifier>,
-    blob_url_store: Arc<RwLock<BlobURLStore>>,
-}
 
 pub trait FileManagerThreadFactory {
     fn new() -> Self;
@@ -42,6 +35,12 @@ impl FileManagerThreadFactory for IpcSender<FileManagerThreadMsg> {
     }
 }
 
+struct FileManager {
+    receiver: IpcReceiver<FileManagerThreadMsg>,
+    idmap: HashMap<Uuid, PathBuf>,
+    classifier: Arc<MIMEClassifier>,
+    blob_url_store: Arc<RwLock<BlobURLStore>>,
+}
 
 impl FileManager {
     fn new(recv: IpcReceiver<FileManagerThreadMsg>) -> FileManager {
@@ -59,7 +58,12 @@ impl FileManager {
             match self.receiver.recv().unwrap() {
                 FileManagerThreadMsg::SelectFile(sender) => self.select_file(sender),
                 FileManagerThreadMsg::SelectFiles(sender) => self.select_files(sender),
-                FileManagerThreadMsg::ReadFile(sender, id) => self.read_file(sender, id),
+                FileManagerThreadMsg::ReadFile(sender, id) => {
+                    match self.try_read_file(id) {
+                        Ok(buffer) => { let _ = sender.send(Ok(buffer)); }
+                        Err(_) => { let _ = sender.send(Err(FileManagerThreadError::ReadFileError)); }
+                    }
+                }
                 FileManagerThreadMsg::DeleteFileID(id) => self.delete_fileid(id),
                 FileManagerThreadMsg::LoadBlob(load_data, consumer) => {
                     blob_loader::load(load_data, consumer,
@@ -67,7 +71,7 @@ impl FileManager {
                                       self.classifier.clone());
                 },
                 FileManagerThreadMsg::Exit => break,
-            }
+            };
         }
     }
 }
@@ -75,31 +79,25 @@ impl FileManager {
 impl FileManager {
     fn select_file(&mut self, sender: IpcSender<FileManagerResult<SelectedFile>>) {
         // TODO: Pull the dialog UI in and get selected
-        let selected_path = Path::new("");
+        // XXX: "test.txt" is "tests/unit/net/test.txt", for temporary testing purpose
+        let selected_path = Path::new("test.txt");
 
         match self.create_entry(selected_path) {
-            Some(triple) => {
-                let _ = sender.send(Ok(triple));
-            },
-            None => {
-                let _ = sender.send(Err(FileManagerThreadError::InvalidSelection));
-            }
-        }
+            Some(triple) => { let _ = sender.send(Ok(triple)); }
+            None => { let _ = sender.send(Err(FileManagerThreadError::InvalidSelection)); }
+        };
     }
 
     fn select_files(&mut self, sender: IpcSender<FileManagerResult<Vec<SelectedFile>>>) {
-        let selected_paths = vec![Path::new("")];
+        let selected_paths = vec![Path::new("test.txt")];
 
         let mut replies = vec![];
 
         for path in selected_paths {
             match self.create_entry(path) {
                 Some(triple) => replies.push(triple),
-                None => {
-                    let _ = sender.send(Err(FileManagerThreadError::InvalidSelection));
-                    return;
-                }
-            }
+                None => { let _ = sender.send(Err(FileManagerThreadError::InvalidSelection)); }
+            };
         }
 
         let _ = sender.send(Ok(replies));
@@ -128,7 +126,7 @@ impl FileManager {
                         let filename_path = Path::new(filename);
                         let mime = guess_mime_type_opt(filename_path);
                         Some(SelectedFile {
-                            id: id,
+                            id: SelectedFileId(id.simple().to_string()),
                             filename: filename_path.to_path_buf(),
                             modified: epoch,
                             type_string: match mime {
@@ -144,30 +142,24 @@ impl FileManager {
         }
     }
 
-    fn read_file(&mut self, sender: IpcSender<FileManagerResult<Vec<u8>>>, id: Uuid) {
-        match self.idmap.get(&id).and_then(|filepath| {
-            let mut buffer = vec![];
-            match File::open(&filepath) {
-                Ok(mut handler) => {
-                    match handler.read_to_end(&mut buffer) {
-                        Ok(_) => Some(buffer),
-                        Err(_) => None,
-                    }
-                },
-                Err(_) => None,
-            }
-        }) {
-            Some(buffer) => {
-                let _ = sender.send(Ok(buffer));
+    fn try_read_file(&mut self, id: SelectedFileId) -> Result<Vec<u8>, ()> {
+        let id = try!(Uuid::parse_str(&id.0).map_err(|_| ()));
+
+        match self.idmap.get(&id) {
+            Some(filepath) => {
+                let mut buffer = vec![];
+                let mut handler = try!(File::open(&filepath).map_err(|_| ()));
+                try!(handler.read_to_end(&mut buffer).map_err(|_| ()));
+                Ok(buffer)
             },
-            None => {
-                let _ = sender.send(Err(FileManagerThreadError::ReadFileError));
-            }
-        };
+            None => Err(())
+        }
     }
 
-    fn delete_fileid(&mut self, id: Uuid) {
-        self.idmap.remove(&id);
+    fn delete_fileid(&mut self, id: SelectedFileId) {
+        if let Ok(id) = Uuid::parse_str(&id.0) {
+            self.idmap.remove(&id);
+        }
     }
 }
 

@@ -27,7 +27,6 @@ FAILING_TESTS = [
     "attribute0005",  # Waiting for issue 46 of alexcrichton/cookie-rs
     "attribute0007",  # Waiting for issue 46 of alexcrichton/cookie-rs
     "attribute0008",  # Waiting for issue 46 of alexcrichton/cookie-rs
-    "domain0017",     # Waiting for issue 11216 of servo/servo
     "0003",           # Waiting for a way to clean expired cookies
     "0006",           # Waiting for a way to clean expired cookies
     "mozilla0001",    # Waiting for a way to clean expired cookies

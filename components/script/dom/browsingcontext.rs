@@ -108,6 +108,12 @@ impl BrowsingContext {
         Root::from_ref(&self.history.borrow()[self.active_index.get()].document)
     }
 
+    pub fn maybe_active_document(&self) -> Option<Root<Document>> {
+        self.history.borrow().get(self.active_index.get()).map(|entry| {
+            Root::from_ref(&*entry.document)
+        })
+    }
+
     pub fn active_window(&self) -> Root<Window> {
         Root::from_ref(self.active_document().window())
     }

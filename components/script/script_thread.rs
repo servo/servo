@@ -422,8 +422,10 @@ impl<'a> Drop for ScriptMemoryFailsafe<'a> {
             Some(owner) => {
                 let context = owner.browsing_context.get();
                 for context in context.iter() {
-                    let window = context.active_window();
-                    window.clear_js_runtime_for_script_deallocation();
+                    if let Some(document) = context.maybe_active_document() {
+                        let window = document.window();
+                        window.clear_js_runtime_for_script_deallocation();
+                    }
                 }
             }
             None => (),
