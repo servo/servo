@@ -162,15 +162,15 @@ function test_getElementsByTagName(context, element) {
   test(function() {
     var t = element.appendChild(document.createElementNS("http://www.w3.org/1999/xhtml", "test:aÇ"))
     this.add_cleanup(function() {element.removeChild(t)})
-    assert_array_equals(context.getElementsByTagName("AÇ"), [t], "All uppercase input")
-    assert_array_equals(context.getElementsByTagName("aÇ"), [t], "Ascii lowercase input")
+    assert_array_equals(context.getElementsByTagName("AÇ"), [], "All uppercase input")
+    assert_array_equals(context.getElementsByTagName("aÇ"), [], "Ascii lowercase input")
     assert_array_equals(context.getElementsByTagName("aç"), [], "All lowercase input")
   }, "Element in HTML namespace, prefix, non-ascii characters in name")
 
   test(function() {
     var t = element.appendChild(document.createElementNS("test", "test:AÇ"))
     this.add_cleanup(function() {element.removeChild(t)})
-    assert_array_equals(context.getElementsByTagName("AÇ"), [t], "All uppercase input")
+    assert_array_equals(context.getElementsByTagName("AÇ"), [], "All uppercase input")
     assert_array_equals(context.getElementsByTagName("aÇ"), [], "Ascii lowercase input")
     assert_array_equals(context.getElementsByTagName("aç"), [], "All lowercase input")
   }, "Element in non-HTML namespace, prefix, non-ascii characters in name")
