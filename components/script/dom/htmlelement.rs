@@ -251,9 +251,6 @@ impl HTMLElementMethods for HTMLElement {
     fn Focus(&self) {
         // TODO: Mark the element as locked for focus and run the focusing steps.
         // https://html.spec.whatwg.org/multipage/#focusing-steps
-        if self.upcast::<Element>().focus_state() {
-            return;
-        }
         let document = document_from_node(self);
         document.begin_focus_transaction();
         document.request_focus(self.upcast());

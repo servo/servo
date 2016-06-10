@@ -598,27 +598,28 @@ impl Document {
     /// Reassign the focus context to the element that last requested focus during this
     /// transaction, or none if no elements requested it.
     pub fn commit_focus_transaction(&self, focus_type: FocusType) {
-        if self.focused != self.possibly_focused.get().r() {
-            if let Some(ref elem) = self.focused.get() {
-                let node = elem.upcast::<Node>();
-                elem.set_focus_state(false);
-                // FIXME: pass appropriate relatedTarget
-                self.fire_focus_event(FocusEventType::Blur, node, None);
-            }
+        if self.focused == self.possibly_focused.get().r() {
+            return
+        }
+        if let Some(ref elem) = self.focused.get() {
+            let node = elem.upcast::<Node>();
+            elem.set_focus_state(false);
+            // FIXME: pass appropriate relatedTarget
+            self.fire_focus_event(FocusEventType::Blur, node, None);
+        }
 
-            self.focused.set(self.possibly_focused.get().r());
+        self.focused.set(self.possibly_focused.get().r());
 
-            if let Some(ref elem) = self.focused.get() {
-                elem.set_focus_state(true);
-                let node = elem.upcast::<Node>();
-                // FIXME: pass appropriate relatedTarget
-                self.fire_focus_event(FocusEventType::Focus, node, None);
-                // Update the focus state for all elements in the focus chain.
-                // https://html.spec.whatwg.org/multipage/#focus-chain
-                if focus_type == FocusType::Element {
-                    let event = ConstellationMsg::Focus(self.window.pipeline());
-                    self.window.constellation_chan().send(event).unwrap();
-                }
+        if let Some(ref elem) = self.focused.get() {
+            elem.set_focus_state(true);
+            let node = elem.upcast::<Node>();
+            // FIXME: pass appropriate relatedTarget
+            self.fire_focus_event(FocusEventType::Focus, node, None);
+            // Update the focus state for all elements in the focus chain.
+            // https://html.spec.whatwg.org/multipage/#focus-chain
+            if focus_type == FocusType::Element {
+                let event = ConstellationMsg::Focus(self.window.pipeline());
+                self.window.constellation_chan().send(event).unwrap();
             }
         }
     }
