@@ -363,8 +363,10 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
         base64_atob(atob)
     }
 
+    #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
-    fn SetTimeout(&self, _cx: *mut JSContext, callback: Rc<Function>, timeout: i32, args: Vec<HandleValue>) -> i32 {
+    unsafe fn SetTimeout(&self, _cx: *mut JSContext, callback: Rc<Function>, timeout: i32,
+                         args: Vec<HandleValue>) -> i32 {
         self.timers.set_timeout_or_interval(GlobalRef::Worker(self),
                                             TimerCallback::FunctionTimerCallback(callback),
                                             args,
@@ -373,8 +375,10 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
                                             TimerSource::FromWorker)
     }
 
+    #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
-    fn SetTimeout_(&self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<HandleValue>) -> i32 {
+    unsafe fn SetTimeout_(&self, _cx: *mut JSContext, callback: DOMString, timeout: i32,
+                          args: Vec<HandleValue>) -> i32 {
         self.timers.set_timeout_or_interval(GlobalRef::Worker(self),
                                             TimerCallback::StringTimerCallback(callback),
                                             args,
@@ -388,8 +392,10 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
         self.timers.clear_timeout_or_interval(GlobalRef::Worker(self), handle);
     }
 
+    #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
-    fn SetInterval(&self, _cx: *mut JSContext, callback: Rc<Function>, timeout: i32, args: Vec<HandleValue>) -> i32 {
+    unsafe fn SetInterval(&self, _cx: *mut JSContext, callback: Rc<Function>,
+                          timeout: i32, args: Vec<HandleValue>) -> i32 {
         self.timers.set_timeout_or_interval(GlobalRef::Worker(self),
                                             TimerCallback::FunctionTimerCallback(callback),
                                             args,
@@ -398,8 +404,10 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
                                             TimerSource::FromWorker)
     }
 
+    #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
-    fn SetInterval_(&self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<HandleValue>) -> i32 {
+    unsafe fn SetInterval_(&self, _cx: *mut JSContext, callback: DOMString, timeout: i32,
+                            args: Vec<HandleValue>) -> i32 {
         self.timers.set_timeout_or_interval(GlobalRef::Worker(self),
                                             TimerCallback::StringTimerCallback(callback),
                                             args,

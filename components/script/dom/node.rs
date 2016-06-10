@@ -1338,7 +1338,7 @@ impl Node {
     pub fn reflect_node<N: DerivedFrom<Node> + Reflectable>
             (node:      Box<N>,
              document:  &Document,
-             wrap_fn:   extern "Rust" fn(*mut JSContext, GlobalRef, Box<N>) -> Root<N>)
+             wrap_fn:   unsafe extern "Rust" fn(*mut JSContext, GlobalRef, Box<N>) -> Root<N>)
              -> Root<N> {
         let window = document.window();
         reflect_dom_object(node, GlobalRef::Window(window), wrap_fn)

@@ -507,8 +507,10 @@ impl WindowMethods for Window {
         self.navigator.or_init(|| Navigator::new(self))
     }
 
+    #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-settimeout
-    fn SetTimeout(&self, _cx: *mut JSContext, callback: Rc<Function>, timeout: i32, args: Vec<HandleValue>) -> i32 {
+    unsafe fn SetTimeout(&self, _cx: *mut JSContext, callback: Rc<Function>, timeout: i32,
+                         args: Vec<HandleValue>) -> i32 {
         self.timers.set_timeout_or_interval(GlobalRef::Window(self),
                                             TimerCallback::FunctionTimerCallback(callback),
                                             args,
@@ -517,8 +519,10 @@ impl WindowMethods for Window {
                                             TimerSource::FromWindow(self.id.clone()))
     }
 
+    #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-settimeout
-    fn SetTimeout_(&self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<HandleValue>) -> i32 {
+    unsafe fn SetTimeout_(&self, _cx: *mut JSContext, callback: DOMString, timeout: i32,
+                          args: Vec<HandleValue>) -> i32 {
         self.timers.set_timeout_or_interval(GlobalRef::Window(self),
                                             TimerCallback::StringTimerCallback(callback),
                                             args,
@@ -532,8 +536,10 @@ impl WindowMethods for Window {
         self.timers.clear_timeout_or_interval(GlobalRef::Window(self), handle);
     }
 
+    #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
-    fn SetInterval(&self, _cx: *mut JSContext, callback: Rc<Function>, timeout: i32, args: Vec<HandleValue>) -> i32 {
+    unsafe fn SetInterval(&self, _cx: *mut JSContext, callback: Rc<Function>,
+                          timeout: i32, args: Vec<HandleValue>) -> i32 {
         self.timers.set_timeout_or_interval(GlobalRef::Window(self),
                                             TimerCallback::FunctionTimerCallback(callback),
                                             args,
@@ -542,8 +548,10 @@ impl WindowMethods for Window {
                                             TimerSource::FromWindow(self.id.clone()))
     }
 
+    #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval
-    fn SetInterval_(&self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<HandleValue>) -> i32 {
+    unsafe fn SetInterval_(&self, _cx: *mut JSContext, callback: DOMString, timeout: i32,
+                           args: Vec<HandleValue>) -> i32 {
         self.timers.set_timeout_or_interval(GlobalRef::Window(self),
                                             TimerCallback::StringTimerCallback(callback),
                                             args,
@@ -662,8 +670,8 @@ impl WindowMethods for Window {
     }
 
     #[allow(unsafe_code)]
-    fn WebdriverCallback(&self, cx: *mut JSContext, val: HandleValue) {
-        let rv = unsafe { jsval_to_webdriver(cx, val) };
+    unsafe fn WebdriverCallback(&self, cx: *mut JSContext, val: HandleValue) {
+        let rv = jsval_to_webdriver(cx, val);
         let opt_chan = self.webdriver_script_chan.borrow_mut().take();
         if let Some(chan) = opt_chan {
             chan.send(rv).unwrap();
@@ -1550,6 +1558,7 @@ impl Window {
 }
 
 impl Window {
+    #[allow(unsafe_code)]
     pub fn new(runtime: Rc<Runtime>,
                script_chan: MainThreadScriptChan,
                dom_task_source: DOMManipulationTaskSource,
@@ -1642,7 +1651,9 @@ impl Window {
             panic_chan: panic_chan,
         };
 
-        WindowBinding::Wrap(runtime.cx(), win)
+        unsafe {
+            WindowBinding::Wrap(runtime.cx(), win)
+        }
     }
     pub fn live_devtools_updates(&self) -> bool {
         return self.devtools_wants_updates.get();

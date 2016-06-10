@@ -70,16 +70,14 @@ impl TextEncoderMethods for TextEncoder {
 
     #[allow(unsafe_code)]
     // https://encoding.spec.whatwg.org/#dom-textencoder-encode
-    fn Encode(&self, cx: *mut JSContext, input: USVString) -> *mut JSObject {
-        unsafe {
-            let encoded = self.encoder.encode(&input.0, EncoderTrap::Strict).unwrap();
-            let length = encoded.len() as u32;
-            let js_object: *mut JSObject = JS_NewUint8Array(cx, length);
-            let mut is_shared = false;
-            let js_object_data: *mut uint8_t = JS_GetUint8ArrayData(js_object, &mut is_shared, ptr::null());
-            assert!(!is_shared);
-            ptr::copy_nonoverlapping(encoded.as_ptr(), js_object_data, length as usize);
-            js_object
-        }
+    unsafe fn Encode(&self, cx: *mut JSContext, input: USVString) -> *mut JSObject {
+        let encoded = self.encoder.encode(&input.0, EncoderTrap::Strict).unwrap();
+        let length = encoded.len() as u32;
+        let js_object: *mut JSObject = JS_NewUint8Array(cx, length);
+        let mut is_shared = false;
+        let js_object_data: *mut uint8_t = JS_GetUint8ArrayData(js_object, &mut is_shared, ptr::null());
+        assert!(!is_shared);
+        ptr::copy_nonoverlapping(encoded.as_ptr(), js_object_data, length as usize);
+        js_object
     }
 }

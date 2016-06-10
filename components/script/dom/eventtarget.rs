@@ -140,6 +140,7 @@ pub enum CompiledEventListener {
 }
 
 impl CompiledEventListener {
+    #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#the-event-handler-processing-algorithm
     pub fn call_or_handle_event<T: Reflectable>(&self,
                                                 object: &T,
@@ -156,7 +157,10 @@ impl CompiledEventListener {
                         if let Some(event) = event.downcast::<ErrorEvent>() {
                             let global = object.global();
                             let cx = global.r().get_cx();
-                            let error = RootedValue::new(cx, event.Error(cx));
+
+                            let error = unsafe {
+                                RootedValue::new(cx, event.Error(cx))
+                            };
                             let return_value = handler.Call_(object,
                                                              EventOrString::String(event.Message()),
                                                              Some(event.Filename()),
