@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>form.elements: indexed</title>
+<link rel="author" title="Ivan.Yang" href="mailto:jsyangwenjie@gmail.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<div id="test">
+<form id=form>
+<input type="radio" name="radio1" id="r1" value=1>
+<input type="radio" name="radio2" id="r2" value=2>
+</form>
+</div>
+<script>
+test(function() {
+  var form = document.getElementById("form");
+  assert_equals(form[0], document.getElementById("r1"));
+  assert_equals(form[1], document.getElementById("r2"));
+  assert_equals(form[2], undefined);
+  assert_equals(form[-1], undefined);
+  }, "form.elements should be accessed correctly by index")
+</script>
