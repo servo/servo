@@ -13,9 +13,10 @@ use devtools_traits::{HttpResponse as DevtoolsHttpResponse, NetworkEvent};
 use flate2::read::{DeflateDecoder, GzDecoder};
 use hsts::{HstsEntry, HstsList, secure_url};
 use hyper::Error as HttpError;
+use hyper::LanguageTag;
 use hyper::client::{Pool, Request, Response};
 use hyper::header::{Accept, AcceptEncoding, ContentLength, ContentEncoding, ContentType, Host, Referer};
-use hyper::header::{Authorization, Basic};
+use hyper::header::{Authorization, AcceptLanguage, Basic};
 use hyper::header::{Encoding, Header, Headers, Quality, QualityItem};
 use hyper::header::{Location, SetCookie, StrictTransportSecurity, UserAgent, qitem};
 use hyper::http::RawStatus;
@@ -393,6 +394,22 @@ fn set_default_accept(headers: &mut Headers) {
     }
 }
 
+fn set_default_accept_language(headers: &mut Headers) {
+    if headers.has::<AcceptLanguage>() {
+        return;
+    }
+
+    let mut en_us: LanguageTag = Default::default();
+    en_us.language = Some("en".to_owned());
+    en_us.region = Some("US".to_owned());
+    let mut en: LanguageTag = Default::default();
+    en.language = Some("en".to_owned());
+    headers.set(AcceptLanguage(vec![
+        qitem(en_us),
+        QualityItem::new(en, Quality(500)),
+    ]));
+}
+
 /// https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-state-no-referrer-when-downgrade
 fn no_ref_when_downgrade_header(referrer_url: Url, url: Url) -> Option<Url> {
     if referrer_url.scheme() == "https" && url.scheme() != "https" {
@@ -633,6 +650,7 @@ pub fn modify_request_headers(headers: &mut Headers,
     }
 
     set_default_accept(headers);
+    set_default_accept_language(headers);
     set_default_accept_encoding(headers);
 
     *referrer_url = determine_request_referrer(headers,

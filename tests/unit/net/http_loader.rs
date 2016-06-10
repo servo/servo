@@ -9,8 +9,9 @@ use devtools_traits::HttpResponse as DevtoolsHttpResponse;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, NetworkEvent};
 use flate2::Compression;
 use flate2::write::{GzEncoder, DeflateEncoder};
+use hyper::LanguageTag;
 use hyper::header::{Accept, AcceptEncoding, ContentEncoding, ContentLength, Cookie as CookieHeader};
-use hyper::header::{Authorization, Basic};
+use hyper::header::{Authorization, AcceptLanguage, Basic};
 use hyper::header::{Encoding, Headers, Host, Location, Quality, QualityItem, qitem, Referer, SetCookie};
 use hyper::header::{StrictTransportSecurity, UserAgent};
 use hyper::http::RawStatus;
@@ -393,10 +394,13 @@ fn test_check_default_headers_loaded_in_every_request() {
     load_data.method = Method::Get;
 
     let mut headers = Headers::new();
+
     headers.set(AcceptEncoding(vec![qitem(Encoding::Gzip),
                                     qitem(Encoding::Deflate),
                                     qitem(Encoding::EncodingExt("br".to_owned()))]));
+
     headers.set(Host { hostname: "mozilla.com".to_owned() , port: None });
+
     let accept = Accept(vec![
                             qitem(Mime(TopLevel::Text, SubLevel::Html, vec![])),
                             qitem(Mime(TopLevel::Application, SubLevel::Ext("xhtml+xml".to_owned()), vec![])),
@@ -404,6 +408,17 @@ fn test_check_default_headers_loaded_in_every_request() {
                             QualityItem::new(Mime(TopLevel::Star, SubLevel::Star, vec![]), Quality(800u16)),
                             ]);
     headers.set(accept);
+
+    let mut en_us: LanguageTag = Default::default();
+    en_us.language = Some("en".to_owned());
+    en_us.region = Some("US".to_owned());
+    let mut en: LanguageTag = Default::default();
+    en.language = Some("en".to_owned());
+    headers.set(AcceptLanguage(vec![
+        qitem(en_us),
+        QualityItem::new(en, Quality(500)),
+    ]));
+
     headers.set(UserAgent(DEFAULT_USER_AGENT.to_owned()));
 
     // Testing for method.GET
@@ -483,12 +498,15 @@ fn test_request_and_response_data_with_network_messages() {
 
     //Creating default headers for request
     let mut headers = Headers::new();
+
     headers.set(AcceptEncoding(vec![
                                    qitem(Encoding::Gzip),
                                    qitem(Encoding::Deflate),
                                    qitem(Encoding::EncodingExt("br".to_owned()))
                                    ]));
+
     headers.set(Host { hostname: "mozilla.com".to_owned() , port: None });
+
     let accept = Accept(vec![
                             qitem(Mime(TopLevel::Text, SubLevel::Html, vec![])),
                             qitem(Mime(TopLevel::Application, SubLevel::Ext("xhtml+xml".to_owned()), vec![])),
@@ -496,7 +514,19 @@ fn test_request_and_response_data_with_network_messages() {
                             QualityItem::new(Mime(TopLevel::Star, SubLevel::Star, vec![]), Quality(800u16)),
                             ]);
     headers.set(accept);
+
+    let mut en_us: LanguageTag = Default::default();
+    en_us.language = Some("en".to_owned());
+    en_us.region = Some("US".to_owned());
+    let mut en: LanguageTag = Default::default();
+    en.language = Some("en".to_owned());
+    headers.set(AcceptLanguage(vec![
+        qitem(en_us),
+        QualityItem::new(en, Quality(500)),
+    ]));
+
     headers.set(UserAgent(DEFAULT_USER_AGENT.to_owned()));
+
     let httprequest = DevtoolsHttpRequest {
         url: url,
         method: Method::Get,
