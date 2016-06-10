@@ -136,10 +136,10 @@ impl Pipeline {
 
         let (script_chan, content_ports) = match state.script_chan {
             Some(script_chan) => {
-                let (containing_pipeline_id, subpage_id, frame_type) =
+                let (parent_pipeline_id, subpage_id, frame_type) =
                     state.parent_info.expect("script_pipeline != None but subpage_id == None");
                 let new_layout_info = NewLayoutInfo {
-                    containing_pipeline_id: containing_pipeline_id,
+                    parent_pipeline_id: parent_pipeline_id,
                     new_pipeline_id: state.id,
                     subpage_id: subpage_id,
                     frame_type: frame_type,
