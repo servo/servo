@@ -594,10 +594,10 @@ fn http_fetch(request: Rc<Request>,
             return response;
 
             // Step 4
-            return http_fetch(request, cache,
-                              cors_flag, cors_preflight_flag,
-                              authentication_fetch_flag, target,
-                              done_chan, context);
+            // return http_fetch(request, cache,
+            //                   cors_flag, cors_preflight_flag,
+            //                   authentication_fetch_flag, target,
+            //                   done_chan, context);
         }
 
         _ => { }
@@ -735,8 +735,7 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
 
     // Step 6
     match *http_request.referer.borrow() {
-        Referer::NoReferer =>
-            http_request.headers.borrow_mut().set(RefererHeader("".to_owned())),
+        Referer::NoReferer => (),
         Referer::RefererUrl(ref http_request_referer) =>
             http_request.headers.borrow_mut().set(RefererHeader(http_request_referer.to_string())),
         Referer::Client =>
