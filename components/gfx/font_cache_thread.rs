@@ -21,7 +21,7 @@ use std::ops::Deref;
 use std::sync::{Arc, Mutex};
 use std::u32;
 use string_cache::Atom;
-use style::font_face::Source;
+use style::font_face::{EffectiveSources, Source};
 use style::properties::longhands::font_family::computed_value::FontFamily;
 use url::Url;
 use util::prefs;
@@ -105,8 +105,8 @@ impl FontTemplates {
 pub enum Command {
     GetFontTemplate(FontFamily, FontTemplateDescriptor, IpcSender<Reply>),
     GetLastResortFontTemplate(FontTemplateDescriptor, IpcSender<Reply>),
-    AddWebFont(FontFamily, Source, IpcSender<()>),
-    AddDownloadedWebFont(FontFamily, Url, Vec<u8>, IpcSender<()>),
+    AddWebFont(LowercaseString, EffectiveSources, IpcSender<()>),
+    AddDownloadedWebFont(LowercaseString, Url, Vec<u8>, IpcSender<()>),
     Exit(IpcSender<()>),
 }
 
@@ -171,87 +171,10 @@ impl FontCache {
                     let font_template = self.last_resort_font_template(&descriptor);
                     result.send(Reply::GetFontTemplateReply(Some(font_template))).unwrap();
                 }
-                Command::AddWebFont(family, src, result) => {
-                    let family_name = LowercaseString::new(family.name());
-                    if !self.web_families.contains_key(&family_name) {
-                        let templates = FontTemplates::new();
-                        self.web_families.insert(family_name.clone(), templates);
-                    }
-
-                    match src {
-                        Source::Url(ref url_source) => {
-                            let url = &url_source.url;
-                            let load = PendingAsyncLoad::new(LoadContext::Font,
-                                                             self.core_resource_thread.clone(),
-                                                             url.clone(),
-                                                             None,
-                                                             None,
-                                                             None,
-                                                             RequestSource::None);
-                            let (data_sender, data_receiver) = ipc::channel().unwrap();
-                            let data_target = AsyncResponseTarget {
-                                sender: data_sender,
-                            };
-                            load.load_async(data_target);
-                            let channel_to_self = self.channel_to_self.clone();
-                            let url = (*url).clone();
-                            let bytes = Mutex::new(Vec::new());
-                            let response_valid = Mutex::new(false);
-                            ROUTER.add_route(data_receiver.to_opaque(), box move |message| {
-                                let response: ResponseAction = message.to().unwrap();
-                                match response {
-                                    ResponseAction::HeadersAvailable(meta_result) => {
-                                        let is_response_valid = match meta_result {
-                                            Ok(ref metadata) => {
-                                                metadata.content_type.as_ref().map_or(false, |content_type| {
-                                                    let mime = &content_type.0;
-                                                    is_supported_font_type(&mime.0, &mime.1)
-                                                })
-                                            }
-                                            Err(_) => false,
-                                        };
-
-                                        info!("{} font with MIME type {}",
-                                              if is_response_valid { "Loading" } else { "Ignoring" },
-                                              meta_result.map(|ref meta| format!("{:?}", meta.content_type))
-                                                         .unwrap_or(format!("<Network Error>")));
-                                        *response_valid.lock().unwrap() = is_response_valid;
-                                    }
-                                    ResponseAction::DataAvailable(new_bytes) => {
-                                        if *response_valid.lock().unwrap() {
-                                            bytes.lock().unwrap().extend(new_bytes.into_iter())
-                                        }
-                                    }
-                                    ResponseAction::ResponseComplete(response) => {
-                                        if response.is_err() || !*response_valid.lock().unwrap() {
-                                            drop(result.send(()));
-                                            return;
-                                        }
-                                        let mut bytes = bytes.lock().unwrap();
-                                        let bytes = mem::replace(&mut *bytes, Vec::new());
-                                        let command =
-                                            Command::AddDownloadedWebFont(family.clone(),
-                                                                          url.clone(),
-                                                                          bytes,
-                                                                          result.clone());
-                                        channel_to_self.send(command).unwrap();
-                                    }
-                                }
-                            });
-                        }
-                        Source::Local(ref font) => {
-                            let font_face_name = LowercaseString::new(font.name());
-                            let templates = &mut self.web_families.get_mut(&family_name).unwrap();
-                            for_each_variation(&font_face_name, |path| {
-                                templates.add_template(Atom::from(&*path), None);
-                            });
-                            result.send(()).unwrap();
-                        }
-                    }
+                Command::AddWebFont(family_name, sources, result) => {
+                    self.handle_add_web_font(family_name, sources, result);
                 }
-                Command::AddDownloadedWebFont(family, url, bytes, result) => {
-                    let family_name = LowercaseString::new(family.name());
-
+                Command::AddDownloadedWebFont(family_name, url, bytes, result) => {
                     let templates = &mut self.web_families.get_mut(&family_name).unwrap();
                     templates.add_template(Atom::from(url.to_string()), Some(bytes));
                     drop(result.send(()));
@@ -260,6 +183,95 @@ impl FontCache {
                     result.send(()).unwrap();
                     break;
                 }
+            }
+        }
+    }
+
+    fn handle_add_web_font(&mut self,
+                           family_name: LowercaseString,
+                           mut sources: EffectiveSources,
+                           sender: IpcSender<()>) {
+        let src = if let Some(src) = sources.next() {
+            src
+        } else {
+            sender.send(()).unwrap();
+            return;
+        };
+
+        if !self.web_families.contains_key(&family_name) {
+            let templates = FontTemplates::new();
+            self.web_families.insert(family_name.clone(), templates);
+        }
+
+        match src {
+            Source::Url(ref url_source) => {
+                let url = &url_source.url;
+                let load = PendingAsyncLoad::new(LoadContext::Font,
+                                                 self.core_resource_thread.clone(),
+                                                 url.clone(),
+                                                 None,
+                                                 None,
+                                                 None,
+                                                 RequestSource::None);
+                let (data_sender, data_receiver) = ipc::channel().unwrap();
+                let data_target = AsyncResponseTarget {
+                    sender: data_sender,
+                };
+                load.load_async(data_target);
+                let channel_to_self = self.channel_to_self.clone();
+                let url = (*url).clone();
+                let bytes = Mutex::new(Vec::new());
+                let response_valid = Mutex::new(false);
+                ROUTER.add_route(data_receiver.to_opaque(), box move |message| {
+                    let response: ResponseAction = message.to().unwrap();
+                    match response {
+                        ResponseAction::HeadersAvailable(meta_result) => {
+                            let is_response_valid = match meta_result {
+                                Ok(ref metadata) => {
+                                    metadata.content_type.as_ref().map_or(false, |content_type| {
+                                        let mime = &content_type.0;
+                                        is_supported_font_type(&mime.0, &mime.1)
+                                    })
+                                }
+                                Err(_) => false,
+                            };
+
+                            info!("{} font with MIME type {}",
+                                  if is_response_valid { "Loading" } else { "Ignoring" },
+                                  meta_result.map(|ref meta| format!("{:?}", meta.content_type))
+                                             .unwrap_or(format!("<Network Error>")));
+                            *response_valid.lock().unwrap() = is_response_valid;
+                        }
+                        ResponseAction::DataAvailable(new_bytes) => {
+                            if *response_valid.lock().unwrap() {
+                                bytes.lock().unwrap().extend(new_bytes.into_iter())
+                            }
+                        }
+                        ResponseAction::ResponseComplete(response) => {
+                            if response.is_err() || !*response_valid.lock().unwrap() {
+                                let msg = Command::AddWebFont(family_name.clone(), sources.clone(), sender.clone());
+                                channel_to_self.send(msg).unwrap();
+                                return;
+                            }
+                            let mut bytes = bytes.lock().unwrap();
+                            let bytes = mem::replace(&mut *bytes, Vec::new());
+                            let command =
+                                Command::AddDownloadedWebFont(family_name.clone(),
+                                                              url.clone(),
+                                                              bytes,
+                                                              sender.clone());
+                            channel_to_self.send(command).unwrap();
+                        }
+                    }
+                });
+            }
+            Source::Local(ref font) => {
+                let font_face_name = LowercaseString::new(font.name());
+                let templates = &mut self.web_families.get_mut(&family_name).unwrap();
+                for_each_variation(&font_face_name, |path| {
+                    templates.add_template(Atom::from(&*path), None);
+                });
+                sender.send(()).unwrap();
             }
         }
     }
@@ -431,8 +443,8 @@ impl FontCacheThread {
         }
     }
 
-    pub fn add_web_font(&self, family: FontFamily, src: Source, sender: IpcSender<()>) {
-        self.chan.send(Command::AddWebFont(family, src, sender)).unwrap();
+    pub fn add_web_font(&self, family: FontFamily, sources: EffectiveSources, sender: IpcSender<()>) {
+        self.chan.send(Command::AddWebFont(LowercaseString::new(family.name()), sources, sender)).unwrap();
     }
 
     pub fn exit(&self) {
