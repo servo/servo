@@ -13,27 +13,35 @@ function encode(n) {
   return "%" + (s.length === 2 ? s : '0' + s);
 }
 
-function do_test(n) {
-  async_test(function() {
-    var x = new XMLHttpRequest();
-    x.onload = this.step_func_done(function(e) {
-      assert_equals(x.response, "a=" + encode(n))
-    });
-    x.onerror = this.unreached_func();
-    x.open("POST", "resources/content.py");
-    var usp = new URLSearchParams();
-    usp.append("a", String.fromCharCode(n));
-    x.send(usp)
-  }, "XMLHttpRequest.send(URLSearchParams) (" + n + ")");
-}
-
 function run_test() {
-  var i = 0;
-  add_result_callback(function() {
-    if (++i === 128) {
-      return;
+  var tests = [];
+  for (var i = 0; i < 128; i++) {
+    // Multiple subtests so that failures can be fine-grained
+    tests[i] = async_test("XMLHttpRequest.send(URLSearchParams) ("+i+")");
+  }
+
+  // We use a single XHR since this test tends to time out
+  // with 128 consecutive fetches when run in parallel
+  // with many other WPT tests.
+  var x = new XMLHttpRequest();
+  x.onload = function() {
+    var response_split = x.response.split("&");
+    for (var i = 0; i < 128; i++) {
+      tests[i].step(function() {
+        assert_equals(response_split[i], "a"+i+"="+encode(i));
+        tests[i].done();
+      });
     }
-    do_test(i);
-  });
-  do_test(i);
+  }
+  x.onerror = function() {
+    for (var i = 0; i < 128; i++) {
+      (tests[i].unreached_func())();
+    }
+  }
+  x.open("POST", "resources/content.py");
+  var usp = new URLSearchParams();
+  for (var i = 0; i < 128; i++) {
+    usp.append("a"+i, String.fromCharCode(i));
+  }
+  x.send(usp)
 }
