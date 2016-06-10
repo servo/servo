@@ -922,16 +922,16 @@ impl ScriptThread {
                 self.handle_mozbrowser_event_msg(parent_pipeline_id,
                                                  subpage_id,
                                                  event),
-            ConstellationControlMsg::UpdateSubpageId(containing_pipeline_id,
+            ConstellationControlMsg::UpdateSubpageId(parent_pipeline_id,
                                                      old_subpage_id,
                                                      new_subpage_id,
                                                      new_pipeline_id) =>
-                self.handle_update_subpage_id(containing_pipeline_id,
+                self.handle_update_subpage_id(parent_pipeline_id,
                                               old_subpage_id,
                                               new_subpage_id,
                                               new_pipeline_id),
-            ConstellationControlMsg::FocusIFrame(containing_pipeline_id, subpage_id) =>
-                self.handle_focus_iframe_msg(containing_pipeline_id, subpage_id),
+            ConstellationControlMsg::FocusIFrame(parent_pipeline_id, subpage_id) =>
+                self.handle_focus_iframe_msg(parent_pipeline_id, subpage_id),
             ConstellationControlMsg::WebDriverScriptCommand(pipeline_id, msg) =>
                 self.handle_webdriver_msg(pipeline_id, msg),
             ConstellationControlMsg::TickAllAnimations(pipeline_id) =>
@@ -941,8 +941,8 @@ impl ScriptThread {
             ConstellationControlMsg::DispatchFrameLoadEvent {
                 target: pipeline_id, parent: containing_id } =>
                 self.handle_frame_load_event(containing_id, pipeline_id),
-            ConstellationControlMsg::FramedContentChanged(containing_pipeline_id, subpage_id) =>
-                self.handle_framed_content_changed(containing_pipeline_id, subpage_id),
+            ConstellationControlMsg::FramedContentChanged(parent_pipeline_id, subpage_id) =>
+                self.handle_framed_content_changed(parent_pipeline_id, subpage_id),
             ConstellationControlMsg::ReportCSSError(pipeline_id, filename, line, column, msg) =>
                 self.handle_css_error_reporting(pipeline_id, filename, line, column, msg),
         }
@@ -1123,7 +1123,7 @@ impl ScriptThread {
 
     fn handle_new_layout(&self, new_layout_info: NewLayoutInfo) {
         let NewLayoutInfo {
-            containing_pipeline_id,
+            parent_pipeline_id,
             new_pipeline_id,
             subpage_id,
             frame_type,
@@ -1153,7 +1153,7 @@ impl ScriptThread {
         };
 
         let context = self.root_browsing_context();
-        let parent_context = context.find(containing_pipeline_id).expect("ScriptThread: received a layout
+        let parent_context = context.find(parent_pipeline_id).expect("ScriptThread: received a layout
             whose parent has a PipelineId which does not correspond to a pipeline in the script
             thread's browsing context tree. This is a bug.");
         let parent_window = parent_context.active_window();
@@ -1164,7 +1164,7 @@ impl ScriptThread {
                      .unwrap();
 
         // Kick off the fetch for the new resource.
-        let new_load = InProgressLoad::new(new_pipeline_id, Some((containing_pipeline_id, subpage_id, frame_type)),
+        let new_load = InProgressLoad::new(new_pipeline_id, Some((parent_pipeline_id, subpage_id, frame_type)),
                                            layout_chan, parent_window.window_size(),
                                            load_data.url.clone());
         self.start_page_load(new_load, load_data);
@@ -1302,13 +1302,13 @@ impl ScriptThread {
     }
 
     fn handle_update_subpage_id(&self,
-                                containing_pipeline_id: PipelineId,
+                                parent_pipeline_id: PipelineId,
                                 old_subpage_id: SubpageId,
                                 new_subpage_id: SubpageId,
                                 new_pipeline_id: PipelineId) {
         let borrowed_context = self.root_browsing_context();
 
-        let frame_element = borrowed_context.find(containing_pipeline_id).and_then(|context| {
+        let frame_element = borrowed_context.find(parent_pipeline_id).and_then(|context| {
             let doc = context.active_document();
             doc.find_iframe(old_subpage_id)
         });
