@@ -133,6 +133,7 @@ pub enum NonTSPseudoClass {
     ReadWrite,
     ReadOnly,
     PlaceholderShown,
+    Target,
 }
 
 impl NonTSPseudoClass {
@@ -149,6 +150,7 @@ impl NonTSPseudoClass {
             Indeterminate => IN_INDETERMINATE_STATE,
             ReadOnly | ReadWrite => IN_READ_WRITE_STATE,
             PlaceholderShown => IN_PLACEHOLDER_SHOWN_STATE,
+            Target => IN_TARGET_STATE,
 
             AnyLink |
             Link |
@@ -182,6 +184,7 @@ impl SelectorImpl for ServoSelectorImpl {
             "read-write" => ReadWrite,
             "read-only" => ReadOnly,
             "placeholder-shown" => PlaceholderShown,
+            "target" => Target,
             "-servo-nonzero-border" => {
                 if !context.in_user_agent_stylesheet {
                     return Err(());
