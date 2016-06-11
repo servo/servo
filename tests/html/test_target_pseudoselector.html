@@ -1,0 +1,28 @@
+<html>
+  <head>
+    <style>
+      :target { color: red; }
+      span:hover { color: green; }
+    </style>
+  </head>
+  <body>
+    <span id="findme">Find Foo</span>
+    <a href="#foo">Foo By Link</a>
+    <span id="clickme">Foo By JS</span>
+    <ul><li id="foo">hello</li></ul>
+    <script>
+      document.querySelector("ul").addEventListener("click", function() {
+        this.insertBefore(this.firstChild.cloneNode(true), this.firstChild);
+      });
+
+      document.querySelector("#clickme").addEventListener("click", function() {
+        window.location.href = "#foo"
+      });
+
+      document.querySelector("#findme").addEventListener("click", function() {
+        alert(document.querySelector(":target").id);
+      });
+
+    </script>
+  </body>
+</html>

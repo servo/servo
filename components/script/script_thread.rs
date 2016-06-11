@@ -1895,9 +1895,12 @@ impl ScriptThread {
                     load_data.method == Method::Get {
                     match document.find_fragment_node(fragment) {
                         Some(ref node) => {
+                            document.set_target_element(Some(node.r()));
                             self.scroll_fragment_point(pipeline_id, node.r());
                         }
-                        None => {}
+                        None => {
+                            document.set_target_element(None);
+                        }
                     }
                     return;
                 }
