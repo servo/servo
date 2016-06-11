@@ -10,6 +10,7 @@ use dom::bindings::codegen::Bindings::WebGLTextureBinding;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
+use dom::webgl_validations::types::{TexImageTarget, TexFormat, TexDataType};
 use dom::webglobject::WebGLObject;
 use ipc_channel::ipc::{self, IpcSender};
 use std::cell::Cell;
@@ -104,13 +105,13 @@ impl WebGLTexture {
     }
 
     pub fn initialize(&self,
-                      target: u32,
+                      target: TexImageTarget,
                       width: u32,
                       height: u32,
                       depth: u32,
-                      internal_format: u32,
+                      internal_format: TexFormat,
                       level: u32,
-                      data_type: Option<u32>) -> WebGLResult<()> {
+                      data_type: Option<TexDataType>) -> WebGLResult<()> {
         let image_info = ImageInfo {
             width: width,
             height: height,
@@ -120,17 +121,8 @@ impl WebGLTexture {
             data_type: data_type,
         };
 
-        let face = match target {
-            constants::TEXTURE_2D | constants::TEXTURE_CUBE_MAP_POSITIVE_X => 0,
-            constants::TEXTURE_CUBE_MAP_NEGATIVE_X => 1,
-            constants::TEXTURE_CUBE_MAP_POSITIVE_Y => 2,
-            constants::TEXTURE_CUBE_MAP_NEGATIVE_Y => 3,
-            constants::TEXTURE_CUBE_MAP_POSITIVE_Z => 4,
-            constants::TEXTURE_CUBE_MAP_NEGATIVE_Z => 5,
-            _ => unreachable!(),
-        };
-
-        self.set_image_infos_at_level_and_face(level, face, image_info);
+        let face_index = self.face_index_for_target(&target);
+        self.set_image_infos_at_level_and_face(level, face_index, image_info);
         Ok(())
     }
 
@@ -312,7 +304,27 @@ impl WebGLTexture {
         true
     }
 
-    pub fn image_info_at_face(&self, face: u8, level: u32) -> ImageInfo {
+    fn face_index_for_target(&self,
+                             target: &TexImageTarget) -> u8 {
+        match *target {
+            TexImageTarget::Texture2D => 0,
+            TexImageTarget::CubeMapPositiveX => 0,
+            TexImageTarget::CubeMapNegativeX => 1,
+            TexImageTarget::CubeMapPositiveY => 2,
+            TexImageTarget::CubeMapNegativeY => 3,
+            TexImageTarget::CubeMapPositiveZ => 4,
+            TexImageTarget::CubeMapNegativeZ => 5,
+        }
+    }
+
+    pub fn image_info_for_target(&self,
+                                 target: &TexImageTarget,
+                                 level: u32) -> ImageInfo {
+        let face_index = self.face_index_for_target(&target);
+        self.image_info_at_face(face_index, level)
+    }
+
+    fn image_info_at_face(&self, face: u8, level: u32) -> ImageInfo {
         let pos = (level * self.face_count.get() as u32) + face as u32;
         self.image_info_array.borrow()[pos as usize]
     }
@@ -347,9 +359,9 @@ pub struct ImageInfo {
     width: u32,
     height: u32,
     depth: u32,
-    internal_format: Option<u32>,
+    internal_format: Option<TexFormat>,
     is_initialized: bool,
-    data_type: Option<u32>,
+    data_type: Option<TexDataType>,
 }
 
 impl ImageInfo {
@@ -372,16 +384,18 @@ impl ImageInfo {
         self.height
     }
 
-    pub fn internal_format(&self) -> Option<u32> {
+    pub fn internal_format(&self) -> Option<TexFormat> {
         self.internal_format
     }
 
-    pub fn data_type(&self) -> Option<u32> {
+    pub fn data_type(&self) -> Option<TexDataType> {
         self.data_type
     }
 
     fn is_power_of_two(&self) -> bool {
-        self.width.is_power_of_two() && self.height.is_power_of_two() && self.depth.is_power_of_two()
+        self.width.is_power_of_two() &&
+        self.height.is_power_of_two() &&
+        self.depth.is_power_of_two()
     }
 
     fn is_initialized(&self) -> bool {
