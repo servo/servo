@@ -394,6 +394,7 @@ pub mod validation;
 pub mod validitystate;
 pub mod values;
 pub mod virtualmethods;
+pub mod webgl_validations;
 pub mod webglactiveinfo;
 pub mod webglbuffer;
 pub mod webglcontextevent;
