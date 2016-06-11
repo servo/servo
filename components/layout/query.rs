@@ -91,7 +91,9 @@ impl LayoutRPC for LayoutRPCImpl {
             let rw_data = rw_data.lock().unwrap();
             let result = match rw_data.display_list {
                 None => panic!("Tried to hit test without a DisplayList"),
-                Some(ref display_list) => display_list.hit_test(point),
+                Some(ref display_list) => {
+                    display_list.hit_test(&point, &rw_data.stacking_context_scroll_offsets)
+                }
             };
 
             result
