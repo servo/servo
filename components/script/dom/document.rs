@@ -241,6 +241,8 @@ pub struct Document {
     referrer_policy: Cell<Option<ReferrerPolicy>>,
     /// https://html.spec.whatwg.org/multipage/#dom-document-referrer
     referrer: Option<String>,
+    /// https://html.spec.whatwg.org/multipage/#target-element
+    target_element: MutNullableHeap<JS<Element>>,
 }
 
 #[derive(JSTraceable, HeapSizeOf)]
@@ -1735,6 +1737,7 @@ impl Document {
             origin: origin,
             referrer: referrer,
             referrer_policy: Cell::new(referrer_policy),
+            target_element: MutNullableHeap::new(None),
         }
     }
 
@@ -1885,6 +1888,22 @@ impl Document {
     //TODO - default still at no-referrer
     pub fn get_referrer_policy(&self) -> Option<ReferrerPolicy> {
         return self.referrer_policy.get();
+    }
+
+    pub fn set_target_element(&self, node: Option<&Element>) {
+        if let Some(ref element) = self.target_element.get() {
+            element.set_target_state(false);
+        }
+
+        self.target_element.set(node);
+
+        if let Some(ref element) = self.target_element.get() {
+            element.set_target_state(true);
+        }
+
+        self.window.reflow(ReflowGoal::ForDisplay,
+                           ReflowQueryType::NoQuery,
+                           ReflowReason::ElementStateChanged);
     }
 }
 

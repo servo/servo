@@ -33,5 +33,7 @@ bitflags! {
         const IN_READ_WRITE_STATE = 0x80,
         #[doc = "https://html.spec.whatwg.org/multipage/#selector-placeholder-shown"]
         const IN_PLACEHOLDER_SHOWN_STATE = 0x0100,
+        #[doc = "https://html.spec.whatwg.org/multipage/#selector-target"]
+        const IN_TARGET_STATE = 0x0200,
     }
 }
