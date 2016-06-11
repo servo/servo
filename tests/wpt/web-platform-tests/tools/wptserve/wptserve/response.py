@@ -453,6 +453,7 @@ class ResponseWriter(object):
                 self._wfile.write(buf)
             except socket.error:
                 break
+        data.close()
 
     def encode(self, data):
         """Convert unicode to bytes according to response.encoding."""

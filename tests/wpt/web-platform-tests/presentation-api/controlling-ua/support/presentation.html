@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+
+<meta charset="utf-8">
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="author" title="He Yue" href="mailto:yue.he@intel.com">
+<link rel="help" href="http://w3c.github.io/presentation-api/#interface-presentationconnectionlist">
+<script>
+  var addConnection = function(connection) {
+    connection.onconnected = function () {
+      this.onmessage = function (evt) {
+        this.send(evt.data);
+      };
+  };
+  navigator.receiver.connectionList
+    .then(function(list) {
+      list.onconnectionavailable = function(connections) {
+        addConnection(connections[connections.length - 1]);
+      };
+      list.connections.map(function(connection) {
+        addConnection(connection);
+      });
+    });
+  }
+</script>

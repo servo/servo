@@ -619,7 +619,7 @@ length and the value of each indexed property in `actual` is the strictly equal
 to the corresponding property value in `expected`
 
 ### `assert_approx_equals(actual, expected, epsilon, description)`
-asserts that `actual` is a number within +`- `epsilon` of `expected`
+asserts that `actual` is a number within ±`epsilon` of `expected`
 
 ### `assert_less_than(actual, expected, description)`
 asserts that `actual` is a number less than `expected`

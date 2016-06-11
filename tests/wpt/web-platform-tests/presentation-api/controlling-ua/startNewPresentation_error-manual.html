@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Presentation API, start new presentation tests for Controlling User Agent (error - manual test)</title>
+<link rel="author" title="Marius Wessel" href="http://www.fokus.fraunhofer.de">
+<link rel="help" href="http://w3c.github.io/presentation-api/#dfn-controlling-user-agent">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<p>Click the button below and abort the selection for an device, to start the manual test.</p>
+<button id="presentBtn" onclick="startPresentation()">Start Presentation Test</button>
+
+<script>
+    // ----------
+    // DOM Object
+    // ----------
+    var presentBtn = document.getElementById("presentBtn");
+
+    // ------------
+    // Request init
+    // ------------
+    var validUnixDate = new Date().getTime() + String(Math.floor(Math.random() * 1e5)),
+            validPresURL = '../receiving-ua/idlharness.html#__castAppId__=2334D33A/__castClientId__=' + validUnixDate,
+            request = new PresentationRequest(validPresURL);
+
+    // -------------------------------------------
+    // Start New Presentation Test (error) - begin
+    // -------------------------------------------
+    var startPresentation = function () {
+        promise_test(function () {
+            return request.start()
+                    .catch(function (err) {
+
+                        test(function () {
+                            assert_true(err.code == 20, 'The error code is equal to 20.');
+                        }, 'Check, if the error code is correct.')
+
+                        test(function () {
+                            assert_true(err.message === 'Dialog closed.', 'The error message is equal to "Dialog closed."');
+                        }, 'Check, if the error message is correct.')
+
+                        assert_true(err.name === 'AbortError', 'The error name is AbortError.');
+
+                    });
+        }, "The starting process for the presentation has been aborted.");
+    }
+    // -----------------------------------------
+    // Start New Presentation Test (error) - end
+    // -----------------------------------------
+</script>
+

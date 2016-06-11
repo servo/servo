@@ -1,0 +1,15 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Check that a sync XHR in a defer script blocks later defer scripts from running</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<!--
+  We run the test in a subframe, because something in the testharness stuff
+  interferes with defer scripts -->
+<script>
+  var t = async_test();
+  onmessage = t.step_func_done(function(e) {
+    assert_equals(e.data, 1);
+  });
+</script>
+<iframe src="xmlhttprequest-sync-block-defer-scripts-subframe.html"></iframe>

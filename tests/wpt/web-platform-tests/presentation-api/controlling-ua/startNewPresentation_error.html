@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Presentation API, start new presentation tests for Controlling User Agent (error)</title>
+<link rel="author" title="Marius Wessel" href="http://www.fokus.fraunhofer.de">
+<link rel="help" href="http://w3c.github.io/presentation-api/#dfn-controlling-user-agent">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+
+    // ------------
+    // Request init
+    // ------------
+    var validUnixDate = new Date().getTime() + String(Math.floor(Math.random() * 1e5)),
+            validPresURL = '../receiving-ua/idlharness.html#__castAppId__=2334D33A/__castClientId__=' + validUnixDate,
+            request = new PresentationRequest(validPresURL);
+
+    // -----------------------------------
+    // Start New Presentation Test - begin
+    // -----------------------------------
+    promise_test(function () {
+        return request.start()
+                .catch(function (error) {
+                    assert_true(error instanceof InvalidAccessError);
+                });
+
+    }, "The presentation could not start, because a user gesture is required.");
+    // ----------------------------------
+    // Launch New Presentation Test - end
+    // ----------------------------------
+</script>
+

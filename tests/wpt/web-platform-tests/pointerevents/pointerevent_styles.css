@@ -1,3 +1,20 @@
+.spacer {
+height: 100px;
+}
+
+#square1 {
+background: black;
+top: 150px;
+left: 100px;
+}
+
+.square {
+height: 20px;
+width: 20px;
+position: absolute;
+padding: 0px;
+}
+
 #target0 {
 background: black;
 color: white;

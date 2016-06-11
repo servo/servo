@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+<head>
+<title>Trivial mandatory constraint in getUserMedia</title>
+<link rel="author" title="Dominique Hazael-Massieux" href="mailto:dom@w3.org"/>
+<link rel="help" href="http://dev.w3.org/2011/webrtc/editor/getusermedia.html#widl-NavigatorUserMedia-getUserMedia-void-MediaStreamConstraints-constraints-NavigatorUserMediaSuccessCallback-successCallback-NavigatorUserMediaErrorCallback-errorCallback">
+</head>
+<body>
+<p class="instructions">When prompted, accept to share your video stream.</p>
+<h1 class="instructions">Description</h1>
+<p class="instructions">This test checks that setting a trivial mandatory
+constraint (width &gt;=0) in getUserMedia works</p>
+
+<div id='log'></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/common/vendor-prefix.js" data-prefixed-objects='[{"ancestors":["navigator"], "name":"getUserMedia"}]'></script>
+<script>
+var t = async_test("Tests that setting a trivial mandatory constraint in getUserMedia works", {timeout:10000});
+t.step(function() {
+  navigator.getUserMedia({video: {width: {min:0}}}, t.step_func(function (stream) {
+    assert_equals(stream.getVideoTracks().length, 1, "the media stream has exactly one video track");
+    t.done();
+  }), t.step_func(function(error) {
+    assert_unreached("a Video stream of minimally zero width can always be created");
+    t.done();
+  }));
+});
+</script>
+</body>
+</html>
