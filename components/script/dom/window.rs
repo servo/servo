@@ -46,7 +46,7 @@ use js::rust::Runtime;
 use layout_interface::{ContentBoxResponse, ContentBoxesResponse, ResolvedStyleResponse, ScriptReflow};
 use layout_interface::{LayoutRPC, Msg, Reflow, ReflowQueryType, MarginStyleResponse};
 use libc;
-use msg::constellation_msg::{FrameType, LoadData, PanicMsg, PipelineId, SubpageId};
+use msg::constellation_msg::{LoadData, PanicMsg, PipelineId, SubpageId};
 use msg::constellation_msg::{WindowSizeData, WindowSizeType};
 use msg::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
@@ -202,9 +202,6 @@ pub struct Window {
     /// Pipeline id associated with this page.
     id: PipelineId,
 
-    /// Subpage id associated with this page, if any.
-    parent_info: Option<(PipelineId, SubpageId, FrameType)>,
-
     /// Global static data related to the DOM.
     dom_static: GlobalStaticData,
 
@@ -328,14 +325,6 @@ impl Window {
 
     pub fn pipeline(&self) -> PipelineId {
         self.id
-    }
-
-    pub fn subpage(&self) -> Option<SubpageId> {
-        self.parent_info.map(|p| p.1)
-    }
-
-    pub fn parent_info(&self) -> Option<(PipelineId, SubpageId, FrameType)> {
-        self.parent_info
     }
 
     pub fn new_script_pair(&self) -> (Box<ScriptChan + Send>, Box<ScriptPort + Send>) {
@@ -1545,21 +1534,13 @@ impl Window {
         self.current_state.get() == WindowState::Alive
     }
 
-    // https://html.spec.whatwg.org/multipage/#top-level-browsing-context
-    pub fn is_top_level(&self) -> bool {
-        match self.parent_info {
-            Some((_, _, FrameType::IFrame)) => false,
-            _ => true,
-        }
-    }
-
     // https://html.spec.whatwg.org/multipage/#parent-browsing-context
     pub fn parent(&self) -> Option<Root<Window>> {
-        if self.is_top_level() {
+        let browsing_context = self.browsing_context();
+
+        if browsing_context.is_top_level() {
             return None;
         }
-
-        let browsing_context = self.browsing_context();
 
         browsing_context.frame_element().map(|frame_element| {
             let window = window_from_node(frame_element);
@@ -1570,7 +1551,7 @@ impl Window {
 
     /// Returns whether this window is mozbrowser.
     pub fn is_mozbrowser(&self) -> bool {
-        mozbrowser_enabled() && self.parent_info().is_none()
+        mozbrowser_enabled() && self.browsing_context().parent_info().is_none()
     }
 
     /// Returns whether mozbrowser is enabled and `obj` has been created
@@ -1607,7 +1588,6 @@ impl Window {
                timer_event_chan: IpcSender<TimerEvent>,
                layout_chan: Sender<Msg>,
                id: PipelineId,
-               parent_info: Option<(PipelineId, SubpageId, FrameType)>,
                window_size: Option<WindowSizeData>)
                -> Root<Window> {
         let layout_rpc: Box<LayoutRPC> = {
@@ -1650,7 +1630,6 @@ impl Window {
             timers: OneshotTimers::new(timer_event_chan, scheduler_chan),
             next_worker_id: Cell::new(WorkerId(0)),
             id: id,
-            parent_info: parent_info,
             dom_static: GlobalStaticData::new(),
             js_runtime: DOMRefCell::new(Some(runtime.clone())),
             resource_threads: resource_threads,

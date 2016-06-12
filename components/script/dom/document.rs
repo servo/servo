@@ -1260,7 +1260,9 @@ impl Document {
 
     pub fn trigger_mozbrowser_event(&self, event: MozBrowserEvent) {
         if mozbrowser_enabled() {
-            if let Some((containing_pipeline_id, subpage_id, _)) = self.window.parent_info() {
+            // XXX what if this document is not in a browsing context?
+            let parent_info = self.window.browsing_context().parent_info();
+            if let Some((containing_pipeline_id, subpage_id, _)) = parent_info {
                 let event = ConstellationMsg::MozBrowserEvent(containing_pipeline_id,
                                                               subpage_id,
                                                               event);
