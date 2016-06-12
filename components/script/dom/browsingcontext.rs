@@ -14,6 +14,7 @@ use dom::bindings::utils::WindowProxyHandler;
 use dom::bindings::utils::get_array_index_from_id;
 use dom::document::Document;
 use dom::element::Element;
+use dom::node::window_from_node;
 use dom::window::Window;
 use js::JSCLASS_IS_GLOBAL;
 use js::glue::{CreateWrapperProxyHandler, ProxyTraps, NewWindowProxy};
@@ -196,6 +197,17 @@ impl BrowsingContext {
                      .next()
     }
 
+    pub fn parent(&self) -> Option<Root<BrowsingContext>> {
+        if self.is_top_level() {
+            return None;
+        }
+
+        self.frame_element().map(|frame_element| {
+            let window = window_from_node(frame_element);
+            window.browsing_context()
+        })
+    }
+
     fn subpage(&self) -> Option<SubpageId> {
         self.parent_info.map(|p| p.1)
     }
@@ -205,7 +217,7 @@ impl BrowsingContext {
     }
 
     // https://html.spec.whatwg.org/multipage/#top-level-browsing-context
-    pub fn is_top_level(&self) -> bool {
+    fn is_top_level(&self) -> bool {
         match self.parent_info {
             Some((_, _, FrameType::IFrame)) => false,
             _ => true,

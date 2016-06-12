@@ -32,7 +32,7 @@ use dom::element::Element;
 use dom::eventtarget::EventTarget;
 use dom::location::Location;
 use dom::navigator::Navigator;
-use dom::node::{Node, TrustedNodeAddress, from_untrusted_node_address, window_from_node};
+use dom::node::{Node, TrustedNodeAddress, from_untrusted_node_address};
 use dom::performance::Performance;
 use dom::screen::Screen;
 use dom::storage::Storage;
@@ -1536,16 +1536,8 @@ impl Window {
 
     // https://html.spec.whatwg.org/multipage/#parent-browsing-context
     pub fn parent(&self) -> Option<Root<Window>> {
-        let browsing_context = self.browsing_context();
-
-        if browsing_context.is_top_level() {
-            return None;
-        }
-
-        browsing_context.frame_element().map(|frame_element| {
-            let window = window_from_node(frame_element);
-            let context = window.browsing_context();
-            context.active_window()
+        self.browsing_context().parent().map(|browsing_context| {
+            browsing_context.active_window()
         })
     }
 
