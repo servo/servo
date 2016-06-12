@@ -74,7 +74,7 @@ impl LayoutRPC for LayoutRPCImpl {
         if update_cursor {
             // Compute the new cursor.
             let cursor = match *result {
-                None => Cursor::DefaultCursor,
+                None => Cursor::Default,
                 Some(dim) => dim.pointing.unwrap(),
             };
             rw_data.constellation_chan.send(ConstellationMsg::SetCursor(cursor)).unwrap();
