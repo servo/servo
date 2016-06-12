@@ -161,7 +161,14 @@
 
   // 8. Let observedAttributesIterable be Get(constructor, "observedAttributes").
   // Rethrow any exceptions.
-  // See step 12 for rethrow tests.
+  test(() => {
+    class C {
+      static get observedAttributes() { throw_rethrown_error(); }
+    }
+    assert_rethrown(() => {
+      customElements.define('test-define-observedattributes-rethrow', C);
+    });
+  }, 'If constructor.observedAttributes throws, should rethrow');
 
   // 10. Let prototype be Get(constructor, "prototype"). Rethrow any exceptions.
   function assert_rethrown(func, description) {
@@ -208,42 +215,38 @@
   // 17. If attributeChangedCallback is not undefined, and IsCallable(attributeChangedCallback) is false,
   // then throw a TypeError exception.
   [
-    'observedAttributes', // See step 8 above.
     'connectedCallback',
     'disconnectedCallback',
     'attributeChangedCallback',
-  ].forEach(name =>  {
-    test(() =>  {
+  ].forEach(name => {
+    test(() => {
       class C {
         get [name]() { throw_rethrown_error(); }
       }
-      assert_rethrown(() =>  {
-        customElements.define('test-define-constructor-rethrow-prototype-' + name, C);
+      assert_rethrown(() => {
+        customElements.define(`test-define-${name.toLowerCase()}-rethrow`, C);
       });
     }, `If constructor.prototype.${name} throws, should rethrow`);
-  });
-  [
-    'connectedCallback',
-    'disconnectedCallback',
-    'attributeChangedCallback',
-  ].forEach(name =>  {
-    test(() =>  {
-      class c {};
-      c.prototype[name] = undefined;
-      customElements.define('test-define-constructor-prototype-' + name, c);
-    }, `If constructor.prototype.${name} is undefined, should success`);
+
     [
-      [ 'null', null ],
-      [ 'object', {} ],
-    ].forEach(value =>  {
-      test(() =>  {
-        class c {};
-        c.prototype[name] = value[1];
-        assert_throws(expectTypeError, () =>  {
-          customElements.define('test-define-constructor-prototype-' + name, c);
-        });
-      }, `If constructor.prototype.${name} is ${value[0]}, should throw a TypeError`);
-    })
+      { name: 'undefined', value: undefined, success: true },
+      { name: 'function', value: function () { }, success: true },
+      { name: 'null', value: null, success: false },
+      { name: 'object', value: {}, success: false },
+      { name: 'integer', value: 1, success: false },
+    ].forEach(data => {
+      test(() => {
+        class C { };
+        C.prototype[name] = data.value;
+        if (data.success) {
+          customElements.define(`test-define-${name.toLowerCase()}-${data.name}`, C);
+        } else {
+          assert_throws(expectTypeError, () => {
+            customElements.define(`test-define-${name.toLowerCase()}-${data.name}`, C);
+          });
+        }
+      }, `If constructor.prototype.${name} is ${data.name}, should ${data.success ? 'succeed' : 'throw a TypeError'}`);
+    });
   });
 })();
 </script>

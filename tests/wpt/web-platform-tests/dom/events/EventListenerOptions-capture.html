@@ -16,9 +16,9 @@ function testCaptureValue(captureValue, expectedValue) {
     handlerPhase = e.eventPhase;
   }
   document.addEventListener('test', handler, captureValue);
-  document.body.dispatchEvent(new Event('test', {'bubbles': true}));
+  document.body.dispatchEvent(new Event('test', {bubbles: true}));
   document.removeEventListener('test', handler, captureValue);
-  document.body.dispatchEvent(new Event('test', {'bubbles': true}));
+  document.body.dispatchEvent(new Event('test', {bubbles: true}));
   assert_equals(handlerPhase, expectedValue, "Incorrect event phase for value: " + JSON.stringify(captureValue));
 }
 
@@ -72,7 +72,7 @@ function testOptionEquality(addOptionValue, removeOptionValue, expectedEquality)
   }
   document.addEventListener('test', handler, addOptionValue);
   document.removeEventListener('test', handler, removeOptionValue);
-  document.body.dispatchEvent(new Event('test', {'bubbles': true}));
+  document.body.dispatchEvent(new Event('test', {bubbles: true}));
   assert_equals(!handlerInvoked, expectedEquality, "equivalence of options " +
     JSON.stringify(addOptionValue) + " and " + JSON.stringify(removeOptionValue));
   if (handlerInvoked)

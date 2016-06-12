@@ -1,0 +1,12 @@
+language: python
+python:
+  - "2.7"
+  - "3.5"
+install:
+  - pip install flake8
+  - pip install pytest
+  - pip install ./html5lib
+  - pip install pytest-travis-fold
+script:
+  - py.test manifest
+  - flake8

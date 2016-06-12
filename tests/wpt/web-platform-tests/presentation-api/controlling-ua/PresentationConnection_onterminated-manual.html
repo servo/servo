@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+
+<meta charset="utf-8">
+<title>PresentationConnection.onterminate</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="author" title="Chunyan Wang" href="mailto:chunyanx.wang@intel.com">
+<link rel="help" href="http://w3c.github.io/presentation-api/#starting-a-presentation">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<h2>Description</h2>
+<p>
+  This test validates that after connection terminate,<br/>
+  the connection state is set terminated,<br/>
+  the onterminate EventHandler is triggered.
+</p>
+<br/>
+<p>Click the button below to start the test.</p>
+<button id="presentStartBtn" onclick="startPresentation()">Start Presentation Test</button>
+
+<script>
+  setup({explicit_timeout: true});
+  var startPresentation = function () {
+    async_test(function(t) {
+      var client_id = String(new Date().getTime()) + String(Math.floor(Math.random() * 1e5));
+      var url = "support/presentation.html#__castAppId__=C2335F62/__castClientId__="+ client_id;
+      var request = new PresentationRequest(url);
+      request.start()
+        .then(function(connection) {
+          assert_true(connection instanceof PresentationConnection);
+          connection.onterminate = t.step_func_done(function(evt) {
+            assert_equals(evt.type, "terminate");
+            assert_equals(connection.state, "terminated");
+          });
+          connection.onclose = t.step_func_done(function(evt) {
+              assert_unreached("Wrong, the onclose shouldn't be triggered!");
+          });
+          connection.terminate();
+      })
+      .catch(function(ex) {
+        assert_unreached(ex.name + ":" + ex.message);
+      });
+    }, "the onterminate is fired and the connection state is terminated");
+  }
+</script>
