@@ -1,0 +1,12 @@
+<script src="iframe_harness.js"></script>
+<body>
+  <iframe src="cross_origin_grandchild.html"></iframe>
+</body>
+<script>
+    send_test_results({
+        "id": '79a52de8-4222-427e-92db-caec28e75f8e',
+        "parent": window.parent !== window,
+        "grandparent": window.parent.parent === window.parent,
+        "top": window.top === window.parent,
+    });
+</script>
