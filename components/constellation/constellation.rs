@@ -1500,7 +1500,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
     fn handle_set_visible_msg(&mut self, pipeline_id: PipelineId, visible: bool) {
         let frame_id = self.pipeline_to_frame_map.get(&pipeline_id).map(|frame_id| *frame_id);
-        let child_pipeline_ids: Vec<PipelineId> = self.current_frame_tree_iter(frame_id).map(|frame| frame.current).collect();
+        let child_pipeline_ids: Vec<PipelineId> = self.current_frame_tree_iter(frame_id)
+                                                      .map(|frame| frame.current)
+                                                      .collect();
         for id in child_pipeline_ids {
             if let Some(pipeline) = self.pipelines.get_mut(&id) {
                 pipeline.change_visibility(visible);
@@ -1512,10 +1514,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         let parent_pipeline_info = self.pipelines.get(&pipeline_id).and_then(|source| source.parent_info);
         if let Some((parent_pipeline_id, _, _)) = parent_pipeline_info {
             if let Some(parent_pipeline) = self.pipelines.get(&parent_pipeline_id) {
-                parent_pipeline.script_chan.send(ConstellationControlMsg::NotifyVisibilityChange(parent_pipeline_id,
-                                                                                                 pipeline_id,
-                                                                                                 visibility))
-                                                                                                .expect("Pipeline script chan");
+                parent_pipeline.script_chan
+                               .send(ConstellationControlMsg::NotifyVisibilityChange(parent_pipeline_id,
+                                                                                     pipeline_id,
+                                                                                     visibility))
+                               .expect("Pipeline script chan");
             }
         }
     }
