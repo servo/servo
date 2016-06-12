@@ -580,11 +580,11 @@ impl WindowMethods for Window {
 
     // https://html.spec.whatwg.org/multipage/#dom-top
     fn Top(&self) -> Root<BrowsingContext> {
-        let mut window = Root::from_ref(self);
-        while let Some(parent) = window.parent() {
-            window = parent;
+        let mut browsing_context = self.browsing_context();
+        while let Some(parent) = browsing_context.parent() {
+            browsing_context = parent;
         }
-        window.browsing_context()
+        browsing_context
     }
 
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/
