@@ -387,7 +387,7 @@ impl Pipeline {
 
     pub fn change_visibility(&mut self, visible: bool) {
         if visible == self.visible {
-            return; //No changes
+            return;
         }
         self.visible = visible;
         self.notify_visibility();

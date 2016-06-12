@@ -402,11 +402,16 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     fn new_pipeline(&mut self,
                     pipeline_id: PipelineId,
                     parent_info: Option<(PipelineId, SubpageId, FrameType)>,
-                    parent_visibility: Option<bool>,
                     initial_window_size: Option<TypedSize2D<PagePx, f32>>,
                     script_channel: Option<IpcSender<ConstellationControlMsg>>,
                     load_data: LoadData) {
         if self.shutting_down { return; }
+
+        let parent_visibility = if let Some((parent_pipeline_id, _, _)) = parent_info {
+            self.pipelines.get(&parent_pipeline_id).map(|pipeline| pipeline.visible)
+        } else {
+            None
+        };
 
         let result = Pipeline::spawn::<Message, LTF, STF>(InitialPipelineState {
             id: pipeline_id,
@@ -919,11 +924,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         if let Some(pipeline_id) = pipeline_id {
             let parent_info = self.pipelines.get(&pipeline_id).and_then(|pipeline| pipeline.parent_info);
             let window_size = self.pipelines.get(&pipeline_id).and_then(|pipeline| pipeline.size);
-            let parent_visibility = if let Some((parent_pipeline_id, _, _)) = parent_info {
-                self.pipelines.get(&parent_pipeline_id).map(|pipeline| pipeline.visible)
-            } else {
-                None
-            };
 
             // Notify the browser chrome that the pipeline has failed
             self.trigger_mozbrowsererror(pipeline_id, reason, backtrace);
@@ -943,7 +943,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             let new_pipeline_id = PipelineId::new();
             self.new_pipeline(new_pipeline_id,
                               parent_info,
-                              parent_visibility,
                               window_size,
                               None,
                               LoadData::new(Url::parse("about:failure").expect("infallible"), None, None));
@@ -959,7 +958,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         let window_size = self.window_size.visible_viewport;
         let root_pipeline_id = PipelineId::new();
         debug_assert!(PipelineId::fake_root_pipeline_id() == root_pipeline_id);
-        self.new_pipeline(root_pipeline_id, None, None, Some(window_size), None,
+        self.new_pipeline(root_pipeline_id, None, Some(window_size), None,
                           LoadData::new(url.clone(), None, None));
         self.handle_load_start_msg(&root_pipeline_id);
         self.push_pending_frame(root_pipeline_id, None);
@@ -1025,7 +1024,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             .and_then(|old_subpage_id| self.subpage_map.get(&(load_info.containing_pipeline_id, old_subpage_id)))
             .cloned();
 
-        let (load_data, script_chan, window_size, source_visibility) = {
+        let (load_data, script_chan, window_size) = {
             let old_pipeline = old_pipeline_id
                 .and_then(|old_pipeline_id| self.pipelines.get(&old_pipeline_id));
 
@@ -1067,20 +1066,18 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             };
 
             let window_size = old_pipeline.and_then(|old_pipeline| old_pipeline.size);
-            let source_visibility = source_pipeline.visible;
 
             if let Some(old_pipeline) = old_pipeline {
                 old_pipeline.freeze();
             }
 
-            (load_data, script_chan, window_size, source_visibility)
+            (load_data, script_chan, window_size)
 
         };
 
         // Create the new pipeline, attached to the parent and push to pending frames
         self.new_pipeline(load_info.new_pipeline_id,
                           Some((load_info.containing_pipeline_id, load_info.new_subpage_id, load_info.frame_type)),
-                          Some(source_visibility),
                           window_size,
                           script_chan,
                           load_data);
@@ -1214,7 +1211,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 // Create the new pipeline
                 let window_size = self.pipelines.get(&source_id).and_then(|source| source.size);
                 let new_pipeline_id = PipelineId::new();
-                self.new_pipeline(new_pipeline_id, None, None, window_size, None, load_data);
+                self.new_pipeline(new_pipeline_id, None, window_size, None, load_data);
                 self.push_pending_frame(new_pipeline_id, Some(source_id));
 
                 // Send message to ScriptThread that will suspend all timers
@@ -1503,12 +1500,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
     fn handle_set_visible_msg(&mut self, pipeline_id: PipelineId, visible: bool) {
         let frame_id = self.pipeline_to_frame_map.get(&pipeline_id).map(|frame_id| *frame_id);
-        let mut child_pipeline_ids = vec!();
-        for frame in self.current_frame_tree_iter(frame_id) {
-            child_pipeline_ids.push(frame.current);
-        }
+        let child_pipeline_ids: Vec<PipelineId> = self.current_frame_tree_iter(frame_id).map(|frame| frame.current).collect();
         for id in child_pipeline_ids {
-            self.pipelines.get_mut(&id).map(|pipeline| pipeline.change_visibility(visible));
+            if let Some(pipeline) = self.pipelines.get_mut(&id) {
+                pipeline.change_visibility(visible);
+            }
         }
     }
 
@@ -1518,7 +1514,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             if let Some(parent_pipeline) = self.pipelines.get(&parent_pipeline_id) {
                 parent_pipeline.script_chan.send(ConstellationControlMsg::NotifyVisibilityChange(parent_pipeline_id,
                                                                                                  pipeline_id,
-                                                                                                 visibility)).unwrap();
+                                                                                                 visibility))
+                                                                                                .expect("Pipeline script chan");
             }
         }
     }

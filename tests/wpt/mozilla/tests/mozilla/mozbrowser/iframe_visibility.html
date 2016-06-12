@@ -13,7 +13,7 @@
 
         var iframe = document.createElement("iframe");
         iframe.mozbrowser = true;
-        iframe.src = "http://www.mozilla.org";
+        iframe.src = "helper.html";
 
         //Alternate the iframe's visibility and fire mozbrowservisibilitychange
         iframe.onload = function() {
@@ -35,58 +35,57 @@
 
     async_test(function(t) {
       var iframe = document.createElement("iframe");
-      //var body = '<html><body><p>test</p></body></html>'; //TODO: jmr0 this doesn't work :(
-      //iframe.src = "data:text/html;charset=utf-8," + encodeURI(body);
       iframe.mozbrowser = true;
       iframe.src = "helper.html";
       var start = null;
       document.body.appendChild(iframe);
-      iframe.onload = function() {
+      iframe.onload = t.step_func(function() {
         var element = iframe.contentWindow.document.querySelector("p");
         var animationCompletesAfterResumingVisibility = false;
         var nonVisibleAnimationStopped = false;
         element.style.position = 'relative';
         element.style.right = "0px";
-        var step = function(timestamp) {
+        var step = t.step_func(function(timestamp) {
           if (!start) start = timestamp;
           var progress = timestamp - start;
           element.style.right = Math.min(progress/5, 100) + "px";
           if (progress < 500) {
             iframe.contentWindow.requestAnimationFrame(step);
           }
-        };
+        });
 
         iframe.setVisible(false);
 
-        iframe.contentWindow.setTimeout(function(){
+        iframe.contentWindow.setTimeout(t.step_func(function(){
             nonVisibleAnimationStopped = element.style.right === '0px';
             iframe.setVisible(true);
-        },1000);
+        }),1000);
 
-        iframe.contentWindow.setTimeout(function(){
+        iframe.contentWindow.setTimeout(t.step_func(function(){
             animationCompletesAfterResumingVisibility = element.style.right === '100px';
-            assert_equals(nonVisibleAnimationStopped && animationCompletesAfterResumingVisibility, true);
+            assert_true(nonVisibleAnimationStopped);
+            assert_true(animationCompletesAfterResumingVisibility);
             t.done();
-        },2000);
+        }),2000);
 
         iframe.contentWindow.requestAnimationFrame(step);
-      };
+      });
     }, 'Requesting animation frame composites only when frame is visible');
 
     async_test(function(t) {
       var iframe = document.createElement("iframe");
-      iframe.src = "http://web-platform.test:8000";
+      iframe.src = "http://web-platform.test:8000/common/blank.html";
       iframe.mozbrowser = true;
-      iframe.onload = function() {
-          iframe.addEventListener("mozbrowservisibilitychange", e => {
+      iframe.onload = t.step_func(function() {
+          iframe.addEventListener("mozbrowservisibilitychange", t.step_func(function() {
               var startTime = Date.now();
-              iframe.contentWindow.setTimeout(function() {
-                  assert_equals(Date.now() - startTime > 1000, true);
+              iframe.contentWindow.setTimeout(t.step_func(function() {
+                  assert_true(Date.now() - startTime > 1000);
                   t.done();
-              }, 1);
-          });
+              }), 1);
+          }));
         iframe.setVisible(false);
-      };
+      });
       document.body.appendChild(iframe);
     }, 'Minimum setTimeout of 1s when pipeline is invisible');
     </script>
