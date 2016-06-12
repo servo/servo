@@ -81,7 +81,7 @@ Install MSYS2 from [here](https://msys2.github.io/). After you have done so, ope
 window and update the core libraries and install new packages:
 
 ```sh
-update-core
+pacman -Su
 pacman -Sy git mingw-w64-x86_64-toolchain mingw-w64-x86_64-freetype \
     mingw-w64-x86_64-icu mingw-w64-x86_64-nspr mingw-w64-x86_64-ca-certificates \
     mingw-w64-x86_64-expat mingw-w64-x86_64-cmake tar diffutils patch \
