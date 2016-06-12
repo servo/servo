@@ -104,7 +104,10 @@ pub fn handle_get_frame_id(context: &BrowsingContext,
             match find_node_by_unique_id(context, pipeline, x) {
                 Some(ref node) => {
                     match node.downcast::<HTMLIFrameElement>() {
-                        Some(ref elem) => Ok(elem.get_content_window()),
+                        Some(ref elem) => {
+                            Ok(elem.get_content_browsing_context()
+                                   .map(|browsing_context| browsing_context.active_window()))
+                        },
                         None => Err(())
                     }
                 },

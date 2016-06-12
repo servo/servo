@@ -14,7 +14,6 @@ use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserElementSecur
 use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserShowModalPromptEventDetail;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
-use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::global::GlobalRef;
@@ -33,7 +32,7 @@ use dom::htmlelement::HTMLElement;
 use dom::node::{Node, NodeDamage, UnbindContext, window_from_node, document_from_node};
 use dom::urlhelper::UrlHelper;
 use dom::virtualmethods::VirtualMethods;
-use dom::window::{ReflowReason, Window};
+use dom::window::ReflowReason;
 use ipc_channel::ipc;
 use js::jsapi::{JSAutoCompartment, RootedValue, JSContext, MutableHandleValue};
 use js::jsval::{UndefinedValue, NullValue};
@@ -260,7 +259,7 @@ impl HTMLIFrameElement {
         }
     }
 
-    pub fn get_content_window(&self) -> Option<Root<Window>> {
+    pub fn get_content_browsing_context(&self) -> Option<Root<BrowsingContext>> {
         self.subpage_id.get().and_then(|subpage_id| {
             let window = window_from_node(self);
             let window = window.r();
@@ -431,22 +430,19 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-contentwindow
     fn GetContentWindow(&self) -> Option<Root<BrowsingContext>> {
-        match self.get_content_window() {
-            Some(ref window) => Some(window.browsing_context()),
-            None => None
-        }
+        self.get_content_browsing_context()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-contentdocument
     fn GetContentDocument(&self) -> Option<Root<Document>> {
-        self.get_content_window().and_then(|window| {
+        self.get_content_browsing_context().and_then(|browsing_context| {
             // FIXME(#10964): this should use the Document's origin and the
             //                origin of the incumbent settings object.
             let self_url = self.get_url();
             let win_url = window_from_node(self).get_url();
 
             if UrlHelper::SameOrigin(&self_url, &win_url) {
-                Some(window.Document())
+                Some(browsing_context.active_document())
             } else {
                 None
             }
