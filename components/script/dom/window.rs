@@ -1532,13 +1532,6 @@ impl Window {
         self.current_state.get() == WindowState::Alive
     }
 
-    // https://html.spec.whatwg.org/multipage/#parent-browsing-context
-    pub fn parent(&self) -> Option<Root<Window>> {
-        self.browsing_context().parent().map(|browsing_context| {
-            browsing_context.active_window()
-        })
-    }
-
     /// Returns whether this window is mozbrowser.
     pub fn is_mozbrowser(&self) -> bool {
         mozbrowser_enabled() && self.browsing_context().parent_info().is_none()
