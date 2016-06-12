@@ -19,12 +19,13 @@ use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{Root, LayoutJS};
+use dom::bindings::js::{JS, MutNullableHeap, Root, LayoutJS};
 use dom::bindings::reflector::Reflectable;
 use dom::bindings::str::DOMString;
 use dom::browsingcontext::BrowsingContext;
 use dom::customevent::CustomEvent;
 use dom::document::Document;
+use dom::domtokenlist::DOMTokenList;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
 use dom::event::Event;
 use dom::eventtarget::EventTarget;
@@ -64,13 +65,14 @@ pub struct HTMLIFrameElement {
     htmlelement: HTMLElement,
     pipeline_id: Cell<Option<PipelineId>>,
     subpage_id: Cell<Option<SubpageId>>,
-    sandbox: Cell<Option<u8>>,
+    sandbox: MutNullableHeap<JS<DOMTokenList>>,
+    sandbox_allowance: Cell<Option<u8>>,
     load_blocker: DOMRefCell<Option<LoadBlocker>>,
 }
 
 impl HTMLIFrameElement {
     pub fn is_sandboxed(&self) -> bool {
-        self.sandbox.get().is_some()
+        self.sandbox_allowance.get().is_some()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#otherwise-steps-for-iframe-or-frame-elements>,
@@ -194,7 +196,8 @@ impl HTMLIFrameElement {
             htmlelement: HTMLElement::new_inherited(localName, prefix, document),
             pipeline_id: Cell::new(None),
             subpage_id: Cell::new(None),
-            sandbox: Cell::new(None),
+            sandbox: Default::default(),
+            sandbox_allowance: Cell::new(None),
             load_blocker: DOMRefCell::new(None),
         }
     }
@@ -422,13 +425,8 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-sandbox
-    fn Sandbox(&self) -> DOMString {
-        self.upcast::<Element>().get_string_attribute(&atom!("sandbox"))
-    }
-
-    // https://html.spec.whatwg.org/multipage/#dom-iframe-sandbox
-    fn SetSandbox(&self, sandbox: DOMString) {
-        self.upcast::<Element>().set_tokenlist_attribute(&atom!("sandbox"), sandbox);
+    fn Sandbox(&self) -> Root<DOMTokenList> {
+        self.sandbox.or_init(|| DOMTokenList::new(self.upcast::<Element>(), &atom!("sandbox")))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-contentwindow
@@ -523,7 +521,7 @@ impl VirtualMethods for HTMLIFrameElement {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
             &atom!("sandbox") => {
-                self.sandbox.set(mutation.new_value(attr).map(|value| {
+                self.sandbox_allowance.set(mutation.new_value(attr).map(|value| {
                     let mut modes = SandboxAllowance::AllowNothing as u8;
                     for token in value.as_tokens() {
                         modes |= match &*token.to_ascii_lowercase() {
