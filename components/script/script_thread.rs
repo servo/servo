@@ -1962,7 +1962,7 @@ impl ScriptThread {
             script_chan: self.chan.clone(),
         };
         ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
-            listener.notify(message.to().unwrap());
+            listener.notify_action(message.to().unwrap());
         });
         let response_target = AsyncResponseTarget {
             sender: action_sender,

@@ -314,7 +314,7 @@ impl HTMLScriptElement {
                     sender: action_sender,
                 };
                 ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
-                    listener.notify(message.to().unwrap());
+                    listener.notify_action(message.to().unwrap());
                 });
 
                 doc.load_async(LoadType::Script(url), response_target);

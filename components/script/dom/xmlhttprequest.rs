@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cors::CORSResponse;
-use cors::{AsyncCORSResponseListener, CORSRequest, RequestMode, allow_cross_origin_request};
 use document_loader::DocumentLoader;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
@@ -35,27 +33,28 @@ use encoding::label::encoding_from_whatwg_label;
 use encoding::types::{DecoderTrap, EncoderTrap, Encoding, EncodingRef};
 use euclid::length::Length;
 use hyper::header::Headers;
-use hyper::header::{Accept, ContentLength, ContentType, qitem};
+use hyper::header::{ContentLength, ContentType};
 use hyper::http::RawStatus;
 use hyper::method::Method;
-use hyper::mime::{self, Mime};
+use hyper::mime::{self, Mime, Attr as MimeAttr, Value as MimeValue};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsapi::JS_ClearPendingException;
 use js::jsapi::{JSContext, JS_ParseJSON, RootedValue};
 use js::jsval::{JSVal, NullValue, UndefinedValue};
 use msg::constellation_msg::{PipelineId, ReferrerPolicy};
-use net_traits::CoreResourceMsg::Load;
+use net_traits::CoreResourceMsg::Fetch;
+use net_traits::request::{CredentialsMode, Destination, RequestInit, RequestMode};
 use net_traits::trim_http_whitespace;
-use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata, NetworkError, RequestSource};
-use net_traits::{LoadConsumer, LoadContext, LoadData, ResourceCORSData, CoreResourceThread, LoadOrigin};
+use net_traits::{CoreResourceThread, LoadOrigin};
+use net_traits::{FetchResponseListener, Metadata, NetworkError, RequestSource};
 use network_listener::{NetworkListener, PreInvoke};
 use parse::html::{ParseContext, parse_html};
 use parse::xml::{self, parse_xml};
 use script_runtime::ScriptChan;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
-use std::cell::{Cell, RefCell};
+use std::cell::Cell;
 use std::default::Default;
 use std::str;
 use std::sync::{Arc, Mutex};
@@ -82,7 +81,6 @@ pub struct GenerationId(u32);
 struct XHRContext {
     xhr: TrustedXHRAddress,
     gen_id: GenerationId,
-    cors_request: Option<CORSRequest>,
     buf: DOMRefCell<Vec<u8>>,
     sync_status: DOMRefCell<Option<ErrorResult>>,
 }
@@ -142,7 +140,6 @@ pub struct XMLHttpRequest {
     request_body_len: Cell<usize>,
     sync: Cell<bool>,
     upload_complete: Cell<bool>,
-    upload_events: Cell<bool>,
     send_flag: Cell<bool>,
 
     timeout_cancel: DOMRefCell<Option<OneshotTimerHandle>>,
@@ -187,7 +184,6 @@ impl XMLHttpRequest {
             request_body_len: Cell::new(0),
             sync: Cell::new(false),
             upload_complete: Cell::new(false),
-            upload_events: Cell::new(false),
             send_flag: Cell::new(false),
 
             timeout_cancel: DOMRefCell::new(None),
@@ -216,75 +212,40 @@ impl XMLHttpRequest {
         }
     }
 
-    fn check_cors(context: Arc<Mutex<XHRContext>>,
-                  load_data: LoadData,
-                  req: CORSRequest,
-                  script_chan: Box<ScriptChan + Send>,
-                  core_resource_thread: CoreResourceThread) {
-        struct CORSContext {
-            xhr: Arc<Mutex<XHRContext>>,
-            load_data: RefCell<Option<LoadData>>,
-            req: CORSRequest,
-            script_chan: Box<ScriptChan + Send>,
-            core_resource_thread: CoreResourceThread,
-        }
-
-        impl AsyncCORSResponseListener for CORSContext {
-            fn response_available(&self, response: CORSResponse) {
-                if response.network_error {
-                    let mut context = self.xhr.lock().unwrap();
-                    let xhr = context.xhr.root();
-                    xhr.process_partial_response(XHRProgress::Errored(context.gen_id, Error::Network));
-                    *context.sync_status.borrow_mut() = Some(Err(Error::Network));
-                    return;
-                }
-
-                let mut load_data = self.load_data.borrow_mut().take().unwrap();
-                load_data.cors = Some(ResourceCORSData {
-                    preflight: self.req.preflight_flag,
-                    origin: self.req.origin.clone()
-                });
-
-                XMLHttpRequest::initiate_async_xhr(self.xhr.clone(), self.script_chan.clone(),
-                                                   self.core_resource_thread.clone(), load_data);
-            }
-        }
-
-        let cors_context = CORSContext {
-            xhr: context,
-            load_data: RefCell::new(Some(load_data)),
-            req: req.clone(),
-            script_chan: script_chan.clone(),
-            core_resource_thread: core_resource_thread,
-        };
-
-        req.http_fetch_async(box cors_context, script_chan);
-    }
-
     fn initiate_async_xhr(context: Arc<Mutex<XHRContext>>,
                           script_chan: Box<ScriptChan + Send>,
                           core_resource_thread: CoreResourceThread,
-                          load_data: LoadData) {
-        impl AsyncResponseListener for XHRContext {
-            fn headers_available(&mut self, metadata: Result<Metadata, NetworkError>) {
-                let xhr = self.xhr.root();
-                let rv = xhr.process_headers_available(self.cors_request.clone(),
-                                                       self.gen_id,
-                                                       metadata);
-                if rv.is_err() {
+                          init: RequestInit) {
+        impl FetchResponseListener for XHRContext {
+                fn process_request_body(&mut self) {
+                    // todo
+                }
+                fn process_request_eof(&mut self) {
+                    // todo
+                }
+                fn process_response(&mut self, metadata: Result<Metadata, NetworkError>) {
+                    let xhr = self.xhr.root();
+                    let rv = xhr.process_headers_available(self.gen_id,
+                                                           metadata);
+                    if rv.is_err() {
+                        *self.sync_status.borrow_mut() = Some(rv);
+                    }
+                }
+                fn process_response_chunk(&mut self, mut chunk: Vec<u8>) {
+                    self.buf.borrow_mut().append(&mut chunk);
+                    self.xhr.root().process_data_available(self.gen_id, self.buf.borrow().clone());
+                }
+                fn process_response_eof(&mut self, response: Result<(), NetworkError>) {
+                    let rv = match response {
+                        Ok(()) => {
+                            self.xhr.root().process_response_complete(self.gen_id, Ok(()))
+                        }
+                        Err(e) => {
+                            self.xhr.root().process_response_complete(self.gen_id, Err(e))
+                        }
+                    };
                     *self.sync_status.borrow_mut() = Some(rv);
                 }
-            }
-
-            fn data_available(&mut self, payload: Vec<u8>) {
-                self.buf.borrow_mut().extend_from_slice(&payload);
-                self.xhr.root().process_data_available(self.gen_id, self.buf.borrow().clone());
-            }
-
-            fn response_complete(&mut self, status: Result<(), NetworkError>) {
-                let rv = self.xhr.root().process_response_complete(self.gen_id, status);
-                *self.sync_status.borrow_mut() = Some(rv);
-            }
         }
 
         impl PreInvoke for XHRContext {
@@ -298,13 +259,10 @@ impl XMLHttpRequest {
             context: context,
             script_chan: script_chan,
         };
-        let response_target = AsyncResponseTarget {
-            sender: action_sender,
-        };
         ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
-            listener.notify(message.to().unwrap());
+            listener.notify_fetch(message.to().unwrap());
         });
-        core_resource_thread.send(Load(load_data, LoadConsumer::Listener(response_target), None)).unwrap();
+        core_resource_thread.send(Fetch(init, action_sender)).unwrap();
     }
 }
 
@@ -563,12 +521,15 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             Method::Get | Method::Head => None,
             _ => data
         };
-        // Step 4
+        // Step 4 (first half)
         let extracted = data.as_ref().map(|d| d.extract());
+
         self.request_body_len.set(extracted.as_ref().map_or(0, |e| e.0.len()));
 
+        // todo preserved headers?
+
         // Step 6
-        self.upload_events.set(false);
+        self.upload_complete.set(false);
         // Step 7
         self.upload_complete.set(match extracted {
             None => true,
@@ -580,11 +541,6 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
         // Step 9
         if !self.sync.get() {
-            let event_target = self.upload.upcast::<EventTarget>();
-            if event_target.has_handlers() {
-                self.upload_events.set(true);
-            }
-
             // If one of the event handlers below aborts the fetch by calling
             // abort or open we will need the current generation id to detect it.
             // Substep 1
@@ -604,67 +560,108 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         }
 
         // Step 5
-        let global = self.global();
+        //TODO - set referrer_policy/referrer_url in request
+        let has_handlers = self.upload.upcast::<EventTarget>().has_handlers();
+        let credentials_mode = if self.with_credentials.get() {
+            CredentialsMode::Include
+        } else {
+            CredentialsMode::CredentialsSameOrigin
+        };
+        let use_url_credentials = if let Some(ref url) = *self.request_url.borrow() {
+            !url.username().is_empty() || url.password().is_some()
+        } else {
+            unreachable!()
+        };
 
-        let mut load_data =
-            LoadData::new(LoadContext::Browsing,
-                          self.request_url.borrow().clone().unwrap(),
-                          self);
+        let bypass_cross_origin_check = {
+            // We want to be able to do cross-origin requests in browser.html.
+            // If the XHR happens in a top level window and the mozbrowser
+            // preference is enabled, we allow bypassing the CORS check.
+            // This is a temporary measure until we figure out Servo privilege
+            // story. See https://github.com/servo/servo/issues/9582
+            if let GlobalRoot::Window(win) = self.global() {
+                let is_root_pipeline = win.parent_info().is_none();
+                let is_mozbrowser_enabled = mozbrowser_enabled();
+                is_root_pipeline && is_mozbrowser_enabled
+            } else {
+                false
+            }
+        };
 
-        if load_data.url.origin().ne(&global.r().get_url().origin()) {
-            load_data.credentials_flag = self.WithCredentials();
+        let mut request = RequestInit {
+            method: self.request_method.borrow().clone(),
+            url: self.request_url.borrow().clone().unwrap(),
+            headers: (*self.request_headers.borrow()).clone(),
+            unsafe_request: true,
+            same_origin_data: true,
+            // XXXManishearth figure out how to avoid this clone
+            body: extracted.as_ref().map(|e| e.0.clone()),
+            // XXXManishearth actually "subresource", but it doesn't exist
+            // https://github.com/whatwg/xhr/issues/71
+            destination: Destination::None,
+            synchronous: self.sync.get(),
+            mode: RequestMode::CORSMode,
+            use_cors_preflight: has_handlers,
+            credentials_mode: credentials_mode,
+            use_url_credentials: use_url_credentials,
+            origin: self.global().r().get_url(),
+            referer_url: self.referrer_url.clone(),
+            referrer_policy: self.referrer_policy.clone(),
+        };
+
+        if bypass_cross_origin_check {
+            request.mode = RequestMode::Navigate;
         }
-        load_data.data = extracted.as_ref().map(|e| e.0.clone());
 
-        // XHR spec differs from http, and says UTF-8 should be in capitals,
-        // instead of "utf-8", which is what Hyper defaults to. So not
-        // using content types provided by Hyper.
-        let n = "content-type";
+        // step 4 (second half)
         match extracted {
-            Some((_, Some(ref content_type))) =>
-                load_data.headers.set_raw(n.to_owned(), vec![content_type.bytes().collect()]),
+            Some((_, ref content_type)) => {
+                // this should handle Document bodies too, not just BodyInit
+                let encoding = if let Some(BodyInit::String(_)) = data {
+                    // XHR spec differs from http, and says UTF-8 should be in capitals,
+                    // instead of "utf-8", which is what Hyper defaults to. So not
+                    // using content types provided by Hyper.
+                    Some(MimeValue::Ext("UTF-8".to_string()))
+                } else {
+                    None
+                };
+
+                let mut content_type_set = false;
+                if let Some(ref ct) = *content_type {
+                    if !request.headers.has::<ContentType>() {
+                        request.headers.set_raw("content-type", vec![ct.bytes().collect()]);
+                        content_type_set = true;
+                    }
+                }
+
+                if !content_type_set {
+                    let ct = request.headers.get::<ContentType>().map(|x| x.clone());
+                    if let Some(mut ct) = ct {
+                        if let Some(encoding) = encoding {
+                            for param in &mut (ct.0).2 {
+                                if param.0 == MimeAttr::Charset {
+                                    if !param.0.as_str().eq_ignore_ascii_case(encoding.as_str()) {
+                                        *param = (MimeAttr::Charset, encoding.clone());
+                                    }
+                                }
+                            }
+                        }
+                        // remove instead of mutate in place
+                        // https://github.com/hyperium/hyper/issues/821
+                        request.headers.remove_raw("content-type");
+                        request.headers.set(ct);
+                    }
+                }
+
+            }
             _ => (),
         }
 
-        load_data.preserved_headers = (*self.request_headers.borrow()).clone();
-
-        if !load_data.preserved_headers.has::<Accept>() {
-            let mime = Mime(mime::TopLevel::Star, mime::SubLevel::Star, vec![]);
-            load_data.preserved_headers.set(Accept(vec![qitem(mime)]));
-        }
-
-        load_data.method = (*self.request_method.borrow()).clone();
-
-        // CORS stuff
-        let global = self.global();
-        let referer_url = self.global().r().get_url();
-        let mode = if self.upload_events.get() {
-            RequestMode::ForcedPreflight
-        } else {
-            RequestMode::CORS
-        };
-        let mut combined_headers = load_data.headers.clone();
-        combined_headers.extend(load_data.preserved_headers.iter());
-        let cors_request = CORSRequest::maybe_new(referer_url.clone(),
-                                                  load_data.url.clone(),
-                                                  mode,
-                                                  load_data.method.clone(),
-                                                  combined_headers,
-                                                  true);
-        match cors_request {
-            Ok(None) => {
-                let bytes = referer_url[..Position::AfterPath].as_bytes().to_vec();
-                self.request_headers.borrow_mut().set_raw("Referer".to_owned(), vec![bytes]);
-            },
-            Ok(Some(ref req)) => self.insert_trusted_header("origin".to_owned(),
-                                                            req.origin.to_string()),
-            _ => {}
-        }
-
-        debug!("request_headers = {:?}", *self.request_headers.borrow());
+        debug!("request.headers = {:?}", request.headers);
 
         self.fetch_time.set(time::now().to_timespec().sec);
-        let rv = self.fetch(load_data, cors_request, global.r());
+
+        let rv = self.fetch(request, self.global().r());
         // Step 10
         if self.sync.get() {
             return rv;
@@ -879,7 +876,7 @@ impl XMLHttpRequest {
         event.fire(self.upcast());
     }
 
-    fn process_headers_available(&self, cors_request: Option<CORSRequest>,
+    fn process_headers_available(&self,
                                  gen_id: GenerationId, metadata: Result<Metadata, NetworkError>)
                                  -> Result<(), Error> {
         let metadata = match metadata {
@@ -889,35 +886,6 @@ impl XMLHttpRequest {
                 return Err(Error::Network);
             },
         };
-
-        let bypass_cross_origin_check = {
-            // We want to be able to do cross-origin requests in browser.html.
-            // If the XHR happens in a top level window and the mozbrowser
-            // preference is enabled, we allow bypassing the CORS check.
-            // This is a temporary measure until we figure out Servo privilege
-            // story. See https://github.com/servo/servo/issues/9582
-            if let GlobalRoot::Window(win) = self.global() {
-                let is_root_pipeline = win.parent_info().is_none();
-                let is_mozbrowser_enabled = mozbrowser_enabled();
-                is_root_pipeline && is_mozbrowser_enabled
-            } else {
-                false
-            }
-        };
-
-        if !bypass_cross_origin_check {
-            if let Some(ref req) = cors_request {
-                match metadata.headers {
-                    Some(ref h) if allow_cross_origin_request(req, h) => {},
-                    _ => {
-                        self.process_partial_response(XHRProgress::Errored(gen_id, Error::Network));
-                        return Err(Error::Network);
-                    }
-                }
-            }
-        } else {
-            debug!("Bypassing cross origin check");
-        }
 
         *self.response_url.borrow_mut() = metadata.final_url[..Position::AfterQuery].to_owned();
 
@@ -1318,25 +1286,12 @@ impl XMLHttpRequest {
     }
 
     fn fetch(&self,
-              load_data: LoadData,
-              cors_request: Result<Option<CORSRequest>, ()>,
+              init: RequestInit,
               global: GlobalRef) -> ErrorResult {
-        let cors_request = match cors_request {
-            Err(_) => {
-                // Happens in case of unsupported cross-origin URI schemes.
-                // Supported schemes are http, https, data, and about.
-                self.process_partial_response(XHRProgress::Errored(
-                    self.generation_id.get(), Error::Network));
-                return Err(Error::Network);
-            }
-            Ok(req) => req,
-        };
-
         let xhr = Trusted::new(self);
 
         let context = Arc::new(Mutex::new(XHRContext {
             xhr: xhr,
-            cors_request: cors_request.clone(),
             gen_id: self.generation_id.get(),
             buf: DOMRefCell::new(vec!()),
             sync_status: DOMRefCell::new(None),
@@ -1350,13 +1305,8 @@ impl XMLHttpRequest {
         };
 
         let core_resource_thread = global.core_resource_thread();
-        if let Some(req) = cors_request {
-            XMLHttpRequest::check_cors(context.clone(), load_data, req.clone(),
-                                       script_chan.clone(), core_resource_thread);
-        } else {
-            XMLHttpRequest::initiate_async_xhr(context.clone(), script_chan,
-                                               core_resource_thread, load_data);
-        }
+        XMLHttpRequest::initiate_async_xhr(context.clone(), script_chan,
+                                           core_resource_thread, init);
 
         if let Some(script_port) = script_port {
             loop {

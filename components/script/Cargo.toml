@@ -60,7 +60,6 @@ smallvec = "0.1"
 string_cache = {version = "0.2.18", features = ["heap_size", "unstable"]}
 style = {path = "../style"}
 time = "0.1.12"
-unicase = "1.0"
 url = {version = "1.0.0", features = ["heap_size", "query_encoding"]}
 util = {path = "../util"}
 uuid = {version = "0.2", features = ["v4"]}

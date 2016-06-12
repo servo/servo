@@ -370,7 +370,7 @@ impl Error for LoadErrorType {
     }
 }
 
-fn set_default_accept_encoding(headers: &mut Headers) {
+pub fn set_default_accept_encoding(headers: &mut Headers) {
     if headers.has::<AcceptEncoding>() {
         return
     }
@@ -434,10 +434,10 @@ fn strip_url(mut referrer_url: Url, origin_only: bool) -> Option<Url> {
 }
 
 /// https://w3c.github.io/webappsec-referrer-policy/#determine-requests-referrer
-fn determine_request_referrer(headers: &mut Headers,
-                              referrer_policy: Option<ReferrerPolicy>,
-                              referrer_url: Option<Url>,
-                              url: Url) -> Option<Url> {
+pub fn determine_request_referrer(headers: &mut Headers,
+                                  referrer_policy: Option<ReferrerPolicy>,
+                                  referrer_url: Option<Url>,
+                                  url: Url) -> Option<Url> {
     //TODO - algorithm step 2 not addressed
     assert!(!headers.has::<Referer>());
     if let Some(ref_url) = referrer_url {
@@ -453,9 +453,9 @@ fn determine_request_referrer(headers: &mut Headers,
     return None;
 }
 
-pub fn set_request_cookies(url: Url, headers: &mut Headers, cookie_jar: &Arc<RwLock<CookieStorage>>) {
+pub fn set_request_cookies(url: &Url, headers: &mut Headers, cookie_jar: &Arc<RwLock<CookieStorage>>) {
     let mut cookie_jar = cookie_jar.write().unwrap();
-    if let Some(cookie_list) = cookie_jar.cookies_for_url(&url, CookieSource::HTTP) {
+    if let Some(cookie_list) = cookie_jar.cookies_for_url(url, CookieSource::HTTP) {
         let mut v = Vec::new();
         v.push(cookie_list.into_bytes());
         headers.set_raw("Cookie".to_owned(), v);
@@ -540,7 +540,7 @@ impl StreamedResponse {
         StreamedResponse { metadata: m, decoder: d }
     }
 
-    fn from_http_response(response: Box<HttpResponse>, m: Metadata) -> Result<StreamedResponse, LoadError> {
+    pub fn from_http_response(response: Box<HttpResponse>, m: Metadata) -> Result<StreamedResponse, LoadError> {
         let decoder = match response.content_encoding() {
             Some(Encoding::Gzip) => {
                 let result = GzDecoder::new(response);
@@ -627,10 +627,7 @@ fn request_must_be_secured(url: &Url, hsts_list: &Arc<RwLock<HstsList>>) -> bool
 pub fn modify_request_headers(headers: &mut Headers,
                               url: &Url,
                               user_agent: &str,
-                              cookie_jar: &Arc<RwLock<CookieStorage>>,
-                              auth_cache: &Arc<RwLock<AuthCache>>,
-                              load_data: &LoadData,
-                              block_cookies: bool,
+                              referrer_policy: Option<ReferrerPolicy>,
                               referrer_url: &mut Option<Url>) {
     // Ensure that the host header is set from the original url
     let host = Host {
@@ -654,22 +651,12 @@ pub fn modify_request_headers(headers: &mut Headers,
     set_default_accept_encoding(headers);
 
     *referrer_url = determine_request_referrer(headers,
-                                               load_data.referrer_policy.clone(),
+                                               referrer_policy.clone(),
                                                referrer_url.clone(),
                                                url.clone());
 
     if let Some(referer_val) = referrer_url.clone() {
         headers.set(Referer(referer_val.into_string()));
-    }
-
-    // https://fetch.spec.whatwg.org/#concept-http-network-or-cache-fetch step 11
-    if load_data.credentials_flag {
-        if !block_cookies {
-            set_request_cookies(url.clone(), headers, cookie_jar);
-        }
-
-        // https://fetch.spec.whatwg.org/#http-network-or-cache-fetch step 12
-        set_auth_header(headers, url, auth_cache);
     }
 }
 
@@ -680,18 +667,21 @@ fn set_auth_header(headers: &mut Headers,
         if let Some(auth) = auth_from_url(url) {
             headers.set(auth);
         } else {
-            if let Some(ref auth_entry) = auth_cache.read().unwrap().entries.get(url) {
-                auth_from_entry(&auth_entry, headers);
+            if let Some(basic) = auth_from_cache(auth_cache, url) {
+                headers.set(Authorization(basic));
             }
         }
     }
 }
 
-fn auth_from_entry(auth_entry: &AuthCacheEntry, headers: &mut Headers) {
-    let user_name = auth_entry.user_name.clone();
-    let password  = Some(auth_entry.password.clone());
-
-    headers.set(Authorization(Basic { username: user_name, password: password }));
+pub fn auth_from_cache(auth_cache: &Arc<RwLock<AuthCache>>, url: &Url) -> Option<Basic> {
+    if let Some(ref auth_entry) = auth_cache.read().unwrap().entries.get(url) {
+        let user_name = auth_entry.user_name.clone();
+        let password  = Some(auth_entry.password.clone());
+        Some(Basic { username: user_name, password: password })
+    } else {
+        None
+    }
 }
 
 fn auth_from_url(doc_url: &Url) -> Option<Authorization<Basic>> {
@@ -956,9 +946,18 @@ pub fn load<A, B>(load_data: &LoadData,
         let request_id = uuid::Uuid::new_v4().simple().to_string();
 
         modify_request_headers(&mut request_headers, &doc_url,
-                               &user_agent, &http_state.cookie_jar,
-                               &http_state.auth_cache, &load_data,
-                               block_cookies, &mut referrer_url);
+                               &user_agent, load_data.referrer_policy,
+                               &mut referrer_url);
+
+        // https://fetch.spec.whatwg.org/#concept-http-network-or-cache-fetch step 11
+        if load_data.credentials_flag {
+            if !block_cookies {
+                set_request_cookies(&doc_url, &mut request_headers, &http_state.cookie_jar);
+            }
+
+            // https://fetch.spec.whatwg.org/#http-network-or-cache-fetch step 12
+            set_auth_header(&mut request_headers, &doc_url, &http_state.auth_cache);
+        }
 
         //if there is a new auth header then set the request headers with it
         if let Some(ref auth_header) = new_auth_header {
