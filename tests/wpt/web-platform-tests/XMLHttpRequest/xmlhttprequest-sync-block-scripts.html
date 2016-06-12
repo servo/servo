@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Check that while a sync XHR is in flight async script loads don't complete and run script</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<body>
+<script>
+var scriptRan = false;
+var onloadFired = false;
+test(function() {
+  var s = document.createElement("script");
+  s.src = "data:application/javascript,scriptRan = true;";
+  s.onload = function() { onloadFired = true; }
+  document.body.appendChild(s);
+  var xhr = new XMLHttpRequest();
+  xhr.open("GET", "data:,", false);
+  xhr.send();
+  assert_false(scriptRan, "Script should not have run");
+  assert_false(onloadFired, "load event for <script> should not have fired");
+});
+</script>
+</body>

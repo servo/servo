@@ -222,7 +222,7 @@ A **selection** is a single **test instance** (scenario) with explicit values, f
 
 ```javascript
 var scenario = {
-  "referrer_policy": "origin-when-crossorigin",
+  "referrer_policy": "origin-when-cross-origin",
   "delivery_method": "meta-referrer",
   "redirection": "no-redirect",
   "origin": "cross-origin",

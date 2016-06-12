@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<head>
+<title>Node.prototype.isConnected</title>
+<link rel=help href="https://dom.spec.whatwg.org/#dom-node-isconnected">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+
+"use strict";
+
+test(function() {
+  var nodes = [document.createElement("div"),
+               document.createElement("div"),
+               document.createElement("div")];
+  checkNodes([], nodes);
+
+  // Append nodes[0].
+  document.body.appendChild(nodes[0]);
+  checkNodes([nodes[0]],
+             [nodes[1], nodes[2]]);
+
+  // Append nodes[1] and nodes[2] together.
+  nodes[1].appendChild(nodes[2]);
+  checkNodes([nodes[0]],
+             [nodes[1], nodes[2]]);
+
+  nodes[0].appendChild(nodes[1]);
+  checkNodes(nodes, []);
+
+  // Remove nodes[2].
+  nodes[2].remove();
+  checkNodes([nodes[0], nodes[1]],
+             [nodes[2]]);
+
+  // Remove nodes[0] and nodes[1] together.
+  nodes[0].remove();
+  checkNodes([], nodes);
+}, "Test with ordinary child nodes");
+
+test(function() {
+  var nodes = [document.createElement("iframe"),
+               document.createElement("iframe"),
+               document.createElement("iframe"),
+               document.createElement("iframe"),
+               document.createElement("div")];
+  var frames = [nodes[0],
+                nodes[1],
+                nodes[2],
+                nodes[3]];
+  checkNodes([], nodes);
+
+  // Since we cannot append anything to the contentWindow of an iframe before it
+  // is appended to the main DOM tree, we append the iframes one after another.
+  document.body.appendChild(nodes[0]);
+  checkNodes([nodes[0]],
+             [nodes[1], nodes[2], nodes[3], nodes[4]]);
+
+  frames[0].contentDocument.body.appendChild(nodes[1]);
+  checkNodes([nodes[0], nodes[1]],
+             [nodes[2], nodes[3], nodes[4]]);
+
+  frames[1].contentDocument.body.appendChild(nodes[2]);
+  checkNodes([nodes[0], nodes[1], nodes[2]],
+             [nodes[3], nodes[4]]);
+
+  frames[2].contentDocument.body.appendChild(nodes[3]);
+  checkNodes([nodes[0], nodes[1], nodes[2], nodes[3]],
+             [nodes[4]]);
+
+  frames[3].contentDocument.body.appendChild(nodes[4]);
+  checkNodes(nodes, []);
+
+  frames[3].remove();
+  // Since node[4] is still under the doument of frame[3], it's still connected.
+  checkNodes([nodes[0], nodes[1], nodes[2], nodes[4]],
+             [nodes[3]]);
+
+  frames[0].remove();
+  // Since node[1] and node[2] are still under the doument of frame[0], they are
+  // still connected.
+  checkNodes([nodes[1], nodes[2], nodes[4]],
+             [nodes[0], nodes[3]]);
+}, "Test with iframes");
+
+// This helper function is used to check whether nodes should be connected.
+function checkNodes(aConnectedNodes, aDisconnectedNodes) {
+  aConnectedNodes.forEach(node => assert_true(node.isConnected));
+  aDisconnectedNodes.forEach(node => assert_false(node.isConnected));
+}
+
+</script>
+</body>

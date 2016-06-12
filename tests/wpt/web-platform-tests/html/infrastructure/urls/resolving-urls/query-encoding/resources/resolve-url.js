@@ -85,7 +85,7 @@ onload = function() {
   }
 
   ('iframe src, a href, base href, link href, img src, embed src, object data, track src, video src, audio src, input src, form action, ' +
-  'input formaction formAction, button formaction formAction, menuitem icon, script src, div itemid').split(', ').forEach(function(str) {
+  'input formaction formAction, button formaction formAction, menuitem icon, script src').split(', ').forEach(function(str) {
     var arr = str.split(' ');
     test_reflecting(arr[0], arr[1], arr[2]);
   });
@@ -434,26 +434,6 @@ onload = function() {
   {help:['https://html.spec.whatwg.org/multipage/multipage/semantics.html#set-the-frozen-base-url',
   'https://dom.spec.whatwg.org/#dom-node-baseuri',
   'https://html.spec.whatwg.org/multipage/multipage/text-level-semantics.html#the-a-element']});
-
-  // XXX itemid is exposed in JSON drag-and-drop but seems hard to automate
-
-  // microdata values
-  function test_microdata_values(tag, attr) {
-    test(function() {
-      var elm = document.createElement(tag);
-      elm.setAttribute('itemprop', '');
-      elm.setAttribute(attr, input_url_html);
-      var got = elm.itemValue;
-      assert_not_equals(got, undefined, 'itemValue not supported');
-      assert_true(got.indexOf(expected_current) > -1, msg(expected_current, got));
-    }, 'microdata values <'+tag+' '+attr+'>',
-    {help:'https://html.spec.whatwg.org/multipage/multipage/microdata.html#concept-property-value'});
-  }
-
-  'audio src, embed src, iframe src, img src, source src, track src, video src, a href, area href, link href, object data'.split(', ').forEach(function(str) {
-    var arr = str.split(' ');
-    test_microdata_values(arr[0], arr[1]);
-  });
 
   // XXX drag and drop (<a href> or <img src>) seems hard to automate
 

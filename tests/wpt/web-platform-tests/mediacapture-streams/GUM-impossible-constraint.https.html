@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+<head>
+<title>Trivial mandatory constraint in getUserMedia</title>
+<link rel="author" title="Dominique Hazael-Massieux" href="mailto:dom@w3.org"/>
+<link rel="help" href="http://dev.w3.org/2011/webrtc/editor/getusermedia.html#widl-NavigatorUserMedia-getUserMedia-void-MediaStreamConstraints-constraints-NavigatorUserMediaSuccessCallback-successCallback-NavigatorUserMediaErrorCallback-errorCallback">
+<link rel="help" href="http://dev.w3.org/2011/webrtc/editor/getusermedia.html#idl-def-NavigatorUserMediaError">
+</head>
+<body>
+<p class="instructions">When prompted, accept to share your video stream.</p>
+<h1 class="instructions">Description</h1>
+<p class="instructions">This test checks that setting an impossible mandatory
+constraint (width &gt;=infinity) in getUserMedia works</p>
+
+<div id='log'></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/common/vendor-prefix.js" data-prefixed-objects='[{"ancestors":["navigator"], "name":"getUserMedia"}]'></script>
+<script>
+var t = async_test("Tests that setting an impossible constraint in getUserMedia fails", {timeout:10000});
+t.step(function() {
+  navigator.getUserMedia({video: {width: {min:Infinity}}}, t.step_func(function (stream) {
+    assert_unreached("a Video stream of infinite width cannot be created");
+    t.done();
+  }), t.step_func(function(error) {
+    assert_equals(error.name, "ConstraintNotSatisfiedError", "An impossible constraint triggers a ConstraintNotSatisfiedError");
+    assert_equals(error.constraintName, "width", "The name of the not satisfied error is given in error.constraintName");
+    t.done();
+  }));
+});
+</script>
+</body>
+</html>
