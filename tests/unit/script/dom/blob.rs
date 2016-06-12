@@ -32,3 +32,25 @@ fn test_data_slice_should_respect_correct_bounds() {
     let expected = [2u8, 3];
     assert_eq!(&expected, data.get_bytes());
 }
+
+#[test]
+fn test_data_slice_negative_bound() {
+    let bytes = Arc::new(vec![1u8, 2, 3, 4, 5]);
+    let start = Some(-2);
+    let end = Some(-1);
+    let data = DataSlice::new(bytes, start, end);
+    let expected = [4u8];
+    assert_eq!(&expected, data.get_bytes());
+}
+
+#[test]
+fn test_empty_data_slice() {
+    assert_eq!(DataSlice::empty().size(), 0);
+}
+
+#[test]
+fn test_data_slice_from_get_bytes() {
+    let bytes = vec![1u8, 3, 4, 5, 6];
+    let slice = DataSlice::from_bytes(bytes.clone());
+    assert_eq!(slice.get_bytes(), &bytes[..]);
+}
