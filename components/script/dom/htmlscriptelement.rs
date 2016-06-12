@@ -342,8 +342,8 @@ impl HTMLScriptElement {
         // Step 12.
         let for_attribute = element.get_attribute(&ns!(), &atom!("for"));
         let event_attribute = element.get_attribute(&ns!(), &atom!("event"));
-        match (for_attribute.r(), event_attribute.r()) {
-            (Some(for_attribute), Some(event_attribute)) => {
+        match (for_attribute.r(), event_attribute.r(), self.type_.get()) {
+            (Some(for_attribute), Some(event_attribute), ScriptType::Classic) => {
                 let for_value = for_attribute.value().to_ascii_lowercase();
                 let for_value = for_value.trim_matches(HTML_SPACE_CHARACTERS);
                 if for_value != "window" {
@@ -356,7 +356,7 @@ impl HTMLScriptElement {
                     return NextParserState::Continue;
                 }
             },
-            (_, _) => (),
+            (_, _, _) => (),
         }
 
         // Step 13.
