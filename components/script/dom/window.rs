@@ -574,10 +574,8 @@ impl WindowMethods for Window {
 
     // https://html.spec.whatwg.org/multipage/#dom-parent
     fn Parent(&self) -> Root<BrowsingContext> {
-        match  self.parent() {
-            Some(window) => window.browsing_context(),
-            None => self.Window()
-        }
+        let browsing_context = self.browsing_context();
+        browsing_context.parent().unwrap_or(browsing_context)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-top
