@@ -233,11 +233,11 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
     }
 
     fn borrow_data(&self) -> Option<Ref<PrivateStyleData>> {
-        unsafe { self.borrow_layout_data().map(|d| transmute(d)) }
+        self.borrow_layout_data().map(|d| Ref::map(d, |d| &d.style_data))
     }
 
     fn mutate_data(&self) -> Option<RefMut<PrivateStyleData>> {
-        unsafe { self.mutate_layout_data().map(|d| transmute(d)) }
+        self.mutate_layout_data().map(|d| RefMut::map(d, |d| &mut d.style_data))
     }
 
     fn restyle_damage(self) -> RestyleDamage {
