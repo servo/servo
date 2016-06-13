@@ -87,7 +87,7 @@ use script_traits::{NewLayoutInfo, ScriptMsg as ConstellationMsg};
 use script_traits::{ScriptThreadFactory, TimerEvent, TimerEventRequest, TimerSource};
 use script_traits::{TouchEventType, TouchId, UntrustedNodeAddress};
 use std::borrow::ToOwned;
-use std::cell::{Cell, RefCell};
+use std::cell::Cell;
 use std::collections::{HashMap, HashSet};
 use std::option::Option;
 use std::ptr;
@@ -111,11 +111,11 @@ use util::thread_state;
 use webdriver_handlers;
 
 thread_local!(pub static STACK_ROOTS: Cell<Option<RootCollectionPtr>> = Cell::new(None));
-thread_local!(static SCRIPT_THREAD_ROOT: RefCell<Option<*const ScriptThread>> = RefCell::new(None));
+thread_local!(static SCRIPT_THREAD_ROOT: Cell<Option<*const ScriptThread>> = Cell::new(None));
 
 pub unsafe fn trace_thread(tr: *mut JSTracer) {
     SCRIPT_THREAD_ROOT.with(|root| {
-        if let Some(script_thread) = *root.borrow() {
+        if let Some(script_thread) = root.get() {
             debug!("tracing fields of ScriptThread");
             (*script_thread).trace(tr);
         }
@@ -461,7 +461,7 @@ impl ScriptThreadFactory for ScriptThread {
                                                   script_chan.clone());
 
             SCRIPT_THREAD_ROOT.with(|root| {
-                *root.borrow_mut() = Some(&script_thread as *const _);
+                root.set(Some(&script_thread as *const _));
             });
 
             let mut failsafe = ScriptMemoryFailsafe::new(&script_thread);
@@ -494,7 +494,7 @@ impl ScriptThread {
     pub fn page_headers_available(id: &PipelineId, subpage: Option<&SubpageId>, metadata: Option<Metadata>)
                                   -> Option<ParserRoot> {
         SCRIPT_THREAD_ROOT.with(|root| {
-            let script_thread = unsafe { &*root.borrow().unwrap() };
+            let script_thread = unsafe { &*root.get().unwrap() };
             script_thread.handle_page_headers_available(id, subpage, metadata)
         })
     }
@@ -502,21 +502,21 @@ impl ScriptThread {
     // stores a service worker registration
     pub fn set_registration(scope_url: Url, registration:&ServiceWorkerRegistration) {
         SCRIPT_THREAD_ROOT.with(|root| {
-            let script_thread = unsafe { &*root.borrow().unwrap() };
+            let script_thread = unsafe { &*root.get().unwrap() };
             script_thread.handle_serviceworker_registration(scope_url, registration);
         });
     }
 
     pub fn parsing_complete(id: PipelineId) {
         SCRIPT_THREAD_ROOT.with(|root| {
-            let script_thread = unsafe { &*root.borrow().unwrap() };
+            let script_thread = unsafe { &*root.get().unwrap() };
             script_thread.handle_parsing_complete(id);
         });
     }
 
     pub fn process_event(msg: CommonScriptMsg) {
         SCRIPT_THREAD_ROOT.with(|root| {
-            if let Some(script_thread) = *root.borrow() {
+            if let Some(script_thread) = root.get() {
                 let script_thread = unsafe { &*script_thread };
                 script_thread.handle_msg_from_script(MainThreadScriptMsg::Common(msg));
             }
@@ -527,7 +527,7 @@ impl ScriptThread {
     pub fn await_stable_state<T: Runnable + Send + 'static>(task: T) {
         //TODO use microtasks when they exist
         SCRIPT_THREAD_ROOT.with(|root| {
-            if let Some(script_thread) = *root.borrow() {
+            if let Some(script_thread) = root.get() {
                 let script_thread = unsafe { &*script_thread };
                 let _ = script_thread.chan.send(CommonScriptMsg::RunnableMsg(
                     ScriptThreadEventCategory::DomEvent,
@@ -2051,7 +2051,7 @@ impl ScriptThread {
 impl Drop for ScriptThread {
     fn drop(&mut self) {
         SCRIPT_THREAD_ROOT.with(|root| {
-            *root.borrow_mut() = None;
+            root.set(None);
         });
     }
 }
