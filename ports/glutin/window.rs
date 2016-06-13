@@ -822,7 +822,7 @@ impl WindowMethods for Window {
             }
 
             (NONE, Key::Escape) => {
-                if let Some(true) = prefs::get_pref("shell.quit-on-escape.enabled").as_boolean() {
+                if let Some(true) = prefs::get_pref("shell.builtin-key-shortcuts.enabled").as_boolean() {
                     self.event_queue.borrow_mut().push(WindowEvent::Quit);
                 }
             }
@@ -863,6 +863,11 @@ impl WindowMethods for Window {
             }
             (NONE, Key::Right) => {
                 self.scroll_window(-LINE_HEIGHT, 0.0, TouchEventType::Move);
+            }
+            (CMD_OR_CONTROL, Key::R) => {
+                if let Some(true) = prefs::get_pref("shell.builtin-key-shortcuts.enabled").as_boolean() {
+                    self.event_queue.borrow_mut().push(WindowEvent::Reload);
+                }
             }
 
             _ => {

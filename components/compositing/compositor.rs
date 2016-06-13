@@ -1327,6 +1327,13 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                     self.start_shutting_down();
                 }
             }
+
+            WindowEvent::Reload => {
+                let msg = ConstellationMsg::Reload;
+                if let Err(e) = self.constellation_chan.send(msg) {
+                    warn!("Sending reload to constellation failed ({}).", e);
+                }
+            }
         }
     }
 
