@@ -86,12 +86,6 @@ pub trait TNode : Sized + Copy + Clone {
     /// Converts self into an `OpaqueNode`.
     fn opaque(&self) -> OpaqueNode;
 
-    /// Initializes style and layout data for the node. No-op if the data is already
-    /// initialized.
-    ///
-    /// FIXME(pcwalton): Do this as part of fragment building instead of in a traversal.
-    fn initialize_data(self);
-
     /// While doing a reflow, the node at the root has no parent, as far as we're
     /// concerned. This method returns `None` at the reflow root.
     fn layout_parent_node(self, reflow_root: OpaqueNode) -> Option<Self>;
