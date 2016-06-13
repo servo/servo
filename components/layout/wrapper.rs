@@ -120,6 +120,19 @@ impl<'ln> ServoLayoutNode<'ln> {
             chain: self.chain,
         }
     }
+
+    pub fn initialize_data(self) {
+        if unsafe { self.borrow_data_unchecked() }.is_none() {
+            let ptr: NonOpaqueStyleAndLayoutData =
+                Box::into_raw(box RefCell::new(PrivateLayoutData::new()));
+            let opaque = OpaqueStyleAndLayoutData {
+                ptr: unsafe { NonZero::new(ptr as *mut ()) }
+            };
+            unsafe {
+                self.node.init_style_and_layout_data(opaque);
+            }
+        }
+    }
 }
 
 impl<'ln> TNode for ServoLayoutNode<'ln> {
@@ -156,20 +169,6 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
 
     fn opaque(&self) -> OpaqueNode {
         OpaqueNodeMethods::from_jsmanaged(unsafe { self.get_jsmanaged() })
-    }
-
-    fn initialize_data(self) {
-        let has_data = unsafe { self.borrow_data_unchecked().is_some() };
-        if !has_data {
-            let ptr: NonOpaqueStyleAndLayoutData =
-                Box::into_raw(box RefCell::new(PrivateLayoutData::new()));
-            let opaque = OpaqueStyleAndLayoutData {
-                ptr: unsafe { NonZero::new(ptr as *mut ()) }
-            };
-            unsafe {
-                self.node.init_style_and_layout_data(opaque);
-            }
-        }
     }
 
     fn layout_parent_node(self, reflow_root: OpaqueNode) -> Option<ServoLayoutNode<'ln>> {
