@@ -81,6 +81,15 @@ impl<'ln> GeckoNode<'ln> {
             Gecko_GetNodeData(self.node) as NonOpaqueStyleData
         }
     }
+
+    pub fn initialize_data(self) {
+        unsafe {
+            if self.get_node_data().is_null() {
+                let ptr: NonOpaqueStyleData = Box::into_raw(box RefCell::new(PrivateStyleData::new()));
+                Gecko_SetNodeData(self.node, ptr as *mut ServoNodeData);
+            }
+        }
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -130,15 +139,6 @@ impl<'ln> TNode for GeckoNode<'ln> {
     fn opaque(&self) -> OpaqueNode {
         let ptr: uintptr_t = self.node as uintptr_t;
         OpaqueNode(ptr)
-    }
-
-    fn initialize_data(self) {
-        unsafe {
-            if self.get_node_data().is_null() {
-                let ptr: NonOpaqueStyleData = Box::into_raw(box RefCell::new(PrivateStyleData::new()));
-                Gecko_SetNodeData(self.node, ptr as *mut ServoNodeData);
-            }
-        }
     }
 
     fn layout_parent_node(self, reflow_root: OpaqueNode) -> Option<GeckoNode<'ln>> {
