@@ -864,6 +864,9 @@ impl WindowMethods for Window {
             (NONE, Key::Right) => {
                 self.scroll_window(-LINE_HEIGHT, 0.0, TouchEventType::Move);
             }
+            (CMD_OR_CONTROL, Key::R) => {
+                self.event_queue.borrow_mut().push(WindowEvent::Reload);
+            }
 
             _ => {
                 self.platform_handle_key(key, mods);

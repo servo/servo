@@ -601,6 +601,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 debug!("constellation got webdriver command message");
                 self.handle_webdriver_msg(command);
             }
+            FromCompositorMsg::Reload => {
+                debug!("constellation got reload message");
+                self.handle_reload_msg();
+            }
         }
     }
 
@@ -1382,6 +1386,27 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 let event = ToCompositorMsg::KeyEvent(key, state, mods);
                 self.compositor_proxy.clone_compositor_proxy().send(event);
             }
+        }
+    }
+
+    fn handle_reload_msg(&mut self) {
+        // Send Reload constellation msg to root script channel.
+        let root_pipeline_id = self.root_frame_id
+            .and_then(|root_frame_id| self.frames.get(&root_frame_id))
+            .map(|root_frame| root_frame.current);
+
+        match root_pipeline_id {
+            Some(pipeline_id) => {
+                let msg = ConstellationControlMsg::Reload(pipeline_id);
+                let result = match self.pipelines.get(&pipeline_id) {
+                    Some(pipeline) => pipeline.script_chan.send(msg),
+                    None => return debug!("Pipeline {:?} got reload event after closure.", pipeline_id),
+                };
+                if let Err(e) = result {
+                    self.handle_send_error(pipeline_id, e);
+                }
+            },
+            None => {}
         }
     }
 

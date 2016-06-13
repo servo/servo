@@ -948,6 +948,8 @@ impl ScriptThread {
                 self.handle_framed_content_changed(containing_pipeline_id, subpage_id),
             ConstellationControlMsg::ReportCSSError(pipeline_id, filename, line, column, msg) =>
                 self.handle_css_error_reporting(pipeline_id, filename, line, column, msg),
+            ConstellationControlMsg::Reload(pipeline_id) =>
+                self.handle_reload(pipeline_id),
         }
     }
 
@@ -2045,6 +2047,15 @@ impl ScriptThread {
             let message = ScriptToDevtoolsControlMsg::ReportCSSError(pipeline_id, css_error);
             sender.send(message).unwrap();
         }
+    }
+
+    fn handle_reload(&self, pipeline_id: PipelineId) {
+        use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+        use dom::bindings::codegen::Bindings::LocationBinding::LocationMethods;
+        let context = self.browsing_context.get().unwrap().find(pipeline_id).expect("There is no such context");
+        let win = context.active_window();
+        let location = win.Location();
+        location.Reload();
     }
 }
 

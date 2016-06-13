@@ -189,6 +189,8 @@ pub enum ConstellationControlMsg {
     FramedContentChanged(PipelineId, SubpageId),
     /// Report an error from a CSS parser for the given pipeline
     ReportCSSError(PipelineId, String, usize, usize, String),
+    /// Reload the current page.
+    Reload(PipelineId),
 }
 
 /// Used to determine if a script has any pending asynchronous activity.
@@ -546,4 +548,6 @@ pub enum ConstellationMsg {
     TickAnimation(PipelineId, AnimationTickType),
     /// Dispatch a webdriver command
     WebDriverCommand(WebDriverCommandMsg),
+    /// Reload the current page.
+    Reload,
 }
