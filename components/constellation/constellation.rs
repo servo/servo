@@ -73,6 +73,7 @@ enum ReadyToSave {
     EpochMismatch,
     PipelineUnknown,
     Ready,
+    InconsistentFrameTreeState,
 }
 
 /// Maintains the pipelines and navigation context and grants permission to composite.
@@ -255,31 +256,32 @@ struct FrameTreeIterator<'a> {
     pipelines: &'a HashMap<PipelineId, Pipeline>,
 }
 
+enum FrameTreeIteratorItem<'a> {
+    Found(&'a Frame, &'a Pipeline),
+    FrameNotFound(FrameId),
+    PipelineNotFound(FrameId, &'a Frame),
+}
+
 impl<'a> Iterator for FrameTreeIterator<'a> {
-    type Item = &'a Frame;
-    fn next(&mut self) -> Option<&'a Frame> {
-        loop {
-            let frame_id = match self.stack.pop() {
-                Some(frame_id) => frame_id,
-                None => return None,
-            };
-            let frame = match self.frames.get(&frame_id) {
-                Some(frame) => frame,
-                None => {
-                    warn!("Frame {:?} iterated after closure.", frame_id);
-                    continue;
-                },
-            };
-            let pipeline = match self.pipelines.get(&frame.current) {
-                Some(pipeline) => pipeline,
-                None => {
-                    warn!("Pipeline {:?} iterated after closure.", frame.current);
-                    continue;
-                },
-            };
-            self.stack.extend(pipeline.children.iter().map(|&c| c));
-            return Some(frame)
-        }
+    type Item = FrameTreeIteratorItem<'a>;
+    fn next(&mut self) -> Option<FrameTreeIteratorItem<'a>> {
+        let frame_id = match self.stack.pop() {
+            Some(frame_id) => frame_id,
+            None => return None,
+        };
+
+        let frame = match self.frames.get(&frame_id) {
+            Some(frame) => frame,
+            None => return Some(FrameTreeIteratorItem::FrameNotFound(frame_id)),
+        };
+
+        let pipeline = match self.pipelines.get(&frame.current) {
+            Some(pipeline) => pipeline,
+            None => return Some(FrameTreeIteratorItem::PipelineNotFound(frame_id, frame)),
+        };
+
+        self.stack.extend(pipeline.children.iter().map(|&c| c));
+        Some(FrameTreeIteratorItem::Found(frame, pipeline))
     }
 }
 
@@ -1767,7 +1769,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
 
         // If there are pending loads, wait for those to complete.
-        if self.pending_frames.len() > 0 {
+        if !self.pending_frames.is_empty() {
             return ReadyToSave::PendingFrames;
         }
 
@@ -1779,12 +1781,17 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // matches what the compositor has painted. If all these conditions
         // are met, then the output image should not change and a reftest
         // screenshot can safely be written.
-        for frame in self.current_frame_tree_iter(self.root_frame_id) {
-            let pipeline_id = frame.current;
-
-            let pipeline = match self.pipelines.get(&pipeline_id) {
-                None => { warn!("Pipeline {:?} screenshot while closing.", pipeline_id); continue; },
-                Some(pipeline) => pipeline,
+        for frame_tree_iter_item in self.current_frame_tree_iter(self.root_frame_id) {
+            let (frame, pipeline) = match frame_tree_iter_item {
+                FrameTreeIteratorItem::Found(frame, pipeline) => (frame, pipeline),
+                FrameTreeIteratorItem::FrameNotFound(frame_id) => {
+                    warn!("Frame {:?} not found while iterating through the tree", frame_id);
+                    return ReadyToSave::InconsistentFrameTreeState;
+                }
+                FrameTreeIteratorItem::PipelineNotFound(frame_id, frame) => {
+                    warn!("Pipeline {:?} for frame {:?} not found", frame.current, frame_id);
+                    return ReadyToSave::InconsistentFrameTreeState;
+                }
             };
 
             // Check to see if there are any webfonts still loading.
@@ -2013,7 +2020,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     fn revoke_paint_permission(&self, pipeline_id: PipelineId) {
         let frame_id = self.pipeline_to_frame_map.get(&pipeline_id).map(|frame_id| *frame_id);
         for frame in self.current_frame_tree_iter(frame_id) {
-            self.pipelines.get(&frame.current).map(|pipeline| pipeline.revoke_paint_permission());
+            if let FrameTreeIteratorItem::Found(_frame, pipeline) = frame {
+                pipeline.revoke_paint_permission();
+            }
         }
     }
 
@@ -2036,7 +2045,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
 
         for frame in self.current_frame_tree_iter(self.root_frame_id) {
-            self.pipelines.get(&frame.current).map(|pipeline| pipeline.grant_paint_permission());
+            if let FrameTreeIteratorItem::Found(_frame, pipeline) = frame {
+                pipeline.grant_paint_permission();
+            }
         }
     }
 
@@ -2116,7 +2127,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                                pipeline_id: PipelineId,
                                root_frame_id: Option<FrameId>) -> bool {
         self.current_frame_tree_iter(root_frame_id)
-            .any(|current_frame| current_frame.current == pipeline_id)
+            .any(|item| match item {
+                FrameTreeIteratorItem::Found(_, pipeline) => pipeline.id == pipeline_id,
+                _ => false,
+            })
     }
 
 }
