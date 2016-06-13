@@ -80,7 +80,13 @@ impl<'lc, 'ln> DomTraversalContext<GeckoNode<'ln>> for RecalcStyleOnly<'lc> {
         }
     }
 
-    fn process_preorder(&self, node: GeckoNode<'ln>) { recalc_style_at(&self.context, self.root, node); }
+    fn process_preorder(&self, node: GeckoNode<'ln>) {
+        // FIXME(pcwalton): Stop allocating here. Ideally this should just be done by the HTML
+        // parser.
+        node.initialize_data();
+
+        recalc_style_at(&self.context, self.root, node);
+    }
     fn process_postorder(&self, _: GeckoNode<'ln>) {}
 }
 

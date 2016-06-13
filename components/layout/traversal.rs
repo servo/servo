@@ -65,7 +65,13 @@ impl<'lc, 'ln> DomTraversalContext<ServoLayoutNode<'ln>> for RecalcStyleAndConst
         }
     }
 
-    fn process_preorder(&self, node: ServoLayoutNode<'ln>) { recalc_style_at(&self.context, self.root, node); }
+    fn process_preorder(&self, node: ServoLayoutNode<'ln>) {
+        // FIXME(pcwalton): Stop allocating here. Ideally this should just be done by the HTML
+        // parser.
+        node.initialize_data();
+
+        recalc_style_at(&self.context, self.root, node);
+    }
     fn process_postorder(&self, node: ServoLayoutNode<'ln>) { construct_flows_at(&self.context, self.root, node); }
 }
 
