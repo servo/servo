@@ -81,6 +81,8 @@ pub trait LayoutNode: TNode {
 
     fn get_style_data(&self) -> Option<&RefCell<PartialStyleAndLayoutData>>;
 
+    fn init_style_and_layout_data(&self, data: OpaqueStyleAndLayoutData);
+
     /// Similar to borrow_data*, but returns the full PrivateLayoutData rather
     /// than only the PrivateStyleData.
     unsafe fn borrow_layout_data_unchecked(&self) -> Option<*const PrivateLayoutData>;
@@ -131,9 +133,7 @@ impl<'ln> ServoLayoutNode<'ln> {
             let opaque = OpaqueStyleAndLayoutData {
                 ptr: unsafe { NonZero::new(ptr as *mut RefCell<PartialStyleAndLayoutData>) }
             };
-            unsafe {
-                self.node.init_style_and_layout_data(opaque);
-            }
+            self.init_style_and_layout_data(opaque);
         }
     }
 }
@@ -305,6 +305,12 @@ impl<'ln> LayoutNode for ServoLayoutNode<'ln> {
             self.get_jsmanaged().get_style_and_layout_data().map(|d| {
                 &**d.ptr
             })
+        }
+    }
+
+    fn init_style_and_layout_data(&self, data: OpaqueStyleAndLayoutData) {
+        unsafe {
+            self.get_jsmanaged().init_style_and_layout_data(data);
         }
     }
 
