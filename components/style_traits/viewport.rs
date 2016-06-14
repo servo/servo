@@ -36,19 +36,19 @@ impl ToCss for ViewportConstraints {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result
         where W: fmt::Write
     {
-        try!(write!(dest, "@viewport {{"));
-        try!(write!(dest, " width: {}px;", self.size.width.get()));
-        try!(write!(dest, " height: {}px;", self.size.height.get()));
-        try!(write!(dest, " zoom: {};", self.initial_zoom.get()));
+        write!(dest, "@viewport {{")?;
+        write!(dest, " width: {}px;", self.size.width.get())?;
+        write!(dest, " height: {}px;", self.size.height.get())?;
+        write!(dest, " zoom: {};", self.initial_zoom.get())?;
         if let Some(min_zoom) = self.min_zoom {
-            try!(write!(dest, " min-zoom: {};", min_zoom.get()));
+            write!(dest, " min-zoom: {};", min_zoom.get())?;
         }
         if let Some(max_zoom) = self.max_zoom {
-            try!(write!(dest, " max-zoom: {};", max_zoom.get()));
+            write!(dest, " max-zoom: {};", max_zoom.get())?;
         }
-        try!(write!(dest, " user-zoom: ")); try!(self.user_zoom.to_css(dest));
-        try!(write!(dest, "; orientation: ")); try!(self.orientation.to_css(dest));
-        write!(dest, "; }}")
+        write!(dest, " user-zoom: ")?; self.user_zoom.to_css(dest)?;
+        write!(dest, "; orientation: ")?; self.orientation.to_css(dest)?;
+        write!(dest, "; }}")?;
     }
 }
 
@@ -77,7 +77,7 @@ impl Zoom {
     pub fn parse(input: &mut Parser) -> Result<Zoom, ()> {
         use cssparser::Token;
 
-        match try!(input.next()) {
+        match input.next()? {
             Token::Percentage(ref value) if AllowedNumericType::NonNegative.is_ok(value.unit_value) =>
                 Ok(Zoom::Percentage(value.unit_value)),
             Token::Number(ref value) if AllowedNumericType::NonNegative.is_ok(value.value) =>
