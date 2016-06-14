@@ -171,7 +171,7 @@ impl NodeFlags {
 impl Drop for Node {
     #[allow(unsafe_code)]
     fn drop(&mut self) {
-        self.style_and_layout_data.get().map(|d| d.dispose(self));
+        self.style_and_layout_data.get().map(|d| self.dispose(d));
     }
 }
 
@@ -196,17 +196,15 @@ unsafe impl Send for OpaqueStyleAndLayoutData {}
 
 no_jsmanaged_fields!(OpaqueStyleAndLayoutData);
 
-impl OpaqueStyleAndLayoutData {
-    /// Sends the style and layout data, if any, back to the layout thread to be destroyed.
-    pub fn dispose(self, node: &Node) {
-        debug_assert!(thread_state::get().is_script());
-        let win = window_from_node(node);
-        node.style_and_layout_data.set(None);
-        win.layout_chan().send(Msg::ReapStyleAndLayoutData(self)).unwrap();
-    }
-}
-
 impl Node {
+    /// Sends the style and layout data, if any, back to the layout thread to be destroyed.
+    pub fn dispose(&self, data: OpaqueStyleAndLayoutData) {
+        debug_assert!(thread_state::get().is_script());
+        let win = window_from_node(self);
+        self.style_and_layout_data.set(None);
+        win.layout_chan().send(Msg::ReapStyleAndLayoutData(data)).unwrap();
+    }
+
     /// Adds a new child to the end of this node's list of children.
     ///
     /// Fails unless `new_child` is disconnected from the tree.
@@ -292,7 +290,7 @@ impl Node {
         for node in child.traverse_preorder() {
             node.set_flag(IS_IN_DOC, false);
             vtable_for(&&*node).unbind_from_tree(&context);
-            node.style_and_layout_data.get().map(|d| d.dispose(&node));
+            node.style_and_layout_data.get().map(|d| node.dispose(d));
         }
 
         self.owner_doc().content_and_heritage_changed(self, NodeDamage::OtherNodeDamage);
@@ -340,7 +338,7 @@ impl<'a> Iterator for QuerySelectorIterator {
 
 impl Node {
     pub fn teardown(&self) {
-        self.style_and_layout_data.get().map(|d| d.dispose(self));
+        self.style_and_layout_data.get().map(|d| self.dispose(d));
         for kid in self.children() {
             kid.teardown();
         }
