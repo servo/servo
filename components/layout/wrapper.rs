@@ -79,6 +79,8 @@ pub trait LayoutNode: TNode {
     /// Returns the type ID of this node.
     fn type_id(&self) -> NodeTypeId;
 
+    fn get_style_data(&self) -> Option<&RefCell<PartialStyleAndLayoutData>>;
+
     /// Similar to borrow_data*, but returns the full PrivateLayoutData rather
     /// than only the PrivateStyleData.
     unsafe fn borrow_layout_data_unchecked(&self) -> Option<*const PrivateLayoutData>;
@@ -289,6 +291,14 @@ impl<'ln> LayoutNode for ServoLayoutNode<'ln> {
     fn type_id(&self) -> NodeTypeId {
         unsafe {
             self.node.type_id_for_layout()
+        }
+    }
+
+    fn get_style_data(&self) -> Option<&RefCell<PartialStyleAndLayoutData>> {
+        unsafe {
+            self.get_jsmanaged().get_style_and_layout_data().map(|d| {
+                &**d.ptr
+            })
         }
     }
 
@@ -932,6 +942,8 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Sized + PartialEq {
     fn layer_id_for_overflow_scroll(&self) -> LayerId {
         LayerId::new_of_type(LayerType::OverflowScroll, self.opaque().id() as usize)
     }
+
+    fn get_style_data(&self) -> Option<&RefCell<PartialStyleAndLayoutData>>;
 }
 
 // This trait is only public so that it can be implemented by the gecko wrapper.
@@ -1158,6 +1170,10 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
         unsafe {
             self.get_jsmanaged().downcast::<Element>().unwrap().get_colspan()
         }
+    }
+
+    fn get_style_data(&self) -> Option<&RefCell<PartialStyleAndLayoutData>> {
+        self.node.get_style_data()
     }
 }
 
