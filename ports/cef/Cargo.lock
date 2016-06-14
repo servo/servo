@@ -1070,6 +1070,7 @@ dependencies = [
  "range 0.0.1",
  "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
  "script 0.0.1",
+ "script_layout_interface 0.0.1",
  "script_traits 0.0.1",
  "selectors 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1780,6 +1781,15 @@ dependencies = [
  "webrender_traits 0.1.0 (git+https://github.com/servo/webrender_traits)",
  "websocket 0.17.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "xml5ever 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "script_layout_interface"
+version = "0.0.1"
+dependencies = [
+ "bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "plugins 0.0.1",
+ "style 0.0.1",
 ]
 
 [[package]]

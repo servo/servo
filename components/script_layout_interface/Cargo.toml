@@ -1,0 +1,14 @@
+[package]
+name = "script_layout_interface"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+publish = false
+
+[lib]
+name = "script_layout_interface"
+path = "lib.rs"
+
+[dependencies]
+bitflags = "0.7"
+plugins = {path = "../plugins"}
+style = {path = "../style"}
