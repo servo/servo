@@ -49,13 +49,14 @@ use query::{process_node_overflow_request, process_resolved_style_request, proce
 use script::layout_interface::{LayoutRPC, OffsetParentResponse, NodeOverflowResponse, MarginStyleResponse};
 use script::layout_interface::{Msg, NewLayoutThreadInfo, Reflow, ReflowQueryType, ScriptReflow};
 use script::reporter::CSSErrorReporter;
-use script_layout_interface::OpaqueStyleAndLayoutData;
 use script_layout_interface::restyle_damage::{REPAINT, STORE_OVERFLOW, REFLOW_OUT_OF_FLOW, REFLOW};
+use script_layout_interface::{OpaqueStyleAndLayoutData, PartialStyleAndLayoutData};
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutMsg as ConstellationMsg};
 use script_traits::{StackingContextScrollState, UntrustedNodeAddress};
 use sequential;
 use serde_json;
 use std::borrow::ToOwned;
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
 use std::ops::{Deref, DerefMut};
@@ -1480,7 +1481,7 @@ impl LayoutThread {
     /// Handles a message to destroy layout data. Layout data must be destroyed on *this* thread
     /// because the struct type is transmuted to a different type on the script side.
     unsafe fn handle_reap_style_and_layout_data(&self, data: OpaqueStyleAndLayoutData) {
-        let ptr: *mut () = *data.ptr;
+        let ptr: *mut RefCell<PartialStyleAndLayoutData> = *data.ptr;
         let non_opaque: NonOpaqueStyleAndLayoutData = ptr as *mut _;
         let _ = Box::from_raw(non_opaque);
     }
