@@ -35,7 +35,6 @@ use data::{LayoutDataFlags, PrivateLayoutData};
 use gfx::display_list::OpaqueNode;
 use gfx::text::glyph::ByteIndex;
 use gfx_traits::{LayerId, LayerType};
-use incremental::RestyleDamage;
 use msg::constellation_msg::PipelineId;
 use opaque_node::OpaqueNodeMethods;
 use range::Range;
@@ -45,6 +44,7 @@ use script::layout_interface::{HTMLCanvasData, HTMLElementTypeId, LayoutCharacte
 use script::layout_interface::{LayoutDocumentHelpers, LayoutElementHelpers, LayoutJS};
 use script::layout_interface::{LayoutNodeHelpers, Node, NodeTypeId, OpaqueStyleAndLayoutData};
 use script::layout_interface::{RawLayoutElementHelpers, Text, TrustedNodeAddress};
+use script_layout_interface::restyle_damage::RestyleDamage;
 use selectors::matching::{DeclarationBlock, ElementFlags};
 use selectors::parser::{AttrSelector, NamespaceConstraint};
 use smallvec::VecLike;

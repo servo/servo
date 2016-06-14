@@ -6,9 +6,9 @@
 
 use flow::{self, Flow};
 use gfx::display_list::OpaqueNode;
-use incremental::RestyleDamage;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
+use script_layout_interface::restyle_damage::RestyleDamage;
 use script_traits::{AnimationState, LayoutMsg as ConstellationMsg};
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;

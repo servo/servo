@@ -13,7 +13,7 @@ use flow::InorderFlowTraversal;
 use flow::{self, AFFECTS_COUNTERS, Flow, HAS_COUNTER_AFFECTING_CHILDREN, ImmutableFlowUtils};
 use fragment::{Fragment, GeneratedContentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo};
 use gfx::display_list::OpaqueNode;
-use incremental::{RESOLVE_GENERATED_CONTENT, RestyleDamage};
+use script_layout_interface::restyle_damage::{RESOLVE_GENERATED_CONTENT, RestyleDamage};
 use smallvec::SmallVec;
 use std::collections::{HashMap, LinkedList};
 use std::sync::Arc;

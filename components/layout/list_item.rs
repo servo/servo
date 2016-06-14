@@ -19,8 +19,8 @@ use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, GeneratedC
 use generated_content;
 use gfx::display_list::StackingContext;
 use gfx_traits::StackingContextId;
-use incremental::RESOLVE_GENERATED_CONTENT;
 use inline::InlineMetrics;
+use script_layout_interface::restyle_damage::RESOLVE_GENERATED_CONTENT;
 use std::sync::Arc;
 use style::computed_values::{list_style_type, position};
 use style::logical_geometry::LogicalSize;

@@ -16,7 +16,7 @@ use flow_ref::{self, FlowRef};
 use fragment::FragmentBorderBoxIterator;
 use generated_content::ResolveGeneratedContent;
 use gfx::display_list::{DisplayItem, StackingContext};
-use incremental::{REFLOW, STORE_OVERFLOW};
+use script_layout_interface::restyle_damage::{REFLOW, STORE_OVERFLOW};
 use traversal::{AssignBSizes, AssignISizes, BubbleISizes, BuildDisplayList, ComputeAbsolutePositions};
 use util::opts;
 
