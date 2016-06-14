@@ -8,7 +8,7 @@ use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
-use dom::bindings::reflector::{reflect_dom_object, Reflectable};
+use dom::bindings::reflector::reflect_dom_object;
 use euclid::Matrix4D;
 use super::dommatrixreadonly::{DOMMatrixMutateMethods, DOMMatrixReadOnly, DOMMatrixWriteMethods};
 
