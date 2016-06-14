@@ -231,23 +231,29 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
     }
 
     unsafe fn borrow_data_unchecked(&self) -> Option<*const PrivateStyleData> {
-        self.borrow_layout_data_unchecked().map(|d| &(*d).style_data as *const PrivateStyleData)
+        self.get_style_data().map(|d| {
+            &(*d.as_unsafe_cell().get()).style_data as *const _
+        })
     }
 
     fn borrow_data(&self) -> Option<Ref<PrivateStyleData>> {
-        self.borrow_layout_data().map(|d| Ref::map(d, |d| &d.style_data))
+        self.get_style_data().map(|d| {
+            Ref::map(d.borrow(), |d| &d.style_data)
+        })
     }
 
     fn mutate_data(&self) -> Option<RefMut<PrivateStyleData>> {
-        self.mutate_layout_data().map(|d| RefMut::map(d, |d| &mut d.style_data))
+        self.get_style_data().map(|d| {
+            RefMut::map(d.borrow_mut(), |d| &mut d.style_data)
+        })
     }
 
     fn restyle_damage(self) -> RestyleDamage {
-        self.borrow_layout_data().unwrap().restyle_damage
+        self.get_style_data().unwrap().borrow().restyle_damage
     }
 
     fn set_restyle_damage(self, damage: RestyleDamage) {
-        self.mutate_layout_data().unwrap().restyle_damage = damage;
+        self.get_style_data().unwrap().borrow_mut().restyle_damage = damage;
     }
 
     fn parent_node(&self) -> Option<ServoLayoutNode<'ln>> {
@@ -716,8 +722,11 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Sized + PartialEq {
 
     #[inline]
     fn get_before_pseudo(&self) -> Option<Self> {
-        if self.borrow_layout_data().unwrap()
-               .style_data.per_pseudo
+        if self.get_style_data()
+               .unwrap()
+               .borrow()
+               .style_data
+               .per_pseudo
                .contains_key(&PseudoElement::Before) {
             Some(self.with_pseudo(PseudoElementType::Before(None)))
         } else {
@@ -727,8 +736,11 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Sized + PartialEq {
 
     #[inline]
     fn get_after_pseudo(&self) -> Option<Self> {
-        if self.borrow_layout_data().unwrap()
-               .style_data.per_pseudo
+        if self.get_style_data()
+               .unwrap()
+               .borrow()
+               .style_data
+               .per_pseudo
                .contains_key(&PseudoElement::After) {
             Some(self.with_pseudo(PseudoElementType::After(None)))
         } else {
@@ -783,7 +795,7 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Sized + PartialEq {
     fn style(&self, context: &SharedStyleContext) -> Ref<Arc<ServoComputedValues>> {
         match self.get_pseudo_element_type() {
             PseudoElementType::Normal => {
-                Ref::map(self.borrow_layout_data().unwrap(), |data| {
+                Ref::map(self.get_style_data().unwrap().borrow(), |data| {
                     data.style_data.style.as_ref().unwrap()
                 })
             },
@@ -795,10 +807,12 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Sized + PartialEq {
                     // Already computed during the cascade.
                     PseudoElementCascadeType::Eager => {},
                     PseudoElementCascadeType::Precomputed => {
-                        if !self.borrow_layout_data()
-                                .unwrap().style_data
+                        if !self.get_style_data()
+                                .unwrap()
+                                .borrow()
+                                .style_data
                                 .per_pseudo.contains_key(&style_pseudo) {
-                            let mut data = self.mutate_layout_data().unwrap();
+                            let mut data = self.get_style_data().unwrap().borrow_mut();
                             let new_style =
                                 context.stylist
                                        .precomputed_values_for_pseudo(&style_pseudo,
@@ -809,10 +823,12 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Sized + PartialEq {
                     }
                     PseudoElementCascadeType::Lazy => {
                         debug_assert!(self.is_element_or_elements_pseudo());
-                        if !self.borrow_layout_data()
-                                .unwrap().style_data
+                        if !self.get_style_data()
+                                .unwrap()
+                                .borrow()
+                                .style_data
                                 .per_pseudo.contains_key(&style_pseudo) {
-                            let mut data = self.mutate_layout_data().unwrap();
+                            let mut data = self.get_style_data().unwrap().borrow_mut();
                             let new_style =
                                 context.stylist
                                        .lazily_compute_pseudo_element_style(
@@ -825,7 +841,7 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Sized + PartialEq {
                     }
                 }
 
-                Ref::map(self.borrow_layout_data().unwrap(), |data| {
+                Ref::map(self.get_style_data().unwrap().borrow(), |data| {
                     data.style_data.per_pseudo.get(&style_pseudo).unwrap()
                 })
             }
@@ -841,7 +857,7 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Sized + PartialEq {
     /// element style is precomputed, not from general layout itself.
     #[inline]
     fn resolved_style(&self) -> Ref<Arc<ServoComputedValues>> {
-        Ref::map(self.borrow_layout_data().unwrap(), |data| {
+        Ref::map(self.get_style_data().unwrap().borrow(), |data| {
             match self.get_pseudo_element_type() {
                 PseudoElementType::Normal
                     => data.style_data.style.as_ref().unwrap(),
@@ -853,7 +869,7 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Sized + PartialEq {
 
     #[inline]
     fn selected_style(&self, _context: &SharedStyleContext) -> Ref<Arc<ServoComputedValues>> {
-        Ref::map(self.borrow_layout_data().unwrap(), |data| {
+        Ref::map(self.get_style_data().unwrap().borrow(), |data| {
             data.style_data.per_pseudo
                 .get(&PseudoElement::Selection)
                 .unwrap_or(data.style_data.style.as_ref().unwrap())
@@ -864,7 +880,7 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Sized + PartialEq {
     ///
     /// Unlike the version on TNode, this handles pseudo-elements.
     fn unstyle(self) {
-        let mut data = self.mutate_layout_data().unwrap();
+        let mut data = self.get_style_data().unwrap().borrow_mut();
 
         match self.get_pseudo_element_type() {
             PseudoElementType::Normal => {
