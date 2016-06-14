@@ -380,7 +380,6 @@ impl Debug for ${style_struct.gecko_struct_name} {
    # These have unusual representations in gecko.
    force_stub += ["list-style-type", "text-overflow"]
    # Enum class instead of NS_STYLE_...
-   force_stub += ["box-sizing"]
    # These are booleans.
    force_stub += ["page-break-after", "page-break-before"]
 
@@ -541,7 +540,7 @@ fn static_assert() {
 
 <% skip_position_longhands = " ".join(x.ident for x in SIDES) %>
 <%self:impl_trait style_struct_name="Position"
-                  skip_longhands="${skip_position_longhands} z-index">
+                  skip_longhands="${skip_position_longhands} z-index box-sizing">
 
     % for side in SIDES:
     <% impl_split_style_coord("%s" % side.ident,
@@ -556,10 +555,24 @@ fn static_assert() {
             T::Number(n) => self.gecko.mZIndex.set_int(n),
         }
     }
+
     fn copy_z_index_from(&mut self, other: &Self) {
         debug_assert_unit_is_safe_to_copy(self.gecko.mZIndex.mUnit);
         self.gecko.mZIndex.mUnit = other.gecko.mZIndex.mUnit;
         self.gecko.mZIndex.mValue = other.gecko.mZIndex.mValue;
+    }
+
+    fn set_box_sizing(&mut self, v: longhands::box_sizing::computed_value::T) {
+        use style::computed_values::box_sizing::T;
+        use gecko_bindings::structs::StyleBoxSizing;
+        self.gecko.mBoxSizing = match v {
+            T::content_box => StyleBoxSizing::Content,
+            T::border_box => StyleBoxSizing::Border
+        }
+    }
+
+    fn copy_box_sizing_from(&mut self, other:  &Self) {
+        self.gecko.mBoxSizing = other.gecko.mBoxSizing;
     }
 </%self:impl_trait>
 
