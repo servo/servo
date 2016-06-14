@@ -42,8 +42,9 @@ use script::layout_interface::{CAN_BE_FRAGMENTED, HAS_CHANGED, HAS_DIRTY_DESCEND
 use script::layout_interface::{CharacterDataTypeId, Document, Element, ElementTypeId};
 use script::layout_interface::{HTMLCanvasData, HTMLElementTypeId, LayoutCharacterDataHelpers};
 use script::layout_interface::{LayoutDocumentHelpers, LayoutElementHelpers, LayoutJS};
-use script::layout_interface::{LayoutNodeHelpers, Node, NodeTypeId, OpaqueStyleAndLayoutData};
+use script::layout_interface::{LayoutNodeHelpers, Node, NodeTypeId};
 use script::layout_interface::{RawLayoutElementHelpers, Text, TrustedNodeAddress};
+use script_layout_interface::OpaqueStyleAndLayoutData;
 use script_layout_interface::restyle_damage::RestyleDamage;
 use selectors::matching::{DeclarationBlock, ElementFlags};
 use selectors::parser::{AttrSelector, NamespaceConstraint};

@@ -5,7 +5,6 @@
 //! The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements.
 
 use app_units::Au;
-use core::nonzero::NonZero;
 use devtools_traits::NodeInfo;
 use document_loader::DocumentLoader;
 use dom::attr::Attr;
@@ -62,6 +61,7 @@ use libc::{self, c_void, uintptr_t};
 use msg::constellation_msg::PipelineId;
 use parse::html::parse_html_fragment;
 use ref_slice::ref_slice;
+use script_layout_interface::OpaqueStyleAndLayoutData;
 use script_traits::UntrustedNodeAddress;
 use selectors::matching::matches;
 use selectors::parser::Selector;
@@ -183,18 +183,6 @@ enum SuppressObserver {
     Suppressed,
     Unsuppressed
 }
-
-#[derive(Copy, Clone, HeapSizeOf)]
-pub struct OpaqueStyleAndLayoutData {
-    #[ignore_heap_size_of = "TODO(#6910) Box value that should be counted but \
-                             the type lives in layout"]
-    pub ptr: NonZero<*mut ()>
-}
-
-#[allow(unsafe_code)]
-unsafe impl Send for OpaqueStyleAndLayoutData {}
-
-no_jsmanaged_fields!(OpaqueStyleAndLayoutData);
 
 impl Node {
     /// Sends the style and layout data, if any, back to the layout thread to be destroyed.

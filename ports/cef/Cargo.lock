@@ -1767,6 +1767,7 @@ dependencies = [
  "ref_slice 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "regex 0.1.71 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
+ "script_layout_interface 0.0.1",
  "script_traits 0.0.1",
  "selectors 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.7.10 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1788,6 +1789,8 @@ name = "script_layout_interface"
 version = "0.0.1"
 dependencies = [
  "bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "heapsize 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "heapsize_plugin 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "plugins 0.0.1",
  "style 0.0.1",
 ]
