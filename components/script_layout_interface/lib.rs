@@ -7,12 +7,30 @@
 //! to depend on script.
 
 #![deny(unsafe_code)]
+#![feature(custom_attribute)]
+#![feature(custom_derive)]
+#![feature(nonzero)]
 #![feature(plugin)]
+#![plugin(heapsize_plugin)]
 #![plugin(plugins)]
 
 #[allow(unused_extern_crates)]
 #[macro_use]
 extern crate bitflags;
+extern crate core;
+extern crate heapsize;
 extern crate style;
 
 pub mod restyle_damage;
+
+use core::nonzero::NonZero;
+
+#[derive(Copy, Clone, HeapSizeOf)]
+pub struct OpaqueStyleAndLayoutData {
+    #[ignore_heap_size_of = "TODO(#6910) Box value that should be counted but \
+                             the type lives in layout"]
+    pub ptr: NonZero<*mut ()>
+}
+
+#[allow(unsafe_code)]
+unsafe impl Send for OpaqueStyleAndLayoutData {}

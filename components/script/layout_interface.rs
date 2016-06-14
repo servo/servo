@@ -14,6 +14,7 @@ use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use msg::constellation_msg::{PanicMsg, PipelineId, WindowSizeData};
 use net_traits::image_cache_thread::ImageCacheThread;
 use profile_traits::mem::ReportsChan;
+use script_layout_interface::OpaqueStyleAndLayoutData;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutMsg as ConstellationMsg};
 use script_traits::{StackingContextScrollState, UntrustedNodeAddress};
 use std::sync::Arc;
@@ -37,7 +38,6 @@ pub use dom::htmlobjectelement::is_image_data;
 pub use dom::node::{CAN_BE_FRAGMENTED, HAS_CHANGED, HAS_DIRTY_DESCENDANTS, IS_DIRTY};
 pub use dom::node::LayoutNodeHelpers;
 pub use dom::node::Node;
-pub use dom::node::OpaqueStyleAndLayoutData;
 pub use dom::node::TrustedNodeAddress;
 pub use dom::text::Text;
 
