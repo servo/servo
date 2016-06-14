@@ -727,6 +727,8 @@ dependencies = [
  "layers 0.2.5 (git+https://github.com/servo/rust-layers)",
  "msg 0.0.1",
  "plugins 0.0.1",
+ "range 0.0.1",
+ "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.7.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_macros 0.7.10 (registry+https://github.com/rust-lang/crates.io-index)",
 ]

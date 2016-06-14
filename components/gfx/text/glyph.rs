@@ -11,6 +11,8 @@ use std::cmp::{Ordering, PartialOrd};
 use std::vec::Vec;
 use std::{fmt, mem, u16};
 
+pub use gfx_traits::ByteIndex;
+
 /// GlyphEntry is a port of Gecko's CompressedGlyph scheme for storing glyph data compactly.
 ///
 /// In the common case (reasonable glyph advances, no offsets from the font em-box, and one glyph
@@ -424,14 +426,6 @@ pub struct GlyphStore {
     has_detailed_glyphs: bool,
     is_whitespace: bool,
     is_rtl: bool,
-}
-
-int_range_index! {
-    #[derive(Deserialize, Serialize, RustcEncodable)]
-    #[doc = "An index that refers to a byte offset in a text run. This could \
-             point to the middle of a glyph."]
-    #[derive(HeapSizeOf)]
-    struct ByteIndex(isize)
 }
 
 impl<'a> GlyphStore {
