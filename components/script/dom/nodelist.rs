@@ -217,9 +217,9 @@ impl ChildrenList {
                         // by ChildrenMutation::replace().
                         unreachable!()
                     },
-                    (_, [node, ..], _) => node,
-                    (_, [], Some(next)) => next,
-                    (Some(prev), [], None) => {
+                    (_, &[node, ..], _) => node,
+                    (_, &[], Some(next)) => next,
+                    (Some(prev), &[], None) => {
                         list.last_index.set(index - 1u32);
                         prev
                     },
