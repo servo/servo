@@ -195,3 +195,11 @@ impl WebGLPaintThread {
         }
     }
 }
+
+impl Drop for WebGLPaintThread {
+    fn drop(&mut self) {
+        if let WebGLPaintTaskData::Readback(_, Some((ref mut wr, image_key))) = self.data {
+            wr.delete_image(image_key);
+        }
+    }
+}
