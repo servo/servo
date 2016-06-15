@@ -1932,11 +1932,17 @@ version = "0.0.1"
 dependencies = [
  "bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "canvas_traits 0.0.1",
+ "gfx_traits 0.0.1",
  "heapsize 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_plugin 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.2.3 (git+https://github.com/servo/ipc-channel)",
+ "msg 0.0.1",
  "plugins 0.0.1",
+ "range 0.0.1",
+ "selectors 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "string_cache 0.2.18 (registry+https://github.com/rust-lang/crates.io-index)",
  "style 0.0.1",
+ "url 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]

@@ -19,6 +19,7 @@ use gfx_traits::StackingContextId;
 use layout_debug;
 use model::MaybeAuto;
 use script_layout_interface::restyle_damage::REFLOW;
+use script_layout_interface::wrapper_traits::ThreadSafeLayoutNode;
 use std::fmt;
 use std::sync::Arc;
 use style::computed_values::{border_collapse, border_top_style, vertical_align};
@@ -27,7 +28,6 @@ use style::properties::{ComputedValues, ServoComputedValues};
 use table::InternalTable;
 use table_row::{CollapsedBorder, CollapsedBorderProvenance};
 use util::print_tree::PrintTree;
-use wrapper::ThreadSafeLayoutNode;
 
 /// A table formatting context.
 #[derive(RustcEncodable)]

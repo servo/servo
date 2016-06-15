@@ -35,6 +35,7 @@ use multicol::{MulticolFlow, MulticolColumnFlow};
 use parallel;
 use script::layout_interface::is_image_data;
 use script_layout_interface::restyle_damage::{BUBBLE_ISIZES, RECONSTRUCT_FLOW, RestyleDamage};
+use script_layout_interface::wrapper_traits::{ThreadSafeLayoutNode, PseudoElementType, ThreadSafeLayoutElement};
 use script_layout_interface::{LayoutNodeType, LayoutElementType};
 use std::borrow::ToOwned;
 use std::collections::LinkedList;
@@ -59,8 +60,7 @@ use traversal::PostorderNodeMutTraversal;
 use url::Url;
 use util::linked_list;
 use util::opts;
-use wrapper::{PseudoElementType, TextContent, ThreadSafeLayoutElement};
-use wrapper::{ThreadSafeLayoutNode, ThreadSafeLayoutNodeHelpers};
+use wrapper::{TextContent, ThreadSafeLayoutNodeHelpers};
 
 /// The results of flow construction for a DOM node.
 #[derive(Clone)]
