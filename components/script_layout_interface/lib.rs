@@ -42,3 +42,30 @@ pub struct OpaqueStyleAndLayoutData {
 
 #[allow(unsafe_code)]
 unsafe impl Send for OpaqueStyleAndLayoutData {}
+
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub enum LayoutNodeType {
+    Comment,
+    Document,
+    DocumentFragment,
+    DocumentType,
+    Element(LayoutElementType),
+    ProcessingInstruction,
+    Text,
+}
+
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub enum LayoutElementType {
+    Element,
+    HTMLCanvasElement,
+    HTMLIFrameElement,
+    HTMLImageElement,
+    HTMLInputElement,
+    HTMLObjectElement,
+    HTMLTableCellElement,
+    HTMLTableColElement,
+    HTMLTableElement,
+    HTMLTableRowElement,
+    HTMLTableSectionElement,
+    HTMLTextAreaElement,
+}
