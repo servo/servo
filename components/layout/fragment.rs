@@ -488,6 +488,7 @@ impl ReplacedImageFragmentInfo {
                                           style: &ServoComputedValues,
                                           noncontent_inline_size: Au,
                                           container_inline_size: Au,
+                                          container_block_size: Option<Au>,
                                           fragment_inline_size: Au,
                                           fragment_block_size: Au)
                                           -> Au {
@@ -515,7 +516,7 @@ impl ReplacedImageFragmentInfo {
 
                     let specified_height = ReplacedImageFragmentInfo::style_length(
                         style_block_size,
-                        None);
+                        container_block_size);
                     let specified_height = match specified_height {
                         MaybeAuto::Auto => intrinsic_height,
                         MaybeAuto::Specified(h) => h,
@@ -1767,7 +1768,9 @@ impl Fragment {
 
     /// Assigns replaced inline-size, padding, and margins for this fragment only if it is replaced
     /// content per CSS 2.1 § 10.3.2.
-    pub fn assign_replaced_inline_size_if_necessary(&mut self, container_inline_size: Au) {
+    pub fn assign_replaced_inline_size_if_necessary(&mut self,
+                                                    container_inline_size: Au,
+                                                    container_block_size: Option<Au>) {
         match self.specific {
             SpecificFragmentInfo::Generic |
             SpecificFragmentInfo::GeneratedContent(_) |
@@ -1833,6 +1836,7 @@ impl Fragment {
                                        .calculate_replaced_inline_size(style,
                                                                        noncontent_inline_size,
                                                                        container_inline_size,
+                                                                       container_block_size,
                                                                        fragment_inline_size,
                                                                        fragment_block_size);
             }
@@ -1844,6 +1848,7 @@ impl Fragment {
                                         .calculate_replaced_inline_size(style,
                                                                         noncontent_inline_size,
                                                                         container_inline_size,
+                                                                        container_block_size,
                                                                         fragment_inline_size,
                                                                         fragment_block_size);
             }
