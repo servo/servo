@@ -110,6 +110,7 @@ use task_source::history_traversal::HistoryTraversalTaskSource;
 use task_source::networking::NetworkingTaskSource;
 use task_source::user_interaction::{UserInteractionTask, UserInteractionTaskSource};
 use time::Tm;
+use time::get_time;
 use url::{Position, Url};
 use util::opts;
 use util::thread;
@@ -402,6 +403,10 @@ pub struct ScriptThread {
     content_process_shutdown_chan: IpcSender<()>,
 
     promise_job_queue: PromiseJobQueue,
+
+    /// Navigation Timing properties:
+    /// https://w3c.github.io/navigation-timing/#sec-PerformanceNavigationTiming
+    request_start: Cell<u64>,
 }
 
 /// In the event of thread panic, all data on the stack runs its destructor. However, there
@@ -609,6 +614,7 @@ impl ScriptThread {
             content_process_shutdown_chan: state.content_process_shutdown_chan,
 
             promise_job_queue: PromiseJobQueue::new(),
+            request_start: Cell::new(Default::default()),
         }
     }
 
@@ -1773,6 +1779,7 @@ impl ScriptThread {
                                      referrer_policy);
         browsing_context.set_active_document(&document);
         document.set_ready_state(DocumentReadyState::Loading);
+        document.set_request_start(self.request_start.get());
 
         self.constellation_chan
             .send(ConstellationMsg::ActivateDocument(incomplete.pipeline_id))
@@ -2126,6 +2133,9 @@ impl ScriptThread {
             load_data.url = Url::parse("about:blank").unwrap();
         }
 
+        // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-requestStart
+        update_with_current_time_ms(&self.request_start);
+
         let request = RequestInit {
             url: load_data.url.clone(),
             method: load_data.method,
@@ -2282,4 +2292,10 @@ fn shut_down_layout(context_tree: &BrowsingContext) {
 
 fn dom_last_modified(tm: &Tm) -> String {
     tm.to_local().strftime("%m/%d/%Y %H:%M:%S").unwrap().to_string()
+}
+
+fn update_with_current_time_ms(marker: &Cell<u64>) {
+    let time = get_time();
+    let current_time_ms = time.sec * 1000 + time.nsec as i64 / 1000000;
+    marker.set(current_time_ms as u64);
 }
