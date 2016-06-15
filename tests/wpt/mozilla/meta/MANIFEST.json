@@ -2040,6 +2040,18 @@
             "url": "/_mozilla/css/image_percentage_dimen.html"
           }
         ],
+        "css/image_percentage_height.html": [
+          {
+            "path": "css/image_percentage_height.html",
+            "references": [
+              [
+                "/_mozilla/css/image_percentage_height_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/image_percentage_height.html"
+          }
+        ],
         "css/image_rendering_auto_a.html": [
           {
             "path": "css/image_rendering_auto_a.html",
@@ -9078,6 +9090,18 @@
             ]
           ],
           "url": "/_mozilla/css/image_percentage_dimen.html"
+        }
+      ],
+      "css/image_percentage_height.html": [
+        {
+          "path": "css/image_percentage_height.html",
+          "references": [
+            [
+              "/_mozilla/css/image_percentage_height_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/image_percentage_height.html"
         }
       ],
       "css/image_rendering_auto_a.html": [
