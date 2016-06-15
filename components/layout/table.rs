@@ -135,7 +135,7 @@ impl TableFlow {
 
     /// Updates the minimum and preferred inline-size calculation for a single row. This is
     /// factored out into a separate function because we process children of rowgroups too.
-    fn update_column_inline_sizes_for_row(row: &mut TableRowFlow,
+    fn update_column_inline_sizes_for_row(row: &TableRowFlow,
                                           column_inline_sizes: &mut Vec<ColumnIntrinsicInlineSize>,
                                           computation: &mut IntrinsicISizesContribution,
                                           first_row: bool,
