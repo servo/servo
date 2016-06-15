@@ -1931,8 +1931,10 @@ name = "script_layout_interface"
 version = "0.0.1"
 dependencies = [
  "bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "canvas_traits 0.0.1",
  "heapsize 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_plugin 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ipc-channel 0.2.3 (git+https://github.com/servo/ipc-channel)",
  "plugins 0.0.1",
  "style 0.0.1",
 ]
