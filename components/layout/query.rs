@@ -34,7 +34,7 @@ use style::properties::style_structs;
 use style::selector_impl::PseudoElement;
 use style::values::AuExtensionMethods;
 use style_traits::cursor::Cursor;
-use wrapper::{LayoutNode, ThreadSafeLayoutNode};
+use wrapper::{LayoutNode, ThreadSafeLayoutNode, ThreadSafeLayoutNodeHelpers};
 
 pub struct LayoutRPCImpl(pub Arc<Mutex<LayoutThreadData>>);
 

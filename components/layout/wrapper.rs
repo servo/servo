@@ -724,8 +724,6 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Sized + PartialEq {
 
     fn debug_id(self) -> usize;
 
-    fn flow_debug_id(self) -> usize;
-
     /// Returns an iterator over this node's children.
     fn children(&self) -> Self::ChildrenIterator;
 
@@ -795,21 +793,6 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Sized + PartialEq {
     }
 
     fn get_style_and_layout_data(&self) -> Option<OpaqueStyleAndLayoutData>;
-
-    #[inline(always)]
-    unsafe fn borrow_layout_data_unchecked(&self) -> Option<*const PrivateLayoutData>;
-
-    /// Borrows the layout data immutably. Fails on a conflicting borrow.
-    ///
-    /// TODO(pcwalton): Make this private. It will let us avoid borrow flag checks in some cases.
-    #[inline(always)]
-    fn borrow_layout_data(&self) -> Option<Ref<PrivateLayoutData>>;
-
-    /// Borrows the layout data mutably. Fails on a conflicting borrow.
-    ///
-    /// TODO(pcwalton): Make this private. It will let us avoid borrow flag checks in some cases.
-    #[inline(always)]
-    fn mutate_layout_data(&self) -> Option<RefMut<PrivateLayoutData>>;
 
     /// Returns the style results for the given node. If CSS selector matching
     /// has not yet been performed, fails.
@@ -922,19 +905,6 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Sized + PartialEq {
 
     fn set_restyle_damage(self, damage: RestyleDamage);
 
-    /// Returns the layout data flags for this node.
-    fn flags(self) -> LayoutDataFlags;
-
-    /// Adds the given flags to this node.
-    fn insert_flags(self, new_flags: LayoutDataFlags) {
-        self.mutate_layout_data().unwrap().flags.insert(new_flags);
-    }
-
-    /// Removes the given flags from this node.
-    fn remove_flags(self, flags: LayoutDataFlags) {
-        self.mutate_layout_data().unwrap().flags.remove(flags);
-    }
-
     /// Returns true if this node contributes content. This is used in the implementation of
     /// `empty_cells` per CSS 2.1 § 17.6.1.1.
     fn is_content(&self) -> bool {
@@ -945,12 +915,6 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Sized + PartialEq {
     }
 
     fn can_be_fragmented(&self) -> bool;
-
-    /// If this is a text node, generated content, or a form element, copies out
-    /// its content. Otherwise, panics.
-    ///
-    /// FIXME(pcwalton): This might have too much copying and/or allocation. Profile this.
-    fn text_content(&self) -> TextContent;
 
     fn node_text_content(&self) -> String;
 
@@ -986,6 +950,39 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Sized + PartialEq {
     }
 
     fn get_style_data(&self) -> Option<&RefCell<PartialStyleAndLayoutData>>;
+}
+
+pub trait ThreadSafeLayoutNodeHelpers {
+    fn flow_debug_id(self) -> usize;
+
+    unsafe fn borrow_layout_data_unchecked(&self) -> Option<*const PrivateLayoutData>;
+
+    /// Borrows the layout data immutably. Fails on a conflicting borrow.
+    ///
+    /// TODO(pcwalton): Make this private. It will let us avoid borrow flag checks in some cases.
+    #[inline(always)]
+    fn borrow_layout_data(&self) -> Option<Ref<PrivateLayoutData>>;
+
+    /// Borrows the layout data mutably. Fails on a conflicting borrow.
+    ///
+    /// TODO(pcwalton): Make this private. It will let us avoid borrow flag checks in some cases.
+    #[inline(always)]
+    fn mutate_layout_data(&self) -> Option<RefMut<PrivateLayoutData>>;
+
+    /// Returns the layout data flags for this node.
+    fn flags(self) -> LayoutDataFlags;
+
+    /// Adds the given flags to this node.
+    fn insert_flags(self, new_flags: LayoutDataFlags);
+
+    /// Removes the given flags from this node.
+    fn remove_flags(self, flags: LayoutDataFlags);
+
+    /// If this is a text node, generated content, or a form element, copies out
+    /// its content. Otherwise, panics.
+    ///
+    /// FIXME(pcwalton): This might have too much copying and/or allocation. Profile this.
+    fn text_content(&self) -> TextContent;
 }
 
 // This trait is only public so that it can be implemented by the gecko wrapper.
@@ -1095,10 +1092,6 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
         self.node.debug_id()
     }
 
-    fn flow_debug_id(self) -> usize {
-        self.node.flow_debug_id()
-    }
-
     fn children(&self) -> Self::ChildrenIterator {
         ThreadSafeLayoutNodeChildrenIterator::new(*self)
     }
@@ -1123,31 +1116,6 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
 
     fn get_style_and_layout_data(&self) -> Option<OpaqueStyleAndLayoutData> {
         self.node.get_style_and_layout_data()
-    }
-
-    unsafe fn borrow_layout_data_unchecked(&self) -> Option<*const PrivateLayoutData> {
-        self.get_style_and_layout_data().map(|opaque| {
-            let container = *opaque.ptr as NonOpaqueStyleAndLayoutData;
-            &(*(*container).as_unsafe_cell().get()) as *const PrivateLayoutData
-        })
-    }
-
-    fn borrow_layout_data(&self) -> Option<Ref<PrivateLayoutData>> {
-        unsafe {
-            self.get_style_and_layout_data().map(|opaque| {
-                let container = *opaque.ptr as NonOpaqueStyleAndLayoutData;
-                (*container).borrow()
-            })
-        }
-    }
-
-    fn mutate_layout_data(&self) -> Option<RefMut<PrivateLayoutData>> {
-        unsafe {
-            self.get_style_and_layout_data().map(|opaque| {
-                let container = *opaque.ptr as NonOpaqueStyleAndLayoutData;
-                (*container).borrow_mut()
-            })
-        }
     }
 
     fn is_ignorable_whitespace(&self, context: &SharedStyleContext) -> bool {
@@ -1179,29 +1147,8 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
         self.node.set_restyle_damage(damage)
     }
 
-    fn flags(self) -> LayoutDataFlags {
-        unsafe {
-            (*self.borrow_layout_data_unchecked().unwrap()).flags
-        }
-    }
-
     fn can_be_fragmented(&self) -> bool {
         self.node.can_be_fragmented()
-    }
-
-    fn text_content(&self) -> TextContent {
-        if self.pseudo.is_replaced_content() {
-            let style = self.resolved_style();
-
-            return match style.as_ref().get_counters().content {
-                content::T::Content(ref value) if !value.is_empty() => {
-                    TextContent::GeneratedContent((*value).clone())
-                }
-                _ => TextContent::GeneratedContent(vec![]),
-            };
-        }
-
-        return TextContent::Text(self.node_text_content());
     }
 
     fn node_text_content(&self) -> String {
@@ -1241,6 +1188,66 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
 
     fn get_style_data(&self) -> Option<&RefCell<PartialStyleAndLayoutData>> {
         self.node.get_style_data()
+    }
+}
+
+impl<T: ThreadSafeLayoutNode> ThreadSafeLayoutNodeHelpers for T {
+    fn flow_debug_id(self) -> usize {
+        self.borrow_layout_data().map_or(0, |d| d.flow_construction_result.debug_id())
+    }
+
+    unsafe fn borrow_layout_data_unchecked(&self) -> Option<*const PrivateLayoutData> {
+        self.get_style_and_layout_data().map(|opaque| {
+            let container = *opaque.ptr as NonOpaqueStyleAndLayoutData;
+            &(*(*container).as_unsafe_cell().get()) as *const PrivateLayoutData
+        })
+    }
+
+    fn borrow_layout_data(&self) -> Option<Ref<PrivateLayoutData>> {
+        unsafe {
+            self.get_style_and_layout_data().map(|opaque| {
+                let container = *opaque.ptr as NonOpaqueStyleAndLayoutData;
+                (*container).borrow()
+            })
+        }
+    }
+
+    fn mutate_layout_data(&self) -> Option<RefMut<PrivateLayoutData>> {
+        unsafe {
+            self.get_style_and_layout_data().map(|opaque| {
+                let container = *opaque.ptr as NonOpaqueStyleAndLayoutData;
+                (*container).borrow_mut()
+            })
+        }
+    }
+
+    fn flags(self) -> LayoutDataFlags {
+        unsafe {
+            (*self.borrow_layout_data_unchecked().unwrap()).flags
+        }
+    }
+
+    fn insert_flags(self, new_flags: LayoutDataFlags) {
+        self.mutate_layout_data().unwrap().flags.insert(new_flags);
+    }
+
+    fn remove_flags(self, flags: LayoutDataFlags) {
+        self.mutate_layout_data().unwrap().flags.remove(flags);
+    }
+
+    fn text_content(&self) -> TextContent {
+        if self.get_pseudo_element_type().is_replaced_content() {
+            let style = self.resolved_style();
+
+            return match style.as_ref().get_counters().content {
+                content::T::Content(ref value) if !value.is_empty() => {
+                    TextContent::GeneratedContent((*value).clone())
+                }
+                _ => TextContent::GeneratedContent(vec![]),
+            };
+        }
+
+        return TextContent::Text(self.node_text_content());
     }
 }
 
