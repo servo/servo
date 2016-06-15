@@ -32,7 +32,7 @@ use dom::element::Element;
 use dom::eventtarget::EventTarget;
 use dom::location::Location;
 use dom::navigator::Navigator;
-use dom::node::{Node, TrustedNodeAddress, from_untrusted_node_address, window_from_node};
+use dom::node::{Node, from_untrusted_node_address, window_from_node};
 use dom::performance::Performance;
 use dom::screen::Screen;
 use dom::storage::Storage;
@@ -60,6 +60,7 @@ use profile_traits::time::{ProfilerCategory, TimerMetadata, TimerMetadataFrameTy
 use profile_traits::time::{ProfilerChan, TimerMetadataReflowType, profile};
 use reporter::CSSErrorReporter;
 use rustc_serialize::base64::{FromBase64, STANDARD, ToBase64};
+use script_layout_interface::TrustedNodeAddress;
 use script_runtime::{ScriptChan, ScriptPort};
 use script_thread::SendableMainThreadScriptChan;
 use script_thread::{MainThreadScriptChan, MainThreadScriptMsg, RunnableWrapper};

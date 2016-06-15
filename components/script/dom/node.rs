@@ -62,7 +62,7 @@ use msg::constellation_msg::PipelineId;
 use parse::html::parse_html_fragment;
 use ref_slice::ref_slice;
 use script_layout_interface::{HTMLCanvasData, OpaqueStyleAndLayoutData};
-use script_layout_interface::{NodeType, ElementType};
+use script_layout_interface::{NodeType, ElementType, TrustedNodeAddress};
 use script_traits::UntrustedNodeAddress;
 use selectors::matching::matches;
 use selectors::parser::Selector;
@@ -2408,17 +2408,6 @@ impl NodeMethods for Node {
         Node::locate_namespace(self, None) == namespace
     }
 }
-
-
-
-/// The address of a node known to be valid. These are sent from script to layout,
-/// and are also used in the HTML parser interface.
-
-#[derive(Clone, PartialEq, Eq, Copy)]
-pub struct TrustedNodeAddress(pub *const c_void);
-
-#[allow(unsafe_code)]
-unsafe impl Send for TrustedNodeAddress {}
 
 pub fn document_from_node<T: DerivedFrom<Node> + Reflectable>(derived: &T) -> Root<Document> {
     derived.upcast().owner_doc()
