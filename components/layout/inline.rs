@@ -21,7 +21,7 @@ use gfx::display_list::{OpaqueNode, StackingContext};
 use gfx::font::FontMetrics;
 use gfx::font_context::FontContext;
 use gfx_traits::StackingContextId;
-use incremental::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, RESOLVE_GENERATED_CONTENT};
+use incremental::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, RESOLVE_GENERATED_CONTENT};
 use layout_debug;
 use model::IntrinsicISizesContribution;
 use range::{Range, RangeIndex};
@@ -1640,10 +1640,6 @@ impl Flow for InlineFlow {
 
     fn build_display_list(&mut self, state: &mut DisplayListBuildState) {
         self.build_display_list_for_inline(state);
-
-        for fragment in &mut self.fragments.fragments {
-            fragment.restyle_damage.remove(REPAINT);
-        }
     }
 
     fn repair_style(&mut self, _: &Arc<ServoComputedValues>) {}

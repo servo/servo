@@ -45,7 +45,7 @@ use fragment::SpecificFragmentInfo;
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, HAS_LAYER, Overflow};
 use gfx::display_list::{ClippingRegion, StackingContext};
 use gfx_traits::{LayerId, StackingContextId};
-use incremental::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT};
+use incremental::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW};
 use layout_debug;
 use layout_thread::DISPLAY_PORT_SIZE_FACTOR;
 use model::{CollapsibleMargins, MaybeAuto, specified, specified_or_none};
@@ -2134,7 +2134,6 @@ impl Flow for BlockFlow {
 
     fn build_display_list(&mut self, state: &mut DisplayListBuildState) {
         self.build_display_list_for_block(state, BorderPaintingMode::Separate);
-        self.fragment.restyle_damage.remove(REPAINT);
     }
 
     fn repair_style(&mut self, new_style: &Arc<ServoComputedValues>) {

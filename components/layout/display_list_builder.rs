@@ -31,6 +31,7 @@ use gfx::display_list::{TextDisplayItem, TextOrientation, WebRenderImageInfo};
 use gfx::paint_thread::THREAD_TINT_COLORS;
 use gfx::text::glyph::ByteIndex;
 use gfx_traits::{color, ScrollPolicy, StackingContextId};
+use incremental::REPAINT;
 use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFlow, LAST_FRAGMENT_OF_ELEMENT};
 use ipc_channel::ipc;
 use list_item::ListItemFlow;
@@ -1011,6 +1012,7 @@ impl FragmentDisplayListBuilding for Fragment {
                           display_list_section: DisplayListSection,
                           clip: &ClippingRegion,
                           stacking_relative_display_port: &Rect<Au>) {
+        self.restyle_damage.remove(REPAINT);
         if self.style().get_inheritedbox().visibility != visibility::T::visible {
             return
         }
