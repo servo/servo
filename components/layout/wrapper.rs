@@ -82,6 +82,7 @@ pub trait LayoutNode: TNode {
     fn get_style_data(&self) -> Option<&RefCell<PartialStyleAndLayoutData>>;
 
     fn init_style_and_layout_data(&self, data: OpaqueStyleAndLayoutData);
+    fn get_style_and_layout_data(&self) -> Option<OpaqueStyleAndLayoutData>;
 
     /// Similar to borrow_data*, but returns the full PrivateLayoutData rather
     /// than only the PrivateStyleData.
@@ -314,8 +315,14 @@ impl<'ln> LayoutNode for ServoLayoutNode<'ln> {
         }
     }
 
+    fn get_style_and_layout_data(&self) -> Option<OpaqueStyleAndLayoutData> {
+        unsafe {
+            self.get_jsmanaged().get_style_and_layout_data()
+        }
+    }
+
     unsafe fn borrow_layout_data_unchecked(&self) -> Option<*const PrivateLayoutData> {
-        self.get_jsmanaged().get_style_and_layout_data().map(|opaque| {
+        self.get_style_and_layout_data().map(|opaque| {
             let container = *opaque.ptr as NonOpaqueStyleAndLayoutData;
             &(*(*container).as_unsafe_cell().get()) as *const PrivateLayoutData
         })
@@ -323,7 +330,7 @@ impl<'ln> LayoutNode for ServoLayoutNode<'ln> {
 
     fn borrow_layout_data(&self) -> Option<Ref<PrivateLayoutData>> {
         unsafe {
-            self.get_jsmanaged().get_style_and_layout_data().map(|opaque| {
+            self.get_style_and_layout_data().map(|opaque| {
                 let container = *opaque.ptr as NonOpaqueStyleAndLayoutData;
                 (*container).borrow()
             })
@@ -332,7 +339,7 @@ impl<'ln> LayoutNode for ServoLayoutNode<'ln> {
 
     fn mutate_layout_data(&self) -> Option<RefMut<PrivateLayoutData>> {
         unsafe {
-            self.get_jsmanaged().get_style_and_layout_data().map(|opaque| {
+            self.get_style_and_layout_data().map(|opaque| {
                 let container = *opaque.ptr as NonOpaqueStyleAndLayoutData;
                 (*container).borrow_mut()
             })
@@ -781,6 +788,8 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Sized + PartialEq {
         }
     }
 
+    fn get_style_and_layout_data(&self) -> Option<OpaqueStyleAndLayoutData>;
+
     /// Borrows the layout data immutably. Fails on a conflicting borrow.
     ///
     /// TODO(pcwalton): Make this private. It will let us avoid borrow flag checks in some cases.
@@ -1101,12 +1110,26 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
         self.pseudo
     }
 
+    fn get_style_and_layout_data(&self) -> Option<OpaqueStyleAndLayoutData> {
+        self.node.get_style_and_layout_data()
+    }
+
     fn borrow_layout_data(&self) -> Option<Ref<PrivateLayoutData>> {
-        self.node.borrow_layout_data()
+        unsafe {
+            self.get_style_and_layout_data().map(|opaque| {
+                let container = *opaque.ptr as NonOpaqueStyleAndLayoutData;
+                (*container).borrow()
+            })
+        }
     }
 
     fn mutate_layout_data(&self) -> Option<RefMut<PrivateLayoutData>> {
-        self.node.mutate_layout_data()
+        unsafe {
+            self.get_style_and_layout_data().map(|opaque| {
+                let container = *opaque.ptr as NonOpaqueStyleAndLayoutData;
+                (*container).borrow_mut()
+            })
+        }
     }
 
     fn is_ignorable_whitespace(&self, context: &SharedStyleContext) -> bool {
