@@ -1510,15 +1510,19 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
     }
 
-    fn handle_visibility_change_complete(&self, pipeline_id: PipelineId, visibility: bool) {
+    fn handle_visibility_change_complete(&mut self, pipeline_id: PipelineId, visibility: bool) {
         let parent_pipeline_info = self.pipelines.get(&pipeline_id).and_then(|source| source.parent_info);
         if let Some((parent_pipeline_id, _, _)) = parent_pipeline_info {
-            if let Some(parent_pipeline) = self.pipelines.get(&parent_pipeline_id) {
-                parent_pipeline.script_chan
-                               .send(ConstellationControlMsg::NotifyVisibilityChange(parent_pipeline_id,
-                                                                                     pipeline_id,
-                                                                                     visibility))
-                               .expect("Pipeline script chan");
+            let visibility_msg = ConstellationControlMsg::NotifyVisibilityChange(parent_pipeline_id,
+                                                                                 pipeline_id,
+                                                                                 visibility);
+            let  result = match self.pipelines.get(&parent_pipeline_id) {
+                None => return warn!("Parent pipeline {:?} closed", parent_pipeline_id),
+                Some(parent_pipeline) => parent_pipeline.script_chan.send(visibility_msg),
+            };
+
+            if let Err(e) = result {
+                self.handle_send_error(parent_pipeline_id, e);
             }
         }
     }

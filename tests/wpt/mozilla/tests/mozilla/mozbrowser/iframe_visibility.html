@@ -16,10 +16,10 @@
         iframe.src = "helper.html";
 
         //Alternate the iframe's visibility and fire mozbrowservisibilitychange
-        iframe.onload = function() {
+        iframe.onload = t.step_func(function() {
             iframe.setVisible(false);
             iframe.setVisible(true);
-        };
+       });
 
         iframe.addEventListener("mozbrowservisibilitychange", t.step_func(e => {
             assert_equals(iframe.getVisible(), e.detail.visible);
@@ -80,7 +80,7 @@
           iframe.addEventListener("mozbrowservisibilitychange", t.step_func(function() {
               var startTime = Date.now();
               iframe.contentWindow.setTimeout(t.step_func(function() {
-                  assert_true(Date.now() - startTime > 1000);
+                  assert_true(Date.now() - startTime >= 1000);
                   t.done();
               }), 1);
           }));
