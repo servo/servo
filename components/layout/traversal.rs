@@ -18,7 +18,8 @@ use style::traversal::{DomTraversalContext, STYLE_BLOOM};
 use style::traversal::{put_thread_local_bloom_filter, recalc_style_at};
 use util::opts;
 use util::tid::tid;
-use wrapper::{LayoutNode, LayoutNodeLayoutData, ServoLayoutNode, ThreadSafeLayoutNode};
+use wrapper::{LayoutNode, LayoutNodeLayoutData, ServoLayoutNode};
+use wrapper::{ThreadSafeLayoutNode, ThreadSafeLayoutNodeHelpers};
 
 pub struct RecalcStyleAndConstructFlows<'lc> {
     context: LayoutContext<'lc>,
