@@ -33,7 +33,7 @@ use dom::node::Node;
 use heapsize::HeapSizeOf;
 use js::jsapi::{Heap, JSObject, JSTracer};
 use js::jsval::JSVal;
-use layout_interface::TrustedNodeAddress;
+use script_layout_interface::TrustedNodeAddress;
 use script_thread::STACK_ROOTS;
 use std::cell::UnsafeCell;
 use std::default::Default;
