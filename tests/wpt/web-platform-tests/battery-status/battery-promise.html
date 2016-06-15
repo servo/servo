@@ -66,16 +66,16 @@ async_test(function (t) {
   var originalPromise = iframe.contentWindow.navigator.getBattery();
 
   iframe.onload = t.step_func(function() {
-    assert_not_equals(iframe.contentWindow.navigator,
+    assert_equals(iframe.contentWindow.navigator,
         originalNavigator,
-        'navigator objects shall be changed');
-    assert_not_equals(iframe.contentWindow.navigator.getBattery(),
+        'navigator objects shall be same');
+    assert_equals(iframe.contentWindow.navigator.getBattery(),
         originalPromise,
-        'battery status promises shall be different');
+        'battery status promises shall be same');
     t.done();
   });
   iframe.src = 'support-iframe.html';
-}, 'setting iframe\'s src makes its Navigator object vary thus getting another battery promise');
+}, 'setting iframe\'s src makes same Navigator object and battery promise');
 
 async_test(function (t) {
   var win = window.open('support-window-open.html');

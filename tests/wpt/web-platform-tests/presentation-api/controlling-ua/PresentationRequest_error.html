@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Presentation API PresentationRequest for Controlling User Agent (Error)</title>
+<link rel="author" title="Franck William Taffo" href="http://www.fokus.fraunhofer.de">
+<link rel="help" href="http://w3c.github.io/presentation-api/#dfn-controlling-user-agent">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+    var wrong_presentation_url = null;
+
+    /**
+     *  Test if PresentationRequest constructor returns a TypeError() by missing presentation URL
+     */
+
+    test(function() {
+        assert_throws(new TypeError(), function() {
+            new PresentationRequest();
+        });
+    }, 'Call PresentationRequest() constructor without presentation URL. TypeError Exception expected.');
+
+    /**
+     *  Test if PresentationRequest constructor returns a TypeError() by wrong presentation URL
+     */
+
+    test(function() {
+        assert_throws(new TypeError(), function() {
+            new PresentationRequest(wrong_presentation_url);
+        });
+    }, 'Call PresentationRequest() constructor with null presentation URL. TypeError Exception expected.');
+
+</script>

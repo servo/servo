@@ -1,3 +1,5 @@
+from __future__ import print_function, unicode_literals
+
 import argparse
 import fnmatch
 import os
@@ -8,10 +10,12 @@ import sys
 from collections import defaultdict
 
 from .. import localpaths
+
 from manifest.sourcefile import SourceFile
+from six import iteritems
+from six.moves import range
 
 here = os.path.abspath(os.path.split(__file__)[0])
-repo_root = localpaths.repo_root
 
 ERROR_MSG = """You must fix all errors; for details on how to fix them, see
 https://github.com/w3c/web-platform-tests/blob/master/docs/lint-tool.md
@@ -26,25 +30,14 @@ you could add the following line to the lint.whitelist file."
 
 %s:%s"""
 
-def git(command, *args):
-    args = list(args)
-
-    proc_kwargs = {"cwd": repo_root}
-
-    command_line = ["git", command] + args
-
-    try:
-        return subprocess.check_output(command_line, **proc_kwargs)
-    except subprocess.CalledProcessError:
-        raise
-
-
-def all_git_paths():
-    for item in git("ls-tree", "-r", "--name-only", "HEAD").split("\n"):
+def all_git_paths(repo_root):
+    command_line = ["git", "ls-tree", "-r", "--name-only", "HEAD"]
+    output = subprocess.check_output(command_line, cwd=repo_root)
+    for item in output.split("\n"):
         yield item
 
 
-def check_path_length(path):
+def check_path_length(repo_root, path):
     if len(path) + 1 > 150:
         return [("PATH LENGTH", "/%s longer than maximum path length (%d > 150)" % (path, len(path) + 1), None)]
     return []
@@ -53,6 +46,10 @@ def set_type(error_type, errors):
     return [(error_type,) + error for error in errors]
 
 def parse_whitelist_file(filename):
+    """
+    Parse the whitelist file at `filename`, and return the parsed structure.
+    """
+
     data = defaultdict(lambda:defaultdict(set))
 
     with open(filename) as f:
@@ -69,29 +66,27 @@ def parse_whitelist_file(filename):
             error_type, file_match, line_number = parts
             data[file_match][error_type].add(line_number)
 
-    def inner(path, errors):
-        whitelisted = [False for item in xrange(len(errors))]
+    return data
 
-        for file_match, whitelist_errors in data.iteritems():
-            if fnmatch.fnmatch(path, file_match):
-                for i, (error_type, msg, line) in enumerate(errors):
-                    if "*" in whitelist_errors:
+
+def filter_whitelist_errors(data, path, errors):
+    """
+    Filter out those errors that are whitelisted in `data`.
+    """
+
+    whitelisted = [False for item in range(len(errors))]
+
+    for file_match, whitelist_errors in iteritems(data):
+        if fnmatch.fnmatch(path, file_match):
+            for i, (error_type, msg, line) in enumerate(errors):
+                if "*" in whitelist_errors:
+                    whitelisted[i] = True
+                elif error_type in whitelist_errors:
+                    allowed_lines = whitelist_errors[error_type]
+                    if None in allowed_lines or line in allowed_lines:
                         whitelisted[i] = True
-                    elif error_type in whitelist_errors:
-                        allowed_lines = whitelist_errors[error_type]
-                        if None in allowed_lines or line in allowed_lines:
-                            whitelisted[i] = True
 
-        return [item for i, item in enumerate(errors) if not whitelisted[i]]
-    return inner
-
-_whitelist_fn = None
-def whitelist_errors(path, errors):
-    global _whitelist_fn
-
-    if _whitelist_fn is None:
-        _whitelist_fn = parse_whitelist_file(os.path.join(repo_root, "lint.whitelist"))
-    return _whitelist_fn(path, errors)
+    return [item for i, item in enumerate(errors) if not whitelisted[i]]
 
 class Regexp(object):
     pattern = None
@@ -110,32 +105,32 @@ class Regexp(object):
         return self._re.search(line)
 
 class TrailingWhitespaceRegexp(Regexp):
-    pattern = "[ \t\f\v]$"
+    pattern = b"[ \t\f\v]$"
     error = "TRAILING WHITESPACE"
 
 class TabsRegexp(Regexp):
-    pattern = "^\t"
+    pattern = b"^\t"
     error = "INDENT TABS"
 
 class CRRegexp(Regexp):
-    pattern = "\r$"
+    pattern = b"\r$"
     error = "CR AT EOL"
 
 class W3CTestOrgRegexp(Regexp):
-    pattern = "w3c\-test\.org"
+    pattern = b"w3c\-test\.org"
     error = "W3C-TEST.ORG"
 
 class Webidl2Regexp(Regexp):
-    pattern = "webidl2\.js"
+    pattern = b"webidl2\.js"
     error = "WEBIDL2.JS"
 
 class ConsoleRegexp(Regexp):
-    pattern = "console\.[a-zA-Z]+\s*\("
+    pattern = b"console\.[a-zA-Z]+\s*\("
     error = "CONSOLE"
     file_extensions = [".html", ".htm", ".js", ".xht", ".html", ".svg"]
 
 class PrintRegexp(Regexp):
-    pattern = "print(?:\s|\s*\()"
+    pattern = b"print(?:\s|\s*\()"
     error = "PRINT STATEMENT"
     file_extensions = [".py"]
 
@@ -148,7 +143,7 @@ regexps = [item() for item in
             ConsoleRegexp,
             PrintRegexp]]
 
-def check_regexp_line(path, f):
+def check_regexp_line(repo_root, path, f):
     errors = []
 
     applicable_regexps = [regexp for regexp in regexps if regexp.applies(path)]
@@ -160,7 +155,7 @@ def check_regexp_line(path, f):
 
     return errors
 
-def check_parsed(path, f):
+def check_parsed(repo_root, path, f):
     source_file = SourceFile(repo_root, path, "/")
 
     errors = []
@@ -211,7 +206,7 @@ def check_parsed(path, f):
                          "testharnessreport": False}
         required_elements = [key for key, value in {"testharness": True,
                                                     "testharnessreport": len(testharnessreport_nodes) > 0,
-                                                    "timeout": len(source_file.timeout_nodes) > 0}.iteritems()
+                                                    "timeout": len(source_file.timeout_nodes) > 0}.items()
                              if value]
 
         for elem in source_file.root.iter():
@@ -237,18 +232,18 @@ def check_parsed(path, f):
 
 def output_errors(errors):
     for error_type, error, line_number in errors:
-        print "%s: %s" % (error_type, error)
+        print("%s: %s" % (error_type, error))
 
 def output_error_count(error_count):
     if not error_count:
         return
 
-    by_type = " ".join("%s: %d" % item for item in error_count.iteritems())
+    by_type = " ".join("%s: %d" % item for item in error_count.items())
     count = sum(error_count.values())
     if count == 1:
-        print "There was 1 error (%s)" % (by_type,)
+        print("There was 1 error (%s)" % (by_type,))
     else:
-        print "There were %d errors (%s)" % (count, by_type)
+        print("There were %d errors (%s)" % (count, by_type))
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -257,16 +252,19 @@ def parse_args():
     return parser.parse_args()
 
 def main():
+    repo_root = localpaths.repo_root
     args = parse_args()
-    paths = args.paths if args.paths else all_git_paths()
-    return lint(paths)
+    paths = args.paths if args.paths else all_git_paths(repo_root)
+    return lint(repo_root, paths)
 
-def lint(paths):
+def lint(repo_root, paths):
     error_count = defaultdict(int)
     last = None
 
+    whitelist = parse_whitelist_file(os.path.join(repo_root, "lint.whitelist"))
+
     def run_lint(path, fn, last, *args):
-        errors = whitelist_errors(path, fn(path, *args))
+        errors = filter_whitelist_errors(whitelist, path, fn(repo_root, path, *args))
         if errors:
             last = (errors[-1][0], path)
 
@@ -290,7 +288,7 @@ def lint(paths):
 
     output_error_count(error_count)
     if error_count:
-        print ERROR_MSG % (last[0], last[1], last[0], last[1])
+        print(ERROR_MSG % (last[0], last[1], last[0], last[1]))
     return sum(error_count.itervalues())
 
 path_lints = [check_path_length]

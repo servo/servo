@@ -1,2 +1,0 @@
-Content-Security-Policy: referrer origin-when-crossorigin
-Access-Control-Allow-Origin: *

@@ -1,5 +1,8 @@
 <!DOCTYPE html>
 <script>
+  function getTheListener() {
+    return postMessage.bind(this, "respond", "*", undefined)
+  }
   document.domain = "{{host}}";
   onmessage = function (e) {
     if (e.data == "sendclick") {

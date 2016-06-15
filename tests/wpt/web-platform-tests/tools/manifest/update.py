@@ -5,9 +5,9 @@ import os
 import sys
 
 import manifest
-import vcs
-from log import get_logger
-from tree import GitTree, NoVCSTree
+from . import vcs
+from .log import get_logger
+from .tree import GitTree, NoVCSTree
 
 here = os.path.dirname(__file__)
 localpaths = imp.load_source("localpaths", os.path.abspath(os.path.join(here, os.pardir, "localpaths.py")))
