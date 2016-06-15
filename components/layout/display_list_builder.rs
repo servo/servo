@@ -38,6 +38,7 @@ use model::{self, MaybeAuto, ToGfxMatrix};
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache_thread::UsePlaceholder;
 use range::Range;
+use script_layout_interface::restyle_damage::REPAINT;
 use std::default::Default;
 use std::sync::Arc;
 use std::{cmp, f32};
@@ -1011,6 +1012,7 @@ impl FragmentDisplayListBuilding for Fragment {
                           display_list_section: DisplayListSection,
                           clip: &ClippingRegion,
                           stacking_relative_display_port: &Rect<Au>) {
+        self.restyle_damage.remove(REPAINT);
         if self.style().get_inheritedbox().visibility != visibility::T::visible {
             return
         }
