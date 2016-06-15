@@ -156,7 +156,7 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
     }
 
     fn opaque(&self) -> OpaqueNode {
-        OpaqueNodeMethods::from_jsmanaged(unsafe { self.get_jsmanaged() })
+        unsafe { self.get_jsmanaged().opaque() }
     }
 
     fn layout_parent_node(self, reflow_root: OpaqueNode) -> Option<ServoLayoutNode<'ln>> {
@@ -732,7 +732,7 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
     }
 
     fn opaque(&self) -> OpaqueNode {
-        OpaqueNodeMethods::from_jsmanaged(unsafe { self.get_jsmanaged() })
+        unsafe { self.get_jsmanaged().opaque() }
     }
 
     fn type_id(&self) -> Option<NodeType> {
