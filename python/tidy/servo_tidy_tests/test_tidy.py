@@ -79,7 +79,7 @@ class CheckTidiness(unittest.TestCase):
         self.assertNoMoreErrors(errors)
 
     def test_spec_link(self):
-        tidy.spec_base_path = base_path
+        tidy.SPEC_BASE_PATH = base_path
         errors = tidy.collect_errors_for_files(iterFile('speclink.rs'), [], [tidy.check_spec], print_text=False)
         self.assertEqual('method declared in webidl is missing a comment with a specification link', errors.next()[2])
         self.assertNoMoreErrors(errors)
