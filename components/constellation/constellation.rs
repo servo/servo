@@ -907,6 +907,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         debug!("Panic handler for pipeline {:?}: {}.", pipeline_id, reason);
 
         if let Some(pipeline_id) = pipeline_id {
+            let pipeline_url = self.pipelines.get(&pipeline_id).map(|pipeline| pipeline.url.clone());
             let parent_info = self.pipelines.get(&pipeline_id).and_then(|pipeline| pipeline.parent_info);
             let window_size = self.pipelines.get(&pipeline_id).and_then(|pipeline| pipeline.size);
 
@@ -923,14 +924,19 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 self.close_pipeline(pending_pipeline_id, ExitPipelineMode::Force);
             }
 
+            let failure_url = Url::parse("about:failure").expect("infallible");
+
+            if let Some(pipeline_url) = pipeline_url {
+                if pipeline_url == failure_url {
+                    return error!("about:failure failed");
+                }
+            }
+
             warn!("creating replacement pipeline for about:failure");
 
             let new_pipeline_id = PipelineId::new();
-            self.new_pipeline(new_pipeline_id,
-                              parent_info,
-                              window_size,
-                              None,
-                              LoadData::new(Url::parse("about:failure").expect("infallible"), None, None));
+            let load_data = LoadData::new(failure_url, None, None);
+            self.new_pipeline(new_pipeline_id, parent_info, window_size, None, load_data);
 
             self.push_pending_frame(new_pipeline_id, Some(pipeline_id));
 
