@@ -8,13 +8,9 @@ use gfx::display_list::OpaqueNode;
 use libc::{c_void, uintptr_t};
 use script::layout_interface::LayoutJS;
 use script::layout_interface::Node;
-use script::layout_interface::TrustedNodeAddress;
 use script_traits::UntrustedNodeAddress;
 
 pub trait OpaqueNodeMethods {
-    /// Converts a DOM node (script view) to an `OpaqueNode`.
-    fn from_script_node(node: TrustedNodeAddress) -> Self;
-
     /// Converts a DOM node to an `OpaqueNode'.
     fn from_jsmanaged(node: &LayoutJS<Node>) -> Self;
 
@@ -24,12 +20,6 @@ pub trait OpaqueNodeMethods {
 }
 
 impl OpaqueNodeMethods for OpaqueNode {
-    fn from_script_node(node: TrustedNodeAddress) -> OpaqueNode {
-        unsafe {
-            OpaqueNodeMethods::from_jsmanaged(&LayoutJS::from_trusted_node_address(node))
-        }
-    }
-
     fn from_jsmanaged(node: &LayoutJS<Node>) -> OpaqueNode {
         unsafe {
             let ptr: uintptr_t = node.get_jsobject() as uintptr_t;
