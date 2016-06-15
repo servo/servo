@@ -35,7 +35,6 @@ use data::{LayoutDataFlags, PrivateLayoutData};
 use gfx::display_list::OpaqueNode;
 use gfx::text::glyph::ByteIndex;
 use msg::constellation_msg::PipelineId;
-use opaque_node::OpaqueNodeMethods;
 use range::Range;
 use script::layout_interface::{CAN_BE_FRAGMENTED, HAS_CHANGED, HAS_DIRTY_DESCENDANTS, IS_DIRTY};
 use script::layout_interface::{CharacterDataTypeId, Document, Element, ElementTypeId};
@@ -168,7 +167,7 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
     }
 
     fn debug_id(self) -> usize {
-        self.opaque().to_untrusted_node_address().0 as usize
+        self.opaque().0
     }
 
     fn children_count(&self) -> u32 {
