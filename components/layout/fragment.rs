@@ -29,7 +29,7 @@ use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache_thread::{ImageOrMetadataAvailable, UsePlaceholder};
 use range::*;
 use rustc_serialize::{Encodable, Encoder};
-use script::layout_interface::HTMLCanvasData;
+use script_layout_interface::HTMLCanvasData;
 use script_layout_interface::restyle_damage::{RECONSTRUCT_FLOW, RestyleDamage};
 use std::borrow::ToOwned;
 use std::cmp::{max, min};

@@ -17,13 +17,17 @@
 #[allow(unused_extern_crates)]
 #[macro_use]
 extern crate bitflags;
+extern crate canvas_traits;
 extern crate core;
 extern crate heapsize;
+extern crate ipc_channel;
 extern crate style;
 
 pub mod restyle_damage;
 
+use canvas_traits::CanvasMsg;
 use core::nonzero::NonZero;
+use ipc_channel::ipc::IpcSender;
 use restyle_damage::RestyleDamage;
 use std::cell::RefCell;
 use style::servo::PrivateStyleData;
@@ -68,4 +72,10 @@ pub enum LayoutElementType {
     HTMLTableRowElement,
     HTMLTableSectionElement,
     HTMLTextAreaElement,
+}
+
+pub struct HTMLCanvasData {
+    pub ipc_renderer: Option<IpcSender<CanvasMsg>>,
+    pub width: u32,
+    pub height: u32,
 }

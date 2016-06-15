@@ -30,6 +30,7 @@ use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{HandleValue, JSContext};
 use offscreen_gl_context::GLContextAttributes;
 use rustc_serialize::base64::{STANDARD, ToBase64};
+use script_layout_interface::HTMLCanvasData;
 use std::iter::repeat;
 use string_cache::Atom;
 use style::attr::AttrValue;
@@ -90,12 +91,6 @@ impl HTMLCanvasElement {
             _ => true,
         }
     }
-}
-
-pub struct HTMLCanvasData {
-    pub ipc_renderer: Option<IpcSender<CanvasMsg>>,
-    pub width: u32,
-    pub height: u32,
 }
 
 pub trait LayoutHTMLCanvasElementHelpers {
