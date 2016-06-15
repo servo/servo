@@ -50,6 +50,7 @@ use script::layout_interface::{LayoutRPC, OffsetParentResponse, NodeOverflowResp
 use script::layout_interface::{Msg, NewLayoutThreadInfo, Reflow, ReflowQueryType, ScriptReflow};
 use script::reporter::CSSErrorReporter;
 use script_layout_interface::restyle_damage::{REPAINT, STORE_OVERFLOW, REFLOW_OUT_OF_FLOW, REFLOW};
+use script_layout_interface::wrapper_traits::LayoutNode;
 use script_layout_interface::{OpaqueStyleAndLayoutData, PartialStyleAndLayoutData};
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutMsg as ConstellationMsg};
 use script_traits::{StackingContextScrollState, UntrustedNodeAddress};
@@ -85,7 +86,7 @@ use util::thread_state;
 use util::workqueue::WorkQueue;
 use webrender_helpers::{WebRenderDisplayListConverter, WebRenderFrameBuilder};
 use webrender_traits;
-use wrapper::{LayoutNode, LayoutNodeLayoutData, NonOpaqueStyleAndLayoutData, ServoLayoutNode};
+use wrapper::{LayoutNodeLayoutData, NonOpaqueStyleAndLayoutData, ServoLayoutNode};
 
 /// The number of screens of data we're allowed to generate display lists for in each direction.
 pub const DISPLAY_PORT_SIZE_FACTOR: i32 = 8;

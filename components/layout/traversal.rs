@@ -11,6 +11,7 @@ use flow::{CAN_BE_FRAGMENTED, Flow, ImmutableFlowUtils, PostorderFlowTraversal};
 use flow::{PreorderFlowTraversal, self};
 use gfx::display_list::OpaqueNode;
 use script_layout_interface::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, RestyleDamage};
+use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
 use std::mem;
 use style::context::StyleContext;
 use style::matching::MatchMethods;
@@ -18,8 +19,7 @@ use style::traversal::{DomTraversalContext, STYLE_BLOOM};
 use style::traversal::{put_thread_local_bloom_filter, recalc_style_at};
 use util::opts;
 use util::tid::tid;
-use wrapper::{LayoutNode, LayoutNodeLayoutData, ServoLayoutNode};
-use wrapper::{ThreadSafeLayoutNode, ThreadSafeLayoutNodeHelpers};
+use wrapper::{LayoutNodeLayoutData, ServoLayoutNode, ThreadSafeLayoutNodeHelpers};
 
 pub struct RecalcStyleAndConstructFlows<'lc> {
     context: LayoutContext<'lc>,

@@ -26,6 +26,7 @@ use model::IntrinsicISizesContribution;
 use range::{Range, RangeIndex};
 use script_layout_interface::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW};
 use script_layout_interface::restyle_damage::{REPAINT, RESOLVE_GENERATED_CONTENT};
+use script_layout_interface::wrapper_traits::PseudoElementType;
 use std::cmp::max;
 use std::collections::VecDeque;
 use std::sync::Arc;
@@ -39,7 +40,6 @@ use text;
 use unicode_bidi;
 use util;
 use util::print_tree::PrintTree;
-use wrapper::PseudoElementType;
 
 // From gfxFontConstants.h in Firefox
 static FONT_SUBSCRIPT_OFFSET_RATIO: f32 = 0.20;
