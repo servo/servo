@@ -232,6 +232,7 @@ pub struct Document {
     dom_complete: Cell<u64>,
     load_event_start: Cell<u64>,
     load_event_end: Cell<u64>,
+    request_start: Cell<u64>,
     /// https://html.spec.whatwg.org/multipage/#concept-document-https-state
     https_state: Cell<HttpsState>,
     touchpad_pressure_phase: Cell<TouchpadPressurePhase>,
@@ -1542,6 +1543,14 @@ impl Document {
         self.load_event_end.get()
     }
 
+    pub fn set_request_start(&self, t: u64) {
+        self.request_start.set(t);
+    }
+
+    pub fn get_request_start(&self) -> u64 {
+        self.request_start.get()
+    }
+
     // https://html.spec.whatwg.org/multipage/#fire-a-focus-event
     fn fire_focus_event(&self, focus_event_type: FocusEventType, node: &Node, relatedTarget: Option<&EventTarget>) {
         let (event_name, does_bubble) = match focus_event_type {
@@ -1697,6 +1706,7 @@ impl Document {
             dom_complete: Cell::new(Default::default()),
             load_event_start: Cell::new(Default::default()),
             load_event_end: Cell::new(Default::default()),
+            request_start: Cell::new(Default::default()),
             https_state: Cell::new(HttpsState::None),
             touchpad_pressure_phase: Cell::new(TouchpadPressurePhase::BeforeClick),
             origin: origin,
@@ -1840,7 +1850,6 @@ impl Document {
         return self.referrer_policy.get();
     }
 }
-
 
 impl Element {
     fn click_event_filter_by_disabled_state(&self) -> bool {
