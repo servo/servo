@@ -22,6 +22,7 @@ extern crate core;
 extern crate gfx_traits;
 extern crate heapsize;
 extern crate ipc_channel;
+extern crate libc;
 extern crate msg;
 extern crate range;
 extern crate selectors;
@@ -36,6 +37,7 @@ pub mod wrapper_traits;
 use canvas_traits::CanvasMsg;
 use core::nonzero::NonZero;
 use ipc_channel::ipc::IpcSender;
+use libc::c_void;
 use restyle_damage::RestyleDamage;
 use std::cell::RefCell;
 use style::servo::PrivateStyleData;
@@ -87,3 +89,10 @@ pub struct HTMLCanvasData {
     pub width: u32,
     pub height: u32,
 }
+
+/// The address of a node known to be valid. These are sent from script to layout.
+#[derive(Clone, PartialEq, Eq, Copy)]
+pub struct TrustedNodeAddress(pub *const c_void);
+
+#[allow(unsafe_code)]
+unsafe impl Send for TrustedNodeAddress {}
