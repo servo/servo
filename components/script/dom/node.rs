@@ -21,8 +21,8 @@ use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::conversions::{self, DerivedFrom};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::inheritance::{Castable, CharacterDataTypeId};
-use dom::bindings::inheritance::{EventTargetTypeId, NodeTypeId};
+use dom::bindings::inheritance::{Castable, CharacterDataTypeId, ElementTypeId};
+use dom::bindings::inheritance::{EventTargetTypeId, HTMLElementTypeId, NodeTypeId};
 use dom::bindings::js::Root;
 use dom::bindings::js::RootedReference;
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap};
@@ -62,6 +62,7 @@ use msg::constellation_msg::PipelineId;
 use parse::html::parse_html_fragment;
 use ref_slice::ref_slice;
 use script_layout_interface::OpaqueStyleAndLayoutData;
+use script_layout_interface::{LayoutNodeType, LayoutElementType};
 use script_traits::UntrustedNodeAddress;
 use selectors::matching::matches;
 use selectors::parser::Selector;
@@ -2631,6 +2632,59 @@ impl UniqueId {
                 *ptr = Some(box Uuid::new_v4());
             }
             &(&*ptr).as_ref().unwrap()
+        }
+    }
+}
+
+impl Into<LayoutNodeType> for NodeTypeId {
+    #[inline(always)]
+    fn into(self) -> LayoutNodeType {
+        match self {
+            NodeTypeId::CharacterData(CharacterDataTypeId::Comment) =>
+                LayoutNodeType::Comment,
+            NodeTypeId::Document(..) =>
+                LayoutNodeType::Document,
+            NodeTypeId::DocumentFragment =>
+                LayoutNodeType::DocumentFragment,
+            NodeTypeId::DocumentType =>
+                LayoutNodeType::DocumentType,
+            NodeTypeId::Element(e) =>
+                LayoutNodeType::Element(e.into()),
+            NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) =>
+                LayoutNodeType::ProcessingInstruction,
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text) =>
+                LayoutNodeType::Text,
+        }
+    }
+}
+
+impl Into<LayoutElementType> for ElementTypeId {
+    #[inline(always)]
+    fn into(self) -> LayoutElementType {
+        match self {
+            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLCanvasElement) =>
+                LayoutElementType::HTMLCanvasElement,
+            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLIFrameElement) =>
+                LayoutElementType::HTMLIFrameElement,
+            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLImageElement) =>
+                LayoutElementType::HTMLImageElement,
+            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement) =>
+                LayoutElementType::HTMLInputElement,
+            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLObjectElement) =>
+                LayoutElementType::HTMLObjectElement,
+            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableCellElement(_)) =>
+                LayoutElementType::HTMLTableCellElement,
+            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableColElement) =>
+                LayoutElementType::HTMLTableColElement,
+            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableElement) =>
+                LayoutElementType::HTMLTableElement,
+            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableRowElement) =>
+                LayoutElementType::HTMLTableRowElement,
+            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableSectionElement) =>
+                LayoutElementType::HTMLTableSectionElement,
+            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement) =>
+                LayoutElementType::HTMLTextAreaElement,
+            _ => LayoutElementType::Element,
         }
     }
 }
