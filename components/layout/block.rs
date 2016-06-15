@@ -2842,8 +2842,9 @@ impl ISizeAndMarginsComputer for AbsoluteReplaced {
         let opaque_block = OpaqueFlow::from_flow(block);
         let containing_block_inline_size =
             block.containing_block_size(&layout_context.shared_context().viewport_size, opaque_block).inline;
+        let container_block_size = block.explicit_block_containing_size(layout_context);
         let fragment = block.fragment();
-        fragment.assign_replaced_inline_size_if_necessary(containing_block_inline_size);
+        fragment.assign_replaced_inline_size_if_necessary(containing_block_inline_size, container_block_size);
         // For replaced absolute flow, the rest of the constraint solving will
         // take inline-size to be specified as the value computed here.
         MaybeAuto::Specified(fragment.content_inline_size())
@@ -2898,10 +2899,11 @@ impl ISizeAndMarginsComputer for BlockReplaced {
     fn initial_computed_inline_size(&self,
                                     block: &mut BlockFlow,
                                     parent_flow_inline_size: Au,
-                                    _: &LayoutContext)
+                                    layout_context: &LayoutContext)
                                     -> MaybeAuto {
+        let container_block_size = block.explicit_block_containing_size(layout_context);
         let fragment = block.fragment();
-        fragment.assign_replaced_inline_size_if_necessary(parent_flow_inline_size);
+        fragment.assign_replaced_inline_size_if_necessary(parent_flow_inline_size, container_block_size);
         // For replaced block flow, the rest of the constraint solving will
         // take inline-size to be specified as the value computed here.
         MaybeAuto::Specified(fragment.content_inline_size())
@@ -2955,10 +2957,11 @@ impl ISizeAndMarginsComputer for FloatReplaced {
     fn initial_computed_inline_size(&self,
                                     block: &mut BlockFlow,
                                     parent_flow_inline_size: Au,
-                                    _: &LayoutContext)
+                                    layout_context: &LayoutContext)
                                     -> MaybeAuto {
+        let container_block_size = block.explicit_block_containing_size(layout_context);
         let fragment = block.fragment();
-        fragment.assign_replaced_inline_size_if_necessary(parent_flow_inline_size);
+        fragment.assign_replaced_inline_size_if_necessary(parent_flow_inline_size, container_block_size);
         // For replaced block flow, the rest of the constraint solving will
         // take inline-size to be specified as the value computed here.
         MaybeAuto::Specified(fragment.content_inline_size())
@@ -3042,10 +3045,11 @@ impl ISizeAndMarginsComputer for InlineBlockReplaced {
     fn initial_computed_inline_size(&self,
                                     block: &mut BlockFlow,
                                     parent_flow_inline_size: Au,
-                                    _: &LayoutContext)
+                                    layout_context: &LayoutContext)
                                     -> MaybeAuto {
+        let container_block_size = block.explicit_block_containing_size(layout_context);
         let fragment = block.fragment();
-        fragment.assign_replaced_inline_size_if_necessary(parent_flow_inline_size);
+        fragment.assign_replaced_inline_size_if_necessary(parent_flow_inline_size, container_block_size);
         // For replaced block flow, the rest of the constraint solving will
         // take inline-size to be specified as the value computed here.
         MaybeAuto::Specified(fragment.content_inline_size())

@@ -1359,6 +1359,7 @@ impl Flow for InlineFlow {
 
         let inline_size = self.base.block_container_inline_size;
         let container_mode = self.base.block_container_writing_mode;
+        let container_block_size = self.base.block_container_explicit_block_size;
         self.base.position.size.inline = inline_size;
 
         {
@@ -1368,7 +1369,7 @@ impl Flow for InlineFlow {
                 fragment.compute_border_and_padding(inline_size, border_collapse);
                 fragment.compute_block_direction_margins(inline_size);
                 fragment.compute_inline_direction_margins(inline_size);
-                fragment.assign_replaced_inline_size_if_necessary(inline_size);
+                fragment.assign_replaced_inline_size_if_necessary(inline_size, container_block_size);
             }
         }
 
