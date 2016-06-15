@@ -949,6 +949,8 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Sized + PartialEq {
     /// FIXME(pcwalton): This might have too much copying and/or allocation. Profile this.
     fn text_content(&self) -> TextContent;
 
+    fn node_text_content(&self) -> String;
+
     /// If the insertion point is within this node, returns it. Otherwise, returns `None`.
     fn selection(&self) -> Option<Range<ByteIndex>>;
 
@@ -1189,8 +1191,12 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
             };
         }
 
+        return TextContent::Text(self.node_text_content());
+    }
+
+    fn node_text_content(&self) -> String {
         let this = unsafe { self.get_jsmanaged() };
-        return TextContent::Text(this.text_content());
+        return this.text_content();
     }
 
     fn selection(&self) -> Option<Range<ByteIndex>> {
