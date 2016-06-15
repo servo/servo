@@ -184,7 +184,7 @@ ${helpers.predefined_type(
 
 ${helpers.single_keyword("background-repeat", "repeat repeat-x repeat-y no-repeat")}
 
-${helpers.single_keyword("background-attachment", "scroll fixed")}
+${helpers.single_keyword("background-attachment", "scroll fixed" + (" local" if product == "gecko" else ""))}
 
 ${helpers.single_keyword("background-clip", "border-box padding-box content-box")}
 
