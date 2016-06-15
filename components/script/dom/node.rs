@@ -21,8 +21,8 @@ use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::conversions::{self, DerivedFrom};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::inheritance::{Castable, CharacterDataTypeId};
-use dom::bindings::inheritance::{EventTargetTypeId, NodeTypeId};
+use dom::bindings::inheritance::{Castable, CharacterDataTypeId, ElementTypeId};
+use dom::bindings::inheritance::{EventTargetTypeId, HTMLElementTypeId, NodeTypeId};
 use dom::bindings::js::Root;
 use dom::bindings::js::RootedReference;
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap};
@@ -62,6 +62,7 @@ use msg::constellation_msg::PipelineId;
 use parse::html::parse_html_fragment;
 use ref_slice::ref_slice;
 use script_layout_interface::OpaqueStyleAndLayoutData;
+use script_layout_interface::{NodeType, ElementType};
 use script_traits::UntrustedNodeAddress;
 use selectors::matching::matches;
 use selectors::parser::Selector;
@@ -2631,6 +2632,50 @@ impl UniqueId {
                 *ptr = Some(box Uuid::new_v4());
             }
             &(&*ptr).as_ref().unwrap()
+        }
+    }
+}
+
+impl Into<NodeType> for NodeTypeId {
+    fn into(self) -> NodeType {
+        match self {
+            NodeTypeId::CharacterData(CharacterDataTypeId::Comment) => NodeType::Comment,
+            NodeTypeId::Document(..) => NodeType::Document,
+            NodeTypeId::DocumentFragment => NodeType::DocumentFragment,
+            NodeTypeId::DocumentType => NodeType::DocumentType,
+            NodeTypeId::Element(e) => NodeType::Element(e.into()),
+            NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) => NodeType::ProcessingInstruction,
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text) => NodeType::Text,
+        }
+    }
+}
+
+impl Into<ElementType> for ElementTypeId {
+    fn into(self) -> ElementType {
+        match self {
+            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLCanvasElement) =>
+                ElementType::HTMLCanvasElement,
+            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLIFrameElement) =>
+                ElementType::HTMLIFrameElement,
+            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLImageElement) =>
+                ElementType::HTMLImageElement,
+            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement) =>
+                ElementType::HTMLInputElement,
+            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLObjectElement) =>
+                ElementType::HTMLObjectElement,
+            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableCellElement(_)) =>
+                ElementType::HTMLTableCellElement,
+            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableColElement) =>
+                ElementType::HTMLTableColElement,
+            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableElement) =>
+                ElementType::HTMLTableElement,
+            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableRowElement) =>
+                ElementType::HTMLTableRowElement,
+            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableSectionElement) =>
+                ElementType::HTMLTableSectionElement,
+            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement) =>
+                ElementType::HTMLTextAreaElement,
+            _ => ElementType::Element,
         }
     }
 }

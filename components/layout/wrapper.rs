@@ -44,6 +44,7 @@ use script::layout_interface::{HTMLCanvasData, HTMLElementTypeId, LayoutCharacte
 use script::layout_interface::{LayoutDocumentHelpers, LayoutElementHelpers, LayoutJS};
 use script::layout_interface::{LayoutNodeHelpers, Node, NodeTypeId};
 use script::layout_interface::{RawLayoutElementHelpers, Text, TrustedNodeAddress};
+use script_layout_interface::NodeType;
 use script_layout_interface::restyle_damage::RestyleDamage;
 use script_layout_interface::{OpaqueStyleAndLayoutData, PartialStyleAndLayoutData};
 use selectors::matching::{DeclarationBlock, ElementFlags};
@@ -77,7 +78,7 @@ pub trait LayoutNode: TNode {
     fn to_threadsafe(&self) -> Self::ConcreteThreadSafeLayoutNode;
 
     /// Returns the type ID of this node.
-    fn type_id(&self) -> NodeTypeId;
+    fn type_id(&self) -> NodeType;
 
     fn get_style_data(&self) -> Option<&RefCell<PartialStyleAndLayoutData>>;
 
@@ -130,6 +131,12 @@ impl<'ln> ServoLayoutNode<'ln> {
             chain: self.chain,
         }
     }
+
+    fn script_type_id(&self) -> NodeTypeId {
+        unsafe {
+            self.node.type_id_for_layout()
+        }
+    }
 }
 
 impl<'ln> TNode for ServoLayoutNode<'ln> {
@@ -151,7 +158,7 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
     }
 
     fn is_text_node(&self) -> bool {
-        self.type_id() == NodeTypeId::CharacterData(CharacterDataTypeId::Text)
+        self.script_type_id() == NodeTypeId::CharacterData(CharacterDataTypeId::Text)
     }
 
     fn is_element(&self) -> bool {
@@ -288,10 +295,8 @@ impl<'ln> LayoutNode for ServoLayoutNode<'ln> {
         ServoThreadSafeLayoutNode::new(self)
     }
 
-    fn type_id(&self) -> NodeTypeId {
-        unsafe {
-            self.node.type_id_for_layout()
-        }
+    fn type_id(&self) -> NodeType {
+        self.script_type_id().into()
     }
 
     fn get_style_data(&self) -> Option<&RefCell<PartialStyleAndLayoutData>> {
@@ -375,7 +380,7 @@ impl<'ln> ServoLayoutNode<'ln> {
 
     fn debug_str(self) -> String {
         format!("{:?}: changed={} dirty={} dirty_descendants={}",
-                self.type_id(), self.has_changed(), self.is_dirty(), self.has_dirty_descendants())
+                self.script_type_id(), self.has_changed(), self.is_dirty(), self.has_dirty_descendants())
     }
 
     /// Returns the interior of this node as a `LayoutJS`. This is highly unsafe for layout to
@@ -526,7 +531,7 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
         match self.as_node().parent_node() {
             None => false,
             Some(node) => {
-                match node.type_id() {
+                match node.script_type_id() {
                     NodeTypeId::Document(_) => true,
                     _ => false
                 }
@@ -535,7 +540,7 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
     }
 
     fn is_empty(&self) -> bool {
-        self.as_node().children().all(|node| match node.type_id() {
+        self.as_node().children().all(|node| match node.script_type_id() {
             NodeTypeId::Element(..) => false,
             NodeTypeId::CharacterData(CharacterDataTypeId::Text) => unsafe {
                 node.node.downcast().unwrap().data_for_layout().is_empty()
@@ -559,7 +564,7 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
             // https://github.com/servo/servo/issues/8718
             NonTSPseudoClass::Link |
             NonTSPseudoClass::AnyLink => unsafe {
-                match self.as_node().type_id() {
+                match self.as_node().script_type_id() {
                     // https://html.spec.whatwg.org/multipage/#selector-link
                     NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)) |
                     NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAreaElement)) |
@@ -708,16 +713,16 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Sized + PartialEq {
 
     /// Returns the type ID of this node.
     /// Returns `None` if this is a pseudo-element; otherwise, returns `Some`.
-    fn type_id(&self) -> Option<NodeTypeId>;
+    fn type_id(&self) -> Option<NodeType>;
 
     /// Returns the type ID of this node, without discarding pseudo-elements as
     /// `type_id` does.
-    fn type_id_without_excluding_pseudo_elements(&self) -> NodeTypeId;
+    fn type_id_without_excluding_pseudo_elements(&self) -> NodeType;
 
     #[inline]
     fn is_element_or_elements_pseudo(&self) -> bool {
         match self.type_id_without_excluding_pseudo_elements() {
-            NodeTypeId::Element(..) => true,
+            NodeType::Element(..) => true,
             _ => false,
         }
     }
@@ -728,7 +733,7 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Sized + PartialEq {
     fn children(&self) -> Self::ChildrenIterator;
 
     #[inline]
-    fn is_element(&self) -> bool { if let Some(NodeTypeId::Element(_)) = self.type_id() { true } else { false } }
+    fn is_element(&self) -> bool { if let Some(NodeType::Element(_)) = self.type_id() { true } else { false } }
 
     /// If this is an element, accesses the element data. Fails if this is not an element node.
     #[inline]
@@ -909,7 +914,7 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Sized + PartialEq {
     /// `empty_cells` per CSS 2.1 § 17.6.1.1.
     fn is_content(&self) -> bool {
         match self.type_id() {
-            Some(NodeTypeId::Element(..)) | Some(NodeTypeId::CharacterData(CharacterDataTypeId::Text)) => true,
+            Some(NodeType::Element(..)) | Some(NodeType::Text) => true,
             _ => false
         }
     }
@@ -1075,7 +1080,7 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
         OpaqueNodeMethods::from_jsmanaged(unsafe { self.get_jsmanaged() })
     }
 
-    fn type_id(&self) -> Option<NodeTypeId> {
+    fn type_id(&self) -> Option<NodeType> {
         if self.pseudo != PseudoElementType::Normal {
             return None
         }
@@ -1084,7 +1089,7 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
     }
 
     #[inline]
-    fn type_id_without_excluding_pseudo_elements(&self) -> NodeTypeId {
+    fn type_id_without_excluding_pseudo_elements(&self) -> NodeType {
         self.node.type_id()
     }
 
