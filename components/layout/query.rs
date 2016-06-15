@@ -19,6 +19,7 @@ use opaque_node::OpaqueNodeMethods;
 use script::layout_interface::{ContentBoxResponse, NodeOverflowResponse, ContentBoxesResponse, NodeGeometryResponse};
 use script::layout_interface::{HitTestResponse, LayoutRPC, OffsetParentResponse, NodeLayerIdResponse};
 use script::layout_interface::{ResolvedStyleResponse, MarginStyleResponse};
+use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
 use script_traits::LayoutMsg as ConstellationMsg;
 use script_traits::UntrustedNodeAddress;
 use sequential;
@@ -34,7 +35,7 @@ use style::properties::style_structs;
 use style::selector_impl::PseudoElement;
 use style::values::AuExtensionMethods;
 use style_traits::cursor::Cursor;
-use wrapper::{LayoutNode, ThreadSafeLayoutNode, ThreadSafeLayoutNodeHelpers};
+use wrapper::ThreadSafeLayoutNodeHelpers;
 
 pub struct LayoutRPCImpl(pub Arc<Mutex<LayoutThreadData>>);
 

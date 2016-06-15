@@ -19,11 +19,19 @@
 extern crate bitflags;
 extern crate canvas_traits;
 extern crate core;
+extern crate gfx_traits;
 extern crate heapsize;
 extern crate ipc_channel;
+extern crate msg;
+extern crate range;
+extern crate selectors;
+#[macro_use(atom, ns)]
+extern crate string_cache;
 extern crate style;
+extern crate url;
 
 pub mod restyle_damage;
+pub mod wrapper_traits;
 
 use canvas_traits::CanvasMsg;
 use core::nonzero::NonZero;
