@@ -796,6 +796,9 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Sized + PartialEq {
 
     fn get_style_and_layout_data(&self) -> Option<OpaqueStyleAndLayoutData>;
 
+    #[inline(always)]
+    unsafe fn borrow_layout_data_unchecked(&self) -> Option<*const PrivateLayoutData>;
+
     /// Borrows the layout data immutably. Fails on a conflicting borrow.
     ///
     /// TODO(pcwalton): Make this private. It will let us avoid borrow flag checks in some cases.
@@ -1122,6 +1125,13 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
         self.node.get_style_and_layout_data()
     }
 
+    unsafe fn borrow_layout_data_unchecked(&self) -> Option<*const PrivateLayoutData> {
+        self.get_style_and_layout_data().map(|opaque| {
+            let container = *opaque.ptr as NonOpaqueStyleAndLayoutData;
+            &(*(*container).as_unsafe_cell().get()) as *const PrivateLayoutData
+        })
+    }
+
     fn borrow_layout_data(&self) -> Option<Ref<PrivateLayoutData>> {
         unsafe {
             self.get_style_and_layout_data().map(|opaque| {
@@ -1171,7 +1181,7 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
 
     fn flags(self) -> LayoutDataFlags {
         unsafe {
-            (*self.node.borrow_layout_data_unchecked().unwrap()).flags
+            (*self.borrow_layout_data_unchecked().unwrap()).flags
         }
     }
 
