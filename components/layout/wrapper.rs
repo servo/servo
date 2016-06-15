@@ -91,6 +91,8 @@ pub trait LayoutNodeLayoutData {
     unsafe fn borrow_layout_data_unchecked(&self) -> Option<*const PrivateLayoutData>;
     fn borrow_layout_data(&self) -> Option<Ref<PrivateLayoutData>>;
     fn mutate_layout_data(&self) -> Option<RefMut<PrivateLayoutData>>;
+    fn initialize_data(self);
+    fn flow_debug_id(self) -> usize;
 }
 
 #[derive(Copy, Clone)]
@@ -126,17 +128,6 @@ impl<'ln> ServoLayoutNode<'ln> {
         ServoLayoutNode {
             node: *node,
             chain: self.chain,
-        }
-    }
-
-    pub fn initialize_data(self) {
-        if unsafe { self.borrow_data_unchecked() }.is_none() {
-            let ptr: NonOpaqueStyleAndLayoutData =
-                Box::into_raw(box RefCell::new(PrivateLayoutData::new()));
-            let opaque = OpaqueStyleAndLayoutData {
-                ptr: unsafe { NonZero::new(ptr as *mut RefCell<PartialStyleAndLayoutData>) }
-            };
-            self.init_style_and_layout_data(opaque);
         }
     }
 }
@@ -349,6 +340,21 @@ impl<T: LayoutNode> LayoutNodeLayoutData for T {
             })
         }
     }
+
+    fn initialize_data(self) {
+        if unsafe { self.borrow_data_unchecked() }.is_none() {
+            let ptr: NonOpaqueStyleAndLayoutData =
+                Box::into_raw(box RefCell::new(PrivateLayoutData::new()));
+            let opaque = OpaqueStyleAndLayoutData {
+                ptr: unsafe { NonZero::new(ptr as *mut RefCell<PartialStyleAndLayoutData>) }
+            };
+            self.init_style_and_layout_data(opaque);
+        }
+    }
+
+    fn flow_debug_id(self) -> usize {
+        self.borrow_layout_data().map_or(0, |d| d.flow_construction_result.debug_id())
+    }
 }
 
 
@@ -370,10 +376,6 @@ impl<'ln> ServoLayoutNode<'ln> {
     fn debug_str(self) -> String {
         format!("{:?}: changed={} dirty={} dirty_descendants={}",
                 self.type_id(), self.has_changed(), self.is_dirty(), self.has_dirty_descendants())
-    }
-
-    pub fn flow_debug_id(self) -> usize {
-        self.borrow_layout_data().map_or(0, |d| d.flow_construction_result.debug_id())
     }
 
     /// Returns the interior of this node as a `LayoutJS`. This is highly unsafe for layout to
