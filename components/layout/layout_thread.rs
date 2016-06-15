@@ -85,7 +85,7 @@ use util::thread_state;
 use util::workqueue::WorkQueue;
 use webrender_helpers::{WebRenderDisplayListConverter, WebRenderFrameBuilder};
 use webrender_traits;
-use wrapper::{LayoutNode, NonOpaqueStyleAndLayoutData, ServoLayoutNode};
+use wrapper::{LayoutNode, LayoutNodeLayoutData, NonOpaqueStyleAndLayoutData, ServoLayoutNode};
 
 /// The number of screens of data we're allowed to generate display lists for in each direction.
 pub const DISPLAY_PORT_SIZE_FACTOR: i32 = 8;
