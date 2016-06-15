@@ -75,6 +75,7 @@ use std::iter::{self, FilterMap, Peekable};
 use std::mem;
 use std::ops::Range;
 use string_cache::{Atom, Namespace, QualName};
+use style::dom::OpaqueNode;
 use style::selector_impl::ServoSelectorImpl;
 use url::Url;
 use util::thread_state;
@@ -961,6 +962,7 @@ pub trait LayoutNodeHelpers {
     fn image_url(&self) -> Option<Url>;
     fn canvas_data(&self) -> Option<HTMLCanvasData>;
     fn iframe_pipeline_id(&self) -> PipelineId;
+    fn opaque(&self) -> OpaqueNode;
 }
 
 impl LayoutNodeHelpers for LayoutJS<Node> {
@@ -1100,6 +1102,13 @@ impl LayoutNodeHelpers for LayoutJS<Node> {
         let iframe_element = self.downcast::<HTMLIFrameElement>()
             .expect("not an iframe element!");
         iframe_element.pipeline_id().unwrap()
+    }
+
+    #[allow(unsafe_code)]
+    fn opaque(&self) -> OpaqueNode {
+        unsafe {
+            OpaqueNode(self.get_jsobject() as usize)
+        }
     }
 }
 
