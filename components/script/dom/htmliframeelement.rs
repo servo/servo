@@ -11,12 +11,13 @@ use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserElementLocat
 use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserElementOpenTabEventDetail;
 use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserElementOpenWindowEventDetail;
 use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserElementSecurityChangeDetail;
+use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserElementVisibilityChangeEventDetail;
 use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserShowModalPromptEventDetail;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::ToJSValConvertible;
-use dom::bindings::error::{Error, ErrorResult};
+use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root, LayoutJS};
@@ -68,6 +69,7 @@ pub struct HTMLIFrameElement {
     sandbox: MutNullableHeap<JS<DOMTokenList>>,
     sandbox_allowance: Cell<Option<u8>>,
     load_blocker: DOMRefCell<Option<LoadBlocker>>,
+    visibility: Cell<bool>,
 }
 
 impl HTMLIFrameElement {
@@ -199,6 +201,7 @@ impl HTMLIFrameElement {
             sandbox: Default::default(),
             sandbox_allowance: Cell::new(None),
             load_blocker: DOMRefCell::new(None),
+            visibility: Cell::new(true),
         }
     }
 
@@ -222,6 +225,26 @@ impl HTMLIFrameElement {
 
     pub fn pipeline(&self) -> Option<PipelineId> {
         self.pipeline_id.get()
+    }
+
+    pub fn change_visibility_status(&self, visibility: bool) {
+        if self.visibility.get() != visibility {
+            self.visibility.set(visibility);
+
+            // Visibility changes are only exposed to Mozbrowser iframes
+            if self.Mozbrowser() {
+                self.dispatch_mozbrowser_event(MozBrowserEvent::VisibilityChange(visibility));
+            }
+        }
+    }
+
+    pub fn set_visible(&self, visible: bool) {
+        if let Some(pipeline_id) = self.pipeline_id.get() {
+            let window = window_from_node(self);
+            let window = window.r();
+            let msg = ConstellationMsg::SetVisible(pipeline_id, visible);
+            window.constellation_chan().send(msg).unwrap();
+        }
     }
 
     /// https://html.spec.whatwg.org/multipage/#iframe-load-event-steps steps 1-4
@@ -390,6 +413,11 @@ impl MozBrowserEventDetailBuilder for HTMLIFrameElement {
                     returnValue: Some(DOMString::from(return_value)),
                 }.to_jsval(cx, rval)
             }
+            MozBrowserEvent::VisibilityChange(visibility) => {
+                BrowserElementVisibilityChangeEventDetail {
+                    visible: Some(visibility),
+                }.to_jsval(cx, rval);
+            }
         }
     }
 }
@@ -495,6 +523,30 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
             Err(Error::NotSupported)
         }
     }
+
+    // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/setVisible
+    fn SetVisible(&self, visible: bool) -> ErrorResult {
+        if self.Mozbrowser() {
+            self.set_visible(visible);
+            Ok(())
+        } else {
+            debug!("this frame is not mozbrowser: mozbrowser attribute missing, or not a top
+                level window, or mozbrowser preference not set (use --pref dom.mozbrowser.enabled)");
+            Err(Error::NotSupported)
+        }
+    }
+
+    // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/getVisible
+    fn GetVisible(&self) -> Fallible<bool> {
+        if self.Mozbrowser() {
+            Ok(self.visibility.get())
+        } else {
+            debug!("this frame is not mozbrowser: mozbrowser attribute missing, or not a top
+                level window, or mozbrowser preference not set (use --pref dom.mozbrowser.enabled)");
+            Err(Error::NotSupported)
+        }
+    }
+
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/stop
     fn Stop(&self) -> ErrorResult {

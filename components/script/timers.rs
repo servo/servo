@@ -22,6 +22,7 @@ use std::cmp::{self, Ord, Ordering};
 use std::collections::HashMap;
 use std::default::Default;
 use std::rc::Rc;
+use util::prefs::get_pref;
 
 #[derive(JSTraceable, PartialEq, Eq, Copy, Clone, HeapSizeOf, Hash, PartialOrd, Ord, Debug)]
 pub struct OneshotTimerHandle(i32);
@@ -212,6 +213,15 @@ impl OneshotTimers {
         }
     }
 
+    pub fn slow_down(&self) {
+        let duration = get_pref("js.timers.minimum_duration").as_u64().unwrap_or(1000);
+        self.js_timers.set_min_duration(MsDuration::new(duration));
+    }
+
+    pub fn speed_up(&self) {
+        self.js_timers.remove_min_duration();
+    }
+
     pub fn suspend(&self) {
         assert!(self.suspended_since.get().is_none());
 
@@ -290,6 +300,8 @@ pub struct JsTimers {
     active_timers: DOMRefCell<HashMap<JsTimerHandle, JsTimerEntry>>,
     /// The nesting level of the currently executing timer task or 0.
     nesting_level: Cell<u32>,
+    /// Used to introduce a minimum delay in event intervals
+    min_duration: Cell<Option<MsDuration>>,
 }
 
 #[derive(JSTraceable, HeapSizeOf)]
@@ -344,6 +356,7 @@ impl JsTimers {
             next_timer_handle: Cell::new(JsTimerHandle(1)),
             active_timers: DOMRefCell::new(HashMap::new()),
             nesting_level: Cell::new(0),
+            min_duration: Cell::new(None),
         }
     }
 
@@ -407,6 +420,24 @@ impl JsTimers {
         }
     }
 
+    pub fn set_min_duration(&self, duration: MsDuration) {
+        self.min_duration.set(Some(duration));
+    }
+
+    pub fn remove_min_duration(&self) {
+        self.min_duration.set(None);
+    }
+
+    // see step 13 of https://html.spec.whatwg.org/multipage/#timer-initialisation-steps
+    fn user_agent_pad(&self, current_duration: MsDuration) -> MsDuration {
+        match self.min_duration.get() {
+            Some(min_duration) => {
+                cmp::max(min_duration, current_duration)
+            },
+            None => current_duration
+        }
+    }
+
     // see https://html.spec.whatwg.org/multipage/#timer-initialisation-steps
     fn initialize_and_schedule(&self, global: GlobalRef, mut task: JsTimerTask) {
         let handle = task.handle;
@@ -415,13 +446,12 @@ impl JsTimers {
         // step 6
         let nesting_level = self.nesting_level.get();
 
-        // step 7
-        let duration = clamp_duration(nesting_level, task.duration);
-
+        // step 7, 13
+        let duration = self.user_agent_pad(clamp_duration(nesting_level, task.duration));
         // step 8, 9
         task.nesting_level = nesting_level + 1;
 
-        // essentially step 11-14
+        // essentially step 11, 12, and 14
         let callback = OneshotTimerCallback::JsTimer(task);
         let oneshot_handle = global.schedule_callback(callback, duration);
 

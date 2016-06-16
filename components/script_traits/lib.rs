@@ -163,6 +163,10 @@ pub enum ConstellationControlMsg {
     Freeze(PipelineId),
     /// Notifies script thread to resume all its timers
     Thaw(PipelineId),
+    /// Notifies script thread whether frame is visible
+    ChangeFrameVisibilityStatus(PipelineId, bool),
+    /// Notifies script thread that frame visibility change is complete
+    NotifyVisibilityChange(PipelineId, PipelineId, bool),
     /// Notifies script thread that a url should be loaded in this iframe.
     Navigate(PipelineId, SubpageId, LoadData),
     /// Requests the script thread forward a mozbrowser event to an iframe it owns
@@ -451,6 +455,8 @@ pub enum MozBrowserEvent {
     UsernameAndPasswordRequired,
     /// Sent when a link to a search engine is found.
     OpenSearch,
+    /// Sent when visibility state changes.
+    VisibilityChange(bool),
 }
 
 impl MozBrowserEvent {
@@ -472,7 +478,8 @@ impl MozBrowserEvent {
             MozBrowserEvent::ShowModalPrompt(_, _, _, _) => "mozbrowsershowmodalprompt",
             MozBrowserEvent::TitleChange(_) => "mozbrowsertitlechange",
             MozBrowserEvent::UsernameAndPasswordRequired => "mozbrowserusernameandpasswordrequired",
-            MozBrowserEvent::OpenSearch => "mozbrowseropensearch"
+            MozBrowserEvent::OpenSearch => "mozbrowseropensearch",
+            MozBrowserEvent::VisibilityChange(_) => "mozbrowservisibilitychange",
         }
     }
 }

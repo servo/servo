@@ -1509,6 +1509,14 @@ impl Window {
         self.timers.suspend();
     }
 
+    pub fn slow_down_timers(&self) {
+        self.timers.slow_down();
+    }
+
+    pub fn speed_up_timers(&self) {
+        self.timers.speed_up();
+    }
+
     pub fn need_emit_timeline_marker(&self, timeline_type: TimelineMarkerType) -> bool {
         let markers = self.devtools_markers.borrow();
         markers.contains(&timeline_type)

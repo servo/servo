@@ -65,6 +65,9 @@ pub struct Pipeline {
     pub running_animations: bool,
     pub children: Vec<FrameId>,
     pub is_private: bool,
+    /// Whether this pipeline should be treated as visible for the purposes of scheduling and
+    /// resource management.
+    pub visible: bool,
 }
 
 /// Initial setup data needed to construct a pipeline.
@@ -112,6 +115,8 @@ pub struct InitialPipelineState {
     pub load_data: LoadData,
     /// The ID of the pipeline namespace for this script thread.
     pub pipeline_namespace_id: PipelineNamespaceId,
+    /// Pipeline visibility is inherited from parent
+    pub parent_visibility: Option<bool>,
     /// Optional webrender api (if enabled).
     pub webrender_api_sender: Option<webrender_traits::RenderApiSender>,
 }
@@ -250,7 +255,10 @@ impl Pipeline {
                                      state.compositor_proxy,
                                      chrome_to_paint_chan,
                                      state.load_data.url,
-                                     state.window_size);
+                                     state.window_size,
+                                     state.parent_visibility.unwrap_or(true));
+
+        pipeline.notify_visibility();
 
         Ok((pipeline, child_process))
     }
@@ -262,7 +270,8 @@ impl Pipeline {
            compositor_proxy: Box<CompositorProxy + 'static + Send>,
            chrome_to_paint_chan: Sender<ChromeToPaintMsg>,
            url: Url,
-           size: Option<TypedSize2D<PagePx, f32>>)
+           size: Option<TypedSize2D<PagePx, f32>>,
+           visible: bool)
            -> Pipeline {
         Pipeline {
             id: id,
@@ -277,6 +286,7 @@ impl Pipeline {
             size: size,
             running_animations: false,
             is_private: false,
+            visible: visible,
         }
     }
 
@@ -367,6 +377,22 @@ impl Pipeline {
             warn!("Sending mozbrowser event to script failed ({}).", e);
         }
     }
+
+    fn notify_visibility(&self) {
+        self.script_chan.send(ConstellationControlMsg::ChangeFrameVisibilityStatus(self.id, self.visible))
+                        .expect("Pipeline script chan");
+
+        self.compositor_proxy.send(CompositorMsg::PipelineVisibilityChanged(self.id, self.visible));
+    }
+
+    pub fn change_visibility(&mut self, visible: bool) {
+        if visible == self.visible {
+            return;
+        }
+        self.visible = visible;
+        self.notify_visibility();
+    }
+
 }
 
 #[derive(Deserialize, Serialize)]

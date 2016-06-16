@@ -140,6 +140,8 @@ struct InProgressLoad {
     clip_rect: Option<Rect<f32>>,
     /// Window is frozen (navigated away while loading for example).
     is_frozen: bool,
+    /// Window is visible.
+    is_visible: bool,
     /// The requested URL of the load.
     url: Url,
 }
@@ -158,6 +160,7 @@ impl InProgressLoad {
             window_size: window_size,
             clip_rect: None,
             is_frozen: false,
+            is_visible: true,
             url: url,
         }
     }
@@ -919,6 +922,10 @@ impl ScriptThread {
                 self.handle_freeze_msg(pipeline_id),
             ConstellationControlMsg::Thaw(pipeline_id) =>
                 self.handle_thaw_msg(pipeline_id),
+            ConstellationControlMsg::ChangeFrameVisibilityStatus(pipeline_id, visible) =>
+                self.handle_visibility_change_msg(pipeline_id, visible),
+            ConstellationControlMsg::NotifyVisibilityChange(containing_id, pipeline_id, visible) =>
+                self.handle_visibility_change_complete_msg(containing_id, pipeline_id, visible),
             ConstellationControlMsg::MozBrowserEvent(parent_pipeline_id,
                                                      subpage_id,
                                                      event) =>
@@ -1230,6 +1237,55 @@ impl ScriptThread {
         let path_seg = format!("url({})", urls.join(", "));
         reports.extend(get_reports(self.get_cx(), path_seg));
         reports_chan.send(reports);
+    }
+
+    /// To slow/speed up timers and manage any other script thread resource based on visibility.
+    /// Returns true if successful.
+    fn alter_resource_utilization(&self, id: PipelineId, visible: bool) -> bool {
+        if let Some(root_context) = self.browsing_context.get() {
+            if let Some(ref inner_context) = root_context.find(id) {
+                let window = inner_context.active_window();
+                if visible {
+                    window.speed_up_timers();
+                } else {
+                    window.slow_down_timers();
+                }
+                return true;
+            }
+        }
+        false
+    }
+
+    /// Updates iframe element after a change in visibility
+    fn handle_visibility_change_complete_msg(&self, containing_id: PipelineId, id: PipelineId, visible: bool) {
+        if let Some(root_context) = self.browsing_context.get() {
+            if let Some(ref inner_context) = root_context.find(containing_id) {
+                if let Some(iframe) = inner_context.active_document().find_iframe_by_pipeline(id) {
+                    iframe.change_visibility_status(visible);
+                }
+            }
+        }
+    }
+
+    /// Handle visibility change message
+    fn handle_visibility_change_msg(&self, id: PipelineId, visible: bool) {
+        let resources_altered = self.alter_resource_utilization(id, visible);
+
+        // Separate message sent since parent script thread could be different (Iframe of different
+        // domain)
+        self.constellation_chan.send(ConstellationMsg::VisibilityChangeComplete(id, visible)).unwrap();
+
+        if !resources_altered {
+            let mut loads = self.incomplete_loads.borrow_mut();
+            if let Some(ref mut load) = loads.iter_mut().find(|load| load.pipeline_id == id) {
+                load.is_visible = visible;
+                return;
+            }
+        } else {
+            return;
+        }
+
+        warn!("change visibility message sent to nonexistent pipeline");
     }
 
     /// Handles freeze message
@@ -1705,6 +1761,10 @@ impl ScriptThread {
 
         if incomplete.is_frozen {
             window.freeze();
+        }
+
+        if !incomplete.is_visible {
+            self.alter_resource_utilization(browsing_context.pipeline(), false);
         }
 
         context_remover.neuter();

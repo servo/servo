@@ -6550,6 +6550,12 @@
             "url": "/_mozilla/mozilla/mozbrowser/iframe_reload_twice.html"
           }
         ],
+        "mozilla/mozbrowser/iframe_visibility.html": [
+          {
+            "path": "mozilla/mozbrowser/iframe_visibility.html",
+            "url": "/_mozilla/mozilla/mozbrowser/iframe_visibility.html"
+          }
+        ],
         "mozilla/mozbrowser/mozbrowser_click_fires_openwindow.html": [
           {
             "path": "mozilla/mozbrowser/mozbrowser_click_fires_openwindow.html",

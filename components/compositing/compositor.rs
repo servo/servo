@@ -290,6 +290,9 @@ struct PipelineDetails {
 
     /// Whether there are animation callbacks
     animation_callbacks_running: bool,
+
+    /// Whether this pipeline is visible
+    visible: bool,
 }
 
 impl PipelineDetails {
@@ -299,6 +302,7 @@ impl PipelineDetails {
             current_epoch: Epoch(0),
             animations_running: false,
             animation_callbacks_running: false,
+            visible: true,
         }
     }
 }
@@ -760,6 +764,13 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 reports_chan.send(reports);
             }
 
+            (Msg::PipelineVisibilityChanged(pipeline_id, visible), ShutdownState::NotShuttingDown) => {
+                self.pipeline_details(pipeline_id).visible = visible;
+                if visible {
+                    self.process_animations();
+                }
+            }
+
             (Msg::PipelineExited(pipeline_id, sender), _) => {
                 debug!("Compositor got pipeline exited: {:?}", pipeline_id);
                 self.pending_subpages.remove(&pipeline_id);
@@ -795,13 +806,16 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                                        animation_state: AnimationState) {
         match animation_state {
             AnimationState::AnimationsPresent => {
+                let visible = self.pipeline_details(pipeline_id).visible;
                 self.pipeline_details(pipeline_id).animations_running = true;
-                self.composite_if_necessary(CompositingReason::Animation);
+                if visible {
+                    self.composite_if_necessary(CompositingReason::Animation);
+                }
             }
             AnimationState::AnimationCallbacksPresent => {
-                if !self.pipeline_details(pipeline_id).animation_callbacks_running {
-                    self.pipeline_details(pipeline_id).animation_callbacks_running =
-                        true;
+                let visible = self.pipeline_details(pipeline_id).visible;
+                self.pipeline_details(pipeline_id).animation_callbacks_running = true;
+                if visible {
                     self.tick_animations_for_pipeline(pipeline_id);
                 }
             }
@@ -1712,9 +1726,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn process_animations(&mut self) {
         let mut pipeline_ids = vec![];
         for (pipeline_id, pipeline_details) in &self.pipeline_details {
-            if pipeline_details.animations_running ||
-               pipeline_details.animation_callbacks_running {
-                pipeline_ids.push(*pipeline_id);
+            if (pipeline_details.animations_running ||
+                pipeline_details.animation_callbacks_running) &&
+               pipeline_details.visible {
+                   pipeline_ids.push(*pipeline_id);
             }
         }
         for pipeline_id in &pipeline_ids {
