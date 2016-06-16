@@ -757,7 +757,7 @@ fn static_assert() {
     <% impl_color("background_color", "mBackgroundColor") %>
 
     fn copy_background_repeat_from(&mut self, other: &Self) {
-        self.gecko.mImage.mRepeatCount = other.gecko.mImage.mRepeatCount;
+        self.gecko.mImage.mRepeatCount = cmp::min(1, other.gecko.mImage.mRepeatCount);
         self.gecko.mImage.mLayers.mFirstElement.mRepeat =
             other.gecko.mImage.mLayers.mFirstElement.mRepeat;
     }
@@ -785,7 +785,7 @@ fn static_assert() {
     }
 
     fn copy_background_clip_from(&mut self, other: &Self) {
-        self.gecko.mImage.mClipCount = other.gecko.mImage.mClipCount;
+        self.gecko.mImage.mClipCount = cmp::min(1, other.gecko.mImage.mClipCount);
         self.gecko.mImage.mLayers.mFirstElement.mClip =
             other.gecko.mImage.mLayers.mFirstElement.mClip;
     }
@@ -804,7 +804,7 @@ fn static_assert() {
     }
 
     fn copy_background_origin_from(&mut self, other: &Self) {
-        self.gecko.mImage.mOriginCount = other.gecko.mImage.mOriginCount;
+        self.gecko.mImage.mOriginCount = cmp::min(1, other.gecko.mImage.mOriginCount);
         self.gecko.mImage.mLayers.mFirstElement.mOrigin =
             other.gecko.mImage.mLayers.mFirstElement.mOrigin;
     }
@@ -821,7 +821,7 @@ fn static_assert() {
     }
 
     fn copy_background_attachment_from(&mut self, other: &Self) {
-        self.gecko.mImage.mAttachmentCount = other.gecko.mImage.mAttachmentCount;
+        self.gecko.mImage.mAttachmentCount = cmp::min(1, other.gecko.mImage.mAttachmentCount);
         self.gecko.mImage.mLayers.mFirstElement.mAttachment =
             other.gecko.mImage.mLayers.mFirstElement.mAttachment;
     }
