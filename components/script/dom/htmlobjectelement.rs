@@ -68,11 +68,6 @@ impl<'a> ProcessDataURL for &'a HTMLObjectElement {
     }
 }
 
-pub fn is_image_data(uri: &str) -> bool {
-    static TYPES: &'static [&'static str] = &["data:image/png", "data:image/gif", "data:image/jpeg"];
-    TYPES.iter().any(|&type_| uri.starts_with(type_))
-}
-
 impl HTMLObjectElementMethods for HTMLObjectElement {
     // https://html.spec.whatwg.org/multipage/#dom-cva-validity
     fn Validity(&self) -> Root<ValidityState> {
