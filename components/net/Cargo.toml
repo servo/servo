@@ -22,8 +22,8 @@ ipc-channel = {git = "https://github.com/servo/ipc-channel"}
 lazy_static = "0.2"
 log = "0.3.5"
 matches = "0.1"
-mime = "0.2.0"
-mime_guess = "1.6.0"
+mime = "0.2.1"
+mime_guess = "1.8.0"
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
 openssl = "0.7.6"

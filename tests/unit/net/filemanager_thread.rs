@@ -14,11 +14,11 @@ const TEST_PROVIDER: &'static TestProvider = &TestProvider;
 struct TestProvider;
 
 impl UIProvider for TestProvider {
-    fn open_file_dialog(&self, _: &str, _: Option<(&[&str], &str)>) -> Option<String> {
+    fn open_file_dialog(&self, _path: &str, _patterns: Vec<FilterPattern>) -> Option<String> {
         Some("test.txt".to_string())
     }
 
-    fn open_file_dialog_multi(&self, _: &str, _: Option<(&[&str], &str)>) -> Option<Vec<String>> {
+    fn open_file_dialog_multi(&self, _path: &str, _patterns: Vec<FilterPattern>) -> Option<Vec<String>> {
         Some(vec!["test.txt".to_string()])
     }
 }

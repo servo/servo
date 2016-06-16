@@ -56,6 +56,7 @@ extern crate libc;
 extern crate log;
 #[macro_use]
 extern crate mime;
+extern crate mime_guess;
 extern crate msg;
 extern crate net_traits;
 extern crate num_traits;
