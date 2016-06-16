@@ -27,8 +27,6 @@ use style::servo::Stylesheet;
 use url::Url;
 use util::ipc::OptionalOpaqueIpcSender;
 
-pub use dom::htmlobjectelement::is_image_data;
-
 /// Asynchronous messages that script can send to layout.
 pub enum Msg {
     /// Adds the given stylesheet to the document.
