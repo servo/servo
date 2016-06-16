@@ -129,6 +129,7 @@ pub mod shorthands {
     <%include file="/shorthand/margin.mako.rs" />
     <%include file="/shorthand/outline.mako.rs" />
     <%include file="/shorthand/padding.mako.rs" />
+    <%include file="/shorthand/position.mako.rs" />
     <%include file="/shorthand/text.mako.rs" />
 }
 
