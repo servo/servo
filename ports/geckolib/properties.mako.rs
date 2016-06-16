@@ -384,8 +384,6 @@ impl Debug for ${style_struct.gecko_struct_name} {
    force_stub = [];
    # These are currently being shuffled to a different style struct on the gecko side.
    force_stub += ["backface-visibility", "transform-box", "transform-style"]
-   # These live in nsStyleImageLayers in gecko. Need to figure out what to do about that.
-   force_stub += ["background-attachment", "background-clip", "background-origin"];
    # These live in an nsFont member in Gecko. Should be straightforward to do manually.
    force_stub += ["font-kerning", "font-stretch", "font-variant"]
    # These have unusual representations in gecko.
@@ -746,37 +744,96 @@ fn static_assert() {
     }
 </%self:impl_trait>
 
+// TODO: Gecko accepts lists in most background-related properties. We just use
+// the first element (which is the common case), but at some point we want to
+// add support for parsing these lists in servo and pushing to nsTArray's.
+<% skip_background_longhands = """background-color background-repeat
+                                  background-image background-clip
+                                  background-origin background-attachment""" %>
 <%self:impl_trait style_struct_name="Background"
-                  skip_longhands="background-color background-repeat background-image"
+                  skip_longhands="${skip_background_longhands}"
                   skip_additionals="*">
 
     <% impl_color("background_color", "mBackgroundColor") %>
 
     fn copy_background_repeat_from(&mut self, other: &Self) {
-        self.gecko.mImage.mRepeatCount = other.gecko.mImage.mRepeatCount;
+        self.gecko.mImage.mRepeatCount = cmp::min(1, other.gecko.mImage.mRepeatCount);
         self.gecko.mImage.mLayers.mFirstElement.mRepeat =
             other.gecko.mImage.mLayers.mFirstElement.mRepeat;
     }
 
     fn set_background_repeat(&mut self, v: longhands::background_repeat::computed_value::T) {
-        use style::properties::longhands::background_repeat::computed_value::T as Computed;
+        use style::properties::longhands::background_repeat::computed_value::T;
         use gecko_bindings::structs::{NS_STYLE_IMAGELAYER_REPEAT_REPEAT, NS_STYLE_IMAGELAYER_REPEAT_NO_REPEAT};
         use gecko_bindings::structs::nsStyleImageLayers_Repeat;
         let (repeat_x, repeat_y) = match v {
-            Computed::repeat_x => (NS_STYLE_IMAGELAYER_REPEAT_REPEAT,
-                                   NS_STYLE_IMAGELAYER_REPEAT_NO_REPEAT),
-            Computed::repeat_y => (NS_STYLE_IMAGELAYER_REPEAT_NO_REPEAT,
-                                   NS_STYLE_IMAGELAYER_REPEAT_REPEAT),
-            Computed::repeat => (NS_STYLE_IMAGELAYER_REPEAT_REPEAT,
-                                 NS_STYLE_IMAGELAYER_REPEAT_REPEAT),
-            Computed::no_repeat => (NS_STYLE_IMAGELAYER_REPEAT_NO_REPEAT,
-                                    NS_STYLE_IMAGELAYER_REPEAT_NO_REPEAT),
+            T::repeat_x => (NS_STYLE_IMAGELAYER_REPEAT_REPEAT,
+                            NS_STYLE_IMAGELAYER_REPEAT_NO_REPEAT),
+            T::repeat_y => (NS_STYLE_IMAGELAYER_REPEAT_NO_REPEAT,
+                            NS_STYLE_IMAGELAYER_REPEAT_REPEAT),
+            T::repeat => (NS_STYLE_IMAGELAYER_REPEAT_REPEAT,
+                          NS_STYLE_IMAGELAYER_REPEAT_REPEAT),
+            T::no_repeat => (NS_STYLE_IMAGELAYER_REPEAT_NO_REPEAT,
+                             NS_STYLE_IMAGELAYER_REPEAT_NO_REPEAT),
         };
 
         self.gecko.mImage.mRepeatCount = 1;
         self.gecko.mImage.mLayers.mFirstElement.mRepeat = nsStyleImageLayers_Repeat {
             mXRepeat: repeat_x as u8,
             mYRepeat: repeat_y as u8,
+        };
+    }
+
+    fn copy_background_clip_from(&mut self, other: &Self) {
+        self.gecko.mImage.mClipCount = cmp::min(1, other.gecko.mImage.mClipCount);
+        self.gecko.mImage.mLayers.mFirstElement.mClip =
+            other.gecko.mImage.mLayers.mFirstElement.mClip;
+    }
+
+    fn set_background_clip(&mut self, v: longhands::background_clip::computed_value::T) {
+        use style::properties::longhands::background_clip::computed_value::T;
+        self.gecko.mImage.mClipCount = 1;
+
+        // TODO: Gecko supports background-clip: text, but just on -webkit-
+        // prefixed properties.
+        self.gecko.mImage.mLayers.mFirstElement.mClip = match v {
+            T::border_box => structs::NS_STYLE_IMAGELAYER_CLIP_BORDER as u8,
+            T::padding_box => structs::NS_STYLE_IMAGELAYER_CLIP_PADDING as u8,
+            T::content_box => structs::NS_STYLE_IMAGELAYER_CLIP_CONTENT as u8,
+        };
+    }
+
+    fn copy_background_origin_from(&mut self, other: &Self) {
+        self.gecko.mImage.mOriginCount = cmp::min(1, other.gecko.mImage.mOriginCount);
+        self.gecko.mImage.mLayers.mFirstElement.mOrigin =
+            other.gecko.mImage.mLayers.mFirstElement.mOrigin;
+    }
+
+    fn set_background_origin(&mut self, v: longhands::background_origin::computed_value::T) {
+        use style::properties::longhands::background_origin::computed_value::T;
+
+        self.gecko.mImage.mOriginCount = 1;
+        self.gecko.mImage.mLayers.mFirstElement.mOrigin = match v {
+            T::border_box => structs::NS_STYLE_IMAGELAYER_ORIGIN_BORDER as u8,
+            T::padding_box => structs::NS_STYLE_IMAGELAYER_ORIGIN_PADDING as u8,
+            T::content_box => structs::NS_STYLE_IMAGELAYER_ORIGIN_CONTENT as u8,
+        };
+    }
+
+    fn copy_background_attachment_from(&mut self, other: &Self) {
+        self.gecko.mImage.mAttachmentCount = cmp::min(1, other.gecko.mImage.mAttachmentCount);
+        self.gecko.mImage.mLayers.mFirstElement.mAttachment =
+            other.gecko.mImage.mLayers.mFirstElement.mAttachment;
+    }
+
+    fn set_background_attachment(&mut self, v: longhands::background_attachment::computed_value::T) {
+        use style::properties::longhands::background_attachment::computed_value::T;
+
+        self.gecko.mImage.mAttachmentCount = 1;
+        self.gecko.mImage.mLayers.mFirstElement.mAttachment = match v {
+            T::scroll => structs::NS_STYLE_IMAGELAYER_ATTACHMENT_SCROLL as u8,
+            T::fixed => structs::NS_STYLE_IMAGELAYER_ATTACHMENT_FIXED as u8,
+            T::local => structs::NS_STYLE_IMAGELAYER_ATTACHMENT_LOCAL as u8,
         };
     }
 
