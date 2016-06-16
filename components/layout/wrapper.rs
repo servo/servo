@@ -38,8 +38,6 @@ use std::cell::{Ref, RefCell, RefMut};
 use style::computed_values::content::{self, ContentItem};
 use style::properties::ComputedValues;
 
-pub use script::layout_wrapper::*;
-
 pub type NonOpaqueStyleAndLayoutData = *mut RefCell<PrivateLayoutData>;
 
 pub trait LayoutNodeLayoutData {
