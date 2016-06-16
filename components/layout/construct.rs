@@ -726,7 +726,6 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
             return
         }
 
-        let selection = node.selection();
         let mut style = (*style).clone();
         properties::modify_style_for_text(&mut style);
 
@@ -734,7 +733,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
 
         match text_content {
             TextContent::Text(string) => {
-                let info = box UnscannedTextFragmentInfo::new(string, selection);
+                let info = box UnscannedTextFragmentInfo::new(string, node.selection());
                 let specific_fragment_info = SpecificFragmentInfo::UnscannedText(info);
                 fragments.fragments.push_back(Fragment::from_opaque_node_and_style(
                         node.opaque(),
