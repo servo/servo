@@ -7,6 +7,7 @@
 //! to depend on script.
 
 #![deny(unsafe_code)]
+#![feature(box_syntax)]
 #![feature(custom_attribute)]
 #![feature(custom_derive)]
 #![feature(nonzero)]
@@ -20,11 +21,14 @@ extern crate app_units;
 extern crate bitflags;
 extern crate canvas_traits;
 extern crate core;
+extern crate cssparser;
 extern crate euclid;
 extern crate gfx_traits;
 extern crate heapsize;
 extern crate ipc_channel;
 extern crate libc;
+#[macro_use]
+extern crate log;
 extern crate msg;
 extern crate net_traits;
 extern crate profile_traits;
@@ -38,6 +42,7 @@ extern crate url;
 extern crate util;
 
 pub mod message;
+pub mod reporter;
 pub mod restyle_damage;
 pub mod rpc;
 pub mod wrapper_traits;
