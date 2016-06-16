@@ -5,6 +5,7 @@
 use dom::PresentationalHintsSynthetizer;
 use element_state::*;
 use error_reporting::StdoutErrorReporter;
+use keyframes::Keyframe;
 use media_queries::{Device, MediaType};
 use parser::ParserContextExtraData;
 use properties::{self, PropertyDeclaration, PropertyDeclarationBlock};
@@ -21,7 +22,7 @@ use std::hash::BuildHasherDefault;
 use std::process;
 use std::sync::Arc;
 use style_traits::viewport::ViewportConstraints;
-use stylesheets::{CSSRuleIteratorExt, Origin, Stylesheet};
+use stylesheets::{CSSRule, CSSRuleIteratorExt, Origin, Stylesheet};
 use url::Url;
 use util::opts;
 use util::resource_files::read_resource_file;
@@ -124,6 +125,11 @@ pub struct Stylist<Impl: SelectorImplExt> {
                          PerPseudoElementSelectorMap<Impl>,
                          BuildHasherDefault<::fnv::FnvHasher>>,
 
+    /// A map with all the animations indexed by name.
+    animations: HashMap<String,
+                        Vec<Keyframe>,
+                        BuildHasherDefault<::fnv::FnvHasher>>,
+
     /// Applicable declarations for a given non-eagerly cascaded pseudo-element.
     /// These are eagerly computed once, and then used to resolve the new
     /// computed values on the fly on layout.
@@ -148,6 +154,7 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
 
             element_map: PerPseudoElementSelectorMap::new(),
             pseudos_map: HashMap::with_hasher(Default::default()),
+            animations: HashMap::with_hasher(Default::default()),
             precomputed_pseudo_element_decls: HashMap::with_hasher(Default::default()),
             rules_source_order: 0,
             state_deps: DependencySet::new(),
@@ -171,6 +178,7 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
 
         self.element_map = PerPseudoElementSelectorMap::new();
         self.pseudos_map = HashMap::with_hasher(Default::default());
+        self.animations = HashMap::with_hasher(Default::default());
         Impl::each_eagerly_cascaded_pseudo_element(|pseudo| {
             self.pseudos_map.insert(pseudo, PerPseudoElementSelectorMap::new());
         });
@@ -231,16 +239,28 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
             };
         );
 
-        for style_rule in stylesheet.effective_rules(&self.device).style() {
-            append!(style_rule, normal);
-            append!(style_rule, important);
-            rules_source_order += 1;
-            for selector in &style_rule.selectors {
-                self.state_deps.note_selector(selector.compound_selectors.clone());
+        for rule in stylesheet.effective_rules(&self.device) {
+            match *rule {
+                CSSRule::Style(ref style_rule) => {
+                    append!(style_rule, normal);
+                    append!(style_rule, important);
+                    rules_source_order += 1;
+                    for selector in &style_rule.selectors {
+                        self.state_deps.note_selector(selector.compound_selectors.clone());
+                    }
+
+                    self.rules_source_order = rules_source_order;
+                }
+                CSSRule::Keyframes(ref keyframes_rule) => {
+                    // TODO: This *might* be optimised converting the
+                    // Vec<Keyframe> into something like Arc<[Keyframe]>.
+                    self.animations.insert(keyframes_rule.name.clone(),
+                                           keyframes_rule.keyframes.clone());
+                }
+                // We don't care about any other rule.
+                _ => {}
             }
         }
-
-        self.rules_source_order = rules_source_order;
 
         Impl::each_precomputed_pseudo_element(|pseudo| {
             // TODO: Consider not doing this and just getting the rules on the
