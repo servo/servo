@@ -2,10 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-//! The high-level interface from script to layout. Using this abstract
-//! interface helps reduce coupling between these two components, and enables
-//! the DOM to be placed in a separate crate from layout.
-
 use app_units::Au;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
@@ -14,8 +10,7 @@ use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use msg::constellation_msg::{PanicMsg, PipelineId, WindowSizeData};
 use net_traits::image_cache_thread::ImageCacheThread;
 use profile_traits::mem::ReportsChan;
-use script_layout_interface::rpc::LayoutRPC;
-use script_layout_interface::{OpaqueStyleAndLayoutData, TrustedNodeAddress};
+use rpc::LayoutRPC;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg};
 use script_traits::{LayoutMsg as ConstellationMsg, StackingContextScrollState};
 use std::sync::Arc;
@@ -26,6 +21,7 @@ use style::selector_impl::PseudoElement;
 use style::servo::Stylesheet;
 use url::Url;
 use util::ipc::OptionalOpaqueIpcSender;
+use {OpaqueStyleAndLayoutData, TrustedNodeAddress};
 
 /// Asynchronous messages that script can send to layout.
 pub enum Msg {
