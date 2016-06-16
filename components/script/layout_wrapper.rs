@@ -30,13 +30,16 @@
 
 #![allow(unsafe_code)]
 
+use dom::bindings::inheritance::{CharacterDataTypeId, ElementTypeId};
+use dom::bindings::inheritance::{HTMLElementTypeId, NodeTypeId};
+use dom::bindings::js::LayoutJS;
+use dom::characterdata::LayoutCharacterDataHelpers;
+use dom::document::{Document, LayoutDocumentHelpers};
+use dom::element::{Element, LayoutElementHelpers, RawLayoutElementHelpers};
+use dom::node::{CAN_BE_FRAGMENTED, HAS_CHANGED, HAS_DIRTY_DESCENDANTS, IS_DIRTY};
+use dom::node::{Node, LayoutNodeHelpers};
+use dom::text::Text;
 use gfx_traits::ByteIndex;
-use layout_interface::{CAN_BE_FRAGMENTED, HAS_CHANGED, HAS_DIRTY_DESCENDANTS, IS_DIRTY};
-use layout_interface::{CharacterDataTypeId, Document, Element, ElementTypeId};
-use layout_interface::{HTMLElementTypeId, LayoutCharacterDataHelpers};
-use layout_interface::{LayoutDocumentHelpers, LayoutElementHelpers, LayoutJS};
-use layout_interface::{LayoutNodeHelpers, Node, NodeTypeId};
-use layout_interface::{RawLayoutElementHelpers, Text};
 use msg::constellation_msg::PipelineId;
 use range::Range;
 use script_layout_interface::restyle_damage::RestyleDamage;
