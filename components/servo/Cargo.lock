@@ -62,10 +62,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "angle"
 version = "0.1.0"
-source = "git+https://github.com/emilio/angle?branch=servo#eefe3506ae13e8ace811ca544fd6b4a5f0db0a04"
+source = "git+https://github.com/vvuk/angle.git?branch=msvcize#1f19adcbc288bfe0ad66e90178991dc672f26cbe"
 dependencies = [
+ "cmake 0.1.17 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
+
+[[package]]
+name = "angle"
+version = "0.1.0"
+source = "git+https://github.com/emilio/angle?branch=servo#eefe3506ae13e8ace811ca544fd6b4a5f0db0a04"
+replace = "angle 0.1.0 (git+https://github.com/vvuk/angle.git?branch=msvcize)"
 
 [[package]]
 name = "app_units"
@@ -98,7 +105,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "azure"
 version = "0.4.5"
 source = "git+https://github.com/servo/rust-azure#a7177c8df81554352bc51de2f5b77cbb47ec2635"
+replace = "azure 0.4.5 (git+https://github.com/vvuk/rust-azure.git?branch=msvcize)"
+
+[[package]]
+name = "azure"
+version = "0.4.5"
+source = "git+https://github.com/vvuk/rust-azure.git?branch=msvcize#395ad3aa0caa99d1349f0cfa01fc0cf68d9738d5"
 dependencies = [
+ "cmake 0.1.17 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-foundation 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-graphics 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-text 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -662,11 +676,17 @@ dependencies = [
 [[package]]
 name = "expat-sys"
 version = "2.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+source = "git+https://github.com/metajack/libexpat.git?branch=msvcize#67cbabc1a50a57d6d032c90f3290de27fe9612ba"
 dependencies = [
- "make-cmd 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cmake 0.1.17 (registry+https://github.com/rust-lang/crates.io-index)",
  "pkg-config 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
+
+[[package]]
+name = "expat-sys"
+version = "2.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+replace = "expat-sys 2.1.2 (git+https://github.com/metajack/libexpat.git?branch=msvcize)"
 
 [[package]]
 name = "flate2"
@@ -879,9 +899,25 @@ dependencies = [
 [[package]]
 name = "harfbuzz-sys"
 version = "0.1.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+source = "git+https://github.com/vvuk/rust-harfbuzz.git?branch=msvcize#fd63e62e449dc521625caaaac3d6a653bf7fe87b"
 dependencies = [
+ "cmake 0.1.17 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
+ "pkg-config 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "harfbuzz-sys"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+replace = "harfbuzz-sys 0.1.4 (git+https://github.com/vvuk/rust-harfbuzz.git?branch=msvcize)"
+
+[[package]]
+name = "hbs-builder"
+version = "0.2.1"
+source = "git+https://github.com/vvuk/heartbeats-simple-sys.git?branch=msvcize#ace32f677030833ec7ca0bf741d83ecc0e1ba969"
+dependencies = [
+ "cmake 0.1.17 (registry+https://github.com/rust-lang/crates.io-index)",
  "pkg-config 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -889,18 +925,21 @@ dependencies = [
 name = "hbs-builder"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+replace = "hbs-builder 0.2.1 (git+https://github.com/vvuk/heartbeats-simple-sys.git?branch=msvcize)"
+
+[[package]]
+name = "hbs-common-sys"
+version = "0.2.1"
+source = "git+https://github.com/vvuk/heartbeats-simple-sys.git?branch=msvcize#ace32f677030833ec7ca0bf741d83ecc0e1ba969"
 dependencies = [
- "cmake 0.1.17 (registry+https://github.com/rust-lang/crates.io-index)",
- "pkg-config 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "hbs-common-sys"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "libc 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
-]
+replace = "hbs-common-sys 0.2.1 (git+https://github.com/vvuk/heartbeats-simple-sys.git?branch=msvcize)"
 
 [[package]]
 name = "hbs-pow"
@@ -914,12 +953,18 @@ dependencies = [
 [[package]]
 name = "hbs-pow-sys"
 version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+source = "git+https://github.com/vvuk/heartbeats-simple-sys.git?branch=msvcize#ace32f677030833ec7ca0bf741d83ecc0e1ba969"
 dependencies = [
  "hbs-builder 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "hbs-common-sys 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
+
+[[package]]
+name = "hbs-pow-sys"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+replace = "hbs-pow-sys 0.2.1 (git+https://github.com/vvuk/heartbeats-simple-sys.git?branch=msvcize)"
 
 [[package]]
 name = "heapsize"
@@ -1071,6 +1116,12 @@ dependencies = [
 name = "js"
 version = "0.1.3"
 source = "git+https://github.com/servo/rust-mozjs#3352139c1dedbdff5fe1078152f46522cd04b2f3"
+replace = "js 0.1.3 (git+https://github.com/vvuk/rust-mozjs.git?branch=rust-msvc)"
+
+[[package]]
+name = "js"
+version = "0.1.3"
+source = "git+https://github.com/vvuk/rust-mozjs.git?branch=rust-msvc#33cce18b801781ee4c58e48b71a5bd1fa257f6c7"
 dependencies = [
  "heapsize 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1259,11 +1310,6 @@ version = "0.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
-name = "make-cmd"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-
-[[package]]
 name = "malloc_buf"
 version = "0.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1328,6 +1374,12 @@ dependencies = [
 name = "mozjs_sys"
 version = "0.0.0"
 source = "git+https://github.com/servo/mozjs#2af5849a97a9f18acd482940ba3fa0c6797ed7eb"
+replace = "mozjs_sys 0.0.0 (git+https://github.com/vvuk/mozjs.git?branch=rust-msvc)"
+
+[[package]]
+name = "mozjs_sys"
+version = "0.0.0"
+source = "git+https://github.com/vvuk/mozjs.git?branch=rust-msvc#529ec99f2d2ecf1ddb2bf03f1a463136a2bbd652"
 dependencies = [
  "libc 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "libz-sys 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2015,7 +2067,7 @@ dependencies = [
 [[package]]
 name = "servo-fontconfig-sys"
 version = "2.11.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+source = "git+https://github.com/vvuk/libfontconfig.git?branch=msvcize#24dd66b77a16dcdd4ea142f6f94735bd8caf3414"
 dependencies = [
  "expat-sys 2.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "pkg-config 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2023,12 +2075,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "servo-fontconfig-sys"
+version = "2.11.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+replace = "servo-fontconfig-sys 2.11.3 (git+https://github.com/vvuk/libfontconfig.git?branch=msvcize)"
+
+[[package]]
+name = "servo-freetype-sys"
+version = "2.4.11"
+source = "git+https://github.com/vvuk/libfreetype2.git?branch=msvcize#ec0f12d5609860aa007a1f94d575824f367d580c"
+dependencies = [
+ "cmake 0.1.17 (registry+https://github.com/rust-lang/crates.io-index)",
+ "pkg-config 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "servo-freetype-sys"
 version = "2.4.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "pkg-config 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
-]
+replace = "servo-freetype-sys 2.4.11 (git+https://github.com/vvuk/libfreetype2.git?branch=msvcize)"
 
 [[package]]
 name = "servo-glutin"
@@ -2062,9 +2127,10 @@ dependencies = [
 [[package]]
 name = "servo-skia"
 version = "0.20130412.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+source = "git+https://github.com/vvuk/skia.git?branch=msvcize#dfe9d8d77aab00ce46eb2e7fcf823ed35bd19478"
 dependencies = [
  "cgl 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cmake 0.1.17 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "expat-sys 2.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "gleam 0.2.18 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2077,6 +2143,12 @@ dependencies = [
  "servo-glutin 0.4.22 (registry+https://github.com/rust-lang/crates.io-index)",
  "x11 2.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
+
+[[package]]
+name = "servo-skia"
+version = "0.20130412.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+replace = "servo-skia 0.20130412.9 (git+https://github.com/vvuk/skia.git?branch=msvcize)"
 
 [[package]]
 name = "shared_library"
