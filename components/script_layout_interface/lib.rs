@@ -26,6 +26,8 @@ extern crate heapsize;
 extern crate ipc_channel;
 extern crate libc;
 extern crate msg;
+extern crate net_traits;
+extern crate profile_traits;
 extern crate range;
 extern crate script_traits;
 extern crate selectors;
@@ -33,7 +35,9 @@ extern crate selectors;
 extern crate string_cache;
 extern crate style;
 extern crate url;
+extern crate util;
 
+pub mod message;
 pub mod restyle_damage;
 pub mod rpc;
 pub mod wrapper_traits;

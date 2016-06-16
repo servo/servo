@@ -39,6 +39,7 @@ pub extern crate profile;
 pub extern crate profile_traits;
 pub extern crate script;
 pub extern crate script_traits;
+pub extern crate script_layout_interface;
 pub extern crate style;
 pub extern crate url;
 pub extern crate util;
@@ -229,7 +230,7 @@ fn create_constellation(opts: opts::Opts,
         webrender_api_sender: webrender_api_sender,
     };
     let constellation_chan =
-        Constellation::<script::layout_interface::Msg,
+        Constellation::<script_layout_interface::message::Msg,
                         layout::layout_thread::LayoutThread,
                         script::script_thread::ScriptThread>::start(initial_state);
 
@@ -263,7 +264,7 @@ pub fn run_content_process(token: String) {
 
     script::init();
 
-    unprivileged_content.start_all::<script::layout_interface::Msg,
+    unprivileged_content.start_all::<script_layout_interface::message::Msg,
                                      layout::layout_thread::LayoutThread,
                                      script::script_thread::ScriptThread>(true);
 }

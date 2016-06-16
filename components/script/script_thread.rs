@@ -61,7 +61,6 @@ use js::jsapi::{JSAutoCompartment, JSContext, JS_SetWrapObjectCallbacks};
 use js::jsapi::{JSTracer, SetWindowProxyClass};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
-use layout_interface::{self, NewLayoutThreadInfo, ReflowQueryType};
 use mem::heap_size_of_self_and_children;
 use msg::constellation_msg::{FrameType, LoadData, PanicMsg, PipelineId, PipelineNamespace};
 use msg::constellation_msg::{SubpageId, WindowSizeData, WindowSizeType};
@@ -77,6 +76,7 @@ use parse::html::{ParseContext, parse_html};
 use parse::xml::{self, parse_xml};
 use profile_traits::mem::{self, OpaqueSender, Report, ReportKind, ReportsChan};
 use profile_traits::time::{self, ProfilerCategory, profile};
+use script_layout_interface::message::{self, NewLayoutThreadInfo, ReflowQueryType};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
 use script_runtime::{ScriptPort, StackRootTLS, new_rt_and_cx, get_reports};
 use script_traits::CompositorEvent::{KeyEvent, MouseButtonEvent, MouseMoveEvent, ResizeEvent};
@@ -135,7 +135,7 @@ struct InProgressLoad {
     /// The current window size associated with this pipeline.
     window_size: Option<WindowSizeData>,
     /// Channel to the layout thread associated with this pipeline.
-    layout_chan: Sender<layout_interface::Msg>,
+    layout_chan: Sender<message::Msg>,
     /// The current viewport clipping rectangle applying to this pipeline, if any.
     clip_rect: Option<Rect<f32>>,
     /// Window is frozen (navigated away while loading for example).
@@ -150,7 +150,7 @@ impl InProgressLoad {
     /// Create a new InProgressLoad object.
     fn new(id: PipelineId,
            parent_info: Option<(PipelineId, SubpageId, FrameType)>,
-           layout_chan: Sender<layout_interface::Msg>,
+           layout_chan: Sender<message::Msg>,
            window_size: Option<WindowSizeData>,
            url: Url) -> InProgressLoad {
         InProgressLoad {
@@ -438,11 +438,11 @@ impl<'a> Drop for ScriptMemoryFailsafe<'a> {
 }
 
 impl ScriptThreadFactory for ScriptThread {
-    type Message = layout_interface::Msg;
+    type Message = message::Msg;
 
     fn create(state: InitialScriptState,
               load_data: LoadData)
-              -> (Sender<layout_interface::Msg>, Receiver<layout_interface::Msg>) {
+              -> (Sender<message::Msg>, Receiver<message::Msg>) {
         let panic_chan = state.panic_chan.clone();
         let (script_chan, script_port) = channel();
 
@@ -1184,7 +1184,7 @@ impl ScriptThread {
 
         // Tell layout to actually spawn the thread.
         parent_window.layout_chan()
-                     .send(layout_interface::Msg::CreateLayoutThread(layout_creation_info))
+                     .send(message::Msg::CreateLayoutThread(layout_creation_info))
                      .unwrap();
 
         // Kick off the fetch for the new resource.
@@ -1462,10 +1462,10 @@ impl ScriptThread {
             // processed this message.
             let (response_chan, response_port) = channel();
             let chan = &load.layout_chan;
-            if chan.send(layout_interface::Msg::PrepareToExit(response_chan)).is_ok() {
+            if chan.send(message::Msg::PrepareToExit(response_chan)).is_ok() {
                 debug!("shutting down layout for page {:?}", id);
                 response_port.recv().unwrap();
-                chan.send(layout_interface::Msg::ExitNow).ok();
+                chan.send(message::Msg::ExitNow).ok();
             }
 
             let has_pending_loads = self.incomplete_loads.borrow().len() > 0;
@@ -1523,7 +1523,7 @@ impl ScriptThread {
         {
             // send the final url to the layout thread.
             incomplete.layout_chan
-                      .send(layout_interface::Msg::SetFinalUrl(final_url.clone()))
+                      .send(message::Msg::SetFinalUrl(final_url.clone()))
                       .unwrap();
 
             // update the pipeline url
@@ -2126,7 +2126,7 @@ fn shut_down_layout(context_tree: &BrowsingContext) {
         let (response_chan, response_port) = channel();
         let window = context.active_window();
         let chan = window.layout_chan().clone();
-        if chan.send(layout_interface::Msg::PrepareToExit(response_chan)).is_ok() {
+        if chan.send(message::Msg::PrepareToExit(response_chan)).is_ok() {
             channels.push(chan);
             response_port.recv().unwrap();
         }
@@ -2143,7 +2143,7 @@ fn shut_down_layout(context_tree: &BrowsingContext) {
 
     // Destroy the layout thread. If there were node leaks, layout will now crash safely.
     for chan in channels {
-        chan.send(layout_interface::Msg::ExitNow).ok();
+        chan.send(message::Msg::ExitNow).ok();
     }
 }
 

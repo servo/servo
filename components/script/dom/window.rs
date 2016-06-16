@@ -42,7 +42,6 @@ use js::jsapi::{Evaluate2, HandleObject, HandleValue, JSAutoCompartment, JSConte
 use js::jsapi::{JS_GetRuntime, JS_GC, MutableHandleValue, SetWindowProxy};
 use js::rust::CompileOptionsWrapper;
 use js::rust::Runtime;
-use layout_interface::{Msg, Reflow, ReflowQueryType, ScriptReflow};
 use libc;
 use msg::constellation_msg::{FrameType, LoadData, PanicMsg, PipelineId, SubpageId};
 use msg::constellation_msg::{WindowSizeData, WindowSizeType};
@@ -59,6 +58,7 @@ use profile_traits::time::{ProfilerChan, TimerMetadataReflowType, profile};
 use reporter::CSSErrorReporter;
 use rustc_serialize::base64::{FromBase64, STANDARD, ToBase64};
 use script_layout_interface::TrustedNodeAddress;
+use script_layout_interface::message::{Msg, Reflow, ReflowQueryType, ScriptReflow};
 use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse, LayoutRPC};
 use script_layout_interface::rpc::{MarginStyleResponse, ResolvedStyleResponse};
 use script_runtime::{ScriptChan, ScriptPort};

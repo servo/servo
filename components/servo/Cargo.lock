@@ -33,6 +33,7 @@ dependencies = [
  "profile_tests 0.0.1",
  "profile_traits 0.0.1",
  "script 0.0.1",
+ "script_layout_interface 0.0.1",
  "script_tests 0.0.1",
  "script_traits 0.0.1",
  "style 0.0.1",
@@ -1941,13 +1942,16 @@ dependencies = [
  "ipc-channel 0.2.3 (git+https://github.com/servo/ipc-channel)",
  "libc 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
+ "net_traits 0.0.1",
  "plugins 0.0.1",
+ "profile_traits 0.0.1",
  "range 0.0.1",
  "script_traits 0.0.1",
  "selectors 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "string_cache 0.2.20 (registry+https://github.com/rust-lang/crates.io-index)",
  "style 0.0.1",
  "url 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "util 0.0.1",
 ]
 
 [[package]]
