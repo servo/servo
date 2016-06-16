@@ -59,6 +59,21 @@ version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
+name = "angle"
+version = "0.1.0"
+source = "git+https://github.com/vvuk/angle.git?branch=msvcize#0f88fc805f66b9d6d19049e4aeb09bfb8506d666"
+dependencies = [
+ "cmake 0.1.17 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "angle"
+version = "0.1.0"
+source = "git+https://github.com/servo/angle?branch=servo#528a3798cb9069a394540b8d5ddea4d595387cb2"
+replace = "angle 0.1.0 (git+https://github.com/vvuk/angle.git?branch=msvcize)"
+
+[[package]]
 name = "app_units"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -890,6 +905,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "harfbuzz-sys"
+version = "0.1.5"
+source = "git+https://github.com/vvuk/rust-harfbuzz.git?branch=msvcize#bdfba5e0e84a0b8d55d0c15478fece90c19d8829"
+dependencies = [
+ "cmake 0.1.17 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
+ "pkg-config 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "harfbuzz-sys"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+replace = "harfbuzz-sys 0.1.5 (git+https://github.com/vvuk/rust-harfbuzz.git?branch=msvcize)"
+
+[[package]]
 name = "hbs-builder"
 version = "0.2.1"
 source = "git+https://github.com/vvuk/heartbeats-simple-sys.git?branch=msvcize#ace32f677030833ec7ca0bf741d83ecc0e1ba969"
@@ -1093,6 +1124,11 @@ name = "js"
 version = "0.1.3"
 source = "git+https://github.com/servo/rust-mozjs#3352139c1dedbdff5fe1078152f46522cd04b2f3"
 replace = "js 0.1.3 (git+https://github.com/vvuk/rust-mozjs.git?branch=rust-msvc)"
+
+[[package]]
+name = "js"
+version = "0.1.3"
+source = "git+https://github.com/vvuk/rust-mozjs.git?branch=rust-msvc#48bfb9b74af6a917fbd6a30dbf7167587885a8c4"
 dependencies = [
  "heapsize 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1349,7 +1385,7 @@ replace = "mozjs_sys 0.0.0 (git+https://github.com/vvuk/mozjs.git?branch=rust-ms
 [[package]]
 name = "mozjs_sys"
 version = "0.0.0"
-source = "git+https://github.com/vvuk/mozjs.git?branch=rust-msvc#529ec99f2d2ecf1ddb2bf03f1a463136a2bbd652"
+source = "git+https://github.com/vvuk/mozjs.git?branch=rust-msvc#8ee62867c94b699c1df357f253f868c5b6e305d5"
 dependencies = [
  "libc 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "libz-sys 1.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
