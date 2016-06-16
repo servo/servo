@@ -261,7 +261,7 @@ use std::slice;
 /// Overridden declarations are skipped.
 
 // FIXME (https://github.com/servo/servo/issues/3426)
-#[derive(Debug, PartialEq, HeapSizeOf)]
+#[derive(Debug, Clone, PartialEq, HeapSizeOf)]
 pub struct PropertyDeclarationBlock {
     #[ignore_heap_size_of = "#7038"]
     pub important: Arc<Vec<PropertyDeclaration>>,
