@@ -19,6 +19,7 @@ mod test::{
 extern crate webrender_traits;
 extern crate style_traits;
 
+#[foo = "bar,baz"]
 impl test {
 
     fn test_fun(y:f32)->f32{
