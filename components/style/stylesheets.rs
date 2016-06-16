@@ -7,6 +7,7 @@ use cssparser::{AtRuleType, RuleListParser};
 use encoding::EncodingRef;
 use error_reporting::ParseErrorReporter;
 use font_face::{FontFaceRule, parse_font_face_block};
+use keyframes::{Keyframe, parse_keyframe_list};
 use media_queries::{Device, MediaQueryList, parse_media_query_list};
 use parser::{ParserContext, ParserContextExtraData, log_css_error};
 use properties::{PropertyDeclarationBlock, parse_property_declaration_list};
@@ -60,6 +61,14 @@ pub enum CSSRule<Impl: SelectorImpl> {
     Media(MediaRule<Impl>),
     FontFace(FontFaceRule),
     Viewport(ViewportRule),
+    Keyframes(KeyframesRule),
+}
+
+
+#[derive(Debug, HeapSizeOf, PartialEq)]
+pub struct KeyframesRule {
+    pub name: String,
+    pub keyframes: Vec<Keyframe>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -68,6 +77,7 @@ pub struct MediaRule<Impl: SelectorImpl> {
     pub media_queries: MediaQueryList,
     pub rules: Vec<CSSRule<Impl>>,
 }
+
 
 impl<Impl: SelectorImpl> MediaRule<Impl> {
     #[inline]
@@ -125,7 +135,7 @@ impl<Impl: SelectorImpl> Stylesheet<Impl> {
         let mut input = Parser::new(css);
         input.look_for_viewport_percentages();
 
-        let mut rules = Vec::new();
+        let mut rules = vec![];
         {
             let mut iter = RuleListParser::new_for_stylesheet(&mut input, rule_parser);
             while let Some(result) = iter.next() {
@@ -140,6 +150,7 @@ impl<Impl: SelectorImpl> Stylesheet<Impl> {
                                     Some(namespace.clone());
                             }
                         }
+
                         rules.push(rule);
                     }
                     Err(range) => {
@@ -151,6 +162,7 @@ impl<Impl: SelectorImpl> Stylesheet<Impl> {
                 }
             }
         }
+
         Stylesheet {
             origin: origin,
             rules: rules,
@@ -251,7 +263,7 @@ pub mod rule_filter {
     use std::marker::PhantomData;
     use super::super::font_face::FontFaceRule;
     use super::super::viewport::ViewportRule;
-    use super::{CSSRule, MediaRule, StyleRule};
+    use super::{CSSRule, KeyframesRule, MediaRule, StyleRule};
 
     macro_rules! rule_filter {
         ($variant:ident -> $value:ty) => {
@@ -264,6 +276,8 @@ pub mod rule_filter {
 
             impl<'a, I, Impl: SelectorImpl + 'a> $variant<'a, I>
                 where I: Iterator<Item=&'a CSSRule<Impl>> {
+
+                #[inline]
                 pub fn new(iter: I) -> $variant<'a, I> {
                     $variant {
                         iter: iter,
@@ -298,6 +312,7 @@ pub mod rule_filter {
     rule_filter!(Style -> StyleRule<Impl>);
     rule_filter!(FontFace -> FontFaceRule);
     rule_filter!(Viewport -> ViewportRule);
+    rule_filter!(Keyframes -> KeyframesRule);
 }
 
 /// Extension methods for `CSSRule` iterators.
@@ -313,6 +328,9 @@ pub trait CSSRuleIteratorExt<'a, Impl: SelectorImpl + 'a>: Iterator<Item=&'a CSS
 
     /// Yield only @viewport rules.
     fn viewport(self) -> rule_filter::Viewport<'a, Self>;
+
+    /// Yield only @keyframes rules.
+    fn keyframes(self) -> rule_filter::Keyframes<'a, Self>;
 }
 
 impl<'a, I, Impl: SelectorImpl + 'a> CSSRuleIteratorExt<'a, Impl> for I where I: Iterator<Item=&'a CSSRule<Impl>> {
@@ -334,6 +352,11 @@ impl<'a, I, Impl: SelectorImpl + 'a> CSSRuleIteratorExt<'a, Impl> for I where I:
     #[inline]
     fn viewport(self) -> rule_filter::Viewport<'a, I> {
         rule_filter::Viewport::new(self)
+    }
+
+    #[inline]
+    fn keyframes(self) -> rule_filter::Keyframes<'a, I> {
+        rule_filter::Keyframes::new(self)
     }
 }
 
@@ -374,9 +397,14 @@ enum State {
 
 
 enum AtRulePrelude {
+    /// A @font-face rule prelude.
     FontFace,
+    /// A @media rule prelude, with its media queries.
     Media(MediaQueryList),
+    /// A @viewport rule prelude.
     Viewport,
+    /// A @keyframes rule, with its animation name.
+    Keyframes(String),
 }
 
 
@@ -476,6 +504,10 @@ impl<'a, 'b, Impl: SelectorImpl> AtRuleParser for NestedRuleParser<'a, 'b, Impl>
                     Err(())
                 }
             },
+            "keyframes" => {
+                let name = try!(input.expect_ident());
+                Ok(AtRuleType::WithBlock(AtRulePrelude::Keyframes(name.into_owned())))
+            },
             _ => Err(())
         }
     }
@@ -494,10 +526,15 @@ impl<'a, 'b, Impl: SelectorImpl> AtRuleParser for NestedRuleParser<'a, 'b, Impl>
             AtRulePrelude::Viewport => {
                 ViewportRule::parse(input, self.context).map(CSSRule::Viewport)
             }
+            AtRulePrelude::Keyframes(name) => {
+                Ok(CSSRule::Keyframes(KeyframesRule {
+                    name: name,
+                    keyframes: try!(parse_keyframe_list(&self.context, input)),
+                }))
+            }
         }
     }
 }
-
 
 impl<'a, 'b, Impl: SelectorImpl> QualifiedRuleParser for NestedRuleParser<'a, 'b, Impl> {
     type Prelude = Vec<Selector<Impl>>;
