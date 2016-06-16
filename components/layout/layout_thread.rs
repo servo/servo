@@ -47,8 +47,8 @@ use query::{LayoutRPCImpl, process_content_box_request, process_content_boxes_re
 use query::{process_node_geometry_request, process_node_layer_id_request, process_node_scroll_area_request};
 use query::{process_node_overflow_request, process_resolved_style_request, process_margin_style_query};
 use script::layout_wrapper::ServoLayoutNode;
-use script::reporter::CSSErrorReporter;
 use script_layout_interface::message::{Msg, NewLayoutThreadInfo, Reflow, ReflowQueryType, ScriptReflow};
+use script_layout_interface::reporter::CSSErrorReporter;
 use script_layout_interface::restyle_damage::{REPAINT, STORE_OVERFLOW, REFLOW_OUT_OF_FLOW, REFLOW};
 use script_layout_interface::rpc::{LayoutRPC, MarginStyleResponse, NodeOverflowResponse, OffsetParentResponse};
 use script_layout_interface::wrapper_traits::LayoutNode;
