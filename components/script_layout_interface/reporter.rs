@@ -10,7 +10,7 @@ use script_traits::ConstellationControlMsg;
 use std::sync::{Mutex, Arc};
 use style::error_reporting::ParseErrorReporter;
 
-#[derive(JSTraceable, HeapSizeOf)]
+#[derive(HeapSizeOf)]
 pub struct CSSErrorReporter {
     pub pipelineid: PipelineId,
     // Arc+Mutex combo is necessary to make this struct Sync,

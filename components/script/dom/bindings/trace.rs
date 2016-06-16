@@ -67,6 +67,7 @@ use offscreen_gl_context::GLLimits;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
 use script_layout_interface::OpaqueStyleAndLayoutData;
+use script_layout_interface::reporter::CSSErrorReporter;
 use script_layout_interface::rpc::LayoutRPC;
 use script_runtime::ScriptChan;
 use script_traits::{TimerEventId, TimerSource, TouchpadPressurePhase, UntrustedNodeAddress};
@@ -330,6 +331,7 @@ no_jsmanaged_fields!(ResourceThreads);
 no_jsmanaged_fields!(SystemTime);
 no_jsmanaged_fields!(SelectedFileId);
 no_jsmanaged_fields!(OpaqueStyleAndLayoutData);
+no_jsmanaged_fields!(CSSErrorReporter);
 
 impl JSTraceable for Box<ScriptChan + Send> {
     #[inline]
