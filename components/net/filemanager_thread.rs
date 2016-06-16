@@ -25,37 +25,51 @@ pub trait FileManagerThreadFactory<UI: 'static + UIProvider> {
 }
 
 pub trait UIProvider where Self: Sync {
-    fn open_file_dialog(&self, path: &str,
-                        filter: Option<(&[&str], &str)>) -> Option<String>;
+    fn open_file_dialog(&self, path: &str, patterns: Vec<FilterPattern>) -> Option<String>;
 
-    fn open_file_dialog_multi(&self, path: &str,
-                              filter: Option<(&[&str], &str)>) -> Option<Vec<String>>;
+    fn open_file_dialog_multi(&self, path: &str, patterns: Vec<FilterPattern>) -> Option<Vec<String>>;
 }
 
 pub struct TFDProvider;
 
 impl UIProvider for TFDProvider {
     #[cfg(any(target_os = "macos", target_os = "linux"))]
-    fn open_file_dialog(&self, path: &str,
-                        filter: Option<(&[&str], &str)>) -> Option<String> {
-        tinyfiledialogs::open_file_dialog("Pick a file", path, filter)
+    fn open_file_dialog(&self, path: &str, patterns: Vec<FilterPattern>) -> Option<String> {
+        let mut filter = vec![];
+        for p in patterns {
+            let s = "*.".to_string() + &p.0;
+            filter.push(s)
+        }
+
+        let filter_ref = &(filter.iter().map(|s| s.as_str()).collect::<Vec<&str>>()[..]);
+
+        let filter_opt = if filter.len() > 0 { Some((filter_ref, "")) } else { None };
+
+        tinyfiledialogs::open_file_dialog("Pick a file", path, filter_opt)
     }
 
     #[cfg(any(target_os = "macos", target_os = "linux"))]
-    fn open_file_dialog_multi(&self, path: &str,
-                              filter: Option<(&[&str], &str)>) -> Option<Vec<String>> {
-        tinyfiledialogs::open_file_dialog_multi("Pick files", path, filter)
+    fn open_file_dialog_multi(&self, path: &str, patterns: Vec<FilterPattern>) -> Option<Vec<String>> {
+        let mut filter = vec![];
+        for p in patterns {
+            let s = "*.".to_string() + &p.0;
+            filter.push(s)
+        }
+
+        let filter_ref = &(filter.iter().map(|s| s.as_str()).collect::<Vec<&str>>()[..]);
+
+        let filter_opt = if filter.len() > 0 { Some((filter_ref, "")) } else { None };
+
+        tinyfiledialogs::open_file_dialog_multi("Pick files", path, filter_opt)
     }
 
     #[cfg(not(any(target_os = "macos", target_os = "linux")))]
-    fn open_file_dialog(&self, _path: &str,
-                        _filter: Option<(&[&str], &str)>) -> Option<String> {
+    fn open_file_dialog(&self, path: &str, patterns: Vec<FilterPattern>) -> Option<String> {
         None
     }
 
     #[cfg(not(any(target_os = "macos", target_os = "linux")))]
-    fn open_file_dialog_multi(&self, _path: &str,
-                              _filter: Option<(&[&str], &str)>) -> Option<Vec<String>> {
+    fn open_file_dialog_multi(&self, path: &str, patterns: Vec<FilterPattern>) -> Option<Vec<String>> {
         None
     }
 }
@@ -116,9 +130,9 @@ impl<UI: 'static + UIProvider> FileManager<UI> {
         }
     }
 
-    fn select_file(&mut self, _filter: Vec<FilterPattern>,
+    fn select_file(&mut self, patterns: Vec<FilterPattern>,
                    sender: IpcSender<FileManagerResult<SelectedFile>>) {
-        match self.ui.open_file_dialog("", None) {
+        match self.ui.open_file_dialog("", patterns) {
             Some(s) => {
                 let selected_path = Path::new(&s);
 
@@ -134,9 +148,9 @@ impl<UI: 'static + UIProvider> FileManager<UI> {
         }
     }
 
-    fn select_files(&mut self, _filter: Vec<FilterPattern>,
+    fn select_files(&mut self, patterns: Vec<FilterPattern>,
                     sender: IpcSender<FileManagerResult<Vec<SelectedFile>>>) {
-        match self.ui.open_file_dialog_multi("", None) {
+        match self.ui.open_file_dialog_multi("", patterns) {
             Some(v) => {
                 let mut selected_paths = vec![];
 
