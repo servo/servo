@@ -7,12 +7,13 @@ use dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::reflector::{Reflector, Reflectable, reflect_dom_object};
+use dom::bindings::str::DOMString;
 use dom::bluetooth::Bluetooth;
 use dom::mimetypearray::MimeTypeArray;
 use dom::navigatorinfo;
 use dom::pluginarray::PluginArray;
+use dom::serviceworkercontainer::ServiceWorkerContainer;
 use dom::window::Window;
-use util::str::DOMString;
 
 #[dom_struct]
 pub struct Navigator {
@@ -20,6 +21,7 @@ pub struct Navigator {
     bluetooth: MutNullableHeap<JS<Bluetooth>>,
     plugins: MutNullableHeap<JS<PluginArray>>,
     mime_types: MutNullableHeap<JS<MimeTypeArray>>,
+    serviceWorker: MutNullableHeap<JS<ServiceWorkerContainer>>,
 }
 
 impl Navigator {
@@ -29,6 +31,7 @@ impl Navigator {
             bluetooth: Default::default(),
             plugins: Default::default(),
             mime_types: Default::default(),
+            serviceWorker: Default::default(),
         }
     }
 
@@ -98,5 +101,10 @@ impl NavigatorMethods for Navigator {
     // https://html.spec.whatwg.org/multipage/#dom-navigator-javaenabled
     fn JavaEnabled(&self) -> bool {
         false
+    }
+
+    // https://slightlyoff.github.io/ServiceWorker/spec/service_worker/#navigator-service-worker-attribute
+    fn ServiceWorker(&self) -> Root<ServiceWorkerContainer> {
+        self.serviceWorker.or_init(|| ServiceWorkerContainer::new(self.global().r()))
     }
 }

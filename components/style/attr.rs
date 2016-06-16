@@ -10,25 +10,32 @@ use std::ascii::AsciiExt;
 use std::str::FromStr;
 use string_cache::{Atom, Namespace};
 use url::Url;
-use util::str::{DOMString, LengthOrPercentageOrAuto, HTML_SPACE_CHARACTERS};
-use util::str::{read_exponent, read_fraction, read_numbers, split_html_space_chars};
-use values::specified::{Length};
+use util::str::{HTML_SPACE_CHARACTERS, read_exponent, read_fraction};
+use util::str::{read_numbers, split_commas, split_html_space_chars};
+use values::specified::Length;
 
 // Duplicated from script::dom::values.
 const UNSIGNED_LONG_MAX: u32 = 2147483647;
 
+#[derive(Clone, Copy, Debug, HeapSizeOf, PartialEq)]
+pub enum LengthOrPercentageOrAuto {
+    Auto,
+    Percentage(f32),
+    Length(Au),
+}
+
 #[derive(PartialEq, Clone, HeapSizeOf)]
 pub enum AttrValue {
-    String(DOMString),
-    TokenList(DOMString, Vec<Atom>),
-    UInt(DOMString, u32),
-    Int(DOMString, i32),
-    Double(DOMString, f64),
+    String(String),
+    TokenList(String, Vec<Atom>),
+    UInt(String, u32),
+    Int(String, i32),
+    Double(String, f64),
     Atom(Atom),
-    Length(DOMString, Option<Length>),
-    Color(DOMString, Option<RGBA>),
-    Dimension(DOMString, LengthOrPercentageOrAuto),
-    Url(DOMString, Option<Url>),
+    Length(String, Option<Length>),
+    Color(String, Option<RGBA>),
+    Dimension(String, LengthOrPercentageOrAuto),
+    Url(String, Option<Url>),
 }
 
 /// Shared implementation to parse an integer according to
@@ -75,7 +82,7 @@ pub fn parse_unsigned_integer<T: Iterator<Item=char>>(input: T) -> Result<u32, (
 
 /// Parse a floating-point number according to
 /// <https://html.spec.whatwg.org/multipage/#rules-for-parsing-floating-point-number-values>
-pub fn parse_double(string: &DOMString) -> Result<f64, ()> {
+pub fn parse_double(string: &str) -> Result<f64, ()> {
     let trimmed = string.trim_matches(HTML_SPACE_CHARACTERS);
     let mut input = trimmed.chars().peekable();
 
@@ -113,7 +120,7 @@ pub fn parse_double(string: &DOMString) -> Result<f64, ()> {
 }
 
 impl AttrValue {
-    pub fn from_serialized_tokenlist(tokens: DOMString) -> AttrValue {
+    pub fn from_serialized_tokenlist(tokens: String) -> AttrValue {
         let atoms =
             split_html_space_chars(&tokens)
             .map(Atom::from)
@@ -124,16 +131,25 @@ impl AttrValue {
         AttrValue::TokenList(tokens, atoms)
     }
 
+    pub fn from_comma_separated_tokenlist(tokens: String) -> AttrValue {
+        let atoms = split_commas(&tokens).map(Atom::from)
+                                         .fold(vec![], |mut acc, atom| {
+                                            if !acc.contains(&atom) { acc.push(atom) }
+                                            acc
+                                         });
+        AttrValue::TokenList(tokens, atoms)
+    }
+
     #[cfg(not(feature = "gecko"))] // Gecko can't borrow atoms as UTF-8.
     pub fn from_atomic_tokens(atoms: Vec<Atom>) -> AttrValue {
         use util::str::str_join;
-        // TODO(ajeffrey): effecient conversion of Vec<Atom> to DOMString
-        let tokens = DOMString::from(str_join(&atoms, "\x20"));
+        // TODO(ajeffrey): effecient conversion of Vec<Atom> to String
+        let tokens = String::from(str_join(&atoms, "\x20"));
         AttrValue::TokenList(tokens, atoms)
     }
 
     // https://html.spec.whatwg.org/multipage/#reflecting-content-attributes-in-idl-attributes:idl-unsigned-long
-    pub fn from_u32(string: DOMString, default: u32) -> AttrValue {
+    pub fn from_u32(string: String, default: u32) -> AttrValue {
         let result = parse_unsigned_integer(string.chars()).unwrap_or(default);
         let result = if result > UNSIGNED_LONG_MAX {
             default
@@ -143,24 +159,24 @@ impl AttrValue {
         AttrValue::UInt(string, result)
     }
 
-    pub fn from_i32(string: DOMString, default: i32) -> AttrValue {
+    pub fn from_i32(string: String, default: i32) -> AttrValue {
         let result = parse_integer(string.chars()).unwrap_or(default);
         AttrValue::Int(string, result)
     }
 
     // https://html.spec.whatwg.org/multipage/#reflecting-content-attributes-in-idl-attributes:idl-double
-    pub fn from_double(string: DOMString, default: f64) -> AttrValue {
+    pub fn from_double(string: String, default: f64) -> AttrValue {
         let result = parse_double(&string).unwrap_or(default);
-        let result = if result.is_infinite() {
-            default
+
+        if result.is_normal() {
+            AttrValue::Double(string, result)
         } else {
-            result
-        };
-        AttrValue::Double(string, result)
+            AttrValue::Double(string, default)
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#limited-to-only-non-negative-numbers
-    pub fn from_limited_i32(string: DOMString, default: i32) -> AttrValue {
+    pub fn from_limited_i32(string: String, default: i32) -> AttrValue {
         let result = parse_integer(string.chars()).unwrap_or(default);
 
         if result < 0 {
@@ -171,7 +187,7 @@ impl AttrValue {
     }
 
     // https://html.spec.whatwg.org/multipage/#limited-to-only-non-negative-numbers-greater-than-zero
-    pub fn from_limited_u32(string: DOMString, default: u32) -> AttrValue {
+    pub fn from_limited_u32(string: String, default: u32) -> AttrValue {
         let result = parse_unsigned_integer(string.chars()).unwrap_or(default);
         let result = if result == 0 || result > UNSIGNED_LONG_MAX {
             default
@@ -181,27 +197,27 @@ impl AttrValue {
         AttrValue::UInt(string, result)
     }
 
-    pub fn from_atomic(string: DOMString) -> AttrValue {
+    pub fn from_atomic(string: String) -> AttrValue {
         let value = Atom::from(string);
         AttrValue::Atom(value)
     }
 
-    pub fn from_url(base: &Url, url: DOMString) -> AttrValue {
+    pub fn from_url(base: &Url, url: String) -> AttrValue {
         let joined = base.join(&url).ok();
         AttrValue::Url(url, joined)
     }
 
-    pub fn from_legacy_color(string: DOMString) -> AttrValue {
+    pub fn from_legacy_color(string: String) -> AttrValue {
         let parsed = parse_legacy_color(&string).ok();
         AttrValue::Color(string, parsed)
     }
 
-    pub fn from_dimension(string: DOMString) -> AttrValue {
+    pub fn from_dimension(string: String) -> AttrValue {
         let parsed = parse_length(&string);
         AttrValue::Dimension(string, parsed)
     }
 
-    pub fn from_nonzero_dimension(string: DOMString) -> AttrValue {
+    pub fn from_nonzero_dimension(string: String) -> AttrValue {
         let parsed = parse_nonzero_length(&string);
         AttrValue::Dimension(string, parsed)
     }

@@ -77,7 +77,6 @@ fn match_headers(cors_cache: &CORSCacheEntry, cors_req: &Request) -> bool {
 pub struct CORSCache(Vec<CORSCacheEntry>);
 
 impl CORSCache {
-
     pub fn new() -> CORSCache {
         CORSCache(vec![])
     }

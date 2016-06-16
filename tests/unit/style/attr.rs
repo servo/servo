@@ -3,12 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use style::attr::{AttrValue, parse_length};
-use util::str::{DOMString, LengthOrPercentageOrAuto};
+use style::attr::{AttrValue, LengthOrPercentageOrAuto, parse_length};
 
 #[test]
 fn test_parse_double() {
-    let value = DOMString::from("432.5e2");
+    let value = String::from("432.5e2");
     match AttrValue::from_double(value, 0.0) {
         AttrValue::Double(_, num) => assert_eq!(num, 43250f64),
         _ => panic!("expected a double value")
@@ -17,7 +16,7 @@ fn test_parse_double() {
 
 #[test]
 fn test_from_limited_i32_should_be_default_when_less_than_0() {
-    let value = DOMString::from("-1");
+    let value = String::from("-1");
     match AttrValue::from_limited_i32(value, 0) {
         AttrValue::Int(_, 0) => (),
         _ => panic!("expected an IndexSize error")
@@ -26,7 +25,7 @@ fn test_from_limited_i32_should_be_default_when_less_than_0() {
 
 #[test]
 fn test_from_limited_i32_should_parse_a_uint_when_value_is_0_or_greater() {
-    match AttrValue::from_limited_i32(DOMString::from("1"), 0) {
+    match AttrValue::from_limited_i32(String::from("1"), 0) {
         AttrValue::Int(_, 1) => (),
         _ => panic!("expected an successful parsing")
     }
@@ -34,9 +33,9 @@ fn test_from_limited_i32_should_parse_a_uint_when_value_is_0_or_greater() {
 
 #[test]
 fn test_from_limited_i32_should_keep_parsed_value_when_not_an_int() {
-    match AttrValue::from_limited_i32(DOMString::from("parsed-value"), 0) {
+    match AttrValue::from_limited_i32(String::from("parsed-value"), 0) {
         AttrValue::Int(p, 0) => {
-            assert_eq!(p, DOMString::from("parsed-value"))
+            assert_eq!(p, String::from("parsed-value"))
         },
         _ => panic!("expected an successful parsing")
     }

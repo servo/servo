@@ -143,11 +143,13 @@ impl Formattable for ProfilerCategory {
             ProfilerCategory::ScriptResize => "Script Resize",
             ProfilerCategory::ScriptEvent => "Script Event",
             ProfilerCategory::ScriptUpdateReplacedElement => "Script Update Replaced Element",
+            ProfilerCategory::ScriptSetScrollState => "Script Set Scroll State",
             ProfilerCategory::ScriptSetViewport => "Script Set Viewport",
             ProfilerCategory::ScriptTimerEvent => "Script Timer Event",
             ProfilerCategory::ScriptStylesheetLoad => "Script Stylesheet Load",
             ProfilerCategory::ScriptWebSocketEvent => "Script Web Socket Event",
             ProfilerCategory::ScriptWorkerEvent => "Script Worker Event",
+            ProfilerCategory::ScriptServiceWorkerEvent => "Script Service Worker Event",
             ProfilerCategory::ApplicationHeartbeat => "Application Heartbeat",
         };
         format!("{}{}", padding, name)
@@ -182,7 +184,7 @@ impl Profiler {
                 });
                 // decide if we need to spawn the timer thread
                 match option {
-                    &OutputOptions::FileName(_) => {/* no timer thread needed */},
+                    &OutputOptions::FileName(_) => { /* no timer thread needed */ },
                     &OutputOptions::Stdout(period) => {
                         // Spawn a timer thread
                         let chan = chan.clone();
@@ -389,7 +391,7 @@ impl Profiler {
                 }
                 writeln!(&mut lock, "").unwrap();
             },
-            None => {/* Do nothing if not output option has been set */},
+            None => { /* Do nothing if not output option has been set */ },
         };
     }
 }

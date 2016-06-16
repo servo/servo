@@ -9,10 +9,11 @@ use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::str::DOMString;
 use dom::element::Element;
 use dom::node::window_from_node;
 use string_cache::Atom;
-use util::str::{DOMString, HTML_SPACE_CHARACTERS};
+use util::str::HTML_SPACE_CHARACTERS;
 
 #[dom_struct]
 pub struct DOMTokenList {
@@ -69,15 +70,14 @@ impl DOMTokenListMethods for DOMTokenList {
     }
 
     // https://dom.spec.whatwg.org/#dom-domtokenlist-contains
-    fn Contains(&self, token: DOMString) -> Fallible<bool> {
-        self.check_token_exceptions(&token).map(|token| {
-            self.attribute().map_or(false, |attr| {
-                let attr = attr.r();
-                attr.value()
-                    .as_tokens()
-                    .iter()
-                    .any(|atom: &Atom| *atom == token)
-            })
+    fn Contains(&self, token: DOMString) -> bool {
+        let token = Atom::from(token);
+        self.attribute().map_or(false, |attr| {
+            let attr = attr.r();
+            attr.value()
+                .as_tokens()
+                .iter()
+                .any(|atom: &Atom| *atom == token)
         })
     }
 

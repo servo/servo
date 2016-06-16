@@ -19,8 +19,8 @@ use properties::longhands::transform::computed_value::ComputedOperation as Trans
 use properties::longhands::transform::computed_value::T as TransformList;
 use properties::longhands::transition_property;
 use properties::longhands::transition_property::computed_value::TransitionProperty;
-use properties::longhands::transition_timing_function::computed_value::{StartEnd};
-use properties::longhands::transition_timing_function::computed_value::{TransitionTimingFunction};
+use properties::longhands::transition_timing_function::computed_value::StartEnd;
+use properties::longhands::transition_timing_function::computed_value::TransitionTimingFunction;
 use properties::longhands::vertical_align::computed_value::T as VerticalAlign;
 use properties::longhands::visibility::computed_value::T as Visibility;
 use properties::longhands::z_index::computed_value::T as ZIndex;

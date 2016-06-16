@@ -8,14 +8,16 @@ use dom::bindings::codegen::Bindings::HTMLButtonElementBinding;
 use dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
+use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
 use dom::event::Event;
 use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::htmlfieldsetelement::HTMLFieldSetElement;
-use dom::htmlformelement::{FormControl, FormSubmitter, ResetFrom};
-use dom::htmlformelement::{SubmittedFrom, HTMLFormElement};
+use dom::htmlformelement::HTMLFormElement;
+use dom::htmlformelement::{FormControl, FormDatum, FormDatumValue};
+use dom::htmlformelement::{FormSubmitter, ResetFrom, SubmittedFrom};
 use dom::node::{Node, UnbindContext, document_from_node, window_from_node};
 use dom::nodelist::NodeList;
 use dom::validation::Validatable;
@@ -24,7 +26,6 @@ use dom::virtualmethods::VirtualMethods;
 use std::cell::Cell;
 use string_cache::Atom;
 use style::element_state::*;
-use util::str::DOMString;
 
 #[derive(JSTraceable, PartialEq, Copy, Clone)]
 #[derive(HeapSizeOf)]
@@ -137,6 +138,39 @@ impl HTMLButtonElementMethods for HTMLButtonElement {
     }
 }
 
+impl HTMLButtonElement {
+    /// https://html.spec.whatwg.org/multipage/#constructing-the-form-data-set
+    /// Steps range from 3.1 to 3.7 (specific to HTMLButtonElement)
+    pub fn form_datum(&self, submitter: Option<FormSubmitter>) -> Option<FormDatum> {
+        // Step 3.1: disabled state check is in get_unclean_dataset
+
+        // Step 3.1: only run steps if this is the submitter
+        if let Some(FormSubmitter::ButtonElement(submitter)) = submitter {
+            if submitter != self {
+                return None
+            }
+        } else {
+            return None
+        }
+        // Step 3.2
+        let ty = self.Type();
+        // Step 3.4
+        let name = self.Name();
+
+        if name.is_empty() {
+            // Step 3.1: Must have a name
+            return None;
+        }
+
+        // Step 3.9
+        Some(FormDatum {
+            ty: ty,
+            name: name,
+            value: FormDatumValue::String(self.Value())
+        })
+    }
+}
+
 impl VirtualMethods for HTMLButtonElement {
     fn super_type(&self) -> Option<&VirtualMethods> {
         Some(self.upcast::<HTMLElement>() as &VirtualMethods)
@@ -232,14 +266,14 @@ impl Activatable for HTMLButtonElement {
             ButtonType::Submit => {
                 // TODO: is document owner fully active?
                 if let Some(owner) = self.form_owner() {
-                    owner.submit(SubmittedFrom::NotFromFormSubmitMethod,
+                    owner.submit(SubmittedFrom::NotFromForm,
                                  FormSubmitter::ButtonElement(self.clone()));
                 }
             }
             ButtonType::Reset => {
                 // TODO: is document owner fully active?
                 if let Some(owner) = self.form_owner() {
-                    owner.reset(ResetFrom::NotFromFormResetMethod);
+                    owner.reset(ResetFrom::NotFromForm);
                 }
             }
             _ => (),

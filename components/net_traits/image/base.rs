@@ -91,7 +91,7 @@ pub fn detect_image_format(buffer: &[u8]) -> Result<ImageFormat, &str> {
 
 fn is_gif(buffer: &[u8]) -> bool {
     match buffer {
-        [b'G', b'I', b'F', b'8', n, b'a', ..] if n == b'7' || n == b'9' => true,
+        &[b'G', b'I', b'F', b'8', n, b'a', ..] if n == b'7' || n == b'9' => true,
         _ => false
     }
 }

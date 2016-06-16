@@ -4,7 +4,6 @@
 
 use canvas_traits::{CanvasMsg, FromLayoutMsg, CanvasData};
 use dom::attr::Attr;
-use dom::attr::AttrValue;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasRenderingContext2DMethods;
 use dom::bindings::codegen::Bindings::HTMLCanvasElementBinding;
@@ -16,6 +15,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{HeapGCValue, JS, LayoutJS, Root};
 use dom::bindings::num::Finite;
+use dom::bindings::str::DOMString;
 use dom::canvasrenderingcontext2d::{CanvasRenderingContext2D, LayoutCanvasRenderingContext2DHelpers};
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
@@ -32,7 +32,7 @@ use offscreen_gl_context::GLContextAttributes;
 use rustc_serialize::base64::{STANDARD, ToBase64};
 use std::iter::repeat;
 use string_cache::Atom;
-use util::str::DOMString;
+use style::attr::AttrValue;
 
 const DEFAULT_WIDTH: u32 = 300;
 const DEFAULT_HEIGHT: u32 = 150;
@@ -145,7 +145,7 @@ impl HTMLCanvasElement {
             let window = window_from_node(self);
             let size = self.get_size();
             let context = CanvasRenderingContext2D::new(GlobalRef::Window(window.r()), self, size);
-            *self.context.borrow_mut() = Some(CanvasContext::Context2d(JS::from_rooted(&context)));
+            *self.context.borrow_mut() = Some(CanvasContext::Context2d(JS::from_ref(&*context)));
         }
 
         match *self.context.borrow().as_ref().unwrap() {
@@ -175,7 +175,7 @@ impl HTMLCanvasElement {
 
             let maybe_ctx = WebGLRenderingContext::new(GlobalRef::Window(window.r()), self, size, attrs);
 
-            *self.context.borrow_mut() = maybe_ctx.map( |ctx| CanvasContext::WebGL(JS::from_rooted(&ctx)));
+            *self.context.borrow_mut() = maybe_ctx.map( |ctx| CanvasContext::WebGL(JS::from_ref(&*ctx)));
         }
 
         if let Some(CanvasContext::WebGL(ref context)) = *self.context.borrow() {
@@ -254,7 +254,6 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
                  _context: *mut JSContext,
                  _mime_type: Option<DOMString>,
                  _arguments: Vec<HandleValue>) -> Fallible<DOMString> {
-
         // Step 1.
         if let Some(CanvasContext::Context2d(ref context)) = *self.context.borrow() {
             if !context.origin_is_clean() {
@@ -312,8 +311,8 @@ impl VirtualMethods for HTMLCanvasElement {
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
         match name {
-            &atom!("width") => AttrValue::from_u32(value, DEFAULT_WIDTH),
-            &atom!("height") => AttrValue::from_u32(value, DEFAULT_HEIGHT),
+            &atom!("width") => AttrValue::from_u32(value.into(), DEFAULT_WIDTH),
+            &atom!("height") => AttrValue::from_u32(value.into(), DEFAULT_HEIGHT),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }

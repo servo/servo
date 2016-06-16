@@ -2,7 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
+use blob_url_store::BlobURLStore;
+use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId, DevtoolsPageInfo};
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
 use dom::bindings::error::{Error, ErrorResult, Fallible, report_pending_exception};
@@ -10,10 +12,12 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::reflector::Reflectable;
+use dom::bindings::str::DOMString;
 use dom::console::Console;
 use dom::crypto::Crypto;
 use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use dom::eventtarget::EventTarget;
+use dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use dom::window::{base64_atob, base64_btoa};
 use dom::workerlocation::WorkerLocation;
 use dom::workernavigator::WorkerNavigator;
@@ -23,7 +27,8 @@ use js::jsapi::{HandleValue, JSContext, JSRuntime, RootedValue};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use msg::constellation_msg::{PipelineId, ReferrerPolicy, PanicMsg};
-use net_traits::{LoadContext, CoreResourceThread, load_whole_resource, RequestSource, LoadOrigin, CustomResponseSender};
+use net_traits::{LoadContext, ResourceThreads, load_whole_resource};
+use net_traits::{RequestSource, LoadOrigin, CustomResponseSender, IpcSend};
 use profile_traits::{mem, time};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
 use script_traits::ScriptMsg as ConstellationMsg;
@@ -36,7 +41,6 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::Receiver;
 use timers::{IsInterval, OneshotTimerCallback, OneshotTimerHandle, OneshotTimers, TimerCallback};
 use url::Url;
-use util::str::DOMString;
 
 #[derive(Copy, Clone, PartialEq)]
 pub enum WorkerGlobalScopeTypeId {
@@ -44,7 +48,7 @@ pub enum WorkerGlobalScopeTypeId {
 }
 
 pub struct WorkerGlobalScopeInit {
-    pub core_resource_thread: CoreResourceThread,
+    pub resource_threads: ResourceThreads,
     pub mem_profiler_chan: mem::ProfilerChan,
     pub time_profiler_chan: time::ProfilerChan,
     pub to_devtools_sender: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
@@ -54,6 +58,44 @@ pub struct WorkerGlobalScopeInit {
     pub panic_chan: IpcSender<PanicMsg>,
     pub worker_id: WorkerId,
     pub closing: Arc<AtomicBool>,
+}
+
+pub fn prepare_workerscope_init(global: GlobalRef,
+                                worker_type: String,
+                                worker_url: Url,
+                                devtools_sender: IpcSender<DevtoolScriptControlMsg>,
+                                closing: Arc<AtomicBool>) -> WorkerGlobalScopeInit {
+    let worker_id = global.get_next_worker_id();
+    let optional_sender = match global.devtools_chan() {
+            Some(ref chan) => {
+                let pipeline_id = global.pipeline();
+                let title = format!("{} for {}", worker_type, worker_url);
+                let page_info = DevtoolsPageInfo {
+                    title: title,
+                    url: worker_url,
+                };
+                chan.send(ScriptToDevtoolsControlMsg::NewGlobal((pipeline_id, Some(worker_id)),
+                                                                devtools_sender.clone(),
+                                                                page_info)).unwrap();
+                Some(devtools_sender)
+            },
+            None => None,
+        };
+
+    let init = WorkerGlobalScopeInit {
+            resource_threads: global.resource_threads(),
+            mem_profiler_chan: global.mem_profiler_chan().clone(),
+            to_devtools_sender: global.devtools_chan(),
+            time_profiler_chan: global.time_profiler_chan().clone(),
+            from_devtools_sender: optional_sender,
+            constellation_chan: global.constellation_chan().clone(),
+            panic_chan: global.panic_chan().clone(),
+            scheduler_chan: global.scheduler_chan().clone(),
+            worker_id: worker_id,
+            closing: closing,
+        };
+
+    init
 }
 
 // https://html.spec.whatwg.org/multipage/#the-workerglobalscope-common-interface
@@ -67,12 +109,15 @@ pub struct WorkerGlobalScope {
     runtime: Runtime,
     next_worker_id: Cell<WorkerId>,
     #[ignore_heap_size_of = "Defined in std"]
-    core_resource_thread: CoreResourceThread,
+    resource_threads: ResourceThreads,
     location: MutNullableHeap<JS<WorkerLocation>>,
     navigator: MutNullableHeap<JS<WorkerNavigator>>,
     console: MutNullableHeap<JS<Console>>,
     crypto: MutNullableHeap<JS<Crypto>>,
     timers: OneshotTimers,
+    /// Blob URL store
+    blob_url_store: DOMRefCell<BlobURLStore>,
+
     #[ignore_heap_size_of = "Defined in std"]
     mem_profiler_chan: mem::ProfilerChan,
     #[ignore_heap_size_of = "Defined in std"]
@@ -126,12 +171,13 @@ impl WorkerGlobalScope {
             worker_url: worker_url,
             closing: init.closing,
             runtime: runtime,
-            core_resource_thread: init.core_resource_thread,
+            resource_threads: init.resource_threads,
             location: Default::default(),
             navigator: Default::default(),
             console: Default::default(),
             crypto: Default::default(),
             timers: OneshotTimers::new(timer_event_chan, init.scheduler_chan.clone()),
+            blob_url_store: DOMRefCell::new(BlobURLStore::new()),
             mem_profiler_chan: init.mem_profiler_chan,
             time_profiler_chan: init.time_profiler_chan,
             to_devtools_sender: init.to_devtools_sender,
@@ -204,8 +250,8 @@ impl WorkerGlobalScope {
         self.closing.load(Ordering::SeqCst)
     }
 
-    pub fn core_resource_thread(&self) -> &CoreResourceThread {
-        &self.core_resource_thread
+    pub fn resource_threads(&self) -> &ResourceThreads {
+        &self.resource_threads
     }
 
     pub fn get_url(&self) -> &Url {
@@ -269,7 +315,10 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
 
         let mut rval = RootedValue::new(self.runtime.cx(), UndefinedValue());
         for url in urls {
-            let (url, source) = match load_whole_resource(LoadContext::Script, &self.core_resource_thread, url, self) {
+            let (url, source) = match load_whole_resource(LoadContext::Script,
+                                                          &self.resource_threads.sender(),
+                                                          url,
+                                                          self) {
                 Err(_) => return Err(Error::Network),
                 Ok((metadata, bytes)) => {
                     (metadata.final_url, String::from_utf8(bytes).unwrap())
@@ -367,6 +416,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
 
 
 impl WorkerGlobalScope {
+    #[allow(unsafe_code)]
     pub fn execute_script(&self, source: DOMString) {
         let mut rval = RootedValue::new(self.runtime.cx(), UndefinedValue());
         match self.runtime.evaluate_script(
@@ -379,7 +429,10 @@ impl WorkerGlobalScope {
                     // TODO: An error needs to be dispatched to the parent.
                     // https://github.com/servo/servo/issues/6422
                     println!("evaluate_script failed");
-                    report_pending_exception(self.runtime.cx(), self.reflector().get_jsobject().get());
+                    unsafe {
+                        report_pending_exception(
+                            self.runtime.cx(), self.reflector().get_jsobject().get());
+                    }
                 }
             }
         }
@@ -388,36 +441,49 @@ impl WorkerGlobalScope {
     pub fn script_chan(&self) -> Box<ScriptChan + Send> {
         let dedicated =
             self.downcast::<DedicatedWorkerGlobalScope>();
-        match dedicated {
-            Some(dedicated) => dedicated.script_chan(),
-            None => panic!("need to implement a sender for SharedWorker"),
+        let service_worker = self.downcast::<ServiceWorkerGlobalScope>();
+        if let Some(dedicated) = dedicated {
+            return dedicated.script_chan();
+        } else if let Some(service_worker) = service_worker {
+            return service_worker.script_chan();
+        } else {
+            panic!("need to implement a sender for SharedWorker")
         }
     }
 
     pub fn pipeline(&self) -> PipelineId {
-        let dedicated =
-            self.downcast::<DedicatedWorkerGlobalScope>();
-        match dedicated {
-            Some(dedicated) => dedicated.pipeline(),
-            None => panic!("need to add a pipeline for SharedWorker"),
+        let dedicated = self.downcast::<DedicatedWorkerGlobalScope>();
+        let service_worker = self.downcast::<ServiceWorkerGlobalScope>();
+        if let Some(dedicated) = dedicated {
+            return dedicated.pipeline();
+        } else if let Some(service_worker) = service_worker {
+            return service_worker.pipeline();
+        } else {
+            panic!("need to implement a sender for SharedWorker")
         }
     }
 
     pub fn new_script_pair(&self) -> (Box<ScriptChan + Send>, Box<ScriptPort + Send>) {
-        let dedicated =
-            self.downcast::<DedicatedWorkerGlobalScope>();
-        match dedicated {
-            Some(dedicated) => dedicated.new_script_pair(),
-            None => panic!("need to implement creating isolated event loops for SharedWorker"),
+        let dedicated = self.downcast::<DedicatedWorkerGlobalScope>();
+        let service_worker = self.downcast::<ServiceWorkerGlobalScope>();
+        if let Some(dedicated) = dedicated {
+            return dedicated.new_script_pair();
+        } else if let Some(service_worker) = service_worker {
+            return service_worker.new_script_pair();
+        } else {
+            panic!("need to implement a sender for SharedWorker")
         }
     }
 
     pub fn process_event(&self, msg: CommonScriptMsg) {
-        let dedicated =
-            self.downcast::<DedicatedWorkerGlobalScope>();
-        match dedicated {
-            Some(dedicated) => dedicated.process_event(msg),
-            None => panic!("need to implement processing single events for SharedWorker"),
+        let dedicated = self.downcast::<DedicatedWorkerGlobalScope>();
+        let service_worker = self.downcast::<ServiceWorkerGlobalScope>();
+        if let Some(dedicated) = dedicated {
+            return dedicated.process_event(msg);
+        } else if let Some(service_worker) = service_worker {
+            return service_worker.process_event(msg);
+        } else {
+            panic!("need to implement a sender for SharedWorker")
         }
     }
 

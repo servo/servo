@@ -8,13 +8,10 @@
 extern crate msg;
 extern crate script;
 extern crate url;
-extern crate util;
 
 #[cfg(test)] mod origin;
 #[cfg(all(test, target_pointer_width = "64"))] mod size_of;
 #[cfg(test)] mod textinput;
 #[cfg(test)] mod dom {
-    mod bindings;
     mod blob;
-    mod xmlhttprequest;
 }

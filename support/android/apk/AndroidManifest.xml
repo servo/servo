@@ -20,6 +20,28 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <!-- Web browser intents -->
+            <intent-filter>
+              <action android:name="android.intent.action.VIEW" />
+              <category android:name="android.intent.category.DEFAULT" />
+              <category android:name="android.intent.category.BROWSABLE" />
+              <data android:scheme="http" />
+              <data android:scheme="https" />
+              <data android:scheme="data" />
+              <data android:scheme="javascript" />
+            </intent-filter>
+            <intent-filter>
+              <action android:name="android.intent.action.VIEW" />
+              <category android:name="android.intent.category.DEFAULT" />
+              <category android:name="android.intent.category.BROWSABLE" />
+              <data android:scheme="file" />
+              <data android:scheme="http" />
+              <data android:scheme="https" />
+              <data android:mimeType="text/html"/>
+              <data android:mimeType="text/plain"/>
+              <data android:mimeType="application/xhtml+xml"/>
+            </intent-filter>
         </activity>
     </application>
 

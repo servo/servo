@@ -14,10 +14,10 @@ use euclid::{Size2D, Point2D};
 #[cfg(target_os = "windows")] use gdi32;
 use gleam::gl;
 use glutin;
+use glutin::TouchPhase;
 #[cfg(target_os = "macos")]
 use glutin::os::macos::{ActivationPolicy, WindowBuilderExt};
 use glutin::{Api, ElementState, Event, GlRequest, MouseButton, VirtualKeyCode, MouseScrollDelta};
-use glutin::{TouchPhase};
 use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeDisplay;
 use msg::constellation_msg::{KeyState, NONE, CONTROL, SHIFT, ALT, SUPER};
@@ -81,6 +81,7 @@ fn builder_with_platform_options(mut builder: glutin::WindowBuilder) -> glutin::
         builder = builder.with_activation_policy(ActivationPolicy::Prohibited)
     }
     builder.with_app_name(String::from("Servo"))
+           .with_transparent_corner_radius(8)
 }
 
 #[cfg(not(target_os = "macos"))]
@@ -242,16 +243,16 @@ impl Window {
                     VirtualKeyCode::RAlt => self.toggle_modifier(RIGHT_ALT),
                     VirtualKeyCode::LWin => self.toggle_modifier(LEFT_SUPER),
                     VirtualKeyCode::RWin => self.toggle_modifier(RIGHT_SUPER),
-                    _ => {
-                        if let Ok(key) = Window::glutin_key_to_script_key(virtual_key_code) {
-                            let state = match element_state {
-                                ElementState::Pressed => KeyState::Pressed,
-                                ElementState::Released => KeyState::Released,
-                            };
-                            let modifiers = Window::glutin_mods_to_script_mods(self.key_modifiers.get());
-                            self.event_queue.borrow_mut().push(WindowEvent::KeyEvent(key, state, modifiers));
-                        }
-                    }
+                    _ => {}
+                }
+
+                if let Ok(key) = Window::glutin_key_to_script_key(virtual_key_code) {
+                    let state = match element_state {
+                        ElementState::Pressed => KeyState::Pressed,
+                        ElementState::Released => KeyState::Released,
+                    };
+                    let modifiers = Window::glutin_mods_to_script_mods(self.key_modifiers.get());
+                    self.event_queue.borrow_mut().push(WindowEvent::KeyEvent(key, state, modifiers));
                 }
             }
             Event::KeyboardInput(_, _, None) => {
@@ -547,6 +548,15 @@ impl Window {
             VirtualKeyCode::Right => Ok(Key::Right),
             VirtualKeyCode::Down => Ok(Key::Down),
 
+            VirtualKeyCode::LShift => Ok(Key::LeftShift),
+            VirtualKeyCode::LControl => Ok(Key::LeftControl),
+            VirtualKeyCode::LAlt => Ok(Key::LeftAlt),
+            VirtualKeyCode::LWin => Ok(Key::LeftSuper),
+            VirtualKeyCode::RShift => Ok(Key::RightShift),
+            VirtualKeyCode::RControl => Ok(Key::RightControl),
+            VirtualKeyCode::RAlt => Ok(Key::RightAlt),
+            VirtualKeyCode::RWin => Ok(Key::RightSuper),
+
             VirtualKeyCode::Apostrophe => Ok(Key::Apostrophe),
             VirtualKeyCode::Backslash => Ok(Key::Backslash),
             VirtualKeyCode::Comma => Ok(Key::Comma),
@@ -717,41 +727,41 @@ impl WindowMethods for Window {
         use glutin::MouseCursor;
 
         let glutin_cursor = match c {
-            Cursor::NoCursor => MouseCursor::NoneCursor,
-            Cursor::DefaultCursor => MouseCursor::Default,
-            Cursor::PointerCursor => MouseCursor::Hand,
-            Cursor::ContextMenuCursor => MouseCursor::ContextMenu,
-            Cursor::HelpCursor => MouseCursor::Help,
-            Cursor::ProgressCursor => MouseCursor::Progress,
-            Cursor::WaitCursor => MouseCursor::Wait,
-            Cursor::CellCursor => MouseCursor::Cell,
-            Cursor::CrosshairCursor => MouseCursor::Crosshair,
-            Cursor::TextCursor => MouseCursor::Text,
-            Cursor::VerticalTextCursor => MouseCursor::VerticalText,
-            Cursor::AliasCursor => MouseCursor::Alias,
-            Cursor::CopyCursor => MouseCursor::Copy,
-            Cursor::MoveCursor => MouseCursor::Move,
-            Cursor::NoDropCursor => MouseCursor::NoDrop,
-            Cursor::NotAllowedCursor => MouseCursor::NotAllowed,
-            Cursor::GrabCursor => MouseCursor::Grab,
-            Cursor::GrabbingCursor => MouseCursor::Grabbing,
-            Cursor::EResizeCursor => MouseCursor::EResize,
-            Cursor::NResizeCursor => MouseCursor::NResize,
-            Cursor::NeResizeCursor => MouseCursor::NeResize,
-            Cursor::NwResizeCursor => MouseCursor::NwResize,
-            Cursor::SResizeCursor => MouseCursor::SResize,
-            Cursor::SeResizeCursor => MouseCursor::SeResize,
-            Cursor::SwResizeCursor => MouseCursor::SwResize,
-            Cursor::WResizeCursor => MouseCursor::WResize,
-            Cursor::EwResizeCursor => MouseCursor::EwResize,
-            Cursor::NsResizeCursor => MouseCursor::NsResize,
-            Cursor::NeswResizeCursor => MouseCursor::NeswResize,
-            Cursor::NwseResizeCursor => MouseCursor::NwseResize,
-            Cursor::ColResizeCursor => MouseCursor::ColResize,
-            Cursor::RowResizeCursor => MouseCursor::RowResize,
-            Cursor::AllScrollCursor => MouseCursor::AllScroll,
-            Cursor::ZoomInCursor => MouseCursor::ZoomIn,
-            Cursor::ZoomOutCursor => MouseCursor::ZoomOut,
+            Cursor::None => MouseCursor::NoneCursor,
+            Cursor::Default => MouseCursor::Default,
+            Cursor::Pointer => MouseCursor::Hand,
+            Cursor::ContextMenu => MouseCursor::ContextMenu,
+            Cursor::Help => MouseCursor::Help,
+            Cursor::Progress => MouseCursor::Progress,
+            Cursor::Wait => MouseCursor::Wait,
+            Cursor::Cell => MouseCursor::Cell,
+            Cursor::Crosshair => MouseCursor::Crosshair,
+            Cursor::Text => MouseCursor::Text,
+            Cursor::VerticalText => MouseCursor::VerticalText,
+            Cursor::Alias => MouseCursor::Alias,
+            Cursor::Copy => MouseCursor::Copy,
+            Cursor::Move => MouseCursor::Move,
+            Cursor::NoDrop => MouseCursor::NoDrop,
+            Cursor::NotAllowed => MouseCursor::NotAllowed,
+            Cursor::Grab => MouseCursor::Grab,
+            Cursor::Grabbing => MouseCursor::Grabbing,
+            Cursor::EResize => MouseCursor::EResize,
+            Cursor::NResize => MouseCursor::NResize,
+            Cursor::NeResize => MouseCursor::NeResize,
+            Cursor::NwResize => MouseCursor::NwResize,
+            Cursor::SResize => MouseCursor::SResize,
+            Cursor::SeResize => MouseCursor::SeResize,
+            Cursor::SwResize => MouseCursor::SwResize,
+            Cursor::WResize => MouseCursor::WResize,
+            Cursor::EwResize => MouseCursor::EwResize,
+            Cursor::NsResize => MouseCursor::NsResize,
+            Cursor::NeswResize => MouseCursor::NeswResize,
+            Cursor::NwseResize => MouseCursor::NwseResize,
+            Cursor::ColResize => MouseCursor::ColResize,
+            Cursor::RowResize => MouseCursor::RowResize,
+            Cursor::AllScroll => MouseCursor::AllScroll,
+            Cursor::ZoomIn => MouseCursor::ZoomIn,
+            Cursor::ZoomOut => MouseCursor::ZoomOut,
         };
         self.window.set_cursor(glutin_cursor);
     }
@@ -785,7 +795,6 @@ impl WindowMethods for Window {
 
     /// Helper function to handle keyboard events.
     fn handle_key(&self, key: Key, mods: constellation_msg::KeyModifiers) {
-
         match (mods, key) {
             (_, Key::Equal) => {
                 if mods & !SHIFT == CMD_OR_CONTROL {

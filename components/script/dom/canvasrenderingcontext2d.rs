@@ -25,6 +25,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, LayoutJS, Root};
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::str::DOMString;
 use dom::canvasgradient::{CanvasGradient, CanvasGradientStyle, ToFillOrStrokeStyle};
 use dom::canvaspattern::CanvasPattern;
 use dom::htmlcanvaselement::HTMLCanvasElement;
@@ -46,7 +47,6 @@ use std::str::FromStr;
 use std::{cmp, fmt};
 use unpremultiplytable::UNPREMULTIPLY_TABLE;
 use url::Url;
-use util::str::DOMString;
 use util::vec::byte_swap;
 
 #[must_root]
@@ -996,14 +996,14 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
             }
             StringOrCanvasGradientOrCanvasPattern::CanvasGradient(gradient) => {
                 self.state.borrow_mut().fill_style =
-                    CanvasFillOrStrokeStyle::Gradient(JS::from_rooted(&gradient));
+                    CanvasFillOrStrokeStyle::Gradient(JS::from_ref(&*gradient));
                 let msg = CanvasMsg::Canvas2d(
                     Canvas2dMsg::SetFillStyle(gradient.to_fill_or_stroke_style()));
                 self.ipc_renderer.send(msg).unwrap();
             }
             StringOrCanvasGradientOrCanvasPattern::CanvasPattern(pattern) => {
                 self.state.borrow_mut().fill_style =
-                    CanvasFillOrStrokeStyle::Pattern(JS::from_rooted(&pattern));
+                    CanvasFillOrStrokeStyle::Pattern(JS::from_ref(&*pattern));
                 let msg = CanvasMsg::Canvas2d(
                     Canvas2dMsg::SetFillStyle(pattern.to_fill_or_stroke_style()));
                 self.ipc_renderer.send(msg).unwrap();
@@ -1040,7 +1040,6 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
                     sw: Finite<f64>,
                     sh: Finite<f64>)
                     -> Fallible<Root<ImageData>> {
-
         if !self.origin_is_clean() {
             return Err(Error::Security)
         }

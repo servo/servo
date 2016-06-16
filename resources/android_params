@@ -6,4 +6,5 @@
 # lines (the "-p" and "10" are separate even though they are related).
 
 servo
+-w
 http://en.wikipedia.org/wiki/Rust

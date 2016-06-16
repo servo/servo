@@ -39,13 +39,16 @@ impl LoadOrigin for ResourceTest {
 #[test]
 fn test_exit() {
     let (tx, _rx) = ipc::channel().unwrap();
+    let (sender, receiver) = ipc::channel().unwrap();
     let resource_thread = new_core_resource_thread("".to_owned(), None, ProfilerChan(tx));
-    resource_thread.send(CoreResourceMsg::Exit).unwrap();
+    resource_thread.send(CoreResourceMsg::Exit(sender)).unwrap();
+    receiver.recv().unwrap();
 }
 
 #[test]
 fn test_bad_scheme() {
     let (tx, _rx) = ipc::channel().unwrap();
+    let (sender, receiver) = ipc::channel().unwrap();
     let resource_thread = new_core_resource_thread("".to_owned(), None, ProfilerChan(tx));
     let (start_chan, start) = ipc::channel().unwrap();
     let url = Url::parse("bogus://whatever").unwrap();
@@ -57,7 +60,8 @@ fn test_bad_scheme() {
       ProgressMsg::Done(result) => { assert!(result.is_err()) }
       _ => panic!("bleh")
     }
-    resource_thread.send(CoreResourceMsg::Exit).unwrap();
+    resource_thread.send(CoreResourceMsg::Exit(sender)).unwrap();
+    receiver.recv().unwrap();
 }
 
 #[test]
@@ -223,6 +227,7 @@ fn test_cancelled_listener() {
     });
 
     let (tx, _rx) = ipc::channel().unwrap();
+    let (exit_sender, exit_receiver) = ipc::channel().unwrap();
     let resource_thread = new_core_resource_thread("".to_owned(), None, ProfilerChan(tx));
     let (sender, receiver) = ipc::channel().unwrap();
     let (id_sender, id_receiver) = ipc::channel().unwrap();
@@ -244,5 +249,6 @@ fn test_cancelled_listener() {
     let response = receiver.recv().unwrap();
     assert_eq!(response.progress_port.recv().unwrap(),
                ProgressMsg::Done(Err(NetworkError::LoadCancelled)));
-    resource_thread.send(CoreResourceMsg::Exit).unwrap();
+    resource_thread.send(CoreResourceMsg::Exit(exit_sender)).unwrap();
+    exit_receiver.recv().unwrap();
 }

@@ -7,15 +7,14 @@ interface HTMLIFrameElement : HTMLElement {
            attribute DOMString src;
   //         attribute DOMString srcdoc;
   //         attribute DOMString name;
-  //[PutForwards=value] readonly attribute DOMSettableTokenList sandbox;
-           attribute DOMString sandbox;
+           [SameObject, PutForwards=value]
+           readonly attribute DOMTokenList sandbox;
   //         attribute boolean seamless;
   //         attribute boolean allowFullscreen;
            attribute DOMString width;
            attribute DOMString height;
   readonly attribute Document? contentDocument;
-  //readonly attribute WindowProxy? contentWindow;
-  readonly attribute Window? contentWindow;
+  readonly attribute WindowProxy? contentWindow;
 
   // also has obsolete members
 };
@@ -32,8 +31,8 @@ partial interface HTMLIFrameElement {
 };
 
 partial interface HTMLIFrameElement {
-  [ChromeOnly,SetterThrows,Pref="dom.mozbrowser.enabled"]
-           attribute boolean mozbrowser;
+    [Func="::dom::window::Window::global_is_mozbrowser"]
+    attribute boolean mozbrowser;
 };
 
 HTMLIFrameElement implements BrowserElement;

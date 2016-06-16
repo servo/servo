@@ -22,7 +22,7 @@ use euclid::num::Zero;
 use euclid::rect::TypedRect;
 use euclid::{Matrix2D, Matrix4D, Point2D, Rect, SideOffsets2D, Size2D};
 use fnv::FnvHasher;
-use gfx_traits::{LayerId, ScrollPolicy};
+use gfx_traits::{LayerId, ScrollPolicy, StackingContextId};
 use ipc_channel::ipc::IpcSharedMemory;
 use msg::constellation_msg::PipelineId;
 use net_traits::image::base::{Image, PixelFormat};
@@ -422,7 +422,6 @@ impl DisplayList {
                                  traversal: &mut DisplayListTraversal<'a>,
                                  paint_context: &mut PaintContext,
                                  transform: &Matrix4D<f32>) {
-
         if stacking_context.context_type != StackingContextType::Real {
             self.draw_stacking_context_contents(stacking_context,
                                                 traversal,
@@ -488,14 +487,15 @@ impl DisplayList {
     /// Places all nodes containing the point of interest into `result`, topmost first. Respects
     /// the `pointer-events` CSS property If `topmost_only` is true, stops after placing one node
     /// into the list. `result` must be empty upon entry to this function.
-    pub fn hit_test(&self, point: Point2D<Au>) -> Vec<DisplayItemMetadata> {
+    pub fn hit_test(&self, point: &Point2D<Au>, scroll_offsets: &ScrollOffsetMap)
+                    -> Vec<DisplayItemMetadata> {
         let mut traversal = DisplayListTraversal {
             display_list: self,
             current_item_index: 0,
             last_item_index: self.list.len() - 1,
         };
         let mut result = Vec::new();
-        self.root_stacking_context.hit_test(&mut traversal, point, &mut result);
+        self.root_stacking_context.hit_test(&mut traversal, point, scroll_offsets, &mut result);
         result.reverse();
         result
     }
@@ -611,24 +611,38 @@ impl StackingContext {
 
     pub fn hit_test<'a>(&self,
                         traversal: &mut DisplayListTraversal<'a>,
-                        point: Point2D<Au>,
+                        point: &Point2D<Au>,
+                        scroll_offsets: &ScrollOffsetMap,
                         result: &mut Vec<DisplayItemMetadata>) {
-        // Convert the point into stacking context local space
-        let point = if self.context_type == StackingContextType::Real {
-            let point = point - self.bounds.origin;
+        // Convert the point into stacking context local transform space.
+        let mut point = if self.context_type == StackingContextType::Real {
+            let point = *point - self.bounds.origin;
             let inv_transform = self.transform.invert();
             let frac_point = inv_transform.transform_point(&Point2D::new(point.x.to_f32_px(),
                                                                          point.y.to_f32_px()));
             Point2D::new(Au::from_f32_px(frac_point.x), Au::from_f32_px(frac_point.y))
         } else {
-            point
+            *point
         };
+
+        // Adjust the point to account for the scroll offset if necessary. This can only happen
+        // when WebRender is in use.
+        //
+        // We don't perform this adjustment on the root stacking context because the DOM-side code
+        // has already translated the point for us (e.g. in `Document::handle_mouse_move_event()`)
+        // by now.
+        if self.id != StackingContextId::root() {
+            if let Some(scroll_offset) = scroll_offsets.get(&self.id) {
+                point.x -= Au::from_f32_px(scroll_offset.x);
+                point.y -= Au::from_f32_px(scroll_offset.y);
+            }
+        }
 
         for child in self.children.iter() {
             while let Some(item) = traversal.advance(self) {
                 item.hit_test(point, result);
             }
-            child.hit_test(traversal, point, result);
+            child.hit_test(traversal, &point, scroll_offsets, result);
         }
 
         while let Some(item) = traversal.advance(self) {
@@ -1396,36 +1410,6 @@ impl fmt::Debug for DisplayItem {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Copy, Hash, Deserialize, Serialize, HeapSizeOf, RustcEncodable)]
-pub enum FragmentType {
-    /// A StackingContext for the fragment body itself.
-    FragmentBody,
-    /// A StackingContext created to contain ::before pseudo-element content.
-    BeforePseudoContent,
-    /// A StackingContext created to contain ::after pseudo-element content.
-    AfterPseudoContent,
-}
-
-/// A unique ID for every stacking context.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, HeapSizeOf, PartialEq, RustcEncodable, Serialize)]
-pub struct StackingContextId(
-    /// The type of the fragment for this StackingContext. This serves to differentiate
-    /// StackingContexts that share fragments.
-    FragmentType,
-    /// The identifier for this StackingContexts, derived from the Flow's memory address.
-    usize
-);
-
-impl StackingContextId {
-    pub fn new(id: usize) -> StackingContextId {
-        StackingContextId(FragmentType::FragmentBody, id)
-    }
-
-    pub fn new_of_type(id: usize, fragment_type: FragmentType) -> StackingContextId {
-        StackingContextId(fragment_type, id)
-    }
-}
-
 #[derive(Copy, Clone, HeapSizeOf, Deserialize, Serialize)]
 pub struct WebRenderImageInfo {
     pub width: u32,
@@ -1446,3 +1430,7 @@ impl WebRenderImageInfo {
         }
     }
 }
+
+/// The type of the scroll offset list. This is only populated if WebRender is in use.
+pub type ScrollOffsetMap = HashMap<StackingContextId, Point2D<f32>>;
+

@@ -548,7 +548,6 @@ impl<'a> CanvasPaintThread<'a> {
                       offset: Point2D<f64>,
                       image_data_size: Size2D<f64>,
                       mut dirty_rect: Rect<f64>) {
-
         if image_data_size.width <= 0.0 || image_data_size.height <= 0.0 {
             return
         }

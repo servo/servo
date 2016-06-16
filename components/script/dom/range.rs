@@ -16,18 +16,21 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::inheritance::{CharacterDataTypeId, NodeTypeId};
 use dom::bindings::js::{JS, MutHeap, Root, RootedReference};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::str::DOMString;
 use dom::bindings::trace::{JSTraceable, RootedVec};
 use dom::bindings::weakref::{WeakRef, WeakRefVec};
 use dom::characterdata::CharacterData;
 use dom::document::Document;
 use dom::documentfragment::DocumentFragment;
+use dom::element::Element;
+use dom::htmlbodyelement::HTMLBodyElement;
+use dom::htmlscriptelement::HTMLScriptElement;
 use dom::node::{Node, UnbindContext};
 use dom::text::Text;
 use heapsize::HeapSizeOf;
 use js::jsapi::JSTracer;
 use std::cell::{Cell, UnsafeCell};
 use std::cmp::{Ord, Ordering, PartialEq, PartialOrd};
-use util::str::DOMString;
 
 #[dom_struct]
 pub struct Range {
@@ -892,6 +895,44 @@ impl RangeMethods for Range {
 
         // Step 6.
         s
+    }
+
+    // https://dvcs.w3.org/hg/innerhtml/raw-file/tip/index.html#extensions-to-the-range-interface
+    fn CreateContextualFragment(&self, fragment: DOMString) -> Fallible<Root<DocumentFragment>> {
+        // Step 1.
+        let node = self.StartContainer();
+        let element = match node.type_id() {
+            NodeTypeId::Document(_) | NodeTypeId::DocumentFragment => None,
+            NodeTypeId::Element(_) => Some(node),
+            NodeTypeId::CharacterData(CharacterDataTypeId::Comment) |
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text) => node.GetParentNode(),
+            NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) |
+            NodeTypeId::DocumentType => unreachable!(),
+        };
+
+        // Step 2.
+        let should_create_body = element.as_ref().map_or(true, |elem| {
+            let elem = elem.downcast::<Element>().unwrap();
+            elem.local_name() == &atom!("html") && elem.html_element_in_html_document()
+        });
+        let element: Root<Node> = if should_create_body {
+            Root::upcast(HTMLBodyElement::new(atom!("body"), None, &self.StartContainer().owner_doc()))
+        } else {
+            Root::upcast(element.unwrap())
+        };
+
+        // Step 3.
+        let fragment_node = try!(element.parse_fragment(fragment));
+
+        // Step 4.
+        for node in fragment_node.upcast::<Node>().traverse_preorder() {
+            if let Some(script) = node.downcast::<HTMLScriptElement>() {
+                script.set_already_started(false);
+            }
+        }
+
+        // Step 5.
+        Ok(fragment_node)
     }
 }
 

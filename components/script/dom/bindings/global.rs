@@ -19,13 +19,13 @@ use js::jsapi::{CurrentGlobalOrNull, GetGlobalForObjectCrossCompartment};
 use js::jsapi::{JSContext, JSObject, JS_GetClass, MutableHandleValue};
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
 use msg::constellation_msg::{PipelineId, PanicMsg};
-use net_traits::{CoreResourceThread, RequestSource};
+use net_traits::filemanager_thread::FileManagerThreadMsg;
+use net_traits::{ResourceThreads, CoreResourceThread, RequestSource, IpcSend};
 use profile_traits::{mem, time};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
 use script_thread::{MainThreadScriptChan, ScriptThread};
 use script_traits::{MsDuration, ScriptMsg as ConstellationMsg, TimerEventRequest};
-use task_source::TaskSource;
-use task_source::dom_manipulation::DOMManipulationTask;
+use task_source::dom_manipulation::DOMManipulationTaskSource;
 use timers::{OneshotTimerCallback, OneshotTimerHandle};
 use url::Url;
 
@@ -122,17 +122,27 @@ impl<'a> GlobalRef<'a> {
         }
     }
 
-    /// Get the `CoreResourceThread` for this global scope.
-    pub fn core_resource_thread(&self) -> CoreResourceThread {
+    /// Get the `ResourceThreads` for this global scope.
+    pub fn resource_threads(&self) -> ResourceThreads {
         match *self {
             GlobalRef::Window(ref window) => {
                 let doc = window.Document();
                 let doc = doc.r();
                 let loader = doc.loader();
-                (*loader.resource_thread).clone()
+                loader.resource_threads().clone()
             }
-            GlobalRef::Worker(ref worker) => worker.core_resource_thread().clone(),
+            GlobalRef::Worker(ref worker) => worker.resource_threads().clone(),
         }
+    }
+
+    /// Get the `CoreResourceThread` for this global scope
+    pub fn core_resource_thread(&self) -> CoreResourceThread {
+        self.resource_threads().sender()
+    }
+
+    /// Get the port to file manager for this global scope
+    pub fn filemanager_thread(&self) -> IpcSender<FileManagerThreadMsg> {
+        self.resource_threads().sender()
     }
 
     /// Get the worker's id.
@@ -182,7 +192,7 @@ impl<'a> GlobalRef<'a> {
 
     /// `TaskSource` used to queue DOM manipulation messages to the event loop of this global's
     /// thread.
-    pub fn dom_manipulation_task_source(&self) -> Box<TaskSource<DOMManipulationTask> + Send> {
+    pub fn dom_manipulation_task_source(&self) -> DOMManipulationTaskSource {
         match *self {
             GlobalRef::Window(ref window) => window.dom_manipulation_task_source(),
             GlobalRef::Worker(_) => unimplemented!(),
@@ -302,44 +312,39 @@ impl GlobalRoot {
 
 /// Returns the global object of the realm that the given DOM object's reflector was created in.
 pub fn global_root_from_reflector<T: Reflectable>(reflector: &T) -> GlobalRoot {
-    global_root_from_object(*reflector.reflector().get_jsobject())
+    unsafe { global_root_from_object(*reflector.reflector().get_jsobject()) }
 }
 
 /// Returns the Rust global object from a JS global object.
 #[allow(unrooted_must_root)]
-pub fn global_root_from_global(global: *mut JSObject) -> GlobalRoot {
-    unsafe {
-        let clasp = JS_GetClass(global);
-        assert!(((*clasp).flags & (JSCLASS_IS_DOMJSCLASS | JSCLASS_IS_GLOBAL)) != 0);
-        match root_from_object(global) {
-            Ok(window) => return GlobalRoot::Window(window),
-            Err(_) => (),
-        }
-
-        match root_from_object(global) {
-            Ok(worker) => return GlobalRoot::Worker(worker),
-            Err(_) => (),
-        }
-
-        panic!("found DOM global that doesn't unwrap to Window or WorkerGlobalScope")
+unsafe fn global_root_from_global(global: *mut JSObject) -> GlobalRoot {
+    assert!(!global.is_null());
+    let clasp = JS_GetClass(global);
+    assert!(((*clasp).flags & (JSCLASS_IS_DOMJSCLASS | JSCLASS_IS_GLOBAL)) != 0);
+    match root_from_object(global) {
+        Ok(window) => return GlobalRoot::Window(window),
+        Err(_) => (),
     }
+
+    match root_from_object(global) {
+        Ok(worker) => return GlobalRoot::Worker(worker),
+        Err(_) => (),
+    }
+
+    panic!("found DOM global that doesn't unwrap to Window or WorkerGlobalScope")
 }
 
 /// Returns the global object of the realm that the given JS object was created in.
 #[allow(unrooted_must_root)]
-pub fn global_root_from_object(obj: *mut JSObject) -> GlobalRoot {
-    unsafe {
-        let global = GetGlobalForObjectCrossCompartment(obj);
-        global_root_from_global(global)
-    }
+pub unsafe fn global_root_from_object(obj: *mut JSObject) -> GlobalRoot {
+    assert!(!obj.is_null());
+    let global = GetGlobalForObjectCrossCompartment(obj);
+    global_root_from_global(global)
 }
 
 /// Returns the global object for the given JSContext
 #[allow(unrooted_must_root)]
-pub fn global_root_from_context(cx: *mut JSContext) -> GlobalRoot {
-    unsafe {
-        let global = CurrentGlobalOrNull(cx);
-        assert!(!global.is_null());
-        global_root_from_global(global)
-    }
+pub unsafe fn global_root_from_context(cx: *mut JSContext) -> GlobalRoot {
+    let global = CurrentGlobalOrNull(cx);
+    global_root_from_global(global)
 }

@@ -2,23 +2,25 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use cssparser::ToCss;
 use dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::{self, CSSStyleDeclarationMethods};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::str::DOMString;
 use dom::element::{Element, StylePriority};
 use dom::node::{Node, NodeDamage, window_from_node};
 use dom::window::Window;
 use std::ascii::AsciiExt;
-use std::borrow::ToOwned;
 use std::cell::Ref;
+use std::slice;
 use string_cache::Atom;
+use style::parser::ParserContextExtraData;
 use style::properties::{PropertyDeclaration, Shorthand};
-use style::properties::{is_supported_property, parse_one_declaration};
+use style::properties::{is_supported_property, parse_one_declaration, parse_style_attribute};
 use style::selector_impl::PseudoElement;
-use util::str::{DOMString, str_join};
 
 // http://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface
 #[dom_struct]
@@ -47,29 +49,6 @@ macro_rules! css_properties(
         )*
     );
 );
-
-fn serialize_shorthand(shorthand: Shorthand, declarations: &[Ref<PropertyDeclaration>]) -> String {
-    // https://drafts.csswg.org/css-variables/#variables-in-shorthands
-    if let Some(css) = declarations[0].with_variables_from_shorthand(shorthand) {
-        if declarations[1..]
-               .iter()
-               .all(|d| d.with_variables_from_shorthand(shorthand) == Some(css)) {
-            css.to_owned()
-        } else {
-            String::new()
-        }
-    } else {
-        if declarations.iter().any(|d| d.with_variables()) {
-            String::new()
-        } else {
-            let str_iter = declarations.iter().map(|d| d.value());
-            // FIXME: this needs property-specific code, which probably should be in style/
-            // "as appropriate according to the grammar of shorthand "
-            // https://drafts.csswg.org/cssom/#serialize-a-css-value
-            str_join(str_iter, " ")
-        }
-    }
-}
 
 impl CSSStyleDeclaration {
     pub fn new_inherited(owner: &Element,
@@ -170,7 +149,19 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
             }
 
             // Step 2.3
-            return DOMString::from(serialize_shorthand(shorthand, &list));
+            // Work around closures not being Clone
+            #[derive(Clone)]
+            struct Map<'a, 'b: 'a>(slice::Iter<'a, Ref<'b, PropertyDeclaration>>);
+            impl<'a, 'b> Iterator for Map<'a, 'b> {
+                type Item = &'a PropertyDeclaration;
+                fn next(&mut self) -> Option<Self::Item> {
+                    self.0.next().map(|r| &**r)
+                }
+            }
+
+            // TODO: important is hardcoded to false because method does not implement it yet
+            let serialized_value = shorthand.serialize_shorthand_value_to_string(Map(list.iter()), false);
+            return DOMString::from(serialized_value);
         }
 
         // Step 3 & 4
@@ -192,7 +183,6 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
             if shorthand.longhands().iter()
                                     .map(|&longhand| self.GetPropertyPriority(DOMString::from(longhand)))
                                     .all(|priority| priority == "important") {
-
                 return DOMString::from("important");
             }
         // Step 3
@@ -239,7 +229,9 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
 
         // Step 6
         let window = window_from_node(&*self.owner);
-        let declarations = parse_one_declaration(&property, &value, &window.get_url(), window.css_error_reporter());
+        let declarations =
+            parse_one_declaration(&property, &value, &window.get_url(), window.css_error_reporter(),
+                                  ParserContextExtraData::default());
 
         // Step 7
         let declarations = if let Ok(declarations) = declarations {
@@ -251,10 +243,8 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         let element = self.owner.upcast::<Element>();
 
         // Step 8
-        for decl in declarations {
-            // Step 9
-            element.update_inline_style(decl, priority);
-        }
+        // Step 9
+        element.update_inline_style(declarations, priority);
 
         let node = element.upcast::<Node>();
         node.dirty(NodeDamage::NodeStyleDamaged);
@@ -313,20 +303,20 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         // Step 3
         let value = self.GetPropertyValue(property.clone());
 
-        let elem = self.owner.upcast::<Element>();
+        let element = self.owner.upcast::<Element>();
 
         match Shorthand::from_name(&property) {
             // Step 4
             Some(shorthand) => {
                 for longhand in shorthand.longhands() {
-                    elem.remove_inline_style_property(longhand)
+                    element.remove_inline_style_property(longhand)
                 }
             }
             // Step 5
-            None => elem.remove_inline_style_property(&property),
+            None => element.remove_inline_style_property(&property),
         }
 
-        let node = elem.upcast::<Node>();
+        let node = element.upcast::<Node>();
         node.dirty(NodeDamage::NodeStyleDamaged);
 
         // Step 6
@@ -350,6 +340,42 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         rval
     }
 
-    // https://drafts.csswg.org/cssom/#cssstyledeclaration
+    // https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-csstext
+    fn CssText(&self) -> DOMString {
+        let elem = self.owner.upcast::<Element>();
+        let style_attribute = elem.style_attribute().borrow();
+
+        if let Some(declarations) = style_attribute.as_ref() {
+            DOMString::from(declarations.to_css_string())
+        } else {
+            DOMString::new()
+        }
+    }
+
+    // https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-csstext
+    fn SetCssText(&self, value: DOMString) -> ErrorResult {
+        let window = window_from_node(self.owner.upcast::<Node>());
+        let element = self.owner.upcast::<Element>();
+
+        // Step 1
+        if self.readonly {
+            return Err(Error::NoModificationAllowed);
+        }
+
+        // Step 3
+        let decl_block = parse_style_attribute(&value, &window.get_url(), window.css_error_reporter(),
+                                               ParserContextExtraData::default());
+        *element.style_attribute().borrow_mut() = if decl_block.normal.is_empty() && decl_block.important.is_empty() {
+            None // Step 2
+        } else {
+            Some(decl_block)
+        };
+        element.sync_property_with_attrs_style();
+        let node = element.upcast::<Node>();
+        node.dirty(NodeDamage::NodeStyleDamaged);
+        Ok(())
+    }
+
+    // https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-_camel_cased_attribute
     css_properties_accessors!(css_properties);
 }

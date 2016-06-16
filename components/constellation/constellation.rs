@@ -13,51 +13,42 @@ use canvas::canvas_paint_thread::CanvasPaintThread;
 use canvas::webgl_paint_thread::WebGLPaintThread;
 use canvas_traits::CanvasMsg;
 use clipboard::ClipboardContext;
-use compositing::CompositorMsg as FromCompositorMsg;
+use compositing::SendableFrameTree;
 use compositing::compositor_thread::CompositorProxy;
 use compositing::compositor_thread::Msg as ToCompositorMsg;
-#[cfg(not(target_os = "windows"))]
-use compositing::sandboxing;
-use compositing::{AnimationTickType, SendableFrameTree};
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg};
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::{Size2D, TypedSize2D};
-#[cfg(not(target_os = "windows"))]
-use gaol;
-#[cfg(not(target_os = "windows"))]
-use gaol::sandbox::{self, Sandbox, SandboxMethods};
 use gfx::font_cache_thread::FontCacheThread;
 use gfx_traits::Epoch;
-#[cfg(not(target_os = "windows"))]
-use ipc_channel::ipc::IpcOneShotServer;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
-use layout_traits::{LayoutControlChan, LayoutThreadFactory};
+use layout_traits::LayoutThreadFactory;
 use msg::constellation_msg::WebDriverCommandMsg;
-use msg::constellation_msg::{FrameId, PipelineId};
+use msg::constellation_msg::{FrameId, FrameType, PipelineId};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
 use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId, NavigationDirection};
 use msg::constellation_msg::{SubpageId, WindowSizeData, WindowSizeType};
 use msg::constellation_msg::{self, PanicMsg};
 use msg::webdriver_msg;
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
+use net_traits::filemanager_thread::FileManagerThreadMsg;
 use net_traits::image_cache_thread::ImageCacheThread;
 use net_traits::storage_thread::StorageThreadMsg;
 use net_traits::{self, ResourceThreads, IpcSend};
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
-use pipeline::{InitialPipelineState, Pipeline, UnprivilegedPipelineContent};
+use pipeline::{ChildProcess, InitialPipelineState, Pipeline};
 use profile_traits::mem;
 use profile_traits::time;
 use rand::{random, Rng, SeedableRng, StdRng};
-use script_traits::{AnimationState, CompositorEvent, ConstellationControlMsg};
+use script_traits::{AnimationState, AnimationTickType, CompositorEvent};
+use script_traits::{ConstellationControlMsg, ConstellationMsg as FromCompositorMsg};
 use script_traits::{DocumentState, LayoutControlMsg};
 use script_traits::{IFrameLoadInfo, IFrameSandboxState, TimerEventRequest};
 use script_traits::{LayoutMsg as FromLayoutMsg, ScriptMsg as FromScriptMsg, ScriptThreadFactory};
 use script_traits::{MozBrowserEvent, MozBrowserErrorType};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
-#[cfg(not(target_os = "windows"))]
-use std::env;
 use std::io::Error as IOError;
 use std::marker::PhantomData;
 use std::mem::replace;
@@ -68,8 +59,9 @@ use style_traits::viewport::ViewportConstraints;
 use timer_scheduler::TimerScheduler;
 use url::Url;
 use util::geometry::PagePx;
+use util::opts;
+use util::prefs::mozbrowser_enabled;
 use util::thread::spawn_named;
-use util::{opts, prefs};
 use webrender_traits;
 
 #[derive(Debug, PartialEq)]
@@ -89,12 +81,9 @@ enum ReadyToSave {
 /// `ScriptThreadFactory` (which in practice are implemented by
 /// `LayoutThread` in the `layout` crate, and `ScriptThread` in
 /// the `script` crate).
-pub struct Constellation<LTF, STF> {
+pub struct Constellation<Message, LTF, STF> {
     /// A channel through which script messages can be sent to this object.
     script_sender: IpcSender<FromScriptMsg>,
-
-    /// A channel through which compositor messages can be sent to this object.
-    compositor_sender: Sender<FromCompositorMsg>,
 
     /// A channel through which layout thread messages can be sent to this object.
     layout_sender: IpcSender<FromLayoutMsg>,
@@ -166,7 +155,7 @@ pub struct Constellation<LTF, STF> {
     /// A channel through which messages can be sent to the memory profiler.
     mem_profiler_chan: mem::ProfilerChan,
 
-    phantom: PhantomData<(LTF, STF)>,
+    phantom: PhantomData<(Message, LTF, STF)>,
 
     window_size: WindowSizeData,
 
@@ -187,6 +176,9 @@ pub struct Constellation<LTF, STF> {
 
     // Webrender interface, if enabled.
     webrender_api_sender: Option<webrender_traits::RenderApiSender>,
+
+    /// Are we shutting down?
+    shutting_down: bool,
 
     /// Have we seen any panics? Hopefully always false!
     handled_panic: bool,
@@ -292,13 +284,15 @@ impl<'a> Iterator for FrameTreeIterator<'a> {
 }
 
 struct WebDriverData {
-    load_channel: Option<(PipelineId, IpcSender<webdriver_msg::LoadStatus>)>
+    load_channel: Option<(PipelineId, IpcSender<webdriver_msg::LoadStatus>)>,
+    resize_channel: Option<IpcSender<WindowSizeData>>,
 }
 
 impl WebDriverData {
     fn new() -> WebDriverData {
         WebDriverData {
-            load_channel: None
+            load_channel: None,
+            resize_channel: None,
         }
     }
 }
@@ -309,31 +303,25 @@ enum ExitPipelineMode {
     Force,
 }
 
-enum ChildProcess {
-    #[cfg(not(target_os = "windows"))]
-    Sandboxed(gaol::platform::process::Process),
-    #[cfg(not(target_os = "windows"))]
-    Unsandboxed(process::Child),
-}
-
-impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF> {
+impl<Message, LTF, STF> Constellation<Message, LTF, STF>
+    where LTF: LayoutThreadFactory<Message=Message>,
+          STF: ScriptThreadFactory<Message=Message>
+{
     pub fn start(state: InitialConstellationState) -> Sender<FromCompositorMsg> {
-        let (ipc_script_sender, ipc_script_receiver) = ipc::channel().expect("ipc channel failure");
-        let script_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_script_receiver);
-
-        let (ipc_layout_sender, ipc_layout_receiver) = ipc::channel().expect("ipc channel failure");
-        let layout_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_layout_receiver);
-
-        let (ipc_panic_sender, ipc_panic_receiver) = ipc::channel().expect("ipc channel failure");
-        let panic_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_panic_receiver);
-
         let (compositor_sender, compositor_receiver) = channel();
-        let compositor_sender_clone = compositor_sender.clone();
 
         spawn_named("Constellation".to_owned(), move || {
-            let mut constellation: Constellation<LTF, STF> = Constellation {
+            let (ipc_script_sender, ipc_script_receiver) = ipc::channel().expect("ipc channel failure");
+            let script_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_script_receiver);
+
+            let (ipc_layout_sender, ipc_layout_receiver) = ipc::channel().expect("ipc channel failure");
+            let layout_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_layout_receiver);
+
+            let (ipc_panic_sender, ipc_panic_receiver) = ipc::channel().expect("ipc channel failure");
+            let panic_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_panic_receiver);
+
+            let mut constellation: Constellation<Message, LTF, STF> = Constellation {
                 script_sender: ipc_script_sender,
-                compositor_sender: compositor_sender_clone,
                 layout_sender: ipc_layout_sender,
                 script_receiver: script_receiver,
                 panic_sender: ipc_panic_sender,
@@ -376,6 +364,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 child_processes: Vec::new(),
                 document_states: HashMap::new(),
                 webrender_api_sender: state.webrender_api_sender,
+                shutting_down: false,
                 handled_panic: false,
                 random_pipeline_closure: opts::get().random_pipeline_closure_probability.map(|prob| {
                     let seed = opts::get().random_pipeline_closure_seed.unwrap_or_else(random);
@@ -393,14 +382,13 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
     }
 
     fn run(&mut self) {
-        loop {
+        while !self.shutting_down || !self.pipelines.is_empty() {
             // Randomly close a pipeline if --random-pipeline-closure-probability is set
             // This is for testing the hardening of the constellation.
             self.maybe_close_random_pipeline();
-            if !self.handle_request() {
-                break;
-            }
+            self.handle_request();
         }
+        self.handle_shutdown();
     }
 
     fn next_pipeline_namespace_id(&mut self) -> PipelineNamespaceId {
@@ -413,104 +401,46 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
     /// Helper function for creating a pipeline
     fn new_pipeline(&mut self,
                     pipeline_id: PipelineId,
-                    parent_info: Option<(PipelineId, SubpageId)>,
+                    parent_info: Option<(PipelineId, SubpageId, FrameType)>,
                     initial_window_size: Option<TypedSize2D<PagePx, f32>>,
                     script_channel: Option<IpcSender<ConstellationControlMsg>>,
                     load_data: LoadData) {
-        let spawning_paint_only = script_channel.is_some();
-        let (pipeline, unprivileged_pipeline_content, privileged_pipeline_content) =
-            Pipeline::create::<LTF, STF>(InitialPipelineState {
-                id: pipeline_id,
-                parent_info: parent_info,
-                constellation_chan: self.script_sender.clone(),
-                layout_to_constellation_chan: self.layout_sender.clone(),
-                panic_chan: self.panic_sender.clone(),
-                scheduler_chan: self.scheduler_chan.clone(),
-                compositor_proxy: self.compositor_proxy.clone_compositor_proxy(),
-                devtools_chan: self.devtools_chan.clone(),
-                bluetooth_thread: self.bluetooth_thread.clone(),
-                image_cache_thread: self.image_cache_thread.clone(),
-                font_cache_thread: self.font_cache_thread.clone(),
-                resource_threads: self.resource_threads.clone(),
-                time_profiler_chan: self.time_profiler_chan.clone(),
-                mem_profiler_chan: self.mem_profiler_chan.clone(),
-                window_size: initial_window_size,
-                script_chan: script_channel,
-                load_data: load_data,
-                device_pixel_ratio: self.window_size.device_pixel_ratio,
-                pipeline_namespace_id: self.next_pipeline_namespace_id(),
-                webrender_api_sender: self.webrender_api_sender.clone(),
-            });
+        if self.shutting_down { return; }
 
-        if spawning_paint_only {
-            privileged_pipeline_content.start_paint_thread();
-        } else {
-            privileged_pipeline_content.start_all();
+        let result = Pipeline::spawn::<Message, LTF, STF>(InitialPipelineState {
+            id: pipeline_id,
+            parent_info: parent_info,
+            constellation_chan: self.script_sender.clone(),
+            layout_to_constellation_chan: self.layout_sender.clone(),
+            panic_chan: self.panic_sender.clone(),
+            scheduler_chan: self.scheduler_chan.clone(),
+            compositor_proxy: self.compositor_proxy.clone_compositor_proxy(),
+            devtools_chan: self.devtools_chan.clone(),
+            bluetooth_thread: self.bluetooth_thread.clone(),
+            image_cache_thread: self.image_cache_thread.clone(),
+            font_cache_thread: self.font_cache_thread.clone(),
+            resource_threads: self.resource_threads.clone(),
+            time_profiler_chan: self.time_profiler_chan.clone(),
+            mem_profiler_chan: self.mem_profiler_chan.clone(),
+            window_size: initial_window_size,
+            script_chan: script_channel,
+            load_data: load_data,
+            device_pixel_ratio: self.window_size.device_pixel_ratio,
+            pipeline_namespace_id: self.next_pipeline_namespace_id(),
+            webrender_api_sender: self.webrender_api_sender.clone(),
+        });
 
-            // Spawn the child process.
-            //
-            // Yes, that's all there is to it!
-            if opts::multiprocess() {
-                self.spawn_multiprocess(pipeline_id, unprivileged_pipeline_content);
-            } else {
-                unprivileged_pipeline_content.start_all::<LTF, STF>(false);
-            }
+        let (pipeline, child_process) = match result {
+            Ok(result) => result,
+            Err(e) => return self.handle_send_error(pipeline_id, e),
+        };
+
+        if let Some(child_process) = child_process {
+            self.child_processes.push(child_process);
         }
 
         assert!(!self.pipelines.contains_key(&pipeline_id));
         self.pipelines.insert(pipeline_id, pipeline);
-    }
-
-    #[cfg(not(target_os = "windows"))]
-    fn spawn_multiprocess(&mut self,
-                          pipeline_id: PipelineId,
-                          unprivileged_pipeline_content: UnprivilegedPipelineContent)
-    {
-        // Note that this function can panic, due to process creation,
-        // avoiding this panic would require a mechanism for dealing
-        // with low-resource scenarios.
-        let (server, token) =
-            IpcOneShotServer::<IpcSender<UnprivilegedPipelineContent>>::new()
-            .expect("Failed to create IPC one-shot server.");
-
-        // If there is a sandbox, use the `gaol` API to create the child process.
-        let child_process = if opts::get().sandbox {
-            let mut command = sandbox::Command::me().expect("Failed to get current sandbox.");
-            command.arg("--content-process").arg(token);
-
-            if let Ok(value) = env::var("RUST_BACKTRACE") {
-                command.env("RUST_BACKTRACE", value);
-            }
-
-            let profile = sandboxing::content_process_sandbox_profile();
-            ChildProcess::Sandboxed(Sandbox::new(profile).start(&mut command)
-                                    .expect("Failed to start sandboxed child process!"))
-        } else {
-            let path_to_self = env::current_exe()
-                .expect("Failed to get current executor.");
-            let mut child_process = process::Command::new(path_to_self);
-            child_process.arg("--content-process");
-            child_process.arg(token);
-
-            if let Ok(value) = env::var("RUST_BACKTRACE") {
-                child_process.env("RUST_BACKTRACE", value);
-            }
-
-            ChildProcess::Unsandboxed(child_process.spawn()
-                                      .expect("Failed to start unsandboxed child process!"))
-        };
-
-        self.child_processes.push(child_process);
-        let (_receiver, sender) = server.accept().expect("Server failed to accept.");
-        if let Err(e) = sender.send(unprivileged_pipeline_content) {
-            self.handle_send_error(pipeline_id, e);
-        }
-    }
-
-    #[cfg(target_os = "windows")]
-    fn spawn_multiprocess(&mut self, _: PipelineId, _: UnprivilegedPipelineContent) {
-        error!("Multiprocess is not supported on Windows.");
-        process::exit(1);
     }
 
     // Push a new (loading) pipeline to the list of pending frame changes
@@ -552,12 +482,12 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
 
     /// Handles loading pages, navigation, and granting access to the compositor
     #[allow(unsafe_code)]
-    fn handle_request(&mut self) -> bool {
+    fn handle_request(&mut self) {
         enum Request {
             Script(FromScriptMsg),
             Compositor(FromCompositorMsg),
             Layout(FromLayoutMsg),
-            Panic(PanicMsg)
+            Panic(PanicMsg),
         }
 
         // Get one incoming request.
@@ -588,46 +518,58 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             }
         };
 
-        // Process the request.
         match request {
-            // Messages from compositor
+            Request::Compositor(message) => {
+                self.handle_request_from_compositor(message)
+            },
+            Request::Script(message) => {
+                self.handle_request_from_script(message);
+            },
+            Request::Layout(message) => {
+                self.handle_request_from_layout(message);
+            },
+            Request::Panic(message) => {
+                self.handle_request_from_panic(message);
+            },
+        }
+    }
 
-
-            Request::Compositor(FromCompositorMsg::Exit) => {
+    fn handle_request_from_compositor(&mut self, message: FromCompositorMsg) {
+        match message {
+            FromCompositorMsg::Exit => {
                 debug!("constellation exiting");
                 self.handle_exit();
-                return false;
             }
             // The compositor discovered the size of a subframe. This needs to be reflected by all
             // frame trees in the navigation context containing the subframe.
-            Request::Compositor(FromCompositorMsg::FrameSize(pipeline_id, size)) => {
+            FromCompositorMsg::FrameSize(pipeline_id, size) => {
                 debug!("constellation got frame size message");
                 self.handle_frame_size_msg(pipeline_id, &Size2D::from_untyped(&size));
             }
-            Request::Compositor(FromCompositorMsg::GetFrame(pipeline_id, resp_chan)) => {
+            FromCompositorMsg::GetFrame(pipeline_id, resp_chan) => {
                 debug!("constellation got get root pipeline message");
                 self.handle_get_frame(pipeline_id, resp_chan);
             }
-            Request::Compositor(FromCompositorMsg::GetPipeline(frame_id, resp_chan)) => {
+            FromCompositorMsg::GetPipeline(frame_id, resp_chan) => {
                 debug!("constellation got get root pipeline message");
                 self.handle_get_pipeline(frame_id, resp_chan);
             }
-            Request::Compositor(FromCompositorMsg::GetPipelineTitle(pipeline_id)) => {
+            FromCompositorMsg::GetPipelineTitle(pipeline_id) => {
                 debug!("constellation got get-pipeline-title message");
                 self.handle_get_pipeline_title_msg(pipeline_id);
             }
-            Request::Compositor(FromCompositorMsg::KeyEvent(key, state, modifiers)) => {
+            FromCompositorMsg::KeyEvent(key, state, modifiers) => {
                 debug!("constellation got key event message");
                 self.handle_key_msg(key, state, modifiers);
             }
             // Load a new page from a typed url
             // If there is already a pending page (self.pending_frames), it will not be overridden;
             // However, if the id is not encompassed by another change, it will be.
-            Request::Compositor(FromCompositorMsg::LoadUrl(source_id, load_data)) => {
+            FromCompositorMsg::LoadUrl(source_id, load_data) => {
                 debug!("constellation got URL load message from compositor");
                 self.handle_load_url_msg(source_id, load_data);
             }
-            Request::Compositor(FromCompositorMsg::IsReadyToSaveImage(pipeline_states)) => {
+            FromCompositorMsg::IsReadyToSaveImage(pipeline_states) => {
                 let is_ready = self.handle_is_ready_to_save_image(pipeline_states);
                 if opts::get().is_running_problem_test {
                     println!("got ready to save image query, result is {:?}", is_ready);
@@ -639,70 +581,73 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 }
             }
             // This should only be called once per constellation, and only by the browser
-            Request::Compositor(FromCompositorMsg::InitLoadUrl(url)) => {
+            FromCompositorMsg::InitLoadUrl(url) => {
                 debug!("constellation got init load URL message");
                 self.handle_init_load(url);
             }
             // Handle a forward or back request
-            Request::Compositor(FromCompositorMsg::Navigate(pipeline_info, direction)) => {
+            FromCompositorMsg::Navigate(pipeline_info, direction) => {
                 debug!("constellation got navigation message from compositor");
                 self.handle_navigate_msg(pipeline_info, direction);
             }
-            Request::Compositor(FromCompositorMsg::WindowSize(new_size, size_type)) => {
+            FromCompositorMsg::WindowSize(new_size, size_type) => {
                 debug!("constellation got window resize message");
                 self.handle_window_size_msg(new_size, size_type);
             }
-            Request::Compositor(FromCompositorMsg::TickAnimation(pipeline_id, tick_type)) => {
+            FromCompositorMsg::TickAnimation(pipeline_id, tick_type) => {
                 self.handle_tick_animation(pipeline_id, tick_type)
             }
-            Request::Compositor(FromCompositorMsg::WebDriverCommand(command)) => {
+            FromCompositorMsg::WebDriverCommand(command) => {
                 debug!("constellation got webdriver command message");
                 self.handle_webdriver_msg(command);
             }
+        }
+    }
 
-
-            // Messages from script
-
-
-            Request::Script(FromScriptMsg::ScriptLoadedURLInIFrame(load_info)) => {
+    fn handle_request_from_script(&mut self, message: FromScriptMsg) {
+        match message {
+            FromScriptMsg::PipelineExited(pipeline_id) => {
+                self.handle_pipeline_exited(pipeline_id);
+            }
+            FromScriptMsg::ScriptLoadedURLInIFrame(load_info) => {
                 debug!("constellation got iframe URL load message {:?} {:?} {:?}",
                        load_info.containing_pipeline_id,
                        load_info.old_subpage_id,
                        load_info.new_subpage_id);
                 self.handle_script_loaded_url_in_iframe_msg(load_info);
             }
-            Request::Script(FromScriptMsg::ChangeRunningAnimationsState(pipeline_id, animation_state)) => {
+            FromScriptMsg::ChangeRunningAnimationsState(pipeline_id, animation_state) => {
                 self.handle_change_running_animations_state(pipeline_id, animation_state)
             }
             // Load a new page from a mouse click
             // If there is already a pending page (self.pending_frames), it will not be overridden;
             // However, if the id is not encompassed by another change, it will be.
-            Request::Script(FromScriptMsg::LoadUrl(source_id, load_data)) => {
+            FromScriptMsg::LoadUrl(source_id, load_data) => {
                 debug!("constellation got URL load message from script");
                 self.handle_load_url_msg(source_id, load_data);
             }
             // A page loaded has completed all parsing, script, and reflow messages have been sent.
-            Request::Script(FromScriptMsg::LoadComplete(pipeline_id)) => {
+            FromScriptMsg::LoadComplete(pipeline_id) => {
                 debug!("constellation got load complete message");
                 self.handle_load_complete_msg(&pipeline_id)
             }
             // The DOM load event fired on a document
-            Request::Script(FromScriptMsg::DOMLoad(pipeline_id)) => {
+            FromScriptMsg::DOMLoad(pipeline_id) => {
                 debug!("constellation got dom load message");
                 self.handle_dom_load(pipeline_id)
             }
             // Handle a forward or back request
-            Request::Script(FromScriptMsg::Navigate(pipeline_info, direction)) => {
+            FromScriptMsg::Navigate(pipeline_info, direction) => {
                 debug!("constellation got navigation message from script");
                 self.handle_navigate_msg(pipeline_info, direction);
             }
             // Notification that the new document is ready to become active
-            Request::Script(FromScriptMsg::ActivateDocument(pipeline_id)) => {
+            FromScriptMsg::ActivateDocument(pipeline_id) => {
                 debug!("constellation got activate document message");
                 self.handle_activate_document_msg(pipeline_id);
             }
             // Update pipeline url after redirections
-            Request::Script(FromScriptMsg::SetFinalUrl(pipeline_id, final_url)) => {
+            FromScriptMsg::SetFinalUrl(pipeline_id, final_url) => {
                 // The script may have finished loading after we already started shutting down.
                 if let Some(ref mut pipeline) = self.pipelines.get_mut(&pipeline_id) {
                     debug!("constellation got set final url message");
@@ -711,42 +656,39 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                     warn!("constellation got set final url message for dead pipeline");
                 }
             }
-            Request::Script(FromScriptMsg::MozBrowserEvent(pipeline_id,
-                                              subpage_id,
-                                              event)) => {
+            FromScriptMsg::MozBrowserEvent(pipeline_id, subpage_id, event) => {
                 debug!("constellation got mozbrowser event message");
                 self.handle_mozbrowser_event_msg(pipeline_id,
                                                  subpage_id,
                                                  event);
             }
-            Request::Script(FromScriptMsg::Focus(pipeline_id)) => {
+            FromScriptMsg::Focus(pipeline_id) => {
                 debug!("constellation got focus message");
                 self.handle_focus_msg(pipeline_id);
             }
-            Request::Script(FromScriptMsg::ForwardMouseButtonEvent(
-                    pipeline_id, event_type, button, point)) => {
+            FromScriptMsg::ForwardMouseButtonEvent(pipeline_id, event_type, button, point) => {
                 let event = CompositorEvent::MouseButtonEvent(event_type, button, point);
                 let msg = ConstellationControlMsg::SendEvent(pipeline_id, event);
                 let result = match self.pipelines.get(&pipeline_id) {
-                    None => { debug!("Pipeline {:?} got mouse button event after closure.", pipeline_id); return true; }
+                    None => { debug!("Pipeline {:?} got mouse button event after closure.", pipeline_id); return; }
                     Some(pipeline) => pipeline.script_chan.send(msg),
                 };
                 if let Err(e) = result {
                     self.handle_send_error(pipeline_id, e);
                 }
             }
-            Request::Script(FromScriptMsg::ForwardMouseMoveEvent(pipeline_id, point)) => {
+            FromScriptMsg::ForwardMouseMoveEvent(pipeline_id, point) => {
                 let event = CompositorEvent::MouseMoveEvent(Some(point));
                 let msg = ConstellationControlMsg::SendEvent(pipeline_id, event);
-               let result = match self.pipelines.get(&pipeline_id) {
-                    None => { debug!("Pipeline {:?} got mouse move event after closure.", pipeline_id); return true; }
+                let result = match self.pipelines.get(&pipeline_id) {
+                    None => { debug!("Pipeline {:?} got mouse move event after closure.", pipeline_id); return; }
                     Some(pipeline) => pipeline.script_chan.send(msg),
                 };
                 if let Err(e) = result {
                     self.handle_send_error(pipeline_id, e);
                 }
             }
-            Request::Script(FromScriptMsg::GetClipboardContents(sender)) => {
+            FromScriptMsg::GetClipboardContents(sender) => {
                 let result = match self.clipboard_ctx {
                     Some(ref ctx) => match ctx.get_contents() {
                         Ok(result) => result,
@@ -761,14 +703,14 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                     warn!("Failed to send clipboard ({})", e);
                 }
             }
-            Request::Script(FromScriptMsg::SetClipboardContents(s)) => {
+            FromScriptMsg::SetClipboardContents(s) => {
                 if let Some(ref mut ctx) = self.clipboard_ctx {
                     if let Err(e) = ctx.set_contents(s) {
                         warn!("Error setting clipboard contents ({})", e);
                     }
                 }
             }
-            Request::Script(FromScriptMsg::RemoveIFrame(pipeline_id, sender)) => {
+            FromScriptMsg::RemoveIFrame(pipeline_id, sender) => {
                 debug!("constellation got remove iframe message");
                 self.handle_remove_iframe_msg(pipeline_id);
                 if let Some(sender) = sender {
@@ -777,82 +719,167 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                     }
                 }
             }
-            Request::Script(FromScriptMsg::NewFavicon(url)) => {
+            FromScriptMsg::NewFavicon(url) => {
                 debug!("constellation got new favicon message");
                 self.compositor_proxy.send(ToCompositorMsg::NewFavicon(url));
             }
-            Request::Script(FromScriptMsg::HeadParsed) => {
+            FromScriptMsg::HeadParsed => {
                 debug!("constellation got head parsed message");
                 self.compositor_proxy.send(ToCompositorMsg::HeadParsed);
             }
-            Request::Script(FromScriptMsg::CreateCanvasPaintThread(size, sender)) => {
+            FromScriptMsg::CreateCanvasPaintThread(size, sender) => {
                 debug!("constellation got create-canvas-paint-thread message");
                 self.handle_create_canvas_paint_thread_msg(&size, sender)
             }
-            Request::Script(FromScriptMsg::CreateWebGLPaintThread(size, attributes, sender)) => {
+            FromScriptMsg::CreateWebGLPaintThread(size, attributes, sender) => {
                 debug!("constellation got create-WebGL-paint-thread message");
                 self.handle_create_webgl_paint_thread_msg(&size, attributes, sender)
             }
-            Request::Script(FromScriptMsg::NodeStatus(message)) => {
+            FromScriptMsg::NodeStatus(message) => {
                 debug!("constellation got NodeStatus message");
                 self.compositor_proxy.send(ToCompositorMsg::Status(message));
             }
-            Request::Script(FromScriptMsg::SetDocumentState(pipeline_id, state)) => {
+            FromScriptMsg::SetDocumentState(pipeline_id, state) => {
                 debug!("constellation got SetDocumentState message");
                 self.document_states.insert(pipeline_id, state);
             }
-            Request::Script(FromScriptMsg::Alert(pipeline_id, message, sender)) => {
+            FromScriptMsg::Alert(pipeline_id, message, sender) => {
                 debug!("constellation got Alert message");
                 self.handle_alert(pipeline_id, message, sender);
             }
 
+            FromScriptMsg::ScrollFragmentPoint(pipeline_id, layer_id, point, smooth) => {
+                self.compositor_proxy.send(ToCompositorMsg::ScrollFragmentPoint(pipeline_id,
+                                                               layer_id,
+                                                               point,
+                                                               smooth));
+            }
 
-            // Messages from layout thread
+            FromScriptMsg::GetClientWindow(send) => {
+                self.compositor_proxy.send(ToCompositorMsg::GetClientWindow(send));
+            }
 
-            Request::Layout(FromLayoutMsg::ChangeRunningAnimationsState(pipeline_id, animation_state)) => {
+            FromScriptMsg::MoveTo(point) => {
+                self.compositor_proxy.send(ToCompositorMsg::MoveTo(point));
+            }
+
+            FromScriptMsg::ResizeTo(size) => {
+                self.compositor_proxy.send(ToCompositorMsg::ResizeTo(size));
+            }
+
+            FromScriptMsg::Exit => {
+                self.compositor_proxy.send(ToCompositorMsg::Exit);
+            }
+
+            FromScriptMsg::SetTitle(pipeline_id, title) => {
+                self.compositor_proxy.send(ToCompositorMsg::ChangePageTitle(pipeline_id, title))
+            }
+
+            FromScriptMsg::SendKeyEvent(key, key_state, key_modifiers) => {
+                self.compositor_proxy.send(ToCompositorMsg::KeyEvent(key, key_state, key_modifiers))
+            }
+
+            FromScriptMsg::TouchEventProcessed(result) => {
+                self.compositor_proxy.send(ToCompositorMsg::TouchEventProcessed(result))
+            }
+
+            FromScriptMsg::GetScrollOffset(pid, lid, send) => {
+                self.compositor_proxy.send(ToCompositorMsg::GetScrollOffset(pid, lid, send));
+            }
+        }
+    }
+
+    fn handle_request_from_layout(&mut self, message: FromLayoutMsg) {
+        match message {
+            FromLayoutMsg::ChangeRunningAnimationsState(pipeline_id, animation_state) => {
                 self.handle_change_running_animations_state(pipeline_id, animation_state)
             }
-            Request::Layout(FromLayoutMsg::SetCursor(cursor)) => {
+            FromLayoutMsg::SetCursor(cursor) => {
                 self.handle_set_cursor_msg(cursor)
             }
-            Request::Layout(FromLayoutMsg::ViewportConstrained(pipeline_id, constraints)) => {
+            FromLayoutMsg::ViewportConstrained(pipeline_id, constraints) => {
                 debug!("constellation got viewport-constrained event message");
                 self.handle_viewport_constrained_msg(pipeline_id, constraints);
             }
+        }
+    }
 
-
-            // Panic messages
-
-            Request::Panic((pipeline_id, panic_reason, backtrace)) => {
+    fn handle_request_from_panic(&mut self, message: PanicMsg) {
+        match message {
+            (pipeline_id, panic_reason, backtrace) => {
                 debug!("handling panic message ({:?})", pipeline_id);
                 self.handle_panic(pipeline_id, panic_reason, backtrace);
             }
         }
-        true
     }
 
     fn handle_exit(&mut self) {
-        for (_id, ref pipeline) in &self.pipelines {
-            pipeline.exit();
+        // TODO: add a timer, which forces shutdown if threads aren't responsive.
+        if self.shutting_down { return; }
+        self.shutting_down = true;
+
+        // TODO: exit before the root frame is set?
+        if let Some(root_id) = self.root_frame_id {
+            self.close_frame(root_id, ExitPipelineMode::Normal);
         }
+    }
+
+    fn handle_shutdown(&mut self) {
+        // At this point, there are no active pipelines,
+        // so we can safely block on other threads, without worrying about deadlock.
+        // Channels to recieve signals when threads are done exiting.
+        let (core_sender, core_receiver) = ipc::channel().expect("Failed to create IPC channel!");
+        let (storage_sender, storage_receiver) = ipc::channel().expect("Failed to create IPC channel!");
+
+        debug!("Exiting image cache.");
         self.image_cache_thread.exit();
-        if let Err(e) = self.resource_threads.send(net_traits::CoreResourceMsg::Exit) {
+
+        debug!("Exiting core resource threads.");
+        if let Err(e) = self.resource_threads.send(net_traits::CoreResourceMsg::Exit(core_sender)) {
             warn!("Exit resource thread failed ({})", e);
         }
+
         if let Some(ref chan) = self.devtools_chan {
+            debug!("Exiting devtools.");
             let msg = DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::ServerExitMsg);
             if let Err(e) = chan.send(msg) {
                 warn!("Exit devtools failed ({})", e);
             }
         }
-        if let Err(e) = self.resource_threads.send(StorageThreadMsg::Exit) {
+
+        debug!("Exiting storage resource threads.");
+        if let Err(e) = self.resource_threads.send(StorageThreadMsg::Exit(storage_sender)) {
             warn!("Exit storage thread failed ({})", e);
         }
+
+        debug!("Exiting file manager resource threads.");
+        if let Err(e) = self.resource_threads.send(FileManagerThreadMsg::Exit) {
+            warn!("Exit storage thread failed ({})", e);
+        }
+
+        debug!("Exiting bluetooth thread.");
         if let Err(e) = self.bluetooth_thread.send(BluetoothMethodMsg::Exit) {
             warn!("Exit bluetooth thread failed ({})", e);
         }
+
+        debug!("Exiting font cache thread.");
         self.font_cache_thread.exit();
+
+        // Receive exit signals from threads.
+        if let Err(e) = core_receiver.recv() {
+            warn!("Exit resource thread failed ({})", e);
+        }
+        if let Err(e) = storage_receiver.recv() {
+            warn!("Exit storage thread failed ({})", e);
+        }
+
+        debug!("Asking compositor to complete shutdown.");
         self.compositor_proxy.send(ToCompositorMsg::ShutdownComplete);
+    }
+
+    fn handle_pipeline_exited(&mut self, pipeline_id: PipelineId) {
+        debug!("Pipeline {:?} exited.", pipeline_id);
+        self.pipelines.remove(&pipeline_id);
     }
 
     fn handle_send_error(&mut self, pipeline_id: PipelineId, err: IOError) {
@@ -880,7 +907,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         debug!("Panic handler for pipeline {:?}: {}.", pipeline_id, reason);
 
         if let Some(pipeline_id) = pipeline_id {
-
+            let pipeline_url = self.pipelines.get(&pipeline_id).map(|pipeline| pipeline.url.clone());
             let parent_info = self.pipelines.get(&pipeline_id).and_then(|pipeline| pipeline.parent_info);
             let window_size = self.pipelines.get(&pipeline_id).and_then(|pipeline| pipeline.size);
 
@@ -888,6 +915,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             self.trigger_mozbrowsererror(pipeline_id, reason, backtrace);
 
             self.close_pipeline(pipeline_id, ExitPipelineMode::Force);
+            self.pipelines.remove(&pipeline_id);
 
             while let Some(pending_pipeline_id) = self.pending_frames.iter().find(|pending| {
                 pending.old_pipeline_id == Some(pipeline_id)
@@ -896,14 +924,19 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 self.close_pipeline(pending_pipeline_id, ExitPipelineMode::Force);
             }
 
+            let failure_url = Url::parse("about:failure").expect("infallible");
+
+            if let Some(pipeline_url) = pipeline_url {
+                if pipeline_url == failure_url {
+                    return error!("about:failure failed");
+                }
+            }
+
             warn!("creating replacement pipeline for about:failure");
 
             let new_pipeline_id = PipelineId::new();
-            self.new_pipeline(new_pipeline_id,
-                              parent_info,
-                              window_size,
-                              None,
-                              LoadData::new(Url::parse("about:failure").expect("infallible"), None, None));
+            let load_data = LoadData::new(failure_url, None, None);
+            self.new_pipeline(new_pipeline_id, parent_info, window_size, None, load_data);
 
             self.push_pending_frame(new_pipeline_id, Some(pipeline_id));
 
@@ -977,13 +1010,11 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
     // containing_page_pipeline_id's frame tree's children. This message is never the result of a
     // page navigation.
     fn handle_script_loaded_url_in_iframe_msg(&mut self, load_info: IFrameLoadInfo) {
-
         let old_pipeline_id = load_info.old_subpage_id
             .and_then(|old_subpage_id| self.subpage_map.get(&(load_info.containing_pipeline_id, old_subpage_id)))
             .cloned();
 
         let (load_data, script_chan, window_size) = {
-
             let old_pipeline = old_pipeline_id
                 .and_then(|old_pipeline_id| self.pipelines.get(&old_pipeline_id));
 
@@ -1036,7 +1067,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
 
         // Create the new pipeline, attached to the parent and push to pending frames
         self.new_pipeline(load_info.new_pipeline_id,
-                          Some((load_info.containing_pipeline_id, load_info.new_subpage_id)),
+                          Some((load_info.containing_pipeline_id, load_info.new_subpage_id, load_info.frame_type)),
                           window_size,
                           script_chan,
                           load_data);
@@ -1070,7 +1101,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             AnimationTickType::Layout => {
                 let msg = LayoutControlMsg::TickAnimations;
                 match self.pipelines.get(&pipeline_id) {
-                    Some(pipeline) => pipeline.layout_chan.0.send(msg),
+                    Some(pipeline) => pipeline.layout_chan.send(msg),
                     None => return warn!("Pipeline {:?} got script tick after closure.", pipeline_id),
                 }
             }
@@ -1081,22 +1112,22 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
     }
 
     fn handle_alert(&mut self, pipeline_id: PipelineId, message: String, sender: IpcSender<bool>) {
-        let display_alert_dialog = if prefs::get_pref("dom.mozbrowser.enabled").as_boolean().unwrap_or(false) {
+        let display_alert_dialog = if mozbrowser_enabled() {
             let parent_pipeline_info = self.pipelines.get(&pipeline_id).and_then(|source| source.parent_info);
             if let Some(_) = parent_pipeline_info {
                 let root_pipeline_id = self.root_frame_id
                     .and_then(|root_frame_id| self.frames.get(&root_frame_id))
                     .map(|root_frame| root_frame.current);
 
-                let ancestor_info = self.get_root_pipeline_and_containing_parent(&pipeline_id);
-                if let Some(ancestor_info) = ancestor_info {
-                    if root_pipeline_id == Some(ancestor_info.0) {
+                let ancestor_info = self.get_mozbrowser_ancestor_info(pipeline_id);
+                if let Some((ancestor_id, subpage_id)) = ancestor_info {
+                    if root_pipeline_id == Some(ancestor_id) {
                         match root_pipeline_id.and_then(|pipeline_id| self.pipelines.get(&pipeline_id)) {
                             Some(root_pipeline) => {
                                 // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowsershowmodalprompt
                                 let event = MozBrowserEvent::ShowModalPrompt("alert".to_owned(), "Alert".to_owned(),
                                                                              String::from(message), "".to_owned());
-                                root_pipeline.trigger_mozbrowser_event(ancestor_info.1, event);
+                                root_pipeline.trigger_mozbrowser_event(subpage_id, event);
                             }
                             None => return warn!("Alert sent to Pipeline {:?} after closure.", root_pipeline_id),
                         }
@@ -1129,7 +1160,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         // requested change so it can update its internal state.
         let parent_info = self.pipelines.get(&source_id).and_then(|source| source.parent_info);
         match parent_info {
-            Some((parent_pipeline_id, subpage_id)) => {
+            Some((parent_pipeline_id, subpage_id, _)) => {
                 self.handle_load_start_msg(&source_id);
                 // Message the constellation to find the script thread for this iframe
                 // and issue an iframe load through there.
@@ -1248,34 +1279,35 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         // Get the ids for the previous and next pipelines.
         let (prev_pipeline_id, next_pipeline_id) = match self.frames.get_mut(&frame_id) {
             Some(frame) => {
+                let prev = frame.current;
                 let next = match direction {
-                    NavigationDirection::Forward => {
-                        match frame.next.pop() {
-                            None => {
-                                warn!("no next page to navigate to");
-                                return;
-                            },
-                            Some(next) => {
-                                frame.prev.push(frame.current);
-                                next
-                            },
+                    NavigationDirection::Forward(delta) => {
+                        if delta > frame.next.len() && delta > 0 {
+                            return warn!("Invalid navigation delta");
                         }
+                        let new_next_len = frame.next.len() - (delta - 1);
+                        frame.prev.push(frame.current);
+                        frame.prev.extend(frame.next.drain(new_next_len..).rev());
+                        frame.current = match frame.next.pop() {
+                            Some(frame) => frame,
+                            None => return warn!("Could not get next frame for forward navigation"),
+                        };
+                        frame.current
                     }
-                    NavigationDirection::Back => {
-                        match frame.prev.pop() {
-                            None => {
-                                warn!("no previous page to navigate to");
-                                return;
-                            },
-                            Some(prev) => {
-                                frame.next.push(frame.current);
-                                prev
-                            },
+                    NavigationDirection::Back(delta) => {
+                        if delta > frame.prev.len() && delta > 0 {
+                            return warn!("Invalid navigation delta");
                         }
+                        let new_prev_len = frame.prev.len() - (delta - 1);
+                        frame.next.push(frame.current);
+                        frame.next.extend(frame.prev.drain(new_prev_len..).rev());
+                        frame.current = match frame.prev.pop() {
+                            Some(frame) => frame,
+                            None => return warn!("Could not get prev frame for back navigation"),
+                        };
+                        frame.current
                     }
                 };
-                let prev = frame.current;
-                frame.current = next;
                 (prev, next)
             },
             None => {
@@ -1310,7 +1342,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 None => return warn!("Pipeline {:?} navigated to after closure.", next_pipeline_id),
                 Some(pipeline) => match pipeline.parent_info {
                     None => return warn!("Pipeline {:?} has no parent info.", next_pipeline_id),
-                    Some((_, new_subpage_id)) => new_subpage_id,
+                    Some((_, new_subpage_id, _)) => new_subpage_id,
                 },
             };
             let msg = ConstellationControlMsg::UpdateSubpageId(parent_pipeline_id,
@@ -1373,7 +1405,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                                    containing_pipeline_id: PipelineId,
                                    subpage_id: SubpageId,
                                    event: MozBrowserEvent) {
-        assert!(prefs::get_pref("dom.mozbrowser.enabled").as_boolean().unwrap_or(false));
+        assert!(mozbrowser_enabled());
 
         // Find the script channel for the given parent pipeline,
         // and pass the event to that script thread.
@@ -1415,9 +1447,9 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             Some(pipeline) => pipeline.parent_info,
             None => return warn!("Pipeline {:?} focus parent after closure.", pipeline_id),
         };
-        let (containing_pipeline_id, subpage_id) = match parent_info {
+        let (containing_pipeline_id, subpage_id, _) = match parent_info {
             Some(info) => info,
-            None => return warn!("Pipeline {:?} focus has no parent.", pipeline_id),
+            None => return debug!("Pipeline {:?} focus has no parent.", pipeline_id),
         };
 
         // Send a message to the parent of the provided pipeline (if it exists)
@@ -1484,6 +1516,13 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         // Find the script channel for the given parent pipeline,
         // and pass the event to that script thread.
         match msg {
+            WebDriverCommandMsg::GetWindowSize(_, reply) => {
+               let _ = reply.send(self.window_size);
+            },
+            WebDriverCommandMsg::SetWindowSize(_, size, reply) => {
+                self.webdriver.resize_channel = Some(reply);
+                self.compositor_proxy.send(ToCompositorMsg::ResizeTo(size));
+            },
             WebDriverCommandMsg::LoadUrl(pipeline_id, load_data, reply) => {
                 self.load_url_for_webdriver(pipeline_id, load_data, reply);
             },
@@ -1543,7 +1582,6 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
     }
 
     fn add_or_replace_pipeline_in_frame_tree(&mut self, frame_change: FrameChange) {
-
         // If the currently focused pipeline is the one being changed (or a child
         // of the pipeline being changed) then update the focus pipeline to be
         // the replacement.
@@ -1575,7 +1613,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             // If a child frame, add it to the parent pipeline. Otherwise
             // it must surely be the root frame being created!
             match self.pipelines.get(&frame_change.new_pipeline_id).and_then(|pipeline| pipeline.parent_info) {
-                Some((parent_id, _)) => {
+                Some((parent_id, _, _)) => {
                     if let Some(parent) = self.pipelines.get_mut(&parent_id) {
                         parent.add_child(frame_id);
                     }
@@ -1703,6 +1741,10 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             }
         }
 
+        if let Some(resize_channel) = self.webdriver.resize_channel.take() {
+            let _ = resize_channel.send(new_size);
+        }
+
         self.window_size = new_size;
     }
 
@@ -1744,7 +1786,6 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         // are met, then the output image should not change and a reftest
         // screenshot can safely be written.
         for frame in self.current_frame_tree_iter(self.root_frame_id) {
-
             let pipeline_id = frame.current;
 
             let pipeline = match self.pipelines.get(&pipeline_id) {
@@ -1761,7 +1802,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             // there's a race condition where a webfont has finished loading,
             // but hasn't yet notified the document.
             let msg = LayoutControlMsg::GetWebFontLoadState(state_sender.clone());
-            if let Err(e) = pipeline.layout_chan.0.send(msg) {
+            if let Err(e) = pipeline.layout_chan.send(msg) {
                 warn!("Get web font failed ({})", e);
             }
             if state_receiver.recv().unwrap_or(true) {
@@ -1796,8 +1837,8 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                         // epoch matches what the compositor has drawn. If they match
                         // (and script is idle) then this pipeline won't change again
                         // and can be considered stable.
-                        let LayoutControlChan(ref layout_chan) = pipeline.layout_chan;
-                        if let Err(e) = layout_chan.send(LayoutControlMsg::GetCurrentEpoch(epoch_sender.clone())) {
+                        let message = LayoutControlMsg::GetCurrentEpoch(epoch_sender.clone());
+                        if let Err(e) = pipeline.layout_chan.send(message) {
                             warn!("Failed to send GetCurrentEpoch ({}).", e);
                         }
                         match epoch_receiver.recv() {
@@ -1822,15 +1863,21 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
 
     /// Checks whether the pipeline or its ancestors are private
     #[allow(dead_code)]
-    fn check_is_pipeline_private(&self, pipeline_id: PipelineId) -> bool {
-        let mut pipeline_id = Some(pipeline_id);
-        while let Some(pipeline) = pipeline_id.and_then(|id| self.pipelines.get(&id)) {
-            if pipeline.is_private {
-                return true;
+    fn check_is_pipeline_private(&self, mut pipeline_id: PipelineId) -> bool {
+        loop {
+            match self.pipelines.get(&pipeline_id) {
+                Some(pipeline) if pipeline.is_private => return true,
+                Some(pipeline) => match pipeline.parent_info {
+                    None => return false,
+                    Some((_, _, FrameType::MozBrowserIFrame)) => return false,
+                    Some((parent_id, _, _)) => pipeline_id = parent_id,
+                },
+                None => {
+                    warn!("Finding private ancestor for pipeline {} after closure.", pipeline_id);
+                    return false;
+                },
             }
-            pipeline_id = pipeline.parent_info.map(|(parent_pipeline_id, _)| parent_pipeline_id);
         }
-        false
     }
 
     // Close a frame (and all children)
@@ -1863,7 +1910,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             warn!("Closing frame {:?} twice.", frame_id);
         }
 
-        if let Some((parent_pipeline_id, _)) = parent_info {
+        if let Some((parent_pipeline_id, _, _)) = parent_info {
             let parent_pipeline = match self.pipelines.get_mut(&parent_pipeline_id) {
                 None => return warn!("Pipeline {:?} child closed after parent.", parent_pipeline_id),
                 Some(parent_pipeline) => parent_pipeline,
@@ -1893,14 +1940,14 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             self.close_frame(*child_frame, exit_mode);
         }
 
-        let pipeline = match self.pipelines.remove(&pipeline_id) {
+        let pipeline = match self.pipelines.get(&pipeline_id) {
             Some(pipeline) => pipeline,
             None => return warn!("Closing pipeline {:?} twice.", pipeline_id),
         };
 
         // If a child pipeline, remove from subpage map
-        if let Some(info) = pipeline.parent_info {
-            self.subpage_map.remove(&info);
+        if let Some((parent_id, subpage_id, _)) = pipeline.parent_info {
+            self.subpage_map.remove(&(parent_id, subpage_id));
         }
 
         // Remove assocation between this pipeline and its holding frame
@@ -1934,9 +1981,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             if let Some(pipeline_id) = rng.choose(&*pipeline_ids) {
                 if let Some(pipeline) = self.pipelines.get(pipeline_id) {
                     // Don't kill the mozbrowser pipeline
-                    if prefs::get_pref("dom.mozbrowser.enabled").as_boolean().unwrap_or(false) &&
-                        pipeline.parent_info.is_none()
-                    {
+                    if mozbrowser_enabled() && pipeline.parent_info.is_none() {
                         info!("Not closing mozbrowser pipeline {}.", pipeline_id);
                     } else {
                         // Note that we deliberately do not do any of the tidying up
@@ -1986,11 +2031,9 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         // with low-resource scenarios.
         if let Some(root_frame_id) = self.root_frame_id {
             if let Some(frame_tree) = self.frame_to_sendable(root_frame_id) {
-
                 let (chan, port) = ipc::channel().expect("Failed to create IPC channel!");
                 self.compositor_proxy.send(ToCompositorMsg::SetFrameTree(frame_tree,
-                                                                         chan,
-                                                                         self.compositor_sender.clone()));
+                                                                         chan));
                 if port.recv().is_err() {
                     warn!("Compositor has discarded SetFrameTree");
                     return; // Our message has been discarded, probably shutting down.
@@ -2003,42 +2046,37 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         }
     }
 
-    /// For a given pipeline, determine the iframe in the root pipeline that transitively contains
+    /// For a given pipeline, determine the mozbrowser iframe that transitively contains
     /// it. There could be arbitrary levels of nested iframes in between them.
-    fn get_root_pipeline_and_containing_parent(&self, pipeline_id: &PipelineId) -> Option<(PipelineId, SubpageId)> {
-        if let Some(pipeline) = self.pipelines.get(pipeline_id) {
-            if let Some(mut ancestor_info) = pipeline.parent_info {
-                if let Some(mut ancestor) = self.pipelines.get(&ancestor_info.0) {
-                    while let Some(next_info) = ancestor.parent_info {
-                        ancestor_info = next_info;
-                        ancestor = match self.pipelines.get(&ancestor_info.0) {
-                            Some(ancestor) => ancestor,
-                            None => {
-                                warn!("Get parent pipeline before root via closed pipeline {:?}.", ancestor_info.0);
-                                return None;
-                            },
-                        };
-                    }
-                    return Some(ancestor_info);
-                }
+    fn get_mozbrowser_ancestor_info(&self, mut pipeline_id: PipelineId) -> Option<(PipelineId, SubpageId)> {
+        loop {
+            match self.pipelines.get(&pipeline_id) {
+                Some(pipeline) => match pipeline.parent_info {
+                    Some((parent_id, subpage_id, FrameType::MozBrowserIFrame)) => return Some((parent_id, subpage_id)),
+                    Some((parent_id, _, _)) => pipeline_id = parent_id,
+                    None => return None,
+                },
+                None => {
+                    warn!("Finding mozbrowser ancestor for pipeline {} after closure.", pipeline_id);
+                    return None;
+                },
             }
         }
-        None
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserlocationchange
-    // Note that this is a no-op if the pipeline is not an immediate child iframe of the root
+    // Note that this is a no-op if the pipeline is not a mozbrowser iframe
     fn trigger_mozbrowserlocationchange(&self, pipeline_id: PipelineId) {
-        if !prefs::get_pref("dom.mozbrowser.enabled").as_boolean().unwrap_or(false) { return; }
+        if !mozbrowser_enabled() { return; }
 
         let event_info = self.pipelines.get(&pipeline_id).and_then(|pipeline| {
-            pipeline.parent_info.map(|(containing_pipeline_id, subpage_id)| {
-                (containing_pipeline_id, subpage_id, pipeline.url.to_string())
+            pipeline.parent_info.map(|(containing_pipeline_id, subpage_id, frame_type)| {
+                (containing_pipeline_id, subpage_id, frame_type, pipeline.url.to_string())
             })
         });
 
-        // If this is an iframe, then send the event with new url
-        if let Some((containing_pipeline_id, subpage_id, url)) = event_info {
+        // If this is a mozbrowser iframe, then send the event with new url
+        if let Some((containing_pipeline_id, subpage_id, FrameType::MozBrowserIFrame, url)) = event_info {
             if let Some(parent_pipeline) = self.pipelines.get(&containing_pipeline_id) {
                 if let Some(frame_id) = self.pipeline_to_frame_map.get(&pipeline_id) {
                     if let Some(frame) = self.frames.get(&frame_id) {
@@ -2055,9 +2093,9 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
     // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowsererror
     // Note that this does not require the pipeline to be an immediate child of the root
     fn trigger_mozbrowsererror(&self, pipeline_id: PipelineId, reason: String, backtrace: String) {
-        if !prefs::get_pref("dom.mozbrowser.enabled").as_boolean().unwrap_or(false) { return; }
+        if !mozbrowser_enabled() { return; }
 
-        let ancestor_info = self.get_root_pipeline_and_containing_parent(&pipeline_id);
+        let ancestor_info = self.get_mozbrowser_ancestor_info(pipeline_id);
 
         if let Some(ancestor_info) = ancestor_info {
             match self.pipelines.get(&ancestor_info.0) {

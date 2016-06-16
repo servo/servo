@@ -5,6 +5,7 @@
 //! Common handling of keyboard input and state management for text input controls
 
 use clipboard_provider::ClipboardProvider;
+use dom::bindings::str::DOMString;
 use dom::keyboardevent::{KeyboardEvent, key_value};
 use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
 use msg::constellation_msg::{Key, KeyModifiers};
@@ -13,7 +14,6 @@ use std::cmp::{max, min};
 use std::default::Default;
 use std::ops::Range;
 use std::usize;
-use util::str::DOMString;
 
 #[derive(Copy, Clone, PartialEq)]
 pub enum Selection {
@@ -547,6 +547,11 @@ impl<T: ClipboardProvider> TextInput<T> {
             Key::Tab => KeyReaction::TriggerDefaultAction,
             _ => KeyReaction::Nothing,
         }
+    }
+
+    /// Whether the content is empty.
+    pub fn is_empty(&self) -> bool {
+        self.lines.len() <= 1 && self.lines.get(0).map_or(true, |line| line.is_empty())
     }
 
     /// The length of the content in bytes.

@@ -14,10 +14,11 @@
 #![feature(mpsc_select)]
 #![feature(nonzero)]
 #![feature(on_unimplemented)]
-#![feature(peekable_is_empty)]
+#![feature(optin_builtin_traits)]
 #![feature(plugin)]
 #![feature(slice_patterns)]
 #![feature(stmt_expr_attributes)]
+#![feature(question_mark)]
 
 #![deny(unsafe_code)]
 #![allow(non_snake_case)]
@@ -37,6 +38,7 @@ extern crate canvas;
 extern crate canvas_traits;
 extern crate caseless;
 extern crate core;
+#[macro_use]
 extern crate cssparser;
 extern crate devtools_traits;
 extern crate encoding;
@@ -58,6 +60,7 @@ extern crate msg;
 extern crate net_traits;
 extern crate num_traits;
 extern crate offscreen_gl_context;
+extern crate open;
 extern crate phf;
 #[macro_use]
 extern crate profile_traits;
@@ -76,7 +79,6 @@ extern crate style;
 extern crate time;
 #[cfg(any(target_os = "macos", target_os = "linux"))]
 extern crate tinyfiledialogs;
-extern crate unicase;
 extern crate url;
 #[macro_use]
 extern crate util;
@@ -85,8 +87,9 @@ extern crate webrender_traits;
 extern crate websocket;
 extern crate xml5ever;
 
+mod blob_url_store;
+pub mod bluetooth_blacklist;
 pub mod clipboard_provider;
-pub mod cors;
 mod devtools;
 pub mod document_loader;
 #[macro_use]
@@ -107,8 +110,9 @@ mod unpremultiplytable;
 mod webdriver_handlers;
 
 use dom::bindings::codegen::RegisterBindings;
-use js::jsapi::SetDOMProxyInformation;
+use js::jsapi::{Handle, JSContext, JSObject, SetDOMProxyInformation};
 use std::ptr;
+use util::opts;
 
 #[cfg(target_os = "linux")]
 #[allow(unsafe_code)]
@@ -154,7 +158,6 @@ fn perform_platform_specific_initialization() {}
 #[allow(unsafe_code)]
 pub fn init() {
     unsafe {
-        assert_eq!(js::jsapi::JS_Init(), true);
         SetDOMProxyInformation(ptr::null(), 0, Some(script_thread::shadow_check_callback));
     }
 
@@ -164,3 +167,14 @@ pub fn init() {
 
     perform_platform_specific_initialization();
 }
+
+/// FIXME(pcwalton): Currently WebRender cannot handle DOM-initiated scrolls. Remove this when it
+/// can. See PR #11680 for details.
+///
+/// This function is only marked `unsafe` because the `[Func=foo]` WebIDL attribute requires it. It
+/// shouldn't actually do anything unsafe.
+#[allow(unsafe_code)]
+pub unsafe fn script_can_initiate_scroll(_: *mut JSContext, _: Handle<*mut JSObject>) -> bool {
+    !opts::get().use_webrender
+}
+

@@ -43,7 +43,7 @@
         #![allow(unused_imports)]
         % if not property.derived_from:
             use cssparser::Parser;
-            use parser::ParserContext;
+            use parser::{ParserContext, ParserContextExtraData};
             use properties::{CSSWideKeyword, DeclaredValue, Shorthand};
         % endif
         use error_reporting::ParseErrorReporter;

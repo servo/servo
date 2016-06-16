@@ -6,9 +6,7 @@
 #![feature(core_intrinsics)]
 #![feature(custom_derive)]
 #![feature(fnbox)]
-#![feature(optin_builtin_traits)]
 #![feature(plugin)]
-#![feature(panic_handler)]
 #![feature(reflect_marker)]
 #![feature(step_by)]
 
@@ -26,8 +24,6 @@ extern crate euclid;
 extern crate getopts;
 extern crate heapsize;
 extern crate ipc_channel;
-#[cfg(feature = "non-geckolib")]
-extern crate js;
 #[allow(unused_extern_crates)]
 #[macro_use]
 extern crate lazy_static;
@@ -40,11 +36,13 @@ extern crate rand;
 extern crate rustc_serialize;
 extern crate serde;
 extern crate smallvec;
-extern crate string_cache;
 extern crate url;
+#[cfg(all(unix, not(target_os = "macos"), not(target_os = "ios"), not(target_os = "android")))]
+extern crate xdg;
 
 use std::sync::Arc;
 
+pub mod basedir;
 pub mod cache;
 #[allow(unsafe_code)]
 pub mod debug_utils;
@@ -52,16 +50,11 @@ pub mod geometry;
 #[allow(unsafe_code)]
 pub mod ipc;
 pub mod linked_list;
-#[cfg(feature = "non-geckolib")]
-#[allow(unsafe_code)]
-pub mod non_geckolib;
 #[allow(unsafe_code)]
 pub mod opts;
 pub mod panicking;
-#[allow(unsafe_code)]
 pub mod prefs;
 pub mod print_tree;
-#[allow(unsafe_code)]
 pub mod resource_files;
 #[allow(unsafe_code)]
 pub mod str;

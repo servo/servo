@@ -3,12 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::RGBA;
-use dom::attr::{Attr, AttrValue};
+use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::{EventHandlerNonNull, OnBeforeUnloadEventHandlerNonNull};
 use dom::bindings::codegen::Bindings::HTMLBodyElementBinding::{self, HTMLBodyElementMethods};
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{LayoutJS, Root};
+use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
 use dom::eventtarget::EventTarget;
@@ -17,9 +18,9 @@ use dom::node::{Node, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use script_traits::ScriptMsg as ConstellationMsg;
 use string_cache::Atom;
+use style::attr::AttrValue;
 use time;
 use url::Url;
-use util::str::DOMString;
 
 /// How long we should wait before performing the initial reflow after `<body>` is parsed, in
 /// nanoseconds.
@@ -141,8 +142,10 @@ impl VirtualMethods for HTMLBodyElement {
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
         match *name {
             atom!("bgcolor") |
-            atom!("text") => AttrValue::from_legacy_color(value),
-            atom!("background") => AttrValue::from_url(document_from_node(self).url(), value),
+            atom!("text") => AttrValue::from_legacy_color(value.into()),
+            atom!("background") => {
+                AttrValue::from_url(document_from_node(self).url(), value.into())
+            },
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }

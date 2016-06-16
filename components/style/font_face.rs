@@ -6,6 +6,7 @@ use computed_values::font_family::FontFamily;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
 use parser::{ParserContext, log_css_error};
 use properties::longhands::font_family::parse_one_family;
+use std::iter;
 use url::Url;
 
 #[derive(Clone, Debug, HeapSizeOf, PartialEq, Eq, Deserialize, Serialize)]
@@ -55,6 +56,37 @@ pub fn parse_font_face_block(context: &ParserContext, input: &mut Parser)
             })
         }
         _ => Err(())
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct EffectiveSources(Vec<Source>);
+
+impl FontFaceRule {
+    /// Returns the list of effective sources for that font-face, that is the
+    /// sources which don't list any format hint, or the ones which list at
+    /// least "truetype" or "opentype".
+    pub fn effective_sources(&self) -> EffectiveSources {
+        EffectiveSources(self.sources.iter().rev().filter(|source| {
+            if let Source::Url(ref url_source) = **source {
+                let hints = &url_source.format_hints;
+                // We support only opentype fonts and truetype is an alias for
+                // that format. Sources without format hints need to be
+                // downloaded in case we support them.
+                hints.is_empty() || hints.iter().any(|hint| {
+                    hint == "truetype" || hint == "opentype" || hint == "woff"
+                })
+            } else {
+                true
+            }
+        }).cloned().collect())
+    }
+}
+
+impl iter::Iterator for EffectiveSources {
+    type Item = Source;
+    fn next(&mut self) -> Option<Source> {
+        self.0.pop()
     }
 }
 

@@ -58,7 +58,7 @@ class MachCommands(CommandBase):
             self.context.built_tests = False
 
     @Command('test',
-             description='Run all Servo tests',
+             description='Run specified Servo tests',
              category='testing')
     @CommandArgument('params', default=None, nargs="...",
                      help="Optionally select test based on "
@@ -68,16 +68,19 @@ class MachCommands(CommandBase):
                           HELP_RENDER_MODE)
     @CommandArgument('--release', default=False, action="store_true",
                      help="Run with a release build of servo")
-    @CommandArgument('--faster', default=False, action="store_true",
-                     help="Only check changed files and skip the WPT lint in tidy")
+    @CommandArgument('--tidy-all', default=False, action="store_true",
+                     help="Check all files, and run the WPT lint in tidy, "
+                          "even if unchanged")
     @CommandArgument('--no-progress', default=False, action="store_true",
                      help="Don't show progress for tidy")
     @CommandArgument('--self-test', default=False, action="store_true",
                      help="Run unit tests for tidy")
-    def test(self, params, render_mode=DEFAULT_RENDER_MODE, release=False, faster=False, no_progress=False,
-             self_test=False):
+    @CommandArgument('--all', default=False, action="store_true", dest="all_suites",
+                     help="Run all test suites")
+    def test(self, params, render_mode=DEFAULT_RENDER_MODE, release=False, tidy_all=False,
+             no_progress=False, self_test=False, all_suites=False):
         suites = OrderedDict([
-            ("tidy", {"kwargs": {"faster": faster, "no_progress": no_progress, "self_test": self_test},
+            ("tidy", {"kwargs": {"all_files": tidy_all, "no_progress": no_progress, "self_test": self_test},
                       "include_arg": "include"}),
             ("wpt", {"kwargs": {"release": release},
                      "paths": [path.abspath(path.join("tests", "wpt", "web-platform-tests")),
@@ -99,7 +102,13 @@ class MachCommands(CommandBase):
         selected_suites = OrderedDict()
 
         if params is None:
-            params = suites.keys()
+            if all_suites:
+                params = suites.keys()
+            else:
+                print("Specify a test path or suite name, or pass --all to run all test suites.\n\nAvailable suites:")
+                for s in suites:
+                    print("    %s" % s)
+                return 1
 
         for arg in params:
             found = False
@@ -178,6 +187,10 @@ class MachCommands(CommandBase):
             args += ["-p", "%s_tests" % crate]
         args += test_patterns
 
+        features = self.servo_features()
+        if features:
+            args += ["--features", "%s" % ' '.join(features)]
+
         env = self.build_env()
         env["RUST_BACKTRACE"] = "1"
 
@@ -255,18 +268,18 @@ class MachCommands(CommandBase):
     @Command('test-tidy',
              description='Run the source code tidiness check',
              category='testing')
-    @CommandArgument('--faster', default=False, action="store_true",
-                     help="Only check changed files and skip the WPT lint in tidy, "
-                          "if there are no changes in the WPT files")
+    @CommandArgument('--all', default=False, action="store_true", dest="all_files",
+                     help="Check all files, and run the WPT lint in tidy, "
+                          "even if unchanged")
     @CommandArgument('--no-progress', default=False, action="store_true",
                      help="Don't show progress for tidy")
     @CommandArgument('--self-test', default=False, action="store_true",
                      help="Run unit tests for tidy")
-    def test_tidy(self, faster, no_progress, self_test):
+    def test_tidy(self, all_files, no_progress, self_test):
         if self_test:
             return test_tidy.do_tests()
         else:
-            return tidy.scan(faster, not no_progress)
+            return tidy.scan(not all_files, not no_progress)
 
     @Command('test-webidl',
              description='Run the WebIDL parser tests',
@@ -334,6 +347,15 @@ class MachCommands(CommandBase):
         execfile(run_file, run_globals)
         return run_globals["run_tests"](**kwargs)
 
+    @Command('update-manifest',
+             description='run test-wpt --manifest-update SKIP_TESTS to regenerate MANIFEST.json',
+             category='testing',
+             parser=create_parser_wpt)
+    def update_manifest(self, **kwargs):
+        kwargs['test_list'].append(str('SKIP_TESTS'))
+        kwargs['manifest_update'] = True
+        return self.test_wpt(**kwargs)
+
     @Command('update-wpt',
              description='Update the web platform tests',
              category='testing',
@@ -344,6 +366,11 @@ class MachCommands(CommandBase):
         self.ensure_bootstrapped()
         run_file = path.abspath(path.join("tests", "wpt", "update.py"))
         kwargs["no_patch"] = not patch
+
+        if kwargs["no_patch"] and kwargs["sync"]:
+            print("Are you sure you don't want a patch?")
+            return 1
+
         run_globals = {"__file__": run_file}
         execfile(run_file, run_globals)
         return run_globals["update_tests"](**kwargs)
@@ -399,6 +426,11 @@ class MachCommands(CommandBase):
         self.ensure_bootstrapped()
         run_file = path.abspath(path.join("tests", "wpt", "update_css.py"))
         kwargs["no_patch"] = not patch
+
+        if kwargs["no_patch"] and kwargs["sync"]:
+            print("Are you sure you don't want a patch?")
+            return 1
+
         run_globals = {"__file__": run_file}
         execfile(run_file, run_globals)
         return run_globals["update_tests"](**kwargs)

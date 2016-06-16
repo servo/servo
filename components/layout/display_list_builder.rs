@@ -19,21 +19,20 @@ use euclid::{Matrix4D, Point2D, Point3D, Rect, SideOffsets2D, Size2D};
 use flex::FlexFlow;
 use flow::{BaseFlow, Flow, IS_ABSOLUTELY_POSITIONED};
 use flow_ref;
+use fragment::SpecificFragmentInfo;
 use fragment::{CoordinateSystem, Fragment, HAS_LAYER, ImageFragmentInfo, ScannedTextFragmentInfo};
-use fragment::{SpecificFragmentInfo};
 use gfx::display_list::{BLUR_INFLATION_FACTOR, BaseDisplayItem, BorderDisplayItem};
 use gfx::display_list::{BorderRadii, BoxShadowClipMode, BoxShadowDisplayItem, ClippingRegion};
-use gfx::display_list::{DisplayItem, DisplayItemMetadata, DisplayListSection};
-use gfx::display_list::{GradientDisplayItem};
-use gfx::display_list::{GradientStop, IframeDisplayItem, ImageDisplayItem, WebGLDisplayItem, LayeredItem, LayerInfo};
-use gfx::display_list::{LineDisplayItem, OpaqueNode, SolidColorDisplayItem};
-use gfx::display_list::{StackingContext, StackingContextId, StackingContextType};
+use gfx::display_list::{DisplayItem, DisplayItemMetadata, DisplayListSection, GradientDisplayItem};
+use gfx::display_list::{GradientStop, IframeDisplayItem, ImageDisplayItem, WebGLDisplayItem};
+use gfx::display_list::{LayeredItem, LayerInfo, LineDisplayItem, OpaqueNode};
+use gfx::display_list::{SolidColorDisplayItem, StackingContext, StackingContextType};
 use gfx::display_list::{TextDisplayItem, TextOrientation, WebRenderImageInfo};
 use gfx::paint_thread::THREAD_TINT_COLORS;
 use gfx::text::glyph::ByteIndex;
-use gfx_traits::{color, ScrollPolicy};
+use gfx_traits::{color, ScrollPolicy, StackingContextId};
 use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFlow, LAST_FRAGMENT_OF_ELEMENT};
-use ipc_channel::ipc::{self};
+use ipc_channel::ipc;
 use list_item::ListItemFlow;
 use model::{self, MaybeAuto, ToGfxMatrix};
 use net_traits::image::base::PixelFormat;
@@ -378,7 +377,7 @@ impl FragmentDisplayListBuilding for Fragment {
         let base = state.create_base_display_item(&bounds,
                                                   &clip,
                                                   self.node,
-                                                  style.get_cursor(Cursor::DefaultCursor),
+                                                  style.get_cursor(Cursor::Default),
                                                   display_list_section);
         state.add_display_item(
             DisplayItem::SolidColorClass(box SolidColorDisplayItem {
@@ -570,7 +569,7 @@ impl FragmentDisplayListBuilding for Fragment {
             let base = state.create_base_display_item(&bounds,
                                                       &clip,
                                                       self.node,
-                                                      style.get_cursor(Cursor::DefaultCursor),
+                                                      style.get_cursor(Cursor::Default),
                                                       display_list_section);
             state.add_display_item(DisplayItem::ImageClass(box ImageDisplayItem {
                 base: base,
@@ -592,35 +591,41 @@ impl FragmentDisplayListBuilding for Fragment {
         let mut clip = clip.clone();
         clip.intersect_rect(absolute_bounds);
 
-        // This is the distance between the center and the ending point; i.e. half of the distance
-        // between the starting point and the ending point.
-        let delta = match gradient.angle_or_corner {
-            AngleOrCorner::Angle(angle) => {
-                // Get correct gradient line length, based on:
-                // https://drafts.csswg.org/css-images-3/#linear-gradients
-                let dir = Point2D::new(angle.radians().sin(), -angle.radians().cos());
 
-                let line_length = (dir.x * absolute_bounds.size.width.to_f32_px()).abs() +
-                                  (dir.y * absolute_bounds.size.height.to_f32_px()).abs();
-
-                let inv_dir_length = 1.0 / (dir.x * dir.x + dir.y * dir.y).sqrt();
-
-                Point2D::new(Au::from_f32_px(dir.x * inv_dir_length * line_length / 2.0),
-                             Au::from_f32_px(dir.y * inv_dir_length * line_length / 2.0))
-            }
+        let angle = match gradient.angle_or_corner {
+            AngleOrCorner::Angle(angle) => angle.radians(),
             AngleOrCorner::Corner(horizontal, vertical) => {
-                let x_factor = match horizontal {
-                    HorizontalDirection::Left => -1,
-                    HorizontalDirection::Right => 1,
-                };
-                let y_factor = match vertical {
-                    VerticalDirection::Top => -1,
-                    VerticalDirection::Bottom => 1,
-                };
-                Point2D::new(absolute_bounds.size.width * x_factor / 2,
-                             absolute_bounds.size.height * y_factor / 2)
+                // This the angle for one of the diagonals of the box. Our angle
+                // will either be this one, this one + PI, or one of the other
+                // two perpendicular angles.
+                let atan = (absolute_bounds.size.height.to_f32_px() /
+                            absolute_bounds.size.width.to_f32_px()).atan();
+                match (horizontal, vertical) {
+                    (HorizontalDirection::Right, VerticalDirection::Bottom)
+                        => f32::consts::PI - atan,
+                    (HorizontalDirection::Left, VerticalDirection::Bottom)
+                        => f32::consts::PI + atan,
+                    (HorizontalDirection::Right, VerticalDirection::Top)
+                        => atan,
+                    (HorizontalDirection::Left, VerticalDirection::Top)
+                        => -atan,
+                }
             }
         };
+
+        // Get correct gradient line length, based on:
+        // https://drafts.csswg.org/css-images-3/#linear-gradients
+        let dir = Point2D::new(angle.sin(), -angle.cos());
+
+        let line_length = (dir.x * absolute_bounds.size.width.to_f32_px()).abs() +
+                          (dir.y * absolute_bounds.size.height.to_f32_px()).abs();
+
+        let inv_dir_length = 1.0 / (dir.x * dir.x + dir.y * dir.y).sqrt();
+
+        // This is the vector between the center and the ending point; i.e. half
+        // of the distance between the starting point and the ending point.
+        let delta = Point2D::new(Au::from_f32_px(dir.x * inv_dir_length * line_length / 2.0),
+                                 Au::from_f32_px(dir.y * inv_dir_length * line_length / 2.0));
 
         // This is the length of the gradient line.
         let length = Au::from_f32_px(
@@ -629,7 +634,8 @@ impl FragmentDisplayListBuilding for Fragment {
         // Determine the position of each stop per CSS-IMAGES § 3.4.
         //
         // FIXME(#3908, pcwalton): Make sure later stops can't be behind earlier stops.
-        let (mut stops, mut stop_run) = (Vec::new(), None);
+        let mut stops = Vec::with_capacity(gradient.stops.len());
+        let mut stop_run = None;
         for (i, stop) in gradient.stops.iter().enumerate() {
             let offset = match stop.position {
                 None => {
@@ -691,7 +697,7 @@ impl FragmentDisplayListBuilding for Fragment {
         let base = state.create_base_display_item(absolute_bounds,
                                                   &clip,
                                                   self.node,
-                                                  style.get_cursor(Cursor::DefaultCursor),
+                                                  style.get_cursor(Cursor::Default),
                                                   display_list_section);
         let gradient_display_item = DisplayItem::GradientClass(box GradientDisplayItem {
             base: base,
@@ -721,7 +727,7 @@ impl FragmentDisplayListBuilding for Fragment {
             let base = state.create_base_display_item(&bounds,
                                                       &clip,
                                                       self.node,
-                                                      style.get_cursor(Cursor::DefaultCursor),
+                                                      style.get_cursor(Cursor::Default),
                                                       display_list_section);
             state.add_display_item(DisplayItem::BoxShadowClass(box BoxShadowDisplayItem {
                 base: base,
@@ -793,7 +799,7 @@ impl FragmentDisplayListBuilding for Fragment {
         let base = state.create_base_display_item(&bounds,
                                                   &clip,
                                                   self.node,
-                                                  style.get_cursor(Cursor::DefaultCursor),
+                                                  style.get_cursor(Cursor::Default),
                                                   display_list_section);
         state.add_display_item(DisplayItem::BorderClass(box BorderDisplayItem {
             base: base,
@@ -836,7 +842,7 @@ impl FragmentDisplayListBuilding for Fragment {
         let base = state.create_base_display_item(&bounds,
                                                   &clip,
                                                   self.node,
-                                                  style.get_cursor(Cursor::DefaultCursor),
+                                                  style.get_cursor(Cursor::Default),
                                                   DisplayListSection::Outlines);
         state.add_display_item(DisplayItem::BorderClass(box BorderDisplayItem {
             base: base,
@@ -861,7 +867,7 @@ impl FragmentDisplayListBuilding for Fragment {
         let base = state.create_base_display_item(stacking_relative_border_box,
                                                   clip,
                                                   self.node,
-                                                  style.get_cursor(Cursor::DefaultCursor),
+                                                  style.get_cursor(Cursor::Default),
                                                   DisplayListSection::Content);
         state.add_display_item(DisplayItem::BorderClass(box BorderDisplayItem {
             base: base,
@@ -882,7 +888,7 @@ impl FragmentDisplayListBuilding for Fragment {
         let base = state.create_base_display_item(&baseline,
                                                   clip,
                                                   self.node,
-                                                  style.get_cursor(Cursor::DefaultCursor),
+                                                  style.get_cursor(Cursor::Default),
                                                   DisplayListSection::Content);
         state.add_display_item(DisplayItem::LineClass(box LineDisplayItem {
             base: base,
@@ -899,7 +905,7 @@ impl FragmentDisplayListBuilding for Fragment {
         let base = state.create_base_display_item(stacking_relative_border_box,
                                                   clip,
                                                   self.node,
-                                                  self.style.get_cursor(Cursor::DefaultCursor),
+                                                  self.style.get_cursor(Cursor::Default),
                                                   DisplayListSection::Content);
         state.add_display_item(DisplayItem::BorderClass(box BorderDisplayItem {
             base: base,
@@ -950,7 +956,7 @@ impl FragmentDisplayListBuilding for Fragment {
             let base = state.create_base_display_item(stacking_relative_border_box,
                                                       &clip,
                                                       self.node,
-                                                      self.style.get_cursor(Cursor::DefaultCursor),
+                                                      self.style.get_cursor(Cursor::Default),
                                                       display_list_section);
             state.add_display_item(
                 DisplayItem::SolidColorClass(box SolidColorDisplayItem {
@@ -975,14 +981,14 @@ impl FragmentDisplayListBuilding for Fragment {
                                        stacking_relative_border_box.origin.y),
                           Size2D::new(INSERTION_POINT_LOGICAL_WIDTH,
                                       stacking_relative_border_box.size.height));
-            cursor = Cursor::TextCursor;
+            cursor = Cursor::Text;
         } else {
             insertion_point_bounds =
                 Rect::new(Point2D::new(stacking_relative_border_box.origin.x,
                                        stacking_relative_border_box.origin.y + advance),
                           Size2D::new(stacking_relative_border_box.size.width,
                                       INSERTION_POINT_LOGICAL_WIDTH));
-            cursor = Cursor::VerticalTextCursor;
+            cursor = Cursor::VerticalText;
         };
 
         let base = state.create_base_display_item(&insertion_point_bounds,
@@ -1202,7 +1208,7 @@ impl FragmentDisplayListBuilding for Fragment {
                         &stacking_relative_content_box,
                         clip,
                         self.node,
-                        self.style.get_cursor(Cursor::DefaultCursor),
+                        self.style.get_cursor(Cursor::Default),
                         DisplayListSection::Content);
                     let item = DisplayItem::IframeClass(box IframeDisplayItem {
                         base: base,
@@ -1229,7 +1235,7 @@ impl FragmentDisplayListBuilding for Fragment {
                         &stacking_relative_content_box,
                         clip,
                         self.node,
-                        self.style.get_cursor(Cursor::DefaultCursor),
+                        self.style.get_cursor(Cursor::Default),
                         DisplayListSection::Content);
                     state.add_display_item(DisplayItem::ImageClass(box ImageDisplayItem {
                         base: base,
@@ -1265,7 +1271,7 @@ impl FragmentDisplayListBuilding for Fragment {
                         &stacking_relative_content_box,
                         clip,
                         self.node,
-                        self.style.get_cursor(Cursor::DefaultCursor),
+                        self.style.get_cursor(Cursor::Default),
                         DisplayListSection::Content);
                     let display_item = match canvas_data {
                         CanvasData::Pixels(canvas_data) => {
@@ -1539,12 +1545,12 @@ impl FragmentDisplayListBuilding for Fragment {
         // Determine the orientation and cursor to use.
         let (orientation, cursor) = if self.style.writing_mode.is_vertical() {
             if self.style.writing_mode.is_sideways_left() {
-                (TextOrientation::SidewaysLeft, Cursor::VerticalTextCursor)
+                (TextOrientation::SidewaysLeft, Cursor::VerticalText)
             } else {
-                (TextOrientation::SidewaysRight, Cursor::VerticalTextCursor)
+                (TextOrientation::SidewaysRight, Cursor::VerticalText)
             }
         } else {
-            (TextOrientation::Upright, Cursor::TextCursor)
+            (TextOrientation::Upright, Cursor::Text)
         };
 
         // Compute location of the baseline.
@@ -1643,7 +1649,7 @@ impl FragmentDisplayListBuilding for Fragment {
             &shadow_bounds(&stacking_relative_box, blur_radius, Au(0)),
             clip,
             self.node,
-            self.style.get_cursor(Cursor::DefaultCursor),
+            self.style.get_cursor(Cursor::Default),
             DisplayListSection::Content);
         state.add_display_item(DisplayItem::BoxShadowClass(box BoxShadowDisplayItem {
             base: base,
@@ -1680,13 +1686,18 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
             return parent_id;
         }
 
-        let stacking_context_id =
+        let has_scrolling_overflow = self.has_scrolling_overflow();
+        let stacking_context_id = if has_scrolling_overflow {
+            StackingContextId::new_outer(self.fragment.fragment_type())
+        } else {
             StackingContextId::new_of_type(self.fragment.node.id() as usize,
-                                           self.fragment.fragment_type());
+                                           self.fragment.fragment_type())
+        };
         self.base.stacking_context_id = stacking_context_id;
 
-        let inner_stacking_context_id = if self.has_scrolling_overflow() {
-            StackingContextId::new_of_type(self.base.flow_id(), self.fragment.fragment_type())
+        let inner_stacking_context_id = if has_scrolling_overflow {
+            StackingContextId::new_of_type(self.fragment.node.id() as usize,
+                                           self.fragment.fragment_type())
         } else {
             stacking_context_id
         };

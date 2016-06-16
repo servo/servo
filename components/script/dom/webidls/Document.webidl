@@ -13,10 +13,10 @@ interface Document : Node {
   [SameObject]
   readonly attribute DOMImplementation implementation;
   [Constant]
-  readonly attribute DOMString URL;
-  readonly attribute Element? activeElement;
+  readonly attribute USVString URL;
   [Constant]
-  readonly attribute DOMString documentURI;
+  readonly attribute USVString documentURI;
+  // readonly attribute USVString origin;
   readonly attribute DOMString compatMode;
   readonly attribute DOMString characterSet;
   readonly attribute DOMString charset; // legacy alias of .characterSet
@@ -53,7 +53,7 @@ interface Document : Node {
   [NewObject, Throws]
   Attr createAttribute(DOMString localName);
   [NewObject, Throws]
-  Attr createAttributeNS(DOMString? namespace, DOMString localName);
+  Attr createAttributeNS(DOMString? namespace, DOMString qualifiedName);
 
   [NewObject, Throws]
   Event createEvent(DOMString interface_);
@@ -91,6 +91,7 @@ partial /*sealed*/ interface Document {
   // DOM tree accessors
      getter object (DOMString name);
            attribute DOMString title;
+  //       attribute DOMString dir;
            [SetterThrows]
            attribute HTMLElement? body;
   readonly attribute HTMLHeadElement? head;
@@ -107,9 +108,6 @@ partial /*sealed*/ interface Document {
   [SameObject]
   readonly attribute HTMLCollection scripts;
   NodeList getElementsByName(DOMString elementName);
-  // NodeList getItems(optional DOMString typeNames = ""); // microdata
-  // [SameObject]
-  // readonly attribute DOMElementMap cssElementMap;
   readonly attribute HTMLScriptElement? currentScript;
 
   // dynamic markup insertion
@@ -120,8 +118,8 @@ partial /*sealed*/ interface Document {
   // void writeln(DOMString... text);
 
   // user interaction
-  readonly attribute Window/*Proxy?*/ defaultView;
-  // readonly attribute Element? activeElement;
+  readonly attribute Window?/*Proxy?*/ defaultView;
+  readonly attribute Element? activeElement;
   boolean hasFocus();
   // attribute DOMString designMode;
   // boolean execCommand(DOMString commandId, optional boolean showUI = false, optional DOMString value = "");
@@ -130,7 +128,6 @@ partial /*sealed*/ interface Document {
   // boolean queryCommandState(DOMString commandId);
   // boolean queryCommandSupported(DOMString commandId);
   // DOMString queryCommandValue(DOMString commandId);
-  // readonly attribute HTMLCollection commands;
 
   // special event handler IDL attributes that only apply to Document objects
   [LenientThis] attribute EventHandler onreadystatechange;

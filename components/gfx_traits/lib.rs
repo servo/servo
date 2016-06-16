@@ -24,8 +24,22 @@ pub use paint_listener::PaintListener;
 use azure::azure_hl::Color;
 use euclid::Matrix4D;
 use euclid::rect::Rect;
-use msg::constellation_msg::{PipelineId};
+use msg::constellation_msg::PipelineId;
 use std::fmt::{self, Debug, Formatter};
+use std::sync::atomic::{ATOMIC_USIZE_INIT, AtomicUsize, Ordering};
+
+/// The next ID that will be used for a special stacking context.
+///
+/// A special stacking context is a stacking context that is one of (a) the outer stacking context
+/// of an element with `overflow: scroll`; (b) generated content; (c) both (a) and (b).
+static NEXT_SPECIAL_STACKING_CONTEXT_ID: AtomicUsize = ATOMIC_USIZE_INIT;
+
+/// If none of the bits outside this mask are set, the stacking context is a special stacking
+/// context.
+///
+/// Note that we assume that the top 16 bits of the address space are unused on the platform.
+const SPECIAL_STACKING_CONTEXT_ID_MASK: usize = 0xffff;
+
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum LayerKind {
@@ -149,3 +163,95 @@ impl FrameTreeId {
         self.0 += 1;
     }
 }
+
+/// A unique ID for every stacking context.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, HeapSizeOf, PartialEq, Serialize)]
+pub struct StackingContextId(
+    /// The identifier for this StackingContext, derived from the Flow's memory address
+    /// and fragment type.  As a space optimization, these are combined into a single word.
+    usize
+);
+
+impl StackingContextId {
+    #[inline]
+    pub fn new(id: usize) -> StackingContextId {
+        StackingContextId::new_of_type(id, FragmentType::FragmentBody)
+    }
+
+    /// Returns a new stacking context ID for a special stacking context.
+    fn next_special_id() -> usize {
+        // We shift this left by 2 to make room for the fragment type ID.
+        ((NEXT_SPECIAL_STACKING_CONTEXT_ID.fetch_add(1, Ordering::SeqCst) + 1) << 2) &
+            SPECIAL_STACKING_CONTEXT_ID_MASK
+    }
+
+    #[inline]
+    pub fn new_of_type(id: usize, fragment_type: FragmentType) -> StackingContextId {
+        debug_assert_eq!(id & (fragment_type as usize), 0);
+        if fragment_type == FragmentType::FragmentBody {
+            StackingContextId(id)
+        } else {
+            StackingContextId(StackingContextId::next_special_id() | (fragment_type as usize))
+        }
+    }
+
+    /// Returns an ID for the stacking context that forms the outer stacking context of an element
+    /// with `overflow: scroll`.
+    #[inline(always)]
+    pub fn new_outer(fragment_type: FragmentType) -> StackingContextId {
+        StackingContextId(StackingContextId::next_special_id() | (fragment_type as usize))
+    }
+
+    #[inline]
+    pub fn fragment_type(&self) -> FragmentType {
+        FragmentType::from_usize(self.0 & 3)
+    }
+
+    #[inline]
+    pub fn id(&self) -> usize {
+        self.0 & !3
+    }
+
+    /// Returns the stacking context ID for the outer document/layout root.
+    #[inline]
+    pub fn root() -> StackingContextId {
+        StackingContextId(0)
+    }
+
+    /// Returns true if this is a special stacking context.
+    ///
+    /// A special stacking context is a stacking context that is one of (a) the outer stacking
+    /// context of an element with `overflow: scroll`; (b) generated content; (c) both (a) and (b).
+    #[inline]
+    pub fn is_special(&self) -> bool {
+        (self.0 & !SPECIAL_STACKING_CONTEXT_ID_MASK) == 0
+    }
+}
+
+/// The type of fragment that a stacking context represents.
+///
+/// This can only ever grow to maximum 4 entries. That's because we cram the value of this enum
+/// into the lower 2 bits of the `StackingContextId`, which otherwise contains a 32-bit-aligned
+/// heap address.
+#[derive(Clone, Debug, PartialEq, Eq, Copy, Hash, Deserialize, Serialize, HeapSizeOf)]
+pub enum FragmentType {
+    /// A StackingContext for the fragment body itself.
+    FragmentBody,
+    /// A StackingContext created to contain ::before pseudo-element content.
+    BeforePseudoContent,
+    /// A StackingContext created to contain ::after pseudo-element content.
+    AfterPseudoContent,
+}
+
+impl FragmentType {
+    #[inline]
+    pub fn from_usize(n: usize) -> FragmentType {
+        debug_assert!(n < 3);
+        match n {
+            0 => FragmentType::FragmentBody,
+            1 => FragmentType::BeforePseudoContent,
+            _ => FragmentType::AfterPseudoContent,
+        }
+    }
+}
+

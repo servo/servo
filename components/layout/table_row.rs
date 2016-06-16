@@ -15,7 +15,8 @@ use euclid::Point2D;
 use flow::{self, EarlyAbsolutePositionInfo, Flow, FlowClass, ImmutableFlowUtils, OpaqueFlow};
 use flow_list::MutFlowListIterator;
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
-use gfx::display_list::{StackingContext, StackingContextId};
+use gfx::display_list::StackingContext;
+use gfx_traits::StackingContextId;
 use layout_debug;
 use model::MaybeAuto;
 use rustc_serialize::{Encodable, Encoder};
@@ -357,7 +358,7 @@ impl Flow for TableRowFlow {
                         None => break,
                     };
                 column_computed_inline_size.size = column_computed_inline_size.size +
-                    extra_column_computed_inline_size.size;
+                    extra_column_computed_inline_size.size + self.spacing.horizontal;
             }
 
             computed_inline_size_for_cells.push(column_computed_inline_size)

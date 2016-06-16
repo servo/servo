@@ -121,12 +121,10 @@ pub unsafe fn throw_dom_exception(cx: *mut JSContext, global: GlobalRef, result:
 }
 
 /// Report a pending exception, thereby clearing it.
-pub fn report_pending_exception(cx: *mut JSContext, obj: *mut JSObject) {
-    unsafe {
-        if JS_IsExceptionPending(cx) {
-            let _ac = JSAutoCompartment::new(cx, obj);
-            JS_ReportPendingException(cx);
-        }
+pub unsafe fn report_pending_exception(cx: *mut JSContext, obj: *mut JSObject) {
+    if JS_IsExceptionPending(cx) {
+        let _ac = JSAutoCompartment::new(cx, obj);
+        JS_ReportPendingException(cx);
     }
 }
 

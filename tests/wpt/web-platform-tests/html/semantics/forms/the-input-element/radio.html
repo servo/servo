@@ -83,6 +83,7 @@
     click_fired = true;
     assert_false(input_fired, "click event should fire before input event");
     assert_false(change_fired, "click event should fire before change event");
+    assert_false(e.isTrusted, "click()-initiated click event shouldn't be trusted");
   });
 
   radio5.oninput = t1.step_func(function(e) {
@@ -90,7 +91,7 @@
     assert_true(click_fired, "input event should fire after click event");
     assert_false(change_fired, "input event should fire before change event");
     assert_true(e.bubbles, "input event should bubble")
-    assert_false(e.isTrusted, "click()-initiated input event shouldn't be trusted");
+    assert_true(e.isTrusted, "input event should be trusted");
     assert_false(e.cancelable, "input event should not be cancelable");
   });
 
@@ -99,7 +100,7 @@
     assert_true(click_fired, "change event should fire after click event");
     assert_true(input_fired, "change event should fire after input event");
     assert_true(e.bubbles, "change event should bubble")
-    assert_false(e.isTrusted, "click()-initiated change event shouldn't be trusted");
+    assert_true(e.isTrusted, "change event should be trusted");
     assert_false(e.cancelable, "change event should not be cancelable");
   });
 

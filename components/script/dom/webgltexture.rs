@@ -109,13 +109,15 @@ impl WebGLTexture {
                       height: u32,
                       depth: u32,
                       internal_format: u32,
-                      level: u32) -> WebGLResult<()> {
+                      level: u32,
+                      data_type: Option<u32>) -> WebGLResult<()> {
         let image_info = ImageInfo {
             width: width,
             height: height,
             depth: depth,
             internal_format: Some(internal_format),
             is_initialized: true,
+            data_type: data_type,
         };
 
         let face = match target {
@@ -274,6 +276,7 @@ impl WebGLTexture {
                 depth: 0,
                 internal_format: base_image_info.internal_format,
                 is_initialized: base_image_info.is_initialized(),
+                data_type: base_image_info.data_type,
             };
 
             self.set_image_infos_at_level(level, image_info);
@@ -309,7 +312,7 @@ impl WebGLTexture {
         true
     }
 
-    fn image_info_at_face(&self, face: u8, level: u32) -> ImageInfo {
+    pub fn image_info_at_face(&self, face: u8, level: u32) -> ImageInfo {
         let pos = (level * self.face_count.get() as u32) + face as u32;
         self.image_info_array.borrow()[pos as usize]
     }
@@ -340,12 +343,13 @@ impl Drop for WebGLTexture {
 }
 
 #[derive(Clone, Copy, PartialEq, Debug, JSTraceable, HeapSizeOf)]
-struct ImageInfo {
+pub struct ImageInfo {
     width: u32,
     height: u32,
     depth: u32,
     internal_format: Option<u32>,
     is_initialized: bool,
+    data_type: Option<u32>,
 }
 
 impl ImageInfo {
@@ -356,7 +360,24 @@ impl ImageInfo {
             depth: 0,
             internal_format: None,
             is_initialized: false,
+            data_type: None,
         }
+    }
+
+    pub fn width(&self) -> u32 {
+        self.width
+    }
+
+    pub fn height(&self) -> u32 {
+        self.height
+    }
+
+    pub fn internal_format(&self) -> Option<u32> {
+        self.internal_format
+    }
+
+    pub fn data_type(&self) -> Option<u32> {
+        self.data_type
     }
 
     fn is_power_of_two(&self) -> bool {

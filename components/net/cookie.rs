@@ -7,7 +7,7 @@
 
 use cookie_rs;
 use net_traits::CookieSource;
-use pub_domains::PUB_DOMAINS;
+use pub_domains::is_pub_domain;
 use std::borrow::ToOwned;
 use std::net::{Ipv4Addr, Ipv6Addr};
 use time::{Tm, now, at, Duration};
@@ -45,10 +45,12 @@ impl Cookie {
         let mut domain = cookie.domain.clone().unwrap_or("".to_owned());
 
         // Step 5
-        match PUB_DOMAINS.iter().find(|&x| domain == *x) {
-            Some(val) if *val == url_host => domain = "".to_owned(),
-            Some(_) => return None,
-            None => {}
+        if is_pub_domain(&domain) {
+            if domain == url_host {
+                domain = "".to_owned();
+            } else {
+                return None
+            }
         }
 
         // Step 6

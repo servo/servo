@@ -11,7 +11,7 @@ use std::sync::mpsc::Sender;
 use string_cache::Atom;
 use task_source::TaskSource;
 
-#[derive(JSTraceable)]
+#[derive(JSTraceable, Clone)]
 pub struct DOMManipulationTaskSource(pub Sender<MainThreadScriptMsg>);
 
 impl TaskSource<DOMManipulationTask> for DOMManipulationTaskSource {
@@ -21,8 +21,20 @@ impl TaskSource<DOMManipulationTask> for DOMManipulationTaskSource {
 }
 
 impl DOMManipulationTaskSource {
-    pub fn clone(&self) -> Box<TaskSource<DOMManipulationTask> + Send> {
-        box DOMManipulationTaskSource((&self.0).clone())
+    pub fn queue_event(&self,
+                       target: &EventTarget,
+                       name: Atom,
+                       bubbles: EventBubbles,
+                       cancelable: EventCancelable) {
+        let target = Trusted::new(target);
+        let _ = self.0.send(MainThreadScriptMsg::DOMManipulation(DOMManipulationTask::FireEvent(
+            target, name, bubbles, cancelable)));
+    }
+
+    pub fn queue_simple_event(&self, target: &EventTarget, name: Atom) {
+        let target = Trusted::new(target);
+        let _ = self.0.send(MainThreadScriptMsg::DOMManipulation(DOMManipulationTask::FireSimpleEvent(
+            target, name)));
     }
 }
 
@@ -30,9 +42,9 @@ pub enum DOMManipulationTask {
     // https://html.spec.whatwg.org/multipage/#the-end step 7
     DocumentProgress(Box<Runnable + Send>),
     // https://dom.spec.whatwg.org/#concept-event-fire
-    FireEvent(Atom, Trusted<EventTarget>, EventBubbles, EventCancelable),
+    FireEvent(Trusted<EventTarget>, Atom, EventBubbles, EventCancelable),
     // https://html.spec.whatwg.org/multipage/#fire-a-simple-event
-    FireSimpleEvent(Atom, Trusted<EventTarget>),
+    FireSimpleEvent(Trusted<EventTarget>, Atom),
     // https://html.spec.whatwg.org/multipage/#details-notification-task-steps
     FireToggleEvent(Box<Runnable + Send>),
     // Placeholder until there's a real media element task queue implementation
@@ -49,11 +61,11 @@ impl DOMManipulationTask {
 
         match self {
             DocumentProgress(runnable) => runnable.handler(),
-            FireEvent(name, element, bubbles, cancelable) => {
+            FireEvent(element, name, bubbles, cancelable) => {
                 let target = element.root();
                 target.fire_event(&*name, bubbles, cancelable);
             }
-            FireSimpleEvent(name, element) => {
+            FireSimpleEvent(element, name) => {
                 let target = element.root();
                 target.fire_simple_event(&*name);
             }

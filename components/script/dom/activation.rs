@@ -4,12 +4,12 @@
 
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::inheritance::Castable;
+use dom::bindings::str::DOMString;
 use dom::element::Element;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
 use dom::mouseevent::MouseEvent;
 use dom::node::window_from_node;
-use util::str::DOMString;
 
 /// Trait for elements with defined activation behavior
 pub trait Activatable {

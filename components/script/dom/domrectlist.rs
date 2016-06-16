@@ -22,7 +22,7 @@ impl DOMRectList {
     {
         DOMRectList {
             reflector_: Reflector::new(),
-            rects: rects.map(|r| JS::from_rooted(&r)).collect(),
+            rects: rects.map(|r| JS::from_ref(&*r)).collect(),
         }
     }
 

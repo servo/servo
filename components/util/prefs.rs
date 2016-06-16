@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use basedir::default_config_dir;
 use opts;
 use resource_files::resources_dir_path;
 use rustc_serialize::json::{Json, ToJson};
@@ -61,6 +62,13 @@ impl PrefValue {
     pub fn as_i64(&self) -> Option<i64> {
         match *self {
             PrefValue::Number(x) => Some(x as i64),
+            _ => None,
+        }
+    }
+
+    pub fn as_u64(&self) -> Option<u64> {
+        match *self {
+            PrefValue::Number(x) => Some(x as u64),
             _ => None,
         }
     }
@@ -166,17 +174,29 @@ pub fn extend_prefs(extension: HashMap<String, Pref>) {
 }
 
 pub fn add_user_prefs() {
-    if let Some(ref dir) = opts::get().profile_dir {
-        let mut path = PathBuf::from(dir);
-        path.push("prefs.json");
-        if let Ok(file) = File::open(path) {
-            if let Ok(prefs) = read_prefs_from_file(file) {
-                extend_prefs(prefs);
-            }
-        } else {
-            writeln!(&mut stderr(), "Error opening prefs.json from profile_dir")
-                .expect("failed printing to stderr");
+    match opts::get().config_dir {
+        Some(ref config_path) => {
+            let mut path = PathBuf::from(config_path);
+            init_user_prefs(&mut path);
         }
+        None => {
+            let mut path = default_config_dir().unwrap();
+            if path.join("prefs.json").exists() {
+                init_user_prefs(&mut path);
+            }
+        }
+    }
+}
+
+fn init_user_prefs(path: &mut PathBuf) {
+    path.push("prefs.json");
+    if let Ok(file) = File::open(path) {
+        if let Ok(prefs) = read_prefs_from_file(file) {
+            extend_prefs(prefs);
+        }
+    } else {
+    writeln!(&mut stderr(), "Error opening prefs.json from config directory")
+        .expect("failed printing to stderr");
     }
 }
 
@@ -229,4 +249,8 @@ pub fn reset_all_prefs() {
     for name in names.iter() {
         reset_pref(name);
     }
+}
+
+pub fn mozbrowser_enabled() -> bool {
+    get_pref("dom.mozbrowser.enabled").as_boolean().unwrap_or(false)
 }

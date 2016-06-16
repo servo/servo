@@ -4,7 +4,9 @@
 
 use hyper::header::Headers;
 use hyper::method::Method;
+use msg::constellation_msg::ReferrerPolicy;
 use std::cell::{Cell, RefCell};
+use std::mem::swap;
 use url::{Origin as UrlOrigin, Url};
 
 /// An [initiator](https://fetch.spec.whatwg.org/#concept-request-initiator)
@@ -25,7 +27,7 @@ pub enum Type {
 }
 
 /// A request [destination](https://fetch.spec.whatwg.org/#concept-request-destination)
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Destination {
     None, Document, Embed, Font, Image, Manifest,
     Media, Object, Report, Script, ServiceWorker,
@@ -43,12 +45,13 @@ pub enum Origin {
 #[derive(Clone, PartialEq)]
 pub enum Referer {
     NoReferer,
+    /// Default referer if nothing is specified
     Client,
     RefererUrl(Url)
 }
 
 /// A [request mode](https://fetch.spec.whatwg.org/#concept-request-mode)
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Serialize, Deserialize)]
 pub enum RequestMode {
     Navigate,
     SameOrigin,
@@ -57,7 +60,7 @@ pub enum RequestMode {
 }
 
 /// Request [credentials mode](https://fetch.spec.whatwg.org/#concept-request-credentials-mode)
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Serialize, Deserialize)]
 pub enum CredentialsMode {
     Omit,
     CredentialsSameOrigin,
@@ -106,6 +109,29 @@ pub enum CORSSettings {
     UseCredentials
 }
 
+#[derive(Serialize, Deserialize, Clone)]
+pub struct RequestInit {
+    pub method: Method,
+    pub url: Url,
+    pub headers: Headers,
+    pub unsafe_request: bool,
+    pub same_origin_data: bool,
+    pub body: Option<Vec<u8>>,
+    // TODO: client object
+    pub destination: Destination,
+    pub synchronous: bool,
+    pub mode: RequestMode,
+    pub use_cors_preflight: bool,
+    pub credentials_mode: CredentialsMode,
+    pub use_url_credentials: bool,
+    // this should actually be set by fetch, but fetch
+    // doesn't have info about the client right now
+    pub origin: Url,
+    // XXXManishearth these should be part of the client object
+    pub referer_url: Option<Url>,
+    pub referrer_policy: Option<ReferrerPolicy>,
+}
+
 /// A [Request](https://fetch.spec.whatwg.org/#requests) as defined by the Fetch spec
 #[derive(Clone)]
 pub struct Request {
@@ -130,8 +156,9 @@ pub struct Request {
     pub origin: RefCell<Origin>,
     pub omit_origin_header: Cell<bool>,
     pub same_origin_data: Cell<bool>,
-    pub referer: Referer,
-    // TODO: referrer policy
+    /// https://fetch.spec.whatwg.org/#concept-request-referrer
+    pub referer: RefCell<Referer>,
+    pub referrer_policy: Cell<Option<ReferrerPolicy>>,
     pub synchronous: bool,
     pub mode: RequestMode,
     pub use_cors_preflight: bool,
@@ -145,7 +172,7 @@ pub struct Request {
     pub url_list: RefCell<Vec<Url>>,
     pub redirect_count: Cell<u32>,
     pub response_tainting: Cell<ResponseTainting>,
-    pub done: Cell<bool>
+    pub done: Cell<bool>,
 }
 
 impl Request {
@@ -169,7 +196,8 @@ impl Request {
             origin: RefCell::new(origin.unwrap_or(Origin::Client)),
             omit_origin_header: Cell::new(false),
             same_origin_data: Cell::new(false),
-            referer: Referer::Client,
+            referer: RefCell::new(Referer::Client),
+            referrer_policy: Cell::new(None),
             synchronous: false,
             mode: RequestMode::NoCORS,
             use_cors_preflight: false,
@@ -183,6 +211,30 @@ impl Request {
             response_tainting: Cell::new(ResponseTainting::Basic),
             done: Cell::new(false)
         }
+    }
+
+    pub fn from_init(init: RequestInit) -> Request {
+        let mut req = Request::new(init.url,
+                                   Some(Origin::Origin(init.origin.origin())),
+                                   false);
+        *req.method.borrow_mut() = init.method;
+        *req.headers.borrow_mut() = init.headers;
+        req.unsafe_request = init.unsafe_request;
+        req.same_origin_data.set(init.same_origin_data);
+        *req.body.borrow_mut() = init.body;
+        req.destination = init.destination;
+        req.synchronous = init.synchronous;
+        req.mode = init.mode;
+        req.use_cors_preflight = init.use_cors_preflight;
+        req.credentials_mode = init.credentials_mode;
+        req.use_url_credentials = init.use_url_credentials;
+        *req.referer.borrow_mut() = if let Some(url) = init.referer_url {
+            Referer::RefererUrl(url)
+        } else {
+            Referer::NoReferer
+        };
+        req.referrer_policy.set(init.referrer_policy);
+        req
     }
 
     /// https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
@@ -207,7 +259,8 @@ impl Request {
             origin: RefCell::new(Origin::Client),
             omit_origin_header: Cell::new(false),
             same_origin_data: Cell::new(false),
-            referer: Referer::Client,
+            referer: RefCell::new(Referer::Client),
+            referrer_policy: Cell::new(None),
             synchronous: false,
             // Step 1-2
             mode: match cors_attribute_state {
@@ -255,6 +308,30 @@ impl Request {
                 | Destination::Style | Destination::XSLT
                 | Destination::None => true,
             _ => false
+        }
+    }
+}
+
+impl Referer {
+    pub fn to_url(&self) -> Option<&Url> {
+        match *self {
+            Referer::NoReferer | Referer::Client => None,
+            Referer::RefererUrl(ref url) => Some(url)
+        }
+    }
+    pub fn from_url(url: Option<Url>) -> Self {
+        if let Some(url) = url {
+            Referer::RefererUrl(url)
+        } else {
+            Referer::NoReferer
+        }
+    }
+    pub fn take(&mut self) -> Option<Url> {
+        let mut new = Referer::Client;
+        swap(self, &mut new);
+        match new {
+            Referer::NoReferer | Referer::Client => None,
+            Referer::RefererUrl(url) => Some(url)
         }
     }
 }

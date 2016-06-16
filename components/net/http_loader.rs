@@ -2,9 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
 use brotli::Decompressor;
 use connector::Connector;
+use content_blocker_parser::{LoadType, Reaction, Request as CBRequest, ResourceType};
+use content_blocker_parser::{RuleList, process_rules_for_request};
 use cookie;
 use cookie_storage::CookieStorage;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest};
@@ -12,9 +13,10 @@ use devtools_traits::{HttpResponse as DevtoolsHttpResponse, NetworkEvent};
 use flate2::read::{DeflateDecoder, GzDecoder};
 use hsts::{HstsEntry, HstsList, secure_url};
 use hyper::Error as HttpError;
+use hyper::LanguageTag;
 use hyper::client::{Pool, Request, Response};
 use hyper::header::{Accept, AcceptEncoding, ContentLength, ContentEncoding, ContentType, Host, Referer};
-use hyper::header::{Authorization, Basic};
+use hyper::header::{Authorization, AcceptLanguage, Basic};
 use hyper::header::{Encoding, Header, Headers, Quality, QualityItem};
 use hyper::header::{Location, SetCookie, StrictTransportSecurity, UserAgent, qitem};
 use hyper::http::RawStatus;
@@ -104,6 +106,7 @@ pub struct HttpState {
     pub hsts_list: Arc<RwLock<HstsList>>,
     pub cookie_jar: Arc<RwLock<CookieStorage>>,
     pub auth_cache: Arc<RwLock<AuthCache>>,
+    pub blocked_content: Arc<Option<RuleList>>,
 }
 
 impl HttpState {
@@ -112,8 +115,13 @@ impl HttpState {
             hsts_list: Arc::new(RwLock::new(HstsList::new())),
             cookie_jar: Arc::new(RwLock::new(CookieStorage::new())),
             auth_cache: Arc::new(RwLock::new(AuthCache::new())),
+            blocked_content: Arc::new(None),
         }
     }
+}
+
+fn precise_time_ms() -> u64 {
+    time::precise_time_ns() / (1000 * 1000)
 }
 
 fn load_for_consumer(load_data: LoadData,
@@ -124,7 +132,6 @@ fn load_for_consumer(load_data: LoadData,
                      devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                      cancel_listener: CancellationListener,
                      user_agent: String) {
-
     let factory = NetworkHttpRequestFactory {
         connector: connector,
     };
@@ -328,6 +335,7 @@ pub enum LoadErrorType {
     Cancelled,
     Connection { reason: String },
     ConnectionAborted { reason: String },
+    ContentBlocked,
     // Preflight fetch inconsistent with main fetch
     CorsPreflightFetchInconsistent,
     Decoding { reason: String },
@@ -350,6 +358,7 @@ impl Error for LoadErrorType {
             LoadErrorType::Cancelled => "load cancelled",
             LoadErrorType::Connection { ref reason } => reason,
             LoadErrorType::ConnectionAborted { ref reason } => reason,
+            LoadErrorType::ContentBlocked => "content blocked",
             LoadErrorType::CorsPreflightFetchInconsistent => "preflight fetch inconsistent with main fetch",
             LoadErrorType::Decoding { ref reason } => reason,
             LoadErrorType::InvalidRedirect { ref reason } => reason,
@@ -361,7 +370,7 @@ impl Error for LoadErrorType {
     }
 }
 
-fn set_default_accept_encoding(headers: &mut Headers) {
+pub fn set_default_accept_encoding(headers: &mut Headers) {
     if headers.has::<AcceptEncoding>() {
         return
     }
@@ -383,6 +392,22 @@ fn set_default_accept(headers: &mut Headers) {
                             ]);
         headers.set(accept);
     }
+}
+
+fn set_default_accept_language(headers: &mut Headers) {
+    if headers.has::<AcceptLanguage>() {
+        return;
+    }
+
+    let mut en_us: LanguageTag = Default::default();
+    en_us.language = Some("en".to_owned());
+    en_us.region = Some("US".to_owned());
+    let mut en: LanguageTag = Default::default();
+    en.language = Some("en".to_owned());
+    headers.set(AcceptLanguage(vec![
+        qitem(en_us),
+        QualityItem::new(en, Quality(500)),
+    ]));
 }
 
 /// https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-state-no-referrer-when-downgrade
@@ -409,10 +434,10 @@ fn strip_url(mut referrer_url: Url, origin_only: bool) -> Option<Url> {
 }
 
 /// https://w3c.github.io/webappsec-referrer-policy/#determine-requests-referrer
-fn determine_request_referrer(headers: &mut Headers,
-                              referrer_policy: Option<ReferrerPolicy>,
-                              referrer_url: Option<Url>,
-                              url: Url) -> Option<Url> {
+pub fn determine_request_referrer(headers: &mut Headers,
+                                  referrer_policy: Option<ReferrerPolicy>,
+                                  referrer_url: Option<Url>,
+                                  url: Url) -> Option<Url> {
     //TODO - algorithm step 2 not addressed
     assert!(!headers.has::<Referer>());
     if let Some(ref_url) = referrer_url {
@@ -428,9 +453,9 @@ fn determine_request_referrer(headers: &mut Headers,
     return None;
 }
 
-pub fn set_request_cookies(url: Url, headers: &mut Headers, cookie_jar: &Arc<RwLock<CookieStorage>>) {
+pub fn set_request_cookies(url: &Url, headers: &mut Headers, cookie_jar: &Arc<RwLock<CookieStorage>>) {
     let mut cookie_jar = cookie_jar.write().unwrap();
-    if let Some(cookie_list) = cookie_jar.cookies_for_url(&url, CookieSource::HTTP) {
+    if let Some(cookie_list) = cookie_jar.cookies_for_url(url, CookieSource::HTTP) {
         let mut v = Vec::new();
         v.push(cookie_list.into_bytes());
         headers.set_raw("Cookie".to_owned(), v);
@@ -515,7 +540,7 @@ impl StreamedResponse {
         StreamedResponse { metadata: m, decoder: d }
     }
 
-    fn from_http_response(response: Box<HttpResponse>, m: Metadata) -> Result<StreamedResponse, LoadError> {
+    pub fn from_http_response(response: Box<HttpResponse>, m: Metadata) -> Result<StreamedResponse, LoadError> {
         let decoder = match response.content_encoding() {
             Some(Encoding::Gzip) => {
                 let result = GzDecoder::new(response);
@@ -548,22 +573,34 @@ enum Decoder {
     Plain(Box<HttpResponse>)
 }
 
-fn send_request_to_devtools(devtools_chan: Option<Sender<DevtoolsControlMsg>>,
-                            request_id: String,
+fn prepare_devtools_request(request_id: String,
                             url: Url,
                             method: Method,
                             headers: Headers,
                             body: Option<Vec<u8>>,
-                            pipeline_id: PipelineId, now: Tm) {
+                            pipeline_id: PipelineId,
+                            now: Tm,
+                            connect_time: u64,
+                            send_time: u64) -> ChromeToDevtoolsControlMsg {
+    let request = DevtoolsHttpRequest {
+        url: url,
+        method: method,
+        headers: headers,
+        body: body,
+        pipeline_id: pipeline_id,
+        startedDateTime: now,
+        timeStamp: now.to_timespec().sec,
+        connect_time: connect_time,
+        send_time: send_time,
+    };
+    let net_event = NetworkEvent::HttpRequest(request);
 
-    if let Some(ref chan) = devtools_chan {
-        let request = DevtoolsHttpRequest {
-            url: url, method: method, headers: headers, body: body, pipeline_id: pipeline_id, startedDateTime: now };
-        let net_event = NetworkEvent::HttpRequest(request);
+    ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event)
+}
 
-        let msg = ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event);
-        chan.send(DevtoolsControlMsg::FromChrome(msg)).unwrap();
-    }
+fn send_request_to_devtools(msg: ChromeToDevtoolsControlMsg,
+                            devtools_chan: &Sender<DevtoolsControlMsg>) {
+    devtools_chan.send(DevtoolsControlMsg::FromChrome(msg)).unwrap();
 }
 
 fn send_response_to_devtools(devtools_chan: Option<Sender<DevtoolsControlMsg>>,
@@ -590,9 +627,8 @@ fn request_must_be_secured(url: &Url, hsts_list: &Arc<RwLock<HstsList>>) -> bool
 pub fn modify_request_headers(headers: &mut Headers,
                               url: &Url,
                               user_agent: &str,
-                              cookie_jar: &Arc<RwLock<CookieStorage>>,
-                              auth_cache: &Arc<RwLock<AuthCache>>,
-                              load_data: &LoadData) {
+                              referrer_policy: Option<ReferrerPolicy>,
+                              referrer_url: &mut Option<Url>) {
     // Ensure that the host header is set from the original url
     let host = Host {
         hostname: url.host_str().unwrap().to_owned(),
@@ -611,44 +647,41 @@ pub fn modify_request_headers(headers: &mut Headers,
     }
 
     set_default_accept(headers);
+    set_default_accept_language(headers);
     set_default_accept_encoding(headers);
 
-    if let Some(referer_val) = determine_request_referrer(headers,
-                                                          load_data.referrer_policy.clone(),
-                                                          load_data.referrer_url.clone(),
-                                                          url.clone()) {
+    *referrer_url = determine_request_referrer(headers,
+                                               referrer_policy.clone(),
+                                               referrer_url.clone(),
+                                               url.clone());
+
+    if let Some(referer_val) = referrer_url.clone() {
         headers.set(Referer(referer_val.into_string()));
-    }
-
-    // https://fetch.spec.whatwg.org/#concept-http-network-or-cache-fetch step 11
-    if load_data.credentials_flag {
-        set_request_cookies(url.clone(), headers, cookie_jar);
-
-        // https://fetch.spec.whatwg.org/#http-network-or-cache-fetch step 12
-        set_auth_header(headers, url, auth_cache);
     }
 }
 
 fn set_auth_header(headers: &mut Headers,
                    url: &Url,
                    auth_cache: &Arc<RwLock<AuthCache>>) {
-
     if !headers.has::<Authorization<Basic>>() {
         if let Some(auth) = auth_from_url(url) {
             headers.set(auth);
         } else {
-            if let Some(ref auth_entry) = auth_cache.read().unwrap().entries.get(url) {
-                auth_from_entry(&auth_entry, headers);
+            if let Some(basic) = auth_from_cache(auth_cache, url) {
+                headers.set(Authorization(basic));
             }
         }
     }
 }
 
-fn auth_from_entry(auth_entry: &AuthCacheEntry, headers: &mut Headers) {
-    let user_name = auth_entry.user_name.clone();
-    let password  = Some(auth_entry.password.clone());
-
-    headers.set(Authorization(Basic { username: user_name, password: password }));
+pub fn auth_from_cache(auth_cache: &Arc<RwLock<AuthCache>>, url: &Url) -> Option<Basic> {
+    if let Some(ref auth_entry) = auth_cache.read().unwrap().entries.get(url) {
+        let user_name = auth_entry.user_name.clone();
+        let password  = Some(auth_entry.password.clone());
+        Some(Basic { username: user_name, password: password })
+    } else {
+        None
+    }
 }
 
 fn auth_from_url(doc_url: &Url) -> Option<Authorization<Basic>> {
@@ -693,11 +726,12 @@ pub fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
                           iters: u32,
                           devtools_chan: &Option<Sender<DevtoolsControlMsg>>,
                           request_id: &str)
-                          -> Result<A::R, LoadError> where A: HttpRequest + 'static  {
-
+                          -> Result<(A::R, Option<ChromeToDevtoolsControlMsg>), LoadError>
+                          where A: HttpRequest + 'static  {
     let null_data = None;
     let response;
     let connection_url = replace_hosts(&url);
+    let mut msg;
 
     // loop trying connections in connection pool
     // they may have grown stale (disconnected), in which case we'll get
@@ -735,22 +769,36 @@ pub fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
             info!("{:?}", data);
         }
 
+        let connect_start = precise_time_ms();
+
         let req = try!(request_factory.create(connection_url.clone(), method.clone(),
                                               headers.clone()));
+
+        let connect_end = precise_time_ms();
 
         if cancel_listener.is_cancelled() {
             return Err(LoadError::new(connection_url.clone(), LoadErrorType::Cancelled));
         }
 
+        let send_start = precise_time_ms();
+
         let maybe_response = req.send(request_body);
 
-        if let Some(pipeline_id) = *pipeline_id {
-            send_request_to_devtools(
-                devtools_chan.clone(), request_id.clone().into(),
-                url.clone(), method.clone(), headers,
-                request_body.clone(), pipeline_id, time::now()
-            );
-        }
+        let send_end = precise_time_ms();
+
+        msg = if devtools_chan.is_some() {
+            if let Some(pipeline_id) = *pipeline_id {
+                Some(prepare_devtools_request(
+                    request_id.clone().into(),
+                    url.clone(), method.clone(), headers,
+                    request_body.clone(), pipeline_id, time::now(),
+                    connect_end - connect_start, send_end - send_start))
+            } else {
+                None
+            }
+        } else {
+            None
+        };
 
         response = match maybe_response {
             Ok(r) => r,
@@ -768,7 +816,7 @@ pub fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
         break;
     }
 
-    Ok(response)
+    Ok((response, msg))
 }
 
 pub trait UIProvider {
@@ -804,6 +852,8 @@ pub fn load<A, B>(load_data: &LoadData,
     let mut doc_url = load_data.url.clone();
     let mut redirected_to = HashSet::new();
     let mut method = load_data.method.clone();
+    // URL of referrer - to be updated with redirects
+    let mut referrer_url = load_data.referrer_url.clone();
 
     let mut new_auth_header: Option<Authorization<Basic>> = None;
 
@@ -856,6 +906,29 @@ pub fn load<A, B>(load_data: &LoadData,
             return Err(LoadError::new(doc_url, LoadErrorType::Cancelled));
         }
 
+        let mut block_cookies = false;
+        if let Some(ref rules) = *http_state.blocked_content {
+            let same_origin =
+                load_data.referrer_url.as_ref()
+                         .map(|url| url.origin() == doc_url.origin())
+                         .unwrap_or(false);
+            let load_type = if same_origin { LoadType::FirstParty } else { LoadType::ThirdParty };
+            let actions = process_rules_for_request(rules, &CBRequest {
+                url: &doc_url,
+                resource_type: to_resource_type(&load_data.context),
+                load_type: load_type,
+            });
+            for action in actions {
+                match action {
+                    Reaction::Block => {
+                        return Err(LoadError::new(doc_url, LoadErrorType::ContentBlocked));
+                    },
+                    Reaction::BlockCookies => block_cookies = true,
+                    Reaction::HideMatchingElements(_) => (),
+                }
+            }
+        }
+
         info!("requesting {}", doc_url);
 
         // Avoid automatically preserving request headers when redirects occur.
@@ -873,17 +946,28 @@ pub fn load<A, B>(load_data: &LoadData,
         let request_id = uuid::Uuid::new_v4().simple().to_string();
 
         modify_request_headers(&mut request_headers, &doc_url,
-                               &user_agent, &http_state.cookie_jar,
-                               &http_state.auth_cache, &load_data);
+                               &user_agent, load_data.referrer_policy,
+                               &mut referrer_url);
+
+        // https://fetch.spec.whatwg.org/#concept-http-network-or-cache-fetch step 11
+        if load_data.credentials_flag {
+            if !block_cookies {
+                set_request_cookies(&doc_url, &mut request_headers, &http_state.cookie_jar);
+            }
+
+            // https://fetch.spec.whatwg.org/#http-network-or-cache-fetch step 12
+            set_auth_header(&mut request_headers, &doc_url, &http_state.auth_cache);
+        }
 
         //if there is a new auth header then set the request headers with it
         if let Some(ref auth_header) = new_auth_header {
             request_headers.set(auth_header.clone());
         }
 
-        let response = try!(obtain_response(request_factory, &doc_url, &method, &request_headers,
-                                            &cancel_listener, &load_data.data, &load_data.method,
-                                            &load_data.pipeline_id, iters, &devtools_chan, &request_id));
+        let (response, msg) =
+            try!(obtain_response(request_factory, &doc_url, &method, &request_headers,
+                                 &cancel_listener, &load_data.data, &load_data.method,
+                                 &load_data.pipeline_id, iters, &devtools_chan, &request_id));
 
         process_response_headers(&response, &doc_url, &http_state.cookie_jar, &http_state.hsts_list, &load_data);
 
@@ -973,6 +1057,11 @@ pub fn load<A, B>(load_data: &LoadData,
             HttpsState::None
         };
 
+        // Only notify the devtools about the final request that received a response.
+        if let Some(msg) = msg {
+            send_request_to_devtools(msg, devtools_chan.as_ref().unwrap());
+        }
+
         // --- Tell devtools that we got a response
         // Send an HttpResponse message to devtools with the corresponding request_id
         // TODO: Send this message even when the load fails?
@@ -1034,5 +1123,19 @@ fn is_cert_verify_error(error: &OpensslError) -> bool {
             function == "SSL3_GET_SERVER_CERTIFICATE" &&
             reason == "certificate verify failed"
         }
+    }
+}
+
+fn to_resource_type(context: &LoadContext) -> ResourceType {
+    match *context {
+        LoadContext::Browsing => ResourceType::Document,
+        LoadContext::Image => ResourceType::Image,
+        LoadContext::AudioVideo => ResourceType::Media,
+        LoadContext::Plugin => ResourceType::Raw,
+        LoadContext::Style => ResourceType::StyleSheet,
+        LoadContext::Script => ResourceType::Script,
+        LoadContext::Font => ResourceType::Font,
+        LoadContext::TextTrack => ResourceType::Media,
+        LoadContext::CacheManifest => ResourceType::Raw,
     }
 }

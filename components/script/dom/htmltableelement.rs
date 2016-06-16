@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::RGBA;
-use dom::attr::{Attr, AttrValue};
+use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
 use dom::bindings::codegen::Bindings::HTMLTableElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTableElementBinding::HTMLTableElementMethods;
@@ -11,6 +11,7 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap, Root, RootedReference};
+use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
 use dom::htmlcollection::{CollectionFilter, HTMLCollection};
@@ -23,8 +24,7 @@ use dom::node::{Node, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use std::cell::Cell;
 use string_cache::Atom;
-use style::attr::parse_unsigned_integer;
-use util::str::{DOMString, LengthOrPercentageOrAuto};
+use style::attr::{AttrValue, LengthOrPercentageOrAuto, parse_unsigned_integer};
 
 #[dom_struct]
 pub struct HTMLTableElement {
@@ -142,7 +142,7 @@ impl HTMLTableElementMethods for HTMLTableElement {
             sections: self.upcast::<Node>()
                           .children()
                           .filter_map(|ref node|
-                                node.downcast::<HTMLTableSectionElement>().map(|_| JS::from_rooted(node)))
+                                node.downcast::<HTMLTableSectionElement>().map(|_| JS::from_ref(&**node)))
                           .collect()
         };
         HTMLCollection::new(window_from_node(self).r(), self.upcast(), box filter)
@@ -419,9 +419,9 @@ impl VirtualMethods for HTMLTableElement {
 
     fn parse_plain_attribute(&self, local_name: &Atom, value: DOMString) -> AttrValue {
         match *local_name {
-            atom!("border") => AttrValue::from_u32(value, 1),
-            atom!("width") => AttrValue::from_nonzero_dimension(value),
-            atom!("bgcolor") => AttrValue::from_legacy_color(value),
+            atom!("border") => AttrValue::from_u32(value.into(), 1),
+            atom!("width") => AttrValue::from_nonzero_dimension(value.into()),
+            atom!("bgcolor") => AttrValue::from_legacy_color(value.into()),
             _ => self.super_type().unwrap().parse_plain_attribute(local_name, value),
         }
     }

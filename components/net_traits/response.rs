@@ -4,15 +4,17 @@
 
 //! The [Response](https://fetch.spec.whatwg.org/#responses) object
 //! resulting from a [fetch operation](https://fetch.spec.whatwg.org/#concept-fetch)
-use hyper::header::{AccessControlExposeHeaders, Headers};
+use hyper::header::{AccessControlExposeHeaders, ContentType, Headers};
+use hyper::http::RawStatus;
 use hyper::status::StatusCode;
 use std::ascii::AsciiExt;
 use std::cell::{Cell, RefCell};
 use std::sync::{Arc, Mutex};
 use url::Url;
+use {Metadata, NetworkError};
 
 /// [Response type](https://fetch.spec.whatwg.org/#concept-response-type)
-#[derive(Clone, PartialEq, Copy, Debug)]
+#[derive(Clone, PartialEq, Copy, Debug, Deserialize, Serialize)]
 pub enum ResponseType {
     Basic,
     CORS,
@@ -23,7 +25,7 @@ pub enum ResponseType {
 }
 
 /// [Response termination reason](https://fetch.spec.whatwg.org/#concept-response-termination-reason)
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Deserialize, Serialize)]
 pub enum TerminationReason {
     EndUserAbort,
     Fatal,
@@ -50,7 +52,7 @@ impl ResponseBody {
 
 
 /// [Cache state](https://fetch.spec.whatwg.org/#concept-response-cache-state)
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum CacheState {
     None,
     Local,
@@ -81,6 +83,7 @@ pub struct Response {
     pub url_list: RefCell<Vec<Url>>,
     /// `None` can be considered a StatusCode of `0`.
     pub status: Option<StatusCode>,
+    pub raw_status: Option<RawStatus>,
     pub headers: Headers,
     pub body: Arc<Mutex<ResponseBody>>,
     pub cache_state: CacheState,
@@ -100,6 +103,7 @@ impl Response {
             url: None,
             url_list: RefCell::new(Vec::new()),
             status: Some(StatusCode::Ok),
+            raw_status: Some(RawStatus(200, "OK".into())),
             headers: Headers::new(),
             body: Arc::new(Mutex::new(ResponseBody::Empty)),
             cache_state: CacheState::None,
@@ -116,6 +120,7 @@ impl Response {
             url: None,
             url_list: RefCell::new(vec![]),
             status: None,
+            raw_status: None,
             headers: Headers::new(),
             body: Arc::new(Mutex::new(ResponseBody::Empty)),
             cache_state: CacheState::None,
@@ -129,18 +134,6 @@ impl Response {
         match self.response_type {
             ResponseType::Error => true,
             _ => false
-        }
-    }
-
-    pub fn wait_until_done(&self) {
-        match self.response_type {
-            // since these response types can't hold a body, they should be considered done
-            ResponseType::Error | ResponseType::Opaque | ResponseType::OpaqueRedirect => {},
-            _ => {
-                while !self.body.lock().unwrap().is_done() && !self.is_network_error() {
-                    // loop until done
-                }
-            }
         }
     }
 
@@ -163,7 +156,6 @@ impl Response {
     /// Convert to a filtered response, of type `filter_type`.
     /// Do not use with type Error or Default
     pub fn to_filtered(self, filter_type: ResponseType) -> Response {
-
         assert!(filter_type != ResponseType::Error);
         assert!(filter_type != ResponseType::Default);
 
@@ -179,7 +171,6 @@ impl Response {
         response.response_type = filter_type;
 
         match filter_type {
-
             ResponseType::Default | ResponseType::Error => unreachable!(),
 
             ResponseType::Basic => {
@@ -193,7 +184,6 @@ impl Response {
             },
 
             ResponseType::CORS => {
-
                 let access = old_headers.get::<AccessControlExposeHeaders>();
                 let allowed_headers = access.as_ref().map(|v| &v[..]).unwrap_or(&[]);
 
@@ -230,5 +220,26 @@ impl Response {
         }
 
         response
+    }
+
+    pub fn metadata(&self) -> Result<Metadata, NetworkError> {
+        let mut metadata = if let Some(ref url) = self.url {
+            Metadata::default(url.clone())
+        } else {
+            return Err(NetworkError::Internal("No url found in response".to_string()));
+        };
+
+        if self.is_network_error() {
+            return Err(NetworkError::Internal("Cannot extract metadata from network error".to_string()));
+        }
+
+        metadata.set_content_type(match self.headers.get() {
+            Some(&ContentType(ref mime)) => Some(mime),
+            None => None
+        });
+        metadata.headers = Some(self.headers.clone());
+        metadata.status = self.raw_status.clone();
+        metadata.https_state = self.https_state;
+        return Ok(metadata);
     }
 }

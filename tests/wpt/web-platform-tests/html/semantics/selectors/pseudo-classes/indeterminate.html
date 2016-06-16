@@ -18,20 +18,20 @@
 <progress id="progress2" value=10></progress>
 
 <script>
-  testSelector(":indeterminate", ["radio2", "radio3", "radio4", "radio5", "progress1"], "':progress' matches <input>s radio buttons whose radio button group contains no checked input and <progress> elements without value attribute");
+  testSelectorIdsMatch(":indeterminate", ["radio2", "radio3", "radio4", "radio5", "progress1"], "':progress' matches <input>s radio buttons whose radio button group contains no checked input and <progress> elements without value attribute");
 
   document.getElementById("radio2").setAttribute("checked", "checked");
-  testSelector(":indeterminate", ["radio4", "radio5", "progress1"], "dynamically check a radio input in a radio button group");
+  testSelectorIdsMatch(":indeterminate", ["radio4", "radio5", "progress1"], "dynamically check a radio input in a radio button group");
 
   document.getElementById("radio4").click();
-  testSelector(":indeterminate", ["checkbox1", "progress2"], "click on radio4 which is in the indeterminate state");
+  testSelectorIdsMatch(":indeterminate", ["checkbox1", "progress2"], "click on radio4 which is in the indeterminate state");
 
   document.getElementById("progress1").setAttribute("value", "20");
-  testSelector(":indeterminate", [], "adding a value to progress1 should put it in a determinate state");
+  testSelectorIdsMatch(":indeterminate", [], "adding a value to progress1 should put it in a determinate state");
 
   document.getElementById("progress2").removeAttribute("value");
-  testSelector(":indeterminate", ["progress2"], "removing progress2's value should put it in an indeterminate state");
+  testSelectorIdsMatch(":indeterminate", ["progress2"], "removing progress2's value should put it in an indeterminate state");
 
   document.getElementById("checkbox1").indeterminate = true; // set checkbox1 in the indeterminate state
-  testSelector(":indeterminate", ["checkbox1", "progress2"], "':progress' also matches <input> checkbox whose indeterminate IDL is set to true");
+  testSelectorIdsMatch(":indeterminate", ["checkbox1", "progress2"], "':progress' also matches <input> checkbox whose indeterminate IDL is set to true");
 </script>

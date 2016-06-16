@@ -9,7 +9,7 @@
 
 use actor::{Actor, ActorMessageStatus, ActorRegistry};
 use actors::console::ConsoleActor;
-use devtools_traits::DevtoolScriptControlMsg::WantsLiveNotifications;
+use devtools_traits::DevtoolScriptControlMsg::{self, WantsLiveNotifications};
 use protocol::JsonPacketStream;
 use serde_json::Value;
 use std::collections::BTreeMap;
@@ -88,10 +88,19 @@ impl Actor for TabActor {
     fn handle_message(&self,
                       registry: &ActorRegistry,
                       msg_type: &str,
-                      _msg: &BTreeMap<String, Value>,
+                      msg: &BTreeMap<String, Value>,
                       stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "reconfigure" => {
+                if let Some(options) = msg.get("options").and_then(|o| o.as_object()) {
+                    if let Some(val) = options.get("performReload") {
+                        if val.as_boolean().unwrap_or(false) {
+                            let console_actor = registry.find::<ConsoleActor>(&self.console);
+                            let _ = console_actor.script_chan.send(
+                                DevtoolScriptControlMsg::Reload(console_actor.pipeline));
+                        }
+                    }
+                }
                 stream.write_json_packet(&ReconfigureReply { from: self.name() });
                 ActorMessageStatus::Processed
             }

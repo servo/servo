@@ -223,38 +223,35 @@ impl FontContext {
             }
         }
 
-        // If unable to create any of the specified fonts, create one from the
-        // list of last resort fonts for this platform.
-        if fonts.is_empty() {
-            let mut cache_hit = false;
-            for cached_font_entry in &self.fallback_font_cache {
-                let cached_font = cached_font_entry.font.borrow();
-                if cached_font.descriptor == desc &&
-                            cached_font.requested_pt_size == style.font_size &&
-                            cached_font.variant == style.font_variant {
-                    fonts.push(cached_font_entry.font.clone());
-                    cache_hit = true;
-                    break;
-                }
+        // Add a last resort font as a fallback option.
+        let mut cache_hit = false;
+        for cached_font_entry in &self.fallback_font_cache {
+            let cached_font = cached_font_entry.font.borrow();
+            if cached_font.descriptor == desc &&
+                        cached_font.requested_pt_size == style.font_size &&
+                        cached_font.variant == style.font_variant {
+                fonts.push(cached_font_entry.font.clone());
+                cache_hit = true;
+                break;
             }
+        }
 
-            if !cache_hit {
-                let template_info = self.font_cache_thread.last_resort_font_template(desc.clone());
-                let layout_font = self.create_layout_font(template_info.font_template,
-                                                          desc.clone(),
-                                                          style.font_size,
-                                                          style.font_variant,
-                                                          template_info.font_key);
-                match layout_font {
-                    Ok(layout_font) => {
-                        let layout_font = Rc::new(RefCell::new(layout_font));
-                        self.fallback_font_cache.push(FallbackFontCacheEntry {
-                            font: layout_font.clone(),
-                        });
-                        fonts.push(layout_font);
-                    }
-                    Err(_) => debug!("Failed to create fallback layout font!")
+        if !cache_hit {
+            let template_info = self.font_cache_thread.last_resort_font_template(desc.clone());
+            let layout_font = self.create_layout_font(template_info.font_template,
+                                                      desc.clone(),
+                                                      style.font_size,
+                                                      style.font_variant,
+                                                      template_info.font_key);
+            match layout_font {
+                Ok(layout_font) => {
+                    let layout_font = Rc::new(RefCell::new(layout_font));
+                    self.fallback_font_cache.push(FallbackFontCacheEntry {
+                        font: layout_font.clone(),
+                    });
+                    fonts.push(layout_font);
                 }
+                Err(_) => debug!("Failed to create fallback layout font!")
             }
         }
 

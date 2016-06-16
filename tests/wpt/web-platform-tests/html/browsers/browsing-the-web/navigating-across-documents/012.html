@@ -4,6 +4,10 @@
 <script src="/resources/testharnessreport.js"></script>
 <div id="log"></div>
 <iframe id="test" name="test"></iframe>
+<!-- XXX: What is this test trying to do?  It's navigating the subframe, but
+     doing a write() to _this_ document, and the "javascript:" in there is
+     completely a red herring: it's a label, not a protocol.  There is no
+     javascript url involved here, unlike what the title claims! -->
 <a target="test" onclick="javascript:(function() {var x = new XMLHttpRequest(); x.open('GET', 'blank.html?pipe=trickle(d2)', false); x.send(); document.write('write<script>parent.postMessage(&quot;write&quot;, &quot;*&quot;)</script>'); return '<script>parent.postMessage(&quot;click&quot;, &quot;*&quot;)</script>'})()" href="href.html">Test</a>
 <script>
 var t = async_test(undefined, {timeout:4000});

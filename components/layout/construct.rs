@@ -22,11 +22,11 @@ use floats::FloatKind;
 use flow::{MutableFlowUtils, MutableOwnedFlowUtils, CAN_BE_FRAGMENTED};
 use flow::{self, AbsoluteDescendants, IS_ABSOLUTELY_POSITIONED, ImmutableFlowUtils};
 use flow_ref::{self, FlowRef};
+use fragment::WhitespaceStrippingResult;
 use fragment::{CanvasFragmentInfo, ImageFragmentInfo, InlineAbsoluteFragmentInfo};
 use fragment::{Fragment, GeneratedContentInfo, IframeFragmentInfo};
 use fragment::{InlineAbsoluteHypotheticalFragmentInfo, TableColumnFragmentInfo};
 use fragment::{InlineBlockFragmentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo};
-use fragment::{WhitespaceStrippingResult};
 use gfx::display_list::OpaqueNode;
 use incremental::{BUBBLE_ISIZES, RECONSTRUCT_FLOW, RestyleDamage};
 use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFlow, InlineFragmentNodeFlags};
@@ -34,9 +34,9 @@ use inline::{InlineFragmentNodeInfo, LAST_FRAGMENT_OF_ELEMENT};
 use list_item::{ListItemFlow, ListStyleTypeContent};
 use multicol::{MulticolFlow, MulticolColumnFlow};
 use parallel;
-use script::dom::bindings::inheritance::{CharacterDataTypeId, ElementTypeId};
-use script::dom::bindings::inheritance::{HTMLElementTypeId, NodeTypeId};
-use script::dom::htmlobjectelement::is_image_data;
+use script::layout_interface::is_image_data;
+use script::layout_interface::{CharacterDataTypeId, ElementTypeId};
+use script::layout_interface::{HTMLElementTypeId, NodeTypeId};
 use std::borrow::ToOwned;
 use std::collections::LinkedList;
 use std::marker::PhantomData;
@@ -44,8 +44,8 @@ use std::mem;
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
 use style::computed_values::content::ContentItem;
+use style::computed_values::position;
 use style::computed_values::{caption_side, display, empty_cells, float, list_style_position};
-use style::computed_values::{position};
 use style::properties::{self, ComputedValues, ServoComputedValues};
 use style::servo::SharedStyleContext;
 use table::TableFlow;
@@ -867,7 +867,6 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                             splits,
                             fragments: successors,
                         })) => {
-
                     // Bubble up {ib} splits.
                     self.accumulate_inline_block_splits(splits,
                                                         node,
@@ -1501,7 +1500,15 @@ impl<'a, ConcreteThreadSafeLayoutNode> PostorderNodeMutTraversal<ConcreteThreadS
     //
     // TODO: This should actually consult the table in that section to get the
     // final computed value for 'display'.
-    fn process(&mut self, node: &ConcreteThreadSafeLayoutNode) -> bool {
+    fn process(&mut self, node: &ConcreteThreadSafeLayoutNode) {
+        node.insert_flags(HAS_NEWLY_CONSTRUCTED_FLOW);
+
+        // Bail out if this node has an ancestor with display: none.
+        if node.style(self.style_context()).get_inheritedbox()._servo_under_display_none.0 {
+            self.set_flow_construction_result(node, ConstructionResult::None);
+            return;
+        }
+
         // Get the `display` property for this node, and determine whether this node is floated.
         let (display, float, positioning) = match node.type_id() {
             None => {
@@ -1542,12 +1549,8 @@ impl<'a, ConcreteThreadSafeLayoutNode> PostorderNodeMutTraversal<ConcreteThreadS
 
         // Switch on display and floatedness.
         match (display, float, positioning) {
-            // `display: none` contributes no flow construction result. Nuke the flow construction
-            // results of children.
+            // `display: none` contributes no flow construction result.
             (display::T::none, _, _) => {
-                for child in node.children() {
-                    self.set_flow_construction_result(&child, ConstructionResult::None);
-                }
                 self.set_flow_construction_result(node, ConstructionResult::None);
             }
 
@@ -1654,9 +1657,6 @@ impl<'a, ConcreteThreadSafeLayoutNode> PostorderNodeMutTraversal<ConcreteThreadS
                 self.set_flow_construction_result(node, construction_result)
             }
         }
-
-        node.insert_flags(HAS_NEWLY_CONSTRUCTED_FLOW);
-        true
     }
 }
 

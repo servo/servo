@@ -43,7 +43,7 @@ impl NodeList {
 
     pub fn new_simple_list<T>(window: &Window, iter: T) -> Root<NodeList>
                               where T: Iterator<Item=Root<Node>> {
-        NodeList::new(window, NodeListType::Simple(iter.map(|r| JS::from_rooted(&r)).collect()))
+        NodeList::new(window, NodeListType::Simple(iter.map(|r| JS::from_ref(&*r)).collect()))
     }
 
     pub fn new_child_list(window: &Window, node: &Node) -> Root<NodeList> {
@@ -217,9 +217,9 @@ impl ChildrenList {
                         // by ChildrenMutation::replace().
                         unreachable!()
                     },
-                    (_, [node, ..], _) => node,
-                    (_, [], Some(next)) => next,
-                    (Some(prev), [], None) => {
+                    (_, &[node, ..], _) => node,
+                    (_, &[], Some(next)) => next,
+                    (Some(prev), &[], None) => {
                         list.last_index.set(index - 1u32);
                         prev
                     },

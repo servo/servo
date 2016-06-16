@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use std::collections::HashSet;
 use std::slice::Iter;
 
 // A device name can never be longer than 29 bytes. An adv packet is at most
@@ -15,6 +16,10 @@ pub struct ServiceUUIDSequence(Vec<String>);
 impl ServiceUUIDSequence {
     pub fn new(vec: Vec<String>) -> ServiceUUIDSequence {
         ServiceUUIDSequence(vec)
+    }
+
+    fn get_services_set(&self) -> HashSet<String> {
+        self.0.iter().map(String::clone).collect()
     }
 }
 
@@ -69,6 +74,10 @@ impl BluetoothScanfilterSequence {
     pub fn iter(&self) -> Iter<BluetoothScanfilter> {
         self.0.iter()
     }
+
+    fn get_services_set(&self) -> HashSet<String> {
+        self.iter().flat_map(|filter| filter.services.get_services_set()).collect()
+    }
 }
 
 #[derive(Deserialize, Serialize)]
@@ -89,5 +98,9 @@ impl RequestDeviceoptions {
 
     pub fn get_filters(&self) -> &BluetoothScanfilterSequence {
         &self.filters
+    }
+
+    pub fn get_services_set(&self) -> HashSet<String> {
+        &self.filters.get_services_set() | &self.optional_services.get_services_set()
     }
 }

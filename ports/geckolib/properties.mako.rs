@@ -16,13 +16,19 @@ use gecko_bindings::bindings::Gecko_Construct_${style_struct.gecko_ffi_name};
 use gecko_bindings::bindings::Gecko_CopyConstruct_${style_struct.gecko_ffi_name};
 use gecko_bindings::bindings::Gecko_Destroy_${style_struct.gecko_ffi_name};
 % endfor
-use gecko_bindings::bindings::{Gecko_CopyListStyleTypeFrom, Gecko_SetListStyleType};
+use gecko_bindings::bindings::{Gecko_CopyMozBindingFrom, Gecko_CopyListStyleTypeFrom};
+use gecko_bindings::bindings::{Gecko_SetMozBinding, Gecko_SetListStyleType};
+use gecko_bindings::bindings::{Gecko_SetNullImageValue, Gecko_SetGradientImageValue};
+use gecko_bindings::bindings::{Gecko_CreateGradient};
+use gecko_bindings::bindings::{Gecko_CopyImageValueFrom, Gecko_CopyFontFamilyFrom};
+use gecko_bindings::bindings::{Gecko_FontFamilyList_AppendGeneric, Gecko_FontFamilyList_AppendNamed};
+use gecko_bindings::bindings::{Gecko_FontFamilyList_Clear};
 use gecko_bindings::structs;
 use glue::ArcHelpers;
-use heapsize::HeapSizeOf;
 use std::fmt::{self, Debug};
-use std::mem::{transmute, zeroed};
+use std::mem::{transmute, uninitialized, zeroed};
 use std::sync::Arc;
+use std::cmp;
 use style::custom_properties::ComputedValuesMap;
 use style::logical_geometry::WritingMode;
 use style::properties::{CascadePropertyFn, ServoComputedValues, ComputedValues};
@@ -145,6 +151,12 @@ pub struct ${style_struct.gecko_struct_name} {
 <%def name="impl_simple_copy(ident, gecko_ffi_name)">
     fn copy_${ident}_from(&mut self, other: &Self) {
         self.gecko.${gecko_ffi_name} = other.gecko.${gecko_ffi_name};
+    }
+</%def>
+
+<%def name="impl_coord_copy(ident, gecko_ffi_name)">
+    fn copy_${ident}_from(&mut self, other: &Self) {
+        self.gecko.${gecko_ffi_name}.copy_from(&other.gecko.${gecko_ffi_name});
     }
 </%def>
 
@@ -373,7 +385,7 @@ impl Debug for ${style_struct.gecko_struct_name} {
    # These are currently being shuffled to a different style struct on the gecko side.
    force_stub += ["backface-visibility", "transform-box", "transform-style"]
    # These live in nsStyleImageLayers in gecko. Need to figure out what to do about that.
-   force_stub += ["background-repeat", "background-attachment", "background-clip", "background-origin"];
+   force_stub += ["background-attachment", "background-clip", "background-origin"];
    # These live in an nsFont member in Gecko. Should be straightforward to do manually.
    force_stub += ["font-kerning", "font-stretch", "font-variant"]
    # These have unusual representations in gecko.
@@ -419,10 +431,14 @@ impl ${style_struct.trait_name} for ${style_struct.gecko_struct_name} {
      */
     % for longhand in stub_longhands:
     fn set_${longhand.ident}(&mut self, _: longhands::${longhand.ident}::computed_value::T) {
-        println!("stylo: Unimplemented property setter: ${longhand.name}");
+        if cfg!(debug_assertions) {
+            println!("stylo: Unimplemented property setter: ${longhand.name}");
+        }
     }
     fn copy_${longhand.ident}_from(&mut self, _: &Self) {
-        println!("stylo: Unimplemented property setter: ${longhand.name}");
+        if cfg!(debug_assertions) {
+            println!("stylo: Unimplemented property setter: ${longhand.name}");
+        }
     }
     % if longhand.need_clone:
     fn clone_${longhand.ident}(&self) -> longhands::${longhand.ident}::computed_value::T {
@@ -479,6 +495,7 @@ fn static_assert() {
     { const DETAIL: u32 = [0][(structs::Side::eSide${side.name} as usize != ${side.index}) as usize]; let _ = DETAIL; }
     % endfor
 }
+
 
 <% border_style_keyword = Keyword("border-style",
                                   "none solid double dotted dashed hidden groove ridge inset outset") %>
@@ -589,7 +606,40 @@ fn static_assert() {
     }
 </%self:impl_trait>
 
-<%self:impl_trait style_struct_name="Font" skip_longhands="font-style font-size font-weight" skip_additionals="*">
+<%self:impl_trait style_struct_name="Font"
+    skip_longhands="font-family font-style font-size font-weight"
+    skip_additionals="*">
+
+    fn set_font_family(&mut self, v: longhands::font_family::computed_value::T) {
+        use style::properties::longhands::font_family::computed_value::FontFamily;
+        use gecko_bindings::structs::FontFamilyType;
+
+        let list = &mut self.gecko.mFont.fontlist;
+        unsafe { Gecko_FontFamilyList_Clear(list); }
+
+        for family in &v.0 {
+            match *family {
+                FontFamily::FamilyName(ref name) => {
+                    unsafe { Gecko_FontFamilyList_AppendNamed(list, name.as_ptr()); }
+                }
+                FontFamily::Generic(ref name) => {
+                    let family_type =
+                        if name == &atom!("serif") { FontFamilyType::eFamily_serif }
+                        else if name == &atom!("sans-serif") { FontFamilyType::eFamily_sans_serif }
+                        else if name == &atom!("cursive") { FontFamilyType::eFamily_cursive }
+                        else if name == &atom!("fantasy") { FontFamilyType::eFamily_fantasy }
+                        else if name == &atom!("monospace") { FontFamilyType::eFamily_monospace }
+                        else { panic!("Unknown generic font family") };
+                    unsafe { Gecko_FontFamilyList_AppendGeneric(list, family_type); }
+                }
+            }
+        }
+    }
+
+    fn copy_font_family_from(&mut self, other: &Self) {
+        unsafe { Gecko_CopyFontFamilyFrom(&mut self.gecko.mFont, &other.gecko.mFont); }
+    }
+
     <%call expr="impl_keyword('font_style', 'mFont.style',
         data.longhands_by_name['font-style'].keyword, need_clone=False)"></%call>
 
@@ -625,13 +675,14 @@ fn static_assert() {
 
 </%self:impl_trait>
 
-<%self:impl_trait style_struct_name="Box" skip_longhands="display overflow-y vertical-align">
+<%self:impl_trait style_struct_name="Box" skip_longhands="display overflow-y vertical-align -moz-binding">
 
     // We manually-implement the |display| property until we get general
     // infrastructure for preffing certain values.
     <% display_keyword = Keyword("display", "inline block inline-block table inline-table table-row-group " +
                                             "table-header-group table-footer-group table-row table-column-group " +
-                                            "table-column table-cell table-caption list-item flex none") %>
+                                            "table-column table-cell table-caption list-item flex none " +
+                                            "-moz-box -moz-inline-box") %>
     <%call expr="impl_keyword('display', 'mDisplay', display_keyword, True)"></%call>
 
     // overflow-y is implemented as a newtype of overflow-x, so we need special handling.
@@ -671,18 +722,152 @@ fn static_assert() {
             T::LengthOrPercentage(v) => self.gecko.mVerticalAlign.set(v),
         }
     }
-    fn copy_vertical_align_from(&mut self, other: &Self) {
-        debug_assert_unit_is_safe_to_copy(self.gecko.mVerticalAlign.mUnit);
-        self.gecko.mVerticalAlign.mUnit = other.gecko.mVerticalAlign.mUnit;
-        self.gecko.mVerticalAlign.mValue = other.gecko.mVerticalAlign.mValue;
-    }
 
+    <%call expr="impl_coord_copy('vertical_align', 'mVerticalAlign')"></%call>
+
+    fn set__moz_binding(&mut self, v: longhands::_moz_binding::computed_value::T) {
+        use style::properties::longhands::_moz_binding::SpecifiedValue as BindingValue;
+        match v {
+            BindingValue::None => debug_assert!(self.gecko.mBinding.mRawPtr.is_null()),
+            BindingValue::Url(ref url, ref extra_data) => {
+                unsafe {
+                    Gecko_SetMozBinding(&mut self.gecko,
+                                        url.as_str().as_ptr(),
+                                        url.as_str().len() as u32,
+                                        extra_data.base.as_raw(),
+                                        extra_data.referrer.as_raw(),
+                                        extra_data.principal.as_raw());
+                }
+            }
+        }
+    }
+    fn copy__moz_binding_from(&mut self, other: &Self) {
+        unsafe { Gecko_CopyMozBindingFrom(&mut self.gecko, &other.gecko); }
+    }
 </%self:impl_trait>
 
-<%self:impl_trait style_struct_name="Background" skip_longhands="background-color" skip_additionals="*">
+<%self:impl_trait style_struct_name="Background"
+                  skip_longhands="background-color background-repeat background-image"
+                  skip_additionals="*">
 
     <% impl_color("background_color", "mBackgroundColor") %>
 
+    fn copy_background_repeat_from(&mut self, other: &Self) {
+        self.gecko.mImage.mRepeatCount = other.gecko.mImage.mRepeatCount;
+        self.gecko.mImage.mLayers.mFirstElement.mRepeat =
+            other.gecko.mImage.mLayers.mFirstElement.mRepeat;
+    }
+
+    fn set_background_repeat(&mut self, v: longhands::background_repeat::computed_value::T) {
+        use style::properties::longhands::background_repeat::computed_value::T as Computed;
+        use gecko_bindings::structs::{NS_STYLE_IMAGELAYER_REPEAT_REPEAT, NS_STYLE_IMAGELAYER_REPEAT_NO_REPEAT};
+        use gecko_bindings::structs::nsStyleImageLayers_Repeat;
+        let (repeat_x, repeat_y) = match v {
+            Computed::repeat_x => (NS_STYLE_IMAGELAYER_REPEAT_REPEAT,
+                                   NS_STYLE_IMAGELAYER_REPEAT_NO_REPEAT),
+            Computed::repeat_y => (NS_STYLE_IMAGELAYER_REPEAT_NO_REPEAT,
+                                   NS_STYLE_IMAGELAYER_REPEAT_REPEAT),
+            Computed::repeat => (NS_STYLE_IMAGELAYER_REPEAT_REPEAT,
+                                 NS_STYLE_IMAGELAYER_REPEAT_REPEAT),
+            Computed::no_repeat => (NS_STYLE_IMAGELAYER_REPEAT_NO_REPEAT,
+                                    NS_STYLE_IMAGELAYER_REPEAT_NO_REPEAT),
+        };
+
+        self.gecko.mImage.mRepeatCount = 1;
+        self.gecko.mImage.mLayers.mFirstElement.mRepeat = nsStyleImageLayers_Repeat {
+            mXRepeat: repeat_x as u8,
+            mYRepeat: repeat_y as u8,
+        };
+    }
+
+    fn copy_background_image_from(&mut self, other: &Self) {
+        unsafe {
+            Gecko_CopyImageValueFrom(&mut self.gecko.mImage.mLayers.mFirstElement.mImage,
+                                     &other.gecko.mImage.mLayers.mFirstElement.mImage);
+        }
+    }
+
+    fn set_background_image(&mut self, image: longhands::background_image::computed_value::T) {
+        use gecko_bindings::structs::{NS_STYLE_GRADIENT_SHAPE_LINEAR, NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER};
+        use gecko_bindings::structs::nsStyleCoord;
+        use style::values::computed::Image;
+        use style::values::specified::AngleOrCorner;
+        use cssparser::Color as CSSColor;
+
+        unsafe {
+            // Prevent leaking of the last element we did set
+            Gecko_SetNullImageValue(&mut self.gecko.mImage.mLayers.mFirstElement.mImage);
+        }
+
+        self.gecko.mImage.mImageCount = cmp::max(1, self.gecko.mImage.mImageCount);
+        if let Some(image) = image.0 {
+            match image {
+                Image::LinearGradient(ref gradient) => {
+                    let stop_count = gradient.stops.len();
+                    if stop_count >= ::std::u32::MAX as usize {
+                        warn!("stylo: Prevented overflow due to too many gradient stops");
+                        return;
+                    }
+
+                    let gecko_gradient = unsafe {
+                        Gecko_CreateGradient(NS_STYLE_GRADIENT_SHAPE_LINEAR as u8,
+                                             NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER as u8,
+                                             /* repeating = */ false,
+                                             /* legacy_syntax = */ false,
+                                             stop_count as u32)
+                    };
+
+                    // TODO: figure out what gecko does in the `corner` case.
+                    if let AngleOrCorner::Angle(angle) = gradient.angle_or_corner {
+                        unsafe {
+                            (*gecko_gradient).mAngle.set(angle);
+                        }
+                    }
+
+                    let mut coord: nsStyleCoord = unsafe { uninitialized() };
+                    for (index, stop) in gradient.stops.iter().enumerate() {
+                        // NB: stops are guaranteed to be none in the gecko side by
+                        // default.
+                        coord.set(stop.position);
+                        let color = match stop.color {
+                            CSSColor::CurrentColor => {
+                                // TODO(emilio): gecko just stores an nscolor,
+                                // and it doesn't seem to support currentColor
+                                // as value in a gradient.
+                                //
+                                // Double-check it and either remove
+                                // currentColor for servo or see how gecko
+                                // handles this.
+                                0
+                            },
+                            CSSColor::RGBA(ref rgba) => convert_rgba_to_nscolor(rgba),
+                        };
+
+                        let mut stop = unsafe {
+                            &mut (*gecko_gradient).mStops[index]
+                        };
+
+                        stop.mColor = color;
+                        stop.mIsInterpolationHint = false;
+                        stop.mLocation.copy_from(&coord);
+                    }
+
+                    unsafe {
+                        Gecko_SetGradientImageValue(&mut self.gecko.mImage.mLayers.mFirstElement.mImage,
+                                                    gecko_gradient);
+                    }
+                },
+                Image::Url(_) => {
+                    // let utf8_bytes = url.as_bytes();
+                    // Gecko_SetUrlImageValue(&mut self.gecko.mImage.mLayers.mFirstElement,
+                    //                        utf8_bytes.as_ptr() as *const _,
+                    //                        utf8_bytes.len());
+                    warn!("stylo: imgRequestProxies are not threadsafe in gecko, \
+                           background-image: url() not yet implemented");
+                }
+            }
+        }
+    }
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="List" skip_longhands="list-style-type" skip_additionals="*">
@@ -698,29 +883,59 @@ fn static_assert() {
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="InheritedText"
-                  skip_longhands="text-align">
+                  skip_longhands="text-align line-height">
 
     <% text_align_keyword = Keyword("text-align", "start end left right center justify -moz-center -moz-left " +
                                                   "-moz-right match-parent") %>
     <%call expr="impl_keyword('text_align', 'mTextAlign', text_align_keyword, need_clone=False)"></%call>
 
+    fn set_line_height(&mut self, v: longhands::line_height::computed_value::T) {
+        use style::properties::longhands::line_height::computed_value::T;
+        // FIXME: Align binary representations and ditch |match| for cast + static_asserts
+        match v {
+            T::Normal => self.gecko.mLineHeight.set_normal(),
+            T::Length(val) => self.gecko.mLineHeight.set_coord(val),
+            T::Number(val) => self.gecko.mLineHeight.set_factor(val),
+            T::MozBlockHeight =>
+                self.gecko.mLineHeight.set_enum(structs::NS_STYLE_LINE_HEIGHT_BLOCK_HEIGHT as i32),
+        }
+    }
+
+    <%call expr="impl_coord_copy('line_height', 'mLineHeight')"></%call>
+
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Text"
-                  skip_longhands="text-decoration-color"
+                  skip_longhands="text-decoration-color text-decoration-line"
                   skip_additionals="*">
 
     <% impl_color("text_decoration_color", "mTextDecorationColor",
                   color_flags_ffi_name="mTextDecorationStyle") %>
 
+    fn set_text_decoration_line(&mut self, v: longhands::text_decoration_line::computed_value::T) {
+        let mut bits: u8 = 0;
+        if v.underline {
+            bits |= structs::NS_STYLE_TEXT_DECORATION_LINE_UNDERLINE as u8;
+        }
+        if v.overline {
+            bits |= structs::NS_STYLE_TEXT_DECORATION_LINE_OVERLINE as u8;
+        }
+        if v.line_through {
+            bits |= structs::NS_STYLE_TEXT_DECORATION_LINE_LINE_THROUGH as u8;
+        }
+        self.gecko.mTextDecorationLine = bits;
+    }
+
+    <%call expr="impl_simple_copy('text_decoration_line', 'mTextDecorationLine')"></%call>
+
     fn has_underline(&self) -> bool {
-        (self.gecko.mTextDecorationStyle & (structs::NS_STYLE_TEXT_DECORATION_LINE_UNDERLINE as u8)) != 0
+        (self.gecko.mTextDecorationLine & (structs::NS_STYLE_TEXT_DECORATION_LINE_UNDERLINE as u8)) != 0
     }
     fn has_overline(&self) -> bool {
-        (self.gecko.mTextDecorationStyle & (structs::NS_STYLE_TEXT_DECORATION_LINE_OVERLINE as u8)) != 0
+        (self.gecko.mTextDecorationLine & (structs::NS_STYLE_TEXT_DECORATION_LINE_OVERLINE as u8)) != 0
     }
     fn has_line_through(&self) -> bool {
-        (self.gecko.mTextDecorationStyle & (structs::NS_STYLE_TEXT_DECORATION_LINE_LINE_THROUGH as u8)) != 0
+        (self.gecko.mTextDecorationLine & (structs::NS_STYLE_TEXT_DECORATION_LINE_LINE_THROUGH as u8)) != 0
     }
 </%self:impl_trait>
 
@@ -750,6 +965,59 @@ fn static_assert() {
         let color = ${get_gecko_property("mColor")} as u32;
         convert_nscolor_to_rgba(color)
     }
+</%self:impl_trait>
+
+<%self:impl_trait style_struct_name="Pointing"
+                  skip_longhands="cursor">
+
+    fn set_cursor(&mut self, v: longhands::cursor::computed_value::T) {
+        use style::properties::longhands::cursor::computed_value::T;
+        use style_traits::cursor::Cursor;
+
+        self.gecko.mCursor = match v {
+            T::AutoCursor => structs::NS_STYLE_CURSOR_AUTO,
+            T::SpecifiedCursor(cursor) => match cursor {
+                Cursor::None => structs::NS_STYLE_CURSOR_NONE,
+                Cursor::Default => structs::NS_STYLE_CURSOR_DEFAULT,
+                Cursor::Pointer => structs::NS_STYLE_CURSOR_POINTER,
+                Cursor::ContextMenu => structs::NS_STYLE_CURSOR_CONTEXT_MENU,
+                Cursor::Help => structs::NS_STYLE_CURSOR_HELP,
+                Cursor::Progress => structs::NS_STYLE_CURSOR_DEFAULT, // Gecko doesn't support "progress" yet
+                Cursor::Wait => structs::NS_STYLE_CURSOR_WAIT,
+                Cursor::Cell => structs::NS_STYLE_CURSOR_CELL,
+                Cursor::Crosshair => structs::NS_STYLE_CURSOR_CROSSHAIR,
+                Cursor::Text => structs::NS_STYLE_CURSOR_TEXT,
+                Cursor::VerticalText => structs::NS_STYLE_CURSOR_VERTICAL_TEXT,
+                Cursor::Alias => structs::NS_STYLE_CURSOR_ALIAS,
+                Cursor::Copy => structs::NS_STYLE_CURSOR_COPY,
+                Cursor::Move => structs::NS_STYLE_CURSOR_MOVE,
+                Cursor::NoDrop => structs::NS_STYLE_CURSOR_NO_DROP,
+                Cursor::NotAllowed => structs::NS_STYLE_CURSOR_NOT_ALLOWED,
+                Cursor::Grab => structs::NS_STYLE_CURSOR_GRAB,
+                Cursor::Grabbing => structs::NS_STYLE_CURSOR_GRABBING,
+                Cursor::EResize => structs::NS_STYLE_CURSOR_E_RESIZE,
+                Cursor::NResize => structs::NS_STYLE_CURSOR_N_RESIZE,
+                Cursor::NeResize => structs::NS_STYLE_CURSOR_NE_RESIZE,
+                Cursor::NwResize => structs::NS_STYLE_CURSOR_NW_RESIZE,
+                Cursor::SResize => structs::NS_STYLE_CURSOR_S_RESIZE,
+                Cursor::SeResize => structs::NS_STYLE_CURSOR_SE_RESIZE,
+                Cursor::SwResize => structs::NS_STYLE_CURSOR_SW_RESIZE,
+                Cursor::WResize => structs::NS_STYLE_CURSOR_W_RESIZE,
+                Cursor::EwResize => structs::NS_STYLE_CURSOR_EW_RESIZE,
+                Cursor::NsResize => structs::NS_STYLE_CURSOR_NS_RESIZE,
+                Cursor::NeswResize => structs::NS_STYLE_CURSOR_NESW_RESIZE,
+                Cursor::NwseResize => structs::NS_STYLE_CURSOR_NWSE_RESIZE,
+                Cursor::ColResize => structs::NS_STYLE_CURSOR_COL_RESIZE,
+                Cursor::RowResize => structs::NS_STYLE_CURSOR_ROW_RESIZE,
+                Cursor::AllScroll => structs::NS_STYLE_CURSOR_ALL_SCROLL,
+                Cursor::ZoomIn => structs::NS_STYLE_CURSOR_ZOOM_IN,
+                Cursor::ZoomOut => structs::NS_STYLE_CURSOR_ZOOM_OUT,
+            }
+        } as u8;
+    }
+
+    ${impl_simple_copy('cursor', 'mCursor')}
+
 </%self:impl_trait>
 
 <%def name="define_ffi_struct_accessor(style_struct)">

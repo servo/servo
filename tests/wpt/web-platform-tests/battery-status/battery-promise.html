@@ -1,26 +1,88 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>Battery Test: navigator.getBattery() returns BatteryManager as a promise</title>
+<title>Battery Test: each Navigator object has a battery promise for BatteryManager</title>
 <link rel="author" title="YuichiNukiyama" href="https://github.com/YuichiNukiyama">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-
-<script>
-    function returnBattery() {
-        return navigator.getBattery();
-    }
-
-    promise_test(function () {
-        return returnBattery()
-          .then(function (result) {
-              assert_class_string(result, "BatteryManager", "getBattery should return BatteryManager Object.");
-          });
-    }, "navigator.getBattery() return BatteryManager");
-
-    test(function () {
-        assert_equals(navigator.getBattery(), navigator.getBattery());
-    }, "navigator.getBattery() shall always return the same promise");
-</script>
-
+<style>
+  #note {
+    background-color: #fef1b5;
+    border: solid 1px #cdab2d;
+    padding: 5px;
+    margin: 15px;
+    display: block;
+  }
+  iframe {
+    display: none;
+  }
+</style>
+<div id="note">
+  Allow pop-up windows before running the tests.
+</div>
 <div id="log"></div>
+<iframe src="about:blank"></iframe>
+<script>
+promise_test(function () {
+  return navigator.getBattery().then(function (result) {
+    assert_class_string(result, 'BatteryManager',
+        'getBattery should return BatteryManager Object.');
+  });
+}, 'navigator.getBattery() shall return BatteryManager as a promise');
 
+test(function () {
+  assert_equals(navigator.getBattery(), navigator.getBattery());
+}, 'navigator.getBattery() shall always return the same promise');
+
+promise_test(function(t) {
+  var iframe = document.querySelector('iframe');
+  var originalPromise = navigator.getBattery();
+
+  return originalPromise.then(function(originalManager) {
+    var promise = iframe.contentWindow.navigator.getBattery();
+
+    assert_true(originalManager instanceof BatteryManager);
+    assert_not_equals(iframe.contentWindow.navigator,
+        navigator,
+        'navigator objects shall be different');
+    assert_not_equals(promise,
+        originalPromise,
+        'battery promises in different navigators shall be different');
+    assert_equals(iframe.contentWindow.navigator.getBattery(),
+        promise,
+        'battery promises in same navigator shall be same');
+
+    return promise;
+  }).then(function(manager) {
+    assert_equals(manager.__proto__,
+        iframe.contentWindow.BatteryManager.prototype);
+    assert_true(manager instanceof iframe.contentWindow.BatteryManager);
+  });
+
+}, 'iframe has a different Navigator object thus getting another battery promise');
+
+async_test(function (t) {
+  var iframe = document.querySelector('iframe');
+  var originalNavigator = iframe.contentWindow.navigator;
+  var originalPromise = iframe.contentWindow.navigator.getBattery();
+
+  iframe.onload = t.step_func(function() {
+    assert_not_equals(iframe.contentWindow.navigator,
+        originalNavigator,
+        'navigator objects shall be changed');
+    assert_not_equals(iframe.contentWindow.navigator.getBattery(),
+        originalPromise,
+        'battery status promises shall be different');
+    t.done();
+  });
+  iframe.src = 'support-iframe.html';
+}, 'setting iframe\'s src makes its Navigator object vary thus getting another battery promise');
+
+async_test(function (t) {
+  var win = window.open('support-window-open.html');
+  window.onmessage = t.step_func(function(e) {
+    assert_array_equals(e.data, [false, false, true]);
+    win.close();
+    t.done();
+  });
+}, 'window.open() makes a different Navigator object thus getting another battery promise');
+</script>

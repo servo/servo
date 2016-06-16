@@ -17,11 +17,11 @@
         ran = true;
         col_value = d;
         assert_equals(typeof a, 'string', 'first arg');
-        assert_equals(b, 'data:text/javascript,for(;) {}', 'second arg');
+        assert_equals(b, 'data:text/javascript,for(;){}', 'second arg');
         assert_equals(typeof c, 'number', 'third arg');
     });
   </script>
-  <script src="data:text/javascript,for(;) {}"></script>
+  <script src="data:text/javascript,for(;){}"></script>
   <script>
     t.step(function(){
         assert_true(ran, 'ran');

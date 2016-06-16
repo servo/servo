@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::attr::AttrValue;
 use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
+use dom::bindings::codegen::Bindings::HTMLFormControlsCollectionBinding::HTMLFormControlsCollectionMethods;
 use dom::bindings::codegen::Bindings::HTMLFormElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFormElementBinding::HTMLFormElementMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
@@ -16,6 +16,7 @@ use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, Nod
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::Reflectable;
+use dom::bindings::str::DOMString;
 use dom::blob::Blob;
 use dom::document::Document;
 use dom::element::Element;
@@ -39,6 +40,7 @@ use dom::window::Window;
 use encoding::EncodingRef;
 use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;
+use encoding::types::DecoderTrap;
 use hyper::header::{Charset, ContentDisposition, ContentType, DispositionParam, DispositionType};
 use hyper::method::Method;
 use msg::constellation_msg::{LoadData, PipelineId};
@@ -46,12 +48,13 @@ use rand::random;
 use script_thread::{MainThreadScriptMsg, Runnable};
 use std::borrow::ToOwned;
 use std::cell::Cell;
-use std::str::from_utf8;
 use std::sync::mpsc::Sender;
 use string_cache::Atom;
+use style::attr::AttrValue;
+use task_source::TaskSource;
 use task_source::dom_manipulation::DOMManipulationTask;
 use url::form_urlencoded;
-use util::str::{DOMString, split_html_space_chars};
+use util::str::split_html_space_chars;
 
 #[derive(JSTraceable, PartialEq, Clone, Copy, HeapSizeOf)]
 pub struct GenerationId(u32);
@@ -153,12 +156,12 @@ impl HTMLFormElementMethods for HTMLFormElement {
 
     // https://html.spec.whatwg.org/multipage/#the-form-element:concept-form-submit
     fn Submit(&self) {
-        self.submit(SubmittedFrom::FromFormSubmitMethod, FormSubmitter::FormElement(self));
+        self.submit(SubmittedFrom::FromForm, FormSubmitter::FormElement(self));
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-form-reset
     fn Reset(&self) {
-        self.reset(ResetFrom::FromFormResetMethod);
+        self.reset(ResetFrom::FromForm);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-form-elements
@@ -227,18 +230,24 @@ impl HTMLFormElementMethods for HTMLFormElement {
     fn Length(&self) -> u32 {
         self.Elements().Length() as u32
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-form-item
+    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Root<Element>> {
+        let elements = self.Elements();
+        elements.IndexedGetter(index, found)
+    }
 }
 
 #[derive(Copy, Clone, HeapSizeOf, PartialEq)]
 pub enum SubmittedFrom {
-    FromFormSubmitMethod,
-    NotFromFormSubmitMethod
+    FromForm,
+    NotFromForm
 }
 
 #[derive(Copy, Clone, HeapSizeOf)]
 pub enum ResetFrom {
-    FromFormResetMethod,
-    NotFromFormResetMethod
+    FromForm,
+    NotFromForm
 }
 
 
@@ -280,7 +289,7 @@ impl HTMLFormElement {
         let encoding = encoding.unwrap_or(self.pick_encoding());
 
         //  Step 3
-        let charset = &*encoding.whatwg_name().unwrap();
+        let charset = &*encoding.whatwg_name().unwrap_or("UTF-8");
 
         // Step 4
         for entry in form_data.iter_mut() {
@@ -308,12 +317,18 @@ impl HTMLFormElement {
                         DispositionParam::Filename(Charset::Ext(String::from(charset.clone())),
                                                    None,
                                                    f.name().clone().into()));
-                    let content_type = ContentType(f.upcast::<Blob>().Type().parse().unwrap());
+                    // https://tools.ietf.org/html/rfc7578#section-4.4
+                    let content_type = ContentType(f.upcast::<Blob>().Type()
+                                                    .parse().unwrap_or(mime!(Text / Plain)));
                     result.push_str(&*format!("Content-Disposition: {}\r\n{}\r\n\r\n",
                         content_disposition,
                         content_type));
 
-                    result.push_str(from_utf8(&f.upcast::<Blob>().get_data().get_bytes()).unwrap());
+                    let slice = f.upcast::<Blob>().get_slice_or_empty();
+
+                    let decoded = encoding.decode(&slice.get_bytes(), DecoderTrap::Replace)
+                                          .expect("Invalid encoding in file");
+                    result.push_str(&decoded);
                 }
             }
         }
@@ -360,7 +375,7 @@ impl HTMLFormElement {
         let base = doc.url();
         // TODO: Handle browsing contexts
         // Step 4
-        if submit_method_flag == SubmittedFrom::NotFromFormSubmitMethod &&
+        if submit_method_flag == SubmittedFrom::NotFromForm &&
            !submitter.no_validate(self)
         {
             if self.interactive_validation().is_err() {
@@ -370,7 +385,7 @@ impl HTMLFormElement {
             }
         }
         // Step 5
-        if submit_method_flag == SubmittedFrom::NotFromFormSubmitMethod {
+        if submit_method_flag == SubmittedFrom::NotFromForm {
             let event = self.upcast::<EventTarget>()
                 .fire_event("submit",
                             EventBubbles::Bubbles,
@@ -548,7 +563,12 @@ impl HTMLFormElement {
                             data_set.push(datum);
                         }
                     }
-                    HTMLElementTypeId::HTMLButtonElement |
+                    HTMLElementTypeId::HTMLButtonElement => {
+                        let button = child.downcast::<HTMLButtonElement>().unwrap();
+                        if let Some(datum) = button.form_datum(submitter) {
+                            data_set.push(datum);
+                        }
+                    }
                     HTMLElementTypeId::HTMLObjectElement => {
                         // Unimplemented
                         ()
@@ -615,7 +635,7 @@ impl HTMLFormElement {
         // Step 4
         for datum in &mut ret {
             match &*datum.ty {
-                "file" | "textarea" => (),
+                "file" | "textarea" => (), // TODO
                 _ => {
                     datum.name = clean_crlf(&datum.name);
                     datum.value = FormDatumValue::String(clean_crlf( match datum.value {
@@ -902,7 +922,7 @@ impl VirtualMethods for HTMLFormElement {
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
         match name {
-            &atom!("name") => AttrValue::from_atomic(value),
+            &atom!("name") => AttrValue::from_atomic(value.into()),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }

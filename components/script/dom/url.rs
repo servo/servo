@@ -8,13 +8,13 @@ use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
-use dom::bindings::str::USVString;
+use dom::bindings::str::{DOMString, USVString};
 use dom::urlhelper::UrlHelper;
 use dom::urlsearchparams::URLSearchParams;
 use std::borrow::ToOwned;
 use std::default::Default;
+use url::quirks::domain_to_unicode;
 use url::{Host, Url};
-use util::str::DOMString;
 
 // https://url.spec.whatwg.org/#url
 #[dom_struct]
@@ -100,6 +100,10 @@ impl URL {
             // Step 2.
             USVString("".to_owned())
         }
+    }
+
+    pub fn DomainToUnicode(_: GlobalRef, origin: USVString) -> USVString {
+        USVString(domain_to_unicode(&origin.0))
     }
 }
 

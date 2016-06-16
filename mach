@@ -6,7 +6,7 @@
 # The beginning of this script is both valid shell and valid python,
 # such that the script starts with the shell and is reexecuted with
 # the right python.
-'''which' python2.7 > /dev/null && exec python2.7 "$0" "$@" || exec python "$0" "$@"
+'''which' python2.7 > /dev/null 2> /dev/null && exec python2.7 "$0" "$@" || exec python "$0" "$@"
 '''
 
 from __future__ import print_function, unicode_literals

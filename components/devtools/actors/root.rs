@@ -8,8 +8,9 @@
 /// that perform more specific actions (tabs, addons, browser chrome, etc.)
 
 use actor::{Actor, ActorMessageStatus, ActorRegistry};
+use actors::performance::PerformanceActor;
 use actors::tab::{TabActor, TabActorMsg};
-use protocol::JsonPacketStream;
+use protocol::{ActorDescription, JsonPacketStream};
 use serde_json::Value;
 use std::collections::BTreeMap;
 use std::net::TcpStream;
@@ -18,7 +19,8 @@ use std::net::TcpStream;
 struct ActorTraits {
     sources: bool,
     highlightable: bool,
-    customHighlighters: Vec<String>,
+    customHighlighters: bool,
+    networkMonitor: bool,
 }
 
 #[derive(Serialize)]
@@ -42,6 +44,17 @@ pub struct RootActorMsg {
     from: String,
     applicationType: String,
     traits: ActorTraits,
+}
+
+#[derive(Serialize)]
+pub struct ProtocolDescriptionReply {
+    from: String,
+    types: Types,
+}
+
+#[derive(Serialize)]
+pub struct Types {
+    performance: ActorDescription,
 }
 
 pub struct RootActor {
@@ -81,6 +94,17 @@ impl Actor for RootActor {
                 ActorMessageStatus::Processed
             }
 
+            "protocolDescription" => {
+                let msg = ProtocolDescriptionReply {
+                    from: self.name(),
+                    types: Types {
+                        performance: PerformanceActor::description(),
+                    },
+                };
+                stream.write_json_packet(&msg);
+                ActorMessageStatus::Processed
+            }
+
             _ => ActorMessageStatus::Ignored
         })
     }
@@ -94,7 +118,8 @@ impl RootActor {
             traits: ActorTraits {
                 sources: true,
                 highlightable: true,
-                customHighlighters: vec!("BoxModelHighlighter".to_owned()),
+                customHighlighters: true,
+                networkMonitor: true
             },
         }
     }

@@ -4,7 +4,7 @@
 
 // https://html.spec.whatwg.org/multipage/#htmloutputelement
 interface HTMLOutputElement : HTMLElement {
-  //[PutForwards=value] readonly attribute DOMSettableTokenList htmlFor;
+  // [SameObject, PutForwards=value] readonly attribute DOMTokenList htmlFor;
   readonly attribute HTMLFormElement? form;
   //         attribute DOMString name;
 

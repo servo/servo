@@ -3,24 +3,29 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use document_loader::{LoadType, LoadBlocker};
-use dom::attr::{Attr, AttrValue};
+use dom::attr::Attr;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserElementErrorEventDetail;
 use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserElementIconChangeEventDetail;
 use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserElementLocationChangeEventDetail;
+use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserElementOpenTabEventDetail;
+use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserElementOpenWindowEventDetail;
 use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserElementSecurityChangeDetail;
 use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserShowModalPromptEventDetail;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::conversions::{ToJSValConvertible};
+use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{Root, LayoutJS};
+use dom::bindings::js::{JS, MutNullableHeap, Root, LayoutJS};
 use dom::bindings::reflector::Reflectable;
+use dom::bindings::str::DOMString;
+use dom::browsingcontext::BrowsingContext;
 use dom::customevent::CustomEvent;
 use dom::document::Document;
+use dom::domtokenlist::DOMTokenList;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
 use dom::event::Event;
 use dom::eventtarget::EventTarget;
@@ -33,20 +38,16 @@ use ipc_channel::ipc;
 use js::jsapi::{JSAutoCompartment, RootedValue, JSContext, MutableHandleValue};
 use js::jsval::{UndefinedValue, NullValue};
 use layout_interface::ReflowQueryType;
-use msg::constellation_msg::{LoadData, NavigationDirection, PipelineId, SubpageId};
+use msg::constellation_msg::{FrameType, LoadData, NavigationDirection, PipelineId, SubpageId};
 use net_traits::response::HttpsState;
 use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
 use script_traits::{IFrameLoadInfo, MozBrowserEvent, ScriptMsg as ConstellationMsg};
 use std::cell::Cell;
 use string_cache::Atom;
+use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use style::context::ReflowGoal;
 use url::Url;
-use util::prefs;
-use util::str::{DOMString, LengthOrPercentageOrAuto};
-
-pub fn mozbrowser_enabled() -> bool {
-    prefs::get_pref("dom.mozbrowser.enabled").as_boolean().unwrap_or(false)
-}
+use util::prefs::mozbrowser_enabled;
 
 #[derive(HeapSizeOf)]
 enum SandboxAllowance {
@@ -64,13 +65,14 @@ pub struct HTMLIFrameElement {
     htmlelement: HTMLElement,
     pipeline_id: Cell<Option<PipelineId>>,
     subpage_id: Cell<Option<SubpageId>>,
-    sandbox: Cell<Option<u8>>,
+    sandbox: MutNullableHeap<JS<DOMTokenList>>,
+    sandbox_allowance: Cell<Option<u8>>,
     load_blocker: DOMRefCell<Option<LoadBlocker>>,
 }
 
 impl HTMLIFrameElement {
     pub fn is_sandboxed(&self) -> bool {
-        self.sandbox.get().is_some()
+        self.sandbox_allowance.get().is_some()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#otherwise-steps-for-iframe-or-frame-elements>,
@@ -122,6 +124,7 @@ impl HTMLIFrameElement {
         let (new_subpage_id, old_subpage_id) = self.generate_new_subpage_id();
         let new_pipeline_id = self.pipeline_id.get().unwrap();
         let private_iframe = self.privatebrowsing();
+        let frame_type = if self.Mozbrowser() { FrameType::MozBrowserIFrame } else { FrameType::IFrame };
 
         let load_info = IFrameLoadInfo {
             load_data: load_data,
@@ -131,6 +134,7 @@ impl HTMLIFrameElement {
             new_pipeline_id: new_pipeline_id,
             sandbox: sandboxed,
             is_private: private_iframe,
+            frame_type: frame_type,
         };
         window.constellation_chan()
               .send(ConstellationMsg::ScriptLoadedURLInIFrame(load_info))
@@ -145,8 +149,9 @@ impl HTMLIFrameElement {
     pub fn process_the_iframe_attributes(&self) {
         let url = self.get_url();
 
-        // TODO - loaddata here should have referrer info (not None, None)
-        self.navigate_or_reload_child_browsing_context(Some(LoadData::new(url, None, None)));
+        let document = document_from_node(self);
+        self.navigate_or_reload_child_browsing_context(
+            Some(LoadData::new(url, document.get_referrer_policy(), Some(document.url().clone()))));
     }
 
     #[allow(unsafe_code)]
@@ -191,7 +196,8 @@ impl HTMLIFrameElement {
             htmlelement: HTMLElement::new_inherited(localName, prefix, document),
             pipeline_id: Cell::new(None),
             subpage_id: Cell::new(None),
-            sandbox: Cell::new(None),
+            sandbox: Default::default(),
+            sandbox_allowance: Cell::new(None),
             load_blocker: DOMRefCell::new(None),
         }
     }
@@ -254,6 +260,15 @@ impl HTMLIFrameElement {
         }
     }
 
+    pub fn get_content_window(&self) -> Option<Root<Window>> {
+        self.subpage_id.get().and_then(|subpage_id| {
+            let window = window_from_node(self);
+            let window = window.r();
+            let browsing_context = window.browsing_context();
+            browsing_context.find_child_by_subpage(subpage_id)
+        })
+    }
+
 }
 
 pub trait HTMLIFrameElementLayoutMethods {
@@ -311,7 +326,7 @@ impl MozBrowserEventDetailBuilder for HTMLIFrameElement {
         match event {
             MozBrowserEvent::AsyncScroll | MozBrowserEvent::Close | MozBrowserEvent::ContextMenu |
             MozBrowserEvent::LoadEnd | MozBrowserEvent::LoadStart |
-            MozBrowserEvent::Connected | MozBrowserEvent::OpenWindow | MozBrowserEvent::OpenSearch  |
+            MozBrowserEvent::Connected | MozBrowserEvent::OpenSearch  |
             MozBrowserEvent::UsernameAndPasswordRequired => {
                 rval.set(NullValue());
             }
@@ -346,6 +361,18 @@ impl MozBrowserEventDetailBuilder for HTMLIFrameElement {
                     uri: Some(DOMString::from(uri)),
                     canGoBack: Some(can_go_back),
                     canGoForward: Some(can_go_forward),
+                }.to_jsval(cx, rval);
+            }
+            MozBrowserEvent::OpenTab(url) => {
+                BrowserElementOpenTabEventDetail {
+                    url: Some(DOMString::from(url)),
+                }.to_jsval(cx, rval);
+            }
+            MozBrowserEvent::OpenWindow(url, target, features) => {
+                BrowserElementOpenWindowEventDetail {
+                    url: Some(DOMString::from(url)),
+                    target: target.map(DOMString::from),
+                    features: features.map(DOMString::from),
                 }.to_jsval(cx, rval);
             }
             MozBrowserEvent::IconChange(rel, href, sizes) => {
@@ -398,28 +425,21 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-sandbox
-    fn Sandbox(&self) -> DOMString {
-        self.upcast::<Element>().get_string_attribute(&atom!("sandbox"))
-    }
-
-    // https://html.spec.whatwg.org/multipage/#dom-iframe-sandbox
-    fn SetSandbox(&self, sandbox: DOMString) {
-        self.upcast::<Element>().set_tokenlist_attribute(&atom!("sandbox"), sandbox);
+    fn Sandbox(&self) -> Root<DOMTokenList> {
+        self.sandbox.or_init(|| DOMTokenList::new(self.upcast::<Element>(), &atom!("sandbox")))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-contentwindow
-    fn GetContentWindow(&self) -> Option<Root<Window>> {
-        self.subpage_id.get().and_then(|subpage_id| {
-            let window = window_from_node(self);
-            let window = window.r();
-            let browsing_context = window.browsing_context();
-            browsing_context.find_child_by_subpage(subpage_id)
-        })
+    fn GetContentWindow(&self) -> Option<Root<BrowsingContext>> {
+        match self.get_content_window() {
+            Some(ref window) => Some(window.browsing_context()),
+            None => None
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-contentdocument
     fn GetContentDocument(&self) -> Option<Root<Document>> {
-        self.GetContentWindow().and_then(|window| {
+        self.get_content_window().and_then(|window| {
             // FIXME(#10964): this should use the Document's origin and the
             //                origin of the incumbent settings object.
             let self_url = self.get_url();
@@ -436,15 +456,9 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
     // Experimental mozbrowser implementation is based on the webidl
     // present in the gecko source tree, and the documentation here:
     // https://developer.mozilla.org/en-US/docs/Web/API/Using_the_Browser_API
-
-    // TODO(gw): Use experimental codegen when it is available to avoid
-    // exposing these APIs. See https://github.com/servo/servo/issues/5264.
-
     // https://developer.mozilla.org/en-US/docs/Web/HTML/Element/iframe#attr-mozbrowser
     fn Mozbrowser(&self) -> bool {
-        // We don't want to allow mozbrowser iframes within iframes
-        let is_root_pipeline = window_from_node(self).parent_info().is_none();
-        if mozbrowser_enabled() && is_root_pipeline {
+        if window_from_node(self).is_mozbrowser() {
             let element = self.upcast::<Element>();
             element.has_attribute(&atom!("mozbrowser"))
         } else {
@@ -453,22 +467,19 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/HTML/Element/iframe#attr-mozbrowser
-    fn SetMozbrowser(&self, value: bool) -> ErrorResult {
-        if mozbrowser_enabled() {
-            let element = self.upcast::<Element>();
-            element.set_bool_attribute(&atom!("mozbrowser"), value);
-        }
-        Ok(())
+    fn SetMozbrowser(&self, value: bool) {
+        let element = self.upcast::<Element>();
+        element.set_bool_attribute(&atom!("mozbrowser"), value);
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/goBack
     fn GoBack(&self) -> ErrorResult {
-        Navigate(self, NavigationDirection::Back)
+        Navigate(self, NavigationDirection::Back(1))
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/goForward
     fn GoForward(&self) -> ErrorResult {
-        Navigate(self, NavigationDirection::Forward)
+        Navigate(self, NavigationDirection::Forward(1))
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/reload
@@ -510,7 +521,7 @@ impl VirtualMethods for HTMLIFrameElement {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
             &atom!("sandbox") => {
-                self.sandbox.set(mutation.new_value(attr).map(|value| {
+                self.sandbox_allowance.set(mutation.new_value(attr).map(|value| {
                     let mut modes = SandboxAllowance::AllowNothing as u8;
                     for token in value.as_tokens() {
                         modes |= match &*token.to_ascii_lowercase() {
@@ -539,9 +550,9 @@ impl VirtualMethods for HTMLIFrameElement {
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
         match name {
-            &atom!("sandbox") => AttrValue::from_serialized_tokenlist(value),
-            &atom!("width") => AttrValue::from_dimension(value),
-            &atom!("height") => AttrValue::from_dimension(value),
+            &atom!("sandbox") => AttrValue::from_serialized_tokenlist(value.into()),
+            &atom!("width") => AttrValue::from_dimension(value.into()),
+            &atom!("height") => AttrValue::from_dimension(value.into()),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }

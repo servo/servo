@@ -4,18 +4,19 @@
 
 use compositing::CompositionPipeline;
 use compositing::CompositorProxy;
-use compositing::compositor_thread;
 use compositing::compositor_thread::Msg as CompositorMsg;
 use devtools_traits::{DevtoolsControlMsg, ScriptToDevtoolsControlMsg};
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
+#[cfg(not(target_os = "windows"))]
+use gaol;
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::paint_thread::{ChromeToPaintMsg, LayoutToPaintMsg, PaintThread};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layers::geometry::DevicePixel;
-use layout_traits::{LayoutControlChan, LayoutThreadFactory};
-use msg::constellation_msg::{FrameId, LoadData, PanicMsg, PipelineId};
+use layout_traits::LayoutThreadFactory;
+use msg::constellation_msg::{FrameId, FrameType, LoadData, PanicMsg, PipelineId};
 use msg::constellation_msg::{PipelineNamespaceId, SubpageId, WindowSizeData};
 use net_traits::ResourceThreads;
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
@@ -24,31 +25,36 @@ use profile_traits::mem as profile_mem;
 use profile_traits::time;
 use script_traits::{ConstellationControlMsg, InitialScriptState, MozBrowserEvent};
 use script_traits::{LayoutControlMsg, LayoutMsg, NewLayoutInfo, ScriptMsg};
-use script_traits::{ScriptToCompositorMsg, ScriptThreadFactory, TimerEventRequest};
+use script_traits::{ScriptThreadFactory, TimerEventRequest};
 use std::collections::HashMap;
-use std::mem;
-use std::sync::mpsc::{Receiver, Sender, channel};
+use std::io::Error as IOError;
+use std::process;
+use std::sync::mpsc::{Sender, channel};
 use url::Url;
 use util;
 use util::geometry::{PagePx, ViewportPx};
 use util::ipc::OptionalIpcSender;
 use util::opts::{self, Opts};
 use util::prefs::{self, Pref};
-use util::thread;
 use webrender_traits;
+
+pub enum ChildProcess {
+    #[cfg(not(target_os = "windows"))]
+    Sandboxed(gaol::platform::process::Process),
+    #[cfg(not(target_os = "windows"))]
+    Unsandboxed(process::Child),
+}
 
 /// A uniquely-identifiable pipeline of script thread, layout thread, and paint thread.
 pub struct Pipeline {
     pub id: PipelineId,
-    pub parent_info: Option<(PipelineId, SubpageId)>,
+    pub parent_info: Option<(PipelineId, SubpageId, FrameType)>,
     pub script_chan: IpcSender<ConstellationControlMsg>,
     /// A channel to layout, for performing reflows and shutdown.
-    pub layout_chan: LayoutControlChan,
+    pub layout_chan: IpcSender<LayoutControlMsg>,
     /// A channel to the compositor.
     pub compositor_proxy: Box<CompositorProxy + 'static + Send>,
     pub chrome_to_paint_chan: Sender<ChromeToPaintMsg>,
-    pub layout_shutdown_port: IpcReceiver<()>,
-    pub paint_shutdown_port: IpcReceiver<()>,
     /// URL corresponding to the most recently-loaded page.
     pub url: Url,
     /// The title of the most recently-loaded page.
@@ -70,7 +76,7 @@ pub struct InitialPipelineState {
     pub id: PipelineId,
     /// The subpage ID of this pipeline to create in its pipeline parent.
     /// If `None`, this is the root.
-    pub parent_info: Option<(PipelineId, SubpageId)>,
+    pub parent_info: Option<(PipelineId, SubpageId, FrameType)>,
     /// A channel to the associated constellation.
     pub constellation_chan: IpcSender<ScriptMsg>,
     /// A channel for the layout thread to send messages to the constellation.
@@ -111,68 +117,37 @@ pub struct InitialPipelineState {
 }
 
 impl Pipeline {
-    /// Starts a paint thread, layout thread, and possibly a script thread.
-    /// Returns the channels wrapped in a struct.
-    pub fn create<LTF, STF>(state: InitialPipelineState)
-                            -> (Pipeline, UnprivilegedPipelineContent, PrivilegedPipelineContent)
-        where LTF: LayoutThreadFactory,
-              STF: ScriptThreadFactory
+    /// Starts a paint thread, layout thread, and possibly a script thread, in
+    /// a new process if requested.
+    pub fn spawn<Message, LTF, STF>(state: InitialPipelineState)
+                                    -> Result<(Pipeline, Option<ChildProcess>), IOError>
+        where LTF: LayoutThreadFactory<Message=Message>,
+              STF: ScriptThreadFactory<Message=Message>
     {
         // Note: we allow channel creation to panic, since recovering from this
         // probably requires a general low-memory strategy.
         let (layout_to_paint_chan, layout_to_paint_port) = util::ipc::optional_ipc_channel();
         let (chrome_to_paint_chan, chrome_to_paint_port) = channel();
-        let (paint_shutdown_chan, paint_shutdown_port) = ipc::channel()
-            .expect("Pipeline paint shutdown chan");
-        let (layout_shutdown_chan, layout_shutdown_port) = ipc::channel()
-            .expect("Pipeline layout shutdown chan");
         let (pipeline_chan, pipeline_port) = ipc::channel()
             .expect("Pipeline main chan");;
-        let (script_to_compositor_chan, script_to_compositor_port) = ipc::channel()
-            .expect("Pipeline script to compositor chan");
-        let mut pipeline_port = Some(pipeline_port);
-
-        let window_size = state.window_size.map(|size| {
-            WindowSizeData {
-                visible_viewport: size,
-                initial_viewport: size * ScaleFactor::new(1.0),
-                device_pixel_ratio: state.device_pixel_ratio,
-            }
-        });
-
-        // Route messages coming from content to devtools as appropriate.
-        let script_to_devtools_chan = state.devtools_chan.as_ref().map(|devtools_chan| {
-            let (script_to_devtools_chan, script_to_devtools_port) = ipc::channel()
-                .expect("Pipeline script to devtools chan");
-            let devtools_chan = (*devtools_chan).clone();
-            ROUTER.add_route(script_to_devtools_port.to_opaque(), box move |message| {
-                match message.to::<ScriptToDevtoolsControlMsg>() {
-                    Err(e) => error!("Cast to ScriptToDevtoolsControlMsg failed ({}).", e),
-                    Ok(message) => if let Err(e) = devtools_chan.send(DevtoolsControlMsg::FromScript(message)) {
-                        warn!("Sending to devtools failed ({})", e)
-                    },
-                }
-            });
-            script_to_devtools_chan
-        });
 
         let (layout_content_process_shutdown_chan, layout_content_process_shutdown_port) =
             ipc::channel().expect("Pipeline layout content shutdown chan");
 
-        let (script_chan, script_port) = match state.script_chan {
+        let (script_chan, content_ports) = match state.script_chan {
             Some(script_chan) => {
-                let (containing_pipeline_id, subpage_id) =
+                let (containing_pipeline_id, subpage_id, frame_type) =
                     state.parent_info.expect("script_pipeline != None but subpage_id == None");
                 let new_layout_info = NewLayoutInfo {
                     containing_pipeline_id: containing_pipeline_id,
                     new_pipeline_id: state.id,
                     subpage_id: subpage_id,
+                    frame_type: frame_type,
                     load_data: state.load_data.clone(),
                     paint_chan: layout_to_paint_chan.clone().to_opaque(),
                     panic_chan: state.panic_chan.clone(),
-                    pipeline_port: mem::replace(&mut pipeline_port, None)
-                        .expect("script_pipeline != None but pipeline_port == None"),
-                    layout_shutdown_chan: layout_shutdown_chan.clone(),
+                    pipeline_port: pipeline_port,
+                    layout_to_constellation_chan: state.layout_to_constellation_chan.clone(),
                     content_process_shutdown_chan: layout_content_process_shutdown_chan.clone(),
                 };
 
@@ -183,86 +158,112 @@ impl Pipeline {
             }
             None => {
                 let (script_chan, script_port) = ipc::channel().expect("Pipeline script chan");
-                (script_chan, Some(script_port))
+                (script_chan, Some((script_port, pipeline_port)))
             }
         };
 
-        let (script_content_process_shutdown_chan, script_content_process_shutdown_port) =
-            ipc::channel().expect("Pipeline script content process shutdown chan");
+        PaintThread::create(state.id,
+                            state.load_data.url.clone(),
+                            chrome_to_paint_chan.clone(),
+                            layout_to_paint_port,
+                            chrome_to_paint_port,
+                            state.compositor_proxy.clone_compositor_proxy(),
+                            state.panic_chan.clone(),
+                            state.font_cache_thread.clone(),
+                            state.time_profiler_chan.clone(),
+                            state.mem_profiler_chan.clone());
+
+        let mut child_process = None;
+        if let Some((script_port, pipeline_port)) = content_ports {
+            // Route messages coming from content to devtools as appropriate.
+            let script_to_devtools_chan = state.devtools_chan.as_ref().map(|devtools_chan| {
+                let (script_to_devtools_chan, script_to_devtools_port) = ipc::channel()
+                    .expect("Pipeline script to devtools chan");
+                let devtools_chan = (*devtools_chan).clone();
+                ROUTER.add_route(script_to_devtools_port.to_opaque(), box move |message| {
+                    match message.to::<ScriptToDevtoolsControlMsg>() {
+                        Err(e) => error!("Cast to ScriptToDevtoolsControlMsg failed ({}).", e),
+                        Ok(message) => if let Err(e) = devtools_chan.send(DevtoolsControlMsg::FromScript(message)) {
+                            warn!("Sending to devtools failed ({})", e)
+                        },
+                    }
+                });
+                script_to_devtools_chan
+            });
+
+            let device_pixel_ratio = state.device_pixel_ratio;
+            let window_size = state.window_size.map(|size| {
+                WindowSizeData {
+                    visible_viewport: size,
+                    initial_viewport: size * ScaleFactor::new(1.0),
+                    device_pixel_ratio: device_pixel_ratio,
+                }
+            });
+
+            let (script_content_process_shutdown_chan, script_content_process_shutdown_port) =
+                ipc::channel().expect("Pipeline script content process shutdown chan");
+
+            let unprivileged_pipeline_content = UnprivilegedPipelineContent {
+                id: state.id,
+                parent_info: state.parent_info,
+                constellation_chan: state.constellation_chan,
+                scheduler_chan: state.scheduler_chan,
+                devtools_chan: script_to_devtools_chan,
+                bluetooth_thread: state.bluetooth_thread,
+                image_cache_thread: state.image_cache_thread,
+                font_cache_thread: state.font_cache_thread,
+                resource_threads: state.resource_threads,
+                time_profiler_chan: state.time_profiler_chan,
+                mem_profiler_chan: state.mem_profiler_chan,
+                window_size: window_size,
+                layout_to_constellation_chan: state.layout_to_constellation_chan,
+                script_chan: script_chan.clone(),
+                load_data: state.load_data.clone(),
+                panic_chan: state.panic_chan,
+                script_port: script_port,
+                opts: (*opts::get()).clone(),
+                prefs: prefs::get_cloned(),
+                layout_to_paint_chan: layout_to_paint_chan,
+                pipeline_port: pipeline_port,
+                pipeline_namespace_id: state.pipeline_namespace_id,
+                layout_content_process_shutdown_chan: layout_content_process_shutdown_chan,
+                layout_content_process_shutdown_port: layout_content_process_shutdown_port,
+                script_content_process_shutdown_chan: script_content_process_shutdown_chan,
+                script_content_process_shutdown_port: script_content_process_shutdown_port,
+                webrender_api_sender: state.webrender_api_sender,
+            };
+
+            // Spawn the child process.
+            //
+            // Yes, that's all there is to it!
+            if opts::multiprocess() {
+                child_process = Some(try!(unprivileged_pipeline_content.spawn_multiprocess()));
+            } else {
+                unprivileged_pipeline_content.start_all::<Message, LTF, STF>(false);
+            }
+        }
 
         let pipeline = Pipeline::new(state.id,
                                      state.parent_info,
-                                     script_chan.clone(),
-                                     LayoutControlChan(pipeline_chan),
-                                     state.compositor_proxy.clone_compositor_proxy(),
-                                     chrome_to_paint_chan.clone(),
-                                     layout_shutdown_port,
-                                     paint_shutdown_port,
-                                     state.load_data.url.clone(),
+                                     script_chan,
+                                     pipeline_chan,
+                                     state.compositor_proxy,
+                                     chrome_to_paint_chan,
+                                     state.load_data.url,
                                      state.window_size);
 
-        let unprivileged_pipeline_content = UnprivilegedPipelineContent {
-            id: state.id,
-            parent_info: state.parent_info,
-            constellation_chan: state.constellation_chan,
-            scheduler_chan: state.scheduler_chan,
-            devtools_chan: script_to_devtools_chan,
-            bluetooth_thread: state.bluetooth_thread,
-            image_cache_thread: state.image_cache_thread,
-            font_cache_thread: state.font_cache_thread.clone(),
-            resource_threads: state.resource_threads,
-            time_profiler_chan: state.time_profiler_chan.clone(),
-            mem_profiler_chan: state.mem_profiler_chan.clone(),
-            window_size: window_size,
-            layout_to_constellation_chan: state.layout_to_constellation_chan,
-            script_chan: script_chan,
-            load_data: state.load_data.clone(),
-            panic_chan: state.panic_chan.clone(),
-            script_port: script_port,
-            opts: (*opts::get()).clone(),
-            prefs: prefs::get_cloned(),
-            layout_to_paint_chan: layout_to_paint_chan,
-            pipeline_port: pipeline_port,
-            layout_shutdown_chan: layout_shutdown_chan,
-            paint_shutdown_chan: paint_shutdown_chan.clone(),
-            script_to_compositor_chan: script_to_compositor_chan,
-            pipeline_namespace_id: state.pipeline_namespace_id,
-            layout_content_process_shutdown_chan: layout_content_process_shutdown_chan,
-            layout_content_process_shutdown_port: layout_content_process_shutdown_port,
-            script_content_process_shutdown_chan: script_content_process_shutdown_chan,
-            script_content_process_shutdown_port: script_content_process_shutdown_port,
-            webrender_api_sender: state.webrender_api_sender,
-        };
-
-        let privileged_pipeline_content = PrivilegedPipelineContent {
-            id: state.id,
-            compositor_proxy: state.compositor_proxy,
-            font_cache_thread: state.font_cache_thread,
-            time_profiler_chan: state.time_profiler_chan,
-            mem_profiler_chan: state.mem_profiler_chan,
-            load_data: state.load_data,
-            panic_chan: state.panic_chan,
-            layout_to_paint_port: layout_to_paint_port,
-            chrome_to_paint_chan: chrome_to_paint_chan,
-            chrome_to_paint_port: chrome_to_paint_port,
-            paint_shutdown_chan: paint_shutdown_chan,
-            script_to_compositor_port: script_to_compositor_port,
-        };
-
-        (pipeline, unprivileged_pipeline_content, privileged_pipeline_content)
+        Ok((pipeline, child_process))
     }
 
-    pub fn new(id: PipelineId,
-               parent_info: Option<(PipelineId, SubpageId)>,
-               script_chan: IpcSender<ConstellationControlMsg>,
-               layout_chan: LayoutControlChan,
-               compositor_proxy: Box<CompositorProxy + 'static + Send>,
-               chrome_to_paint_chan: Sender<ChromeToPaintMsg>,
-               layout_shutdown_port: IpcReceiver<()>,
-               paint_shutdown_port: IpcReceiver<()>,
-               url: Url,
-               size: Option<TypedSize2D<PagePx, f32>>)
-               -> Pipeline {
+    fn new(id: PipelineId,
+           parent_info: Option<(PipelineId, SubpageId, FrameType)>,
+           script_chan: IpcSender<ConstellationControlMsg>,
+           layout_chan: IpcSender<LayoutControlMsg>,
+           compositor_proxy: Box<CompositorProxy + 'static + Send>,
+           chrome_to_paint_chan: Sender<ChromeToPaintMsg>,
+           url: Url,
+           size: Option<TypedSize2D<PagePx, f32>>)
+           -> Pipeline {
         Pipeline {
             id: id,
             parent_info: parent_info,
@@ -270,8 +271,6 @@ impl Pipeline {
             layout_chan: layout_chan,
             compositor_proxy: compositor_proxy,
             chrome_to_paint_chan: chrome_to_paint_chan,
-            layout_shutdown_port: layout_shutdown_port,
-            paint_shutdown_port: paint_shutdown_port,
             url: url,
             title: None,
             children: vec!(),
@@ -296,6 +295,8 @@ impl Pipeline {
         // The compositor wants to know when pipelines shut down too.
         // It may still have messages to process from these other threads
         // before they can be safely shut down.
+        // It's OK for the constellation to block on the compositor,
+        // since the compositor never blocks on the constellation.
         if let Ok((sender, receiver)) = ipc::channel() {
             self.compositor_proxy.send(CompositorMsg::PipelineExited(self.id, sender));
             if let Err(e) = receiver.recv() {
@@ -305,13 +306,8 @@ impl Pipeline {
 
         // Script thread handles shutting down layout, and layout handles shutting down the painter.
         // For now, if the script thread has failed, we give up on clean shutdown.
-        if self.script_chan
-               .send(ConstellationControlMsg::ExitPipeline(self.id))
-               .is_ok() {
-            // Wait until all slave threads have terminated and run destructors
-            // NOTE: We don't wait for script thread as we don't always own it
-            let _ = self.paint_shutdown_port.recv();
-            let _ = self.layout_shutdown_port.recv();
+        if let Err(e) = self.script_chan.send(ConstellationControlMsg::ExitPipeline(self.id)) {
+            warn!("Sending script exit message failed ({}).", e);
         }
     }
 
@@ -334,8 +330,7 @@ impl Pipeline {
         if let Err(e) = self.chrome_to_paint_chan.send(ChromeToPaintMsg::Exit) {
             warn!("Sending paint exit message failed ({}).", e);
         }
-        let LayoutControlChan(ref layout_channel) = self.layout_chan;
-        if let Err(e) = layout_channel.send(LayoutControlMsg::ExitNow) {
+        if let Err(e) = self.layout_chan.send(LayoutControlMsg::ExitNow) {
             warn!("Sending layout exit message failed ({}).", e);
         }
     }
@@ -363,7 +358,7 @@ impl Pipeline {
     pub fn trigger_mozbrowser_event(&self,
                                      subpage_id: SubpageId,
                                      event: MozBrowserEvent) {
-        assert!(prefs::get_pref("dom.mozbrowser.enabled").as_boolean().unwrap_or(false));
+        assert!(prefs::mozbrowser_enabled());
 
         let event = ConstellationControlMsg::MozBrowserEvent(self.id,
                                                              subpage_id,
@@ -377,12 +372,11 @@ impl Pipeline {
 #[derive(Deserialize, Serialize)]
 pub struct UnprivilegedPipelineContent {
     id: PipelineId,
-    parent_info: Option<(PipelineId, SubpageId)>,
+    parent_info: Option<(PipelineId, SubpageId, FrameType)>,
     constellation_chan: IpcSender<ScriptMsg>,
     layout_to_constellation_chan: IpcSender<LayoutMsg>,
     scheduler_chan: IpcSender<TimerEventRequest>,
     devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
-    script_to_compositor_chan: IpcSender<ScriptToCompositorMsg>,
     bluetooth_thread: IpcSender<BluetoothMethodMsg>,
     image_cache_thread: ImageCacheThread,
     font_cache_thread: FontCacheThread,
@@ -393,14 +387,12 @@ pub struct UnprivilegedPipelineContent {
     script_chan: IpcSender<ConstellationControlMsg>,
     load_data: LoadData,
     panic_chan: IpcSender<PanicMsg>,
-    script_port: Option<IpcReceiver<ConstellationControlMsg>>,
+    script_port: IpcReceiver<ConstellationControlMsg>,
     layout_to_paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
     opts: Opts,
     prefs: HashMap<String, Pref>,
-    paint_shutdown_chan: IpcSender<()>,
-    pipeline_port: Option<IpcReceiver<LayoutControlMsg>>,
+    pipeline_port: IpcReceiver<LayoutControlMsg>,
     pipeline_namespace_id: PipelineNamespaceId,
-    layout_shutdown_chan: IpcSender<()>,
     layout_content_process_shutdown_chan: IpcSender<()>,
     layout_content_process_shutdown_port: IpcReceiver<()>,
     script_content_process_shutdown_chan: IpcSender<()>,
@@ -409,23 +401,19 @@ pub struct UnprivilegedPipelineContent {
 }
 
 impl UnprivilegedPipelineContent {
-    pub fn start_all<LTF, STF>(mut self, wait_for_completion: bool)
-        where LTF: LayoutThreadFactory,
-              STF: ScriptThreadFactory
+    pub fn start_all<Message, LTF, STF>(self, wait_for_completion: bool)
+        where LTF: LayoutThreadFactory<Message=Message>,
+              STF: ScriptThreadFactory<Message=Message>
     {
-        let layout_pair = STF::create_layout_channel();
-
-        STF::create(InitialScriptState {
+        let layout_pair = STF::create(InitialScriptState {
             id: self.id,
             parent_info: self.parent_info,
-            compositor: self.script_to_compositor_chan,
             control_chan: self.script_chan.clone(),
-            control_port: mem::replace(&mut self.script_port, None).expect("No script port."),
-            constellation_chan: self.constellation_chan.clone(),
-            layout_to_constellation_chan: self.layout_to_constellation_chan.clone(),
-            scheduler_chan: self.scheduler_chan.clone(),
+            control_port: self.script_port,
+            constellation_chan: self.constellation_chan,
+            scheduler_chan: self.scheduler_chan,
             panic_chan: self.panic_chan.clone(),
-            bluetooth_thread: self.bluetooth_thread.clone(),
+            bluetooth_thread: self.bluetooth_thread,
             resource_threads: self.resource_threads,
             image_cache_thread: self.image_cache_thread.clone(),
             time_profiler_chan: self.time_profiler_chan.clone(),
@@ -433,24 +421,23 @@ impl UnprivilegedPipelineContent {
             devtools_chan: self.devtools_chan,
             window_size: self.window_size,
             pipeline_namespace_id: self.pipeline_namespace_id,
-            content_process_shutdown_chan: self.script_content_process_shutdown_chan.clone(),
-        }, &layout_pair, self.load_data.clone());
+            content_process_shutdown_chan: self.script_content_process_shutdown_chan,
+        }, self.load_data.clone());
 
         LTF::create(self.id,
-                    self.load_data.url.clone(),
+                    self.load_data.url,
                     self.parent_info.is_some(),
                     layout_pair,
-                    self.pipeline_port.expect("No pipeline port."),
+                    self.pipeline_port,
                     self.layout_to_constellation_chan,
                     self.panic_chan,
-                    self.script_chan.clone(),
-                    self.layout_to_paint_chan.clone(),
+                    self.script_chan,
+                    self.layout_to_paint_chan,
                     self.image_cache_thread,
                     self.font_cache_thread,
                     self.time_profiler_chan,
                     self.mem_profiler_chan,
-                    self.layout_shutdown_chan,
-                    self.layout_content_process_shutdown_chan.clone(),
+                    self.layout_content_process_shutdown_chan,
                     self.webrender_api_sender);
 
         if wait_for_completion {
@@ -459,66 +446,64 @@ impl UnprivilegedPipelineContent {
         }
     }
 
+    #[cfg(not(target_os = "windows"))]
+    pub fn spawn_multiprocess(self) -> Result<ChildProcess, IOError> {
+        use gaol::sandbox::{self, Sandbox, SandboxMethods};
+        use ipc_channel::ipc::IpcOneShotServer;
+        use sandboxing::content_process_sandbox_profile;
+        use std::env;
+
+        // Note that this function can panic, due to process creation,
+        // avoiding this panic would require a mechanism for dealing
+        // with low-resource scenarios.
+        let (server, token) =
+            IpcOneShotServer::<IpcSender<UnprivilegedPipelineContent>>::new()
+            .expect("Failed to create IPC one-shot server.");
+
+        // If there is a sandbox, use the `gaol` API to create the child process.
+        let child_process = if opts::get().sandbox {
+            let mut command = sandbox::Command::me().expect("Failed to get current sandbox.");
+            command.arg("--content-process").arg(token);
+
+            if let Ok(value) = env::var("RUST_BACKTRACE") {
+                command.env("RUST_BACKTRACE", value);
+            }
+
+            let profile = content_process_sandbox_profile();
+            ChildProcess::Sandboxed(Sandbox::new(profile).start(&mut command)
+                                    .expect("Failed to start sandboxed child process!"))
+        } else {
+            let path_to_self = env::current_exe()
+                .expect("Failed to get current executor.");
+            let mut child_process = process::Command::new(path_to_self);
+            child_process.arg("--content-process");
+            child_process.arg(token);
+
+            if let Ok(value) = env::var("RUST_BACKTRACE") {
+                child_process.env("RUST_BACKTRACE", value);
+            }
+
+            ChildProcess::Unsandboxed(child_process.spawn()
+                                      .expect("Failed to start unsandboxed child process!"))
+        };
+
+        let (_receiver, sender) = server.accept().expect("Server failed to accept.");
+        try!(sender.send(self));
+
+        Ok(child_process)
+    }
+
+    #[cfg(target_os = "windows")]
+    pub fn spawn_multiprocess(self) -> Result<ChildProcess, IOError> {
+        error!("Multiprocess is not supported on Windows.");
+        process::exit(1);
+    }
+
     pub fn opts(&self) -> Opts {
         self.opts.clone()
     }
 
     pub fn prefs(&self) -> HashMap<String, Pref> {
         self.prefs.clone()
-    }
-}
-
-pub struct PrivilegedPipelineContent {
-    id: PipelineId,
-    compositor_proxy: Box<CompositorProxy + Send + 'static>,
-    script_to_compositor_port: IpcReceiver<ScriptToCompositorMsg>,
-    font_cache_thread: FontCacheThread,
-    time_profiler_chan: time::ProfilerChan,
-    mem_profiler_chan: profile_mem::ProfilerChan,
-    load_data: LoadData,
-    panic_chan: IpcSender<PanicMsg>,
-    layout_to_paint_port: Receiver<LayoutToPaintMsg>,
-    chrome_to_paint_chan: Sender<ChromeToPaintMsg>,
-    chrome_to_paint_port: Receiver<ChromeToPaintMsg>,
-    paint_shutdown_chan: IpcSender<()>,
-}
-
-impl PrivilegedPipelineContent {
-    pub fn start_all(self) {
-        PaintThread::create(self.id,
-                          self.load_data.url,
-                          self.chrome_to_paint_chan,
-                          self.layout_to_paint_port,
-                          self.chrome_to_paint_port,
-                          self.compositor_proxy.clone_compositor_proxy(),
-                          self.panic_chan,
-                          self.font_cache_thread,
-                          self.time_profiler_chan,
-                          self.mem_profiler_chan,
-                          self.paint_shutdown_chan);
-
-        let compositor_proxy_for_script_listener_thread =
-            self.compositor_proxy.clone_compositor_proxy();
-        let script_to_compositor_port = self.script_to_compositor_port;
-        thread::spawn_named("CompositorScriptListener".to_owned(), move || {
-            compositor_thread::run_script_listener_thread(
-                compositor_proxy_for_script_listener_thread,
-                script_to_compositor_port)
-        });
-    }
-
-    pub fn start_paint_thread(self) {
-        PaintThread::create(self.id,
-                          self.load_data.url,
-                          self.chrome_to_paint_chan,
-                          self.layout_to_paint_port,
-                          self.chrome_to_paint_port,
-                          self.compositor_proxy,
-                          self.panic_chan,
-                          self.font_cache_thread,
-                          self.time_profiler_chan,
-                          self.mem_profiler_chan,
-                          self.paint_shutdown_chan);
-
     }
 }

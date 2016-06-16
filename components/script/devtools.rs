@@ -10,24 +10,25 @@ use dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclar
 use dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
+use dom::bindings::codegen::Bindings::LocationBinding::LocationMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::{FromJSValConvertible, jsstring_to_str};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
-use dom::browsingcontext::{BrowsingContext, IterableContext};
+use dom::bindings::str::DOMString;
+use dom::browsingcontext::BrowsingContext;
 use dom::element::Element;
 use dom::node::Node;
 use dom::window::Window;
 use ipc_channel::ipc::IpcSender;
-use js::jsapi::{ObjectClassName, RootedObject, RootedValue};
+use js::jsapi::{JSAutoCompartment, ObjectClassName, RootedObject, RootedValue};
 use js::jsval::UndefinedValue;
 use msg::constellation_msg::PipelineId;
 use script_thread::get_browsing_context;
 use std::ffi::CStr;
 use std::str;
 use style::properties::longhands::{margin_top, margin_right, margin_bottom, margin_left};
-use util::str::DOMString;
 use uuid::Uuid;
 
 #[allow(unsafe_code)]
@@ -35,6 +36,8 @@ pub fn handle_evaluate_js(global: &GlobalRef, eval: String, reply: IpcSender<Eva
     // global.get_cx() returns a valid `JSContext` pointer, so this is safe.
     let result = unsafe {
         let cx = global.get_cx();
+        let globalhandle = global.reflector().get_jsobject();
+        let _ac = JSAutoCompartment::new(cx, globalhandle.get());
         let mut rval = RootedValue::new(cx, UndefinedValue());
         global.evaluate_js_on_global_with_result(&eval, rval.handle_mut());
 
@@ -247,4 +250,12 @@ pub fn handle_request_animation_frame(context: &BrowsingContext,
         let msg = ScriptToDevtoolsControlMsg::FramerateTick(actor_name, time);
         devtools_sender.send(msg).unwrap();
     });
+}
+
+pub fn handle_reload(context: &BrowsingContext,
+                     id: PipelineId) {
+    let context = context.find(id).expect("There is no such context");
+    let win = context.active_window();
+    let location = win.Location();
+    location.Reload();
 }

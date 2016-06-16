@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::attr::{Attr, AttrValue};
+use dom::attr::Attr;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding;
@@ -10,6 +10,7 @@ use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaEl
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{LayoutJS, Root};
+use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::RawLayoutElementHelpers;
 use dom::element::{AttributeMutation, Element};
@@ -28,9 +29,9 @@ use script_traits::ScriptMsg as ConstellationMsg;
 use std::cell::Cell;
 use std::ops::Range;
 use string_cache::Atom;
+use style::attr::AttrValue;
 use style::element_state::*;
 use textinput::{KeyReaction, Lines, TextInput, SelectionDirection};
-use util::str::DOMString;
 
 #[dom_struct]
 pub struct HTMLTextAreaElement {
@@ -332,8 +333,8 @@ impl VirtualMethods for HTMLTextAreaElement {
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
         match *name {
-            atom!("cols") => AttrValue::from_limited_u32(value, DEFAULT_COLS),
-            atom!("rows") => AttrValue::from_limited_u32(value, DEFAULT_ROWS),
+            atom!("cols") => AttrValue::from_limited_u32(value.into(), DEFAULT_COLS),
+            atom!("rows") => AttrValue::from_limited_u32(value.into(), DEFAULT_ROWS),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }

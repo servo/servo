@@ -53,10 +53,12 @@ class CheckTidiness(unittest.TestCase):
         self.assertEqual('use statement spans multiple lines', errors.next()[2])
         self.assertEqual('missing space before }', errors.next()[2])
         self.assertTrue('use statement is not in alphabetical order' in errors.next()[2])
+        self.assertEqual('use statement contains braces for single import', errors.next()[2])
         self.assertEqual('encountered whitespace following a use statement', errors.next()[2])
         self.assertTrue('mod declaration is not in alphabetical order' in errors.next()[2])
         self.assertEqual('mod declaration spans multiple lines', errors.next()[2])
         self.assertTrue('extern crate declaration is not in alphabetical order' in errors.next()[2])
+        self.assertEqual('found an empty line following a {', errors.next()[2])
         self.assertEqual('missing space before ->', errors.next()[2])
         self.assertEqual('missing space after ->', errors.next()[2])
         self.assertEqual('missing space after :', errors.next()[2])
@@ -72,6 +74,7 @@ class CheckTidiness(unittest.TestCase):
         self.assertEqual('extra space before :', errors.next()[2])
         self.assertEqual('use &[T] instead of &Vec<T>', errors.next()[2])
         self.assertEqual('use &str instead of &String', errors.next()[2])
+        self.assertEqual('use &T instead of &Root<T>', errors.next()[2])
         self.assertEqual('operators should go at the end of the first line', errors.next()[2])
         self.assertNoMoreErrors(errors)
 
@@ -111,6 +114,16 @@ class CheckTidiness(unittest.TestCase):
         self.assertEqual(msg, errors.next()[2])
         self.assertNoMoreErrors(errors)
 
+    def test_file_list(self):
+        base_path='./python/tidy/servo_tidy_tests/test_ignored'
+        file_list = tidy.get_file_list(base_path, only_changed_files=False,
+                                       exclude_dirs=[])
+        lst = list(file_list)
+        self.assertEqual([os.path.join(base_path, 'whee', 'test.rs')], lst)
+        file_list = tidy.get_file_list(base_path, only_changed_files=False,
+                                       exclude_dirs=[os.path.join(base_path,'whee')])
+        lst = list(file_list)
+        self.assertEqual([], lst)
 
 def do_tests():
     suite = unittest.TestLoader().loadTestsFromTestCase(CheckTidiness)

@@ -12,6 +12,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
+use dom::bindings::str::DOMString;
 use dom::blob::{Blob, DataSlice};
 use dom::domexception::{DOMErrorName, DOMException};
 use dom::event::{Event, EventBubbles, EventCancelable};
@@ -27,7 +28,6 @@ use script_runtime::{ScriptChan, CommonScriptMsg};
 use script_thread::Runnable;
 use std::cell::Cell;
 use string_cache::Atom;
-use util::str::DOMString;
 use util::thread::spawn_named;
 
 #[derive(PartialEq, Clone, Copy, JSTraceable, HeapSizeOf)]
@@ -79,7 +79,7 @@ pub struct FileReader {
 impl FileReader {
     pub fn new_inherited() -> FileReader {
         FileReader {
-            eventtarget: EventTarget::new_inherited(),//?
+            eventtarget: EventTarget::new_inherited(),
             ready_state: Cell::new(FileReaderReadyState::Empty),
             error: MutNullableHeap::new(None),
             result: DOMRefCell::new(None),
@@ -201,7 +201,6 @@ impl FileReader {
     // https://w3c.github.io/FileAPI/#dfn-readAsText
     fn perform_readastext(data: ReadMetaData, blob_bytes: &[u8])
         -> DOMString {
-
         let blob_label = &data.label;
         let blob_type = &data.blobtype;
 
@@ -319,7 +318,6 @@ impl FileReaderMethods for FileReader {
 
 impl FileReader {
     fn dispatch_progress_event(&self, type_: Atom, loaded: u64, total: Option<u64>) {
-
         let global = self.global();
         let progressevent = ProgressEvent::new(global.r(),
             type_, EventBubbles::DoesNotBubble, EventCancelable::NotCancelable,
@@ -351,7 +349,7 @@ impl FileReader {
         self.change_ready_state(FileReaderReadyState::Loading);
 
         // Step 4
-        let blob_contents = blob.get_data().clone();
+        let blob_contents = blob.get_slice_or_empty();
 
         let type_ = blob.Type();
 

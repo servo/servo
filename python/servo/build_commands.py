@@ -23,7 +23,11 @@ from mach.decorators import (
     Command,
 )
 
-from servo.command_base import CommandBase, cd, call
+from servo.command_base import CommandBase, cd, call, BIN_SUFFIX
+
+
+def format_duration(seconds):
+    return str(datetime.timedelta(seconds=int(seconds)))
 
 
 def notify_linux(title, text):
@@ -86,7 +90,7 @@ def notify_build_done(elapsed):
     """Generate desktop notification when build is complete and the
     elapsed build time was longer than 30 seconds."""
     if elapsed > 30:
-        notify("Servo build", "Completed in %s" % str(datetime.timedelta(seconds=elapsed)))
+        notify("Servo build", "Completed in %s" % format_duration(elapsed))
 
 
 def notify(title, text):
@@ -147,7 +151,7 @@ class MachCommands(CommandBase):
               features=None, android=None, verbose=False, debug_mozjs=False, params=None):
         if android is None:
             android = self.config["build"]["android"]
-        features = features or []
+        features = features or self.servo_features()
 
         opts = params or []
 
@@ -182,6 +186,10 @@ class MachCommands(CommandBase):
 
         if release:
             opts += ["--release"]
+            servo_path = release_path
+        else:
+            servo_path = dev_path
+
         if jobs is not None:
             opts += ["-j", jobs]
         if verbose:
@@ -194,7 +202,7 @@ class MachCommands(CommandBase):
 
         self.ensure_bootstrapped(target=target)
 
-        if debug_mozjs or self.config["build"]["debug-mozjs"]:
+        if debug_mozjs:
             features += ["script/debugmozjs"]
 
         if features:
@@ -226,8 +234,10 @@ class MachCommands(CommandBase):
             env['OPENSSL_INCLUDE_DIR'] = path.join(openssl_dir, "include")
             env['OPENSSL_STATIC'] = 'TRUE'
 
+        cargo_binary = "cargo" + BIN_SUFFIX
+
         status = call(
-            ["cargo", "build"] + opts,
+            [cargo_binary, "build"] + opts,
             env=env, cwd=self.servo_crate(), verbose=verbose)
         elapsed = time() - build_start
 
@@ -235,10 +245,24 @@ class MachCommands(CommandBase):
             shutil.copy(path.join(self.get_top_dir(), "components", "servo", "servo.exe.manifest"),
                         path.join(base_path, "debug" if dev else "release"))
 
+        # On the Mac, set a lovely icon. This makes it easier to pick out the Servo binary in tools
+        # like Instruments.app.
+        if sys.platform == "darwin":
+            try:
+                import Cocoa
+                icon_path = path.join(self.get_top_dir(), "resources", "servo.png")
+                icon = Cocoa.NSImage.alloc().initWithContentsOfFile_(icon_path)
+                if icon is not None:
+                    Cocoa.NSWorkspace.sharedWorkspace().setIcon_forFile_options_(icon,
+                                                                                 servo_path,
+                                                                                 0)
+            except ImportError:
+                pass
+
         # Generate Desktop Notification if elapsed-time > some threshold value
         notify_build_done(elapsed)
 
-        print("Build completed in %s" % str(datetime.timedelta(seconds=elapsed)))
+        print("Build completed in %s" % format_duration(elapsed))
         return status
 
     @Command('build-cef',
@@ -265,6 +289,10 @@ class MachCommands(CommandBase):
         if release:
             opts += ["--release"]
 
+        servo_features = self.servo_features()
+        if servo_features:
+            opts += ["--features", "%s" % ' '.join("servo/" + x for x in servo_features)]
+
         build_start = time()
         with cd(path.join("ports", "cef")):
             ret = call(["cargo", "build"] + opts,
@@ -274,7 +302,7 @@ class MachCommands(CommandBase):
         # Generate Desktop Notification if elapsed-time > some threshold value
         notify_build_done(elapsed)
 
-        print("CEF build completed in %s" % str(datetime.timedelta(seconds=elapsed)))
+        print("CEF build completed in %s" % format_duration(elapsed))
 
         return ret
 
@@ -311,45 +339,7 @@ class MachCommands(CommandBase):
         # Generate Desktop Notification if elapsed-time > some threshold value
         notify_build_done(elapsed)
 
-        print("GeckoLib build completed in %s" % str(datetime.timedelta(seconds=elapsed)))
-
-        return ret
-
-    @Command('build-gonk',
-             description='Build the Gonk port',
-             category='build')
-    @CommandArgument('--jobs', '-j',
-                     default=None,
-                     help='Number of jobs to run in parallel')
-    @CommandArgument('--verbose', '-v',
-                     action='store_true',
-                     help='Print verbose output')
-    @CommandArgument('--release', '-r',
-                     action='store_true',
-                     help='Build in release mode')
-    def build_gonk(self, jobs=None, verbose=False, release=False):
-        target = "arm-linux-androideabi"
-        self.ensure_bootstrapped(target=target)
-
-        opts = []
-        if jobs is not None:
-            opts += ["-j", jobs]
-        if verbose:
-            opts += ["-v"]
-        if release:
-            opts += ["--release"]
-
-        opts += ["--target", self.config["android"]["target"]]
-        env = self.build_env(gonk=True)
-        build_start = time()
-        with cd(path.join("ports", "gonk")):
-            ret = call(["cargo", "build"] + opts, env=env, verbose=verbose)
-        elapsed = time() - build_start
-
-        # Generate Desktop Notification if elapsed-time > some threshold value
-        notify_build_done(elapsed)
-
-        print("Gonk build completed in %s" % str(datetime.timedelta(seconds=elapsed)))
+        print("GeckoLib build completed in %s" % format_duration(elapsed))
 
         return ret
 

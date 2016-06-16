@@ -178,6 +178,7 @@ pub fn compute_damage(old: Option<&Arc<ServoComputedValues>>, new: &ServoCompute
                       ], [
         get_box.float, get_box.display, get_box.position, get_counters.content,
         get_counters.counter_reset, get_counters.counter_increment,
+        get_inheritedbox._servo_under_display_none,
         get_list.quotes, get_list.list_style_type,
 
         // If these text or font properties change, we need to reconstruct the flow so that
@@ -219,8 +220,15 @@ pub fn compute_damage(old: Option<&Arc<ServoComputedValues>>, new: &ServoCompute
         get_inheritedtable.border_spacing,
         get_column.column_gap,
         get_position.flex_direction,
+        get_position.flex_wrap,
+        get_position.justify_content,
+        get_position.align_items,
+        get_position.align_content,
+        get_position.order,
         get_position.flex_basis,
-        get_position.order
+        get_position.flex_grow,
+        get_position.flex_shrink,
+        get_position.align_self
     ]) || add_if_not_equal!(old, new, damage,
                             [ REPAINT, STORE_OVERFLOW, REFLOW_OUT_OF_FLOW ], [
         get_position.top, get_position.left,

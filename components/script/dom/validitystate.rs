@@ -53,7 +53,6 @@ impl ValidityState {
 }
 
 impl ValidityStateMethods for ValidityState {
-
     // https://html.spec.whatwg.org/multipage/#dom-validitystate-valuemissing
     fn ValueMissing(&self) -> bool {
         false

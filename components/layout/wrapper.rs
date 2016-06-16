@@ -39,22 +39,12 @@ use incremental::RestyleDamage;
 use msg::constellation_msg::PipelineId;
 use opaque_node::OpaqueNodeMethods;
 use range::Range;
-use script::dom::attr::AttrValue;
-use script::dom::bindings::inheritance::{CharacterDataTypeId, ElementTypeId};
-use script::dom::bindings::inheritance::{HTMLElementTypeId, NodeTypeId};
-use script::dom::bindings::js::LayoutJS;
-use script::dom::characterdata::LayoutCharacterDataHelpers;
-use script::dom::document::{Document, LayoutDocumentHelpers};
-use script::dom::element::{Element, LayoutElementHelpers, RawLayoutElementHelpers};
-use script::dom::htmlcanvaselement::{LayoutHTMLCanvasElementHelpers, HTMLCanvasData};
-use script::dom::htmliframeelement::HTMLIFrameElement;
-use script::dom::htmlimageelement::LayoutHTMLImageElementHelpers;
-use script::dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
-use script::dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaElementHelpers};
-use script::dom::node::{CAN_BE_FRAGMENTED, HAS_CHANGED, HAS_DIRTY_DESCENDANTS, IS_DIRTY};
-use script::dom::node::{LayoutNodeHelpers, Node, OpaqueStyleAndLayoutData};
-use script::dom::text::Text;
-use script::layout_interface::TrustedNodeAddress;
+use script::layout_interface::{CAN_BE_FRAGMENTED, HAS_CHANGED, HAS_DIRTY_DESCENDANTS, IS_DIRTY};
+use script::layout_interface::{CharacterDataTypeId, Document, Element, ElementTypeId};
+use script::layout_interface::{HTMLCanvasData, HTMLElementTypeId, LayoutCharacterDataHelpers};
+use script::layout_interface::{LayoutDocumentHelpers, LayoutElementHelpers, LayoutJS};
+use script::layout_interface::{LayoutNodeHelpers, Node, NodeTypeId, OpaqueStyleAndLayoutData};
+use script::layout_interface::{RawLayoutElementHelpers, Text, TrustedNodeAddress};
 use selectors::matching::{DeclarationBlock, ElementFlags};
 use selectors::parser::{AttrSelector, NamespaceConstraint};
 use smallvec::VecLike;
@@ -63,6 +53,7 @@ use std::marker::PhantomData;
 use std::mem::{transmute, transmute_copy};
 use std::sync::Arc;
 use string_cache::{Atom, BorrowedAtom, BorrowedNamespace, Namespace};
+use style::attr::AttrValue;
 use style::computed_values::content::ContentItem;
 use style::computed_values::{content, display};
 use style::dom::{PresentationalHintsSynthetizer, TDocument, TElement, TNode, UnsafeNode};
@@ -129,6 +120,19 @@ impl<'ln> ServoLayoutNode<'ln> {
             chain: self.chain,
         }
     }
+
+    pub fn initialize_data(self) {
+        if unsafe { self.borrow_data_unchecked() }.is_none() {
+            let ptr: NonOpaqueStyleAndLayoutData =
+                Box::into_raw(box RefCell::new(PrivateLayoutData::new()));
+            let opaque = OpaqueStyleAndLayoutData {
+                ptr: unsafe { NonZero::new(ptr as *mut ()) }
+            };
+            unsafe {
+                self.node.init_style_and_layout_data(opaque);
+            }
+        }
+    }
 }
 
 impl<'ln> TNode for ServoLayoutNode<'ln> {
@@ -165,20 +169,6 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
 
     fn opaque(&self) -> OpaqueNode {
         OpaqueNodeMethods::from_jsmanaged(unsafe { self.get_jsmanaged() })
-    }
-
-    fn initialize_data(self) {
-        let has_data = unsafe { self.borrow_data_unchecked().is_some() };
-        if !has_data {
-            let ptr: NonOpaqueStyleAndLayoutData =
-                Box::into_raw(box RefCell::new(PrivateLayoutData::new()));
-            let opaque = OpaqueStyleAndLayoutData {
-                ptr: unsafe { NonZero::new(ptr as *mut ()) }
-            };
-            unsafe {
-                self.node.init_style_and_layout_data(opaque);
-            }
-        }
     }
 
     fn layout_parent_node(self, reflow_root: OpaqueNode) -> Option<ServoLayoutNode<'ln>> {
@@ -242,11 +232,11 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
     }
 
     fn borrow_data(&self) -> Option<Ref<PrivateStyleData>> {
-        unsafe { self.borrow_layout_data().map(|d| transmute(d)) }
+        self.borrow_layout_data().map(|d| Ref::map(d, |d| &d.style_data))
     }
 
     fn mutate_data(&self) -> Option<RefMut<PrivateStyleData>> {
-        unsafe { self.mutate_layout_data().map(|d| transmute(d)) }
+        self.mutate_layout_data().map(|d| RefMut::map(d, |d| &mut d.style_data))
     }
 
     fn restyle_damage(self) -> RestyleDamage {
@@ -561,7 +551,8 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
             NonTSPseudoClass::Disabled |
             NonTSPseudoClass::Checked |
             NonTSPseudoClass::Indeterminate |
-            NonTSPseudoClass::ReadWrite =>
+            NonTSPseudoClass::ReadWrite |
+            NonTSPseudoClass::PlaceholderShown =>
                 self.element.get_state_for_layout().contains(pseudo_class.state_flag())
         }
     }
@@ -982,7 +973,6 @@ impl<'a> PartialEq for ServoThreadSafeLayoutNode<'a> {
 }
 
 impl<'ln> DangerousThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
-
     unsafe fn dangerous_first_child(&self) -> Option<Self> {
             self.get_jsmanaged().first_child_ref()
                 .map(|node| self.new_with_this_lifetime(&node))
@@ -1142,39 +1132,25 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
     fn selection(&self) -> Option<Range<ByteIndex>> {
         let this = unsafe { self.get_jsmanaged() };
 
-        let selection = if let Some(area) = this.downcast::<HTMLTextAreaElement>() {
-            unsafe { area.selection_for_layout() }
-        } else if let Some(input) = this.downcast::<HTMLInputElement>() {
-            unsafe { input.selection_for_layout() }
-        } else {
-            return None;
-        };
-        selection.map(|range| Range::new(ByteIndex(range.start as isize),
-                                         ByteIndex(range.len() as isize)))
+        this.selection().map(|range| {
+            Range::new(ByteIndex(range.start as isize),
+                       ByteIndex(range.len() as isize))
+        })
     }
 
     fn image_url(&self) -> Option<Url> {
-        unsafe {
-            self.get_jsmanaged().downcast()
-                .expect("not an image!")
-                .image_url()
-        }
+        let this = unsafe { self.get_jsmanaged() };
+        this.image_url()
     }
 
     fn canvas_data(&self) -> Option<HTMLCanvasData> {
-        unsafe {
-            let canvas_element = self.get_jsmanaged().downcast();
-            canvas_element.map(|canvas| canvas.data())
-        }
+        let this = unsafe { self.get_jsmanaged() };
+        this.canvas_data()
     }
 
     fn iframe_pipeline_id(&self) -> PipelineId {
-        use script::dom::htmliframeelement::HTMLIFrameElementLayoutMethods;
-        unsafe {
-            let iframe_element = self.get_jsmanaged().downcast::<HTMLIFrameElement>()
-                .expect("not an iframe element!");
-            iframe_element.pipeline_id().unwrap()
-        }
+        let this = unsafe { self.get_jsmanaged() };
+        this.iframe_pipeline_id()
     }
 
     fn get_colspan(&self) -> u32 {

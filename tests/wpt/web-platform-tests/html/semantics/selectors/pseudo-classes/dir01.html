@@ -14,5 +14,5 @@
   var ltr = new Array(),
       all = document.querySelectorAll('*');
   for(var i = all.length; i--; ltr.unshift(all[i]));
-  testSelector(":dir(ltr)", ltr, "direction doesn't affect :dir()");
+  testSelectorElementsMatch(":dir(ltr)", ltr, "direction doesn't affect :dir()");
 </script>

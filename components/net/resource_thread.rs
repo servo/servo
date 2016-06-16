@@ -6,11 +6,14 @@
 use about_loader;
 use chrome_loader;
 use connector::{Connector, create_http_connector};
+use content_blocker::BLOCKED_CONTENT_RULES;
 use cookie;
 use cookie_storage::CookieStorage;
 use data_loader;
-use devtools_traits::{DevtoolsControlMsg};
+use devtools_traits::DevtoolsControlMsg;
+use fetch::methods::{fetch, FetchContext};
 use file_loader;
+use filemanager_thread::{FileManagerThreadFactory, TFDProvider};
 use hsts::HstsList;
 use http_loader::{self, HttpState};
 use hyper::client::pool::Pool;
@@ -20,9 +23,11 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use mime_classifier::{ApacheBugFlag, MIMEClassifier, NoSniffFlag};
 use net_traits::LoadContext;
 use net_traits::ProgressMsg::Done;
+use net_traits::request::{Request, RequestInit};
 use net_traits::{AsyncResponseTarget, Metadata, ProgressMsg, ResponseAction, CoreResourceThread};
-use net_traits::{CoreResourceMsg, CookieSource, LoadConsumer, LoadData, LoadResponse, ResourceId};
-use net_traits::{NetworkError, WebSocketCommunicate, WebSocketConnectData, ResourceThreads};
+use net_traits::{CoreResourceMsg, CookieSource, FetchResponseMsg, FetchTaskTarget, LoadConsumer};
+use net_traits::{LoadData, LoadResponse, NetworkError, ResourceId};
+use net_traits::{WebSocketCommunicate, WebSocketConnectData, ResourceThreads};
 use profile_traits::time::ProfilerChan;
 use rustc_serialize::json;
 use rustc_serialize::{Decodable, Encodable};
@@ -34,6 +39,7 @@ use std::error::Error;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
+use std::rc::Rc;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::sync::{Arc, RwLock};
 use storage_thread::StorageThreadFactory;
@@ -42,6 +48,8 @@ use util::opts;
 use util::prefs;
 use util::thread::spawn_named;
 use websocket_loader;
+
+const TFD_PROVIDER: &'static TFDProvider = &TFDProvider;
 
 pub enum ProgressSender {
     Channel(IpcSender<ProgressMsg>),
@@ -154,7 +162,8 @@ pub fn new_resource_threads(user_agent: String,
                             devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                             profiler_chan: ProfilerChan) -> ResourceThreads {
     ResourceThreads::new(new_core_resource_thread(user_agent, devtools_chan, profiler_chan),
-                         StorageThreadFactory::new())
+                         StorageThreadFactory::new(),
+                         FileManagerThreadFactory::new(TFD_PROVIDER))
 }
 
 
@@ -190,6 +199,8 @@ impl ResourceChannelManager {
             match self.from_client.recv().unwrap() {
                 CoreResourceMsg::Load(load_data, consumer, id_sender) =>
                     self.resource_manager.load(load_data, consumer, id_sender, control_sender.clone()),
+                CoreResourceMsg::Fetch(init, sender) =>
+                    self.resource_manager.fetch(init, sender),
                 CoreResourceMsg::WebsocketConnect(connect, connect_data) =>
                     self.resource_manager.websocket_connect(connect, connect_data),
                 CoreResourceMsg::SetCookiesForUrl(request, cookie_list, source) =>
@@ -208,21 +219,22 @@ impl ResourceChannelManager {
                 CoreResourceMsg::Synchronize(sender) => {
                     let _ = sender.send(());
                 }
-                CoreResourceMsg::Exit => {
-                    if let Some(ref profile_dir) = opts::get().profile_dir {
+                CoreResourceMsg::Exit(sender) => {
+                    if let Some(ref config_dir) = opts::get().config_dir {
                         match self.resource_manager.auth_cache.read() {
-                            Ok(auth_cache) => write_json_to_file(&*auth_cache, profile_dir, "auth_cache.json"),
+                            Ok(auth_cache) => write_json_to_file(&*auth_cache, config_dir, "auth_cache.json"),
                             Err(_) => warn!("Error writing auth cache to disk"),
                         }
                         match self.resource_manager.cookie_jar.read() {
-                            Ok(jar) => write_json_to_file(&*jar, profile_dir, "cookie_jar.json"),
+                            Ok(jar) => write_json_to_file(&*jar, config_dir, "cookie_jar.json"),
                             Err(_) => warn!("Error writing cookie jar to disk"),
                         }
                         match self.resource_manager.hsts_list.read() {
-                            Ok(hsts) => write_json_to_file(&*hsts, profile_dir, "hsts_list.json"),
+                            Ok(hsts) => write_json_to_file(&*hsts, config_dir, "hsts_list.json"),
                             Err(_) => warn!("Error writing hsts list to disk"),
                         }
                     }
+                    let _ = sender.send(());
                     break;
                 }
 
@@ -231,9 +243,8 @@ impl ResourceChannelManager {
     }
 }
 
-pub fn read_json_from_file<T: Decodable>(data: &mut T, profile_dir: &str, filename: &str) {
-
-    let path = Path::new(profile_dir).join(filename);
+pub fn read_json_from_file<T: Decodable>(data: &mut T, config_dir: &str, filename: &str) {
+    let path = Path::new(config_dir).join(filename);
     let display = path.display();
 
     let mut file = match File::open(&path) {
@@ -259,13 +270,13 @@ pub fn read_json_from_file<T: Decodable>(data: &mut T, profile_dir: &str, filena
     }
 }
 
-pub fn write_json_to_file<T: Encodable>(data: &T, profile_dir: &str, filename: &str) {
+pub fn write_json_to_file<T: Encodable>(data: &T, config_dir: &str, filename: &str) {
     let json_encoded: String;
     match json::encode(&data) {
         Ok(d) => json_encoded = d,
         Err(_) => return,
     }
-    let path = Path::new(profile_dir).join(filename);
+    let path = Path::new(config_dir).join(filename);
     let display = path.display();
 
     let mut file = match File::create(&path) {
@@ -354,7 +365,6 @@ pub struct AuthCacheEntry {
 }
 
 impl AuthCache {
-
     pub fn new() -> AuthCache {
         AuthCache {
             version: 1,
@@ -389,10 +399,10 @@ impl CoreResourceManager {
                profiler_chan: ProfilerChan) -> CoreResourceManager {
         let mut auth_cache = AuthCache::new();
         let mut cookie_jar = CookieStorage::new();
-        if let Some(ref profile_dir) = opts::get().profile_dir {
-            read_json_from_file(&mut auth_cache, profile_dir, "auth_cache.json");
-            read_json_from_file(&mut hsts_list, profile_dir, "hsts_list.json");
-            read_json_from_file(&mut cookie_jar, profile_dir, "cookie_jar.json");
+        if let Some(ref config_dir) = opts::get().config_dir {
+            read_json_from_file(&mut auth_cache, config_dir, "auth_cache.json");
+            read_json_from_file(&mut hsts_list, config_dir, "hsts_list.json");
+            read_json_from_file(&mut cookie_jar, config_dir, "cookie_jar.json");
         }
         CoreResourceManager {
             user_agent: user_agent,
@@ -426,7 +436,6 @@ impl CoreResourceManager {
             consumer: LoadConsumer,
             id_sender: Option<IpcSender<ResourceId>>,
             resource_thread: CoreResourceThread) {
-
         fn from_factory(factory: fn(LoadData, LoadConsumer, Arc<MIMEClassifier>, CancellationListener))
                         -> Box<FnBox(LoadData,
                                      LoadConsumer,
@@ -454,7 +463,8 @@ impl CoreResourceManager {
                 let http_state = HttpState {
                     hsts_list: self.hsts_list.clone(),
                     cookie_jar: self.cookie_jar.clone(),
-                    auth_cache: self.auth_cache.clone()
+                    auth_cache: self.auth_cache.clone(),
+                    blocked_content: BLOCKED_CONTENT_RULES.clone(),
                 };
                 http_loader::factory(self.user_agent.clone(),
                                      http_state,
@@ -476,6 +486,26 @@ impl CoreResourceManager {
                          consumer,
                          self.mime_classifier.clone(),
                          cancel_listener));
+    }
+
+    fn fetch(&self, init: RequestInit, sender: IpcSender<FetchResponseMsg>) {
+        let http_state = HttpState {
+            hsts_list: self.hsts_list.clone(),
+            cookie_jar: self.cookie_jar.clone(),
+            auth_cache: self.auth_cache.clone(),
+            blocked_content: BLOCKED_CONTENT_RULES.clone(),
+        };
+        let ua = self.user_agent.clone();
+        spawn_named(format!("fetch thread for {}", init.url), move || {
+            let request = Request::from_init(init);
+            // XXXManishearth: Check origin against pipeline id (also ensure that the mode is allowed)
+            // todo load context / mimesniff in fetch
+            // todo referrer policy?
+            // todo service worker stuff
+            let mut target = Some(Box::new(sender) as Box<FetchTaskTarget + Send + 'static>);
+            let context = FetchContext { state: http_state, user_agent: ua };
+            fetch(Rc::new(request), &mut target, context);
+        })
     }
 
     fn websocket_connect(&self,

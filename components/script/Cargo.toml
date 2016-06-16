@@ -17,7 +17,7 @@ debugmozjs = ['js/debugmozjs']
 tinyfiledialogs = {git = "https://github.com/jdm/tinyfiledialogs"}
 
 [dependencies]
-angle = {git = "https://github.com/emilio/angle", branch = "servo"}
+angle = {git = "https://github.com/servo/angle", branch = "servo"}
 app_units = {version = "0.2.3", features = ["plugins"]}
 bitflags = "0.7"
 canvas = {path = "../canvas"}
@@ -29,7 +29,7 @@ encoding = "0.2"
 euclid = {version = "0.6.4", features = ["plugins"]}
 fnv = "1.0"
 gfx_traits = {path = "../gfx_traits"}
-heapsize = "0.3.0"
+heapsize = "0.3.6"
 heapsize_plugin = "0.1.2"
 html5ever = {version = "0.5.1", features = ["heap_size", "unstable"]}
 hyper = {version = "0.9", features = ["serde-serialization"]}
@@ -43,6 +43,7 @@ msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
 num-traits = "0.1.32"
 offscreen_gl_context = "0.1.2"
+open = "1.1.1"
 phf = "0.7.13"
 phf_macros = "0.7.13"
 plugins = {path = "../plugins"}
@@ -56,10 +57,9 @@ script_traits = {path = "../script_traits"}
 selectors = {version = "0.6", features = ["heap_size"]}
 serde = "0.7"
 smallvec = "0.1"
-string_cache = {version = "0.2.12", features = ["heap_size", "unstable"]}
+string_cache = {version = "0.2.18", features = ["heap_size", "unstable"]}
 style = {path = "../style"}
 time = "0.1.12"
-unicase = "1.0"
 url = {version = "1.0.0", features = ["heap_size", "query_encoding"]}
 util = {path = "../util"}
 uuid = {version = "0.2", features = ["v4"]}

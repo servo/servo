@@ -7,8 +7,8 @@ use dom::bindings::error::Error::Syntax;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::reflector::Reflector;
+use dom::bindings::str::DOMString;
 use regex::Regex;
-use util::str::DOMString;
 
 pub type UUID = DOMString;
 pub type BluetoothServiceUUID = StringOrUnsignedLong;
@@ -270,7 +270,6 @@ const DESCRIPTOR_PREFIX: &'static str = "org.bluetooth.descriptor";
 const VALID_UUID_REGEX: &'static str = "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 
 impl BluetoothUUID {
-
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothuuid-canonicaluuid
     pub fn CanonicalUUID(_: GlobalRef, alias: u32) -> UUID {
         DOMString::from(format!("{:08x}", &alias) + BASE_UUID)

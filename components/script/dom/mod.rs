@@ -157,18 +157,18 @@
 //! Inheritance and casting
 //! =======================
 //!
-//! For all DOM interfaces `Foo` in an inheritance chain, a
-//! `dom::bindings::inheritance::FooCast` provides methods to cast
-//! to other types in the inheritance chain. For example:
+//! All DOM interfaces part of an inheritance chain (i.e. interfaces
+//! that derive others or are derived from) implement the trait `Castable`
+//! which provides both downcast and upcasts.
 //!
 //! ```ignore
-//! # use script::dom::bindings::inheritance::{NodeCast, HTMLElementCast};
+//! # use script::dom::bindings::inheritance::Castable;
 //! # use script::dom::element::Element;
 //! # use script::dom::node::Node;
 //! # use script::dom::htmlelement::HTMLElement;
 //! fn f(element: &Element) {
 //!     let base = element.upcast::<Node>();
-//!     let derived = element.downcast::<HTMLElement>();
+//!     let derived = element.downcast::<HTMLElement>().unwrap();
 //! }
 //! ```
 //!
@@ -212,6 +212,8 @@ pub mod types {
     include!(concat!(env!("OUT_DIR"), "/build/InterfaceTypes.rs"));
 }
 
+pub mod abstractworker;
+pub mod abstractworkerglobalscope;
 pub mod activation;
 pub mod attr;
 pub mod beforeunloadevent;
@@ -234,6 +236,7 @@ pub mod canvasgradient;
 pub mod canvaspattern;
 pub mod canvasrenderingcontext2d;
 pub mod characterdata;
+pub mod client;
 pub mod closeevent;
 pub mod comment;
 pub mod console;
@@ -366,6 +369,10 @@ pub mod progressevent;
 pub mod radionodelist;
 pub mod range;
 pub mod screen;
+pub mod serviceworker;
+pub mod serviceworkercontainer;
+pub mod serviceworkerglobalscope;
+pub mod serviceworkerregistration;
 pub mod servohtmlparser;
 pub mod servoxmlparser;
 pub mod storage;

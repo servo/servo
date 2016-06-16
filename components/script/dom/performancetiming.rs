@@ -37,7 +37,6 @@ impl PerformanceTiming {
                navigation_start: u64,
                navigation_start_precise: f64)
                -> Root<PerformanceTiming> {
-
         let timing = PerformanceTiming::new_inherited(navigation_start,
                                                       navigation_start_precise,
                                                       window.Document().r());

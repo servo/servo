@@ -8,13 +8,14 @@ use app_units::Au;
 use azure::AzFloat;
 use azure::azure_hl::{BackendType, Color, DrawTarget, SurfaceFormat};
 use display_list::{DisplayItem, DisplayList, DisplayListTraversal};
-use display_list::{LayerInfo, StackingContext, StackingContextId, StackingContextType};
+use display_list::{LayerInfo, StackingContext, StackingContextType};
 use euclid::Matrix4D;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::size::Size2D;
 use font_cache_thread::FontCacheThread;
 use font_context::FontContext;
+use gfx_traits::StackingContextId;
 use gfx_traits::{Epoch, FrameTreeId, LayerId, LayerKind, LayerProperties, PaintListener};
 use ipc_channel::ipc::IpcSender;
 use layers::layers::{BufferRequest, LayerBuffer, LayerBufferSet};
@@ -24,14 +25,13 @@ use paint_context::PaintContext;
 use profile_traits::mem::{self, ReportsChan};
 use profile_traits::time;
 use rand::{self, Rng};
-use skia::gl_context::GLContext;
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::mem as std_mem;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use url::Url;
-use util::geometry::{ExpandToPixelBoundaries};
+use util::geometry::ExpandToPixelBoundaries;
 use util::opts;
 use util::thread;
 use util::thread_state;
@@ -396,46 +396,38 @@ impl<C> PaintThread<C> where C: PaintListener + Send + 'static {
                   panic_chan: IpcSender<PanicMsg>,
                   font_cache_thread: FontCacheThread,
                   time_profiler_chan: time::ProfilerChan,
-                  mem_profiler_chan: mem::ProfilerChan,
-                  shutdown_chan: IpcSender<()>) {
+                  mem_profiler_chan: mem::ProfilerChan) {
         thread::spawn_named_with_send_on_panic(format!("PaintThread {:?}", id),
                                                thread_state::PAINT,
                                                move || {
-            {
-                // Ensures that the paint thread and graphics context are destroyed before the
-                // shutdown message.
-                let native_display = compositor.native_display();
-                let worker_threads = WorkerThreadProxy::spawn(native_display,
-                                                              font_cache_thread,
-                                                              time_profiler_chan.clone());
+            let native_display = compositor.native_display();
+            let worker_threads = WorkerThreadProxy::spawn(native_display,
+                                                          font_cache_thread,
+                                                          time_profiler_chan.clone());
 
-                let mut paint_thread = PaintThread {
-                    id: id,
-                    _url: url,
-                    layout_to_paint_port: layout_to_paint_port,
-                    chrome_to_paint_port: chrome_to_paint_port,
-                    compositor: compositor,
-                    time_profiler_chan: time_profiler_chan,
-                    root_display_list: None,
-                    layer_map: HashMap::new(),
-                    paint_permission: false,
-                    current_epoch: None,
-                    worker_threads: worker_threads,
-                };
+            let mut paint_thread = PaintThread {
+                id: id,
+                _url: url,
+                layout_to_paint_port: layout_to_paint_port,
+                chrome_to_paint_port: chrome_to_paint_port,
+                compositor: compositor,
+                time_profiler_chan: time_profiler_chan,
+                root_display_list: None,
+                layer_map: HashMap::new(),
+                paint_permission: false,
+                current_epoch: None,
+                worker_threads: worker_threads,
+            };
 
-                let reporter_name = format!("paint-reporter-{}", id);
-                mem_profiler_chan.run_with_memory_reporting(|| {
-                    paint_thread.start();
-                }, reporter_name, chrome_to_paint_chan, ChromeToPaintMsg::CollectReports);
+            let reporter_name = format!("paint-reporter-{}", id);
+            mem_profiler_chan.run_with_memory_reporting(|| {
+                paint_thread.start();
+            }, reporter_name, chrome_to_paint_chan, ChromeToPaintMsg::CollectReports);
 
-                // Tell all the worker threads to shut down.
-                for worker_thread in &mut paint_thread.worker_threads {
-                    worker_thread.exit()
-                }
+            // Tell all the worker threads to shut down.
+            for worker_thread in &mut paint_thread.worker_threads {
+                worker_thread.exit()
             }
-
-            debug!("paint_thread: shutdown_chan send");
-            shutdown_chan.send(()).unwrap();
         }, Some(id), panic_chan);
     }
 
@@ -591,11 +583,7 @@ impl WorkerThreadProxy {
              font_cache_thread: FontCacheThread,
              time_profiler_chan: time::ProfilerChan)
              -> Vec<WorkerThreadProxy> {
-        let thread_count = if opts::get().gpu_painting {
-            1
-        } else {
-            opts::get().paint_threads
-        };
+        let thread_count = opts::get().paint_threads;
         (0..thread_count).map(|_| {
             let (from_worker_sender, from_worker_receiver) = channel();
             let (to_worker_sender, to_worker_receiver) = channel();
@@ -649,24 +637,6 @@ struct WorkerThread {
     native_display: Option<NativeDisplay>,
     font_context: Box<FontContext>,
     time_profiler_sender: time::ProfilerChan,
-    gl_context: Option<Arc<GLContext>>,
-}
-
-fn create_gl_context(native_display: Option<NativeDisplay>) -> Option<Arc<GLContext>> {
-    if !opts::get().gpu_painting {
-        return None;
-    }
-
-    match native_display {
-        Some(display) => {
-            let tile_size = opts::get().tile_size as i32;
-            GLContext::new(display.platform_display_data(), Size2D::new(tile_size, tile_size))
-        }
-        None => {
-            warn!("Could not create GLContext, falling back to CPU rasterization");
-            None
-        }
-    }
 }
 
 impl WorkerThread {
@@ -676,14 +646,12 @@ impl WorkerThread {
            font_cache_thread: FontCacheThread,
            time_profiler_sender: time::ProfilerChan)
            -> WorkerThread {
-        let gl_context = create_gl_context(native_display);
         WorkerThread {
             sender: sender,
             receiver: receiver,
             native_display: native_display,
             font_context: box FontContext::new(font_cache_thread.clone()),
             time_profiler_sender: time_profiler_sender,
-            gl_context: gl_context,
         }
     }
 
@@ -709,27 +677,6 @@ impl WorkerThread {
         }
     }
 
-    fn create_draw_target_for_layer_buffer(&self,
-                                           size: Size2D<i32>,
-                                           layer_buffer: &mut Box<LayerBuffer>)
-                                           -> DrawTarget {
-        match self.gl_context {
-            Some(ref gl_context) => {
-                match layer_buffer.native_surface.gl_rasterization_context(gl_context.clone()) {
-                    Some(rasterization_context) => {
-                        DrawTarget::new_with_gl_rasterization_context(rasterization_context,
-                                                                      SurfaceFormat::B8G8R8A8)
-                    }
-                    None => panic!("Could not create GLRasterizationContext for LayerBuffer"),
-                }
-            },
-            None => {
-                // A missing GLContext means we want CPU rasterization.
-                DrawTarget::new(BackendType::Skia, size, SurfaceFormat::B8G8R8A8)
-            }
-        }
-   }
-
     fn optimize_and_paint_tile(&mut self,
                                thread_id: usize,
                                mut tile: BufferRequest,
@@ -741,7 +688,7 @@ impl WorkerThread {
         let size = Size2D::new(tile.screen_rect.size.width as i32,
                                tile.screen_rect.size.height as i32);
         let mut buffer = self.create_layer_buffer(&mut tile, scale);
-        let draw_target = self.create_draw_target_for_layer_buffer(size, &mut buffer);
+        let draw_target = DrawTarget::new(BackendType::Skia, size, SurfaceFormat::B8G8R8A8);
 
         {
             // Build the paint context.
@@ -805,15 +752,13 @@ impl WorkerThread {
             }
         }
 
-        // Extract the texture from the draw target and place it into its slot in the buffer. If
-        // using CPU painting, upload it first.
-        if self.gl_context.is_none() {
-            draw_target.snapshot().get_data_surface().with_data(|data| {
-                buffer.native_surface.upload(native_display!(self), data);
-                debug!("painting worker thread uploading to native surface {}",
-                       buffer.native_surface.get_id());
-            });
-        }
+        // Extract the texture from the draw target and place it into its slot in the buffer.
+        // Upload it first.
+        draw_target.snapshot().get_data_surface().with_data(|data| {
+            buffer.native_surface.upload(native_display!(self), data);
+            debug!("painting worker thread uploading to native surface {}",
+                   buffer.native_surface.get_id());
+        });
 
         draw_target.finish();
         buffer
@@ -837,7 +782,7 @@ impl WorkerThread {
             rect: tile.page_rect,
             screen_pos: tile.screen_rect,
             resolution: scale,
-            painted_with_cpu: self.gl_context.is_none(),
+            painted_with_cpu: true,
             content_age: tile.content_age,
         }
     }

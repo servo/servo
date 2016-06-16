@@ -66,6 +66,21 @@ var simple_tests = [
     enctype: "text/plain",
     submitelement: "<input id=inputsubmit type=\"submit\">Submit</input>",
     submitaction: function(doc) { doc.getElementById("inputsubmit").click(); }
+  },
+  {
+    name: "form submission from submit input should contain submit button value",
+    input: "<button type=submit name=notclicked value=nope>not clicked</button>",
+    enctype: "application/x-www-form-urlencoded",
+    submitelement: "<button id=inputsubmit type=\"submit\" name=foo value=bara>Submit</button>",
+    submitaction: function(doc) { doc.getElementById("inputsubmit").click(); }
+  }
+,
+  {
+    name: "form submission from submit button should contain submit button value",
+    input: "<input type=submit name=notclicked value=nope/>",
+    enctype: "application/x-www-form-urlencoded",
+    submitelement: "<input id=inputsubmit type=\"submit\" name=foo value=bara >",
+    submitaction: function(doc) { doc.getElementById("inputsubmit").click(); }
   }
 ];
 simple_tests.forEach(function(test_obj) {

@@ -4,27 +4,23 @@
 
 //! Communication with the compositor thread.
 
-use CompositorMsg as ConstellationMsg;
-use compositor::{self, CompositingReason};
+use SendableFrameTree;
+use compositor::CompositingReason;
 use euclid::point::Point2D;
 use euclid::size::Size2D;
 use gfx_traits::{Epoch, FrameTreeId, LayerId, LayerProperties, PaintListener};
-use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
+use ipc_channel::ipc::IpcSender;
 use layers::layers::{BufferRequest, LayerBufferSet};
 use layers::platform::surface::{NativeDisplay, NativeSurface};
 use msg::constellation_msg::{Image, Key, KeyModifiers, KeyState, PipelineId};
 use profile_traits::mem;
 use profile_traits::time;
-use script_traits::{AnimationState, EventResult, ScriptToCompositorMsg};
+use script_traits::{AnimationState, ConstellationMsg, EventResult};
 use std::fmt::{Debug, Error, Formatter};
-use std::rc::Rc;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use style_traits::cursor::Cursor;
 use style_traits::viewport::ViewportConstraints;
 use url::Url;
-use windowing::{WindowEvent, WindowMethods};
-pub use SendableFrameTree;
-pub use windowing;
 use webrender;
 use webrender_traits;
 
@@ -54,56 +50,6 @@ impl CompositorReceiver for Receiver<Msg> {
     }
     fn recv_compositor_msg(&mut self) -> Msg {
         self.recv().unwrap()
-    }
-}
-
-pub fn run_script_listener_thread(compositor_proxy: Box<CompositorProxy + 'static + Send>,
-                                  receiver: IpcReceiver<ScriptToCompositorMsg>) {
-    while let Ok(msg) = receiver.recv() {
-        match msg {
-            ScriptToCompositorMsg::ScrollFragmentPoint(pipeline_id, layer_id, point, smooth) => {
-                compositor_proxy.send(Msg::ScrollFragmentPoint(pipeline_id,
-                                                               layer_id,
-                                                               point,
-                                                               smooth));
-            }
-
-            ScriptToCompositorMsg::GetClientWindow(send) => {
-                compositor_proxy.send(Msg::GetClientWindow(send));
-            }
-
-            ScriptToCompositorMsg::MoveTo(point) => {
-                compositor_proxy.send(Msg::MoveTo(point));
-            }
-
-            ScriptToCompositorMsg::ResizeTo(size) => {
-                compositor_proxy.send(Msg::ResizeTo(size));
-            }
-
-            ScriptToCompositorMsg::Exit => {
-                let (chan, port) = ipc::channel().unwrap();
-                compositor_proxy.send(Msg::Exit(chan));
-                port.recv().unwrap();
-            }
-
-            ScriptToCompositorMsg::SetTitle(pipeline_id, title) => {
-                compositor_proxy.send(Msg::ChangePageTitle(pipeline_id, title))
-            }
-
-            ScriptToCompositorMsg::SendKeyEvent(key, key_state, key_modifiers) => {
-                compositor_proxy.send(Msg::KeyEvent(key, key_state, key_modifiers))
-            }
-
-            ScriptToCompositorMsg::TouchEventProcessed(result) => {
-                compositor_proxy.send(Msg::TouchEventProcessed(result))
-            }
-
-            ScriptToCompositorMsg::GetScrollOffset(pid, lid, send) => {
-                compositor_proxy.send(Msg::GetScrollOffset(pid, lid, send));
-            }
-
-            ScriptToCompositorMsg::Exited => break,
-        }
     }
 }
 
@@ -169,7 +115,7 @@ impl PaintListener for Box<CompositorProxy + 'static + Send> {
 /// Messages from the painting thread and the constellation thread to the compositor thread.
 pub enum Msg {
     /// Requests that the compositor shut down.
-    Exit(IpcSender<()>),
+    Exit,
 
     /// Informs the compositor that the constellation has completed shutdown.
     /// Required because the constellation can have pending calls to make
@@ -195,7 +141,7 @@ pub enum Msg {
     /// Alerts the compositor that the given pipeline has changed whether it is running animations.
     ChangeRunningAnimationsState(PipelineId, AnimationState),
     /// Replaces the current frame tree, typically called during main frame navigation.
-    SetFrameTree(SendableFrameTree, IpcSender<()>, Sender<ConstellationMsg>),
+    SetFrameTree(SendableFrameTree, IpcSender<()>),
     /// The load of a page has begun: (can go back, can go forward).
     LoadStart(bool, bool),
     /// The load of a page has completed: (can go back, can go forward, is root frame).
@@ -248,7 +194,7 @@ pub enum Msg {
 impl Debug for Msg {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         match *self {
-            Msg::Exit(..) => write!(f, "Exit"),
+            Msg::Exit => write!(f, "Exit"),
             Msg::ShutdownComplete => write!(f, "ShutdownComplete"),
             Msg::GetNativeDisplay(..) => write!(f, "GetNativeDisplay"),
             Msg::InitializeLayersForPipeline(..) => write!(f, "InitializeLayersForPipeline"),
@@ -281,26 +227,6 @@ impl Debug for Msg {
             Msg::GetScrollOffset(..) => write!(f, "GetScrollOffset"),
         }
     }
-}
-
-pub struct CompositorThread;
-
-impl CompositorThread {
-    pub fn create<Window>(window: Rc<Window>,
-                          state: InitialCompositorState)
-                          -> Box<CompositorEventListener + 'static>
-                          where Window: WindowMethods + 'static {
-        box compositor::IOCompositor::create(window, state)
-            as Box<CompositorEventListener>
-    }
-}
-
-pub trait CompositorEventListener {
-    fn handle_events(&mut self, events: Vec<WindowEvent>) -> bool;
-    fn repaint_synchronously(&mut self);
-    fn pinch_zoom_level(&self) -> f32;
-    /// Requests that the compositor send the title for the main frame as soon as possible.
-    fn title_for_main_frame(&self);
 }
 
 /// Data used to construct a compositor.

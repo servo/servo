@@ -10,6 +10,7 @@ use net_traits::hosts::replace_hosts;
 use net_traits::unwrap_websocket_protocol;
 use net_traits::{WebSocketCommunicate, WebSocketConnectData, WebSocketDomAction, WebSocketNetworkEvent};
 use std::ascii::AsciiExt;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, RwLock};
 use std::thread;
 use util::thread::spawn_named;
@@ -30,7 +31,6 @@ fn establish_a_websocket_connection(resource_url: &Url, net_url: (Host, String, 
                                     origin: String, protocols: Vec<String>,
                                     cookie_jar: Arc<RwLock<CookieStorage>>)
     -> WebSocketResult<(Headers, Sender<WebSocketStream>, Receiver<WebSocketStream>)> {
-
     let host = Host {
         hostname: resource_url.host_str().unwrap().to_owned(),
         port: resource_url.port_or_known_default(),
@@ -43,7 +43,7 @@ fn establish_a_websocket_connection(resource_url: &Url, net_url: (Host, String, 
         request.headers.set(WebSocketProtocol(protocols.clone()));
     };
 
-    http_loader::set_request_cookies(resource_url.clone(), &mut request.headers, &cookie_jar);
+    http_loader::set_request_cookies(&resource_url, &mut request.headers, &cookie_jar);
 
     let response = try!(request.send());
     try!(response.validate());
@@ -99,8 +99,10 @@ pub fn init(connect: WebSocketCommunicate, connect_data: WebSocketConnectData, c
 
         };
 
+        let initiated_close = Arc::new(AtomicBool::new(false));
         let ws_sender = Arc::new(Mutex::new(ws_sender));
 
+        let initiated_close_incoming = initiated_close.clone();
         let ws_sender_incoming = ws_sender.clone();
         let resource_event_sender = connect.event_sender;
         thread::spawn(move || {
@@ -123,7 +125,9 @@ pub fn init(connect: WebSocketCommunicate, connect_data: WebSocketConnectData, c
                     },
                     Type::Pong => continue,
                     Type::Close => {
-                        ws_sender_incoming.lock().unwrap().send_message(&message).unwrap();
+                        if !initiated_close_incoming.fetch_or(true, Ordering::SeqCst) {
+                            ws_sender_incoming.lock().unwrap().send_message(&message).unwrap();
+                        }
                         let code = message.cd_status_code;
                         let reason = String::from_utf8_lossy(&message.payload).into_owned();
                         let _ = resource_event_sender.send(WebSocketNetworkEvent::Close(code, reason));
@@ -134,6 +138,7 @@ pub fn init(connect: WebSocketCommunicate, connect_data: WebSocketConnectData, c
             }
         });
 
+        let initiated_close_outgoing = initiated_close.clone();
         let ws_sender_outgoing = ws_sender.clone();
         let resource_action_receiver = connect.action_receiver;
         thread::spawn(move || {
@@ -146,11 +151,13 @@ pub fn init(connect: WebSocketCommunicate, connect_data: WebSocketConnectData, c
                         ws_sender_outgoing.lock().unwrap().send_message(&Message::binary(data)).unwrap();
                     },
                     WebSocketDomAction::Close(code, reason) => {
-                        let message = match code {
-                            Some(code) => Message::close_because(code, reason.unwrap_or("".to_owned())),
-                            None => Message::close()
-                        };
-                        ws_sender_outgoing.lock().unwrap().send_message(&message).unwrap();
+                        if !initiated_close_outgoing.fetch_or(true, Ordering::SeqCst) {
+                            let message = match code {
+                                Some(code) => Message::close_because(code, reason.unwrap_or("".to_owned())),
+                                None => Message::close()
+                            };
+                            ws_sender_outgoing.lock().unwrap().send_message(&message).unwrap();
+                        }
                     },
                 }
             }

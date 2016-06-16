@@ -5,6 +5,7 @@
 # Common codegen classes.
 
 from collections import defaultdict
+from itertools import groupby
 
 import operator
 import re
@@ -1322,31 +1323,23 @@ def getRetvalDeclarationForType(returnType, descriptorProvider):
                     returnType)
 
 
-class MemberCondition:
+def MemberCondition(pref, func):
     """
-    An object representing the condition for a member to actually be
-    exposed.  Any of the arguments can be None.  If not
-    None, they should have the following types:
+    A string representing the condition for a member to actually be exposed.
+    Any of the arguments can be None. If not None, they should have the
+    following types:
 
     pref: The name of the preference.
     func: The name of the function.
     """
-    def __init__(self, pref=None, func=None):
-        assert pref is None or isinstance(pref, str)
-        assert func is None or isinstance(func, str)
-        self.pref = pref
-
-        def toFuncPtr(val):
-            if val is None:
-                return "None"
-            return "Some(%s)" % val
-        self.func = toFuncPtr(func)
-
-    def __eq__(self, other):
-        return (self.pref == other.pref and self.func == other.func)
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
+    assert pref is None or isinstance(pref, str)
+    assert func is None or isinstance(func, str)
+    assert func is None or pref is None
+    if pref:
+        return 'Condition::Pref("%s")' % pref
+    if func:
+        return 'Condition::Func(%s)' % func
+    return "Condition::Satisfied"
 
 
 class PropertyDefiner:
@@ -1390,8 +1383,8 @@ class PropertyDefiner:
             PropertyDefiner.getStringAttr(interfaceMember,
                                           "Func"))
 
-    def generatePrefableArray(self, array, name, specTemplate, specTerminator,
-                              specType, getCondition, getDataTuple):
+    def generateGuardedArray(self, array, name, specTemplate, specTerminator,
+                             specType, getCondition, getDataTuple):
         """
         This method generates our various arrays.
 
@@ -1417,43 +1410,23 @@ class PropertyDefiner:
         # members while still allowing us to define all the members in the smallest
         # number of JSAPI calls.
         assert len(array) != 0
-        # So we won't put a specTerminator at the very front of the list:
-        lastCondition = getCondition(array[0], self.descriptor)
         specs = []
-        currentSpecs = []
         prefableSpecs = []
+        prefableTemplate = '    Guard::new(%s, %s[%d])'
 
-        prefableTemplate = '    Prefable { pref: %s, specs: %s[%d], terminator: %s }'
-
-        def switchToCondition(props, condition):
-            prefableSpecs.append(prefableTemplate %
-                                 ('Some("%s")' % condition.pref if condition.pref else 'None',
-                                  name + "_specs",
-                                  len(specs),
-                                  'true' if specTerminator else 'false'))
+        for cond, members in groupby(array, lambda m: getCondition(m, self.descriptor)):
+            currentSpecs = [specTemplate % getDataTuple(m) for m in members]
+            if specTerminator:
+                currentSpecs.append(specTerminator)
             specs.append("&[\n" + ",\n".join(currentSpecs) + "]\n")
-            del currentSpecs[:]
-
-        for member in array:
-            curCondition = getCondition(member, self.descriptor)
-            if lastCondition != curCondition:
-                # Terminate previous list
-                if specTerminator:
-                    currentSpecs.append(specTerminator)
-                # And switch to our new pref
-                switchToCondition(self, lastCondition)
-                lastCondition = curCondition
-            # And the actual spec
-            currentSpecs.append(specTemplate % getDataTuple(member))
-        if specTerminator:
-            currentSpecs.append(specTerminator)
-        switchToCondition(self, lastCondition)
+            prefableSpecs.append(
+                prefableTemplate % (cond, name + "_specs", len(specs) - 1))
 
         specsArray = ("const %s_specs: &'static [&'static[%s]] = &[\n" +
                       ",\n".join(specs) + "\n" +
                       "];\n") % (name, specType)
 
-        prefArray = ("const %s: &'static [Prefable<%s>] = &[\n" +
+        prefArray = ("const %s: &'static [Guard<&'static [%s]>] = &[\n" +
                      ",\n".join(prefableSpecs) + "\n" +
                      "];\n") % (name, specType)
         return specsArray + prefArray
@@ -1500,7 +1473,7 @@ class MethodDefiner(PropertyDefiner):
                                  "methodInfo": False,
                                  "selfHostedName": "ArrayValues",
                                  "length": 0,
-                                 "condition": MemberCondition()})
+                                 "condition": "Condition::Satisfied"})
 
         isUnforgeableInterface = bool(descriptor.interface.getExtendedAttribute("Unforgeable"))
         if not static and unforgeable == isUnforgeableInterface:
@@ -1551,7 +1524,7 @@ class MethodDefiner(PropertyDefiner):
                         % m["name"][2:], accessor, jitinfo, m["length"], flags, selfHostedName)
             return (str_to_const_array(m["name"]), accessor, jitinfo, m["length"], flags, selfHostedName)
 
-        return self.generatePrefableArray(
+        return self.generateGuardedArray(
             array, name,
             '    JSFunctionSpec {\n'
             '        name: %s as *const u8 as *const libc::c_char,\n'
@@ -1631,7 +1604,7 @@ class AttrDefiner(PropertyDefiner):
             return (str_to_const_array(attr.identifier.name), flags, getter(attr),
                     setter(attr))
 
-        return self.generatePrefableArray(
+        return self.generateGuardedArray(
             array, name,
             '    JSPropertySpec {\n'
             '        name: %s as *const u8 as *const libc::c_char,\n'
@@ -1666,7 +1639,7 @@ class ConstDefiner(PropertyDefiner):
             return (str_to_const_array(const.identifier.name),
                     convertConstIDLValueToJSVal(const.value))
 
-        return self.generatePrefableArray(
+        return self.generateGuardedArray(
             array, name,
             '    ConstantSpec { name: %s, value: %s }',
             None,
@@ -1722,7 +1695,7 @@ class CGImports(CGWrapper):
     """
     Generates the appropriate import/use statements.
     """
-    def __init__(self, child, descriptors, callbacks, imports, ignored_warnings=None):
+    def __init__(self, child, descriptors, callbacks, imports, config, ignored_warnings=None):
         """
         Adds a set of imports.
         """
@@ -1783,7 +1756,11 @@ class CGImports(CGWrapper):
         for c in callbacks:
             types += relatedTypesForSignatures(c)
 
-        imports += ['dom::types::%s' % getIdentifier(t).name for t in types if isImportable(t)]
+        descriptorProvider = config.getDescriptorProvider()
+        for t in types:
+            if isImportable(t):
+                descriptor = descriptorProvider.getDescriptor(getIdentifier(t).name)
+                imports += ['%s' % descriptor.path]
 
         statements = []
         if len(ignored_warnings) > 0:
@@ -2087,16 +2064,15 @@ def UnionTypes(descriptors, dictionaries, callbacks, config):
         'dom::bindings::conversions::FromJSValConvertible',
         'dom::bindings::conversions::ToJSValConvertible',
         'dom::bindings::conversions::ConversionBehavior',
-        'dom::bindings::conversions::root_from_handlevalue',
         'dom::bindings::conversions::StringificationBehavior',
+        'dom::bindings::conversions::root_from_handlevalue',
         'dom::bindings::error::throw_not_in_union',
         'dom::bindings::js::Root',
-        'dom::bindings::str::USVString',
+        'dom::bindings::str::{DOMString, USVString}',
         'dom::types::*',
         'js::jsapi::JSContext',
         'js::jsapi::{HandleValue, MutableHandleValue}',
         'js::jsval::JSVal',
-        'util::str::DOMString',
     ]
 
     # Now find all the things we'll need as arguments and return values because
@@ -2118,7 +2094,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, config):
     # Sort unionStructs by key, retrieve value
     unionStructs = (i[1] for i in sorted(unionStructs.items(), key=operator.itemgetter(0)))
 
-    return CGImports(CGList(unionStructs, "\n\n"), [], [], imports, ignored_warnings=[])
+    return CGImports(CGList(unionStructs, "\n\n"), [], [], imports, config, ignored_warnings=[])
 
 
 class Argument():
@@ -2328,8 +2304,8 @@ def InitUnforgeablePropertiesOnHolder(descriptor, properties):
     """
     unforgeables = []
 
-    defineUnforgeableAttrs = "define_prefable_properties(cx, unforgeable_holder.handle(), %s);"
-    defineUnforgeableMethods = "define_prefable_methods(cx, unforgeable_holder.handle(), %s);"
+    defineUnforgeableAttrs = "define_guarded_properties(cx, unforgeable_holder.handle(), %s);"
+    defineUnforgeableMethods = "define_guarded_methods(cx, unforgeable_holder.handle(), %s);"
 
     unforgeableMembers = [
         (defineUnforgeableAttrs, properties.unforgeable_attrs),
@@ -2418,6 +2394,7 @@ Root::from_ref(&*raw)""" % {'copyUnforgeable': unforgeable, 'createObject': crea
             create = CreateBindingJSObject(self.descriptor)
             return CGGeneric("""\
 %(createObject)s
+(*raw).init_reflector(obj.ptr);
 
 let _ac = JSAutoCompartment::new(cx, obj.ptr);
 let mut proto = RootedObject::new(cx, ptr::null_mut());
@@ -2425,7 +2402,6 @@ GetProtoObject(cx, obj.handle(), proto.handle_mut());
 JS_SetPrototype(cx, obj.handle(), proto.handle());
 
 %(copyUnforgeable)s
-(*raw).init_reflector(obj.ptr);
 
 Root::from_ref(&*raw)\
 """ % {'copyUnforgeable': unforgeable, 'createObject': create})
@@ -2522,12 +2498,13 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
 
     properties should be a PropertyArrays instance.
     """
-    def __init__(self, descriptor, properties):
+    def __init__(self, descriptor, properties, haveUnscopables):
         args = [Argument('*mut JSContext', 'cx'), Argument('HandleObject', 'global'),
                 Argument('*mut ProtoOrIfaceArray', 'cache')]
         CGAbstractMethod.__init__(self, descriptor, 'CreateInterfaceObjects', 'void', args,
                                   unsafe=True)
         self.properties = properties
+        self.haveUnscopables = haveUnscopables
 
     def definition_body(self):
         name = self.descriptor.interface.identifier.name
@@ -2558,18 +2535,16 @@ let mut prototype_proto = RootedObject::new(cx, ptr::null_mut());
 %s;
 assert!(!prototype_proto.ptr.is_null());""" % getPrototypeProto)]
 
-        properties = {"id": name}
+        properties = {
+            "id": name,
+            "unscopables": "unscopable_names" if self.haveUnscopables else "&[]"
+        }
         for arrayName in self.properties.arrayNames():
             array = getattr(self.properties, arrayName)
-            if arrayName == "consts":
-                if array.length():
-                    properties[arrayName] = array.variableName()
-                else:
-                    properties[arrayName] = "&[]"
-            elif array.length():
-                properties[arrayName] = "Some(%s)" % array.variableName()
+            if array.length():
+                properties[arrayName] = array.variableName()
             else:
-                properties[arrayName] = "None"
+                properties[arrayName] = "&[]"
 
         code.append(CGGeneric("""
 let mut prototype = RootedObject::new(cx, ptr::null_mut());
@@ -2579,6 +2554,7 @@ create_interface_prototype_object(cx,
                                   %(methods)s,
                                   %(attrs)s,
                                   %(consts)s,
+                                  %(unscopables)s,
                                   prototype.handle_mut());
 assert!(!prototype.ptr.is_null());
 assert!((*cache)[PrototypeList::ID::%(id)s as usize].is_null());
@@ -5091,9 +5067,13 @@ class CGDescriptor(CGThing):
                 descriptor.shouldHaveGetConstructorObjectMethod()):
             cgThings.append(CGGetConstructorObjectMethod(descriptor))
 
+        unscopableNames = []
         for m in descriptor.interface.members:
             if (m.isMethod() and
                     (not m.isIdentifierLess() or m == descriptor.operations["Stringifier"])):
+                if m.getExtendedAttribute("Unscopable"):
+                    assert not m.isStatic()
+                    unscopableNames.append(m.identifier.name)
                 if m.isStatic():
                     assert descriptor.interface.hasInterfaceObject()
                     cgThings.append(CGStaticMethod(descriptor, m))
@@ -5105,7 +5085,9 @@ class CGDescriptor(CGThing):
                     raise TypeError("Stringifier attributes not supported yet. "
                                     "See https://github.com/servo/servo/issues/7590\n"
                                     "%s" % m.location)
-
+                if m.getExtendedAttribute("Unscopable"):
+                    assert not m.isStatic()
+                    unscopableNames.append(m.identifier.name)
                 if m.isStatic():
                     assert descriptor.interface.hasInterfaceObject()
                     cgThings.append(CGStaticGetter(descriptor, m))
@@ -5138,10 +5120,6 @@ class CGDescriptor(CGThing):
 
         if not descriptor.interface.isCallback():
             cgThings.append(CGPrototypeJSClass(descriptor))
-
-        properties = PropertyArrays(descriptor)
-        cgThings.append(CGGeneric(str(properties)))
-        cgThings.append(CGCreateInterfaceObjectsMethod(descriptor, properties))
 
         # If there are no constant members, don't make a module for constants
         constMembers = [m for m in descriptor.interface.members if m.isConst()]
@@ -5189,12 +5167,24 @@ class CGDescriptor(CGThing):
 
             cgThings.append(CGWrapMethod(descriptor))
 
+        haveUnscopables = False
         if not descriptor.interface.isCallback():
+            if unscopableNames:
+                haveUnscopables = True
+                cgThings.append(
+                    CGList([CGGeneric("const unscopable_names: &'static [&'static [u8]] = &["),
+                            CGIndenter(CGList([CGGeneric(str_to_const_array(name)) for
+                                               name in unscopableNames], ",\n")),
+                            CGGeneric("];\n")], "\n"))
             if descriptor.concrete or descriptor.hasDescendants():
                 cgThings.append(CGIDLInterface(descriptor))
             cgThings.append(CGInterfaceTrait(descriptor))
             if descriptor.weakReferenceable:
                 cgThings.append(CGWeakReferenceableTrait(descriptor))
+
+        properties = PropertyArrays(descriptor)
+        cgThings.append(CGGeneric(str(properties)))
+        cgThings.append(CGCreateInterfaceObjectsMethod(descriptor, properties, haveUnscopables))
 
         cgThings = CGList(cgThings, "\n")
         # self.cgRoot = CGWrapper(CGNamespace(toBindingNamespace(descriptor.name),
@@ -5474,7 +5464,8 @@ class CGBindingRoot(CGThing):
         # (hence hasInterfaceObject=False).
         descriptors.extend(config.getDescriptors(webIDLFile=webIDLFile,
                                                  hasInterfaceObject=False,
-                                                 isCallback=False))
+                                                 isCallback=False,
+                                                 register=True))
 
         dictionaries = config.getDictionaries(webIDLFile=webIDLFile)
 
@@ -5564,13 +5555,13 @@ class CGBindingRoot(CGThing):
             'dom::bindings::interface::{InterfaceConstructorBehavior, NonCallbackInterfaceObjectClass}',
             'dom::bindings::interface::{create_callback_interface_object, create_interface_prototype_object}',
             'dom::bindings::interface::{create_named_constructors, create_noncallback_interface_object}',
-            'dom::bindings::interface::{define_prefable_methods, define_prefable_properties}',
+            'dom::bindings::interface::{define_guarded_methods, define_guarded_properties}',
             'dom::bindings::interface::{ConstantSpec, NonNullJSNative}',
             'dom::bindings::interface::ConstantVal::{IntVal, UintVal}',
             'dom::bindings::js::{JS, Root, RootedReference}',
             'dom::bindings::js::{OptionalRootedReference}',
             'dom::bindings::reflector::{Reflectable}',
-            'dom::bindings::utils::{DOMClass, DOMJSClass, Prefable}',
+            'dom::bindings::utils::{DOMClass, DOMJSClass}',
             'dom::bindings::utils::{DOM_PROTO_UNFORGEABLE_HOLDER_SLOT, JSCLASS_DOM_GLOBAL}',
             'dom::bindings::utils::{ProtoOrIfaceArray, create_dom_global}',
             'dom::bindings::utils::{enumerate_global, finalize_global, find_enum_string_index}',
@@ -5594,18 +5585,18 @@ class CGBindingRoot(CGThing):
             'dom::bindings::error::{Fallible, Error, ErrorResult}',
             'dom::bindings::error::Error::JSFailed',
             'dom::bindings::error::throw_dom_exception',
+            'dom::bindings::guard::{Condition, Guard}',
             'dom::bindings::proxyhandler',
             'dom::bindings::proxyhandler::{ensure_expando_object, fill_property_descriptor}',
             'dom::bindings::proxyhandler::{get_expando_object, get_property_descriptor}',
             'dom::bindings::num::Finite',
-            'dom::bindings::str::ByteString',
-            'dom::bindings::str::USVString',
+            'dom::bindings::str::{ByteString, DOMString, USVString}',
             'dom::bindings::trace::RootedVec',
             'dom::bindings::weakref::{DOM_WEAK_SLOT, WeakBox, WeakReferenceable}',
+            'dom::browsingcontext::BrowsingContext',
             'mem::heap_size_of_raw_self_and_children',
             'libc',
             'util::prefs',
-            'util::str::DOMString',
             'std::borrow::ToOwned',
             'std::cmp',
             'std::mem',
@@ -5617,7 +5608,7 @@ class CGBindingRoot(CGThing):
             'std::rc::Rc',
             'std::default::Default',
             'std::ffi::CString',
-        ])
+        ], config)
 
         # Add the auto-generated comment.
         curr = CGWrapper(curr, pre=AUTOGENERATED_WARNING_COMMENT)
@@ -6293,7 +6284,7 @@ class GlobalGenRoots():
             'dom::bindings::codegen',
             'dom::bindings::codegen::PrototypeList::Proxies',
             'libc',
-        ], ignored_warnings=[])
+        ], config, ignored_warnings=[])
 
     @staticmethod
     def InterfaceTypes(config):

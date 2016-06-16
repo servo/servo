@@ -69,8 +69,8 @@ def download(desc, src, writer, start_byte=0):
             print("No Rust compiler binary available for this platform. "
                   "Please see https://github.com/servo/servo/#prerequisites")
         sys.exit(1)
-    except urllib2.URLError:
-        print("Error downloading Rust compiler; are you connected to the internet?")
+    except urllib2.URLError, e:
+        print("Error downloading Rust compiler: " + str(e.reason) + ". The failing URL was: " + src)
         sys.exit(1)
     except KeyboardInterrupt:
         writer.flush()
@@ -298,6 +298,29 @@ class MachCommands(CommandBase):
         except ValueError, e:
             print("Unable to parse chromium HSTS preload list, has the format changed?")
             sys.exit(1)
+
+    @Command('update-pub-domains',
+             description='Download the public domains list and update resources/public_domains.txt',
+             category='bootstrap')
+    def bootstrap_pub_suffix(self, force=False):
+        list_url = "https://publicsuffix.org/list/public_suffix_list.dat"
+        dst_filename = path.join(self.context.topdir, "resources", "public_domains.txt")
+        not_implemented_case = re.compile(r'^[^*]+\*')
+
+        try:
+            content = download_bytes("Public suffix list", list_url)
+        except urllib2.URLError:
+            print("Unable to download the public suffix list; are you connected to the internet?")
+            sys.exit(1)
+
+        lines = [l.strip() for l in content.decode("utf8").split("\n")]
+        suffixes = [l for l in lines if not l.startswith("//") and not l == ""]
+
+        with open(dst_filename, "wb") as fo:
+            for suffix in suffixes:
+                if not_implemented_case.match(suffix):
+                    print("Warning: the new list contains a case that servo can't handle: %s" % suffix)
+                fo.write(suffix.encode("idna") + "\n")
 
     @Command('clean-nightlies',
              description='Clean unused nightly builds of Rust and Cargo',

@@ -6,10 +6,8 @@
 [PrimaryGlobal]
 /*sealed*/ interface Window : EventTarget {
   // the current browsing context
-  //[Unforgeable] readonly attribute WindowProxy window;
-  //[Replaceable] readonly attribute WindowProxy self;
-  readonly attribute Window window;
-  [BinaryName="Self_"] readonly attribute Window self;
+  [Unforgeable] readonly attribute WindowProxy window;
+  [BinaryName="Self_", Replaceable] readonly attribute WindowProxy self;
   [Unforgeable] readonly attribute Document document;
   //         attribute DOMString name;
   [/*PutForwards=href, */Unforgeable] readonly attribute Location location;
@@ -20,7 +18,7 @@
   //[Replaceable] readonly attribute BarProp scrollbars;
   //[Replaceable] readonly attribute BarProp statusbar;
   //[Replaceable] readonly attribute BarProp toolbar;
-  //         attribute DOMString status;
+  attribute DOMString status;
   void close();
   //readonly attribute boolean closed;
   //void stop();
@@ -28,14 +26,11 @@
   //void blur();
 
   // other browsing contexts
-  //[Replaceable] readonly attribute WindowProxy frames;
-  readonly attribute Window frames;
+  [Replaceable] readonly attribute WindowProxy frames;
   //[Replaceable] readonly attribute unsigned long length;
-  //[Unforgeable] readonly attribute WindowProxy top;
-  readonly attribute Window top;
+  [Unforgeable] readonly attribute WindowProxy top;
   //         attribute any opener;
-  //readonly attribute WindowProxy parent;
-  readonly attribute Window parent;
+  readonly attribute WindowProxy parent;
   readonly attribute Element? frameElement;
   //WindowProxy open(optional DOMString url = "about:blank", optional DOMString target = "_blank",
   //                 optional DOMString features = "", optional boolean replace = false);
@@ -48,8 +43,8 @@
   //readonly attribute ApplicationCache applicationCache;
 
   // user prompts
-  //void alert();
   void alert(DOMString message);
+  void alert();
   //boolean confirm(optional DOMString message = "");
   //DOMString? prompt(optional DOMString message = "", optional DOMString default = "");
   //void print();
@@ -65,7 +60,10 @@
 Window implements GlobalEventHandlers;
 Window implements WindowEventHandlers;
 
-// https://html.spec.whatwg.org/multipage/#windowtimers
+[NoInterfaceObject]
+interface WindowProxy {};
+
+// https://html.spec.whatwg.org/multipage/#timers
 [NoInterfaceObject/*, Exposed=Window,Worker*/]
 interface WindowTimers {
   long setTimeout(Function handler, optional long timeout = 0, any... arguments);
@@ -138,11 +136,17 @@ partial interface Window {
   readonly attribute long pageXOffset;
   readonly attribute long scrollY;
   readonly attribute long pageYOffset;
+  [Func="::script_can_initiate_scroll"]
   void scroll(optional ScrollToOptions options);
+  [Func="::script_can_initiate_scroll"]
   void scroll(unrestricted double x, unrestricted double y);
+  [Func="::script_can_initiate_scroll"]
   void scrollTo(optional ScrollToOptions options);
+  [Func="::script_can_initiate_scroll"]
   void scrollTo(unrestricted double x, unrestricted double y);
+  [Func="::script_can_initiate_scroll"]
   void scrollBy(optional ScrollToOptions options);
+  [Func="::script_can_initiate_scroll"]
   void scrollBy(unrestricted double x, unrestricted double y);
 
   // client
@@ -159,6 +163,8 @@ partial interface Window {
   void debug(DOMString arg);
   void gc();
   void trap();
+  [Func="Window::global_is_mozbrowser", Throws]
+  void openURLInDefaultBrowser(DOMString href);
 };
 
 // WebDriver extensions

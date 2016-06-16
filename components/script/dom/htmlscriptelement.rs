@@ -15,10 +15,10 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::RootedReference;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::refcounted::Trusted;
+use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, ElementCreator};
 use dom::event::{Event, EventBubbles, EventCancelable};
-use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::node::{ChildrenMutation, CloneChildrenFlag, Node};
 use dom::node::{document_from_node, window_from_node};
@@ -39,9 +39,8 @@ use std::cell::Cell;
 use std::mem;
 use std::sync::{Arc, Mutex};
 use string_cache::Atom;
-use task_source::dom_manipulation::DOMManipulationTask;
 use url::Url;
-use util::str::{DOMString, HTML_SPACE_CHARACTERS, StaticStringVec};
+use util::str::{HTML_SPACE_CHARACTERS, StaticStringVec};
 
 #[dom_struct]
 pub struct HTMLScriptElement {
@@ -315,7 +314,7 @@ impl HTMLScriptElement {
                     sender: action_sender,
                 };
                 ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
-                    listener.notify(message.to().unwrap());
+                    listener.notify_action(message.to().unwrap());
                 });
 
                 doc.load_async(LoadType::Script(url), response_target);
@@ -461,16 +460,12 @@ impl HTMLScriptElement {
         if external {
             self.dispatch_load_event();
         } else {
-            let script_element = Trusted::new(self.upcast::<EventTarget>());
-            let task_source = window.dom_manipulation_task_source();
-            task_source.queue(DOMManipulationTask::FireSimpleEvent(atom!("load"), script_element)).unwrap();
+            window.dom_manipulation_task_source().queue_simple_event(self.upcast(), atom!("load"));
         }
     }
 
     pub fn queue_error_event(&self) {
-        let task_source = window_from_node(self).dom_manipulation_task_source();
-        let script_element = Trusted::new(self.upcast::<EventTarget>());
-        task_source.queue(DOMManipulationTask::FireSimpleEvent(atom!("error"), script_element)).unwrap();
+        window_from_node(self).dom_manipulation_task_source().queue_simple_event(self.upcast(), atom!("error"));
     }
 
     pub fn dispatch_before_script_execute_event(&self) -> bool {
@@ -537,8 +532,8 @@ impl HTMLScriptElement {
         is_js
     }
 
-    pub fn mark_already_started(&self) {
-        self.already_started.set(true);
+    pub fn set_already_started(&self, already_started: bool) {
+        self.already_started.set(already_started);
     }
 
     fn dispatch_event(&self,
@@ -598,7 +593,7 @@ impl VirtualMethods for HTMLScriptElement {
 
         // https://html.spec.whatwg.org/multipage/#already-started
         if self.already_started.get() {
-            copy.downcast::<HTMLScriptElement>().unwrap().mark_already_started();
+            copy.downcast::<HTMLScriptElement>().unwrap().set_already_started(true);
         }
     }
 }

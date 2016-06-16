@@ -2,22 +2,25 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::BlobBinding;
 use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use dom::bindings::codegen::UnionTypes::BlobOrString;
-use dom::bindings::error::Fallible;
+use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::str::DOMString;
 use encoding::all::UTF_8;
 use encoding::types::{EncoderTrap, Encoding};
+use ipc_channel::ipc;
+use net_traits::filemanager_thread::{FileManagerThreadMsg, SelectedFileId};
 use num_traits::ToPrimitive;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::cmp::{max, min};
 use std::sync::Arc;
-use util::str::DOMString;
 
 #[derive(Clone, JSTraceable)]
 pub struct DataSlice {
@@ -62,6 +65,11 @@ impl DataSlice {
         }
     }
 
+    /// Construct data slice from a vector of bytes
+    pub fn from_bytes(bytes: Vec<u8>) -> DataSlice {
+        DataSlice::new(Arc::new(bytes), None, None)
+    }
+
     /// Construct an empty data slice
     pub fn empty() -> DataSlice {
         DataSlice {
@@ -83,27 +91,51 @@ impl DataSlice {
 }
 
 
+#[derive(Clone, JSTraceable)]
+pub enum BlobImpl {
+    /// File-based, cached backend
+    File(SelectedFileId, DOMRefCell<Option<DataSlice>>),
+    /// Memory-based backend
+    Memory(DataSlice),
+}
+
+impl BlobImpl {
+    /// Construct memory-backed BlobImpl from DataSlice
+    pub fn new_from_slice(slice: DataSlice) -> BlobImpl {
+        BlobImpl::Memory(slice)
+    }
+
+    /// Construct file-backed BlobImpl from File ID
+    pub fn new_from_file(file_id: SelectedFileId) -> BlobImpl {
+        BlobImpl::File(file_id, DOMRefCell::new(None))
+    }
+
+    /// Construct empty, memory-backed BlobImpl
+    pub fn new_from_empty_slice() -> BlobImpl {
+        BlobImpl::new_from_slice(DataSlice::empty())
+    }
+}
+
 // https://w3c.github.io/FileAPI/#blob
 #[dom_struct]
 pub struct Blob {
     reflector_: Reflector,
     #[ignore_heap_size_of = "No clear owner"]
-    data: DataSlice,
+    blob_impl: BlobImpl,
     typeString: String,
     isClosed_: Cell<bool>,
 }
 
 impl Blob {
-
-    pub fn new(global: GlobalRef, slice: DataSlice, typeString: &str) -> Root<Blob> {
-        let boxed_blob = box Blob::new_inherited(slice, typeString);
+    pub fn new(global: GlobalRef, blob_impl: BlobImpl, typeString: &str) -> Root<Blob> {
+        let boxed_blob = box Blob::new_inherited(blob_impl, typeString);
         reflect_dom_object(boxed_blob, global, BlobBinding::Wrap)
     }
 
-    pub fn new_inherited(slice: DataSlice, typeString: &str) -> Blob {
+    pub fn new_inherited(blob_impl: BlobImpl, typeString: &str) -> Blob {
         Blob {
             reflector_: Reflector::new(),
-            data: slice,
+            blob_impl: blob_impl,
             typeString: typeString.to_owned(),
             isClosed_: Cell::new(false),
         }
@@ -114,39 +146,84 @@ impl Blob {
                        blobParts: Option<Vec<BlobOrString>>,
                        blobPropertyBag: &BlobBinding::BlobPropertyBag)
                        -> Fallible<Root<Blob>> {
-
         // TODO: accept other blobParts types - ArrayBuffer or ArrayBufferView
         let bytes: Vec<u8> = match blobParts {
             None => Vec::new(),
-            Some(blobparts) => blob_parts_to_bytes(blobparts),
+            Some(blobparts) => match blob_parts_to_bytes(blobparts) {
+                Ok(bytes) => bytes,
+                Err(_) => return Err(Error::InvalidCharacter),
+            }
         };
 
-        let slice = DataSlice::new(Arc::new(bytes), None, None);
-        Ok(Blob::new(global, slice, &blobPropertyBag.get_typestring()))
+        let slice = DataSlice::from_bytes(bytes);
+        Ok(Blob::new(global, BlobImpl::new_from_slice(slice), &blobPropertyBag.get_typestring()))
     }
 
-    pub fn get_data(&self) -> &DataSlice {
-        &self.data
+    /// Get a slice to inner data, this might incur synchronous read and caching
+    pub fn get_slice(&self) -> Result<DataSlice, ()> {
+        match self.blob_impl {
+            BlobImpl::File(ref id, ref slice) => {
+                match *slice.borrow() {
+                    Some(ref s) => Ok(s.clone()),
+                    None => {
+                        let global = self.global();
+                        let s = read_file(global.r(), id.clone())?;
+                        *slice.borrow_mut() = Some(s.clone()); // Cached
+                        Ok(s)
+                    }
+                }
+            }
+            BlobImpl::Memory(ref s) => Ok(s.clone())
+        }
+    }
+
+    /// Try to get a slice, and if any exception happens, return the empty slice
+    pub fn get_slice_or_empty(&self) -> DataSlice {
+        self.get_slice().unwrap_or(DataSlice::empty())
     }
 }
 
-pub fn blob_parts_to_bytes(blobparts: Vec<BlobOrString>) -> Vec<u8> {
-    blobparts.iter().flat_map(|blobpart| {
-            match blobpart {
-                &BlobOrString::String(ref s) => {
-                    UTF_8.encode(s, EncoderTrap::Replace).unwrap()
-                },
-                &BlobOrString::Blob(ref b) => {
-                    b.get_data().get_bytes().to_vec()
-                },
-            }
-        }).collect::<Vec<u8>>()
+fn read_file(global: GlobalRef, id: SelectedFileId) -> Result<DataSlice, ()> {
+    let file_manager = global.filemanager_thread();
+    let (chan, recv) = ipc::channel().map_err(|_|())?;
+    let _ = file_manager.send(FileManagerThreadMsg::ReadFile(chan, id));
+
+    let result = match recv.recv() {
+        Ok(ret) => ret,
+        Err(e) => {
+            debug!("File manager thread has problem {:?}", e);
+            return Err(())
+        }
+    };
+
+    let bytes = result.map_err(|_|())?;
+    Ok(DataSlice::from_bytes(bytes))
+}
+
+/// Extract bytes from BlobParts, used by Blob and File constructor
+/// https://w3c.github.io/FileAPI/#constructorBlob
+pub fn blob_parts_to_bytes(blobparts: Vec<BlobOrString>) -> Result<Vec<u8>, ()> {
+    let mut ret = vec![];
+
+    for blobpart in &blobparts {
+        match blobpart {
+            &BlobOrString::String(ref s) => {
+                let mut bytes = UTF_8.encode(s, EncoderTrap::Replace).map_err(|_|())?;
+                ret.append(&mut bytes);
+            },
+            &BlobOrString::Blob(ref b) => {
+                ret.append(&mut b.get_slice_or_empty().bytes.to_vec());
+            },
+        }
+    }
+
+    Ok(ret)
 }
 
 impl BlobMethods for Blob {
     // https://w3c.github.io/FileAPI/#dfn-size
     fn Size(&self) -> u64 {
-        self.data.size()
+        self.get_slice_or_empty().size()
     }
 
     // https://w3c.github.io/FileAPI/#dfn-type
@@ -160,7 +237,6 @@ impl BlobMethods for Blob {
              end: Option<i64>,
              contentType: Option<DOMString>)
              -> Root<Blob> {
-
         let relativeContentType = match contentType {
             None => DOMString::new(),
             Some(mut str) => {
@@ -172,9 +248,11 @@ impl BlobMethods for Blob {
                 }
             }
         };
+
         let global = self.global();
-        let bytes = self.data.bytes.clone();
-        Blob::new(global.r(), DataSlice::new(bytes, start, end), &relativeContentType)
+        let bytes = self.get_slice_or_empty().bytes.clone();
+        let slice = DataSlice::new(bytes, start, end);
+        Blob::new(global.r(), BlobImpl::new_from_slice(slice), &relativeContentType)
     }
 
     // https://w3c.github.io/FileAPI/#dfn-isClosed
@@ -199,6 +277,8 @@ impl BlobMethods for Blob {
 
 
 impl BlobBinding::BlobPropertyBag {
+    /// Get the normalized inner type string
+    /// https://w3c.github.io/FileAPI/#dfn-type
     pub fn get_typestring(&self) -> String {
         if is_ascii_printable(&self.type_) {
             self.type_.to_lowercase()

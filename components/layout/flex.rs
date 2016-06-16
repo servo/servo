@@ -17,7 +17,8 @@ use flow::{Flow, FlowClass, ImmutableFlowUtils, OpaqueFlow};
 use flow::{INLINE_POSITION_IS_STATIC, IS_ABSOLUTELY_POSITIONED};
 use flow_ref::{self, FlowRef};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
-use gfx::display_list::{StackingContext, StackingContextId};
+use gfx::display_list::StackingContext;
+use gfx_traits::StackingContextId;
 use incremental::{REFLOW, REFLOW_OUT_OF_FLOW};
 use layout_debug;
 use model::{IntrinsicISizes, MaybeAuto, MinMaxConstraint};
@@ -108,7 +109,6 @@ impl FlexFlow {
     pub fn from_fragment(fragment: Fragment,
                          flotation: Option<FloatKind>)
                          -> FlexFlow {
-
         let (main_mode, is_reverse) = match fragment.style.get_position().flex_direction {
             flex_direction::T::row            => (Mode::Inline, false),
             flex_direction::T::row_reverse    => (Mode::Inline, true),

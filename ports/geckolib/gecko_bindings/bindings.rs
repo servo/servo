@@ -24,7 +24,17 @@ use structs::nsStyleXUL;
 use structs::nsStyleSVGReset;
 use structs::nsStyleColumn;
 use structs::nsStyleEffects;
+use structs::nsStyleImage;
+use structs::nsStyleGradient;
+use structs::nsStyleCoord;
+use structs::nsStyleGradientStop;
 use structs::SheetParsingMode;
+use structs::nsMainThreadPtrHandle;
+use structs::nsMainThreadPtrHolder;
+use structs::nscolor;
+use structs::nsFont;
+use structs::FontFamilyList;
+use structs::FontFamilyType;
 use heapsize::HeapSizeOf;
 unsafe impl Send for nsStyleFont {}
 unsafe impl Sync for nsStyleFont {}
@@ -98,10 +108,24 @@ impl HeapSizeOf for nsStyleColumn { fn heap_size_of_children(&self) -> usize { 0
 unsafe impl Send for nsStyleEffects {}
 unsafe impl Sync for nsStyleEffects {}
 impl HeapSizeOf for nsStyleEffects { fn heap_size_of_children(&self) -> usize { 0 } }
+unsafe impl Send for nsStyleImage {}
+unsafe impl Sync for nsStyleImage {}
+impl HeapSizeOf for nsStyleImage { fn heap_size_of_children(&self) -> usize { 0 } }
+unsafe impl Send for nsStyleGradient {}
+unsafe impl Sync for nsStyleGradient {}
+impl HeapSizeOf for nsStyleGradient { fn heap_size_of_children(&self) -> usize { 0 } }
+unsafe impl Send for nsStyleCoord {}
+unsafe impl Sync for nsStyleCoord {}
+impl HeapSizeOf for nsStyleCoord { fn heap_size_of_children(&self) -> usize { 0 } }
+unsafe impl Send for nsStyleGradientStop {}
+unsafe impl Sync for nsStyleGradientStop {}
+impl HeapSizeOf for nsStyleGradientStop { fn heap_size_of_children(&self) -> usize { 0 } }
 
 pub enum nsIAtom { }
 pub enum nsINode { }
 pub type RawGeckoNode = nsINode;
+pub enum nsIPrincipal { }
+pub enum nsIURI { }
 pub enum Element { }
 pub type RawGeckoElement = Element;
 pub enum nsIDocument { }
@@ -110,6 +134,8 @@ pub enum ServoNodeData { }
 pub enum ServoComputedValues { }
 pub enum RawServoStyleSheet { }
 pub enum RawServoStyleSet { }
+pub type ThreadSafePrincipalHolder = nsMainThreadPtrHolder<nsIPrincipal>;
+pub type ThreadSafeURIHolder = nsMainThreadPtrHolder<nsIURI>;
 extern "C" {
     pub fn Gecko_ChildrenCount(node: *mut RawGeckoNode) -> u32;
     pub fn Gecko_NodeIsElement(node: *mut RawGeckoNode) -> bool;
@@ -138,6 +164,12 @@ extern "C" {
     pub fn Gecko_IsVisitedLink(element: *mut RawGeckoElement) -> bool;
     pub fn Gecko_IsUnvisitedLink(element: *mut RawGeckoElement) -> bool;
     pub fn Gecko_IsRootElement(element: *mut RawGeckoElement) -> bool;
+    pub fn Gecko_LocalName(element: *mut RawGeckoElement) -> *mut nsIAtom;
+    pub fn Gecko_Namespace(element: *mut RawGeckoElement) -> *mut nsIAtom;
+    pub fn Gecko_GetElementId(element: *mut RawGeckoElement) -> *mut nsIAtom;
+    pub fn Gecko_ClassOrClassList(element: *mut RawGeckoElement,
+                                  class_: *mut *mut nsIAtom,
+                                  classList: *mut *mut *mut nsIAtom) -> u32;
     pub fn Gecko_GetNodeData(node: *mut RawGeckoNode) -> *mut ServoNodeData;
     pub fn Gecko_SetNodeData(node: *mut RawGeckoNode,
                              data: *mut ServoNodeData);
@@ -156,11 +188,45 @@ extern "C" {
                                           aString:
                                               *const ::std::os::raw::c_char,
                                           aLength: u32) -> bool;
+    pub fn Gecko_FontFamilyList_Clear(aList: *mut FontFamilyList);
+    pub fn Gecko_FontFamilyList_AppendNamed(aList: *mut FontFamilyList,
+                                            aName: *mut nsIAtom);
+    pub fn Gecko_FontFamilyList_AppendGeneric(list: *mut FontFamilyList,
+                                              familyType: FontFamilyType);
+    pub fn Gecko_CopyFontFamilyFrom(dst: *mut nsFont, src: *const nsFont);
     pub fn Gecko_SetListStyleType(style_struct: *mut nsStyleList, type_: u32);
     pub fn Gecko_CopyListStyleTypeFrom(dst: *mut nsStyleList,
                                        src: *const nsStyleList);
+    pub fn Gecko_SetNullImageValue(image: *mut nsStyleImage);
+    pub fn Gecko_SetGradientImageValue(image: *mut nsStyleImage,
+                                       gradient: *mut nsStyleGradient);
+    pub fn Gecko_CopyImageValueFrom(image: *mut nsStyleImage,
+                                    other: *const nsStyleImage);
+    pub fn Gecko_CreateGradient(shape: u8, size: u8, repeating: bool,
+                                legacy_syntax: bool, stops: u32)
+     -> *mut nsStyleGradient;
+    pub fn Gecko_SetGradientStop(gradient: *mut nsStyleGradient, index: u32,
+                                 location: *const nsStyleCoord,
+                                 color: nscolor, is_interpolation_hint: bool);
+    pub fn Gecko_AddRefPrincipalArbitraryThread(aPtr:
+                                                    *mut ThreadSafePrincipalHolder);
+    pub fn Gecko_ReleasePrincipalArbitraryThread(aPtr:
+                                                     *mut ThreadSafePrincipalHolder);
+    pub fn Gecko_AddRefURIArbitraryThread(aPtr: *mut ThreadSafeURIHolder);
+    pub fn Gecko_ReleaseURIArbitraryThread(aPtr: *mut ThreadSafeURIHolder);
+    pub fn Gecko_SetMozBinding(style_struct: *mut nsStyleDisplay,
+                               string_bytes: *const u8, string_length: u32,
+                               base_uri: *mut ThreadSafeURIHolder,
+                               referrer: *mut ThreadSafeURIHolder,
+                               principal: *mut ThreadSafePrincipalHolder);
+    pub fn Gecko_CopyMozBindingFrom(des: *mut nsStyleDisplay,
+                                    src: *const nsStyleDisplay);
     pub fn Servo_StylesheetFromUTF8Bytes(bytes: *const u8, length: u32,
-                                         parsing_mode: SheetParsingMode)
+                                         parsing_mode: SheetParsingMode,
+                                         base: *mut ThreadSafeURIHolder,
+                                         referrer: *mut ThreadSafeURIHolder,
+                                         principal:
+                                             *mut ThreadSafePrincipalHolder)
      -> *mut RawServoStyleSheet;
     pub fn Servo_AddRefStyleSheet(sheet: *mut RawServoStyleSheet);
     pub fn Servo_ReleaseStyleSheet(sheet: *mut RawServoStyleSheet);
@@ -198,12 +264,12 @@ extern "C" {
     pub fn Servo_Initialize();
     pub fn Servo_RestyleDocument(doc: *mut RawGeckoDocument,
                                  set: *mut RawServoStyleSet);
+    pub fn Servo_RestyleSubtree(node: *mut RawGeckoNode,
+                                set: *mut RawServoStyleSet);
     pub fn Gecko_GetAttrAsUTF8(element: *mut RawGeckoElement,
                                ns: *mut nsIAtom, name: *mut nsIAtom,
                                length: *mut u32)
      -> *const ::std::os::raw::c_char;
-    pub fn Gecko_LocalName(element: *mut RawGeckoElement) -> *mut nsIAtom;
-    pub fn Gecko_Namespace(element: *mut RawGeckoElement) -> *mut nsIAtom;
     pub fn Gecko_Construct_nsStyleFont(ptr: *mut nsStyleFont);
     pub fn Gecko_CopyConstruct_nsStyleFont(ptr: *mut nsStyleFont,
                                            other: *const nsStyleFont);

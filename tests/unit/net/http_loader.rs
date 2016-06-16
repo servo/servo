@@ -2,14 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use content_blocker::parse_list;
 use cookie_rs::Cookie as CookiePair;
 use devtools_traits::HttpRequest as DevtoolsHttpRequest;
 use devtools_traits::HttpResponse as DevtoolsHttpResponse;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, NetworkEvent};
 use flate2::Compression;
 use flate2::write::{GzEncoder, DeflateEncoder};
+use hyper::LanguageTag;
 use hyper::header::{Accept, AcceptEncoding, ContentEncoding, ContentLength, Cookie as CookieHeader};
-use hyper::header::{Authorization, Basic};
+use hyper::header::{Authorization, AcceptLanguage, Basic};
 use hyper::header::{Encoding, Headers, Host, Location, Quality, QualityItem, qitem, Referer, SetCookie};
 use hyper::header::{StrictTransportSecurity, UserAgent};
 use hyper::http::RawStatus;
@@ -392,10 +394,13 @@ fn test_check_default_headers_loaded_in_every_request() {
     load_data.method = Method::Get;
 
     let mut headers = Headers::new();
+
     headers.set(AcceptEncoding(vec![qitem(Encoding::Gzip),
                                     qitem(Encoding::Deflate),
                                     qitem(Encoding::EncodingExt("br".to_owned()))]));
+
     headers.set(Host { hostname: "mozilla.com".to_owned() , port: None });
+
     let accept = Accept(vec![
                             qitem(Mime(TopLevel::Text, SubLevel::Html, vec![])),
                             qitem(Mime(TopLevel::Application, SubLevel::Ext("xhtml+xml".to_owned()), vec![])),
@@ -403,6 +408,17 @@ fn test_check_default_headers_loaded_in_every_request() {
                             QualityItem::new(Mime(TopLevel::Star, SubLevel::Star, vec![]), Quality(800u16)),
                             ]);
     headers.set(accept);
+
+    let mut en_us: LanguageTag = Default::default();
+    en_us.language = Some("en".to_owned());
+    en_us.region = Some("US".to_owned());
+    let mut en: LanguageTag = Default::default();
+    en.language = Some("en".to_owned());
+    headers.set(AcceptLanguage(vec![
+        qitem(en_us),
+        QualityItem::new(en, Quality(500)),
+    ]));
+
     headers.set(UserAgent(DEFAULT_USER_AGENT.to_owned()));
 
     // Testing for method.GET
@@ -482,12 +498,15 @@ fn test_request_and_response_data_with_network_messages() {
 
     //Creating default headers for request
     let mut headers = Headers::new();
+
     headers.set(AcceptEncoding(vec![
                                    qitem(Encoding::Gzip),
                                    qitem(Encoding::Deflate),
                                    qitem(Encoding::EncodingExt("br".to_owned()))
                                    ]));
+
     headers.set(Host { hostname: "mozilla.com".to_owned() , port: None });
+
     let accept = Accept(vec![
                             qitem(Mime(TopLevel::Text, SubLevel::Html, vec![])),
                             qitem(Mime(TopLevel::Application, SubLevel::Ext("xhtml+xml".to_owned()), vec![])),
@@ -495,14 +514,29 @@ fn test_request_and_response_data_with_network_messages() {
                             QualityItem::new(Mime(TopLevel::Star, SubLevel::Star, vec![]), Quality(800u16)),
                             ]);
     headers.set(accept);
+
+    let mut en_us: LanguageTag = Default::default();
+    en_us.language = Some("en".to_owned());
+    en_us.region = Some("US".to_owned());
+    let mut en: LanguageTag = Default::default();
+    en.language = Some("en".to_owned());
+    headers.set(AcceptLanguage(vec![
+        qitem(en_us),
+        QualityItem::new(en, Quality(500)),
+    ]));
+
     headers.set(UserAgent(DEFAULT_USER_AGENT.to_owned()));
+
     let httprequest = DevtoolsHttpRequest {
         url: url,
         method: Method::Get,
         headers: headers,
         body: None,
         pipeline_id: pipeline_id,
-        startedDateTime: devhttprequest.startedDateTime
+        startedDateTime: devhttprequest.startedDateTime,
+        timeStamp: devhttprequest.timeStamp,
+        connect_time: devhttprequest.connect_time,
+        send_time: devhttprequest.send_time,
     };
 
     let content = "Yay!";
@@ -976,7 +1010,6 @@ fn test_when_cookie_received_marked_secure_is_ignored_for_http() {
 
 #[test]
 fn test_when_cookie_set_marked_httpsonly_secure_isnt_sent_on_http_request() {
-
     let sec_url = Url::parse("https://mozilla.com").unwrap();
     let url = Url::parse("http://mozilla.com").unwrap();
 
@@ -1609,7 +1642,6 @@ fn test_referer_set_to_origin_with_originonly_policy() {
 
 #[test]
 fn test_referer_set_to_stripped_url_with_unsafeurl_policy() {
-
     let request_url = "http://mozilla.com";
     let referrer_url = "http://username:password@someurl.com/some/path#fragment";
     let referrer_policy = Some(ReferrerPolicy::UnsafeUrl);
@@ -1787,7 +1819,6 @@ fn test_no_referrer_policy_follows_noreferrerwhendowngrade_http_to_http() {
 
 #[test]
 fn test_no_referer_set_with_noreferrer_policy() {
-
     let request_url = "http://mozilla.com";
     let referrer_url = "http://someurl.com";
     let referrer_policy = Some(ReferrerPolicy::NoReferrer);
@@ -1860,4 +1891,63 @@ fn test_custom_response_from_worker() {
     let (metadata, body) = load_request_with_source(Source::Worker, expected_body.clone());
     assert_eq!(metadata.status, Some(RawStatus(200, Cow::Borrowed("OK"))));
     assert_eq!(body, String::from_utf8(expected_body).unwrap());
+}
+
+#[test]
+fn test_content_blocked() {
+    struct Factory;
+    impl HttpRequestFactory for Factory {
+        type R = MockRequest;
+
+        fn create(&self, _url: Url, _method: Method, _: Headers) -> Result<MockRequest, LoadError> {
+            Ok(MockRequest::new(ResponseType::Text(<[_]>::to_vec("Yay!".as_bytes()))))
+        }
+    }
+
+    let blocked_url = Url::parse("http://mozilla.com").unwrap();
+    let url_without_cookies = Url::parse("http://mozilla2.com").unwrap();
+    let mut http_state = HttpState::new();
+
+    let blocked_content_list = "[{ \"trigger\": { \"url-filter\": \"https?://mozilla.com\" }, \
+                                   \"action\": { \"type\": \"block\" } },\
+                                 { \"trigger\": { \"url-filter\": \"https?://mozilla2.com\" }, \
+                                   \"action\": { \"type\": \"block-cookies\" } }]";
+    http_state.blocked_content = Arc::new(parse_list(blocked_content_list).ok());
+    assert!(http_state.blocked_content.is_some());
+
+    {
+        let mut cookie_jar = http_state.cookie_jar.write().unwrap();
+        let cookie = Cookie::new_wrapped(
+            CookiePair::parse("mozillaIs=theBest;").unwrap(),
+            &url_without_cookies,
+            CookieSource::HTTP
+        ).unwrap();
+        cookie_jar.push(cookie, CookieSource::HTTP);
+    }
+
+    let ui_provider = TestProvider::new();
+
+    let load_data = LoadData::new(LoadContext::Browsing, url_without_cookies, &HttpTest);
+
+    let response = load(
+        &load_data, &ui_provider, &http_state,
+        None, &AssertMustNotIncludeHeadersRequestFactory {
+            headers_not_expected: vec!["Cookie".to_owned()],
+            body: b"hi".to_vec(),
+        }, DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None));
+    match response {
+        Ok(_) => {},
+        _ => panic!("request should have succeeded without cookies"),
+    }
+
+    let load_data = LoadData::new(LoadContext::Browsing, blocked_url, &HttpTest);
+
+    let response = load(
+        &load_data, &ui_provider, &http_state,
+        None, &Factory,
+        DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None));
+    match response {
+        Err(LoadError { error: LoadErrorType::ContentBlocked, .. }) => {},
+        _ => panic!("request should have been blocked"),
+    }
 }

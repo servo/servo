@@ -83,6 +83,19 @@ dictionary BrowserShowModalPromptEventDetail {
   // TODO(simartin) unblock() callback
 };
 
+dictionary BrowserElementOpenTabEventDetail {
+  // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowseropentab
+  DOMString url;
+};
+
+dictionary BrowserElementOpenWindowEventDetail {
+  // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowseropenwindow
+  DOMString url;
+  DOMString target;
+  DOMString features;
+  // Element frameElement;
+};
+
 BrowserElement implements BrowserElementCommon;
 BrowserElement implements BrowserElementPrivileged;
 
@@ -146,24 +159,16 @@ interface BrowserElementPrivileged {
   //                    unsigned long count,
   //                    unsigned long modifiers);
 
-  [Throws,
-   Pref="dom.mozbrowser.enabled",
-   CheckAnyPermissions="browser"]
+  [Func="::dom::window::Window::global_is_mozbrowser", Throws]
   void goBack();
 
-  [Throws,
-   Pref="dom.mozbrowser.enabled",
-   CheckAnyPermissions="browser"]
+  [Func="::dom::window::Window::global_is_mozbrowser", Throws]
   void goForward();
 
-  [Throws,
-   Pref="dom.mozbrowser.enabled",
-   CheckAnyPermissions="browser"]
+  [Func="::dom::window::Window::global_is_mozbrowser", Throws]
   void reload(optional boolean hardReload = false);
 
-  [Throws,
-   Pref="dom.mozbrowser.enabled",
-   CheckAnyPermissions="browser"]
+  [Func="::dom::window::Window::global_is_mozbrowser", Throws]
   void stop();
 
   //[Throws,

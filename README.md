@@ -4,7 +4,7 @@
 
 Servo is a prototype web browser engine written in the
 [Rust](https://github.com/rust-lang/rust) language. It is currently developed on
-64bit OS X, 64bit Linux, Android, and Gonk (Firefox OS).
+64bit OS X, 64bit Linux, and Android.
 
 Servo welcomes contribution from everyone.  See
 [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`HACKING_QUICKSTART.md`](docs/HACKING_QUICKSTART.md)
@@ -53,7 +53,8 @@ On Fedora:
 sudo dnf install curl freeglut-devel libtool gcc-c++ libXi-devel \
     freetype-devel mesa-libGL-devel mesa-libEGL-devel glib2-devel libX11-devel libXrandr-devel gperf \
     fontconfig-devel cabextract ttmkfdir python python-virtualenv python-pip expat-devel \
-    rpm-build openssl-devel cmake bzip2-devel libXcursor-devel libXmu-devel mesa-libOSMesa-devel
+    rpm-build openssl-devel cmake bzip2-devel libXcursor-devel libXmu-devel mesa-libOSMesa-devel \
+    dbus-devel
 ```
 
 On Arch Linux:
@@ -80,7 +81,7 @@ Install MSYS2 from [here](https://msys2.github.io/). After you have done so, ope
 window and update the core libraries and install new packages:
 
 ```sh
-update-core
+pacman -Su
 pacman -Sy git mingw-w64-x86_64-toolchain mingw-w64-x86_64-freetype \
     mingw-w64-x86_64-icu mingw-w64-x86_64-nspr mingw-w64-x86_64-ca-certificates \
     mingw-w64-x86_64-expat mingw-w64-x86_64-cmake tar diffutils patch \
@@ -143,9 +144,14 @@ real-world use, add the `--release` flag to create an optimized build:
 ``` sh
 git clone https://github.com/servo/servo
 cd servo
-ANDROID_TOOLCHAIN=/path/to/toolchain ANDROID_NDK=/path/to/ndk PATH=$PATH:/path/to/toolchain/bin ./mach build --android
-cd ports/android
-ANDROID_SDK=/path/to/sdk make install
+
+export ANDROID_SDK="/path/to/sdk"
+export ANDROID_NDK="/path/to/ndk"
+export ANDROID_TOOLCHAIN="/path/to/toolchain"
+export PATH="$PATH:/path/to/toolchain/bin"
+
+./mach build --release --android
+./mach package --release
 ```
 
 Rather than setting the `ANDROID_*` environment variables every time, you can

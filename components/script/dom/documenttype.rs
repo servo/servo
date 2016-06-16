@@ -8,9 +8,9 @@ use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::error::ErrorResult;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
+use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::node::Node;
-use util::str::DOMString;
 
 // https://dom.spec.whatwg.org/#documenttype
 /// The `DOCTYPE` tag.

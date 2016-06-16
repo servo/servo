@@ -14,13 +14,13 @@ use resource_files::set_resources_path;
 use std::cmp;
 use std::default::Default;
 use std::env;
-use std::fs;
-use std::fs::File;
-use std::io::{self, Read, Write};
+use std::fs::{self, File};
+use std::io::{self, Read, Write, stderr};
 use std::path::{Path, PathBuf};
 use std::process;
 use std::sync::atomic::{AtomicBool, ATOMIC_BOOL_INIT, Ordering};
 use url::{self, Url};
+
 
 /// Global flags for Servo, currently set on the command line.
 #[derive(Clone, Deserialize, Serialize)]
@@ -34,10 +34,6 @@ pub struct Opts {
     ///
     /// Note that painting is sequentialized when using GPU painting.
     pub paint_threads: usize,
-
-    /// True to use GPU painting via Skia-GL, false to use CPU painting via Skia (`-g`). Note that
-    /// compositing is always done on the GPU.
-    pub gpu_painting: bool,
 
     /// The maximum size of each tile in pixels (`-s`).
     pub tile_size: usize,
@@ -197,8 +193,8 @@ pub struct Opts {
     /// True if WebRender should use multisample antialiasing.
     pub use_msaa: bool,
 
-    /// Directory path for persistent session
-    pub profile_dir: Option<String>,
+    /// Directory for a default config directory
+    pub config_dir: Option<String>,
 
     // Which rendering API to use.
     pub render_api: RenderApi,
@@ -396,14 +392,6 @@ fn args_fail(msg: &str) -> ! {
     process::exit(1)
 }
 
-// Always use CPU painting on android.
-
-#[cfg(target_os = "android")]
-static FORCE_CPU_PAINTING: bool = true;
-
-#[cfg(not(target_os = "android"))]
-static FORCE_CPU_PAINTING: bool = false;
-
 static MULTIPROCESS: AtomicBool = ATOMIC_BOOL_INIT;
 
 #[inline]
@@ -414,7 +402,6 @@ pub fn multiprocess() -> bool {
 enum UserAgent {
     Desktop,
     Android,
-    Gonk,
 }
 
 #[derive(Clone, Debug, Eq, Deserialize, PartialEq, Serialize)]
@@ -453,21 +440,13 @@ fn default_user_agent_string(agent: UserAgent) -> String {
         UserAgent::Android => {
             "Mozilla/5.0 (Android; Mobile; rv:37.0) Servo/1.0 Firefox/37.0"
         }
-        UserAgent::Gonk => {
-            "Mozilla/5.0 (Mobile; rv:37.0) Servo/1.0 Firefox/37.0"
-        }
     }.to_owned()
 }
 
 #[cfg(target_os = "android")]
 const DEFAULT_USER_AGENT: UserAgent = UserAgent::Android;
 
-// FIXME: This requires https://github.com/servo/servo/issues/7138 to provide the
-// correct string in Gonk builds (i.e., it will never be chosen today).
-#[cfg(target_os = "gonk")]
-const DEFAULT_USER_AGENT: UserAgent = UserAgent::Gonk;
-
-#[cfg(not(any(target_os = "android", target_os = "gonk")))]
+#[cfg(not(target_os = "android"))]
 const DEFAULT_USER_AGENT: UserAgent = UserAgent::Desktop;
 
 pub fn default_opts() -> Opts {
@@ -475,7 +454,6 @@ pub fn default_opts() -> Opts {
         is_running_problem_test: false,
         url: Some(Url::parse("about:blank").unwrap()),
         paint_threads: 1,
-        gpu_painting: false,
         tile_size: 512,
         device_pixels_per_px: None,
         time_profiling: None,
@@ -524,7 +502,7 @@ pub fn default_opts() -> Opts {
         webrender_stats: false,
         use_msaa: false,
         render_api: DEFAULT_RENDER_API,
-        profile_dir: None,
+        config_dir: None,
         full_backtraces: false,
     }
 }
@@ -561,7 +539,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     opts.optopt("", "resolution", "Set window resolution.", "800x600");
     opts.optopt("u",
                 "user-agent",
-                "Set custom user agent string (or android / gonk / desktop for platform default)",
+                "Set custom user agent string (or android / desktop for platform default)",
                 "NCSA Mosaic/1.0 (X11;SunOS 4.1.4 sun4m)");
     opts.optflag("M", "multiprocess", "Run in multiprocess mode");
     opts.optflag("S", "sandbox", "Run in a sandbox if multiprocess");
@@ -581,8 +559,9 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     opts.optflag("b", "no-native-titlebar", "Do not use native titlebar");
     opts.optflag("w", "webrender", "Use webrender backend");
     opts.optopt("G", "graphics", "Select graphics backend (gl or es2)", "gl");
-    opts.optopt("", "profile-dir",
-                    "optional directory path for user sessions", "");
+    opts.optopt("", "config-dir",
+                    "config directory following xdg spec on linux platform", "");
+
 
     let opt_match = match opts.parse(args) {
         Ok(m) => m,
@@ -595,12 +574,6 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         print_usage(app_name, &opts);
         process::exit(0);
     };
-
-    if let Some(ref profile_dir) = opt_match.opt_str("profile-dir") {
-        if let Err(why) = fs::create_dir_all(profile_dir) {
-            error!("Couldn't create/open {:?}: {:?}", Path::new(profile_dir).to_string_lossy(), why);
-        }
-    }
 
     // If this is the content process, we'll receive the real options over IPC. So just fill in
     // some dummy options for now.
@@ -693,8 +666,6 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         period.parse().unwrap_or_else(|err| args_fail(&format!("Error parsing option: -m ({})", err)))
     });
 
-    let gpu_painting = !FORCE_CPU_PAINTING && opt_match.opt_present("g");
-
     let mut layout_threads: usize = match opt_match.opt_str("y") {
         Some(layout_threads_str) => layout_threads_str.parse()
             .unwrap_or_else(|err| args_fail(&format!("Error parsing option: -y ({})", err))),
@@ -748,7 +719,6 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
 
     let user_agent = match opt_match.opt_str("u") {
         Some(ref ua) if ua == "android" => default_user_agent_string(UserAgent::Android),
-        Some(ref ua) if ua == "gonk" => default_user_agent_string(UserAgent::Gonk),
         Some(ref ua) if ua == "desktop" => default_user_agent_string(UserAgent::Desktop),
         Some(ua) => ua,
         None => default_user_agent_string(DEFAULT_USER_AGENT),
@@ -784,7 +754,6 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         is_running_problem_test: is_running_problem_test,
         url: Some(url),
         paint_threads: paint_threads,
-        gpu_painting: gpu_painting,
         tile_size: tile_size,
         device_pixels_per_px: device_pixels_per_px,
         time_profiling: time_profiling,
@@ -833,7 +802,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         use_webrender: use_webrender,
         webrender_stats: debug_options.webrender_stats,
         use_msaa: debug_options.use_msaa,
-        profile_dir: opt_match.opt_str("profile-dir"),
+        config_dir: opt_match.opt_str("config-dir"),
         full_backtraces: debug_options.full_backtraces,
     };
 
@@ -842,9 +811,9 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     // These must happen after setting the default options, since the prefs rely on
     // on the resource path.
     // Note that command line preferences have the highest precedence
-    if get().profile_dir.is_some() {
-        prefs::add_user_prefs();
-    }
+
+    prefs::add_user_prefs();
+
     for pref in opt_match.opt_strs("pref").iter() {
         let split: Vec<&str> = pref.splitn(2, '=').collect();
         let pref_name = split[0];
@@ -862,15 +831,6 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
 pub enum ArgumentParsingResult {
     ChromeProcess,
     ContentProcess(String),
-}
-
-static EXPERIMENTAL_ENABLED: AtomicBool = ATOMIC_BOOL_INIT;
-
-/// Turn on experimental features globally. Normally this is done
-/// during initialization by `set` or `from_cmdline_args`, but
-/// tests that require experimental features will also set it.
-pub fn set_experimental_enabled(new_value: bool) {
-    EXPERIMENTAL_ENABLED.store(new_value, Ordering::SeqCst);
 }
 
 // Make Opts available globally. This saves having to clone and pass

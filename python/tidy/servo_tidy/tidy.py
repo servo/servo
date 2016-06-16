@@ -33,14 +33,17 @@ file_patterns_to_ignore = [
 # Files that are ignored for all tidy and lint checks.
 ignored_files = [
     # Generated and upstream code combined with our own. Could use cleanup
-    os.path.join(".", "ports", "gonk", "src", "native_window_glue.cpp"),
     os.path.join(".", "ports", "geckolib", "gecko_bindings", "bindings.rs"),
-    os.path.join(".", "ports", "geckolib", "gecko_bindings", "structs.rs"),
+    os.path.join(".", "ports", "geckolib", "gecko_bindings", "structs_debug.rs"),
+    os.path.join(".", "ports", "geckolib", "gecko_bindings", "structs_release.rs"),
     os.path.join(".", "ports", "geckolib", "string_cache", "atom_macro.rs"),
     os.path.join(".", "resources", "hsts_preload.json"),
     os.path.join(".", "tests", "wpt", "metadata", "MANIFEST.json"),
     os.path.join(".", "tests", "wpt", "metadata-css", "MANIFEST.json"),
     os.path.join(".", "components", "script", "dom", "webidls", "ForceTouchEvent.webidl"),
+    # FIXME(pcwalton, #11679): This is a workaround for a tidy error on the quoted string
+    # `"__TEXT,_info_plist"` inside an attribute.
+    os.path.join(".", "components", "servo", "platform", "macos", "mod.rs"),
     # Hidden files
     os.path.join(".", "."),
 ]
@@ -54,6 +57,7 @@ ignored_dirs = [
     os.path.join(".", "tests", "wpt", "harness"),
     os.path.join(".", "tests", "wpt", "update"),
     os.path.join(".", "tests", "wpt", "web-platform-tests"),
+    os.path.join(".", "tests", "wpt", "mozilla", "tests", "mozilla", "referrer-policy"),
     os.path.join(".", "tests", "wpt", "sync"),
     os.path.join(".", "tests", "wpt", "sync_css"),
     os.path.join(".", "python", "mach"),
@@ -101,8 +105,8 @@ def filter_file(file_name):
     return True
 
 
-def filter_files(start_dir, faster, progress):
-    file_iter = get_file_list(start_dir, faster, ignored_dirs)
+def filter_files(start_dir, only_changed_files, progress):
+    file_iter = get_file_list(start_dir, only_changed_files, ignored_dirs)
     (has_element, file_iter) = is_iter_empty(file_iter)
     if not has_element:
         raise StopIteration
@@ -298,6 +302,7 @@ def check_rust(file_name, lines):
     whitespace = False
 
     prev_use = None
+    prev_open_brace = False
     current_indent = 0
     prev_crate = {}
     prev_mod = {}
@@ -341,10 +346,10 @@ def check_rust(file_name, lines):
             line = re.sub(r"'(\\.|[^\\'])*?'", "''", line)
 
         # get rid of comments
-        line = re.sub('//.*?$|/\*.*?$|^\*.*?$', '', line)
+        line = re.sub('//.*?$|/\*.*?$|^\*.*?$', '//', line)
 
         # get rid of attributes that do not contain =
-        line = re.sub('^#[A-Za-z0-9\(\)\[\]_]*?$', '', line)
+        line = re.sub('^#[A-Za-z0-9\(\)\[\]_]*?$', '#[]', line)
 
         # flag this line if it matches one of the following regular expressions
         # tuple format: (pattern, format_message, filter_function(match, line))
@@ -388,7 +393,11 @@ def check_rust(file_name, lines):
             (r": &Vec<", "use &[T] instead of &Vec<T>", no_filter),
             # No benefit over using &str
             (r": &String", "use &str instead of &String", no_filter),
+            # No benefit to using &Root<T>
+            (r": &Root<", "use &T instead of &Root<T>", no_filter),
             (r"^&&", "operators should go at the end of the first line", no_filter),
+            (r"\{[A-Za-z0-9_]+\};", "use statement contains braces for single import",
+                lambda match, line: line.startswith('use ')),
         ]
 
         for pattern, message, filter_func in regex_rules:
@@ -397,6 +406,10 @@ def check_rust(file_name, lines):
                     continue
 
                 yield (idx + 1, message.format(*match.groups(), **match.groupdict()))
+
+        if prev_open_brace and not line:
+            yield (idx + 1, "found an empty line following a {")
+        prev_open_brace = line.endswith("{")
 
         # check alphabetical order of extern crates
         if line.startswith("extern crate "):
@@ -515,6 +528,7 @@ def check_webidl_spec(file_name, contents):
         "//w3c.github.io",
         "//heycam.github.io/webidl",
         "//webbluetoothcg.github.io/web-bluetooth/",
+        "//slightlyoff.github.io/ServiceWorker/spec/service_worker/",
         # Not a URL
         "// This interface is entirely internal to Servo, and should not be" +
         " accessible to\n// web pages."
@@ -636,11 +650,12 @@ def get_file_list(directory, only_changed_files=False, exclude_dirs=[]):
         args = ["git", "ls-files", "--others", "--exclude-standard", directory]
         file_list += subprocess.check_output(args)
         for f in file_list.splitlines():
-            yield os.path.join('.', f)
+            if os.path.join('.', os.path.dirname(f)) not in ignored_dirs:
+                yield os.path.join('.', f)
     elif exclude_dirs:
         for root, dirs, files in os.walk(directory, topdown=True):
             # modify 'dirs' in-place so that we don't do unwanted traversals in excluded directories
-            dirs[:] = [d for d in dirs if not any(os.path.join(root, d).startswith(name) for name in ignored_dirs)]
+            dirs[:] = [d for d in dirs if not any(os.path.join(root, d).startswith(name) for name in exclude_dirs)]
             for rel_path in files:
                 yield os.path.join(root, rel_path)
     else:
@@ -649,14 +664,14 @@ def get_file_list(directory, only_changed_files=False, exclude_dirs=[]):
                 yield os.path.join(root, f)
 
 
-def scan(faster=False, progress=True):
+def scan(only_changed_files=False, progress=True):
     # standard checks
-    files_to_check = filter_files('.', faster, progress)
+    files_to_check = filter_files('.', only_changed_files, progress)
     checking_functions = (check_flake8, check_lock, check_webidl_spec, check_json)
     line_checking_functions = (check_license, check_by_line, check_toml, check_rust, check_spec, check_modeline)
     errors = collect_errors_for_files(files_to_check, checking_functions, line_checking_functions)
     # wpt lint checks
-    wpt_lint_errors = check_wpt_lint_errors(get_wpt_files(faster, progress))
+    wpt_lint_errors = check_wpt_lint_errors(get_wpt_files(only_changed_files, progress))
     # collect errors
     errors = itertools.chain(errors, wpt_lint_errors)
     error = None

@@ -28,6 +28,7 @@ extern crate util;
 extern crate uuid;
 extern crate websocket;
 
+use filemanager_thread::FileManagerThreadMsg;
 use heapsize::HeapSizeOf;
 use hyper::header::{ContentType, Headers};
 use hyper::http::RawStatus;
@@ -35,6 +36,8 @@ use hyper::method::Method;
 use hyper::mime::{Attr, Mime};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use msg::constellation_msg::{PipelineId, ReferrerPolicy};
+use request::{Request, RequestInit};
+use response::{HttpsState, Response};
 use std::io::Error as IOError;
 use std::sync::mpsc::Sender;
 use std::thread;
@@ -42,6 +45,7 @@ use storage_thread::StorageThreadMsg;
 use url::Url;
 use websocket::header;
 
+pub mod blob_url_store;
 pub mod bluetooth_scanfilter;
 pub mod bluetooth_thread;
 pub mod filemanager_thread;
@@ -110,6 +114,7 @@ pub struct LoadData {
     pub headers: Headers,
     #[ignore_heap_size_of = "Defined in hyper"]
     /// Headers that will apply to the initial request and any redirects
+    /// Unused in fetch
     pub preserved_headers: Headers,
     pub data: Option<Vec<u8>>,
     pub cors: Option<ResourceCORSData>,
@@ -139,7 +144,7 @@ impl LoadData {
             credentials_flag: true,
             context: context,
             referrer_policy: load_origin.referrer_policy(),
-            referrer_url: load_origin.referrer_url(),
+            referrer_url: load_origin.referrer_url().clone(),
             source: load_origin.request_source()
         }
     }
@@ -152,9 +157,81 @@ pub trait LoadOrigin {
     fn pipeline_id(&self) -> Option<PipelineId>;
 }
 
-/// Interface for observing the final response for an asynchronous fetch operation.
-pub trait AsyncFetchListener {
-    fn response_available(&self, response: response::Response);
+#[derive(Deserialize, Serialize)]
+pub enum FetchResponseMsg {
+    // todo: should have fields for transmitted/total bytes
+    ProcessRequestBody,
+    ProcessRequestEOF,
+    // todo: send more info about the response (or perhaps the entire Response)
+    ProcessResponse(Result<Metadata, NetworkError>),
+    ProcessResponseChunk(Vec<u8>),
+    ProcessResponseEOF(Result<(), NetworkError>),
+}
+
+pub trait FetchTaskTarget {
+    /// https://fetch.spec.whatwg.org/#process-request-body
+    ///
+    /// Fired when a chunk of the request body is transmitted
+    fn process_request_body(&mut self, request: &Request);
+
+    /// https://fetch.spec.whatwg.org/#process-request-end-of-file
+    ///
+    /// Fired when the entire request finishes being transmitted
+    fn process_request_eof(&mut self, request: &Request);
+
+    /// https://fetch.spec.whatwg.org/#process-response
+    ///
+    /// Fired when headers are received
+    fn process_response(&mut self, response: &Response);
+
+    /// Fired when a chunk of response content is received
+    fn process_response_chunk(&mut self, chunk: Vec<u8>);
+
+    /// https://fetch.spec.whatwg.org/#process-response-end-of-file
+    ///
+    /// Fired when the response is fully fetched
+    fn process_response_eof(&mut self, response: &Response);
+}
+
+pub trait FetchResponseListener {
+    fn process_request_body(&mut self);
+    fn process_request_eof(&mut self);
+    fn process_response(&mut self, metadata: Result<Metadata, NetworkError>);
+    fn process_response_chunk(&mut self, chunk: Vec<u8>);
+    fn process_response_eof(&mut self, response: Result<(), NetworkError>);
+}
+
+impl FetchTaskTarget for IpcSender<FetchResponseMsg> {
+    fn process_request_body(&mut self, _: &Request) {
+        let _ = self.send(FetchResponseMsg::ProcessRequestBody);
+    }
+
+    fn process_request_eof(&mut self, _: &Request) {
+        let _ = self.send(FetchResponseMsg::ProcessRequestEOF);
+    }
+
+    fn process_response(&mut self, response: &Response) {
+        let _ = self.send(FetchResponseMsg::ProcessResponse(response.metadata()));
+    }
+
+    fn process_response_chunk(&mut self, chunk: Vec<u8>) {
+        let _ = self.send(FetchResponseMsg::ProcessResponseChunk(chunk));
+    }
+
+    fn process_response_eof(&mut self, response: &Response) {
+        if response.is_network_error() {
+            // todo: finer grained errors
+            let _ = self.send(FetchResponseMsg::ProcessResponseEOF(
+                              Err(NetworkError::Internal("Network error".into()))));
+        } else {
+            let _ = self.send(FetchResponseMsg::ProcessResponseEOF(Ok(())));
+        }
+    }
+}
+
+
+pub trait Action<Listener> {
+    fn process(self, listener: &mut Listener);
 }
 
 /// A listener for asynchronous network events. Cancelling the underlying request is unsupported.
@@ -181,13 +258,26 @@ pub enum ResponseAction {
     ResponseComplete(Result<(), NetworkError>)
 }
 
-impl ResponseAction {
+impl<T: AsyncResponseListener> Action<T> for ResponseAction {
     /// Execute the default action on a provided listener.
-    pub fn process(self, listener: &mut AsyncResponseListener) {
+    fn process(self, listener: &mut T) {
         match self {
             ResponseAction::HeadersAvailable(m) => listener.headers_available(m),
             ResponseAction::DataAvailable(d) => listener.data_available(d),
             ResponseAction::ResponseComplete(r) => listener.response_complete(r),
+        }
+    }
+}
+
+impl<T: FetchResponseListener> Action<T> for FetchResponseMsg {
+    /// Execute the default action on a provided listener.
+    fn process(self, listener: &mut T) {
+        match self {
+            FetchResponseMsg::ProcessRequestBody => listener.process_request_body(),
+            FetchResponseMsg::ProcessRequestEOF => listener.process_request_eof(),
+            FetchResponseMsg::ProcessResponse(meta) => listener.process_response(meta),
+            FetchResponseMsg::ProcessResponseChunk(data) => listener.process_response_chunk(data),
+            FetchResponseMsg::ProcessResponseEOF(data) => listener.process_response_eof(data),
         }
     }
 }
@@ -217,8 +307,13 @@ pub type CoreResourceThread = IpcSender<CoreResourceMsg>;
 
 pub type IpcSendResult = Result<(), IOError>;
 
+/// Abstraction of the ability to send a particular type of message,
+/// used by net_traits::ResourceThreads to ease the use its IpcSender sub-fields
+/// XXX: If this trait will be used more in future, some auto derive might be appealing
 pub trait IpcSend<T> where T: serde::Serialize + serde::Deserialize {
+    /// send message T
     fn send(&self, T) -> IpcSendResult;
+    /// get underlying sender
     fn sender(&self) -> IpcSender<T>;
 }
 
@@ -231,13 +326,17 @@ pub trait IpcSend<T> where T: serde::Serialize + serde::Deserialize {
 pub struct ResourceThreads {
     core_thread: CoreResourceThread,
     storage_thread: IpcSender<StorageThreadMsg>,
+    filemanager_thread: IpcSender<FileManagerThreadMsg>,
 }
 
 impl ResourceThreads {
-    pub fn new(c: CoreResourceThread, s: IpcSender<StorageThreadMsg>) -> ResourceThreads {
+    pub fn new(c: CoreResourceThread,
+               s: IpcSender<StorageThreadMsg>,
+               f: IpcSender<FileManagerThreadMsg>) -> ResourceThreads {
         ResourceThreads {
             core_thread: c,
             storage_thread: s,
+            filemanager_thread: f,
         }
     }
 }
@@ -259,6 +358,16 @@ impl IpcSend<StorageThreadMsg> for ResourceThreads {
 
     fn sender(&self) -> IpcSender<StorageThreadMsg> {
         self.storage_thread.clone()
+    }
+}
+
+impl IpcSend<FileManagerThreadMsg> for ResourceThreads {
+    fn send(&self, msg: FileManagerThreadMsg) -> IpcSendResult {
+        self.filemanager_thread.send(msg)
+    }
+
+    fn sender(&self) -> IpcSender<FileManagerThreadMsg> {
+        self.filemanager_thread.clone()
     }
 }
 
@@ -310,6 +419,7 @@ pub struct WebSocketConnectData {
 pub enum CoreResourceMsg {
     /// Request the data associated with a particular URL
     Load(LoadData, LoadConsumer, Option<IpcSender<ResourceId>>),
+    Fetch(RequestInit, IpcSender<FetchResponseMsg>),
     /// Try to make a websocket connection to a URL.
     WebsocketConnect(WebSocketCommunicate, WebSocketConnectData),
     /// Store a set of cookies for a given originating URL
@@ -320,8 +430,9 @@ pub enum CoreResourceMsg {
     Cancel(ResourceId),
     /// Synchronization message solely for knowing the state of the ResourceChannelManager loop
     Synchronize(IpcSender<()>),
-    /// Break the load handler loop and exit
-    Exit,
+    /// Break the load handler loop, send a reply when done cleaning up local resources
+    //  and exit
+    Exit(IpcSender<()>),
 }
 
 /// Initialized but unsent request. Encapsulates everything necessary to instruct
@@ -447,7 +558,7 @@ pub struct Metadata {
     pub status: Option<RawStatus>,
 
     /// Is successful HTTPS connection
-    pub https_state: response::HttpsState,
+    pub https_state: HttpsState,
 }
 
 impl Metadata {
@@ -460,7 +571,7 @@ impl Metadata {
             headers: None,
             // https://fetch.spec.whatwg.org/#concept-response-status-message
             status: Some(RawStatus(200, "OK".into())),
-            https_state: response::HttpsState::None,
+            https_state: HttpsState::None,
         }
     }
 
@@ -551,4 +662,28 @@ pub enum NetworkError {
     LoadCancelled,
     /// SSL validation error that has to be handled in the HTML parser
     SslValidation(Url),
+}
+
+/// Normalize `slice`, as defined by
+/// [the Fetch Spec](https://fetch.spec.whatwg.org/#concept-header-value-normalize).
+pub fn trim_http_whitespace(mut slice: &[u8]) -> &[u8] {
+    const HTTP_WS_BYTES: &'static [u8] = b"\x09\x0A\x0D\x20";
+
+    loop {
+        match slice.split_first() {
+            Some((first, remainder)) if HTTP_WS_BYTES.contains(first) =>
+                slice = remainder,
+            _ => break,
+        }
+    }
+
+    loop {
+        match slice.split_last() {
+            Some((last, remainder)) if HTTP_WS_BYTES.contains(last) =>
+                slice = remainder,
+            _ => break,
+        }
+    }
+
+    slice
 }

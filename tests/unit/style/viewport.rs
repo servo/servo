@@ -8,7 +8,7 @@ use euclid::size::Size2D;
 use media_queries::CSSErrorReporterTest;
 use style::error_reporting::ParseErrorReporter;
 use style::media_queries::{Device, MediaType};
-use style::parser::ParserContext;
+use style::parser::{ParserContext, ParserContextExtraData};
 use style::servo::Stylesheet;
 use style::stylesheets::{Origin, CSSRuleIteratorExt};
 use style::values::specified::Length::{self, ViewportPercentage};
@@ -20,7 +20,8 @@ use url::Url;
 
 macro_rules! stylesheet {
     ($css:expr, $origin:ident, $error_reporter:expr) => {
-        Stylesheet::from_str($css, Url::parse("http://localhost").unwrap(), Origin::$origin, $error_reporter);
+        Stylesheet::from_str($css, Url::parse("http://localhost").unwrap(), Origin::$origin, $error_reporter,
+                              ParserContextExtraData::default());
     }
 }
 

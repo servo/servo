@@ -6,7 +6,6 @@ use dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclar
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
-use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptionElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
@@ -15,6 +14,7 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::{FromJSValConvertible, StringificationBehavior};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
+use dom::bindings::str::DOMString;
 use dom::browsingcontext::BrowsingContext;
 use dom::element::Element;
 use dom::htmlelement::HTMLElement;
@@ -30,11 +30,10 @@ use ipc_channel::ipc::IpcSender;
 use js::jsapi::JSContext;
 use js::jsapi::{HandleValue, RootedValue};
 use js::jsval::UndefinedValue;
-use msg::constellation_msg::{PipelineId, WindowSizeData};
+use msg::constellation_msg::PipelineId;
 use msg::webdriver_msg::{WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue};
 use script_thread::get_browsing_context;
 use url::Url;
-use util::str::DOMString;
 
 fn find_node_by_unique_id(context: &BrowsingContext,
                           pipeline: PipelineId,
@@ -105,7 +104,7 @@ pub fn handle_get_frame_id(context: &BrowsingContext,
             match find_node_by_unique_id(context, pipeline, x) {
                 Some(ref node) => {
                     match node.downcast::<HTMLIFrameElement>() {
-                        Some(ref elem) => Ok(elem.GetContentWindow()),
+                        Some(ref elem) => Ok(elem.get_content_window()),
                         None => Err(())
                     }
                 },
@@ -280,14 +279,6 @@ pub fn handle_get_url(context: &BrowsingContext,
     let document = context.active_document();
     let url = document.url();
     reply.send((*url).clone()).unwrap();
-}
-
-pub fn handle_get_window_size(context: &BrowsingContext,
-                              _pipeline: PipelineId,
-                              reply: IpcSender<Option<WindowSizeData>>) {
-    let window = context.active_window();
-    let size = window.window_size();
-    reply.send(size).unwrap();
 }
 
 pub fn handle_is_enabled(context: &BrowsingContext,

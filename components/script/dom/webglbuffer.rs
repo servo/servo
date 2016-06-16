@@ -95,6 +95,14 @@ impl WebGLBuffer {
             let _ = self.renderer.send(CanvasMsg::WebGL(WebGLCommand::DeleteBuffer(self.id)));
         }
     }
+
+    pub fn is_deleted(&self) -> bool {
+        self.is_deleted.get()
+    }
+
+    pub fn target(&self) -> Option<u32> {
+        self.target.get()
+    }
 }
 
 impl Drop for WebGLBuffer {

@@ -57,14 +57,12 @@ fn webdriver(port: u16, constellation: Sender<ConstellationMsg>) {
 #[cfg(not(feature = "webdriver"))]
 fn webdriver(_port: u16, _constellation: Sender<ConstellationMsg>) { }
 
-use compositing::CompositorEventListener;
-use compositing::CompositorMsg as ConstellationMsg;
 use compositing::compositor_thread::InitialCompositorState;
-#[cfg(not(target_os = "windows"))]
-use compositing::sandboxing;
 use compositing::windowing::WindowEvent;
 use compositing::windowing::WindowMethods;
-use compositing::{CompositorProxy, CompositorThread};
+use compositing::{CompositorProxy, IOCompositor};
+#[cfg(not(target_os = "windows"))]
+use constellation::content_process_sandbox_profile;
 use constellation::{Constellation, InitialConstellationState, UnprivilegedPipelineContent};
 #[cfg(not(target_os = "windows"))]
 use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
@@ -79,6 +77,7 @@ use profile::mem as profile_mem;
 use profile::time as profile_time;
 use profile_traits::mem;
 use profile_traits::time;
+use script_traits::ConstellationMsg;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
 use util::resource_files::resources_dir_path;
@@ -97,13 +96,12 @@ pub use gleam::gl;
 /// application Servo is embedded in. Clients then create an event
 /// loop to pump messages between the embedding application and
 /// various browser components.
-pub struct Browser {
-    compositor: Box<CompositorEventListener + 'static>,
+pub struct Browser<Window: WindowMethods + 'static> {
+    compositor: IOCompositor<Window>,
 }
 
-impl Browser {
-    pub fn new<Window>(window: Rc<Window>) -> Browser
-                       where Window: WindowMethods + 'static {
+impl<Window> Browser<Window> where Window: WindowMethods + 'static {
+    pub fn new(window: Rc<Window>) -> Browser<Window> {
         // Global configuration options, parsed from the command line.
         let opts = opts::get();
 
@@ -169,7 +167,7 @@ impl Browser {
 
         // The compositor coordinates with the client window to create the final
         // rendered page and display it somewhere.
-        let compositor = CompositorThread::create(window, InitialCompositorState {
+        let compositor = IOCompositor::create(window, InitialCompositorState {
             sender: compositor_proxy,
             receiver: compositor_receiver,
             constellation_chan: constellation_chan,
@@ -231,7 +229,8 @@ fn create_constellation(opts: opts::Opts,
         webrender_api_sender: webrender_api_sender,
     };
     let constellation_chan =
-        Constellation::<layout::layout_thread::LayoutThread,
+        Constellation::<script::layout_interface::Msg,
+                        layout::layout_thread::LayoutThread,
                         script::script_thread::ScriptThread>::start(initial_state);
 
     // Send the URL command to the constellation.
@@ -264,7 +263,8 @@ pub fn run_content_process(token: String) {
 
     script::init();
 
-    unprivileged_content.start_all::<layout::layout_thread::LayoutThread,
+    unprivileged_content.start_all::<script::layout_interface::Msg,
+                                     layout::layout_thread::LayoutThread,
                                      script::script_thread::ScriptThread>(true);
 }
 
@@ -280,7 +280,7 @@ pub unsafe extern fn __errno_location() -> *mut i32 {
 
 #[cfg(not(target_os = "windows"))]
 fn create_sandbox() {
-    ChildSandbox::new(sandboxing::content_process_sandbox_profile()).activate()
+    ChildSandbox::new(content_process_sandbox_profile()).activate()
         .expect("Failed to activate sandbox!");
 }
 

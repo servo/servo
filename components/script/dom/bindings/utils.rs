@@ -7,13 +7,16 @@
 use dom::bindings::codegen::InterfaceObjectMap;
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::codegen::PrototypeList::{MAX_PROTO_CHAIN_LENGTH, PROTO_OR_IFACE_LENGTH};
-use dom::bindings::conversions::{DOM_OBJECT_SLOT, is_dom_class, private_from_proto_check};
+use dom::bindings::conversions::{DOM_OBJECT_SLOT, is_dom_class};
+use dom::bindings::conversions::{jsstring_to_str, private_from_proto_check};
 use dom::bindings::error::throw_invalid_this;
 use dom::bindings::inheritance::TopTypeId;
+use dom::bindings::str::DOMString;
 use dom::bindings::trace::trace_object;
 use dom::browsingcontext;
 use heapsize::HeapSizeOf;
 use js;
+use js::JS_CALLEE;
 use js::glue::{CallJitGetterOp, CallJitMethodOp, CallJitSetterOp, IsWrapper};
 use js::glue::{GetCrossCompartmentWrapper, WrapperNew};
 use js::glue::{RUST_FUNCTION_VALUE_TO_JITINFO, RUST_JSID_IS_INT, RUST_JSID_IS_STRING};
@@ -30,16 +33,12 @@ use js::jsapi::{JS_SetReservedSlot, JS_StringHasLatin1Chars, MutableHandleValue,
 use js::jsapi::{OnNewGlobalHookOption, RootedObject, RootedValue};
 use js::jsval::{JSVal, ObjectValue, PrivateValue, UndefinedValue};
 use js::rust::{GCMethods, ToString};
-use js::{JS_CALLEE};
 use libc;
 use std::default::Default;
 use std::ffi::CString;
 use std::os::raw::c_void;
 use std::ptr;
 use std::slice;
-use util::non_geckolib::jsstring_to_str;
-use util::prefs;
-use util::str::DOMString;
 
 /// Proxy handler for a WindowProxy.
 pub struct WindowProxyHandler(pub *const libc::c_void);
@@ -550,31 +549,3 @@ unsafe extern "C" fn instance_class_has_proto_at_depth(clasp: *const js::jsapi::
 pub const DOM_CALLBACKS: DOMCallbacks = DOMCallbacks {
     instanceClassMatchesProto: Some(instance_class_has_proto_at_depth),
 };
-
-/// A container around JS member specifications that are conditionally enabled.
-pub struct Prefable<T: 'static> {
-    /// If present, the name of the preference used to conditionally enable these specs.
-    pub pref: Option<&'static str>,
-    /// The underlying slice of specifications.
-    pub specs: &'static [T],
-    /// Whether the specifications contain special terminating entries that should be
-    /// included or not.
-    pub terminator: bool,
-}
-
-impl<T> Prefable<T> {
-    /// Retrieve the slice represented by this container, unless the condition
-    /// guarding it is false.
-    pub fn specs(&self) -> &'static [T] {
-        if let Some(pref) = self.pref {
-            if !prefs::get_pref(pref).as_boolean().unwrap_or(false) {
-                return if self.terminator {
-                    &self.specs[self.specs.len() - 1..]
-                } else {
-                    &[]
-                };
-            }
-        }
-        self.specs
-    }
-}

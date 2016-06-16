@@ -71,7 +71,6 @@ extern crate serde;
 #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
 extern crate simd;
 
-extern crate skia;
 extern crate smallvec;
 #[macro_use]
 extern crate string_cache;
@@ -105,8 +104,7 @@ pub mod paint_thread;
 
 // Platform-specific implementations.
 #[allow(unsafe_code)]
-pub mod platform;
+mod platform;
 
 // Text
-#[allow(unsafe_code)]
 pub mod text;

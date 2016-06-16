@@ -7,6 +7,7 @@ use azure::azure_hl::{AntialiasMode, Color,
 ColorPattern, CompositionOp};
 use euclid::size::Size2D;
 use azure::azure::AzIntSize;
+use azure::azure::{AzIntSize};
 
 use std;
 
@@ -35,7 +36,7 @@ impl test {
         }
     }
 
-    fn test_fun2(y : &String, z : &Vec<f32>) -> f32 {
+    fn test_fun2(y : &String, z : &Vec<f32>, r: &Root<isize>) -> f32 {
         let x = true;
         x
             && x;

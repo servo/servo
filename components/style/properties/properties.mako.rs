@@ -14,6 +14,7 @@ use std::ascii::AsciiExt;
 use std::boxed::Box as StdBox;
 use std::collections::HashSet;
 use std::fmt;
+use std::fmt::Write;
 use std::intrinsics;
 use std::mem;
 use std::sync::Arc;
@@ -29,7 +30,7 @@ use euclid::size::Size2D;
 use string_cache::Atom;
 use computed_values;
 use logical_geometry::{LogicalMargin, PhysicalSide, WritingMode};
-use parser::{ParserContext, log_css_error};
+use parser::{ParserContext, ParserContextExtraData, log_css_error};
 use selectors::matching::DeclarationBlock;
 use stylesheets::Origin;
 use values::AuExtensionMethods;
@@ -130,6 +131,7 @@ pub mod shorthands {
     <%include file="/shorthand/margin.mako.rs" />
     <%include file="/shorthand/outline.mako.rs" />
     <%include file="/shorthand/padding.mako.rs" />
+    <%include file="/shorthand/text.mako.rs" />
 }
 
 
@@ -185,13 +187,18 @@ mod property_bit_field {
             if let DeclaredValue::WithVariables {
                 ref css, first_token_type, ref base_url, from_shorthand
             } = *value {
+                // FIXME(heycam): A ParserContextExtraData should be built from data
+                // stored in the WithVariables, in case variable expansion results in
+                // a url() value.
+                let extra_data = ParserContextExtraData::default();
                 substitute_variables_${property.ident}_slow(css,
                                                             first_token_type,
                                                             base_url,
                                                             from_shorthand,
                                                             custom_properties,
                                                             f,
-                                                            error_reporter);
+                                                            error_reporter,
+                                                            extra_data);
             } else {
                 f(value);
             }
@@ -206,7 +213,8 @@ mod property_bit_field {
                 from_shorthand: Option<Shorthand>,
                 custom_properties: &Option<Arc<::custom_properties::ComputedValuesMap>>,
                 f: F,
-                error_reporter: &mut StdBox<ParseErrorReporter + Send>)
+                error_reporter: &mut StdBox<ParseErrorReporter + Send>,
+                extra_data: ParserContextExtraData)
                 where F: FnOnce(&DeclaredValue<longhands::${property.ident}::SpecifiedValue>) {
             f(&
                 ::custom_properties::substitute(css, first_token_type, custom_properties)
@@ -215,8 +223,9 @@ mod property_bit_field {
                     //
                     // FIXME(pcwalton): Cloning the error reporter is slow! But so are custom
                     // properties, so whatever...
-                    let context = ParserContext::new(
-                        ::stylesheets::Origin::Author, base_url, (*error_reporter).clone());
+                    let context = ParserContext::new_with_extra_data(
+                        ::stylesheets::Origin::Author, base_url, (*error_reporter).clone(),
+                        extra_data);
                     Parser::new(&css).parse_entirely(|input| {
                         match from_shorthand {
                             None => {
@@ -246,8 +255,12 @@ mod property_bit_field {
     % endif
 % endfor
 
-/// Declarations are stored in reverse order.
+
+use std::iter::{Iterator, Chain, Zip, Rev, Repeat, repeat};
+use std::slice;
 /// Overridden declarations are skipped.
+
+// FIXME (https://github.com/servo/servo/issues/3426)
 #[derive(Debug, PartialEq, HeapSizeOf)]
 pub struct PropertyDeclarationBlock {
     #[ignore_heap_size_of = "#7038"]
@@ -256,15 +269,233 @@ pub struct PropertyDeclarationBlock {
     pub normal: Arc<Vec<PropertyDeclaration>>,
 }
 
-pub fn parse_style_attribute(input: &str, base_url: &Url, error_reporter: StdBox<ParseErrorReporter + Send>)
+impl PropertyDeclarationBlock {
+    /// Provides an iterator of all declarations, with indication of !important value
+    pub fn declarations(&self) -> Chain<
+        Zip<Rev<slice::Iter<PropertyDeclaration>>, Repeat<bool>>,
+        Zip<Rev<slice::Iter<PropertyDeclaration>>, Repeat<bool>>
+    > {
+        // Declarations are stored in reverse order.
+        let normal = self.normal.iter().rev().zip(repeat(false));
+        let important = self.important.iter().rev().zip(repeat(true));
+        normal.chain(important)
+    }
+}
+
+impl ToCss for PropertyDeclarationBlock {
+    // https://drafts.csswg.org/cssom/#serialize-a-css-declaration-block
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        let mut is_first_serialization = true; // trailing serializations should have a prepended space
+
+        // Step 1 -> dest = result list
+
+        // Step 2
+        let mut already_serialized = Vec::new();
+
+        // Step 3
+        for (declaration, important) in self.declarations() {
+            // Step 3.1
+            let property = declaration.name();
+
+            // Step 3.2
+            if already_serialized.contains(&property) {
+                continue;
+            }
+
+            // Step 3.3
+            let shorthands = declaration.shorthands();
+            if !shorthands.is_empty() {
+
+                // Step 3.3.1
+                let mut longhands = self.declarations()
+                    .filter(|d| !already_serialized.contains(&d.0.name()))
+                    .collect::<Vec<_>>();
+
+                // Step 3.3.2
+                for shorthand in shorthands {
+                    let properties = shorthand.longhands();
+
+                    // Substep 2 & 3
+                    let mut current_longhands = Vec::new();
+                    let mut important_count = 0;
+
+                    for &(longhand, longhand_important) in longhands.iter() {
+                        let longhand_name = longhand.name();
+                        if properties.iter().any(|p| &longhand_name == *p) {
+                            current_longhands.push(longhand);
+                            if longhand_important {
+                                important_count += 1;
+                            }
+                        }
+                    }
+
+                    // Substep 1
+                    /* Assuming that the PropertyDeclarationBlock contains no duplicate entries,
+                    if the current_longhands length is equal to the properties length, it means
+                    that the properties that map to shorthand are present in longhands */
+                    if current_longhands.is_empty() || current_longhands.len() != properties.len() {
+                        continue;
+                    }
+
+                    // Substep 4
+                    let is_important = important_count > 0;
+                    if is_important && important_count != current_longhands.len() {
+                        continue;
+                    }
+
+                    // TODO: serialize shorthand does not take is_important into account currently
+                    // Substep 5
+                    let was_serialized =
+                        try!(
+                            shorthand.serialize_shorthand_to_buffer(
+                                dest,
+                                current_longhands.iter().cloned(),
+                                &mut is_first_serialization
+                            )
+                        );
+                    // If serialization occured, Substep 7 & 8 will have been completed
+
+                    // Substep 6
+                    if !was_serialized {
+                        continue;
+                    }
+
+                    for current_longhand in current_longhands {
+                        // Substep 9
+                        already_serialized.push(current_longhand.name());
+                        let index_to_remove = longhands.iter().position(|l| l.0 == current_longhand);
+                        if let Some(index) = index_to_remove {
+                            // Substep 10
+                            longhands.remove(index);
+                        }
+                     }
+                 }
+            }
+
+            // Step 3.3.4
+            if already_serialized.contains(&property) {
+                continue;
+            }
+
+            use std::iter::Cloned;
+            use std::slice;
+
+            // Steps 3.3.5, 3.3.6 & 3.3.7
+            // Need to specify an iterator type here even though it’s unused to work around
+            // "error: unable to infer enough type information about `_`;
+            //  type annotations or generic parameter binding required [E0282]"
+            // Use the same type as earlier call to reuse generated code.
+            try!(append_serialization::<W, Cloned<slice::Iter< &PropertyDeclaration>>>(
+                dest,
+                &property.to_string(),
+                AppendableValue::Declaration(declaration),
+                important,
+                &mut is_first_serialization));
+
+            // Step 3.3.8
+            already_serialized.push(property);
+        }
+
+        // Step 4
+        Ok(())
+    }
+}
+
+enum AppendableValue<'a, I>
+where I: Iterator<Item=&'a PropertyDeclaration> {
+    Declaration(&'a PropertyDeclaration),
+    DeclarationsForShorthand(I),
+    Css(&'a str)
+}
+
+fn append_property_name<W>(dest: &mut W,
+                           property_name: &str,
+                           is_first_serialization: &mut bool)
+                           -> fmt::Result where W: fmt::Write {
+
+    // after first serialization(key: value;) add whitespace between the pairs
+    if !*is_first_serialization {
+        try!(write!(dest, " "));
+    }
+    else {
+        *is_first_serialization = false;
+    }
+
+    write!(dest, "{}", property_name)
+}
+
+fn append_declaration_value<'a, W, I>
+                           (dest: &mut W,
+                            appendable_value: AppendableValue<'a, I>,
+                            is_important: bool)
+                            -> fmt::Result
+                            where W: fmt::Write, I: Iterator<Item=&'a PropertyDeclaration> {
+  match appendable_value {
+      AppendableValue::Css(css) => {
+          try!(write!(dest, "{}", css))
+      },
+      AppendableValue::Declaration(decl) => {
+          try!(decl.to_css(dest));
+       },
+       AppendableValue::DeclarationsForShorthand(decls) => {
+           let mut decls = decls.peekable();
+           while let Some(decl) = decls.next() {
+               try!(decl.to_css(dest));
+
+               if decls.peek().is_some() {
+                   try!(write!(dest, " "));
+               }
+           }
+       }
+  }
+
+  if is_important {
+      try!(write!(dest, " !important"));
+  }
+
+  Ok(())
+}
+
+fn append_serialization<'a, W, I>(dest: &mut W,
+                                  property_name: &str,
+                                  appendable_value: AppendableValue<'a, I>,
+                                  is_important: bool,
+                                  is_first_serialization: &mut bool)
+                                  -> fmt::Result
+                                  where W: fmt::Write, I: Iterator<Item=&'a PropertyDeclaration> {
+
+    try!(append_property_name(dest, property_name, is_first_serialization));
+    try!(write!(dest, ":"));
+
+    // for normal parsed values, add a space between key: and value
+    match &appendable_value {
+        &AppendableValue::Css(_) => {
+            try!(write!(dest, " "))
+        },
+        &AppendableValue::Declaration(decl) => {
+            if !decl.value_is_unparsed() {
+                // for normal parsed values, add a space between key: and value
+                try!(write!(dest, " "));
+            }
+         },
+         &AppendableValue::DeclarationsForShorthand(_) => try!(write!(dest, " "))
+    }
+
+    try!(append_declaration_value(dest, appendable_value, is_important));
+    write!(dest, ";")
+}
+
+pub fn parse_style_attribute(input: &str, base_url: &Url, error_reporter: StdBox<ParseErrorReporter + Send>,
+                             extra_data: ParserContextExtraData)
                              -> PropertyDeclarationBlock {
-    let context = ParserContext::new(Origin::Author, base_url, error_reporter);
+    let context = ParserContext::new_with_extra_data(Origin::Author, base_url, error_reporter, extra_data);
     parse_property_declaration_list(&context, &mut Parser::new(input))
 }
 
-pub fn parse_one_declaration(name: &str, input: &str, base_url: &Url, error_reporter: StdBox<ParseErrorReporter + Send>)
+pub fn parse_one_declaration(name: &str, input: &str, base_url: &Url, error_reporter: StdBox<ParseErrorReporter + Send>,
+                             extra_data: ParserContextExtraData)
                              -> Result<Vec<PropertyDeclaration>, ()> {
-    let context = ParserContext::new(Origin::Author, base_url, error_reporter);
+    let context = ParserContext::new_with_extra_data(Origin::Author, base_url, error_reporter, extra_data);
     let mut results = vec![];
     match PropertyDeclaration::parse(name, &context, &mut Parser::new(input), &mut results) {
         PropertyDeclarationParseResult::ValidOrIgnoredDeclaration => Ok(results),
@@ -402,6 +633,14 @@ impl Shorthand {
         }
     }
 
+    pub fn name(&self) -> &'static str {
+        match *self {
+            % for property in data.shorthands:
+                Shorthand::${property.camel_case} => "${property.name}",
+            % endfor
+        }
+    }
+
     pub fn longhands(&self) -> &'static [&'static str] {
         % for property in data.shorthands:
             static ${property.ident.upper()}: &'static [&'static str] = &[
@@ -415,6 +654,71 @@ impl Shorthand {
                 Shorthand::${property.camel_case} => ${property.ident.upper()},
             % endfor
         }
+    }
+
+    /// Serializes possible shorthand value to String.
+    pub fn serialize_shorthand_value_to_string<'a, I>(self, declarations: I, is_important: bool) -> String
+    where I: Iterator<Item=&'a PropertyDeclaration> + Clone {
+        let appendable_value = self.get_shorthand_appendable_value(declarations).unwrap();
+        let mut result = String::new();
+        append_declaration_value(&mut result, appendable_value, is_important).unwrap();
+        result
+    }
+
+    /// Serializes possible shorthand name with value to input buffer given a list of longhand declarations.
+    /// On success, returns true if shorthand value is written and false if no shorthand value is present.
+    pub fn serialize_shorthand_to_buffer<'a, W, I>(self,
+                                                   dest: &mut W,
+                                                   declarations: I,
+                                                   is_first_serialization: &mut bool)
+                                                   -> Result<bool, fmt::Error>
+    where W: Write, I: Iterator<Item=&'a PropertyDeclaration> + Clone {
+        match self.get_shorthand_appendable_value(declarations) {
+            None => Ok(false),
+            Some(appendable_value) => {
+                let property_name = self.name();
+
+                append_serialization(
+                    dest,
+                    property_name,
+                    appendable_value,
+                    false,
+                    is_first_serialization
+                ).and_then(|_| Ok(true))
+            }
+        }
+    }
+
+    fn get_shorthand_appendable_value<'a, I>(self, declarations: I) -> Option<AppendableValue<'a, I>>
+        where I: Iterator<Item=&'a PropertyDeclaration> + Clone {
+
+            // Only cloning iterators (a few pointers each) not declarations.
+            let mut declarations2 = declarations.clone();
+            let mut declarations3 = declarations.clone();
+
+            let first_declaration = match declarations2.next() {
+                Some(declaration) => declaration,
+                None => return None
+            };
+
+            // https://drafts.csswg.org/css-variables/#variables-in-shorthands
+            if let Some(css) = first_declaration.with_variables_from_shorthand(self) {
+                if declarations2.all(|d| d.with_variables_from_shorthand(self) == Some(css)) {
+                   return Some(AppendableValue::Css(css));
+               }
+               else {
+                   return None;
+               }
+            }
+
+            if !declarations3.any(|d| d.with_variables()) {
+                return Some(AppendableValue::DeclarationsForShorthand(declarations));
+                // FIXME: this needs property-specific code, which probably should be in style/
+                // "as appropriate according to the grammar of shorthand "
+                // https://drafts.csswg.org/cssom/#serialize-a-css-value
+            }
+
+            None
     }
 }
 
@@ -497,6 +801,22 @@ impl fmt::Display for PropertyDeclarationName {
         }
     }
 }
+impl ToCss for PropertyDeclaration {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            % for property in data.longhands:
+                % if not property.derived_from:
+                    PropertyDeclaration::${property.camel_case}(ref value) =>
+                        value.to_css(dest),
+                % endif
+            % endfor
+            PropertyDeclaration::Custom(_, ref value) => value.to_css(dest),
+            % if any(property.derived_from for property in data.longhands):
+                _ => Err(fmt::Error),
+            % endif
+        }
+    }
+}
 
 impl PropertyDeclaration {
     pub fn name(&self) -> PropertyDeclarationName {
@@ -516,17 +836,12 @@ impl PropertyDeclaration {
     }
 
     pub fn value(&self) -> String {
-        match *self {
-            % for property in data.longhands:
-                PropertyDeclaration::${property.camel_case}
-                % if not property.derived_from:
-                    (ref value) => value.to_css_string(),
-                % else:
-                    (_) => panic!("unsupported property declaration: ${property.name}"),
-                % endif
-            % endfor
-            PropertyDeclaration::Custom(_, ref value) => value.to_css_string(),
+        let mut value = String::new();
+        if let Err(_) = self.to_css(&mut value) {
+            panic!("unsupported property declaration: {}", self.name());
         }
+
+        value
     }
 
     /// If this is a pending-substitution value from the given shorthand, return that value
@@ -562,6 +877,20 @@ impl PropertyDeclaration {
                 _ => false,
             }
         }
+    }
+
+    /// Return whether the value is stored as it was in the CSS source, preserving whitespace
+    /// (as opposed to being parsed into a more abstract data structure).
+    /// This is the case of custom properties and values that contain unsubstituted variables.
+    pub fn value_is_unparsed(&self) -> bool {
+      match *self {
+          % for property in data.longhands:
+              PropertyDeclaration::${property.camel_case}(ref value) => {
+                  matches!(*value, DeclaredValue::WithVariables { .. })
+              },
+          % endfor
+          PropertyDeclaration::Custom(..) => true
+      }
     }
 
     pub fn matches(&self, name: &str) -> bool {
@@ -669,6 +998,38 @@ impl PropertyDeclaration {
             % endfor
 
             _ => PropertyDeclarationParseResult::UnknownProperty
+        }
+    }
+
+    pub fn shorthands(&self) -> &'static [Shorthand] {
+        // first generate longhand to shorthands lookup map
+        <%
+            longhand_to_shorthand_map = {}
+            for shorthand in data.shorthands:
+                for sub_property in shorthand.sub_properties:
+                    if sub_property.ident not in longhand_to_shorthand_map:
+                        longhand_to_shorthand_map[sub_property.ident] = []
+
+                    longhand_to_shorthand_map[sub_property.ident].append(shorthand.camel_case)
+
+            for shorthand_list in longhand_to_shorthand_map.itervalues():
+                shorthand_list.sort()
+        %>
+
+        // based on lookup results for each longhand, create result arrays
+        % for property in data.longhands:
+            static ${property.ident.upper()}: &'static [Shorthand] = &[
+                % for shorthand in longhand_to_shorthand_map.get(property.ident, []):
+                    Shorthand::${shorthand},
+                % endfor
+            ];
+        % endfor
+
+        match *self {
+            % for property in data.longhands:
+                PropertyDeclaration::${property.camel_case}(_) => ${property.ident.upper()},
+            % endfor
+            PropertyDeclaration::Custom(_, _) => &[]
         }
     }
 }
@@ -805,15 +1166,23 @@ pub mod style_structs {
                 fn outline_has_nonzero_width(&self) -> bool {
                     self.outline_width != ::app_units::Au(0)
                 }
+            % elif style_struct.trait_name == "Position":
+                fn clone_align_items(&self) -> longhands::align_items::computed_value::T {
+                    self.align_items.clone()
+                }
+                fn clone_align_self(&self) -> longhands::align_self::computed_value::T {
+                    self.align_self.clone()
+                }
             % elif style_struct.trait_name == "Text":
+                <% text_decoration_field = 'text_decoration' if product == 'servo' else 'text_decoration_line' %>
                 fn has_underline(&self) -> bool {
-                    self.text_decoration.underline
+                    self.${text_decoration_field}.underline
                 }
                 fn has_overline(&self) -> bool {
-                    self.text_decoration.overline
+                    self.${text_decoration_field}.overline
                 }
                 fn has_line_through(&self) -> bool {
-                    self.text_decoration.line_through
+                    self.${text_decoration_field}.line_through
                 }
             % endif
         }
@@ -1454,7 +1823,7 @@ pub fn cascade<C: ComputedValues>(
                         PropertyDeclaration::Color(_) |
                         PropertyDeclaration::Position(_) |
                         PropertyDeclaration::Float(_) |
-                        PropertyDeclaration::TextDecoration(_)
+                        PropertyDeclaration::TextDecoration${'' if product == 'servo' else 'Line'}(_)
                     );
                     if
                         % if category_to_cascade_now == "early":
@@ -1527,6 +1896,23 @@ pub fn cascade<C: ComputedValues>(
                 style.mutate_box().set_overflow_y(overflow_y::T(overflow::auto));
             }
             _ => {}
+        }
+    }
+
+    {
+        use self::style_struct_traits::Position;
+        use computed_values::align_self::T as align_self;
+        use computed_values::align_items::T as align_items;
+        if style.get_position().clone_align_self() == computed_values::align_self::T::auto && !positioned {
+            let self_align =
+                match context.inherited_style.get_position().clone_align_items() {
+                    align_items::stretch => align_self::stretch,
+                    align_items::baseline => align_self::baseline,
+                    align_items::flex_start => align_self::flex_start,
+                    align_items::flex_end => align_self::flex_end,
+                    align_items::center => align_self::center,
+                };
+            style.mutate_position().set_align_self(self_align);
         }
     }
 

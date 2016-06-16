@@ -4,14 +4,14 @@
 
 use cssparser::Parser as CssParser;
 use document_loader::LoadType;
-use dom::attr::{Attr, AttrValue};
+use dom::attr::Attr;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HTMLLinkElementBinding;
 use dom::bindings::codegen::Bindings::HTMLLinkElementBinding::HTMLLinkElementMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, MutNullableHeap, Root};
-use dom::bindings::js::{RootedReference};
+use dom::bindings::js::{JS, MutNullableHeap, Root, RootedReference};
 use dom::bindings::refcounted::Trusted;
+use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::domtokenlist::DOMTokenList;
 use dom::element::{AttributeMutation, Element, ElementCreator};
@@ -25,7 +25,7 @@ use hyper::header::ContentType;
 use hyper::mime::{Mime, TopLevel, SubLevel};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
-use layout_interface::{LayoutChan, Msg};
+use layout_interface::Msg;
 use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata, NetworkError};
 use network_listener::{NetworkListener, PreInvoke};
 use script_traits::{MozBrowserEvent, ScriptMsg as ConstellationMsg};
@@ -36,11 +36,13 @@ use std::default::Default;
 use std::mem;
 use std::sync::{Arc, Mutex};
 use string_cache::Atom;
+use style::attr::AttrValue;
 use style::media_queries::{MediaQueryList, parse_media_query_list};
+use style::parser::ParserContextExtraData;
 use style::servo::Stylesheet;
 use style::stylesheets::Origin;
 use url::Url;
-use util::str::{DOMString, HTML_SPACE_CHARACTERS};
+use util::str::HTML_SPACE_CHARACTERS;
 
 no_jsmanaged_fields!(Stylesheet);
 
@@ -158,7 +160,7 @@ impl VirtualMethods for HTMLLinkElement {
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
         match name {
-            &atom!("rel") => AttrValue::from_serialized_tokenlist(value),
+            &atom!("rel") => AttrValue::from_serialized_tokenlist(value.into()),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }
@@ -225,7 +227,7 @@ impl HTMLLinkElement {
                     sender: action_sender,
                 };
                 ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
-                    listener.notify(message.to().unwrap());
+                    listener.notify_action(message.to().unwrap());
                 });
 
                 if self.parser_inserted.get() {
@@ -306,7 +308,8 @@ impl AsyncResponseListener for StylesheetContext {
 
         let mut sheet = Stylesheet::from_bytes(&data, final_url, protocol_encoding_label,
                                                Some(environment_encoding), Origin::Author,
-                                               win.css_error_reporter());
+                                               win.css_error_reporter(),
+                                               ParserContextExtraData::default());
         let media = self.media.take().unwrap();
         sheet.set_media(Some(media));
         let sheet = Arc::new(sheet);
@@ -316,8 +319,7 @@ impl AsyncResponseListener for StylesheetContext {
         let document = document.r();
 
         let win = window_from_node(elem);
-        let LayoutChan(ref layout_chan) = *win.layout_chan();
-        layout_chan.send(Msg::AddStylesheet(sheet.clone())).unwrap();
+        win.layout_chan().send(Msg::AddStylesheet(sheet.clone())).unwrap();
 
         *elem.stylesheet.borrow_mut() = Some(sheet);
         document.invalidate_stylesheets();

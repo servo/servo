@@ -13,7 +13,7 @@ use flow;
 use flow_ref::FlowRef;
 use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
 use gfx::display_list::OpaqueNode;
-use gfx_traits::{LayerId};
+use gfx_traits::LayerId;
 use layout_thread::LayoutThreadData;
 use opaque_node::OpaqueNodeMethods;
 use script::layout_interface::{ContentBoxResponse, NodeOverflowResponse, ContentBoxesResponse, NodeGeometryResponse};
@@ -51,7 +51,6 @@ fn overflow_direction(writing_mode: &WritingMode) -> OverflowDirection {
 }
 
 impl LayoutRPC for LayoutRPCImpl {
-
     // The neat thing here is that in order to answer the following two queries we only
     // need to compare nodes for equality. Thus we can safely work only with `OpaqueNode`.
     fn content_box(&self) -> ContentBoxResponse {
@@ -75,7 +74,7 @@ impl LayoutRPC for LayoutRPCImpl {
         if update_cursor {
             // Compute the new cursor.
             let cursor = match *result {
-                None => Cursor::DefaultCursor,
+                None => Cursor::Default,
                 Some(dim) => dim.pointing.unwrap(),
             };
             rw_data.constellation_chan.send(ConstellationMsg::SetCursor(cursor)).unwrap();
@@ -92,7 +91,9 @@ impl LayoutRPC for LayoutRPCImpl {
             let rw_data = rw_data.lock().unwrap();
             let result = match rw_data.display_list {
                 None => panic!("Tried to hit test without a DisplayList"),
-                Some(ref display_list) => display_list.hit_test(point),
+                Some(ref display_list) => {
+                    display_list.hit_test(&point, &rw_data.stacking_context_scroll_offsets)
+                }
             };
 
             result

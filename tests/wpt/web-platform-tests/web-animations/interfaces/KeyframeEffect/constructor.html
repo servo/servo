@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>KeyframeEffectReadOnly constructor tests</title>
+<link rel="help" href="https://w3c.github.io/web-animations/#the-keyframeeffect-interfaces">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<script src="../../resources/keyframe-utils.js"></script>
+<body>
+<div id="log"></div>
+<div id="target"></div>
+<style>
+#target {
+  border-style: solid;  /* so border-*-width values don't compute to 0 */
+}
+</style>
+<script>
+"use strict";
+
+var target = document.getElementById("target");
+
+test(function(t) {
+  gEmptyKeyframeListTests.forEach(function(frames) {
+    assert_equals(new KeyframeEffectReadOnly(target, frames)
+                        .getKeyframes().length,
+                  0, "number of frames for " + JSON.stringify(frames));
+  });
+}, "a KeyframeEffectReadOnly can be constructed with no frames");
+
+test(function(t) {
+  gEasingValueTests.forEach(function(subtest) {
+    var easing = subtest[0];
+    var expected = subtest[1];
+    var effect = new KeyframeEffectReadOnly(target, {
+      left: ["10px", "20px"],
+      easing: easing
+    });
+    assert_equals(effect.getKeyframes()[0].easing, expected,
+                  "resulting easing for '" + easing + "'");
+  });
+}, "easing values are parsed correctly when passed to the " +
+   "KeyframeEffectReadOnly constructor in a property-indexed keyframe");
+
+test(function(t) {
+  gEasingValueTests.forEach(function(subtest) {
+    var easing = subtest[0];
+    var expected = subtest[1];
+    var effect = new KeyframeEffectReadOnly(target, [
+      { offset: 0, left: "10px", easing: easing },
+      { offset: 1, left: "20px" }
+    ]);
+    assert_equals(effect.getKeyframes()[0].easing, expected,
+                  "resulting easing for '" + easing + "'");
+  });
+}, "easing values are parsed correctly when passed to the " +
+   "KeyframeEffectReadOnly constructor in regular keyframes");
+
+test(function(t) {
+  gEasingValueTests.forEach(function(subtest) {
+    var easing = subtest[0];
+    var expected = subtest[1];
+    var effect = new KeyframeEffectReadOnly(target, {
+      left: ["10px", "20px"]
+    }, { easing: easing });
+    assert_equals(effect.timing.easing, expected,
+                  "resulting easing for '" + easing + "'");
+  });
+}, "easing values are parsed correctly when passed to the " +
+   "KeyframeEffectReadOnly constructor in KeyframeTimingOptions");
+
+test(function(t) {
+  var getKeyframe = function(composite) {
+    return { left: [ "10px", "20px" ], composite: composite };
+  };
+  gGoodKeyframeCompositeValueTests.forEach(function(composite) {
+    var effect = new KeyframeEffectReadOnly(target, getKeyframe(composite));
+    assert_equals(effect.getKeyframes()[0].composite, composite,
+                  "resulting composite for '" + composite + "'");
+  });
+  gBadCompositeValueTests.forEach(function(composite) {
+    assert_throws(new TypeError, function() {
+      new KeyframeEffectReadOnly(target, getKeyframe(composite));
+    });
+  });
+}, "composite values are parsed correctly when passed to the " +
+   "KeyframeEffectReadOnly constructor in property-indexed keyframes");
+
+test(function(t) {
+  var getKeyframes = function(composite) {
+    return [
+      { offset: 0, left: "10px", composite: composite },
+      { offset: 1, left: "20px" }
+    ];
+  };
+  gGoodKeyframeCompositeValueTests.forEach(function(composite) {
+    var effect = new KeyframeEffectReadOnly(target, getKeyframes(composite));
+    assert_equals(effect.getKeyframes()[0].composite, composite,
+                  "resulting composite for '" + composite + "'");
+  });
+  gBadCompositeValueTests.forEach(function(composite) {
+    assert_throws(new TypeError, function() {
+      new KeyframeEffectReadOnly(target, getKeyframes(composite));
+    });
+  });
+}, "composite values are parsed correctly when passed to the " +
+   "KeyframeEffectReadOnly constructor in regular keyframes");
+
+test(function(t) {
+  gGoodOptionsCompositeValueTests.forEach(function(composite) {
+    var effect = new KeyframeEffectReadOnly(target, {
+      left: ["10px", "20px"]
+    }, { composite: composite });
+    assert_equals(effect.getKeyframes()[0].composite, composite,
+                  "resulting composite for '" + composite + "'");
+  });
+  gBadCompositeValueTests.forEach(function(composite) {
+    assert_throws(new TypeError, function() {
+      new KeyframeEffectReadOnly(target, {
+        left: ["10px", "20px"]
+      }, { composite: composite });
+    });
+  });
+}, "composite values are parsed correctly when passed to the " +
+   "KeyframeEffectReadOnly constructor in KeyframeTimingOptions");
+
+gPropertyIndexedKeyframesTests.forEach(function(subtest) {
+  test(function(t) {
+    var effect = new KeyframeEffectReadOnly(target, subtest.input);
+    assert_frame_lists_equal(effect.getKeyframes(), subtest.output);
+  }, "a KeyframeEffectReadOnly can be constructed with " + subtest.desc);
+
+  test(function(t) {
+    var effect = new KeyframeEffectReadOnly(target, subtest.input);
+    var secondEffect =
+      new KeyframeEffectReadOnly(target, effect.getKeyframes());
+    assert_frame_lists_equal(secondEffect.getKeyframes(),
+                             effect.getKeyframes());
+  }, "a KeyframeEffectReadOnly constructed with " + subtest.desc +
+     " roundtrips");
+});
+
+test(function(t) {
+  var expectedOrder = ["composite", "easing", "offset", "left", "marginLeft"];
+  var actualOrder = [];
+  var kf1 = {};
+  var kf2 = { marginLeft: "10px", left: "20px", offset: 1 };
+  [{ p: "marginLeft", v: "10px" },
+   { p: "left",       v: "20px" },
+   { p: "offset",     v: "0" },
+   { p: "easing",     v: "linear" },
+   { p: "composite",  v: "replace" }].forEach(function(e) {
+    Object.defineProperty(kf1, e.p, {
+      enumerable: true,
+      get: function() { actualOrder.push(e.p); return e.v; }
+    });
+  });
+  new KeyframeEffectReadOnly(target, [kf1, kf2]);
+  assert_array_equals(actualOrder, expectedOrder, "property access order");
+}, "the KeyframeEffectReadOnly constructor reads keyframe properties in the " +
+   "expected order");
+
+gKeyframeSequenceTests.forEach(function(subtest) {
+  test(function(t) {
+    var effect = new KeyframeEffectReadOnly(target, subtest.input);
+    assert_frame_lists_equal(effect.getKeyframes(), subtest.output);
+  }, "a KeyframeEffectReadOnly can be constructed with " + subtest.desc);
+
+  test(function(t) {
+    var effect = new KeyframeEffectReadOnly(target, subtest.input);
+    var secondEffect =
+      new KeyframeEffectReadOnly(target, effect.getKeyframes());
+    assert_frame_lists_equal(secondEffect.getKeyframes(),
+                             effect.getKeyframes());
+  }, "a KeyframeEffectReadOnly constructed with " + subtest.desc +
+     " roundtrips");
+});
+
+gInvalidKeyframesTests.forEach(function(subtest) {
+  test(function(t) {
+    assert_throws(subtest.expected, function() {
+      new KeyframeEffectReadOnly(target, subtest.input);
+    });
+  }, "KeyframeEffectReadOnly constructor throws with " + subtest.desc);
+});
+
+gInvalidEasingInKeyframeSequenceTests.forEach(function(subtest) {
+  test(function(t) {
+    assert_throws(new TypeError, function() {
+      new KeyframeEffectReadOnly(target, subtest.input);
+    });
+  }, "Invalid easing [" + subtest.desc + "] in keyframe sequence " +
+     "should be thrown");
+});
+
+test(function(t) {
+  var effect = new KeyframeEffectReadOnly(target,
+                                          { left: ["10px", "20px"] });
+
+  var timing = effect.timing;
+  assert_equals(timing.delay, 0, "default delay");
+  assert_equals(timing.endDelay, 0, "default endDelay");
+  assert_equals(timing.fill, "auto", "default fill");
+  assert_equals(timing.iterations, 1.0, "default iterations");
+  assert_equals(timing.iterationStart, 0.0, "default iterationStart");
+  assert_equals(timing.duration, "auto", "default duration");
+  assert_equals(timing.direction, "normal", "default direction");
+  assert_equals(timing.easing, "linear", "default easing");
+
+  assert_equals(effect.composite, "replace", "default composite");
+  assert_equals(effect.iterationComposite, "replace",
+                "default iterationComposite");
+  assert_equals(effect.spacing, "distribute",
+                "default spacing");
+}, "a KeyframeEffectReadOnly constructed without any " +
+   "KeyframeEffectOptions object");
+
+gKeyframeEffectOptionTests.forEach(function(stest) {
+  test(function(t) {
+    var effect = new KeyframeEffectReadOnly(target,
+                                            { left: ["10px", "20px"] },
+                                            stest.input);
+
+    // Helper function to provide default expected values when the test does
+    // not supply them.
+    var expected = function(field, defaultValue) {
+      return field in stest.expected ? stest.expected[field] : defaultValue;
+    };
+
+    var timing = effect.timing;
+    assert_equals(timing.delay, expected("delay", 0),
+                  "timing delay");
+    assert_equals(timing.fill, expected("fill", "auto"),
+                  "timing fill");
+    assert_equals(timing.iterations, expected("iterations", 1),
+                  "timing iterations");
+    assert_equals(timing.duration, expected("duration", "auto"),
+                  "timing duration");
+    assert_equals(timing.direction, expected("direction", "normal"),
+                  "timing direction");
+
+  }, "a KeyframeEffectReadOnly constructed by " + stest.desc);
+});
+
+gInvalidKeyframeEffectOptionTests.forEach(function(stest) {
+  test(function(t) {
+    assert_throws(stest.expected, function() {
+      new KeyframeEffectReadOnly(target,
+                                 { left: ["10px", "20px"] },
+                                 stest.input);
+    });
+  }, "Invalid KeyframeEffectReadOnly option by " + stest.desc);
+});
+
+test(function(t) {
+  var effect = new KeyframeEffectReadOnly(null,
+                                          { left: ["10px", "20px"] },
+                                          { duration: 100 * MS_PER_SEC,
+                                            fill: "forwards" });
+  assert_equals(effect.target, null,
+                "Effect created with null target has correct target");
+}, "a KeyframeEffectReadOnly constructed with null target");
+
+test(function(t) {
+  var effect = new KeyframeEffect(target, null);
+  assert_class_string(effect, "KeyframeEffect");
+  assert_class_string(effect.timing, "AnimationEffectTiming");
+}, "KeyframeEffect constructor creates an AnimationEffectTiming timing object");
+
+test(function(t) {
+  var test_error = { name: "test" };
+
+  assert_throws(test_error, function() {
+    new KeyframeEffect(target, { get left() { throw test_error }})
+  });
+}, "KeyframeEffect constructor propagates exceptions generated by accessing"
+   + " the options object");
+</script>
+</body>

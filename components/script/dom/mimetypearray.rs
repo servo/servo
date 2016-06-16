@@ -7,8 +7,8 @@ use dom::bindings::codegen::Bindings::MimeTypeArrayBinding::MimeTypeArrayMethods
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::str::DOMString;
 use dom::mimetype::MimeType;
-use util::str::DOMString;
 
 #[dom_struct]
 pub struct MimeTypeArray {
