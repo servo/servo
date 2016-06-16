@@ -14,17 +14,20 @@
 #![plugin(heapsize_plugin)]
 #![plugin(plugins)]
 
+extern crate app_units;
 #[allow(unused_extern_crates)]
 #[macro_use]
 extern crate bitflags;
 extern crate canvas_traits;
 extern crate core;
+extern crate euclid;
 extern crate gfx_traits;
 extern crate heapsize;
 extern crate ipc_channel;
 extern crate libc;
 extern crate msg;
 extern crate range;
+extern crate script_traits;
 extern crate selectors;
 #[macro_use(atom, ns)]
 extern crate string_cache;
@@ -32,6 +35,7 @@ extern crate style;
 extern crate url;
 
 pub mod restyle_damage;
+pub mod rpc;
 pub mod wrapper_traits;
 
 use canvas_traits::CanvasMsg;
