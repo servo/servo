@@ -61,6 +61,7 @@ pub mod dom;
 pub mod element_state;
 pub mod error_reporting;
 pub mod font_face;
+pub mod keyframes;
 pub mod logical_geometry;
 pub mod matching;
 pub mod media_queries;
