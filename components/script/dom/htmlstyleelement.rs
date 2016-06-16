@@ -14,7 +14,7 @@ use dom::element::Element;
 use dom::htmlelement::HTMLElement;
 use dom::node::{ChildrenMutation, Node, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
-use layout_interface::Msg;
+use script_layout_interface::message::Msg;
 use std::sync::Arc;
 use string_cache::Atom;
 use style::media_queries::parse_media_query_list;
