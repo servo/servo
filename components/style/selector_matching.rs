@@ -128,9 +128,7 @@ pub struct Stylist<Impl: SelectorImplExt> {
                          BuildHasherDefault<::fnv::FnvHasher>>,
 
     /// A map with all the animations indexed by name.
-    animations: HashMap<String,
-                        Vec<Keyframe>,
-                        BuildHasherDefault<::fnv::FnvHasher>>,
+    animations: HashMap<String, Vec<Keyframe>>,
 
     /// Applicable declarations for a given non-eagerly cascaded pseudo-element.
     /// These are eagerly computed once, and then used to resolve the new
@@ -290,7 +288,8 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
             let (computed, _) =
                 properties::cascade(self.device.au_viewport_size(),
                                     &declarations, false,
-                                    parent.map(|p| &**p), None,
+                                    parent.map(|p| &**p),
+                                    None, None,
                                     Box::new(StdoutErrorReporter));
             Some(Arc::new(computed))
         } else {
@@ -323,7 +322,7 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
         let (computed, _) =
             properties::cascade(self.device.au_viewport_size(),
                                 &declarations, false,
-                                Some(&**parent), None,
+                                Some(&**parent), None, None,
                                 Box::new(StdoutErrorReporter));
         Some(Arc::new(computed))
     }
@@ -456,6 +455,11 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
     #[inline]
     pub fn is_device_dirty(&self) -> bool {
         self.is_device_dirty
+    }
+
+    #[inline]
+    pub fn animations(&self) -> &HashMap<String, Vec<Keyframe>> {
+        &self.animations
     }
 }
 

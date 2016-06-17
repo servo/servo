@@ -817,7 +817,7 @@ fn can_interpolate_list(from_list: &[TransformOperation],
 fn interpolate_transform_list(from_list: &[TransformOperation],
                               to_list: &[TransformOperation],
                               time: f64) -> TransformList {
-    let mut result = vec!();
+    let mut result = vec![];
 
     if can_interpolate_list(from_list, to_list) {
         for (from, to) in from_list.iter().zip(to_list) {

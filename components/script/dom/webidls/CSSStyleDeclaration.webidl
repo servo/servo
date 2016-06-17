@@ -327,4 +327,7 @@ partial interface CSSStyleDeclaration {
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString flex-shrink;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString alignSelf;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString align-self;
+
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString animation-name;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString animationName;
 };
