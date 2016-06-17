@@ -102,7 +102,20 @@ def check_call(*args, **kwargs):
         print(' '.join(args[0]))
     # we have to use shell=True in order to get PATH handling
     # when looking for the binary on Windows
-    return subprocess.check_call(*args, shell=sys.platform == 'win32', **kwargs)
+    proc = subprocess.Popen(*args, shell=sys.platform == 'win32', **kwargs)
+    status = None
+    # Leave it to the subprocess to handle Ctrl+C. If it terminates as
+    # a result of Ctrl+C, proc.wait() will return a status code, and,
+    # we get out of the loop. If it doesn't, like e.g. gdb, we continue
+    # waiting.
+    while status is None:
+        try:
+            status = proc.wait()
+        except KeyboardInterrupt:
+            pass
+
+    if status:
+        raise subprocess.CalledProcessError(status, ' '.join(*args))
 
 
 def is_windows():
