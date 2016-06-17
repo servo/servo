@@ -389,6 +389,12 @@ impl Debug for ${style_struct.gecko_struct_name} {
    force_stub += ["list-style-type", "text-overflow"]
    # These are booleans.
    force_stub += ["page-break-after", "page-break-before"]
+   # In a nsTArray, have to be done manually, but probably not too much work
+   # (the "filling them", not the "making them work")
+   force_stub += ["animation-name", "animation-duration",
+                  "animation-timing-function", "animation-iteration-count",
+                  "animation-direction", "animation-play-state",
+                  "animation-fill-mode", "animation-delay"]
 
    # Types used with predefined_type()-defined properties that we can auto-generate.
    predefined_types = {
