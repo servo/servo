@@ -421,17 +421,10 @@ impl Flow for TableRowFlow {
         self.block_flow.update_late_computed_block_position_if_necessary(block_position)
     }
 
+    // Rows have no border, see
+    // https://drafts.csswg.org/css2/tables.html#separated-borders
     fn build_display_list(&mut self, state: &mut DisplayListBuildState) {
-        let border_painting_mode = match self.block_flow
-                                             .fragment
-                                             .style
-                                             .get_inheritedtable()
-                                             .border_collapse {
-            border_collapse::T::separate => BorderPaintingMode::Separate,
-            border_collapse::T::collapse => BorderPaintingMode::Hidden,
-        };
-
-        self.block_flow.build_display_list_for_block(state, border_painting_mode);
+        self.block_flow.build_display_list_for_block(state, BorderPaintingMode::Hidden);
     }
 
     fn collect_stacking_contexts(&mut self,

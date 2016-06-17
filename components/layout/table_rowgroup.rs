@@ -9,7 +9,7 @@
 use app_units::Au;
 use block::{BlockFlow, ISizeAndMarginsComputer};
 use context::LayoutContext;
-use display_list_builder::DisplayListBuildState;
+use display_list_builder::{DisplayListBuildState, BorderPaintingMode, BlockFlowDisplayListBuilding};
 use euclid::Point2D;
 use flow::{Flow, FlowClass, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
@@ -206,9 +206,11 @@ impl Flow for TableRowGroupFlow {
         self.block_flow.update_late_computed_block_position_if_necessary(block_position)
     }
 
+    // Row groups have no border, see
+    // https://drafts.csswg.org/css2/tables.html#separated-borders
     fn build_display_list(&mut self, state: &mut DisplayListBuildState) {
         debug!("build_display_list_table_rowgroup: same process as block flow");
-        self.block_flow.build_display_list(state);
+        self.block_flow.build_display_list_for_block(state, BorderPaintingMode::Hidden);
     }
 
     fn collect_stacking_contexts(&mut self,
