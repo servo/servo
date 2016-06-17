@@ -809,6 +809,10 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto", need_clone=
 
         impl ToCss for T {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                if self.0.is_empty() {
+                    return dest.write_str("none")
+                }
+
                 for (i, name) in self.0.iter().enumerate() {
                     if i != 0 {
                         try!(dest.write_str(", "));
@@ -827,6 +831,10 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto", need_clone=
 
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            if self.0.is_empty() {
+                return dest.write_str("none")
+            }
+
             for (i, name) in self.0.iter().enumerate() {
                 if i != 0 {
                     try!(dest.write_str(", "));
@@ -864,6 +872,12 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto", need_clone=
             computed_value::T(ret)
         }
     }
+</%helpers:longhand>
+
+<%helpers:longhand name="animation-duration" experimental="True">
+    pub use super::transition_duration::computed_value;
+    pub use super::transition_duration::{parse, get_initial_value};
+    pub use super::transition_duration::SpecifiedValue;
 </%helpers:longhand>
 
 // CSSOM View Module
