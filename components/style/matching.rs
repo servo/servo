@@ -400,7 +400,6 @@ trait PrivateMatchMethods: TNode
                                                         shareable,
                                                         Some(&***parent_style),
                                                         cached_computed_values,
-                                                        animations,
                                                         context.error_reporter.clone());
                 cacheable = cacheable && is_cacheable;
                 this_style = the_style
@@ -411,7 +410,6 @@ trait PrivateMatchMethods: TNode
                                                         shareable,
                                                         None,
                                                         None,
-                                                        animations,
                                                         context.error_reporter.clone());
                 cacheable = cacheable && is_cacheable;
                 this_style = the_style
@@ -482,8 +480,7 @@ trait PrivateMatchMethods: TNode
         if had_running_animations {
             let mut all_running_animations = context.running_animations.write().unwrap();
             for running_animation in all_running_animations.get(&this_opaque).unwrap() {
-                animation::update_style_for_animation::<Self::ConcreteComputedValues,
-                                                        Self::ConcreteRestyleDamage>(running_animation, style, None);
+                animation::update_style_for_animation::<Self::ConcreteRestyleDamage>(running_animation, style, None);
             }
             all_running_animations.remove(&this_opaque);
         }
