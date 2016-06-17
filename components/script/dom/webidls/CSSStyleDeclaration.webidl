@@ -330,4 +330,6 @@ partial interface CSSStyleDeclaration {
 
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString animation-name;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString animationName;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString animation-duration;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString animationDuration;
 };
