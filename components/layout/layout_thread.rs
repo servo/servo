@@ -89,9 +89,6 @@ use webrender_helpers::{WebRenderDisplayListConverter, WebRenderFrameBuilder};
 use webrender_traits;
 use wrapper::{LayoutNodeLayoutData, NonOpaqueStyleAndLayoutData};
 
-/// The number of screens of data we're allowed to generate display lists for in each direction.
-pub const DISPLAY_PORT_SIZE_FACTOR: i32 = 8;
-
 /// The number of screens we have to traverse before we decide to generate new display lists.
 const DISPLAY_PORT_THRESHOLD_SIZE_FACTOR: i32 = 4;
 
