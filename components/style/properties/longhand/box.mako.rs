@@ -871,6 +871,12 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto", need_clone=
     pub use super::transition_duration::SpecifiedValue;
 </%helpers:longhand>
 
+<%helpers:longhand name="animation-timing-function" experimental="True">
+    pub use super::transition_timing_function::computed_value;
+    pub use super::transition_timing_function::{parse, get_initial_value};
+    pub use super::transition_timing_function::SpecifiedValue;
+</%helpers:longhand>
+
 // CSSOM View Module
 // https://www.w3.org/TR/cssom-view-1/
 ${helpers.single_keyword("scroll-behavior",
