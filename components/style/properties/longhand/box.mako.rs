@@ -940,6 +940,24 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto", need_clone=
     impl ComputedValueAsSpecified for SpecifiedValue {}
 </%helpers:longhand>
 
+${helpers.keyword_list("animation-direction",
+                       "normal reverse alternate alternate-reverse",
+                       experimental=True)}
+
+${helpers.keyword_list("animation-play-state",
+                       "running paused",
+                       experimental=True)}
+
+${helpers.keyword_list("animation-fill-mode",
+                       "none forwards backwards both",
+                       experimental=True)}
+
+<%helpers:longhand name="animation-delay" experimental="True">
+    pub use super::transition_duration::computed_value;
+    pub use super::transition_duration::{parse, get_initial_value};
+    pub use super::transition_duration::SpecifiedValue;
+</%helpers:longhand>
+
 // CSSOM View Module
 // https://www.w3.org/TR/cssom-view-1/
 ${helpers.single_keyword("scroll-behavior",
