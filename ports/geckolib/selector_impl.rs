@@ -380,6 +380,15 @@ impl SelectorImplExt for GeckoSelectorImpl {
     }
 
     #[inline]
+    fn pseudo_is_before_or_after(pseudo: &PseudoElement) -> bool {
+        match *pseudo {
+            PseudoElement::Before |
+            PseudoElement::After => true,
+            _ => false,
+        }
+    }
+
+    #[inline]
     fn pseudo_class_state_flag(pc: &NonTSPseudoClass) -> ElementState {
         pc.state_flag()
     }

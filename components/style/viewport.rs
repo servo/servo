@@ -562,8 +562,8 @@ pub trait MaybeNew {
 
 impl MaybeNew for ViewportConstraints {
     fn maybe_new(initial_viewport: TypedSize2D<ViewportPx, f32>,
-                     rule: &ViewportRule)
-                     -> Option<ViewportConstraints>
+                 rule: &ViewportRule)
+                 -> Option<ViewportConstraints>
     {
         use std::cmp;
 
@@ -648,6 +648,7 @@ impl MaybeNew for ViewportConstraints {
             viewport_size: initial_viewport,
             inherited_style: ServoComputedValues::initial_values(),
             style: ServoComputedValues::initial_values().clone(),
+            animations: None,
         };
 
         // DEVICE-ADAPT § 9.3 Resolving 'extend-to-zoom'

@@ -90,6 +90,7 @@ pub trait SelectorImplExt : SelectorImpl + Sized {
         })
     }
 
+    fn pseudo_is_before_or_after(pseudo: &Self::PseudoElement) -> bool;
 
     fn pseudo_class_state_flag(pc: &Self::NonTSPseudoClass) -> ElementState;
 
@@ -109,6 +110,15 @@ pub enum PseudoElement {
 }
 
 impl PseudoElement {
+    #[inline]
+    pub fn is_before_or_after(&self) -> bool {
+        match *self {
+            PseudoElement::Before |
+            PseudoElement::After => true,
+            _ => false,
+        }
+    }
+
     #[inline]
     pub fn cascade_type(&self) -> PseudoElementCascadeType {
         match *self {
@@ -247,6 +257,11 @@ impl SelectorImplExt for ServoSelectorImpl {
     #[inline]
     fn pseudo_class_state_flag(pc: &NonTSPseudoClass) -> ElementState {
         pc.state_flag()
+    }
+
+    #[inline]
+    fn pseudo_is_before_or_after(pseudo: &PseudoElement) -> bool {
+        pseudo.is_before_or_after()
     }
 
     #[inline]

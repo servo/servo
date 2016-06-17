@@ -12,7 +12,7 @@
 
 use std::ascii::AsciiExt;
 use std::boxed::Box as StdBox;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::fmt::Write;
 use std::sync::Arc;
@@ -22,6 +22,7 @@ use cssparser::Color as CSSParserColor;
 use cssparser::{Parser, RGBA, AtRuleParser, DeclarationParser, Delimiter,
                 DeclarationListParser, parse_important, ToCss, TokenSerializationType};
 use error_reporting::ParseErrorReporter;
+use keyframes::Keyframe;
 use url::Url;
 use euclid::side_offsets::SideOffsets2D;
 use euclid::size::Size2D;
@@ -1594,12 +1595,14 @@ fn cascade_with_cached_declarations<C: ComputedValues>(
         parent_style: &C,
         cached_style: &C,
         custom_properties: Option<Arc<::custom_properties::ComputedValuesMap>>,
+        animations: Option<<&HashMap<String, Vec<Keyframe>>>,
         mut error_reporter: StdBox<ParseErrorReporter + Send>)
         -> C {
     let mut context = computed::Context {
         is_root_element: false,
         viewport_size: viewport_size,
         inherited_style: parent_style,
+        animations: animations,
         style: C::new(
             custom_properties,
             shareable,
@@ -1739,6 +1742,7 @@ pub fn cascade<C: ComputedValues>(
                shareable: bool,
                parent_style: Option<<&C>,
                cached_style: Option<<&C>,
+               animations: Option<<&HashMap<String, Vec<Keyframe>>>,
                mut error_reporter: StdBox<ParseErrorReporter + Send>)
                -> (C, bool) {
     use properties::style_struct_traits::{Border, Box, Font, Outline};
@@ -1774,6 +1778,7 @@ pub fn cascade<C: ComputedValues>(
                                                      parent_style,
                                                      cached_style,
                                                      custom_properties,
+                                                     animations,
                                                      error_reporter);
         return (style, false)
     }
@@ -1782,6 +1787,7 @@ pub fn cascade<C: ComputedValues>(
         is_root_element: is_root_element,
         viewport_size: viewport_size,
         inherited_style: inherited_style,
+        animations: animations,
         style: C::new(
             custom_properties,
             shareable,
