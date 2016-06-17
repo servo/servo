@@ -13,7 +13,7 @@ def to_rust_ident(name):
 
 
 def to_camel_case(ident):
-    return re.sub("_([a-z])", lambda m: m.group(1).upper(), ident.strip("_").capitalize())
+    return re.sub("(^|_|-)([a-z])", lambda m: m.group(2).upper(), ident.strip("_").strip("-"))
 
 
 class Keyword(object):
