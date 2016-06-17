@@ -4696,6 +4696,18 @@
             "url": "/_mozilla/css/table_auto_width.html"
           }
         ],
+        "css/table_border.html": [
+          {
+            "path": "css/table_border.html",
+            "references": [
+              [
+                "/_mozilla/css/table_border_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/table_border.html"
+          }
+        ],
         "css/table_caption_bottom_a.html": [
           {
             "path": "css/table_caption_bottom_a.html",
@@ -11734,6 +11746,18 @@
             ]
           ],
           "url": "/_mozilla/css/table_auto_width.html"
+        }
+      ],
+      "css/table_border.html": [
+        {
+          "path": "css/table_border.html",
+          "references": [
+            [
+              "/_mozilla/css/table_border_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/table_border.html"
         }
       ],
       "css/table_caption_bottom_a.html": [

@@ -2048,6 +2048,22 @@ pub fn modify_style_for_anonymous_table_object(
     let box_style = Arc::make_mut(&mut style.box_);
     box_style.display = new_display_value;
     box_style.position = longhands::position::computed_value::T::static_;
+
+    let padding = Arc::make_mut(&mut style.padding);
+    padding.padding_top = computed::LengthOrPercentage::Length(Au(0));
+    padding.padding_right = computed::LengthOrPercentage::Length(Au(0));
+    padding.padding_bottom = computed::LengthOrPercentage::Length(Au(0));
+    padding.padding_left = computed::LengthOrPercentage::Length(Au(0));
+
+    let border = Arc::make_mut(&mut style.border);
+    border.border_left_width = Au(0);
+    border.border_left_style = BorderStyle::none;
+    border.border_right_width = Au(0);
+    border.border_right_style = BorderStyle::none;
+    border.border_bottom_width = Au(0);
+    border.border_bottom_style = BorderStyle::none;
+    border.border_top_width = Au(0);
+    border.border_top_style = BorderStyle::none;
 }
 
 /// Adjusts the `position` property as necessary for the outer fragment wrapper of an inline-block.

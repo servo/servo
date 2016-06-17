@@ -422,16 +422,7 @@ impl Flow for TableRowFlow {
     }
 
     fn build_display_list(&mut self, state: &mut DisplayListBuildState) {
-        let border_painting_mode = match self.block_flow
-                                             .fragment
-                                             .style
-                                             .get_inheritedtable()
-                                             .border_collapse {
-            border_collapse::T::separate => BorderPaintingMode::Separate,
-            border_collapse::T::collapse => BorderPaintingMode::Hidden,
-        };
-
-        self.block_flow.build_display_list_for_block(state, border_painting_mode);
+        self.block_flow.build_display_list_for_block(state, BorderPaintingMode::Hidden);
     }
 
     fn collect_stacking_contexts(&mut self,
