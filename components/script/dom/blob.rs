@@ -17,7 +17,6 @@ use ipc_channel::ipc;
 use net_traits::filemanager_thread::{FileManagerThreadMsg, SelectedFileId};
 use num_traits::ToPrimitive;
 use std::ascii::AsciiExt;
-use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::cmp::{max, min};
 use std::sync::Arc;
@@ -127,16 +126,16 @@ pub struct Blob {
 }
 
 impl Blob {
-    pub fn new(global: GlobalRef, blob_impl: BlobImpl, typeString: &str) -> Root<Blob> {
+    pub fn new(global: GlobalRef, blob_impl: BlobImpl, typeString: String) -> Root<Blob> {
         let boxed_blob = box Blob::new_inherited(blob_impl, typeString);
         reflect_dom_object(boxed_blob, global, BlobBinding::Wrap)
     }
 
-    pub fn new_inherited(blob_impl: BlobImpl, typeString: &str) -> Blob {
+    pub fn new_inherited(blob_impl: BlobImpl, typeString: String) -> Blob {
         Blob {
             reflector_: Reflector::new(),
             blob_impl: blob_impl,
-            typeString: typeString.to_owned(),
+            typeString: typeString,
             isClosed_: Cell::new(false),
         }
     }
@@ -156,7 +155,7 @@ impl Blob {
         };
 
         let slice = DataSlice::from_bytes(bytes);
-        Ok(Blob::new(global, BlobImpl::new_from_slice(slice), &blobPropertyBag.get_typestring()))
+        Ok(Blob::new(global, BlobImpl::new_from_slice(slice), blobPropertyBag.get_typestring()))
     }
 
     /// Get a slice to inner data, this might incur synchronous read and caching
@@ -252,7 +251,7 @@ impl BlobMethods for Blob {
         let global = self.global();
         let bytes = self.get_slice_or_empty().bytes.clone();
         let slice = DataSlice::new(bytes, start, end);
-        Blob::new(global.r(), BlobImpl::new_from_slice(slice), &relativeContentType)
+        Blob::new(global.r(), BlobImpl::new_from_slice(slice), relativeContentType.into())
     }
 
     // https://w3c.github.io/FileAPI/#dfn-isClosed
