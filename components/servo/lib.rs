@@ -31,7 +31,7 @@ pub extern crate devtools_traits;
 pub extern crate euclid;
 pub extern crate gfx;
 pub extern crate ipc_channel;
-pub extern crate layout;
+pub extern crate layout_thread;
 pub extern crate msg;
 pub extern crate net;
 pub extern crate net_traits;
@@ -231,7 +231,7 @@ fn create_constellation(opts: opts::Opts,
     };
     let constellation_chan =
         Constellation::<script_layout_interface::message::Msg,
-                        layout::layout_thread::LayoutThread,
+                        layout_thread::LayoutThread,
                         script::script_thread::ScriptThread>::start(initial_state);
 
     // Send the URL command to the constellation.
@@ -265,7 +265,7 @@ pub fn run_content_process(token: String) {
     script::init();
 
     unprivileged_content.start_all::<script_layout_interface::message::Msg,
-                                     layout::layout_thread::LayoutThread,
+                                     layout_thread::LayoutThread,
                                      script::script_thread::ScriptThread>(true);
 }
 

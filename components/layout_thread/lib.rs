@@ -5,21 +5,48 @@
 //! The layout thread. Performs layout on the DOM, builds display lists and sends them to be
 //! painted.
 
-#![allow(unsafe_code)]
+#![feature(box_syntax)]
+#![feature(custom_derive)]
+#![feature(mpsc_select)]
+#![feature(plugin)]
 
-use animation;
+#![plugin(heapsize_plugin)]
+#![plugin(plugins)]
+
+extern crate app_units;
+extern crate azure;
+extern crate core;
+extern crate euclid;
+extern crate fnv;
+extern crate gfx;
+extern crate gfx_traits;
+extern crate heapsize;
+extern crate ipc_channel;
+#[macro_use]
+extern crate layout;
+extern crate layout_traits;
+#[macro_use]
+extern crate log;
+extern crate msg;
+extern crate net_traits;
+#[macro_use]
+extern crate profile_traits;
+extern crate script;
+extern crate script_layout_interface;
+extern crate script_traits;
+extern crate serde_json;
+extern crate style;
+extern crate url;
+extern crate util;
+extern crate webrender_traits;
+
 use app_units::Au;
 use azure::azure::AzColor;
-use construct::ConstructionResult;
-use context::{LayoutContext, SharedLayoutContext, heap_size_of_local_context};
-use display_list_builder::ToGfxColor;
 use euclid::Matrix4D;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::Size2D;
-use flow::{self, Flow, ImmutableFlowUtils, MutableOwnedFlowUtils};
-use flow_ref::{self, FlowRef};
 use fnv::FnvHasher;
 use gfx::display_list::{ClippingRegion, DisplayList, LayerInfo, OpaqueNode};
 use gfx::display_list::{StackingContext, StackingContextType, WebRenderImageInfo};
@@ -29,23 +56,32 @@ use gfx::font_context;
 use gfx::paint_thread::LayoutToPaintMsg;
 use gfx_traits::{color, Epoch, FragmentType, LayerId, ScrollPolicy, StackingContextId};
 use heapsize::HeapSizeOf;
-use incremental::{LayoutDamageComputation, REFLOW_ENTIRE_DOCUMENT};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
-use layout_debug;
+use layout::animation;
+use layout::construct::ConstructionResult;
+use layout::context::{LayoutContext, SharedLayoutContext, heap_size_of_local_context};
+use layout::display_list_builder::ToGfxColor;
+use layout::flow::{self, Flow, ImmutableFlowUtils, MutableOwnedFlowUtils};
+use layout::flow_ref::{self, FlowRef};
+use layout::incremental::{LayoutDamageComputation, REFLOW_ENTIRE_DOCUMENT};
+use layout::layout_debug;
+use layout::parallel;
+use layout::query::process_offset_parent_query;
+use layout::query::{LayoutRPCImpl, LayoutThreadData, process_content_box_request, process_content_boxes_request};
+use layout::query::{process_node_geometry_request, process_node_layer_id_request, process_node_scroll_area_request};
+use layout::query::{process_node_overflow_request, process_resolved_style_request, process_margin_style_query};
+use layout::sequential;
+use layout::traversal::RecalcStyleAndConstructFlows;
+use layout::webrender_helpers::{WebRenderDisplayListConverter, WebRenderFrameBuilder};
+use layout::wrapper::{LayoutNodeLayoutData, NonOpaqueStyleAndLayoutData};
 use layout_traits::LayoutThreadFactory;
-use log;
 use msg::constellation_msg::{PanicMsg, PipelineId};
 use net_traits::image_cache_thread::UsePlaceholder;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheResult, ImageCacheThread};
-use parallel;
 use profile_traits::mem::{self, Report, ReportKind, ReportsChan};
 use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
 use profile_traits::time::{self, TimerMetadata, profile};
-use query::process_offset_parent_query;
-use query::{LayoutRPCImpl, LayoutThreadData, process_content_box_request, process_content_boxes_request};
-use query::{process_node_geometry_request, process_node_layer_id_request, process_node_scroll_area_request};
-use query::{process_node_overflow_request, process_resolved_style_request, process_margin_style_query};
 use script::layout_wrapper::ServoLayoutNode;
 use script_layout_interface::message::{Msg, NewLayoutThreadInfo, Reflow, ReflowQueryType, ScriptReflow};
 use script_layout_interface::reporter::CSSErrorReporter;
@@ -55,8 +91,6 @@ use script_layout_interface::wrapper_traits::LayoutNode;
 use script_layout_interface::{OpaqueStyleAndLayoutData, PartialStyleAndLayoutData};
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutMsg as ConstellationMsg};
 use script_traits::{StackingContextScrollState, UntrustedNodeAddress};
-use sequential;
-use serde_json;
 use std::borrow::ToOwned;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -77,7 +111,6 @@ use style::properties::ComputedValues;
 use style::selector_matching::USER_OR_USER_AGENT_STYLESHEETS;
 use style::servo::{SharedStyleContext, Stylesheet, Stylist};
 use style::stylesheets::CSSRuleIteratorExt;
-use traversal::RecalcStyleAndConstructFlows;
 use url::Url;
 use util::geometry::MAX_RECT;
 use util::ipc::OptionalIpcSender;
@@ -85,9 +118,6 @@ use util::opts;
 use util::thread;
 use util::thread_state;
 use util::workqueue::WorkQueue;
-use webrender_helpers::{WebRenderDisplayListConverter, WebRenderFrameBuilder};
-use webrender_traits;
-use wrapper::{LayoutNodeLayoutData, NonOpaqueStyleAndLayoutData};
 
 /// The number of screens we have to traverse before we decide to generate new display lists.
 const DISPLAY_PORT_THRESHOLD_SIZE_FACTOR: i32 = 4;
