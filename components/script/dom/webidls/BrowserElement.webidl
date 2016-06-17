@@ -64,7 +64,7 @@ dictionary BrowserElementErrorEventDetail {
 };
 
 dictionary BrowserElementLocationChangeEventDetail {
-  DOMString uri;
+  DOMString url;
   boolean canGoBack;
   boolean canGoForward;
 };
