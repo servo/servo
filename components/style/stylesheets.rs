@@ -271,7 +271,6 @@ pub mod rule_filter {
 
             impl<'a, I, Impl: SelectorImpl + 'a> $variant<'a, I>
                 where I: Iterator<Item=&'a CSSRule<Impl>> {
-
                 #[inline]
                 pub fn new(iter: I) -> $variant<'a, I> {
                     $variant {

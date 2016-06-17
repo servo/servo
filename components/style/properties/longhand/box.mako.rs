@@ -786,6 +786,77 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto", need_clone=
     pub use properties::longhands::transition_duration::{get_initial_value, parse, parse_one};
 </%helpers:longhand>
 
+<%helpers:longhand name="animation-name" experimental="True">
+    use cssparser::ToCss;
+    use std::borrow::Cow;
+    use std::fmt;
+
+    pub mod computed_value {
+        use cssparser::ToCss;
+        use std::fmt;
+
+        #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
+        pub struct T(pub Vec<String>);
+
+        impl ToCss for T {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                for (i, name) in self.0.iter().enumerate() {
+                    if i != 0 {
+                        try!(dest.write_str(", "));
+                    }
+                    try!(dest.write_str(&name));
+                }
+                Ok(())
+            }
+        }
+    }
+
+    // TODO: Use Cows? Probably more codegen work would be needed, and this
+    // could not be that worth it (animations arent *that* used).
+    #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
+    pub struct SpecifiedValue(Vec<String>);
+
+    impl ToCss for SpecifiedValue {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            for (i, name) in self.0.iter().enumerate() {
+                if i != 0 {
+                    try!(dest.write_str(", "));
+                }
+                try!(dest.write_str(&name));
+            }
+            Ok(())
+        }
+    }
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        computed_value::T(vec![])
+    }
+
+    pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+        Ok(SpecifiedValue(try!(input.parse_comma_separated(|input| {
+            input.expect_ident().map(Cow::into_owned)
+        }))))
+    }
+
+    impl ToComputedValue for SpecifiedValue {
+        type ComputedValue = computed_value::T;
+
+        #[inline]
+        fn to_computed_value<Cx: TContext>(&self, context: &Cx) -> computed_value::T {
+            let mut ret = vec![];
+            if let Some(animations) = context.animations() {
+                for name in self.0.iter() {
+                    if animations.contains_key(&**name) {
+                        ret.push(name.clone());
+                    }
+                }
+            }
+            computed_value::T(ret)
+        }
+    }
+</%helpers:longhand>
+
 // CSSOM View Module
 // https://www.w3.org/TR/cssom-view-1/
 ${helpers.single_keyword("scroll-behavior",
