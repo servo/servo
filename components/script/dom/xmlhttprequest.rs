@@ -1111,7 +1111,7 @@ impl XMLHttpRequest {
 
         // Step 3, 4
         let slice = DataSlice::from_bytes(self.response.borrow().to_vec());
-        let blob = Blob::new(self.global().r(), BlobImpl::new_from_slice(slice), &mime);
+        let blob = Blob::new(self.global().r(), BlobImpl::new_from_slice(slice), mime);
         self.response_blob.set(Some(blob.r()));
         blob
     }

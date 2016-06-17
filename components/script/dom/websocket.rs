@@ -592,7 +592,7 @@ impl Runnable for MessageReceivedTask {
                     match ws.binary_type.get() {
                         BinaryType::Blob => {
                             let slice = DataSlice::from_bytes(data);
-                            let blob = Blob::new(global.r(), BlobImpl::new_from_slice(slice), "");
+                            let blob = Blob::new(global.r(), BlobImpl::new_from_slice(slice), "".to_owned());
                             blob.to_jsval(cx, message.handle_mut());
                         }
                         BinaryType::Arraybuffer => {
