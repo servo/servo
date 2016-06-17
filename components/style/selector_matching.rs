@@ -8,6 +8,7 @@ use dom::PresentationalHintsSynthetizer;
 use element_state::*;
 use error_reporting::StdoutErrorReporter;
 use keyframes::Keyframe;
+use keyframes::ComputedKeyframesAnimation;
 use media_queries::{Device, MediaType};
 use parser::ParserContextExtraData;
 use properties::{self, PropertyDeclaration, PropertyDeclarationBlock};
@@ -128,7 +129,7 @@ pub struct Stylist<Impl: SelectorImplExt> {
                          BuildHasherDefault<::fnv::FnvHasher>>,
 
     /// A map with all the animations indexed by name.
-    animations: HashMap<String, Vec<Keyframe>>,
+    animations: HashMap<String, ComputedKeyframesAnimation<Impl::ComputedValues>>,
 
     /// Applicable declarations for a given non-eagerly cascaded pseudo-element.
     /// These are eagerly computed once, and then used to resolve the new
@@ -252,10 +253,10 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
                     self.rules_source_order = rules_source_order;
                 }
                 CSSRule::Keyframes(ref keyframes_rule) => {
-                    // TODO: This *might* be optimised converting the
-                    // Vec<Keyframe> into something like Arc<[Keyframe]>.
-                    self.animations.insert(keyframes_rule.name.clone(),
-                                           keyframes_rule.keyframes.clone());
+                    if let Some(computed) = ComputedKeyframesAnimation::from_keyframes(&keyframes_rule.keyframes) {
+                        self.animations.insert(keyframes_rule.name.clone(),
+                                               computed);
+                    }
                 }
                 // We don't care about any other rule.
                 _ => {}
@@ -289,7 +290,7 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
                 properties::cascade(self.device.au_viewport_size(),
                                     &declarations, false,
                                     parent.map(|p| &**p),
-                                    None, None,
+                                    None,
                                     Box::new(StdoutErrorReporter));
             Some(Arc::new(computed))
         } else {
@@ -322,7 +323,7 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
         let (computed, _) =
             properties::cascade(self.device.au_viewport_size(),
                                 &declarations, false,
-                                Some(&**parent), None, None,
+                                Some(&**parent), None,
                                 Box::new(StdoutErrorReporter));
         Some(Arc::new(computed))
     }
@@ -458,7 +459,7 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
     }
 
     #[inline]
-    pub fn animations(&self) -> &HashMap<String, Vec<Keyframe>> {
+    pub fn animations(&self) -> &HashMap<String, ComputedKeyframesAnimation<Impl::ComputedValues>> {
         &self.animations
     }
 }

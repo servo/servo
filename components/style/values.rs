@@ -1391,16 +1391,13 @@ pub mod specified {
     pub fn parse_border_radius(input: &mut Parser) -> Result<BorderRadiusSize, ()> {
         input.try(BorderRadiusSize::parse).or_else(|()| {
                 match_ignore_ascii_case! { try!(input.expect_ident()),
-                                           "thin" =>
-                                           Ok(BorderRadiusSize::circle(
-                                               LengthOrPercentage::Length(Length::from_px(1.)))),
-                                           "medium" =>
-                                           Ok(BorderRadiusSize::circle(
-                                               LengthOrPercentage::Length(Length::from_px(3.)))),
-                                           "thick" =>
-                                           Ok(BorderRadiusSize::circle(
-                                               LengthOrPercentage::Length(Length::from_px(5.)))),
-                                           _ => Err(())
+                    "thin" => Ok(BorderRadiusSize::circle(
+                                     LengthOrPercentage::Length(Length::from_px(1.)))),
+                    "medium" => Ok(BorderRadiusSize::circle(
+                                       LengthOrPercentage::Length(Length::from_px(3.)))),
+                    "thick" => Ok(BorderRadiusSize::circle(
+                                      LengthOrPercentage::Length(Length::from_px(5.)))),
+                    _ => Err(())
                 }
             })
     }
@@ -1561,10 +1558,8 @@ pub mod specified {
 pub mod computed {
     use app_units::Au;
     use euclid::size::Size2D;
-    use keyframes::Keyframe;
     use properties::ComputedValues;
     use properties::style_struct_traits::Font;
-    use std::collections::HashMap;
     use std::fmt;
     use super::LocalToCss;
     use super::specified::AngleOrCorner;
@@ -1580,7 +1575,6 @@ pub mod computed {
         fn inherited_style(&self) -> &Self::ConcreteComputedValues;
         fn style(&self) -> &Self::ConcreteComputedValues;
         fn mutate_style(&mut self) -> &mut Self::ConcreteComputedValues;
-        fn animations(&self) -> Option<&HashMap<String, Vec<Keyframe>>>;
     }
 
     pub struct Context<'a, C: ComputedValues> {
@@ -1588,7 +1582,6 @@ pub mod computed {
         pub viewport_size: Size2D<Au>,
         pub inherited_style: &'a C,
 
-        pub animations: Option<&'a HashMap<String, Vec<Keyframe>>>,
         /// Values access through this need to be in the properties "computed early":
         /// color, text-decoration, font-size, display, position, float, border-*-style, outline-style
         pub style: C,
@@ -1601,7 +1594,6 @@ pub mod computed {
         fn inherited_style(&self) -> &C { &self.inherited_style }
         fn style(&self) -> &C { &self.style }
         fn mutate_style(&mut self) -> &mut C { &mut self.style }
-        fn animations(&self) -> Option<&HashMap<String, Vec<Keyframe>>> { self.animations }
     }
 
     pub trait ToComputedValue {
@@ -1757,7 +1749,7 @@ pub mod computed {
     }
 
 
-    #[derive(PartialEq, Clone, Copy)]
+    #[derive(Debug, PartialEq, Clone, Copy)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct BorderRadiusSize(pub Size2D<LengthOrPercentage>);
 
