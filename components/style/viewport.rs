@@ -595,7 +595,6 @@ impl MaybeNew for ViewportConstraints {
             viewport_size: initial_viewport,
             inherited_style: ServoComputedValues::initial_values(),
             style: ServoComputedValues::initial_values().clone(),
-            animations: None,
         };
 
         // DEVICE-ADAPT § 9.3 Resolving 'extend-to-zoom'
