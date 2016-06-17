@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-<%! from data import Keyword, to_rust_ident %>
+<%! from data import Keyword, to_rust_ident, to_camel_case %>
 
 <%def name="longhand(name, **kwargs)">
     <%call expr="raw_longhand(name, **kwargs)">
@@ -181,13 +181,72 @@
                 % endfor
             }
         }
-        #[inline] pub fn get_initial_value() -> computed_value::T {
+        #[inline]
+        pub fn get_initial_value() -> computed_value::T {
             computed_value::T::${to_rust_ident(values.split()[0])}
         }
+        #[inline]
         pub fn parse(_context: &ParserContext, input: &mut Parser)
                      -> Result<SpecifiedValue, ()> {
             computed_value::T::parse(input)
         }
+    </%call>
+</%def>
+
+<%def name="keyword_list(name, values, **kwargs)">
+    <%
+        keyword_kwargs = {a: kwargs.pop(a, None) for a in [
+            'gecko_constant_prefix', 'extra_gecko_values', 'extra_servo_values'
+        ]}
+    %>
+    <%call expr="longhand(name, keyword=Keyword(name, values, **keyword_kwargs), **kwargs)">
+        use values::computed::ComputedValueAsSpecified;
+        pub use self::computed_value::T as SpecifiedValue;
+        pub mod computed_value {
+            use cssparser::ToCss;
+            use std::fmt;
+
+            #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
+            pub struct T(pub Vec<${to_camel_case(name)}>);
+
+            impl ToCss for T {
+                fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                    debug_assert!(!self.0.is_empty(), "Always parses at least one");
+
+                    for (index, item) in self.0.iter().enumerate() {
+                        if index != 0 {
+                            try!(dest.write_str(", "));
+                        }
+
+                        try!(item.to_css(dest));
+                    }
+
+                    Ok(())
+                }
+            }
+
+            define_css_keyword_enum! { ${to_camel_case(name)}:
+                % for value in data.longhands_by_name[name].keyword.values_for(product):
+                    "${value}" => ${to_rust_ident(value)},
+                % endfor
+            }
+        }
+
+        #[inline]
+        pub fn get_initial_value() -> computed_value::T {
+            computed_value::T(vec![
+                computed_value::${to_camel_case(name)}::${to_rust_ident(values.split()[0])}
+            ])
+        }
+
+        #[inline]
+        pub fn parse(_context: &ParserContext, input: &mut Parser)
+                     -> Result<SpecifiedValue, ()> {
+            Ok(SpecifiedValue(try!(
+                input.parse_comma_separated(computed_value::${to_camel_case(name)}::parse))))
+        }
+
+        impl ComputedValueAsSpecified for SpecifiedValue {}
     </%call>
 </%def>
 

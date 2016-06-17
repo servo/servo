@@ -336,4 +336,12 @@ partial interface CSSStyleDeclaration {
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString animationTimingFunction;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString animation-iteration-count;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString animationIterationCount;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString animation-direction;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString animationDirection;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString animation-play-state;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString animationPlayState;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString animation-fill-mode;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString animationFillMode;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString animation-delay;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString animationDelay;
 };
