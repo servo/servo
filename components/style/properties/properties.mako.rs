@@ -135,6 +135,10 @@ pub mod shorthands {
     <%include file="/shorthand/text.mako.rs" />
 }
 
+pub mod animated_properties {
+    <%include file="/helpers/animated_properties.mako.rs" />
+}
+
 
 // TODO(SimonSapin): Convert this to a syntax extension rather than a Mako template.
 // Maybe submit for inclusion in libstd?
@@ -1033,6 +1037,23 @@ impl PropertyDeclaration {
             PropertyDeclaration::Custom(_, _) => &[]
         }
     }
+
+    /// Returns true if this property is one of the animable properties, false
+    /// otherwise.
+    pub fn is_animatable(&self) -> bool {
+        match *self {
+            % for property in data.longhands:
+            PropertyDeclaration::${property.camel_case}(_) => {
+                % if property.animatable:
+                    true
+                % else:
+                    false
+                % endif
+            }
+            % endfor
+            PropertyDeclaration::Custom(..) => false,
+        }
+    }
 }
 
 pub mod style_struct_traits {
@@ -1580,14 +1601,12 @@ fn cascade_with_cached_declarations<C: ComputedValues>(
         parent_style: &C,
         cached_style: &C,
         custom_properties: Option<Arc<::custom_properties::ComputedValuesMap>>,
-        animations: Option<<&HashMap<String, Vec<Keyframe>>>,
         mut error_reporter: StdBox<ParseErrorReporter + Send>)
         -> C {
     let mut context = computed::Context {
         is_root_element: false,
         viewport_size: viewport_size,
         inherited_style: parent_style,
-        animations: animations,
         style: C::new(
             custom_properties,
             shareable,
@@ -1738,7 +1757,6 @@ pub fn cascade<C: ComputedValues>(
                shareable: bool,
                parent_style: Option<<&C>,
                cached_style: Option<<&C>,
-               animations: Option<<&HashMap<String, Vec<Keyframe>>>,
                mut error_reporter: StdBox<ParseErrorReporter + Send>)
                -> (C, bool) {
     use properties::style_struct_traits::{Border, Box, Font, Outline};
@@ -1774,7 +1792,6 @@ pub fn cascade<C: ComputedValues>(
                                                      parent_style,
                                                      cached_style,
                                                      custom_properties,
-                                                     animations,
                                                      error_reporter);
         return (style, false)
     }
@@ -1783,7 +1800,6 @@ pub fn cascade<C: ComputedValues>(
         is_root_element: is_root_element,
         viewport_size: viewport_size,
         inherited_style: inherited_style,
-        animations: animations,
         style: C::new(
             custom_properties,
             shareable,

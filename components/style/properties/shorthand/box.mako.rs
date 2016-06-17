@@ -32,7 +32,7 @@
         let (mut timing_function, mut delay) = (None, None);
         loop {
             if property.is_none() {
-                if let Ok(value) = input.try(|input| transition_property::parse_one(input)) {
+                if let Ok(value) = input.try(transition_property::SingleSpecifiedValue::parse) {
                     property = Some(value);
                     continue
                 }
