@@ -330,7 +330,17 @@ test_blob(function() {
   desc: "Passing an platform object that supports indexed properties as the blobParts array should work (select)."
 });
 
-var t_ports = async_test("Passing a platform array object as the blobParts array should work (MessagePort[]).");
+test_blob(function() {
+  var elm = document.createElement("div");
+  elm.setAttribute("foo", "bar");
+  return new Blob(elm.attributes);
+}, {
+  expected: "[object Attr]",
+  type: "",
+  desc: "Passing an platform object that supports indexed properties as the blobParts array should work (attributes)."
+});
+
+var t_ports = async_test("Passing a FrozenArray as the blobParts array should work (FrozenArray<MessagePort>).");
 t_ports.step(function() {
     var channel = new MessageChannel();
     channel.port2.onmessage = this.step_func(function(e) {
@@ -340,16 +350,6 @@ t_ports.step(function() {
     });
     var channel2 = new MessageChannel();
     channel.port1.postMessage('', [channel2.port1]);
-});
-
-test_blob(function() {
-  var elm = document.createElement("div");
-  elm.setAttribute("foo", "bar");
-  return new Blob(elm.attributes);
-}, {
-  expected: "[object Attr]",
-  type: "",
-  desc: "Passing a platform array object as the blobParts array should work (Attr[])."
 });
 
 test_blob(function() {
