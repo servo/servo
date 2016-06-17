@@ -735,9 +735,22 @@ impl Document {
         // https://w3c.github.io/uievents/#trusted-events
         event.set_trusted(true);
         // https://html.spec.whatwg.org/multipage/#run-authentic-click-activation-steps
+        let activatable = el.as_maybe_activatable();
         match mouse_event_type {
             MouseEventType::Click => el.authentic_click_activation(event),
-            _ => {
+            MouseEventType::MouseDown => {
+                if let Some(a) = activatable {
+                    a.enter_formal_activation_state();
+                }
+
+                let target = node.upcast();
+                event.fire(target);
+            },
+            MouseEventType::MouseUp => {
+                if let Some(a) = activatable {
+                    a.exit_formal_activation_state();
+                }
+
                 let target = node.upcast();
                 event.fire(target);
             },
@@ -904,6 +917,7 @@ impl Document {
                                          .inclusive_ancestors()
                                          .filter_map(Root::downcast::<Element>) {
                     element.set_hover_state(false);
+                    element.set_active_state(false);
                 }
             }
 
