@@ -98,6 +98,25 @@ class PostBuildCommands(CommandBase):
 
         args = [self.get_binary_path(release, dev)]
 
+        if browserhtml:
+            browserhtml_path = find_dep_path_newest('browserhtml', args[0])
+            if browserhtml_path is None:
+                print("Could not find browserhtml package; perhaps you haven't built Servo.")
+                return 1
+
+            if is_macosx():
+                # Enable borderless on OSX
+                args = args + ['-b']
+            elif is_windows():
+                # Convert to a relative path to avoid mingw -> Windows path conversions
+                browserhtml_path = path.relpath(browserhtml_path, os.getcwd())
+
+            args = args + ['-w',
+                           '--pref', 'dom.mozbrowser.enabled',
+                           '--pref', 'dom.forcetouch.enabled',
+                           '--pref', 'shell.quit-on-escape.enabled=false',
+                           path.join(browserhtml_path, 'out', 'index.html')]
+
         # Borrowed and modified from:
         # http://hg.mozilla.org/mozilla-central/file/c9cfa9b91dea/python/mozbuild/mozbuild/mach_commands.py#l883
         if debug:
@@ -126,25 +145,6 @@ class PostBuildCommands(CommandBase):
             # Prepend the debugger args.
             args = ([command] + self.debuggerInfo.args +
                     args + params)
-        elif browserhtml:
-            browserhtml_path = find_dep_path_newest('browserhtml', args[0])
-            if browserhtml_path is None:
-                print("Could not find browserhtml package; perhaps you haven't built Servo.")
-                return 1
-
-            if is_macosx():
-                # Enable borderless on OSX
-                args = args + ['-b']
-            elif is_windows():
-                # Convert to a relative path to avoid mingw -> Windows path conversions
-                browserhtml_path = path.relpath(browserhtml_path, os.getcwd())
-
-            args = args + ['-w',
-                           '--pref', 'dom.mozbrowser.enabled',
-                           '--pref', 'dom.forcetouch.enabled',
-                           '--pref', 'shell.quit-on-escape.enabled=false',
-                           path.join(browserhtml_path, 'out', 'index.html')]
-            args = args + params
         else:
             args = args + params
 
