@@ -148,6 +148,12 @@ impl<'a> CanvasPaintThread<'a> {
                             Canvas2dMsg::DrawImageSelf(image_size, dest_rect, source_rect, smoothing_enabled) => {
                                 painter.draw_image_self(image_size, dest_rect, source_rect, smoothing_enabled)
                             }
+                            Canvas2dMsg::DrawImageInOther(
+                                renderer, image_size, dest_rect, source_rect, smoothing, sender
+                            ) => {
+                                painter.draw_image_in_other(
+                                    renderer, image_size, dest_rect, source_rect, smoothing, sender)
+                            }
                             Canvas2dMsg::MoveTo(ref point) => painter.move_to(point),
                             Canvas2dMsg::LineTo(ref point) => painter.line_to(point),
                             Canvas2dMsg::Rect(ref rect) => painter.rect(rect),
@@ -369,6 +375,26 @@ impl<'a> CanvasPaintThread<'a> {
                         smoothing_enabled, self.state.draw_options.composition,
                         self.state.draw_options.alpha);
         }
+    }
+
+    fn draw_image_in_other(&self,
+                           renderer: IpcSender<CanvasMsg>,
+                           image_size: Size2D<f64>,
+                           dest_rect: Rect<f64>,
+                           source_rect: Rect<f64>,
+                           smoothing_enabled: bool,
+                           sender: IpcSender<()>) {
+        let mut image_data = self.read_pixels(source_rect.to_i32(), image_size);
+        // TODO: avoid double byte_swap.
+        byte_swap(&mut image_data);
+
+        let msg = CanvasMsg::Canvas2d(Canvas2dMsg::DrawImage(
+            image_data, source_rect.size, dest_rect, source_rect, smoothing_enabled));
+        renderer.send(msg).unwrap();
+        // We acknowledge to the caller here that the data was sent to the
+        // other canvas so that if JS immediately afterwards try to get the
+        // pixels of the other one, it won't retrieve the other values.
+        sender.send(()).unwrap();
     }
 
     fn move_to(&self, point: &Point2D<AzFloat>) {
