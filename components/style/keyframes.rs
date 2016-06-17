@@ -4,7 +4,8 @@
 
 use cssparser::{Parser, Delimiter};
 use parser::ParserContext;
-use properties::{PropertyDeclarationBlock, parse_property_declaration_list};
+use properties::{ComputedValues, PropertyDeclarationBlock, parse_property_declaration_list};
+use properties::animated_properties::AnimatedProperty;
 
 /// Parses a keyframes list, like:
 /// 0%, 50% {
@@ -19,6 +20,11 @@ pub fn parse_keyframe_list(context: &ParserContext, input: &mut Parser) -> Resul
     while !input.is_exhausted() {
         keyframes.push(try!(Keyframe::parse(context, input)));
     }
+
+    if keyframes.len() < 2 {
+        return Err(())
+    }
+
     Ok(keyframes)
 }
 
@@ -86,6 +92,63 @@ impl Keyframe {
         Ok(Keyframe {
             selector: selector,
             declarations: declarations,
+        })
+    }
+}
+
+/// A single step from a keyframe animation.
+#[derive(Debug, Clone, PartialEq, HeapSizeOf)]
+pub struct ComputedKeyframesStep<C: ComputedValues> {
+    /// The percentage of the animation duration that should be taken for this
+    /// step.
+    duration_percentage: KeyframePercentage,
+    // XXX: Can we optimise this? Probably not such a show-stopper... Probably
+    // storing declared values could work/should be the thing to do?
+    /// The computed values at the beginning of the step.
+    begin: C,
+    /// The computed values at the end of the step.
+    end: C,
+}
+
+/// This structure represents a list of animation steps computed from the list
+/// of keyframes, in order.
+///
+/// It only takes into account animable properties.
+#[derive(Debug, Clone, PartialEq, HeapSizeOf)]
+pub struct ComputedKeyframesAnimation<C: ComputedValues> {
+    steps: Vec<ComputedKeyframesStep<C>>,
+    /// The properties that change in this animation.
+    properties_changed: Vec<AnimatedProperty>,
+}
+
+fn get_animated_properties(keyframe: &Keyframe) -> Vec<AnimatedProperty> {
+    // TODO
+    vec![]
+}
+
+impl<C: ComputedValues> ComputedKeyframesAnimation<C> {
+    pub fn from_keyframes(keyframes: &[Keyframe]) -> Option<ComputedKeyframesAnimation<C>> {
+        debug_assert!(keyframes.len() > 1);
+        let mut steps = vec![];
+
+        // NB: we do two passes, first storing the steps in the order of
+        // appeareance, then sorting them, then updating with the real
+        // "duration_percentage".
+        let mut animated_properties = get_animated_properties(&keyframes[0]);
+
+        if animated_properties.is_empty() {
+            return None;
+        }
+
+        for keyframe in keyframes {
+            for step in keyframe.selector.0.iter() {
+
+            }
+        }
+
+        Some(ComputedKeyframesAnimation {
+            steps: steps,
+            properties_changed: animated_properties,
         })
     }
 }
