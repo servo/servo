@@ -1041,12 +1041,6 @@ impl XMLHttpRequest {
         self.response_status.set(Ok(()));
     }
 
-    fn insert_trusted_header(&self, name: String, value: String) {
-        // Insert a header without checking spec-compliance
-        // Use for hardcoded headers
-        self.request_headers.borrow_mut().set_raw(name, vec![value.into_bytes()]);
-    }
-
     fn dispatch_progress_event(&self, upload: bool, type_: Atom, loaded: u64, total: Option<u64>) {
         let global = self.global();
         let progressevent = ProgressEvent::new(global.r(),
