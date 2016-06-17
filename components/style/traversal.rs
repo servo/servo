@@ -185,10 +185,9 @@ pub fn recalc_style_at<'a, N, C>(context: &'a C,
                 // Perform the CSS cascade.
                 unsafe {
                     node.cascade_node(&context.shared_context(),
+                                      &context.local_context(),
                                       parent_opt,
-                                      &applicable_declarations,
-                                      &mut context.local_context().applicable_declarations_cache.borrow_mut(),
-                                      &context.shared_context().new_animations_sender);
+                                      &applicable_declarations);
                 }
 
                 // Add ourselves to the LRU cache.
