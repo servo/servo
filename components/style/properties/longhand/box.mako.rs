@@ -267,6 +267,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto", need_clone=
 
 // TODO(pcwalton): Multiple transitions.
 <%helpers:longhand name="transition-duration">
+    use values::computed::ComputedValueAsSpecified;
     use values::specified::Time;
 
     pub use self::computed_value::T as SpecifiedValue;
@@ -281,15 +282,6 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto", need_clone=
 
         #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
         pub struct T(pub Vec<SingleComputedValue>);
-
-        impl ToComputedValue for T {
-            type ComputedValue = T;
-
-            #[inline]
-            fn to_computed_value<Cx: TContext>(&self, _: &Cx) -> T {
-                (*self).clone()
-            }
-        }
 
         impl ToCss for T {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
@@ -306,6 +298,8 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto", need_clone=
             }
         }
     }
+
+    impl ComputedValueAsSpecified for SpecifiedValue {}
 
     #[inline]
     pub fn parse_one(input: &mut Parser) -> Result<SingleSpecifiedValue,()> {
@@ -875,6 +869,75 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto", need_clone=
     pub use super::transition_timing_function::computed_value;
     pub use super::transition_timing_function::{parse, get_initial_value};
     pub use super::transition_timing_function::SpecifiedValue;
+</%helpers:longhand>
+
+<%helpers:longhand name="animation-iteration-count" experimental="True">
+    use values::computed::ComputedValueAsSpecified;
+
+    pub mod computed_value {
+        use cssparser::ToCss;
+        use std::fmt;
+
+        #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
+        pub enum AnimationIterationCount {
+            Number(u32),
+            Infinite,
+        }
+
+        impl ToCss for AnimationIterationCount {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                match *self {
+                    AnimationIterationCount::Number(n) => write!(dest, "{}", n),
+                    AnimationIterationCount::Infinite => dest.write_str("infinite"),
+                }
+            }
+        }
+
+        #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
+        pub struct T(pub Vec<AnimationIterationCount>);
+
+        impl ToCss for T {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                if self.0.is_empty() {
+                    return dest.write_str("none")
+                }
+                for (i, value) in self.0.iter().enumerate() {
+                    if i != 0 {
+                        try!(dest.write_str(", "))
+                    }
+                    try!(value.to_css(dest))
+                }
+                Ok(())
+            }
+        }
+    }
+
+    pub use self::computed_value::AnimationIterationCount;
+    pub use self::computed_value::T as SpecifiedValue;
+
+    pub fn parse_one(input: &mut Parser) -> Result<AnimationIterationCount, ()> {
+        if input.try(|input| input.expect_ident_matching("infinite")).is_ok() {
+            Ok(AnimationIterationCount::Infinite)
+        } else {
+            let number = try!(input.expect_integer());
+            if number < 0 {
+                return Err(());
+            }
+            Ok(AnimationIterationCount::Number(number as u32))
+        }
+    }
+
+
+    #[inline]
+    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        Ok(SpecifiedValue(try!(input.parse_comma_separated(parse_one))))
+    }
+
+    pub fn get_initial_value() -> computed_value::T {
+        computed_value::T(vec![AnimationIterationCount::Number(1)])
+    }
+
+    impl ComputedValueAsSpecified for SpecifiedValue {}
 </%helpers:longhand>
 
 // CSSOM View Module
