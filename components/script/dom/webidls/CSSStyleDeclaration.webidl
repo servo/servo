@@ -334,4 +334,6 @@ partial interface CSSStyleDeclaration {
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString animationDuration;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString animation-timing-function;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString animationTimingFunction;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString animation-iteration-count;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString animationIterationCount;
 };
