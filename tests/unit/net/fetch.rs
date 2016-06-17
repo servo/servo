@@ -50,7 +50,7 @@ impl FetchTaskTarget for FetchResponseCollector {
     fn process_response_chunk(&mut self, _: Vec<u8>) {}
     /// Fired when the response is fully fetched
     fn process_response_eof(&mut self, response: &Response) {
-        self.sender.send(response.clone());
+        let _ = self.sender.send(response.clone());
     }
 }
 
@@ -83,7 +83,7 @@ fn test_fetch_response_is_not_network_error() {
     let (mut server, url) = make_server(handler);
 
     let origin = Origin::Origin(url.origin());
-    let mut request = Request::new(url, Some(origin), false);
+    let request = Request::new(url, Some(origin), false);
     *request.referer.borrow_mut() = Referer::NoReferer;
     let fetch_response = fetch_sync(request);
     let _ = server.close();
@@ -102,7 +102,7 @@ fn test_fetch_response_body_matches_const_message() {
     let (mut server, url) = make_server(handler);
 
     let origin = Origin::Origin(url.origin());
-    let mut request = Request::new(url, Some(origin), false);
+    let request = Request::new(url, Some(origin), false);
     *request.referer.borrow_mut() = Referer::NoReferer;
     let fetch_response = fetch_sync(request);
     let _ = server.close();
@@ -122,7 +122,7 @@ fn test_fetch_response_body_matches_const_message() {
 fn test_fetch_aboutblank() {
     let url = Url::parse("about:blank").unwrap();
     let origin = Origin::Origin(url.origin());
-    let mut request = Request::new(url, Some(origin), false);
+    let request = Request::new(url, Some(origin), false);
     *request.referer.borrow_mut() = Referer::NoReferer;
     let fetch_response = fetch_sync(request);
     assert!(!fetch_response.is_network_error());
@@ -313,7 +313,7 @@ fn test_fetch_response_is_basic_filtered() {
     let (mut server, url) = make_server(handler);
 
     let origin = Origin::Origin(url.origin());
-    let mut request = Request::new(url, Some(origin), false);
+    let request = Request::new(url, Some(origin), false);
     *request.referer.borrow_mut() = Referer::NoReferer;
     let fetch_response = fetch_sync(request);
     let _ = server.close();
@@ -390,7 +390,7 @@ fn test_fetch_response_is_opaque_filtered() {
 
     // an origin mis-match will fall through to an Opaque filtered response
     let origin = Origin::Origin(UrlOrigin::new_opaque());
-    let mut request = Request::new(url, Some(origin), false);
+    let request = Request::new(url, Some(origin), false);
     *request.referer.borrow_mut() = Referer::NoReferer;
     let fetch_response = fetch_sync(request);
     let _ = server.close();
@@ -437,7 +437,7 @@ fn test_fetch_response_is_opaque_redirect_filtered() {
     let (mut server, url) = make_server(handler);
 
     let origin = Origin::Origin(url.origin());
-    let mut request = Request::new(url, Some(origin), false);
+    let request = Request::new(url, Some(origin), false);
     *request.referer.borrow_mut() = Referer::NoReferer;
     request.redirect_mode.set(RedirectMode::Manual);
     let fetch_response = fetch_sync(request);
@@ -512,7 +512,7 @@ fn setup_server_and_fetch(message: &'static [u8], redirect_cap: u32) -> Response
     let (mut server, url) = make_server(handler);
 
     let origin = Origin::Origin(url.origin());
-    let mut request = Request::new(url, Some(origin), false);
+    let request = Request::new(url, Some(origin), false);
     *request.referer.borrow_mut() = Referer::NoReferer;
     let fetch_response = fetch_sync(request);
     let _ = server.close();
@@ -595,7 +595,7 @@ fn test_fetch_redirect_updates_method_runner(tx: Sender<bool>, status_code: Stat
     let (mut server, url) = make_server(handler);
 
     let origin = Origin::Origin(url.origin());
-    let mut request = Request::new(url, Some(origin), false);
+    let request = Request::new(url, Some(origin), false);
     *request.referer.borrow_mut() = Referer::NoReferer;
     *request.method.borrow_mut() = method;
 
@@ -670,7 +670,7 @@ fn test_fetch_async_returns_complete_response() {
     let (mut server, url) = make_server(handler);
 
     let origin = Origin::Origin(url.origin());
-    let mut request = Request::new(url, Some(origin), false);
+    let request = Request::new(url, Some(origin), false);
     *request.referer.borrow_mut() = Referer::NoReferer;
 
     let (tx, rx) = channel();
@@ -695,7 +695,7 @@ fn test_opaque_filtered_fetch_async_returns_complete_response() {
 
     // an origin mis-match will fall through to an Opaque filtered response
     let origin = Origin::Origin(UrlOrigin::new_opaque());
-    let mut request = Request::new(url, Some(origin), false);
+    let request = Request::new(url, Some(origin), false);
     *request.referer.borrow_mut() = Referer::NoReferer;
 
     let (tx, rx) = channel();
@@ -735,7 +735,7 @@ fn test_opaque_redirect_filtered_fetch_async_returns_complete_response() {
     let (mut server, url) = make_server(handler);
 
     let origin = Origin::Origin(url.origin());
-    let mut request = Request::new(url, Some(origin), false);
+    let request = Request::new(url, Some(origin), false);
     *request.referer.borrow_mut() = Referer::NoReferer;
     request.redirect_mode.set(RedirectMode::Manual);
 
