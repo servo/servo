@@ -117,6 +117,12 @@ impl<'a> DoubleEndedIterator for FlowListIterator<'a> {
     }
 }
 
+impl<'a> DoubleEndedIterator for MutFlowListIterator<'a> {
+    fn next_back(&mut self) -> Option<&'a mut Flow> {
+        self.it.next_back().map(flow_ref::deref_mut)
+    }
+}
+
 impl<'a> Iterator for MutFlowListIterator<'a> {
     type Item = &'a mut Flow;
     #[inline]
