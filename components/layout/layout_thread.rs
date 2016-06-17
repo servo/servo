@@ -21,8 +21,8 @@ use euclid::size::Size2D;
 use flow::{self, Flow, ImmutableFlowUtils, MutableOwnedFlowUtils};
 use flow_ref::{self, FlowRef};
 use fnv::FnvHasher;
-use gfx::display_list::{ClippingRegion, DisplayItemMetadata, DisplayList, LayerInfo, OpaqueNode};
-use gfx::display_list::{ScrollOffsetMap, StackingContext, StackingContextType, WebRenderImageInfo};
+use gfx::display_list::{ClippingRegion, DisplayList, LayerInfo, OpaqueNode};
+use gfx::display_list::{StackingContext, StackingContextType, WebRenderImageInfo};
 use gfx::font;
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context;
@@ -43,7 +43,7 @@ use profile_traits::mem::{self, Report, ReportKind, ReportsChan};
 use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
 use profile_traits::time::{self, TimerMetadata, profile};
 use query::process_offset_parent_query;
-use query::{LayoutRPCImpl, process_content_box_request, process_content_boxes_request};
+use query::{LayoutRPCImpl, LayoutThreadData, process_content_box_request, process_content_boxes_request};
 use query::{process_node_geometry_request, process_node_layer_id_request, process_node_scroll_area_request};
 use query::{process_node_overflow_request, process_resolved_style_request, process_margin_style_query};
 use script::layout_wrapper::ServoLayoutNode;
@@ -94,52 +94,6 @@ pub const DISPLAY_PORT_SIZE_FACTOR: i32 = 8;
 
 /// The number of screens we have to traverse before we decide to generate new display lists.
 const DISPLAY_PORT_THRESHOLD_SIZE_FACTOR: i32 = 4;
-
-/// Mutable data belonging to the LayoutThread.
-///
-/// This needs to be protected by a mutex so we can do fast RPCs.
-pub struct LayoutThreadData {
-    /// The channel on which messages can be sent to the constellation.
-    pub constellation_chan: IpcSender<ConstellationMsg>,
-
-    /// The root stacking context.
-    pub display_list: Option<Arc<DisplayList>>,
-
-    /// Performs CSS selector matching and style resolution.
-    pub stylist: Arc<Stylist>,
-
-    /// A queued response for the union of the content boxes of a node.
-    pub content_box_response: Rect<Au>,
-
-    /// A queued response for the content boxes of a node.
-    pub content_boxes_response: Vec<Rect<Au>>,
-
-    /// A queued response for the client {top, left, width, height} of a node in pixels.
-    pub client_rect_response: Rect<i32>,
-
-    pub layer_id_response: Option<LayerId>,
-
-    /// A queued response for the node at a given point
-    pub hit_test_response: (Option<DisplayItemMetadata>, bool),
-
-    /// A pair of overflow property in x and y
-    pub overflow_response: NodeOverflowResponse,
-
-    /// A queued response for the scroll {top, left, width, height} of a node in pixels.
-    pub scroll_area_response: Rect<i32>,
-
-    /// A queued response for the resolved style property of an element.
-    pub resolved_style_response: Option<String>,
-
-    /// A queued response for the offset parent/rect of a node.
-    pub offset_parent_response: OffsetParentResponse,
-
-    /// A queued response for the offset parent/rect of a node.
-    pub margin_style_response: MarginStyleResponse,
-
-    /// Scroll offsets of stacking contexts. This will only be populated if WebRender is in use.
-    pub stacking_context_scroll_offsets: ScrollOffsetMap,
-}
 
 /// Information needed by the layout thread.
 pub struct LayoutThread {
