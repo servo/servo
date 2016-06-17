@@ -67,7 +67,7 @@ pub struct HTMLIFrameElement {
     pipeline_id: Cell<Option<PipelineId>>,
     subpage_id: Cell<Option<SubpageId>>,
     sandbox: MutNullableHeap<JS<DOMTokenList>>,
-    sandbox_allowance: Cell<Option<u8>>,
+    sandbox_allowance: Cell<Option<SandboxAllowance>>,
     load_blocker: DOMRefCell<Option<LoadBlocker>>,
     visibility: Cell<bool>,
 }
