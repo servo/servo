@@ -233,13 +233,13 @@ impl TextRunScanner {
 
                     if flush_mapping {
                         mapping.flush(&mut mappings,
-                                         &mut run_info,
-                                         &**text,
-                                         compression,
-                                         text_transform,
-                                         &mut last_whitespace,
-                                         &mut start_position,
-                                         end_position);
+                                      &mut run_info,
+                                      &**text,
+                                      compression,
+                                      text_transform,
+                                      &mut last_whitespace,
+                                      &mut start_position,
+                                      end_position);
                         if run_info.text.len() > 0 {
                             if flush_run {
                                 run_info.flush(&mut run_info_list, &mut insertion_point);
