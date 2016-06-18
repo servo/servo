@@ -156,24 +156,18 @@ fn test_parse_stylesheet() {
                     Keyframe {
                         selector: KeyframeSelector::new_for_unit_testing(
                                       vec![KeyframePercentage::new(0.)]),
-                        declarations: PropertyDeclarationBlock {
-                            normal: Arc::new(vec![
-                                PropertyDeclaration::Width(DeclaredValue::Value(
-                                    LengthOrPercentageOrAuto::Percentage(Percentage(0.)))),
-                            ]),
-                            important: Arc::new(vec![]),
-                        }
+                        declarations: Arc::new(vec![
+                            PropertyDeclaration::Width(DeclaredValue::Value(
+                                LengthOrPercentageOrAuto::Percentage(Percentage(0.)))),
+                        ]),
                     },
                     Keyframe {
                         selector: KeyframeSelector::new_for_unit_testing(
                                       vec![KeyframePercentage::new(1.)]),
-                        declarations: PropertyDeclarationBlock {
-                            normal: Arc::new(vec![
-                                PropertyDeclaration::Width(DeclaredValue::Value(
-                                    LengthOrPercentageOrAuto::Percentage(Percentage(1.)))),
-                            ]),
-                            important: Arc::new(vec![]),
-                        }
+                        declarations: Arc::new(vec![
+                            PropertyDeclaration::Width(DeclaredValue::Value(
+                                LengthOrPercentageOrAuto::Percentage(Percentage(1.)))),
+                        ]),
                     },
                 ]
             })
