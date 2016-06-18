@@ -121,6 +121,7 @@ pub struct KeyframesStep {
 }
 
 impl KeyframesStep {
+    #[inline]
     fn new(percentage: KeyframePercentage,
            declarations: Arc<Vec<PropertyDeclaration>>) -> Self {
         KeyframesStep {
@@ -156,6 +157,7 @@ fn get_animated_properties(keyframe: &Keyframe) -> Vec<TransitionProperty> {
             ret.push(property);
         }
     }
+
     ret
 }
 
