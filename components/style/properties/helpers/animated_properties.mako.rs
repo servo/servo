@@ -7,6 +7,7 @@ use bezier::Bezier;
 use cssparser::{Color as CSSParserColor, Parser, RGBA, ToCss};
 use dom::{OpaqueNode, TRestyleDamage};
 use euclid::{Point2D, Size2D};
+use properties::PropertyDeclaration;
 use properties::longhands;
 use properties::longhands::background_position::computed_value::T as BackgroundPosition;
 use properties::longhands::background_size::computed_value::T as BackgroundSize;
@@ -68,6 +69,17 @@ impl TransitionProperty {
         }
     }
 
+    pub fn from_declaration(declaration: &PropertyDeclaration) -> Option<Self> {
+        match *declaration {
+            % for prop in data.longhands:
+                % if prop.animatable:
+                    PropertyDeclaration::${prop.camel_case}(..)
+                        => Some(TransitionProperty::${prop.camel_case}),
+                % endif
+            % endfor
+            _ => None,
+        }
+    }
 }
 
 impl ToCss for TransitionProperty {
