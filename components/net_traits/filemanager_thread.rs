@@ -2,10 +2,25 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use blob_url_store::BlobURLStoreMsg;
+use blob_url_store::{BlobURLStoreEntry, BlobURLStoreError};
 use ipc_channel::ipc::IpcSender;
 use std::path::PathBuf;
 use super::{LoadConsumer, LoadData};
+
+#[derive(Clone, Deserialize, Serialize)]
+pub struct RelativePos {
+    pub start: Option<i64>,
+    pub end: Option<i64>,
+}
+
+impl RelativePos {
+    pub fn full() -> RelativePos {
+        RelativePos {
+            start: None,
+            end: None,
+        }
+    }
+}
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct SelectedFileId(pub String);
@@ -27,22 +42,30 @@ pub struct FilterPattern(pub String);
 #[derive(Deserialize, Serialize)]
 pub enum FileManagerThreadMsg {
     /// Select a single file, return triple (FileID, FileName, lastModified)
-    SelectFile(Vec<FilterPattern>, IpcSender<FileManagerResult<SelectedFile>>),
+    SelectFile(Vec<FilterPattern>, IpcSender<FileManagerResult<SelectedFile>>, String),
 
     /// Select multiple files, return a vector of triples
-    SelectFiles(Vec<FilterPattern>, IpcSender<FileManagerResult<Vec<SelectedFile>>>),
+    SelectFiles(Vec<FilterPattern>, IpcSender<FileManagerResult<Vec<SelectedFile>>>, String),
 
     /// Read file, return the bytes
-    ReadFile(IpcSender<FileManagerResult<Vec<u8>>>, SelectedFileId),
+    ReadFile(IpcSender<FileManagerResult<Vec<u8>>>, SelectedFileId, RelativePos, String),
 
     /// Delete the FileID entry
-    DeleteFileID(SelectedFileId),
-
-    // Blob URL message
-    BlobURLStoreMsg(BlobURLStoreMsg),
+    DeleteFileID(SelectedFileId, String),
 
     /// Load resource by Blob URL
     LoadBlob(LoadData, LoadConsumer),
+
+    /// Add an entry and send back the associated uuid
+    /// XXX: Second field is an unicode-serialized Origin, it is a temporary workaround
+    ///      and should not be trusted. See issue https://github.com/servo/servo/issues/11722
+    AddEntry(BlobURLStoreEntry, IpcSender<Result<String, BlobURLStoreError>>, String),
+
+    /// Create ID out of ID
+    AddIndirectEntry(SelectedFileId, RelativePos, IpcSender<Result<String, BlobURLStoreError>>, String),
+
+    /// Increate reference
+    IncRef(SelectedFileId, String),
 
     /// Shut down this thread
     Exit,

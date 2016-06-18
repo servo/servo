@@ -10,13 +10,13 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::{DOMString, USVString};
-use dom::blob::Blob;
+use dom::blob::{Blob, BlobImpl};
 use dom::urlhelper::UrlHelper;
 use dom::urlsearchparams::URLSearchParams;
 use ipc_channel::ipc;
 use net_traits::IpcSend;
-use net_traits::blob_url_store::{BlobURLStoreEntry, BlobURLStoreMsg, parse_blob_url};
-use net_traits::filemanager_thread::FileManagerThreadMsg;
+use net_traits::blob_url_store::{BlobURLStoreEntry, parse_blob_url};
+use net_traits::filemanager_thread::{SelectedFileId, FileManagerThreadMsg};
 use std::borrow::ToOwned;
 use std::default::Default;
 use url::quirks::domain_to_unicode;
@@ -125,23 +125,34 @@ impl URL {
             return DOMString::from(URL::unicode_serialization_blob_url(&origin, &id));
         }
 
-        let filemanager = global.resource_threads().sender();
+        let slice = match blob.get_blob_impl() {
+            &BlobImpl::File(ref f) => {
+                let filemanager = global.resource_threads().sender();
+                let (tx, rx) = ipc::channel().unwrap();
+                let id = SelectedFileId(f.id().to_string());
+                let msg = FileManagerThreadMsg::AddIndirectEntry(id, f.slice_pos.clone(), tx, origin.clone());
+                let _ = filemanager.send(msg);
 
-        let slice = blob.get_slice_or_empty();
+                let new_id = rx.recv().unwrap().unwrap();
+
+                // Return the indirect id reference
+                return DOMString::from(URL::unicode_serialization_blob_url(&origin, &new_id))
+            },
+            &BlobImpl::Memory(ref slice) => slice,
+        };
+
+        let filemanager = global.resource_threads().sender();
         let bytes = slice.get_bytes();
 
         let entry = BlobURLStoreEntry {
             type_string: blob.Type().to_string(),
-            filename: None, // XXX: the filename is currently only in File object now
             size: blob.Size(),
             bytes: bytes.to_vec(),
         };
 
         let (tx, rx) = ipc::channel().unwrap();
 
-        let msg = BlobURLStoreMsg::AddEntry(entry, origin.clone(), tx);
-
-        let _ = filemanager.send(FileManagerThreadMsg::BlobURLStoreMsg(msg));
+        let _ = filemanager.send(FileManagerThreadMsg::AddEntry(entry, tx, origin.clone()));
 
         match rx.recv().unwrap() {
             Ok(id) => {
@@ -166,13 +177,15 @@ impl URL {
 
             NOTE: The first step is unnecessary, since closed blobs do not exist in the store
         */
+        let origin = global.get_url().origin().unicode_serialization();
 
         match Url::parse(&url) {
             Ok(url) => match parse_blob_url(&url) {
                 Some((id, _)) => {
                     let filemanager = global.resource_threads().sender();
-                    let msg = BlobURLStoreMsg::DeleteEntry(id.simple().to_string());
-                    let _ = filemanager.send(FileManagerThreadMsg::BlobURLStoreMsg(msg));
+                    let id = SelectedFileId(id.simple().to_string());
+                    let msg = FileManagerThreadMsg::DeleteFileID(id, origin);
+                    let _ = filemanager.send(msg);
                 }
                 None => {}
             },
