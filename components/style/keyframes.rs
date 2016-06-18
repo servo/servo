@@ -3,9 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::{Parser, Delimiter};
+use selectors::matching::DeclarationBlock;
 use parser::ParserContext;
-use properties::{ComputedValues, PropertyDeclarationBlock, parse_property_declaration_list};
-use properties::animated_properties::AnimatedProperty;
+use properties::{ComputedValues, PropertyDeclaration, PropertyDeclarationBlock, parse_property_declaration_list};
+use properties::animated_properties::TransitionProperty;
+use std::sync::Arc;
 
 /// Parses a keyframes list, like:
 /// 0%, 50% {
@@ -30,8 +32,18 @@ pub fn parse_keyframe_list(context: &ParserContext, input: &mut Parser) -> Resul
 
 /// A number from 1 to 100, indicating the percentage of the animation where
 /// this keyframe should run.
-#[derive(Debug, Copy, Clone, PartialEq, HeapSizeOf)]
+#[derive(Debug, Copy, Clone, PartialEq, PartialOrd, HeapSizeOf)]
 pub struct KeyframePercentage(f32);
+
+impl ::std::cmp::Ord for KeyframePercentage {
+    #[inline]
+    fn cmp(&self, other: &Self) -> ::std::cmp::Ordering {
+        // We know we have a number from 0 to 1, so unwrap() here is safe.
+        self.0.partial_cmp(&other.0).unwrap()
+    }
+}
+
+impl ::std::cmp::Eq for KeyframePercentage { }
 
 impl KeyframePercentage {
     #[inline]
@@ -73,7 +85,7 @@ impl KeyframeSelector {
 #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
 pub struct Keyframe {
     pub selector: KeyframeSelector,
-    pub declarations: PropertyDeclarationBlock,
+    pub declarations: Arc<Vec<PropertyDeclaration>>,
 }
 
 impl Keyframe {
@@ -89,25 +101,33 @@ impl Keyframe {
             Ok(parse_property_declaration_list(context, input))
         }).unwrap();
 
+        // NB: Other browsers seem to ignore important declarations in keyframe
+        // animations too.
         Ok(Keyframe {
             selector: selector,
-            declarations: declarations,
+            declarations: declarations.normal,
         })
     }
 }
 
 /// A single step from a keyframe animation.
 #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
-pub struct ComputedKeyframesStep<C: ComputedValues> {
+pub struct KeyframesStep {
     /// The percentage of the animation duration that should be taken for this
     /// step.
     duration_percentage: KeyframePercentage,
-    // XXX: Can we optimise this? Probably not such a show-stopper... Probably
-    // storing declared values could work/should be the thing to do?
-    /// The computed values at the beginning of the step.
-    begin: C,
-    /// The computed values at the end of the step.
-    end: C,
+    /// Declarations that will determine the final style during the step.
+    declarations: Arc<Vec<PropertyDeclaration>>,
+}
+
+impl KeyframesStep {
+    fn new(percentage: KeyframePercentage,
+           declarations: Arc<Vec<PropertyDeclaration>>) -> Self {
+        KeyframesStep {
+            duration_percentage: percentage,
+            declarations: declarations,
+        }
+    }
 }
 
 /// This structure represents a list of animation steps computed from the list
@@ -115,19 +135,32 @@ pub struct ComputedKeyframesStep<C: ComputedValues> {
 ///
 /// It only takes into account animable properties.
 #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
-pub struct ComputedKeyframesAnimation<C: ComputedValues> {
-    steps: Vec<ComputedKeyframesStep<C>>,
+pub struct KeyframesAnimation {
+    steps: Vec<KeyframesStep>,
     /// The properties that change in this animation.
-    properties_changed: Vec<AnimatedProperty>,
+    properties_changed: Vec<TransitionProperty>,
 }
 
-fn get_animated_properties(keyframe: &Keyframe) -> Vec<AnimatedProperty> {
-    // TODO
-    vec![]
+/// Get all the animated properties in a keyframes animation. Note that it's not
+/// defined what happens when a property is not on a keyframe, so we only peek
+/// the props of the first one.
+///
+/// In practice, browsers seem to try to do their best job at it, so we might
+/// want to go through all the actual keyframes and deduplicate properties.
+fn get_animated_properties(keyframe: &Keyframe) -> Vec<TransitionProperty> {
+    let mut ret = vec![];
+    // NB: declarations are already deduplicated, so we don't have to check for
+    // it here.
+    for declaration in keyframe.declarations.iter() {
+        if let Some(property) = TransitionProperty::from_declaration(&declaration) {
+            ret.push(property);
+        }
+    }
+    ret
 }
 
-impl<C: ComputedValues> ComputedKeyframesAnimation<C> {
-    pub fn from_keyframes(keyframes: &[Keyframe]) -> Option<ComputedKeyframesAnimation<C>> {
+impl KeyframesAnimation {
+    pub fn from_keyframes(keyframes: &[Keyframe]) -> Option<Self> {
         debug_assert!(keyframes.len() > 1);
         let mut steps = vec![];
 
@@ -135,18 +168,37 @@ impl<C: ComputedValues> ComputedKeyframesAnimation<C> {
         // appeareance, then sorting them, then updating with the real
         // "duration_percentage".
         let mut animated_properties = get_animated_properties(&keyframes[0]);
-
         if animated_properties.is_empty() {
             return None;
         }
 
         for keyframe in keyframes {
-            for step in keyframe.selector.0.iter() {
-
+            for percentage in keyframe.selector.0.iter() {
+                steps.push(KeyframesStep::new(*percentage,
+                                              keyframe.declarations.clone()));
             }
         }
 
-        Some(ComputedKeyframesAnimation {
+        steps.sort_by_key(|step| step.duration_percentage);
+
+        if steps[0].duration_percentage != KeyframePercentage(0.0) {
+            // TODO: we could just insert a step from 0 and without declarations
+            // so we won't animate at the beginning. Seems like what other
+            // engines do, but might be a bit tricky so I'd rather leave it as a
+            // follow-up.
+            return None;
+        }
+
+        let mut remaining = 1.0;
+        let mut last_step_end = 0.0;
+        debug_assert!(steps.len() > 1);
+        for current_step in &mut steps[1..] {
+            let new_duration_percentage = KeyframePercentage(current_step.duration_percentage.0 - last_step_end);
+            last_step_end = current_step.duration_percentage.0;
+            current_step.duration_percentage = new_duration_percentage;
+        }
+
+        Some(KeyframesAnimation {
             steps: steps,
             properties_changed: animated_properties,
         })
