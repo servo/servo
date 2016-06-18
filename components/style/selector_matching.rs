@@ -6,7 +6,7 @@ use dom::PresentationalHintsSynthetizer;
 use element_state::*;
 use error_reporting::StdoutErrorReporter;
 use keyframes::Keyframe;
-use keyframes::ComputedKeyframesAnimation;
+use keyframes::KeyframesAnimation;
 use media_queries::{Device, MediaType};
 use parser::ParserContextExtraData;
 use properties::{self, PropertyDeclaration, PropertyDeclarationBlock};
@@ -127,7 +127,7 @@ pub struct Stylist<Impl: SelectorImplExt> {
                          BuildHasherDefault<::fnv::FnvHasher>>,
 
     /// A map with all the animations indexed by name.
-    animations: HashMap<String, ComputedKeyframesAnimation<Impl::ComputedValues>>,
+    animations: HashMap<String, KeyframesAnimation>,
 
     /// Applicable declarations for a given non-eagerly cascaded pseudo-element.
     /// These are eagerly computed once, and then used to resolve the new
@@ -251,9 +251,11 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
                     self.rules_source_order = rules_source_order;
                 }
                 CSSRule::Keyframes(ref keyframes_rule) => {
-                    if let Some(computed) = ComputedKeyframesAnimation::from_keyframes(&keyframes_rule.keyframes) {
+                    debug!("Found valid keyframes rule: {:?}", keyframes_rule);
+                    if let Some(animation) = KeyframesAnimation::from_keyframes(&keyframes_rule.keyframes) {
+                        debug!("Found valid keyframe animation: {:?}", animation);
                         self.animations.insert(keyframes_rule.name.clone(),
-                                               computed);
+                                               animation);
                     }
                 }
                 // We don't care about any other rule.
@@ -457,7 +459,7 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
     }
 
     #[inline]
-    pub fn animations(&self) -> &HashMap<String, ComputedKeyframesAnimation<Impl::ComputedValues>> {
+    pub fn animations(&self) -> &HashMap<String, KeyframesAnimation> {
         &self.animations
     }
 }
