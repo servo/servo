@@ -379,9 +379,9 @@ impl MozBrowserEventDetailBuilder for HTMLIFrameElement {
             MozBrowserEvent::TitleChange(ref string) => {
                 string.to_jsval(cx, rval);
             }
-            MozBrowserEvent::LocationChange(uri, can_go_back, can_go_forward) => {
+            MozBrowserEvent::LocationChange(url, can_go_back, can_go_forward) => {
                 BrowserElementLocationChangeEventDetail {
-                    uri: Some(DOMString::from(uri)),
+                    url: Some(DOMString::from(url)),
                     canGoBack: Some(can_go_back),
                     canGoForward: Some(can_go_forward),
                 }.to_jsval(cx, rval);
