@@ -2,28 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use ipc_channel::ipc::IpcSender;
 use std::str::FromStr;
 use url::Url;
 use uuid::Uuid;
 
 /// Errors returns to BlobURLStoreMsg::Request
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum BlobURLStoreError {
-    /// Invalid UUID key
-    InvalidKey,
+    /// Invalid File UUID
+    InvalidFileID,
     /// Invalid URL origin
     InvalidOrigin,
-}
-
-#[derive(Serialize, Deserialize)]
-pub enum BlobURLStoreMsg {
-    /// Add an entry and send back the associated uuid
-    /// XXX: Second field is an unicode-serialized Origin, it is a temporary workaround
-    ///      and should not be trusted. See issue https://github.com/servo/servo/issues/11722
-    AddEntry(BlobURLStoreEntry, String, IpcSender<Result<String, BlobURLStoreError>>),
-    /// Delete an entry by uuid
-    DeleteEntry(String),
 }
 
 /// Blob URL store entry, a packaged form of Blob DOM object
@@ -31,8 +20,6 @@ pub enum BlobURLStoreMsg {
 pub struct BlobURLStoreEntry {
     /// MIME type string
     pub type_string: String,
-    /// Some filename if the backend of Blob is a file
-    pub filename: Option<String>,
     /// Size of content in bytes
     pub size: u64,
     /// Content of blob
