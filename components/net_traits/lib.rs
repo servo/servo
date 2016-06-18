@@ -23,6 +23,7 @@ extern crate lazy_static;
 #[macro_use]
 extern crate log;
 extern crate msg;
+extern crate num_traits;
 extern crate serde;
 extern crate url;
 extern crate util;
