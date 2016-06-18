@@ -48,10 +48,10 @@ impl PropertyAnimation {
     /// Creates a new property animation for the given transition index and old and new styles.
     /// Any number of animations may be returned, from zero (if the property did not animate) to
     /// one (for a single transition property) to arbitrarily many (for `all`).
-    pub fn from_transition(transition_index: usize,
-                           old_style: &ServoComputedValues,
-                           new_style: &mut ServoComputedValues)
-                           -> Vec<PropertyAnimation> {
+    pub fn from_transition<C: ComputedValues>(transition_index: usize,
+                                              old_style: &C,
+                                              new_style: &mut C)
+                                              -> Vec<PropertyAnimation> {
         let mut result = vec![];
         let box_style = new_style.as_servo().get_box();
         let transition_property = box_style.transition_property.0[transition_index];
@@ -85,12 +85,12 @@ impl PropertyAnimation {
         result
     }
 
-    fn from_transition_property(transition_property: TransitionProperty,
-                                timing_function: TransitionTimingFunction,
-                                duration: Time,
-                                old_style: &ServoComputedValues,
-                                new_style: &ServoComputedValues)
-                                -> Option<PropertyAnimation> {
+    fn from_transition_property<C: ComputedValues>(transition_property: TransitionProperty,
+                                                   timing_function: TransitionTimingFunction,
+                                                   duration: Time,
+                                                   old_style: &C,
+                                                   new_style: &C)
+                                                   -> Option<PropertyAnimation> {
         let animated_property = AnimatedProperty::from_transition_property(&transition_property,
                                                                            old_style,
                                                                            new_style);
@@ -108,7 +108,7 @@ impl PropertyAnimation {
         }
     }
 
-    pub fn update(&self, style: &mut ServoComputedValues, time: f64) {
+    pub fn update<C: ComputedValues>(&self, style: &mut C, time: f64) {
         let progress = match self.timing_function {
             TransitionTimingFunction::CubicBezier(p1, p2) => {
                 // See `WebCore::AnimationBase::solveEpsilon(double)` in WebKit.
@@ -162,7 +162,7 @@ pub fn start_transitions_if_applicable<C: ComputedValues>(new_animations_sender:
         let property_animations = PropertyAnimation::from_transition(i, old_style.as_servo(), new_style.as_servo_mut());
         for property_animation in property_animations {
             // Set the property to the initial value.
-            property_animation.update(new_style.as_servo_mut(), 0.0);
+            property_animation.update(new_style, 0.0);
 
             // Kick off the animation.
             let now = time::precise_time_s();
