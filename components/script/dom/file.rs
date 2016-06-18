@@ -23,6 +23,7 @@ pub struct File {
 }
 
 impl File {
+    #[allow(unrooted_must_root)]
     fn new_inherited(blob_impl: BlobImpl, name: DOMString,
                      modified: Option<i64>, typeString: &str) -> File {
         File {
@@ -39,6 +40,7 @@ impl File {
         }
     }
 
+    #[allow(unrooted_must_root)]
     pub fn new(global: GlobalRef, blob_impl: BlobImpl,
                name: DOMString, modified: Option<i64>, typeString: &str) -> Root<File> {
         reflect_dom_object(box File::new_inherited(blob_impl, name, modified, typeString),
