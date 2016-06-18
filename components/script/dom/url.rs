@@ -10,13 +10,13 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::{DOMString, USVString};
-use dom::blob::Blob;
+use dom::blob::{Blob, BlobImpl, DataSlice};
 use dom::urlhelper::UrlHelper;
 use dom::urlsearchparams::URLSearchParams;
 use ipc_channel::ipc;
 use net_traits::IpcSend;
-use net_traits::blob_url_store::{BlobURLStoreEntry, BlobURLStoreMsg, parse_blob_url};
-use net_traits::filemanager_thread::FileManagerThreadMsg;
+use net_traits::blob_url_store::{BlobURLStoreEntry, parse_blob_url};
+use net_traits::filemanager_thread::{SelectedFileId, FileManagerThreadMsg, RelativePos};
 use std::borrow::ToOwned;
 use std::default::Default;
 use url::quirks::domain_to_unicode;
@@ -125,34 +125,16 @@ impl URL {
             return DOMString::from(URL::unicode_serialization_blob_url(&origin, &id));
         }
 
-        let filemanager = global.resource_threads().sender();
-
-        let slice = blob.get_slice_or_empty();
-        let bytes = slice.get_bytes();
-
-        let entry = BlobURLStoreEntry {
-            type_string: blob.Type().to_string(),
-            filename: None, // XXX: the filename is currently only in File object now
-            size: blob.Size(),
-            bytes: bytes.to_vec(),
+        let id = match *blob.get_blob_impl().borrow() {
+            BlobImpl::File(ref id, _) => id.clone(),
+            BlobImpl::Memory(ref slice) => create_url_from_memory(global, blob, slice),
+            BlobImpl::SlicedFile(ref parent_id, ref rel_pos) =>
+                create_url_from_sliced_file(global, parent_id, rel_pos),
+            BlobImpl::SlicedMemory(ref parent, ref dataslice) =>
+                create_url_from_sliced_memory(global, blob, parent, dataslice)
         };
 
-        let (tx, rx) = ipc::channel().unwrap();
-
-        let msg = BlobURLStoreMsg::AddEntry(entry, origin.clone(), tx);
-
-        let _ = filemanager.send(FileManagerThreadMsg::BlobURLStoreMsg(msg));
-
-        match rx.recv().unwrap() {
-            Ok(id) => {
-                DOMString::from(URL::unicode_serialization_blob_url(&origin, &id))
-            }
-            Err(_) => {
-                // Generate a dummy id
-                let id = Uuid::new_v4().simple().to_string();
-                DOMString::from(URL::unicode_serialization_blob_url(&origin, &id))
-            }
-        }
+        DOMString::from(URL::unicode_serialization_blob_url(&origin, &id.0))
     }
 
     // https://w3c.github.io/FileAPI/#dfn-revokeObjectURL
@@ -166,13 +148,15 @@ impl URL {
 
             NOTE: The first step is unnecessary, since closed blobs do not exist in the store
         */
+        let origin = global.get_url().origin().unicode_serialization();
 
         match Url::parse(&url) {
             Ok(url) => match parse_blob_url(&url) {
                 Some((id, _)) => {
                     let filemanager = global.resource_threads().sender();
-                    let msg = BlobURLStoreMsg::DeleteEntry(id.simple().to_string());
-                    let _ = filemanager.send(FileManagerThreadMsg::BlobURLStoreMsg(msg));
+                    let id = SelectedFileId(id.simple().to_string());
+                    let msg = FileManagerThreadMsg::DeleteFileID(id, origin);
+                    let _ = filemanager.send(msg);
                 }
                 None => {}
             },
@@ -325,4 +309,55 @@ impl URLMethods for URL {
     fn SetUsername(&self, value: USVString) {
         UrlHelper::SetUsername(&mut self.url.borrow_mut(), value);
     }
+}
+
+// Create Blob URL from memory-based Blob
+// The bytes in data slice will be transferred to file manager thread, and
+// the original blob's implementation will be changed to file-based on the fly
+fn create_url_from_memory(global: GlobalRef, blob: &Blob, slice: &DataSlice) -> SelectedFileId {
+    let origin = global.get_url().origin().unicode_serialization();
+    let filemanager = global.resource_threads().sender();
+    let bytes = slice.get_bytes();
+    let rel_pos = slice.get_rel_pos();
+
+    let entry = BlobURLStoreEntry {
+        type_string: blob.Type().to_string(),
+        size: blob.Size(),
+        bytes: bytes.to_vec(),
+    };
+
+    let (tx, rx) = ipc::channel().unwrap();
+    let _ = filemanager.send(FileManagerThreadMsg::TransferMemory(entry, rel_pos, tx, origin.clone()));
+
+    match rx.recv().unwrap() {
+        Ok(new_id) => SelectedFileId(new_id.0),
+        // Generate a dummy id
+        Err(_) => SelectedFileId(Uuid::new_v4().simple().to_string()),
+    }
+}
+
+fn create_url_from_sliced_file(global: GlobalRef, parent_id: &SelectedFileId,
+                               rel_pos: &RelativePos) -> SelectedFileId {
+    let origin = global.get_url().origin().unicode_serialization();
+
+    let filemanager = global.resource_threads().sender();
+    let (tx, rx) = ipc::channel().unwrap();
+    let msg = FileManagerThreadMsg::AddIndirectEntry(parent_id.clone(),
+                                                     rel_pos.clone(),
+                                                     tx, origin.clone());
+    let _ = filemanager.send(msg);
+    let new_id = rx.recv().unwrap().unwrap();
+
+    // Return the indirect id reference
+    SelectedFileId(new_id.0)
+}
+
+fn create_url_from_sliced_memory(global: GlobalRef, blob: &Blob,
+                                 parent: &JS<Blob>, dataslice: &DataSlice) -> SelectedFileId {
+    // Lift parent into file-based Blob
+    let parent_id = create_url_from_memory(global, &*parent, dataslice);
+    let rel_pos = dataslice.get_rel_pos();
+    *blob.get_blob_impl().borrow_mut() = BlobImpl::SlicedFile(parent_id.clone(), rel_pos.clone());
+
+    create_url_from_sliced_file(global, &parent_id, &rel_pos)
 }
