@@ -1129,32 +1129,45 @@ pub mod style_structs {
                 }
                 % endfor
             % elif style_struct.trait_name == "Box":
+                #[inline]
                 fn clone_display(&self) -> longhands::display::computed_value::T {
                     self.display.clone()
                 }
+                #[inline]
                 fn clone_position(&self) -> longhands::position::computed_value::T {
                     self.position.clone()
                 }
+                #[inline]
                 fn clone_float(&self) -> longhands::float::computed_value::T {
                     self.float.clone()
                 }
+                #[inline]
                 fn clone_overflow_x(&self) -> longhands::overflow_x::computed_value::T {
                     self.overflow_x.clone()
                 }
+                #[inline]
                 fn clone_overflow_y(&self) -> longhands::overflow_y::computed_value::T {
                     self.overflow_y.clone()
                 }
+                #[inline]
+                fn clone_animation_play_state(&self) -> longhands::animation_play_state::computed_value::T {
+                    self.animation_play_state.clone()
+                }
+                #[inline]
                 fn transition_count(&self) -> usize {
                     self.transition_property.0.len()
                 }
             % elif style_struct.trait_name == "Color":
+                #[inline]
                 fn clone_color(&self) -> longhands::color::computed_value::T {
                     self.color.clone()
                 }
             % elif style_struct.trait_name == "Font":
+                #[inline]
                 fn clone_font_size(&self) -> longhands::font_size::computed_value::T {
                     self.font_size.clone()
                 }
+                #[inline]
                 fn clone_font_weight(&self) -> longhands::font_weight::computed_value::T {
                     self.font_weight.clone()
                 }
@@ -1167,42 +1180,53 @@ pub mod style_structs {
                     self.hash = hasher.finish()
                 }
             % elif style_struct.trait_name == "InheritedBox":
+                #[inline]
                 fn clone_direction(&self) -> longhands::direction::computed_value::T {
                     self.direction.clone()
                 }
+                #[inline]
                 fn clone_writing_mode(&self) -> longhands::writing_mode::computed_value::T {
                     self.writing_mode.clone()
                 }
+                #[inline]
                 fn clone_text_orientation(&self) -> longhands::text_orientation::computed_value::T {
                     self.text_orientation.clone()
                 }
             % elif style_struct.trait_name == "InheritedText" and product == "servo":
+                #[inline]
                 fn clone__servo_text_decorations_in_effect(&self) ->
                     longhands::_servo_text_decorations_in_effect::computed_value::T {
                     self._servo_text_decorations_in_effect.clone()
                 }
             % elif style_struct.trait_name == "Outline":
+                #[inline]
                 fn clone_outline_style(&self) -> longhands::outline_style::computed_value::T {
                     self.outline_style.clone()
                 }
+                #[inline]
                 fn outline_has_nonzero_width(&self) -> bool {
                     self.outline_width != ::app_units::Au(0)
                 }
             % elif style_struct.trait_name == "Position":
+                #[inline]
                 fn clone_align_items(&self) -> longhands::align_items::computed_value::T {
                     self.align_items.clone()
                 }
+                #[inline]
                 fn clone_align_self(&self) -> longhands::align_self::computed_value::T {
                     self.align_self.clone()
                 }
             % elif style_struct.trait_name == "Text":
                 <% text_decoration_field = 'text_decoration' if product == 'servo' else 'text_decoration_line' %>
+                #[inline]
                 fn has_underline(&self) -> bool {
                     self.${text_decoration_field}.underline
                 }
+                #[inline]
                 fn has_overline(&self) -> bool {
                     self.${text_decoration_field}.overline
                 }
+                #[inline]
                 fn has_line_through(&self) -> bool {
                     self.${text_decoration_field}.line_through
                 }
