@@ -576,7 +576,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto", need_clone=
     pub use properties::longhands::transition_duration::{get_initial_value, parse, parse_one};
 </%helpers:longhand>
 
-<%helpers:longhand name="animation-name" experimental="True">
+<%helpers:longhand name="animation-name">
     use values::computed::ComputedValueAsSpecified;
 
     pub mod computed_value {
@@ -620,19 +620,19 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto", need_clone=
     impl ComputedValueAsSpecified for SpecifiedValue {}
 </%helpers:longhand>
 
-<%helpers:longhand name="animation-duration" experimental="True">
+<%helpers:longhand name="animation-duration">
     pub use super::transition_duration::computed_value;
     pub use super::transition_duration::{parse, get_initial_value};
     pub use super::transition_duration::SpecifiedValue;
 </%helpers:longhand>
 
-<%helpers:longhand name="animation-timing-function" experimental="True">
+<%helpers:longhand name="animation-timing-function">
     pub use super::transition_timing_function::computed_value;
     pub use super::transition_timing_function::{parse, get_initial_value};
     pub use super::transition_timing_function::SpecifiedValue;
 </%helpers:longhand>
 
-<%helpers:longhand name="animation-iteration-count" experimental="True">
+<%helpers:longhand name="animation-iteration-count">
     use values::computed::ComputedValueAsSpecified;
 
     pub mod computed_value {
@@ -702,18 +702,16 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto", need_clone=
 </%helpers:longhand>
 
 ${helpers.keyword_list("animation-direction",
-                       "normal reverse alternate alternate-reverse",
-                       experimental=True)}
+                       "normal reverse alternate alternate-reverse")}
 
 ${helpers.keyword_list("animation-play-state",
                        "running paused",
-                       experimental=True)}
+                       need_clone=True)}
 
 ${helpers.keyword_list("animation-fill-mode",
-                       "none forwards backwards both",
-                       experimental=True)}
+                       "none forwards backwards both")}
 
-<%helpers:longhand name="animation-delay" experimental="True">
+<%helpers:longhand name="animation-delay">
     pub use super::transition_duration::computed_value;
     pub use super::transition_duration::{parse, get_initial_value};
     pub use super::transition_duration::SpecifiedValue;

@@ -33,7 +33,7 @@ pub fn parse_keyframe_list(context: &ParserContext, input: &mut Parser) -> Resul
 /// A number from 1 to 100, indicating the percentage of the animation where
 /// this keyframe should run.
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd, HeapSizeOf)]
-pub struct KeyframePercentage(f32);
+pub struct KeyframePercentage(pub f32);
 
 impl ::std::cmp::Ord for KeyframePercentage {
     #[inline]
@@ -115,9 +115,9 @@ impl Keyframe {
 pub struct KeyframesStep {
     /// The percentage of the animation duration that should be taken for this
     /// step.
-    duration_percentage: KeyframePercentage,
+    pub duration_percentage: KeyframePercentage,
     /// Declarations that will determine the final style during the step.
-    declarations: Arc<Vec<PropertyDeclaration>>,
+    pub declarations: Arc<Vec<PropertyDeclaration>>,
 }
 
 impl KeyframesStep {
@@ -137,9 +137,9 @@ impl KeyframesStep {
 /// It only takes into account animable properties.
 #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
 pub struct KeyframesAnimation {
-    steps: Vec<KeyframesStep>,
+    pub steps: Vec<KeyframesStep>,
     /// The properties that change in this animation.
-    properties_changed: Vec<TransitionProperty>,
+    pub properties_changed: Vec<TransitionProperty>,
 }
 
 /// Get all the animated properties in a keyframes animation. Note that it's not
