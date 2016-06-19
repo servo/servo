@@ -24,6 +24,7 @@ use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
 use std::process;
 use std::sync::Arc;
+use string_cache::Atom;
 use style_traits::viewport::ViewportConstraints;
 use stylesheets::{CSSRule, CSSRuleIteratorExt, Origin, Stylesheet};
 use url::Url;
@@ -129,7 +130,7 @@ pub struct Stylist<Impl: SelectorImplExt> {
                          BuildHasherDefault<::fnv::FnvHasher>>,
 
     /// A map with all the animations indexed by name.
-    animations: HashMap<String, KeyframesAnimation>,
+    animations: HashMap<Atom, KeyframesAnimation>,
 
     /// Applicable declarations for a given non-eagerly cascaded pseudo-element.
     /// These are eagerly computed once, and then used to resolve the new
@@ -461,7 +462,7 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
     }
 
     #[inline]
-    pub fn animations(&self) -> &HashMap<String, KeyframesAnimation> {
+    pub fn animations(&self) -> &HashMap<Atom, KeyframesAnimation> {
         &self.animations
     }
 }
