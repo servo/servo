@@ -25,6 +25,8 @@ use util::arc_ptr_eq;
 use util::cache::{LRUCache, SimpleHashCache};
 use util::opts;
 use util::vec::ForgetfulSink;
+use properties::longhands::animation_play_state::computed_value::AnimationPlayState;
+use properties::style_struct_traits::Box;
 
 /// High-level interface to CSS selector matching.
 
@@ -53,7 +55,9 @@ fn create_common_style_affecting_attributes_from_element<E: TElement>(element: &
 
 pub struct ApplicableDeclarations<Impl: SelectorImplExt> {
     pub normal: SmallVec<[DeclarationBlock; 16]>,
-    pub per_pseudo: HashMap<Impl::PseudoElement, Vec<DeclarationBlock>, BuildHasherDefault<::fnv::FnvHasher>>,
+    pub per_pseudo: HashMap<Impl::PseudoElement,
+                            Vec<DeclarationBlock>,
+                            BuildHasherDefault<::fnv::FnvHasher>>,
 
     /// Whether the `normal` declarations are shareable with other nodes.
     pub normal_shareable: bool,
@@ -364,7 +368,7 @@ pub enum StyleSharingResult<ConcreteRestyleDamage: TRestyleDamage> {
 }
 
 trait PrivateMatchMethods: TNode
-    where <Self::ConcreteElement as Element>::Impl: SelectorImplExt {
+    where <Self::ConcreteElement as Element>::Impl: SelectorImplExt<ComputedValues = Self::ConcreteComputedValues> {
     /// Actually cascades style for a node or a pseudo-element of a node.
     ///
     /// Note that animations only apply to nodes or ::before or ::after
@@ -380,10 +384,8 @@ trait PrivateMatchMethods: TNode
                                    animate_properties: bool)
                                    -> (Self::ConcreteRestyleDamage, Arc<Self::ConcreteComputedValues>) {
         let mut cacheable = true;
-        let mut animations = None;
         if animate_properties {
             cacheable = !self.update_animations_for_cascade(context, &mut style) && cacheable;
-            animations = Some(context.stylist.animations())
         }
 
         let mut this_style;
@@ -420,12 +422,19 @@ trait PrivateMatchMethods: TNode
         // it did trigger a transition.
         if animate_properties {
             if let Some(ref style) = style {
-                let animations_started =
+                let mut animations_started =
                     animation::start_transitions_if_applicable::<Self::ConcreteComputedValues>(
                         &context.new_animations_sender,
                         self.opaque(),
                         &**style,
                         &mut this_style);
+
+                // TODO: Take into account animation-play-state
+                animations_started |= animation::maybe_start_animations::<<Self::ConcreteElement as Element>::Impl>(
+                    &context,
+                    self.opaque(),
+                    &mut this_style);
+
                 cacheable = cacheable && !animations_started
             }
         }
@@ -462,7 +471,7 @@ trait PrivateMatchMethods: TNode
             had_animations_to_expire = animations_to_expire.is_some();
             if let Some(ref animations) = animations_to_expire {
                 for animation in *animations {
-                    animation.property_animation.update(Arc::make_mut(style).as_servo_mut(), 1.0);
+                    animation.property_animation.update(Arc::make_mut(style), 1.0);
                 }
             }
         }
@@ -490,7 +499,8 @@ trait PrivateMatchMethods: TNode
 }
 
 impl<N: TNode> PrivateMatchMethods for N
-    where <N::ConcreteElement as Element>::Impl: SelectorImplExt {}
+    where <N::ConcreteElement as Element>::Impl:
+                SelectorImplExt<ComputedValues = N::ConcreteComputedValues> {}
 
 trait PrivateElementMatchMethods: TElement {
     fn share_style_with_candidate_if_possible(&self,
@@ -648,7 +658,7 @@ pub trait MatchMethods : TNode {
                            local_context: &LocalStyleContext<Self::ConcreteComputedValues>,
                            parent: Option<Self>,
                            applicable_declarations: &ApplicableDeclarations<<Self::ConcreteElement as Element>::Impl>)
-                           where <Self::ConcreteElement as Element>::Impl: SelectorImplExt {
+                           where <Self::ConcreteElement as Element>::Impl: SelectorImplExt<ComputedValues = Self::ConcreteComputedValues> {
         // Get our parent's style. This must be unsafe so that we don't touch the parent's
         // borrow flags.
         //
