@@ -1004,7 +1004,7 @@ impl ScriptThread {
         let context = self.root_browsing_context();
         match msg {
             DevtoolScriptControlMsg::EvaluateJS(id, s, reply) => {
-                let window = get_browsing_context(&context, id).active_window();
+                let window = &context.find(id).unwrap().active_window();
                 let global_ref = GlobalRef::Window(window.r());
                 devtools::handle_evaluate_js(&global_ref, s, reply)
             },
@@ -1021,7 +1021,7 @@ impl ScriptThread {
             DevtoolScriptControlMsg::ModifyAttribute(id, node_id, modifications) =>
                 devtools::handle_modify_attribute(&context, id, node_id, modifications),
             DevtoolScriptControlMsg::WantsLiveNotifications(id, to_send) => {
-                let window = get_browsing_context(&context, id).active_window();
+                let window = &context.find(id).unwrap().active_window();
                 let global_ref = GlobalRef::Window(window.r());
                 devtools::handle_wants_live_notifications(&global_ref, to_send)
             },
@@ -1104,7 +1104,7 @@ impl ScriptThread {
             if let Some(inner_context) = context.find(id) {
                 let window = inner_context.active_window();
                 if window.set_page_clip_rect_with_new_viewport(rect) {
-                    let context = get_browsing_context(&context, id);
+                    let context = &context.find(id).unwrap();
                     self.rebuild_and_force_reflow(&context, ReflowReason::Viewport);
                 }
                 return;
@@ -1195,7 +1195,7 @@ impl ScriptThread {
     }
 
     fn handle_loads_complete(&self, pipeline: PipelineId) {
-        let context = get_browsing_context(&self.root_browsing_context(), pipeline);
+        let context = &self.root_browsing_context().find(pipeline).unwrap();
         let doc = context.active_document();
         let doc = doc.r();
         if doc.loader().is_blocked() {
@@ -1440,7 +1440,7 @@ impl ScriptThread {
 
     /// Handles a request for the window title.
     fn handle_get_title_msg(&self, pipeline_id: PipelineId) {
-        let context = get_browsing_context(&self.root_browsing_context(), pipeline_id);
+        let context = &self.root_browsing_context().find(pipeline_id).unwrap();
         let document = context.active_document();
         document.send_title_to_compositor();
     }
@@ -1495,7 +1495,7 @@ impl ScriptThread {
 
     /// Handles when layout thread finishes all animation in one tick
     fn handle_tick_all_animations(&self, id: PipelineId) {
-        let context = get_browsing_context(&self.root_browsing_context(), id);
+        let context = &self.root_browsing_context().find(id).unwrap();
         let document = context.active_document();
         document.run_the_animation_frame_callbacks();
     }
@@ -1509,7 +1509,7 @@ impl ScriptThread {
 
     /// Notify the containing document of a child frame that has completed loading.
     fn handle_frame_load_event(&self, containing_pipeline: PipelineId, id: PipelineId) {
-        let context = get_browsing_context(&self.root_browsing_context(), containing_pipeline);
+        let context = &self.root_browsing_context().find(containing_pipeline).unwrap();
         let document = context.active_document();
         if let Some(iframe) = document.find_iframe_by_pipeline(id) {
             iframe.iframe_load_event_steps(id);
@@ -1835,7 +1835,7 @@ impl ScriptThread {
             }
 
             MouseMoveEvent(point) => {
-                let context = get_browsing_context(&self.root_browsing_context(), pipeline_id);
+                let context = &self.root_browsing_context().find(pipeline_id).unwrap();
                 let document = context.active_document();
 
                 // Get the previous target temporarily
@@ -1905,13 +1905,13 @@ impl ScriptThread {
             }
 
             TouchpadPressureEvent(point, pressure, phase) => {
-                let context = get_browsing_context(&self.root_browsing_context(), pipeline_id);
+                let context = &self.root_browsing_context().find(pipeline_id).unwrap();
                 let document = context.active_document();
                 document.r().handle_touchpad_pressure_event(self.js_runtime.rt(), point, pressure, phase);
             }
 
             KeyEvent(key, state, modifiers) => {
-                let context = get_browsing_context(&self.root_browsing_context(), pipeline_id);
+                let context = &self.root_browsing_context().find(pipeline_id).unwrap();
                 let document = context.active_document();
                 document.dispatch_key_event(key, state, modifiers, &self.constellation_chan);
             }
@@ -1923,7 +1923,7 @@ impl ScriptThread {
                           mouse_event_type: MouseEventType,
                           button: MouseButton,
                           point: Point2D<f32>) {
-        let context = get_browsing_context(&self.root_browsing_context(), pipeline_id);
+        let context = &self.root_browsing_context().find(pipeline_id).unwrap();
         let document = context.active_document();
         document.handle_mouse_event(self.js_runtime.rt(), button, point, mouse_event_type);
     }
@@ -1934,7 +1934,7 @@ impl ScriptThread {
                           identifier: TouchId,
                           point: Point2D<f32>)
                           -> bool {
-        let context = get_browsing_context(&self.root_browsing_context(), pipeline_id);
+        let context = &self.root_browsing_context().find(pipeline_id).unwrap();
         let document = context.active_document();
         document.handle_touch_event(self.js_runtime.rt(), event_type, identifier, point)
     }
@@ -1947,7 +1947,7 @@ impl ScriptThread {
         {
             let nurl = &load_data.url;
             if let Some(fragment) = nurl.fragment() {
-                let context = get_browsing_context(&self.root_browsing_context(), pipeline_id);
+                let context = &self.root_browsing_context().find(pipeline_id).unwrap();
                 let document = context.active_document();
                 let document = document.r();
                 let url = document.url();
@@ -1984,7 +1984,7 @@ impl ScriptThread {
     }
 
     fn handle_resize_event(&self, pipeline_id: PipelineId, new_size: WindowSizeData, size_type: WindowSizeType) {
-        let context = get_browsing_context(&self.root_browsing_context(), pipeline_id);
+        let context = &self.root_browsing_context().find(pipeline_id).unwrap();
         let window = context.active_window();
         window.set_window_size(new_size);
         window.force_reflow(ReflowGoal::ForDisplay,
@@ -2145,14 +2145,6 @@ fn shut_down_layout(context_tree: &BrowsingContext) {
     for chan in channels {
         chan.send(layout_interface::Msg::ExitNow).ok();
     }
-}
-
-pub fn get_browsing_context(context: &BrowsingContext,
-                            pipeline_id: PipelineId)
-                            -> Root<BrowsingContext> {
-    context.find(pipeline_id).expect("ScriptThread: received an event \
-            message for a layout channel that is not associated with this script thread.\
-            This is a bug.")
 }
 
 fn dom_last_modified(tm: &Tm) -> String {
