@@ -1136,7 +1136,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 let msg = LayoutControlMsg::TickAnimations;
                 match self.pipelines.get(&pipeline_id) {
                     Some(pipeline) => pipeline.layout_chan.send(msg),
-                    None => return warn!("Pipeline {:?} got script tick after closure.", pipeline_id),
+                    None => return warn!("Pipeline {:?} got layout tick after closure.", pipeline_id),
                 }
             }
         };
