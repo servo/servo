@@ -230,7 +230,7 @@ pub fn maybe_start_animations<Impl: SelectorImplExt>(context: &SharedStyleContex
         }
 
         // TODO: This should be factored out, too much indentation.
-        if let Some(ref animation) = context.stylist.animations().get(&**name) {
+        if let Some(ref animation) = context.stylist.animations().get(&name) {
             debug!("maybe_start_animations: found animation {}", name);
             had_animations = true;
             let mut last_keyframe_style = compute_style_for_animation_step(context,
