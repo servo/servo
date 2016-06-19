@@ -34,7 +34,6 @@ use msg::constellation_msg::PipelineId;
 use net_traits::CookieSource::{HTTP, NonHTTP};
 use net_traits::CoreResourceMsg::{GetCookiesDataForUrl, SetCookiesForUrlWithData};
 use net_traits::IpcSend;
-use script_thread::get_browsing_context;
 use script_traits::webdriver_msg::WebDriverCookieError;
 use script_traits::webdriver_msg::{WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue};
 use url::Url;
@@ -43,7 +42,7 @@ fn find_node_by_unique_id(context: &BrowsingContext,
                           pipeline: PipelineId,
                           node_id: String)
                           -> Option<Root<Node>> {
-    let context = get_browsing_context(&context, pipeline);
+    let context = &context.find(pipeline).unwrap();
     let document = context.active_document();
     document.upcast::<Node>().traverse_preorder().find(|candidate| candidate.unique_id() == node_id)
 }
@@ -72,7 +71,7 @@ pub fn handle_execute_script(context: &BrowsingContext,
                              pipeline: PipelineId,
                              eval: String,
                              reply: IpcSender<WebDriverJSResult>) {
-    let context = get_browsing_context(&context, pipeline);
+    let context = &context.find(pipeline).unwrap();
     let window = context.active_window();
     let result = unsafe {
         let cx = window.get_cx();
@@ -87,7 +86,7 @@ pub fn handle_execute_async_script(context: &BrowsingContext,
                                    pipeline: PipelineId,
                                    eval: String,
                                    reply: IpcSender<WebDriverJSResult>) {
-    let context = get_browsing_context(&context, pipeline);
+    let context = &context.find(pipeline).unwrap();
     let window = context.active_window();
     let cx = window.get_cx();
     window.set_webdriver_script_chan(Some(reply));

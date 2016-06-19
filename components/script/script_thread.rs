@@ -2207,15 +2207,6 @@ fn shut_down_layout(context_tree: &BrowsingContext) {
     }
 }
 
-// TODO: remove this function, as it's a source of panic.
-pub fn get_browsing_context(context: &BrowsingContext,
-                            pipeline_id: PipelineId)
-                            -> Root<BrowsingContext> {
-    context.find(pipeline_id).expect("ScriptThread: received an event \
-            message for a layout channel that is not associated with this script thread.\
-            This is a bug.")
-}
-
 fn dom_last_modified(tm: &Tm) -> String {
     tm.to_local().strftime("%m/%d/%Y %H:%M:%S").unwrap().to_string()
 }
