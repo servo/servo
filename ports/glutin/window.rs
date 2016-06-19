@@ -260,13 +260,22 @@ impl Window {
             Event::Resized(width, height) => {
                 self.event_queue.borrow_mut().push(WindowEvent::Resize(Size2D::typed(width, height)));
             }
-            Event::MouseInput(element_state, mouse_button, _) => {
-                // FIXME(#11130, pcwalton): The third field should be used.
+            Event::MouseInput(element_state, mouse_button, pos) => {
                 if mouse_button == MouseButton::Left ||
-                                    mouse_button == MouseButton::Right {
-                        let mouse_pos = self.mouse_pos.get();
-                        self.handle_mouse(mouse_button, element_state, mouse_pos.x, mouse_pos.y);
-                   }
+                    mouse_button == MouseButton::Right {
+                        match pos {
+                            Some((x, y)) => {
+                                self.mouse_pos.set(Point2D::new(x, y));
+                                self.event_queue.borrow_mut().push(
+                                    WindowEvent::MouseWindowMoveEventClass(Point2D::typed(x as f32, y as f32)));
+                                self.handle_mouse(mouse_button, element_state, x, y);
+                            }
+                            None => {
+                                let mouse_pos = self.mouse_pos.get();
+                                self.handle_mouse(mouse_button, element_state, mouse_pos.x, mouse_pos.y);
+                            }
+                        }
+                    }
             }
             Event::MouseMoved(x, y) => {
                 self.mouse_pos.set(Point2D::new(x, y));
@@ -279,7 +288,8 @@ impl Window {
                     MouseScrollDelta::PixelDelta(dx, dy) => (dx, dy),
                 };
                 let phase = glutin_phase_to_touch_event_type(phase);
-                self.scroll_window(dx, dy, phase);
+                self.scroll_window(
+dx, dy, phase);
             },
             Event::Touch(touch) => {
                 use script_traits::TouchId;
