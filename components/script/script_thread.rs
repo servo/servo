@@ -671,7 +671,7 @@ impl ScriptThread {
         }
 
         // Store new resizes, and gather all other events.
-        let mut sequential = vec!();
+        let mut sequential = vec![];
 
         // Receive at least one message so we don't spinloop.
         let mut event = {

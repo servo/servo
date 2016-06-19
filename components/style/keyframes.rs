@@ -113,9 +113,8 @@ impl Keyframe {
 /// A single step from a keyframe animation.
 #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
 pub struct KeyframesStep {
-    /// The percentage of the animation duration that should be taken for this
-    /// step.
-    pub duration_percentage: KeyframePercentage,
+    /// The percentage of the animation duration when this step starts.
+    pub start_percentage: KeyframePercentage,
     /// Declarations that will determine the final style during the step.
     pub declarations: Arc<Vec<PropertyDeclaration>>,
 }
@@ -125,7 +124,7 @@ impl KeyframesStep {
     fn new(percentage: KeyframePercentage,
            declarations: Arc<Vec<PropertyDeclaration>>) -> Self {
         KeyframesStep {
-            duration_percentage: percentage,
+            start_percentage: percentage,
             declarations: declarations,
         }
     }
@@ -166,9 +165,6 @@ impl KeyframesAnimation {
         debug_assert!(keyframes.len() > 1);
         let mut steps = vec![];
 
-        // NB: we do two passes, first storing the steps in the order of
-        // appeareance, then sorting them, then updating with the real
-        // "duration_percentage".
         let mut animated_properties = get_animated_properties(&keyframes[0]);
         if animated_properties.is_empty() {
             return None;
@@ -181,24 +177,8 @@ impl KeyframesAnimation {
             }
         }
 
-        steps.sort_by_key(|step| step.duration_percentage);
-
-        if steps[0].duration_percentage != KeyframePercentage(0.0) {
-            // TODO: we could just insert a step from 0 and without declarations
-            // so we won't animate at the beginning. Seems like what other
-            // engines do, but might be a bit tricky so I'd rather leave it as a
-            // follow-up.
-            return None;
-        }
-
-        let mut remaining = 1.0;
-        let mut last_step_end = 0.0;
-        debug_assert!(steps.len() > 1);
-        for current_step in &mut steps[1..] {
-            let new_duration_percentage = KeyframePercentage(current_step.duration_percentage.0 - last_step_end);
-            last_step_end = current_step.duration_percentage.0;
-            current_step.duration_percentage = new_duration_percentage;
-        }
+        // Sort by the start percentage, so we can easily find a frame.
+        steps.sort_by_key(|step| step.start_percentage);
 
         Some(KeyframesAnimation {
             steps: steps,
@@ -206,3 +186,4 @@ impl KeyframesAnimation {
         })
     }
 }
+
