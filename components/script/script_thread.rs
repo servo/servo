@@ -396,7 +396,7 @@ pub struct ScriptThread {
     content_process_shutdown_chan: IpcSender<()>,
 
     /// Navigation Timing properties:
-    /// https://w3c.github.io/navigation-timing/#sec-PerformanceNavigationTiming
+    /// https://w3c.github.io/navigation-timing/#widl-PerformanceTiming-requestStart
     request_start: Cell<u64>,
 }
 
@@ -2095,7 +2095,7 @@ impl ScriptThread {
             load_data.url = Url::parse("about:blank").unwrap();
         }
 
-        // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-requestStart
+        // https://w3c.github.io/navigation-timing/#widl-PerformanceTiming-requestStart
         update_with_current_time_ms(&self.request_start);
 
         self.resource_threads.send(CoreResourceMsg::Load(NetLoadData {
