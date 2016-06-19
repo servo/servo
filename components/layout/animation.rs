@@ -23,7 +23,7 @@ pub fn update_animation_state(constellation_chan: &IpcSender<ConstellationMsg>,
                               expired_animations: &mut HashMap<OpaqueNode, Vec<Animation>>,
                               new_animations_receiver: &Receiver<Animation>,
                               pipeline_id: PipelineId) {
-    let mut new_running_animations = Vec::new();
+    let mut new_running_animations = vec![];
     while let Ok(animation) = new_animations_receiver.try_recv() {
         new_running_animations.push(animation)
     }
@@ -36,22 +36,24 @@ pub fn update_animation_state(constellation_chan: &IpcSender<ConstellationMsg>,
 
     // Expire old running animations.
     let now = time::precise_time_s();
-    let mut keys_to_remove = Vec::new();
+    let mut keys_to_remove = vec![];
     for (key, running_animations) in running_animations.iter_mut() {
         let mut animations_still_running = vec![];
         for running_animation in running_animations.drain(..) {
             if now < running_animation.end_time {
                 animations_still_running.push(running_animation);
                 continue
+            } else if running_animation.state.pending_iterations > 0 {
+                // if the animation should run again, just tick it...
+                let duration = running_animation.end_time - running_animation.start_time;
+                running_animation.start_time += duration;
             }
-            match expired_animations.entry(*key) {
-                Entry::Vacant(entry) => {
-                    entry.insert(vec![running_animation]);
-                }
-                Entry::Occupied(mut entry) => entry.get_mut().push(running_animation),
-            }
+            expired_animations.entry(*key)
+                              .or_insert_with(Vec::new)
+                              .push(running_animation);
         }
-        if animations_still_running.len() == 0 {
+
+        if animations_still_running.is_empty() {
             keys_to_remove.push(*key);
         } else {
             *running_animations = animations_still_running
@@ -84,12 +86,15 @@ pub fn update_animation_state(constellation_chan: &IpcSender<ConstellationMsg>,
 
 /// Recalculates style for a set of animations. This does *not* run with the DOM lock held.
 pub fn recalc_style_for_animations(flow: &mut Flow,
-                                   animations: &HashMap<OpaqueNode, Vec<Animation>>) {
+                                   animations: &mut HashMap<OpaqueNode, Vec<Animation>>) {
     let mut damage = RestyleDamage::empty();
     flow.mutate_fragments(&mut |fragment| {
-        if let Some(ref animations) = animations.get(&fragment.node) {
-            for animation in *animations {
-                update_style_for_animation(animation, &mut fragment.style, Some(&mut damage));
+        if let Some(ref animations) = animations.get_mut(&fragment.node) {
+            for mut animation in *animations {
+                if !animation.is_paused() {
+                    update_style_for_animation(animation, &mut fragment.style, Some(&mut damage));
+                    animation.increment_keyframe_if_applicable();
+                }
             }
         }
     });

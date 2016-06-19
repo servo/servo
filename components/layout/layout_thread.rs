@@ -1318,13 +1318,13 @@ impl LayoutThread {
 
         if let Some(mut root_flow) = self.root_flow.clone() {
             // Perform an abbreviated style recalc that operates without access to the DOM.
-            let animations = self.running_animations.read().unwrap();
+            let mut animations = self.running_animations.write().unwrap();
             profile(time::ProfilerCategory::LayoutStyleRecalc,
                     self.profiler_metadata(),
                     self.time_profiler_chan.clone(),
                     || {
                         animation::recalc_style_for_animations(flow_ref::deref_mut(&mut root_flow),
-                                                               &*animations)
+                                                               &mut animations)
                     });
         }
 
