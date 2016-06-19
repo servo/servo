@@ -42,7 +42,11 @@ fn find_node_by_unique_id(context: &BrowsingContext,
                           pipeline: PipelineId,
                           node_id: String)
                           -> Option<Root<Node>> {
-    let context = &context.find(pipeline).unwrap();
+    let context = match context.find(pipeline) {
+        Some(context) => context,
+        None => return None
+    };
+
     let document = context.active_document();
     document.upcast::<Node>().traverse_preorder().find(|candidate| candidate.unique_id() == node_id)
 }
@@ -71,7 +75,14 @@ pub fn handle_execute_script(context: &BrowsingContext,
                              pipeline: PipelineId,
                              eval: String,
                              reply: IpcSender<WebDriverJSResult>) {
-    let context = &context.find(pipeline).unwrap();
+    let context = match context.find(pipeline) {
+        Some(context) => context,
+        None => {
+            reply.send(Err(WebDriverJSError::BrowsingContextNotFound)).unwrap();
+            return;
+        }
+    };
+
     let window = context.active_window();
     let result = unsafe {
         let cx = window.get_cx();
@@ -86,7 +97,14 @@ pub fn handle_execute_async_script(context: &BrowsingContext,
                                    pipeline: PipelineId,
                                    eval: String,
                                    reply: IpcSender<WebDriverJSResult>) {
-    let context = &context.find(pipeline).unwrap();
+    let context = match context.find(pipeline) {
+       Some(context) => context,
+       None => {
+           reply.send(Err(WebDriverJSError::BrowsingContextNotFound)).unwrap();
+           return;
+       }
+   };
+
     let window = context.active_window();
     let cx = window.get_cx();
     window.set_webdriver_script_chan(Some(reply));
