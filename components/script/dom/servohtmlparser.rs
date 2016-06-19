@@ -33,6 +33,7 @@ use profile_traits::time::{profile, TimerMetadata, TimerMetadataReflowType, Time
 use script_thread::ScriptThread;
 use std::cell::Cell;
 use std::default::Default;
+use time::get_time;
 use url::Url;
 use util::resource_files::read_resource_file;
 
@@ -109,6 +110,10 @@ impl AsyncResponseListener for ParserContext {
                                         Trusted::new(parser)),
         });
 
+        let response_start: Cell<u64> = Cell::new(Default::default());
+        update_with_current_time_ms(&response_start);
+        parser.document().set_response_start(response_start.get());
+
         match content_type {
             Some(ContentType(Mime(TopLevel::Image, _, _))) => {
                 self.is_synthesized_document = true;
@@ -170,6 +175,11 @@ impl AsyncResponseListener for ParserContext {
             Some(parser) => parser.root(),
             None => return,
         };
+
+        let response_end: Cell<u64> = Cell::new(Default::default());
+        update_with_current_time_ms(&response_end);
+        parser.r().document().set_response_end(response_end.get());
+
         parser.r().document().finish_load(LoadType::PageSource(self.url.clone()));
 
         if let Err(err) = status {
@@ -406,5 +416,13 @@ impl JSTraceable for Tokenizer {
         let tree_builder = self.sink();
         tree_builder.trace_handles(tracer);
         tree_builder.sink().trace(trc);
+    }
+}
+
+fn update_with_current_time_ms(marker: &Cell<u64>) {
+    if marker.get() == Default::default() {
+        let time = get_time();
+        let current_time_ms = time.sec * 1000 + time.nsec as i64 / 1000000;
+        marker.set(current_time_ms as u64);
     }
 }
