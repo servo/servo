@@ -91,6 +91,16 @@ impl PerformanceTimingMethods for PerformanceTiming {
         self.document.get_request_start()
     }
 
+    // https://w3c.github.io/navigation-timing/#widl-PerformanceTiming-responseStart
+    fn ResponseStart(&self) -> u64 {
+        self.document.get_response_start()
+    }
+
+    // https://w3c.github.io/navigation-timing/#widl-PerformanceTiming-responseEnd
+    fn ResponseEnd(&self) -> u64 {
+        self.document.get_response_end()
+    }
+
 }
 
 impl PerformanceTiming {

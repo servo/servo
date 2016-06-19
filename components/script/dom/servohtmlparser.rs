@@ -33,6 +33,7 @@ use profile_traits::time::{profile, TimerMetadata, TimerMetadataReflowType, Time
 use script_thread::ScriptThread;
 use std::cell::Cell;
 use std::default::Default;
+use time::get_time;
 use url::Url;
 use util::resource_files::read_resource_file;
 
@@ -109,6 +110,10 @@ impl AsyncResponseListener for ParserContext {
                                         Trusted::new(parser)),
         });
 
+        let response_start: u64 = get_current_time_ms();
+        parser.document().set_response_start(response_start);
+        parser.document().set_response_end(response_start);
+
         match content_type {
             Some(ContentType(Mime(TopLevel::Image, _, _))) => {
                 self.is_synthesized_document = true;
@@ -161,6 +166,10 @@ impl AsyncResponseListener for ParserContext {
                 Some(parser) => parser.root(),
                 None => return,
             };
+
+            let response_end: u64 = get_current_time_ms();
+            parser.r().document().set_response_end(response_end);
+
             parser.r().parse_chunk(data);
         }
     }
@@ -170,6 +179,7 @@ impl AsyncResponseListener for ParserContext {
             Some(parser) => parser.root(),
             None => return,
         };
+
         parser.r().document().finish_load(LoadType::PageSource(self.url.clone()));
 
         if let Err(err) = status {
@@ -407,4 +417,9 @@ impl JSTraceable for Tokenizer {
         tree_builder.trace_handles(tracer);
         tree_builder.sink().trace(trc);
     }
+}
+
+fn get_current_time_ms() -> u64 {
+    let time = get_time();
+    (time.sec * 1000 + time.nsec as i64 / 1000000) as u64
 }

@@ -19,8 +19,8 @@ interface PerformanceTiming {
   readonly attribute unsigned long long connectEnd;
   readonly attribute unsigned long long secureConnectionStart; */
   readonly attribute unsigned long long requestStart;
-  /* readonly attribute unsigned long long responseStart; */
-  /* readonly attribute unsigned long long responseEnd; */
+  readonly attribute unsigned long long responseStart;
+  readonly attribute unsigned long long responseEnd;
   readonly attribute unsigned long long domLoading;
   readonly attribute unsigned long long domInteractive;
   readonly attribute unsigned long long domContentLoadedEventStart;
