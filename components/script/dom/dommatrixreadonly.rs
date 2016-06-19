@@ -20,8 +20,8 @@ use std::f64;
 #[dom_struct]
 pub struct DOMMatrixReadOnly {
     reflector_: Reflector,
-    is2D: Cell<bool>,
     matrix: RefCell<Matrix4D<f64>>,
+    is2D: Cell<bool>,
 }
 
 impl DOMMatrixReadOnly {
