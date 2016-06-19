@@ -4,7 +4,7 @@
 
 #![allow(unsafe_code)]
 
-use animation;
+use animation::{self, Animation};
 use context::{SharedStyleContext, LocalStyleContext};
 use data::PrivateStyleData;
 use dom::{TElement, TNode, TRestyleDamage};
@@ -471,7 +471,10 @@ trait PrivateMatchMethods: TNode
             had_animations_to_expire = animations_to_expire.is_some();
             if let Some(ref animations) = animations_to_expire {
                 for animation in *animations {
-                    animation.property_animation.update(Arc::make_mut(style), 1.0);
+                    // TODO: revisit this code for keyframes
+                    if let Animation::Transition(_, _, ref frame) = *animation {
+                        frame.property_animation.update(Arc::make_mut(style), 1.0);
+                    }
                 }
             }
         }
@@ -489,7 +492,8 @@ trait PrivateMatchMethods: TNode
         if had_running_animations {
             let mut all_running_animations = context.running_animations.write().unwrap();
             for running_animation in all_running_animations.get(&this_opaque).unwrap() {
-                animation::update_style_for_animation::<Self::ConcreteRestyleDamage>(running_animation, style, None);
+                animation::update_style_for_animation::<Self::ConcreteRestyleDamage,
+                    <Self::ConcreteElement as Element>::Impl>(context, running_animation, style, None);
             }
             all_running_animations.remove(&this_opaque);
         }
