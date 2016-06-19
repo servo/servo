@@ -589,9 +589,10 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto", need_clone=
     pub mod computed_value {
         use cssparser::ToCss;
         use std::fmt;
+        use string_cache::Atom;
 
         #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
-        pub struct T(pub Vec<String>);
+        pub struct T(pub Vec<Atom>);
 
         impl ToCss for T {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
@@ -603,7 +604,8 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto", need_clone=
                     if i != 0 {
                         try!(dest.write_str(", "));
                     }
-                    try!(dest.write_str(&name));
+                    // NB: to_string() needed due to geckolib backend.
+                    try!(dest.write_str(&*name.to_string()));
                 }
                 Ok(())
             }
@@ -620,7 +622,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto", need_clone=
     pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
         use std::borrow::Cow;
         Ok(SpecifiedValue(try!(input.parse_comma_separated(|input| {
-            input.expect_ident().map(Cow::into_owned)
+            input.expect_ident().map(Atom::from)
         }))))
     }
 

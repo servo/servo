@@ -67,7 +67,7 @@ pub enum CSSRule<Impl: SelectorImpl> {
 
 #[derive(Debug, HeapSizeOf, PartialEq)]
 pub struct KeyframesRule {
-    pub name: String,
+    pub name: Atom,
     pub keyframes: Vec<Keyframe>,
 }
 
@@ -403,7 +403,7 @@ enum AtRulePrelude {
     /// A @viewport rule prelude.
     Viewport,
     /// A @keyframes rule, with its animation name.
-    Keyframes(String),
+    Keyframes(Atom),
 }
 
 
@@ -505,7 +505,7 @@ impl<'a, 'b, Impl: SelectorImpl> AtRuleParser for NestedRuleParser<'a, 'b, Impl>
             },
             "keyframes" => {
                 let name = try!(input.expect_ident());
-                Ok(AtRuleType::WithBlock(AtRulePrelude::Keyframes(name.into_owned())))
+                Ok(AtRuleType::WithBlock(AtRulePrelude::Keyframes(Atom::from(name))))
             },
             _ => Err(())
         }
