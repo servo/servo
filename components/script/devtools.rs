@@ -25,7 +25,6 @@ use ipc_channel::ipc::IpcSender;
 use js::jsapi::{JSAutoCompartment, ObjectClassName, RootedObject, RootedValue};
 use js::jsval::UndefinedValue;
 use msg::constellation_msg::PipelineId;
-use script_thread::get_browsing_context;
 use std::ffi::CStr;
 use std::str;
 use style::properties::longhands::{margin_top, margin_right, margin_bottom, margin_left};
@@ -69,7 +68,7 @@ pub fn handle_evaluate_js(global: &GlobalRef, eval: String, reply: IpcSender<Eva
 }
 
 pub fn handle_get_root_node(context: &BrowsingContext, pipeline: PipelineId, reply: IpcSender<NodeInfo>) {
-    let context = get_browsing_context(context, pipeline);
+    let context = context.find(pipeline).unwrap();
     let document = context.active_document();
 
     let node = document.upcast::<Node>();
@@ -79,7 +78,7 @@ pub fn handle_get_root_node(context: &BrowsingContext, pipeline: PipelineId, rep
 pub fn handle_get_document_element(context: &BrowsingContext,
                                    pipeline: PipelineId,
                                    reply: IpcSender<NodeInfo>) {
-    let context = get_browsing_context(context, pipeline);
+    let context = context.find(pipeline).unwrap();
     let document = context.active_document();
     let document_element = document.GetDocumentElement().unwrap();
 
@@ -91,17 +90,12 @@ fn find_node_by_unique_id(context: &BrowsingContext,
                           pipeline: PipelineId,
                           node_id: String)
                           -> Root<Node> {
-    let context = get_browsing_context(context, pipeline);
+    let context = context.find(pipeline).unwrap();
     let document = context.active_document();
     let node = document.upcast::<Node>();
 
-    for candidate in node.traverse_preorder() {
-        if candidate.unique_id() == node_id {
-            return candidate;
-        }
-    }
-
-    panic!("couldn't find node with unique id {}", node_id)
+    node.traverse_preorder().find(|candidate| candidate.unique_id() == node_id)
+        .expect(&format!("couldn't find node with unique id {}", node_id))
 }
 
 pub fn handle_get_children(context: &BrowsingContext,
