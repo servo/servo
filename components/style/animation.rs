@@ -8,6 +8,8 @@ use app_units::Au;
 use bezier::Bezier;
 use euclid::point::Point2D;
 use dom::{OpaqueNode, TRestyleDamage};
+use keyframes::KeyframesAnimation;
+use keyframes::KeyframesStep;
 use properties::animated_properties::{AnimatedProperty, TransitionProperty};
 use properties::longhands::transition_timing_function::computed_value::StartEnd;
 use properties::longhands::transition_timing_function::computed_value::TransitionTimingFunction;
@@ -17,10 +19,22 @@ use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
 use time;
 use values::computed::Time;
+use selector_impl::SelectorImplExt;
+use context::SharedStyleContext;
+use selectors::matching::DeclarationBlock;
+use properties;
+
+#[derive(Clone, Debug)]
+pub enum AnimationKind {
+    Transition,
+    Keyframe,
+}
 
 /// State relating to an animation.
 #[derive(Clone)]
 pub struct Animation {
+    /// The kind of animation, either a transition or a keyframe.
+    pub kind: AnimationKind,
     /// An opaque reference to the DOM node participating in the animation.
     pub node: OpaqueNode,
     /// A description of the property animation that is occurring.
@@ -164,7 +178,7 @@ pub fn start_transitions_if_applicable<C: ComputedValues>(new_animations_sender:
     let mut had_animations = false;
     for i in 0..new_style.get_box().transition_count() {
         // Create any property animations, if applicable.
-        let property_animations = PropertyAnimation::from_transition(i, old_style.as_servo(), new_style.as_servo_mut());
+        let property_animations = PropertyAnimation::from_transition(i, old_style, new_style);
         for property_animation in property_animations {
             // Set the property to the initial value.
             property_animation.update(new_style, 0.0);
@@ -175,6 +189,7 @@ pub fn start_transitions_if_applicable<C: ComputedValues>(new_animations_sender:
             let start_time =
                 now + (box_style.transition_delay.0.get_mod(i).seconds() as f64);
             new_animations_sender.lock().unwrap().send(Animation {
+                kind: AnimationKind::Transition,
                 node: node,
                 property_animation: property_animation,
                 start_time: start_time,
@@ -183,6 +198,99 @@ pub fn start_transitions_if_applicable<C: ComputedValues>(new_animations_sender:
             }).unwrap();
 
             had_animations = true
+        }
+    }
+
+    had_animations
+}
+
+fn compute_style_for_animation_step<Impl: SelectorImplExt>(context: &SharedStyleContext<Impl>,
+                                                           step: &KeyframesStep,
+                                                           old_style: &Impl::ComputedValues) -> Impl::ComputedValues {
+    let declaration_block = DeclarationBlock {
+        declarations: step.declarations.clone(),
+        source_order: 0,
+        specificity: ::std::u32::MAX,
+    };
+    let (computed, _) = properties::cascade(context.viewport_size,
+                                            &[declaration_block],
+                                            false,
+                                            Some(old_style),
+                                            None,
+                                            context.error_reporter.clone());
+    computed
+}
+
+pub fn maybe_start_animations<Impl: SelectorImplExt>(context: &SharedStyleContext<Impl>,
+                                                     node: OpaqueNode,
+                                                     new_style: &Impl::ComputedValues) -> bool
+{
+    let mut had_animations = false;
+
+    for (i, name) in new_style.as_servo().get_box().animation_name.0.iter().enumerate() {
+        debug!("maybe_start_animations: name={}", name);
+        let total_duration = new_style.as_servo().get_box().animation_duration.0.get_mod(i).seconds();
+        if total_duration == 0. {
+            continue
+        }
+
+        // TODO: This should be factored out, too much indentation.
+        if let Some(ref animation) = context.stylist.animations().get(&**name) {
+            debug!("maybe_start_animations: found animation {}", name);
+            had_animations = true;
+            let mut last_keyframe_style = compute_style_for_animation_step(context,
+                                                                           &animation.steps[0],
+                                                                           new_style);
+            // Apply the style inmediately. TODO: clone()...
+            // *new_style = last_keyframe_style.clone();
+
+            let mut ongoing_animation_percentage = animation.steps[0].duration_percentage.0;
+            let delay = new_style.as_servo().get_box().animation_delay.0.get_mod(i).seconds();
+            let animation_start = time::precise_time_s() + delay as f64;
+
+            // TODO: We can probably be smarter here and batch steps out or
+            // something.
+            for step in &animation.steps[1..] {
+                for transition_property in &animation.properties_changed {
+                    debug!("maybe_start_animations: processing animation prop {:?} for animation {}", transition_property, name);
+
+                    let new_keyframe_style = compute_style_for_animation_step(context,
+                                                                              step,
+                                                                              &last_keyframe_style);
+                    // NB: This will get the previous frame timing function, or
+                    // the old one if caught, which is what the spec says.
+                    //
+                    // We might need to reset to the initial timing function
+                    // though.
+                    let timing_function =
+                        *last_keyframe_style.as_servo()
+                                            .get_box().animation_timing_function.0.get_mod(i);
+
+                    let percentage = step.duration_percentage.0;
+                    let this_keyframe_duration = total_duration * percentage;
+                    if let Some(property_animation) = PropertyAnimation::from_transition_property(*transition_property,
+                                                                                                  timing_function,
+                                                                                                  Time(this_keyframe_duration),
+                                                                                                  &last_keyframe_style,
+                                                                                                  &new_keyframe_style) {
+                        debug!("maybe_start_animations: got property animation for prop {:?}", transition_property);
+
+                        let relative_start_time = ongoing_animation_percentage * total_duration;
+                        let start_time = animation_start + relative_start_time as f64;
+                        let end_time = start_time + (relative_start_time + this_keyframe_duration) as f64;
+                        context.new_animations_sender.lock().unwrap().send(Animation {
+                            kind: AnimationKind::Keyframe,
+                            node: node,
+                            property_animation: property_animation,
+                            start_time: start_time,
+                            end_time: end_time,
+                        }).unwrap();
+                    }
+
+                    last_keyframe_style = new_keyframe_style;
+                    ongoing_animation_percentage += percentage;
+                }
+            }
         }
     }
 
@@ -204,7 +312,7 @@ pub fn update_style_for_animation<Damage: TRestyleDamage>(animation: &Animation,
     }
 
     let mut new_style = (*style).clone();
-    animation.property_animation.update(Arc::make_mut(&mut new_style).as_servo_mut(), progress);
+    animation.property_animation.update(Arc::make_mut(&mut new_style), progress);
     if let Some(damage) = damage {
         *damage = *damage | Damage::compute(Some(style), &new_style);
     }
