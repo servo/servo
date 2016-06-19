@@ -48,14 +48,14 @@ impl UIProvider for TFDProvider {
     }
 
     #[cfg(not(any(target_os = "macos", target_os = "linux")))]
-    fn open_file_dialog(&self, path: &str,
-                        filter: Option<(&[&str], &str)>) -> Option<String> {
+    fn open_file_dialog(&self, _path: &str,
+                        _filter: Option<(&[&str], &str)>) -> Option<String> {
         None
     }
 
     #[cfg(not(any(target_os = "macos", target_os = "linux")))]
-    fn open_file_dialog_multi(&self, path: &str,
-                              filter: Option<(&[&str], &str)>) -> Option<Vec<String>> {
+    fn open_file_dialog_multi(&self, _path: &str,
+                              _filter: Option<(&[&str], &str)>) -> Option<Vec<String>> {
         None
     }
 }
