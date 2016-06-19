@@ -35,6 +35,7 @@ use profile_traits::time::{TimerMetadataReflowType, ProfilerCategory, profile};
 use script_thread::ScriptThread;
 use std::cell::Cell;
 use std::collections::VecDeque;
+use time::get_time;
 use url::Url;
 use util::resource_files::read_resource_file;
 use xml5ever::tokenizer::XmlTokenizer;
@@ -366,6 +367,10 @@ impl FetchResponseListener for ParserContext {
 
         self.parser = Some(Trusted::new(&*parser));
 
+        let response_start: u64 = get_current_time_ms();
+        parser.document().set_response_start(response_start);
+        parser.document().set_response_end(response_start);
+
         match content_type {
             Some(ContentType(Mime(TopLevel::Image, _, _))) => {
                 self.is_synthesized_document = true;
@@ -426,6 +431,10 @@ impl FetchResponseListener for ParserContext {
                 Some(parser) => parser.root(),
                 None => return,
             };
+
+            let response_end: u64 = get_current_time_ms();
+            parser.document().set_response_end(response_end);
+
             parser.parse_chunk(data);
         }
     }
@@ -461,3 +470,8 @@ impl FetchResponseListener for ParserContext {
 }
 
 impl PreInvoke for ParserContext {}
+
+fn get_current_time_ms() -> u64 {
+    let time = get_time();
+    (time.sec * 1000 + time.nsec as i64 / 1000000) as u64
+}
