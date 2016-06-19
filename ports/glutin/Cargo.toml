@@ -17,7 +17,7 @@ log = "0.3.5"
 msg = {path = "../../components/msg"}
 net_traits = {path = "../../components/net_traits"}
 script_traits = {path = "../../components/script_traits"}
-servo-glutin = "0.4"
+servo-glutin = { git = "https://github.com/servo/glutin"}
 style_traits = {path = "../../components/style_traits"}
 url = {version = "1.0.0", features = ["heap_size"]}
 util = {path = "../../components/util"}
