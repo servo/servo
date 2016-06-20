@@ -4,6 +4,7 @@
 
 //! CSS transitions and animations.
 
+use context::SharedLayoutContext;
 use flow::{self, Flow};
 use gfx::display_list::OpaqueNode;
 use incremental::RestyleDamage;
@@ -13,7 +14,7 @@ use script_traits::{AnimationState, LayoutMsg as ConstellationMsg};
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::sync::mpsc::Receiver;
-use style::animation::{Animation, update_style_for_animation};
+use style::animation::{Animation, KeyframesAnimationState, KeyframesIterationState, update_style_for_animation};
 use time;
 
 /// Processes any new animations that were discovered after style recalculation.
@@ -39,15 +40,33 @@ pub fn update_animation_state(constellation_chan: &IpcSender<ConstellationMsg>,
     let mut keys_to_remove = vec![];
     for (key, running_animations) in running_animations.iter_mut() {
         let mut animations_still_running = vec![];
-        for running_animation in running_animations.drain(..) {
-            if now < running_animation.end_time {
+        for mut running_animation in running_animations.drain(..) {
+            let still_running = match running_animation {
+                Animation::Transition(_, started_at, ref frame) => {
+                    now < started_at + frame.duration
+                }
+                Animation::Keyframes(_, _, ref mut state) => {
+                    // This animation is still running, or we need to keep
+                    // iterating.
+                    now < state.started_at + state.duration ||
+                    match state.iteration_state {
+                        KeyframesIterationState::Finite(ref mut current, ref max) => {
+                            *current += 1;
+                            *current < *max
+                        }
+                        KeyframesIterationState::Infinite => {
+                            state.started_at += state.duration;
+                            true
+                        }
+                    }
+                }
+            };
+
+            if still_running {
                 animations_still_running.push(running_animation);
                 continue
-            } else if running_animation.state.pending_iterations > 0 {
-                // if the animation should run again, just tick it...
-                let duration = running_animation.end_time - running_animation.start_time;
-                running_animation.start_time += duration;
             }
+
             expired_animations.entry(*key)
                               .or_insert_with(Vec::new)
                               .push(running_animation);
@@ -59,40 +78,41 @@ pub fn update_animation_state(constellation_chan: &IpcSender<ConstellationMsg>,
             *running_animations = animations_still_running
         }
     }
+
     for key in keys_to_remove {
         running_animations.remove(&key).unwrap();
     }
 
     // Add new running animations.
     for new_running_animation in new_running_animations {
-        match running_animations.entry(new_running_animation.node) {
-            Entry::Vacant(entry) => {
-                entry.insert(vec![new_running_animation]);
-            }
-            Entry::Occupied(mut entry) => entry.get_mut().push(new_running_animation),
-        }
+        running_animations.entry(*new_running_animation.node())
+                          .or_insert_with(Vec::new)
+                          .push(new_running_animation);
     }
 
-    let animation_state;
-    if running_animations.is_empty() {
-        animation_state = AnimationState::NoAnimationsPresent;
+    let animation_state = if running_animations.is_empty() {
+        AnimationState::NoAnimationsPresent
     } else {
-        animation_state = AnimationState::AnimationsPresent;
-    }
+        AnimationState::AnimationsPresent
+    };
 
     constellation_chan.send(ConstellationMsg::ChangeRunningAnimationsState(pipeline_id, animation_state))
                       .unwrap();
 }
 
 /// Recalculates style for a set of animations. This does *not* run with the DOM lock held.
-pub fn recalc_style_for_animations(flow: &mut Flow,
+pub fn recalc_style_for_animations(context: &SharedLayoutContext,
+                                   flow: &mut Flow,
                                    animations: &mut HashMap<OpaqueNode, Vec<Animation>>) {
     let mut damage = RestyleDamage::empty();
     flow.mutate_fragments(&mut |fragment| {
-        if let Some(ref animations) = animations.get_mut(&fragment.node) {
-            for mut animation in *animations {
+        if let Some(ref mut animations) = animations.get_mut(&fragment.node) {
+            for ref mut animation in animations.iter_mut() {
                 if !animation.is_paused() {
-                    update_style_for_animation(animation, &mut fragment.style, Some(&mut damage));
+                    update_style_for_animation(&context.style_context,
+                                               animation,
+                                               &mut fragment.style,
+                                               Some(&mut damage));
                     animation.increment_keyframe_if_applicable();
                 }
             }
@@ -102,6 +122,6 @@ pub fn recalc_style_for_animations(flow: &mut Flow,
     let base = flow::mut_base(flow);
     base.restyle_damage.insert(damage);
     for kid in base.children.iter_mut() {
-        recalc_style_for_animations(kid, animations)
+        recalc_style_for_animations(context, kid, animations)
     }
 }

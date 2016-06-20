@@ -58,7 +58,30 @@ pub enum Animation {
     Keyframes(OpaqueNode, Atom, KeyframesAnimationState),
 }
 
-/// A keyframes animation previously sent to layout.
+impl Animation {
+    pub fn node(&self) -> &OpaqueNode {
+        match *self {
+            Animation::Transition(ref node, _, _) => node,
+            Animation::Keyframes(ref node, _, _) => node,
+        }
+    }
+
+    pub fn is_paused(&self) -> bool {
+        match *self {
+            Animation::Transition(..) => false,
+            Animation::Keyframes(_, _, ref state) => state.paused,
+        }
+    }
+
+    pub fn increment_keyframe_if_applicable(&mut self) {
+        if let Animation::Keyframes(_, _, ref mut state) = *self {
+            if let KeyframesIterationState::Finite(ref mut iterations, _) = state.iteration_state {
+                *iterations += 1;
+            }
+        }
+    }
+}
+
 
 /// A single animation frame of a single property.
 #[derive(Debug, Clone)]
@@ -250,7 +273,8 @@ pub fn maybe_start_animations<Impl: SelectorImplExt>(context: &SharedStyleContex
             continue
         }
 
-        if let Some(ref animation) = context.stylist.animations().get(&name) {
+        if context.stylist.animations().get(&name).is_some() {
+            debug!("maybe_start_animations: animation {} found", name);
             let delay = box_style.animation_delay.0.get_mod(i).seconds();
             let animation_start = time::precise_time_s() + delay as f64;
             let duration = box_style.animation_duration.0.get_mod(i).seconds();
@@ -302,9 +326,11 @@ pub fn update_style_for_animation<Damage, Impl>(context: &SharedStyleContext<Imp
                                                 damage: Option<&mut Damage>)
 where Impl: SelectorImplExt,
       Damage: TRestyleDamage<ConcreteComputedValues = Impl::ComputedValues> {
+    debug!("update_style_for_animation: entering");
     let now = time::precise_time_s();
     match *animation {
         Animation::Transition(_, start_time, ref frame) => {
+            debug!("update_style_for_animation: transition found");
             let mut new_style = (*style).clone();
             let updated_style = update_style_for_animation_frame(&mut new_style,
                                                                  now, start_time,
@@ -318,6 +344,7 @@ where Impl: SelectorImplExt,
             }
         }
         Animation::Keyframes(_, ref name, ref state) => {
+            debug!("update_style_for_animation: animation found {:?}", name);
             debug_assert!(!state.paused);
             let duration = state.duration;
             let started_at = state.started_at;
@@ -364,8 +391,8 @@ where Impl: SelectorImplExt,
             for i in 1..animation.steps.len() {
                 if total_progress as f32 <= animation.steps[i].start_percentage.0 {
                     // We might have found our current keyframe.
-                    target_keyframe = Some(&animation.steps[i]);
                     last_keyframe = target_keyframe;
+                    target_keyframe = Some(&animation.steps[i]);
                 }
             }
 
@@ -409,6 +436,7 @@ where Impl: SelectorImplExt,
             let mut style_changed = false;
 
             for transition_property in &animation.properties_changed {
+                debug!("update_style_for_animation: scanning prop {:?} for animation {}", transition_property, name);
                 if let Some(property_animation) = PropertyAnimation::from_transition_property(*transition_property,
                                                                                               timing_function,
                                                                                               Time(relative_duration as f32),
@@ -421,6 +449,7 @@ where Impl: SelectorImplExt,
             }
 
             if style_changed {
+                debug!("update_style_for_animation: got style change in animation {:?}", name);
                 if let Some(damage) = damage {
                     *damage = *damage | Damage::compute(Some(style), &new_style);
                 }
