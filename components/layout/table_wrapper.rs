@@ -206,7 +206,7 @@ impl TableWrapperFlow {
 
     fn compute_used_inline_size(
             &mut self,
-            layout_context: &LayoutContext,
+            shared_context: &SharedStyleContext,
             parent_flow_inline_size: Au,
             intermediate_column_inline_sizes: &[IntermediateColumnInlineSize]) {
         let (border_padding, spacing) = self.border_padding_and_spacing();
@@ -235,7 +235,7 @@ impl TableWrapperFlow {
             let input =
                 inline_size_computer.compute_inline_size_constraint_inputs(&mut self.block_flow,
                                                                            parent_flow_inline_size,
-                                                                           layout_context.shared_context());
+                                                                           shared_context);
 
             let solution = inline_size_computer.solve_inline_size_constraints(&mut self.block_flow,
                                                                               &input);
@@ -255,7 +255,7 @@ impl TableWrapperFlow {
             let input =
                 inline_size_computer.compute_inline_size_constraint_inputs(&mut self.block_flow,
                                                                            parent_flow_inline_size,
-                                                                           layout_context.shared_context());
+                                                                           shared_context);
 
             let solution = inline_size_computer.solve_inline_size_constraints(&mut self.block_flow,
                                                                               &input);
@@ -274,7 +274,7 @@ impl TableWrapperFlow {
         let input =
             inline_size_computer.compute_inline_size_constraint_inputs(&mut self.block_flow,
                                                                        parent_flow_inline_size,
-                                                                       layout_context.shared_context());
+                                                                       shared_context);
 
         let solution = inline_size_computer.solve_inline_size_constraints(&mut self.block_flow,
                                                                           &input);
@@ -346,7 +346,7 @@ impl Flow for TableWrapperFlow {
                 containing_block_inline_size;
         }
 
-        self.compute_used_inline_size(layout_context,
+        self.compute_used_inline_size(layout_context.shared_context(),
                                       containing_block_inline_size,
                                       &intermediate_column_inline_sizes);
 
