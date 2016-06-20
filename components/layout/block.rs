@@ -2276,10 +2276,10 @@ pub trait ISizeAndMarginsComputer {
     fn compute_inline_size_constraint_inputs(&self,
                                              block: &mut BlockFlow,
                                              parent_flow_inline_size: Au,
-                                             layout_context: &LayoutContext)
+                                             shared_context: &SharedStyleContext)
                                              -> ISizeConstraintInput {
         let containing_block_inline_size =
-            self.containing_block_inline_size(block, parent_flow_inline_size, layout_context.shared_context());
+            self.containing_block_inline_size(block, parent_flow_inline_size, shared_context);
 
         block.fragment.compute_block_direction_margins(containing_block_inline_size);
         block.fragment.compute_inline_direction_margins(containing_block_inline_size);
@@ -2287,7 +2287,7 @@ pub trait ISizeAndMarginsComputer {
 
         let mut computed_inline_size = self.initial_computed_inline_size(block,
                                                                          parent_flow_inline_size,
-                                                                         layout_context.shared_context());
+                                                                         shared_context);
         let style = block.fragment.style();
         match (computed_inline_size, style.get_position().box_sizing) {
             (MaybeAuto::Specified(size), box_sizing::T::border_box) => {
@@ -2407,7 +2407,7 @@ pub trait ISizeAndMarginsComputer {
                                 parent_flow_inline_size: Au) {
         let mut input = self.compute_inline_size_constraint_inputs(block,
                                                                    parent_flow_inline_size,
-                                                                   layout_context);
+                                                                   layout_context.shared_context());
 
         let containing_block_inline_size =
             self.containing_block_inline_size(block, parent_flow_inline_size, layout_context.shared_context());

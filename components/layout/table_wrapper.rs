@@ -30,6 +30,7 @@ use std::fmt;
 use std::ops::Add;
 use std::sync::Arc;
 use style::computed_values::{border_collapse, table_layout};
+use style::context::StyleContext;
 use style::logical_geometry::LogicalSize;
 use style::properties::{ComputedValues, ServoComputedValues};
 use style::servo::SharedStyleContext;
@@ -234,7 +235,7 @@ impl TableWrapperFlow {
             let input =
                 inline_size_computer.compute_inline_size_constraint_inputs(&mut self.block_flow,
                                                                            parent_flow_inline_size,
-                                                                           layout_context);
+                                                                           layout_context.shared_context());
 
             let solution = inline_size_computer.solve_inline_size_constraints(&mut self.block_flow,
                                                                               &input);
@@ -254,7 +255,7 @@ impl TableWrapperFlow {
             let input =
                 inline_size_computer.compute_inline_size_constraint_inputs(&mut self.block_flow,
                                                                            parent_flow_inline_size,
-                                                                           layout_context);
+                                                                           layout_context.shared_context());
 
             let solution = inline_size_computer.solve_inline_size_constraints(&mut self.block_flow,
                                                                               &input);
@@ -273,7 +274,7 @@ impl TableWrapperFlow {
         let input =
             inline_size_computer.compute_inline_size_constraint_inputs(&mut self.block_flow,
                                                                        parent_flow_inline_size,
-                                                                       layout_context);
+                                                                       layout_context.shared_context());
 
         let solution = inline_size_computer.solve_inline_size_constraints(&mut self.block_flow,
                                                                           &input);

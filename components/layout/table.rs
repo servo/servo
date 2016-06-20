@@ -25,6 +25,7 @@ use std::cmp;
 use std::fmt;
 use std::sync::Arc;
 use style::computed_values::{border_collapse, border_spacing, table_layout};
+use style::context::StyleContext;
 use style::logical_geometry::LogicalSize;
 use style::properties::{ComputedValues, ServoComputedValues};
 use style::values::CSSFloat;
@@ -521,7 +522,7 @@ impl ISizeAndMarginsComputer for InternalTable {
                                 parent_flow_inline_size: Au) {
         let mut input = self.compute_inline_size_constraint_inputs(block,
                                                                    parent_flow_inline_size,
-                                                                   layout_context);
+                                                                   layout_context.shared_context());
 
         // Tables are always at least as wide as their minimum inline size.
         let minimum_inline_size =
