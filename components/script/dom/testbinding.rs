@@ -571,6 +571,8 @@ impl TestBindingMethods for TestBinding {
     fn FuncControlledAttributeEnabled(&self) -> bool { false }
     fn FuncControlledMethodDisabled(&self) {}
     fn FuncControlledMethodEnabled(&self) {}
+
+    fn Panic(&self) { panic!("explicit panic from script") }
 }
 
 impl TestBinding {

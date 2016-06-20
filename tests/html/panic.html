@@ -1,0 +1,16 @@
+<!-- To exercise these tests, set the `dom.testbinding.enabled` to true.
+     It is expected that the browser will not abort due to failed JS engine assertions. -->
+
+<!-- Straightforward test - invoking a panic from a toplevel script execution -->
+<script>
+(new TestBinding()).panic();
+</script>
+
+<!-- invoking a panic from an event handler which is invoked by native code -->
+<!--<iframe src="data:,hi there" onload="(new TestBinding()).panic()"></iframe>-->
+
+<!-- invoking a panic from an event handler which is invoked by script -->
+<!--<div onclick="(new TestBinding()).panic()"></div>
+<script>
+document.querySelector('div').click();
+</script>-->
