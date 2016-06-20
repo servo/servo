@@ -15,8 +15,8 @@ interface HTMLSelectElement : HTMLElement {
   readonly attribute DOMString type;
 
   //readonly attribute HTMLOptionsCollection options;
-  //         attribute unsigned long length;
-  //getter Element? item(unsigned long index);
+           attribute unsigned long length;
+  getter Element? item(unsigned long index);
   //HTMLOptionElement? namedItem(DOMString name);
   // Note: this function currently only exists for union.html.
   void add((HTMLOptionElement or HTMLOptGroupElement) element, optional (HTMLElement or long)? before = null);

@@ -182,6 +182,25 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
     fn Labels(&self) -> Root<NodeList> {
         self.upcast::<HTMLElement>().labels()
     }
+
+    #[allow(unused_variables)]
+    fn Item(&self, index: u32) -> Option<Root<Element>> {
+        None
+    }
+
+    #[allow(unused_variables)]
+    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Root<Element>> {
+        *found = false;
+        None
+    }
+
+    fn Length(&self) -> u32 {
+        0
+    }
+
+    #[allow(unused_variables)]
+    fn SetLength(&self, value: u32) {
+    }
 }
 
 impl VirtualMethods for HTMLSelectElement {
