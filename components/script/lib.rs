@@ -65,10 +65,12 @@ extern crate phf;
 #[macro_use]
 extern crate profile_traits;
 extern crate rand;
+extern crate range;
 extern crate ref_filter_map;
 extern crate ref_slice;
 extern crate regex;
 extern crate rustc_serialize;
+extern crate script_layout_interface;
 extern crate script_traits;
 extern crate selectors;
 extern crate serde;
@@ -93,12 +95,11 @@ mod devtools;
 pub mod document_loader;
 #[macro_use]
 pub mod dom;
-pub mod layout_interface;
+pub mod layout_wrapper;
 mod mem;
 mod network_listener;
 pub mod origin;
 pub mod parse;
-pub mod reporter;
 pub mod script_runtime;
 #[allow(unsafe_code)]
 pub mod script_thread;

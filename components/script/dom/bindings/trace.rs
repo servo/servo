@@ -55,7 +55,6 @@ use js::glue::{CallObjectTracer, CallUnbarrieredObjectTracer, CallValueTracer};
 use js::jsapi::{GCTraceKindToAscii, Heap, TraceKind, JSObject, JSTracer};
 use js::jsval::JSVal;
 use js::rust::Runtime;
-use layout_interface::LayoutRPC;
 use libc;
 use msg::constellation_msg::{FrameType, PipelineId, SubpageId, WindowSizeData, WindowSizeType, ReferrerPolicy};
 use net_traits::filemanager_thread::SelectedFileId;
@@ -67,6 +66,9 @@ use net_traits::{Metadata, NetworkError, ResourceThreads};
 use offscreen_gl_context::GLLimits;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
+use script_layout_interface::OpaqueStyleAndLayoutData;
+use script_layout_interface::reporter::CSSErrorReporter;
+use script_layout_interface::rpc::LayoutRPC;
 use script_runtime::ScriptChan;
 use script_traits::{TimerEventId, TimerSource, TouchpadPressurePhase, UntrustedNodeAddress};
 use serde::{Deserialize, Serialize};
@@ -328,6 +330,8 @@ no_jsmanaged_fields!(ReferrerPolicy);
 no_jsmanaged_fields!(ResourceThreads);
 no_jsmanaged_fields!(SystemTime);
 no_jsmanaged_fields!(SelectedFileId);
+no_jsmanaged_fields!(OpaqueStyleAndLayoutData);
+no_jsmanaged_fields!(CSSErrorReporter);
 
 impl JSTraceable for Box<ScriptChan + Send> {
     #[inline]

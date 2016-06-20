@@ -1,48 +1,33 @@
 [package]
-name = "layout"
+name = "script_layout_interface"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
 publish = false
 
 [lib]
-name = "layout"
+name = "script_layout_interface"
 path = "lib.rs"
 
 [dependencies]
 app_units = {version = "0.2.3", features = ["plugins"]}
-azure = {git = "https://github.com/servo/rust-azure", features = ["plugins"]}
 bitflags = "0.7"
 canvas_traits = {path = "../canvas_traits"}
 cssparser = {version = "0.5.4", features = ["heap_size", "serde-serialization"]}
 euclid = {version = "0.6.4", features = ["plugins"]}
-fnv = "1.0"
-gfx = {path = "../gfx"}
 gfx_traits = {path = "../gfx_traits"}
 heapsize = "0.3.0"
 heapsize_plugin = "0.1.2"
 ipc-channel = {git = "https://github.com/servo/ipc-channel"}
-layout_traits = {path = "../layout_traits"}
 libc = "0.2"
 log = "0.3.5"
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
-plugins = {path = "../plugins"}
 profile_traits = {path = "../profile_traits"}
+plugins = {path = "../plugins"}
 range = {path = "../range"}
-rustc-serialize = "0.3"
-script = {path = "../script"}
-script_layout_interface = {path = "../script_layout_interface"}
 script_traits = {path = "../script_traits"}
 selectors = {version = "0.6", features = ["heap_size"]}
-serde_json = "0.7"
-serde_macros = "0.7"
-smallvec = "0.1"
 string_cache = {version = "0.2.20", features = ["heap_size"]}
 style = {path = "../style"}
-style_traits = {path = "../style_traits"}
-time = "0.1"
-unicode-bidi = "0.2"
-unicode-script = {version = "0.1", features = ["harfbuzz"]}
 url = {version = "1.0.0", features = ["heap_size"]}
 util = {path = "../util"}
-webrender_traits = {git = "https://github.com/servo/webrender_traits"}

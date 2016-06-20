@@ -10,22 +10,30 @@ use display_list_builder::DisplayListBuildState;
 use flow::{CAN_BE_FRAGMENTED, Flow, ImmutableFlowUtils, PostorderFlowTraversal};
 use flow::{PreorderFlowTraversal, self};
 use gfx::display_list::OpaqueNode;
-use incremental::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, RestyleDamage};
+use script_layout_interface::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, RestyleDamage};
+use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
 use std::mem;
 use style::context::StyleContext;
+use style::dom::TNode;
 use style::matching::MatchMethods;
+use style::properties::ServoComputedValues;
+use style::selector_impl::ServoSelectorImpl;
 use style::traversal::{DomTraversalContext, STYLE_BLOOM};
 use style::traversal::{put_thread_local_bloom_filter, recalc_style_at};
 use util::opts;
 use util::tid::tid;
-use wrapper::{LayoutNode, ServoLayoutNode, ThreadSafeLayoutNode};
+use wrapper::{LayoutNodeLayoutData, ThreadSafeLayoutNodeHelpers};
 
 pub struct RecalcStyleAndConstructFlows<'lc> {
     context: LayoutContext<'lc>,
     root: OpaqueNode,
 }
 
-impl<'lc, 'ln> DomTraversalContext<ServoLayoutNode<'ln>> for RecalcStyleAndConstructFlows<'lc> {
+impl<'lc, N> DomTraversalContext<N> for RecalcStyleAndConstructFlows<'lc>
+    where N: LayoutNode + TNode<ConcreteComputedValues=ServoComputedValues>,
+          N::ConcreteElement: ::selectors::Element<Impl=ServoSelectorImpl>
+
+{
     type SharedContext = SharedLayoutContext;
     #[allow(unsafe_code)]
     fn new<'a>(shared: &'a Self::SharedContext, root: OpaqueNode) -> Self {
@@ -65,7 +73,7 @@ impl<'lc, 'ln> DomTraversalContext<ServoLayoutNode<'ln>> for RecalcStyleAndConst
         }
     }
 
-    fn process_preorder(&self, node: ServoLayoutNode<'ln>) {
+    fn process_preorder(&self, node: N) {
         // FIXME(pcwalton): Stop allocating here. Ideally this should just be done by the HTML
         // parser.
         node.initialize_data();
@@ -73,7 +81,7 @@ impl<'lc, 'ln> DomTraversalContext<ServoLayoutNode<'ln>> for RecalcStyleAndConst
         recalc_style_at(&self.context, self.root, node);
     }
 
-    fn process_postorder(&self, node: ServoLayoutNode<'ln>) { construct_flows_at(&self.context, self.root, node); }
+    fn process_postorder(&self, node: N) { construct_flows_at(&self.context, self.root, node); }
 }
 
 /// A bottom-up, parallelizable traversal.

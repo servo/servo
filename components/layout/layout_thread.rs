@@ -29,8 +29,7 @@ use gfx::font_context;
 use gfx::paint_thread::LayoutToPaintMsg;
 use gfx_traits::{color, Epoch, FragmentType, LayerId, ScrollPolicy, StackingContextId};
 use heapsize::HeapSizeOf;
-use incremental::LayoutDamageComputation;
-use incremental::{REPAINT, STORE_OVERFLOW, REFLOW_OUT_OF_FLOW, REFLOW, REFLOW_ENTIRE_DOCUMENT};
+use incremental::{LayoutDamageComputation, REFLOW_ENTIRE_DOCUMENT};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout_debug;
@@ -47,15 +46,19 @@ use query::process_offset_parent_query;
 use query::{LayoutRPCImpl, process_content_box_request, process_content_boxes_request};
 use query::{process_node_geometry_request, process_node_layer_id_request, process_node_scroll_area_request};
 use query::{process_node_overflow_request, process_resolved_style_request, process_margin_style_query};
-use script::layout_interface::OpaqueStyleAndLayoutData;
-use script::layout_interface::{LayoutRPC, OffsetParentResponse, NodeOverflowResponse, MarginStyleResponse};
-use script::layout_interface::{Msg, NewLayoutThreadInfo, Reflow, ReflowQueryType, ScriptReflow};
-use script::reporter::CSSErrorReporter;
+use script::layout_wrapper::ServoLayoutNode;
+use script_layout_interface::message::{Msg, NewLayoutThreadInfo, Reflow, ReflowQueryType, ScriptReflow};
+use script_layout_interface::reporter::CSSErrorReporter;
+use script_layout_interface::restyle_damage::{REPAINT, STORE_OVERFLOW, REFLOW_OUT_OF_FLOW, REFLOW};
+use script_layout_interface::rpc::{LayoutRPC, MarginStyleResponse, NodeOverflowResponse, OffsetParentResponse};
+use script_layout_interface::wrapper_traits::LayoutNode;
+use script_layout_interface::{OpaqueStyleAndLayoutData, PartialStyleAndLayoutData};
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutMsg as ConstellationMsg};
 use script_traits::{StackingContextScrollState, UntrustedNodeAddress};
 use sequential;
 use serde_json;
 use std::borrow::ToOwned;
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
 use std::ops::{Deref, DerefMut};
@@ -84,7 +87,7 @@ use util::thread_state;
 use util::workqueue::WorkQueue;
 use webrender_helpers::{WebRenderDisplayListConverter, WebRenderFrameBuilder};
 use webrender_traits;
-use wrapper::{LayoutNode, NonOpaqueStyleAndLayoutData, ServoLayoutNode};
+use wrapper::{LayoutNodeLayoutData, NonOpaqueStyleAndLayoutData};
 
 /// The number of screens of data we're allowed to generate display lists for in each direction.
 pub const DISPLAY_PORT_SIZE_FACTOR: i32 = 8;
@@ -1480,7 +1483,7 @@ impl LayoutThread {
     /// Handles a message to destroy layout data. Layout data must be destroyed on *this* thread
     /// because the struct type is transmuted to a different type on the script side.
     unsafe fn handle_reap_style_and_layout_data(&self, data: OpaqueStyleAndLayoutData) {
-        let ptr: *mut () = *data.ptr;
+        let ptr: *mut RefCell<PartialStyleAndLayoutData> = *data.ptr;
         let non_opaque: NonOpaqueStyleAndLayoutData = ptr as *mut _;
         let _ = Box::from_raw(non_opaque);
     }

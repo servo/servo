@@ -10,6 +10,7 @@ use script::dom::htmlelement::HTMLElement;
 use script::dom::htmlspanelement::HTMLSpanElement;
 use script::dom::node::Node;
 use script::dom::text::Text;
+use script::layout_wrapper::ServoThreadSafeLayoutNode;
 use std::mem::size_of;
 
 // Macro so that we can stringify type names
@@ -45,3 +46,4 @@ sizeof_checker!(size_div, HTMLDivElement, 328);
 sizeof_checker!(size_span, HTMLSpanElement, 328);
 sizeof_checker!(size_text, Text, 192);
 sizeof_checker!(size_characterdata, CharacterData, 192);
+sizeof_checker!(size_servothreadsafelayoutnode, ServoThreadSafeLayoutNode, 16);

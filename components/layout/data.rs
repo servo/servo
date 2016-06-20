@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use construct::ConstructionResult;
-use incremental::RestyleDamage;
+use script_layout_interface::restyle_damage::RestyleDamage;
 use style::servo::PrivateStyleData;
 
 /// Data that layout associates with a node.

@@ -18,7 +18,6 @@ use gfx::display_list::{BLUR_INFLATION_FACTOR, OpaqueNode};
 use gfx::text::glyph::ByteIndex;
 use gfx::text::text_run::{TextRun, TextRunSlice};
 use gfx_traits::{FragmentType, LayerId, LayerType, StackingContextId};
-use incremental::{RECONSTRUCT_FLOW, RestyleDamage};
 use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFragmentContext, InlineFragmentNodeInfo};
 use inline::{InlineMetrics, LAST_FRAGMENT_OF_ELEMENT};
 use ipc_channel::ipc::IpcSender;
@@ -30,7 +29,9 @@ use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache_thread::{ImageOrMetadataAvailable, UsePlaceholder};
 use range::*;
 use rustc_serialize::{Encodable, Encoder};
-use script::layout_interface::HTMLCanvasData;
+use script_layout_interface::HTMLCanvasData;
+use script_layout_interface::restyle_damage::{RECONSTRUCT_FLOW, RestyleDamage};
+use script_layout_interface::wrapper_traits::{PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use std::borrow::ToOwned;
 use std::cmp::{max, min};
 use std::collections::LinkedList;
@@ -49,7 +50,6 @@ use text;
 use text::TextRunScanner;
 use url::Url;
 use util;
-use wrapper::{PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 
 /// Fragments (`struct Fragment`) are the leaves of the layout tree. They cannot position
 /// themselves. In general, fragments do not have a simple correspondence with CSS fragments in the

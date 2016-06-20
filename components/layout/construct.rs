@@ -28,15 +28,14 @@ use fragment::{Fragment, GeneratedContentInfo, IframeFragmentInfo};
 use fragment::{InlineAbsoluteHypotheticalFragmentInfo, TableColumnFragmentInfo};
 use fragment::{InlineBlockFragmentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo};
 use gfx::display_list::OpaqueNode;
-use incremental::{BUBBLE_ISIZES, RECONSTRUCT_FLOW, RestyleDamage};
 use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFlow, InlineFragmentNodeFlags};
 use inline::{InlineFragmentNodeInfo, LAST_FRAGMENT_OF_ELEMENT};
 use list_item::{ListItemFlow, ListStyleTypeContent};
 use multicol::{MulticolFlow, MulticolColumnFlow};
 use parallel;
-use script::layout_interface::is_image_data;
-use script::layout_interface::{CharacterDataTypeId, ElementTypeId};
-use script::layout_interface::{HTMLElementTypeId, NodeTypeId};
+use script_layout_interface::restyle_damage::{BUBBLE_ISIZES, RECONSTRUCT_FLOW, RestyleDamage};
+use script_layout_interface::wrapper_traits::{ThreadSafeLayoutNode, PseudoElementType, ThreadSafeLayoutElement};
+use script_layout_interface::{LayoutNodeType, LayoutElementType, is_image_data};
 use std::borrow::ToOwned;
 use std::collections::LinkedList;
 use std::marker::PhantomData;
@@ -60,7 +59,7 @@ use traversal::PostorderNodeMutTraversal;
 use url::Url;
 use util::linked_list;
 use util::opts;
-use wrapper::{PseudoElementType, TextContent, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
+use wrapper::{TextContent, ThreadSafeLayoutNodeHelpers};
 
 /// The results of flow construction for a DOM node.
 #[derive(Clone)]
@@ -303,44 +302,35 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
     /// Builds the fragment for the given block or subclass thereof.
     fn build_fragment_for_block(&mut self, node: &ConcreteThreadSafeLayoutNode) -> Fragment {
         let specific_fragment_info = match node.type_id() {
-            Some(NodeTypeId::Element(ElementTypeId::HTMLElement(
-                        HTMLElementTypeId::HTMLIFrameElement))) => {
+            Some(LayoutNodeType::Element(LayoutElementType::HTMLIFrameElement)) => {
                 SpecificFragmentInfo::Iframe(IframeFragmentInfo::new(node))
             }
-            Some(NodeTypeId::Element(ElementTypeId::HTMLElement(
-                        HTMLElementTypeId::HTMLImageElement))) => {
+            Some(LayoutNodeType::Element(LayoutElementType::HTMLImageElement)) => {
                 let image_info = box ImageFragmentInfo::new(node,
                                                             node.image_url(),
                                                             &self.layout_context);
                 SpecificFragmentInfo::Image(image_info)
             }
-            Some(NodeTypeId::Element(ElementTypeId::HTMLElement(
-                        HTMLElementTypeId::HTMLObjectElement))) => {
+            Some(LayoutNodeType::Element(LayoutElementType::HTMLObjectElement)) => {
                 let image_info = box ImageFragmentInfo::new(node,
                                                             node.object_data(),
                                                             &self.layout_context);
                 SpecificFragmentInfo::Image(image_info)
             }
-            Some(NodeTypeId::Element(ElementTypeId::HTMLElement(
-                        HTMLElementTypeId::HTMLTableElement))) => {
+            Some(LayoutNodeType::Element(LayoutElementType::HTMLTableElement)) => {
                 SpecificFragmentInfo::TableWrapper
             }
-            Some(NodeTypeId::Element(ElementTypeId::HTMLElement(
-                        HTMLElementTypeId::HTMLTableColElement))) => {
+            Some(LayoutNodeType::Element(LayoutElementType::HTMLTableColElement)) => {
                 SpecificFragmentInfo::TableColumn(TableColumnFragmentInfo::new(node))
             }
-            Some(NodeTypeId::Element(ElementTypeId::HTMLElement(
-                        HTMLElementTypeId::HTMLTableCellElement(_)))) => {
+            Some(LayoutNodeType::Element(LayoutElementType::HTMLTableCellElement)) => {
                 SpecificFragmentInfo::TableCell
             }
-            Some(NodeTypeId::Element(ElementTypeId::HTMLElement(
-                        HTMLElementTypeId::HTMLTableRowElement))) |
-            Some(NodeTypeId::Element(ElementTypeId::HTMLElement(
-                        HTMLElementTypeId::HTMLTableSectionElement))) => {
+            Some(LayoutNodeType::Element(LayoutElementType::HTMLTableRowElement)) |
+            Some(LayoutNodeType::Element(LayoutElementType::HTMLTableSectionElement)) => {
                 SpecificFragmentInfo::TableRow
             }
-            Some(NodeTypeId::Element(ElementTypeId::HTMLElement(
-                        HTMLElementTypeId::HTMLCanvasElement))) => {
+            Some(LayoutNodeType::Element(LayoutElementType::HTMLCanvasElement)) => {
                 let data = node.canvas_data().unwrap();
                 SpecificFragmentInfo::Canvas(box CanvasFragmentInfo::new(node, data, self.layout_context))
             }
@@ -689,16 +679,13 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                                  -> ConstructionResult {
         let mut initial_fragments = IntermediateInlineFragments::new();
         let node_is_input_or_text_area =
-           node.type_id() == Some(NodeTypeId::Element(ElementTypeId::HTMLElement(
-                       HTMLElementTypeId::HTMLInputElement))) ||
-           node.type_id() == Some(NodeTypeId::Element(ElementTypeId::HTMLElement(
-                       HTMLElementTypeId::HTMLTextAreaElement)));
+           node.type_id() == Some(LayoutNodeType::Element(LayoutElementType::HTMLInputElement)) ||
+           node.type_id() == Some(LayoutNodeType::Element(LayoutElementType::HTMLTextAreaElement));
         if node.get_pseudo_element_type().is_replaced_content() ||
                 node_is_input_or_text_area {
             // A TextArea's text contents are displayed through the input text
             // box, so don't construct them.
-            if node.type_id() == Some(NodeTypeId::Element(ElementTypeId::HTMLElement(
-                        HTMLElementTypeId::HTMLTextAreaElement))) {
+            if node.type_id() == Some(LayoutNodeType::Element(LayoutElementType::HTMLTextAreaElement)) {
                 for kid in node.children() {
                     self.set_flow_construction_result(&kid, ConstructionResult::None)
                 }
@@ -970,7 +957,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         // fragment that needs to be generated for this inline node.
         let mut fragments = IntermediateInlineFragments::new();
         match (node.get_pseudo_element_type(), node.type_id()) {
-            (_, Some(NodeTypeId::CharacterData(CharacterDataTypeId::Text))) => {
+            (_, Some(LayoutNodeType::Text)) => {
                 self.create_fragments_for_node_text_content(&mut fragments, node, &style)
             }
             (PseudoElementType::Normal, _) => {
@@ -1524,7 +1511,7 @@ impl<'a, ConcreteThreadSafeLayoutNode> PostorderNodeMutTraversal<ConcreteThreadS
                 };
                 (display, style.get_box().float, style.get_box().position)
             }
-            Some(NodeTypeId::Element(_)) => {
+            Some(LayoutNodeType::Element(_)) => {
                 let style = node.style(self.style_context());
                 let original_display = style.get_box()._servo_display_for_hypothetical_box;
                 let munged_display = match original_display {
@@ -1533,13 +1520,13 @@ impl<'a, ConcreteThreadSafeLayoutNode> PostorderNodeMutTraversal<ConcreteThreadS
                 };
                 (munged_display, style.get_box().float, style.get_box().position)
             }
-            Some(NodeTypeId::CharacterData(CharacterDataTypeId::Text)) =>
+            Some(LayoutNodeType::Text) =>
                 (display::T::inline, float::T::none, position::T::static_),
-            Some(NodeTypeId::CharacterData(CharacterDataTypeId::Comment)) |
-            Some(NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction)) |
-            Some(NodeTypeId::DocumentType) |
-            Some(NodeTypeId::DocumentFragment) |
-            Some(NodeTypeId::Document(_)) => {
+            Some(LayoutNodeType::Comment) |
+            Some(LayoutNodeType::ProcessingInstruction) |
+            Some(LayoutNodeType::DocumentType) |
+            Some(LayoutNodeType::DocumentFragment) |
+            Some(LayoutNodeType::Document) => {
                 (display::T::none, float::T::none, position::T::static_)
             }
         };
@@ -1678,19 +1665,17 @@ impl<ConcreteThreadSafeLayoutNode> NodeUtils for ConcreteThreadSafeLayoutNode
                                              where ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode {
     fn is_replaced_content(&self) -> bool {
         match self.type_id() {
-            Some(NodeTypeId::CharacterData(_)) |
-            Some(NodeTypeId::DocumentType) |
-            Some(NodeTypeId::DocumentFragment) |
-            Some(NodeTypeId::Document(_)) |
-            Some(NodeTypeId::Element(ElementTypeId::HTMLElement(
-                        HTMLElementTypeId::HTMLImageElement))) |
-            Some(NodeTypeId::Element(ElementTypeId::HTMLElement(
-                        HTMLElementTypeId::HTMLIFrameElement))) |
-            Some(NodeTypeId::Element(ElementTypeId::HTMLElement(
-                        HTMLElementTypeId::HTMLCanvasElement))) => true,
-            Some(NodeTypeId::Element(ElementTypeId::HTMLElement(
-                        HTMLElementTypeId::HTMLObjectElement))) => self.has_object_data(),
-            Some(NodeTypeId::Element(_)) => false,
+            Some(LayoutNodeType::Comment) |
+            Some(LayoutNodeType::ProcessingInstruction) |
+            Some(LayoutNodeType::Text) |
+            Some(LayoutNodeType::DocumentType) |
+            Some(LayoutNodeType::DocumentFragment) |
+            Some(LayoutNodeType::Document) |
+            Some(LayoutNodeType::Element(LayoutElementType::HTMLImageElement)) |
+            Some(LayoutNodeType::Element(LayoutElementType::HTMLIFrameElement)) |
+            Some(LayoutNodeType::Element(LayoutElementType::HTMLCanvasElement)) => true,
+            Some(LayoutNodeType::Element(LayoutElementType::HTMLObjectElement)) => self.has_object_data(),
+            Some(LayoutNodeType::Element(_)) => false,
             None => self.get_pseudo_element_type().is_replaced_content(),
         }
     }

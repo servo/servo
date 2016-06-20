@@ -36,12 +36,13 @@ use flow_ref::{self, FlowRef, WeakFlowRef};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow, SpecificFragmentInfo};
 use gfx::display_list::{ClippingRegion, StackingContext};
 use gfx_traits::{LayerId, LayerType, StackingContextId};
-use incremental::{RECONSTRUCT_FLOW, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, RestyleDamage};
 use inline::InlineFlow;
 use model::{CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo};
 use multicol::MulticolFlow;
 use parallel::FlowParallelInfo;
 use rustc_serialize::{Encodable, Encoder};
+use script_layout_interface::restyle_damage::{RECONSTRUCT_FLOW, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, RestyleDamage};
+use script_layout_interface::wrapper_traits::{PseudoElementType, ThreadSafeLayoutNode};
 use std::iter::Zip;
 use std::slice::IterMut;
 use std::sync::Arc;
@@ -60,7 +61,6 @@ use table_row::TableRowFlow;
 use table_rowgroup::TableRowGroupFlow;
 use table_wrapper::TableWrapperFlow;
 use util::print_tree::PrintTree;
-use wrapper::{PseudoElementType, ThreadSafeLayoutNode};
 
 /// Virtual methods that make up a float context.
 ///

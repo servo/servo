@@ -2,10 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-//! The high-level interface from script to layout. Using this abstract
-//! interface helps reduce coupling between these two components, and enables
-//! the DOM to be placed in a separate crate from layout.
-
 use app_units::Au;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
@@ -14,33 +10,18 @@ use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use msg::constellation_msg::{PanicMsg, PipelineId, WindowSizeData};
 use net_traits::image_cache_thread::ImageCacheThread;
 use profile_traits::mem::ReportsChan;
-use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutMsg as ConstellationMsg};
-use script_traits::{StackingContextScrollState, UntrustedNodeAddress};
+use rpc::LayoutRPC;
+use script_traits::{ConstellationControlMsg, LayoutControlMsg};
+use script_traits::{LayoutMsg as ConstellationMsg, StackingContextScrollState};
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender};
 use string_cache::Atom;
 use style::context::ReflowGoal;
-use style::properties::longhands::{margin_top, margin_right, margin_bottom, margin_left, overflow_x};
 use style::selector_impl::PseudoElement;
 use style::servo::Stylesheet;
 use url::Url;
 use util::ipc::OptionalOpaqueIpcSender;
-
-pub use dom::bindings::inheritance::{CharacterDataTypeId, ElementTypeId};
-pub use dom::bindings::inheritance::{HTMLElementTypeId, NodeTypeId};
-pub use dom::bindings::js::LayoutJS;
-pub use dom::characterdata::LayoutCharacterDataHelpers;
-pub use dom::document::{Document, LayoutDocumentHelpers};
-pub use dom::element::{Element, LayoutElementHelpers, RawLayoutElementHelpers};
-pub use dom::htmlcanvaselement::HTMLCanvasData;
-pub use dom::htmlobjectelement::is_image_data;
-pub use dom::node::{CAN_BE_FRAGMENTED, HAS_CHANGED, HAS_DIRTY_DESCENDANTS, IS_DIRTY};
-pub use dom::node::LayoutNodeHelpers;
-pub use dom::node::Node;
-pub use dom::node::OpaqueStyleAndLayoutData;
-pub use dom::node::TrustedNodeAddress;
-pub use dom::text::Text;
-
+use {OpaqueStyleAndLayoutData, TrustedNodeAddress};
 
 /// Asynchronous messages that script can send to layout.
 pub enum Msg {
@@ -103,88 +84,6 @@ pub enum Msg {
     SetStackingContextScrollStates(Vec<StackingContextScrollState>),
 }
 
-/// Synchronous messages that script can send to layout.
-///
-/// In general, you should use messages to talk to Layout. Use the RPC interface
-/// if and only if the work is
-///
-///   1) read-only with respect to LayoutThreadData,
-///   2) small,
-///   3) and really needs to be fast.
-pub trait LayoutRPC {
-    /// Requests the dimensions of the content box, as in the `getBoundingClientRect()` call.
-    fn content_box(&self) -> ContentBoxResponse;
-    /// Requests the dimensions of all the content boxes, as in the `getClientRects()` call.
-    fn content_boxes(&self) -> ContentBoxesResponse;
-    /// Requests the geometry of this node. Used by APIs such as `clientTop`.
-    fn node_geometry(&self) -> NodeGeometryResponse;
-    /// Requests the overflow-x and overflow-y of this node. Used by `scrollTop` etc.
-    fn node_overflow(&self) -> NodeOverflowResponse;
-    /// Requests the scroll geometry of this node. Used by APIs such as `scrollTop`.
-    fn node_scroll_area(&self) -> NodeGeometryResponse;
-    /// Requests the layer id of this node. Used by APIs such as `scrollTop`
-    fn node_layer_id(&self) -> NodeLayerIdResponse;
-    /// Requests the node containing the point of interest
-    fn hit_test(&self) -> HitTestResponse;
-    /// Query layout for the resolved value of a given CSS property
-    fn resolved_style(&self) -> ResolvedStyleResponse;
-    fn offset_parent(&self) -> OffsetParentResponse;
-    /// Query layout for the resolve values of the margin properties for an element.
-    fn margin_style(&self) -> MarginStyleResponse;
-
-    fn nodes_from_point(&self, point: Point2D<f32>) -> Vec<UntrustedNodeAddress>;
-}
-
-#[derive(Clone)]
-pub struct MarginStyleResponse {
-    pub top: margin_top::computed_value::T,
-    pub right: margin_right::computed_value::T,
-    pub bottom: margin_bottom::computed_value::T,
-    pub left: margin_left::computed_value::T,
-}
-
-impl MarginStyleResponse {
-    pub fn empty() -> MarginStyleResponse {
-        MarginStyleResponse {
-            top: margin_top::computed_value::T::Auto,
-            right: margin_right::computed_value::T::Auto,
-            bottom: margin_bottom::computed_value::T::Auto,
-            left: margin_left::computed_value::T::Auto,
-        }
-    }
-}
-
-pub struct NodeOverflowResponse(pub Option<Point2D<overflow_x::computed_value::T>>);
-
-pub struct ContentBoxResponse(pub Rect<Au>);
-pub struct ContentBoxesResponse(pub Vec<Rect<Au>>);
-pub struct HitTestResponse {
-    pub node_address: Option<UntrustedNodeAddress>,
-}
-pub struct NodeGeometryResponse {
-    pub client_rect: Rect<i32>,
-}
-
-pub struct NodeLayerIdResponse {
-    pub layer_id: LayerId,
-}
-
-pub struct ResolvedStyleResponse(pub Option<String>);
-
-#[derive(Clone)]
-pub struct OffsetParentResponse {
-    pub node_address: Option<UntrustedNodeAddress>,
-    pub rect: Rect<Au>,
-}
-
-impl OffsetParentResponse {
-    pub fn empty() -> OffsetParentResponse {
-        OffsetParentResponse {
-            node_address: None,
-            rect: Rect::zero(),
-        }
-    }
-}
 
 /// Any query to perform with this reflow.
 #[derive(PartialEq)]

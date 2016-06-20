@@ -15,6 +15,9 @@ extern crate euclid;
 extern crate heapsize;
 extern crate layers;
 extern crate msg;
+#[macro_use]
+extern crate range;
+extern crate rustc_serialize;
 extern crate serde;
 
 pub mod color;
@@ -25,6 +28,7 @@ use azure::azure_hl::Color;
 use euclid::Matrix4D;
 use euclid::rect::Rect;
 use msg::constellation_msg::PipelineId;
+use range::RangeIndex;
 use std::fmt::{self, Debug, Formatter};
 use std::sync::atomic::{ATOMIC_USIZE_INIT, AtomicUsize, Ordering};
 
@@ -255,3 +259,10 @@ impl FragmentType {
     }
 }
 
+int_range_index! {
+    #[derive(Deserialize, Serialize, RustcEncodable)]
+    #[doc = "An index that refers to a byte offset in a text run. This could \
+             point to the middle of a glyph."]
+    #[derive(HeapSizeOf)]
+    struct ByteIndex(isize)
+}

@@ -47,6 +47,7 @@ extern crate profile_traits;
 extern crate range;
 extern crate rustc_serialize;
 extern crate script;
+extern crate script_layout_interface;
 extern crate script_traits;
 extern crate selectors;
 extern crate serde_json;
@@ -102,4 +103,3 @@ mod wrapper;
 
 // For unit tests:
 pub use fragment::Fragment;
-pub use wrapper::ServoThreadSafeLayoutNode;
