@@ -897,42 +897,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "hbs-builder"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "cmake 0.1.17 (registry+https://github.com/rust-lang/crates.io-index)",
- "pkg-config 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "hbs-common-sys"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "libc 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "hbs-pow"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "hbs-pow-sys 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "libc 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "hbs-pow-sys"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "hbs-builder 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "hbs-common-sys 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "libc 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
 name = "heapsize"
 version = "0.3.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -944,6 +908,25 @@ dependencies = [
 name = "heapsize_plugin"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "heartbeats-simple"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "heartbeats-simple-sys 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "heartbeats-simple-sys"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "cmake 0.1.17 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
+ "pkg-config 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "hpack"
@@ -1724,7 +1707,7 @@ dependencies = [
 name = "profile"
 version = "0.0.1"
 dependencies = [
- "hbs-pow 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "heartbeats-simple 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.2.3 (git+https://github.com/servo/ipc-channel)",
  "libc 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
