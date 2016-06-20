@@ -580,6 +580,8 @@ impl TestBindingMethods for TestBinding {
             ptr::write_volatile(p, 0xbaadc0de);
         }
     }
+
+    fn Panic(&self) { panic!("explicit panic from script") }
 }
 
 impl TestBinding {
