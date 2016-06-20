@@ -59,7 +59,7 @@ use profile_traits::time::{ProfilerCategory, TimerMetadata, TimerMetadataFrameTy
 use profile_traits::time::{ProfilerChan, TimerMetadataReflowType, profile};
 use reporter::CSSErrorReporter;
 use rustc_serialize::base64::{FromBase64, STANDARD, ToBase64};
-use script_runtime::{ScriptChan, ScriptPort};
+use script_runtime::{ScriptChan, ScriptPort, maybe_take_panic_result};
 use script_thread::SendableMainThreadScriptChan;
 use script_thread::{MainThreadScriptChan, MainThreadScriptMsg, RunnableWrapper};
 use script_traits::{ConstellationControlMsg, UntrustedNodeAddress};
@@ -72,6 +72,7 @@ use std::collections::{HashMap, HashSet};
 use std::default::Default;
 use std::ffi::CString;
 use std::io::{Write, stderr, stdout};
+use std::panic;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::TryRecvError::{Disconnected, Empty};
@@ -911,6 +912,10 @@ impl<'a, T: Reflectable> ScriptHelpers for &'a T {
                         debug!("error evaluating JS string");
                         report_pending_exception(cx, globalhandle.get());
                     }
+                }
+
+                if let Some(error) = maybe_take_panic_result() {
+                    panic::resume_unwind(error);
                 }
             }
         )
