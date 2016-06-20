@@ -26,7 +26,44 @@ pub fn update_animation_state(constellation_chan: &IpcSender<ConstellationMsg>,
                               pipeline_id: PipelineId) {
     let mut new_running_animations = vec![];
     while let Ok(animation) = new_animations_receiver.try_recv() {
-        new_running_animations.push(animation)
+        let should_push = match animation {
+            Animation::Transition(..) => true,
+            Animation::Keyframes(ref node, ref name, ref state) => {
+                // If the animation was already present in the list for the
+                // node, just update its state, else push the new animation to
+                // run.
+                if let Some(ref mut animations) = running_animations.get_mut(node) {
+                    // TODO: This being linear is probably not optimal.
+                    match animations.iter_mut().find(|anim| match **anim {
+                        Animation::Keyframes(_, ref anim_name, _) => *name == *anim_name,
+                        Animation::Transition(..) => false,
+                    }) {
+                        Some(mut anim) => {
+                            debug!("update_animation_state: Found other animation {}", name);
+                            match *anim {
+                                Animation::Keyframes(_, _, ref mut anim_state) => {
+                                    // NB: The important part is not touching
+                                    // the started_at field.
+                                    anim_state.duration = state.duration;
+                                    anim_state.iteration_state = state.iteration_state.clone();
+                                    anim_state.paused = state.paused;
+                                    anim_state.delay = state.delay;
+                                    false
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                        None => true,
+                    }
+                } else {
+                    true
+                }
+            }
+        };
+
+        if should_push {
+            new_running_animations.push(animation);
+        }
     }
 
     if running_animations.is_empty() && new_running_animations.is_empty() {
@@ -54,8 +91,9 @@ pub fn update_animation_state(constellation_chan: &IpcSender<ConstellationMsg>,
                             *current += 1;
                             *current < *max
                         }
+                        // Just tick it again.
                         KeyframesIterationState::Infinite => {
-                            state.started_at += state.duration;
+                            state.started_at += state.duration + state.delay;
                             true
                         }
                     }
