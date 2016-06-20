@@ -35,7 +35,7 @@ pub struct WorkUnit<QueueData, WorkData: Send> {
 /// Messages from the supervisor to the worker.
 enum WorkerMsg<QueueData: 'static, WorkData: 'static + Send> {
     /// Tells the worker to start work.
-    Start(Worker<WorkUnit<QueueData, WorkData>>, *mut AtomicUsize, *const QueueData),
+    Start(Worker<WorkUnit<QueueData, WorkData>>, *const AtomicUsize, *const QueueData),
     /// Tells the worker to stop. It can be restarted again with a `WorkerMsg::Start`.
     Stop,
     /// Tells the worker to measure the heap size of its TLS using the supplied function.
@@ -199,7 +199,7 @@ impl<QueueData: Sync, WorkData: Send> WorkerThread<QueueData, WorkData> {
 /// A handle to the work queue that individual work units have.
 pub struct WorkerProxy<'a, QueueData: 'a, WorkData: 'a + Send> {
     worker: &'a mut Worker<WorkUnit<QueueData, WorkData>>,
-    ref_count: *mut AtomicUsize,
+    ref_count: *const AtomicUsize,
     queue_data: &'a QueueData,
     worker_index: u8,
 }
@@ -307,10 +307,10 @@ impl<QueueData: Sync, WorkData: Send> WorkQueue<QueueData, WorkData> {
     /// Synchronously runs all the enqueued tasks and waits for them to complete.
     pub fn run(&mut self, data: &QueueData) {
         // Tell the workers to start.
-        let mut work_count = AtomicUsize::new(self.work_count);
+        let work_count = AtomicUsize::new(self.work_count);
         for worker in &mut self.workers {
             worker.chan.send(WorkerMsg::Start(worker.deque.take().unwrap(),
-                                              &mut work_count,
+                                              &work_count,
                                               data)).unwrap()
         }
 
