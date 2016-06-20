@@ -91,6 +91,8 @@ impl<'a> TreeSink for servohtmlparser::Sink {
             elem.set_attribute_from_parser(attr.name, DOMString::from(String::from(attr.value)), None);
         }
 
+        self.document.increment_dom_count();
+
         JS::from_ref(elem.upcast())
     }
 

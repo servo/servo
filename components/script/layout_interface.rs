@@ -226,6 +226,8 @@ pub struct ScriptReflow {
     pub script_join_chan: Sender<()>,
     /// The type of query if any to perform during this reflow.
     pub query_type: ReflowQueryType,
+    /// The number of objects in the dom #10110
+    pub dom_count: u32,
 }
 
 impl Drop for ScriptReflow {
