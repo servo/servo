@@ -38,10 +38,12 @@ pub enum KeyframesIterationState {
 /// This structure represents the current keyframe animation state, i.e., the
 /// duration, the current and maximum iteration count, and the state (either
 /// playing or paused).
+// TODO: unify the use of f32/f64 in this file.
 #[derive(Debug, Clone)]
 pub struct KeyframesAnimationState {
     pub started_at: f64,
     pub duration: f64,
+    pub delay: f64,
     pub iteration_state: KeyframesIterationState,
     pub paused: bool,
 }
@@ -289,6 +291,7 @@ pub fn maybe_start_animations<Impl: SelectorImplExt>(context: &SharedStyleContex
                    .send(Animation::Keyframes(node, name.clone(), KeyframesAnimationState {
                        started_at: animation_start,
                        duration: duration as f64,
+                       delay: delay as f64,
                        iteration_state: iteration_state,
                        paused: paused,
                    })).unwrap();
@@ -378,36 +381,46 @@ where Impl: SelectorImplExt,
             let mut total_progress = (now - started_at) / total_duration;
             if total_progress < 0. {
                 warn!("Negative progress found for animation {:?}", name);
+                return;
             }
             if total_progress > 1. {
                 total_progress = 1.;
             }
 
+            debug!("update_style_for_animation: anim \"{}\", steps: {:?}, state: {:?}, progress: {}", name, animation.steps, state, total_progress);
 
-            let mut last_keyframe = None;
-            let mut target_keyframe = None;
+            let mut last_keyframe_position = None;
+            let mut target_keyframe_position = None;
 
-            // TODO: we could maybe binary-search this?
-            for i in 1..animation.steps.len() {
+            // TODO: we could maybe binary-search this? Also, find is probably a
+            // bit more idiomatic here?
+            for i in 0..animation.steps.len() {
                 if total_progress as f32 <= animation.steps[i].start_percentage.0 {
                     // We might have found our current keyframe.
-                    last_keyframe = target_keyframe;
-                    target_keyframe = Some(&animation.steps[i]);
+                    target_keyframe_position = Some(i);
+                    if i != 0 {
+                        last_keyframe_position = Some(i - 1);
+                    }
+                    break;
                 }
             }
 
-            let target_keyframe = match target_keyframe {
-                Some(current) => current,
+            debug!("update_style_for_animation: keyframe from {:?} to {:?}", last_keyframe_position, target_keyframe_position);
+
+            let target_keyframe = match target_keyframe_position {
+                Some(target) => &animation.steps[target],
                 None => {
-                    warn!("update_style_for_animation: No current keyframe found for animation {:?} at progress {}", name, total_progress);
+                    // TODO: The 0. case falls here, maybe we should just resort
+                    // to the first keyframe instead.
+                    warn!("update_style_for_animation: No current keyframe found for animation \"{}\" at progress {}", name, total_progress);
                     return;
                 }
             };
 
-            let last_keyframe = match last_keyframe {
-                Some(last_keyframe) => last_keyframe,
+            let last_keyframe = match last_keyframe_position {
+                Some(last) => &animation.steps[last],
                 None => {
-                    warn!("update_style_for_animation: No last keyframe found for animation {:?} at progress {}", name, total_progress);
+                    warn!("update_style_for_animation: No last keyframe found for animation \"{}\" at progress {}", name, total_progress);
                     return;
                 }
             };
@@ -436,20 +449,21 @@ where Impl: SelectorImplExt,
             let mut style_changed = false;
 
             for transition_property in &animation.properties_changed {
-                debug!("update_style_for_animation: scanning prop {:?} for animation {}", transition_property, name);
+                debug!("update_style_for_animation: scanning prop {:?} for animation \"{}\"", transition_property, name);
                 if let Some(property_animation) = PropertyAnimation::from_transition_property(*transition_property,
                                                                                               timing_function,
                                                                                               Time(relative_duration as f32),
                                                                                               &from_style,
                                                                                               &target_style) {
                         debug!("update_style_for_animation: got property animation for prop {:?}", transition_property);
+                        debug!("update_style_for_animation: {:?}", property_animation);
                         property_animation.update(Arc::make_mut(&mut new_style), relative_progress);
                         style_changed = true;
                     }
             }
 
             if style_changed {
-                debug!("update_style_for_animation: got style change in animation {:?}", name);
+                debug!("update_style_for_animation: got style change in animation \"{}\"", name);
                 if let Some(damage) = damage {
                     *damage = *damage | Damage::compute(Some(style), &new_style);
                 }
