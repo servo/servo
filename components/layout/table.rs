@@ -28,6 +28,7 @@ use style::computed_values::{border_collapse, border_spacing, table_layout};
 use style::context::StyleContext;
 use style::logical_geometry::LogicalSize;
 use style::properties::{ComputedValues, ServoComputedValues};
+use style::servo::SharedStyleContext;
 use style::values::CSSFloat;
 use style::values::computed::LengthOrPercentageOrAuto;
 use table_row::TableRowFlow;
@@ -348,7 +349,7 @@ impl Flow for TableFlow {
             border_collapse: self.block_flow.fragment.style.get_inheritedtable().border_collapse,
         };
         inline_size_computer.compute_used_inline_size(&mut self.block_flow,
-                                                      layout_context,
+                                                      layout_context.shared_context(),
                                                       containing_block_inline_size);
 
         let inline_start_content_edge = self.block_flow.fragment.border_padding.inline_start;
@@ -518,11 +519,11 @@ impl ISizeAndMarginsComputer for InternalTable {
     /// CSS Section 10.4: Minimum and Maximum inline-sizes
     fn compute_used_inline_size(&self,
                                 block: &mut BlockFlow,
-                                layout_context: &LayoutContext,
+                                shared_context: &SharedStyleContext,
                                 parent_flow_inline_size: Au) {
         let mut input = self.compute_inline_size_constraint_inputs(block,
                                                                    parent_flow_inline_size,
-                                                                   layout_context.shared_context());
+                                                                   shared_context);
 
         // Tables are always at least as wide as their minimum inline size.
         let minimum_inline_size =

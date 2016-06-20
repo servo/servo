@@ -25,6 +25,7 @@ use script_layout_interface::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW};
 use std::cmp::max;
 use std::sync::Arc;
 use style::computed_values::flex_direction;
+use style::context::StyleContext;
 use style::logical_geometry::LogicalSize;
 use style::properties::{ComputedValues, ServoComputedValues};
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
@@ -413,7 +414,7 @@ impl Flow for FlexFlow {
         // Our inline-size was set to the inline-size of the containing block by the flow's parent.
         // Now compute the real value.
         let containing_block_inline_size = self.block_flow.base.block_container_inline_size;
-        self.block_flow.compute_used_inline_size(layout_context, containing_block_inline_size);
+        self.block_flow.compute_used_inline_size(layout_context.shared_context(), containing_block_inline_size);
         if self.block_flow.base.flags.is_float() {
             self.block_flow.float.as_mut().unwrap().containing_inline_size = containing_block_inline_size
         }

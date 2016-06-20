@@ -590,56 +590,56 @@ impl BlockFlow {
 
     /// Compute the actual inline size and position for this block.
     pub fn compute_used_inline_size(&mut self,
-                                    layout_context: &LayoutContext,
+                                    shared_context: &SharedStyleContext,
                                     containing_block_inline_size: Au) {
         let block_type = self.block_type();
         match block_type {
             BlockType::AbsoluteReplaced => {
                 let inline_size_computer = AbsoluteReplaced;
                 inline_size_computer.compute_used_inline_size(self,
-                                                              layout_context,
+                                                              shared_context,
                                                               containing_block_inline_size);
             }
             BlockType::AbsoluteNonReplaced => {
                 let inline_size_computer = AbsoluteNonReplaced;
                 inline_size_computer.compute_used_inline_size(self,
-                                                              layout_context,
+                                                              shared_context,
                                                               containing_block_inline_size);
             }
             BlockType::FloatReplaced => {
                 let inline_size_computer = FloatReplaced;
                 inline_size_computer.compute_used_inline_size(self,
-                                                              layout_context,
+                                                              shared_context,
                                                               containing_block_inline_size);
             }
             BlockType::FloatNonReplaced => {
                 let inline_size_computer = FloatNonReplaced;
                 inline_size_computer.compute_used_inline_size(self,
-                                                              layout_context,
+                                                              shared_context,
                                                               containing_block_inline_size);
             }
             BlockType::InlineBlockReplaced => {
                 let inline_size_computer = InlineBlockReplaced;
                 inline_size_computer.compute_used_inline_size(self,
-                                                              layout_context,
+                                                              shared_context,
                                                               containing_block_inline_size);
             }
             BlockType::InlineBlockNonReplaced => {
                 let inline_size_computer = InlineBlockNonReplaced;
                 inline_size_computer.compute_used_inline_size(self,
-                                                              layout_context,
+                                                              shared_context,
                                                               containing_block_inline_size);
             }
             BlockType::Replaced => {
                 let inline_size_computer = BlockReplaced;
                 inline_size_computer.compute_used_inline_size(self,
-                                                              layout_context,
+                                                              shared_context,
                                                               containing_block_inline_size);
             }
             BlockType::NonReplaced => {
                 let inline_size_computer = BlockNonReplaced;
                 inline_size_computer.compute_used_inline_size(self,
-                                                              layout_context,
+                                                              shared_context,
                                                               containing_block_inline_size);
             }
         }
@@ -1297,7 +1297,7 @@ impl BlockFlow {
     /// This is run in the `AssignISizes` traversal.
     fn propagate_and_compute_used_inline_size(&mut self, layout_context: &LayoutContext) {
         let containing_block_inline_size = self.base.block_container_inline_size;
-        self.compute_used_inline_size(layout_context, containing_block_inline_size);
+        self.compute_used_inline_size(layout_context.shared_context(), containing_block_inline_size);
         if self.base.flags.is_float() {
             self.float.as_mut().unwrap().containing_inline_size = containing_block_inline_size
         }
@@ -2403,14 +2403,14 @@ pub trait ISizeAndMarginsComputer {
     /// CSS Section 10.4: Minimum and Maximum inline-sizes
     fn compute_used_inline_size(&self,
                                 block: &mut BlockFlow,
-                                layout_context: &LayoutContext,
+                                shared_context: &SharedStyleContext,
                                 parent_flow_inline_size: Au) {
         let mut input = self.compute_inline_size_constraint_inputs(block,
                                                                    parent_flow_inline_size,
-                                                                   layout_context.shared_context());
+                                                                   shared_context);
 
         let containing_block_inline_size =
-            self.containing_block_inline_size(block, parent_flow_inline_size, layout_context.shared_context());
+            self.containing_block_inline_size(block, parent_flow_inline_size, shared_context);
 
         let mut solution = self.solve_inline_size_constraints(block, &input);
 

@@ -25,6 +25,7 @@ use std::fmt;
 use std::iter::{Enumerate, IntoIterator, Peekable};
 use std::sync::Arc;
 use style::computed_values::{border_collapse, border_spacing, border_top_style};
+use style::context::StyleContext;
 use style::logical_geometry::{LogicalSize, PhysicalSide, WritingMode};
 use style::properties::{ComputedValues, ServoComputedValues};
 use style::values::computed::LengthOrPercentageOrAuto;
@@ -327,7 +328,7 @@ impl Flow for TableRowFlow {
             border_collapse: self.block_flow.fragment.style.get_inheritedtable().border_collapse,
         };
         inline_size_computer.compute_used_inline_size(&mut self.block_flow,
-                                                      layout_context,
+                                                      layout_context.shared_context(),
                                                       containing_block_inline_size);
 
         // Spread out the completed inline sizes among columns with spans > 1.

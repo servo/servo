@@ -21,6 +21,7 @@ use std::fmt;
 use std::iter::{IntoIterator, Iterator, Peekable};
 use std::sync::Arc;
 use style::computed_values::{border_collapse, border_spacing};
+use style::context::StyleContext;
 use style::logical_geometry::{LogicalSize, WritingMode};
 use style::properties::{ComputedValues, ServoComputedValues};
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable, TableLikeFlow};
@@ -154,7 +155,7 @@ impl Flow for TableRowGroupFlow {
             border_collapse: border_collapse,
         };
         inline_size_computer.compute_used_inline_size(&mut self.block_flow,
-                                                      layout_context,
+                                                      layout_context.shared_context(),
                                                       containing_block_inline_size);
 
         let column_computed_inline_sizes = &self.column_computed_inline_sizes;
