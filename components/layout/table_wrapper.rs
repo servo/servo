@@ -416,8 +416,8 @@ impl Flow for TableWrapperFlow {
         self.block_flow.compute_absolute_position(layout_context)
     }
 
-    fn place_float_if_applicable<'a>(&mut self, layout_context: &'a LayoutContext<'a>) {
-        self.block_flow.place_float_if_applicable(layout_context)
+    fn place_float_if_applicable<'a>(&mut self) {
+        self.block_flow.place_float_if_applicable()
     }
 
     fn assign_block_size_for_inorder_child_if_necessary<'a>(&mut self,

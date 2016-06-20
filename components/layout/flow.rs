@@ -228,7 +228,7 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
                                  -> StackingContextId;
 
     /// If this is a float, places it. The default implementation does nothing.
-    fn place_float_if_applicable<'a>(&mut self, _: &'a LayoutContext<'a>) {}
+    fn place_float_if_applicable<'a>(&mut self) {}
 
     /// Assigns block-sizes in-order; or, if this is a float, places the float. The default
     /// implementation simply assigns block-sizes if this flow might have floats in. Returns true

@@ -127,8 +127,8 @@ impl Flow for ListItemFlow {
         self.block_flow.compute_absolute_position(layout_context)
     }
 
-    fn place_float_if_applicable<'a>(&mut self, layout_context: &'a LayoutContext<'a>) {
-        self.block_flow.place_float_if_applicable(layout_context)
+    fn place_float_if_applicable<'a>(&mut self) {
+        self.block_flow.place_float_if_applicable()
     }
 
     fn is_absolute_containing_block(&self) -> bool {

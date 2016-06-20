@@ -820,7 +820,7 @@ impl BlockFlow {
                             flow::base(kid).collapsible_margins
                                            .block_start_margin_for_noncollapsible_context()
                     }
-                    kid.place_float_if_applicable(layout_context);
+                    kid.place_float_if_applicable();
                     if !flow::base(kid).flags.is_float() {
                         kid.assign_block_size_for_inorder_child_if_necessary(layout_context,
                                                                              thread_id);
@@ -853,7 +853,7 @@ impl BlockFlow {
                         let float_ceiling = margin_collapse_info.current_float_ceiling();
                         kid_block.float.as_mut().unwrap().float_ceiling = float_ceiling
                     }
-                    kid.place_float_if_applicable(layout_context);
+                    kid.place_float_if_applicable();
 
                     let kid_base = flow::mut_base(kid);
                     floats = kid_base.floats.clone();
@@ -1741,7 +1741,7 @@ impl Flow for BlockFlow {
                                                         |_, _, _, _, _, _| {});
     }
 
-    fn place_float_if_applicable<'a>(&mut self, _: &'a LayoutContext<'a>) {
+    fn place_float_if_applicable<'a>(&mut self) {
         if self.base.flags.is_float() {
             self.place_float();
         }
