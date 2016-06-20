@@ -2724,6 +2724,18 @@
             "url": "/_mozilla/css/input_button_size_a.html"
           }
         ],
+        "css/input_empty_equiv.html": [
+          {
+            "path": "css/input_empty_equiv.html",
+            "references": [
+              [
+                "/_mozilla/css/input_empty_equiv_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/input_empty_equiv.html"
+          }
+        ],
         "css/input_height_a.html": [
           {
             "path": "css/input_height_a.html",
@@ -9780,6 +9792,18 @@
             ]
           ],
           "url": "/_mozilla/css/input_button_size_a.html"
+        }
+      ],
+      "css/input_empty_equiv.html": [
+        {
+          "path": "css/input_empty_equiv.html",
+          "references": [
+            [
+              "/_mozilla/css/input_empty_equiv_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/input_empty_equiv.html"
         }
       ],
       "css/input_height_a.html": [

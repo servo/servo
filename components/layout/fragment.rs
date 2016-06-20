@@ -1972,16 +1972,16 @@ impl Fragment {
                     ascent: computed_block_size + self.border_padding.block_start,
                 }
             }
-            SpecificFragmentInfo::ScannedText(ref text_fragment) => {
+            SpecificFragmentInfo::ScannedText(ref info) => {
                 // Fragments with no glyphs don't contribute any inline metrics.
                 // TODO: Filter out these fragments during flow construction?
-                if text_fragment.content_size.inline == Au(0) {
+                if info.insertion_point.is_none() && info.content_size.inline == Au(0) {
                     return InlineMetrics::new(Au(0), Au(0), Au(0));
                 }
                 // See CSS 2.1 § 10.8.1.
                 let line_height = self.calculate_line_height(layout_context);
                 let font_derived_metrics =
-                    InlineMetrics::from_font_metrics(&text_fragment.run.font_metrics, line_height);
+                    InlineMetrics::from_font_metrics(&info.run.font_metrics, line_height);
                 InlineMetrics {
                     block_size_above_baseline: font_derived_metrics.block_size_above_baseline +
                                                    self.border_padding.block_start,
