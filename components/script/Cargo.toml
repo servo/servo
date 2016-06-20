@@ -37,7 +37,8 @@ ipc-channel = {git = "https://github.com/servo/ipc-channel"}
 js = {git = "https://github.com/servo/rust-mozjs"}
 libc = "0.2"
 log = "0.3.5"
-mime = "0.2.0"
+mime = "0.2.1"
+mime_guess = "1.8.0"
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
 num-traits = "0.1.32"

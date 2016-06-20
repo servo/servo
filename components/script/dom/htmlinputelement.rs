@@ -32,6 +32,7 @@ use dom::nodelist::NodeList;
 use dom::validation::Validatable;
 use dom::virtualmethods::VirtualMethods;
 use ipc_channel::ipc::{self, IpcSender};
+use mime_guess;
 use net_traits::IpcSend;
 use net_traits::filemanager_thread::{FileManagerThreadMsg, FilterPattern};
 use script_traits::ScriptMsg as ConstellationMsg;
@@ -44,6 +45,7 @@ use style::element_state::*;
 use textinput::KeyReaction::{DispatchInput, Nothing, RedrawSelection, TriggerDefaultAction};
 use textinput::Lines::Single;
 use textinput::{TextInput, SelectionDirection};
+use util::str::split_commas;
 
 const DEFAULT_SUBMIT_VALUE: &'static str = "Submit";
 const DEFAULT_RESET_VALUE: &'static str = "Reset";
@@ -1140,7 +1142,7 @@ impl Activatable for HTMLInputElement {
                 let mut files: Vec<Root<File>> = vec![];
                 let mut error = None;
 
-                let filter = filter_from_accept(self.Accept());
+                let filter = filter_from_accept(&self.Accept());
 
                 if self.Multiple() {
                     let (chan, recv) = ipc::channel().expect("Error initializing channel");
@@ -1231,9 +1233,20 @@ impl Activatable for HTMLInputElement {
     }
 }
 
-fn filter_from_accept(_s: DOMString) -> Vec<FilterPattern> {
-    /// TODO: it means not pattern restriction now
-    /// Blocked by https://github.com/cybergeek94/mime_guess/issues/19
-    vec![]
-}
+// https://html.spec.whatwg.org/multipage/#attr-input-accept
+fn filter_from_accept(s: &DOMString) -> Vec<FilterPattern> {
+    let mut filter = vec![];
+    for p in split_commas(s) {
+        if let Some('.') = p.chars().nth(0) {
+            filter.push(FilterPattern(p[1..].to_string()));
+        } else {
+            if let Some(exts) = mime_guess::get_mime_extensions_str(p) {
+                for ext in exts {
+                    filter.push(FilterPattern(ext.to_string()));
+                }
+            }
+        }
+    }
 
+    filter
+}

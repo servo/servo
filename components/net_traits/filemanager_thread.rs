@@ -19,6 +19,8 @@ pub struct SelectedFile {
     pub type_string: String,
 }
 
+/// Filter for file selection
+/// the content is expected to be extension (e.g, "doc", without the prefixing ".")
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct FilterPattern(pub String);
 
