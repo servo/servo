@@ -30,8 +30,10 @@ use std::fmt;
 use std::ops::Add;
 use std::sync::Arc;
 use style::computed_values::{border_collapse, table_layout};
+use style::context::StyleContext;
 use style::logical_geometry::LogicalSize;
 use style::properties::{ComputedValues, ServoComputedValues};
+use style::servo::SharedStyleContext;
 use style::values::CSSFloat;
 use style::values::computed::LengthOrPercentageOrAuto;
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize};
@@ -772,7 +774,7 @@ impl ISizeAndMarginsComputer for Table {
         let containing_block_inline_size =
             self.containing_block_inline_size(block,
                                               parent_flow_inline_size,
-                                              layout_context);
+                                              layout_context.shared_context());
         initial_computed_inline_size(block,
                                      containing_block_inline_size,
                                      self.minimum_width_of_all_columns,
@@ -807,7 +809,7 @@ impl ISizeAndMarginsComputer for FloatedTable {
         let containing_block_inline_size =
             self.containing_block_inline_size(block,
                                               parent_flow_inline_size,
-                                              layout_context);
+                                              layout_context.shared_context());
         initial_computed_inline_size(block,
                                      containing_block_inline_size,
                                      self.minimum_width_of_all_columns,
@@ -842,7 +844,7 @@ impl ISizeAndMarginsComputer for AbsoluteTable {
         let containing_block_inline_size =
             self.containing_block_inline_size(block,
                                               parent_flow_inline_size,
-                                              layout_context);
+                                              layout_context.shared_context());
         initial_computed_inline_size(block,
                                      containing_block_inline_size,
                                      self.minimum_width_of_all_columns,
@@ -852,9 +854,9 @@ impl ISizeAndMarginsComputer for AbsoluteTable {
     fn containing_block_inline_size(&self,
                                     block: &mut BlockFlow,
                                     parent_flow_inline_size: Au,
-                                    layout_context: &LayoutContext)
+                                    shared_context: &SharedStyleContext)
                                     -> Au {
-        AbsoluteNonReplaced.containing_block_inline_size(block, parent_flow_inline_size, layout_context)
+        AbsoluteNonReplaced.containing_block_inline_size(block, parent_flow_inline_size, shared_context)
     }
 
     fn solve_inline_size_constraints(&self,

@@ -2279,7 +2279,7 @@ pub trait ISizeAndMarginsComputer {
                                              layout_context: &LayoutContext)
                                              -> ISizeConstraintInput {
         let containing_block_inline_size =
-            self.containing_block_inline_size(block, parent_flow_inline_size, layout_context);
+            self.containing_block_inline_size(block, parent_flow_inline_size, layout_context.shared_context());
 
         block.fragment.compute_block_direction_margins(containing_block_inline_size);
         block.fragment.compute_inline_direction_margins(containing_block_inline_size);
@@ -2387,13 +2387,13 @@ pub trait ISizeAndMarginsComputer {
         MaybeAuto::from_style(block.fragment().style().content_inline_size(),
                               self.containing_block_inline_size(block,
                                                                 parent_flow_inline_size,
-                                                                layout_context))
+                                                                layout_context.shared_context()))
     }
 
     fn containing_block_inline_size(&self,
                                     _: &mut BlockFlow,
                                     parent_flow_inline_size: Au,
-                                    _: &LayoutContext)
+                                    _: &SharedStyleContext)
                               -> Au {
         parent_flow_inline_size
     }
@@ -2410,7 +2410,7 @@ pub trait ISizeAndMarginsComputer {
                                                                    layout_context);
 
         let containing_block_inline_size =
-            self.containing_block_inline_size(block, parent_flow_inline_size, layout_context);
+            self.containing_block_inline_size(block, parent_flow_inline_size, layout_context.shared_context());
 
         let mut solution = self.solve_inline_size_constraints(block, &input);
 
@@ -2728,10 +2728,10 @@ impl ISizeAndMarginsComputer for AbsoluteNonReplaced {
     fn containing_block_inline_size(&self,
                                     block: &mut BlockFlow,
                                     _: Au,
-                                    layout_context: &LayoutContext)
+                                    shared_context: &SharedStyleContext)
                                     -> Au {
         let opaque_block = OpaqueFlow::from_flow(block);
-        block.containing_block_size(&layout_context.shared_context().viewport_size, opaque_block).inline
+        block.containing_block_size(&shared_context.viewport_size, opaque_block).inline
     }
 
     fn set_inline_position_of_flow_if_necessary(&self,
@@ -2855,10 +2855,10 @@ impl ISizeAndMarginsComputer for AbsoluteReplaced {
     fn containing_block_inline_size(&self,
                                     block: &mut BlockFlow,
                                     _: Au,
-                                    layout_context: &LayoutContext)
+                                    shared_context: &SharedStyleContext)
                                     -> Au {
         let opaque_block = OpaqueFlow::from_flow(block);
-        block.containing_block_size(&layout_context.shared_context().viewport_size, opaque_block).inline
+        block.containing_block_size(&shared_context.viewport_size, opaque_block).inline
     }
 
     fn set_inline_position_of_flow_if_necessary(&self,
