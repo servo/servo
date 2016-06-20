@@ -95,7 +95,7 @@ pub fn handle_get_frame_id(context: &BrowsingContext,
                            pipeline: PipelineId,
                            webdriver_frame_id: WebDriverFrameId,
                            reply: IpcSender<Result<Option<PipelineId>, ()>>) {
-    let window = match webdriver_frame_id {
+    let browsing_context = match webdriver_frame_id {
         WebDriverFrameId::Short(_) => {
             // This isn't supported yet
             Ok(None)
@@ -104,7 +104,7 @@ pub fn handle_get_frame_id(context: &BrowsingContext,
             match find_node_by_unique_id(context, pipeline, x) {
                 Some(ref node) => {
                     match node.downcast::<HTMLIFrameElement>() {
-                        Some(ref elem) => Ok(elem.get_content_window()),
+                        Some(ref elem) => Ok(elem.get_content_browsing_context()),
                         None => Err(())
                     }
                 },
@@ -112,12 +112,11 @@ pub fn handle_get_frame_id(context: &BrowsingContext,
             }
         },
         WebDriverFrameId::Parent => {
-            let window = context.active_window();
-            Ok(window.parent())
+            Ok(context.parent())
         }
     };
 
-    let frame_id = window.map(|x| x.map(|x| x.pipeline()));
+    let frame_id = browsing_context.map(|x| x.map(|x| x.active_window().pipeline()));
     reply.send(frame_id).unwrap()
 }
 

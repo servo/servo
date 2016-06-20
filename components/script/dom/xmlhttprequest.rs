@@ -62,7 +62,6 @@ use string_cache::Atom;
 use time;
 use timers::{OneshotTimerCallback, OneshotTimerHandle};
 use url::{Url, Position};
-use util::prefs::mozbrowser_enabled;
 
 #[derive(JSTraceable, PartialEq, Copy, Clone, HeapSizeOf)]
 enum XMLHttpRequestState {
@@ -580,9 +579,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             // This is a temporary measure until we figure out Servo privilege
             // story. See https://github.com/servo/servo/issues/9582
             if let GlobalRoot::Window(win) = self.global() {
-                let is_root_pipeline = win.parent_info().is_none();
-                let is_mozbrowser_enabled = mozbrowser_enabled();
-                is_root_pipeline && is_mozbrowser_enabled
+                win.is_mozbrowser()
             } else {
                 false
             }

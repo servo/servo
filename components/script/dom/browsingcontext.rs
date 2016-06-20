@@ -14,6 +14,7 @@ use dom::bindings::utils::WindowProxyHandler;
 use dom::bindings::utils::get_array_index_from_id;
 use dom::document::Document;
 use dom::element::Element;
+use dom::node::window_from_node;
 use dom::window::Window;
 use js::JSCLASS_IS_GLOBAL;
 use js::glue::{CreateWrapperProxyHandler, ProxyTraps, NewWindowProxy};
@@ -24,7 +25,7 @@ use js::jsapi::{JS_ForwardGetPropertyTo, JS_ForwardSetPropertyTo, JS_GetClass, J
 use js::jsapi::{JS_GetOwnPropertyDescriptorById, JS_HasPropertyById, MutableHandle};
 use js::jsapi::{MutableHandleValue, ObjectOpResult, RootedObject, RootedValue};
 use js::jsval::{UndefinedValue, PrivateValue};
-use msg::constellation_msg::{PipelineId, SubpageId};
+use msg::constellation_msg::{FrameType, PipelineId, SubpageId};
 use std::cell::Cell;
 use url::Url;
 
@@ -47,11 +48,15 @@ pub struct BrowsingContext {
     /// Stores the child browsing contexts (ex. iframe browsing context)
     children: DOMRefCell<Vec<JS<BrowsingContext>>>,
 
+    parent_info: Option<(PipelineId, SubpageId, FrameType)>,
     frame_element: Option<JS<Element>>,
 }
 
 impl BrowsingContext {
-    pub fn new_inherited(frame_element: Option<&Element>, id: PipelineId) -> BrowsingContext {
+    pub fn new_inherited(frame_element: Option<&Element>,
+                         id: PipelineId,
+                         parent_info: Option<(PipelineId, SubpageId, FrameType)>)
+                         -> BrowsingContext {
         BrowsingContext {
             reflector: Reflector::new(),
             id: id,
@@ -59,12 +64,17 @@ impl BrowsingContext {
             history: DOMRefCell::new(vec![]),
             active_index: Cell::new(0),
             children: DOMRefCell::new(vec![]),
+            parent_info: parent_info,
             frame_element: frame_element.map(JS::from_ref),
         }
     }
 
     #[allow(unsafe_code)]
-    pub fn new(window: &Window, frame_element: Option<&Element>, id: PipelineId) -> Root<BrowsingContext> {
+    pub fn new(window: &Window,
+               frame_element: Option<&Element>,
+               id: PipelineId,
+               parent_info: Option<(PipelineId, SubpageId, FrameType)>)
+               -> Root<BrowsingContext> {
         unsafe {
             let WindowProxyHandler(handler) = window.windowproxy_handler();
             assert!(!handler.is_null());
@@ -78,7 +88,7 @@ impl BrowsingContext {
                 NewWindowProxy(cx, parent, handler));
             assert!(!window_proxy.ptr.is_null());
 
-            let object = box BrowsingContext::new_inherited(frame_element, id);
+            let object = box BrowsingContext::new_inherited(frame_element, id, parent_info);
 
             let raw = Box::into_raw(object);
             SetProxyExtra(window_proxy.ptr, 0, &PrivateValue(raw as *const _));
@@ -159,11 +169,10 @@ impl BrowsingContext {
         self.children.borrow_mut().push(JS::from_ref(&context));
     }
 
-    pub fn find_child_by_subpage(&self, subpage_id: SubpageId) -> Option<Root<Window>> {
+    pub fn find_child_by_subpage(&self, subpage_id: SubpageId) -> Option<Root<BrowsingContext>> {
         self.children.borrow().iter().find(|context| {
-            let window = context.active_window();
-            window.subpage() == Some(subpage_id)
-        }).map(|context| context.active_window())
+            context.subpage() == Some(subpage_id)
+        }).map(|context| Root::from_ref(&**context))
     }
 
     pub fn clear_session_history(&self) {
@@ -186,6 +195,33 @@ impl BrowsingContext {
                      .iter()
                      .filter_map(|c| c.find(id))
                      .next()
+    }
+
+    pub fn parent(&self) -> Option<Root<BrowsingContext>> {
+        if self.is_top_level() {
+            return None;
+        }
+
+        self.frame_element().map(|frame_element| {
+            let window = window_from_node(frame_element);
+            window.browsing_context()
+        })
+    }
+
+    fn subpage(&self) -> Option<SubpageId> {
+        self.parent_info.map(|p| p.1)
+    }
+
+    pub fn parent_info(&self) -> Option<(PipelineId, SubpageId, FrameType)> {
+        self.parent_info
+    }
+
+    // https://html.spec.whatwg.org/multipage/#top-level-browsing-context
+    fn is_top_level(&self) -> bool {
+        match self.parent_info {
+            Some((_, _, FrameType::IFrame)) => false,
+            _ => true,
+        }
     }
 }
 

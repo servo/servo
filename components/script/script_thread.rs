@@ -1587,7 +1587,6 @@ impl ScriptThread {
                                  ipc_timer_event_chan,
                                  incomplete.layout_chan,
                                  incomplete.pipeline_id,
-                                 incomplete.parent_info,
                                  incomplete.window_size);
         let frame_element = frame_element.r().map(Castable::upcast);
 
@@ -1635,13 +1634,15 @@ impl ScriptThread {
 
         let (browsing_context, context_to_remove) = if !self.root_browsing_context_exists() {
             // Create a new context tree entry. This will become the root context.
-            let new_context = BrowsingContext::new(&window, frame_element, incomplete.pipeline_id);
+            let new_context = BrowsingContext::new(&window, frame_element, incomplete.pipeline_id,
+                                                   incomplete.parent_info);
             // We have a new root frame tree.
             self.browsing_context.set(Some(&new_context));
             (new_context, ContextToRemove::Root)
         } else if let Some((parent, _, _)) = incomplete.parent_info {
             // Create a new context tree entry. This will be a child context.
-            let new_context = BrowsingContext::new(&window, frame_element, incomplete.pipeline_id);
+            let new_context = BrowsingContext::new(&window, frame_element, incomplete.pipeline_id,
+                                                   incomplete.parent_info);
 
             let root_context = self.root_browsing_context();
             // TODO(gw): This find will fail when we are sharing script threads
