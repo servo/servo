@@ -209,12 +209,13 @@ fn create_constellation(opts: opts::Opts,
                         webrender_api_sender: Option<webrender_traits::RenderApiSender>) -> Sender<ConstellationMsg> {
     let bluetooth_thread: IpcSender<BluetoothMethodMsg> = BluetoothThreadFactory::new();
 
-    let resource_threads = new_resource_threads(opts.user_agent.clone(),
-                                                devtools_chan.clone(),
-                                                time_profiler_chan.clone());
-    let image_cache_thread = new_image_cache_thread(resource_threads.sender(),
+    let (public_resource_threads, private_resource_threads) =
+        new_resource_threads(opts.user_agent.clone(),
+                             devtools_chan.clone(),
+                             time_profiler_chan.clone());
+    let image_cache_thread = new_image_cache_thread(public_resource_threads.sender(),
                                                     webrender_api_sender.as_ref().map(|wr| wr.create_api()));
-    let font_cache_thread = FontCacheThread::new(resource_threads.sender(),
+    let font_cache_thread = FontCacheThread::new(public_resource_threads.sender(),
                                                  webrender_api_sender.as_ref().map(|wr| wr.create_api()));
 
     let initial_state = InitialConstellationState {
@@ -223,7 +224,8 @@ fn create_constellation(opts: opts::Opts,
         bluetooth_thread: bluetooth_thread,
         image_cache_thread: image_cache_thread,
         font_cache_thread: font_cache_thread,
-        resource_threads: resource_threads,
+        public_resource_threads: public_resource_threads,
+        private_resource_threads: private_resource_threads,
         time_profiler_chan: time_profiler_chan,
         mem_profiler_chan: mem_profiler_chan,
         supports_clipboard: supports_clipboard,

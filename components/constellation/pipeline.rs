@@ -64,6 +64,7 @@ pub struct Pipeline {
     /// animations cause composites to be continually scheduled.
     pub running_animations: bool,
     pub children: Vec<FrameId>,
+    /// Whether this pipeline is considered distinct from public pipelines.
     pub is_private: bool,
     /// Whether this pipeline should be treated as visible for the purposes of scheduling and
     /// resource management.
@@ -119,6 +120,8 @@ pub struct InitialPipelineState {
     pub parent_visibility: Option<bool>,
     /// Optional webrender api (if enabled).
     pub webrender_api_sender: Option<webrender_traits::RenderApiSender>,
+    /// Whether this pipeline is considered private.
+    pub is_private: bool,
 }
 
 impl Pipeline {
@@ -254,6 +257,7 @@ impl Pipeline {
                                      pipeline_chan,
                                      state.compositor_proxy,
                                      chrome_to_paint_chan,
+                                     state.is_private,
                                      state.load_data.url,
                                      state.window_size,
                                      state.parent_visibility.unwrap_or(true));
@@ -269,6 +273,7 @@ impl Pipeline {
            layout_chan: IpcSender<LayoutControlMsg>,
            compositor_proxy: Box<CompositorProxy + 'static + Send>,
            chrome_to_paint_chan: Sender<ChromeToPaintMsg>,
+           is_private: bool,
            url: Url,
            size: Option<TypedSize2D<PagePx, f32>>,
            visible: bool)
@@ -285,8 +290,8 @@ impl Pipeline {
             children: vec!(),
             size: size,
             running_animations: false,
-            is_private: false,
             visible: visible,
+            is_private: is_private,
         }
     }
 

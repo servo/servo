@@ -489,8 +489,8 @@ impl Runnable for ConnectionEstablishedTask {
             for cookie in cookies.iter() {
                 if let Ok(cookie_value) = String::from_utf8(cookie.clone()) {
                     let _ = ws.global().r().core_resource_thread().send(SetCookiesForUrl(ws.url.clone(),
-                                                                                    cookie_value,
-                                                                                    HTTP));
+                                                                                         cookie_value,
+                                                                                         HTTP));
                 }
             }
         }

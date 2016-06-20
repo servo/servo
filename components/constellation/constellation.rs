@@ -108,7 +108,10 @@ pub struct Constellation<Message, LTF, STF> {
     compositor_proxy: Box<CompositorProxy>,
 
     /// Channels through which messages can be sent to the resource-related threads.
-    resource_threads: ResourceThreads,
+    public_resource_threads: ResourceThreads,
+
+    /// Channels through which messages can be sent to the resource-related threads.
+    private_resource_threads: ResourceThreads,
 
     /// A channel through which messages can be sent to the image cache thread.
     image_cache_thread: ImageCacheThread,
@@ -201,7 +204,9 @@ pub struct InitialConstellationState {
     /// A channel to the font cache thread.
     pub font_cache_thread: FontCacheThread,
     /// A channel to the resource thread.
-    pub resource_threads: ResourceThreads,
+    pub public_resource_threads: ResourceThreads,
+    /// A channel to the resource thread.
+    pub private_resource_threads: ResourceThreads,
     /// A channel to the time profiler thread.
     pub time_profiler_chan: time::ProfilerChan,
     /// A channel to the memory profiler thread.
@@ -331,7 +336,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 compositor_proxy: state.compositor_proxy,
                 devtools_chan: state.devtools_chan,
                 bluetooth_thread: state.bluetooth_thread,
-                resource_threads: state.resource_threads,
+                public_resource_threads: state.public_resource_threads,
+                private_resource_threads: state.private_resource_threads,
                 image_cache_thread: state.image_cache_thread,
                 font_cache_thread: state.font_cache_thread,
                 pipelines: HashMap::new(),
@@ -404,8 +410,15 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     parent_info: Option<(PipelineId, SubpageId, FrameType)>,
                     initial_window_size: Option<TypedSize2D<PagePx, f32>>,
                     script_channel: Option<IpcSender<ConstellationControlMsg>>,
-                    load_data: LoadData) {
+                    load_data: LoadData,
+                    is_private: bool) {
         if self.shutting_down { return; }
+
+        let resource_threads = if is_private {
+            self.private_resource_threads.clone()
+        } else {
+            self.public_resource_threads.clone()
+        };
 
         let parent_visibility = if let Some((parent_pipeline_id, _, _)) = parent_info {
             self.pipelines.get(&parent_pipeline_id).map(|pipeline| pipeline.visible)
@@ -425,7 +438,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             bluetooth_thread: self.bluetooth_thread.clone(),
             image_cache_thread: self.image_cache_thread.clone(),
             font_cache_thread: self.font_cache_thread.clone(),
-            resource_threads: self.resource_threads.clone(),
+            resource_threads: resource_threads,
             time_profiler_chan: self.time_profiler_chan.clone(),
             mem_profiler_chan: self.mem_profiler_chan.clone(),
             window_size: initial_window_size,
@@ -435,6 +448,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             pipeline_namespace_id: self.next_pipeline_namespace_id(),
             parent_visibility: parent_visibility,
             webrender_api_sender: self.webrender_api_sender.clone(),
+            is_private: is_private,
         });
 
         let (pipeline, child_process) = match result {
@@ -850,7 +864,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         self.image_cache_thread.exit();
 
         debug!("Exiting core resource threads.");
-        if let Err(e) = self.resource_threads.send(net_traits::CoreResourceMsg::Exit(core_sender)) {
+        if let Err(e) = self.public_resource_threads.send(net_traits::CoreResourceMsg::Exit(core_sender)) {
             warn!("Exit resource thread failed ({})", e);
         }
 
@@ -863,12 +877,12 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
 
         debug!("Exiting storage resource threads.");
-        if let Err(e) = self.resource_threads.send(StorageThreadMsg::Exit(storage_sender)) {
+        if let Err(e) = self.public_resource_threads.send(StorageThreadMsg::Exit(storage_sender)) {
             warn!("Exit storage thread failed ({})", e);
         }
 
         debug!("Exiting file manager resource threads.");
-        if let Err(e) = self.resource_threads.send(FileManagerThreadMsg::Exit) {
+        if let Err(e) = self.public_resource_threads.send(FileManagerThreadMsg::Exit) {
             warn!("Exit storage thread failed ({})", e);
         }
 
@@ -951,7 +965,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
             let new_pipeline_id = PipelineId::new();
             let load_data = LoadData::new(failure_url, None, None);
-            self.new_pipeline(new_pipeline_id, parent_info, window_size, None, load_data);
+            self.new_pipeline(new_pipeline_id, parent_info, window_size, None, load_data, false);
 
             self.push_pending_frame(new_pipeline_id, Some(pipeline_id));
 
@@ -965,7 +979,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         let root_pipeline_id = PipelineId::new();
         debug_assert!(PipelineId::fake_root_pipeline_id() == root_pipeline_id);
         self.new_pipeline(root_pipeline_id, None, Some(window_size), None,
-                          LoadData::new(url.clone(), None, None));
+                          LoadData::new(url.clone(), None, None), false);
         self.handle_load_start_msg(&root_pipeline_id);
         self.push_pending_frame(root_pipeline_id, None);
         self.compositor_proxy.send(ToCompositorMsg::ChangePageUrl(root_pipeline_id, url));
@@ -1030,7 +1044,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             .and_then(|old_subpage_id| self.subpage_map.get(&(load_info.containing_pipeline_id, old_subpage_id)))
             .cloned();
 
-        let (load_data, script_chan, window_size) = {
+        let (load_data, script_chan, window_size, is_private) = {
             let old_pipeline = old_pipeline_id
                 .and_then(|old_pipeline_id| self.pipelines.get(&old_pipeline_id));
 
@@ -1054,11 +1068,14 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             // then reuse the script thread in creating the new pipeline
             let source_url = &source_pipeline.url;
 
+            let is_private = load_info.is_private || source_pipeline.is_private;
+
             // FIXME(#10968): this should probably match the origin check in
             //                HTMLIFrameElement::contentDocument.
             let same_script = source_url.host() == load_data.url.host() &&
                               source_url.port() == load_data.url.port() &&
-                              load_info.sandbox == IFrameSandboxState::IFrameUnsandboxed;
+                              load_info.sandbox == IFrameSandboxState::IFrameUnsandboxed &&
+                              source_pipeline.is_private == is_private;
 
             // Reuse the script thread if the URL is same-origin
             let script_chan = if same_script {
@@ -1077,16 +1094,17 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 old_pipeline.freeze();
             }
 
-            (load_data, script_chan, window_size)
-
+            (load_data, script_chan, window_size, is_private)
         };
+
 
         // Create the new pipeline, attached to the parent and push to pending frames
         self.new_pipeline(load_info.new_pipeline_id,
                           Some((load_info.containing_pipeline_id, load_info.new_subpage_id, load_info.frame_type)),
                           window_size,
                           script_chan,
-                          load_data);
+                          load_data,
+                          is_private);
 
         self.subpage_map.insert((load_info.containing_pipeline_id, load_info.new_subpage_id),
                                 load_info.new_pipeline_id);
@@ -1217,7 +1235,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 // Create the new pipeline
                 let window_size = self.pipelines.get(&source_id).and_then(|source| source.size);
                 let new_pipeline_id = PipelineId::new();
-                self.new_pipeline(new_pipeline_id, None, window_size, None, load_data);
+                self.new_pipeline(new_pipeline_id, None, window_size, None, load_data, false);
                 self.push_pending_frame(new_pipeline_id, Some(source_id));
 
                 // Send message to ScriptThread that will suspend all timers
@@ -1904,25 +1922,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         // All script threads are idle and layout epochs match compositor, so output image!
         ReadyToSave::Ready
-    }
-
-    /// Checks whether the pipeline or its ancestors are private
-    #[allow(dead_code)]
-    fn check_is_pipeline_private(&self, mut pipeline_id: PipelineId) -> bool {
-        loop {
-            match self.pipelines.get(&pipeline_id) {
-                Some(pipeline) if pipeline.is_private => return true,
-                Some(pipeline) => match pipeline.parent_info {
-                    None => return false,
-                    Some((_, _, FrameType::MozBrowserIFrame)) => return false,
-                    Some((parent_id, _, _)) => pipeline_id = parent_id,
-                },
-                None => {
-                    warn!("Finding private ancestor for pipeline {} after closure.", pipeline_id);
-                    return false;
-                },
-            }
-        }
     }
 
     // Close a frame (and all children)

@@ -562,6 +562,21 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
     make_getter!(Height, "height");
     // https://html.spec.whatwg.org/multipage/#dom-dim-height
     make_dimension_setter!(SetHeight, "height");
+
+    // check-tidy: no specs after this line
+    fn SetMozprivatebrowsing(&self, value: bool) {
+        let element = self.upcast::<Element>();
+        element.set_bool_attribute(&Atom::from("mozprivatebrowsing"), value);
+    }
+
+    fn Mozprivatebrowsing(&self) -> bool {
+        if window_from_node(self).is_mozbrowser() {
+            let element = self.upcast::<Element>();
+            element.has_attribute(&Atom::from("mozprivatebrowsing"))
+        } else {
+            false
+        }
+    }
 }
 
 impl VirtualMethods for HTMLIFrameElement {
