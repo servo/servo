@@ -3986,6 +3986,18 @@
             "viewport_size": "300x300"
           }
         ],
+        "css/pixel_snapping_glyphs.html": [
+          {
+            "path": "css/pixel_snapping_glyphs.html",
+            "references": [
+              [
+                "/_mozilla/css/pixel_snapping_glyphs_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/pixel_snapping_glyphs.html"
+          }
+        ],
         "css/pixel_snapping_position_a.html": [
           {
             "dpi": "2",
@@ -11024,6 +11036,18 @@
           ],
           "url": "/_mozilla/css/pixel_snapping_border_a.html",
           "viewport_size": "300x300"
+        }
+      ],
+      "css/pixel_snapping_glyphs.html": [
+        {
+          "path": "css/pixel_snapping_glyphs.html",
+          "references": [
+            [
+              "/_mozilla/css/pixel_snapping_glyphs_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/pixel_snapping_glyphs.html"
         }
       ],
       "css/pixel_snapping_position_a.html": [
