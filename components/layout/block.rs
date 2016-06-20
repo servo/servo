@@ -58,6 +58,7 @@ use style::computed_values::{position, text_align, transform, transform_style};
 use style::context::StyleContext;
 use style::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMode};
 use style::properties::{ComputedValues, ServoComputedValues};
+use style::servo::SharedStyleContext;
 use style::values::computed::{LengthOrNone, LengthOrPercentageOrNone};
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use util::geometry::MAX_RECT;
@@ -696,8 +697,8 @@ impl BlockFlow {
     ///
     /// TODO(#2017, pcwalton): This is somewhat inefficient (traverses kids twice); can we do
     /// better?
-    fn adjust_fragments_for_collapsed_margins_if_root<'a>(&mut self,
-                                                          layout_context: &'a LayoutContext<'a>) {
+    fn adjust_fragments_for_collapsed_margins_if_root(&mut self,
+                                                      shared_context: &SharedStyleContext) {
         if !self.is_root() {
             return
         }
@@ -727,7 +728,7 @@ impl BlockFlow {
         // infrastructure to make it scrollable.
         let viewport_size =
             LogicalSize::from_physical(self.fragment.style.writing_mode,
-                                       layout_context.shared_context().viewport_size);
+                                       shared_context.viewport_size);
         let block_size = max(viewport_size.block,
                              self.fragment.border_box.size.block + block_start_margin_value +
                              block_end_margin_value);
@@ -1030,7 +1031,7 @@ impl BlockFlow {
                                               self.fragment.inline_start_offset(),
                                               Au(0)));
             self.base.floats = floats.clone();
-            self.adjust_fragments_for_collapsed_margins_if_root(layout_context);
+            self.adjust_fragments_for_collapsed_margins_if_root(layout_context.shared_context());
         } else {
             // We don't need to reflow, but we still need to perform in-order traversals if
             // necessary.
