@@ -475,7 +475,7 @@ impl<'a> PreorderFlowTraversal for AbsoluteAssignBSizesTraversal<'a> {
             return
         }
 
-        block.calculate_absolute_block_size_and_margins(&self.0);
+        block.calculate_absolute_block_size_and_margins(self.0.shared_context());
     }
 }
 
@@ -1202,10 +1202,10 @@ impl BlockFlow {
         }
     }
 
-    fn calculate_absolute_block_size_and_margins(&mut self, layout_context: &LayoutContext) {
+    fn calculate_absolute_block_size_and_margins(&mut self, shared_context: &SharedStyleContext) {
         let opaque_self = OpaqueFlow::from_flow(self);
         let containing_block_block_size =
-            self.containing_block_size(&layout_context.shared_context().viewport_size, opaque_self).block;
+            self.containing_block_size(&shared_context.viewport_size, opaque_self).block;
 
         // This is the stored content block-size value from assign-block-size
         let content_block_size = self.fragment.border_box.size.block;
