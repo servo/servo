@@ -46,7 +46,6 @@ use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, HAS_LAYER,
 use gfx::display_list::{ClippingRegion, StackingContext};
 use gfx_traits::{LayerId, StackingContextId};
 use layout_debug;
-use layout_thread::DISPLAY_PORT_SIZE_FACTOR;
 use model::{CollapsibleMargins, MaybeAuto, specified, specified_or_none};
 use model::{self, IntrinsicISizes, MarginCollapseInfo};
 use rustc_serialize::{Encodable, Encoder};
@@ -63,6 +62,9 @@ use style::values::computed::{LengthOrNone, LengthOrPercentageOrNone};
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use util::geometry::MAX_RECT;
 use util::print_tree::PrintTree;
+
+/// The number of screens of data we're allowed to generate display lists for in each direction.
+const DISPLAY_PORT_SIZE_FACTOR: i32 = 8;
 
 /// Information specific to floated blocks.
 #[derive(Clone, RustcEncodable)]

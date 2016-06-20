@@ -12,9 +12,9 @@ use euclid::size::Size2D;
 use flow;
 use flow_ref::FlowRef;
 use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
-use gfx::display_list::OpaqueNode;
+use gfx::display_list::{DisplayItemMetadata, DisplayList, OpaqueNode, ScrollOffsetMap};
 use gfx_traits::LayerId;
-use layout_thread::LayoutThreadData;
+use ipc_channel::ipc::IpcSender;
 use opaque_node::OpaqueNodeMethods;
 use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse};
 use script_layout_interface::rpc::{HitTestResponse, LayoutRPC};
@@ -35,9 +35,56 @@ use style::properties::ComputedValues;
 use style::properties::longhands::{display, position};
 use style::properties::style_structs;
 use style::selector_impl::PseudoElement;
+use style::servo::Stylist;
 use style::values::AuExtensionMethods;
 use style_traits::cursor::Cursor;
 use wrapper::ThreadSafeLayoutNodeHelpers;
+
+/// Mutable data belonging to the LayoutThread.
+///
+/// This needs to be protected by a mutex so we can do fast RPCs.
+pub struct LayoutThreadData {
+    /// The channel on which messages can be sent to the constellation.
+    pub constellation_chan: IpcSender<ConstellationMsg>,
+
+    /// The root stacking context.
+    pub display_list: Option<Arc<DisplayList>>,
+
+    /// Performs CSS selector matching and style resolution.
+    pub stylist: Arc<Stylist>,
+
+    /// A queued response for the union of the content boxes of a node.
+    pub content_box_response: Rect<Au>,
+
+    /// A queued response for the content boxes of a node.
+    pub content_boxes_response: Vec<Rect<Au>>,
+
+    /// A queued response for the client {top, left, width, height} of a node in pixels.
+    pub client_rect_response: Rect<i32>,
+
+    pub layer_id_response: Option<LayerId>,
+
+    /// A queued response for the node at a given point
+    pub hit_test_response: (Option<DisplayItemMetadata>, bool),
+
+    /// A pair of overflow property in x and y
+    pub overflow_response: NodeOverflowResponse,
+
+    /// A queued response for the scroll {top, left, width, height} of a node in pixels.
+    pub scroll_area_response: Rect<i32>,
+
+    /// A queued response for the resolved style property of an element.
+    pub resolved_style_response: Option<String>,
+
+    /// A queued response for the offset parent/rect of a node.
+    pub offset_parent_response: OffsetParentResponse,
+
+    /// A queued response for the offset parent/rect of a node.
+    pub margin_style_response: MarginStyleResponse,
+
+    /// Scroll offsets of stacking contexts. This will only be populated if WebRender is in use.
+    pub stacking_context_scroll_offsets: ScrollOffsetMap,
+}
 
 pub struct LayoutRPCImpl(pub Arc<Mutex<LayoutThreadData>>);
 
