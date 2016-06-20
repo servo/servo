@@ -452,7 +452,7 @@ fn translate_including_floats(cur_b: &mut Au, delta: Au, floats: &mut Floats) {
 ///
 /// Note that flows with position 'fixed' just form a flat list as they all
 /// have the Root flow as their CB.
-pub struct AbsoluteAssignBSizesTraversal<'a>(pub &'a LayoutContext<'a>);
+pub struct AbsoluteAssignBSizesTraversal<'a>(pub &'a SharedStyleContext);
 
 impl<'a> PreorderFlowTraversal for AbsoluteAssignBSizesTraversal<'a> {
     #[inline]
@@ -475,7 +475,7 @@ impl<'a> PreorderFlowTraversal for AbsoluteAssignBSizesTraversal<'a> {
             return
         }
 
-        block.calculate_absolute_block_size_and_margins(self.0.shared_context());
+        block.calculate_absolute_block_size_and_margins(self.0);
     }
 }
 
@@ -1046,7 +1046,7 @@ impl BlockFlow {
             // This is preorder because the block-size of an absolute flow may depend on
             // the block-size of its containing block, which may also be an absolute flow.
             (&mut *self as &mut Flow).traverse_preorder_absolute_flows(
-                &mut AbsoluteAssignBSizesTraversal(layout_context));
+                &mut AbsoluteAssignBSizesTraversal(layout_context.shared_context()));
         }
 
         // Don't remove the dirty bits yet if we're absolutely-positioned, since our final size
