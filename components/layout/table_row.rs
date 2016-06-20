@@ -110,7 +110,7 @@ impl TableRowFlow {
         let mut max_block_size = Au(0);
         let thread_id = self.block_flow.base.thread_id;
         for kid in self.block_flow.base.child_iter_mut() {
-            kid.place_float_if_applicable(layout_context);
+            kid.place_float_if_applicable();
             if !flow::base(kid).flags.is_float() {
                 kid.assign_block_size_for_inorder_child_if_necessary(layout_context, thread_id);
             }
