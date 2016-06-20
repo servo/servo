@@ -1326,7 +1326,8 @@ impl LayoutThread {
                     self.profiler_metadata(),
                     self.time_profiler_chan.clone(),
                     || {
-                        animation::recalc_style_for_animations(flow_ref::deref_mut(&mut root_flow),
+                        animation::recalc_style_for_animations(&layout_context,
+                                                               flow_ref::deref_mut(&mut root_flow),
                                                                &mut animations)
                     });
         }
