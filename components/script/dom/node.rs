@@ -202,7 +202,9 @@ impl OpaqueStyleAndLayoutData {
         debug_assert!(thread_state::get().is_script());
         let win = window_from_node(node);
         node.style_and_layout_data.set(None);
-        win.layout_chan().send(Msg::ReapStyleAndLayoutData(self)).unwrap();
+        if win.layout_chan().send(Msg::ReapStyleAndLayoutData(self)).is_err() {
+            warn!("layout thread unreachable - leaking layout data");
+        }
     }
 }
 
