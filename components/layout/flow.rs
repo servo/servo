@@ -52,6 +52,7 @@ use style::computed_values::{clear, display, empty_cells, float, position, overf
 use style::dom::TRestyleDamage;
 use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
 use style::properties::{self, ComputedValues, ServoComputedValues};
+use style::servo::SharedStyleContext;
 use style::values::computed::LengthOrPercentageOrAuto;
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, TableFlow};
 use table_caption::TableCaptionFlow;
@@ -1560,7 +1561,7 @@ impl ContainingBlockLink {
     }
 
     #[inline]
-    pub fn explicit_block_containing_size(&self, layout_context: &LayoutContext) -> Option<Au> {
+    pub fn explicit_block_containing_size(&self, shared_context: &SharedStyleContext) -> Option<Au> {
         match self.link {
             None => {
                 panic!("Link to containing block not established; perhaps you forgot to call \
@@ -1569,7 +1570,7 @@ impl ContainingBlockLink {
             Some(ref link) => {
                 let flow = link.upgrade().unwrap();
                 if flow.is_block_like() {
-                    flow.as_block().explicit_block_containing_size(layout_context)
+                    flow.as_block().explicit_block_containing_size(shared_context)
                 } else if flow.is_inline_flow() {
                     Some(flow.as_inline().minimum_block_size_above_baseline)
                 } else {

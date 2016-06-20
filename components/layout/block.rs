@@ -1136,14 +1136,14 @@ impl BlockFlow {
                                                           self.base.position.size);
     }
 
-    pub fn explicit_block_containing_size(&self, layout_context: &LayoutContext) -> Option<Au> {
+    pub fn explicit_block_containing_size(&self, shared_context: &SharedStyleContext) -> Option<Au> {
         if self.is_root() || self.is_fixed() {
             let viewport_size = LogicalSize::from_physical(self.fragment.style.writing_mode,
-                                                           layout_context.shared_context().viewport_size);
+                                                           shared_context.viewport_size);
             Some(viewport_size.block)
         } else if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) &&
                   self.base.block_container_explicit_block_size.is_none() {
-            self.base.absolute_cb.explicit_block_containing_size(layout_context)
+            self.base.absolute_cb.explicit_block_containing_size(shared_context)
         } else {
             self.base.block_container_explicit_block_size
         }
@@ -1331,7 +1331,7 @@ impl BlockFlow {
             box_sizing::T::border_box => self.fragment.border_padding.block_start_end(),
             box_sizing::T::content_box => Au(0),
         };
-        let parent_container_size = self.explicit_block_containing_size(layout_context);
+        let parent_container_size = self.explicit_block_containing_size(layout_context.shared_context());
         // https://drafts.csswg.org/css-ui-3/#box-sizing
         let explicit_content_size = self
                                     .explicit_block_size(parent_container_size)
@@ -2844,7 +2844,7 @@ impl ISizeAndMarginsComputer for AbsoluteReplaced {
         let opaque_block = OpaqueFlow::from_flow(block);
         let containing_block_inline_size =
             block.containing_block_size(&layout_context.shared_context().viewport_size, opaque_block).inline;
-        let container_block_size = block.explicit_block_containing_size(layout_context);
+        let container_block_size = block.explicit_block_containing_size(layout_context.shared_context());
         let fragment = block.fragment();
         fragment.assign_replaced_inline_size_if_necessary(containing_block_inline_size, container_block_size);
         // For replaced absolute flow, the rest of the constraint solving will
@@ -2903,7 +2903,7 @@ impl ISizeAndMarginsComputer for BlockReplaced {
                                     parent_flow_inline_size: Au,
                                     layout_context: &LayoutContext)
                                     -> MaybeAuto {
-        let container_block_size = block.explicit_block_containing_size(layout_context);
+        let container_block_size = block.explicit_block_containing_size(layout_context.shared_context());
         let fragment = block.fragment();
         fragment.assign_replaced_inline_size_if_necessary(parent_flow_inline_size, container_block_size);
         // For replaced block flow, the rest of the constraint solving will
@@ -2961,7 +2961,7 @@ impl ISizeAndMarginsComputer for FloatReplaced {
                                     parent_flow_inline_size: Au,
                                     layout_context: &LayoutContext)
                                     -> MaybeAuto {
-        let container_block_size = block.explicit_block_containing_size(layout_context);
+        let container_block_size = block.explicit_block_containing_size(layout_context.shared_context());
         let fragment = block.fragment();
         fragment.assign_replaced_inline_size_if_necessary(parent_flow_inline_size, container_block_size);
         // For replaced block flow, the rest of the constraint solving will
@@ -3049,7 +3049,7 @@ impl ISizeAndMarginsComputer for InlineBlockReplaced {
                                     parent_flow_inline_size: Au,
                                     layout_context: &LayoutContext)
                                     -> MaybeAuto {
-        let container_block_size = block.explicit_block_containing_size(layout_context);
+        let container_block_size = block.explicit_block_containing_size(layout_context.shared_context());
         let fragment = block.fragment();
         fragment.assign_replaced_inline_size_if_necessary(parent_flow_inline_size, container_block_size);
         // For replaced block flow, the rest of the constraint solving will
