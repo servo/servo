@@ -2145,7 +2145,7 @@ class CGAbstractMethod(CGThing):
     """
     def __init__(self, descriptor, name, returnType, args, inline=False,
                  alwaysInline=False, extern=False, pub=False, templateArgs=None,
-                 unsafe=False, docs=None):
+                 unsafe=False, docs=None, doesNotPanic=False):
         CGThing.__init__(self)
         self.descriptor = descriptor
         self.name = name
@@ -2157,6 +2157,7 @@ class CGAbstractMethod(CGThing):
         self.pub = pub
         self.unsafe = unsafe
         self.docs = docs
+        self.catchPanic = self.extern and not doesNotPanic
 
     def _argstring(self):
         return ', '.join([a.declare() for a in self.args])
@@ -2198,6 +2199,19 @@ class CGAbstractMethod(CGThing):
         # Method will already be marked `unsafe` if `self.extern == True`
         if self.unsafe and not self.extern:
             body = CGWrapper(CGIndenter(body), pre="unsafe {\n", post="\n}")
+
+        if self.catchPanic:
+            body = CGWrapper(CGIndenter(body),
+                             pre="let result = panic::catch_unwind(AssertUnwindSafe(|| {\n",
+                             post=("""}));
+match result {
+    Ok(result) => result,
+    Err(error) => {
+        store_panic_result(error);
+        return%s;
+    }
+}
+""" % ("" if self.returnType == "void" else " false")))
 
         return CGWrapper(CGIndenter(body),
                          pre=self.definition_prologue(),
@@ -2447,9 +2461,9 @@ class CGAbstractExternMethod(CGAbstractMethod):
     Abstract base class for codegen of implementation-only (no
     declaration) static methods.
     """
-    def __init__(self, descriptor, name, returnType, args):
+    def __init__(self, descriptor, name, returnType, args, doesNotPanic=False):
         CGAbstractMethod.__init__(self, descriptor, name, returnType, args,
-                                  inline=False, extern=True)
+                                  inline=False, extern=True, doesNotPanic=doesNotPanic)
 
 
 class PropertyArrays():
@@ -4830,7 +4844,7 @@ return true;""" % (getIndexedOrExpando, getNamed)
 class CGDOMJSProxyHandler_className(CGAbstractExternMethod):
     def __init__(self, descriptor):
         args = [Argument('*mut JSContext', 'cx'), Argument('HandleObject', '_proxy')]
-        CGAbstractExternMethod.__init__(self, descriptor, "className", "*const i8", args)
+        CGAbstractExternMethod.__init__(self, descriptor, "className", "*const i8", args, doesNotPanic=True)
         self.descriptor = descriptor
 
     def getBody(self):
@@ -4845,7 +4859,7 @@ class CGAbstractClassHook(CGAbstractExternMethod):
     Meant for implementing JSClass hooks, like Finalize or Trace. Does very raw
     'this' unwrapping as it assumes that the unwrapped type is always known.
     """
-    def __init__(self, descriptor, name, returnType, args):
+    def __init__(self, descriptor, name, returnType, args, doesNotPanic=False):
         CGAbstractExternMethod.__init__(self, descriptor, name, returnType,
                                         args)
 
@@ -4905,7 +4919,7 @@ class CGClassTraceHook(CGAbstractClassHook):
     def __init__(self, descriptor):
         args = [Argument('*mut JSTracer', 'trc'), Argument('*mut JSObject', 'obj')]
         CGAbstractClassHook.__init__(self, descriptor, TRACE_HOOK_NAME, 'void',
-                                     args)
+                                     args, doesNotPanic=True)
         self.traceGlobal = descriptor.isGlobal()
 
     def generate_code(self):
@@ -5597,11 +5611,13 @@ class CGBindingRoot(CGThing):
             'mem::heap_size_of_raw_self_and_children',
             'libc',
             'util::prefs',
+            'script_runtime::{store_panic_result, maybe_take_panic_result}',
             'std::borrow::ToOwned',
             'std::cmp',
             'std::mem',
             'std::num',
             'std::os',
+            'std::panic::{self, AssertUnwindSafe}',
             'std::ptr',
             'std::str',
             'std::rc',
@@ -6088,6 +6104,9 @@ class CallbackMethod(CallbackMember):
             "        length_: ${argc} as ::libc::size_t,\n"
             "        elements_: ${argv}\n"
             "    }, rval.handle_mut());\n"
+            "if let Some(error) = maybe_take_panic_result() {\n"
+            "    panic::resume_unwind(error);\n"
+            "}\n"
             "if !ok {\n"
             "    return Err(JSFailed);\n"
             "}\n").substitute(replacements)

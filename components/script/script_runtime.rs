@@ -19,7 +19,8 @@ use js::jsapi::{JSObject, RuntimeOptionsRef, SetPreserveWrapperCallback};
 use js::rust::Runtime;
 use profile_traits::mem::{Report, ReportKind, ReportsChan};
 use script_thread::{Runnable, STACK_ROOTS, trace_thread};
-use std::cell::Cell;
+use std::any::Any;
+use std::cell::{RefCell, Cell};
 use std::io::{Write, stdout};
 use std::marker::PhantomData;
 use std::os;
@@ -319,6 +320,21 @@ pub fn get_reports(cx: *mut JSContext, path_seg: String) -> Vec<Report> {
         }
     }
     reports
+}
+
+thread_local!(static PANIC_RESULT: RefCell<Option<Box<Any + Send>>> = RefCell::new(None));
+
+pub fn store_panic_result(error: Box<Any + Send>) {
+    PANIC_RESULT.with(|result| {
+        assert!(result.borrow().is_none());
+        *result.borrow_mut() = Some(error);
+    });
+}
+
+pub fn maybe_take_panic_result() -> Option<Box<Any + Send>> {
+    PANIC_RESULT.with(|result| {
+        result.borrow_mut().take()
+    })
 }
 
 thread_local!(static GC_CYCLE_START: Cell<Option<Tm>> = Cell::new(None));
