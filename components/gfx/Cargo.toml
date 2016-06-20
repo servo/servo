@@ -35,7 +35,7 @@ rustc-serialize = "0.3"
 serde = "0.7"
 serde_macros = "0.7"
 smallvec = "0.1"
-string_cache = {version = "0.2.18", features = ["heap_size"]}
+string_cache = {version = "0.2.20", features = ["heap_size"]}
 style = {path = "../style"}
 style_traits = {path = "../style_traits"}
 time = "0.1.12"
