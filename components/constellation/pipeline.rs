@@ -69,6 +69,8 @@ pub struct Pipeline {
     /// Whether this pipeline should be treated as visible for the purposes of scheduling and
     /// resource management.
     pub visible: bool,
+    /// Frame that contains this Pipeline
+    pub frame: Option<FrameId>,
 }
 
 /// Initial setup data needed to construct a pipeline.
@@ -292,6 +294,7 @@ impl Pipeline {
             running_animations: false,
             visible: visible,
             is_private: is_private,
+            frame: None,
         }
     }
 
