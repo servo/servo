@@ -369,6 +369,7 @@ pub mod pluginarray;
 pub mod popstateevent;
 pub mod processinginstruction;
 pub mod progressevent;
+pub mod promise;
 pub mod radionodelist;
 pub mod range;
 pub mod request;

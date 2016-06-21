@@ -16,6 +16,7 @@ use dom::bindings::reflector::{Reflectable, Reflector};
 use dom::window::{self, ScriptHelpers};
 use dom::workerglobalscope::WorkerGlobalScope;
 use ipc_channel::ipc::IpcSender;
+use js::glue::{IsWrapper, UnwrapObject};
 use js::jsapi::HandleValue;
 use js::jsapi::{CurrentGlobalOrNull, GetGlobalForObjectCrossCompartment};
 use js::jsapi::{JSContext, JSObject, JS_GetClass, MutableHandleValue};
@@ -346,4 +347,14 @@ pub unsafe fn global_root_from_object(obj: *mut JSObject) -> GlobalRoot {
 pub unsafe fn global_root_from_context(cx: *mut JSContext) -> GlobalRoot {
     let global = CurrentGlobalOrNull(cx);
     global_root_from_global(global)
+}
+
+/// Returns the global object of the realm that the given JS object was created in,
+/// after unwrapping any wrappers.
+pub unsafe fn global_root_from_object_maybe_wrapped(mut obj: *mut JSObject) -> GlobalRoot {
+    if IsWrapper(obj) {
+        obj = UnwrapObject(obj, /* stopAtWindowProxy = */ 0);
+        assert!(!obj.is_null());
+    }
+    global_root_from_object(obj)
 }
