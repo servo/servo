@@ -467,7 +467,7 @@ dependencies = [
 [[package]]
 name = "device"
 version = "0.0.1"
-source = "git+https://github.com/servo/devices#cac0952154f65b416acef273a6d1099421ce113e"
+source = "git+https://github.com/servo/devices#09ab8682bddfa73ba36025a150625504212d34da"
 dependencies = [
  "blurz 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
