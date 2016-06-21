@@ -3,8 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![feature(const_fn)]
-#![feature(concat_idents)]
-#![feature(type_macros)]
 
 extern crate heapsize;
 

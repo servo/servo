@@ -15,7 +15,7 @@ pub type PrivateStyleData = style::data::PrivateStyleData<GeckoSelectorImpl, Gec
 
 pub struct GeckoSelectorImpl;
 
-#[derive(Clone, Debug, PartialEq, Eq, HeapSizeOf, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum PseudoElement {
     Before,
     After,
@@ -46,7 +46,7 @@ pub enum PseudoElement {
 }
 
 // https://mxr.mozilla.org/mozilla-central/source/layout/style/nsCSSAnonBoxList.h
-#[derive(Clone, Debug, PartialEq, Eq, HeapSizeOf, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum AnonBoxPseudoElement {
     MozNonElement,
     MozAnonymousBlock,
@@ -114,7 +114,7 @@ pub enum AnonBoxPseudoElement {
     MozSVGText,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, HeapSizeOf, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum NonTSPseudoClass {
     AnyLink,
     Link,
