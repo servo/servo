@@ -25,7 +25,7 @@ use cssparser::{Parser, RGBA, AtRuleParser, DeclarationParser, Delimiter,
                 DeclarationListParser, parse_important, ToCss, TokenSerializationType};
 use error_reporting::ParseErrorReporter;
 use url::Url;
-use euclid::SideOffsets2D;
+use euclid::side_offsets::SideOffsets2D;
 use euclid::size::Size2D;
 use string_cache::Atom;
 use computed_values;

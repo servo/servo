@@ -21,6 +21,6 @@ plugins = {path = "../plugins"}
 rustc-serialize = "0.3.4"
 serde = "0.7"
 serde_macros = "0.7"
-url = {version = "1.0.0", features = ["heap_size"]}
-util = {path = "../util"}
+url = {version = "1.0.0", features = ["heap_size", "serde"]}
+util = {path = "../util", features = ["servo"]}
 webrender_traits = {git = "https://github.com/servo/webrender_traits"}

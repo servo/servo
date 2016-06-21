@@ -23,7 +23,8 @@ use url::{self, Url};
 
 
 /// Global flags for Servo, currently set on the command line.
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 pub struct Opts {
     pub is_running_problem_test: bool,
 
@@ -379,7 +380,8 @@ pub fn print_debug_usage(app: &str) -> ! {
     process::exit(0)
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 pub enum OutputOptions {
     FileName(String),
     Stdout(f64)
@@ -404,7 +406,8 @@ enum UserAgent {
     Android,
 }
 
-#[derive(Clone, Debug, Eq, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 pub enum RenderApi {
     GL,
     ES2,
@@ -858,7 +861,7 @@ pub fn set_defaults(opts: Opts) {
     unsafe {
         assert!(DEFAULT_OPTIONS.is_null());
         assert!(DEFAULT_OPTIONS != INVALID_OPTIONS);
-        let box_opts = box opts;
+        let box_opts = Box::new(opts);
         DEFAULT_OPTIONS = Box::into_raw(box_opts);
     }
 }
