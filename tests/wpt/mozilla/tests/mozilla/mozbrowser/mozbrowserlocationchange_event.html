@@ -39,7 +39,7 @@ async_test(function(t) {
   var action_idx = 0;
 
   iframe.addEventListener("mozbrowserlocationchange", e => {
-    received_events.push(e.detail.uri);
+    received_events.push(e.detail.url);
     received_events.push(e.detail.canGoBack);
     received_events.push(e.detail.canGoForward);
 
