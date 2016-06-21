@@ -75,6 +75,10 @@ euclid = "0.6.4"
 libc = "0.2"
 url = "1.0.0"
 
+[target.'cfg(not(target_os = "android"))'.dependencies]
+sig = "0.1"
+backtrace = "0.2"
+
 [target.'cfg(target_os = "android")'.dependencies]
 log = "0.3"
 android_glue = "0.1.3"
