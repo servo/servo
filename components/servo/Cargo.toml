@@ -19,10 +19,11 @@ doc = false
 bench = false
 
 [features]
-default = ["glutin_app", "webdriver", "max_log_level"]
+default = ["glutin_app", "webdriver", "max_log_level", "bluetooth"]
 max_log_level = ["log/release_max_level_info"]
 webdriver = ["webdriver_server"]
 energy-profiling = ["profile_traits/energy-profiling"]
+bluetooth = ["net/bluetooth"]
 
 [profile.release]
 opt-level = 3

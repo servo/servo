@@ -8,6 +8,10 @@ publish = false
 name = "net"
 path = "lib.rs"
 
+[features]
+default = ["bluetooth"]
+bluetooth = ["device/bluetooth"]
+
 [dependencies]
 bitflags = "0.7"
 brotli = {git = "https://github.com/ende76/brotli-rs"}
