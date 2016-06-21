@@ -194,9 +194,17 @@ class Descriptor(DescriptorProvider):
 
         typeName = desc.get('nativeType', nativeTypeDefault)
 
-        # Callback types do not use JS smart pointers, so we should not use the
+        spiderMonkeyInterface = desc.get('spiderMonkeyInterface', False)
+
+        # Callback and SpiderMonkey types do not use JS smart pointers, so we should not use the
         # built-in rooting mechanisms for them.
-        if self.interface.isCallback():
+        if spiderMonkeyInterface:
+            self.needsRooting = False
+            self.returnType = 'Rc<%s>' % typeName
+            self.argumentType = '&%s' % typeName
+            self.nativeType = typeName
+            pathDefault = 'dom::types::%s' % typeName
+        elif self.interface.isCallback():
             self.needsRooting = False
             ty = 'dom::bindings::codegen::Bindings::%sBinding::%s' % (ifaceName, ifaceName)
             pathDefault = ty
