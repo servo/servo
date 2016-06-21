@@ -381,7 +381,7 @@ impl Flow for TableRowFlow {
         let spacing = self.spacing;
         let row_writing_mode = self.block_flow.base.writing_mode;
         let table_writing_mode = self.table_writing_mode;
-        self.block_flow.propagate_assigned_inline_size_to_children(layout_context,
+        self.block_flow.propagate_assigned_inline_size_to_children(layout_context.shared_context(),
                                                                    inline_start_content_edge,
                                                                    inline_end_content_edge,
                                                                    containing_block_inline_size,

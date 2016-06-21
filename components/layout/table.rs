@@ -400,7 +400,7 @@ impl Flow for TableFlow {
             &self.collapsed_inline_direction_border_widths_for_table;
         let mut collapsed_block_direction_border_widths_for_table =
             self.collapsed_block_direction_border_widths_for_table.iter().peekable();
-        self.block_flow.propagate_assigned_inline_size_to_children(layout_context,
+        self.block_flow.propagate_assigned_inline_size_to_children(layout_context.shared_context(),
                                                                    inline_start_content_edge,
                                                                    inline_end_content_edge,
                                                                    content_inline_size,

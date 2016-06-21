@@ -376,7 +376,7 @@ impl Flow for TableWrapperFlow {
         match assigned_column_inline_sizes {
             None => {
                 self.block_flow
-                    .propagate_assigned_inline_size_to_children(layout_context,
+                    .propagate_assigned_inline_size_to_children(layout_context.shared_context(),
                                                                 inline_start_content_edge,
                                                                 inline_end_content_edge,
                                                                 content_inline_size,
@@ -384,7 +384,7 @@ impl Flow for TableWrapperFlow {
             }
             Some(ref assigned_column_inline_sizes) => {
                 self.block_flow
-                    .propagate_assigned_inline_size_to_children(layout_context,
+                    .propagate_assigned_inline_size_to_children(layout_context.shared_context(),
                                                                 inline_start_content_edge,
                                                                 inline_end_content_edge,
                                                                 content_inline_size,

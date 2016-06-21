@@ -1311,7 +1311,7 @@ impl BlockFlow {
     /// and the code for block layout is significantly simpler.
     #[inline(always)]
     pub fn propagate_assigned_inline_size_to_children<F>(&mut self,
-                                                         layout_context: &LayoutContext,
+                                                         shared_context: &SharedStyleContext,
                                                          inline_start_content_edge: Au,
                                                          inline_end_content_edge: Au,
                                                          content_inline_size: Au,
@@ -1331,7 +1331,7 @@ impl BlockFlow {
             box_sizing::T::border_box => self.fragment.border_padding.block_start_end(),
             box_sizing::T::content_box => Au(0),
         };
-        let parent_container_size = self.explicit_block_containing_size(layout_context.shared_context());
+        let parent_container_size = self.explicit_block_containing_size(shared_context);
         // https://drafts.csswg.org/css-ui-3/#box-sizing
         let explicit_content_size = self
                                     .explicit_block_size(parent_container_size)
@@ -1339,7 +1339,7 @@ impl BlockFlow {
 
         // Calculate containing block inline size.
         let containing_block_size = if flags.contains(IS_ABSOLUTELY_POSITIONED) {
-            self.containing_block_size(&layout_context.shared_context().viewport_size, opaque_self).inline
+            self.containing_block_size(&shared_context.viewport_size, opaque_self).inline
         } else {
             content_inline_size
         };
@@ -1737,7 +1737,7 @@ impl Flow for BlockFlow {
 
         let content_inline_size = self.fragment.border_box.size.inline - padding_and_borders;
 
-        self.propagate_assigned_inline_size_to_children(layout_context,
+        self.propagate_assigned_inline_size_to_children(layout_context.shared_context(),
                                                         inline_start_content_edge,
                                                         inline_end_content_edge,
                                                         content_inline_size,

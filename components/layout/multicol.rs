@@ -119,7 +119,7 @@ impl Flow for MulticolFlow {
         self.block_flow.fragment.border_box.size.inline = content_inline_size + padding_and_borders;
 
         self.block_flow.propagate_assigned_inline_size_to_children(
-            layout_context, inline_start_content_edge, inline_end_content_edge, column_width,
+            layout_context.shared_context(), inline_start_content_edge, inline_end_content_edge, column_width,
             |_, _, _, _, _, _| {});
     }
 
