@@ -27,6 +27,7 @@ function test_interfaces(interfaceNamesInGlobalScope) {
       "NaN",
       "Number",
       "Object",
+      "Promise",
       "Proxy",
       "RangeError",
       "ReferenceError",
