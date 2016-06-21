@@ -20,7 +20,8 @@
         use cssparser::ToCss;
         use std::fmt;
 
-        #[derive(PartialEq, Clone, Eq, Copy, Debug, HeapSizeOf)]
+        #[derive(PartialEq, Clone, Eq, Copy, Debug)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub enum T {
             Auto,
             Number(i32),

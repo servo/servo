@@ -16,10 +16,12 @@ ${helpers.predefined_type("opacity",
     use std::fmt;
     use values::AuExtensionMethods;
 
-    #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
+    #[derive(Debug, Clone, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue(Vec<SpecifiedBoxShadow>);
 
-    #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
+    #[derive(Debug, Clone, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedBoxShadow {
         pub offset_x: specified::Length,
         pub offset_y: specified::Length,
@@ -72,10 +74,12 @@ ${helpers.predefined_type("opacity",
         use std::fmt;
         use values::computed;
 
-        #[derive(Clone, PartialEq, HeapSizeOf, Debug)]
+        #[derive(Clone, PartialEq, Debug)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T(pub Vec<BoxShadow>);
 
-        #[derive(Clone, PartialEq, Copy, HeapSizeOf, Debug)]
+        #[derive(Clone, PartialEq, Copy, Debug)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct BoxShadow {
             pub offset_x: Au,
             pub offset_y: Au,
@@ -229,7 +233,8 @@ ${helpers.predefined_type("opacity",
     pub mod computed_value {
         use app_units::Au;
 
-        #[derive(Clone, PartialEq, Eq, Copy, Debug, HeapSizeOf)]
+        #[derive(Clone, PartialEq, Eq, Copy, Debug)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct ClipRect {
             pub top: Au,
             pub right: Option<Au>,
@@ -237,7 +242,8 @@ ${helpers.predefined_type("opacity",
             pub left: Au,
         }
 
-        #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
+        #[derive(Debug, Clone, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T(pub Option<ClipRect>);
     }
 
@@ -271,7 +277,8 @@ ${helpers.predefined_type("opacity",
         }
     }
 
-    #[derive(Clone, Debug, PartialEq, Copy, HeapSizeOf)]
+    #[derive(Clone, Debug, PartialEq, Copy)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedClipRect {
         pub top: specified::Length,
         pub right: Option<specified::Length>,
@@ -279,7 +286,8 @@ ${helpers.predefined_type("opacity",
         pub left: specified::Length,
     }
 
-    #[derive(Clone, Debug, PartialEq, Copy, HeapSizeOf)]
+    #[derive(Clone, Debug, PartialEq, Copy)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue(Option<SpecifiedClipRect>);
 
     impl ToCss for SpecifiedClipRect {
@@ -394,11 +402,13 @@ ${helpers.predefined_type("opacity",
     use values::CSSFloat;
     use values::specified::{Angle, Length};
 
-    #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
+    #[derive(Debug, Clone, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue(Vec<SpecifiedFilter>);
 
     // TODO(pcwalton): `drop-shadow`
-    #[derive(Clone, PartialEq, Debug, HeapSizeOf)]
+    #[derive(Clone, PartialEq, Debug)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SpecifiedFilter {
         Blur(Length),
         Brightness(CSSFloat),
@@ -416,7 +426,8 @@ ${helpers.predefined_type("opacity",
         use values::CSSFloat;
         use values::specified::{Angle};
 
-        #[derive(Clone, PartialEq, Debug, HeapSizeOf, Deserialize, Serialize)]
+        #[derive(Clone, PartialEq, Debug)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
         pub enum Filter {
             Blur(Au),
             Brightness(CSSFloat),
@@ -429,7 +440,8 @@ ${helpers.predefined_type("opacity",
             Sepia(CSSFloat),
         }
 
-        #[derive(Clone, PartialEq, Debug, HeapSizeOf, Deserialize, Serialize)]
+        #[derive(Clone, PartialEq, Debug)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
         pub struct T { pub filters: Vec<Filter> }
 
         impl T {
@@ -629,7 +641,8 @@ ${helpers.predefined_type("opacity",
         use values::CSSFloat;
         use values::computed;
 
-        #[derive(Clone, Copy, Debug, PartialEq, HeapSizeOf)]
+        #[derive(Clone, Copy, Debug, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct ComputedMatrix {
             pub m11: CSSFloat, pub m12: CSSFloat, pub m13: CSSFloat, pub m14: CSSFloat,
             pub m21: CSSFloat, pub m22: CSSFloat, pub m23: CSSFloat, pub m24: CSSFloat,
@@ -648,7 +661,8 @@ ${helpers.predefined_type("opacity",
             }
         }
 
-        #[derive(Clone, Debug, PartialEq, HeapSizeOf)]
+        #[derive(Clone, Debug, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub enum ComputedOperation {
             Matrix(ComputedMatrix),
             Skew(computed::Angle, computed::Angle),
@@ -660,7 +674,8 @@ ${helpers.predefined_type("opacity",
             Perspective(computed::Length),
         }
 
-        #[derive(Clone, Debug, PartialEq, HeapSizeOf)]
+        #[derive(Clone, Debug, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T(pub Option<Vec<ComputedOperation>>);
     }
 
@@ -695,7 +710,8 @@ ${helpers.predefined_type("opacity",
         Ok((first, second))
     }
 
-    #[derive(Copy, Clone, Debug, PartialEq, HeapSizeOf)]
+    #[derive(Copy, Clone, Debug, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     enum TranslateKind {
         Translate,
         TranslateX,
@@ -704,7 +720,8 @@ ${helpers.predefined_type("opacity",
         Translate3D,
     }
 
-    #[derive(Clone, Debug, PartialEq, HeapSizeOf)]
+    #[derive(Clone, Debug, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     enum SpecifiedOperation {
         Matrix(SpecifiedMatrix),
         Skew(specified::Angle, specified::Angle),
@@ -783,7 +800,8 @@ ${helpers.predefined_type("opacity",
         }
     }
 
-    #[derive(Clone, Debug, PartialEq, HeapSizeOf)]
+    #[derive(Clone, Debug, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue(Vec<SpecifiedOperation>);
 
     impl ToCss for SpecifiedValue {
@@ -1173,7 +1191,8 @@ ${helpers.single_keyword("transform-style", "auto flat preserve-3d")}
     pub mod computed_value {
         use values::computed::{Length, LengthOrPercentage};
 
-        #[derive(Clone, Copy, Debug, PartialEq, HeapSizeOf)]
+        #[derive(Clone, Copy, Debug, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T {
             pub horizontal: LengthOrPercentage,
             pub vertical: LengthOrPercentage,
@@ -1181,7 +1200,8 @@ ${helpers.single_keyword("transform-style", "auto flat preserve-3d")}
         }
     }
 
-    #[derive(Clone, Copy, Debug, PartialEq, HeapSizeOf)]
+    #[derive(Clone, Copy, Debug, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue {
         horizontal: LengthOrPercentage,
         vertical: LengthOrPercentage,
@@ -1253,7 +1273,8 @@ ${helpers.predefined_type("perspective",
     pub mod computed_value {
         use values::computed::LengthOrPercentage;
 
-        #[derive(Clone, Copy, Debug, PartialEq, HeapSizeOf)]
+        #[derive(Clone, Copy, Debug, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T {
             pub horizontal: LengthOrPercentage,
             pub vertical: LengthOrPercentage,
@@ -1268,7 +1289,8 @@ ${helpers.predefined_type("perspective",
         }
     }
 
-    #[derive(Clone, Copy, Debug, PartialEq, HeapSizeOf)]
+    #[derive(Clone, Copy, Debug, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue {
         horizontal: LengthOrPercentage,
         vertical: LengthOrPercentage,

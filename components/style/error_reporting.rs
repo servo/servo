@@ -20,6 +20,6 @@ impl ParseErrorReporter for StdoutErrorReporter {
     }
 
     fn clone(&self) -> Box<ParseErrorReporter + Send + Sync> {
-        box StdoutErrorReporter
+        Box::new(StdoutErrorReporter)
     }
 }

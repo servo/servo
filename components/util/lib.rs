@@ -13,7 +13,7 @@
 
 extern crate app_units;
 #[cfg(feature = "servo")] extern crate backtrace;
-#[cfg(feature = "servo")] #[allow(unused_extern_crates)] #[macro_use] extern crate bitflags;
+#[allow(unused_extern_crates)] #[macro_use] extern crate bitflags;
 extern crate deque;
 extern crate euclid;
 extern crate getopts;
@@ -46,12 +46,12 @@ pub mod prefs;
 #[cfg(feature = "servo")] pub mod print_tree;
 pub mod resource_files;
 pub mod str;
-#[cfg(feature = "servo")] pub mod thread;
-#[cfg(feature = "servo")] pub mod thread_state;
+pub mod thread;
+pub mod thread_state;
 pub mod tid;
 #[cfg(feature = "servo")] pub mod time;
 pub mod vec;
-#[cfg(feature = "servo")] #[allow(unsafe_code)] pub mod workqueue;
+#[allow(unsafe_code)] pub mod workqueue;
 
 #[cfg(feature = "servo")]
 #[allow(unsafe_code)]
