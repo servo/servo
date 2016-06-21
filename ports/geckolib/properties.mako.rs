@@ -136,7 +136,6 @@ impl ComputedValues for GeckoComputedValues {
 }
 
 <%def name="declare_style_struct(style_struct)">
-#[derive(HeapSizeOf)]
 pub struct ${style_struct.gecko_struct_name} {
     gecko: ${style_struct.gecko_ffi_name},
 }

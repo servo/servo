@@ -10,7 +10,7 @@ use std::fmt::{self, Debug};
 // in a ThreadSafeFooHolder smart pointer.  Used in tandem with the
 // NS_DECL_HOLDER_FFI_REFCOUNTING-defined types and functions in Gecko.
 macro_rules! define_holder_arc {
-    ($arc_type:ident, $name:ident, $holder_type:ident) => (
+    ($arc_type:ident, $name:ident, $holder_type:ident, $addref: ident, $release: ident) => (
         #[derive(PartialEq)]
         pub struct $arc_type {
             ptr: *mut $holder_type,
@@ -19,7 +19,7 @@ macro_rules! define_holder_arc {
         impl $arc_type {
             pub fn new(data: *mut $holder_type) -> $arc_type {
                 debug_assert!(!data.is_null());
-                unsafe { concat_idents!(Gecko_AddRef, $name, ArbitraryThread)(data); }
+                unsafe { $addref(data); }
                 $arc_type {
                     ptr: data
                 }
@@ -39,7 +39,7 @@ macro_rules! define_holder_arc {
 
         impl Drop for $arc_type {
             fn drop(&mut self) {
-                unsafe { concat_idents!(Gecko_Release, $name, ArbitraryThread)(self.ptr); }
+                unsafe { $release(self.ptr); }
             }
         }
 
@@ -55,5 +55,7 @@ macro_rules! define_holder_arc {
     )
 }
 
-define_holder_arc!(GeckoArcPrincipal, Principal, ThreadSafePrincipalHolder);
-define_holder_arc!(GeckoArcURI, URI, ThreadSafeURIHolder);
+define_holder_arc!(GeckoArcPrincipal, Principal, ThreadSafePrincipalHolder,
+                   Gecko_AddRefPrincipalArbitraryThread, Gecko_ReleasePrincipalArbitraryThread);
+define_holder_arc!(GeckoArcURI, URI, ThreadSafeURIHolder,
+                   Gecko_AddRefURIArbitraryThread, Gecko_ReleaseURIArbitraryThread);
