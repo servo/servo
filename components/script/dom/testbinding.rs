@@ -24,6 +24,7 @@ use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::{ByteString, DOMString, USVString};
 use dom::bindings::weakref::MutableWeakRef;
 use dom::blob::{Blob, BlobImpl};
+use dom::promise::Promise;
 use dom::url::URL;
 use js::jsapi::{HandleObject, HandleValue, JSContext, JSObject};
 use js::jsval::{JSVal, NullValue};
@@ -592,6 +593,22 @@ impl TestBindingMethods for TestBinding {
     fn FuncControlledAttributeEnabled(&self) -> bool { false }
     fn FuncControlledMethodDisabled(&self) {}
     fn FuncControlledMethodEnabled(&self) {}
+
+    #[allow(unrooted_must_root)]
+    fn ReturnPromise(&self) -> Rc<Promise> {
+        Promise::new(self.global().r())
+    }
+
+    #[allow(unrooted_must_root)]
+    fn PromiseAttribute(&self) -> Rc<Promise> {
+        Promise::new(self.global().r())
+    }
+
+    fn AcceptPromise(&self, _promise: &Promise) {
+    }
+
+    fn AcceptNullablePromise(&self, _promise: Option<&Promise>) {
+    }
 
     fn PassSequenceSequence(&self, _seq: Vec<Vec<i32>>) {}
     fn ReturnSequenceSequence(&self) -> Vec<Vec<i32>> { vec![] }

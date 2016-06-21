@@ -646,7 +646,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
     # failureCode will prevent pending exceptions from being set in cases when
     # they really should be!
     if exceptionCode is None:
-        exceptionCode = "return false;"
+        exceptionCode = "return false;\n"
 
     needsRooting = typeNeedsRooting(type, descriptorProvider)
 
@@ -662,12 +662,10 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
     # Helper functions for dealing with failures due to the JS value being the
     # wrong type of value.
     def onFailureNotAnObject(failureCode):
-        return CGWrapper(
-            CGGeneric(
+        return CGGeneric(
                 failureCode or
                 ('throw_type_error(cx, "%s is not an object.");\n'
-                 '%s' % (firstCap(sourceDescription), exceptionCode))),
-            post="\n")
+                 '%s' % (firstCap(sourceDescription), exceptionCode)))
 
     def onFailureInvalidEnumValue(failureCode, passedVarName):
         return CGGeneric(
@@ -772,25 +770,71 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             descriptorType = descriptor.argumentType
 
         templateBody = ""
-        if descriptor.interface.isConsequential():
-            raise TypeError("Consequential interface %s being used as an "
-                            "argument" % descriptor.interface.identifier.name)
+        isPromise = descriptor.interface.identifier.name == "Promise"
+        if isPromise:
+            # Per spec, what we're supposed to do is take the original
+            # Promise.resolve and call it with the original Promise as this
+            # value to make a Promise out of whatever value we actually have
+            # here.  The question is which global we should use.  There are
+            # a couple cases to consider:
+            #
+            # 1) Normal call to API with a Promise argument.  This is a case the
+            #    spec covers, and we should be using the current Realm's
+            #    Promise.  That means the current compartment.
+            # 2) Promise return value from a callback or callback interface.
+            #    This is in theory a case the spec covers but in practice it
+            #    really doesn't define behavior here because it doesn't define
+            #    what Realm we're in after the callback returns, which is when
+            #    the argument conversion happens.  We will use the current
+            #    compartment, which is the compartment of the callable (which
+            #    may itself be a cross-compartment wrapper itself), which makes
+            #    as much sense as anything else. In practice, such an API would
+            #    once again be providing a Promise to signal completion of an
+            #    operation, which would then not be exposed to anyone other than
+            #    our own implementation code.
+            templateBody = fill(
+                """
+                { // Scope for our GlobalObject, ErrorResult, JSAutoCompartment,
+                  // etc.
 
-        if failureCode is None:
-            substitutions = {
-                "sourceDescription": sourceDescription,
-                "interface": descriptor.interface.identifier.name,
-                "exceptionCode": exceptionCode,
-            }
-            unwrapFailureCode = string.Template(
-                'throw_type_error(cx, "${sourceDescription} does not '
-                'implement interface ${interface}.");\n'
-                '${exceptionCode}').substitute(substitutions)
+                  let globalObj = RootedObject::new(cx, CurrentGlobalOrNull(cx));
+                  let _ac = JSAutoCompartment::new(cx, globalObj.handle().get());
+                  let promiseGlobal = global_root_from_object_maybe_wrapped(globalObj.handle().get());
+
+                  let mut valueToResolve = RootedValue::new(cx, $${val}.get());
+                  if !JS_WrapValue(cx, valueToResolve.handle_mut()) {
+                    $*{exceptionCode}
+                  }
+                  match Promise::Resolve(promiseGlobal.r(), cx, valueToResolve.handle()) {
+                      Ok(value) => value,
+                      Err(error) => {
+                        throw_dom_exception(cx, promiseGlobal.r(), error);
+                        $*{exceptionCode}
+                      }
+                  }
+                }
+                """,
+                exceptionCode=exceptionCode)
         else:
-            unwrapFailureCode = failureCode
+            if descriptor.interface.isConsequential():
+                raise TypeError("Consequential interface %s being used as an "
+                                "argument" % descriptor.interface.identifier.name)
 
-        templateBody = unwrapCastableObject(
-            descriptor, "${val}", unwrapFailureCode, conversionFunction)
+            if failureCode is None:
+                substitutions = {
+                    "sourceDescription": sourceDescription,
+                    "interface": descriptor.interface.identifier.name,
+                    "exceptionCode": exceptionCode,
+                }
+                unwrapFailureCode = string.Template(
+                    'throw_type_error(cx, "${sourceDescription} does not '
+                    'implement interface ${interface}.");\n'
+                    '${exceptionCode}').substitute(substitutions)
+            else:
+                unwrapFailureCode = failureCode
+
+            templateBody = unwrapCastableObject(
+                descriptor, "${val}", unwrapFailureCode, conversionFunction)
 
         declType = CGGeneric(descriptorType)
         if type.nullable():
@@ -5525,8 +5569,8 @@ class CGBindingRoot(CGThing):
             'js::jsapi::{JSNative, JSObject, JSNativeWrapper, JSPropertySpec}',
             'js::jsapi::{JSString, JSTracer, JSType, JSTypedMethodJitInfo, JSValueType}',
             'js::jsapi::{ObjectOpResult, JSJitInfo_OpType, MutableHandle, MutableHandleObject}',
-            'js::jsapi::{MutableHandleValue, PropertyDescriptor, RootedObject}',
-            'js::jsapi::{SymbolCode, jsid}',
+            'js::jsapi::{MutableHandleValue, PropertyDescriptor, RootedId, RootedObject}',
+            'js::jsapi::{RootedString, RootedValue, SymbolCode, jsid, CurrentGlobalOrNull}',
             'js::jsval::JSVal',
             'js::jsval::{ObjectValue, ObjectOrNullValue, PrivateValue}',
             'js::jsval::{NullValue, UndefinedValue}',
@@ -5545,7 +5589,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::interface::{ConstantSpec, NonNullJSNative}',
             'dom::bindings::interface::ConstantVal::{IntVal, UintVal}',
             'dom::bindings::interface::is_exposed_in',
-            'dom::bindings::js::{JS, Root, RootedReference}',
+            'dom::bindings::js::{JS, Root, RootedReference, RootedRcReference}',
             'dom::bindings::js::{OptionalRootedReference}',
             'dom::bindings::reflector::{Reflectable}',
             'dom::bindings::utils::{DOMClass, DOMJSClass}',
@@ -5572,6 +5616,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::error::{Fallible, Error, ErrorResult}',
             'dom::bindings::error::Error::JSFailed',
             'dom::bindings::error::throw_dom_exception',
+            'dom::bindings::global::global_root_from_object_maybe_wrapped',
             'dom::bindings::guard::{Condition, Guard}',
             'dom::bindings::proxyhandler',
             'dom::bindings::proxyhandler::{ensure_expando_object, fill_property_descriptor}',
