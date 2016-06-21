@@ -10,9 +10,8 @@ use gecko_bindings::bindings::Gecko_AddRefAtom;
 use gecko_bindings::bindings::Gecko_AtomEqualsUTF8IgnoreCase;
 use gecko_bindings::bindings::Gecko_Atomize;
 use gecko_bindings::bindings::Gecko_GetAtomAsUTF16;
-use gecko_bindings::bindings::Gecko_HashAtom;
 use gecko_bindings::bindings::Gecko_ReleaseAtom;
-use gecko_bindings::bindings::nsIAtom;
+use gecko_bindings::structs::nsIAtom;
 use heapsize::HeapSizeOf;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::borrow::Cow;
@@ -100,7 +99,7 @@ unsafe impl Sync for Atom {}
 impl Atom {
     pub fn get_hash(&self) -> u32 {
         unsafe {
-            Gecko_HashAtom(self.0)
+            (*self.0).mHash
         }
     }
 

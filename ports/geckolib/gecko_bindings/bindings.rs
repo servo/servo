@@ -35,6 +35,7 @@ use structs::nscolor;
 use structs::nsFont;
 use structs::FontFamilyList;
 use structs::FontFamilyType;
+use structs::nsIAtom;
 use heapsize::HeapSizeOf;
 unsafe impl Send for nsStyleFont {}
 unsafe impl Sync for nsStyleFont {}
@@ -121,7 +122,6 @@ unsafe impl Send for nsStyleGradientStop {}
 unsafe impl Sync for nsStyleGradientStop {}
 impl HeapSizeOf for nsStyleGradientStop { fn heap_size_of_children(&self) -> usize { 0 } }
 
-pub enum nsIAtom { }
 pub enum nsINode { }
 pub type RawGeckoNode = nsINode;
 pub enum nsIPrincipal { }
