@@ -17,7 +17,8 @@ ${helpers.predefined_type(
 
     pub mod computed_value {
         use values::computed;
-        #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
+        #[derive(Debug, Clone, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T(pub Option<computed::Image>);
     }
 
@@ -32,7 +33,8 @@ ${helpers.predefined_type(
         }
     }
 
-    #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
+    #[derive(Debug, Clone, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue(pub Option<Image>);
 
     impl ToCss for SpecifiedValue {
@@ -77,14 +79,16 @@ ${helpers.predefined_type(
         pub mod computed_value {
             use values::computed::LengthOrPercentage;
 
-            #[derive(PartialEq, Copy, Clone, Debug, HeapSizeOf)]
+            #[derive(PartialEq, Copy, Clone, Debug)]
+            #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
             pub struct T {
                 pub horizontal: LengthOrPercentage,
                 pub vertical: LengthOrPercentage,
             }
         }
 
-        #[derive(Debug, Clone, PartialEq, Copy, HeapSizeOf)]
+        #[derive(Debug, Clone, PartialEq, Copy)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct SpecifiedValue {
             pub horizontal: specified::LengthOrPercentage,
             pub vertical: specified::LengthOrPercentage,
@@ -198,13 +202,15 @@ ${helpers.single_keyword("background-origin", "padding-box border-box content-bo
     pub mod computed_value {
         use values::computed::LengthOrPercentageOrAuto;
 
-        #[derive(PartialEq, Clone, Debug, HeapSizeOf)]
+        #[derive(PartialEq, Clone, Debug)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct ExplicitSize {
             pub width: LengthOrPercentageOrAuto,
             pub height: LengthOrPercentageOrAuto,
         }
 
-        #[derive(PartialEq, Clone, Debug, HeapSizeOf)]
+        #[derive(PartialEq, Clone, Debug)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub enum T {
             Explicit(ExplicitSize),
             Cover,
@@ -222,7 +228,8 @@ ${helpers.single_keyword("background-origin", "padding-box border-box content-bo
         }
     }
 
-    #[derive(Clone, PartialEq, Debug, HeapSizeOf)]
+    #[derive(Clone, PartialEq, Debug)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedExplicitSize {
         pub width: specified::LengthOrPercentageOrAuto,
         pub height: specified::LengthOrPercentageOrAuto,
@@ -245,7 +252,8 @@ ${helpers.single_keyword("background-origin", "padding-box border-box content-bo
     }
 
 
-    #[derive(Clone, PartialEq, Debug, HeapSizeOf)]
+    #[derive(Clone, PartialEq, Debug)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SpecifiedValue {
         Explicit(SpecifiedExplicitSize),
         Cover,

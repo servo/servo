@@ -33,7 +33,7 @@ impl<Impl, ConcreteComputedValues> PrivateStyleData<Impl, ConcreteComputedValues
 }
 
 /// Information that we need stored in each DOM node.
-#[derive(HeapSizeOf)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct DomParallelInfo {
     /// The number of children that still need work done.
     pub children_count: AtomicIsize,

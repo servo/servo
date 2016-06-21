@@ -24,7 +24,8 @@
         use cssparser::{self, ToCss};
         use std::fmt;
 
-        #[derive(Debug, PartialEq, Eq, Clone, HeapSizeOf)]
+        #[derive(Debug, PartialEq, Eq, Clone)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub enum ContentItem {
             /// Literal string content.
             String(String),
@@ -73,7 +74,8 @@
         }
 
         #[allow(non_camel_case_types)]
-        #[derive(Debug, PartialEq, Eq, Clone, HeapSizeOf)]
+        #[derive(Debug, PartialEq, Eq, Clone)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub enum T {
             normal,
             none,
@@ -180,7 +182,8 @@
     pub use self::computed_value::T as SpecifiedValue;
 
     pub mod computed_value {
-        #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
+        #[derive(Debug, Clone, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T(pub Vec<(String,i32)>);
     }
 

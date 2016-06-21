@@ -21,7 +21,8 @@ use util::geometry::ViewportPx;
 use values::computed::{Context, ToComputedValue};
 use values::specified::{Length, LengthOrPercentageOrAuto, ViewportPercentageLength};
 
-#[derive(Copy, Clone, Debug, HeapSizeOf, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum ViewportDescriptor {
     MinWidth(ViewportLength),
     MaxWidth(ViewportLength),
@@ -45,7 +46,8 @@ trait FromMeta: Sized {
 // See:
 // * http://dev.w3.org/csswg/css-device-adapt/#min-max-width-desc
 // * http://dev.w3.org/csswg/css-device-adapt/#extend-to-zoom
-#[derive(Copy, Clone, Debug, HeapSizeOf, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum ViewportLength {
     Specified(LengthOrPercentageOrAuto),
     ExtendToZoom
@@ -133,7 +135,8 @@ struct ViewportRuleParser<'a, 'b: 'a> {
     context: &'a ParserContext<'b>
 }
 
-#[derive(Copy, Clone, Debug, HeapSizeOf, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct ViewportDescriptorDeclaration {
     pub origin: Origin,
     pub descriptor: ViewportDescriptor,
@@ -228,7 +231,8 @@ impl<'a, 'b> DeclarationParser for ViewportRuleParser<'a, 'b> {
     }
 }
 
-#[derive(Debug, HeapSizeOf, PartialEq)]
+#[derive(Debug, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct ViewportRule {
     pub declarations: Vec<ViewportDescriptorDeclaration>
 }

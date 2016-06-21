@@ -23,7 +23,8 @@ pub fn parse_name(s: &str) -> Result<&str, ()> {
     }
 }
 
-#[derive(Clone, PartialEq, Debug, HeapSizeOf)]
+#[derive(Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct SpecifiedValue {
     css: String,
 
@@ -41,7 +42,8 @@ pub struct BorrowedSpecifiedValue<'a> {
     references: Option<&'a HashSet<Name>>,
 }
 
-#[derive(Clone, HeapSizeOf, Debug)]
+#[derive(Clone, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct ComputedValue {
     css: String,
     first_token_type: TokenSerializationType,
