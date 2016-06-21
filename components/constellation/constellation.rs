@@ -128,9 +128,6 @@ pub struct Constellation<Message, LTF, STF> {
     /// A list of all the frames
     frames: HashMap<FrameId, Frame>,
 
-    /// Maps from pipeline ID to the frame that contains it.
-    pipeline_to_frame_map: HashMap<PipelineId, FrameId>,
-
     /// Maps from a (parent pipeline, subpage) to the actual child pipeline ID.
     subpage_map: HashMap<(PipelineId, SubpageId), PipelineId>,
 
@@ -342,7 +339,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 font_cache_thread: state.font_cache_thread,
                 pipelines: HashMap::new(),
                 frames: HashMap::new(),
-                pipeline_to_frame_map: HashMap::new(),
                 subpage_map: HashMap::new(),
                 pending_frames: vec!(),
                 next_pipeline_namespace_id: PipelineNamespaceId(0),
@@ -492,10 +488,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         let frame = Frame::new(pipeline_id);
 
-        assert!(!self.pipeline_to_frame_map.contains_key(&pipeline_id));
+        assert!(self.pipelines.get(&pipeline_id).and_then(|pipeline| pipeline.frame).is_none());
         assert!(!self.frames.contains_key(&id));
 
-        self.pipeline_to_frame_map.insert(pipeline_id, id);
+        self.pipelines.get_mut(&pipeline_id).map(|pipeline| pipeline.frame = Some(id));
         self.frames.insert(id, frame);
 
         id
@@ -1249,8 +1245,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     }
 
     fn handle_load_start_msg(&mut self, pipeline_id: &PipelineId) {
-        if let Some(frame_id) = self.pipeline_to_frame_map.get(pipeline_id) {
-            if let Some(frame) = self.frames.get(frame_id) {
+        if let Some(frame_id) = self.pipelines.get(pipeline_id).and_then(|pipeline| pipeline.frame) {
+            if let Some(frame) = self.frames.get(&frame_id) {
                 let forward = !frame.next.is_empty();
                 let back = !frame.prev.is_empty();
                 self.compositor_proxy.send(ToCompositorMsg::LoadStart(back, forward));
@@ -1259,7 +1255,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     }
 
     fn handle_load_complete_msg(&mut self, pipeline_id: &PipelineId) {
-        if let Some(&frame_id) = self.pipeline_to_frame_map.get(pipeline_id) {
+        if let Some(frame_id) = self.pipelines.get(pipeline_id).and_then(|pipeline| pipeline.frame) {
             if let Some(frame) = self.frames.get(&frame_id) {
                 let forward = frame.next.is_empty();
                 let back = frame.prev.is_empty();
@@ -1294,8 +1290,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // the navigate message, or use root frame id by default.
         let frame_id = pipeline_info
             .and_then(|info| self.subpage_map.get(&info))
-            .and_then(|pipeline_id| self.pipeline_to_frame_map.get(&pipeline_id))
-            .cloned()
+            .and_then(|pipeline_id| self.pipelines.get(&pipeline_id))
+            .and_then(|pipeline| pipeline.frame)
             .or(self.root_frame_id);
 
         // If the frame_id lookup fails, then we are in the middle of tearing down
@@ -1470,7 +1466,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     fn handle_get_frame(&mut self,
                         pipeline_id: PipelineId,
                         resp_chan: IpcSender<Option<FrameId>>) {
-        let frame_id = self.pipeline_to_frame_map.get(&pipeline_id).map(|x| *x);
+        let frame_id = self.pipelines.get(&pipeline_id).and_then(|pipeline| pipeline.frame);
         if let Err(e) = resp_chan.send(frame_id) {
             warn!("Failed get_frame response ({}).", e);
         }
@@ -1507,7 +1503,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     }
 
     fn handle_remove_iframe_msg(&mut self, pipeline_id: PipelineId) {
-        let frame_id = self.pipeline_to_frame_map.get(&pipeline_id).map(|id| *id);
+        let frame_id = self.pipelines.get(&pipeline_id).and_then(|pipeline| pipeline.frame);
         match frame_id {
             Some(frame_id) => {
                 // This iframe has already loaded and been added to the frame tree.
@@ -1523,7 +1519,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     }
 
     fn handle_set_visible_msg(&mut self, pipeline_id: PipelineId, visible: bool) {
-        let frame_id = self.pipeline_to_frame_map.get(&pipeline_id).map(|frame_id| *frame_id);
+        let frame_id = self.pipelines.get(&pipeline_id).and_then(|pipeline| pipeline.frame);
         let child_pipeline_ids: Vec<PipelineId> = self.current_frame_tree_iter(frame_id)
                                                       .map(|frame| frame.current)
                                                       .collect();
@@ -1649,7 +1645,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // of the pipeline being changed) then update the focus pipeline to be
         // the replacement.
         if let Some(old_pipeline_id) = frame_change.old_pipeline_id {
-            if let Some(&old_frame_id) = self.pipeline_to_frame_map.get(&old_pipeline_id) {
+            if let Some(old_frame_id) = self.pipelines.get(&old_pipeline_id).and_then(|pipeline| pipeline.frame) {
                 if self.focused_pipeline_in_tree(old_frame_id) {
                     self.focus_pipeline_id = Some(frame_change.new_pipeline_id);
                 }
@@ -1662,11 +1658,14 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             self.revoke_paint_permission(old_pipeline_id);
 
             // Add new pipeline to navigation frame, and return frames evicted from history.
-            self.pipeline_to_frame_map.get(&old_pipeline_id).cloned()
+            self.pipelines
+                .get(&old_pipeline_id)
+                .and_then(|pipeline| pipeline.frame)
                 .and_then(|frame_id| {
-                    self.pipeline_to_frame_map.insert(frame_change.new_pipeline_id, frame_id);
-                    self.frames.get_mut(&frame_id)
-                }).map(|frame| frame.load(frame_change.new_pipeline_id))
+                    self.pipelines.get_mut(&frame_change.new_pipeline_id)
+                                  .map(|pipeline| pipeline.frame = Some(frame_id));
+                    self.frames.get_mut(&frame_id).map(|frame| frame.load(frame_change.new_pipeline_id))
+                })
         });
 
         if let None = evicted_frames {
@@ -1742,7 +1741,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // a dependent pipeline to be ready to paint.
         while let Some(valid_frame_change) = self.pending_frames.iter().rposition(|frame_change| {
             let waiting_on_dependency = frame_change.old_pipeline_id.map_or(false, |old_pipeline_id| {
-                self.pipeline_to_frame_map.get(&old_pipeline_id).is_none()
+                self.pipelines.get(&old_pipeline_id).map(|pipeline| pipeline.frame).is_none()
             });
             frame_change.document_ready && !waiting_on_dependency
         }) {
@@ -1984,7 +1983,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             self.close_frame(*child_frame, exit_mode);
         }
 
-        let pipeline = match self.pipelines.get(&pipeline_id) {
+        let pipeline = match self.pipelines.get_mut(&pipeline_id) {
             Some(pipeline) => pipeline,
             None => return warn!("Closing pipeline {:?} twice.", pipeline_id),
         };
@@ -1995,7 +1994,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
 
         // Remove assocation between this pipeline and its holding frame
-        self.pipeline_to_frame_map.remove(&pipeline_id);
+        pipeline.frame = None;
 
         // Remove this pipeline from pending frames if it hasn't loaded yet.
         let pending_index = self.pending_frames.iter().position(|frame_change| {
@@ -2061,7 +2060,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
     // Revoke paint permission from a pipeline, and all children.
     fn revoke_paint_permission(&self, pipeline_id: PipelineId) {
-        let frame_id = self.pipeline_to_frame_map.get(&pipeline_id).map(|frame_id| *frame_id);
+        let frame_id = self.pipelines.get(&pipeline_id).and_then(|pipeline| pipeline.frame);
         for frame in self.current_frame_tree_iter(frame_id) {
             self.pipelines.get(&frame.current).map(|pipeline| pipeline.revoke_paint_permission());
         }
@@ -2122,7 +2121,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // If this is a mozbrowser iframe, then send the event with new url
         if let Some((containing_pipeline_id, subpage_id, FrameType::MozBrowserIFrame, url)) = event_info {
             if let Some(parent_pipeline) = self.pipelines.get(&containing_pipeline_id) {
-                if let Some(frame_id) = self.pipeline_to_frame_map.get(&pipeline_id) {
+                if let Some(frame_id) = self.pipelines.get(&pipeline_id).and_then(|pipeline| pipeline.frame) {
                     if let Some(frame) = self.frames.get(&frame_id) {
                         let can_go_backward = !frame.prev.is_empty();
                         let can_go_forward = !frame.next.is_empty();
