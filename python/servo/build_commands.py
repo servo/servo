@@ -134,6 +134,10 @@ class MachCommands(CommandBase):
                      default=None,
                      help='Space-separated list of features to also build',
                      nargs='+')
+    @CommandArgument('--no-default-features',
+                     default=None,
+                     action='store_true',
+                     help='Disable all features (can selectively enable with --features)')
     @CommandArgument('--android',
                      default=None,
                      action='store_true',
@@ -148,7 +152,8 @@ class MachCommands(CommandBase):
     @CommandArgument('params', nargs='...',
                      help="Command-line arguments to be passed through to Cargo")
     def build(self, target=None, release=False, dev=False, jobs=None,
-              features=None, android=None, verbose=False, debug_mozjs=False, params=None):
+              features=None, no_default_features=False, android=None, verbose=False,
+              debug_mozjs=False, params=None):
         if android is None:
             android = self.config["build"]["android"]
         features = features or []
@@ -201,6 +206,8 @@ class MachCommands(CommandBase):
         if debug_mozjs or self.config["build"]["debug-mozjs"]:
             features += ["script/debugmozjs"]
 
+        if no_default_features:
+            opts += ['--no-default-features']
         if features:
             opts += ["--features", "%s" % ' '.join(features)]
 
