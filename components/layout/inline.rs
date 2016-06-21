@@ -24,8 +24,8 @@ use gfx_traits::StackingContextId;
 use layout_debug;
 use model::IntrinsicISizesContribution;
 use range::{Range, RangeIndex};
-use script_layout_interface::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW};
-use script_layout_interface::restyle_damage::{REPAINT, RESOLVE_GENERATED_CONTENT};
+use script_layout_interface::restyle_damage::{BUBBLE_ISIZES, REFLOW};
+use script_layout_interface::restyle_damage::{REFLOW_OUT_OF_FLOW, RESOLVE_GENERATED_CONTENT};
 use script_layout_interface::wrapper_traits::PseudoElementType;
 use std::cmp::max;
 use std::collections::VecDeque;
@@ -1642,10 +1642,6 @@ impl Flow for InlineFlow {
 
     fn build_display_list(&mut self, state: &mut DisplayListBuildState) {
         self.build_display_list_for_inline(state);
-
-        for fragment in &mut self.fragments.fragments {
-            fragment.restyle_damage.remove(REPAINT);
-        }
     }
 
     fn repair_style(&mut self, _: &Arc<ServoComputedValues>) {}

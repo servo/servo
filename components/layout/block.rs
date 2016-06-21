@@ -49,7 +49,7 @@ use layout_debug;
 use model::{CollapsibleMargins, MaybeAuto, specified, specified_or_none};
 use model::{self, IntrinsicISizes, MarginCollapseInfo};
 use rustc_serialize::{Encodable, Encoder};
-use script_layout_interface::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT};
+use script_layout_interface::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW};
 use std::cmp::{max, min};
 use std::fmt;
 use std::sync::Arc;
@@ -2136,7 +2136,6 @@ impl Flow for BlockFlow {
 
     fn build_display_list(&mut self, state: &mut DisplayListBuildState) {
         self.build_display_list_for_block(state, BorderPaintingMode::Separate);
-        self.fragment.restyle_damage.remove(REPAINT);
     }
 
     fn repair_style(&mut self, new_style: &Arc<ServoComputedValues>) {
