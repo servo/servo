@@ -17,7 +17,8 @@
         use std::fmt;
         use style_traits::cursor::Cursor;
 
-        #[derive(Clone, PartialEq, Eq, Copy, Debug, HeapSizeOf)]
+        #[derive(Clone, PartialEq, Eq, Copy, Debug)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub enum T {
             AutoCursor,
             SpecifiedCursor(Cursor),

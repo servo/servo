@@ -4,7 +4,7 @@
 
 bitflags! {
     #[doc = "Event-based element states."]
-    #[derive(HeapSizeOf)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub flags ElementState: u16 {
         #[doc = "The mouse is down on this element. \
                  https://html.spec.whatwg.org/multipage/#selector-active \

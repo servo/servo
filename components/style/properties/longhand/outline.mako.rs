@@ -41,7 +41,8 @@ ${helpers.predefined_type("outline-color", "CSSColor", "::cssparser::Color::Curr
     pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
         specified::parse_border_width(input).map(SpecifiedValue)
     }
-    #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
+    #[derive(Debug, Clone, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue(pub specified::Length);
     pub mod computed_value {
         use app_units::Au;

@@ -2,21 +2,29 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![feature(box_syntax)]
-#![feature(box_patterns)]
-#![feature(concat_idents)]
-#![feature(core_intrinsics)]
-#![feature(custom_attribute)]
-#![feature(custom_derive)]
-#![feature(plugin)]
-
-#![plugin(heapsize_plugin)]
-#![plugin(plugins)]
-#![plugin(serde_macros)]
+#![cfg_attr(feature = "servo", feature(core_intrinsics))]
+#![cfg_attr(feature = "servo", feature(custom_attribute))]
+#![cfg_attr(feature = "servo", feature(custom_derive))]
+#![cfg_attr(feature = "servo", feature(plugin))]
+#![cfg_attr(feature = "servo", plugin(heapsize_plugin))]
+#![cfg_attr(feature = "servo", plugin(serde_macros))]
 
 #![deny(unsafe_code)]
 
 #![recursion_limit = "500"]  // For match_ignore_ascii_case in PropertyDeclaration::parse
+
+// FIXME(https://github.com/rust-lang/rust/issues/24263): remove this module when discriminant_value is stable.
+mod possibly_fake_intrinsics {
+    #[cfg(any(feature = "servo", feature = "gecko"))]
+    pub use std::intrinsics::discriminant_value;
+
+    // This is a stub to allow the rest of the code to compile.
+    #[cfg(not(any(feature = "servo", feature = "gecko")))]
+    #[allow(unsafe_code)]
+    pub unsafe fn discriminant_value<T>(_v: &T) -> u64 {
+        unimplemented!()
+    }
+}
 
 extern crate app_units;
 #[allow(unused_extern_crates)]
@@ -30,7 +38,7 @@ extern crate euclid;
 extern crate fnv;
 #[cfg(feature = "gecko")]
 extern crate gecko_bindings;
-extern crate heapsize;
+#[cfg(feature = "servo")] extern crate heapsize;
 #[allow(unused_extern_crates)]
 #[macro_use]
 extern crate lazy_static;
@@ -42,7 +50,7 @@ extern crate matches;
 extern crate num_traits;
 extern crate rustc_serialize;
 extern crate selectors;
-extern crate serde;
+#[cfg(feature = "servo")] extern crate serde;
 extern crate smallvec;
 #[macro_use(atom, ns)] extern crate string_cache;
 #[macro_use]

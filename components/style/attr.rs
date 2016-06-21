@@ -17,14 +17,16 @@ use values::specified::Length;
 // Duplicated from script::dom::values.
 const UNSIGNED_LONG_MAX: u32 = 2147483647;
 
-#[derive(Clone, Copy, Debug, HeapSizeOf, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum LengthOrPercentageOrAuto {
     Auto,
     Percentage(f32),
     Length(Au),
 }
 
-#[derive(PartialEq, Clone, HeapSizeOf)]
+#[derive(PartialEq, Clone)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum AttrValue {
     String(String),
     TokenList(String, Vec<Atom>),
@@ -538,7 +540,8 @@ pub fn parse_length(mut value: &str) -> LengthOrPercentageOrAuto {
     }
 }
 
-#[derive(Clone, HeapSizeOf, Debug)]
+#[derive(Clone, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct AttrIdentifier {
     pub local_name: Atom,
     pub name: Atom,

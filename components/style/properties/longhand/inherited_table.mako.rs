@@ -20,14 +20,16 @@ ${helpers.single_keyword("caption-side", "top bottom", extra_gecko_values="right
     pub mod computed_value {
         use app_units::Au;
 
-        #[derive(Clone, Copy, Debug, PartialEq, RustcEncodable, HeapSizeOf)]
+        #[derive(Clone, Copy, Debug, PartialEq, RustcEncodable)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T {
             pub horizontal: Au,
             pub vertical: Au,
         }
     }
 
-    #[derive(Clone, Debug, PartialEq, HeapSizeOf)]
+    #[derive(Clone, Debug, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue {
         pub horizontal: specified::Length,
         pub vertical: specified::Length,

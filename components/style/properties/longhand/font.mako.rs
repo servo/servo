@@ -19,7 +19,8 @@
         use std::fmt;
         use string_cache::Atom;
 
-        #[derive(Debug, PartialEq, Eq, Clone, Hash, HeapSizeOf, Deserialize, Serialize)]
+        #[derive(Debug, PartialEq, Eq, Clone, Hash)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
         pub enum FontFamily {
             FamilyName(Atom),
             Generic(Atom),
@@ -73,7 +74,8 @@
                 Ok(())
             }
         }
-        #[derive(Debug, Clone, PartialEq, Eq, Hash, HeapSizeOf)]
+        #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T(pub Vec<FontFamily>);
     }
 
@@ -122,7 +124,8 @@ ${helpers.single_keyword("font-variant", "normal small-caps")}
     use cssparser::ToCss;
     use std::fmt;
 
-    #[derive(Debug, Clone, PartialEq, Eq, Copy, HeapSizeOf)]
+    #[derive(Debug, Clone, PartialEq, Eq, Copy)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SpecifiedValue {
         Bolder,
         Lighter,
@@ -169,7 +172,8 @@ ${helpers.single_keyword("font-variant", "normal small-caps")}
     }
     pub mod computed_value {
         use std::fmt;
-        #[derive(PartialEq, Eq, Copy, Clone, Hash, Deserialize, Serialize, HeapSizeOf, Debug)]
+        #[derive(PartialEq, Eq, Copy, Clone, Hash, Debug)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
         #[repr(u16)]
         pub enum T {
             % for weight in range(100, 901, 100):
@@ -250,7 +254,8 @@ ${helpers.single_keyword("font-variant", "normal small-caps")}
         }
     }
 
-    #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
+    #[derive(Debug, Clone, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue(pub specified::LengthOrPercentage);
     pub mod computed_value {
         use app_units::Au;
