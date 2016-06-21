@@ -12,7 +12,8 @@
     use values::AuExtensionMethods;
     use values::CSSFloat;
 
-    #[derive(Debug, Clone, PartialEq, Copy, HeapSizeOf)]
+    #[derive(Debug, Clone, PartialEq, Copy)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SpecifiedValue {
         Normal,
         % if product == "gecko":
@@ -61,7 +62,8 @@
         use app_units::Au;
         use std::fmt;
         use values::CSSFloat;
-        #[derive(PartialEq, Copy, Clone, HeapSizeOf, Debug)]
+        #[derive(PartialEq, Copy, Clone, Debug)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub enum T {
             Normal,
             % if product == "gecko":
@@ -182,7 +184,8 @@
     use std::fmt;
     use values::AuExtensionMethods;
 
-    #[derive(Debug, Clone, Copy, PartialEq, HeapSizeOf)]
+    #[derive(Debug, Clone, Copy, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SpecifiedValue {
         Normal,
         Specified(specified::Length),
@@ -199,7 +202,8 @@
 
     pub mod computed_value {
         use app_units::Au;
-        #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
+        #[derive(Debug, Clone, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T(pub Option<Au>);
     }
 
@@ -244,7 +248,8 @@
     use std::fmt;
     use values::AuExtensionMethods;
 
-    #[derive(Debug, Clone, Copy, PartialEq, HeapSizeOf)]
+    #[derive(Debug, Clone, Copy, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SpecifiedValue {
         Normal,
         Specified(specified::Length),  // FIXME(SimonSapin) support percentages
@@ -261,7 +266,8 @@
 
     pub mod computed_value {
         use app_units::Au;
-        #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
+        #[derive(Debug, Clone, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T(pub Option<Au>);
     }
 
@@ -332,7 +338,8 @@ ${helpers.single_keyword("text-justify",
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
 
-    #[derive(Clone, PartialEq, Copy, Debug, HeapSizeOf)]
+    #[derive(Clone, PartialEq, Copy, Debug)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue {
         pub underline: Option<RGBA>,
         pub overline: Option<RGBA>,
@@ -446,10 +453,12 @@ ${helpers.single_keyword("text-justify",
     use std::fmt;
     use values::AuExtensionMethods;
 
-    #[derive(Clone, PartialEq, Debug, HeapSizeOf)]
+    #[derive(Clone, PartialEq, Debug)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue(Vec<SpecifiedTextShadow>);
 
-    #[derive(Clone, PartialEq, Debug, HeapSizeOf)]
+    #[derive(Clone, PartialEq, Debug)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedTextShadow {
         pub offset_x: specified::Length,
         pub offset_y: specified::Length,
@@ -461,10 +470,12 @@ ${helpers.single_keyword("text-justify",
         use app_units::Au;
         use cssparser::Color;
 
-        #[derive(Clone, PartialEq, Debug, HeapSizeOf)]
+        #[derive(Clone, PartialEq, Debug)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T(pub Vec<TextShadow>);
 
-        #[derive(Clone, PartialEq, Debug, HeapSizeOf)]
+        #[derive(Clone, PartialEq, Debug)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct TextShadow {
             pub offset_x: Au,
             pub offset_y: Au,

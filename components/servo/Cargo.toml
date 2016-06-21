@@ -59,7 +59,7 @@ script_traits = {path = "../script_traits"}
 layout = {path = "../layout"}
 layout_thread = {path = "../layout_thread"}
 gfx = {path = "../gfx"}
-style = {path = "../style"}
+style = {path = "../style", features = ["servo"]}
 canvas = {path = "../canvas"}
 canvas_traits = {path = "../canvas_traits"}
 devtools = {path = "../devtools"}

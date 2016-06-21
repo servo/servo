@@ -9,19 +9,22 @@ use properties::longhands::font_family::parse_one_family;
 use std::iter;
 use url::Url;
 
-#[derive(Clone, Debug, HeapSizeOf, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
 pub enum Source {
     Url(UrlSource),
     Local(FontFamily),
 }
 
-#[derive(Clone, Debug, HeapSizeOf, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
 pub struct UrlSource {
     pub url: Url,
     pub format_hints: Vec<String>,
 }
 
-#[derive(Debug, HeapSizeOf, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct FontFaceRule {
     pub family: FontFamily,
     pub sources: Vec<Source>,
@@ -59,7 +62,8 @@ pub fn parse_font_face_block(context: &ParserContext, input: &mut Parser)
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 pub struct EffectiveSources(Vec<Source>);
 
 impl FontFaceRule {

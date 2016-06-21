@@ -31,7 +31,8 @@ ${helpers.single_keyword("list-style-type", """
     use url::Url;
     use values::LocalToCss;
 
-    #[derive(Debug, Clone, PartialEq, Eq, HeapSizeOf)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SpecifiedValue {
         None,
         Url(Url),
@@ -52,7 +53,8 @@ ${helpers.single_keyword("list-style-type", """
         use url::Url;
         use values::LocalToCss;
 
-        #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
+        #[derive(Debug, Clone, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T(pub Option<Url>);
 
         impl ToCss for T {
@@ -100,7 +102,8 @@ ${helpers.single_keyword("list-style-type", """
     pub use self::computed_value::T as SpecifiedValue;
 
     pub mod computed_value {
-        #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
+        #[derive(Debug, Clone, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T(pub Vec<(String,String)>);
     }
 

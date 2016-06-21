@@ -11,7 +11,8 @@
     use std::fmt;
     use values::AuExtensionMethods;
 
-    #[derive(Debug, Clone, Copy, PartialEq, HeapSizeOf)]
+    #[derive(Debug, Clone, Copy, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SpecifiedValue {
         Auto,
         Specified(specified::Length),
@@ -28,7 +29,8 @@
 
     pub mod computed_value {
         use app_units::Au;
-        #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
+        #[derive(Debug, Clone, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T(pub Option<Au>);
     }
 
@@ -72,7 +74,8 @@
     use cssparser::ToCss;
     use std::fmt;
 
-    #[derive(Debug, Clone, Copy, PartialEq, HeapSizeOf)]
+    #[derive(Debug, Clone, Copy, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SpecifiedValue {
         Auto,
         Specified(u32),
@@ -88,7 +91,8 @@
     }
 
     pub mod computed_value {
-        #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
+        #[derive(Debug, Clone, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T(pub Option<u32>);
     }
 
@@ -138,7 +142,8 @@
     use std::fmt;
     use values::AuExtensionMethods;
 
-    #[derive(Debug, Clone, Copy, PartialEq, HeapSizeOf)]
+    #[derive(Debug, Clone, Copy, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SpecifiedValue {
         Normal,
         Specified(specified::Length),
@@ -155,7 +160,8 @@
 
     pub mod computed_value {
         use app_units::Au;
-        #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
+        #[derive(Debug, Clone, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T(pub Option<Au>);
     }
 
