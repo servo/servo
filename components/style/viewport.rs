@@ -8,11 +8,11 @@ use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser, 
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::{Size2D, TypedSize2D};
 use parser::{ParserContext, log_css_error};
-use possibly_fake_intrinsics as intrinsics;
 use properties::{ComputedValues, ServoComputedValues};
 use std::ascii::AsciiExt;
 use std::collections::hash_map::{Entry, HashMap};
 use std::fmt;
+use std::intrinsics;
 use std::iter::Enumerate;
 use std::str::Chars;
 use style_traits::viewport::{Orientation, UserZoom, ViewportConstraints, Zoom};
