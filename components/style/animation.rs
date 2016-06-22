@@ -63,9 +63,11 @@ impl KeyframesAnimationState {
     ///
     /// Returns true if the animation should keep running.
     pub fn tick(&mut self) -> bool {
+        debug!("KeyframesAnimationState::tick");
         let still_running = match self.iteration_state {
             KeyframesIterationState::Finite(ref mut current, ref max) => {
                 *current += 1;
+                debug!("KeyframesAnimationState::tick: current={}, max={}", current, max);
                 *current < *max
             }
             KeyframesIterationState::Infinite => true,
@@ -115,14 +117,6 @@ impl Animation {
         match *self {
             Animation::Transition(..) => false,
             Animation::Keyframes(_, _, ref state) => state.paused,
-        }
-    }
-
-    pub fn increment_keyframe_if_applicable(&mut self) {
-        if let Animation::Keyframes(_, _, ref mut state) = *self {
-            if let KeyframesIterationState::Finite(ref mut iterations, _) = state.iteration_state {
-                *iterations += 1;
-            }
         }
     }
 }
