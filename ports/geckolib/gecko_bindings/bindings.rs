@@ -169,6 +169,25 @@ extern "C" {
     pub fn Gecko_LocalName(element: *mut RawGeckoElement) -> *mut nsIAtom;
     pub fn Gecko_Namespace(element: *mut RawGeckoElement) -> *mut nsIAtom;
     pub fn Gecko_GetElementId(element: *mut RawGeckoElement) -> *mut nsIAtom;
+    pub fn Gecko_HasAttr(element: *mut RawGeckoElement, ns: *mut nsIAtom,
+                         name: *mut nsIAtom) -> bool;
+    pub fn Gecko_AttrEquals(element: *mut RawGeckoElement, ns: *mut nsIAtom,
+                            name: *mut nsIAtom, str: *mut nsIAtom,
+                            ignoreCase: bool) -> bool;
+    pub fn Gecko_AttrDashEquals(element: *mut RawGeckoElement,
+                                ns: *mut nsIAtom, name: *mut nsIAtom,
+                                str: *mut nsIAtom) -> bool;
+    pub fn Gecko_AttrIncludes(element: *mut RawGeckoElement, ns: *mut nsIAtom,
+                              name: *mut nsIAtom, str: *mut nsIAtom) -> bool;
+    pub fn Gecko_AttrHasSubstring(element: *mut RawGeckoElement,
+                                  ns: *mut nsIAtom, name: *mut nsIAtom,
+                                  str: *mut nsIAtom) -> bool;
+    pub fn Gecko_AttrHasPrefix(element: *mut RawGeckoElement,
+                               ns: *mut nsIAtom, name: *mut nsIAtom,
+                               str: *mut nsIAtom) -> bool;
+    pub fn Gecko_AttrHasSuffix(element: *mut RawGeckoElement,
+                               ns: *mut nsIAtom, name: *mut nsIAtom,
+                               str: *mut nsIAtom) -> bool;
     pub fn Gecko_ClassOrClassList(element: *mut RawGeckoElement,
                                   class_: *mut *mut nsIAtom,
                                   classList: *mut *mut *mut nsIAtom) -> u32;
@@ -182,7 +201,6 @@ extern "C" {
      -> *mut nsIAtom;
     pub fn Gecko_AddRefAtom(aAtom: *mut nsIAtom);
     pub fn Gecko_ReleaseAtom(aAtom: *mut nsIAtom);
-    pub fn Gecko_HashAtom(aAtom: *mut nsIAtom) -> u32;
     pub fn Gecko_GetAtomAsUTF16(aAtom: *mut nsIAtom, aLength: *mut u32)
      -> *const u16;
     pub fn Gecko_AtomEqualsUTF8(aAtom: *mut nsIAtom,
@@ -209,9 +227,6 @@ extern "C" {
     pub fn Gecko_CreateGradient(shape: u8, size: u8, repeating: bool,
                                 legacy_syntax: bool, stops: u32)
      -> *mut nsStyleGradient;
-    pub fn Gecko_SetGradientStop(gradient: *mut nsStyleGradient, index: u32,
-                                 location: *const nsStyleCoord,
-                                 color: nscolor, is_interpolation_hint: bool);
     pub fn Gecko_AddRefPrincipalArbitraryThread(aPtr:
                                                     *mut ThreadSafePrincipalHolder);
     pub fn Gecko_ReleasePrincipalArbitraryThread(aPtr:
@@ -282,6 +297,7 @@ extern "C" {
                                  set: *mut RawServoStyleSet);
     pub fn Servo_RestyleSubtree(node: *mut RawGeckoNode,
                                 set: *mut RawServoStyleSet);
+    pub fn Servo_StyleWorkerThreadCount() -> u32;
     pub fn Gecko_GetAttrAsUTF8(element: *mut RawGeckoElement,
                                ns: *mut nsIAtom, name: *mut nsIAtom,
                                length: *mut u32)
