@@ -339,6 +339,7 @@ dependencies = [
 name = "constellation"
 version = "0.0.1"
 dependencies = [
+ "backtrace 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "canvas 0.0.1",
  "canvas_traits 0.0.1",
  "clipboard 0.1.2 (git+https://github.com/aweinstock314/rust-clipboard)",
