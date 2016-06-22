@@ -139,7 +139,6 @@ pub fn recalc_style_for_animations(context: &SharedLayoutContext,
                                                animation,
                                                &mut fragment.style,
                                                Some(&mut damage));
-                    animation.increment_keyframe_if_applicable();
                 }
             }
         }
