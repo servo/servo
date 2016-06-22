@@ -9,8 +9,7 @@ use cssparser::ToCss;
 macro_rules! define_cursor {
     ($( $css: expr => $variant: ident = $value: expr, )+) => {
         #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-        #[cfg_attr(feature = "serde-serialization", derive(Deserialize, Serialize))]
-        #[cfg_attr(feature = "heap_size", derive(HeapSizeOf))]
+        #[cfg_attr(feature = "servo", derive(Deserialize, Serialize, HeapSizeOf))]
         #[repr(u8)]
         pub enum Cursor {
             $( $variant = $value ),+

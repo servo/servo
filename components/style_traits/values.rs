@@ -5,49 +5,29 @@
 #[macro_export]
 macro_rules! define_css_keyword_enum {
     ($name: ident: $( $css: expr => $variant: ident ),+,) => {
-        __define_css_keyword_enum__add_serde!($name [ $( $css => $variant ),+ ]);
+        __define_css_keyword_enum__add_optional_traits!($name [ $( $css => $variant ),+ ]);
     };
     ($name: ident: $( $css: expr => $variant: ident ),+) => {
-        __define_css_keyword_enum__add_serde!($name [ $( $css => $variant ),+ ]);
+        __define_css_keyword_enum__add_optional_traits!($name [ $( $css => $variant ),+ ]);
     };
 }
 
-#[cfg(feature = "serde-serialization")]
+#[cfg(feature = "servo")]
 #[macro_export]
-macro_rules! __define_css_keyword_enum__add_serde {
+macro_rules! __define_css_keyword_enum__add_optional_traits {
     ($name: ident [ $( $css: expr => $variant: ident ),+ ]) => {
-        __define_css_keyword_enum__add_heapsize! {
-            $name [ Deserialize, Serialize ] [ $( $css => $variant ),+ ]
+        __define_css_keyword_enum__actual! {
+            $name [ Deserialize, Serialize, HeapSizeOf ] [ $( $css => $variant ),+ ]
         }
     };
 }
 
-#[cfg(not(feature = "serde-serialization"))]
+#[cfg(not(feature = "servo"))]
 #[macro_export]
-macro_rules! __define_css_keyword_enum__add_serde {
+macro_rules! __define_css_keyword_enum__add_optional_traits {
     ($name: ident [ $( $css: expr => $variant: ident ),+ ]) => {
-        __define_css_keyword_enum__add_heapsize! {
+        __define_css_keyword_enum__actual! {
             $name [] [ $( $css => $variant ),+ ]
-        }
-    };
-}
-
-#[cfg(feature = "heap_size")]
-#[macro_export]
-macro_rules! __define_css_keyword_enum__add_heapsize {
-    ($name: ident [ $( $derived_trait: ident),* ]  [ $( $css: expr => $variant: ident ),+ ]) => {
-        __define_css_keyword_enum__actual! {
-            $name [  $( $derived_trait, )* HeapSizeOf ] [ $( $css => $variant ),+ ]
-        }
-    };
-}
-
-#[cfg(not(feature = "heap_size"))]
-#[macro_export]
-macro_rules! __define_css_keyword_enum__add_heapsize {
-    ($name: ident [ $( $derived_trait: ident),* ]  [ $( $css: expr => $variant: ident ),+ ]) => {
-        __define_css_keyword_enum__actual! {
-            $name [ $( $derived_trait ),* ] [ $( $css => $variant ),+ ]
         }
     };
 }
