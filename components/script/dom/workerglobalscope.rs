@@ -28,11 +28,12 @@ use msg::constellation_msg::{PipelineId, ReferrerPolicy, PanicMsg};
 use net_traits::{LoadContext, ResourceThreads, load_whole_resource};
 use net_traits::{RequestSource, LoadOrigin, CustomResponseSender, IpcSend};
 use profile_traits::{mem, time};
-use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
+use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, maybe_take_panic_result};
 use script_traits::ScriptMsg as ConstellationMsg;
 use script_traits::{MsDuration, TimerEvent, TimerEventId, TimerEventRequest, TimerSource};
 use std::cell::Cell;
 use std::default::Default;
+use std::panic;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -320,8 +321,14 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
                 }
             };
 
-            match self.runtime.evaluate_script(
-                self.reflector().get_jsobject(), &source, url.as_str(), 1, rval.handle_mut()) {
+            let result = self.runtime.evaluate_script(
+                self.reflector().get_jsobject(), &source, url.as_str(), 1, rval.handle_mut());
+
+            if let Some(error) = maybe_take_panic_result() {
+                panic::resume_unwind(error);
+            }
+
+            match result {
                 Ok(_) => (),
                 Err(_) => {
                     println!("evaluate_script failed");

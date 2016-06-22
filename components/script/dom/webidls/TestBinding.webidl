@@ -455,6 +455,8 @@ interface TestBinding {
   static void funcControlledStaticMethodEnabled();
   [Func="TestBinding::condition_satisfied"]
   const unsigned short funcControlledConstEnabled = 0;
+
+  void panic();
 };
 
 partial interface TestBinding {
