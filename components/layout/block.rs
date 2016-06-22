@@ -1616,7 +1616,7 @@ impl BlockFlow {
         }
     }
 
-    pub fn compute_inline_sizes(&mut self, layout_context: &LayoutContext) {
+    pub fn compute_inline_sizes(&mut self, shared_context: &SharedStyleContext) {
         if !self.base.restyle_damage.intersects(REFLOW_OUT_OF_FLOW | REFLOW) {
             return
         }
@@ -1634,13 +1634,13 @@ impl BlockFlow {
             debug!("Setting root position");
             self.base.position.start = LogicalPoint::zero(self.base.writing_mode);
             self.base.block_container_inline_size = LogicalSize::from_physical(
-                self.base.writing_mode, layout_context.shared_context().viewport_size).inline;
+                self.base.writing_mode, shared_context.viewport_size).inline;
             self.base.block_container_writing_mode = self.base.writing_mode;
         }
 
         // Our inline-size was set to the inline-size of the containing block by the flow's parent.
         // Now compute the real value.
-        self.propagate_and_compute_used_inline_size(layout_context.shared_context());
+        self.propagate_and_compute_used_inline_size(shared_context);
 
         // Now for some speculation.
         match self.formatting_context_type() {
@@ -1722,7 +1722,7 @@ impl Flow for BlockFlow {
     fn assign_inline_sizes(&mut self, layout_context: &LayoutContext) {
         let _scope = layout_debug_scope!("block::assign_inline_sizes {:x}", self.base.debug_id());
 
-        self.compute_inline_sizes(layout_context);
+        self.compute_inline_sizes(layout_context.shared_context());
 
         // Move in from the inline-start border edge.
         let inline_start_content_edge = self.fragment.border_box.start.i +

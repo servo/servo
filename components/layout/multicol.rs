@@ -79,7 +79,7 @@ impl Flow for MulticolFlow {
 
     fn assign_inline_sizes(&mut self, layout_context: &LayoutContext) {
         debug!("assign_inline_sizes({}): assigning inline_size for flow", "multicol");
-        self.block_flow.compute_inline_sizes(layout_context);
+        self.block_flow.compute_inline_sizes(layout_context.shared_context());
 
         // Move in from the inline-start border edge.
         let inline_start_content_edge = self.block_flow.fragment.border_box.start.i +
