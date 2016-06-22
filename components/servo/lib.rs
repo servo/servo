@@ -17,10 +17,12 @@
 //! The `Browser` is fed events from a generic type that implements the
 //! `WindowMethods` trait.
 
+extern crate env_logger;
 #[cfg(not(target_os = "windows"))]
 extern crate gaol;
 #[macro_use]
 extern crate gleam;
+extern crate log;
 
 pub extern crate canvas;
 pub extern crate canvas_traits;
@@ -65,10 +67,13 @@ use compositing::{CompositorProxy, IOCompositor};
 #[cfg(not(target_os = "windows"))]
 use constellation::content_process_sandbox_profile;
 use constellation::{Constellation, InitialConstellationState, UnprivilegedPipelineContent};
+use constellation::{FromScriptLogger, FromCompositorLogger};
+use env_logger::Logger as EnvLogger;
 #[cfg(not(target_os = "windows"))]
 use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
 use gfx::font_cache_thread::FontCacheThread;
 use ipc_channel::ipc::{self, IpcSender};
+use log::{Log, LogMetadata, LogRecord};
 use net::bluetooth_thread::BluetoothThreadFactory;
 use net::image_cache_thread::new_image_cache_thread;
 use net::resource_thread::new_resource_threads;
@@ -78,7 +83,8 @@ use profile::mem as profile_mem;
 use profile::time as profile_time;
 use profile_traits::mem;
 use profile_traits::time;
-use script_traits::ConstellationMsg;
+use script_traits::{ConstellationMsg, ScriptMsg};
+use std::cmp::max;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
 use util::opts;
@@ -100,6 +106,7 @@ pub use gleam::gl;
 /// various browser components.
 pub struct Browser<Window: WindowMethods + 'static> {
     compositor: IOCompositor<Window>,
+    constellation_chan: Sender<ConstellationMsg>,
 }
 
 impl<Window> Browser<Window> where Window: WindowMethods + 'static {
@@ -172,7 +179,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
         let compositor = IOCompositor::create(window, InitialCompositorState {
             sender: compositor_proxy,
             receiver: compositor_receiver,
-            constellation_chan: constellation_chan,
+            constellation_chan: constellation_chan.clone(),
             time_profiler_chan: time_profiler_chan,
             mem_profiler_chan: mem_profiler_chan,
             webrender: webrender,
@@ -181,6 +188,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
 
         Browser {
             compositor: compositor,
+            constellation_chan: constellation_chan,
         }
     }
 
@@ -198,6 +206,18 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
 
     pub fn request_title_for_main_frame(&self) {
         self.compositor.title_for_main_frame()
+    }
+
+    pub fn setup_logging(&self) {
+        let constellation_chan = self.constellation_chan.clone();
+        log::set_logger(|max_log_level| {
+            let env_logger = EnvLogger::new();
+            let con_logger = FromCompositorLogger::new(constellation_chan);
+            let filter = max(env_logger.filter(), con_logger.filter());
+            let logger = BothLogger(env_logger, con_logger);
+            max_log_level.set(filter);
+            Box::new(logger)
+        }).expect("Failed to set logger.")
     }
 }
 
@@ -244,6 +264,32 @@ fn create_constellation(opts: opts::Opts,
     constellation_chan
 }
 
+// A logger that logs to two downstream loggers.
+// This should probably be in the log crate.
+struct BothLogger<Log1, Log2>(Log1, Log2);
+
+impl<Log1, Log2> Log for BothLogger<Log1, Log2> where Log1: Log, Log2: Log {
+    fn enabled(&self, metadata: &LogMetadata) -> bool {
+        self.0.enabled(metadata) || self.1.enabled(metadata)
+    }
+
+    fn log(&self, record: &LogRecord) {
+        self.0.log(record);
+        self.1.log(record);
+    }
+}
+
+pub fn set_logger(constellation_chan: IpcSender<ScriptMsg>) {
+    log::set_logger(|max_log_level| {
+        let env_logger = EnvLogger::new();
+        let con_logger = FromScriptLogger::new(constellation_chan);
+        let filter = max(env_logger.filter(), con_logger.filter());
+        let logger = BothLogger(env_logger, con_logger);
+        max_log_level.set(filter);
+        Box::new(logger)
+    }).expect("Failed to set logger.")
+}
+
 /// Content process entry point.
 pub fn run_content_process(token: String) {
     let (unprivileged_content_sender, unprivileged_content_receiver) =
@@ -255,6 +301,7 @@ pub fn run_content_process(token: String) {
     let unprivileged_content = unprivileged_content_receiver.recv().unwrap();
     opts::set_defaults(unprivileged_content.opts());
     PREFS.extend(unprivileged_content.prefs());
+    set_logger(unprivileged_content.constellation_chan());
 
     // Enter the sandbox if necessary.
     if opts::get().sandbox {

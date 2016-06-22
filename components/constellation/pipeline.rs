@@ -535,6 +535,10 @@ impl UnprivilegedPipelineContent {
         process::exit(1);
     }
 
+    pub fn constellation_chan(&self) -> IpcSender<ScriptMsg> {
+        self.constellation_chan.clone()
+    }
+
     pub fn opts(&self) -> Opts {
         self.opts.clone()
     }
