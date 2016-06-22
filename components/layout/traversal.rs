@@ -18,6 +18,7 @@ use style::dom::TNode;
 use style::matching::MatchMethods;
 use style::properties::ServoComputedValues;
 use style::selector_impl::ServoSelectorImpl;
+use style::servo::SharedStyleContext;
 use style::traversal::{DomTraversalContext, STYLE_BLOOM};
 use style::traversal::{put_thread_local_bloom_filter, recalc_style_at};
 use util::opts;
@@ -168,13 +169,13 @@ impl<'a> PostorderFlowTraversal for BubbleISizes<'a> {
 /// The assign-inline-sizes traversal. In Gecko this corresponds to `Reflow`.
 #[derive(Copy, Clone)]
 pub struct AssignISizes<'a> {
-    pub layout_context: &'a LayoutContext<'a>,
+    pub shared_context: &'a SharedStyleContext,
 }
 
 impl<'a> PreorderFlowTraversal for AssignISizes<'a> {
     #[inline]
     fn process(&self, flow: &mut Flow) {
-        flow.assign_inline_sizes(self.layout_context.shared_context());
+        flow.assign_inline_sizes(self.shared_context);
     }
 
     #[inline]
