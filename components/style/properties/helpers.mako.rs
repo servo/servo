@@ -161,7 +161,9 @@
 <%def name="single_keyword(name, values, **kwargs)">
     <%call expr="single_keyword_computed(name, values, **kwargs)">
         use values::computed::ComputedValueAsSpecified;
+        use values::NoViewportPercentage;
         impl ComputedValueAsSpecified for SpecifiedValue {}
+        impl NoViewportPercentage for SpecifiedValue {}
     </%call>
 </%def>
 
@@ -202,6 +204,8 @@
     <%call expr="longhand(name, keyword=Keyword(name, values, **keyword_kwargs), **kwargs)">
         use values::computed::ComputedValueAsSpecified;
         pub use self::computed_value::T as SpecifiedValue;
+        use values::NoViewportPercentage;
+        impl NoViewportPercentage for SpecifiedValue {}
         pub mod computed_value {
             use cssparser::ToCss;
             use std::fmt;

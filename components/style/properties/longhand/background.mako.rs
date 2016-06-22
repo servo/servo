@@ -15,6 +15,7 @@ ${helpers.predefined_type("background-color", "CSSColor",
     use std::fmt;
     use values::specified::Image;
     use values::LocalToCss;
+    use values::NoViewportPercentage;
 
     pub mod computed_value {
         use values::computed;
@@ -33,6 +34,8 @@ ${helpers.predefined_type("background-color", "CSSColor",
             }
         }
     }
+
+    impl NoViewportPercentage for SpecifiedValue {}
 
     #[derive(Debug, Clone, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -76,6 +79,7 @@ ${helpers.predefined_type("background-color", "CSSColor",
         use cssparser::ToCss;
         use std::fmt;
         use values::LocalToCss;
+        use values::HasViewportPercentage;
 
         pub mod computed_value {
             use values::computed::LengthOrPercentage;
@@ -85,6 +89,12 @@ ${helpers.predefined_type("background-color", "CSSColor",
             pub struct T {
                 pub horizontal: LengthOrPercentage,
                 pub vertical: LengthOrPercentage,
+            }
+        }
+
+        impl HasViewportPercentage for SpecifiedValue {
+            fn has_viewport_percentage(&self) -> bool {
+                return self.horizontal.has_viewport_percentage() || self.vertical.has_viewport_percentage();
             }
         }
 
@@ -207,6 +217,7 @@ ${helpers.single_keyword("background-origin",
     use cssparser::{ToCss, Token};
     use std::ascii::AsciiExt;
     use std::fmt;
+    use values::HasViewportPercentage;
 
     pub mod computed_value {
         use values::computed::LengthOrPercentageOrAuto;
@@ -237,6 +248,12 @@ ${helpers.single_keyword("background-origin",
         }
     }
 
+    impl HasViewportPercentage for SpecifiedExplicitSize {
+        fn has_viewport_percentage(&self) -> bool {
+            return self.width.has_viewport_percentage() || self.height.has_viewport_percentage();
+        }
+    }
+
     #[derive(Clone, PartialEq, Debug)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedExplicitSize {
@@ -260,6 +277,14 @@ ${helpers.single_keyword("background-origin",
         }
     }
 
+    impl HasViewportPercentage for SpecifiedValue {
+        fn has_viewport_percentage(&self) -> bool {
+            match *self {
+                SpecifiedValue::Explicit(ref explicit_size) => explicit_size.has_viewport_percentage(),
+                _ => false
+            }
+        }
+    }
 
     #[derive(Clone, PartialEq, Debug)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]

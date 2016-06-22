@@ -64,6 +64,9 @@ ${helpers.single_keyword("color-adjust",
         }
     }
 
+    use values::NoViewportPercentage;
+    impl NoViewportPercentage for SpecifiedValue {}
+
     pub type SpecifiedValue = computed_value::T;
 
     #[inline]
@@ -104,6 +107,9 @@ ${helpers.single_keyword("color-adjust",
     use cssparser::ToCss;
     use std::fmt;
     use values::computed::ComputedValueAsSpecified;
+    use values::NoViewportPercentage;
+
+    impl NoViewportPercentage for SpecifiedValue {}
 
     #[derive(Copy, Clone, Debug, Eq, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]

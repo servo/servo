@@ -24,6 +24,7 @@ mod media_queries;
 mod properties;
 mod str;
 mod stylesheets;
+mod value;
 mod viewport;
 
 mod writing_modes {
