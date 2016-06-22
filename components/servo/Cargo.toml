@@ -19,7 +19,7 @@ doc = false
 bench = false
 
 [features]
-default = ["glutin_app", "webdriver", "max_log_level"]
+default = ["webdriver", "max_log_level"]
 max_log_level = ["log/release_max_level_info"]
 webdriver = ["webdriver_server"]
 energy-profiling = ["profile_traits/energy-profiling"]
@@ -65,7 +65,7 @@ canvas_traits = {path = "../canvas_traits"}
 devtools = {path = "../devtools"}
 webdriver_server = {path = "../webdriver_server", optional = true}
 devtools_traits = {path = "../devtools_traits"}
-glutin_app = {path = "../../ports/glutin", optional = true}
+glutin_app = {path = "../../ports/glutin"}
 ipc-channel = {git = "https://github.com/servo/ipc-channel"}
 gleam = "0.2"
 browserhtml = {git = "https://github.com/browserhtml/browserhtml", branch = "gh-pages"}
