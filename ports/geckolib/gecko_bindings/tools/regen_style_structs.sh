@@ -43,6 +43,7 @@ for target in debug release; do
     -o ../structs_${target}.rs                                      \
     -x c++ -std=gnu++0x                                             \
     -allow-unknown-types                                            \
+    -no-bitfield-methods                                            \
     "-I$DIST_INCLUDE" "-I$DIST_INCLUDE/nspr"                        \
     "-I$1/../nsprpub/pr/include"                                    \
     $PLATFORM_DEPENDENT_DEFINES                                     \
