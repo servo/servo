@@ -2,7 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![cfg_attr(any(feature = "servo", feature = "gecko"), feature(core_intrinsics))]
+// FIXME: replace discriminant_value with per-enum methods that use `match`?
+#![feature(core_intrinsics)]
+
 #![cfg_attr(feature = "servo", feature(custom_attribute))]
 #![cfg_attr(feature = "servo", feature(custom_derive))]
 #![cfg_attr(feature = "servo", feature(plugin))]
@@ -12,19 +14,6 @@
 #![deny(unsafe_code)]
 
 #![recursion_limit = "500"]  // For match_ignore_ascii_case in PropertyDeclaration::parse
-
-// FIXME(https://github.com/rust-lang/rust/issues/24263): remove this module when discriminant_value is stable.
-mod possibly_fake_intrinsics {
-    #[cfg(any(feature = "servo", feature = "gecko"))]
-    pub use std::intrinsics::discriminant_value;
-
-    // This is a stub to allow the rest of the code to compile.
-    #[cfg(not(any(feature = "servo", feature = "gecko")))]
-    #[allow(unsafe_code)]
-    pub unsafe fn discriminant_value<T>(_v: &T) -> u64 {
-        unimplemented!()
-    }
-}
 
 extern crate app_units;
 #[allow(unused_extern_crates)]

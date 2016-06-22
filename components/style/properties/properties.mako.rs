@@ -15,6 +15,7 @@ use std::boxed::Box as StdBox;
 use std::collections::HashSet;
 use std::fmt;
 use std::fmt::Write;
+use std::intrinsics;
 use std::mem;
 use std::sync::Arc;
 
@@ -30,7 +31,6 @@ use string_cache::Atom;
 use computed_values;
 use logical_geometry::{LogicalMargin, PhysicalSide, WritingMode};
 use parser::{ParserContext, ParserContextExtraData, log_css_error};
-use possibly_fake_intrinsics as intrinsics;
 use selectors::matching::DeclarationBlock;
 use stylesheets::Origin;
 use values::AuExtensionMethods;
