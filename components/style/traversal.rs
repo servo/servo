@@ -5,7 +5,7 @@
 //! Traversing the DOM tree; the bloom filter.
 
 use context::{SharedStyleContext, StyleContext};
-use dom::{OpaqueNode, TNode, TRestyleDamage, UnsafeNode};
+use dom::{OpaqueNode, TElement, TNode, TRestyleDamage, UnsafeNode};
 use matching::{ApplicableDeclarations, ElementMatchMethods, MatchMethods, StyleSharingResult};
 use selector_impl::SelectorImplExt;
 use selectors::Element;
@@ -13,6 +13,7 @@ use selectors::bloom::BloomFilter;
 use std::cell::RefCell;
 use tid::tid;
 use util::opts;
+use values::HasViewportPercentage;
 
 /// Every time we do another layout, the old bloom filters are invalid. This is
 /// detected by ticking a generation number every layout.
@@ -244,5 +245,23 @@ pub fn recalc_style_at<'a, N, C>(context: &'a C,
 
     // NB: flow construction updates the bloom filter on the way up.
     put_thread_local_bloom_filter(bf, &unsafe_layout_node, context.shared_context());
+
+    // Mark the node as DIRTY_ON_VIEWPORT_SIZE_CHANGE is it uses viewport percentage units.
+    match node.as_element() {
+        Some(element) => {
+            match *element.style_attribute() {
+                Some(ref property_declaration_block) => {
+                    if property_declaration_block.declarations().any(|d| d.0.has_viewport_percentage()) {
+                        unsafe {
+                            node.set_dirty_on_viewport_size_changed();
+                        }
+                        node.set_descendants_dirty_on_viewport_size_changed();
+                    }
+                },
+                None => {}
+            }
+        },
+        None => {}
+    }
 }
 

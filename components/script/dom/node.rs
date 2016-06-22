@@ -159,7 +159,9 @@ bitflags! {
         const SEQUENTIALLY_FOCUSABLE = 0x20,
 
         /// Whether any ancestor is a fragmentation container
-        const CAN_BE_FRAGMENTED = 0x40
+        const CAN_BE_FRAGMENTED = 0x40,
+        #[doc = "Specifies whether this node needs to be dirted when viewport size changed."]
+        const DIRTY_ON_VIEWPORT_SIZE_CHANGE = 0x80
     }
 }
 

@@ -10,10 +10,13 @@
                          additional_methods=[Method("compute_font_hash", is_mut=True)]) %>
 <%helpers:longhand name="font-family" animatable="False">
     use self::computed_value::FontFamily;
+    use values::NoViewportPercentage;
     use values::computed::ComputedValueAsSpecified;
     pub use self::computed_value::T as SpecifiedValue;
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
+    impl NoViewportPercentage for SpecifiedValue {}
+
     pub mod computed_value {
         use cssparser::ToCss;
         use std::fmt;
@@ -128,6 +131,9 @@ ${helpers.single_keyword("font-variant",
 <%helpers:longhand name="font-weight" need_clone="True" animatable="True">
     use cssparser::ToCss;
     use std::fmt;
+    use values::NoViewportPercentage;
+
+    impl NoViewportPercentage for SpecifiedValue {}
 
     #[derive(Debug, Clone, PartialEq, Eq, Copy)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -251,11 +257,19 @@ ${helpers.single_keyword("font-variant",
     use cssparser::ToCss;
     use std::fmt;
     use values::FONT_MEDIUM_PX;
+    use values::HasViewportPercentage;
     use values::specified::{LengthOrPercentage, Length, Percentage};
 
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             self.0.to_css(dest)
+        }
+    }
+
+    impl HasViewportPercentage for SpecifiedValue {
+        fn has_viewport_percentage(&self) -> bool {
+            let &SpecifiedValue(length) = self;
+            return length.has_viewport_percentage()
         }
     }
 

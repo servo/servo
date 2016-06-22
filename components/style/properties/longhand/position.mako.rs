@@ -13,9 +13,11 @@
 % endfor
 
 <%helpers:longhand name="z-index" animatable="True">
+    use values::NoViewportPercentage;
     use values::computed::ComputedValueAsSpecified;
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
+    impl NoViewportPercentage for SpecifiedValue {}
     pub type SpecifiedValue = computed_value::T;
     pub mod computed_value {
         use cssparser::ToCss;

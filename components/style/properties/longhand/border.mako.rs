@@ -26,6 +26,7 @@
         use app_units::Au;
         use cssparser::ToCss;
         use std::fmt;
+        use values::HasViewportPercentage;
 
         impl ToCss for SpecifiedValue {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
@@ -41,6 +42,14 @@
         #[derive(Debug, Clone, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct SpecifiedValue(pub specified::Length);
+
+        impl HasViewportPercentage for SpecifiedValue {
+            fn has_viewport_percentage(&self) -> bool {
+                let &SpecifiedValue(length) = self;
+                length.has_viewport_percentage()
+            }
+        }
+
         pub mod computed_value {
             use app_units::Au;
             pub type T = Au;
