@@ -635,7 +635,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                 }
 
                 if !content_type_set {
-                    let ct = request.headers.get::<ContentType>().map(|x| x.clone());
+                    let ct = request.headers.get_mut::<ContentType>();
                     if let Some(mut ct) = ct {
                         if let Some(encoding) = encoding {
                             for param in &mut (ct.0).2 {
@@ -646,10 +646,6 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                                 }
                             }
                         }
-                        // remove instead of mutate in place
-                        // https://github.com/hyperium/hyper/issues/821
-                        request.headers.remove_raw("content-type");
-                        request.headers.set(ct);
                     }
                 }
 

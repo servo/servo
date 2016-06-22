@@ -16,7 +16,7 @@ euclid = {version = "0.6.4", features = ["plugins"]}
 ipc-channel = {git = "https://github.com/servo/ipc-channel"}
 image = "0.10"
 log = "0.3.5"
-hyper = "0.9"
+hyper = "0.9.9"
 rustc-serialize = "0.3.4"
 regex = "0.1.55"
 script_traits = {path = "../script_traits"}

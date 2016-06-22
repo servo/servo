@@ -14,7 +14,7 @@ msg = {path = "../msg"}
 util = {path = "../util"}
 plugins = {path = "../plugins"}
 ipc-channel = {git = "https://github.com/servo/ipc-channel"}
-hyper = { version = "0.9", features = [ "serde-serialization" ] }
+hyper = { version = "0.9.9", features = [ "serde-serialization" ] }
 serde = "0.7"
 serde_json = "0.7"
 serde_macros = "0.7"
