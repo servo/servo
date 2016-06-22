@@ -1295,9 +1295,9 @@ impl BlockFlow {
     /// Compute inline size based using the `block_container_inline_size` set by the parent flow.
     ///
     /// This is run in the `AssignISizes` traversal.
-    fn propagate_and_compute_used_inline_size(&mut self, layout_context: &LayoutContext) {
+    fn propagate_and_compute_used_inline_size(&mut self, shared_context: &SharedStyleContext) {
         let containing_block_inline_size = self.base.block_container_inline_size;
-        self.compute_used_inline_size(layout_context.shared_context(), containing_block_inline_size);
+        self.compute_used_inline_size(shared_context, containing_block_inline_size);
         if self.base.flags.is_float() {
             self.float.as_mut().unwrap().containing_inline_size = containing_block_inline_size
         }
@@ -1640,7 +1640,7 @@ impl BlockFlow {
 
         // Our inline-size was set to the inline-size of the containing block by the flow's parent.
         // Now compute the real value.
-        self.propagate_and_compute_used_inline_size(layout_context);
+        self.propagate_and_compute_used_inline_size(layout_context.shared_context());
 
         // Now for some speculation.
         match self.formatting_context_type() {
