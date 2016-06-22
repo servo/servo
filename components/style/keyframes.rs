@@ -3,10 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::{Parser, Delimiter};
-use selectors::matching::DeclarationBlock;
 use parser::ParserContext;
-use properties::{ComputedValues, PropertyDeclaration, PropertyDeclarationBlock, parse_property_declaration_list};
 use properties::animated_properties::TransitionProperty;
+use properties::{PropertyDeclaration, parse_property_declaration_list};
 use std::sync::Arc;
 
 /// Parses a keyframes list, like:
@@ -165,7 +164,7 @@ impl KeyframesAnimation {
         debug_assert!(keyframes.len() > 1);
         let mut steps = vec![];
 
-        let mut animated_properties = get_animated_properties(&keyframes[0]);
+        let animated_properties = get_animated_properties(&keyframes[0]);
         if animated_properties.is_empty() {
             return None;
         }

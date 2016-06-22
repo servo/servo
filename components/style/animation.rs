@@ -6,26 +6,24 @@
 
 use app_units::Au;
 use bezier::Bezier;
-use euclid::point::Point2D;
+use context::SharedStyleContext;
 use dom::{OpaqueNode, TRestyleDamage};
-use keyframes::KeyframesAnimation;
+use euclid::point::Point2D;
 use keyframes::KeyframesStep;
 use properties::animated_properties::{AnimatedProperty, TransitionProperty};
+use properties::longhands::animation_iteration_count::computed_value::AnimationIterationCount;
+use properties::longhands::animation_play_state::computed_value::AnimationPlayState;
 use properties::longhands::transition_timing_function::computed_value::StartEnd;
 use properties::longhands::transition_timing_function::computed_value::TransitionTimingFunction;
-use properties::longhands::animation_play_state::computed_value::AnimationPlayState;
-use properties::longhands::animation_iteration_count::computed_value::AnimationIterationCount;
 use properties::style_struct_traits::Box;
-use properties::{ComputedValues, ServoComputedValues};
+use properties::{self, ComputedValues};
+use selector_impl::SelectorImplExt;
+use selectors::matching::DeclarationBlock;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
+use string_cache::Atom;
 use time;
 use values::computed::Time;
-use selector_impl::SelectorImplExt;
-use context::SharedStyleContext;
-use selectors::matching::DeclarationBlock;
-use string_cache::Atom;
-use properties;
 
 /// This structure represents a keyframes animation current iteration state.
 ///
@@ -392,7 +390,8 @@ where Impl: SelectorImplExt,
                 total_progress = 1.;
             }
 
-            debug!("update_style_for_animation: anim \"{}\", steps: {:?}, state: {:?}, progress: {}", name, animation.steps, state, total_progress);
+            debug!("update_style_for_animation: anim \"{}\", steps: {:?}, state: {:?}, progress: {}",
+                   name, animation.steps, state, total_progress);
 
             let mut last_keyframe_position = None;
             let mut target_keyframe_position = None;
@@ -410,14 +409,16 @@ where Impl: SelectorImplExt,
                 }
             }
 
-            debug!("update_style_for_animation: keyframe from {:?} to {:?}", last_keyframe_position, target_keyframe_position);
+            debug!("update_style_for_animation: keyframe from {:?} to {:?}",
+                   last_keyframe_position, target_keyframe_position);
 
             let target_keyframe = match target_keyframe_position {
                 Some(target) => &animation.steps[target],
                 None => {
                     // TODO: The 0. case falls here, maybe we should just resort
                     // to the first keyframe instead.
-                    warn!("update_style_for_animation: No current keyframe found for animation \"{}\" at progress {}", name, total_progress);
+                    warn!("update_style_for_animation: No current keyframe found for animation \"{}\" at progress {}",
+                          name, total_progress);
                     return;
                 }
             };
@@ -425,12 +426,14 @@ where Impl: SelectorImplExt,
             let last_keyframe = match last_keyframe_position {
                 Some(last) => &animation.steps[last],
                 None => {
-                    warn!("update_style_for_animation: No last keyframe found for animation \"{}\" at progress {}", name, total_progress);
+                    warn!("update_style_for_animation: No last keyframe found for animation \"{}\" at progress {}",
+                          name, total_progress);
                     return;
                 }
             };
 
-            let relative_duration = (target_keyframe.start_percentage.0 - last_keyframe.start_percentage.0) as f64 * duration;
+            let relative_timespan = target_keyframe.start_percentage.0 - last_keyframe.start_percentage.0;
+            let relative_duration = relative_timespan as f64 * duration;
             let last_keyframe_ended_at = state.started_at + (total_duration * last_keyframe.start_percentage.0 as f64);
             let relative_progress = (now - last_keyframe_ended_at) / relative_duration;
 
@@ -446,25 +449,32 @@ where Impl: SelectorImplExt,
                 timing_function = from_style.as_servo().get_box().animation_timing_function.0[0];
             }
 
-            let mut target_style = compute_style_for_animation_step(context,
-                                                                    target_keyframe,
-                                                                    &from_style);
+            let target_style = compute_style_for_animation_step(context,
+                                                                target_keyframe,
+                                                                &from_style);
 
             let mut new_style = (*style).clone();
             let mut style_changed = false;
 
             for transition_property in &animation.properties_changed {
-                debug!("update_style_for_animation: scanning prop {:?} for animation \"{}\"", transition_property, name);
-                if let Some(property_animation) = PropertyAnimation::from_transition_property(*transition_property,
-                                                                                              timing_function,
-                                                                                              Time(relative_duration as f32),
-                                                                                              &from_style,
-                                                                                              &target_style) {
+                debug!("update_style_for_animation: scanning prop {:?} for animation \"{}\"",
+                       transition_property, name);
+                match PropertyAnimation::from_transition_property(*transition_property,
+                                                                  timing_function,
+                                                                  Time(relative_duration as f32),
+                                                                  &from_style,
+                                                                  &target_style) {
+                    Some(property_animation) => {
                         debug!("update_style_for_animation: got property animation for prop {:?}", transition_property);
                         debug!("update_style_for_animation: {:?}", property_animation);
                         property_animation.update(Arc::make_mut(&mut new_style), relative_progress);
                         style_changed = true;
                     }
+                    None => {
+                        debug!("update_style_for_animation: property animation {:?} not animating",
+                               transition_property);
+                    }
+                }
             }
 
             if style_changed {
