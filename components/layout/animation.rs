@@ -12,9 +12,8 @@ use msg::constellation_msg::PipelineId;
 use script_layout_interface::restyle_damage::RestyleDamage;
 use script_traits::{AnimationState, LayoutMsg as ConstellationMsg};
 use std::collections::HashMap;
-use std::collections::hash_map::Entry;
 use std::sync::mpsc::Receiver;
-use style::animation::{Animation, KeyframesAnimationState, KeyframesIterationState, update_style_for_animation};
+use style::animation::{Animation, KeyframesIterationState, update_style_for_animation};
 use time;
 
 /// Processes any new animations that were discovered after style recalculation.

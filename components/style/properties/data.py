@@ -19,36 +19,36 @@ def to_camel_case(ident):
 # https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_animated_properties
 def is_known_animatable_property(name):
     return name in [
-      "-moz-outline-radius", "-moz-outline-radius-bottomleft",
-      "-moz-outline-radius-bottomright", "-moz-outline-radius-topleft",
-      "-moz-outline-radius-topright", "-webkit-text-fill-color",
-      "-webkit-text-stroke", "-webkit-text-stroke-color",
-      "-webkit-touch-callout", "all", "backdrop-filter", "background",
-      "background-color", "background-position", "background-size", "border",
-      "border-bottom", "border-bottom-color", "border-bottom-left-radius",
-      "border-bottom-right-radius", "border-bottom-width", "border-color",
-      "border-left", "border-left-color", "border-left-width", "border-radius",
-      "border-right", "border-right-color", "border-right-width", "border-top",
-      "border-top-color", "border-top-left-radius", "border-top-right-radius",
-      "border-top-width", "border-width", "bottom", "box-shadow", "clip",
-      "clip-path", "color", "column-count", "column-gap", "column-rule",
-      "column-rule-color", "column-rule-width", "column-width", "columns",
-      "filter", "flex", "flex-basis", "flex-grow", "flex-shrink", "font",
-      "font-size", "font-size-adjust", "font-stretch", "font-weight",
-      "grid-column-gap", "grid-gap", "grid-row-gap", "height", "left",
-      "letter-spacing", "line-height", "margin", "margin-bottom",
-      "margin-left", "margin-right", "margin-top", "mask", "mask-position",
-      "mask-size", "max-height", "max-width", "min-height", "min-width",
-      "motion-offset", "motion-rotation", "object-position", "opacity",
-      "order", "outline", "outline-color", "outline-offset", "outline-width",
-      "padding", "padding-bottom", "padding-left", "padding-right",
-      "padding-top", "perspective", "perspective-origin", "right",
-      "scroll-snap-coordinate", "scroll-snap-destination",
-      "shape-image-threshold", "shape-margin", "shape-outside",
-      "text-decoration", "text-decoration-color", "text-emphasis",
-      "text-emphasis-color", "text-indent", "text-shadow", "top", "transform",
-      "transform-origin", "vertical-align", "visibility", "width",
-      "word-spacing", "z-index"
+        "-moz-outline-radius", "-moz-outline-radius-bottomleft",
+        "-moz-outline-radius-bottomright", "-moz-outline-radius-topleft",
+        "-moz-outline-radius-topright", "-webkit-text-fill-color",
+        "-webkit-text-stroke", "-webkit-text-stroke-color",
+        "-webkit-touch-callout", "all", "backdrop-filter", "background",
+        "background-color", "background-position", "background-size", "border",
+        "border-bottom", "border-bottom-color", "border-bottom-left-radius",
+        "border-bottom-right-radius", "border-bottom-width", "border-color",
+        "border-left", "border-left-color", "border-left-width", "border-radius",
+        "border-right", "border-right-color", "border-right-width", "border-top",
+        "border-top-color", "border-top-left-radius", "border-top-right-radius",
+        "border-top-width", "border-width", "bottom", "box-shadow", "clip",
+        "clip-path", "color", "column-count", "column-gap", "column-rule",
+        "column-rule-color", "column-rule-width", "column-width", "columns",
+        "filter", "flex", "flex-basis", "flex-grow", "flex-shrink", "font",
+        "font-size", "font-size-adjust", "font-stretch", "font-weight",
+        "grid-column-gap", "grid-gap", "grid-row-gap", "height", "left",
+        "letter-spacing", "line-height", "margin", "margin-bottom",
+        "margin-left", "margin-right", "margin-top", "mask", "mask-position",
+        "mask-size", "max-height", "max-width", "min-height", "min-width",
+        "motion-offset", "motion-rotation", "object-position", "opacity",
+        "order", "outline", "outline-color", "outline-offset", "outline-width",
+        "padding", "padding-bottom", "padding-left", "padding-right",
+        "padding-top", "perspective", "perspective-origin", "right",
+        "scroll-snap-coordinate", "scroll-snap-destination",
+        "shape-image-threshold", "shape-margin", "shape-outside",
+        "text-decoration", "text-decoration-color", "text-emphasis",
+        "text-emphasis-color", "text-indent", "text-shadow", "top", "transform",
+        "transform-origin", "vertical-align", "visibility", "width",
+        "word-spacing", "z-index"
     ]
 
 
@@ -56,11 +56,12 @@ def is_known_animatable_property(name):
 # following list, and can be implemented removing it from the list and
 # implementing the Interpolate trait in helpers/animated_properties.mako.rs
 def is_not_supported_animatable_property(name):
-		return name in [
+    return name in [
         "flex-basis", "column-width", "column-height", "column-count",
         "column-gap", "box-shadow", "clip", "filter", "transform-origin",
-				"perspective-origin", "font-stretch", "letter-spacing", "word-spacing",
-				"text-decoration" ]
+        "perspective-origin", "font-stretch", "letter-spacing", "word-spacing",
+        "text-decoration"
+    ]
 
 
 class Keyword(object):
