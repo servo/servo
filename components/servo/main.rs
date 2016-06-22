@@ -22,7 +22,6 @@
 extern crate android_glue;
 #[cfg(not(target_os = "android"))]
 extern crate backtrace;
-extern crate env_logger;
 // The window backed by glutin
 extern crate glutin_app as app;
 #[cfg(target_os = "android")]
@@ -96,8 +95,6 @@ fn main() {
     };
 
     initiate_panic_hook();
-    env_logger::init().unwrap();
-
     setup_logging();
 
     if let Some(token) = content_process_token {
@@ -116,6 +113,8 @@ fn main() {
     let mut browser = BrowserWrapper {
         browser: Browser::new(window.clone()),
     };
+
+    browser.browser.setup_logging();
 
     register_glutin_resize_handler(&window, &mut browser);
 

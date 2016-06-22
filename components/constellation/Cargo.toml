@@ -10,6 +10,7 @@ name = "constellation"
 path = "lib.rs"
 
 [dependencies]
+backtrace = "0.2.1"
 canvas = {path = "../canvas"}
 canvas_traits = {path = "../canvas_traits"}
 clipboard = {git = "https://github.com/aweinstock314/rust-clipboard"}
