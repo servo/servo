@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+//! High-level interface to CSS selector matching.
+
 #![allow(unsafe_code)]
 
 use animation::{self, Animation};
@@ -26,8 +28,6 @@ use util::arc_ptr_eq;
 use util::cache::{LRUCache, SimpleHashCache};
 use util::opts;
 use util::vec::ForgetfulSink;
-
-/// High-level interface to CSS selector matching.
 
 fn create_common_style_affecting_attributes_from_element<E: TElement>(element: &E)
                                                          -> CommonStyleAffectingAttributes {

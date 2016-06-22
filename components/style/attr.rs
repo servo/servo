@@ -2,6 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+//! Parsed representations of [DOM attributes][attr].
+//!
+//! [attr]: https://dom.spec.whatwg.org/#interface-attr
+
 use app_units::Au;
 use cssparser::{self, Color, RGBA};
 use euclid::num::Zero;
@@ -332,8 +336,6 @@ impl ::std::ops::Deref for AttrValue {
     }
 }
 
-/// HTML5 § 2.4.4.5.
-///
 /// https://html.spec.whatwg.org/multipage/#rules-for-parsing-non-zero-dimension-values
 pub fn parse_nonzero_length(value: &str) -> LengthOrPercentageOrAuto {
     match parse_length(value) {
@@ -343,7 +345,9 @@ pub fn parse_nonzero_length(value: &str) -> LengthOrPercentageOrAuto {
     }
 }
 
-/// Parses a legacy color per HTML5 § 2.4.6. If unparseable, `Err` is returned.
+/// Parses a [legacy color][color]. If unparseable, `Err` is returned.
+///
+/// [color]: https://html.spec.whatwg.org/multipage/#rules-for-parsing-a-legacy-colour-value
 pub fn parse_legacy_color(mut input: &str) -> Result<RGBA, ()> {
     // Steps 1 and 2.
     if input.is_empty() {
@@ -471,10 +475,10 @@ pub fn parse_legacy_color(mut input: &str) -> Result<RGBA, ()> {
     }
 }
 
-/// TODO: this function can be rewritten to return Result<LengthOrPercentage, _>
-/// Parses a dimension value per HTML5 § 2.4.4.4. If unparseable, `Auto` is
-/// returned.
-/// https://html.spec.whatwg.org/multipage/#rules-for-parsing-dimension-values
+/// Parses a [dimension value][dim]. If unparseable, `Auto` is returned.
+///
+/// [dim]: https://html.spec.whatwg.org/multipage/#rules-for-parsing-dimension-values
+// TODO: this function can be rewritten to return Result<LengthOrPercentage, _>
 pub fn parse_length(mut value: &str) -> LengthOrPercentageOrAuto {
     // Steps 1 & 2 are not relevant
 
@@ -540,6 +544,7 @@ pub fn parse_length(mut value: &str) -> LengthOrPercentageOrAuto {
     }
 }
 
+/// A struct that uniquely identifies an element's attribute.
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct AttrIdentifier {
