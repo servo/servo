@@ -25,8 +25,6 @@ use util::arc_ptr_eq;
 use util::cache::{LRUCache, SimpleHashCache};
 use util::opts;
 use util::vec::ForgetfulSink;
-use properties::longhands::animation_play_state::computed_value::AnimationPlayState;
-use properties::style_struct_traits::Box;
 
 /// High-level interface to CSS selector matching.
 
@@ -662,7 +660,8 @@ pub trait MatchMethods : TNode {
                            local_context: &LocalStyleContext<Self::ConcreteComputedValues>,
                            parent: Option<Self>,
                            applicable_declarations: &ApplicableDeclarations<<Self::ConcreteElement as Element>::Impl>)
-                           where <Self::ConcreteElement as Element>::Impl: SelectorImplExt<ComputedValues = Self::ConcreteComputedValues> {
+    where <Self::ConcreteElement as Element>::Impl: SelectorImplExt<ComputedValues = Self::ConcreteComputedValues>
+    {
         // Get our parent's style. This must be unsafe so that we don't touch the parent's
         // borrow flags.
         //

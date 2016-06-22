@@ -5,7 +5,6 @@
 use dom::PresentationalHintsSynthetizer;
 use element_state::*;
 use error_reporting::StdoutErrorReporter;
-use keyframes::Keyframe;
 use keyframes::KeyframesAnimation;
 use media_queries::{Device, MediaType};
 use parser::ParserContextExtraData;
