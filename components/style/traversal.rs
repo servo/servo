@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+//! Traversing the DOM tree; the bloom filter.
+
 use context::{SharedStyleContext, StyleContext};
 use dom::{OpaqueNode, TNode, TRestyleDamage, UnsafeNode};
 use matching::{ApplicableDeclarations, ElementMatchMethods, MatchMethods, StyleSharingResult};
@@ -142,12 +144,13 @@ pub fn remove_from_bloom_filter<'a, N, C, Impl>(context: &C, root: OpaqueNode, n
 pub trait DomTraversalContext<N: TNode>  {
     type SharedContext: Sync + 'static;
     fn new<'a>(&'a Self::SharedContext, OpaqueNode) -> Self;
+    /// Process `node` on the way down, before its children have been processed.
     fn process_preorder(&self, node: N);
+    /// Process `node` on the way up, after its children have been processed.
     fn process_postorder(&self, node: N);
 }
 
-/// The recalc-style-for-node traversal, which styles each node and must run before
-/// layout computation. This computes the styles applied to each node.
+/// Calculates the style for a single node.
 #[inline]
 #[allow(unsafe_code)]
 pub fn recalc_style_at<'a, N, C>(context: &'a C,
