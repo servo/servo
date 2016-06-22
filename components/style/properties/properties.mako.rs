@@ -12,7 +12,7 @@
 
 use std::ascii::AsciiExt;
 use std::boxed::Box as StdBox;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::fmt;
 use std::fmt::Write;
 use std::intrinsics;
@@ -24,7 +24,6 @@ use cssparser::Color as CSSParserColor;
 use cssparser::{Parser, RGBA, AtRuleParser, DeclarationParser, Delimiter,
                 DeclarationListParser, parse_important, ToCss, TokenSerializationType};
 use error_reporting::ParseErrorReporter;
-use keyframes::Keyframe;
 use url::Url;
 use euclid::side_offsets::SideOffsets2D;
 use euclid::size::Size2D;
