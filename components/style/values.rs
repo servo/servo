@@ -82,6 +82,9 @@ pub type CSSFloat = f32;
 
 pub const FONT_MEDIUM_PX: i32 = 16;
 
+pub trait HasViewportPercentage {
+    fn has_viewport_percentage(&self) -> bool;
+}
 
 pub mod specified {
     use app_units::Au;
@@ -95,6 +98,7 @@ pub mod specified {
     use std::ops::Mul;
     use style_traits::values::specified::AllowedNumericType;
     use super::LocalToCss;
+    use super::HasViewportPercentage;
     use super::computed::{TContext, ToComputedValue};
     use super::{CSSFloat, FONT_MEDIUM_PX};
     use url::Url;
@@ -190,6 +194,12 @@ pub mod specified {
         Vh(CSSFloat),
         Vmin(CSSFloat),
         Vmax(CSSFloat)
+    } 
+
+    impl HasViewportPercentage for ViewportPercentageLength {
+        fn has_viewport_percentage(&self) -> bool {
+            true
+        }
     }
 
     impl ToCss for ViewportPercentageLength {
@@ -255,6 +265,15 @@ pub mod specified {
         ServoCharacterWidth(CharacterWidth),
 
         Calc(CalcLengthOrPercentage),
+    }
+
+    impl HasViewportPercentage for Length {
+        fn has_viewport_percentage(&self) -> bool {
+            match *self {
+                Length::ViewportPercentage(_) => true,
+                _ => false
+            }
+        }
     }
 
     impl ToCss for Length {
@@ -875,6 +894,15 @@ pub mod specified {
         Calc(CalcLengthOrPercentage),
     }
 
+    impl HasViewportPercentage for LengthOrPercentage {
+        fn has_viewport_percentage(&self) -> bool {
+            match *self {
+                LengthOrPercentage::Length(length) => length.has_viewport_percentage(),
+                _ => false
+            }
+        }
+    }
+
     impl ToCss for LengthOrPercentage {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             match *self {
@@ -923,6 +951,15 @@ pub mod specified {
         Percentage(Percentage),
         Auto,
         Calc(CalcLengthOrPercentage),
+    }
+
+    impl HasViewportPercentage for LengthOrPercentageOrAuto {
+        fn has_viewport_percentage(&self) -> bool {
+            match *self {
+                LengthOrPercentageOrAuto::Length(length) => length.has_viewport_percentage(),
+                _ => false
+            }
+        }
     }
 
     impl ToCss for LengthOrPercentageOrAuto {
@@ -975,6 +1012,15 @@ pub mod specified {
         None,
     }
 
+    impl HasViewportPercentage for LengthOrPercentageOrNone {
+        fn has_viewport_percentage(&self) -> bool {
+            match *self {
+                LengthOrPercentageOrNone::Length(length) => length.has_viewport_percentage(),
+                _ => false
+            }
+        }
+    }
+
     impl ToCss for LengthOrPercentageOrNone {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             match *self {
@@ -1022,6 +1068,15 @@ pub mod specified {
         None,
     }
 
+    impl HasViewportPercentage for LengthOrNone {
+        fn has_viewport_percentage(&self) -> bool {
+            match *self {
+                LengthOrNone::Length(length) => length.has_viewport_percentage(),
+                _ => false
+            }
+        }
+    }
+
     impl ToCss for LengthOrNone {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             match *self {
@@ -1064,6 +1119,15 @@ pub mod specified {
         Calc(CalcLengthOrPercentage),
         Auto,
         Content
+    }
+
+    impl HasViewportPercentage for LengthOrPercentageOrAutoOrContent {
+        fn has_viewport_percentage(&self) -> bool {
+            match *self {
+                LengthOrPercentageOrAutoOrContent::Length(length) => length.has_viewport_percentage(),
+                _ => false
+            }
+        }
     }
 
     impl ToCss for LengthOrPercentageOrAutoOrContent {
@@ -1145,6 +1209,16 @@ pub mod specified {
         Top,
         Bottom,
     }
+
+    impl HasViewportPercentage for PositionComponent {
+        fn has_viewport_percentage(&self) -> bool {
+            match *self {
+                PositionComponent::LengthOrPercentage(length) => length.has_viewport_percentage(),
+                _ => false
+            }
+        }
+    }
+
     impl PositionComponent {
         pub fn parse(input: &mut Parser) -> Result<PositionComponent, ()> {
             input.try(LengthOrPercentage::parse)
@@ -1924,6 +1998,7 @@ pub mod computed {
         Auto,
         Content
     }
+
     impl fmt::Debug for LengthOrPercentageOrAutoOrContent {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             match *self {
@@ -1982,6 +2057,7 @@ pub mod computed {
         Calc(CalcLengthOrPercentage),
         None,
     }
+
     impl fmt::Debug for LengthOrPercentageOrNone {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             match *self {
@@ -2033,6 +2109,7 @@ pub mod computed {
         Length(Au),
         None,
     }
+
     impl fmt::Debug for LengthOrNone {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             match *self {
