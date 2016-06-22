@@ -28,6 +28,9 @@
     pub use self::computed_value::T as SpecifiedValue;
     use values::computed::{Context, ComputedValueAsSpecified};
 
+    use values::NoViewportPercentage;
+    impl NoViewportPercentage for SpecifiedValue {}
+
     pub mod computed_value {
         #[allow(non_camel_case_types)]
         #[derive(Clone, Eq, PartialEq, Copy, Hash, RustcEncodable, Debug)]
@@ -94,7 +97,10 @@ ${helpers.single_keyword("position", "static absolute relative fixed",
 <%helpers:single_keyword_computed name="float"
                                   values="none left right"
                                   animatable="False"
-                                  need_clone="True">
+                                  need_clone="True"
+                                  gecko_ffi_name="mFloat">
+    use values::NoViewportPercentage;
+    impl NoViewportPercentage for SpecifiedValue {}
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
 
@@ -145,6 +151,16 @@ ${helpers.single_keyword("clear", "none left right both",
                                       "baseline sub super top text-top middle bottom text-bottom",
                                       extra_gecko_values="middle-with-baseline") %>
   <% vertical_align_keywords = vertical_align.keyword.values_for(product) %>
+
+  use values::HasViewportPercentage;
+  impl HasViewportPercentage for SpecifiedValue {
+      fn has_viewport_percentage(&self) -> bool {
+          match *self {
+              SpecifiedValue::LengthOrPercentage(length) => length.has_viewport_percentage(),
+              _ => false
+          }
+      }
+  }
 
   #[allow(non_camel_case_types)]
   #[derive(Debug, Clone, PartialEq, Copy)]
@@ -252,6 +268,9 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 
   pub use self::computed_value::T as SpecifiedValue;
 
+  use values::NoViewportPercentage;
+  impl NoViewportPercentage for SpecifiedValue {}
+
   impl ToCss for SpecifiedValue {
       fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
           self.0.to_css(dest)
@@ -291,6 +310,8 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 
     pub use self::computed_value::T as SpecifiedValue;
     pub use values::specified::Time as SingleSpecifiedValue;
+    use values::NoViewportPercentage;
+    impl NoViewportPercentage for SpecifiedValue {}
 
     pub mod computed_value {
         use cssparser::ToCss;
@@ -469,6 +490,9 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
         }
     }
 
+    use values::NoViewportPercentage;
+    impl NoViewportPercentage for SpecifiedValue {}
+
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
 
@@ -592,6 +616,9 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
         Ok(SpecifiedValue(try!(input.parse_comma_separated(SingleSpecifiedValue::parse))))
     }
 
+    use values::NoViewportPercentage;
+    impl NoViewportPercentage for SpecifiedValue {}
+
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
 
@@ -615,6 +642,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                    need_index="True"
                    animatable="False">
     use values::computed::ComputedValueAsSpecified;
+    use values::NoViewportPercentage;
 
     pub mod computed_value {
         use cssparser::ToCss;
@@ -646,6 +674,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     }
 
     pub use self::computed_value::T as SpecifiedValue;
+    impl NoViewportPercentage for SpecifiedValue {}
     pub use string_cache::Atom as SingleSpecifiedValue;
 
     #[inline]
@@ -696,6 +725,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                    need_index="True"
                    animatable="False">
     use values::computed::ComputedValueAsSpecified;
+    use values::NoViewportPercentage;
 
     pub mod computed_value {
         use cssparser::ToCss;
@@ -742,6 +772,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     pub use self::computed_value::AnimationIterationCount;
     pub use self::computed_value::AnimationIterationCount as SingleSpecifiedValue;
     pub use self::computed_value::T as SpecifiedValue;
+    impl NoViewportPercentage for SpecifiedValue {}
 
     #[inline]
     pub fn get_initial_single_value() -> AnimationIterationCount {
@@ -885,6 +916,7 @@ ${helpers.single_keyword("-moz-appearance",
     use std::fmt::{self, Write};
     use url::Url;
     use values::computed::ComputedValueAsSpecified;
+    use values::NoViewportPercentage;
 
     #[derive(PartialEq, Clone, Debug)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -902,6 +934,7 @@ ${helpers.single_keyword("-moz-appearance",
     }
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
+    impl NoViewportPercentage for SpecifiedValue {}
 
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {

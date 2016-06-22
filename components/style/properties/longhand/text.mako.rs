@@ -25,8 +25,10 @@ ${helpers.single_keyword("unicode-bidi",
     use cssparser::ToCss;
     use std::fmt;
     use values::computed::ComputedValueAsSpecified;
+    use values::NoViewportPercentage;
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
+    impl NoViewportPercentage for SpecifiedValue {}
 
     #[derive(PartialEq, Eq, Copy, Clone, Debug)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]

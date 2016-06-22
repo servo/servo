@@ -11,6 +11,16 @@
     use cssparser::ToCss;
     use std::fmt;
     use values::LocalToCss;
+    use values::HasViewportPercentage;
+
+    impl HasViewportPercentage for SpecifiedValue {
+        fn has_viewport_percentage(&self) -> bool {
+            match *self {
+                SpecifiedValue::Specified(length) => length.has_viewport_percentage(),
+                _ => false
+            }
+        }
+    }
 
     #[derive(Debug, Clone, Copy, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -75,6 +85,9 @@
 <%helpers:longhand name="column-count" experimental="True" animatable="False">
     use cssparser::ToCss;
     use std::fmt;
+    use values::NoViewportPercentage;
+
+    impl NoViewportPercentage for SpecifiedValue {}
 
     #[derive(Debug, Clone, Copy, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -144,6 +157,16 @@
     use cssparser::ToCss;
     use std::fmt;
     use values::LocalToCss;
+    use values::HasViewportPercentage;
+
+    impl HasViewportPercentage for SpecifiedValue {
+        fn has_viewport_percentage(&self) -> bool {
+            match *self {
+                SpecifiedValue::Specified(length) => length.has_viewport_percentage(),
+                _ => false
+            }
+        }
+    }
 
     #[derive(Debug, Clone, Copy, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]

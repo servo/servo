@@ -82,6 +82,17 @@ pub type CSSFloat = f32;
 
 pub const FONT_MEDIUM_PX: i32 = 16;
 
+pub trait HasViewportPercentage {
+    fn has_viewport_percentage(&self) -> bool;
+}
+
+pub trait NoViewportPercentage {}
+
+impl<T> HasViewportPercentage for T where T: NoViewportPercentage {
+    fn has_viewport_percentage(&self) -> bool {
+        false
+    }
+}
 
 pub mod specified {
     use app_units::Au;
@@ -94,10 +105,11 @@ pub mod specified {
     use std::fmt;
     use std::ops::Mul;
     use style_traits::values::specified::AllowedNumericType;
-    use super::LocalToCss;
     use super::computed::{TContext, ToComputedValue};
-    use super::{CSSFloat, FONT_MEDIUM_PX};
+    use super::{CSSFloat, FONT_MEDIUM_PX, HasViewportPercentage, LocalToCss, NoViewportPercentage};
     use url::Url;
+
+    impl NoViewportPercentage for i32 {}  // For PropertyDeclaration::Order
 
     #[derive(Clone, PartialEq, Debug)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -120,6 +132,8 @@ pub mod specified {
         }
     }
 
+    impl NoViewportPercentage for CSSColor {}
+
     impl ToCss for CSSColor {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             match self.authored {
@@ -135,6 +149,8 @@ pub mod specified {
         pub parsed: cssparser::RGBA,
         pub authored: Option<String>,
     }
+
+    impl NoViewportPercentage for CSSRGBA {}
 
     impl ToCss for CSSRGBA {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
@@ -190,6 +206,12 @@ pub mod specified {
         Vh(CSSFloat),
         Vmin(CSSFloat),
         Vmax(CSSFloat)
+    }
+
+    impl HasViewportPercentage for ViewportPercentageLength {
+        fn has_viewport_percentage(&self) -> bool {
+            true
+        }
     }
 
     impl ToCss for ViewportPercentageLength {
@@ -255,6 +277,15 @@ pub mod specified {
         ServoCharacterWidth(CharacterWidth),
 
         Calc(CalcLengthOrPercentage),
+    }
+
+    impl HasViewportPercentage for Length {
+        fn has_viewport_percentage(&self) -> bool {
+            match *self {
+                Length::ViewportPercentage(_) => true,
+                _ => false
+            }
+        }
     }
 
     impl ToCss for Length {
@@ -875,6 +906,15 @@ pub mod specified {
         Calc(CalcLengthOrPercentage),
     }
 
+    impl HasViewportPercentage for LengthOrPercentage {
+        fn has_viewport_percentage(&self) -> bool {
+            match *self {
+                LengthOrPercentage::Length(length) => length.has_viewport_percentage(),
+                _ => false
+            }
+        }
+    }
+
     impl ToCss for LengthOrPercentage {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             match *self {
@@ -923,6 +963,15 @@ pub mod specified {
         Percentage(Percentage),
         Auto,
         Calc(CalcLengthOrPercentage),
+    }
+
+    impl HasViewportPercentage for LengthOrPercentageOrAuto {
+        fn has_viewport_percentage(&self) -> bool {
+            match *self {
+                LengthOrPercentageOrAuto::Length(length) => length.has_viewport_percentage(),
+                _ => false
+            }
+        }
     }
 
     impl ToCss for LengthOrPercentageOrAuto {
@@ -975,6 +1024,15 @@ pub mod specified {
         None,
     }
 
+    impl HasViewportPercentage for LengthOrPercentageOrNone {
+        fn has_viewport_percentage(&self) -> bool {
+            match *self {
+                LengthOrPercentageOrNone::Length(length) => length.has_viewport_percentage(),
+                _ => false
+            }
+        }
+    }
+
     impl ToCss for LengthOrPercentageOrNone {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             match *self {
@@ -1022,6 +1080,15 @@ pub mod specified {
         None,
     }
 
+    impl HasViewportPercentage for LengthOrNone {
+        fn has_viewport_percentage(&self) -> bool {
+            match *self {
+                LengthOrNone::Length(length) => length.has_viewport_percentage(),
+                _ => false
+            }
+        }
+    }
+
     impl ToCss for LengthOrNone {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             match *self {
@@ -1066,6 +1133,15 @@ pub mod specified {
         Content
     }
 
+    impl HasViewportPercentage for LengthOrPercentageOrAutoOrContent {
+        fn has_viewport_percentage(&self) -> bool {
+            match *self {
+                LengthOrPercentageOrAutoOrContent::Length(length) => length.has_viewport_percentage(),
+                _ => false
+            }
+        }
+    }
+
     impl ToCss for LengthOrPercentageOrAutoOrContent {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             match *self {
@@ -1104,6 +1180,8 @@ pub mod specified {
     #[derive(Clone, PartialEq, Copy, Debug)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct BorderRadiusSize(pub Size2D<LengthOrPercentage>);
+
+    impl NoViewportPercentage for BorderRadiusSize {}
 
     impl BorderRadiusSize {
         pub fn zero() -> BorderRadiusSize {
@@ -1145,6 +1223,16 @@ pub mod specified {
         Top,
         Bottom,
     }
+
+    impl HasViewportPercentage for PositionComponent {
+        fn has_viewport_percentage(&self) -> bool {
+            match *self {
+                PositionComponent::LengthOrPercentage(length) => length.has_viewport_percentage(),
+                _ => false
+            }
+        }
+    }
+
     impl PositionComponent {
         pub fn parse(input: &mut Parser) -> Result<PositionComponent, ()> {
             input.try(LengthOrPercentage::parse)
@@ -1433,6 +1521,8 @@ pub mod specified {
         "outset" => outset = 2,
     }
 
+    impl NoViewportPercentage for BorderStyle {}
+
     impl BorderStyle {
         pub fn none_or_hidden(&self) -> bool {
             matches!(*self, BorderStyle::none | BorderStyle::hidden)
@@ -1494,6 +1584,8 @@ pub mod specified {
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct Number(pub CSSFloat);
 
+    impl NoViewportPercentage for Number {}
+
     impl Number {
         pub fn parse(input: &mut Parser) -> Result<Number, ()> {
             parse_number(input).map(Number)
@@ -1531,6 +1623,8 @@ pub mod specified {
     #[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct Opacity(pub CSSFloat);
+
+    impl NoViewportPercentage for Opacity {}
 
     impl Opacity {
         pub fn parse(input: &mut Parser) -> Result<Opacity, ()> {
@@ -1926,6 +2020,7 @@ pub mod computed {
         Auto,
         Content
     }
+
     impl fmt::Debug for LengthOrPercentageOrAutoOrContent {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             match *self {
@@ -1984,6 +2079,7 @@ pub mod computed {
         Calc(CalcLengthOrPercentage),
         None,
     }
+
     impl fmt::Debug for LengthOrPercentageOrNone {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             match *self {
@@ -2035,6 +2131,7 @@ pub mod computed {
         Length(Au),
         None,
     }
+
     impl fmt::Debug for LengthOrNone {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             match *self {

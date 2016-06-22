@@ -16,6 +16,7 @@ ${helpers.predefined_type("opacity",
     use cssparser::{self, ToCss};
     use std::fmt;
     use values::LocalToCss;
+    use values::HasViewportPercentage;
 
     #[derive(Debug, Clone, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -26,6 +27,15 @@ ${helpers.predefined_type("opacity",
         pub spread_radius: specified::Length,
         pub color: Option<specified::CSSColor>,
         pub inset: bool,
+    }
+
+    impl HasViewportPercentage for SpecifiedValue {
+        fn has_viewport_percentage(&self) -> bool {
+            self.offset_x.has_viewport_percentage() ||
+            self.offset_y.has_viewport_percentage() ||
+            self.blur_radius.has_viewport_percentage() ||
+            self.spread_radius.has_viewport_percentage()
+        }
     }
 
     impl ToCss for SpecifiedValue {
@@ -169,6 +179,7 @@ ${helpers.predefined_type("opacity",
     use cssparser::ToCss;
     use std::fmt;
     use values::LocalToCss;
+    use values::HasViewportPercentage;
 
     // NB: `top` and `left` are 0 if `auto` per CSS 2.1 11.1.2.
 
@@ -219,6 +230,15 @@ ${helpers.predefined_type("opacity",
         }
     }
 
+    impl HasViewportPercentage for SpecifiedClipRect {
+        fn has_viewport_percentage(&self) -> bool {
+            self.top.has_viewport_percentage() ||
+            self.right.map_or(false, |x| x.has_viewport_percentage()) ||
+            self.bottom.map_or(false, |x| x.has_viewport_percentage()) ||
+            self.left.has_viewport_percentage()
+        }
+    }
+
     #[derive(Clone, Debug, PartialEq, Copy)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedClipRect {
@@ -226,6 +246,13 @@ ${helpers.predefined_type("opacity",
         pub right: Option<specified::Length>,
         pub bottom: Option<specified::Length>,
         pub left: specified::Length,
+    }
+
+    impl HasViewportPercentage for SpecifiedValue {
+        fn has_viewport_percentage(&self) -> bool {
+            let &SpecifiedValue(clip) = self;
+            clip.map_or(false, |x| x.has_viewport_percentage())
+        }
     }
 
     #[derive(Clone, Debug, PartialEq, Copy)]
@@ -343,11 +370,28 @@ ${helpers.predefined_type("opacity",
     use std::fmt;
     use values::LocalToCss;
     use values::CSSFloat;
+    use values::HasViewportPercentage;
     use values::specified::{Angle, Length};
+
+    impl HasViewportPercentage for SpecifiedValue {
+        fn has_viewport_percentage(&self) -> bool {
+            let &SpecifiedValue(ref vec) = self;
+            vec.iter().any(|ref x| x.has_viewport_percentage())
+        }
+    }
 
     #[derive(Debug, Clone, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue(Vec<SpecifiedFilter>);
+
+    impl HasViewportPercentage for SpecifiedFilter {
+        fn has_viewport_percentage(&self) -> bool {
+            match *self {
+                SpecifiedFilter::Blur(length) => length.has_viewport_percentage(),
+                _ => false
+            }
+        }
+    }
 
     // TODO(pcwalton): `drop-shadow`
     #[derive(Clone, PartialEq, Debug)]
@@ -576,6 +620,7 @@ ${helpers.predefined_type("opacity",
 <%helpers:longhand name="transform" animatable="True">
     use app_units::Au;
     use values::CSSFloat;
+    use values::HasViewportPercentage;
 
     use cssparser::ToCss;
     use std::fmt;
@@ -684,6 +729,20 @@ ${helpers.predefined_type("opacity",
         }
     }
 
+    impl HasViewportPercentage for SpecifiedOperation {
+        fn has_viewport_percentage(&self) -> bool {
+            match *self {
+                SpecifiedOperation::Translate(_, l1, l2, l3) => {
+                    l1.has_viewport_percentage() ||
+                    l2.has_viewport_percentage() ||
+                    l3.has_viewport_percentage()
+                },
+                SpecifiedOperation::Perspective(length) => length.has_viewport_percentage(),
+                _ => false
+            }
+        }
+    }
+
     impl ToCss for SpecifiedOperation {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             match *self {
@@ -740,6 +799,13 @@ ${helpers.predefined_type("opacity",
                     Ok(())
                 }
             }
+        }
+    }
+
+    impl HasViewportPercentage for SpecifiedValue {
+        fn has_viewport_percentage(&self) -> bool {
+            let &SpecifiedValue(ref specified_ops) = self;
+            specified_ops.iter().any(|ref x| x.has_viewport_percentage())
         }
     }
 
@@ -1133,6 +1199,7 @@ ${helpers.single_keyword("transform-style",
 <%helpers:longhand name="transform-origin" animatable="True">
     use app_units::Au;
     use values::LocalToCss;
+    use values::HasViewportPercentage;
     use values::specified::{Length, LengthOrPercentage, Percentage};
 
     use cssparser::ToCss;
@@ -1147,6 +1214,14 @@ ${helpers.single_keyword("transform-style",
             pub horizontal: LengthOrPercentage,
             pub vertical: LengthOrPercentage,
             pub depth: Length,
+        }
+    }
+
+    impl HasViewportPercentage for SpecifiedValue {
+        fn has_viewport_percentage(&self) -> bool {
+            self.horizontal.has_viewport_percentage() ||
+            self.vertical.has_viewport_percentage() ||
+            self.depth.has_viewport_percentage()
         }
     }
 
@@ -1217,6 +1292,7 @@ ${helpers.predefined_type("perspective",
 
 // FIXME: This prop should be animatable
 <%helpers:longhand name="perspective-origin" animatable="False">
+    use values::HasViewportPercentage;
     use values::specified::{LengthOrPercentage, Percentage};
 
     use cssparser::ToCss;
@@ -1238,6 +1314,12 @@ ${helpers.predefined_type("perspective",
             try!(self.horizontal.to_css(dest));
             try!(dest.write_str(" "));
             self.vertical.to_css(dest)
+        }
+    }
+
+    impl HasViewportPercentage for SpecifiedValue {
+        fn has_viewport_percentage(&self) -> bool {
+            self.horizontal.has_viewport_percentage() || self.vertical.has_viewport_percentage()
         }
     }
 

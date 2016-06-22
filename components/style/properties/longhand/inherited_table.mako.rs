@@ -19,6 +19,7 @@ ${helpers.single_keyword("caption-side", "top bottom",
 <%helpers:longhand name="border-spacing" animatable="False">
     use app_units::Au;
     use values::LocalToCss;
+    use values::HasViewportPercentage;
 
     use cssparser::ToCss;
     use std::fmt;
@@ -31,6 +32,12 @@ ${helpers.single_keyword("caption-side", "top bottom",
         pub struct T {
             pub horizontal: Au,
             pub vertical: Au,
+        }
+    }
+
+    impl HasViewportPercentage for SpecifiedValue {
+        fn has_viewport_percentage(&self) -> bool {
+            return self.horizontal.has_viewport_percentage() || self.vertical.has_viewport_percentage()
         }
     }
 
