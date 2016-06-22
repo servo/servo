@@ -12,7 +12,11 @@ path = "lib.rs"
 
 [features]
 gecko = ["gecko_bindings"]
-servo = ["serde", "serde_macros", "heapsize", "heapsize_plugin", "style_traits/servo"]
+servo = ["serde", "serde/nightly", "serde_macros", "heapsize", "heapsize_plugin",
+         "style_traits/servo", "app_units/plugins", "euclid/plugins",
+         "cssparser/heap_size", "cssparser/serde-serialization",
+         "selectors/heap_size", "selectors/unstable", "string_cache/heap_size",
+         "url/heap_size"]
 
 [dependencies]
 app_units = "0.2.3"

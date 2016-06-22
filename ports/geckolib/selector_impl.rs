@@ -13,6 +13,9 @@ pub type Stylesheet = style::stylesheets::Stylesheet<GeckoSelectorImpl>;
 pub type SharedStyleContext = style::context::SharedStyleContext<GeckoSelectorImpl>;
 pub type PrivateStyleData = style::data::PrivateStyleData<GeckoSelectorImpl, GeckoComputedValues>;
 
+#[cfg(feature = "servo_features")]
+known_heap_size!(0, GeckoSelectorImpl, PseudoElement, NonTSPseudoClass);
+
 pub struct GeckoSelectorImpl;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
