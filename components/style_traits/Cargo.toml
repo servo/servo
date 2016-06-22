@@ -9,8 +9,8 @@ name = "style_traits"
 path = "lib.rs"
 
 [features]
-heap_size = ["heapsize", "heapsize_plugin", "cssparser/heap_size", "euclid/plugins"]
-serde-serialization = ["serde", "serde_macros", "cssparser/serde-serialization", "euclid/plugins"]
+servo = ["heapsize", "heapsize_plugin", "serde", "serde_macros", "euclid/plugins",
+         "cssparser/heap_size", "cssparser/serde-serialization"]
 
 [dependencies]
 util = {path = "../util"}

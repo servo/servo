@@ -11,19 +11,17 @@
 
 #![deny(unsafe_code)]
 
-#![cfg_attr(feature = "serde-serialization", feature(custom_derive))]
-#![cfg_attr(feature = "serde-serialization", feature(plugin))]
-#![cfg_attr(feature = "serde-serialization", plugin(serde_macros))]
-#![cfg_attr(feature = "heap_size", feature(custom_derive))]
-#![cfg_attr(feature = "heap_size", feature(plugin))]
-#![cfg_attr(feature = "heap_size", plugin(heapsize_plugin))]
+#![cfg_attr(feature = "servo", feature(custom_derive))]
+#![cfg_attr(feature = "servo", feature(plugin))]
+#![cfg_attr(feature = "servo", plugin(serde_macros))]
+#![cfg_attr(feature = "servo", plugin(heapsize_plugin))]
 
 #[macro_use]
 extern crate cssparser;
 extern crate euclid;
-#[cfg(feature = "heap_size")] extern crate heapsize;
+#[cfg(feature = "servo")] extern crate heapsize;
 extern crate rustc_serialize;
-#[cfg(feature = "serde-serialization")] extern crate serde;
+#[cfg(feature = "servo")] extern crate serde;
 extern crate util;
 
 pub mod cursor;
