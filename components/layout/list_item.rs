@@ -23,9 +23,9 @@ use inline::InlineMetrics;
 use script_layout_interface::restyle_damage::RESOLVE_GENERATED_CONTENT;
 use std::sync::Arc;
 use style::computed_values::{list_style_type, position};
-use style::context::StyleContext;
 use style::logical_geometry::LogicalSize;
 use style::properties::{ComputedValues, ServoComputedValues};
+use style::servo::SharedStyleContext;
 use text;
 
 /// A block with the CSS `display` property equal to `list-item`.
@@ -82,14 +82,14 @@ impl Flow for ListItemFlow {
         self.block_flow.bubble_inline_sizes()
     }
 
-    fn assign_inline_sizes(&mut self, layout_context: &LayoutContext) {
-        self.block_flow.assign_inline_sizes(layout_context);
+    fn assign_inline_sizes(&mut self, shared_context: &SharedStyleContext) {
+        self.block_flow.assign_inline_sizes(shared_context);
 
         let mut marker_inline_start = self.block_flow.fragment.border_box.start.i;
 
         for marker in self.marker_fragments.iter_mut().rev() {
             let containing_block_inline_size = self.block_flow.base.block_container_inline_size;
-            let container_block_size = self.block_flow.explicit_block_containing_size(layout_context.shared_context());
+            let container_block_size = self.block_flow.explicit_block_containing_size(shared_context);
             marker.assign_replaced_inline_size_if_necessary(containing_block_inline_size, container_block_size);
 
             // Do this now. There's no need to do this in bubble-widths, since markers do not

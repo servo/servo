@@ -23,6 +23,7 @@ use std::sync::Arc;
 use style::context::StyleContext;
 use style::logical_geometry::LogicalSize;
 use style::properties::{ComputedValues, ServoComputedValues};
+use style::servo::SharedStyleContext;
 use style::values::computed::{LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 use util::print_tree::PrintTree;
 
@@ -77,9 +78,9 @@ impl Flow for MulticolFlow {
         self.block_flow.bubble_inline_sizes();
     }
 
-    fn assign_inline_sizes(&mut self, layout_context: &LayoutContext) {
+    fn assign_inline_sizes(&mut self, shared_context: &SharedStyleContext) {
         debug!("assign_inline_sizes({}): assigning inline_size for flow", "multicol");
-        self.block_flow.compute_inline_sizes(layout_context.shared_context());
+        self.block_flow.compute_inline_sizes(shared_context);
 
         // Move in from the inline-start border edge.
         let inline_start_content_edge = self.block_flow.fragment.border_box.start.i +
@@ -90,7 +91,7 @@ impl Flow for MulticolFlow {
             self.block_flow.fragment.margin.inline_end +
             self.block_flow.fragment.border_padding.inline_end;
 
-        self.block_flow.assign_inline_sizes(layout_context);
+        self.block_flow.assign_inline_sizes(shared_context);
         let padding_and_borders = self.block_flow.fragment.border_padding.inline_start_end();
         let content_inline_size =
             self.block_flow.fragment.border_box.size.inline - padding_and_borders;
@@ -119,7 +120,7 @@ impl Flow for MulticolFlow {
         self.block_flow.fragment.border_box.size.inline = content_inline_size + padding_and_borders;
 
         self.block_flow.propagate_assigned_inline_size_to_children(
-            layout_context.shared_context(), inline_start_content_edge, inline_end_content_edge, column_width,
+            shared_context, inline_start_content_edge, inline_end_content_edge, column_width,
             |_, _, _, _, _, _| {});
     }
 
@@ -237,9 +238,9 @@ impl Flow for MulticolColumnFlow {
         self.block_flow.bubble_inline_sizes();
     }
 
-    fn assign_inline_sizes(&mut self, layout_context: &LayoutContext) {
+    fn assign_inline_sizes(&mut self, shared_context: &SharedStyleContext) {
         debug!("assign_inline_sizes({}): assigning inline_size for flow", "multicol column");
-        self.block_flow.assign_inline_sizes(layout_context);
+        self.block_flow.assign_inline_sizes(shared_context);
     }
 
     fn assign_block_size<'a>(&mut self, ctx: &'a LayoutContext<'a>) {

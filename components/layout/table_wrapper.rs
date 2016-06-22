@@ -30,7 +30,6 @@ use std::fmt;
 use std::ops::Add;
 use std::sync::Arc;
 use style::computed_values::{border_collapse, table_layout};
-use style::context::StyleContext;
 use style::logical_geometry::LogicalSize;
 use style::properties::{ComputedValues, ServoComputedValues};
 use style::servo::SharedStyleContext;
@@ -321,7 +320,7 @@ impl Flow for TableWrapperFlow {
         self.block_flow.bubble_inline_sizes();
     }
 
-    fn assign_inline_sizes(&mut self, layout_context: &LayoutContext) {
+    fn assign_inline_sizes(&mut self, shared_context: &SharedStyleContext) {
         debug!("assign_inline_sizes({}): assigning inline_size for flow",
                if self.block_flow.base.flags.is_float() {
                    "floated table_wrapper"
@@ -346,7 +345,7 @@ impl Flow for TableWrapperFlow {
                 containing_block_inline_size;
         }
 
-        self.compute_used_inline_size(layout_context.shared_context(),
+        self.compute_used_inline_size(shared_context,
                                       containing_block_inline_size,
                                       &intermediate_column_inline_sizes);
 
@@ -376,7 +375,7 @@ impl Flow for TableWrapperFlow {
         match assigned_column_inline_sizes {
             None => {
                 self.block_flow
-                    .propagate_assigned_inline_size_to_children(layout_context.shared_context(),
+                    .propagate_assigned_inline_size_to_children(shared_context,
                                                                 inline_start_content_edge,
                                                                 inline_end_content_edge,
                                                                 content_inline_size,
@@ -384,7 +383,7 @@ impl Flow for TableWrapperFlow {
             }
             Some(ref assigned_column_inline_sizes) => {
                 self.block_flow
-                    .propagate_assigned_inline_size_to_children(layout_context.shared_context(),
+                    .propagate_assigned_inline_size_to_children(shared_context,
                                                                 inline_start_content_edge,
                                                                 inline_end_content_edge,
                                                                 content_inline_size,

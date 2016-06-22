@@ -21,9 +21,9 @@ use std::fmt;
 use std::iter::{IntoIterator, Iterator, Peekable};
 use std::sync::Arc;
 use style::computed_values::{border_collapse, border_spacing};
-use style::context::StyleContext;
 use style::logical_geometry::{LogicalSize, WritingMode};
 use style::properties::{ComputedValues, ServoComputedValues};
+use style::servo::SharedStyleContext;
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable, TableLikeFlow};
 use table_row;
 use util::print_tree::PrintTree;
@@ -140,7 +140,7 @@ impl Flow for TableRowGroupFlow {
 
     /// Recursively (top-down) determines the actual inline-size of child contexts and fragments.
     /// When called on this context, the context has had its inline-size set by the parent context.
-    fn assign_inline_sizes(&mut self, layout_context: &LayoutContext) {
+    fn assign_inline_sizes(&mut self, shared_context: &SharedStyleContext) {
         let _scope = layout_debug_scope!("table_rowgroup::assign_inline_sizes {:x}",
                                             self.block_flow.base.debug_id());
         debug!("assign_inline_sizes({}): assigning inline_size for flow", "table_rowgroup");
@@ -155,7 +155,7 @@ impl Flow for TableRowGroupFlow {
             border_collapse: border_collapse,
         };
         inline_size_computer.compute_used_inline_size(&mut self.block_flow,
-                                                      layout_context.shared_context(),
+                                                      shared_context,
                                                       containing_block_inline_size);
 
         let column_computed_inline_sizes = &self.column_computed_inline_sizes;
@@ -165,7 +165,7 @@ impl Flow for TableRowGroupFlow {
             &self.collapsed_inline_direction_border_widths_for_table;
         let mut collapsed_block_direction_border_widths_for_table =
             self.collapsed_block_direction_border_widths_for_table.iter().peekable();
-        self.block_flow.propagate_assigned_inline_size_to_children(layout_context.shared_context(),
+        self.block_flow.propagate_assigned_inline_size_to_children(shared_context,
                                                                    inline_start_content_edge,
                                                                    inline_end_content_edge,
                                                                    content_inline_size,

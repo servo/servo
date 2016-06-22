@@ -20,6 +20,7 @@ use std::fmt;
 use std::sync::Arc;
 use style::logical_geometry::LogicalSize;
 use style::properties::ServoComputedValues;
+use style::servo::SharedStyleContext;
 use style::values::computed::LengthOrPercentageOrAuto;
 
 /// A table formatting context.
@@ -81,7 +82,7 @@ impl Flow for TableColGroupFlow {
 
     /// Table column inline-sizes are assigned in the table flow and propagated to table row flows
     /// and/or rowgroup flows. Therefore, table colgroup flows do not need to assign inline-sizes.
-    fn assign_inline_sizes(&mut self, _: &LayoutContext) {
+    fn assign_inline_sizes(&mut self, _: &SharedStyleContext) {
     }
 
     /// Table columns do not have block-size.

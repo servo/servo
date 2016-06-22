@@ -1719,10 +1719,10 @@ impl Flow for BlockFlow {
     ///
     /// Dual fragments consume some inline-size first, and the remainder is assigned to all child
     /// (block) contexts.
-    fn assign_inline_sizes(&mut self, layout_context: &LayoutContext) {
+    fn assign_inline_sizes(&mut self, shared_context: &SharedStyleContext) {
         let _scope = layout_debug_scope!("block::assign_inline_sizes {:x}", self.base.debug_id());
 
-        self.compute_inline_sizes(layout_context.shared_context());
+        self.compute_inline_sizes(shared_context);
 
         // Move in from the inline-start border edge.
         let inline_start_content_edge = self.fragment.border_box.start.i +
@@ -1737,7 +1737,7 @@ impl Flow for BlockFlow {
 
         let content_inline_size = self.fragment.border_box.size.inline - padding_and_borders;
 
-        self.propagate_assigned_inline_size_to_children(layout_context.shared_context(),
+        self.propagate_assigned_inline_size_to_children(shared_context,
                                                         inline_start_content_edge,
                                                         inline_end_content_edge,
                                                         content_inline_size,

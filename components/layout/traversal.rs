@@ -174,7 +174,7 @@ pub struct AssignISizes<'a> {
 impl<'a> PreorderFlowTraversal for AssignISizes<'a> {
     #[inline]
     fn process(&self, flow: &mut Flow) {
-        flow.assign_inline_sizes(self.layout_context);
+        flow.assign_inline_sizes(self.layout_context.shared_context());
     }
 
     #[inline]

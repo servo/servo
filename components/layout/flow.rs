@@ -194,7 +194,7 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
     }
 
     /// Pass 2 of reflow: computes inline-size.
-    fn assign_inline_sizes(&mut self, _ctx: &LayoutContext) {
+    fn assign_inline_sizes(&mut self, _shared_context: &SharedStyleContext) {
         panic!("assign_inline_sizes not yet implemented")
     }
 

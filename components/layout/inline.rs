@@ -36,6 +36,7 @@ use style::computed_values::{text_overflow, vertical_align, white_space};
 use style::context::StyleContext;
 use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
 use style::properties::{ComputedValues, ServoComputedValues};
+use style::servo::SharedStyleContext;
 use style::values::computed::LengthOrPercentage;
 use text;
 use unicode_bidi;
@@ -1349,7 +1350,7 @@ impl Flow for InlineFlow {
 
     /// Recursively (top-down) determines the actual inline-size of child contexts and fragments.
     /// When called on this context, the context has had its inline-size set by the parent context.
-    fn assign_inline_sizes(&mut self, _: &LayoutContext) {
+    fn assign_inline_sizes(&mut self, _: &SharedStyleContext) {
         let _scope = layout_debug_scope!("inline::assign_inline_sizes {:x}", self.base.debug_id());
 
         // Initialize content fragment inline-sizes if they haven't been initialized already.
