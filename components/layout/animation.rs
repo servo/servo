@@ -13,7 +13,7 @@ use script_layout_interface::restyle_damage::RestyleDamage;
 use script_traits::{AnimationState, LayoutMsg as ConstellationMsg};
 use std::collections::HashMap;
 use std::sync::mpsc::Receiver;
-use style::animation::{Animation, KeyframesIterationState, update_style_for_animation};
+use style::animation::{Animation, update_style_for_animation};
 use time;
 
 /// Processes any new animations that were discovered after style recalculation.
@@ -42,11 +42,11 @@ pub fn update_animation_state(constellation_chan: &IpcSender<ConstellationMsg>,
                             match *anim {
                                 Animation::Keyframes(_, _, ref mut anim_state) => {
                                     // NB: The important part is not touching
-                                    // the started_at field.
-                                    anim_state.duration = state.duration;
-                                    anim_state.iteration_state = state.iteration_state.clone();
-                                    anim_state.paused = state.paused;
-                                    anim_state.delay = state.delay;
+                                    // the started_at field, since we don't want
+                                    // to restart the animation.
+                                    let old_started_at = anim_state.started_at;
+                                    *anim_state = state.clone();
+                                    anim_state.started_at = old_started_at;
                                     false
                                 }
                                 _ => unreachable!(),
@@ -84,18 +84,7 @@ pub fn update_animation_state(constellation_chan: &IpcSender<ConstellationMsg>,
                 Animation::Keyframes(_, _, ref mut state) => {
                     // This animation is still running, or we need to keep
                     // iterating.
-                    now < state.started_at + state.duration ||
-                    match state.iteration_state {
-                        KeyframesIterationState::Finite(ref mut current, ref max) => {
-                            *current += 1;
-                            *current < *max
-                        }
-                        // Just tick it again.
-                        KeyframesIterationState::Infinite => {
-                            state.started_at += state.duration + state.delay;
-                            true
-                        }
-                    }
+                    now < state.started_at + state.duration || state.tick()
                 }
             };
 

@@ -11,6 +11,7 @@ use dom::{OpaqueNode, TRestyleDamage};
 use euclid::point::Point2D;
 use keyframes::KeyframesStep;
 use properties::animated_properties::{AnimatedProperty, TransitionProperty};
+use properties::longhands::animation_direction::computed_value::AnimationDirection;
 use properties::longhands::animation_iteration_count::computed_value::AnimationIterationCount;
 use properties::longhands::animation_play_state::computed_value::AnimationPlayState;
 use properties::longhands::transition_timing_function::computed_value::StartEnd;
@@ -42,11 +43,55 @@ pub enum KeyframesIterationState {
 // TODO: unify the use of f32/f64 in this file.
 #[derive(Debug, Clone)]
 pub struct KeyframesAnimationState {
+    /// The time this animation started at.
     pub started_at: f64,
+    /// The duration of this animation.
     pub duration: f64,
+    /// The delay of the animation.
     pub delay: f64,
+    /// The current iteration state for the animation.
     pub iteration_state: KeyframesIterationState,
+    /// Werther this animation is paused.
     pub paused: bool,
+    /// The declared animation direction of this animation.
+    pub direction: AnimationDirection,
+    /// The current animation direction. This can only be `normal` or `reverse`.
+    pub current_direction: AnimationDirection,
+}
+
+impl KeyframesAnimationState {
+    /// Performs a tick in the animation state, i.e., increments the counter of
+    /// the current iteration count, updates times and then toggles the
+    /// direction if appropriate.
+    ///
+    /// Returns true if the animation should keep running.
+    pub fn tick(&mut self) -> bool {
+        let still_running = match self.iteration_state {
+            KeyframesIterationState::Finite(ref mut current, ref max) => {
+                *current += 1;
+                *current < *max
+            }
+            KeyframesIterationState::Infinite => true,
+        };
+
+        // Just tick it again updating the started_at field.
+        self.started_at += self.duration + self.delay;
+
+        // Update the next iteration direction if applicable.
+        match self.direction {
+            AnimationDirection::alternate |
+            AnimationDirection::alternate_reverse => {
+                self.current_direction = match self.current_direction {
+                    AnimationDirection::normal => AnimationDirection::reverse,
+                    AnimationDirection::reverse => AnimationDirection::normal,
+                    _ => unreachable!(),
+                };
+            }
+            _ => {},
+        }
+
+        still_running
+    }
 }
 
 /// State relating to an animation.
@@ -287,6 +332,16 @@ pub fn maybe_start_animations<Impl: SelectorImplExt>(context: &SharedStyleContex
                 AnimationIterationCount::Infinite => KeyframesIterationState::Infinite,
                 AnimationIterationCount::Number(n) => KeyframesIterationState::Finite(0, n),
             };
+
+            let animation_direction = *box_style.animation_direction.0.get_mod(i);
+
+            let initial_direction = match animation_direction {
+                AnimationDirection::normal |
+                AnimationDirection::alternate => AnimationDirection::normal,
+                AnimationDirection::reverse |
+                AnimationDirection::alternate_reverse => AnimationDirection::reverse,
+            };
+
             let paused = *box_style.animation_play_state.0.get_mod(i) == AnimationPlayState::paused;
 
             context.new_animations_sender
@@ -297,6 +352,8 @@ pub fn maybe_start_animations<Impl: SelectorImplExt>(context: &SharedStyleContex
                        delay: delay as f64,
                        iteration_state: iteration_state,
                        paused: paused,
+                       direction: animation_direction,
+                       current_direction: initial_direction,
                    })).unwrap();
             had_animations = true;
         }
@@ -393,20 +450,31 @@ where Impl: SelectorImplExt,
             debug!("update_style_for_animation: anim \"{}\", steps: {:?}, state: {:?}, progress: {}",
                    name, animation.steps, state, total_progress);
 
-            let mut last_keyframe_position = None;
-            let mut target_keyframe_position = None;
+            // Get the target and the last keyframe position.
+            let last_keyframe_position;
+            let target_keyframe_position;
+            match state.current_direction {
+                AnimationDirection::normal => {
+                    target_keyframe_position =
+                        animation.steps.iter().position(|step| {
+                            total_progress as f32 <= step.start_percentage.0
+                        });
 
-            // TODO: we could maybe binary-search this? Also, find is probably a
-            // bit more idiomatic here?
-            for i in 0..animation.steps.len() {
-                if total_progress as f32 <= animation.steps[i].start_percentage.0 {
-                    // We might have found our current keyframe.
-                    target_keyframe_position = Some(i);
-                    if i != 0 {
-                        last_keyframe_position = Some(i - 1);
-                    }
-                    break;
+                    last_keyframe_position = target_keyframe_position.and_then(|pos| {
+                        if pos != 0 { Some(pos - 1) } else { None }
+                    });
                 }
+                AnimationDirection::reverse => {
+                    target_keyframe_position =
+                        animation.steps.iter().rev().position(|step| {
+                            total_progress as f32 <= 1. - step.start_percentage.0
+                        }).map(|pos| animation.steps.len() - pos - 1);
+
+                    last_keyframe_position = target_keyframe_position.and_then(|pos| {
+                        if pos != animation.steps.len() - 1 { Some(pos + 1) } else { None }
+                    });
+                }
+                _ => unreachable!(),
             }
 
             debug!("update_style_for_animation: keyframe from {:?} to {:?}",
@@ -432,9 +500,17 @@ where Impl: SelectorImplExt,
                 }
             };
 
-            let relative_timespan = target_keyframe.start_percentage.0 - last_keyframe.start_percentage.0;
+            let relative_timespan = (target_keyframe.start_percentage.0 - last_keyframe.start_percentage.0).abs();
             let relative_duration = relative_timespan as f64 * duration;
-            let last_keyframe_ended_at = state.started_at + (total_duration * last_keyframe.start_percentage.0 as f64);
+            let last_keyframe_ended_at = match state.current_direction {
+                AnimationDirection::normal => {
+                    state.started_at + (total_duration * last_keyframe.start_percentage.0 as f64)
+                }
+                AnimationDirection::reverse => {
+                    state.started_at + (total_duration * (1. - last_keyframe.start_percentage.0 as f64))
+                }
+                _ => unreachable!(),
+            };
             let relative_progress = (now - last_keyframe_ended_at) / relative_duration;
 
             // TODO: How could we optimise it? Is it such a big deal?
