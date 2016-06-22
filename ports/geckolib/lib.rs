@@ -3,13 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![feature(as_unsafe_cell)]
-#![feature(box_syntax)]
-#![feature(custom_attribute)]
-#![feature(custom_derive)]
-#![feature(plugin)]
-
-#![plugin(heapsize_plugin)]
-#![plugin(plugins)]
 
 extern crate app_units;
 #[macro_use]
@@ -17,7 +10,7 @@ extern crate cssparser;
 extern crate env_logger;
 extern crate euclid;
 extern crate gecko_bindings;
-extern crate heapsize;
+#[cfg(feature = "servo_features")] #[macro_use] extern crate heapsize;
 #[macro_use]
 extern crate lazy_static;
 extern crate libc;

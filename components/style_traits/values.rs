@@ -5,12 +5,38 @@
 #[macro_export]
 macro_rules! define_css_keyword_enum {
     ($name: ident: $( $css: expr => $variant: ident ),+,) => {
-        define_css_keyword_enum!($name: $( $css => $variant ),+);
+        __define_css_keyword_enum__add_optional_traits!($name [ $( $css => $variant ),+ ]);
     };
     ($name: ident: $( $css: expr => $variant: ident ),+) => {
+        __define_css_keyword_enum__add_optional_traits!($name [ $( $css => $variant ),+ ]);
+    };
+}
+
+#[cfg(feature = "servo")]
+#[macro_export]
+macro_rules! __define_css_keyword_enum__add_optional_traits {
+    ($name: ident [ $( $css: expr => $variant: ident ),+ ]) => {
+        __define_css_keyword_enum__actual! {
+            $name [ Deserialize, Serialize, HeapSizeOf ] [ $( $css => $variant ),+ ]
+        }
+    };
+}
+
+#[cfg(not(feature = "servo"))]
+#[macro_export]
+macro_rules! __define_css_keyword_enum__add_optional_traits {
+    ($name: ident [ $( $css: expr => $variant: ident ),+ ]) => {
+        __define_css_keyword_enum__actual! {
+            $name [] [ $( $css => $variant ),+ ]
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! __define_css_keyword_enum__actual {
+    ($name: ident [ $( $derived_trait: ident),* ] [ $( $css: expr => $variant: ident ),+ ]) => {
         #[allow(non_camel_case_types)]
-        #[derive(Clone, Eq, PartialEq, Copy, Hash, RustcEncodable, Debug, HeapSizeOf)]
-        #[derive(Deserialize, Serialize)]
+        #[derive(Clone, Eq, PartialEq, Copy, Hash, RustcEncodable, Debug $(, $derived_trait )* )]
         pub enum $name {
             $( $variant ),+
         }

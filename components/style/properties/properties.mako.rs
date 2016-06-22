@@ -25,7 +25,7 @@ use cssparser::{Parser, RGBA, AtRuleParser, DeclarationParser, Delimiter,
                 DeclarationListParser, parse_important, ToCss, TokenSerializationType};
 use error_reporting::ParseErrorReporter;
 use url::Url;
-use euclid::SideOffsets2D;
+use euclid::side_offsets::SideOffsets2D;
 use euclid::size::Size2D;
 use string_cache::Atom;
 use computed_values;
@@ -261,11 +261,12 @@ use std::slice;
 /// Overridden declarations are skipped.
 
 // FIXME (https://github.com/servo/servo/issues/3426)
-#[derive(Debug, PartialEq, HeapSizeOf)]
+#[derive(Debug, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct PropertyDeclarationBlock {
-    #[ignore_heap_size_of = "#7038"]
+    #[cfg_attr(feature = "servo", ignore_heap_size_of = "#7038")]
     pub important: Arc<Vec<PropertyDeclaration>>,
-    #[ignore_heap_size_of = "#7038"]
+    #[cfg_attr(feature = "servo", ignore_heap_size_of = "#7038")]
     pub normal: Arc<Vec<PropertyDeclaration>>,
 }
 
@@ -616,7 +617,8 @@ impl CSSWideKeyword {
     }
 }
 
-#[derive(Clone, Copy, Eq, PartialEq, Debug, HeapSizeOf)]
+#[derive(Clone, Copy, Eq, PartialEq, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum Shorthand {
     % for property in data.shorthands:
         ${property.camel_case},
@@ -722,7 +724,8 @@ impl Shorthand {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Debug, HeapSizeOf)]
+#[derive(Clone, PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum DeclaredValue<T> {
     Value(T),
     WithVariables {
@@ -753,7 +756,8 @@ impl<T: ToCss> ToCss for DeclaredValue<T> {
     }
 }
 
-#[derive(PartialEq, Clone, Debug, HeapSizeOf)]
+#[derive(PartialEq, Clone, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum PropertyDeclaration {
     % for property in data.longhands:
         ${property.camel_case}(DeclaredValue<longhands::${property.ident}::SpecifiedValue>),
@@ -1064,9 +1068,11 @@ pub mod style_structs {
 
     % for style_struct in data.active_style_structs():
         % if style_struct.trait_name == "Font":
-        #[derive(Clone, HeapSizeOf, Debug)]
+        #[derive(Clone, Debug)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         % else:
-        #[derive(PartialEq, Clone, HeapSizeOf)]
+        #[derive(PartialEq, Clone)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         % endif
         pub struct ${style_struct.servo_struct_name} {
             % for longhand in style_struct.longhands:
@@ -1233,7 +1239,8 @@ pub trait ComputedValues : Clone + Send + Sync + 'static {
     fn is_multicol(&self) -> bool;
 }
 
-#[derive(Clone, HeapSizeOf)]
+#[derive(Clone)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct ServoComputedValues {
     % for style_struct in data.active_style_structs():
         ${style_struct.ident}: Arc<style_structs::${style_struct.servo_struct_name}>,
@@ -1692,7 +1699,7 @@ pub fn make_cascade_vec<C: ComputedValues>() -> Vec<Option<CascadePropertyFn<C>>
         % for property in style_struct.longhands:
             let discriminant;
             unsafe {
-                let variant = PropertyDeclaration::${property.camel_case}(intrinsics::uninit());
+                let variant = PropertyDeclaration::${property.camel_case}(mem::uninitialized());
                 discriminant = intrinsics::discriminant_value(&variant) as usize;
                 mem::forget(variant);
             }

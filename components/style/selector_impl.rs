@@ -95,7 +95,8 @@ pub trait SelectorImplExt : SelectorImpl + Sized {
     fn get_quirks_mode_stylesheet() -> Option<&'static Stylesheet<Self>>;
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, HeapSizeOf, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum PseudoElement {
     Before,
     After,
@@ -117,7 +118,8 @@ impl PseudoElement {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, HeapSizeOf, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum NonTSPseudoClass {
     AnyLink,
     Link,
@@ -158,7 +160,8 @@ impl NonTSPseudoClass {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, HeapSizeOf)]
+#[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct ServoSelectorImpl;
 
 impl SelectorImpl for ServoSelectorImpl {

@@ -28,8 +28,8 @@
 
     pub mod computed_value {
         #[allow(non_camel_case_types)]
-        #[derive(Clone, Eq, PartialEq, Copy, Hash, RustcEncodable, Debug, HeapSizeOf)]
-        #[derive(Deserialize, Serialize)]
+        #[derive(Clone, Eq, PartialEq, Copy, Hash, RustcEncodable, Debug)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
         pub enum T {
             % for value in values:
                 ${to_rust_ident(value)},
@@ -136,7 +136,8 @@ ${helpers.single_keyword("clear", "none left right both", gecko_ffi_name="mBreak
   <% vertical_align_keywords = vertical_align.keyword.values_for(product) %>
 
   #[allow(non_camel_case_types)]
-  #[derive(Debug, Clone, PartialEq, Copy, HeapSizeOf)]
+  #[derive(Debug, Clone, PartialEq, Copy)]
+  #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
   pub enum SpecifiedValue {
       % for keyword in vertical_align_keywords:
           ${to_rust_ident(keyword)},
@@ -174,7 +175,8 @@ ${helpers.single_keyword("clear", "none left right both", gecko_ffi_name="mBreak
       use values::AuExtensionMethods;
       use values::{CSSFloat, computed};
       #[allow(non_camel_case_types)]
-      #[derive(PartialEq, Copy, Clone, HeapSizeOf, Debug)]
+      #[derive(PartialEq, Copy, Clone, Debug)]
+      #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
       pub enum T {
           % for keyword in vertical_align_keywords:
               ${to_rust_ident(keyword)},
@@ -243,7 +245,8 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto", need_clone=
   }
 
   pub mod computed_value {
-      #[derive(Debug, Clone, Copy, PartialEq, HeapSizeOf)]
+      #[derive(Debug, Clone, Copy, PartialEq)]
+      #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
       pub struct T(pub super::super::overflow_x::computed_value::T);
   }
 
@@ -279,7 +282,8 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto", need_clone=
 
         pub use values::computed::Time as SingleComputedValue;
 
-        #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
+        #[derive(Debug, Clone, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T(pub Vec<SingleComputedValue>);
 
         impl ToComputedValue for T {
@@ -385,7 +389,8 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto", need_clone=
 
         pub use self::TransitionTimingFunction as SingleComputedValue;
 
-        #[derive(Copy, Clone, Debug, PartialEq, HeapSizeOf)]
+        #[derive(Copy, Clone, Debug, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub enum TransitionTimingFunction {
             CubicBezier(Point2D<f32>, Point2D<f32>),
             Steps(u32, StartEnd),
@@ -416,7 +421,8 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto", need_clone=
             }
         }
 
-        #[derive(Copy, Clone, Debug, PartialEq, HeapSizeOf)]
+        #[derive(Copy, Clone, Debug, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub enum StartEnd {
             Start,
             End,
@@ -431,7 +437,8 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto", need_clone=
             }
         }
 
-        #[derive(Clone, Debug, PartialEq, HeapSizeOf)]
+        #[derive(Clone, Debug, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T(pub Vec<TransitionTimingFunction>);
 
         impl ToCss for T {
@@ -537,7 +544,8 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto", need_clone=
 
         pub use self::TransitionProperty as SingleComputedValue;
 
-        #[derive(Copy, Clone, Debug, PartialEq, HeapSizeOf)]
+        #[derive(Copy, Clone, Debug, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub enum TransitionProperty {
             All,
             BackgroundColor,
@@ -688,7 +696,8 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto", need_clone=
             }
         }
 
-        #[derive(Clone, Debug, PartialEq, HeapSizeOf)]
+        #[derive(Clone, Debug, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T(pub Vec<SingleComputedValue>);
 
         impl ToCss for T {
@@ -863,14 +872,16 @@ ${helpers.single_keyword("-moz-appearance",
     use url::Url;
     use values::computed::ComputedValueAsSpecified;
 
-    #[derive(PartialEq, Clone, Debug, HeapSizeOf)]
+    #[derive(PartialEq, Clone, Debug)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct UrlExtraData {
         pub base: GeckoArcURI,
         pub referrer: GeckoArcURI,
         pub principal: GeckoArcPrincipal,
     }
 
-    #[derive(PartialEq, Clone, Debug, HeapSizeOf)]
+    #[derive(PartialEq, Clone, Debug)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SpecifiedValue {
         Url(Url, UrlExtraData),
         None,

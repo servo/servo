@@ -44,7 +44,7 @@ lazy_static! {
                         None,
                         None,
                         Origin::UserAgent,
-                        box StdoutErrorReporter,
+                        Box::new(StdoutErrorReporter),
                         ParserContextExtraData::default());
                     stylesheets.push(ua_stylesheet);
                 }
@@ -56,7 +56,7 @@ lazy_static! {
         }
         for &(ref contents, ref url) in &opts::get().user_stylesheets {
             stylesheets.push(Stylesheet::from_bytes(
-                &contents, url.clone(), None, None, Origin::User, box StdoutErrorReporter,
+                &contents, url.clone(), None, None, Origin::User, Box::new(StdoutErrorReporter),
                 ParserContextExtraData::default()));
         }
         stylesheets
@@ -73,7 +73,7 @@ lazy_static! {
                     None,
                     None,
                     Origin::UserAgent,
-                    box StdoutErrorReporter,
+                    Box::new(StdoutErrorReporter),
                     ParserContextExtraData::default())
             },
             Err(..) => {
@@ -100,7 +100,7 @@ lazy_static! {
 /// `ServoSelectorImpl`, the implementation used by Servo's layout system in
 /// regular builds, or `GeckoSelectorImpl`, the implementation used in the
 /// geckolib port.
-#[derive(HeapSizeOf)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct Stylist<Impl: SelectorImplExt> {
     /// Device that the stylist is currently evaluating against.
     pub device: Device,
@@ -269,7 +269,7 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
                 properties::cascade(self.device.au_viewport_size(),
                                     &declarations, false,
                                     parent.map(|p| &**p), None,
-                                    box StdoutErrorReporter);
+                                    Box::new(StdoutErrorReporter));
             Some(Arc::new(computed))
         } else {
             parent.map(|p| p.clone())
@@ -302,7 +302,7 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
             properties::cascade(self.device.au_viewport_size(),
                                 &declarations, false,
                                 Some(&**parent), None,
-                                box StdoutErrorReporter);
+                                Box::new(StdoutErrorReporter));
         Some(Arc::new(computed))
     }
 
@@ -438,7 +438,7 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
 }
 
 /// Map that contains the CSS rules for a given origin.
-#[derive(HeapSizeOf)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 struct PerOriginSelectorMap<Impl: SelectorImpl> {
     /// Rules that contains at least one property declararion with
     /// normal importance.
@@ -460,7 +460,7 @@ impl<Impl: SelectorImpl> PerOriginSelectorMap<Impl> {
 
 /// Map that contains the CSS rules for a specific PseudoElement
 /// (or lack of PseudoElement).
-#[derive(HeapSizeOf)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 struct PerPseudoElementSelectorMap<Impl: SelectorImpl> {
     /// Rules from user agent stylesheets
     user_agent: PerOriginSelectorMap<Impl>,

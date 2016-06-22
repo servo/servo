@@ -8,19 +8,20 @@
 
 #![crate_name = "style_traits"]
 #![crate_type = "rlib"]
-#![feature(custom_derive)]
-#![feature(plugin)]
-#![plugin(heapsize_plugin)]
-#![plugin(serde_macros)]
-#![plugin(plugins)]
+
 #![deny(unsafe_code)]
+
+#![cfg_attr(feature = "servo", feature(custom_derive))]
+#![cfg_attr(feature = "servo", feature(plugin))]
+#![cfg_attr(feature = "servo", plugin(serde_macros))]
+#![cfg_attr(feature = "servo", plugin(heapsize_plugin))]
 
 #[macro_use]
 extern crate cssparser;
 extern crate euclid;
-extern crate heapsize;
+#[cfg(feature = "servo")] extern crate heapsize;
 extern crate rustc_serialize;
-extern crate serde;
+#[cfg(feature = "servo")] extern crate serde;
 extern crate util;
 
 pub mod cursor;

@@ -20,7 +20,8 @@ define_css_keyword_enum!(Orientation:
                          "landscape" => Landscape);
 
 
-#[derive(Clone, Debug, PartialEq, Deserialize, Serialize, HeapSizeOf)]
+#[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize, HeapSizeOf))]
 pub struct ViewportConstraints {
     pub size: TypedSize2D<ViewportPx, f32>,
 
@@ -54,7 +55,8 @@ impl ToCss for ViewportConstraints {
 
 /// Zoom is a number | percentage | auto
 /// See http://dev.w3.org/csswg/css-device-adapt/#descdef-viewport-zoom
-#[derive(Copy, Clone, Debug, HeapSizeOf, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum Zoom {
     Number(f32),
     Percentage(f32),

@@ -12,31 +12,35 @@ path = "lib.rs"
 
 [features]
 gecko = ["gecko_bindings"]
+servo = ["serde", "serde/nightly", "serde_macros", "heapsize", "heapsize_plugin",
+         "style_traits/servo", "app_units/plugins", "euclid/plugins",
+         "cssparser/heap_size", "cssparser/serde-serialization",
+         "selectors/heap_size", "selectors/unstable", "string_cache/heap_size",
+         "url/heap_size"]
 
 [dependencies]
-app_units = {version = "0.2.3", features = ["plugins"]}
+app_units = "0.2.3"
 bitflags = "0.7"
-cssparser = {version = "0.5.5", features = ["heap_size", "serde-serialization"]}
+cssparser = "0.5.5"
 encoding = "0.2"
-euclid = {version = "0.6.4", features = ["plugins"]}
+euclid = "0.6.4"
 fnv = "1.0"
 gecko_bindings = {path = "../../ports/geckolib/gecko_bindings", optional = true}
-heapsize = "0.3.0"
-heapsize_plugin = "0.1.2"
+heapsize = {version = "0.3.0", optional = true}
+heapsize_plugin = {version = "0.1.2", optional = true}
 lazy_static = "0.2"
 log = "0.3.5"
 matches = "0.1"
 num-traits = "0.1.32"
-plugins = {path = "../plugins"}
 rustc-serialize = "0.3"
-selectors = {version = "0.6", features = ["heap_size", "unstable"]}
-serde = {version = "0.7", features = ["nightly"]}
-serde_macros = "0.7"
+selectors = "0.6"
+serde = {version = "0.7", optional = true}
+serde_macros = {version = "0.7", optional = true}
 smallvec = "0.1"
-string_cache = {version = "0.2.20", features = ["heap_size"]}
+string_cache = "0.2.20"
 style_traits = {path = "../style_traits"}
 time = "0.1"
-url = {version = "1.0.0", features = ["heap_size"]}
+url = "1.0.0"
 util = {path = "../util"}
 
 [build-dependencies]

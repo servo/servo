@@ -11,7 +11,7 @@ path = "lib.rs"
 [dependencies]
 profile_traits = {path = "../profile_traits"}
 plugins = {path = "../plugins"}
-util = {path = "../util"}
+util = {path = "../util", features = ["servo"]}
 ipc-channel = {git = "https://github.com/servo/ipc-channel"}
 heartbeats-simple = "0.3"
 log = "0.3.5"

@@ -17,6 +17,8 @@ default = ["servo_features"]
 # in the full Servo build.  Enabling this reduces the number of things
 # recompiled when building both Servo and geckolib in the same source tree.
 servo_features = [
+  "heapsize",
+  "style/servo",
   "time",
   "url/query_encoding",
   "url/rustc-serialize",
@@ -28,8 +30,7 @@ app_units = "0.2.3"
 cssparser = "0.5.4"
 euclid = "0.6.4"
 gecko_bindings = {version = "0.0.1", path = "gecko_bindings"}
-heapsize = "0.3.0"
-heapsize_plugin = "0.1.2"
+heapsize = {version = "0.3.0", optional = true}
 lazy_static = "0.2"
 libc = "0.2"
 num_cpus = "0.2.2"
@@ -38,7 +39,6 @@ smallvec = "0.1"
 string_cache = {version = "0.2.20", features = ["unstable"]}
 url = "1.0.0"
 log = {version = "0.3.5", features = ["release_max_level_info"]}
-plugins = {path = "../../components/plugins"}
 time = {version = "0.1", optional = true, features = ["rustc-serialize"]}
 util = {path = "../../components/util"}
 uuid = {version = "0.2", optional = true, features = ["v4", "serde"]}

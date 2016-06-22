@@ -15,7 +15,7 @@ msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
 plugins = {path = "../plugins"}
 profile_traits = {path = "../profile_traits"}
-style_traits = {path = "../style_traits"}
+style_traits = {path = "../style_traits", features = ["servo"]}
 util = {path = "../util"}
 devtools_traits = {path = "../devtools_traits"}
 ipc-channel = {git = "https://github.com/servo/ipc-channel"}

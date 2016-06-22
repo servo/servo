@@ -50,7 +50,8 @@ bitflags! {
 /// now to reduce complexity, but it's worth measuring the performance impact (if any) of the
 /// mStateMask approach.
 
-#[derive(HeapSizeOf, Clone)]
+#[derive(Clone)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct ElementSnapshot {
     pub state: Option<ElementState>,
     pub attrs: Option<Vec<(AttrIdentifier, AttrValue)>>,
@@ -225,7 +226,8 @@ fn combinator_to_restyle_hint(combinator: Option<Combinator>) -> RestyleHint {
     }
 }
 
-#[derive(Debug, HeapSizeOf)]
+#[derive(Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 struct Sensitivities {
     pub states: ElementState,
     pub attrs: bool,
@@ -262,14 +264,16 @@ impl Sensitivities {
 // us to quickly scan through the dependency sites of all style rules and determine the
 // maximum effect that a given state or attribute change may have on the style of
 // elements in the document.
-#[derive(Debug, HeapSizeOf)]
+#[derive(Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 struct Dependency<Impl: SelectorImplExt> {
     selector: Arc<CompoundSelector<Impl>>,
     combinator: Option<Combinator>,
     sensitivities: Sensitivities,
 }
 
-#[derive(Debug, HeapSizeOf)]
+#[derive(Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct DependencySet<Impl: SelectorImplExt> {
     deps: Vec<Dependency<Impl>>,
 }

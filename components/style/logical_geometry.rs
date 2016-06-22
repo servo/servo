@@ -5,7 +5,8 @@
 //! Geometry in flow-relative space.
 
 use euclid::num::Zero;
-use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
+use euclid::side_offsets::SideOffsets2D;
+use euclid::{Point2D, Rect, Size2D};
 use std::cmp::{max, min};
 use std::fmt::{self, Debug, Error, Formatter};
 use std::ops::{Add, Sub};
@@ -22,7 +23,8 @@ pub enum InlineBaseDirection {
 }
 
 bitflags!(
-    #[derive(HeapSizeOf, RustcEncodable)]
+    #[derive(RustcEncodable)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub flags WritingMode: u8 {
         const FLAG_RTL = 1 << 0,
         const FLAG_VERTICAL = 1 << 1,

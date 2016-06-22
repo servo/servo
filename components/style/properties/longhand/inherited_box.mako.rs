@@ -40,7 +40,8 @@ ${helpers.single_keyword("color-adjust", "economy exact", products="gecko")}
         use cssparser::ToCss;
         use std::fmt;
 
-        #[derive(Copy, Clone, Debug, PartialEq, HeapSizeOf, Deserialize, Serialize)]
+        #[derive(Copy, Clone, Debug, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
         pub enum T {
             Auto,
             CrispEdges,
@@ -96,7 +97,8 @@ ${helpers.single_keyword("color-adjust", "economy exact", products="gecko")}
     use std::fmt;
     use values::computed::ComputedValueAsSpecified;
 
-    #[derive(Copy, Clone, Debug, Eq, PartialEq, HeapSizeOf, Serialize, Deserialize)]
+    #[derive(Copy, Clone, Debug, Eq, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
     pub struct SpecifiedValue(pub bool);
 
     pub mod computed_value {

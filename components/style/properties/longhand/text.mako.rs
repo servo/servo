@@ -24,7 +24,8 @@ ${helpers.single_keyword("unicode-bidi", "normal embed isolate bidi-override iso
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
 
-    #[derive(PartialEq, Eq, Copy, Clone, Debug, HeapSizeOf)]
+    #[derive(PartialEq, Eq, Copy, Clone, Debug)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue {
         pub underline: bool,
         pub overline: bool,
