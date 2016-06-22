@@ -3,9 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use bezier::Bezier;
 use cssparser::{Color as CSSParserColor, Parser, RGBA, ToCss};
-use dom::{OpaqueNode, TRestyleDamage};
 use euclid::{Point2D, Size2D};
 use properties::PropertyDeclaration;
 use properties::longhands;
@@ -20,9 +18,6 @@ use properties::longhands::text_shadow::computed_value::TextShadow;
 use properties::longhands::transform::computed_value::ComputedMatrix;
 use properties::longhands::transform::computed_value::ComputedOperation as TransformOperation;
 use properties::longhands::transform::computed_value::T as TransformList;
-use properties::longhands::transition_property;
-use properties::longhands::transition_timing_function::computed_value::StartEnd;
-use properties::longhands::transition_timing_function::computed_value::TransitionTimingFunction;
 use properties::longhands::vertical_align::computed_value::T as VerticalAlign;
 use properties::longhands::visibility::computed_value::T as Visibility;
 use properties::longhands::z_index::computed_value::T as ZIndex;
@@ -33,7 +28,7 @@ use std::iter::repeat;
 use super::ComputedValues;
 use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 use values::computed::{BorderRadiusSize, LengthOrNone};
-use values::computed::{CalcLengthOrPercentage, Length, LengthOrPercentage, Time};
+use values::computed::{CalcLengthOrPercentage, LengthOrPercentage};
 
 // NB: This needs to be here because it needs all the longhands generated
 // beforehand.
@@ -143,8 +138,9 @@ impl AnimatedProperty {
             % for prop in data.longhands:
                 % if prop.animatable:
                     TransitionProperty::${prop.camel_case} => {
-                        AnimatedProperty::${prop.camel_case}(old_style.get_${prop.style_struct.ident.strip("_")}().${prop.ident}.clone(),
-                                                             new_style.get_${prop.style_struct.ident.strip("_")}().${prop.ident}.clone())
+                        AnimatedProperty::${prop.camel_case}(
+                            old_style.get_${prop.style_struct.ident.strip("_")}().${prop.ident}.clone(),
+                            new_style.get_${prop.style_struct.ident.strip("_")}().${prop.ident}.clone())
                     }
                 % endif
             % endfor
