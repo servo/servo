@@ -34,7 +34,7 @@ fn create_common_style_affecting_attributes_from_element<E: TElement>(element: &
     for attribute_info in &common_style_affecting_attributes() {
         match attribute_info.mode {
             CommonStyleAffectingAttributeMode::IsPresent(flag) => {
-                if element.get_attr(&ns!(), &attribute_info.atom).is_some() {
+                if element.has_attr(&ns!(), &attribute_info.atom) {
                     flags.insert(flag)
                 }
             }
@@ -296,7 +296,7 @@ impl<C: ComputedValues> StyleSharingCandidate<C> {
             match attribute_info.mode {
                 CommonStyleAffectingAttributeMode::IsPresent(flag) => {
                     if self.common_style_affecting_attributes.contains(flag) !=
-                            element.get_attr(&ns!(), &attribute_info.atom).is_some() {
+                            element.has_attr(&ns!(), &attribute_info.atom) {
                         return false
                     }
                 }
@@ -320,7 +320,7 @@ impl<C: ComputedValues> StyleSharingCandidate<C> {
         }
 
         for attribute_name in &rare_style_affecting_attributes() {
-            if element.get_attr(&ns!(), attribute_name).is_some() {
+            if element.has_attr(&ns!(), attribute_name) {
                 return false
             }
         }
@@ -606,7 +606,7 @@ pub trait ElementMatchMethods : TElement
         if self.style_attribute().is_some() {
             return StyleSharingResult::CannotShare
         }
-        if self.get_attr(&ns!(), &atom!("id")).is_some() {
+        if self.has_attr(&ns!(), &atom!("id")) {
             return StyleSharingResult::CannotShare
         }
 
