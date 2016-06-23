@@ -32,7 +32,7 @@ use image::{DynamicImage, ImageFormat, RgbImage};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use keys::keycodes_to_keys;
 use msg::constellation_msg::{FrameId, LoadData, PipelineId};
-use msg::constellation_msg::{NavigationDirection, PixelFormat, WebDriverCommandMsg};
+use msg::constellation_msg::{PixelFormat, TraversalDirection, WebDriverCommandMsg};
 use msg::webdriver_msg::{LoadStatus, WebDriverCookieError, WebDriverFrameId};
 use msg::webdriver_msg::{WebDriverJSError, WebDriverJSResult, WebDriverScriptCommand};
 use regex::Captures;
@@ -440,12 +440,12 @@ impl Handler {
     }
 
     fn handle_go_back(&self) -> WebDriverResult<WebDriverResponse> {
-        self.constellation_chan.send(ConstellationMsg::Navigate(None, NavigationDirection::Back(1))).unwrap();
+        self.constellation_chan.send(ConstellationMsg::TraverseHistory(None, TraversalDirection::Back(1))).unwrap();
         Ok(WebDriverResponse::Void)
     }
 
     fn handle_go_forward(&self) -> WebDriverResult<WebDriverResponse> {
-        self.constellation_chan.send(ConstellationMsg::Navigate(None, NavigationDirection::Forward(1))).unwrap();
+        self.constellation_chan.send(ConstellationMsg::TraverseHistory(None, TraversalDirection::Forward(1))).unwrap();
         Ok(WebDriverResponse::Void)
     }
 
