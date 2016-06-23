@@ -392,13 +392,6 @@ impl<'le> TElement for ServoLayoutElement<'le> {
             (*self.element.unsafe_get()).get_attr_val_for_layout(namespace, name)
         }
     }
-
-    #[inline]
-    fn get_attrs(&self, name: &Atom) -> Vec<&str> {
-        unsafe {
-            (*self.element.unsafe_get()).get_attr_vals_for_layout(name)
-        }
-    }
 }
 
 
@@ -561,7 +554,10 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
                 self.get_attr(ns, name).map_or(false, |attr| test(attr))
             },
             NamespaceConstraint::Any => {
-                self.get_attrs(name).iter().any(|attr| test(*attr))
+                let attrs = unsafe {
+                    (*self.element.unsafe_get()).get_attr_vals_for_layout(name)
+                };
+                attrs.iter().any(|attr| test(*attr))
             }
         }
     }
