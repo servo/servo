@@ -370,6 +370,17 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     #[inline]
+    fn attr_equals(&self, namespace: &Namespace, attr: &Atom, val: &Atom) -> bool {
+        unsafe {
+            bindings::Gecko_AttrEquals(self.element,
+                                       namespace.0.as_ptr(),
+                                       attr.as_ptr(),
+                                       val.as_ptr(),
+                                       /* ignoreCase = */ false)
+        }
+    }
+
+    #[inline]
     fn get_attr<'a>(&'a self, namespace: &Namespace, name: &Atom) -> Option<&'a str> {
         unsafe {
             let mut length: u32 = 0;
