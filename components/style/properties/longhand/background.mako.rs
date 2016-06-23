@@ -74,7 +74,7 @@ ${helpers.predefined_type(
 <%helpers:longhand name="background-position">
         use cssparser::ToCss;
         use std::fmt;
-        use values::AuExtensionMethods;
+        use values::LocalToCss;
 
         pub mod computed_value {
             use values::computed::LengthOrPercentage;

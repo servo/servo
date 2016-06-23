@@ -172,7 +172,7 @@ ${helpers.single_keyword("clear", "none left right both", gecko_ffi_name="mBreak
   pub mod computed_value {
       use app_units::Au;
       use std::fmt;
-      use values::AuExtensionMethods;
+      use values::LocalToCss;
       use values::{CSSFloat, computed};
       #[allow(non_camel_case_types)]
       #[derive(PartialEq, Copy, Clone, Debug)]

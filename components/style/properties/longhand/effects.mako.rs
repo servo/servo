@@ -14,7 +14,7 @@ ${helpers.predefined_type("opacity",
 <%helpers:longhand name="box-shadow">
     use cssparser::{self, ToCss};
     use std::fmt;
-    use values::AuExtensionMethods;
+    use values::LocalToCss;
 
     #[derive(Debug, Clone, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -226,7 +226,7 @@ ${helpers.predefined_type("opacity",
 <%helpers:longhand name="clip">
     use cssparser::ToCss;
     use std::fmt;
-    use values::AuExtensionMethods;
+    use values::LocalToCss;
 
     // NB: `top` and `left` are 0 if `auto` per CSS 2.1 11.1.2.
 
@@ -398,7 +398,7 @@ ${helpers.predefined_type("opacity",
     //pub use self::computed_value::T as SpecifiedValue;
     use cssparser::ToCss;
     use std::fmt;
-    use values::AuExtensionMethods;
+    use values::LocalToCss;
     use values::CSSFloat;
     use values::specified::{Angle, Length};
 
@@ -1182,7 +1182,7 @@ ${helpers.single_keyword("transform-style", "auto flat preserve-3d")}
 
 <%helpers:longhand name="transform-origin">
     use app_units::Au;
-    use values::AuExtensionMethods;
+    use values::LocalToCss;
     use values::specified::{Length, LengthOrPercentage, Percentage};
 
     use cssparser::ToCss;
