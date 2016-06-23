@@ -309,12 +309,12 @@ impl Frame {
         }
     }
 
-    fn load(&mut self, pipeline_id: PipelineId) -> Vec<(PipelineId, Instant)> {
-        // TODO(gw): To also allow navigations within subframes
-        // to affect the parent navigation history, this should bubble
-        // up the navigation change to each parent.
+    fn load(&mut self, pipeline_id: PipelineId) {
         self.prev.push(self.current);
         self.current = (pipeline_id, Instant::now());
+    }
+
+    fn remove_forward_entries(&mut self) -> Vec<(PipelineId, Instant)> {
         replace(&mut self.next, vec!())
     }
 }
@@ -2044,7 +2044,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             }
         }
 
-        let evicted_frames = frame_change.old_pipeline_id.and_then(|old_pipeline_id| {
+        let frame_id = frame_change.old_pipeline_id.and_then(|old_pipeline_id| {
             // The new pipeline is replacing an old one.
             // Remove paint permissions for the pipeline being replaced.
             self.revoke_paint_permission(old_pipeline_id);
@@ -2053,14 +2053,15 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             self.pipelines
                 .get(&old_pipeline_id)
                 .and_then(|pipeline| pipeline.frame)
-                .and_then(|frame_id| {
+                .map(|frame_id| {
                     self.pipelines.get_mut(&frame_change.new_pipeline_id)
                                   .map(|pipeline| pipeline.frame = Some(frame_id));
-                    self.frames.get_mut(&frame_id).map(|frame| frame.load(frame_change.new_pipeline_id))
+                    self.frames.get_mut(&frame_id).map(|frame| frame.load(frame_change.new_pipeline_id));
+                    frame_id
                 })
         });
 
-        if let None = evicted_frames {
+        if let None = frame_id {
             // The new pipeline is in a new frame with no history
             let frame_id = self.new_frame(frame_change.new_pipeline_id);
 
@@ -2086,11 +2087,12 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // This is the result of a link being clicked and a navigation completing.
         self.trigger_mozbrowserlocationchange(frame_change.new_pipeline_id);
 
-        // Remove any evicted frames
-        for (pipeline_id, _) in evicted_frames.unwrap_or_default() {
-            self.close_pipeline(pipeline_id, ExitPipelineMode::Normal);
-        }
+        let frame_id = match self.get_top_level_frame_for_pipeline(Some(frame_change.new_pipeline_id)) {
+            Some(frame_id) => frame_id,
+            None => return warn!("Tried to remove forward history after root frame closure."),
+        };
 
+        self.remove_forward_history_in_frame_tree(frame_id);
     }
 
     fn handle_activate_document_msg(&mut self, pipeline_id: PipelineId) {
@@ -2313,6 +2315,23 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         // All script threads are idle and layout epochs match compositor, so output image!
         ReadyToSave::Ready
+    }
+
+    fn remove_forward_history_in_frame_tree(&mut self, frame_id: FrameId) {
+        let mut evicted_pipelines = vec!();
+        for frame_id in &self.full_frame_tree(frame_id) {
+            let frame = match self.frames.get_mut(frame_id) {
+                Some(frame) => frame,
+                None => {
+                    warn!("Removed forward history after frame {:?} closure.", frame_id);
+                    continue;
+                }
+            };
+            evicted_pipelines.extend_from_slice(&frame.remove_forward_entries());
+        }
+        for (pipeline_id, _) in evicted_pipelines {
+            self.close_pipeline(pipeline_id, ExitPipelineMode::Normal);
+        }
     }
 
     // Close a frame (and all children)
