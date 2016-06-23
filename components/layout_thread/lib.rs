@@ -1290,7 +1290,7 @@ impl LayoutThread {
         self.tick_animations(&mut rw_data);
     }
 
-    pub fn tick_animations(&mut self, rw_data: &mut LayoutThreadData) {
+    fn tick_animations(&mut self, rw_data: &mut LayoutThreadData) {
         let reflow_info = Reflow {
             goal: ReflowGoal::ForDisplay,
             page_clip_rect: MAX_RECT,
@@ -1302,14 +1302,14 @@ impl LayoutThread {
 
         if let Some(mut root_flow) = self.root_flow.clone() {
             // Perform an abbreviated style recalc that operates without access to the DOM.
-            let mut animations = self.running_animations.write().unwrap();
+            let animations = self.running_animations.read().unwrap();
             profile(time::ProfilerCategory::LayoutStyleRecalc,
                     self.profiler_metadata(),
                     self.time_profiler_chan.clone(),
                     || {
                         animation::recalc_style_for_animations(&layout_context,
                                                                flow_ref::deref_mut(&mut root_flow),
-                                                               &mut animations)
+                                                               &animations)
                     });
         }
 

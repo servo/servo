@@ -58,7 +58,7 @@ fn top_down_dom<N, C>(unsafe_nodes: UnsafeNodeList,
                       where N: TNode, C: DomTraversalContext<N> {
     let context = C::new(proxy.user_data(), unsafe_nodes.1);
 
-    let mut discovered_child_nodes = Vec::new();
+    let mut discovered_child_nodes = vec![];
     for unsafe_node in *unsafe_nodes.0 {
         // Get a real layout node.
         let node = unsafe { N::from_unsafe(&unsafe_node) };
