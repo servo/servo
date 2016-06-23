@@ -13,16 +13,12 @@ use gfx::display_list::OpaqueNode;
 use script_layout_interface::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, RestyleDamage};
 use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
 use std::mem;
-use style::context::StyleContext;
 use style::dom::TNode;
-use style::matching::MatchMethods;
 use style::properties::ServoComputedValues;
 use style::selector_impl::ServoSelectorImpl;
 use style::servo::SharedStyleContext;
-use style::traversal::{DomTraversalContext, STYLE_BLOOM};
-use style::traversal::{put_thread_local_bloom_filter, recalc_style_at};
+use style::traversal::{DomTraversalContext, remove_from_bloom_filter, recalc_style_at};
 use util::opts;
-use util::tid::tid;
 use wrapper::{LayoutNodeLayoutData, ThreadSafeLayoutNodeHelpers};
 
 pub struct RecalcStyleAndConstructFlows<'lc> {
@@ -122,29 +118,7 @@ fn construct_flows_at<'a, N: LayoutNode>(context: &'a LayoutContext<'a>, root: O
         node.set_dirty_descendants(false);
     }
 
-    let unsafe_layout_node = node.to_unsafe();
-
-    let (mut bf, old_node, old_generation) =
-        STYLE_BLOOM.with(|style_bloom| {
-            mem::replace(&mut *style_bloom.borrow_mut(), None)
-            .expect("The bloom filter should have been set by style recalc.")
-        });
-
-    assert_eq!(old_node, unsafe_layout_node);
-    assert_eq!(old_generation, context.shared_context().generation);
-
-    match node.layout_parent_node(root) {
-        None => {
-            debug!("[{}] - {:X}, and deleting BF.", tid(), unsafe_layout_node.0);
-            // If this is the reflow root, eat the thread-local bloom filter.
-        }
-        Some(parent) => {
-            // Otherwise, put it back, but remove this node.
-            node.remove_from_bloom_filter(&mut *bf);
-            let unsafe_parent = parent.to_unsafe();
-            put_thread_local_bloom_filter(bf, &unsafe_parent, &context.shared_context());
-        },
-    };
+    remove_from_bloom_filter(context, root, node);
 }
 
 /// The bubble-inline-sizes traversal, the first part of layout computation. This computes
