@@ -50,7 +50,6 @@ use script_layout_interface::{OpaqueStyleAndLayoutData, PartialStyleAndLayoutDat
 use selectors::matching::{DeclarationBlock, ElementFlags};
 use selectors::parser::{AttrSelector, NamespaceConstraint};
 use smallvec::VecLike;
-use std::cell::{Ref, RefCell, RefMut};
 use std::marker::PhantomData;
 use std::mem::{transmute, transmute_copy};
 use string_cache::{Atom, BorrowedAtom, BorrowedNamespace, Namespace};
@@ -60,6 +59,7 @@ use style::dom::{PresentationalHintsSynthetizer, OpaqueNode, TDocument, TElement
 use style::element_state::*;
 use style::properties::{ComputedValues, ServoComputedValues};
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
+use style::refcell::{Ref, RefCell, RefMut};
 use style::restyle_hints::ElementSnapshot;
 use style::selector_impl::{NonTSPseudoClass, ServoSelectorImpl};
 use style::servo::{PrivateStyleData, SharedStyleContext};
