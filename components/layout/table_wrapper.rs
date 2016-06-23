@@ -32,6 +32,7 @@ use std::sync::Arc;
 use style::computed_values::{border_collapse, table_layout};
 use style::logical_geometry::LogicalSize;
 use style::properties::{ComputedValues, ServoComputedValues};
+use style::servo::SharedStyleContext;
 use style::values::CSSFloat;
 use style::values::computed::LengthOrPercentageOrAuto;
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize};
@@ -204,7 +205,7 @@ impl TableWrapperFlow {
 
     fn compute_used_inline_size(
             &mut self,
-            layout_context: &LayoutContext,
+            shared_context: &SharedStyleContext,
             parent_flow_inline_size: Au,
             intermediate_column_inline_sizes: &[IntermediateColumnInlineSize]) {
         let (border_padding, spacing) = self.border_padding_and_spacing();
@@ -233,7 +234,7 @@ impl TableWrapperFlow {
             let input =
                 inline_size_computer.compute_inline_size_constraint_inputs(&mut self.block_flow,
                                                                            parent_flow_inline_size,
-                                                                           layout_context);
+                                                                           shared_context);
 
             let solution = inline_size_computer.solve_inline_size_constraints(&mut self.block_flow,
                                                                               &input);
@@ -253,7 +254,7 @@ impl TableWrapperFlow {
             let input =
                 inline_size_computer.compute_inline_size_constraint_inputs(&mut self.block_flow,
                                                                            parent_flow_inline_size,
-                                                                           layout_context);
+                                                                           shared_context);
 
             let solution = inline_size_computer.solve_inline_size_constraints(&mut self.block_flow,
                                                                               &input);
@@ -272,7 +273,7 @@ impl TableWrapperFlow {
         let input =
             inline_size_computer.compute_inline_size_constraint_inputs(&mut self.block_flow,
                                                                        parent_flow_inline_size,
-                                                                       layout_context);
+                                                                       shared_context);
 
         let solution = inline_size_computer.solve_inline_size_constraints(&mut self.block_flow,
                                                                           &input);
@@ -319,7 +320,7 @@ impl Flow for TableWrapperFlow {
         self.block_flow.bubble_inline_sizes();
     }
 
-    fn assign_inline_sizes(&mut self, layout_context: &LayoutContext) {
+    fn assign_inline_sizes(&mut self, shared_context: &SharedStyleContext) {
         debug!("assign_inline_sizes({}): assigning inline_size for flow",
                if self.block_flow.base.flags.is_float() {
                    "floated table_wrapper"
@@ -344,7 +345,7 @@ impl Flow for TableWrapperFlow {
                 containing_block_inline_size;
         }
 
-        self.compute_used_inline_size(layout_context,
+        self.compute_used_inline_size(shared_context,
                                       containing_block_inline_size,
                                       &intermediate_column_inline_sizes);
 
@@ -374,7 +375,7 @@ impl Flow for TableWrapperFlow {
         match assigned_column_inline_sizes {
             None => {
                 self.block_flow
-                    .propagate_assigned_inline_size_to_children(layout_context,
+                    .propagate_assigned_inline_size_to_children(shared_context,
                                                                 inline_start_content_edge,
                                                                 inline_end_content_edge,
                                                                 content_inline_size,
@@ -382,7 +383,7 @@ impl Flow for TableWrapperFlow {
             }
             Some(ref assigned_column_inline_sizes) => {
                 self.block_flow
-                    .propagate_assigned_inline_size_to_children(layout_context,
+                    .propagate_assigned_inline_size_to_children(shared_context,
                                                                 inline_start_content_edge,
                                                                 inline_end_content_edge,
                                                                 content_inline_size,
@@ -767,12 +768,12 @@ impl ISizeAndMarginsComputer for Table {
     fn initial_computed_inline_size(&self,
                                     block: &mut BlockFlow,
                                     parent_flow_inline_size: Au,
-                                    layout_context: &LayoutContext)
+                                    shared_context: &SharedStyleContext)
                                     -> MaybeAuto {
         let containing_block_inline_size =
             self.containing_block_inline_size(block,
                                               parent_flow_inline_size,
-                                              layout_context);
+                                              shared_context);
         initial_computed_inline_size(block,
                                      containing_block_inline_size,
                                      self.minimum_width_of_all_columns,
@@ -802,12 +803,12 @@ impl ISizeAndMarginsComputer for FloatedTable {
     fn initial_computed_inline_size(&self,
                                     block: &mut BlockFlow,
                                     parent_flow_inline_size: Au,
-                                    layout_context: &LayoutContext)
+                                    shared_context: &SharedStyleContext)
                                     -> MaybeAuto {
         let containing_block_inline_size =
             self.containing_block_inline_size(block,
                                               parent_flow_inline_size,
-                                              layout_context);
+                                              shared_context);
         initial_computed_inline_size(block,
                                      containing_block_inline_size,
                                      self.minimum_width_of_all_columns,
@@ -837,12 +838,12 @@ impl ISizeAndMarginsComputer for AbsoluteTable {
     fn initial_computed_inline_size(&self,
                                     block: &mut BlockFlow,
                                     parent_flow_inline_size: Au,
-                                    layout_context: &LayoutContext)
+                                    shared_context: &SharedStyleContext)
                                     -> MaybeAuto {
         let containing_block_inline_size =
             self.containing_block_inline_size(block,
                                               parent_flow_inline_size,
-                                              layout_context);
+                                              shared_context);
         initial_computed_inline_size(block,
                                      containing_block_inline_size,
                                      self.minimum_width_of_all_columns,
@@ -852,9 +853,9 @@ impl ISizeAndMarginsComputer for AbsoluteTable {
     fn containing_block_inline_size(&self,
                                     block: &mut BlockFlow,
                                     parent_flow_inline_size: Au,
-                                    layout_context: &LayoutContext)
+                                    shared_context: &SharedStyleContext)
                                     -> Au {
-        AbsoluteNonReplaced.containing_block_inline_size(block, parent_flow_inline_size, layout_context)
+        AbsoluteNonReplaced.containing_block_inline_size(block, parent_flow_inline_size, shared_context)
     }
 
     fn solve_inline_size_constraints(&self,

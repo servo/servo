@@ -203,9 +203,8 @@ impl<'a> ParallelPostorderFlowTraversal for AssignBSizes<'a> {}
 fn assign_inline_sizes(unsafe_flows: UnsafeFlowList,
                        proxy: &mut WorkerProxy<SharedLayoutContext, UnsafeFlowList>) {
     let shared_layout_context = proxy.user_data();
-    let layout_context = LayoutContext::new(shared_layout_context);
     let assign_inline_sizes_traversal = AssignISizes {
-        layout_context: &layout_context,
+        shared_context: &shared_layout_context.style_context,
     };
     assign_inline_sizes_traversal.run_parallel(unsafe_flows, proxy)
 }

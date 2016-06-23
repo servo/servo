@@ -58,6 +58,7 @@ use style::computed_values::{position, text_align, transform, transform_style};
 use style::context::StyleContext;
 use style::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMode};
 use style::properties::{ComputedValues, ServoComputedValues};
+use style::servo::SharedStyleContext;
 use style::values::computed::{LengthOrNone, LengthOrPercentageOrNone};
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use util::geometry::MAX_RECT;
@@ -451,7 +452,7 @@ fn translate_including_floats(cur_b: &mut Au, delta: Au, floats: &mut Floats) {
 ///
 /// Note that flows with position 'fixed' just form a flat list as they all
 /// have the Root flow as their CB.
-pub struct AbsoluteAssignBSizesTraversal<'a>(pub &'a LayoutContext<'a>);
+pub struct AbsoluteAssignBSizesTraversal<'a>(pub &'a SharedStyleContext);
 
 impl<'a> PreorderFlowTraversal for AbsoluteAssignBSizesTraversal<'a> {
     #[inline]
@@ -474,7 +475,7 @@ impl<'a> PreorderFlowTraversal for AbsoluteAssignBSizesTraversal<'a> {
             return
         }
 
-        block.calculate_absolute_block_size_and_margins(&self.0);
+        block.calculate_absolute_block_size_and_margins(self.0);
     }
 }
 
@@ -589,56 +590,56 @@ impl BlockFlow {
 
     /// Compute the actual inline size and position for this block.
     pub fn compute_used_inline_size(&mut self,
-                                    layout_context: &LayoutContext,
+                                    shared_context: &SharedStyleContext,
                                     containing_block_inline_size: Au) {
         let block_type = self.block_type();
         match block_type {
             BlockType::AbsoluteReplaced => {
                 let inline_size_computer = AbsoluteReplaced;
                 inline_size_computer.compute_used_inline_size(self,
-                                                              layout_context,
+                                                              shared_context,
                                                               containing_block_inline_size);
             }
             BlockType::AbsoluteNonReplaced => {
                 let inline_size_computer = AbsoluteNonReplaced;
                 inline_size_computer.compute_used_inline_size(self,
-                                                              layout_context,
+                                                              shared_context,
                                                               containing_block_inline_size);
             }
             BlockType::FloatReplaced => {
                 let inline_size_computer = FloatReplaced;
                 inline_size_computer.compute_used_inline_size(self,
-                                                              layout_context,
+                                                              shared_context,
                                                               containing_block_inline_size);
             }
             BlockType::FloatNonReplaced => {
                 let inline_size_computer = FloatNonReplaced;
                 inline_size_computer.compute_used_inline_size(self,
-                                                              layout_context,
+                                                              shared_context,
                                                               containing_block_inline_size);
             }
             BlockType::InlineBlockReplaced => {
                 let inline_size_computer = InlineBlockReplaced;
                 inline_size_computer.compute_used_inline_size(self,
-                                                              layout_context,
+                                                              shared_context,
                                                               containing_block_inline_size);
             }
             BlockType::InlineBlockNonReplaced => {
                 let inline_size_computer = InlineBlockNonReplaced;
                 inline_size_computer.compute_used_inline_size(self,
-                                                              layout_context,
+                                                              shared_context,
                                                               containing_block_inline_size);
             }
             BlockType::Replaced => {
                 let inline_size_computer = BlockReplaced;
                 inline_size_computer.compute_used_inline_size(self,
-                                                              layout_context,
+                                                              shared_context,
                                                               containing_block_inline_size);
             }
             BlockType::NonReplaced => {
                 let inline_size_computer = BlockNonReplaced;
                 inline_size_computer.compute_used_inline_size(self,
-                                                              layout_context,
+                                                              shared_context,
                                                               containing_block_inline_size);
             }
         }
@@ -696,8 +697,8 @@ impl BlockFlow {
     ///
     /// TODO(#2017, pcwalton): This is somewhat inefficient (traverses kids twice); can we do
     /// better?
-    fn adjust_fragments_for_collapsed_margins_if_root<'a>(&mut self,
-                                                          layout_context: &'a LayoutContext<'a>) {
+    fn adjust_fragments_for_collapsed_margins_if_root(&mut self,
+                                                      shared_context: &SharedStyleContext) {
         if !self.is_root() {
             return
         }
@@ -727,7 +728,7 @@ impl BlockFlow {
         // infrastructure to make it scrollable.
         let viewport_size =
             LogicalSize::from_physical(self.fragment.style.writing_mode,
-                                       layout_context.shared_context().viewport_size);
+                                       shared_context.viewport_size);
         let block_size = max(viewport_size.block,
                              self.fragment.border_box.size.block + block_start_margin_value +
                              block_end_margin_value);
@@ -1030,7 +1031,7 @@ impl BlockFlow {
                                               self.fragment.inline_start_offset(),
                                               Au(0)));
             self.base.floats = floats.clone();
-            self.adjust_fragments_for_collapsed_margins_if_root(layout_context);
+            self.adjust_fragments_for_collapsed_margins_if_root(layout_context.shared_context());
         } else {
             // We don't need to reflow, but we still need to perform in-order traversals if
             // necessary.
@@ -1045,7 +1046,7 @@ impl BlockFlow {
             // This is preorder because the block-size of an absolute flow may depend on
             // the block-size of its containing block, which may also be an absolute flow.
             (&mut *self as &mut Flow).traverse_preorder_absolute_flows(
-                &mut AbsoluteAssignBSizesTraversal(layout_context));
+                &mut AbsoluteAssignBSizesTraversal(layout_context.shared_context()));
         }
 
         // Don't remove the dirty bits yet if we're absolutely-positioned, since our final size
@@ -1135,14 +1136,14 @@ impl BlockFlow {
                                                           self.base.position.size);
     }
 
-    pub fn explicit_block_containing_size(&self, layout_context: &LayoutContext) -> Option<Au> {
+    pub fn explicit_block_containing_size(&self, shared_context: &SharedStyleContext) -> Option<Au> {
         if self.is_root() || self.is_fixed() {
             let viewport_size = LogicalSize::from_physical(self.fragment.style.writing_mode,
-                                                           layout_context.shared_context().viewport_size);
+                                                           shared_context.viewport_size);
             Some(viewport_size.block)
         } else if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) &&
                   self.base.block_container_explicit_block_size.is_none() {
-            self.base.absolute_cb.explicit_block_containing_size(layout_context)
+            self.base.absolute_cb.explicit_block_containing_size(shared_context)
         } else {
             self.base.block_container_explicit_block_size
         }
@@ -1201,10 +1202,10 @@ impl BlockFlow {
         }
     }
 
-    fn calculate_absolute_block_size_and_margins(&mut self, layout_context: &LayoutContext) {
+    fn calculate_absolute_block_size_and_margins(&mut self, shared_context: &SharedStyleContext) {
         let opaque_self = OpaqueFlow::from_flow(self);
         let containing_block_block_size =
-            self.containing_block_size(&layout_context.shared_context().viewport_size, opaque_self).block;
+            self.containing_block_size(&shared_context.viewport_size, opaque_self).block;
 
         // This is the stored content block-size value from assign-block-size
         let content_block_size = self.fragment.border_box.size.block;
@@ -1294,9 +1295,9 @@ impl BlockFlow {
     /// Compute inline size based using the `block_container_inline_size` set by the parent flow.
     ///
     /// This is run in the `AssignISizes` traversal.
-    fn propagate_and_compute_used_inline_size(&mut self, layout_context: &LayoutContext) {
+    fn propagate_and_compute_used_inline_size(&mut self, shared_context: &SharedStyleContext) {
         let containing_block_inline_size = self.base.block_container_inline_size;
-        self.compute_used_inline_size(layout_context, containing_block_inline_size);
+        self.compute_used_inline_size(shared_context, containing_block_inline_size);
         if self.base.flags.is_float() {
             self.float.as_mut().unwrap().containing_inline_size = containing_block_inline_size
         }
@@ -1310,7 +1311,7 @@ impl BlockFlow {
     /// and the code for block layout is significantly simpler.
     #[inline(always)]
     pub fn propagate_assigned_inline_size_to_children<F>(&mut self,
-                                                         layout_context: &LayoutContext,
+                                                         shared_context: &SharedStyleContext,
                                                          inline_start_content_edge: Au,
                                                          inline_end_content_edge: Au,
                                                          content_inline_size: Au,
@@ -1330,7 +1331,7 @@ impl BlockFlow {
             box_sizing::T::border_box => self.fragment.border_padding.block_start_end(),
             box_sizing::T::content_box => Au(0),
         };
-        let parent_container_size = self.explicit_block_containing_size(layout_context);
+        let parent_container_size = self.explicit_block_containing_size(shared_context);
         // https://drafts.csswg.org/css-ui-3/#box-sizing
         let explicit_content_size = self
                                     .explicit_block_size(parent_container_size)
@@ -1338,7 +1339,7 @@ impl BlockFlow {
 
         // Calculate containing block inline size.
         let containing_block_size = if flags.contains(IS_ABSOLUTELY_POSITIONED) {
-            self.containing_block_size(&layout_context.shared_context().viewport_size, opaque_self).inline
+            self.containing_block_size(&shared_context.viewport_size, opaque_self).inline
         } else {
             content_inline_size
         };
@@ -1615,7 +1616,7 @@ impl BlockFlow {
         }
     }
 
-    pub fn compute_inline_sizes(&mut self, layout_context: &LayoutContext) {
+    pub fn compute_inline_sizes(&mut self, shared_context: &SharedStyleContext) {
         if !self.base.restyle_damage.intersects(REFLOW_OUT_OF_FLOW | REFLOW) {
             return
         }
@@ -1633,13 +1634,13 @@ impl BlockFlow {
             debug!("Setting root position");
             self.base.position.start = LogicalPoint::zero(self.base.writing_mode);
             self.base.block_container_inline_size = LogicalSize::from_physical(
-                self.base.writing_mode, layout_context.shared_context().viewport_size).inline;
+                self.base.writing_mode, shared_context.viewport_size).inline;
             self.base.block_container_writing_mode = self.base.writing_mode;
         }
 
         // Our inline-size was set to the inline-size of the containing block by the flow's parent.
         // Now compute the real value.
-        self.propagate_and_compute_used_inline_size(layout_context);
+        self.propagate_and_compute_used_inline_size(shared_context);
 
         // Now for some speculation.
         match self.formatting_context_type() {
@@ -1718,10 +1719,10 @@ impl Flow for BlockFlow {
     ///
     /// Dual fragments consume some inline-size first, and the remainder is assigned to all child
     /// (block) contexts.
-    fn assign_inline_sizes(&mut self, layout_context: &LayoutContext) {
+    fn assign_inline_sizes(&mut self, shared_context: &SharedStyleContext) {
         let _scope = layout_debug_scope!("block::assign_inline_sizes {:x}", self.base.debug_id());
 
-        self.compute_inline_sizes(layout_context);
+        self.compute_inline_sizes(shared_context);
 
         // Move in from the inline-start border edge.
         let inline_start_content_edge = self.fragment.border_box.start.i +
@@ -1736,7 +1737,7 @@ impl Flow for BlockFlow {
 
         let content_inline_size = self.fragment.border_box.size.inline - padding_and_borders;
 
-        self.propagate_assigned_inline_size_to_children(layout_context,
+        self.propagate_assigned_inline_size_to_children(shared_context,
                                                         inline_start_content_edge,
                                                         inline_end_content_edge,
                                                         content_inline_size,
@@ -2275,10 +2276,10 @@ pub trait ISizeAndMarginsComputer {
     fn compute_inline_size_constraint_inputs(&self,
                                              block: &mut BlockFlow,
                                              parent_flow_inline_size: Au,
-                                             layout_context: &LayoutContext)
+                                             shared_context: &SharedStyleContext)
                                              -> ISizeConstraintInput {
         let containing_block_inline_size =
-            self.containing_block_inline_size(block, parent_flow_inline_size, layout_context);
+            self.containing_block_inline_size(block, parent_flow_inline_size, shared_context);
 
         block.fragment.compute_block_direction_margins(containing_block_inline_size);
         block.fragment.compute_inline_direction_margins(containing_block_inline_size);
@@ -2286,7 +2287,7 @@ pub trait ISizeAndMarginsComputer {
 
         let mut computed_inline_size = self.initial_computed_inline_size(block,
                                                                          parent_flow_inline_size,
-                                                                         layout_context);
+                                                                         shared_context);
         let style = block.fragment.style();
         match (computed_inline_size, style.get_position().box_sizing) {
             (MaybeAuto::Specified(size), box_sizing::T::border_box) => {
@@ -2381,18 +2382,18 @@ pub trait ISizeAndMarginsComputer {
     fn initial_computed_inline_size(&self,
                                     block: &mut BlockFlow,
                                     parent_flow_inline_size: Au,
-                                    layout_context: &LayoutContext)
+                                    shared_context: &SharedStyleContext)
                                     -> MaybeAuto {
         MaybeAuto::from_style(block.fragment().style().content_inline_size(),
                               self.containing_block_inline_size(block,
                                                                 parent_flow_inline_size,
-                                                                layout_context))
+                                                                shared_context))
     }
 
     fn containing_block_inline_size(&self,
                                     _: &mut BlockFlow,
                                     parent_flow_inline_size: Au,
-                                    _: &LayoutContext)
+                                    _: &SharedStyleContext)
                               -> Au {
         parent_flow_inline_size
     }
@@ -2402,14 +2403,14 @@ pub trait ISizeAndMarginsComputer {
     /// CSS Section 10.4: Minimum and Maximum inline-sizes
     fn compute_used_inline_size(&self,
                                 block: &mut BlockFlow,
-                                layout_context: &LayoutContext,
+                                shared_context: &SharedStyleContext,
                                 parent_flow_inline_size: Au) {
         let mut input = self.compute_inline_size_constraint_inputs(block,
                                                                    parent_flow_inline_size,
-                                                                   layout_context);
+                                                                   shared_context);
 
         let containing_block_inline_size =
-            self.containing_block_inline_size(block, parent_flow_inline_size, layout_context);
+            self.containing_block_inline_size(block, parent_flow_inline_size, shared_context);
 
         let mut solution = self.solve_inline_size_constraints(block, &input);
 
@@ -2727,10 +2728,10 @@ impl ISizeAndMarginsComputer for AbsoluteNonReplaced {
     fn containing_block_inline_size(&self,
                                     block: &mut BlockFlow,
                                     _: Au,
-                                    layout_context: &LayoutContext)
+                                    shared_context: &SharedStyleContext)
                                     -> Au {
         let opaque_block = OpaqueFlow::from_flow(block);
-        block.containing_block_size(&layout_context.shared_context().viewport_size, opaque_block).inline
+        block.containing_block_size(&shared_context.viewport_size, opaque_block).inline
     }
 
     fn set_inline_position_of_flow_if_necessary(&self,
@@ -2838,12 +2839,12 @@ impl ISizeAndMarginsComputer for AbsoluteReplaced {
     fn initial_computed_inline_size(&self,
                                     block: &mut BlockFlow,
                                     _: Au,
-                                    layout_context: &LayoutContext)
+                                    shared_context: &SharedStyleContext)
                                     -> MaybeAuto {
         let opaque_block = OpaqueFlow::from_flow(block);
         let containing_block_inline_size =
-            block.containing_block_size(&layout_context.shared_context().viewport_size, opaque_block).inline;
-        let container_block_size = block.explicit_block_containing_size(layout_context);
+            block.containing_block_size(&shared_context.viewport_size, opaque_block).inline;
+        let container_block_size = block.explicit_block_containing_size(shared_context);
         let fragment = block.fragment();
         fragment.assign_replaced_inline_size_if_necessary(containing_block_inline_size, container_block_size);
         // For replaced absolute flow, the rest of the constraint solving will
@@ -2854,10 +2855,10 @@ impl ISizeAndMarginsComputer for AbsoluteReplaced {
     fn containing_block_inline_size(&self,
                                     block: &mut BlockFlow,
                                     _: Au,
-                                    layout_context: &LayoutContext)
+                                    shared_context: &SharedStyleContext)
                                     -> Au {
         let opaque_block = OpaqueFlow::from_flow(block);
-        block.containing_block_size(&layout_context.shared_context().viewport_size, opaque_block).inline
+        block.containing_block_size(&shared_context.viewport_size, opaque_block).inline
     }
 
     fn set_inline_position_of_flow_if_necessary(&self,
@@ -2900,9 +2901,9 @@ impl ISizeAndMarginsComputer for BlockReplaced {
     fn initial_computed_inline_size(&self,
                                     block: &mut BlockFlow,
                                     parent_flow_inline_size: Au,
-                                    layout_context: &LayoutContext)
+                                    shared_context: &SharedStyleContext)
                                     -> MaybeAuto {
-        let container_block_size = block.explicit_block_containing_size(layout_context);
+        let container_block_size = block.explicit_block_containing_size(shared_context);
         let fragment = block.fragment();
         fragment.assign_replaced_inline_size_if_necessary(parent_flow_inline_size, container_block_size);
         // For replaced block flow, the rest of the constraint solving will
@@ -2958,9 +2959,9 @@ impl ISizeAndMarginsComputer for FloatReplaced {
     fn initial_computed_inline_size(&self,
                                     block: &mut BlockFlow,
                                     parent_flow_inline_size: Au,
-                                    layout_context: &LayoutContext)
+                                    shared_context: &SharedStyleContext)
                                     -> MaybeAuto {
-        let container_block_size = block.explicit_block_containing_size(layout_context);
+        let container_block_size = block.explicit_block_containing_size(shared_context);
         let fragment = block.fragment();
         fragment.assign_replaced_inline_size_if_necessary(parent_flow_inline_size, container_block_size);
         // For replaced block flow, the rest of the constraint solving will
@@ -3046,9 +3047,9 @@ impl ISizeAndMarginsComputer for InlineBlockReplaced {
     fn initial_computed_inline_size(&self,
                                     block: &mut BlockFlow,
                                     parent_flow_inline_size: Au,
-                                    layout_context: &LayoutContext)
+                                    shared_context: &SharedStyleContext)
                                     -> MaybeAuto {
-        let container_block_size = block.explicit_block_containing_size(layout_context);
+        let container_block_size = block.explicit_block_containing_size(shared_context);
         let fragment = block.fragment();
         fragment.assign_replaced_inline_size_if_necessary(parent_flow_inline_size, container_block_size);
         // For replaced block flow, the rest of the constraint solving will

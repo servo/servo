@@ -17,6 +17,7 @@ use fragment::FragmentBorderBoxIterator;
 use generated_content::ResolveGeneratedContent;
 use gfx::display_list::{DisplayItem, StackingContext};
 use script_layout_interface::restyle_damage::{REFLOW, STORE_OVERFLOW};
+use style::context::StyleContext;
 use traversal::{AssignBSizes, AssignISizes, BubbleISizes, BuildDisplayList, ComputeAbsolutePositions};
 use util::opts;
 
@@ -70,7 +71,7 @@ pub fn traverse_flow_tree_preorder(root: &mut FlowRef,
         }
     }
 
-    let assign_inline_sizes = AssignISizes                 { layout_context: &layout_context };
+    let assign_inline_sizes = AssignISizes { shared_context: layout_context.shared_context() };
     let assign_block_sizes  = AssignBSizes { layout_context: &layout_context };
 
     doit(root, assign_inline_sizes, assign_block_sizes);

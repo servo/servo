@@ -27,6 +27,7 @@ use std::sync::Arc;
 use style::computed_values::{border_collapse, border_spacing, border_top_style};
 use style::logical_geometry::{LogicalSize, PhysicalSide, WritingMode};
 use style::properties::{ComputedValues, ServoComputedValues};
+use style::servo::SharedStyleContext;
 use style::values::computed::LengthOrPercentageOrAuto;
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable, VecExt};
 use table_cell::{CollapsedBordersForCell, TableCellFlow};
@@ -311,7 +312,7 @@ impl Flow for TableRowFlow {
                                                                                 pref_inline_size);
     }
 
-    fn assign_inline_sizes(&mut self, layout_context: &LayoutContext) {
+    fn assign_inline_sizes(&mut self, shared_context: &SharedStyleContext) {
         let _scope = layout_debug_scope!("table_row::assign_inline_sizes {:x}",
                                          self.block_flow.base.debug_id());
         debug!("assign_inline_sizes({}): assigning inline_size for flow", "table_row");
@@ -327,7 +328,7 @@ impl Flow for TableRowFlow {
             border_collapse: self.block_flow.fragment.style.get_inheritedtable().border_collapse,
         };
         inline_size_computer.compute_used_inline_size(&mut self.block_flow,
-                                                      layout_context,
+                                                      shared_context,
                                                       containing_block_inline_size);
 
         // Spread out the completed inline sizes among columns with spans > 1.
@@ -380,7 +381,7 @@ impl Flow for TableRowFlow {
         let spacing = self.spacing;
         let row_writing_mode = self.block_flow.base.writing_mode;
         let table_writing_mode = self.table_writing_mode;
-        self.block_flow.propagate_assigned_inline_size_to_children(layout_context,
+        self.block_flow.propagate_assigned_inline_size_to_children(shared_context,
                                                                    inline_start_content_edge,
                                                                    inline_end_content_edge,
                                                                    containing_block_inline_size,
