@@ -469,8 +469,9 @@ trait PrivateMatchMethods: TNode
             had_animations_to_expire = animations_to_expire.is_some();
             if let Some(ref animations) = animations_to_expire {
                 for animation in *animations {
-                    // TODO: revisit this code for keyframes
-                    if let Animation::Transition(_, _, ref frame) = *animation {
+                    // NB: Expiring a keyframes animation is the same as not
+                    // applying the keyframes style to it, so we're safe.
+                    if let Animation::Transition(_, _, ref frame, _) = *animation {
                         frame.property_animation.update(Arc::make_mut(style), 1.0);
                     }
                 }
@@ -489,11 +490,11 @@ trait PrivateMatchMethods: TNode
                                             .is_some();
         if had_running_animations {
             let mut all_running_animations = context.running_animations.write().unwrap();
-            for running_animation in all_running_animations.get(&this_opaque).unwrap() {
+            for mut running_animation in all_running_animations.get_mut(&this_opaque).unwrap() {
                 animation::update_style_for_animation::<Self::ConcreteRestyleDamage,
                     <Self::ConcreteElement as Element>::Impl>(context, running_animation, style, None);
+                running_animation.mark_as_expired();
             }
-            all_running_animations.remove(&this_opaque);
         }
 
         had_animations_to_expire || had_running_animations

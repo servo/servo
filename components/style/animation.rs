@@ -37,6 +37,18 @@ pub enum KeyframesIterationState {
     Finite(u32, u32),
 }
 
+/// This structure represents wether an animation is actually running.
+///
+/// An animation can be running, or paused at a given time.
+#[derive(Debug, Clone)]
+pub enum KeyframesRunningState {
+    /// This animation is paused. The inner field is the percentage of progress
+    /// when it was paused, from 0 to 1.
+    Paused(f64),
+    /// This animation is actually running.
+    Running,
+}
+
 /// This structure represents the current keyframe animation state, i.e., the
 /// duration, the current and maximum iteration count, and the state (either
 /// playing or paused).
@@ -52,11 +64,13 @@ pub struct KeyframesAnimationState {
     /// The current iteration state for the animation.
     pub iteration_state: KeyframesIterationState,
     /// Werther this animation is paused.
-    pub paused: bool,
+    pub running_state: KeyframesRunningState,
     /// The declared animation direction of this animation.
     pub direction: AnimationDirection,
     /// The current animation direction. This can only be `normal` or `reverse`.
     pub current_direction: AnimationDirection,
+    /// Werther this keyframe animation is outdated due to a restyle.
+    pub expired: bool,
 }
 
 impl KeyframesAnimationState {
@@ -67,17 +81,21 @@ impl KeyframesAnimationState {
     /// Returns true if the animation should keep running.
     pub fn tick(&mut self) -> bool {
         debug!("KeyframesAnimationState::tick");
+
+        self.started_at += self.duration + self.delay;
+        match self.running_state {
+            // If it's paused, don't update direction or iteration count.
+            KeyframesRunningState::Paused(_) => return true,
+            KeyframesRunningState::Running => {},
+        }
+
         let still_running = match self.iteration_state {
             KeyframesIterationState::Finite(ref mut current, ref max) => {
                 *current += 1;
-                debug!("KeyframesAnimationState::tick: current={}, max={}", current, max);
                 *current < *max
             }
             KeyframesIterationState::Infinite => true,
         };
-
-        // Just tick it again updating the started_at field.
-        self.started_at += self.duration + self.delay;
 
         // Update the next iteration direction if applicable.
         match self.direction {
@@ -94,6 +112,60 @@ impl KeyframesAnimationState {
 
         still_running
     }
+
+    /// Updates the appropiate state from other animation.
+    ///
+    /// This happens when an animation is re-submitted to layout, presumably
+    /// because of an state change.
+    ///
+    /// There are some bits of state we can't just replace, over all taking in
+    /// account times, so here's that logic.
+    pub fn update_from_other(&mut self, other: &Self) {
+        use self::KeyframesRunningState::*;
+
+        debug!("KeyframesAnimationState::update_from_other({:?}, {:?})", self, other);
+
+        // NB: We shall not touch the started_at field, since we don't want to
+        // restart the animation.
+        let old_started_at = self.started_at;
+        let old_duration = self.duration;
+        let old_direction = self.current_direction;
+        let old_running_state = self.running_state.clone();
+        *self = other.clone();
+
+        let mut new_started_at = old_started_at;
+
+        println!("running: {:?}, {:?}", self.running_state, old_running_state);
+
+        // If we're unpausing the animation, fake the start time so we seem to
+        // restore it.
+        //
+        // If the animation keeps paused, keep the old value.
+        //
+        // If we're pausing the animation, compute the progress value.
+        match (&mut self.running_state, old_running_state) {
+            (&mut Running, Paused(progress))
+                => new_started_at = time::precise_time_s() - (self.duration * progress),
+            (&mut Paused(ref mut new), Paused(old))
+                => *new = old,
+            (&mut Paused(ref mut progress), Running)
+                => *progress = (time::precise_time_s() - old_started_at) / old_duration,
+            _ => {},
+        }
+
+        println!("running after: {:?}", self.running_state);
+
+        self.current_direction = old_direction;
+        self.started_at = new_started_at;
+    }
+
+    #[inline]
+    fn is_paused(&self) -> bool {
+        match self.running_state {
+            KeyframesRunningState::Paused(..) => true,
+            KeyframesRunningState::Running => false,
+        }
+    }
 }
 
 /// State relating to an animation.
@@ -102,24 +174,45 @@ pub enum Animation {
     /// A transition is just a single frame triggered at a time, with a reflow.
     ///
     /// the f64 field is the start time as returned by `time::precise_time_s()`.
-    Transition(OpaqueNode, f64, AnimationFrame),
+    ///
+    /// The `bool` field is werther this animation should no longer run.
+    Transition(OpaqueNode, f64, AnimationFrame, bool),
     /// A keyframes animation is identified by a name, and can have a
     /// node-dependent state (i.e. iteration count, etc.).
     Keyframes(OpaqueNode, Atom, KeyframesAnimationState),
 }
 
 impl Animation {
+    #[inline]
+    pub fn mark_as_expired(&mut self) {
+        debug_assert!(!self.is_expired());
+        match *self {
+            Animation::Transition(_, _, _, ref mut expired) => *expired = true,
+            Animation::Keyframes(_, _, ref mut state) => state.expired = true,
+        }
+    }
+
+    #[inline]
+    pub fn is_expired(&self) -> bool {
+        match *self {
+            Animation::Transition(_, _, _, expired) => expired,
+            Animation::Keyframes(_, _, ref state) => state.expired,
+        }
+    }
+
+    #[inline]
     pub fn node(&self) -> &OpaqueNode {
         match *self {
-            Animation::Transition(ref node, _, _) => node,
+            Animation::Transition(ref node, _, _, _) => node,
             Animation::Keyframes(ref node, _, _) => node,
         }
     }
 
+    #[inline]
     pub fn is_paused(&self) -> bool {
         match *self {
             Animation::Transition(..) => false,
-            Animation::Keyframes(_, _, ref state) => state.paused,
+            Animation::Keyframes(_, _, ref state) => state.is_paused(),
         }
     }
 }
@@ -277,7 +370,7 @@ pub fn start_transitions_if_applicable<C: ComputedValues>(new_animations_sender:
                 .send(Animation::Transition(node, start_time, AnimationFrame {
                     duration: box_style.transition_duration.0.get_mod(i).seconds() as f64,
                     property_animation: property_animation,
-                })).unwrap();
+                }, /* is_expired = */ false)).unwrap();
 
             had_animations = true;
         }
@@ -320,7 +413,8 @@ pub fn maybe_start_animations<Impl: SelectorImplExt>(context: &SharedStyleContex
         if context.stylist.animations().get(&name).is_some() {
             debug!("maybe_start_animations: animation {} found", name);
             let delay = box_style.animation_delay.0.get_mod(i).seconds();
-            let animation_start = time::precise_time_s() + delay as f64;
+            let now = time::precise_time_s();
+            let animation_start = now + delay as f64;
             let duration = box_style.animation_duration.0.get_mod(i).seconds();
             let iteration_state = match *box_style.animation_iteration_count.0.get_mod(i) {
                 AnimationIterationCount::Infinite => KeyframesIterationState::Infinite,
@@ -336,7 +430,11 @@ pub fn maybe_start_animations<Impl: SelectorImplExt>(context: &SharedStyleContex
                 AnimationDirection::alternate_reverse => AnimationDirection::reverse,
             };
 
-            let paused = *box_style.animation_play_state.0.get_mod(i) == AnimationPlayState::paused;
+            let running_state = match *box_style.animation_play_state.0.get_mod(i) {
+                AnimationPlayState::paused => KeyframesRunningState::Paused(0.),
+                AnimationPlayState::running => KeyframesRunningState::Running,
+            };
+
 
             context.new_animations_sender
                    .lock().unwrap()
@@ -345,9 +443,10 @@ pub fn maybe_start_animations<Impl: SelectorImplExt>(context: &SharedStyleContex
                        duration: duration as f64,
                        delay: delay as f64,
                        iteration_state: iteration_state,
-                       paused: paused,
+                       running_state: running_state,
                        direction: animation_direction,
                        current_direction: initial_direction,
+                       expired: false,
                    })).unwrap();
             had_animations = true;
         }
@@ -375,8 +474,8 @@ pub fn update_style_for_animation_frame<C: ComputedValues>(mut new_style: &mut A
 
     true
 }
-/// Updates a single animation and associated style based on the current time. If `damage` is
-/// provided, inserts the appropriate restyle damage.
+/// Updates a single animation and associated style based on the current time.
+/// If `damage` is provided, inserts the appropriate restyle damage.
 pub fn update_style_for_animation<Damage, Impl>(context: &SharedStyleContext<Impl>,
                                                 animation: &Animation,
                                                 style: &mut Arc<Damage::ConcreteComputedValues>,
@@ -384,10 +483,11 @@ pub fn update_style_for_animation<Damage, Impl>(context: &SharedStyleContext<Imp
 where Impl: SelectorImplExt,
       Damage: TRestyleDamage<ConcreteComputedValues = Impl::ComputedValues> {
     debug!("update_style_for_animation: entering");
-    let now = time::precise_time_s();
     match *animation {
-        Animation::Transition(_, start_time, ref frame) => {
+        Animation::Transition(_, start_time, ref frame, expired) => {
+            debug_assert!(!expired);
             debug!("update_style_for_animation: transition found");
+            let now = time::precise_time_s();
             let mut new_style = (*style).clone();
             let updated_style = update_style_for_animation_frame(&mut new_style,
                                                                  now, start_time,
@@ -401,10 +501,15 @@ where Impl: SelectorImplExt,
             }
         }
         Animation::Keyframes(_, ref name, ref state) => {
-            debug!("update_style_for_animation: animation found {:?}", name);
-            debug_assert!(!state.paused);
+            debug_assert!(!state.expired);
+            debug!("update_style_for_animation: animation found: \"{}\", {:?}", name, state);
             let duration = state.duration;
             let started_at = state.started_at;
+
+            let now = match state.running_state {
+                KeyframesRunningState::Running => time::precise_time_s(),
+                KeyframesRunningState::Paused(progress) => started_at + duration * progress,
+            };
 
             let animation = match context.stylist.animations().get(name) {
                 None => {
@@ -456,7 +561,7 @@ where Impl: SelectorImplExt,
 
                     last_keyframe_position = target_keyframe_position.and_then(|pos| {
                         if pos != 0 { Some(pos - 1) } else { None }
-                    });
+                    }).unwrap_or(0);
                 }
                 AnimationDirection::reverse => {
                     target_keyframe_position =
@@ -466,7 +571,7 @@ where Impl: SelectorImplExt,
 
                     last_keyframe_position = target_keyframe_position.and_then(|pos| {
                         if pos != animation.steps.len() - 1 { Some(pos + 1) } else { None }
-                    });
+                    }).unwrap_or(animation.steps.len() - 1);
                 }
                 _ => unreachable!(),
             }
@@ -485,14 +590,7 @@ where Impl: SelectorImplExt,
                 }
             };
 
-            let last_keyframe = match last_keyframe_position {
-                Some(last) => &animation.steps[last],
-                None => {
-                    warn!("update_style_for_animation: No last keyframe found for animation \"{}\" at progress {}",
-                          name, total_progress);
-                    return;
-                }
-            };
+            let last_keyframe = &animation.steps[last_keyframe_position];
 
             let relative_timespan = (target_keyframe.start_percentage.0 - last_keyframe.start_percentage.0).abs();
             let relative_duration = relative_timespan as f64 * duration;
@@ -524,7 +622,6 @@ where Impl: SelectorImplExt,
                                                                 &from_style);
 
             let mut new_style = (*style).clone();
-            let mut style_changed = false;
 
             for transition_property in &animation.properties_changed {
                 debug!("update_style_for_animation: scanning prop {:?} for animation \"{}\"",
@@ -538,7 +635,6 @@ where Impl: SelectorImplExt,
                         debug!("update_style_for_animation: got property animation for prop {:?}", transition_property);
                         debug!("update_style_for_animation: {:?}", property_animation);
                         property_animation.update(Arc::make_mut(&mut new_style), relative_progress);
-                        style_changed = true;
                     }
                     None => {
                         debug!("update_style_for_animation: property animation {:?} not animating",
@@ -547,14 +643,12 @@ where Impl: SelectorImplExt,
                 }
             }
 
-            if style_changed {
-                debug!("update_style_for_animation: got style change in animation \"{}\"", name);
-                if let Some(damage) = damage {
-                    *damage = *damage | Damage::compute(Some(style), &new_style);
-                }
-
-                *style = new_style;
+            debug!("update_style_for_animation: got style change in animation \"{}\"", name);
+            if let Some(damage) = damage {
+                *damage = *damage | Damage::compute(Some(style), &new_style);
             }
+
+            *style = new_style;
         }
     }
 }

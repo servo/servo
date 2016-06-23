@@ -17,12 +17,14 @@ use style::animation::{Animation, update_style_for_animation};
 use time;
 
 /// Processes any new animations that were discovered after style recalculation.
-/// Also expire any old animations that have completed, inserting them into `expired_animations`.
+/// Also expire any old animations that have completed, inserting them into
+/// `expired_animations`.
 pub fn update_animation_state(constellation_chan: &IpcSender<ConstellationMsg>,
                               running_animations: &mut HashMap<OpaqueNode, Vec<Animation>>,
                               expired_animations: &mut HashMap<OpaqueNode, Vec<Animation>>,
                               new_animations_receiver: &Receiver<Animation>,
                               pipeline_id: PipelineId) {
+    let now = time::precise_time_s();
     let mut new_running_animations = vec![];
     while let Ok(animation) = new_animations_receiver.try_recv() {
         let should_push = match animation {
@@ -33,6 +35,7 @@ pub fn update_animation_state(constellation_chan: &IpcSender<ConstellationMsg>,
                 // run.
                 if let Some(ref mut animations) = running_animations.get_mut(node) {
                     // TODO: This being linear is probably not optimal.
+                    // Also, we should move this logic somehow.
                     match animations.iter_mut().find(|anim| match **anim {
                         Animation::Keyframes(_, ref anim_name, _) => *name == *anim_name,
                         Animation::Transition(..) => false,
@@ -41,12 +44,7 @@ pub fn update_animation_state(constellation_chan: &IpcSender<ConstellationMsg>,
                             debug!("update_animation_state: Found other animation {}", name);
                             match *anim {
                                 Animation::Keyframes(_, _, ref mut anim_state) => {
-                                    // NB: The important part is not touching
-                                    // the started_at field, since we don't want
-                                    // to restart the animation.
-                                    let old_started_at = anim_state.started_at;
-                                    *anim_state = state.clone();
-                                    anim_state.started_at = old_started_at;
+                                    anim_state.update_from_other(&state);
                                     false
                                 }
                                 _ => unreachable!(),
@@ -72,13 +70,12 @@ pub fn update_animation_state(constellation_chan: &IpcSender<ConstellationMsg>,
     }
 
     // Expire old running animations.
-    let now = time::precise_time_s();
     let mut keys_to_remove = vec![];
     for (key, running_animations) in running_animations.iter_mut() {
         let mut animations_still_running = vec![];
         for mut running_animation in running_animations.drain(..) {
-            let still_running = match running_animation {
-                Animation::Transition(_, started_at, ref frame) => {
+            let still_running = !running_animation.is_expired() && match running_animation {
+                Animation::Transition(_, started_at, ref frame, _expired) => {
                     now < started_at + frame.duration
                 }
                 Animation::Keyframes(_, _, ref mut state) => {
@@ -126,20 +123,19 @@ pub fn update_animation_state(constellation_chan: &IpcSender<ConstellationMsg>,
                       .unwrap();
 }
 
-/// Recalculates style for a set of animations. This does *not* run with the DOM lock held.
+/// Recalculates style for a set of animations. This does *not* run with the DOM
+/// lock held.
 pub fn recalc_style_for_animations(context: &SharedLayoutContext,
                                    flow: &mut Flow,
-                                   animations: &mut HashMap<OpaqueNode, Vec<Animation>>) {
+                                   animations: &HashMap<OpaqueNode, Vec<Animation>>) {
     let mut damage = RestyleDamage::empty();
     flow.mutate_fragments(&mut |fragment| {
-        if let Some(ref mut animations) = animations.get_mut(&fragment.node) {
-            for ref mut animation in animations.iter_mut() {
-                if !animation.is_paused() {
-                    update_style_for_animation(&context.style_context,
-                                               animation,
-                                               &mut fragment.style,
-                                               Some(&mut damage));
-                }
+        if let Some(ref animations) = animations.get(&fragment.node) {
+            for animation in animations.iter() {
+                update_style_for_animation(&context.style_context,
+                                           animation,
+                                           &mut fragment.style,
+                                           Some(&mut damage));
             }
         }
     });
