@@ -24,6 +24,8 @@ use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use document_loader::DocumentLoader;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
+use dom::bindings::codegen::Bindings::LocationBinding::LocationMethods;
+use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::{FromJSValConvertible, StringificationBehavior};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
@@ -955,6 +957,8 @@ impl ScriptThread {
                 self.handle_framed_content_changed(containing_pipeline_id, subpage_id),
             ConstellationControlMsg::ReportCSSError(pipeline_id, filename, line, column, msg) =>
                 self.handle_css_error_reporting(pipeline_id, filename, line, column, msg),
+            ConstellationControlMsg::Reload(pipeline_id) =>
+                self.handle_reload(pipeline_id),
         }
     }
 
@@ -2104,6 +2108,14 @@ impl ScriptThread {
             };
             let message = ScriptToDevtoolsControlMsg::ReportCSSError(pipeline_id, css_error);
             sender.send(message).unwrap();
+        }
+    }
+
+    fn handle_reload(&self, pipeline_id: PipelineId) {
+        if let Some(context) = self.find_child_context(pipeline_id) {
+            let win = context.active_window();
+            let location = win.Location();
+            location.Reload();
         }
     }
 }

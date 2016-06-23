@@ -90,7 +90,7 @@ class PackageCommands(CommandBase):
             servo_args = ['-w', '-b',
                           '--pref', 'dom.mozbrowser.enabled',
                           '--pref', 'dom.forcetouch.enabled',
-                          '--pref', 'shell.quit-on-escape.enabled=false',
+                          '--pref', 'shell.builtin-key-shortcuts=false',
                           path.join(browserhtml_path, 'out', 'index.html')]
 
             runservo = os.open(dir_to_package + 'runservo.sh', os.O_WRONLY | os.O_CREAT, int("0755", 8))
