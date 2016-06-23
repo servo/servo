@@ -37,7 +37,7 @@ pub type Generation = u32;
 /// will no longer be the for the parent of the node we're currently on. When
 /// this happens, the thread local bloom filter will be thrown away and rebuilt.
 thread_local!(
-    pub static STYLE_BLOOM: RefCell<Option<(Box<BloomFilter>, UnsafeNode, Generation)>> = RefCell::new(None));
+    static STYLE_BLOOM: RefCell<Option<(Box<BloomFilter>, UnsafeNode, Generation)>> = RefCell::new(None));
 
 /// Returns the thread local bloom filter.
 ///
@@ -79,9 +79,9 @@ fn take_thread_local_bloom_filter<N, Impl: SelectorImplExt>(parent_node: Option<
     })
 }
 
-pub fn put_thread_local_bloom_filter<Impl: SelectorImplExt>(bf: Box<BloomFilter>,
-                                                            unsafe_node: &UnsafeNode,
-                                                            context: &SharedStyleContext<Impl>) {
+fn put_thread_local_bloom_filter<Impl: SelectorImplExt>(bf: Box<BloomFilter>,
+                                                        unsafe_node: &UnsafeNode,
+                                                        context: &SharedStyleContext<Impl>) {
     STYLE_BLOOM.with(move |style_bloom| {
         assert!(style_bloom.borrow().is_none(),
                 "Putting into a never-taken thread-local bloom filter");
@@ -106,6 +106,37 @@ fn insert_ancestors_into_bloom_filter<N>(bf: &mut Box<BloomFilter>,
         };
     }
     debug!("[{}] Inserted {} ancestors.", tid(), ancestors);
+}
+
+pub fn remove_from_bloom_filter<'a, N, C, Impl>(context: &C, root: OpaqueNode, node: N)
+    where N: TNode,
+          Impl: SelectorImplExt + 'a,
+          C: StyleContext<'a, Impl>
+{
+    let unsafe_layout_node = node.to_unsafe();
+
+    let (mut bf, old_node, old_generation) =
+        STYLE_BLOOM.with(|style_bloom| {
+            style_bloom.borrow_mut()
+                       .take()
+                       .expect("The bloom filter should have been set by style recalc.")
+        });
+
+    assert_eq!(old_node, unsafe_layout_node);
+    assert_eq!(old_generation, context.shared_context().generation);
+
+    match node.layout_parent_node(root) {
+        None => {
+            debug!("[{}] - {:X}, and deleting BF.", tid(), unsafe_layout_node.0);
+            // If this is the reflow root, eat the thread-local bloom filter.
+        }
+        Some(parent) => {
+            // Otherwise, put it back, but remove this node.
+            node.remove_from_bloom_filter(&mut *bf);
+            let unsafe_parent = parent.to_unsafe();
+            put_thread_local_bloom_filter(bf, &unsafe_parent, &context.shared_context());
+        },
+    };
 }
 
 pub trait DomTraversalContext<N: TNode>  {
