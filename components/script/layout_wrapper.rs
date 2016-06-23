@@ -387,6 +387,11 @@ impl<'le> TElement for ServoLayoutElement<'le> {
     }
 
     #[inline]
+    fn has_attr(&self, namespace: &Namespace, attr: &Atom) -> bool {
+        self.get_attr(namespace, attr).is_some()
+    }
+
+    #[inline]
     fn get_attr(&self, namespace: &Namespace, name: &Atom) -> Option<&str> {
         unsafe {
             (*self.element.unsafe_get()).get_attr_val_for_layout(namespace, name)
