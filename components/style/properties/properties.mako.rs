@@ -33,7 +33,7 @@ use logical_geometry::{LogicalMargin, PhysicalSide, WritingMode};
 use parser::{ParserContext, ParserContextExtraData, log_css_error};
 use selectors::matching::DeclarationBlock;
 use stylesheets::Origin;
-use values::AuExtensionMethods;
+use values::LocalToCss;
 use values::computed::{self, TContext, ToComputedValue};
 use values::specified::BorderStyle;
 

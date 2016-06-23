@@ -10,11 +10,9 @@ use std::fmt::{self, Write};
 use url::Url;
 
 
-// This is a re-implementation of the ToCss trait in cssparser.
-// It's done here because the app_units crate shouldn't depend
-// on cssparser, and it's not possible to implement a trait when
-// both the trait and the type are defined in different crates.
-pub trait AuExtensionMethods {
+/// The real ToCss trait can't be implemented for types in crates that don't
+/// depend on each other.
+pub trait LocalToCss {
     /// Serialize `self` in CSS syntax, writing to `dest`.
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write;
 
@@ -29,9 +27,18 @@ pub trait AuExtensionMethods {
     }
 }
 
-impl AuExtensionMethods for Au {
+impl LocalToCss for Au {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         write!(dest, "{}px", self.to_f64_px())
+    }
+}
+
+impl LocalToCss for Url {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        try!(dest.write_str("url(\""));
+        try!(write!(CssStringWriter::new(dest), "{}", self));
+        try!(dest.write_str("\")"));
+        Ok(())
     }
 }
 
@@ -67,22 +74,6 @@ macro_rules! define_numbered_css_keyword_enum {
     }
 }
 
-/// The real ToCss trait can’t be implemented for Url
-/// since neither rust-url or rust-cssparser depend on the other.
-pub trait LocalToCss {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write;
-}
-
-impl LocalToCss for Url {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        try!(dest.write_str("url(\""));
-        try!(write!(CssStringWriter::new(dest), "{}", self));
-        try!(dest.write_str("\")"));
-        Ok(())
-    }
-}
-
-
 pub type CSSFloat = f32;
 
 pub const FONT_MEDIUM_PX: i32 = 16;
@@ -99,7 +90,7 @@ pub mod specified {
     use std::fmt;
     use std::ops::Mul;
     use style_traits::values::specified::AllowedNumericType;
-    use super::AuExtensionMethods;
+    use super::LocalToCss;
     use super::computed::{TContext, ToComputedValue};
     use super::{CSSFloat, FONT_MEDIUM_PX};
     use url::Url;
@@ -1569,7 +1560,7 @@ pub mod computed {
     use properties::ComputedValues;
     use properties::style_struct_traits::Font;
     use std::fmt;
-    use super::AuExtensionMethods;
+    use super::LocalToCss;
     use super::specified::AngleOrCorner;
     use super::{CSSFloat, specified};
     use url::Url;

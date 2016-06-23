@@ -9,7 +9,7 @@
 <%helpers:longhand name="line-height">
     use cssparser::ToCss;
     use std::fmt;
-    use values::AuExtensionMethods;
+    use values::LocalToCss;
     use values::CSSFloat;
 
     #[derive(Debug, Clone, PartialEq, Copy)]
@@ -182,7 +182,7 @@
 <%helpers:longhand name="letter-spacing">
     use cssparser::ToCss;
     use std::fmt;
-    use values::AuExtensionMethods;
+    use values::LocalToCss;
 
     #[derive(Debug, Clone, Copy, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -246,7 +246,7 @@
 <%helpers:longhand name="word-spacing">
     use cssparser::ToCss;
     use std::fmt;
-    use values::AuExtensionMethods;
+    use values::LocalToCss;
 
     #[derive(Debug, Clone, Copy, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -451,7 +451,7 @@ ${helpers.single_keyword("text-justify",
 <%helpers:longhand name="text-shadow">
     use cssparser::{self, ToCss};
     use std::fmt;
-    use values::AuExtensionMethods;
+    use values::LocalToCss;
 
     #[derive(Clone, PartialEq, Debug)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]

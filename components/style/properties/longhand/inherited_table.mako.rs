@@ -12,7 +12,7 @@ ${helpers.single_keyword("caption-side", "top bottom", extra_gecko_values="right
 
 <%helpers:longhand name="border-spacing">
     use app_units::Au;
-    use values::AuExtensionMethods;
+    use values::LocalToCss;
 
     use cssparser::ToCss;
     use std::fmt;
