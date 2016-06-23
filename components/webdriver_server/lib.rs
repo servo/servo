@@ -32,7 +32,7 @@ use image::{DynamicImage, ImageFormat, RgbImage};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use keys::keycodes_to_keys;
 use msg::constellation_msg::{FrameId, LoadData, PipelineId};
-use msg::constellation_msg::{NavigationDirection, PixelFormat};
+use msg::constellation_msg::{TraversalDirection, PixelFormat};
 use regex::Captures;
 use rustc_serialize::base64::{CharacterSet, Config, Newline, ToBase64};
 use rustc_serialize::json::{Json, ToJson};
@@ -440,12 +440,12 @@ impl Handler {
     }
 
     fn handle_go_back(&self) -> WebDriverResult<WebDriverResponse> {
-        self.constellation_chan.send(ConstellationMsg::Navigate(None, NavigationDirection::Back(1))).unwrap();
+        self.constellation_chan.send(ConstellationMsg::TraverseHistory(None, TraversalDirection::Back(1))).unwrap();
         Ok(WebDriverResponse::Void)
     }
 
     fn handle_go_forward(&self) -> WebDriverResult<WebDriverResponse> {
-        self.constellation_chan.send(ConstellationMsg::Navigate(None, NavigationDirection::Forward(1))).unwrap();
+        self.constellation_chan.send(ConstellationMsg::TraverseHistory(None, TraversalDirection::Forward(1))).unwrap();
         Ok(WebDriverResponse::Void)
     }
 
