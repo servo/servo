@@ -9,8 +9,9 @@
 
 //! A fork of std::cell::RefCell that makes `as_unsafe_cell` usable on stable Rust.
 //!
-//! FIXME(https://github.com/rust-lang/rust/issues/27708): Remove this when
-//! `std::cell::RefCell::as_unsafe_cell` is in Rust’s stable channel.
+//! FIXME(https://github.com/rust-lang/rust/issues/27708): Remove this
+//! (revert commit f7f81e0ed0b62402db291e28a9bb16f7194ebf78 / PR #11835)
+//! when `std::cell::RefCell::as_unsafe_cell` is in Rust’s stable channel.
 
 #![allow(unsafe_code)]
 
@@ -20,8 +21,9 @@ use std::ops::{Deref, DerefMut};
 
 /// A fork of std::cell::RefCell that makes `as_unsafe_cell` usable on stable Rust.
 ///
-/// FIXME(https://github.com/rust-lang/rust/issues/27708): Remove this when
-/// `std::cell::RefCell::as_unsafe_cell` is in Rust’s stable channel.
+/// FIXME(https://github.com/rust-lang/rust/issues/27708): Remove this
+/// (revert commit f7f81e0ed0b62402db291e28a9bb16f7194ebf78 / PR #11835)
+/// when `std::cell::RefCell::as_unsafe_cell` is in Rust’s stable channel.
 pub struct RefCell<T: ?Sized> {
     borrow: Cell<BorrowFlag>,
     value: UnsafeCell<T>,
