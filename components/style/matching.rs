@@ -39,11 +39,9 @@ fn create_common_style_affecting_attributes_from_element<E: TElement>(element: &
                 }
             }
             CommonStyleAffectingAttributeMode::IsEqual(target_value, flag) => {
-                match element.get_attr(&ns!(), &attribute_info.atom) {
-                    Some(element_value) if element_value == target_value => {
-                        flags.insert(flag)
-                    }
-                    _ => {}
+                let atom = Atom::from(target_value); // FIXME(bholley): This goes away in the next patch.
+                if element.attr_equals(&ns!(), &attribute_info.atom, &atom) {
+                    flags.insert(flag)
                 }
             }
         }
@@ -301,19 +299,14 @@ impl<C: ComputedValues> StyleSharingCandidate<C> {
                     }
                 }
                 CommonStyleAffectingAttributeMode::IsEqual(target_value, flag) => {
-                    match element.get_attr(&ns!(), &attribute_info.atom) {
-                        Some(ref element_value) if self.common_style_affecting_attributes
-                                                       .contains(flag) &&
-                                                       *element_value != target_value => {
+                    let atom = Atom::from(target_value); // FIXME(bholley): This goes away in the next patch.
+                    let contains = self.common_style_affecting_attributes.contains(flag);
+                    if element.has_attr(&ns!(), &attribute_info.atom) {
+                        if !contains || !element.attr_equals(&ns!(), &attribute_info.atom, &atom) {
                             return false
                         }
-                        Some(_) if !self.common_style_affecting_attributes.contains(flag) => {
-                            return false
-                        }
-                        None if self.common_style_affecting_attributes.contains(flag) => {
-                            return false
-                        }
-                        _ => {}
+                    } else if contains {
+                        return false
                     }
                 }
             }
