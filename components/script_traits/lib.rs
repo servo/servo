@@ -44,8 +44,8 @@ use heapsize::HeapSizeOf;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use libc::c_void;
 use msg::constellation_msg::{FrameId, FrameType, Key, KeyModifiers, KeyState, LoadData};
-use msg::constellation_msg::{NavigationDirection, PanicMsg, PipelineId};
-use msg::constellation_msg::{PipelineNamespaceId, SubpageId, WindowSizeData};
+use msg::constellation_msg::{PanicMsg, PipelineId, PipelineNamespaceId};
+use msg::constellation_msg::{SubpageId, TraversalDirection, WindowSizeData};
 use msg::constellation_msg::{WebDriverCommandMsg, WindowSizeType};
 use msg::webdriver_msg::WebDriverScriptCommand;
 use net_traits::ResourceThreads;
@@ -547,8 +547,8 @@ pub enum ConstellationMsg {
     KeyEvent(Key, KeyState, KeyModifiers),
     /// Request to load a page.
     LoadUrl(PipelineId, LoadData),
-    /// Request to navigate a frame.
-    Navigate(Option<(PipelineId)>, NavigationDirection),
+    /// Request to traverse the joint session history.
+    TraverseHistory(Option<(PipelineId)>, TraversalDirection),
     /// Inform the constellation of a window being resized.
     WindowSize(WindowSizeData, WindowSizeType),
     /// Requests that the constellation instruct layout to begin a new tick of the animation.
