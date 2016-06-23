@@ -27,7 +27,7 @@ use layout_traits::LayoutThreadFactory;
 use msg::constellation_msg::WebDriverCommandMsg;
 use msg::constellation_msg::{FrameId, FrameType, PipelineId};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
-use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId, NavigationDirection};
+use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId, TraversalDirection};
 use msg::constellation_msg::{SubpageId, WindowSizeData, WindowSizeType};
 use msg::constellation_msg::{self, PanicMsg};
 use msg::webdriver_msg;
@@ -221,14 +221,14 @@ struct FrameIterator<'a> {
     prev: Rev<Iter<'a, (PipelineId, Instant)>>,
     current: Option<(PipelineId, Instant)>,
     next: Rev<Iter<'a, (PipelineId, Instant)>>,
-    direction: NavigationDirection,
+    direction: TraversalDirection,
 }
 
 impl<'a> Iterator for FrameIterator<'a> {
     type Item = (PipelineId, Instant);
     fn next(&mut self) -> Option<(PipelineId, Instant)> {
         match self.direction {
-            NavigationDirection::Back(_) => {
+            TraversalDirection::Back(_) => {
                 if let Some(entry) = self.current {
                     self.current = None;
                     return Some(entry);
@@ -237,7 +237,7 @@ impl<'a> Iterator for FrameIterator<'a> {
                     return Some(entry);
                 }
             },
-            NavigationDirection::Forward(_) => {
+            TraversalDirection::Forward(_) => {
                 if let Some(&entry) = self.next.next() {
                     return Some(entry);
                 }
@@ -263,8 +263,8 @@ impl Frame {
         }
     }
 
-    fn iter(&self, direction: NavigationDirection) -> FrameIterator {
-        let (prev, current) = if let NavigationDirection::Back(_) = direction {
+    fn iter(&self, direction: TraversalDirection) -> FrameIterator {
+        let (prev, current) = if let TraversalDirection::Back(_) = direction {
             // Remove the first item of the iterator if going back. The first entry should not
             // be considered when determining traversal order, instead the current entry is added.
             // This is due to navigation logic being different between forward and back navigation.
@@ -351,14 +351,14 @@ impl<'a> Iterator for FrameTreeIterator<'a> {
 /// Navigation entries are lazily interleaved by the time at which each navigation occurred.
 struct HistoryIterator<'a> {
     stack: Vec<(FrameId, Peekable<FrameIterator<'a>>)>,
-    direction: NavigationDirection,
+    direction: TraversalDirection,
 }
 
 impl<'a> Iterator for HistoryIterator<'a> {
     type Item = FrameId;
     fn next(&mut self) -> Option<FrameId> {
         match self.direction {
-            NavigationDirection::Forward(_) => {
+            TraversalDirection::Forward(_) => {
                 self.stack.iter_mut()
                           .filter_map(|&mut (frame_id, ref mut iter)| {
                               iter.peek().cloned().map(|(_, instant)| (frame_id, iter, instant))
@@ -369,7 +369,7 @@ impl<'a> Iterator for HistoryIterator<'a> {
                               frame_id
                           })
             },
-            NavigationDirection::Back(_) => {
+            TraversalDirection::Back(_) => {
                 self.stack.iter_mut()
                           .filter_map(|&mut (frame_id, ref mut iter)| {
                               iter.peek().cloned().map(|(_, instant)| (frame_id, iter, instant))
@@ -618,7 +618,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     // Get an iterator over the joint session history in a given direction.
     fn history_iterator(&self,
                         frame_id_root: FrameId,
-                        direction: NavigationDirection)
+                        direction: TraversalDirection)
                         -> HistoryIterator {
         let full_frame_tree = self.full_frame_tree(frame_id_root);
         let stack = full_frame_tree.iter().filter_map(|frame_id| {
@@ -758,9 +758,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 self.handle_init_load(url);
             }
             // Handle a forward or back request
-            FromCompositorMsg::Navigate(pipeline_id, direction) => {
+            FromCompositorMsg::TraverseHistory(pipeline_id, direction) => {
                 debug!("constellation got navigation message from compositor");
-                self.handle_navigate_msg(pipeline_id, direction);
+                self.handle_traverse_history_msg(pipeline_id, direction);
             }
             FromCompositorMsg::WindowSize(new_size, size_type) => {
                 debug!("constellation got window resize message");
@@ -813,9 +813,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 self.handle_dom_load(pipeline_id)
             }
             // Handle a forward or back request
-            FromScriptMsg::Navigate(pipeline_id, direction) => {
+            FromScriptMsg::TraverseHistory(pipeline_id, direction) => {
                 debug!("constellation got navigation message from script");
-                self.handle_navigate_msg(pipeline_id, direction);
+                self.handle_traverse_history_msg(pipeline_id, direction);
             }
             // Notification that the new document is ready to become active
             FromScriptMsg::ActivateDocument(pipeline_id) => {
@@ -1440,9 +1440,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         self.handle_subframe_loaded(pipeline_id);
     }
 
-    fn handle_navigate_msg(&mut self,
+    fn handle_traverse_history_msg(&mut self,
                            pipeline_id: Option<PipelineId>,
-                           direction: constellation_msg::NavigationDirection) {
+                           direction: constellation_msg::TraversalDirection) {
         debug!("received message to navigate {:?}", direction);
 
         let frame_id = match self.get_top_level_frame_for_pipeline(pipeline_id) {
@@ -1475,8 +1475,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         for (frame_id, delta) in navigation_info {
             match direction {
-                NavigationDirection::Forward(_) => self.navigate_frame(frame_id, NavigationDirection::Forward(delta)),
-                NavigationDirection::Back(_) => self.navigate_frame(frame_id, NavigationDirection::Back(delta)),
+                TraversalDirection::Forward(_) => self.navigate_frame(frame_id, TraversalDirection::Forward(delta)),
+                TraversalDirection::Back(_) => self.navigate_frame(frame_id, TraversalDirection::Back(delta)),
             }
         }
     }
@@ -1736,7 +1736,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
     }
 
-    fn navigate_frame(&mut self, frame_id: FrameId, direction: NavigationDirection) {
+    fn navigate_frame(&mut self, frame_id: FrameId, direction: TraversalDirection) {
         // Check if the currently focused pipeline is the pipeline being replaced
         // (or a child of it). This has to be done here, before the current
         // frame tree is modified below.
@@ -1747,7 +1747,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             Some(frame) => {
                 let prev = frame.current.0;
                 let next = match direction {
-                    NavigationDirection::Forward(delta) => {
+                    TraversalDirection::Forward(delta) => {
                         if delta > frame.next.len() && delta > 0 {
                             return warn!("Invalid navigation delta");
                         }
@@ -1760,7 +1760,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                         };
                         frame.current.0
                     }
-                    NavigationDirection::Back(delta) => {
+                    TraversalDirection::Back(delta) => {
                         if delta > frame.prev.len() && delta > 0 {
                             return warn!("Invalid navigation delta");
                         }
@@ -1826,7 +1826,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             }
 
             // If this is an iframe, send a mozbrowser location change event.
-            // This is the result of a back/forward navigation.
+            // This is the result of a back/forward traversal.
             self.trigger_mozbrowserlocationchange(next_pipeline_id);
         }
     }
