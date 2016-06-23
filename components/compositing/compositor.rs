@@ -29,7 +29,7 @@ use layers::rendergl::RenderContext;
 use layers::scene::Scene;
 use msg::constellation_msg::{Image, PixelFormat};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
-use msg::constellation_msg::{NavigationDirection, PipelineId, PipelineIndex, PipelineNamespaceId};
+use msg::constellation_msg::{TraversalDirection, PipelineId, PipelineIndex, PipelineNamespaceId};
 use msg::constellation_msg::{WindowSizeData, WindowSizeType};
 use profile_traits::mem::{self, ReportKind, Reporter, ReporterRequest};
 use profile_traits::time::{self, ProfilerCategory, profile};
@@ -1861,10 +1861,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn on_navigation_window_event(&self, direction: WindowNavigateMsg) {
         let direction = match direction {
-            windowing::WindowNavigateMsg::Forward => NavigationDirection::Forward(1),
-            windowing::WindowNavigateMsg::Back => NavigationDirection::Back(1),
+            windowing::WindowNavigateMsg::Forward => TraversalDirection::Forward(1),
+            windowing::WindowNavigateMsg::Back => TraversalDirection::Back(1),
         };
-        let msg = ConstellationMsg::Navigate(None, direction);
+        let msg = ConstellationMsg::TraverseHistory(None, direction);
         if let Err(e) = self.constellation_chan.send(msg) {
             warn!("Sending navigation to constellation failed ({}).", e);
         }
