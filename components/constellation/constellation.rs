@@ -804,7 +804,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             // A page loaded has completed all parsing, script, and reflow messages have been sent.
             FromScriptMsg::LoadComplete(pipeline_id) => {
                 debug!("constellation got load complete message");
-                self.handle_load_complete_msg(&pipeline_id)
+                self.handle_load_complete_msg(pipeline_id)
             }
             // The DOM load event fired on a document
             FromScriptMsg::DOMLoad(pipeline_id) => {
@@ -1134,7 +1134,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         debug_assert!(PipelineId::fake_root_pipeline_id() == root_pipeline_id);
         self.new_pipeline(root_pipeline_id, None, Some(window_size), None,
                           LoadData::new(url.clone(), None, None), false);
-        self.handle_load_start_msg(&root_pipeline_id);
+        self.handle_load_start_msg(root_pipeline_id);
         self.push_pending_frame(root_pipeline_id, None);
         self.compositor_proxy.send(ToCompositorMsg::ChangePageUrl(root_pipeline_id, url));
     }
@@ -1349,7 +1349,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         let parent_info = self.pipelines.get(&source_id).and_then(|source| source.parent_info);
         match parent_info {
             Some((parent_pipeline_id, subpage_id, _)) => {
-                self.handle_load_start_msg(&source_id);
+                self.handle_load_start_msg(source_id);
                 // Message the constellation to find the script thread for this iframe
                 // and issue an iframe load through there.
                 let msg = ConstellationControlMsg::Navigate(parent_pipeline_id, subpage_id, load_data);
@@ -1382,7 +1382,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     return None;
                 }
 
-                self.handle_load_start_msg(&source_id);
+                self.handle_load_start_msg(source_id);
                 // Being here means either there are no pending frames, or none of the pending
                 // changes would be overridden by changing the subframe associated with source_id.
 
@@ -1402,24 +1402,26 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
     }
 
-    fn handle_load_start_msg(&mut self, pipeline_id: &PipelineId) {
-        if let Some(frame_id) = self.pipelines.get(pipeline_id).and_then(|pipeline| pipeline.frame) {
-            if let Some(frame) = self.frames.get(&frame_id) {
-                let forward = !frame.next.is_empty();
-                let back = !frame.prev.is_empty();
-                self.compositor_proxy.send(ToCompositorMsg::LoadStart(back, forward));
-            }
+    fn handle_load_start_msg(&mut self, pipeline_id: PipelineId) {
+        if let Some(frame_id) = self.get_top_level_frame_for_pipeline(Some(pipeline_id)) {
+            let mut forward_history_iter = self.history_iterator(frame_id, TraversalDirection::Forward(0));
+            let mut back_history_iter = self.history_iterator(frame_id, TraversalDirection::Back(0));
+
+            let forward = forward_history_iter.next().is_some();
+            let back = back_history_iter.next().is_some();
+            self.compositor_proxy.send(ToCompositorMsg::LoadStart(back, forward));
         }
     }
 
-    fn handle_load_complete_msg(&mut self, pipeline_id: &PipelineId) {
-        if let Some(frame_id) = self.pipelines.get(pipeline_id).and_then(|pipeline| pipeline.frame) {
-            if let Some(frame) = self.frames.get(&frame_id) {
-                let forward = frame.next.is_empty();
-                let back = frame.prev.is_empty();
-                let root = self.root_frame_id.is_none() || self.root_frame_id == Some(frame_id);
-                self.compositor_proxy.send(ToCompositorMsg::LoadComplete(back, forward, root));
-            }
+    fn handle_load_complete_msg(&mut self, pipeline_id: PipelineId) {
+        if let Some(frame_id) = self.get_top_level_frame_for_pipeline(Some(pipeline_id)) {
+            let mut forward_history_iter = self.history_iterator(frame_id, TraversalDirection::Forward(0));
+            let mut back_history_iter = self.history_iterator(frame_id, TraversalDirection::Back(0));
+
+            let forward = forward_history_iter.next().is_some();
+            let back = back_history_iter.next().is_some();
+            let root = self.root_frame_id.is_none() || self.root_frame_id == Some(frame_id);
+            self.compositor_proxy.send(ToCompositorMsg::LoadComplete(back, forward, root));
         }
     }
 
@@ -2344,22 +2346,22 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     fn trigger_mozbrowserlocationchange(&self, pipeline_id: PipelineId) {
         if !PREFS.is_mozbrowser_enabled() { return; }
 
-        let event_info = self.pipelines.get(&pipeline_id).and_then(|pipeline| {
-            pipeline.parent_info.map(|(containing_pipeline_id, subpage_id, frame_type)| {
-                (containing_pipeline_id, subpage_id, frame_type, pipeline.url.to_string())
-            })
-        });
+        let url = match self.pipelines.get(&pipeline_id) {
+            Some(pipeline) => pipeline.url.to_string(),
+            None => return warn!("triggered mozbrowser location change on closed pipeline {:?}", pipeline_id),
+        };
 
         // If this is a mozbrowser iframe, then send the event with new url
-        if let Some((containing_pipeline_id, subpage_id, FrameType::MozBrowserIFrame, url)) = event_info {
+        if let Some((containing_pipeline_id, subpage_id)) = self.get_mozbrowser_ancestor_info(pipeline_id) {
             if let Some(parent_pipeline) = self.pipelines.get(&containing_pipeline_id) {
-                if let Some(frame_id) = self.pipelines.get(&pipeline_id).and_then(|pipeline| pipeline.frame) {
-                    if let Some(frame) = self.frames.get(&frame_id) {
-                        let can_go_backward = !frame.prev.is_empty();
-                        let can_go_forward = !frame.next.is_empty();
-                        let event = MozBrowserEvent::LocationChange(url, can_go_backward, can_go_forward);
-                        parent_pipeline.trigger_mozbrowser_event(subpage_id, event);
-                    }
+                if let Some(frame_id) = parent_pipeline.frame {
+                    let mut forward_history_iter = self.history_iterator(frame_id, TraversalDirection::Forward(0));
+                    let mut back_history_iter = self.history_iterator(frame_id, TraversalDirection::Back(0));
+
+                    let can_go_forward = forward_history_iter.next().is_some();
+                    let can_go_back = back_history_iter.next().is_some();
+                    let event = MozBrowserEvent::LocationChange(url, can_go_back, can_go_forward);
+                    parent_pipeline.trigger_mozbrowser_event(subpage_id, event);
                 }
             }
         }
