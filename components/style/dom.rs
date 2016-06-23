@@ -207,6 +207,8 @@ pub trait TElement : Sized + Copy + Clone + ElementExt + PresentationalHintsSynt
 
     fn get_state(&self) -> ElementState;
 
+    fn has_attr(&self, namespace: &Namespace, attr: &Atom) -> bool;
+
     fn get_attr<'a>(&'a self, namespace: &Namespace, attr: &Atom) -> Option<&'a str>;
 
     /// Properly marks nodes as dirty in response to restyle hints.
