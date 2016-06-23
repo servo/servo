@@ -214,7 +214,7 @@ impl LoadData {
 }
 
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize)]
-pub enum NavigationDirection {
+pub enum TraversalDirection {
     Forward(usize),
     Back(usize),
 }
