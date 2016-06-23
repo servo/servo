@@ -2069,14 +2069,14 @@ impl ElementMethods for Element {
         let context = match context.downcast::<Element>() {
             Some(elem) if elem.local_name() != &atom!("html") ||
                           !elem.html_element_in_html_document() => Root::from_ref(elem),
-            _ => Root::upcast(HTMLBodyElement::new(atom!("body"), None, &*context.owner_doc()))
+            _ => Root::upcast(HTMLBodyElement::new(atom!("body"), None, &*context.owner_doc())),
         };
 
         // Step 3.
         let fragment = try!(context.upcast::<Node>().parse_fragment(text));
 
         // Step 4.
-        context.insert_adjacent(position, fragment.upcast()).map(|_| ())
+        self.insert_adjacent(position, fragment.upcast()).map(|_| ())
     }
 }
 
