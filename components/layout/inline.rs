@@ -1086,7 +1086,8 @@ impl InlineFlow {
     /// `style` is the style of the block.
     pub fn compute_minimum_ascent_and_descent(&self,
                                               font_context: &mut FontContext,
-                                              style: &ServoComputedValues)
+                                              style: &ServoComputedValues,
+                                              quirks_mode: bool)
                                               -> (Au, Au) {
         // As a special case, if this flow contains only hypothetical fragments, then the entire
         // flow is hypothetical and takes up no space. See CSS 2.1 § 10.3.7.
@@ -1094,9 +1095,19 @@ impl InlineFlow {
             return (Au(0), Au(0))
         }
 
+        // https://quirks.spec.whatwg.org/#the-line-height-calculation-quirk
+        let use_line_height_quirk =
+            quirks_mode &&
+            !self.contains_text_fragments() &&
+            side_borders_and_paddings_are_definitely_zero(style);
+
         let font_style = style.get_font_arc();
         let font_metrics = text::font_metrics_for_style(font_context, font_style);
-        let line_height = text::line_height_from_style(style, &font_metrics);
+        let line_height = if !use_line_height_quirk {
+            text::line_height_from_style(&style, &font_metrics)
+        } else {
+            Au(0)
+        };
         let inline_metrics = InlineMetrics::from_font_metrics(&font_metrics, line_height);
 
         let mut block_size_above_baseline = Au(0);
@@ -1121,7 +1132,11 @@ impl InlineFlow {
                 for node in &inline_context.nodes {
                     let font_style = node.style.get_font_arc();
                     let font_metrics = text::font_metrics_for_style(font_context, font_style);
-                    let line_height = text::line_height_from_style(&*node.style, &font_metrics);
+                    let line_height = if !use_line_height_quirk {
+                        text::line_height_from_style(&node.style, &font_metrics)
+                    } else {
+                        Au(0)
+                    };
                     let inline_metrics = InlineMetrics::from_font_metrics(&font_metrics,
                                                                           line_height);
 
@@ -1238,6 +1253,7 @@ impl InlineFlow {
                            FragmentIndex(self.fragments.fragments.len() as isize))
             }
         }
+
     }
 
     pub fn baseline_offset_of_last_line(&self) -> Option<Au> {
@@ -1248,6 +1264,15 @@ impl InlineFlow {
                      last_line.inline_metrics.depth_below_baseline)
             }
         }
+    }
+
+    fn contains_text_fragments(&self) -> bool {
+        self.fragments.fragments.iter().any(|fragment| {
+            match fragment.specific {
+                SpecificFragmentInfo::ScannedText(_) => true,
+                _ => false,
+            }
+        })
     }
 }
 
@@ -1796,6 +1821,16 @@ fn inline_contexts_are_equal(inline_context_a: &Option<InlineFragmentContext>,
         (&None, &None) => true,
         (&Some(_), &None) | (&None, &Some(_)) => false,
     }
+}
+
+fn side_borders_and_paddings_are_definitely_zero(style: &ServoComputedValues) -> bool {
+    let border = style.get_border();
+    let padding = style.get_padding();
+
+    border.border_left_width == Au(0) &&
+    border.border_right_width == Au(0) &&
+    padding.padding_left.is_definitely_zero() &&
+    padding.padding_right.is_definitely_zero()
 }
 
 /// Block-size above the baseline, depth below the baseline, and ascent for a fragment. See CSS 2.1
