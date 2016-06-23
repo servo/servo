@@ -29,6 +29,9 @@
     pub use self::computed_value::T as SpecifiedValue;
     use values::computed::{Context, ComputedValueAsSpecified};
 
+    use values::NoViewportPercentage;
+    impl NoViewportPercentage for SpecifiedValue {}
+
     pub mod computed_value {
         #[allow(non_camel_case_types)]
         #[derive(Clone, Eq, PartialEq, Copy, Hash, RustcEncodable, Debug)]
@@ -97,6 +100,8 @@ ${helpers.single_keyword("position", "static absolute relative fixed",
                                   animatable="False"
                                   need_clone="True"
                                   gecko_ffi_name="mFloats">
+    use values::NoViewportPercentage;
+    impl NoViewportPercentage for SpecifiedValue {}
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
 
@@ -147,6 +152,9 @@ ${helpers.single_keyword("clear", "none left right both",
                                       "baseline sub super top text-top middle bottom text-bottom",
                                       extra_gecko_values="middle-with-baseline") %>
   <% vertical_align_keywords = vertical_align.keyword.values_for(product) %>
+
+  use values::NoViewportPercentage;
+  impl NoViewportPercentage for SpecifiedValue {} 
 
   #[allow(non_camel_case_types)]
   #[derive(Debug, Clone, PartialEq, Copy)]
@@ -254,6 +262,9 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 
   pub use self::computed_value::T as SpecifiedValue;
 
+  use values::NoViewportPercentage;
+  impl NoViewportPercentage for SpecifiedValue {} 
+
   impl ToCss for SpecifiedValue {
       fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
           self.0.to_css(dest)
@@ -291,6 +302,8 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 
     pub use self::computed_value::T as SpecifiedValue;
     pub use values::specified::Time as SingleSpecifiedValue;
+    use values::NoViewportPercentage;
+    impl NoViewportPercentage for SpecifiedValue {}
 
     pub mod computed_value {
         use cssparser::ToCss;
@@ -345,6 +358,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 // TODO(pcwalton): Multiple transitions.
 <%helpers:longhand name="transition-timing-function" animatable="False">
     use self::computed_value::{StartEnd, TransitionTimingFunction};
+    
 
     use euclid::point::Point2D;
 
@@ -466,6 +480,9 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
             }
         }
     }
+    
+    use values::NoViewportPercentage;
+    impl NoViewportPercentage for SpecifiedValue {}
 
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
@@ -581,6 +598,9 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
         Ok(SpecifiedValue(try!(input.parse_comma_separated(SingleSpecifiedValue::parse))))
     }
+
+    use values::NoViewportPercentage;
+    impl NoViewportPercentage for SpecifiedValue {} 
 
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;

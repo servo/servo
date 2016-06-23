@@ -10,6 +10,7 @@
     use cssparser::Token;
     use std::ascii::AsciiExt;
     use values::computed::ComputedValueAsSpecified;
+    use values::NoViewportPercentage;
 
     use super::list_style_type;
 
@@ -17,6 +18,7 @@
     pub use self::computed_value::ContentItem;
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
+    impl NoViewportPercentage for SpecifiedValue {}
 
     pub mod computed_value {
         use super::super::list_style_type;
@@ -174,6 +176,7 @@
 <%helpers:longhand name="counter-increment" animatable="False">
     use std::fmt;
     use super::content;
+    use values::NoViewportPercentage;
     use values::computed::ComputedValueAsSpecified;
 
     use cssparser::{ToCss, Token, serialize_identifier};
@@ -193,6 +196,7 @@
     }
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
+    impl NoViewportPercentage for SpecifiedValue {}
 
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {

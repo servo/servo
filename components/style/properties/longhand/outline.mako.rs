@@ -32,6 +32,7 @@ ${helpers.predefined_type("outline-color", "CSSColor", "::cssparser::Color::Curr
     use cssparser::ToCss;
     use std::fmt;
     use values::LocalToCss;
+    use values::NoViewportPercentage;
 
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
@@ -42,6 +43,9 @@ ${helpers.predefined_type("outline-color", "CSSColor", "::cssparser::Color::Curr
     pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
         specified::parse_border_width(input).map(SpecifiedValue)
     }
+
+    impl NoViewportPercentage for SpecifiedValue {}
+
     #[derive(Debug, Clone, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue(pub specified::Length);

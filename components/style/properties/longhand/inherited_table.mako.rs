@@ -19,6 +19,7 @@ ${helpers.single_keyword("caption-side", "top bottom",
 <%helpers:longhand name="border-spacing" animatable="False">
     use app_units::Au;
     use values::LocalToCss;
+    use values::NoViewportPercentage;
 
     use cssparser::ToCss;
     use std::fmt;
@@ -33,6 +34,8 @@ ${helpers.single_keyword("caption-side", "top bottom",
             pub vertical: Au,
         }
     }
+
+    impl NoViewportPercentage for SpecifiedValue {}
 
     #[derive(Clone, Debug, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]

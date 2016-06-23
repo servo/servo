@@ -161,7 +161,9 @@
 <%def name="single_keyword(name, values, **kwargs)">
     <%call expr="single_keyword_computed(name, values, **kwargs)">
         use values::computed::ComputedValueAsSpecified;
+        use values::NoViewportPercentage;
         impl ComputedValueAsSpecified for SpecifiedValue {}
+        impl NoViewportPercentage for SpecifiedValue {}
     </%call>
 </%def>
 
