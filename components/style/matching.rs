@@ -189,8 +189,7 @@ pub struct StyleSharingCandidate<C: ComputedValues> {
     pub style: Arc<C>,
     pub parent_style: Arc<C>,
     pub local_name: Atom,
-    // FIXME(pcwalton): Should be a list of atoms instead.
-    pub class: Option<String>,
+    pub classes: Vec<Atom>,
     pub namespace: Namespace,
     pub common_style_affecting_attributes: CommonStyleAffectingAttributes,
     pub link: bool,
@@ -201,7 +200,7 @@ impl<C: ComputedValues> PartialEq for StyleSharingCandidate<C> {
         arc_ptr_eq(&self.style, &other.style) &&
             arc_ptr_eq(&self.parent_style, &other.parent_style) &&
             self.local_name == other.local_name &&
-            self.class == other.class &&
+            self.classes == other.classes &&
             self.link == other.link &&
             self.namespace == other.namespace &&
             self.common_style_affecting_attributes == other.common_style_affecting_attributes
@@ -246,12 +245,13 @@ impl<C: ComputedValues> StyleSharingCandidate<C> {
             return None
         }
 
+        let mut classes = Vec::new();
+        element.each_class(|c| classes.push(c.clone()));
         Some(StyleSharingCandidate {
             style: style,
             parent_style: parent_style,
             local_name: element.get_local_name().clone(),
-            class: element.get_attr(&ns!(), &atom!("class"))
-                          .map(|string| string.to_owned()),
+            classes: classes,
             link: element.is_link(),
             namespace: (*element.get_namespace()).clone(),
             common_style_affecting_attributes:
@@ -264,14 +264,19 @@ impl<C: ComputedValues> StyleSharingCandidate<C> {
             return false
         }
 
-        // FIXME(pcwalton): Use `each_class` here instead of slow string comparison.
-        match (&self.class, element.get_attr(&ns!(), &atom!("class"))) {
-            (&None, Some(_)) | (&Some(_), None) => return false,
-            (&Some(ref this_class), Some(element_class)) if
-                    element_class != &**this_class => {
-                return false
+        let mut num_classes = 0;
+        let mut classes_match = true;
+        element.each_class(|c| {
+            num_classes += 1;
+            // Note that we could do this check more cheaply if we decided to
+            // only consider class lists as equal if the orders match, since
+            // we could then index by num_classes instead of using .contains().
+            if classes_match && !self.classes.contains(c) {
+                classes_match = false;
             }
-            (&Some(_), Some(_)) | (&None, None) => {}
+        });
+        if !classes_match || num_classes != self.classes.len() {
+            return false;
         }
 
         if *element.get_namespace() != self.namespace {
