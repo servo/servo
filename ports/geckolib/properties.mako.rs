@@ -1076,6 +1076,20 @@ fn static_assert() {
 
 </%self:impl_trait>
 
+<%self:impl_trait style_struct_name="Column"
+                  skip_longhands="column-width">
+
+    fn set_column_width(&mut self, v: longhands::column_width::computed_value::T) {
+        match v.0 {
+            Some(au) => self.gecko.mColumnWidth.set_coord(au),
+            None => self.gecko.mColumnWidth.set_auto(),
+        }
+    }
+
+    ${impl_coord_copy('column_width', 'mColumnWidth')}
+
+</%self:impl_trait>
+
 <%def name="define_ffi_struct_accessor(style_struct)">
 #[no_mangle]
 #[allow(non_snake_case, unused_variables)]
