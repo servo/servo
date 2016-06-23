@@ -34,9 +34,9 @@ use core::nonzero::NonZero;
 use data::{LayoutDataFlags, PrivateLayoutData};
 use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
 use script_layout_interface::{OpaqueStyleAndLayoutData, PartialStyleAndLayoutData};
-use std::cell::{Ref, RefCell, RefMut};
 use style::computed_values::content::{self, ContentItem};
 use style::properties::ComputedValues;
+use style::refcell::{Ref, RefCell, RefMut};
 
 pub type NonOpaqueStyleAndLayoutData = *mut RefCell<PrivateLayoutData>;
 

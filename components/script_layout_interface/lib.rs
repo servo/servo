@@ -52,7 +52,7 @@ use core::nonzero::NonZero;
 use ipc_channel::ipc::IpcSender;
 use libc::c_void;
 use restyle_damage::RestyleDamage;
-use std::cell::RefCell;
+use style::refcell::RefCell;
 use style::servo::PrivateStyleData;
 
 pub struct PartialStyleAndLayoutData {

@@ -92,7 +92,6 @@ use script_layout_interface::{OpaqueStyleAndLayoutData, PartialStyleAndLayoutDat
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutMsg as ConstellationMsg};
 use script_traits::{StackingContextScrollState, UntrustedNodeAddress};
 use std::borrow::ToOwned;
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
 use std::ops::{Deref, DerefMut};
@@ -108,6 +107,7 @@ use style::logical_geometry::LogicalPoint;
 use style::media_queries::{Device, MediaType};
 use style::parallel::WorkQueueData;
 use style::properties::ComputedValues;
+use style::refcell::RefCell;
 use style::selector_matching::USER_OR_USER_AGENT_STYLESHEETS;
 use style::servo::{SharedStyleContext, Stylesheet, Stylist};
 use style::stylesheets::CSSRuleIteratorExt;

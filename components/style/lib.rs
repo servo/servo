@@ -63,6 +63,7 @@ pub mod matching;
 pub mod media_queries;
 pub mod parallel;
 pub mod parser;
+pub mod refcell;
 pub mod restyle_hints;
 pub mod selector_impl;
 pub mod selector_matching;

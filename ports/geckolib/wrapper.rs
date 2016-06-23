@@ -28,7 +28,6 @@ use selectors::Element;
 use selectors::matching::DeclarationBlock;
 use selectors::parser::{AttrSelector, NamespaceConstraint};
 use smallvec::VecLike;
-use std::cell::{Ref, RefCell, RefMut};
 use std::marker::PhantomData;
 use std::ops::BitOr;
 use std::ptr;
@@ -46,6 +45,7 @@ use style::parser::ParserContextExtraData;
 #[allow(unused_imports)] // Used in commented-out code.
 use style::properties::parse_style_attribute;
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
+use style::refcell::{Ref, RefCell, RefMut};
 use style::restyle_hints::ElementSnapshot;
 use style::selector_impl::ElementExt;
 #[allow(unused_imports)] // Used in commented-out code.
