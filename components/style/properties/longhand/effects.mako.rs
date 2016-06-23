@@ -15,6 +15,9 @@ ${helpers.predefined_type("opacity",
     use cssparser::{self, ToCss};
     use std::fmt;
     use values::LocalToCss;
+    use values::NoViewportPercentage;
+
+    impl NoViewportPercentage for SpecifiedValue {}
 
     #[derive(Debug, Clone, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -227,6 +230,7 @@ ${helpers.predefined_type("opacity",
     use cssparser::ToCss;
     use std::fmt;
     use values::LocalToCss;
+    use values::NoViewportPercentage;
 
     // NB: `top` and `left` are 0 if `auto` per CSS 2.1 11.1.2.
 
@@ -285,6 +289,8 @@ ${helpers.predefined_type("opacity",
         pub bottom: Option<specified::Length>,
         pub left: specified::Length,
     }
+
+    impl NoViewportPercentage for SpecifiedValue {}
 
     #[derive(Clone, Debug, PartialEq, Copy)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -400,7 +406,10 @@ ${helpers.predefined_type("opacity",
     use std::fmt;
     use values::LocalToCss;
     use values::CSSFloat;
+    use values::NoViewportPercentage;
     use values::specified::{Angle, Length};
+
+    impl NoViewportPercentage for SpecifiedValue {}
 
     #[derive(Debug, Clone, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -633,6 +642,7 @@ ${helpers.predefined_type("opacity",
 <%helpers:longhand name="transform">
     use app_units::Au;
     use values::CSSFloat;
+    use values::NoViewportPercentage;
 
     use cssparser::ToCss;
     use std::fmt;
@@ -799,6 +809,8 @@ ${helpers.predefined_type("opacity",
             }
         }
     }
+
+    impl NoViewportPercentage for SpecifiedValue {}
 
     #[derive(Clone, Debug, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -1183,6 +1195,7 @@ ${helpers.single_keyword("transform-style", "auto flat preserve-3d")}
 <%helpers:longhand name="transform-origin">
     use app_units::Au;
     use values::LocalToCss;
+    use values::NoViewportPercentage;
     use values::specified::{Length, LengthOrPercentage, Percentage};
 
     use cssparser::ToCss;
@@ -1199,6 +1212,8 @@ ${helpers.single_keyword("transform-style", "auto flat preserve-3d")}
             pub depth: Length,
         }
     }
+    
+    impl NoViewportPercentage for SpecifiedValue {}
 
     #[derive(Clone, Copy, Debug, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -1265,6 +1280,7 @@ ${helpers.predefined_type("perspective",
                   "computed::LengthOrNone::None")}
 
 <%helpers:longhand name="perspective-origin">
+    use values::NoViewportPercentage;
     use values::specified::{LengthOrPercentage, Percentage};
 
     use cssparser::ToCss;
@@ -1288,6 +1304,8 @@ ${helpers.predefined_type("perspective",
             self.vertical.to_css(dest)
         }
     }
+
+    impl NoViewportPercentage for SpecifiedValue {}
 
     #[derive(Clone, Copy, Debug, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]

@@ -13,6 +13,7 @@ ${helpers.single_keyword("caption-side", "top bottom", extra_gecko_values="right
 <%helpers:longhand name="border-spacing">
     use app_units::Au;
     use values::LocalToCss;
+    use values::NoViewportPercentage;
 
     use cssparser::ToCss;
     use std::fmt;
@@ -27,6 +28,8 @@ ${helpers.single_keyword("caption-side", "top bottom", extra_gecko_values="right
             pub vertical: Au,
         }
     }
+
+    impl NoViewportPercentage for SpecifiedValue {}
 
     #[derive(Clone, Debug, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]

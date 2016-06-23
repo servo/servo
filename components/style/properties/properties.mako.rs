@@ -827,9 +827,7 @@ impl HasViewportPercentage for PropertyDeclaration {
     fn has_viewport_percentage(&self) -> bool {
         match *self {
             % for property in data.longhands:
-                % if property.depend_on_viewport_size:
-                    PropertyDeclaration::${property.camel_case}(DeclaredValue::Value(ref val)) => val.has_viewport_percentage(),
-                % endif
+                PropertyDeclaration::${property.camel_case}(DeclaredValue::Value(ref val)) => val.has_viewport_percentage(),
             % endfor
             _ => false
         }

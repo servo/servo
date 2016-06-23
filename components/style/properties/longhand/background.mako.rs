@@ -14,6 +14,7 @@ ${helpers.predefined_type(
     use std::fmt;
     use values::specified::Image;
     use values::LocalToCss;
+    use values::NoViewportPercentage;
 
     pub mod computed_value {
         use values::computed;
@@ -32,6 +33,8 @@ ${helpers.predefined_type(
             }
         }
     }
+ 
+    impl NoViewportPercentage for SpecifiedValue {}
 
     #[derive(Debug, Clone, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -75,6 +78,7 @@ ${helpers.predefined_type(
         use cssparser::ToCss;
         use std::fmt;
         use values::LocalToCss;
+        use values::NoViewportPercentage;
 
         pub mod computed_value {
             use values::computed::LengthOrPercentage;
@@ -86,6 +90,8 @@ ${helpers.predefined_type(
                 pub vertical: LengthOrPercentage,
             }
         }
+
+        impl NoViewportPercentage for SpecifiedValue {}
 
         #[derive(Debug, Clone, PartialEq, Copy)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -198,6 +204,7 @@ ${helpers.single_keyword("background-origin", "padding-box border-box content-bo
     use cssparser::{ToCss, Token};
     use std::ascii::AsciiExt;
     use std::fmt;
+    use values::NoViewportPercentage;
 
     pub mod computed_value {
         use values::computed::LengthOrPercentageOrAuto;
@@ -251,6 +258,7 @@ ${helpers.single_keyword("background-origin", "padding-box border-box content-bo
         }
     }
 
+    impl NoViewportPercentage for SpecifiedValue {}
 
     #[derive(Clone, PartialEq, Debug)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]

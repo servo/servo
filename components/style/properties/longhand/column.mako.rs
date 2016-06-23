@@ -10,6 +10,9 @@
     use cssparser::ToCss;
     use std::fmt;
     use values::LocalToCss;
+    use values::NoViewportPercentage;
+
+    impl NoViewportPercentage for SpecifiedValue {}
 
     #[derive(Debug, Clone, Copy, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -73,6 +76,9 @@
 <%helpers:longhand name="column-count" experimental="True">
     use cssparser::ToCss;
     use std::fmt;
+    use values::NoViewportPercentage;
+
+    impl NoViewportPercentage for SpecifiedValue {}
 
     #[derive(Debug, Clone, Copy, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -141,6 +147,9 @@
     use cssparser::ToCss;
     use std::fmt;
     use values::LocalToCss;
+    use values::NoViewportPercentage;
+
+    impl NoViewportPercentage for SpecifiedValue {}
 
     #[derive(Debug, Clone, Copy, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]

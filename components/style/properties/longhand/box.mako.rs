@@ -26,6 +26,9 @@
     pub use self::computed_value::T as SpecifiedValue;
     use values::computed::{Context, ComputedValueAsSpecified};
 
+    use values::NoViewportPercentage;
+    impl NoViewportPercentage for SpecifiedValue {}
+
     pub mod computed_value {
         #[allow(non_camel_case_types)]
         #[derive(Clone, Eq, PartialEq, Copy, Hash, RustcEncodable, Debug)]
@@ -89,6 +92,8 @@
 ${helpers.single_keyword("position", "static absolute relative fixed", need_clone=True, extra_gecko_values="sticky")}
 
 <%helpers:single_keyword_computed name="float" values="none left right" need_clone="True" gecko_ffi_name="mFloats">
+    use values::NoViewportPercentage;
+    impl NoViewportPercentage for SpecifiedValue {}
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
 
@@ -134,6 +139,9 @@ ${helpers.single_keyword("clear", "none left right both", gecko_ffi_name="mBreak
                                       "baseline sub super top text-top middle bottom text-bottom",
                                       extra_gecko_values="middle-with-baseline") %>
   <% vertical_align_keywords = vertical_align.keyword.values_for(product) %>
+
+  use values::NoViewportPercentage;
+  impl NoViewportPercentage for SpecifiedValue {} 
 
   #[allow(non_camel_case_types)]
   #[derive(Debug, Clone, PartialEq, Copy)]
@@ -238,6 +246,9 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto", need_clone=
 
   pub use self::computed_value::T as SpecifiedValue;
 
+  use values::NoViewportPercentage;
+  impl NoViewportPercentage for SpecifiedValue {} 
+
   impl ToCss for SpecifiedValue {
       fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
           self.0.to_css(dest)
@@ -274,6 +285,8 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto", need_clone=
 
     pub use self::computed_value::T as SpecifiedValue;
     pub use values::specified::Time as SingleSpecifiedValue;
+    use values::NoViewportPercentage;
+    impl NoViewportPercentage for SpecifiedValue {}
 
     pub mod computed_value {
         use cssparser::ToCss;
@@ -335,6 +348,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto", need_clone=
 // TODO(pcwalton): Multiple transitions.
 <%helpers:longhand name="transition-timing-function">
     use self::computed_value::{StartEnd, TransitionTimingFunction};
+    
 
     use euclid::point::Point2D;
 
@@ -456,6 +470,9 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto", need_clone=
             }
         }
     }
+    
+    use values::NoViewportPercentage;
+    impl NoViewportPercentage for SpecifiedValue {}
 
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
@@ -777,6 +794,9 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto", need_clone=
     pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
         Ok(SpecifiedValue(try!(input.parse_comma_separated(parse_one))))
     }
+
+    use values::NoViewportPercentage;
+    impl NoViewportPercentage for SpecifiedValue {} 
 
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;

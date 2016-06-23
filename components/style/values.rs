@@ -86,6 +86,14 @@ pub trait HasViewportPercentage {
     fn has_viewport_percentage(&self) -> bool;
 }
 
+pub trait NoViewportPercentage {}
+
+impl<T> HasViewportPercentage for T where T: NoViewportPercentage {
+    fn has_viewport_percentage(&self) -> bool {
+        false
+    }
+}
+
 pub mod specified {
     use app_units::Au;
     use cssparser::{self, Parser, ToCss, Token};
@@ -98,11 +106,13 @@ pub mod specified {
     use std::ops::Mul;
     use style_traits::values::specified::AllowedNumericType;
     use super::LocalToCss;
-    use super::HasViewportPercentage;
+    use super::{HasViewportPercentage, NoViewportPercentage};
     use super::computed::{TContext, ToComputedValue};
     use super::{CSSFloat, FONT_MEDIUM_PX};
     use url::Url;
 
+    impl NoViewportPercentage for i32 {}  // For PropertyDeclaration::Order
+    
     #[derive(Clone, PartialEq, Debug)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct CSSColor {
@@ -124,6 +134,8 @@ pub mod specified {
         }
     }
 
+    impl NoViewportPercentage for CSSColor {}
+
     impl ToCss for CSSColor {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             match self.authored {
@@ -139,6 +151,8 @@ pub mod specified {
         pub parsed: cssparser::RGBA,
         pub authored: Option<String>,
     }
+
+    impl NoViewportPercentage for CSSRGBA {}
 
     impl ToCss for CSSRGBA {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
@@ -1168,6 +1182,8 @@ pub mod specified {
     #[derive(Clone, PartialEq, Copy, Debug)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct BorderRadiusSize(pub Size2D<LengthOrPercentage>);
+    
+    impl NoViewportPercentage for BorderRadiusSize {}
 
     impl BorderRadiusSize {
         pub fn zero() -> BorderRadiusSize {
@@ -1505,6 +1521,8 @@ pub mod specified {
         "outset" => outset = 2,
     }
 
+    impl NoViewportPercentage for BorderStyle {}
+
     impl BorderStyle {
         pub fn none_or_hidden(&self) -> bool {
             matches!(*self, BorderStyle::none | BorderStyle::hidden)
@@ -1565,6 +1583,8 @@ pub mod specified {
     #[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct Number(pub CSSFloat);
+    
+    impl NoViewportPercentage for Number {}
 
     impl Number {
         pub fn parse(input: &mut Parser) -> Result<Number, ()> {
@@ -1603,6 +1623,8 @@ pub mod specified {
     #[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct Opacity(pub CSSFloat);
+
+    impl NoViewportPercentage for Opacity {}
 
     impl Opacity {
         pub fn parse(input: &mut Parser) -> Result<Opacity, ()> {

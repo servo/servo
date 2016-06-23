@@ -11,6 +11,9 @@
     use std::fmt;
     use values::LocalToCss;
     use values::CSSFloat;
+    use values::NoViewportPercentage;
+
+    impl NoViewportPercentage for SpecifiedValue {}
 
     #[derive(Debug, Clone, PartialEq, Copy)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -123,7 +126,9 @@
 <%helpers:longhand name="text-align">
     pub use self::computed_value::T as SpecifiedValue;
     use values::computed::ComputedValueAsSpecified;
+    use values::NoViewportPercentage;
     impl ComputedValueAsSpecified for SpecifiedValue {}
+    impl NoViewportPercentage for SpecifiedValue {}
     pub mod computed_value {
         macro_rules! define_text_align {
             ( $( $name: ident ( $string: expr ) => $discriminant: expr, )+ ) => {
@@ -183,6 +188,9 @@
     use cssparser::ToCss;
     use std::fmt;
     use values::LocalToCss;
+    use values::NoViewportPercentage;
+
+    impl NoViewportPercentage for SpecifiedValue {}
 
     #[derive(Debug, Clone, Copy, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -247,6 +255,9 @@
     use cssparser::ToCss;
     use std::fmt;
     use values::LocalToCss;
+    use values::NoViewportPercentage;
+
+    impl NoViewportPercentage for SpecifiedValue {}
 
     #[derive(Debug, Clone, Copy, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -333,10 +344,12 @@ ${helpers.single_keyword("text-justify",
     use cssparser::{RGBA, ToCss};
     use std::fmt;
 
+    use values:: NoViewportPercentage;
     use values::computed::ComputedValueAsSpecified;
     use properties::style_struct_traits::{Box, Color, Text};
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
+    impl NoViewportPercentage for SpecifiedValue {}
 
     #[derive(Clone, PartialEq, Copy, Debug)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -413,7 +426,9 @@ ${helpers.single_keyword("text-justify",
 <%helpers:single_keyword_computed name="white-space" values="normal pre nowrap pre-wrap pre-line",
                                   gecko_constant_prefix="NS_STYLE_WHITESPACE">
     use values::computed::ComputedValueAsSpecified;
+    use values::NoViewportPercentage;
     impl ComputedValueAsSpecified for SpecifiedValue {}
+    impl NoViewportPercentage for SpecifiedValue {}
 
     impl SpecifiedValue {
         pub fn allow_wrap(&self) -> bool {
@@ -452,6 +467,9 @@ ${helpers.single_keyword("text-justify",
     use cssparser::{self, ToCss};
     use std::fmt;
     use values::LocalToCss;
+    use values::NoViewportPercentage;
+
+    impl NoViewportPercentage for SpecifiedValue {}
 
     #[derive(Clone, PartialEq, Debug)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]

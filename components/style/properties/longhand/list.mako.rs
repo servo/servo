@@ -30,6 +30,9 @@ ${helpers.single_keyword("list-style-type", """
     use std::fmt;
     use url::Url;
     use values::LocalToCss;
+    use values::NoViewportPercentage;
+
+    impl NoViewportPercentage for SpecifiedValue {}
 
     #[derive(Debug, Clone, PartialEq, Eq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -95,6 +98,7 @@ ${helpers.single_keyword("list-style-type", """
 <%helpers:longhand name="quotes">
     use std::borrow::Cow;
     use std::fmt;
+    use values::NoViewportPercentage;
     use values::computed::ComputedValueAsSpecified;
 
     use cssparser::{ToCss, Token};
@@ -108,6 +112,7 @@ ${helpers.single_keyword("list-style-type", """
     }
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
+    impl NoViewportPercentage for SpecifiedValue {}
 
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
