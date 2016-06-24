@@ -418,6 +418,28 @@ fn as_element<'le>(node: LayoutJS<Node>) -> Option<ServoLayoutElement<'le>> {
     node.downcast().map(ServoLayoutElement::from_layout_js)
 }
 
+impl<'le> ::selectors::MatchAttrGeneric for ServoLayoutElement<'le> {
+    fn match_attr<F>(&self, attr: &AttrSelector, test: F) -> bool where F: Fn(&str) -> bool {
+        use ::selectors::Element;
+        let name = if self.is_html_element_in_html_document() {
+            &attr.lower_name
+        } else {
+            &attr.name
+        };
+        match attr.namespace {
+            NamespaceConstraint::Specific(ref ns) => {
+                self.get_attr(ns, name).map_or(false, |attr| test(attr))
+            },
+            NamespaceConstraint::Any => {
+                let attrs = unsafe {
+                    (*self.element.unsafe_get()).get_attr_vals_for_layout(name)
+                };
+                attrs.iter().any(|attr| test(*attr))
+            }
+        }
+    }
+}
+
 impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
     type Impl = ServoSelectorImpl;
 
@@ -549,25 +571,6 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
                 for class in *classes {
                     callback(class)
                 }
-            }
-        }
-    }
-
-    fn match_attr<F>(&self, attr: &AttrSelector, test: F) -> bool where F: Fn(&str) -> bool {
-        let name = if self.is_html_element_in_html_document() {
-            &attr.lower_name
-        } else {
-            &attr.name
-        };
-        match attr.namespace {
-            NamespaceConstraint::Specific(ref ns) => {
-                self.get_attr(ns, name).map_or(false, |attr| test(attr))
-            },
-            NamespaceConstraint::Any => {
-                let attrs = unsafe {
-                    (*self.element.unsafe_get()).get_attr_vals_for_layout(name)
-                };
-                attrs.iter().any(|attr| test(*attr))
             }
         }
     }
@@ -906,7 +909,23 @@ impl<'le> ThreadSafeLayoutElement for ServoThreadSafeLayoutElement<'le> {
 ///
 /// Note that the element implementation is needed only for selector matching,
 /// not for inheritance (styles are inherited appropiately).
-impl <'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
+impl<'le> ::selectors::MatchAttrGeneric for ServoThreadSafeLayoutElement<'le> {
+    fn match_attr<F>(&self, attr: &AttrSelector, test: F) -> bool
+        where F: Fn(&str) -> bool {
+        match attr.namespace {
+            NamespaceConstraint::Specific(ref ns) => {
+                self.get_attr(ns, &attr.name).map_or(false, |attr| test(attr))
+            },
+            NamespaceConstraint::Any => {
+                unsafe {
+                    self.element.get_attr_vals_for_layout(&attr.name).iter()
+                        .any(|attr| test(*attr))
+                }
+            }
+        }
+    }
+}
+impl<'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
     type Impl = ServoSelectorImpl;
 
     fn parent_element(&self) -> Option<Self> {
@@ -966,21 +985,6 @@ impl <'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
     fn has_class(&self, _name: &Atom) -> bool {
         debug!("ServoThreadSafeLayoutElement::has_class called");
         false
-    }
-
-    fn match_attr<F>(&self, attr: &AttrSelector, test: F) -> bool
-        where F: Fn(&str) -> bool {
-        match attr.namespace {
-            NamespaceConstraint::Specific(ref ns) => {
-                self.get_attr(ns, &attr.name).map_or(false, |attr| test(attr))
-            },
-            NamespaceConstraint::Any => {
-                unsafe {
-                    self.element.get_attr_vals_for_layout(&attr.name).iter()
-                        .any(|attr| test(*attr))
-                }
-            }
-        }
     }
 
     fn is_empty(&self) -> bool {
