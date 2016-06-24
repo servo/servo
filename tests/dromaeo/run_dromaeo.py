@@ -19,7 +19,7 @@ TEST_SERVER_PORT = 8192
 
 # Run servo and print / parse the results for a specific Dromaeo module.
 def run_servo(servo_exe, tests):
-    url = "http://localhost:{0}/dromaeo/web/?{1}&automated&post_json".format(TEST_SERVER_PORT, tests)
+    url = "http://localhost:{0}/dromaeo/web/index.html?{1}&automated&post_json".format(TEST_SERVER_PORT, tests)
     args = [servo_exe, url, "-z", "-f"]
     return subprocess.Popen(args)
 
