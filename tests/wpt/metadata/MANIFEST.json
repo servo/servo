@@ -37223,6 +37223,12 @@
             "url": "/html/semantics/scripting-1/the-script-element/script-charset-03.html"
           }
         ],
+        "html/semantics/scripting-1/the-script-element/script-crossorigin.html": [
+          {
+            "path": "html/semantics/scripting-1/the-script-element/script-crossorigin.html",
+            "url": "/html/semantics/scripting-1/the-script-element/script-crossorigin.html"
+          }
+        ],
         "html/semantics/tabular-data/the-table-element/remove-row.html": [
           {
             "path": "html/semantics/tabular-data/the-table-element/remove-row.html",
