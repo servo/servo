@@ -81,11 +81,11 @@ interface ParentNode {
   readonly attribute Element? lastElementChild;
   readonly attribute unsigned long childElementCount;
 
-  [Unscopeable] void prepend((Node or DOMString)... nodes);
-  [Unscopeable] void append((Node or DOMString)... nodes);
+  [Unscopable] void prepend((Node or DOMString)... nodes);
+  [Unscopable] void append((Node or DOMString)... nodes);
 
-  [Unscopeable] Element? query(DOMString relativeSelectors);
-  [NewObject, Unscopeable] Elements queryAll(DOMString relativeSelectors);
+  [Unscopable] Element? query(DOMString relativeSelectors);
+  [NewObject, Unscopable] Elements queryAll(DOMString relativeSelectors);
   Element? querySelector(DOMString selectors);
   [NewObject] NodeList querySelectorAll(DOMString selectors);
 };
@@ -103,10 +103,10 @@ CharacterData implements NonDocumentTypeChildNode;
 
 [NoInterfaceObject]
 interface ChildNode {
-  [Unscopeable] void before((Node or DOMString)... nodes);
-  [Unscopeable] void after((Node or DOMString)... nodes);
-  [Unscopeable] void replaceWith((Node or DOMString)... nodes);
-  [Unscopeable] void remove();
+  [Unscopable] void before((Node or DOMString)... nodes);
+  [Unscopable] void after((Node or DOMString)... nodes);
+  [Unscopable] void replaceWith((Node or DOMString)... nodes);
+  [Unscopable] void remove();
 };
 DocumentType implements ChildNode;
 Element implements ChildNode;
@@ -898,17 +898,7 @@ interface HTMLOptionsCollection : HTMLCollection {
            attribute long selectedIndex;
 };
 
-interface HTMLPropertiesCollection : HTMLCollection {
-  // inherits length and item()
-  getter PropertyNodeList? namedItem(DOMString name); // shadows inherited namedItem()
-  readonly attribute DOMString[] names;
-};
-
 typedef sequence<any> PropertyValueArray;
-
-interface PropertyNodeList : NodeList {
-  PropertyValueArray getValues();
-};
 
 [OverrideBuiltins, Exposed=(Window,Worker)]
 interface DOMStringMap {
@@ -952,7 +942,6 @@ partial /*sealed*/ interface Document {
   readonly attribute HTMLCollection forms;
   readonly attribute HTMLCollection scripts;
   NodeList getElementsByName(DOMString elementName);
-  NodeList getItems(optional DOMString typeNames = ""); // microdata
   readonly attribute DOMElementMap cssElementMap;
   readonly attribute HTMLScriptElement? currentScript;
 
@@ -994,15 +983,6 @@ interface HTMLElement : Element {
            attribute boolean translate;
            attribute DOMString dir;
   readonly attribute DOMStringMap dataset;
-
-  // microdata
-           attribute boolean itemScope;
-  [PutForwards=value] readonly attribute DOMTokenList itemType;
-           attribute DOMString itemId;
-  [PutForwards=value] readonly attribute DOMTokenList itemRef;
-  [PutForwards=value] readonly attribute DOMTokenList itemProp;
-  readonly attribute HTMLPropertiesCollection properties;
-           attribute any itemValue; // acts as DOMString on setting
 
   // user interaction
            attribute boolean hidden;
@@ -3201,8 +3181,6 @@ window.onload = function() {
     HTMLFormControlsCollection: ['document.createElement("form").elements'],
     RadioNodeList: [],
     HTMLOptionsCollection: ['document.createElement("select").options'],
-    HTMLPropertiesCollection: ['document.head.properties'],
-    PropertyNodeList: [],
     DOMStringMap: ['document.head.dataset'],
     DOMElementMap: ['document.cssElementMap'],
     Transferable: [],

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<!-- Copyright © 2016 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
+<html>
+    <head>
+        <title>Set MediaKeys multiple times in parallel</title>
+        <script src="encrypted-media-utils.js"></script>
+        <script src="../../resources/testharness.js"></script>
+        <script src="../../resources/testharnessreport.js"></script>
+    </head>
+    <body>
+        <video id="video"></video>
+        <div id="log"></div>
+        <script>
+            // Wait for an 'encrypted' event as a promise.
+            function wait_for_encrypted_event(video)
+            {
+                return new Promise(function(resolve) {
+                    video.addEventListener('encrypted', function listener(e) {
+                        video.removeEventListener('encrypted', listener);
+                        resolve();
+                    });
+                });
+            };
+
+            // Return a promise that calls setMediaKeys() and returns 1 if
+            // resolved, 0 if rejected. If |must_succeed| is true, then
+            // setMediaKeys() should not fail.
+            function setMediaKeys_as_count(video, mediaKeys, must_succeed)
+            {
+                return video.setMediaKeys(mediaKeys).then(function() {
+                    return 1;
+                }, function() {
+                    assert_false(must_succeed);
+                    return 0;
+                });
+            };
+
+            // Return the sum of the results from |promises|. Each promise
+            // must return a number.
+            function count_promise_results(promises)
+            {
+                var count = 0;
+                var result = Promise.resolve(null);
+
+                promises.forEach(function(promise) {
+                    result = result.then(function() {
+                        return promise;
+                    }).then(function(i) {
+                        count += i;
+                    });
+                });
+
+                return result.then(function() { return count; });
+            };
+
+            promise_test(function(test)
+            {
+                var video = document.getElementById('video');
+                var access;
+                var mediaKeys1;
+                var mediaKeys2;
+                var mediaKeys3;
+                var mediaKeys4;
+                var mediaKeys5;
+
+                // Start a video now so that it is waiting for MediaKeys
+                // in order to continue.
+                video.src = '../content/test-encrypted.webm';
+                video.play();
+                return wait_for_encrypted_event(video).then(function() {
+                    return navigator.requestMediaKeySystemAccess('org.w3.clearkey', [{}]);
+                }).then(function(result) {
+                    access = result;
+                    return access.createMediaKeys();
+                }).then(function(result) {
+                    mediaKeys1 = result;
+                    return access.createMediaKeys();
+                }).then(function(result) {
+                    mediaKeys2 = result;
+                    return access.createMediaKeys();
+                }).then(function(result) {
+                    mediaKeys3 = result;
+                    return access.createMediaKeys();
+                }).then(function(result) {
+                    mediaKeys4 = result;
+                    return access.createMediaKeys();
+                }).then(function(result) {
+                    mediaKeys5 = result;
+                    // Create 5 calls to setMediaKeys(). The first one must
+                    // succeed, the others are optional.
+                    var p1 = setMediaKeys_as_count(video, mediaKeys1, true);
+                    var p2 = setMediaKeys_as_count(video, mediaKeys2, false);
+                    var p3 = setMediaKeys_as_count(video, mediaKeys3, false);
+                    var p4 = setMediaKeys_as_count(video, mediaKeys4, false);
+                    var p5 = setMediaKeys_as_count(video, mediaKeys5, false);
+                    return count_promise_results([p1, p2, p3, p4, p5]);
+                }).then(function(count) {
+                    // At least one of the setMediaKeys() calls should have
+                    // succeeded.
+                    assert_greater_than(count, 0);
+                });
+            }, 'Set MediaKeys multiple times in parallel.');
+        </script>
+    </body>
+</html>

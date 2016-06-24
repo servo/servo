@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<!-- Copyright © 2016 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
+<html>
+    <head>
+        <title>Clear Key Playback</title>
+        <script src="encrypted-media-utils.js"></script>
+        <script src="../../resources/testharness.js"></script>
+        <script src="../../resources/testharnessreport.js"></script>
+    </head>
+    <body>
+        <video id="testVideo"></video>
+        <div id="log"></div>
+        <script>
+            async_test(function(test)
+            {
+                var video = document.getElementById('testVideo');
+                var isUpdatePromiseResolved = false;
+                var encryptedEventCount = 0;
+
+                var rawKey = new Uint8Array([0xeb, 0xdd, 0x62, 0xf1, 0x68, 0x14, 0xd2, 0x7b,
+                                             0x68, 0xef, 0x12, 0x2a, 0xfc, 0xe4, 0xae, 0x3c]);
+
+                function onEncrypted(event)
+                {
+                    assert_equals(event.target, video);
+                    assert_true(event instanceof window.MediaEncryptedEvent);
+                    assert_equals(event.type, 'encrypted');
+
+                    // The same decryption key is used by both the audio and
+                    // the video streams so only create a session once. To
+                    // avoid issues when comparing the expected.txt file
+                    // (which logs the events in the order they occur), create
+                    // the session on the second event. This also ensures we
+                    // see both events.
+                    if (++encryptedEventCount != 2)
+                        return;
+
+                    var mediaKeySession = video.mediaKeys.createSession();
+                    waitForEventAndRunStep('message', mediaKeySession, onMessage, test);
+                    mediaKeySession.generateRequest(event.initDataType, event.initData).catch(function(error) {
+                        forceTestFailureFromPromise(test, error);
+                    });
+                }
+
+                function onMessage(event)
+                {
+                    assert_true(event instanceof window.MediaKeyMessageEvent);
+                    assert_equals(event.type, 'message');
+                    assert_equals(event.messageType, 'license-request');
+
+                    var keyId = extractSingleKeyIdFromMessage(event.message);
+                    var jwkSet = stringToUint8Array(createJWKSet(createJWK(keyId, rawKey)));
+                    event.target.update(jwkSet).then(function(result) {
+                        isUpdatePromiseResolved = true;
+                    }).catch(function(error) {
+                        forceTestFailureFromPromise(test, error);
+                    });
+                }
+
+                function onPlaying(event)
+                {
+                    // Not using waitForEventAndRunStep() to avoid too many
+                    // EVENT(onTimeUpdate) logs.
+                    video.addEventListener('timeupdate', onTimeUpdate, true);
+                }
+
+                function onTimeUpdate(event)
+                {
+                    if (event.target.currentTime < 0.2 || !isUpdatePromiseResolved)
+                        return;
+
+                    test.done();
+                }
+
+                navigator.requestMediaKeySystemAccess('org.w3.clearkey', [{}]).then(function(access) {
+                    return access.createMediaKeys();
+                }).then(function(mediaKeys) {
+
+                    waitForEventAndRunStep('encrypted', video, onEncrypted, test);
+                    waitForEventAndRunStep('playing', video, onPlaying, test);
+
+                    return video.setMediaKeys(mediaKeys);
+                }).then(function(result) {
+                    video.src = '../content/test-encrypted.webm';
+                    video.play();
+                }).catch(function(error) {
+                    forceTestFailureFromPromise(test, error);
+                });
+            }, 'Playback using Clear Key key system, calling setMediaKeys() before setting src attribute.');
+        </script>
+    </body>
+</html>

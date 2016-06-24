@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<!-- Copyright © 2016 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
+<html>
+    <head>
+        <title>Verify MediaKeySession.keyStatuses</title>
+        <script src="encrypted-media-utils.js"></script>
+        <script src="../../resources/testharness.js"></script>
+        <script src="../../resources/testharnessreport.js"></script>
+    </head>
+    <body>
+        <div id="log"></div>
+        <script>
+            async_test(function(test)
+            {
+                var mediaKeySession;
+                var initDataType;
+                var initData;
+
+                // Even though key ids are uint8, using printable values so that
+                // they can be verified easily.
+                var key1String = '123';
+                var key2String = '4567890';
+                var key1 = stringToUint8Array(key1String);
+                var key2 = stringToUint8Array(key2String);
+                var rawKey1 = new Uint8Array([0xeb, 0xdd, 0x62, 0xf1, 0x68, 0x14, 0xd2, 0x7b,
+                                              0x68, 0xef, 0x12, 0x2a, 0xfc, 0xe4, 0xae, 0x3c]);
+                var rawKey2 = new Uint8Array([0x3c, 0xae, 0xe4, 0xfc, 0x2a, 0x12, 0xef, 0x68,
+                                              0x7b, 0xd2, 0x14, 0x68, 0xf1, 0x62, 0xdd, 0xeb]);
+
+                function processMessage(event)
+                {
+                    // No keys added yet.
+                    assert_equals(mediaKeySession.keyStatuses.size, 0);
+
+                    waitForEventAndRunStep('keystatuseschange', mediaKeySession, processKeyStatusesChange, test);
+
+                    var jwkSet = stringToUint8Array(createJWKSet(createJWK(key1, rawKey1), createJWK(key2, rawKey2)));
+                    mediaKeySession.update(jwkSet).catch(function(error) {
+                        forceTestFailureFromPromise(test, error);
+                    });
+                }
+
+                function processKeyStatusesChange(event)
+                {
+                    // Two keys added, so both should show up in |keyStatuses|.
+                    assert_equals(mediaKeySession.keyStatuses.size, 2);
+                    dumpKeyStatuses(mediaKeySession.keyStatuses);
+
+                    // Check |keyStatuses| for 2 entries.
+                    var result = [];
+                    for (var entry of mediaKeySession.keyStatuses) {
+                        result.push({ key: arrayBufferAsString(entry[0]), value: entry[1] });
+                    }
+                    assert_object_equals(result,
+                                         [{ key: key1String, value: 'usable'}, { key: key2String, value: 'usable'}],
+                                         'keyStatuses fails');
+
+                    // |keyStatuses| must contain both keys.
+                    result = [];
+                    for (var key of mediaKeySession.keyStatuses.keys()) {
+                        result.push(arrayBufferAsString(key));
+                    }
+                    assert_array_equals(result,
+                                        [key1String, key2String],
+                                        'keyStatuses.keys() fails');
+
+                    // Both values in |mediaKeySession| should be 'usable'.
+                    result = [];
+                    for (var value of mediaKeySession.keyStatuses.values()) {
+                        result.push(value);
+                    }
+                    assert_array_equals(result,
+                                        ['usable', 'usable'],
+                                        'keyStatuses.values() fails');
+
+                    // Check |keyStatuses.entries()|.
+                    result = [];
+                    for (var entry of mediaKeySession.keyStatuses.entries()) {
+                        result.push({ key: arrayBufferAsString(entry[0]), value: entry[1] });
+                    }
+                    assert_object_equals(result,
+                                         [{ key: key1String, value: 'usable'}, { key: key2String, value: 'usable'}],
+                                         'keyStatuses.entries() fails');
+
+                    // forEach() should return both entries.
+                    result = [];
+                    mediaKeySession.keyStatuses.forEach(function(value, key, map) {
+                        result.push({ key: arrayBufferAsString(key), value: value });
+                    });
+                    assert_object_equals(result,
+                                         [{ key: key1String, value: 'usable'}, { key: key2String, value: 'usable'}],
+                                         'keyStatuses.forEach() fails');
+
+                    assert_true(mediaKeySession.keyStatuses.has(key1));
+                    assert_true(mediaKeySession.keyStatuses.has(key2));
+                    assert_false(mediaKeySession.keyStatuses.has(stringToUint8Array('123456')));
+                    assert_equals(mediaKeySession.keyStatuses.get(key1), 'usable');
+                    assert_equals(mediaKeySession.keyStatuses.get(key2), 'usable');
+                    assert_equals(mediaKeySession.keyStatuses.get(stringToUint8Array('123456')), undefined);
+
+                    test.done();
+                }
+
+                getSupportedInitDataType().then(function(type) {
+                    initDataType = type;
+                    initData = getInitData(initDataType);
+                    return navigator.requestMediaKeySystemAccess('org.w3.clearkey', [{}]);
+                }).then(function(access) {
+                    return access.createMediaKeys();
+                }).then(function(mediaKeys) {
+                    mediaKeySession = mediaKeys.createSession();
+
+                    // There should be no keys defined yet.
+                    assert_equals(mediaKeySession.keyStatuses.size, 0);
+
+                    waitForEventAndRunStep('message', mediaKeySession, processMessage, test);
+                    return mediaKeySession.generateRequest(initDataType, initData);
+                }).catch(function(error) {
+                    forceTestFailureFromPromise(test, error);
+                });
+            }, 'Verify MediaKeySession.keyStatuses.');
+        </script>
+    </body>
+</html>

@@ -2,26 +2,8 @@
 <title>IndexedDB: IDBTransaction.objectStoreNames attribute</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="support.js"></script>
 <script>
-
-function indexeddb_test(upgrade_func, open_func, description) {
-    async_test(function(t) {
-        var dbname = document.location + '-' + t.name;
-        var del = indexedDB.deleteDatabase(dbname);
-        del.onerror = t.unreached_func('deleteDatabase should succeed');
-        var open = indexedDB.open(dbname, 1);
-        open.onerror = t.unreached_func('open should succeed');
-        open.onupgradeneeded = t.step_func(function() {
-            var db = open.result;
-            var tx = open.transaction;
-            upgrade_func(t, db, tx);
-        });
-        open.onsuccess = t.step_func(function() {
-            var db = open.result;
-            open_func(t, db);
-        });
-    }, description);
-}
 
 function with_stores_test(store_names, open_func, description) {
     indexeddb_test(function(t, db, tx) {

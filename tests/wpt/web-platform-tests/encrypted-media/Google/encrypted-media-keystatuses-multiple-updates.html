@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<!-- Copyright © 2016 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
+<html>
+    <head>
+        <title>Verify MediaKeySession.keyStatuses with multiple updates</title>
+        <script src="encrypted-media-utils.js"></script>
+        <script src="../../resources/testharness.js"></script>
+        <script src="../../resources/testharnessreport.js"></script>
+    </head>
+    <body>
+        <div id="log"></div>
+        <script>
+            async_test(function(test)
+            {
+                var initDataType;
+                var initData;
+                var mediaKeySession;
+                var firstEvent;
+
+                // Even though key ids are uint8, using printable values so that
+                // they can be verified easily.
+                var key1 = stringToUint8Array('123');
+                var key2 = stringToUint8Array('4567890');
+                var rawKey1 = new Uint8Array([0xeb, 0xdd, 0x62, 0xf1, 0x68, 0x14, 0xd2, 0x7b,
+                                              0x68, 0xef, 0x12, 0x2a, 0xfc, 0xe4, 0xae, 0x3c]);
+                var rawKey2 = new Uint8Array([0x3c, 0xae, 0xe4, 0xfc, 0x2a, 0x12, 0xef, 0x68,
+                                              0x7b, 0xd2, 0x14, 0x68, 0xf1, 0x62, 0xdd, 0xeb]);
+
+                function processMessage(event)
+                {
+                    // No keys added yet.
+                    verifyKeyStatuses(mediaKeySession.keyStatuses, { expected: [], unexpected: [key1, key2] });
+
+                    // Add key1 to the session.
+                    firstEvent = true;
+                    var jwkSet = stringToUint8Array(createJWKSet(createJWK(key1, rawKey1)));
+                    mediaKeySession.update(jwkSet).catch(function(error) {
+                        forceTestFailureFromPromise(test, error);
+                    });
+                }
+
+                function processKeyStatusesChange(event)
+                {
+                    if (firstEvent) {
+                        // Verify that the session only contains key1.
+                        dumpKeyStatuses(mediaKeySession.keyStatuses);
+                        verifyKeyStatuses(mediaKeySession.keyStatuses, { expected: [key1], unexpected: [key2] });
+
+                        // Now add key2 to the session.
+                        firstEvent = false;
+                        var jwkSet = stringToUint8Array(createJWKSet(createJWK(key2, rawKey2)));
+                        mediaKeySession.update(jwkSet).catch(function(error) {
+                            forceTestFailureFromPromise(test, error);
+                        });
+                    } else {
+                        // Verify that the session now contains key1 and key2.
+                        dumpKeyStatuses(mediaKeySession.keyStatuses);
+                        verifyKeyStatuses(mediaKeySession.keyStatuses, { expected: [key1, key2] });
+
+                        test.done();
+                    }
+                }
+
+                getSupportedInitDataType().then(function(type) {
+                    initDataType = type;
+                    initData = getInitData(initDataType);
+                    return navigator.requestMediaKeySystemAccess('org.w3.clearkey', [{}]);
+                }).then(function(access) {
+                    return access.createMediaKeys();
+                }).then(function(mediaKeys) {
+                    mediaKeySession = mediaKeys.createSession();
+
+                    // There should be no keys defined yet.
+                    assert_equals(mediaKeySession.keyStatuses.size, 0);
+
+                    waitForEventAndRunStep('message', mediaKeySession, processMessage, test);
+                    waitForEventAndRunStep('keystatuseschange', mediaKeySession, processKeyStatusesChange, test);
+
+                    return mediaKeySession.generateRequest(initDataType, initData);
+                }).catch(function(error) {
+                    forceTestFailureFromPromise(test, error);
+                });
+            }, 'Verify MediaKeySession.keyStatuses with multiple updates.');
+        </script>
+    </body>
+</html>
