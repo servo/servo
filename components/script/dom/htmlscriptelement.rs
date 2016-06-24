@@ -31,7 +31,7 @@ use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsval::UndefinedValue;
 use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata, NetworkError};
-use net_traits::request::ParserMetadata;
+use net_traits::request::{CORSSettings, ParserMetadata};
 use network_listener::{NetworkListener, PreInvoke};
 use std::ascii::AsciiExt;
 use std::cell::Cell;
@@ -364,7 +364,13 @@ impl HTMLScriptElement {
                               .and_then(|charset| encoding_from_whatwg_label(&charset.value()))
                               .unwrap_or_else(|| doc.encoding());
 
-        // TODO: Step 14: CORS.
+        // Step 14.
+        let cors_setting = match &*self.CrossOrigin() {
+            "anonymous" => Some(CORSSettings::Anonymous),
+            "use-credentials" => Some(CORSSettings::UseCredentials),
+            "" => None,
+            _ => Some(CORSSettings::Anonymous)
+        };
 
         // Step 15.
         let cryptographic_nonce = element.get_string_attribute(&atom!("nonce"));
@@ -659,6 +665,12 @@ impl HTMLScriptElementMethods for HTMLScriptElement {
     make_getter!(HtmlFor, "for");
     // https://html.spec.whatwg.org/multipage/#dom-script-htmlfor
     make_setter!(SetHtmlFor, "for");
+
+    // https://html.spec.whatwg.org/multipage/#attr-script-crossorigin
+    make_enumerated_getter!(CrossOrigin, "crossorigin", "anonymous",
+                            ("use-credentials") | (""));
+    // https://html.spec.whatwg.org/multipage/#attr-script-crossorigin
+    make_setter!(SetCrossOrigin, "crossorigin");
 
     // https://html.spec.whatwg.org/multipage/#dom-script-text
     fn Text(&self) -> DOMString {
