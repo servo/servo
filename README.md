@@ -181,8 +181,8 @@ URL with servo).
 
 - `Ctrl--` zooms out
 - `Ctrl-=` zooms in
-- `Backspace` goes backwards in the history
-- `Shift-Backspace` goes forwards in the history
+- `Alt`+`left arrow` goes backwards in the history
+- `Alt`+`right arrow` goes forwards in the history
 - `Esc` exits servo
 
 ## Developing
