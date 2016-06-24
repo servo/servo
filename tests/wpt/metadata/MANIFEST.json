@@ -37485,6 +37485,18 @@
             "path": "dom/lists/DOMTokenList-Iterable.html",
             "url": "/dom/lists/DOMTokenList-Iterable.html"
           }
+        ],
+        "html/semantics/scripting-1/the-script-element/script-crossorigin-network.html": [
+          {
+            "path": "html/semantics/scripting-1/the-script-element/script-crossorigin-network.html",
+            "url": "/html/semantics/scripting-1/the-script-element/script-crossorigin-network.html"
+          }
+        ],
+        "html/semantics/scripting-1/the-script-element/script-crossorigin.html": [
+          {
+            "path": "html/semantics/scripting-1/the-script-element/script-crossorigin.html",
+            "url": "/html/semantics/scripting-1/the-script-element/script-crossorigin.html"
+          }
         ]
       }
     },

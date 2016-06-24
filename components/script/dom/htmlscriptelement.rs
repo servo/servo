@@ -5,6 +5,7 @@
 use document_loader::LoadType;
 use dom::attr::Attr;
 use dom::bindings::cell::DOMRefCell;
+use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::HTMLScriptElementBinding;
 use dom::bindings::codegen::Bindings::HTMLScriptElementBinding::HTMLScriptElementMethods;
@@ -30,6 +31,7 @@ use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsval::UndefinedValue;
 use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata, NetworkError};
+use net_traits::request::CORSSettings;
 use network_listener::{NetworkListener, PreInvoke};
 use std::ascii::AsciiExt;
 use std::cell::Cell;
@@ -357,6 +359,7 @@ impl HTMLScriptElement {
                 fetch_a_classic_script(self, url, encoding);
                 true
             },
+            // TODO: Step 19.
             None => false,
         };
 
@@ -650,6 +653,32 @@ impl HTMLScriptElementMethods for HTMLScriptElement {
     make_getter!(HtmlFor, "for");
     // https://html.spec.whatwg.org/multipage/#dom-script-htmlfor
     make_setter!(SetHtmlFor, "for");
+
+    // https://html.spec.whatwg.org/multipage/#dom-script-crossorigin
+    fn GetCrossOrigin(&self) -> Option<DOMString> {
+        let element = self.upcast::<Element>();
+        let attr = element.get_attribute(&ns!(), &atom!("crossorigin"));
+
+        if let Some(mut val) = attr.map(|v| v.Value()) {
+            val.make_ascii_lowercase();
+            if val == "anonymous" || val == "use-credentials" {
+                return Some(val);
+            }
+            return Some(DOMString::from("anonymous"));
+        }
+        None
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-script-crossorigin
+    fn SetCrossOrigin(&self, value: Option<DOMString>) {
+        let element = self.upcast::<Element>();
+        match value {
+            Some(val) => element.set_string_attribute(&atom!("crossorigin"), val),
+            None => {
+                element.remove_attribute(&ns!(), &atom!("crossorigin"));
+            }
+        }
+    }
 
     // https://html.spec.whatwg.org/multipage/#dom-script-text
     fn Text(&self) -> DOMString {
