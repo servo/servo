@@ -7,9 +7,9 @@
 use attr::{AttrIdentifier, AttrValue};
 use element_state::*;
 use selector_impl::SelectorImplExt;
-use selectors::Element;
 use selectors::matching::matches_compound_selector;
 use selectors::parser::{AttrSelector, Combinator, CompoundSelector, SelectorImpl, SimpleSelector};
+use selectors::{Element, MatchAttrGeneric};
 use std::clone::Clone;
 use std::sync::Arc;
 use string_cache::{Atom, BorrowedAtom, BorrowedNamespace, Namespace};
@@ -81,15 +81,21 @@ impl ElementSnapshot {
 
 static EMPTY_SNAPSHOT: ElementSnapshot = ElementSnapshot { state: None, attrs: None };
 
+// FIXME(bholley): This implementation isn't going to work for geckolib, because
+// it's fundamentally based on get_attr/match_attr, which we don't want to support
+// that configuration due to the overhead of converting between UTF-16 and UTF-8.
+// We'll need to figure something out when we start using restyle hints with
+// geckolib, but in the mean time we can just use the trait parameters to
+// specialize it to the Servo configuration.
 struct ElementWrapper<'a, E>
-    where E: Element,
+    where E: Element<AttrString=String>,
           E::Impl: SelectorImplExt {
     element: E,
     snapshot: &'a ElementSnapshot,
 }
 
 impl<'a, E> ElementWrapper<'a, E>
-    where E: Element,
+    where E: Element<AttrString=String>,
           E::Impl: SelectorImplExt {
     pub fn new(el: E) -> ElementWrapper<'a, E> {
         ElementWrapper { element: el, snapshot: &EMPTY_SNAPSHOT }
@@ -100,8 +106,42 @@ impl<'a, E> ElementWrapper<'a, E>
     }
 }
 
+#[cfg(not(feature = "gecko"))]
+impl<'a, E> MatchAttrGeneric for ElementWrapper<'a, E>
+    where E: Element<AttrString=String>,
+          E: MatchAttrGeneric,
+          E::Impl: SelectorImplExt {
+    fn match_attr<F>(&self, attr: &AttrSelector, test: F) -> bool
+                    where F: Fn(&str) -> bool {
+        use selectors::parser::NamespaceConstraint;
+        match self.snapshot.attrs {
+            Some(_) => {
+                let html = self.is_html_element_in_html_document();
+                let local_name = if html { &attr.lower_name } else { &attr.name };
+                match attr.namespace {
+                    NamespaceConstraint::Specific(ref ns) => self.snapshot.get_attr(ns, local_name),
+                    NamespaceConstraint::Any => self.snapshot.get_attr_ignore_ns(local_name),
+                }.map_or(false, |v| test(v))
+            },
+            None => self.element.match_attr(attr, test)
+        }
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl<'a, E> MatchAttrGeneric for ElementWrapper<'a, E>
+    where E: Element<AttrString=String>,
+          E: MatchAttrGeneric,
+          E::Impl: SelectorImplExt {
+    fn match_attr<F>(&self, _: &AttrSelector, _: F) -> bool
+                    where F: Fn(&str) -> bool {
+        panic!("Not implemented for Gecko - this system will need to be redesigned");
+    }
+}
+
 impl<'a, E> Element for ElementWrapper<'a, E>
-    where E: Element,
+    where E: Element<AttrString=String>,
+          E: MatchAttrGeneric,
           E::Impl: SelectorImplExt {
     type Impl = E::Impl;
 
@@ -155,27 +195,6 @@ impl<'a, E> Element for ElementWrapper<'a, E>
             None => self.element.has_class(name),
         }
     }
-    #[cfg(feature = "gecko")]
-    fn match_attr<F>(&self, _: &AttrSelector, _: F) -> bool
-                    where F: Fn(&str) -> bool {
-        panic!("Gecko can't borrow atoms as UTF-8.");
-    }
-    #[cfg(not(feature = "gecko"))]
-    fn match_attr<F>(&self, attr: &AttrSelector, test: F) -> bool
-                    where F: Fn(&str) -> bool {
-        use selectors::parser::NamespaceConstraint;
-        match self.snapshot.attrs {
-            Some(_) => {
-                let html = self.is_html_element_in_html_document();
-                let local_name = if html { &attr.lower_name } else { &attr.name };
-                match attr.namespace {
-                    NamespaceConstraint::Specific(ref ns) => self.snapshot.get_attr(ns, local_name),
-                    NamespaceConstraint::Any => self.snapshot.get_attr_ignore_ns(local_name),
-                }.map_or(false, |v| test(v))
-            },
-            None => self.element.match_attr(attr, test)
-        }
-    }
     fn is_empty(&self) -> bool {
         self.element.is_empty()
     }
@@ -208,7 +227,7 @@ fn is_attr_selector<Impl: SelectorImpl>(sel: &SimpleSelector<Impl>) -> bool {
         SimpleSelector::AttrExists(_) |
         SimpleSelector::AttrEqual(_, _, _) |
         SimpleSelector::AttrIncludes(_, _) |
-        SimpleSelector::AttrDashMatch(_, _, _) |
+        SimpleSelector::AttrDashMatch(_, _) |
         SimpleSelector::AttrPrefixMatch(_, _) |
         SimpleSelector::AttrSubstringMatch(_, _) |
         SimpleSelector::AttrSuffixMatch(_, _) => true,
@@ -285,28 +304,6 @@ impl<Impl: SelectorImplExt> DependencySet<Impl> {
         DependencySet { deps: Vec::new() }
     }
 
-    pub fn compute_hint<E>(&self, el: &E, snapshot: &ElementSnapshot, current_state: ElementState)
-                          -> RestyleHint
-                          where E: Element<Impl=Impl> + Clone {
-        let state_changes = snapshot.state.map_or(ElementState::empty(), |old_state| current_state ^ old_state);
-        let attrs_changed = snapshot.attrs.is_some();
-        let mut hint = RestyleHint::empty();
-        for dep in &self.deps {
-            if state_changes.intersects(dep.sensitivities.states) || (attrs_changed && dep.sensitivities.attrs) {
-                let old_el: ElementWrapper<E> = ElementWrapper::new_with_snapshot(el.clone(), snapshot);
-                let matched_then = matches_compound_selector(&*dep.selector, &old_el, None, &mut false);
-                let matches_now = matches_compound_selector(&*dep.selector, el, None, &mut false);
-                if matched_then != matches_now {
-                    hint.insert(combinator_to_restyle_hint(dep.combinator));
-                    if hint.is_all() {
-                        break
-                    }
-                }
-            }
-        }
-        hint
-    }
-
     pub fn note_selector(&mut self, selector: Arc<CompoundSelector<Impl>>) {
         let mut cur = selector;
         let mut combinator: Option<Combinator> = None;
@@ -338,5 +335,29 @@ impl<Impl: SelectorImplExt> DependencySet<Impl> {
 
     pub fn clear(&mut self) {
         self.deps.clear();
+    }
+}
+
+impl<Impl: SelectorImplExt<AttrString=String>> DependencySet<Impl> {
+    pub fn compute_hint<E>(&self, el: &E, snapshot: &ElementSnapshot, current_state: ElementState)
+                          -> RestyleHint
+                          where E: Element<Impl=Impl, AttrString=Impl::AttrString> + Clone + MatchAttrGeneric {
+        let state_changes = snapshot.state.map_or(ElementState::empty(), |old_state| current_state ^ old_state);
+        let attrs_changed = snapshot.attrs.is_some();
+        let mut hint = RestyleHint::empty();
+        for dep in &self.deps {
+            if state_changes.intersects(dep.sensitivities.states) || (attrs_changed && dep.sensitivities.attrs) {
+                let old_el: ElementWrapper<E> = ElementWrapper::new_with_snapshot(el.clone(), snapshot);
+                let matched_then = matches_compound_selector(&*dep.selector, &old_el, None, &mut false);
+                let matches_now = matches_compound_selector(&*dep.selector, el, None, &mut false);
+                if matched_then != matches_now {
+                    hint.insert(combinator_to_restyle_hint(dep.combinator));
+                    if hint.is_all() {
+                        break
+                    }
+                }
+            }
+        }
+        hint
     }
 }

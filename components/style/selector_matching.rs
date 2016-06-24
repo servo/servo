@@ -13,11 +13,11 @@ use parser::ParserContextExtraData;
 use properties::{self, PropertyDeclaration, PropertyDeclarationBlock};
 use restyle_hints::{ElementSnapshot, RestyleHint, DependencySet};
 use selector_impl::{SelectorImplExt, ServoSelectorImpl};
-use selectors::Element;
 use selectors::bloom::BloomFilter;
 use selectors::matching::DeclarationBlock as GenericDeclarationBlock;
 use selectors::matching::{Rule, SelectorMap};
 use selectors::parser::SelectorImpl;
+use selectors::{Element, MatchAttrGeneric};
 use sink::Push;
 use smallvec::VecLike;
 use std::collections::HashMap;
@@ -311,7 +311,7 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
                                                   pseudo: &Impl::PseudoElement,
                                                   parent: &Arc<Impl::ComputedValues>)
                                                   -> Option<Arc<Impl::ComputedValues>>
-                                                  where E: Element<Impl=Impl> +
+                                                  where E: Element<Impl=Impl, AttrString=Impl::AttrString> +
                                                         PresentationalHintsSynthetizer {
         debug_assert!(Impl::pseudo_element_cascade_type(pseudo).is_lazy());
         if self.pseudos_map.get(pseudo).is_none() {
@@ -334,18 +334,6 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
                                 Some(&**parent), None,
                                 Box::new(StdoutErrorReporter));
         Some(Arc::new(computed))
-    }
-
-    pub fn compute_restyle_hint<E>(&self, element: &E,
-                                   snapshot: &ElementSnapshot,
-                                   // NB: We need to pass current_state as an argument because
-                                   // selectors::Element doesn't provide access to ElementState
-                                   // directly, and computing it from the ElementState would be
-                                   // more expensive than getting it directly from the caller.
-                                   current_state: ElementState)
-                                   -> RestyleHint
-                                   where E: Element<Impl=Impl> + Clone {
-        self.state_deps.compute_hint(element, snapshot, current_state)
     }
 
     pub fn set_device(&mut self, mut device: Device, stylesheets: &[Arc<Stylesheet<Impl>>]) {
@@ -389,7 +377,8 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
                                         pseudo_element: Option<&Impl::PseudoElement>,
                                         applicable_declarations: &mut V)
                                         -> bool
-                                        where E: Element<Impl=Impl> + PresentationalHintsSynthetizer,
+                                        where E: Element<Impl=Impl, AttrString=Impl::AttrString> +
+                                                 PresentationalHintsSynthetizer,
                                               V: Push<DeclarationBlock> + VecLike<DeclarationBlock> {
         assert!(!self.is_device_dirty);
         assert!(style_attribute.is_none() || pseudo_element.is_none(),
@@ -473,6 +462,21 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
         &self.animations
     }
 }
+
+impl<Impl: SelectorImplExt<AttrString=String>> Stylist<Impl> {
+    pub fn compute_restyle_hint<E>(&self, element: &E,
+                                   snapshot: &ElementSnapshot,
+                                   // NB: We need to pass current_state as an argument because
+                                   // selectors::Element doesn't provide access to ElementState
+                                   // directly, and computing it from the ElementState would be
+                                   // more expensive than getting it directly from the caller.
+                                   current_state: ElementState)
+                                   -> RestyleHint
+                                   where E: Element<Impl=Impl, AttrString=String> + Clone + MatchAttrGeneric {
+        self.state_deps.compute_hint(element, snapshot, current_state)
+    }
+}
+
 
 /// Map that contains the CSS rules for a given origin.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]

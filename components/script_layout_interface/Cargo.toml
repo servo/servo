@@ -26,7 +26,7 @@ plugins = {path = "../plugins"}
 profile_traits = {path = "../profile_traits"}
 range = {path = "../range"}
 script_traits = {path = "../script_traits"}
-selectors = {version = "0.6", features = ["heap_size"]}
+selectors = {version = "0.7", features = ["heap_size"]}
 string_cache = {version = "0.2.20", features = ["heap_size"]}
 style = {path = "../style"}
 url = {version = "1.0.0", features = ["heap_size"]}

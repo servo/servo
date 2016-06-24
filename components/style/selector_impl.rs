@@ -181,6 +181,7 @@ impl NonTSPseudoClass {
 pub struct ServoSelectorImpl;
 
 impl SelectorImpl for ServoSelectorImpl {
+    type AttrString = String;
     type PseudoElement = PseudoElement;
     type NonTSPseudoClass = NonTSPseudoClass;
 
@@ -278,7 +279,7 @@ impl SelectorImplExt for ServoSelectorImpl {
     }
 }
 
-impl<E: Element<Impl=ServoSelectorImpl>> ElementExt for E {
+impl<E: Element<Impl=ServoSelectorImpl, AttrString=String>> ElementExt for E {
     fn is_link(&self) -> bool {
         self.match_non_ts_pseudo_class(NonTSPseudoClass::AnyLink)
     }

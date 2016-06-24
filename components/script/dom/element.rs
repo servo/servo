@@ -2217,6 +2217,34 @@ impl VirtualMethods for Element {
     }
 }
 
+impl<'a> ::selectors::MatchAttrGeneric for Root<Element> {
+    fn match_attr<F>(&self, attr: &AttrSelector, test: F) -> bool
+        where F: Fn(&str) -> bool
+    {
+        use ::selectors::Element;
+        let local_name = {
+            if self.is_html_element_in_html_document() {
+                &attr.lower_name
+            } else {
+                &attr.name
+            }
+        };
+        match attr.namespace {
+            NamespaceConstraint::Specific(ref ns) => {
+                self.get_attribute(ns, local_name)
+                    .map_or(false, |attr| {
+                        test(&attr.value())
+                    })
+            },
+            NamespaceConstraint::Any => {
+                self.attrs.borrow().iter().any(|attr| {
+                    attr.local_name() == local_name && test(&attr.value())
+                })
+            }
+        }
+    }
+}
+
 impl<'a> ::selectors::Element for Root<Element> {
     type Impl = ServoSelectorImpl;
 
@@ -2313,31 +2341,6 @@ impl<'a> ::selectors::Element for Root<Element> {
             let tokens = tokens.as_tokens();
             for token in tokens {
                 callback(token);
-            }
-        }
-    }
-
-    fn match_attr<F>(&self, attr: &AttrSelector, test: F) -> bool
-        where F: Fn(&str) -> bool
-    {
-        let local_name = {
-            if self.is_html_element_in_html_document() {
-                &attr.lower_name
-            } else {
-                &attr.name
-            }
-        };
-        match attr.namespace {
-            NamespaceConstraint::Specific(ref ns) => {
-                self.get_attribute(ns, local_name)
-                    .map_or(false, |attr| {
-                        test(&attr.value())
-                    })
-            },
-            NamespaceConstraint::Any => {
-                self.attrs.borrow().iter().any(|attr| {
-                    attr.local_name() == local_name && test(&attr.value())
-                })
             }
         }
     }
