@@ -10,7 +10,7 @@ interface HTMLScriptElement : HTMLElement {
            attribute DOMString charset;
   //         attribute boolean async;
            attribute boolean defer;
-  //         attribute DOMString crossOrigin;
+           attribute DOMString? crossOrigin;
            [Pure]
            attribute DOMString text;
 
