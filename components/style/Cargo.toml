@@ -11,7 +11,7 @@ name = "style"
 path = "lib.rs"
 
 [features]
-gecko = ["gecko_bindings"]
+gecko = ["gecko_bindings", "selectors/gecko"]
 servo = ["serde", "serde/nightly", "serde_macros", "heapsize", "heapsize_plugin",
          "style_traits/servo", "app_units/plugins", "euclid/plugins",
          "cssparser/heap_size", "cssparser/serde-serialization",
@@ -36,7 +36,7 @@ matches = "0.1"
 num-traits = "0.1.32"
 rand = "0.3"
 rustc-serialize = "0.3"
-selectors = "0.6"
+selectors = "0.7"
 serde = {version = "0.7.11", optional = true}
 serde_macros = {version = "0.7.11", optional = true}
 smallvec = "0.1"

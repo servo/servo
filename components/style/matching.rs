@@ -38,9 +38,8 @@ fn create_common_style_affecting_attributes_from_element<E: TElement>(element: &
                     flags.insert(flag)
                 }
             }
-            CommonStyleAffectingAttributeMode::IsEqual(target_value, flag) => {
-                let atom = Atom::from(target_value); // FIXME(bholley): This goes away in the next patch.
-                if element.attr_equals(&ns!(), &attribute_info.atom, &atom) {
+            CommonStyleAffectingAttributeMode::IsEqual(ref target_value, flag) => {
+                if element.attr_equals(&ns!(), &attribute_info.atom, target_value) {
                     flags.insert(flag)
                 }
             }
@@ -298,11 +297,10 @@ impl<C: ComputedValues> StyleSharingCandidate<C> {
                         return false
                     }
                 }
-                CommonStyleAffectingAttributeMode::IsEqual(target_value, flag) => {
-                    let atom = Atom::from(target_value); // FIXME(bholley): This goes away in the next patch.
+                CommonStyleAffectingAttributeMode::IsEqual(ref target_value, flag) => {
                     let contains = self.common_style_affecting_attributes.contains(flag);
                     if element.has_attr(&ns!(), &attribute_info.atom) {
-                        if !contains || !element.attr_equals(&ns!(), &attribute_info.atom, &atom) {
+                        if !contains || !element.attr_equals(&ns!(), &attribute_info.atom, target_value) {
                             return false
                         }
                     } else if contains {

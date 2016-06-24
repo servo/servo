@@ -86,7 +86,7 @@ pub trait LayoutNode: TNode {
 pub trait ThreadSafeLayoutNode: Clone + Copy + Sized + PartialEq {
     type ConcreteThreadSafeLayoutElement:
         ThreadSafeLayoutElement<ConcreteThreadSafeLayoutNode = Self>
-        + ::selectors::Element<Impl=ServoSelectorImpl>;
+        + ::selectors::Element<Impl=ServoSelectorImpl, AttrString=String>;
     type ChildrenIterator: Iterator<Item = Self> + Sized;
 
     /// Creates a new `ThreadSafeLayoutNode` for the same `LayoutNode`
@@ -351,7 +351,7 @@ pub trait DangerousThreadSafeLayoutNode: ThreadSafeLayoutNode {
 }
 
 pub trait ThreadSafeLayoutElement: Clone + Copy + Sized +
-                                   ::selectors::Element<Impl=ServoSelectorImpl> +
+                                   ::selectors::Element<Impl=ServoSelectorImpl, AttrString=String> +
                                    PresentationalHintsSynthetizer {
     type ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<ConcreteThreadSafeLayoutElement = Self>;
 

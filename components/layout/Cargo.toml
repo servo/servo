@@ -31,7 +31,7 @@ range = {path = "../range"}
 rustc-serialize = "0.3"
 script_layout_interface = {path = "../script_layout_interface"}
 script_traits = {path = "../script_traits"}
-selectors = {version = "0.6", features = ["heap_size"]}
+selectors = {version = "0.7", features = ["heap_size"]}
 serde_macros = "0.7.11"
 smallvec = "0.1"
 string_cache = {version = "0.2.20", features = ["heap_size"]}
