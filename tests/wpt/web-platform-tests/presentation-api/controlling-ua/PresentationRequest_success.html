@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Presentation API PresentationRequest for Controlling User Agent (Success)</title>
+<link rel="author" title="Franck William Taffo" href="http://www.fokus.fraunhofer.de">
+<link rel="help" href="http://w3c.github.io/presentation-api/#dfn-controlling-user-agent">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+
+    var client_id = String(new Date().getTime()) + String(Math.floor(Math.random() * 1e5));
+    //relative presentation URL
+    var presentation_url = "../receiving-ua/idlharness.html#__castAppId__=2334D33A/__castClientId__="+ client_id;
+
+    /**
+     *  Test if PresentationRequest constructor returns a SyntaxError() by missing presentation URL
+     */
+
+    test(function() {
+        try{
+            var request = new PresentationRequest(presentation_url);
+            assert_true(request instanceof PresentationRequest);
+        }
+        catch (ex){
+            assert_unreached("Call PresentationRequest() constructor with valid presentation URL....????");
+        }
+    }, 'Call PresentationRequest() constructor with valid presentation URL. No Exception expected.');
+
+</script>

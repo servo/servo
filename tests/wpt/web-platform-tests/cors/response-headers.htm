@@ -67,7 +67,7 @@ async_test("getResponseHeader: Combined testing of cors response headers")
         }
         if (client.readyState > 1)
         {
-            assert_equals(client.getResponseHeader("x-custom-header"), "test", 'x-custom-header')
+            assert_equals(client.getResponseHeader("x-custom-header"), "test, test", 'x-custom-header')
             assert_equals(client.getResponseHeader("x-custom-header-empty"), "", 'x-custom-header-empty')
             assert_equals(client.getResponseHeader("set-cookie"), null)
             assert_equals(client.getResponseHeader("set-cookie2"), null)
@@ -86,7 +86,7 @@ test(function() {
     var client = new XMLHttpRequest()
     client.open('GET', CROSSDOMAIN + 'resources/cors-headers.asis', false)
     client.send(null)
-    assert_equals(client.getResponseHeader("x-custom-header"), "test", 'x-custom-header')
+    assert_equals(client.getResponseHeader("x-custom-header"), "test, test", 'x-custom-header')
     assert_equals(client.getResponseHeader("x-nonexposed"), null, 'x-nonexposed')
 }, "getResponse: don't expose x-nonexposed")
 

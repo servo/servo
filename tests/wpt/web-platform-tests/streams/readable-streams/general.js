@@ -293,8 +293,12 @@ promise_test(() => {
 promise_test(() => {
 
   let pullCount = 0;
+  const startPromise = Promise.resolve();
 
   const rs = new ReadableStream({
+    start() {
+      return startPromise;
+    },
     pull(c) {
       // Don't enqueue immediately after start. We want the stream to be empty when we call .read() on it.
       if (pullCount > 0) {
@@ -304,9 +308,9 @@ promise_test(() => {
     }
   });
 
-  return delay(1).then(() => {
+  return startPromise.then(() => {
     assert_equals(pullCount, 1, 'pull should be called once start finishes');
-
+  }).then(() => {
     const reader = rs.getReader();
     const read = reader.read();
     assert_equals(pullCount, 2, 'pull should be called when read is called');

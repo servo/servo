@@ -112,9 +112,8 @@ promise_test(function(t) {
           return assert_promise_rejects(
               Promise.all([registration.unregister(), registration.update()]),
               new TypeError(),
-              'Calling update() while the uninstalling flag is set' +
-              'should return a promise that rejects with an ' +
-              'InvalidStateError.');
+              'Calling update() while the uninstalling flag is set ' +
+              'should return a promise that rejects with a TypeError.');
         })
       .then(function() {
         iframe.remove();

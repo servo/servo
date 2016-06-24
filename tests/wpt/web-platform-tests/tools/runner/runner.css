@@ -195,3 +195,9 @@ td.ERROR {
   animation-iteration-count: infinite;
   animation-direction: alternate;
 }
+
+.reftestWarn {
+    color: yellow;
+    background: black;
+    padding: 8px;
+}

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<!-- Copyright © 2016 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
+<html>
+    <head>
+        <title>setMediaKeys() on multiple video elements.</title>
+        <script src="encrypted-media-utils.js"></script>
+        <script src="../../resources/testharness.js"></script>
+        <script src="../../resources/testharnessreport.js"></script>
+    </head>
+    <body>
+        <video id="video1"></video>
+        <video id="video2"></video>
+        <div id="log"></div>
+        <script>
+            promise_test(function(test)
+            {
+                var video1 = document.getElementById('video1');
+                var video2 = document.getElementById('video2');
+                var mediaKeys;
+
+                return navigator.requestMediaKeySystemAccess('org.w3.clearkey', [{}]).then(function(access) {
+                    return access.createMediaKeys();
+                }).then(function(result) {
+                    mediaKeys = result;
+                    // Assignment to video1 should work.
+                    return video1.setMediaKeys(mediaKeys);
+                }).then(function() {
+                    // Assignment to video2 should fail.
+                    return video2.setMediaKeys(mediaKeys);
+                }).then(function() {
+                    assert_unreached('Second setMediaKeys should have failed.');
+                }, function(error) {
+                    assert_equals(error.name, 'QuotaExceededError');
+                    assert_not_equals(error.message, '');
+                    // Return something so the promise resolves properly.
+                    return Promise.resolve();
+                }).then(function() {
+                    // Now clear it from video1.
+                    return video1.setMediaKeys(null);
+                }).then(function() {
+                    // Should be assignable to video2.
+                    return video2.setMediaKeys(mediaKeys);
+                });
+            }, 'setMediaKeys() on multiple video elements.');
+        </script>
+    </body>
+</html>

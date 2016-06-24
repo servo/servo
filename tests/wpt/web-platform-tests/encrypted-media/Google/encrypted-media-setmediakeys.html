@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<!-- Copyright © 2016 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
+<html>
+    <head>
+        <title>setMediaKeys</title>
+        <script src="encrypted-media-utils.js"></script>
+        <script src="../../resources/testharness.js"></script>
+        <script src="../../resources/testharnessreport.js"></script>
+    </head>
+    <body>
+        <video id="video"></video>
+        <div id="log"></div>
+        <script>
+            async_test(function(test)
+            {
+                var mediaKeys;
+                var video = document.getElementById('video');
+                assert_not_equals(video, null);
+
+                // Test MediaKeys assignment.
+                assert_equals(video.mediaKeys, null);
+                assert_equals(typeof video.setMediaKeys, 'function');
+
+                // Try setting mediaKeys to null.
+                video.setMediaKeys(null).then(function(result) {
+                    assert_equals(video.mediaKeys, null);
+
+                    // Try setting mediaKeys to the wrong type of object.
+                    return video.setMediaKeys(new Date());
+                }).then(function(result) {
+                    assert_unreached('setMediaKeys did not fail when setting to Date()');
+                }, function(error) {
+                    // TypeError expected.
+                    assert_equals(error.name, 'TypeError');
+
+                    // Create a MediaKeys object and assign it to video.
+                    return navigator.requestMediaKeySystemAccess('org.w3.clearkey', [{}]);
+                }).then(function(access) {
+                    assert_equals(access.keySystem, 'org.w3.clearkey');
+                    return access.createMediaKeys();
+                }).then(function(result) {
+                    mediaKeys = result;
+                    assert_not_equals(mediaKeys, null);
+                    assert_equals(typeof mediaKeys.createSession, 'function');
+                    return video.setMediaKeys(mediaKeys);
+                }).then(function(result) {
+                    assert_not_equals(video.mediaKeys, null);
+                    assert_true(video.mediaKeys === mediaKeys);
+                    test.done();
+                }).catch(function(error) {
+                    forceTestFailureFromPromise(test, error);
+                });
+            }, 'Setting MediaKeys on a video object.');
+        </script>
+    </body>
+</html>

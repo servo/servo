@@ -541,6 +541,8 @@ function runDeleteTests() {
         testFailed("buffer removed even though it is still attached to a VAO");
       }
     }
+
+    ext.bindVertexArrayOES(null);
     gl.deleteBuffer(positionBuffer);
 
     // Render with the deleted buffers. As they are referenced by VAOs they

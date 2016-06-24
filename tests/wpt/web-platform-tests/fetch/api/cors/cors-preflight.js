@@ -27,7 +27,7 @@ function corsPreflight(desc, corsUrl, method, allowed, headers) {
         urlParameters += "&control_request_headers"
         //Make the server allow the headers
         urlParameters += "&allow_headers="
-        urlParameters += headers.join("%2C%20");
+        urlParameters += headers.map(function (x) { return x[0]; }).join("%2C%20");
       }
       promise_test(function(test) {
         test.add_cleanup(function() {
@@ -40,8 +40,8 @@ function corsPreflight(desc, corsUrl, method, allowed, headers) {
             var actualHeaders = resp.headers.get("x-control-request-headers").split(",");
             for (var i in actualHeaders)
               actualHeaders[i] = actualHeaders[i].trim();
-            for (var header in headers)
-              assert_in_array(header, actualHeaders, "Preflight asked permission for header: " + header);
+            for (var header of headers)
+              assert_in_array(header[0], actualHeaders, "Preflight asked permission for header: " + header);
           }
         });
       }, desc);
@@ -67,16 +67,13 @@ corsPreflight("CORS [PATCH], server refuses", corsUrl, "PATCH", false);
 corsPreflight("CORS [NEW], server allows", corsUrl, "NEW", true);
 corsPreflight("CORS [NEW], server refuses", corsUrl, "NEW", false);
 
-corsPreflight("CORS [GET] [x-test-header: allowed], server allows", corsUrl, "GET", true, {"x-test-header1": "allowed"});
-corsPreflight("CORS [GET] [x-test-header: refused], server refuses", corsUrl, "GET", false, {"x-test-header1": "refused"});
+corsPreflight("CORS [GET] [x-test-header: allowed], server allows", corsUrl, "GET", true, [["x-test-header1", "allowed"]]);
+corsPreflight("CORS [GET] [x-test-header: refused], server refuses", corsUrl, "GET", false, [["x-test-header1", "refused"]]);
 
-var headers = {"x-test-header1": "allowedOrRefused",
-               "x-test-header2": "allowedOrRefused",
-               "x-test-header3": "allowedOrRefused",
-};
+var headers = [["x-test-header1", "allowedOrRefused"],
+               ["x-test-header2", "allowedOrRefused"],
+               ["x-test-header3", "allowedOrRefused"]];
 corsPreflight("CORS [GET] [several headers], server allows", corsUrl, "GET", true, headers);
 corsPreflight("CORS [GET] [several headers], server refuses", corsUrl, "GET", false, headers);
 corsPreflight("CORS [PUT] [several headers], server allows", corsUrl, "PUT", true, headers);
 corsPreflight("CORS [PUT] [several headers], server refuses", corsUrl, "PUT", false, headers);
-
-done();

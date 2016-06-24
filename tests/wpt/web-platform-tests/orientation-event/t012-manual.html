@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Implementations that are unable to provide all three angles must set the values of the unknown angles to null</title>
+    <meta name=viewport content="width=device-width, maximum-scale=1.0">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="author" title="Mosquito FP7">
+    <link rel="reviewer author" title="Zhiqiang Zhang" href="mailto:zhiqiang.zhang@intel.com"> <!-- 2013-10-12 -->
+  </head>
+  <body>
+    <p>Precondition: implementation is unable to provide all three angles</p>
+    <p>Rotate the device to run the test.</p>
+    <div id="log"></div>
+    <script>
+      var gamma, beta, alpha;
+      var run = false;
+      window.addEventListener("deviceorientation", function(e) {
+        if (!run) {
+          run = true;
+          gamma = e.gamma; // Gamma : angle par rapport a x
+          beta  = e.beta;  // Beta : angle par rapport a y
+          alpha = e.alpha; // Alpha : orientation (N-S-E-O)
+        }
+      }, false);
+
+      test(function() {
+        assert_equals(gamma, null);
+      }, "Check if gamma is set to null");
+
+      test(function() {
+        assert_equals(beta, null);
+      }, "Check if beta is set to null");
+
+      test(function() {
+        assert_equals(alpha, null);
+      }, "Check if alpha is set to null");
+    </script>
+  </body>
+</html>
+

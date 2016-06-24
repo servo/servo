@@ -64,7 +64,8 @@ void main()
 var wtu = WebGLTestUtils;
 var gl;
 var contextAttribs = null;
-var pixel = [0, 0, 0, 1];
+var pixel_1 = [0, 0, 0, 1];
+var pixel_2 = [0, 0, 0, 1];
 var correctColor = null;
 var framebuffer;
 var fbHasColor;
@@ -318,10 +319,17 @@ function testAntialias(antialias)
         255, 0, 0, 255,
         255, 0, 0, 255]);
     drawAndReadPixel(gl, vertices, colors, 0, 0);
-    var buf = new Uint8Array(1 * 1 * 4);
-    gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
-    pixel[0] = buf[0];
-    shouldBe("pixel[0] != 255 && pixel[0] != 0", "contextAttribs.antialias");
+    var buf_1 = new Uint8Array(1 * 1 * 4);
+    var buf_2 = new Uint8Array(1 * 1 * 4);
+    gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf_1);
+    gl.readPixels(0, 1, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf_2);
+    pixel_1[0] = buf_1[0];
+    pixel_2[0] = buf_2[0];
+    // For some anti-alias algorithms, effects may be not on diagonal line pixels, so that either:
+    //    - The red channel of the pixel at (0, 0) is not 0 and not 255, or,
+    //    - If it is 0, expect that the red channel of the pixel at (0, 1) is not 0 and not 255.
+    shouldBe("pixel_1[0] != 255 && pixel_1[0] != 0 || pixel_1[0] == 0 && pixel_2[0] != 255 && pixel_2[0] != 0",
+        "contextAttribs.antialias");
 }
 
 function runTest()

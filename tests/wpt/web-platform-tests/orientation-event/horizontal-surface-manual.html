@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>DeviceOrientationEvent: A device lying flat on a horizontal surface</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="author' title='Mosquito FP7">
+    <link rel="reviewer author" title="Zhiqiang Zhang" href="mailto:zhiqiang.zhang@intel.com"> <!-- 2013-10-12 -->
+  </head>
+  <body>
+    <p>Put the device on a horizontal surface to run the test.</p>
+    <div id="log"></div>
+    <script>
+      var gamma, beta;
+      var run = false;
+      window.addEventListener("deviceorientation", function(e) {
+        if (!run) {
+          run = true;
+          gamma = e.gamma; // Gamma : angle par rapport a x
+          beta  = e.beta;  // Beta : angle par rapport a y
+        }
+      }, false);
+
+      test(function() {
+        assert_approx_equals(gamma, 0, 2);
+      }, "X angle");
+
+      test(function() {
+        assert_approx_equals(beta, 0, 2);
+      }, "Y angle");
+    </script>
+  </body>
+</html>
+

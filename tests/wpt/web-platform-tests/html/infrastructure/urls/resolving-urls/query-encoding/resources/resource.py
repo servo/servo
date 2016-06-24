@@ -111,7 +111,7 @@ def main(request, response):
             image = 'green-16x16.png'
         else:
             image = 'green-256x256.png'
-        rv = open(os.path.join(request.doc_root, "images", image)).read()
+        rv = open(os.path.join(request.doc_root, "images", image), "rb").read()
         return [("Content-Type", "image/png")], rv
     elif type == 'video':
         ext = request.GET['ext']
@@ -123,7 +123,7 @@ def main(request, response):
             video = 'green-at-15' # duration: 30
         else:
             video = 'movie_300' # duration: 300
-        rv = open(os.path.join(request.doc_root, "media", "%s.%s" % (video, ext))).read()
+        rv = open(os.path.join(request.doc_root, "media", "%s.%s" % (video, ext)), "rb").read()
         if ext == 'ogv':
             ext = 'ogg'
         return [("Content-Type", "video/%s" % ext)], rv

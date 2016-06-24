@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<!-- Copyright © 2016 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
+<html>
+    <head>
+        <title>Test MediaKeySession lifetime after release() without references</title>
+        <script src="encrypted-media-utils.js"></script>
+        <script src="../../resources/testharness.js"></script>
+        <script src="../../resources/testharnessreport.js"></script>
+    </head>
+    <body>
+        <div id="log"></div>
+        <script>
+            // Since MediaKeySession (and MediaKeys) are ActiveDOMObjects,
+            // we can determine when they are garbage collected.
+            // MediaKeySessions remain as long as:
+            //   JavaScript has a reference to it
+            //   OR (MediaKeys is around
+            //       AND the session has not received a close() event)
+            async_test(function(test)
+            {
+                var initDataType;
+                var initData;
+                var startingActiveDOMObjectCount = window.internals.activeDOMObjectCount(document);
+
+                function numActiveDOMObjectsCreated()
+                {
+                    return window.internals.activeDOMObjectCount(document) - startingActiveDOMObjectCount;
+                }
+
+                // Create 2 sessions.
+                var mediaKeys;
+                var mediaKeySession1;
+                var mediaKeySession2;
+                getSupportedInitDataType().then(function(type) {
+                    initDataType = type;
+                    initData = getInitData(initDataType);
+                    return navigator.requestMediaKeySystemAccess('org.w3.clearkey', [{}]);
+                }).then(function(access) {
+                    return access.createMediaKeys();
+                }).then(function(result) {
+                    mediaKeys = result;
+
+                    // Verify MediaKeys is an ActiveDOMObject.
+                    // In non-Oilpan, numActiveDOMObjectsCreate() == 1.
+                    // In Oilpan, numActiveDOMObjectsCreate() <= 4.
+                    // (1 MediaKeys,
+                    //  1 MediaKeysInitializer and
+                    //  1 MediaKeySystemAccessInitializer (navigator.requestMediaKeySystemAccess() use above),
+                    //  1 MediaKeySystemAccessInitializer (isInitDataSupported() (via getSupportedInitDataType())))
+                    assert_between_inclusive(numActiveDOMObjectsCreated(), 1, 4, 'MediaKeys.create()');
+
+                    mediaKeySession1 = mediaKeys.createSession();
+                    return mediaKeySession1.generateRequest(initDataType, initData);
+                }).then(function() {
+                    assert_true(mediaKeySession1.sessionId && mediaKeySession1.sessionId.length > 0);
+
+                    // Should be 1 MediaKeys + 1 MediaKeySession.
+                    // In non-Oilpan, numActiveDOMObjectsCreate() == 2.
+                    // In Oilpan, numActiveDOMObjectsCreate() <= 6.
+                    // (1 MediaKeys,
+                    //  1 MediaKeysInitializer and
+                    //  2 MediaKeySystemAccessInitializer,
+                    //  1 ContentDecryptionModuleResultPromise and
+                    //  1 MediaKeySession).
+                    assert_between_inclusive(numActiveDOMObjectsCreated(), 2, 6, 'MediaKeys.createSession(1)');
+
+                    mediaKeySession2 = mediaKeys.createSession();
+                    return mediaKeySession2.generateRequest(initDataType, initData);
+                }).then(function() {
+                    assert_true(mediaKeySession2.sessionId && mediaKeySession2.sessionId.length > 0);
+
+                    // Should be 1 MediaKeys + 2 MediaKeySessions.
+                    // In non-Oilpan, numActiveDOMObjectsCreate() == 3.
+                    // In Oilpan, numActiveDOMObjectsCreate() <= 8.
+                    // (1 MediaKeys,
+                    //  1 MediaKeysInitializer and
+                    //  2 MediaKeySystemAccessInitializers,
+                    //  2 ContentDecryptionModuleResultPromise and
+                    //  2 MediaKeySession).
+                    assert_between_inclusive(numActiveDOMObjectsCreated(), 3, 8, 'mediaKeys.createSession(2)');
+                }).then(function(result) {
+                    // Run gc(). All sessions should remain as we have a
+                    // reference to each one.
+                    return createGCPromise();
+                }).then(function(result) {
+                    // Should be just 1 MediaKeys + 2 MediaKeySessions.
+                    // In non-Oilpan, there is also something from createGCPromise().
+                    assert_between_inclusive(numActiveDOMObjectsCreated(), 3, 4, 'After gc()');
+
+                    // Close the sessions. Once the close() event is received,
+                    // they should get garbage collected as there are no JS
+                    // references to them.
+                    var promise = mediaKeySession1.close();
+                    mediaKeySession1 = null;
+                    return promise;
+                }).then(function(result) {
+                    // Give time so that the close event can be processed by
+                    // MediaKeySession.
+                    return delayToAllowEventProcessingPromise();
+                }).then(function(result) {
+                    return createGCPromise();
+                }).then(function(result) {
+                    // Only MediaKeys + mediaKeySession2 should remain.
+                    // In non-Oilpan, there is also something from createGCPromise().
+                    assert_between_inclusive(numActiveDOMObjectsCreated(), 2, 3, 'mediaKeySession1 not collected');
+
+                    var promise = mediaKeySession2.close();
+                    mediaKeySession2 = null;
+                    return promise;
+                }).then(function(result) {
+                    // Provide time for the mediaKeySession2 close event to be
+                    // handled.
+                    return delayToAllowEventProcessingPromise();
+                }).then(function(result) {
+                    return createGCPromise();
+                }).then(function(result) {
+                    // Only MediaKeys should remain.
+                    // In non-Oilpan, there is also something from createGCPromise().
+                    assert_between_inclusive(numActiveDOMObjectsCreated(), 1, 2, 'mediaKeySession2 not collected');
+
+                    assert_not_equals(mediaKeys, null);
+                    test.done();
+                }).catch(function(error) {
+                    forceTestFailureFromPromise(test, error);
+                });
+            }, 'MediaKeySession lifetime after release() without references');
+        </script>
+    </body>
+</html>

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<title>Shadow DOM: Event composed</title>
+<meta name="author" title="Hayato Ito" href="mailto:hayato@google.com">
+<script src="../resources/testharness.js"></script>
+<script src="../resources/testharnessreport.js"></script>
+<script src="resources/shadow-dom.js"></script>
+<div id=host>
+  <template id=shadowRoot data-mode=open>
+    <div id=target></div>
+  </template>
+</div>
+<script>
+test(() => {
+  const e = new Event('test');
+  assert_equals(e.composed, false);
+}, 'A new events composed value should be set to false by default.');
+
+test(() => {
+  const e = new Event('test', { composed: true });
+  assert_equals(e.composed, true);
+}, 'Users should be able to set a composed value.');
+
+function assertScoped(event) {
+  let nodes = createTestTree(host);
+  let log = dispatchEventWithLog(nodes, nodes.target, event);
+  let expectedPath = ['target', 'shadowRoot'];
+  assert_event_path_equals(log,
+                           [['target', 'target', null, expectedPath],
+                            ['shadowRoot', 'target', null, expectedPath]]);
+}
+
+function assertComposed(event) {
+  let nodes = createTestTree(host);
+  let log = dispatchEventWithLog(nodes, nodes.target, event);
+  let expectedPath = ['target', 'shadowRoot', 'host'];
+  assert_event_path_equals(log,
+                           [['target', 'target', null, expectedPath],
+                            ['shadowRoot', 'target', null, expectedPath],
+                            ['host', 'host', null, expectedPath]]);
+}
+
+test(() => {
+  assertScoped(new Event('test', { bubbles: true }));
+}, 'An event should be scoped by default');
+
+test(() => {
+  assertComposed(new Event('test', { bubbles: true, composed: true }));
+}, 'An event should not be scoped if composed is specified');
+
+test(() => {
+  assertScoped(new MouseEvent('click', { bubbles: true }));
+}, 'A synthetic MouseEvent should be scoped by default');
+
+test(() => {
+  assertComposed(new MouseEvent('click', { bubbles: true, composed: true }));
+}, 'A synthetic MouseEvent with composed=true should not be scoped');
+
+test(() => {
+  assertScoped(new FocusEvent('focus', { bubbles: true }));
+}, 'A synthetic FocusEvent should be scoped by default');
+
+test(() => {
+  assertComposed(new FocusEvent('focus', { bubbles: true, composed: true }));
+}, 'A synthetic FocusEvent with composed=true should not be scoped');
+
+function assertUAComposed(eventType, callback) {
+  let nodes = createTestTree(host);
+  let log = dispatchUAEventWithLog(nodes, nodes.target, eventType, callback);
+  let expectedPath = ['target', 'shadowRoot', 'host'];
+  assert_event_path_equals(log,
+                           [['target', 'target', null, expectedPath],
+                            ['shadowRoot', 'target', null, expectedPath],
+                            ['host', 'host', null, expectedPath]]);
+}
+
+test(() => {
+  assertUAComposed('click', (target) => { target.click(); });
+}, 'A UA click event should not be scoped');
+
+// TODO(hayato): Test other UIEvents.
+</script>
