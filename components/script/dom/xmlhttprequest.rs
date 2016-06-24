@@ -217,35 +217,35 @@ impl XMLHttpRequest {
                           core_resource_thread: CoreResourceThread,
                           init: RequestInit) {
         impl FetchResponseListener for XHRContext {
-                fn process_request_body(&mut self) {
-                    // todo
-                }
-                fn process_request_eof(&mut self) {
-                    // todo
-                }
-                fn process_response(&mut self, metadata: Result<Metadata, NetworkError>) {
-                    let xhr = self.xhr.root();
-                    let rv = xhr.process_headers_available(self.gen_id,
-                                                           metadata);
-                    if rv.is_err() {
-                        *self.sync_status.borrow_mut() = Some(rv);
-                    }
-                }
-                fn process_response_chunk(&mut self, mut chunk: Vec<u8>) {
-                    self.buf.borrow_mut().append(&mut chunk);
-                    self.xhr.root().process_data_available(self.gen_id, self.buf.borrow().clone());
-                }
-                fn process_response_eof(&mut self, response: Result<(), NetworkError>) {
-                    let rv = match response {
-                        Ok(()) => {
-                            self.xhr.root().process_response_complete(self.gen_id, Ok(()))
-                        }
-                        Err(e) => {
-                            self.xhr.root().process_response_complete(self.gen_id, Err(e))
-                        }
-                    };
+            fn process_request_body(&mut self) {
+                // todo
+            }
+            fn process_request_eof(&mut self) {
+                // todo
+            }
+            fn process_response(&mut self, metadata: Result<Metadata, NetworkError>) {
+                let xhr = self.xhr.root();
+                let rv = xhr.process_headers_available(self.gen_id,
+                                                       metadata);
+                if rv.is_err() {
                     *self.sync_status.borrow_mut() = Some(rv);
                 }
+            }
+            fn process_response_chunk(&mut self, mut chunk: Vec<u8>) {
+                self.buf.borrow_mut().append(&mut chunk);
+                self.xhr.root().process_data_available(self.gen_id, self.buf.borrow().clone());
+            }
+            fn process_response_eof(&mut self, response: Result<(), NetworkError>) {
+                let rv = match response {
+                    Ok(()) => {
+                        self.xhr.root().process_response_complete(self.gen_id, Ok(()))
+                    }
+                    Err(e) => {
+                        self.xhr.root().process_response_complete(self.gen_id, Err(e))
+                    }
+                };
+                *self.sync_status.borrow_mut() = Some(rv);
+            }
         }
 
         impl PreInvoke for XHRContext {
