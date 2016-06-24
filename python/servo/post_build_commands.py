@@ -114,7 +114,7 @@ class PostBuildCommands(CommandBase):
             args = args + ['-w',
                            '--pref', 'dom.mozbrowser.enabled',
                            '--pref', 'dom.forcetouch.enabled',
-                           '--pref', 'shell.builtin-key-shortcuts=false',
+                           '--pref', 'shell.builtin-key-shortcuts.enabled=false',
                            path.join(browserhtml_path, 'out', 'index.html')]
 
         # Borrowed and modified from:
