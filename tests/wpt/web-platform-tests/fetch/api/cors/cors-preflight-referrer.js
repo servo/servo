@@ -32,7 +32,7 @@ var origin = "http://{{host}}:{{ports[http][0]}}";
 
 corsPreflightReferrer("Referrer policy: no-referrer", corsUrl, "no-referrer", "");
 corsPreflightReferrer("Referrer policy: \"\"", corsUrl, "", "");
-corsPreflightReferrer("Referrer policy: origin-only", corsUrl, "origin-only", origin);
+corsPreflightReferrer("Referrer policy: origin", corsUrl, "origin", origin);
 corsPreflightReferrer("Referrer policy: origin-when-cross-origin", corsUrl, "origin-when-cross-origin", origin);
 corsPreflightReferrer("Referrer policy: unsafe-url", corsUrl, "unsafe-url", location.toString());
 

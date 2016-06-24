@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<!-- Copyright © 2016 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
+<html>
+    <head>
+        <title>Test navigator.requestMediaKeySystemAccess()</title>
+        <script src="encrypted-media-utils.js"></script>
+        <script src="../../resources/testharness.js"></script>
+        <script src="../../resources/testharnessreport.js"></script>
+    </head>
+    <body>
+        <div id="log"></div>
+        <script>
+            function expect_error(keySystem, configurations, expectedError, testName) {
+                promise_test(function(test) {
+                    return navigator.requestMediaKeySystemAccess(keySystem, configurations).then(function(a) {
+                        assert_unreached('Unexpected requestMediaKeySystemAccess() success.');
+                    }, function(e) {
+                        assert_equals(e.name, expectedError);
+                    });
+                }, testName);
+            }
+
+            function assert_subset(actual, expected, path) {
+                if (typeof expected == 'string') {
+                    assert_equals(actual, expected, path);
+                } else {
+                    if (expected.hasOwnProperty('length'))
+                        assert_equals(actual.length, expected.length, path + '.length');
+                    for (property in expected)
+                        assert_subset(actual[property], expected[property], path + '.' + property);
+                }
+            }
+
+            function expect_config(keySystem, configurations, expectedConfiguration, testName) {
+                promise_test(function(test) {
+                    return navigator.requestMediaKeySystemAccess(keySystem, configurations).then(function(a) {
+                        assert_subset(a.getConfiguration(), expectedConfiguration, 'getConfiguration()');
+                    });
+                }, testName);
+            }
+
+            // Tests for keySystem.
+            expect_error('', [{}], 'InvalidAccessError', 'Empty keySystem');
+            expect_error('com.example.unsupported', [{}], 'NotSupportedError', 'Unsupported keySystem');
+            expect_error('org.w3.clearkey.', [{}], 'NotSupportedError', 'keySystem ends with "."');
+            expect_error('org.w3.ClearKey', [{}], 'NotSupportedError', 'Capitalized keySystem');
+            expect_error('org.w3.clearke\u028F', [{}], 'NotSupportedError', 'Non-ASCII keySystem');
+
+            // Parent of Clear Key not supported.
+            expect_error('org', [{}], 'NotSupportedError', 'Parent of Clear Key (org)');
+            expect_error('org.', [{}], 'NotSupportedError', 'Parent of Clear Key (org.)');
+            expect_error('org.w3', [{}], 'NotSupportedError', 'Parent of Clear Key (org.w3)');
+            expect_error('org.w3.', [{}], 'NotSupportedError', 'Parent of Clear Key (org.w3.)');
+
+            // Child of Clear Key not supported.
+            expect_error('org.w3.clearkey.foo', [{}], 'NotSupportedError', 'Child of Clear Key');
+
+            // Prefixed Clear Key not supported.
+            expect_error('webkit-org.w3.clearkey', [{}], 'NotSupportedError', 'Prefixed Clear Key');
+
+            // Incomplete names.
+            expect_error('org.w3.learkey', [{}], 'NotSupportedError', 'Incomplete name org.w3.learkey');
+            expect_error('org.w3.clearke', [{}], 'NotSupportedError', 'Incomplete name org.w3.clearke');
+            expect_error('or.w3.clearkey', [{}], 'NotSupportedError', 'Incomplete name or.w3.clearkey');
+
+            // Spaces in key system name not supported.
+            expect_error(' org.w3.clearkey', [{}], 'NotSupportedError', 'Leading space in key system name');
+            expect_error('org.w3. clearkey', [{}], 'NotSupportedError', 'Extra space in key system name');
+            expect_error('org.w3.clearkey ', [{}], 'NotSupportedError', 'Trailing space in key system name');
+
+            // Extra dots in key systems names not supported.
+            expect_error('.org.w3.clearkey', [{}], 'NotSupportedError', 'Leading dot in key systems name');
+            expect_error('org.w3.clearkey.', [{}], 'NotSupportedError', 'Trailing dot in key systems name');
+            expect_error('org.w3..clearkey', [{}], 'NotSupportedError', 'Double dot in key systems name');
+            expect_error('org.w3.clear.key', [{}], 'NotSupportedError', 'Extra dot in key systems name');
+
+            // Key system name is case sensitive.
+            expect_error('org.w3.Clearkey', [{}], 'NotSupportedError', 'Key system name is case sensitive');
+            expect_error('Org.w3.clearkey', [{}], 'NotSupportedError', 'Key system name is case sensitive');
+
+            // Tests for trivial configurations.
+            expect_error('org.w3.clearkey', [], 'InvalidAccessError', 'Empty supportedConfigurations');
+            expect_config('org.w3.clearkey', [{}], {}, 'Empty configuration');
+
+            // Various combinations of supportedConfigurations.
+            // TODO(jrummell): Specifying contentType without codecs is
+            // deprecated, so this test should fail. http://crbug.com/605661.
+            expect_config('org.w3.clearkey', [{
+                initDataTypes: ['webm'],
+                audioCapabilities: [{contentType: 'audio/webm'}],
+                videoCapabilities: [{contentType: 'video/webm'}],
+            }], {
+                initDataTypes: ['webm'],
+                audioCapabilities: [{contentType: 'audio/webm'}],
+                videoCapabilities: [{contentType: 'video/webm'}],
+            }, 'Basic supported configuration');
+
+            // TODO(jrummell): Specifying contentType without codecs is
+            // deprecated, so this test should fail. http://crbug.com/605661.
+            expect_config('org.w3.clearkey', [{
+                initDataTypes: ['fakeidt', 'webm'],
+                audioCapabilities: [{contentType: 'audio/fake'}, {contentType: 'audio/webm'}],
+                videoCapabilities: [{contentType: 'video/fake'}, {contentType: 'video/webm'}],
+            }], {
+                initDataTypes: ['webm'],
+                audioCapabilities: [{contentType: 'audio/webm'}],
+                videoCapabilities: [{contentType: 'video/webm'}],
+            }, 'Partially supported configuration');
+
+            expect_config('org.w3.clearkey', [{
+                audioCapabilities: [{contentType: 'audio/webm; codecs=vorbis'}],
+            }], {
+                audioCapabilities: [{contentType: 'audio/webm; codecs=vorbis'}],
+            }, 'Supported audio codec');
+
+            expect_config('org.w3.clearkey', [{
+                audioCapabilities: [{contentType: 'audio/webm;  codecs="vorbis"'}],
+            }], {
+                audioCapabilities: [{contentType: 'audio/webm;  codecs="vorbis"'}],
+            }, 'ContentType formatting must be preserved');
+
+            expect_error('org.w3.clearkey', [{
+                audioCapabilities: [{contentType: 'audio/webm; codecs=fake'}],
+            }], 'NotSupportedError', 'Unsupported audio codec');
+
+            expect_error('org.w3.clearkey', [{
+                audioCapabilities: [
+                    {contentType: 'audio/webm; codecs=mp4a'},
+                    {contentType: 'audio/webm; codecs=mp4a.40.2'}
+                ],
+            }], 'NotSupportedError', 'Mismatched audio container/codec');
+
+            expect_config('org.w3.clearkey', [{
+                videoCapabilities: [{contentType: 'video/webm; codecs=vp8'}],
+            }], {
+                videoCapabilities: [{contentType: 'video/webm; codecs=vp8'}],
+            }, 'Supported video codec');
+
+            expect_error('org.w3.clearkey', [{
+                audioCapabilities: [{contentType: 'video/webm; codecs=vp8'}],
+            }], 'NotSupportedError', 'Video codec specified in audio field');
+
+            expect_error('org.w3.clearkey', [{
+                videoCapabilities: [{contentType: 'audio/webm; codecs=vorbis'}],
+            }], 'NotSupportedError', 'Audio codec specified in video field');
+
+            expect_error('org.w3.clearkey', [{
+                audioCapabilities: [{contentType: 'video/webm; codecs=fake'}],
+            }], 'NotSupportedError', 'Unsupported video codec');
+
+            expect_error('org.w3.clearkey', [{
+                audioCapabilities: [
+                    {contentType: 'audio/webm; codecs=avc1'},
+                    {contentType: 'audio/webm; codecs=avc1.42e01e'}
+                ],
+            }], 'NotSupportedError', 'Mismatched video container/codec');
+
+            expect_config('org.w3.clearkey', [
+                {initDataTypes: ['fakeidt']},
+                {initDataTypes: ['webm']}
+            ], {initDataTypes: ['webm']}, 'Two configurations, one supported');
+
+            expect_config('org.w3.clearkey', [
+                {initDataTypes: ['webm']},
+                {}
+            ], {initDataTypes: ['webm']}, 'Two configurations, both supported');
+
+            // Audio MIME type does not support video codecs.
+            expect_error('org.w3.clearkey', [{
+                audioCapabilities: [
+                    {contentType: 'audio/webm; codecs="vp8,vorbis"'},
+                    {contentType: 'audio/webm; codecs="vorbis, vp8"'},
+                    {contentType: 'audio/webm; codecs="vp8"'}
+                ],
+            }], 'NotSupportedError', 'Audio MIME type does not support video codecs.');
+
+            // Video MIME type does not support audio codecs.
+            expect_error('org.w3.clearkey', [{
+                videoCapabilities: [
+                    {contentType: 'video/webm; codecs="vp8,vorbis"'},
+                    {contentType: 'video/webm; codecs="vorbis, vp8"'},
+                    {contentType: 'video/webm; codecs="vorbis"'}
+                ],
+            }], 'NotSupportedError', 'Video MIME type does not support audio codecs.');
+
+            // WebM does not support AVC1/AAC.
+            expect_error('org.w3.clearkey', [{
+                audioCapabilities: [
+                    {contentType: 'audio/webm; codecs="aac"'},
+                    {contentType: 'audio/webm; codecs="avc1"'},
+                    {contentType: 'audio/webm; codecs="vp8,aac"'}
+                ],
+            }], 'NotSupportedError', 'WebM audio does not support AVC1/AAC.');
+
+            expect_error('org.w3.clearkey', [{
+                videoCapabilities: [
+                    {contentType: 'video/webm; codecs="aac"'},
+                    {contentType: 'video/webm; codecs="avc1"'},
+                    {contentType: 'video/webm; codecs="vp8,aac"'}
+                ],
+            }], 'NotSupportedError', 'WebM video does not support AVC1/AAC.');
+
+            // Extra space is allowed in contentType.
+            expect_config('org.w3.clearkey', [{
+                videoCapabilities: [{contentType: ' video/webm; codecs="vp8"'}],
+            }], {
+                videoCapabilities: [{contentType: ' video/webm; codecs="vp8"'}],
+            }, 'Leading space in contentType');
+
+            expect_config('org.w3.clearkey', [{
+                videoCapabilities: [{contentType: 'video/webm ; codecs="vp8"'}],
+            }], {
+                videoCapabilities: [{contentType: 'video/webm ; codecs="vp8"'}],
+            }, 'Space before ; in contentType');
+
+            expect_config('org.w3.clearkey', [{
+                videoCapabilities: [{contentType: 'video/webm;  codecs="vp8"'}],
+            }], {
+                videoCapabilities: [{contentType: 'video/webm;  codecs="vp8"'}],
+            }, 'Extra spaces after ; in contentType');
+
+            // TODO(jrummell): contentType should allow white space at the
+            // end of the string. http://crbug.com/487392
+//          expect_config('org.w3.clearkey', [{
+//              videoCapabilities: [{contentType: 'video/webm; codecs="vp8" '}],
+//          }], {
+//              videoCapabilities: [{contentType: 'video/webm; codecs="vp8" '}],
+//          }, 'Trailing space in contentType');
+
+            expect_config('org.w3.clearkey', [{
+                videoCapabilities: [{contentType: 'video/webm; codecs=" vp8"'}],
+            }], {
+                videoCapabilities: [{contentType: 'video/webm; codecs=" vp8"'}],
+            }, 'Space at start of codecs parameter');
+
+            expect_config('org.w3.clearkey', [{
+                videoCapabilities: [{contentType: 'video/webm; codecs="vp8 "'}],
+            }], {
+                videoCapabilities: [{contentType: 'video/webm; codecs="vp8 "'}],
+            }, 'Space at end of codecs parameter');
+
+            // contentType is not case sensitive (except the codec names).
+            expect_config('org.w3.clearkey', [{
+                videoCapabilities: [{contentType: 'Video/webm; codecs="vp8"'}],
+            }], {
+                videoCapabilities: [{contentType: 'Video/webm; codecs="vp8"'}],
+            }, 'Video/webm');
+
+            expect_config('org.w3.clearkey', [{
+                videoCapabilities: [{contentType: 'video/Webm; codecs="vp8"'}],
+            }], {
+                videoCapabilities: [{contentType: 'video/Webm; codecs="vp8"'}],
+            }, 'video/Webm');
+
+            expect_config('org.w3.clearkey', [{
+                videoCapabilities: [{contentType: 'video/webm; Codecs="vp8"'}],
+            }], {
+                videoCapabilities: [{contentType: 'video/webm; Codecs="vp8"'}],
+            }, 'Codecs=');
+
+            expect_config('org.w3.clearkey', [{
+                videoCapabilities: [{contentType: 'VIDEO/WEBM; codecs="vp8"'}],
+            }], {
+                videoCapabilities: [{contentType: 'VIDEO/WEBM; codecs="vp8"'}],
+            }, 'VIDEO/WEBM');
+
+            expect_config('org.w3.clearkey', [{
+                videoCapabilities: [{contentType: 'video/webm; CODECS="vp8"'}],
+            }], {
+                videoCapabilities: [{contentType: 'video/webm; CODECS="vp8"'}],
+            }, 'CODECS=');
+
+            // Unrecognized attributes are not allowed.
+            // TODO(jrummell): Unrecognized attributes are ignored currently.
+            // http://crbug.com/449690
+//          expect_error('org.w3.clearkey', [{
+//              videoCapabilities: [{contentType: 'video/webm; foo="bar"'}],
+//          }], 'NotSupportedError', 'Unrecognized foo');
+//          expect_error('org.w3.clearkey', [{
+//              videoCapabilities: [{contentType: 'video/webm; foo="bar"; codecs="vp8"'}],
+//          }], 'NotSupportedError', 'Unrecognized foo with codecs');
+
+            // Invalid contentTypes.
+            expect_error('org.w3.clearkey', [{
+                videoCapabilities: [{contentType: 'fake'}],
+            }], 'NotSupportedError', 'contentType fake');
+
+            expect_error('org.w3.clearkey', [{
+                audioCapabilities: [{contentType: 'audio/fake'}],
+            }], 'NotSupportedError', 'contentType audio/fake');
+
+            expect_error('org.w3.clearkey', [{
+                videoCapabilities: [{contentType: 'video/fake'}],
+            }], 'NotSupportedError', 'contentType video/fake');
+
+            // The actual codec names are case sensitive.
+            expect_error('org.w3.clearkey', [{
+                videoCapabilities: [{contentType: 'video/webm; codecs="Vp8"'}],
+            }], 'NotSupportedError', 'codecs Vp8');
+
+            expect_error('org.w3.clearkey', [{
+                videoCapabilities: [{contentType: 'video/webm; codecs="VP8"'}],
+            }], 'NotSupportedError', 'codecs VP8');
+
+            // Extra comma is not allowed in codecs.
+            expect_error('org.w3.clearkey', [{
+                videoCapabilities: [{contentType: 'video/webm; codecs=",vp8"'}],
+            }], 'NotSupportedError', 'Leading , in codecs');
+
+            expect_error('org.w3.clearkey', [{
+                videoCapabilities: [{contentType: 'video/webm; codecs="vp8,"'}],
+            }], 'NotSupportedError', 'Trailing , in codecs');
+
+            expect_error('org.w3.clearkey', [{
+                videoCapabilities: [{contentType: 'video/webm; codecs=",vp8,"'}],
+            }], 'NotSupportedError', 'Leading and trailing , in codecs');
+        </script>
+    </body>
+</html>

@@ -16,10 +16,11 @@ test(function(t)
   // time for an animation that does not have an active timeline.
 
   var animation =
-    new Animation(new KeyframeEffect(createDiv(t), null, 100 * MS_PER_SEC));
+    new Animation(new KeyframeEffect(createDiv(t), null, 100 * MS_PER_SEC),
+                  null);
 
   assert_equals(animation.currentTime, null, 'Intial current time');
-  assert_equals(animation.startTuime, null, 'Intial start time');
+  assert_equals(animation.startTime, null, 'Intial start time');
 
   animation.currentTime = 1000;
   assert_equals(animation.currentTime, 1000,
@@ -46,10 +47,11 @@ test(function(t)
   // timeline should not clear the current time.
 
   var animation =
-    new Animation(new KeyframeEffect(createDiv(t), null, 100 * MS_PER_SEC));
+    new Animation(new KeyframeEffect(createDiv(t), null, 100 * MS_PER_SEC),
+                  null);
 
   assert_equals(animation.currentTime, null, 'Intial current time');
-  assert_equals(animation.startTuime, null, 'Intial start time');
+  assert_equals(animation.startTime, null, 'Intial start time');
 
   animation.currentTime = 1000;
   assert_equals(animation.currentTime, 1000,

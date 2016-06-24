@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Battery Test: iframe has a different Navigator object</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  iframe {
+    display: none;
+  }
+</style>
+<div id="log"></div>
+<iframe id="blank" src="about:blank"></iframe>
+<iframe id="frame"></iframe>
+<script>
+promise_test(function(t) {
+  var iframe = document.querySelector('#blank');
+  var originalPromise = navigator.getBattery();
+
+  return originalPromise.then(function(originalManager) {
+    var promise = iframe.contentWindow.navigator.getBattery();
+
+    assert_true(originalManager instanceof BatteryManager);
+    assert_not_equals(iframe.contentWindow.navigator,
+        navigator,
+        'navigator objects shall be different');
+    assert_not_equals(promise,
+        originalPromise,
+        'battery promises in different navigators shall be different');
+    assert_equals(iframe.contentWindow.navigator.getBattery(),
+        promise,
+        'battery promises in same navigator shall be same');
+
+    return promise;
+  }).then(function(manager) {
+    assert_equals(manager.__proto__,
+        iframe.contentWindow.BatteryManager.prototype);
+    assert_true(manager instanceof iframe.contentWindow.BatteryManager);
+  });
+
+}, 'iframe has a different Navigator object thus getting another battery promise');
+
+async_test(function (t) {
+  var iframe = document.querySelector('#blank');
+  var originalNavigator = iframe.contentWindow.navigator;
+  var originalPromise = iframe.contentWindow.navigator.getBattery();
+
+  iframe.onload = t.step_func(function() {
+    assert_equals(iframe.contentWindow.navigator,
+        originalNavigator,
+        'navigator objects shall be same');
+    assert_equals(iframe.contentWindow.navigator.getBattery(),
+        originalPromise,
+        'battery status promises shall be same');
+    t.done();
+  });
+
+  iframe.src = 'support-iframe.html';
+}, 'setting src of an iframe with initial about:blank makes same Navigator object and battery promise');
+
+async_test(function (t) {
+  var iframe = document.querySelector('#frame');
+  iframe.src = 'support-iframe-initial.html';
+  iframe.onload = t.step_func(function() {
+    var originalNavigator = iframe.contentWindow.navigator;
+    var originalPromise = iframe.contentWindow.navigator.getBattery();
+
+    iframe.onload = t.step_func(function() {
+      assert_not_equals(iframe.contentWindow.navigator,
+          originalNavigator,
+          'navigator objects shall be changed');
+      assert_not_equals(iframe.contentWindow.navigator.getBattery(),
+          originalPromise,
+          'battery status promises shall be different');
+      t.done();
+    });
+
+    iframe.src = 'support-iframe.html';
+  });
+}, 'setting src of an iframe with initial frame makes its Navigator object vary thus getting another battery promise');
+</script>

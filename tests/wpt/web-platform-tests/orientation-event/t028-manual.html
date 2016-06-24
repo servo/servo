@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>The interval property must be expressed in milliseconds. It must be a constant, to simplify filtering of the data by the Web application</title>
+    <meta name=viewport content="width=device-width, maximum-scale=1.0">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <link rel="author" title="Mosquito FP7">
+    <link rel="reviewer author" title="Zhiqiang Zhang" href="mailto:zhiqiang.zhang@intel.com"> <!-- 2013-10-14 -->
+  </head>
+  <body>
+    <p>Move the device to run the test.</p>
+    <div id="log"></div>
+    <script>
+      var t = async_test("The interval property must be different to zero and must be a constant");
+      var inter1 = 0;
+      var inter2 = 0;
+      var run = false;
+      window.addEventListener("devicemotion", function(e) {
+        if (!run) {
+          run = true;
+          t.step(function() {
+            if (inter1 == 0) {
+              inter2 = e.interval;
+            }
+            inter1 = e.interval;
+            assert_not_equals(inter1, 0);
+            assert_not_equals(inter1, inter2);
+          });
+          t.done();
+        }
+      }, false);
+  </script>
+  </body>
+</html>
+

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Presentation API, reconnect to presentation tests for Controlling User Agent (success - manual test)</title>
+<link rel="author" title="Marius Wessel" href="http://www.fokus.fraunhofer.de">
+<link rel="help" href="http://w3c.github.io/presentation-api/#dfn-controlling-user-agent">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<ol>
+    <li>Start the presentation with the blue button.</li>
+    <li>After the presentation ist running successfully, disconnect the connected device.</li>
+    <li>Reconnect the device and press the green button, to start the reconnection process.</li>
+</ol>
+
+<button id="startBtn" onclick="startPresentation()" style="background-color: #2aabd2;">Start Presentation</button>
+<button id="reconnectBtn" onclick="reconnectToPresentation()" style="background-color: #5cb85c;">Reconnect Presentation
+    Test
+</button>
+
+<script>
+    // disable the timeout function for the tests
+    // and call 'done()' when the tests cases are finished.
+    setup({explicit_timeout: true});
+
+    // ----------
+    // DOM Object
+    // ----------
+    var startBtn = document.getElementById("startBtn"),
+            reconnectBtn = document.getElementById("reconnectBtn");
+
+    // ------------
+    // Request init
+    // ------------
+    var validUnixDate = new Date().getTime() + String(Math.floor(Math.random() * 1e5)),
+            validPresURL = '../receiving-ua/idlharness.html#__castAppId__=2334D33A/__castClientId__=' + validUnixDate,
+            request = new PresentationRequest(validPresURL);
+
+
+    // ----------------------------------------
+    // Helper Function - start the presentation
+    // ----------------------------------------
+    var startPresentation = function () {
+        return request.start()
+                .then(function (connection) {
+                    // save the presentation id within the
+                    // local storage of the browser
+                    localStorage["presId"] = connection.id;
+                });
+    }
+
+    // ------------------------------------------------
+    // Reconnect to Presentation Test (success) - begin
+    // ------------------------------------------------
+    var reconnectToPresentation = function () {
+
+        promise_test(function () {
+
+            // get the saved presentation id
+            // for the reconnect function if exist
+            if (localStorage["presId"]) var presId = localStorage["presId"];
+
+            return request.reconnect(presId)
+                    .then(function (connection) {
+                        assert_true(connection instanceof PresentationConnection);
+                        done();
+                    });
+        }, 'The reconnection was successful.');
+    }
+    // ----------------------------------------------
+    // Reconnect to Presentation Test (success) - end
+    // ----------------------------------------------
+</script>
+

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<!-- Copyright © 2016 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
+<html>
+    <head>
+        <title>Test multiple MediaKeys lifetimes</title>
+        <script src="encrypted-media-utils.js"></script>
+        <script src="../../resources/testharness.js"></script>
+        <script src="../../resources/testharnessreport.js"></script>
+    </head>
+    <body>
+        <div id="log"></div>
+        <script>
+            // For this test, create several MediaKeys and verify lifetime.
+            async_test(function(test)
+            {
+                var mediaKeys;
+                var startingActiveDOMObjectCount = window.internals.activeDOMObjectCount(document);
+
+                function numActiveDOMObjectsCreated()
+                {
+                    return window.internals.activeDOMObjectCount(document) - startingActiveDOMObjectCount;
+                }
+
+                // Create a MediaKeys object. Returns a promise that resolves
+                // with the new MediaKeys object.
+                function createMediaKeys()
+                {
+                    return getSupportedInitDataType().then(function(type) {
+                        return navigator.requestMediaKeySystemAccess('org.w3.clearkey', [{}]);
+                    }).then(function(access) {
+                        return access.createMediaKeys();
+                    }).then(function(mediaKeys) {
+                        return mediaKeys;
+                    });
+                }
+
+                // Create a few MediaKeys objects. Only keep a reference to the
+                // last one created.
+                createMediaKeys().then(function(result) {
+                    // Should be 1 MediaKeys.
+                    // In non-Oilpan, numActiveDOMObjectsCreate() == 1.
+                    // In Oilpan, numActiveDOMObjectsCreated() <= 4.
+                    // (1 MediaKeysInitializer,
+                    //  1 MediaKeySystemAccessInitializer (navigator.requestMediaKeySystemAccess() use above),
+                    //  1 MediaKeySystemAccessInitializer (isInitDataSupported() (via getSupportedInitDataType())) and
+                    //  1 ContentDecryptionModuleResultPromise).
+                    assert_between_inclusive(numActiveDOMObjectsCreated(), 1, 4);
+
+                    return createMediaKeys();
+                }).then(function(result) {
+                    // Should be 2 MediaKeys.
+                    // In non-Oilpan, numActiveDOMObjectsCreate() == 2.
+                    // In Oilpan, numActiveDOMObjectsCreate() <= 8.
+                    // (2 MediaKeysInitializer,
+                    //  4 MediaKeySystemAccessInitializer and
+                    //  2 ContentDecryptionModuleResultPromise).
+                    assert_between_inclusive(numActiveDOMObjectsCreated(), 2, 8);
+
+                    return createMediaKeys();
+                }).then(function(result) {
+                    // Should be 3 MediaKeys.
+                    // In non-Oilpan, numActiveDOMObjectsCreate() == 3.
+                    // In Oilpan, numActiveDOMObjectsCreate() <= 12.
+                    // (3 MediaKeysInitializer,
+                    //  6 MediaKeySystemAccessInitializer and
+                    //  3 ContentDecryptionModuleResultPromise).
+                    assert_between_inclusive(numActiveDOMObjectsCreated(), 3, 12);
+
+                    return createMediaKeys();
+                }).then(function(result) {
+                    // Should be 4 MediaKeys.
+                    // In non-Oilpan, numActiveDOMObjectsCreate() == 4.
+                    // In Oilpan, numActiveDOMObjectsCreate() <= 16.
+                    // (4 MediaKeysInitializer,
+                    //  8 MediaKeySystemAccessInitializer and
+                    //  4 ContentDecryptionModuleResultPromise).
+                    assert_between_inclusive(numActiveDOMObjectsCreated(), 4, 16);
+
+                    return createMediaKeys();
+                }).then(function(result) {
+                    // Should be 5 MediaKeys.
+                    // In non-Oilpan, numActiveDOMObjectsCreate() == 5.
+                    // In Oilpan, numActiveDOMObjectsCreate() <= 20.
+                    // (5 MediaKeysInitializer,
+                    //  10 MediaKeySystemAccessInitializer and
+                    //  5 ContentDecryptionModuleResultPromise).
+                    assert_between_inclusive(numActiveDOMObjectsCreated(), 5, 20);
+
+                    // |mediaKeys| refers to the most recently created MediaKeys
+                    // object.
+                    mediaKeys = result;
+
+                    // In order for the MediaKey objects to be garbage
+                    // collected, it needs time to process any pending events.
+                    return delayToAllowEventProcessingPromise();
+                }).then(function(result) {
+                    // In non-Oilpan, numActiveDOMObjectsCreated() == 5
+                    // (5 MediaKeySession objects).
+                    // In Oilpan, numActiveDOMObjectsCreated() <= 23
+                    // (5 MediaKeysInitializer,
+                    //  12 MediaKeySystemAccessInitializer,
+                    //  5 ContentDecryptionModuleResultPromise and
+                    //  1 DOMTimer (in delayToAllowEventProcessingPromise))
+                    assert_between_inclusive(numActiveDOMObjectsCreated(), 5, 23);
+
+                    // As we only have a reference (|mediaKeys|) to the last
+                    // created MediaKeys object, the other 4 MediaKeys objects
+                    // are available to be garbage collected.
+                    return createGCPromise();
+                }).then(function(result) {
+                    // Should be 1 MediaKeys and DOMTimer.
+                    assert_less_than_equal(numActiveDOMObjectsCreated(), 2);
+                    assert_equals(typeof mediaKeys.createSession, 'function');
+
+                    // Release the last MediaKeys object created.
+                    mediaKeys = null;
+
+                    // Run gc() again to reclaim the remaining MediaKeys object.
+                    return createGCPromise();
+                }).then(function(result) {
+                    // Should be just a DOMTimer.
+                    assert_less_than_equal(numActiveDOMObjectsCreated(), 1);
+                    test.done();
+                }).catch(function(error) {
+                    forceTestFailureFromPromise(test, error);
+                });
+            }, 'Multiple MediaKeys lifetime');
+        </script>
+    </body>
+</html>

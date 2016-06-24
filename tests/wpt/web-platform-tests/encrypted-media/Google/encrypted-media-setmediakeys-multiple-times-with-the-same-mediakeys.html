@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<!-- Copyright © 2016 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
+<html>
+    <head>
+        <title>setMediaKeys() multiple times with the same MediaKeys.</title>
+        <script src="encrypted-media-utils.js"></script>
+        <script src="../../resources/testharness.js"></script>
+        <script src="../../resources/testharnessreport.js"></script>
+    </head>
+    <body>
+        <video id="video"></video>
+        <div id="log"></div>
+        <script>
+            promise_test(function(test)
+            {
+                var video = document.getElementById('video');
+                var mediaKeys;
+
+                assert_equals(video.mediaKeys, null);
+
+                return navigator.requestMediaKeySystemAccess('org.w3.clearkey', [{}]).then(function(access) {
+                    return access.createMediaKeys();
+                }).then(function(result) {
+                    mediaKeys = result;
+                    assert_not_equals(mediaKeys, null);
+                    // Set mediaKeys on video should work.
+                    return video.setMediaKeys(mediaKeys);
+                }).then(function() {
+                    assert_true(video.mediaKeys === mediaKeys);
+                    // Set mediaKeys on video again should return a resolved
+                    // promise.
+                    return video.setMediaKeys(mediaKeys);
+                }).then(function() {
+                    assert_true(video.mediaKeys === mediaKeys);
+                    // Load the media element to create the WebMediaPlayer.
+                    video.src = '../content/test-encrypted.webm';
+                    // Set mediaKeys again on video should still return a
+                    // resolved promise.
+                    return video.setMediaKeys(mediaKeys);
+                }).then(function() {
+                    assert_true(video.mediaKeys === mediaKeys);
+                });
+            }, 'setMediaKeys() multiple times with the same MediaKeys.');
+        </script>
+    </body>
+</html>

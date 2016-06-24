@@ -272,28 +272,23 @@ def result_bodies(UAs, results_by_test):
 
 def generate_html(UAs, results_by_test):
     """Generate all the HTML output"""
-    doc = h(h.html([
-        h.head(h.meta(charset="utf8"),
-               h.title("Implementation Report"),
-               h.link(href="report.css", rel="stylesheet")),
-        h.body(h.h1("Implementation Report"),
-               h.h2("Summary"),
-               summary(UAs, results_by_test),
-               h.h2("Full Results"),
-               h.table(
-                   h.thead(
-                       h.tr(
-                           h.th("Test"),
-                           h.th("Subtest"),
-                           [h.th(UA) for UA in sorted(UAs)]
-                       )
-                   ),
-                   result_bodies(UAs, results_by_test)
-               )
-           )
-    ]))
-
-    return doc
+    return h(h.html(
+        h.head(
+            h.meta(charset="utf8"),
+            h.title("Implementation Report"),
+            h.link(href="report.css", rel="stylesheet")),
+        h.body(
+            h.h1("Implementation Report"),
+            h.h2("Summary"),
+            summary(UAs, results_by_test),
+            h.h2("Full Results"),
+            h.table(
+                h.thead(
+                    h.tr(
+                        h.th("Test"),
+                        h.th("Subtest"),
+                        [h.th(UA) for UA in sorted(UAs)])),
+                result_bodies(UAs, results_by_test)))))
 
 
 def main(filenames):

@@ -431,7 +431,7 @@ async_test(function(t) {
     var scope = 'resources/simple.html?cache';
     var frame;
     var cacheTypes = [
-      undefined, 'default', 'no-store', 'reload', 'no-cache', 'force-cache'
+      undefined, 'default', 'no-store', 'reload', 'no-cache', 'force-cache', 'only-if-cached'
     ];
     service_worker_unregister_and_register(t, worker, scope)
       .then(function(reg) {
@@ -443,8 +443,13 @@ async_test(function(t) {
           assert_equals(frame.contentWindow.document.body.textContent, 'default');
           var tests = cacheTypes.map(function(type) {
             return new Promise(function(resolve, reject) {
-                return frame.contentWindow.fetch(scope + '=' + type,
-                                                 {cache: type})
+                var init = {cache: type};
+                if (type === 'only-if-cached') {
+                  // For privacy reasons, for the time being, only-if-cached
+                  // requires the mode to be same-origin.
+                  init.mode = 'same-origin';
+                }
+                return frame.contentWindow.fetch(scope + '=' + type, init)
                   .then(function(response) { return response.text(); })
                   .then(function(response_text) {
                       var expected = (type === undefined) ? 'default' : type;

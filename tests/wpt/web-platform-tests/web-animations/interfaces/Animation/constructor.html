@@ -19,22 +19,42 @@ var gTestArguments = [
   {
     effect: null,
     timeline: null,
+    expectedTimeline: null,
+    expectedTimelineDescription: "null",
     description: "with null effect and null timeline"
   },
   {
     effect: null,
     timeline: document.timeline,
+    expectedTimeline: document.timeline,
+    expectedTimelineDescription: "document.timeline",
     description: "with null effect and non-null timeline"
+  },
+  {
+    effect: null,
+    expectedTimeline: document.timeline,
+    expectedTimelineDescription: "document.timeline",
+    description: "with null effect and no timeline parameter"
   },
   {
     effect: gEffect,
     timeline: null,
+    expectedTimeline: null,
+    expectedTimelineDescription: "null",
     description: "with non-null effect and null timeline"
   },
   {
     effect: gEffect,
     timeline: document.timeline,
+    expectedTimeline: document.timeline,
+    expectedTimelineDescription: "document.timeline",
     description: "with non-null effect and non-null timeline"
+  },
+  {
+    effect: gEffect,
+    expectedTimeline: document.timeline,
+    expectedTimelineDescription: "document.timeline",
+    description: "with non-null effect and no timeline parameter"
   },
 ];
 
@@ -47,9 +67,8 @@ gTestArguments.forEach(function(args) {
     assert_equals(animation.effect, args.effect,
                   "Animation returns the same effect passed to " +
                   "the Constructor");
-    assert_equals(animation.timeline, args.timeline,
-                  "Animation returns the same timeline passed to " +
-                  "the Constructor");
+    assert_equals(animation.timeline, args.expectedTimeline,
+                  "Animation timeline should be " + args.expectedTimelineDescription);
     assert_equals(animation.playState, "idle",
                   "Animation.playState should be initially 'idle'");
   }, "Animation can be constructed " + args.description);
@@ -68,6 +87,21 @@ test(function(t) {
   anim.finish();
   assert_equals(effect.getComputedTiming().progress, 1.0);
 }, "Animation constructed by an effect with null target runs normally");
+
+async_test(function(t) {
+  var iframe = document.createElement('iframe');
+
+  iframe.addEventListener('load', t.step_func(function() {
+    var div = createDiv(t, iframe.contentDocument);
+    var effect = new KeyframeEffectReadOnly(div, null, 10000);
+    var anim = new Animation(effect);
+    assert_equals(anim.timeline, document.timeline);
+    iframe.remove();
+    t.done();
+  }));
+
+  document.body.appendChild(iframe);
+}, "Animation constructed with a keyframe that target element is in iframe");
 
 </script>
 </body>
