@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#handler-xhr-onprogress" data-tested-assertations="../.." />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#event-xhr-progress" data-tested-assertations="../.." />
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-send()-method" data-tested-assertations="following::dt[@id="dom-xmlhttprequest-send-bodyinit"]/following::dd[1]/p[2] following::ol[1]/li[9]//li[1] following::ol[1]/li[9]//li[2]" />
+    <link rel="help" href="https://fetch.spec.whatwg.org/#http-fetch" data-tested-assertations="following::ol[1]/li[6]/dl/dd[1]//dd[3]" />
+    <link rel="help" href="https://fetch.spec.whatwg.org/#concept-http-redirect-fetch" data-tested-assertations="following::li[16]" />
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <title>XMLHttpRequest: The send() method: POSTing to URL that redirects</title>
+</head>
+
+<body>
+    <div id="log"></div>
+
+    <script type="text/javascript">
+    function testRedirectPost(code, shouldResendPost) {
+        var test = async_test(document.title + " (" + code + ")");
+        var actual = [];
+        // We check upload.onprogress with a boolean because it *might* fire more than once
+        var progressFiredReadyState1 = false;
+
+        var expectedHeaders, expectedEvents;
+
+        // 307 redirects should resend the POST data, and events and headers will be a little different..
+        if(shouldResendPost) {
+            expectedHeaders = { 
+                "X-Request-Content-Length": "11988",
+                "X-Request-Content-Type": "text/plain;charset=UTF-8",
+                "X-Request-Method": "POST",
+                "X-Request-Query": "NO",
+                "Content-Length": "11988"
+            }
+            expectedEvents = [
+                "xhr onreadystatechange 1",
+                "xhr loadstart 1",
+                "upload loadstart 1",
+                "upload loadend 1",
+                "xhr onreadystatechange 2",
+                "xhr onreadystatechange 3",
+                "xhr onreadystatechange 4",
+                "xhr load 4",
+                "xhr loadend 4"
+            ];
+        } else {
+            // setting the right expectations for POST resent as GET without request body
+            expectedHeaders = { 
+                "X-Request-Content-Length": "NO",
+                "X-Request-Content-Type": "NO",
+                "X-Request-Method": "GET",
+                "X-Request-Query": "NO"
+            }            
+            expectedEvents = [
+                "xhr onreadystatechange 1",
+                "xhr loadstart 1",
+                "upload loadstart 1",
+                "upload loadend 1",
+                "xhr onreadystatechange 2",
+                /* we expect no onreadystatechange readyState=3 event because there is no loading content */
+                "xhr onreadystatechange 4",
+                "xhr load 4",
+                "xhr loadend 4"
+            ];
+        }
+        test.step(function()
+        {
+            var xhr = new XMLHttpRequest();
+
+            xhr.upload.onloadstart = test.step_func(function(e) {
+                actual.push("upload loadstart " + xhr.readyState);
+            });
+            xhr.upload.onprogress = test.step_func(function(e) {
+                // events every 50ms, one final when uploading is done
+                if(xhr.readyState >= xhr.HEADERS_RECEIVED) {
+                    assert_equals(xhr.status, 200, "JS never gets to see the 30x status code");
+                }
+                progressFiredReadyState1 = xhr.readyState === xhr.OPENED;
+            });
+            xhr.upload.onloadend = test.step_func(function() {
+                actual.push("upload loadend " + xhr.readyState);
+            });
+            xhr.onloadstart = test.step_func(function() {
+                actual.push("xhr loadstart " + xhr.readyState);
+            });
+            xhr.onreadystatechange = test.step_func(function() {
+                if(xhr.readyState >= xhr.HEADERS_RECEIVED) {
+                    assert_equals(xhr.status, 200, "JS never gets to see the 30x status code");
+                }
+                actual.push("xhr onreadystatechange " + xhr.readyState);
+            });
+            xhr.onload = test.step_func(function(e)
+            {
+                actual.push("xhr load " + xhr.readyState);
+            });
+            xhr.onloadend = test.step_func(function(e)
+            {
+                actual.push("xhr loadend " + xhr.readyState);
+
+                assert_true(progressFiredReadyState1, "One progress event should fire on xhr.upload when readyState is 1");
+
+                // Headers will tell us if data was sent when expected
+                for(var header in expectedHeaders) {
+                    assert_equals(xhr.getResponseHeader(header), expectedHeaders[header], header);
+                }
+
+                assert_array_equals(actual, expectedEvents, "events firing in expected order and states");
+                test.done();
+            });
+
+            xhr.open("POST", "./resources/redirect.py?location=content.py&code=" + code, true);
+            xhr.send((new Array(1000)).join("Test Message"));
+        });
+    }
+
+
+    testRedirectPost(301, false);
+    testRedirectPost(302, false);
+    testRedirectPost(303, false);
+    testRedirectPost(307, true);
+
+    </script>
+</body>
+</html>

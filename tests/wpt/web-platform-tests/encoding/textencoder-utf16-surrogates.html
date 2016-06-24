@@ -37,18 +37,16 @@ var bad = [
     }
 ];
 
-var encoding = 'utf-8';
-
 bad.forEach(function(t) {
     test(function() {
-        var encoded = new TextEncoder(encoding).encode(t.input);
-        var decoded = new TextDecoder(encoding).decode(encoded);
+        var encoded = new TextEncoder().encode(t.input);
+        var decoded = new TextDecoder().decode(encoded);
         assert_equals(decoded, t.expected);
     }, 'USVString handling: ' + t.name);
 });
 
 test(function() {
-    assert_equals(new TextEncoder(encoding).encode().length, 0, 'Should default to empty string');
+    assert_equals(new TextEncoder().encode().length, 0, 'Should default to empty string');
 }, 'USVString default');
 
 </script>

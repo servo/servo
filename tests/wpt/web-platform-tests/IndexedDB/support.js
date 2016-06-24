@@ -101,3 +101,23 @@ function createdb_for_multiple_tests(dbname, version) {
 function assert_key_equals(actual, expected, description) {
     assert_equals(indexedDB.cmp(actual, expected), 0, description);
 }
+
+function indexeddb_test(upgrade_func, open_func, description) {
+    async_test(function(t) {
+        var dbname = document.location + '-' + t.name;
+        var del = indexedDB.deleteDatabase(dbname);
+        del.onerror = t.unreached_func('deleteDatabase should succeed');
+        var open = indexedDB.open(dbname, 1);
+        open.onerror = t.unreached_func('open should succeed');
+        open.onupgradeneeded = t.step_func(function() {
+            var db = open.result;
+            var tx = open.transaction;
+            upgrade_func(t, db, tx);
+        });
+        open.onsuccess = t.step_func(function() {
+            var db = open.result;
+            if (open_func)
+                open_func(t, db);
+        });
+    }, description);
+}

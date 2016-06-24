@@ -45,7 +45,7 @@ var badStrings = [
 
 badStrings.forEach(function(t) {
     test(function() {
-        var encoded = new TextEncoder('utf-8').encode(t.input);
+        var encoded = new TextEncoder().encode(t.input);
         assert_array_equals([].slice.call(encoded), t.expected);
         assert_equals(new TextDecoder('utf-8').decode(encoded), t.decoded);
     }, 'Invalid surrogates encoded into UTF-8: ' + t.name);

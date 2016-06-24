@@ -621,7 +621,7 @@ def check_wpt_lint_errors(files):
     if os.path.isdir(wpt_working_dir):
         site.addsitedir(wpt_working_dir)
         from tools.lint import lint
-        returncode = lint.lint(files)
+        returncode = lint.lint(wpt_working_dir, files, output_json=False)
         if returncode:
             yield ("WPT Lint Tool", "", "lint error(s) in Web Platform Tests: exit status {0}".format(returncode))
 

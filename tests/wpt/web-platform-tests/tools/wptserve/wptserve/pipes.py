@@ -399,6 +399,7 @@ def template(request, content, escape_type="html"):
                      "hostname": request.url_parts.hostname,
                      "port": request.url_parts.port,
                      "path": request.url_parts.path,
+                     "pathname": request.url_parts.path,
                      "query": "?%s" % request.url_parts.query}
         elif field == "uuid()":
             value = str(uuid.uuid4())

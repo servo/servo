@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<title>Shadow DOM: slotchange Events</title>
+<meta name="author" title="Hayato Ito" href="mailto:hayato@google.com">
+<script src="../resources/testharness.js"></script>
+<script src="../resources/testharnessreport.js"></script>
+<script src="resources/shadow-dom.js"></script>
+
+<div id="test1">
+  <div id="host1">
+    <template data-mode="open">
+      <slot id="s1" name="slot1"></slot>
+    </template>
+    <div id="c1" slot="slot1"></div>
+  </div>
+</div>
+
+<script>
+function doneIfSlotChange(slots, test) {
+  let fired = new Set();
+  for (let slot of slots) {
+    slot.addEventListener('slotchange', test.step_func((e) => {
+      assert_false(fired.has(slot.id));
+      fired.add(slot.id);
+      if (fired.size == slots.length) {
+        test.done();
+      }
+    }))
+  }
+}
+
+async_test((test) => {
+  let n = createTestTree(test1);
+  removeWhiteSpaceOnlyTextNodes(n.test1);
+
+  doneIfSlotChange([n.s1], test);
+
+  let d1 = document.createElement('div');
+  d1.setAttribute('slot', 'slot1');
+  n.host1.appendChild(d1);
+}, 'slotchange event: Append a child to a host.');
+
+async_test((test) => {
+  let n = createTestTree(test1);
+  removeWhiteSpaceOnlyTextNodes(n.test1);
+
+  doneIfSlotChange([n.s1], test);
+
+  n.c1.remove();
+}, 'slotchange event: Remove a child from a host.');
+
+async_test((test) => {
+  let n = createTestTree(test1);
+  removeWhiteSpaceOnlyTextNodes(n.test1);
+
+  n.c1.remove();
+
+  doneIfSlotChange([n.s1], test);
+}, 'slotchange event: Remove a child before adding an event listener.');
+
+async_test((test) => {
+  let n = createTestTree(test1);
+  removeWhiteSpaceOnlyTextNodes(n.test1);
+
+  doneIfSlotChange([n.s1], test);
+
+  n.c1.setAttribute('slot', 'slot-none');
+}, 'slotchange event: Change slot= attribute to make it un-assigned.');
+
+async_test((test) => {
+  let n = createTestTree(test1);
+  removeWhiteSpaceOnlyTextNodes(n.test1);
+
+  doneIfSlotChange([n.s1], test);
+
+  n.s1.setAttribute('name', 'slot-none');
+}, 'slotchange event: Change slot\'s name= attribute so that none is assigned.');
+</script>
+
+<div id="test2">
+  <div id="host1">
+    <template data-mode="open">
+      <slot id="s1" name="slot1"></slot>
+    </template>
+    <div id="c2" slot="slot2"></div>
+  </div>
+</div>
+
+<script>
+async_test((test) => {
+  let n = createTestTree(test2);
+  removeWhiteSpaceOnlyTextNodes(n.test2);
+
+  doneIfSlotChange([n.s1], test);
+
+  n.c2.setAttribute('slot', 'slot1');
+}, 'slotchange event: Change slot= attribute to make it assigned.');
+
+async_test((test) => {
+  let n = createTestTree(test2);
+  removeWhiteSpaceOnlyTextNodes(n.test2);
+
+  doneIfSlotChange([n.s1], test);
+
+  n.s1.setAttribute('name', 'slot2');
+}, 'slotchange event: Change slot\'s name= attribute so that a node is assigned to the slot.');
+</script>
+
+<div id="test_fallback">
+  <div id="host1">
+    <template data-mode="open">
+      <slot id="s1"></slot>
+    </template>
+  </div>
+</div>
+
+<script>
+async_test((test) => {
+  let n = createTestTree(test_fallback);
+  removeWhiteSpaceOnlyTextNodes(n.test_fallback);
+
+  doneIfSlotChange([n.s1], test);
+
+  n.s1.appendChild(document.createElement('div'));
+}, 'slotchange event: Add a fallback content.');
+</script>
+
+<div id="test_fallback2">
+  <div id="host1">
+    <template data-mode="open">
+      <slot id="s1">
+        <div id="f1"></div>
+      </slot>
+    </template>
+  </div>
+</div>
+
+<script>
+async_test((test) => {
+  let n = createTestTree(test_fallback2);
+  removeWhiteSpaceOnlyTextNodes(n.test_fallback2);
+
+  doneIfSlotChange([n.s1], test);
+
+  n.f1.remove();
+}, 'slotchange event: Remove a fallback content.');
+</script>
+
+<div id="test_fallback3">
+  <div id="host1">
+    <template data-mode="open">
+      <slot id="s2">
+        <slot id="s1">
+          <div id="f1"></div>
+        </slot>
+      </slot>
+    </template>
+  </div>
+</div>
+
+<script>
+async_test((test) => {
+  let n = createTestTree(test_fallback3);
+  removeWhiteSpaceOnlyTextNodes(n.test_fallback3);
+
+  doneIfSlotChange([n.s1, n.s2], test);
+
+  n.s1.appendChild(document.createElement('div'));
+}, 'slotchange event: Add a fallback content to nested slots.');
+
+async_test((test) => {
+  let n = createTestTree(test_fallback3);
+  removeWhiteSpaceOnlyTextNodes(n.test_fallback3);
+
+  doneIfSlotChange([n.s1, n.s2], test);
+
+  n.f1.remove();
+}, 'slotchange event: Remove a fallback content from nested slots.');
+</script>
+
+<div id="test3">
+  <div id="host1">
+    <template id="shadowroot" data-mode="open">
+      <slot id="s1" name="slot1"></slot>
+    </template>
+    <div id="c1" slot="slot1"></div>
+  </div>
+</div>
+
+<script>
+async_test((test) => {
+  let n = createTestTree(test3);
+  removeWhiteSpaceOnlyTextNodes(n.test3);
+
+  doneIfSlotChange([n.s1], test);
+
+  let slot = document.createElement('slot');
+  slot.setAttribute('name', 'slot1');
+  n.shadowroot.insertBefore(slot, n.s1);
+}, "slotchange event: Insert a slot before an existing slot.");
+</script>
+
+<div id="test4">
+  <div id="host1">
+    <template id="shadowroot" data-mode="open">
+      <slot id="s1" name="slot1"></slot>
+      <slot id="s2" name="slot1"></slot>
+    </template>
+    <div id="c1" slot="slot1"></div>
+  </div>
+</div>
+
+<script>
+async_test((test) => {
+  let n = createTestTree(test4);
+  removeWhiteSpaceOnlyTextNodes(n.test4);
+
+  doneIfSlotChange([n.s2], test);
+
+  n.s1.remove();
+}, "slotchange event: Remove a preceding slot.");
+</script>
+
+<div id="test5">
+  <div id="host1">
+    <template data-mode="open">
+      <div id="host2">
+        <template data-mode="open">
+          <slot id="s2" name="slot2"></slot>
+        </template>
+        <slot id="s1" name="slot1" slot="slot2"></slot>
+      </div>
+    </template>
+    <div id="c1" slot="slot1"></div>
+  </div>
+</div>
+
+<script>
+async_test((test) => {
+  let n = createTestTree(test5);
+  removeWhiteSpaceOnlyTextNodes(n.test5);
+
+  doneIfSlotChange([n.s1, n.s2], test);
+
+  n.c1.remove();
+}, "slotchange event: A slot is assigned to another slot.");
+</script>
+
+<div id="test6">
+  <div id="host1">
+    <template data-mode="open">
+      <div id="host2">
+        <template data-mode="open">
+          <slot id="s2" name="slot2"></slot>
+        </template>
+        <slot id="s1" name="slot1" slot="slot2"></slot>
+      </div>
+    </template>
+  </div>
+</div>
+
+<script>
+async_test((test) => {
+  let n = createTestTree(test6);
+  removeWhiteSpaceOnlyTextNodes(n.test6);
+
+  doneIfSlotChange([n.s2], test);
+
+  n.s1.remove();
+}, "slotchange event: Even if distributed nodes do not change, slotchange should be fired if assigned nodes are changed.");
+</script>

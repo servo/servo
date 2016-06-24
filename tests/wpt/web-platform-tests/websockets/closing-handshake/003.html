@@ -14,6 +14,7 @@ async_test(function(t) {
     ws.close();
   });
   ws.onclose = t.step_func(function(e) {
+    assert_equals(e.code, 1005, 'e.code');
     assert_equals(e.wasClean, true, 'e.wasClean');
     ws.onclose = t.step_func(function() {assert_unreached()});
     setTimeout(t.step_func(function() {t.done()}), 50);

@@ -32,7 +32,17 @@ function checkKoUrl(url, method, desc) {
 var blob2 = new Blob(["Blob's data"], { "type" : "text/plain" });
 checkKoUrl("blob:http://{{domains[www]}}:{{ports[http][0]}}/", "GET",
           "Fetching [GET] blob:http://{{domains[www]}}:{{ports[http][0]}}/ is KO");
-checkKoUrl(URL.createObjectURL(blob2), "POST",
-           "Fetching [POST] URL.createObjectURL(blob) is KO");
+
+var invalidRequestMethods = [
+  "POST",
+  "OPTIONS",
+  "HEAD",
+  "PUT",
+  "DELETE",
+  "INVALID",
+];
+invalidRequestMethods.forEach(function(method) {
+  checkKoUrl(URL.createObjectURL(blob2), method, "Fetching [" + method + "] URL.createObjectURL(blob) is KO");
+});
 
 done();

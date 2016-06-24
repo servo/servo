@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<!-- Copyright © 2016 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
+<html>
+    <head>
+        <title>MediaKeySession lifetime after release()</title>
+        <script src="encrypted-media-utils.js"></script>
+        <script src="../../resources/testharness.js"></script>
+        <script src="../../resources/testharnessreport.js"></script>
+    </head>
+    <body>
+        <div id="log"></div>
+        <script>
+            // Since MediaKeySession (and MediaKeys) are ActiveDOMObjects,
+            // we can determine when they are garbage collected.
+            // MediaKeySessions remain as long as:
+            //   JavaScript has a reference to it
+            //   OR (MediaKeys is around
+            //       AND the session has not received a close() event)
+            async_test(function(test)
+            {
+                var mediaKeys;
+                var mediaKeySession1;
+                var mediaKeySession2;
+                var initDataType;
+                var initData;
+                var startingActiveDOMObjectCount = window.internals.activeDOMObjectCount(document);
+
+                function numActiveDOMObjectsCreated()
+                {
+                    return window.internals.activeDOMObjectCount(document) - startingActiveDOMObjectCount;
+                }
+
+                // Create 2 sessions.
+                getSupportedInitDataType().then(function(type) {
+                    initDataType = type;
+                    initData = getInitData(initDataType);
+                    return navigator.requestMediaKeySystemAccess('org.w3.clearkey', [{}]);
+                }).then(function(access) {
+                    return access.createMediaKeys();
+                }).then(function(result) {
+                    mediaKeys = result;
+
+                    // Verify MediaKeys is an ActiveDOMObject.
+                    // In non-Oilpan, numActiveDOMObjectsCreate() == 1.
+                    // In Oilpan, numActiveDOMObjectsCreate() <= 4.
+                    // (1 MediaKeys,
+                    //  1 MediaKeysInitializer and
+                    //  1 MediaKeySystemAccessInitializer (navigator.requestMediaKeySystemAccess() use above),
+                    //  1 MediaKeySystemAccessInitializer (isInitDataSupported() (via getSupportedInitDataType())))
+                    assert_between_inclusive(numActiveDOMObjectsCreated(), 1, 4, 'MediaKeys.create()');
+
+                    mediaKeySession1 = mediaKeys.createSession();
+                    return mediaKeySession1.generateRequest(initDataType, initData);
+                }).then(function() {
+                    // Should be 1 MediaKeys + 1 MediaKeySession.
+                    // In non-Oilpan, numActiveDOMObjectsCreate() == 2.
+                    // In Oilpan, numActiveDOMObjectsCreate() <= 6.
+                    // (1 MediaKeys,
+                    //  1 MediaKeysInitializer,
+                    //  2 MediaKeySystemAccessInitializers,
+                    //  1 ContentDecryptionModuleResultPromise and
+                    //  1 MediaKeySession).
+                    assert_between_inclusive(numActiveDOMObjectsCreated(), 2, 6, 'MediaKeys.createSession(1)');
+
+                    mediaKeySession2 = mediaKeys.createSession();
+                    return mediaKeySession2.generateRequest(initDataType, initData);
+                }).then(function() {
+                    // Should be 1 MediaKeys + 2 MediaKeySessions.
+                    // In non-Oilpan, numActiveDOMObjectsCreate() == 3.
+                    // In Oilpan, numActiveDOMObjectsCreate() <= 8.
+                    // (1 MediaKeys,
+                    //  1 MediaKeysInitializer,
+                    //  2 MediaKeySystemAccessInitializers,
+                    //  2 ContentDecryptionModuleResultPromise and
+                    //  2 MediaKeySession).
+                    assert_between_inclusive(numActiveDOMObjectsCreated(), 3, 8, 'mediaKeys.createSession(2)');
+
+                    // Close the sessions. Once completed, only the JS
+                    // reference to them keeps them around.
+                    return mediaKeySession1.close();
+                }).then(function(result) {
+                    return mediaKeySession2.close();
+                }).then(function(result) {
+                    // Since both sessions have been closed, dropping the
+                    // reference to them from JS will result in the session
+                    // being garbage-collected.
+                    // Should be 1 MediaKeys + 2 MediaKeySessions.
+                    // In non-Oilpan, numActiveDOMObjectsCreate() == 3.
+                    // In Oilpan, numActiveDOMObjectsCreate() <= 10.
+                    // (1 MediaKeys,
+                    //  1 MediaKeysInitializer,
+                    //  2 MediaKeySystemAccessInitializers,
+                    //  4 ContentDecryptionModuleResultPromise and
+                    //  2 MediaKeySession).
+                    assert_between_inclusive(numActiveDOMObjectsCreated(), 3, 10, 'after close');
+
+                    mediaKeySession1 = null;
+                    return createGCPromise();
+                }).then(function() {
+                    // Only MediaKeys + mediaKeySession2 should remain.
+                    // In non-Oilpan, there is also something from createGCPromise().
+                    assert_between_inclusive(numActiveDOMObjectsCreated(), 2, 3, 'mediaKeySession1 not collected');
+
+                    mediaKeySession2 = null;
+                    return createGCPromise();
+                }).then(function() {
+                    // Only MediaKeys should remain.
+                    // In non-Oilpan, there is also something from createGCPromise().
+                    assert_between_inclusive(numActiveDOMObjectsCreated(), 1, 2, 'mediaKeySession2 not collected');
+                    test.done();
+                }).catch(function(error) {
+                    forceTestFailureFromPromise(test, error);
+                });
+            }, 'MediaKeySession lifetime after release()');
+        </script>
+    </body>
+</html>

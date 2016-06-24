@@ -108,22 +108,25 @@ self.addEventListener('fetch', function(event) {
                 reject(new Response(JSON.stringify({
                   result: 'failure',
                   detail: 'got '+ response.redirected +
-                          ' Response.redirected instead of ' + expectedRedirected
+                          ' Response.redirected instead of ' +
+                          expectedRedirected
                 })));
               } else {
-                // Resolve a JSON object with a failure since promise is expected
-                // to be rejected.
+                // Resolve a JSON object with a failure since promise is
+                // expected to be rejected.
                 resolve(new Response(JSON.stringify({
                   result: 'failure',
                   detail: 'got '+ response.redirected +
-                          ' Response.redirected instead of ' + expectedRedirected
+                          ' Response.redirected instead of ' +
+                          expectedRedirected
                 })));
               }
             }
           }
 
           if (params['cache']) {
-            var cacheName = "cached-fetches-" + Date.now();
+            var cacheName = "cached-fetches-" + performance.now() + "-" +
+                            event.request.url;
             var cache;
             var cachedResponse;
             return self.caches.open(cacheName).then(function(opened) {
