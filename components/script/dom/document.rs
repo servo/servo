@@ -599,6 +599,9 @@ impl Document {
     /// Reassign the focus context to the element that last requested focus during this
     /// transaction, or none if no elements requested it.
     pub fn commit_focus_transaction(&self, focus_type: FocusType) {
+        if self.focused == self.possibly_focused.get().r() {
+            return
+        }
         if let Some(ref elem) = self.focused.get() {
             let node = elem.upcast::<Node>();
             elem.set_focus_state(false);
