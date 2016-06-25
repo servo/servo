@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use cookie_rs::Cookie;
 use constellation_msg::PipelineId;
 use euclid::rect::Rect;
 use ipc_channel::ipc::IpcSender;
@@ -10,12 +11,15 @@ use url::Url;
 
 #[derive(Deserialize, Serialize)]
 pub enum WebDriverScriptCommand {
+    AddCookie(Cookie, IpcSender<Result<(), WebDriverCookieError>>),
     ExecuteScript(String, IpcSender<WebDriverJSResult>),
     ExecuteAsyncScript(String, IpcSender<WebDriverJSResult>),
     FindElementCSS(String, IpcSender<Result<Option<String>, ()>>),
     FindElementsCSS(String, IpcSender<Result<Vec<String>, ()>>),
     FocusElement(String, IpcSender<Result<(), ()>>),
     GetActiveElement(IpcSender<Option<String>>),
+    GetCookie(String, IpcSender<Vec<Cookie>>),
+    GetCookies(IpcSender<Vec<Cookie>>),
     GetElementAttribute(String, String, IpcSender<Result<Option<String>, ()>>),
     GetElementCSS(String, String, IpcSender<Result<String, ()>>),
     GetElementRect(String, IpcSender<Result<Rect<f64>, ()>>),
@@ -26,6 +30,12 @@ pub enum WebDriverScriptCommand {
     IsEnabled(String, IpcSender<Result<bool, ()>>),
     IsSelected(String, IpcSender<Result<bool, ()>>),
     GetTitle(IpcSender<String>)
+}
+
+#[derive(Deserialize, Serialize)]
+pub enum WebDriverCookieError {
+    InvalidDomain,
+    UnableToSetCookie
 }
 
 #[derive(Deserialize, Serialize)]

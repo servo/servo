@@ -6,6 +6,7 @@
 //! http://tools.ietf.org/html/rfc6265
 
 use cookie::Cookie;
+use cookie_rs;
 use net_traits::CookieSource;
 use std::cmp::Ordering;
 use url::Url;
@@ -113,5 +114,12 @@ impl CookieStorage {
             0 => None,
             _ => Some(result)
         }
+    }
+
+    pub fn cookies_data_for_url<'a>(&'a mut self, url: &'a Url, source: CookieSource) -> Box<Iterator<Item=cookie_rs::Cookie> + 'a> {
+        Box::new(self.cookies.iter_mut().filter(move |c| { c.appropriate_for_url(url, source) }).map(|c| {
+            c.touch();
+            c.cookie.clone()
+        }))
     }
 }

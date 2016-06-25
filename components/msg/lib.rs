@@ -20,6 +20,7 @@ extern crate serde;
 extern crate url;
 extern crate util;
 extern crate webrender_traits;
+extern crate cookie as cookie_rs;
 
 pub mod constellation_msg;
 pub mod webdriver_msg;
