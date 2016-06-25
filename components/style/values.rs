@@ -1176,6 +1176,7 @@ pub mod specified {
 
     #[derive(Clone, PartialEq, PartialOrd, Copy, Debug)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
+    /// An angle, normalized to radians.
     pub struct Angle(pub CSSFloat);
 
     impl ToCss for Angle {
@@ -1187,8 +1188,7 @@ pub mod specified {
     impl Angle {
         #[inline]
         pub fn radians(self) -> f32 {
-            let Angle(radians) = self;
-            radians
+            self.0
         }
     }
 
