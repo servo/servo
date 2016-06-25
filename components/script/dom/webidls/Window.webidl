@@ -11,7 +11,7 @@
   [Unforgeable] readonly attribute Document document;
   //         attribute DOMString name;
   [/*PutForwards=href, */Unforgeable] readonly attribute Location location;
-  //readonly attribute History history;
+  readonly attribute History history;
   //[Replaceable] readonly attribute BarProp locationbar;
   //[Replaceable] readonly attribute BarProp menubar;
   //[Replaceable] readonly attribute BarProp personalbar;
