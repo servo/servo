@@ -416,25 +416,26 @@ trait PrivateMatchMethods: TNode
             }
         };
 
-        // Trigger transitions if necessary. This will reset `this_style` back to its old value if
-        // it did trigger a transition.
         if animate_properties {
+            let this_opaque = self.opaque();
+            // Trigger any present animations if necessary.
+            let mut animations_started = animation::maybe_start_animations::<<Self::ConcreteElement as Element>::Impl>(
+                &context,
+                this_opaque,
+                &this_style);
+
+            // Trigger transitions if necessary. This will reset `this_style` back
+            // to its old value if it did trigger a transition.
             if let Some(ref style) = style {
-                let mut animations_started =
+                animations_started |=
                     animation::start_transitions_if_applicable::<Self::ConcreteComputedValues>(
                         &context.new_animations_sender,
-                        self.opaque(),
+                        this_opaque,
                         &**style,
                         &mut this_style);
-
-                // TODO: Take into account animation-play-state
-                animations_started |= animation::maybe_start_animations::<<Self::ConcreteElement as Element>::Impl>(
-                    &context,
-                    self.opaque(),
-                    &mut this_style);
-
-                cacheable = cacheable && !animations_started
             }
+
+            cacheable = cacheable && !animations_started
         }
 
         // Calculate style difference.
