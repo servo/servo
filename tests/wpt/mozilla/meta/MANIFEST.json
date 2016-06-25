@@ -6310,6 +6310,12 @@
             "url": "/_mozilla/mozilla/document_url.html"
           }
         ],
+        "mozilla/double_focus.html": [
+          {
+            "path": "mozilla/double_focus.html",
+            "url": "/_mozilla/mozilla/double_focus.html"
+          }
+        ],
         "mozilla/element_attribute.html": [
           {
             "path": "mozilla/element_attribute.html",
