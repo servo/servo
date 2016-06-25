@@ -23,3 +23,4 @@ script_traits = {path = "../script_traits"}
 url = {version = "1.0.0", features = ["heap_size"]}
 uuid = { version = "0.2", features = ["v4"] }
 webdriver = "0.9"
+cookie = { version = "0.2.5", features = ["serialize-serde", "serialize-rustc" ] }

@@ -24,3 +24,4 @@ serde_macros = "0.7"
 url = {version = "1.0.0", features = ["heap_size", "serde"]}
 util = {path = "../util", features = ["servo"]}
 webrender_traits = {git = "https://github.com/servo/webrender_traits"}
+cookie = { version = "0.2.5", features = ["serialize-serde", "serialize-rustc" ] }

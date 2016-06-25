@@ -10,6 +10,7 @@
 #[allow(unused_extern_crates)]
 #[macro_use]
 extern crate bitflags;
+extern crate cookie as cookie_rs;
 extern crate euclid;
 extern crate heapsize;
 extern crate hyper;
