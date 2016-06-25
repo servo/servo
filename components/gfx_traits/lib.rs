@@ -15,6 +15,7 @@ extern crate euclid;
 extern crate heapsize;
 extern crate layers;
 extern crate msg;
+extern crate profile_traits;
 #[macro_use]
 extern crate range;
 extern crate rustc_serialize;
@@ -27,7 +28,9 @@ pub use paint_listener::PaintListener;
 use azure::azure_hl::Color;
 use euclid::Matrix4D;
 use euclid::rect::Rect;
+use layers::layers::BufferRequest;
 use msg::constellation_msg::PipelineId;
+use profile_traits::mem::ReportsChan;
 use range::RangeIndex;
 use std::fmt::{self, Debug, Formatter};
 use std::sync::atomic::{ATOMIC_USIZE_INIT, AtomicUsize, Ordering};
@@ -265,4 +268,20 @@ int_range_index! {
              point to the middle of a glyph."]
     #[derive(HeapSizeOf)]
     struct ByteIndex(isize)
+}
+
+pub struct PaintRequest {
+    pub buffer_requests: Vec<BufferRequest>,
+    pub scale: f32,
+    pub layer_id: LayerId,
+    pub epoch: Epoch,
+    pub layer_kind: LayerKind,
+}
+
+pub enum ChromeToPaintMsg {
+    Paint(Vec<PaintRequest>, FrameTreeId),
+    PaintPermissionGranted,
+    PaintPermissionRevoked,
+    CollectReports(ReportsChan),
+    Exit,
 }
