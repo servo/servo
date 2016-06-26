@@ -1166,23 +1166,22 @@ class CGArgumentConverter(CGThing):
                 template, variadicConversion, declType, "slot")]
 
             arg = "arg%d" % index
-
+            init = "let mut %s = vec![]" % arg
             if argument.type.isGeckoInterface():
-                vec = "RootedVec::new()"
+                init = "rooted_vec!(%s)" % init
                 innerConverter.append(CGGeneric("%s.push(JS::from_ref(&*slot));" % arg))
             else:
-                vec = "vec![]"
                 innerConverter.append(CGGeneric("%s.push(slot);" % arg))
             inner = CGIndenter(CGList(innerConverter, "\n"), 8).define()
 
             self.converter = CGGeneric("""\
-let mut %(arg)s = %(vec)s;
+%(init)s;
 if %(argc)s > %(index)s {
     %(arg)s.reserve(%(argc)s as usize - %(index)s);
     for variadicArg in %(index)s..%(argc)s {
 %(inner)s
     }
-}""" % {'arg': arg, 'argc': argc, 'index': index, 'inner': inner, 'vec': vec})
+}""" % {'arg': arg, 'argc': argc, 'index': index, 'inner': inner, 'init': init})
 
     def define(self):
         return self.converter.define()
@@ -5605,7 +5604,6 @@ class CGBindingRoot(CGThing):
             'dom::bindings::proxyhandler::{get_expando_object, get_property_descriptor}',
             'dom::bindings::num::Finite',
             'dom::bindings::str::{ByteString, DOMString, USVString}',
-            'dom::bindings::trace::RootedVec',
             'dom::bindings::weakref::{DOM_WEAK_SLOT, WeakBox, WeakReferenceable}',
             'dom::browsingcontext::BrowsingContext',
             'mem::heap_size_of_raw_self_and_children',
