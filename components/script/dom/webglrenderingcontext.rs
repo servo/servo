@@ -33,7 +33,7 @@ use dom::webgltexture::{TexParameterValue, WebGLTexture};
 use dom::webgluniformlocation::WebGLUniformLocation;
 use euclid::size::Size2D;
 use ipc_channel::ipc::{self, IpcSender};
-use js::jsapi::{JSContext, JS_GetArrayBufferViewType, JSObject, RootedValue, Type};
+use js::jsapi::{JSContext, JS_GetArrayBufferViewType, JSObject, Type};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, JSVal, NullValue, UndefinedValue};
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache_thread::ImageResponse;
@@ -522,11 +522,11 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             WebGLParameter::Float(val) => DoubleValue(val as f64),
             WebGLParameter::FloatArray(_) => panic!("Parameter should not be float array"),
             WebGLParameter::String(val) => {
-                let mut rval = RootedValue::new(cx, UndefinedValue());
+                rooted!(in(cx) let mut rval = UndefinedValue());
                 unsafe {
                     val.to_jsval(cx, rval.handle_mut());
                 }
-                rval.ptr
+                rval.get()
             }
             WebGLParameter::Invalid => NullValue(),
         }
@@ -1267,13 +1267,13 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn GetVertexAttrib(&self, cx: *mut JSContext, index: u32, pname: u32) -> JSVal {
         if index == 0 && pname == constants::CURRENT_VERTEX_ATTRIB {
-            let mut result = RootedValue::new(cx, UndefinedValue());
+            rooted!(in(cx) let mut result = UndefinedValue());
             let (x, y, z, w) = self.current_vertex_attrib_0.get();
             let attrib = vec![x, y, z, w];
             unsafe {
                 attrib.to_jsval(cx, result.handle_mut());
             }
-            return result.ptr
+            return result.get()
         }
 
         let (sender, receiver) = ipc::channel().unwrap();
@@ -1285,11 +1285,11 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             WebGLParameter::String(_) => panic!("Vertex attrib should not be string"),
             WebGLParameter::Float(_) => panic!("Vertex attrib should not be float"),
             WebGLParameter::FloatArray(val) => {
-                let mut result = RootedValue::new(cx, UndefinedValue());
+                rooted!(in(cx) let mut result = UndefinedValue());
                 unsafe {
                     val.to_jsval(cx, result.handle_mut());
                 }
-                result.ptr
+                result.get()
             }
             WebGLParameter::Invalid => NullValue(),
         }

@@ -19,8 +19,8 @@ use js::jsapi::{JS_DefineProperty2, JS_DefineProperty4, JS_DefinePropertyById3};
 use js::jsapi::{JS_GetClass, JS_GetFunctionObject, JS_GetPrototype, JS_LinkConstructorAndPrototype};
 use js::jsapi::{JS_NewFunction, JS_NewObject, JS_NewObjectWithUniqueType};
 use js::jsapi::{JS_NewPlainObject, JS_NewStringCopyN, MutableHandleObject};
-use js::jsapi::{MutableHandleValue, ObjectOps, RootedId, RootedObject};
-use js::jsapi::{RootedString, RootedValue, SymbolCode, TrueHandleValue, Value};
+use js::jsapi::{MutableHandleValue, ObjectOps};
+use js::jsapi::{SymbolCode, TrueHandleValue, Value};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, JSVal, NullValue, UInt32Value};
 use js::rust::{define_methods, define_properties};
 use libc;
@@ -74,7 +74,7 @@ fn define_constants(
         obj: HandleObject,
         constants: &[ConstantSpec]) {
     for spec in constants {
-        let value = RootedValue::new(cx, spec.get_value());
+        rooted!(in(cx) let value = spec.get_value());
         unsafe {
             assert!(JS_DefineProperty(cx,
                                       obj,
@@ -243,13 +243,13 @@ pub unsafe fn create_interface_prototype_object(
     create_object(cx, proto, class, regular_methods, regular_properties, constants, rval);
 
     if !unscopable_names.is_empty() {
-        let mut unscopable_obj = RootedObject::new(cx, ptr::null_mut());
+        rooted!(in(cx) let mut unscopable_obj = ptr::null_mut());
         create_unscopable_object(cx, unscopable_names, unscopable_obj.handle_mut());
 
         let unscopable_symbol = GetWellKnownSymbol(cx, SymbolCode::unscopables);
         assert!(!unscopable_symbol.is_null());
 
-        let unscopable_id = RootedId::new(cx, RUST_SYMBOL_TO_JSID(unscopable_symbol));
+        rooted!(in(cx) let unscopable_id = RUST_SYMBOL_TO_JSID(unscopable_symbol));
         assert!(JS_DefinePropertyById3(
             cx, rval.handle(), unscopable_id.handle(), unscopable_obj.handle(),
             JSPROP_READONLY, None, None))
@@ -288,7 +288,7 @@ pub unsafe fn create_named_constructors(
         global: HandleObject,
         named_constructors: &[(NonNullJSNative, &[u8], u32)],
         interface_prototype_object: HandleObject) {
-    let mut constructor = RootedObject::new(cx, ptr::null_mut());
+    rooted!(in(cx) let mut constructor = ptr::null_mut());
 
     for &(native, name, arity) in named_constructors {
         assert!(*name.last().unwrap() == b'\0');
@@ -299,8 +299,8 @@ pub unsafe fn create_named_constructors(
                                  JSFUN_CONSTRUCTOR,
                                  name.as_ptr() as *const libc::c_char);
         assert!(!fun.is_null());
-        constructor.ptr = JS_GetFunctionObject(fun);
-        assert!(!constructor.ptr.is_null());
+        constructor.set(JS_GetFunctionObject(fun));
+        assert!(!constructor.is_null());
 
         assert!(JS_DefineProperty1(cx,
                                    constructor.handle(),
@@ -339,12 +339,13 @@ unsafe fn has_instance(
         // Step 1.
         return Ok(false);
     }
-    let mut value = RootedObject::new(cx, value.to_object());
+    rooted!(in(cx) let mut value = value.to_object());
 
     let js_class = JS_GetClass(interface_object.get());
     let object_class = &*(js_class as *const NonCallbackInterfaceObjectClass);
 
-    if let Ok(dom_class) = get_dom_class(UncheckedUnwrapObject(value.ptr, /* stopAtWindowProxy = */ 0)) {
+    if let Ok(dom_class) = get_dom_class(UncheckedUnwrapObject(value.get(),
+                                                               /* stopAtWindowProxy = */ 0)) {
         if dom_class.interface_chain[object_class.proto_depth as usize] == object_class.proto_id {
             // Step 4.
             return Ok(true);
@@ -355,15 +356,15 @@ unsafe fn has_instance(
     let global = GetGlobalForObjectCrossCompartment(interface_object.get());
     assert!(!global.is_null());
     let proto_or_iface_array = get_proto_or_iface_array(global);
-    let prototype = RootedObject::new(cx, (*proto_or_iface_array)[object_class.proto_id as usize]);
-    assert!(!prototype.ptr.is_null());
+    rooted!(in(cx) let prototype = (*proto_or_iface_array)[object_class.proto_id as usize]);
+    assert!(!prototype.is_null());
     // Step 3 only concern legacy callback interface objects (i.e. NodeFilter).
 
     while JS_GetPrototype(cx, value.handle(), value.handle_mut()) {
-        if value.ptr.is_null() {
+        if value.is_null() {
             // Step 5.2.
             return Ok(false);
-        } else if value.ptr as *const _ == prototype.ptr {
+        } else if value.get() as *const _ == prototype.get() {
             // Step 5.3.
             return Ok(true);
         }
@@ -433,9 +434,8 @@ pub unsafe fn define_guarded_properties(
 
 unsafe fn define_name(cx: *mut JSContext, obj: HandleObject, name: &[u8]) {
     assert!(*name.last().unwrap() == b'\0');
-    let name = RootedString::new(
-        cx, JS_AtomizeAndPinString(cx, name.as_ptr() as *const libc::c_char));
-    assert!(!name.ptr.is_null());
+    rooted!(in(cx) let name = JS_AtomizeAndPinString(cx, name.as_ptr() as *const libc::c_char));
+    assert!(!name.is_null());
     assert!(JS_DefineProperty2(cx,
                                obj,
                                b"name\0".as_ptr() as *const libc::c_char,
