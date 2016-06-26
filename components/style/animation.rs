@@ -824,9 +824,14 @@ fn interpolate_transform_list(from_list: &[TransformOperation],
                     result.push(TransformOperation::Scale(ix, iy, iz));
                 }
                 (&TransformOperation::Rotate(fx, fy, fz, fa),
-                 &TransformOperation::Rotate(_tx, _ty, _tz, _ta)) => {
-                    // TODO(gw): Implement matrix decomposition and interpolation
-                    result.push(TransformOperation::Rotate(fx, fy, fz, fa));
+                 &TransformOperation::Rotate(tx, ty, tz, ta)) => {
+                    if fx == tx && fy == ty && fz == tz {
+                        let ia = fa.interpolate(&ta, time).unwrap();
+                        result.push(TransformOperation::Rotate(fx, fy, fz, ia));
+                    } else {
+                        // TODO(gw): Implement matrix decomposition and interpolation
+                        result.push(TransformOperation::Rotate(fx, fy, fz, fa));
+                    }
                 }
                 (&TransformOperation::Perspective(fd),
                  &TransformOperation::Perspective(_td)) => {
