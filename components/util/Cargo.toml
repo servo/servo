@@ -14,11 +14,11 @@ servo = ["serde", "serde_macros", "backtrace", "ipc-channel", "app_units/plugins
          "euclid/plugins", "euclid/unstable", "url/heap_size", "url/serde"]
 
 [dependencies]
-app_units = "0.2.3"
+app_units = "0.2.5"
 backtrace = {version = "0.2.1", optional = true}
 bitflags = "0.7"
 deque = "0.3.1"
-euclid = "0.6.4"
+euclid = "0.7.1"
 getopts = "0.2.11"
 heapsize = "0.3.0"
 ipc-channel = {git = "https://github.com/servo/ipc-channel", optional = true}
@@ -29,8 +29,8 @@ num_cpus = "0.2.2"
 num-traits = "0.1.32"
 rand = "0.3"
 rustc-serialize = "0.3"
-serde = {version = "0.7", optional = true}
-serde_macros = {version = "0.7", optional = true}
+serde = {version = "0.7.11", optional = true}
+serde_macros = {version = "0.7.11", optional = true}
 smallvec = "0.1"
 url = "1.0.0"
 

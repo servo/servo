@@ -51,7 +51,7 @@ constellation = {path = "../constellation"}
 devtools = {path = "../devtools"}
 devtools_traits = {path = "../devtools_traits"}
 env_logger = "0.3"
-euclid = "0.6.4"
+euclid = "0.7.1"
 gfx = {path = "../gfx"}
 gleam = "0.2"
 glutin_app = {path = "../../ports/glutin"}
@@ -72,8 +72,16 @@ style = {path = "../style", features = ["servo"]}
 url = "1.0.0"
 util = {path = "../util"}
 webdriver_server = {path = "../webdriver_server", optional = true}
-webrender = {git = "https://github.com/servo/webrender"}
-webrender_traits = {git = "https://github.com/servo/webrender_traits"}
+
+[dependencies.webrender]
+git = "https://github.com/servo/webrender"
+default-features = false
+features = ["serde_macros"]
+
+[dependencies.webrender_traits]
+git = "https://github.com/servo/webrender_traits"
+default_features = false
+features = ["serde_macros"]
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 sig = "0.1"

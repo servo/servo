@@ -15,7 +15,7 @@ heapsize_plugin = "0.1.2"
 hyper = {version = "0.9", features = ["serde-serialization"]}
 ipc-channel = {git = "https://github.com/servo/ipc-channel"}
 msg = {path = "../msg"}
-serde = "0.7"
-serde_macros = "0.7"
+serde = "0.7.11"
+serde_macros = "0.7.11"
 time = "0.1"
 url = {version = "1.0.0", features = ["heap_size"]}
