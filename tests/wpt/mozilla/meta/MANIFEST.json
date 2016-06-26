@@ -4516,6 +4516,18 @@
             "url": "/_mozilla/css/root_pseudo_a.html"
           }
         ],
+        "css/rotate_anim.html": [
+          {
+            "path": "css/rotate_anim.html",
+            "references": [
+              [
+                "/_mozilla/css/rotate_anim_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/rotate_anim.html"
+          }
+        ],
         "css/rtl_body.html": [
           {
             "path": "css/rtl_body.html",
@@ -11596,6 +11608,18 @@
             ]
           ],
           "url": "/_mozilla/css/root_pseudo_a.html"
+        }
+      ],
+      "css/rotate_anim.html": [
+        {
+          "path": "css/rotate_anim.html",
+          "references": [
+            [
+              "/_mozilla/css/rotate_anim_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/rotate_anim.html"
         }
       ],
       "css/rtl_body.html": [
