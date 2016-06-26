@@ -15,8 +15,8 @@ ipc-channel = {git = "https://github.com/servo/ipc-channel"}
 log = "0.3.5"
 msg = {path = "../msg"}
 plugins = {path = "../plugins"}
-serde = "0.7"
+serde = "0.7.11"
 serde_json = "0.7"
-serde_macros = "0.7"
+serde_macros = "0.7.11"
 time = "0.1"
 util = {path = "../util"}

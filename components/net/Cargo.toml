@@ -38,8 +38,12 @@ unicase = "1.4.0"
 url = {version = "1.0.0", features = ["heap_size", "rustc-serialize"]}
 util = {path = "../util"}
 uuid = {version = "0.2", features = ["v4"]}
-webrender_traits = {git = "https://github.com/servo/webrender_traits"}
 websocket = "0.17"
+
+[dependencies.webrender_traits]
+git = "https://github.com/servo/webrender_traits"
+default_features = false
+features = ["serde_macros"]
 
 [target.'cfg(any(target_os = "macos", target_os = "linux"))'.dependencies]
 tinyfiledialogs = {git = "https://github.com/jdm/tinyfiledialogs"}

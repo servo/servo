@@ -19,11 +19,11 @@ servo = ["serde", "serde/nightly", "serde_macros", "heapsize", "heapsize_plugin"
          "url/heap_size"]
 
 [dependencies]
-app_units = "0.2.3"
+app_units = "0.2.5"
 bitflags = "0.7"
 cssparser = "0.5.5"
 encoding = "0.2"
-euclid = "0.6.4"
+euclid = "0.7.1"
 fnv = "1.0"
 gecko_bindings = {path = "../../ports/geckolib/gecko_bindings", optional = true}
 heapsize = {version = "0.3.0", optional = true}
@@ -34,8 +34,8 @@ matches = "0.1"
 num-traits = "0.1.32"
 rustc-serialize = "0.3"
 selectors = "0.6"
-serde = {version = "0.7", optional = true}
-serde_macros = {version = "0.7", optional = true}
+serde = {version = "0.7.11", optional = true}
+serde_macros = {version = "0.7.11", optional = true}
 smallvec = "0.1"
 string_cache = "0.2.20"
 style_traits = {path = "../style_traits"}

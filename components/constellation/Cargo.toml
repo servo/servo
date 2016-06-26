@@ -14,7 +14,7 @@ canvas_traits = {path = "../canvas_traits"}
 clipboard = {git = "https://github.com/aweinstock314/rust-clipboard"}
 compositing = {path = "../compositing"}
 devtools_traits = {path = "../devtools_traits"}
-euclid = {version = "0.6.4", features = ["plugins"]}
+euclid = "0.7.1"
 gfx = {path = "../gfx"}
 gfx_traits = {path = "../gfx_traits"}
 ipc-channel = {git = "https://github.com/servo/ipc-channel"}
@@ -28,12 +28,16 @@ plugins = {path = "../plugins"}
 profile_traits = {path = "../profile_traits"}
 rand = "0.3"
 script_traits = {path = "../script_traits"}
-serde = "0.7"
-serde_macros = "0.7"
+serde = "0.7.11"
+serde_macros = "0.7.11"
 style_traits = {path = "../style_traits"}
 url = {version = "1.0.0", features = ["heap_size"]}
 util = {path = "../util"}
-webrender_traits = {git = "https://github.com/servo/webrender_traits"}
+
+[dependencies.webrender_traits]
+git = "https://github.com/servo/webrender_traits"
+default_features = false
+features = ["serde_macros"]
 
 [target.'cfg(not(target_os = "windows"))'.dependencies]
 gaol = {git = "https://github.com/servo/gaol"}
