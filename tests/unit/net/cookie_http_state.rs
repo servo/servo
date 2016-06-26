@@ -288,7 +288,6 @@ fn test_attribute0003() {
 }
 
 #[test]
-#[should_panic] // Look at cookie_http_state_utils.py if this test fails
 fn test_attribute0004() {
     let r = run("http://home.example.org:8888/cookie-parser?attribute0004",
                 &["foo=bar; Secure="],
@@ -297,7 +296,6 @@ fn test_attribute0004() {
 }
 
 #[test]
-#[should_panic] // Look at cookie_http_state_utils.py if this test fails
 fn test_attribute0005() {
     let r = run("http://home.example.org:8888/cookie-parser?attribute0005",
                 &["foo=bar; Secure=aaaa"],
@@ -314,7 +312,6 @@ fn test_attribute0006() {
 }
 
 #[test]
-#[should_panic] // Look at cookie_http_state_utils.py if this test fails
 fn test_attribute0007() {
     let r = run("http://home.example.org:8888/cookie-parser?attribute0007",
                 &["foo=bar; Secure =aaaaa"],
@@ -323,7 +320,6 @@ fn test_attribute0007() {
 }
 
 #[test]
-#[should_panic] // Look at cookie_http_state_utils.py if this test fails
 fn test_attribute0008() {
     let r = run("http://home.example.org:8888/cookie-parser?attribute0008",
                 &["foo=bar; Secure= aaaaa"],

@@ -8,6 +8,7 @@ use chrome_loader;
 use connector::{Connector, create_http_connector};
 use content_blocker::BLOCKED_CONTENT_RULES;
 use cookie;
+use cookie_rs;
 use cookie_storage::CookieStorage;
 use data_loader;
 use devtools_traits::DevtoolsControlMsg;
@@ -277,9 +278,16 @@ impl ResourceChannelManager {
                 self.resource_manager.websocket_connect(connect, connect_data, group),
             CoreResourceMsg::SetCookiesForUrl(request, cookie_list, source) =>
                 self.resource_manager.set_cookies_for_url(request, cookie_list, source, group),
+            CoreResourceMsg::SetCookiesForUrlWithData(request, cookie, source) =>
+                self.resource_manager.set_cookies_for_url_with_data(request, cookie, source, group),
             CoreResourceMsg::GetCookiesForUrl(url, consumer, source) => {
                 let mut cookie_jar = group.cookie_jar.write().unwrap();
                 consumer.send(cookie_jar.cookies_for_url(&url, source)).unwrap();
+            }
+            CoreResourceMsg::GetCookiesDataForUrl(url, consumer, source) => {
+                let mut cookie_jar = group.cookie_jar.write().unwrap();
+                let cookies = cookie_jar.cookies_data_for_url(&url, source).collect();
+                consumer.send(cookies).unwrap();
             }
             CoreResourceMsg::Cancel(res_id) => {
                 if let Some(cancel_sender) = self.resource_manager.cancel_load_map.get(&res_id) {
@@ -485,6 +493,14 @@ impl CoreResourceManager {
                     cookie_jar.push(cookie, source);
                 }
             }
+        }
+    }
+
+    fn set_cookies_for_url_with_data(&mut self, request: Url, cookie: cookie_rs::Cookie, source: CookieSource,
+                                     resource_group: &ResourceGroup) {
+        if let Some(cookie) = cookie::Cookie::new_wrapped(cookie, &request, source) {
+            let mut cookie_jar = resource_group.cookie_jar.write().unwrap();
+            cookie_jar.push(cookie, source)
         }
     }
 

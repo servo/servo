@@ -12,6 +12,7 @@
 
 #![deny(unsafe_code)]
 
+extern crate cookie as cookie_rs;
 extern crate heapsize;
 extern crate hyper;
 extern crate image as piston_image;
@@ -28,6 +29,7 @@ extern crate util;
 extern crate uuid;
 extern crate websocket;
 
+use cookie_rs::Cookie;
 use filemanager_thread::FileManagerThreadMsg;
 use heapsize::HeapSizeOf;
 use hyper::header::{ContentType, Headers};
@@ -423,8 +425,12 @@ pub enum CoreResourceMsg {
     WebsocketConnect(WebSocketCommunicate, WebSocketConnectData),
     /// Store a set of cookies for a given originating URL
     SetCookiesForUrl(Url, String, CookieSource),
+    /// Store a set of cookies for a given originating URL
+    SetCookiesForUrlWithData(Url, Cookie, CookieSource),
     /// Retrieve the stored cookies for a given URL
     GetCookiesForUrl(Url, IpcSender<Option<String>>, CookieSource),
+    /// Get a cookie by name for a given originating URL
+    GetCookiesDataForUrl(Url, IpcSender<Vec<Cookie>>, CookieSource),
     /// Cancel a network request corresponding to a given `ResourceId`
     Cancel(ResourceId),
     /// Synchronization message solely for knowing the state of the ResourceChannelManager loop
