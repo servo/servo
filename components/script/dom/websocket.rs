@@ -23,7 +23,7 @@ use dom::eventtarget::EventTarget;
 use dom::messageevent::MessageEvent;
 use dom::urlhelper::UrlHelper;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
-use js::jsapi::{JSAutoCompartment, RootedValue};
+use js::jsapi::JSAutoCompartment;
 use js::jsapi::{JS_GetArrayBufferData, JS_NewArrayBuffer};
 use js::jsval::UndefinedValue;
 use libc::{uint32_t, uint8_t};
@@ -585,7 +585,7 @@ impl Runnable for MessageReceivedTask {
         unsafe {
             let cx = global.r().get_cx();
             let _ac = JSAutoCompartment::new(cx, ws.reflector().get_jsobject().get());
-            let mut message = RootedValue::new(cx, UndefinedValue());
+            rooted!(in(cx) let mut message = UndefinedValue());
             match self.message {
                 MessageData::Text(text) => text.to_jsval(cx, message.handle_mut()),
                 MessageData::Binary(data) => {

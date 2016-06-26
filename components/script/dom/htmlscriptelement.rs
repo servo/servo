@@ -30,7 +30,6 @@ use html5ever::tree_builder::NextParserState;
 use hyper::http::RawStatus;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
-use js::jsapi::RootedValue;
 use js::jsval::UndefinedValue;
 use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata, NetworkError};
 use network_listener::{NetworkListener, PreInvoke};
@@ -441,7 +440,7 @@ impl HTMLScriptElement {
         // Step 2.b.6.
         // TODO: Create a script...
         let window = window_from_node(self);
-        let mut rval = RootedValue::new(window.get_cx(), UndefinedValue());
+        rooted!(in(window.get_cx()) let mut rval = UndefinedValue());
         window.evaluate_script_on_global_with_result(&*source,
                                                          url.as_str(),
                                                          rval.handle_mut());
