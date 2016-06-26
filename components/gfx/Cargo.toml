@@ -52,8 +52,8 @@ core-graphics = "0.3"
 core-text = "1.1"
 
 [target.'cfg(any(target_os = "linux", target_os = "android", target_os = "windows"))'.dependencies]
-servo-fontconfig = "0.2"
 freetype = {git = "https://github.com/servo/rust-freetype"}
+servo-fontconfig = "0.2"
 
 [target.'cfg(any(target_arch = "x86_64", target_arch = "aarch64"))'.dependencies]
 simd = {git = "https://github.com/huonw/simd"}

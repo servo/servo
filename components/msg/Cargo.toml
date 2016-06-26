@@ -10,6 +10,7 @@ path = "lib.rs"
 
 [dependencies]
 bitflags = "0.7"
+cookie = { version = "0.2.5", features = ["serialize-rustc", "serialize-serde"]}
 cssparser = {version = "0.5.4", features = ["heap_size", "serde-serialization"]}
 euclid = {version = "0.6.4", features = ["plugins"]}
 heapsize = "0.3.0"
@@ -24,4 +25,3 @@ serde_macros = "0.7"
 url = {version = "1.0.0", features = ["heap_size", "serde"]}
 util = {path = "../util", features = ["servo"]}
 webrender_traits = {git = "https://github.com/servo/webrender_traits"}
-cookie = { version = "0.2.5", features = ["serialize-serde", "serialize-rustc" ] }
