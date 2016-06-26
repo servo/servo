@@ -24,7 +24,6 @@ pub fn update_animation_state(constellation_chan: &IpcSender<ConstellationMsg>,
                               expired_animations: &mut HashMap<OpaqueNode, Vec<Animation>>,
                               new_animations_receiver: &Receiver<Animation>,
                               pipeline_id: PipelineId) {
-    let now = time::precise_time_s();
     let mut new_running_animations = vec![];
     while let Ok(animation) = new_animations_receiver.try_recv() {
         let should_push = match animation {
@@ -69,6 +68,7 @@ pub fn update_animation_state(constellation_chan: &IpcSender<ConstellationMsg>,
         return
     }
 
+    let now = time::precise_time_s();
     // Expire old running animations.
     let mut keys_to_remove = vec![];
     for (key, running_animations) in running_animations.iter_mut() {
