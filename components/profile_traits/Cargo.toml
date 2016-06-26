@@ -16,6 +16,6 @@ ipc-channel = {git = "https://github.com/servo/ipc-channel"}
 energymon = {git = "https://github.com/energymon/energymon-rust.git", optional = true}
 energy-monitor = {version = "0.2.0", optional = true}
 plugins = {path = "../plugins"}
-serde = "0.7"
-serde_macros = "0.7"
+serde = "0.7.11"
+serde_macros = "0.7.11"
 time = "0.1.12"

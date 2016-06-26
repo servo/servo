@@ -18,4 +18,4 @@ heap_size = []
 gecko_bindings = {version = "0.0.1", path = "../gecko_bindings"}
 heapsize = "0.3.5"
 libc = "0.2"
-serde = "0.7"
+serde = "0.7.11"

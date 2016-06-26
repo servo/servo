@@ -16,5 +16,9 @@ net_traits = {path = "../net_traits"}
 profile_traits = {path = "../profile_traits"}
 util = {path = "../util"}
 ipc-channel = {git = "https://github.com/servo/ipc-channel"}
-webrender_traits = {git = "https://github.com/servo/webrender_traits"}
 url = {version = "1.0.0", features = ["heap_size"]}
+
+[dependencies.webrender_traits]
+git = "https://github.com/servo/webrender_traits"
+default_features = false
+features = ["serde_macros"]

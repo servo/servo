@@ -9,9 +9,9 @@ name = "layout_thread"
 path = "lib.rs"
 
 [dependencies]
-app_units = {version = "0.2.3", features = ["plugins"]}
+app_units = "0.2.5"
 azure = {git = "https://github.com/servo/rust-azure", features = ["plugins"]}
-euclid = {version = "0.6.4", features = ["plugins"]}
+euclid = "0.7.1"
 fnv = "1.0"
 gfx = {path = "../gfx"}
 gfx_traits = {path = "../gfx_traits"}
@@ -33,4 +33,8 @@ serde_macros = "0.7"
 style = {path = "../style"}
 url = {version = "1.0.0", features = ["heap_size"]}
 util = {path = "../util"}
-webrender_traits = {git = "https://github.com/servo/webrender_traits"}
+
+[dependencies.webrender_traits]
+git = "https://github.com/servo/webrender_traits"
+default_features = false
+features = ["serde_macros"]
