@@ -89,13 +89,14 @@ impl KeyframesAnimationState {
             KeyframesRunningState::Running => {},
         }
 
-        let still_running = match self.iteration_state {
-            KeyframesIterationState::Finite(ref mut current, ref max) => {
-                *current += 1;
-                *current < *max
+        if let KeyframesIterationState::Finite(ref mut current, ref max) = self.iteration_state {
+            *current += 1;
+            // NB: This prevent us from updating the direction, which might be
+            // needed for the correct handling of animation-fill-mode.
+            if *current >= *max {
+                return false;
             }
-            KeyframesIterationState::Infinite => true,
-        };
+        }
 
         // Update the next iteration direction if applicable.
         match self.direction {
@@ -110,7 +111,7 @@ impl KeyframesAnimationState {
             _ => {},
         }
 
-        still_running
+        true
     }
 
     /// Updates the appropiate state from other animation.
@@ -135,8 +136,6 @@ impl KeyframesAnimationState {
 
         let mut new_started_at = old_started_at;
 
-        println!("running: {:?}, {:?}", self.running_state, old_running_state);
-
         // If we're unpausing the animation, fake the start time so we seem to
         // restore it.
         //
@@ -152,8 +151,6 @@ impl KeyframesAnimationState {
                 => *progress = (time::precise_time_s() - old_started_at) / old_duration,
             _ => {},
         }
-
-        println!("running after: {:?}", self.running_state);
 
         self.current_direction = old_direction;
         self.started_at = new_started_at;
