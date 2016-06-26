@@ -28,7 +28,6 @@ use dom::bindings::js::RootedReference;
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap};
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::str::{DOMString, USVString};
-use dom::bindings::trace::RootedVec;
 use dom::bindings::xmlname::namespace_from_domstring;
 use dom::characterdata::{CharacterData, LayoutCharacterDataHelpers};
 use dom::document::{Document, DocumentSource, IsHTMLDocument};
@@ -1559,7 +1558,7 @@ impl Node {
                 parent.ranges.increase_above(parent, index, count);
             }
         }
-        let mut new_nodes = RootedVec::new();
+        rooted_vec!(let mut new_nodes = vec![]);
         let new_nodes = if let NodeTypeId::DocumentFragment = node.type_id() {
             // Step 3.
             new_nodes.extend(node.children().map(|kid| JS::from_ref(&*kid)));
@@ -1603,9 +1602,9 @@ impl Node {
             Node::adopt(node, &*parent.owner_doc());
         }
         // Step 2.
-        let removed_nodes = parent.children().collect::<RootedVec<_>>();
+        rooted_vec!(let removed_nodes = parent.children().map(|child| JS::from_ref(&*child)));
         // Step 3.
-        let mut added_nodes = RootedVec::new();
+        rooted_vec!(let mut added_nodes = vec![]);
         let added_nodes = if let Some(node) = node.as_ref() {
             if let NodeTypeId::DocumentFragment = node.type_id() {
                 added_nodes.extend(node.children().map(|child| JS::from_ref(&*child)));
@@ -2149,7 +2148,7 @@ impl NodeMethods for Node {
         };
 
         // Step 12.
-        let mut nodes = RootedVec::new();
+        rooted_vec!(let mut nodes = vec![]);
         let nodes = if node.type_id() == NodeTypeId::DocumentFragment {
             nodes.extend(node.children().map(|node| JS::from_ref(&*node)));
             nodes.r()
