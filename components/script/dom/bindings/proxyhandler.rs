@@ -13,7 +13,7 @@ use js::glue::InvokeGetOwnPropertyDescriptor;
 use js::glue::{GetProxyHandler, SetProxyExtra};
 use js::jsapi::GetObjectProto;
 use js::jsapi::JS_GetPropertyDescriptorById;
-use js::jsapi::{Handle, HandleId, HandleObject, MutableHandle, ObjectOpResult, RootedObject};
+use js::jsapi::{Handle, HandleId, HandleObject, MutableHandle, ObjectOpResult};
 use js::jsapi::{JSContext, JSObject, JSPROP_GETTER, PropertyDescriptor};
 use js::jsapi::{JSErrNum, JS_StrictPropertyStub};
 use js::jsapi::{JS_DefinePropertyById, JS_NewObjectWithGivenProto};
@@ -30,19 +30,19 @@ static JSPROXYSLOT_EXPANDO: u32 = 0;
 pub unsafe extern "C" fn get_property_descriptor(cx: *mut JSContext,
                                                  proxy: HandleObject,
                                                  id: HandleId,
-                                                 desc: MutableHandle<PropertyDescriptor>)
+                                                 mut desc: MutableHandle<PropertyDescriptor>)
                                                  -> bool {
     let handler = GetProxyHandler(proxy.get());
     if !InvokeGetOwnPropertyDescriptor(handler, cx, proxy, id, desc) {
         return false;
     }
-    if !desc.get().obj.is_null() {
+    if !desc.obj.is_null() {
         return true;
     }
 
-    let mut proto = RootedObject::new(cx, ptr::null_mut());
+    rooted!(in(cx) let mut proto = ptr::null_mut());
     if !GetObjectProto(cx, proxy, proto.handle_mut()) {
-        desc.get().obj = ptr::null_mut();
+        desc.obj = ptr::null_mut();
         return true;
     }
 
@@ -65,7 +65,7 @@ pub unsafe extern "C" fn define_property(cx: *mut JSContext,
         return true;
     }
 
-    let expando = RootedObject::new(cx, ensure_expando_object(cx, proxy));
+    rooted!(in(cx) let expando = ensure_expando_object(cx, proxy));
     JS_DefinePropertyById(cx, expando.handle(), id, desc, result)
 }
 
@@ -75,8 +75,8 @@ pub unsafe extern "C" fn delete(cx: *mut JSContext,
                                 id: HandleId,
                                 bp: *mut ObjectOpResult)
                                 -> bool {
-    let expando = RootedObject::new(cx, get_expando_object(proxy));
-    if expando.ptr.is_null() {
+    rooted!(in(cx) let expando = get_expando_object(proxy));
+    if expando.is_null() {
         (*bp).code_ = 0 /* OkCode */;
         return true;
     }
