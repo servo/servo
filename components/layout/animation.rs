@@ -26,36 +26,25 @@ pub fn update_animation_state(constellation_chan: &IpcSender<ConstellationMsg>,
                               pipeline_id: PipelineId) {
     let mut new_running_animations = vec![];
     while let Ok(animation) = new_animations_receiver.try_recv() {
-        let should_push = match animation {
-            Animation::Transition(..) => true,
-            Animation::Keyframes(ref node, ref name, ref state) => {
-                // If the animation was already present in the list for the
-                // node, just update its state, else push the new animation to
-                // run.
-                if let Some(ref mut animations) = running_animations.get_mut(node) {
-                    // TODO: This being linear is probably not optimal.
-                    // Also, we should move this logic somehow.
-                    match animations.iter_mut().find(|anim| match **anim {
-                        Animation::Keyframes(_, ref anim_name, _) => *name == *anim_name,
-                        Animation::Transition(..) => false,
-                    }) {
-                        Some(mut anim) => {
+        let mut should_push = true;
+        if let Animation::Keyframes(ref node, ref name, ref state) = animation {
+            // If the animation was already present in the list for the
+            // node, just update its state, else push the new animation to
+            // run.
+            if let Some(ref mut animations) = running_animations.get_mut(node) {
+                // TODO: This being linear is probably not optimal.
+                for mut anim in animations.iter_mut() {
+                    if let Animation::Keyframes(_, ref anim_name, ref mut anim_state) = *anim {
+                        if *name == *anim_name {
                             debug!("update_animation_state: Found other animation {}", name);
-                            match *anim {
-                                Animation::Keyframes(_, _, ref mut anim_state) => {
-                                    anim_state.update_from_other(&state);
-                                    false
-                                }
-                                _ => unreachable!(),
-                            }
+                            anim_state.update_from_other(&state);
+                            should_push = false;
+                            break;
                         }
-                        None => true,
                     }
-                } else {
-                    true
                 }
             }
-        };
+        }
 
         if should_push {
             new_running_animations.push(animation);
@@ -70,6 +59,10 @@ pub fn update_animation_state(constellation_chan: &IpcSender<ConstellationMsg>,
 
     let now = time::precise_time_s();
     // Expire old running animations.
+    //
+    // TODO: Do not expunge Keyframes animations, since we need that state if
+    // the animation gets re-triggered. Probably worth splitting in two
+    // different maps, or at least using a linked list?
     let mut keys_to_remove = vec![];
     for (key, running_animations) in running_animations.iter_mut() {
         let mut animations_still_running = vec![];
