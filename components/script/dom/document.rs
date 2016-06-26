@@ -28,7 +28,6 @@ use dom::bindings::num::Finite;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::str::{DOMString, USVString};
-use dom::bindings::trace::RootedVec;
 use dom::bindings::xmlname::XMLName::InvalidXMLName;
 use dom::bindings::xmlname::{validate_and_extract, namespace_from_domstring, xml_name_type};
 use dom::browsingcontext::BrowsingContext;
@@ -1009,18 +1008,13 @@ impl Document {
             }
         }
 
-        let mut touches = RootedVec::new();
-        touches.extend(self.active_touch_points.borrow().iter().cloned());
-
-        let mut changed_touches = RootedVec::new();
-        changed_touches.push(JS::from_ref(&*touch));
-
-        let mut target_touches = RootedVec::new();
-        target_touches.extend(self.active_touch_points
-                                  .borrow()
-                                  .iter()
-                                  .filter(|t| t.Target() == target)
-                                  .cloned());
+        rooted_vec!(let touches = self.active_touch_points.borrow().iter().cloned());
+        rooted_vec!(let changed_touches = Some(JS::from_ref(&*touch)));
+        rooted_vec!(let target_touches = self.active_touch_points
+                                             .borrow()
+                                             .iter()
+                                             .filter(|t| t.Target() == target)
+                                             .cloned());
 
         let event = TouchEvent::new(window,
                                     DOMString::from(event_name),
