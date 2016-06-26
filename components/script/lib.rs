@@ -6,7 +6,7 @@
 #![feature(borrow_state)]
 #![feature(box_syntax)]
 #![feature(const_fn)]
-#![feature(core_intrinsics)]
+#![cfg_attr(debug_assertions, feature(core_intrinsics))]
 #![feature(custom_attribute)]
 #![feature(custom_derive)]
 #![feature(fnbox)]
