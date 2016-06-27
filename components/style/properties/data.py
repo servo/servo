@@ -58,7 +58,7 @@ def is_known_animatable_property(name):
 def is_not_supported_animatable_property(name):
     return name in [
         "flex-basis", "column-width", "column-height", "column-count",
-        "column-gap", "box-shadow", "clip", "filter", "transform-origin",
+        "column-gap", "clip", "filter", "transform-origin",
         "perspective-origin", "font-stretch", "letter-spacing", "word-spacing",
         "text-decoration"
     ]
