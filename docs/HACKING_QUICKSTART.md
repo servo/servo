@@ -9,7 +9,7 @@ on the [Github Workflow](https://github.com/servo/servo/wiki/Github-workflow) an
 
 ## Building Servo
 
-Building Servo is quite easy. Install the prerequisites described in the [README](./README.md) file. Then type:
+Building Servo is quite easy. Install the prerequisites described in the [README](../README.md) file. Then type:
 
 ```shell
 ./mach build -d
