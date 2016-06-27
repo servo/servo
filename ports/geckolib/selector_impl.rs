@@ -16,6 +16,7 @@ pub type PrivateStyleData = style::data::PrivateStyleData<GeckoSelectorImpl, Gec
 #[cfg(feature = "servo_features")]
 known_heap_size!(0, GeckoSelectorImpl, PseudoElement, NonTSPseudoClass);
 
+#[derive(Debug, Clone)]
 pub struct GeckoSelectorImpl;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
