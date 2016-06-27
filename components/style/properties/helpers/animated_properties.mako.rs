@@ -148,10 +148,14 @@ impl AnimatedProperty {
     }
 }
 
+/// A trait used to implement [interpolation][interpolated-types].
+///
+/// [interpolated-types]: https://drafts.csswg.org/css-transitions/#interpolated-types
 pub trait Interpolate: Sized {
     fn interpolate(&self, other: &Self, time: f64) -> Option<Self>;
 }
 
+/// https://drafts.csswg.org/css-transitions/#animtype-number
 impl Interpolate for Au {
     #[inline]
     fn interpolate(&self, other: &Au, time: f64) -> Option<Au> {
@@ -173,6 +177,7 @@ impl <T> Interpolate for Option<T> where T: Interpolate {
     }
 }
 
+/// https://drafts.csswg.org/css-transitions/#animtype-number
 impl Interpolate for f32 {
     #[inline]
     fn interpolate(&self, other: &f32, time: f64) -> Option<f32> {
@@ -180,6 +185,7 @@ impl Interpolate for f32 {
     }
 }
 
+/// https://drafts.csswg.org/css-transitions/#animtype-number
 impl Interpolate for f64 {
     #[inline]
     fn interpolate(&self, other: &f64, time: f64) -> Option<f64> {
@@ -187,6 +193,7 @@ impl Interpolate for f64 {
     }
 }
 
+/// https://drafts.csswg.org/css-transitions/#animtype-number
 impl Interpolate for i32 {
     #[inline]
     fn interpolate(&self, other: &i32, time: f64) -> Option<i32> {
@@ -196,6 +203,7 @@ impl Interpolate for i32 {
     }
 }
 
+/// https://drafts.csswg.org/css-transitions/#animtype-number
 impl Interpolate for Angle {
     #[inline]
     fn interpolate(&self, other: &Angle, time: f64) -> Option<Angle> {
@@ -203,6 +211,7 @@ impl Interpolate for Angle {
     }
 }
 
+/// https://drafts.csswg.org/css-transitions/#animtype-visibility
 impl Interpolate for Visibility {
     #[inline]
     fn interpolate(&self, other: &Visibility, time: f64)
@@ -222,6 +231,7 @@ impl Interpolate for Visibility {
     }
 }
 
+/// https://drafts.csswg.org/css-transitions/#animtype-integer
 impl Interpolate for ZIndex {
     #[inline]
     fn interpolate(&self, other: &ZIndex, time: f64)
@@ -278,6 +288,7 @@ impl Interpolate for BorderRadiusSize {
     }
 }
 
+/// https://drafts.csswg.org/css-transitions/#animtype-integer
 impl Interpolate for VerticalAlign {
     #[inline]
     fn interpolate(&self, other: &VerticalAlign, time: f64)
@@ -306,6 +317,7 @@ impl Interpolate for BorderSpacing {
     }
 }
 
+/// https://drafts.csswg.org/css-transitions/#animtype-color
 impl Interpolate for RGBA {
     #[inline]
     fn interpolate(&self, other: &RGBA, time: f64) -> Option<RGBA> {
