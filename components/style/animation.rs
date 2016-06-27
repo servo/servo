@@ -4,7 +4,6 @@
 
 //! CSS transitions and animations.
 
-use app_units::Au;
 use bezier::Bezier;
 use context::SharedStyleContext;
 use dom::{OpaqueNode, TRestyleDamage};

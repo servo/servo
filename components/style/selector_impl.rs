@@ -63,7 +63,9 @@ pub trait ElementExt: Element {
     fn is_link(&self) -> bool;
 }
 
-pub trait SelectorImplExt : SelectorImpl + Debug + Sized {
+// NB: The `Clone` trait is here for convenience due to:
+// https://github.com/rust-lang/rust/issues/26925
+pub trait SelectorImplExt : SelectorImpl + Clone + Debug + Sized {
     type ComputedValues: properties::ComputedValues;
 
     fn pseudo_element_cascade_type(pseudo: &Self::PseudoElement) -> PseudoElementCascadeType;
