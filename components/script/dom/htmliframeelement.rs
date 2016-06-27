@@ -36,7 +36,7 @@ use dom::urlhelper::UrlHelper;
 use dom::virtualmethods::VirtualMethods;
 use dom::window::{ReflowReason, Window};
 use ipc_channel::ipc;
-use js::jsapi::{JSAutoCompartment, RootedValue, JSContext, MutableHandleValue};
+use js::jsapi::{JSAutoCompartment, JSContext, MutableHandleValue};
 use js::jsval::{UndefinedValue, NullValue};
 use msg::constellation_msg::{FrameType, LoadData, NavigationDirection, PipelineId, SubpageId};
 use net_traits::response::HttpsState;
@@ -171,7 +171,7 @@ impl HTMLIFrameElement {
             let custom_event = unsafe {
                 let cx = window.get_cx();
                 let _ac = JSAutoCompartment::new(cx, window.reflector().get_jsobject().get());
-                let mut detail = RootedValue::new(cx, UndefinedValue());
+                rooted!(in(cx) let mut detail = UndefinedValue());
                 let event_name = Atom::from(event.name());
                 self.build_mozbrowser_event_detail(event, cx, detail.handle_mut());
                 CustomEvent::new(GlobalRef::Window(window.r()),
