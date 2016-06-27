@@ -160,7 +160,22 @@ def _activate_virtualenv(topdir):
         open(marker_path, 'w').close()
 
 
+def _ensure_case_insensitive_if_windows():
+    # The folder is called 'python'. By deliberately checking for it with the wrong case, we determine if the file
+    # system is case sensitive or not.
+    if _is_windows() and not os.path.exists('Python'):
+        print('Cannot run mach in a path on a case-sensitive file system on Windows.')
+        print('For more details, see https://github.com/pypa/virtualenv/issues/935')
+        sys.exit(1)
+
+
+def _is_windows():
+    return sys.platform == 'win32' or sys.platform == 'msys'
+
+
 def bootstrap(topdir):
+    _ensure_case_insensitive_if_windows()
+
     topdir = os.path.abspath(topdir)
 
     # We don't support paths with Unicode characters for now
