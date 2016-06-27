@@ -386,7 +386,7 @@ trait PrivateMatchMethods: TNode
             cacheable = !self.update_animations_for_cascade(context, &mut style) && cacheable;
         }
 
-        let mut this_style;
+        let this_style;
         match parent_style {
             Some(ref parent_style) => {
                 let cache_entry = applicable_declarations_cache.find(applicable_declarations);
@@ -416,6 +416,8 @@ trait PrivateMatchMethods: TNode
             }
         };
 
+        let mut this_style = Arc::new(this_style);
+
         if animate_properties {
             let this_opaque = self.opaque();
             // Trigger any present animations if necessary.
@@ -428,7 +430,7 @@ trait PrivateMatchMethods: TNode
             // to its old value if it did trigger a transition.
             if let Some(ref style) = style {
                 animations_started |=
-                    animation::start_transitions_if_applicable::<Self::ConcreteComputedValues>(
+                    animation::start_transitions_if_applicable::<<Self::ConcreteElement as Element>::Impl>(
                         &context.new_animations_sender,
                         this_opaque,
                         &**style,
@@ -439,7 +441,6 @@ trait PrivateMatchMethods: TNode
         }
 
         // Calculate style difference.
-        let this_style = Arc::new(this_style);
         let damage = Self::ConcreteRestyleDamage::compute(style.map(|s| &*s), &*this_style);
 
         // Cache the resolved style if it was cacheable.

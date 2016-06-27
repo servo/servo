@@ -14,16 +14,17 @@ use script_traits::{AnimationState, LayoutMsg as ConstellationMsg};
 use std::collections::HashMap;
 use std::sync::mpsc::Receiver;
 use style::animation::{Animation, update_style_for_animation};
+use style::selector_impl::{SelectorImplExt, ServoSelectorImpl};
 use time;
 
 /// Processes any new animations that were discovered after style recalculation.
 /// Also expire any old animations that have completed, inserting them into
 /// `expired_animations`.
-pub fn update_animation_state(constellation_chan: &IpcSender<ConstellationMsg>,
-                              running_animations: &mut HashMap<OpaqueNode, Vec<Animation>>,
-                              expired_animations: &mut HashMap<OpaqueNode, Vec<Animation>>,
-                              new_animations_receiver: &Receiver<Animation>,
-                              pipeline_id: PipelineId) {
+pub fn update_animation_state<Impl: SelectorImplExt>(constellation_chan: &IpcSender<ConstellationMsg>,
+                                                     running_animations: &mut HashMap<OpaqueNode, Vec<Animation<Impl>>>,
+                                                     expired_animations: &mut HashMap<OpaqueNode, Vec<Animation<Impl>>>,
+                                                     new_animations_receiver: &Receiver<Animation<Impl>>,
+                                                     pipeline_id: PipelineId) {
     let mut new_running_animations = vec![];
     while let Ok(animation) = new_animations_receiver.try_recv() {
         let mut should_push = true;
@@ -118,9 +119,13 @@ pub fn update_animation_state(constellation_chan: &IpcSender<ConstellationMsg>,
 
 /// Recalculates style for a set of animations. This does *not* run with the DOM
 /// lock held.
+// NB: This is specific for ServoSelectorImpl, since the layout context and the
+// flows are ServoSelectorImpl specific too. If that goes away at some point,
+// this should be made generic.
 pub fn recalc_style_for_animations(context: &SharedLayoutContext,
                                    flow: &mut Flow,
-                                   animations: &HashMap<OpaqueNode, Vec<Animation>>) {
+                                   animations: &HashMap<OpaqueNode,
+                                                        Vec<Animation<ServoSelectorImpl>>>) {
     let mut damage = RestyleDamage::empty();
     flow.mutate_fragments(&mut |fragment| {
         if let Some(ref animations) = animations.get(&fragment.node) {
