@@ -4753,9 +4753,7 @@ class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
         return indexed + """\
 let expando = RootedObject::new(cx, get_expando_object(proxy));
 if !expando.ptr.is_null() {
-    let mut b = true;
-    let ok = JS_HasPropertyById(cx, expando.handle(), id, &mut b);
-    *bp = b;
+    let ok = JS_HasPropertyById(cx, expando.handle(), id, bp);
     if !ok || *bp {
         return ok;
     }
