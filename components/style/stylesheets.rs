@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::{AtRuleParser, Parser, QualifiedRuleParser, decode_stylesheet_bytes};
-use cssparser::{AtRuleType, RuleListParser};
+use cssparser::{AtRuleType, RuleListParser, Token};
 use encoding::EncodingRef;
 use error_reporting::ParseErrorReporter;
 use font_face::{FontFaceRule, parse_font_face_block};
@@ -504,7 +504,12 @@ impl<'a, 'b, Impl: SelectorImpl> AtRuleParser for NestedRuleParser<'a, 'b, Impl>
                 }
             },
             "keyframes" => {
-                let name = try!(input.expect_ident());
+                let name = match input.next() {
+                    Ok(Token::Ident(ref value)) if value != "none" => Atom::from(&**value),
+                    Ok(Token::QuotedString(value)) => Atom::from(&*value),
+                    _ => return Err(())
+                };
+
                 Ok(AtRuleType::WithBlock(AtRulePrelude::Keyframes(Atom::from(name))))
             },
             _ => Err(())
@@ -528,7 +533,7 @@ impl<'a, 'b, Impl: SelectorImpl> AtRuleParser for NestedRuleParser<'a, 'b, Impl>
             AtRulePrelude::Keyframes(name) => {
                 Ok(CSSRule::Keyframes(KeyframesRule {
                     name: name,
-                    keyframes: try!(parse_keyframe_list(&self.context, input)),
+                    keyframes: parse_keyframe_list(&self.context, input),
                 }))
             }
         }

@@ -6,7 +6,7 @@ use bezier::Bezier;
 use context::SharedStyleContext;
 use dom::{OpaqueNode, TRestyleDamage};
 use euclid::point::Point2D;
-use keyframes::KeyframesStep;
+use keyframes::{KeyframesStep, KeyframesStepValue};
 use properties::animated_properties::{AnimatedProperty, TransitionProperty};
 use properties::longhands::animation_direction::computed_value::AnimationDirection;
 use properties::longhands::animation_iteration_count::computed_value::AnimationIterationCount;
@@ -373,19 +373,27 @@ pub fn start_transitions_if_applicable<C: ComputedValues>(new_animations_sender:
 
 fn compute_style_for_animation_step<Impl: SelectorImplExt>(context: &SharedStyleContext<Impl>,
                                                            step: &KeyframesStep,
-                                                           old_style: &Impl::ComputedValues) -> Impl::ComputedValues {
-    let declaration_block = DeclarationBlock {
-        declarations: step.declarations.clone(),
-        source_order: 0,
-        specificity: ::std::u32::MAX,
-    };
-    let (computed, _) = properties::cascade(context.viewport_size,
-                                            &[declaration_block],
-                                            false,
-                                            Some(old_style),
-                                            None,
-                                            context.error_reporter.clone());
-    computed
+                                                           previous_style: &Impl::ComputedValues,
+                                                           style_from_cascade: &Impl::ComputedValues) -> Impl::ComputedValues {
+    match step.value {
+        // TODO: avoiding this spurious clone might involve having to create
+        // an Arc in the below (more common case).
+        KeyframesStepValue::ComputedValues => style_from_cascade.clone(),
+        KeyframesStepValue::Declarations(ref declarations) => {
+            let declaration_block = DeclarationBlock {
+                declarations: declarations.clone(),
+                source_order: 0,
+                specificity: ::std::u32::MAX,
+            };
+            let (computed, _) = properties::cascade(context.viewport_size,
+                                                    &[declaration_block],
+                                                    false,
+                                                    Some(previous_style),
+                                                    None,
+                                                    context.error_reporter.clone());
+            computed
+        }
+    }
 }
 
 pub fn maybe_start_animations<Impl: SelectorImplExt>(context: &SharedStyleContext<Impl>,
@@ -402,8 +410,17 @@ pub fn maybe_start_animations<Impl: SelectorImplExt>(context: &SharedStyleContex
             continue
         }
 
-        if context.stylist.animations().get(&name).is_some() {
+        if let Some(ref anim) = context.stylist.animations().get(&name) {
             debug!("maybe_start_animations: animation {} found", name);
+
+            // If this animation doesn't have any keyframe, we can just continue
+            // without submitting it to the compositor, since both the first and
+            // the second keyframes would be synthetised from the computed
+            // values.
+            if anim.steps.is_empty() {
+                continue;
+            }
+
             let delay = box_style.animation_delay.0.get_mod(i).seconds();
             let now = time::precise_time_s();
             let animation_start = now + delay as f64;
@@ -511,6 +528,8 @@ where Impl: SelectorImplExt,
                 Some(animation) => animation,
             };
 
+            debug_assert!(!animation.steps.is_empty());
+
             let maybe_index = style.as_servo()
                                    .get_box().animation_name.0.iter()
                                    .position(|animation_name| name == animation_name);
@@ -574,8 +593,6 @@ where Impl: SelectorImplExt,
             let target_keyframe = match target_keyframe_position {
                 Some(target) => &animation.steps[target],
                 None => {
-                    // TODO: The 0. case falls here, maybe we should just resort
-                    // to the first keyframe instead.
                     warn!("update_style_for_animation: No current keyframe found for animation \"{}\" at progress {}",
                           name, total_progress);
                     return;
@@ -600,6 +617,7 @@ where Impl: SelectorImplExt,
             // TODO: How could we optimise it? Is it such a big deal?
             let from_style = compute_style_for_animation_step(context,
                                                               last_keyframe,
+                                                              &**style,
                                                               &**style);
 
             // NB: The spec says that the timing function can be overwritten
@@ -611,7 +629,8 @@ where Impl: SelectorImplExt,
 
             let target_style = compute_style_for_animation_step(context,
                                                                 target_keyframe,
-                                                                &from_style);
+                                                                &from_style,
+                                                                &**style);
 
             let mut new_style = (*style).clone();
 
