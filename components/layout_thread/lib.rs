@@ -1072,7 +1072,12 @@ impl LayoutThread {
             }
             // FIXME (#10104): Only dirty nodes affected by vh/vw/vmin/vmax styles.
             if data.document_stylesheets.iter().any(|sheet| sheet.dirty_on_viewport_size_change) {
-                needs_dirtying = true;
+                for node in node.traverse_preorder() {
+                    if node.needs_dirty_on_viewport_size_changed() {
+                        node.dirty_self();
+                        node.dirty_descendants();
+                    }
+                }
             }
         }
 
