@@ -9,6 +9,7 @@ use properties::{self, ServoComputedValues};
 use selector_matching::{USER_OR_USER_AGENT_STYLESHEETS, QUIRKS_MODE_STYLESHEET};
 use selectors::Element;
 use selectors::parser::{ParserContext, SelectorImpl};
+use std::fmt::Debug;
 use stylesheets::Stylesheet;
 
 /// This function determines if a pseudo-element is eagerly cascaded or not.
@@ -62,7 +63,7 @@ pub trait ElementExt: Element {
     fn is_link(&self) -> bool;
 }
 
-pub trait SelectorImplExt : SelectorImpl + Sized {
+pub trait SelectorImplExt : SelectorImpl + Debug + Sized {
     type ComputedValues: properties::ComputedValues;
 
     fn pseudo_element_cascade_type(pseudo: &Self::PseudoElement) -> PseudoElementCascadeType;

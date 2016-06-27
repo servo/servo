@@ -54,7 +54,7 @@ pub enum KeyframesRunningState {
 /// playing or paused).
 // TODO: unify the use of f32/f64 in this file.
 #[derive(Debug, Clone)]
-pub struct KeyframesAnimationState {
+pub struct KeyframesAnimationState<Impl: SelectorImplExt> {
     /// The time this animation started at.
     pub started_at: f64,
     /// The duration of this animation.
@@ -71,9 +71,12 @@ pub struct KeyframesAnimationState {
     pub current_direction: AnimationDirection,
     /// Werther this keyframe animation is outdated due to a restyle.
     pub expired: bool,
+    /// The original cascade style, needed to compute the generated keyframes of
+    /// the animation.
+    pub cascade_style: Arc<Impl::ComputedValues>,
 }
 
-impl KeyframesAnimationState {
+impl<Impl: SelectorImplExt> KeyframesAnimationState<Impl> {
     /// Performs a tick in the animation state, i.e., increments the counter of
     /// the current iteration count, updates times and then toggles the
     /// direction if appropriate.
@@ -121,7 +124,8 @@ impl KeyframesAnimationState {
     ///
     /// There are some bits of state we can't just replace, over all taking in
     /// account times, so here's that logic.
-    pub fn update_from_other(&mut self, other: &Self) {
+    pub fn update_from_other(&mut self, other: &Self)
+    where Self: Clone {
         use self::KeyframesRunningState::*;
 
         debug!("KeyframesAnimationState::update_from_other({:?}, {:?})", self, other);
@@ -167,7 +171,7 @@ impl KeyframesAnimationState {
 
 /// State relating to an animation.
 #[derive(Clone, Debug)]
-pub enum Animation {
+pub enum Animation<Impl: SelectorImplExt> {
     /// A transition is just a single frame triggered at a time, with a reflow.
     ///
     /// the f64 field is the start time as returned by `time::precise_time_s()`.
@@ -176,10 +180,10 @@ pub enum Animation {
     Transition(OpaqueNode, f64, AnimationFrame, bool),
     /// A keyframes animation is identified by a name, and can have a
     /// node-dependent state (i.e. iteration count, etc.).
-    Keyframes(OpaqueNode, Atom, KeyframesAnimationState),
+    Keyframes(OpaqueNode, Atom, KeyframesAnimationState<Impl>),
 }
 
-impl Animation {
+impl<Impl: SelectorImplExt> Animation<Impl> {
     #[inline]
     pub fn mark_as_expired(&mut self) {
         debug_assert!(!self.is_expired());
@@ -344,18 +348,20 @@ impl<T> GetMod for Vec<T> {
 //
 // TODO(emilio): Take rid of this mutex splitting SharedLayoutContex into a
 // cloneable part and a non-cloneable part..
-pub fn start_transitions_if_applicable<C: ComputedValues>(new_animations_sender: &Mutex<Sender<Animation>>,
-                                                          node: OpaqueNode,
-                                                          old_style: &C,
-                                                          new_style: &mut C)
-                                                          -> bool {
+pub fn start_transitions_if_applicable<Impl: SelectorImplExt>(new_animations_sender: &Mutex<Sender<Animation<Impl>>>,
+                                                              node: OpaqueNode,
+                                                              old_style: &Impl::ComputedValues,
+                                                              new_style: &mut Arc<Impl::ComputedValues>)
+                                                              -> bool {
     let mut had_animations = false;
     for i in 0..new_style.get_box().transition_count() {
         // Create any property animations, if applicable.
-        let property_animations = PropertyAnimation::from_transition(i, old_style, new_style);
+        let property_animations = PropertyAnimation::from_transition(i, old_style, Arc::make_mut(new_style));
         for property_animation in property_animations {
             // Set the property to the initial value.
-            property_animation.update(new_style, 0.0);
+            // NB: get_mut is guaranteed to succeed since we called make_mut()
+            // above.
+            property_animation.update(Arc::get_mut(new_style).unwrap(), 0.0);
 
             // Kick off the animation.
             let now = time::precise_time_s();
@@ -403,7 +409,7 @@ fn compute_style_for_animation_step<Impl: SelectorImplExt>(context: &SharedStyle
 
 pub fn maybe_start_animations<Impl: SelectorImplExt>(context: &SharedStyleContext<Impl>,
                                                      node: OpaqueNode,
-                                                     new_style: &Impl::ComputedValues) -> bool
+                                                     new_style: &Arc<Impl::ComputedValues>) -> bool
 {
     let mut had_animations = false;
 
@@ -461,6 +467,7 @@ pub fn maybe_start_animations<Impl: SelectorImplExt>(context: &SharedStyleContex
                        direction: animation_direction,
                        current_direction: initial_direction,
                        expired: false,
+                       cascade_style: new_style.clone(),
                    })).unwrap();
             had_animations = true;
         }
@@ -491,7 +498,7 @@ pub fn update_style_for_animation_frame<C: ComputedValues>(mut new_style: &mut A
 /// Updates a single animation and associated style based on the current time.
 /// If `damage` is provided, inserts the appropriate restyle damage.
 pub fn update_style_for_animation<Damage, Impl>(context: &SharedStyleContext<Impl>,
-                                                animation: &Animation,
+                                                animation: &Animation<Impl>,
                                                 style: &mut Arc<Damage::ConcreteComputedValues>,
                                                 damage: Option<&mut Damage>)
 where Impl: SelectorImplExt,
@@ -623,7 +630,7 @@ where Impl: SelectorImplExt,
             let from_style = compute_style_for_animation_step(context,
                                                               last_keyframe,
                                                               &**style,
-                                                              &**style);
+                                                              &state.cascade_style);
 
             // NB: The spec says that the timing function can be overwritten
             // from the keyframe style.
@@ -635,7 +642,7 @@ where Impl: SelectorImplExt,
             let target_style = compute_style_for_animation_step(context,
                                                                 target_keyframe,
                                                                 &from_style,
-                                                                &**style);
+                                                                &state.cascade_style);
 
             let mut new_style = (*style).clone();
 

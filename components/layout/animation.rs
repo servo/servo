@@ -13,7 +13,8 @@ use script_layout_interface::restyle_damage::RestyleDamage;
 use script_traits::{AnimationState, LayoutMsg as ConstellationMsg};
 use std::collections::HashMap;
 use std::sync::mpsc::Receiver;
-use style::animation::{Animation, update_style_for_animation};
+use style::animation::{update_style_for_animation};
+use style::servo::Animation;
 use time;
 
 /// Processes any new animations that were discovered after style recalculation.

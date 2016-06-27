@@ -14,7 +14,7 @@ use std::ascii::AsciiExt;
 use std::boxed::Box as StdBox;
 use std::collections::HashSet;
 use std::fmt;
-use std::fmt::Write;
+use std::fmt::{Debug, Write};
 use std::intrinsics;
 use std::mem;
 use std::sync::Arc;
@@ -1061,9 +1061,10 @@ impl PropertyDeclaration {
 
 pub mod style_struct_traits {
     use super::longhands;
+    use std::fmt::Debug;
 
     % for style_struct in data.active_style_structs():
-        pub trait ${style_struct.trait_name}: Clone {
+        pub trait ${style_struct.trait_name}: Debug + Clone {
             % for longhand in style_struct.longhands:
                 #[allow(non_snake_case)]
                 fn set_${longhand.ident}(&mut self, v: longhands::${longhand.ident}::computed_value::T);
@@ -1092,7 +1093,7 @@ pub mod style_structs {
         #[derive(Clone, Debug)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         % else:
-        #[derive(PartialEq, Clone)]
+        #[derive(PartialEq, Clone, Debug)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         % endif
         pub struct ${style_struct.servo_struct_name} {
@@ -1241,7 +1242,7 @@ pub mod style_structs {
     % endfor
 }
 
-pub trait ComputedValues : Clone + Send + Sync + 'static {
+pub trait ComputedValues : Debug + Clone + Send + Sync + 'static {
     % for style_struct in data.active_style_structs():
         type Concrete${style_struct.trait_name}: style_struct_traits::${style_struct.trait_name};
     % endfor
@@ -1284,7 +1285,7 @@ pub trait ComputedValues : Clone + Send + Sync + 'static {
     fn is_multicol(&self) -> bool;
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct ServoComputedValues {
     % for style_struct in data.active_style_structs():
