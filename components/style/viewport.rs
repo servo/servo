@@ -10,9 +10,7 @@ use euclid::size::{Size2D, TypedSize2D};
 use parser::{ParserContext, log_css_error};
 use properties::{ComputedValues, ServoComputedValues};
 use std::ascii::AsciiExt;
-use std::collections::hash_map::{Entry, HashMap};
 use std::fmt;
-use std::intrinsics;
 use std::iter::Enumerate;
 use std::str::Chars;
 use style_traits::viewport::{Orientation, UserZoom, ViewportConstraints, Zoom};
@@ -21,9 +19,59 @@ use util::geometry::ViewportPx;
 use values::computed::{Context, ToComputedValue};
 use values::specified::{Length, LengthOrPercentageOrAuto, ViewportPercentageLength};
 
-#[derive(Copy, Clone, Debug, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub enum ViewportDescriptor {
+macro_rules! declare_viewport_descriptor {
+    ( $( $variant: ident($data: ident), )+ ) => {
+        declare_viewport_descriptor_inner!([] [ $( $variant($data), )+ ] 0);
+    };
+}
+
+macro_rules! declare_viewport_descriptor_inner {
+    (
+        [ $( $assigned_variant: ident($assigned_data: ident) = $assigned_discriminant: expr, )* ]
+        [
+            $next_variant: ident($next_data: ident),
+            $( $variant: ident($data: ident), )*
+        ]
+        $next_discriminant: expr
+    ) => {
+        declare_viewport_descriptor_inner! {
+            [
+                $( $assigned_variant($assigned_data) = $assigned_discriminant, )*
+                $next_variant($next_data) = $next_discriminant,
+            ]
+            [ $( $variant($data), )* ]
+            $next_discriminant + 1
+        }
+    };
+
+    (
+        [ $( $assigned_variant: ident($assigned_data: ident) = $assigned_discriminant: expr, )* ]
+        [ ]
+        $number_of_variants: expr
+    ) => {
+        #[derive(Copy, Clone, Debug, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        pub enum ViewportDescriptor {
+            $(
+                $assigned_variant($assigned_data),
+            )+
+        }
+
+        const VIEWPORT_DESCRIPTOR_VARIANTS: usize = $number_of_variants;
+
+        impl ViewportDescriptor {
+            fn discriminant_value(&self) -> usize {
+                match *self {
+                    $(
+                        ViewportDescriptor::$assigned_variant(..) => $assigned_discriminant,
+                    )*
+                }
+            }
+        }
+    };
+}
+
+declare_viewport_descriptor! {
     MinWidth(ViewportLength),
     MaxWidth(ViewportLength),
 
@@ -35,7 +83,7 @@ pub enum ViewportDescriptor {
     MaxZoom(Zoom),
 
     UserZoom(UserZoom),
-    Orientation(Orientation)
+    Orientation(Orientation),
 }
 
 trait FromMeta: Sized {
@@ -282,18 +330,15 @@ impl ViewportRule {
 
     #[allow(unsafe_code)]
     pub fn from_meta(content: &str) -> Option<ViewportRule> {
-        let mut declarations = HashMap::new();
+        let mut declarations = vec![None; VIEWPORT_DESCRIPTOR_VARIANTS];
         macro_rules! push_descriptor {
             ($descriptor:ident($value:expr)) => {{
                 let descriptor = ViewportDescriptor::$descriptor($value);
-                declarations.insert(
-                    unsafe {
-                        intrinsics::discriminant_value(&descriptor)
-                    },
-                    ViewportDescriptorDeclaration::new(
-                        Origin::Author,
-                        descriptor,
-                        false))
+                let discriminant = descriptor.discriminant_value();
+                declarations[discriminant] = Some(ViewportDescriptorDeclaration::new(
+                    Origin::Author,
+                    descriptor,
+                    false));
             }
         }}
 
@@ -369,7 +414,7 @@ impl ViewportRule {
             }
         }
 
-        let declarations: Vec<_> = declarations.into_iter().map(|kv| kv.1).collect();
+        let declarations: Vec<_> = declarations.into_iter().filter_map(|entry| entry).collect();
         if !declarations.is_empty() {
             Some(ViewportRule { declarations: declarations })
         } else {
@@ -466,34 +511,33 @@ impl ViewportDescriptorDeclaration {
 fn cascade<'a, I>(iter: I) -> Vec<ViewportDescriptorDeclaration>
     where I: Iterator<Item=&'a ViewportDescriptorDeclaration>
 {
-    let mut declarations: HashMap<u64, (usize, &'a ViewportDescriptorDeclaration)> = HashMap::new();
+    let mut declarations: Vec<Option<(usize, &'a ViewportDescriptorDeclaration)>> =
+        vec![None; VIEWPORT_DESCRIPTOR_VARIANTS];
 
     // index is used to reconstruct order of appearance after all declarations
     // have been added to the map
     let mut index = 0;
     for declaration in iter {
-        let descriptor = unsafe {
-            intrinsics::discriminant_value(&declaration.descriptor)
-        };
+        let descriptor = declaration.descriptor.discriminant_value();
 
-        match declarations.entry(descriptor) {
-            Entry::Occupied(mut entry) => {
-                if declaration.higher_or_equal_precendence(entry.get().1) {
-                    entry.insert((index, declaration));
+        match declarations[descriptor] {
+            Some((ref mut entry_index, ref mut entry_declaration)) => {
+                if declaration.higher_or_equal_precendence(entry_declaration) {
+                    *entry_declaration = declaration;
+                    *entry_index = index;
                     index += 1;
                 }
             }
-            Entry::Vacant(entry) => {
-                entry.insert((index, declaration));
+            ref mut entry @ None => {
+                *entry = Some((index, declaration));
                 index += 1;
             }
         }
     }
 
-    // convert to a list and sort the descriptors by order of appearance
-    let mut declarations: Vec<_> = declarations.into_iter().map(|kv| kv.1).collect();
-    declarations.sort_by(|a, b| a.0.cmp(&b.0));
-    declarations.into_iter().map(|id| *id.1).collect::<Vec<_>>()
+    // sort the descriptors by order of appearance
+    declarations.sort_by_key(|entry| entry.map(|(index, _)| index));
+    declarations.into_iter().filter_map(|entry| entry.map(|(_, decl)| *decl)).collect::<Vec<_>>()
 }
 
 impl<'a, I> ViewportDescriptorDeclarationCascade for I

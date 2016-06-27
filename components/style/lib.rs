@@ -2,9 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// FIXME: replace discriminant_value with per-enum methods that use `match`?
-#![feature(core_intrinsics)]
-
 #![cfg_attr(feature = "servo", feature(custom_attribute))]
 #![cfg_attr(feature = "servo", feature(custom_derive))]
 #![cfg_attr(feature = "servo", feature(plugin))]
