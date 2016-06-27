@@ -11,13 +11,17 @@ path = "lib.rs"
 [dependencies]
 azure = {git = "https://github.com/servo/rust-azure", features = ["plugins"]}
 canvas_traits = {path = "../canvas_traits"}
-plugins = {path = "../plugins"}
-util = {path = "../util"}
+euclid = "0.7.1"
 gfx_traits = {path = "../gfx_traits"}
-ipc-channel = {git = "https://github.com/servo/ipc-channel"}
-webrender_traits = {git = "https://github.com/servo/webrender_traits"}
-euclid = {version = "0.6.4", features = ["plugins"]}
 gleam = "0.2.8"
+ipc-channel = {git = "https://github.com/servo/ipc-channel"}
 log = "0.3.5"
 num-traits = "0.1.32"
 offscreen_gl_context = "0.1.2"
+plugins = {path = "../plugins"}
+util = {path = "../util"}
+
+[dependencies.webrender_traits]
+git = "https://github.com/servo/webrender_traits"
+default_features = false
+features = ["serde_macros"]

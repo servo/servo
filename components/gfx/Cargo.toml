@@ -10,10 +10,10 @@ name = "gfx"
 path = "lib.rs"
 
 [dependencies]
-app_units = {version = "0.2.3", features = ["plugins"]}
+app_units = "0.2.5"
 azure = {git = "https://github.com/servo/rust-azure", features = ["plugins"]}
 bitflags = "0.7"
-euclid = {version = "0.6.4", features = ["plugins", "unstable"]}
+euclid = "0.7.1"
 fnv = "1.0"
 gfx_traits = {path = "../gfx_traits"}
 harfbuzz-sys = "0.1"
@@ -32,8 +32,8 @@ profile_traits = {path = "../profile_traits"}
 rand = "0.3"
 range = {path = "../range"}
 rustc-serialize = "0.3"
-serde = "0.7"
-serde_macros = "0.7"
+serde = "0.7.11"
+serde_macros = "0.7.11"
 smallvec = "0.1"
 string_cache = {version = "0.2.20", features = ["heap_size"]}
 style = {path = "../style"}
@@ -42,8 +42,12 @@ time = "0.1.12"
 unicode-script = {version = "0.1", features = ["harfbuzz"]}
 url = {version = "1.0.0", features = ["heap_size"]}
 util = {path = "../util"}
-webrender_traits = {git = "https://github.com/servo/webrender_traits"}
 xi-unicode = "0.0.1"
+
+[dependencies.webrender_traits]
+git = "https://github.com/servo/webrender_traits"
+default_features = false
+features = ["serde_macros"]
 
 [target.'cfg(target_os = "macos")'.dependencies]
 byteorder = "0.5"
@@ -52,8 +56,8 @@ core-graphics = "0.3"
 core-text = "1.1"
 
 [target.'cfg(any(target_os = "linux", target_os = "android", target_os = "windows"))'.dependencies]
-servo-fontconfig = "0.2"
 freetype = {git = "https://github.com/servo/rust-freetype"}
+servo-fontconfig = "0.2"
 
 [target.'cfg(any(target_arch = "x86_64", target_arch = "aarch64"))'.dependencies]
 simd = {git = "https://github.com/huonw/simd"}

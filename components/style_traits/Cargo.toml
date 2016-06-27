@@ -13,11 +13,11 @@ servo = ["heapsize", "heapsize_plugin", "serde", "serde_macros", "euclid/plugins
          "cssparser/heap_size", "cssparser/serde-serialization", "util/servo"]
 
 [dependencies]
-util = {path = "../util"}
 cssparser = "0.5.4"
-euclid = "0.6.4"
+euclid = "0.7.1"
 heapsize = {version = "0.3.0", optional = true}
 heapsize_plugin = {version = "0.1.2", optional = true}
 rustc-serialize = "0.3"
-serde = {version = "0.7", optional = true}
-serde_macros = {version = "0.7", optional = true}
+serde = {version = "0.7.11", optional = true}
+serde_macros = {version = "0.7.11", optional = true}
+util = {path = "../util"}

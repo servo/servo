@@ -31,49 +31,57 @@ opt-level = 3
 # lto = false
 
 [dev-dependencies]
+compiletest_helper = {path = "../../tests/compiletest/helper"}
 gfx_tests = {path = "../../tests/unit/gfx"}
 layout_tests = {path = "../../tests/unit/layout"}
 net_tests = {path = "../../tests/unit/net"}
 net_traits_tests = {path = "../../tests/unit/net_traits"}
+plugin_compiletest = {path = "../../tests/compiletest/plugin"}
 profile_tests = {path = "../../tests/unit/profile"}
 script_tests = {path = "../../tests/unit/script"}
 style_tests = {path = "../../tests/unit/style"}
 util_tests = {path = "../../tests/unit/util"}
-compiletest_helper = {path = "../../tests/compiletest/helper"}
-plugin_compiletest = {path = "../../tests/compiletest/plugin"}
 
 [dependencies]
-script_layout_interface = {path = "../script_layout_interface"}
-webrender_traits = {git = "https://github.com/servo/webrender_traits"}
-webrender = {git = "https://github.com/servo/webrender"}
-compositing = {path = "../compositing"}
-constellation = {path = "../constellation"}
-net = {path = "../net"}
-net_traits = {path = "../net_traits"}
-msg = {path = "../msg"}
-profile = {path = "../profile"}
-profile_traits = {path = "../profile_traits"}
-util = {path = "../util"}
-script = {path = "../script"}
-script_traits = {path = "../script_traits"}
-layout = {path = "../layout"}
-layout_thread = {path = "../layout_thread"}
-gfx = {path = "../gfx"}
-style = {path = "../style", features = ["servo"]}
+browserhtml = {git = "https://github.com/browserhtml/browserhtml", branch = "gh-pages"}
 canvas = {path = "../canvas"}
 canvas_traits = {path = "../canvas_traits"}
+compositing = {path = "../compositing"}
+constellation = {path = "../constellation"}
 devtools = {path = "../devtools"}
-webdriver_server = {path = "../webdriver_server", optional = true}
 devtools_traits = {path = "../devtools_traits"}
+env_logger = "0.3"
+euclid = "0.7.1"
+gfx = {path = "../gfx"}
+gleam = "0.2"
 glutin_app = {path = "../../ports/glutin"}
 ipc-channel = {git = "https://github.com/servo/ipc-channel"}
-gleam = "0.2"
-browserhtml = {git = "https://github.com/browserhtml/browserhtml", branch = "gh-pages"}
-log = "0.3"
-env_logger = "0.3"
-euclid = "0.6.4"
+layout = {path = "../layout"}
+layout_thread = {path = "../layout_thread"}
 libc = "0.2"
+log = "0.3"
+msg = {path = "../msg"}
+net = {path = "../net"}
+net_traits = {path = "../net_traits"}
+profile = {path = "../profile"}
+profile_traits = {path = "../profile_traits"}
+script = {path = "../script"}
+script_layout_interface = {path = "../script_layout_interface"}
+script_traits = {path = "../script_traits"}
+style = {path = "../style", features = ["servo"]}
 url = "1.0.0"
+util = {path = "../util"}
+webdriver_server = {path = "../webdriver_server", optional = true}
+
+[dependencies.webrender]
+git = "https://github.com/servo/webrender"
+default-features = false
+features = ["serde_macros"]
+
+[dependencies.webrender_traits]
+git = "https://github.com/servo/webrender_traits"
+default_features = false
+features = ["serde_macros"]
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 sig = "0.1"
