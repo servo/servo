@@ -39,7 +39,7 @@ use values::{StyleCoordHelpers, ToGeckoStyleCoord, convert_nscolor_to_rgba};
 use values::{convert_rgba_to_nscolor, debug_assert_unit_is_safe_to_copy};
 use values::round_border_to_device_pixels;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct GeckoComputedValues {
     % for style_struct in data.style_structs:
     ${style_struct.ident}: Arc<${style_struct.gecko_struct_name}>,

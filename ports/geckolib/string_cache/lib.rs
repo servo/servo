@@ -15,6 +15,7 @@ use gecko_bindings::structs::nsIAtom;
 use heapsize::HeapSizeOf;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::borrow::Cow;
+use std::char;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
@@ -203,6 +204,15 @@ impl Deserialize for Atom {
 impl fmt::Debug for Atom {
     fn fmt(&self, w: &mut fmt::Formatter) -> fmt::Result {
         write!(w, "Gecko Atom {:p}", self.0)
+    }
+}
+
+impl fmt::Display for Atom {
+    fn fmt(&self, w: &mut fmt::Formatter) -> fmt::Result {
+        for c in char::decode_utf16(self.as_slice().iter().cloned()) {
+            try!(write!(w, "{}", c.unwrap_or(char::REPLACEMENT_CHARACTER)))
+        }
+        Ok(())
     }
 }
 
