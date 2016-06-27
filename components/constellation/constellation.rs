@@ -49,7 +49,7 @@ use script_traits::{MozBrowserEvent, MozBrowserErrorType, WebDriverCommandMsg, W
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::io::Error as IOError;
-use std::iter::{Peekable, Rev};
+use std::iter::{self, Chain, Once, Peekable, Rev};
 use std::marker::PhantomData;
 use std::mem::replace;
 use std::process;
@@ -217,32 +217,22 @@ pub struct InitialConstellationState {
 }
 
 struct FrameIterator<'a> {
-    prev: Rev<Iter<'a, (PipelineId, Instant)>>,
-    current: Option<(PipelineId, Instant)>,
+    prev: Rev<Chain<Once<&'a (PipelineId, Instant)>, Iter<'a, (PipelineId, Instant)>>>,
     next: Rev<Iter<'a, (PipelineId, Instant)>>,
     direction: TraversalDirection,
 }
 
 impl<'a> Iterator for FrameIterator<'a> {
-    type Item = (PipelineId, Instant);
-    fn next(&mut self) -> Option<(PipelineId, Instant)> {
+    type Item = &'a (PipelineId, Instant);
+    fn next(&mut self) -> Option<&'a (PipelineId, Instant)> {
         match self.direction {
             TraversalDirection::Back(_) => {
-                if let Some(entry) = self.current {
-                    self.current = None;
-                    return Some(entry);
-                }
-                if let Some(&entry) = self.prev.next() {
-                    return Some(entry);
-                }
+                self.prev.next()
             },
             TraversalDirection::Forward(_) => {
-                if let Some(&entry) = self.next.next() {
-                    return Some(entry);
-                }
+                self.next.next()
             }
         }
-        None
     }
 }
 
@@ -263,29 +253,18 @@ impl Frame {
     }
 
     fn iter(&self, direction: TraversalDirection) -> FrameIterator {
-        let (prev, current) = if let TraversalDirection::Back(_) = direction {
-            // Remove the first item of the iterator if going back. The first entry should not
-            // be considered when determining traversal order, instead the current entry is added.
-            // This is due to traversal logic being different between forward and back traversal.
-            // When navigating forward, the iterator should return the entry that should be traversed
-            // *to*, while when navigating back, the iterator should return the entry that should
-            // be traversed *from*.
-            // See https://github.com/ConnorGBrewster/ServoNavigation for a more in depth analysis
-            // of browser history.
-            let mut prev = self.prev.iter();
-            // If `self.prev` is empty, remove `self.current` from the iterator.
-            // This has to be done here before `prev` is reversed.
-            if let None = prev.next() {
-                (prev.rev(), None)
-            } else {
-                (prev.rev(), Some(self.current))
-            }
-        } else {
-            (self.prev.iter().rev(), Some(self.current))
-        };
+        // Remove the first item of the iterator if going back. The first entry should not
+        // be considered when determining traversal order, instead the current entry is added.
+        // This is due to traversal logic being different between forward and back traversal.
+        // When navigating forward, the iterator should return the entry that should be traversed
+        // *to*, while when navigating back, the iterator should return the entry that should
+        // be traversed *from*.
+        // See https://github.com/ConnorGBrewster/ServoNavigation for a more in depth analysis
+        // of browser history.
+        let mut prev = iter::once(&self.current).chain(self.prev.iter());
+        prev.next();
         FrameIterator {
-            prev: prev,
-            current: current,
+            prev: prev.rev(),
             next: self.next.iter().rev(),
             direction: direction,
         }
@@ -360,7 +339,7 @@ impl<'a> Iterator for HistoryIterator<'a> {
             TraversalDirection::Forward(_) => {
                 self.stack.iter_mut()
                           .filter_map(|&mut (frame_id, ref mut iter)| {
-                              iter.peek().cloned().map(|(_, instant)| (frame_id, iter, instant))
+                              iter.peek().cloned().map(|&(_, instant)| (frame_id, iter, instant))
                           })
                           .min_by_key(|&(_, _, instant)| instant)
                           .map(|(frame_id, iter, _)| {
@@ -371,7 +350,7 @@ impl<'a> Iterator for HistoryIterator<'a> {
             TraversalDirection::Back(_) => {
                 self.stack.iter_mut()
                           .filter_map(|&mut (frame_id, ref mut iter)| {
-                              iter.peek().cloned().map(|(_, instant)| (frame_id, iter, instant))
+                              iter.peek().cloned().map(|&(_, instant)| (frame_id, iter, instant))
                           })
                           .max_by_key(|&(_, _, instant)| instant)
                           .map(|(frame_id, iter, _)| {
