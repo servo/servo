@@ -79,7 +79,7 @@ ${helpers.predefined_type("background-color", "CSSColor",
         use cssparser::ToCss;
         use std::fmt;
         use values::LocalToCss;
-        use values::NoViewportPercentage;
+        use values::HasViewportPercentage;
 
         pub mod computed_value {
             use values::computed::LengthOrPercentage;
@@ -92,7 +92,11 @@ ${helpers.predefined_type("background-color", "CSSColor",
             }
         }
 
-        impl NoViewportPercentage for SpecifiedValue {}
+        impl HasViewportPercentage for SpecifiedValue {
+            fn has_viewport_percentage(&self) -> bool {
+                return self.horizontal.has_viewport_percentage() || self.vertical.has_viewport_percentage();
+            }
+        }
 
         #[derive(Debug, Clone, PartialEq, Copy)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -213,7 +217,7 @@ ${helpers.single_keyword("background-origin",
     use cssparser::{ToCss, Token};
     use std::ascii::AsciiExt;
     use std::fmt;
-    use values::NoViewportPercentage;
+    use values::HasViewportPercentage;
 
     pub mod computed_value {
         use values::computed::LengthOrPercentageOrAuto;
@@ -244,6 +248,12 @@ ${helpers.single_keyword("background-origin",
         }
     }
 
+    impl HasViewportPercentage for SpecifiedExplicitSize {
+        fn has_viewport_percentage(&self) -> bool {
+            return self.width.has_viewport_percentage() || self.height.has_viewport_percentage();
+        }
+    }
+
     #[derive(Clone, PartialEq, Debug)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedExplicitSize {
@@ -267,7 +277,14 @@ ${helpers.single_keyword("background-origin",
         }
     }
 
-    impl NoViewportPercentage for SpecifiedValue {}
+    impl HasViewportPercentage for SpecifiedValue {
+        fn has_viewport_percentage(&self) -> bool {
+            match *self {
+                SpecifiedValue::Explicit(ref explicit_size) => explicit_size.has_viewport_percentage(),
+                _ => false
+            }
+        }
+    }
 
     #[derive(Clone, PartialEq, Debug)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]

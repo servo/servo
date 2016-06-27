@@ -257,7 +257,7 @@ ${helpers.single_keyword("font-variant",
     use cssparser::ToCss;
     use std::fmt;
     use values::FONT_MEDIUM_PX;
-    use values::NoViewportPercentage;
+    use values::HasViewportPercentage;
     use values::specified::{LengthOrPercentage, Length, Percentage};
 
     impl ToCss for SpecifiedValue {
@@ -266,7 +266,12 @@ ${helpers.single_keyword("font-variant",
         }
     }
 
-    impl NoViewportPercentage for SpecifiedValue {}
+    impl HasViewportPercentage for SpecifiedValue {
+        fn has_viewport_percentage(&self) -> bool {
+            let &SpecifiedValue(length) = self;
+            return length.has_viewport_percentage()
+        }
+    }
 
     #[derive(Debug, Clone, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]

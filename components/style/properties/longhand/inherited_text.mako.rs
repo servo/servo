@@ -11,9 +11,16 @@
     use std::fmt;
     use values::LocalToCss;
     use values::CSSFloat;
-    use values::NoViewportPercentage;
+    use values::HasViewportPercentage;
 
-    impl NoViewportPercentage for SpecifiedValue {}
+    impl HasViewportPercentage for SpecifiedValue {
+        fn has_viewport_percentage(&self) -> bool {
+            match *self {
+                SpecifiedValue::LengthOrPercentage(length) => length.has_viewport_percentage(),
+                _ => false
+            }
+        }
+    }
 
     #[derive(Debug, Clone, PartialEq, Copy)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -189,9 +196,16 @@
     use cssparser::ToCss;
     use std::fmt;
     use values::LocalToCss;
-    use values::NoViewportPercentage;
+    use values::HasViewportPercentage;
 
-    impl NoViewportPercentage for SpecifiedValue {}
+    impl HasViewportPercentage for SpecifiedValue {
+        fn has_viewport_percentage(&self) -> bool {
+            match *self {
+                SpecifiedValue::Specified(length) => length.has_viewport_percentage(),
+                _ => false
+            } 
+        }
+    }
 
     #[derive(Debug, Clone, Copy, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -256,9 +270,16 @@
     use cssparser::ToCss;
     use std::fmt;
     use values::LocalToCss;
-    use values::NoViewportPercentage;
+    use values::HasViewportPercentage;
 
-    impl NoViewportPercentage for SpecifiedValue {}
+    impl HasViewportPercentage for SpecifiedValue {
+        fn has_viewport_percentage(&self) -> bool {
+            match *self {
+                SpecifiedValue::Specified(length) => length.has_viewport_percentage(),
+                _ => false
+            } 
+        }
+    }
 
     #[derive(Debug, Clone, Copy, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -476,13 +497,27 @@ ${helpers.single_keyword("text-justify",
     use cssparser::{self, ToCss};
     use std::fmt;
     use values::LocalToCss;
-    use values::NoViewportPercentage;
+    use values::HasViewportPercentage;
 
-    impl NoViewportPercentage for SpecifiedValue {}
+    impl HasViewportPercentage for SpecifiedValue {
+        fn has_viewport_percentage(&self) -> bool {
+            let &SpecifiedValue(ref vec) = self;
+            vec.iter().any(|ref x| x .has_viewport_percentage())
+            
+        }    
+    }
 
     #[derive(Clone, PartialEq, Debug)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue(Vec<SpecifiedTextShadow>);
+
+    impl HasViewportPercentage for SpecifiedTextShadow {
+        fn has_viewport_percentage(&self) -> bool {
+            self.offset_x.has_viewport_percentage() ||
+            self.offset_y.has_viewport_percentage() ||
+            self.blur_radius.has_viewport_percentage()
+        }    
+    }
 
     #[derive(Clone, PartialEq, Debug)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]

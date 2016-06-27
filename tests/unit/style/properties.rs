@@ -98,6 +98,7 @@ fn property_declaration_block_should_serialize_correctly() {
 
 #[test]
 fn has_viewport_percentage_for_specified_value() {
+    //TODO: test all specified value with a HasViewportPercentage impl
     let pvw = PropertyDeclaration::BorderTopWidth(
                   DeclaredValue::Value(border_top_width::SpecifiedValue(
                       Length::ViewportPercentage(ViewportPercentageLength::Vw(100.))
