@@ -4574,8 +4574,7 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
                                 "unforgeables. Figure out how that should work!")
             set += ("if RUST_JSID_IS_STRING(id) {\n" +
                     CGIndenter(CGProxyNamedSetter(self.descriptor)).define() +
-                    "    (*opresult).code_ = 0; /* SpecialCodes::OkCode */\n" +
-                    "    return true;\n" +
+                    "    return (*opresult).succeed();\n" +
                     "} else {\n" +
                     "    return false;\n" +
                     "}\n")
@@ -4587,11 +4586,9 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
                     "        //return js::IsInNonStrictPropertySet(cx)\n" +
                     "        //       ? opresult.succeed()\n" +
                     "        //       : ThrowErrorMessage(cx, MSG_NO_NAMED_SETTER, \"${name}\");\n" +
-                    "        (*opresult).code_ = 0; /* SpecialCodes::OkCode */\n" +
-                    "        return true;\n" +
+                    "        return (*opresult).succeed();\n" +
                     "    }\n" +
-                    "    (*opresult).code_ = 0; /* SpecialCodes::OkCode */\n" +
-                    "    return true;\n"
+                    "    return (*opresult).succeed();\n"
                     "}\n") % (self.descriptor.name, self.descriptor.name)
             set += "return proxyhandler::define_property(%s);" % ", ".join(a.name for a in self.args)
         return set
