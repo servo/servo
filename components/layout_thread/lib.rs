@@ -98,7 +98,7 @@ use std::ops::{Deref, DerefMut};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{channel, Sender, Receiver};
 use std::sync::{Arc, Mutex, MutexGuard, RwLock};
-use style::animation::Animation;
+use style::servo::Animation;
 use style::computed_values::{filter, mix_blend_mode};
 use style::context::ReflowGoal;
 use style::dom::{TDocument, TElement, TNode};
