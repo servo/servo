@@ -140,8 +140,15 @@ ${helpers.single_keyword("clear", "none left right both", gecko_ffi_name="mBreak
                                       extra_gecko_values="middle-with-baseline") %>
   <% vertical_align_keywords = vertical_align.keyword.values_for(product) %>
 
-  use values::NoViewportPercentage;
-  impl NoViewportPercentage for SpecifiedValue {} 
+  use values::HasViewportPercentage;
+  impl HasViewportPercentage for SpecifiedValue {
+      fn has_viewport_percentage(&self) -> bool {
+          match *self {
+              SpecifiedValue::LengthOrPercentage(length) => length.has_viewport_percentage(),
+              _ => false
+          }
+      }
+  }
 
   #[allow(non_camel_case_types)]
   #[derive(Debug, Clone, PartialEq, Copy)]

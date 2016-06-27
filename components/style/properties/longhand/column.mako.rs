@@ -10,9 +10,16 @@
     use cssparser::ToCss;
     use std::fmt;
     use values::LocalToCss;
-    use values::NoViewportPercentage;
+    use values::HasViewportPercentage;
 
-    impl NoViewportPercentage for SpecifiedValue {}
+    impl HasViewportPercentage for SpecifiedValue {
+        fn has_viewport_percentage(&self) -> bool {
+            match *self {
+                SpecifiedValue::Specified(length) => length.has_viewport_percentage(),
+                _ => false
+            } 
+        }    
+    }
 
     #[derive(Debug, Clone, Copy, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -147,9 +154,16 @@
     use cssparser::ToCss;
     use std::fmt;
     use values::LocalToCss;
-    use values::NoViewportPercentage;
+    use values::HasViewportPercentage;
 
-    impl NoViewportPercentage for SpecifiedValue {}
+    impl HasViewportPercentage for SpecifiedValue {
+        fn has_viewport_percentage(&self) -> bool {
+            match *self {
+                SpecifiedValue::Specified(length) => length.has_viewport_percentage(),
+                _ => false
+            } 
+        }    
+    }
 
     #[derive(Debug, Clone, Copy, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
