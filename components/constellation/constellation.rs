@@ -234,26 +234,6 @@ pub struct InitialConstellationState {
     pub webrender_api_sender: Option<webrender_traits::RenderApiSender>,
 }
 
-struct FrameIterator<'a> {
-    prev: Rev<Chain<Once<&'a (PipelineId, Instant)>, Iter<'a, (PipelineId, Instant)>>>,
-    next: Rev<Iter<'a, (PipelineId, Instant)>>,
-    direction: TraversalDirection,
-}
-
-impl<'a> Iterator for FrameIterator<'a> {
-    type Item = &'a (PipelineId, Instant);
-    fn next(&mut self) -> Option<&'a (PipelineId, Instant)> {
-        match self.direction {
-            TraversalDirection::Back(_) => {
-                self.prev.next()
-            },
-            TraversalDirection::Forward(_) => {
-                self.next.next()
-            }
-        }
-    }
-}
-
 /// Stores the navigation context for a single frame in the frame tree.
 struct Frame {
     prev: Vec<(PipelineId, Instant)>,
@@ -267,24 +247,6 @@ impl Frame {
             prev: vec!(),
             current: (pipeline_id, Instant::now()),
             next: vec!(),
-        }
-    }
-
-    fn iter(&self, direction: TraversalDirection) -> FrameIterator {
-        // Remove the first item of the iterator if going back. The first entry should not
-        // be considered when determining traversal order, instead the current entry is added.
-        // This is due to traversal logic being different between forward and back traversal.
-        // When navigating forward, the iterator should return the entry that should be traversed
-        // *to*, while when navigating back, the iterator should return the entry that should
-        // be traversed *from*.
-        // See https://github.com/ConnorGBrewster/ServoNavigation for a more in depth analysis
-        // of browser history.
-        let mut prev = iter::once(&self.current).chain(self.prev.iter());
-        prev.next();
-        FrameIterator {
-            prev: prev.rev(),
-            next: self.next.iter().rev(),
-            direction: direction,
         }
     }
 
@@ -343,10 +305,14 @@ impl<'a> Iterator for FrameTreeIterator<'a> {
     }
 }
 
+type BackFrameIterator<'a> = Peekable<Rev<Chain<Iter<'a, (PipelineId, Instant)>, Once<&'a (PipelineId, Instant)>>>>;
+type ForwardFrameIterator<'a> = Peekable<Rev<Iter<'a, (PipelineId, Instant)>>>;
+
 /// An iterator over the joint session history of a frame tree in a specific direction.
 /// Navigation entries are lazily interleaved by the time at which each navigation occurred.
 struct HistoryIterator<'a> {
-    stack: Vec<(FrameId, Peekable<FrameIterator<'a>>)>,
+    forward_stack: Vec<(FrameId, ForwardFrameIterator<'a>)>,
+    back_stack: Vec<(FrameId, BackFrameIterator<'a>)>,
     direction: TraversalDirection,
 }
 
@@ -355,26 +321,26 @@ impl<'a> Iterator for HistoryIterator<'a> {
     fn next(&mut self) -> Option<FrameId> {
         match self.direction {
             TraversalDirection::Forward(_) => {
-                self.stack.iter_mut()
-                          .filter_map(|&mut (frame_id, ref mut iter)| {
-                              iter.peek().cloned().map(|&(_, instant)| (frame_id, iter, instant))
-                          })
-                          .min_by_key(|&(_, _, instant)| instant)
-                          .map(|(frame_id, iter, _)| {
-                              iter.next();
-                              frame_id
-                          })
+                self.forward_stack.iter_mut()
+                                  .filter_map(|&mut (frame_id, ref mut iter)| {
+                                      iter.peek().cloned().map(|&(_, instant)| (frame_id, iter, instant))
+                                  })
+                                  .min_by_key(|&(_, _, instant)| instant)
+                                  .map(|(frame_id, iter, _)| {
+                                      iter.next();
+                                      frame_id
+                                  })
             },
             TraversalDirection::Back(_) => {
-                self.stack.iter_mut()
-                          .filter_map(|&mut (frame_id, ref mut iter)| {
-                              iter.peek().cloned().map(|&(_, instant)| (frame_id, iter, instant))
-                          })
-                          .max_by_key(|&(_, _, instant)| instant)
-                          .map(|(frame_id, iter, _)| {
-                              iter.next();
-                              frame_id
-                          })
+                self.back_stack.iter_mut()
+                               .filter_map(|&mut (frame_id, ref mut iter)| {
+                                   iter.peek().cloned().map(|&(_, instant)| (frame_id, iter, instant))
+                               })
+                               .max_by_key(|&(_, _, instant)| instant)
+                               .map(|(frame_id, iter, _)| {
+                                   iter.next();
+                                   frame_id
+                               })
             }
         }
     }
@@ -722,16 +688,44 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                         direction: TraversalDirection)
                         -> HistoryIterator {
         let full_frame_tree = self.full_frame_tree(frame_id_root);
-        let stack = full_frame_tree.iter().filter_map(|frame_id| {
-            let frame = match self.frames.get(frame_id) {
-                Some(frame) => frame,
-                None => return None,
-            };
-            Some((*frame_id, frame.iter(direction).peekable()))
-        }).collect();
+
+        let forward_stack = if let TraversalDirection::Forward(_) = direction  {
+            full_frame_tree.iter().filter_map(|frame_id| {
+                let frame = match self.frames.get(frame_id) {
+                    Some(frame) => frame,
+                    None => return None,
+                };
+                Some((*frame_id, frame.next.iter().rev().peekable()))
+            }).collect()
+        } else {
+            vec!()
+        };
+
+        let back_stack = if let TraversalDirection::Back(_) = direction {
+            full_frame_tree.iter().filter_map(|frame_id| {
+                let frame = match self.frames.get(frame_id) {
+                    Some(frame) => frame,
+                    None => return None,
+                };
+                // Remove the first item of the iterator if going back. The first entry should not
+                // be considered when determining traversal order, instead the current entry is added.
+                // This is due to traversal logic being different between forward and back traversal.
+                // When navigating forward, the iterator should return the entry that should be traversed
+                // *to*, while when navigating back, the iterator should return the entry that should
+                // be traversed *from*.
+                // See https://github.com/ConnorGBrewster/ServoNavigation for a more in depth analysis
+                // of browser history.
+                let mut iter = frame.prev.iter().chain(iter::once(&frame.current));
+                iter.next();
+                Some((*frame_id, iter.rev().peekable()))
+            }).collect()
+        } else {
+            vec!()
+        };
 
         HistoryIterator {
-            stack: stack,
+            back_stack: back_stack,
+            forward_stack: forward_stack,
             direction: direction,
         }
     }
