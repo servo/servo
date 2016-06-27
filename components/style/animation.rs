@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+//! CSS transitions and animations.
+
 use app_units::Au;
 use bezier::Bezier;
 use cssparser::{Color, RGBA};
@@ -393,6 +395,9 @@ impl AnimatedProperty {
     }
 }
 
+/// A trait used to implement [interpolation][interpolated-types].
+///
+/// [interpolated-types]: https://drafts.csswg.org/css-transitions/#interpolated-types
 trait Interpolate: Sized {
     fn interpolate(&self, other: &Self, time: f64) -> Option<Self>;
 }
@@ -418,6 +423,7 @@ impl <T> Interpolate for Option<T> where T: Interpolate {
     }
 }
 
+/// https://drafts.csswg.org/css-transitions/#animtype-number
 impl Interpolate for f32 {
     #[inline]
     fn interpolate(&self, other: &f32, time: f64) -> Option<f32> {
@@ -425,6 +431,7 @@ impl Interpolate for f32 {
     }
 }
 
+/// https://drafts.csswg.org/css-transitions/#animtype-number
 impl Interpolate for f64 {
     #[inline]
     fn interpolate(&self, other: &f64, time: f64) -> Option<f64> {
@@ -432,6 +439,7 @@ impl Interpolate for f64 {
     }
 }
 
+/// https://drafts.csswg.org/css-transitions/#animtype-integer
 impl Interpolate for i32 {
     #[inline]
     fn interpolate(&self, other: &i32, time: f64) -> Option<i32> {
@@ -448,6 +456,7 @@ impl Interpolate for Angle {
     }
 }
 
+/// https://drafts.csswg.org/css-transitions/#animtype-visibility
 impl Interpolate for Visibility {
     #[inline]
     fn interpolate(&self, other: &Visibility, time: f64)
@@ -467,6 +476,7 @@ impl Interpolate for Visibility {
     }
 }
 
+/// https://drafts.csswg.org/css-transitions/#animtype-integer
 impl Interpolate for ZIndex {
     #[inline]
     fn interpolate(&self, other: &ZIndex, time: f64)
@@ -483,6 +493,7 @@ impl Interpolate for ZIndex {
     }
 }
 
+/// https://drafts.csswg.org/css-transitions/#animtype-length
 impl Interpolate for VerticalAlign {
     #[inline]
     fn interpolate(&self, other: &VerticalAlign, time: f64)
@@ -499,6 +510,7 @@ impl Interpolate for VerticalAlign {
     }
 }
 
+/// https://drafts.csswg.org/css-transitions/#animtype-simple-list
 impl Interpolate for BorderSpacing {
     #[inline]
     fn interpolate(&self, other: &BorderSpacing, time: f64)
@@ -511,6 +523,7 @@ impl Interpolate for BorderSpacing {
     }
 }
 
+/// https://drafts.csswg.org/css-transitions/#animtype-color
 impl Interpolate for RGBA {
     #[inline]
     fn interpolate(&self, other: &RGBA, time: f64) -> Option<RGBA> {
@@ -526,6 +539,7 @@ impl Interpolate for RGBA {
     }
 }
 
+/// https://drafts.csswg.org/css-transitions/#animtype-color
 impl Interpolate for Color {
     #[inline]
     fn interpolate(&self, other: &Color, time: f64) -> Option<Color> {
@@ -540,6 +554,7 @@ impl Interpolate for Color {
     }
 }
 
+/// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
 impl Interpolate for CalcLengthOrPercentage {
     #[inline]
     fn interpolate(&self, other: &CalcLengthOrPercentage, time: f64)
@@ -551,6 +566,7 @@ impl Interpolate for CalcLengthOrPercentage {
     }
 }
 
+/// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
 impl Interpolate for LengthOrPercentage {
     #[inline]
     fn interpolate(&self, other: &LengthOrPercentage, time: f64)
@@ -579,6 +595,7 @@ impl Interpolate for LengthOrPercentage {
     }
 }
 
+/// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
 impl Interpolate for LengthOrPercentageOrAuto {
     #[inline]
     fn interpolate(&self, other: &LengthOrPercentageOrAuto, time: f64)
@@ -610,6 +627,7 @@ impl Interpolate for LengthOrPercentageOrAuto {
     }
 }
 
+/// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
 impl Interpolate for LengthOrPercentageOrNone {
     #[inline]
     fn interpolate(&self, other: &LengthOrPercentageOrNone, time: f64)
@@ -635,6 +653,8 @@ impl Interpolate for LengthOrPercentageOrNone {
     }
 }
 
+/// https://drafts.csswg.org/css-transitions/#animtype-number
+/// https://drafts.csswg.org/css-transitions/#animtype-length
 impl Interpolate for LineHeight {
     #[inline]
     fn interpolate(&self, other: &LineHeight, time: f64)
@@ -660,7 +680,7 @@ impl Interpolate for LineHeight {
     }
 }
 
-/// http://dev.w3.org/csswg/css-transitions/#animtype-font-weight
+/// https://drafts.csswg.org/css-transitions/#animtype-font-weight
 impl Interpolate for FontWeight {
     #[inline]
     fn interpolate(&self, other: &FontWeight, time: f64)
@@ -690,6 +710,7 @@ impl Interpolate for FontWeight {
     }
 }
 
+/// https://drafts.csswg.org/css-transitions/#animtype-rect
 impl Interpolate for ClipRect {
     #[inline]
     fn interpolate(&self, other: &ClipRect, time: f64)
@@ -706,6 +727,7 @@ impl Interpolate for ClipRect {
     }
 }
 
+/// https://drafts.csswg.org/css-transitions/#animtype-simple-list
 impl Interpolate for BackgroundPosition {
     #[inline]
     fn interpolate(&self, other: &BackgroundPosition, time: f64)
@@ -720,6 +742,7 @@ impl Interpolate for BackgroundPosition {
     }
 }
 
+/// https://drafts.csswg.org/css-transitions/#animtype-shadow-list
 impl Interpolate for TextShadow {
     #[inline]
     fn interpolate(&self, other: &TextShadow, time: f64)
@@ -736,6 +759,7 @@ impl Interpolate for TextShadow {
     }
 }
 
+/// https://drafts.csswg.org/css-transitions/#animtype-shadow-list
 impl Interpolate for TextShadowList {
     #[inline]
     fn interpolate(&self, other: &TextShadowList, time: f64)
@@ -789,7 +813,7 @@ fn can_interpolate_list(from_list: &[TransformOperation],
 }
 
 /// Interpolate two transform lists.
-/// http://dev.w3.org/csswg/css-transforms/#interpolation-of-transforms
+/// https://drafts.csswg.org/css-transforms/#interpolation-of-transforms
 fn interpolate_transform_list(from_list: &[TransformOperation],
                               to_list: &[TransformOperation],
                               time: f64) -> TransformList {
@@ -849,7 +873,7 @@ fn interpolate_transform_list(from_list: &[TransformOperation],
 
 /// Build an equivalent 'identity transform function list' based
 /// on an existing transform list.
-/// http://dev.w3.org/csswg/css-transforms/#none-transform-animation
+/// https://drafts.csswg.org/css-transforms/#none-transform-animation
 fn build_identity_transform_list(list: &[TransformOperation]) -> Vec<TransformOperation> {
     let mut result = vec!();
 
@@ -884,27 +908,27 @@ fn build_identity_transform_list(list: &[TransformOperation]) -> Vec<TransformOp
     result
 }
 
+/// https://drafts.csswg.org/css-transforms/#interpolation-of-transforms
 impl Interpolate for TransformList {
     #[inline]
     fn interpolate(&self, other: &TransformList, time: f64) -> Option<TransformList> {
-        // http://dev.w3.org/csswg/css-transforms/#interpolation-of-transforms
         let result = match (&self.0, &other.0) {
             (&Some(ref from_list), &Some(ref to_list)) => {
-                // Two lists of transforms
+                // https://drafts.csswg.org/css-transforms/#transform-transform-animation
                 interpolate_transform_list(from_list, &to_list, time)
             }
             (&Some(ref from_list), &None) => {
-                // http://dev.w3.org/csswg/css-transforms/#none-transform-animation
+                // https://drafts.csswg.org/css-transforms/#none-transform-animation
                 let to_list = build_identity_transform_list(from_list);
                 interpolate_transform_list(from_list, &to_list, time)
             }
             (&None, &Some(ref to_list)) => {
-                // http://dev.w3.org/csswg/css-transforms/#none-transform-animation
+                // https://drafts.csswg.org/css-transforms/#none-transform-animation
                 let from_list = build_identity_transform_list(to_list);
                 interpolate_transform_list(&from_list, to_list, time)
             }
             _ => {
-                // http://dev.w3.org/csswg/css-transforms/#none-none-animation
+                // https://drafts.csswg.org/css-transforms/#none-none-animation
                 TransformList(None)
             }
         };
@@ -914,7 +938,9 @@ impl Interpolate for TransformList {
 }
 
 /// Accesses an element of an array, "wrapping around" using modular arithmetic. This is needed
-/// to handle values of differing lengths according to CSS-TRANSITIONS § 2.
+/// to handle [repeatable lists][lists] of differing lengths.
+///
+/// [lists]: https://drafts.csswg.org/css-transitions/#animtype-repeatable-list
 pub trait GetMod {
     type Item;
     fn get_mod(&self, i: usize) -> &Self::Item;

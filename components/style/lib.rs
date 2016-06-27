@@ -2,6 +2,27 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+//! Calculate [specified][specified] and [computed values][computed] from a
+//! tree of DOM nodes and a set of stylesheets.
+//!
+//! [computed]: https://drafts.csswg.org/css-cascade/#computed
+//! [specified]: https://drafts.csswg.org/css-cascade/#specified
+//!
+//! In particular, this crate contains the definitions of supported properties,
+//! the code to parse them into specified values and calculate the computed
+//! values based on the specified values, as well as the code to serialize both
+//! specified and computed values.
+//!
+//! The main entry point is [`recalc_style_at`][recalc_style_at].
+//!
+//! [recalc_style_at]: traversal/fn.recalc_style_at.html
+//!
+//! Major dependencies are the [cssparser][cssparser] and [selectors][selectors]
+//! crates.
+//!
+//! [cssparser]: ../cssparser/index.html
+//! [selectors]: ../selectors/index.html
+
 // FIXME: replace discriminant_value with per-enum methods that use `match`?
 #![feature(core_intrinsics)]
 
@@ -76,6 +97,7 @@ pub mod traversal;
 pub mod values;
 pub mod viewport;
 
+/// The CSS properties supported by the style system.
 // Generated from the properties.mako.rs template by build.rs
 #[macro_use]
 #[allow(unsafe_code)]
@@ -85,6 +107,9 @@ pub mod properties {
 
 macro_rules! reexport_computed_values {
     ( $( $name: ident )+ ) => {
+        /// Types for [computed values][computed].
+        ///
+        /// [computed]: https://drafts.csswg.org/css-cascade/#computed
         pub mod computed_values {
             $(
                 pub use properties::longhands::$name::computed_value as $name;

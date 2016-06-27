@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+//! Restyle hints: an optimization to avoid unnecessarily matching selectors.
+
 use attr::{AttrIdentifier, AttrValue};
 use element_state::*;
 use selector_impl::SelectorImplExt;
