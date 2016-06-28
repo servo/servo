@@ -91,17 +91,21 @@ class PackageCommands(CommandBase):
                 print("Cleaning up from previous packaging")
                 delete(dir_to_dmg)
             browserhtml_path = find_dep_path_newest('browserhtml', binary_path)
-            new_browserhtml_path = dir_to_app + '/Contents/Resources/' + browserhtml_path.split('/')[-1]
             if browserhtml_path is None:
                 print("Could not find browserhtml package; perhaps you haven't built Servo.")
                 return 1
 
             print("Copying files")
             shutil.copytree(dir_to_root + '/resources', dir_to_app + '/Contents/Resources')
-            shutil.copytree(browserhtml_path, new_browserhtml_path)
+            shutil.copytree(browserhtml_path, dir_to_app + '/Contents/Resources/' + browserhtml_path.split('/')[-1])
             shutil.copy2(dir_to_root + '/Info.plist', dir_to_app + '/Contents/Info.plist')
             os.makedirs(dir_to_app + '/Contents/MacOS/')
             shutil.copy2(dir_to_build + '/servo', dir_to_app + '/Contents/MacOS/')
+
+            print("Swapping prefs")
+            delete(dir_to_app + '/Contents/Resources/prefs.json')
+            shutil.copy2(dir_to_app + '/Contents/Resources/package-prefs.json', dir_to_app + '/Contents/Resources/prefs.json')
+            delete(dir_to_app + '/Contents/Resources/package-prefs.json')
 
             print("Finding dylibs to be copied")
             need = set([dir_to_app + '/Contents/MacOS/servo'])
@@ -122,16 +126,9 @@ class PackageCommands(CommandBase):
                     install_name_tool(f, f.split('/')[-1], dir_to_app + '/Contents/MacOS/servo')
 
             print("Writing run-servo")
-            # TODO: deduplicate this arg list from post_build_commands
-            servo_args = ['-w', '-b',
-                          '--pref', 'dom.mozbrowser.enabled',
-                          '--pref', 'dom.forcetouch.enabled',
-                          '--pref', 'shell.builtin-key-shortcuts.enabled=false',
-                          '--resources-path', '${0%/*}/../Resources',
-                          path.join('${0%/*}/../Resources', browserhtml_path.split('/')[-1], 'out', 'index.html')]
-
+            bhtml_path = path.join('${0%/*}/../Resources', browserhtml_path.split('/')[-1], 'out', 'index.html')
             runservo = os.open(dir_to_app + '/Contents/MacOS/run-servo', os.O_WRONLY | os.O_CREAT, int("0755", 8))
-            os.write(runservo, '#!/bin/bash\nexec ${0%/*}/servo ' + ' '.join(servo_args))
+            os.write(runservo, '#!/bin/bash\nexec ${0%/*}/servo ' + bhtml_path)
             os.close(runservo)
 
             print("Creating dmg")
