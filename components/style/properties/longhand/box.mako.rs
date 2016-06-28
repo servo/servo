@@ -11,7 +11,10 @@
                          additional_methods=[Method("transition_count", "usize")]) %>
 
 // TODO(SimonSapin): don't parse `inline-table`, since we don't support it
-<%helpers:longhand name="display" need_clone="True" custom_cascade="${product == 'servo'}">
+<%helpers:longhand name="display"
+                   need_clone="True"
+                   animatable="False"
+                   custom_cascade="${product == 'servo'}">
     <%
         values = """inline block inline-block
             table inline-table table-row-group table-header-group table-footer-group
@@ -86,9 +89,14 @@
 
 </%helpers:longhand>
 
-${helpers.single_keyword("position", "static absolute relative fixed", need_clone=True, extra_gecko_values="sticky")}
+${helpers.single_keyword("position", "static absolute relative fixed",
+                         need_clone=True, extra_gecko_values="sticky", animatable=False)}
 
-<%helpers:single_keyword_computed name="float" values="none left right" need_clone="True" gecko_ffi_name="mFloats">
+<%helpers:single_keyword_computed name="float"
+                                  values="none left right"
+                                  animatable="False"
+                                  need_clone="True"
+                                  gecko_ffi_name="mFloats">
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
 
@@ -107,9 +115,13 @@ ${helpers.single_keyword("position", "static absolute relative fixed", need_clon
 
 </%helpers:single_keyword_computed>
 
-${helpers.single_keyword("clear", "none left right both", gecko_ffi_name="mBreakType")}
+${helpers.single_keyword("clear", "none left right both",
+                         animatable=False, gecko_ffi_name="mBreakType")}
 
-<%helpers:longhand name="-servo-display-for-hypothetical-box" derived_from="display" products="servo">
+<%helpers:longhand name="-servo-display-for-hypothetical-box"
+                   animatable="False"
+                   derived_from="display"
+                   products="servo">
     pub use super::display::{SpecifiedValue, get_initial_value};
     pub use super::display::{parse};
 
@@ -125,7 +137,8 @@ ${helpers.single_keyword("clear", "none left right both", gecko_ffi_name="mBreak
 
 </%helpers:longhand>
 
-<%helpers:longhand name="vertical-align">
+<%helpers:longhand name="vertical-align"
+                   animatable="True">
   use cssparser::ToCss;
   use std::fmt;
 
@@ -219,18 +232,21 @@ ${helpers.single_keyword("clear", "none left right both", gecko_ffi_name="mBreak
 // CSS 2.1, Section 11 - Visual effects
 
 // Non-standard, see https://developer.mozilla.org/en-US/docs/Web/CSS/overflow-clip-box#Specifications
-${helpers.single_keyword("-servo-overflow-clip-box", "padding-box content-box", products="servo",
-               internal=True)}
+${helpers.single_keyword("-servo-overflow-clip-box", "padding-box content-box",
+                         products="servo", animatable=False, internal=True)}
 
-${helpers.single_keyword("overflow-clip-box", "padding-box content-box", products="gecko",
-               internal=True)}
-
-// FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
-${helpers.single_keyword("overflow-x", "visible hidden scroll auto", need_clone=True,
-                       gecko_constant_prefix="NS_STYLE_OVERFLOW")}
+${helpers.single_keyword("overflow-clip-box", "padding-box content-box",
+                         products="gecko", animatable=False, internal=True)}
 
 // FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
-<%helpers:longhand name="overflow-y" need_clone="True">
+${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
+                         need_clone=True, animatable=False,
+                         gecko_constant_prefix="NS_STYLE_OVERFLOW")}
+
+// FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
+<%helpers:longhand name="overflow-y"
+                   need_clone="True"
+                   animatable="False">
   use super::overflow_x;
 
   use cssparser::ToCss;
@@ -269,7 +285,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto", need_clone=
 </%helpers:longhand>
 
 // TODO(pcwalton): Multiple transitions.
-<%helpers:longhand name="transition-duration">
+<%helpers:longhand name="transition-duration" animatable="False">
     use values::computed::ComputedValueAsSpecified;
     use values::specified::Time;
 
@@ -327,7 +343,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto", need_clone=
 
 // TODO(pcwalton): Lots more timing functions.
 // TODO(pcwalton): Multiple transitions.
-<%helpers:longhand name="transition-timing-function">
+<%helpers:longhand name="transition-timing-function" animatable="False">
     use self::computed_value::{StartEnd, TransitionTimingFunction};
 
     use euclid::point::Point2D;
@@ -525,7 +541,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto", need_clone=
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="transition-property">
+<%helpers:longhand name="transition-property" animatable="False">
     pub use self::computed_value::SingleComputedValue as SingleSpecifiedValue;
     pub use self::computed_value::T as SpecifiedValue;
 
@@ -576,14 +592,14 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto", need_clone=
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="transition-delay">
+<%helpers:longhand name="transition-delay" animatable="False">
     pub use properties::longhands::transition_duration::{SingleSpecifiedValue, SpecifiedValue};
     pub use properties::longhands::transition_duration::{computed_value};
     pub use properties::longhands::transition_duration::{get_initial_single_value};
     pub use properties::longhands::transition_duration::{get_initial_value, parse, parse_one};
 </%helpers:longhand>
 
-<%helpers:longhand name="animation-name">
+<%helpers:longhand name="animation-name" animatable="False">
     use values::computed::ComputedValueAsSpecified;
 
     pub mod computed_value {
@@ -629,19 +645,19 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto", need_clone=
     impl ComputedValueAsSpecified for SpecifiedValue {}
 </%helpers:longhand>
 
-<%helpers:longhand name="animation-duration">
+<%helpers:longhand name="animation-duration" animatable="False">
     pub use super::transition_duration::computed_value;
     pub use super::transition_duration::{parse, get_initial_value};
     pub use super::transition_duration::SpecifiedValue;
 </%helpers:longhand>
 
-<%helpers:longhand name="animation-timing-function">
+<%helpers:longhand name="animation-timing-function" animatable="False">
     pub use super::transition_timing_function::computed_value;
     pub use super::transition_timing_function::{parse, get_initial_value};
     pub use super::transition_timing_function::SpecifiedValue;
 </%helpers:longhand>
 
-<%helpers:longhand name="animation-iteration-count">
+<%helpers:longhand name="animation-iteration-count" animatable="False">
     use values::computed::ComputedValueAsSpecified;
 
     pub mod computed_value {
@@ -711,16 +727,19 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto", need_clone=
 </%helpers:longhand>
 
 ${helpers.keyword_list("animation-direction",
-                       "normal reverse alternate alternate-reverse")}
+                       "normal reverse alternate alternate-reverse",
+                       animatable=False)}
 
 ${helpers.keyword_list("animation-play-state",
                        "running paused",
-                       need_clone=True)}
+                       need_clone=True,
+                       animatable=False)}
 
 ${helpers.keyword_list("animation-fill-mode",
-                       "none forwards backwards both")}
+                       "none forwards backwards both",
+                       animatable=False)}
 
-<%helpers:longhand name="animation-delay">
+<%helpers:longhand name="animation-delay" animatable="False">
     pub use super::transition_duration::computed_value;
     pub use super::transition_duration::{parse, get_initial_value};
     pub use super::transition_duration::SpecifiedValue;
@@ -730,43 +749,51 @@ ${helpers.keyword_list("animation-fill-mode",
 // https://www.w3.org/TR/cssom-view-1/
 ${helpers.single_keyword("scroll-behavior",
                          "auto smooth",
-                         products="gecko")}
+                         products="gecko",
+                         animatable=False)}
 
 // Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/scroll-snap-type-x
 ${helpers.single_keyword("scroll-snap-type-x",
                          "none mandatory proximity",
                          products="gecko",
-                         gecko_constant_prefix="NS_STYLE_SCROLL_SNAP_TYPE")}
+                         gecko_constant_prefix="NS_STYLE_SCROLL_SNAP_TYPE",
+                         animatable=False)}
 
 // Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/scroll-snap-type-y
 ${helpers.single_keyword("scroll-snap-type-y",
                          "none mandatory proximity",
                          products="gecko",
-                         gecko_constant_prefix="NS_STYLE_SCROLL_SNAP_TYPE")}
+                         gecko_constant_prefix="NS_STYLE_SCROLL_SNAP_TYPE",
+                         animatable=False)}
 
 // Compositing and Blending Level 1
 // http://www.w3.org/TR/compositing-1/
 ${helpers.single_keyword("isolation",
                          "auto isolate",
-                         products="gecko")}
+                         products="gecko",
+                         animatable=False)}
 
 ${helpers.single_keyword("page-break-after",
                          "auto always avoid left right",
-                         products="gecko")}
+                         products="gecko",
+                         animatable=False)}
 ${helpers.single_keyword("page-break-before",
                          "auto always avoid left right",
-                         products="gecko")}
+                         products="gecko",
+                         animatable=False)}
 ${helpers.single_keyword("page-break-inside",
                          "auto avoid",
                          products="gecko",
                          gecko_ffi_name="mBreakInside",
-                         gecko_constant_prefix="NS_STYLE_PAGE_BREAK")}
+                         gecko_constant_prefix="NS_STYLE_PAGE_BREAK",
+                         animatable=False)}
 
 // CSS Basic User Interface Module Level 3
 // http://dev.w3.org/csswg/css-ui/
 ${helpers.single_keyword("resize",
                          "none both horizontal vertical",
-                         products="gecko")}
+                         products="gecko",
+                         animatable=False)}
 
 // Non-standard
 ${helpers.single_keyword("-moz-appearance",
@@ -793,10 +820,11 @@ ${helpers.single_keyword("-moz-appearance",
                          """,
                          gecko_ffi_name="mAppearance",
                          gecko_constant_prefix="NS_THEME",
-                         products="gecko")}
+                         products="gecko",
+                         animatable=False)}
 
 // Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-binding
-<%helpers:longhand name="-moz-binding" products="gecko">
+<%helpers:longhand name="-moz-binding" products="gecko" animatable="False">
     use cssparser::{CssStringWriter, ToCss};
     use gecko_bindings::ptr::{GeckoArcPrincipal, GeckoArcURI};
     use std::fmt::{self, Write};

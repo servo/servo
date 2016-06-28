@@ -16,54 +16,6 @@ def to_camel_case(ident):
     return re.sub("(^|_|-)([a-z])", lambda m: m.group(2).upper(), ident.strip("_").strip("-"))
 
 
-# https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_animated_properties
-def is_known_animatable_property(name):
-    return name in [
-        "-moz-outline-radius", "-moz-outline-radius-bottomleft",
-        "-moz-outline-radius-bottomright", "-moz-outline-radius-topleft",
-        "-moz-outline-radius-topright", "-webkit-text-fill-color",
-        "-webkit-text-stroke", "-webkit-text-stroke-color",
-        "-webkit-touch-callout", "all", "backdrop-filter", "background",
-        "background-color", "background-position", "background-size", "border",
-        "border-bottom", "border-bottom-color", "border-bottom-left-radius",
-        "border-bottom-right-radius", "border-bottom-width", "border-color",
-        "border-left", "border-left-color", "border-left-width", "border-radius",
-        "border-right", "border-right-color", "border-right-width", "border-top",
-        "border-top-color", "border-top-left-radius", "border-top-right-radius",
-        "border-top-width", "border-width", "bottom", "box-shadow", "clip",
-        "clip-path", "color", "column-count", "column-gap", "column-rule",
-        "column-rule-color", "column-rule-width", "column-width", "columns",
-        "filter", "flex", "flex-basis", "flex-grow", "flex-shrink", "font",
-        "font-size", "font-size-adjust", "font-stretch", "font-weight",
-        "grid-column-gap", "grid-gap", "grid-row-gap", "height", "left",
-        "letter-spacing", "line-height", "margin", "margin-bottom",
-        "margin-left", "margin-right", "margin-top", "mask", "mask-position",
-        "mask-size", "max-height", "max-width", "min-height", "min-width",
-        "motion-offset", "motion-rotation", "object-position", "opacity",
-        "order", "outline", "outline-color", "outline-offset", "outline-width",
-        "padding", "padding-bottom", "padding-left", "padding-right",
-        "padding-top", "perspective", "perspective-origin", "right",
-        "scroll-snap-coordinate", "scroll-snap-destination",
-        "shape-image-threshold", "shape-margin", "shape-outside",
-        "text-decoration", "text-decoration-color", "text-emphasis",
-        "text-emphasis-color", "text-indent", "text-shadow", "top", "transform",
-        "transform-origin", "vertical-align", "visibility", "width",
-        "word-spacing", "z-index"
-    ]
-
-
-# FIXME: Servo doesn't support some animatable properties yet,those are in the
-# following list, and can be implemented removing it from the list and
-# implementing the Interpolate trait in helpers/animated_properties.mako.rs
-def is_not_supported_animatable_property(name):
-    return name in [
-        "flex-basis", "column-width", "column-height", "column-count",
-        "column-gap", "clip", "filter", "transform-origin",
-        "perspective-origin", "font-stretch", "letter-spacing", "word-spacing",
-        "text-decoration"
-    ]
-
-
 class Keyword(object):
     def __init__(self, name, values, gecko_constant_prefix=None,
                  extra_gecko_values=None, extra_servo_values=None):
@@ -93,9 +45,9 @@ class Keyword(object):
 
 
 class Longhand(object):
-    def __init__(self, style_struct, name, derived_from=None, keyword=None,
+    def __init__(self, style_struct, name, animatable=None, derived_from=None, keyword=None,
                  predefined_type=None, custom_cascade=False, experimental=False, internal=False,
-                 need_clone=False, gecko_ffi_name=None, animatable=None):
+                 need_clone=False, gecko_ffi_name=None):
         self.name = name
         self.keyword = keyword
         self.predefined_type = predefined_type
@@ -108,10 +60,16 @@ class Longhand(object):
         self.need_clone = need_clone
         self.gecko_ffi_name = gecko_ffi_name or "m" + self.camel_case
         self.derived_from = (derived_from or "").split()
-        if animatable is not None:
+
+        # This is done like this since just a plain bool argument seemed like
+        # really random.
+        if animatable is None:
+            raise TypeError("animatable should be specified for " + name + ")")
+        if isinstance(animatable, bool):
             self.animatable = animatable
         else:
-            self.animatable = is_known_animatable_property(name) and not is_not_supported_animatable_property(name)
+            assert animatable == "True" or animatable == "False"
+            self.animatable = animatable == "True"
 
 
 class Shorthand(object):

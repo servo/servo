@@ -9,9 +9,10 @@
 
 ${helpers.predefined_type("opacity",
                           "Opacity",
-                          "1.0")}
+                          "1.0",
+                          animatable=True)}
 
-<%helpers:longhand name="box-shadow">
+<%helpers:longhand name="box-shadow" animatable="True">
     use cssparser::{self, ToCss};
     use std::fmt;
     use values::LocalToCss;
@@ -223,7 +224,8 @@ ${helpers.predefined_type("opacity",
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="clip">
+// FIXME: This prop should be animatable
+<%helpers:longhand name="clip" animatable="False">
     use cssparser::ToCss;
     use std::fmt;
     use values::LocalToCss;
@@ -394,7 +396,8 @@ ${helpers.predefined_type("opacity",
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="filter">
+// FIXME: This prop should be animatable
+<%helpers:longhand name="filter" animatable="False">
     //pub use self::computed_value::T as SpecifiedValue;
     use cssparser::ToCss;
     use std::fmt;
@@ -630,7 +633,7 @@ ${helpers.predefined_type("opacity",
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="transform">
+<%helpers:longhand name="transform" animatable="True">
     use app_units::Au;
     use values::CSSFloat;
 
@@ -1174,13 +1177,20 @@ pub fn parse_origin(_: &ParserContext, input: &mut Parser) -> Result<OriginParse
     }
 }
 
-${helpers.single_keyword("backface-visibility", "visible hidden")}
+${helpers.single_keyword("backface-visibility",
+                         "visible hidden",
+                         animatable=False)}
 
-${helpers.single_keyword("transform-box", "border-box fill-box view-box", products="gecko")}
+${helpers.single_keyword("transform-box",
+                         "border-box fill-box view-box",
+                         products="gecko",
+                         animatable=False)}
 
-${helpers.single_keyword("transform-style", "auto flat preserve-3d")}
+${helpers.single_keyword("transform-style",
+                         "auto flat preserve-3d",
+                         animatable=False)}
 
-<%helpers:longhand name="transform-origin">
+<%helpers:longhand name="transform-origin" animatable="True">
     use app_units::Au;
     use values::LocalToCss;
     use values::specified::{Length, LengthOrPercentage, Percentage};
@@ -1261,10 +1271,12 @@ ${helpers.single_keyword("transform-style", "auto flat preserve-3d")}
 </%helpers:longhand>
 
 ${helpers.predefined_type("perspective",
-                  "LengthOrNone",
-                  "computed::LengthOrNone::None")}
+                          "LengthOrNone",
+                          "computed::LengthOrNone::None",
+                          animatable=True)}
 
-<%helpers:longhand name="perspective-origin">
+// FIXME: This prop should be animatable
+<%helpers:longhand name="perspective-origin" animatable="False">
     use values::specified::{LengthOrPercentage, Percentage};
 
     use cssparser::ToCss;
@@ -1337,6 +1349,7 @@ ${helpers.predefined_type("perspective",
 </%helpers:longhand>
 
 ${helpers.single_keyword("mix-blend-mode",
-                 """normal multiply screen overlay darken lighten color-dodge
-                    color-burn hard-light soft-light difference exclusion hue
-                    saturation color luminosity""", gecko_constant_prefix="NS_STYLE_BLEND")}
+                         """normal multiply screen overlay darken lighten color-dodge
+                            color-burn hard-light soft-light difference exclusion hue
+                            saturation color luminosity""", gecko_constant_prefix="NS_STYLE_BLEND",
+                         animatable=False)}

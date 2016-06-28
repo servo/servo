@@ -6,7 +6,7 @@
 
 <% data.new_style_struct("InheritedText", inherited=True, gecko_name="Text") %>
 
-<%helpers:longhand name="line-height">
+<%helpers:longhand name="line-height" animatable="True">
     use cssparser::ToCss;
     use std::fmt;
     use values::LocalToCss;
@@ -120,7 +120,7 @@
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="text-align">
+<%helpers:longhand name="text-align" animatable="False">
     pub use self::computed_value::T as SpecifiedValue;
     use values::computed::ComputedValueAsSpecified;
     impl ComputedValueAsSpecified for SpecifiedValue {}
@@ -179,7 +179,8 @@
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="letter-spacing">
+// FIXME: This prop should be animatable.
+<%helpers:longhand name="letter-spacing" animatable="False">
     use cssparser::ToCss;
     use std::fmt;
     use values::LocalToCss;
@@ -243,7 +244,7 @@
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="word-spacing">
+<%helpers:longhand name="word-spacing" animatable="False">
     use cssparser::ToCss;
     use std::fmt;
     use values::LocalToCss;
@@ -309,27 +310,33 @@
 
 ${helpers.predefined_type("text-indent",
                           "LengthOrPercentage",
-                          "computed::LengthOrPercentage::Length(Au(0))")}
+                          "computed::LengthOrPercentage::Length(Au(0))",
+                          animatable=True)}
 
 // Also known as "word-wrap" (which is more popular because of IE), but this is the preferred
 // name per CSS-TEXT 6.2.
 ${helpers.single_keyword("overflow-wrap",
                          "normal break-word",
-                         gecko_constant_prefix="NS_STYLE_OVERFLOWWRAP")}
+                         gecko_constant_prefix="NS_STYLE_OVERFLOWWRAP",
+                         animatable=False)}
 
 // TODO(pcwalton): Support `word-break: keep-all` once we have better CJK support.
 ${helpers.single_keyword("word-break",
                          "normal break-all",
                          extra_gecko_values="keep-all",
-                         gecko_constant_prefix="NS_STYLE_WORDBREAK")}
+                         gecko_constant_prefix="NS_STYLE_WORDBREAK",
+                         animatable=False)}
 
 // TODO(pcwalton): Support `text-justify: distribute`.
 ${helpers.single_keyword("text-justify",
                          "auto none inter-word",
-                         products="servo")}
+                         products="servo",
+                         animatable=False)}
 
 <%helpers:longhand name="-servo-text-decorations-in-effect"
-                derived_from="display text-decoration" need_clone="True" products="servo">
+                   derived_from="display text-decoration"
+                   need_clone="True" products="servo"
+                   animatable="False">
     use cssparser::{RGBA, ToCss};
     use std::fmt;
 
@@ -410,8 +417,10 @@ ${helpers.single_keyword("text-justify",
     }
 </%helpers:longhand>
 
-<%helpers:single_keyword_computed name="white-space" values="normal pre nowrap pre-wrap pre-line",
-                                  gecko_constant_prefix="NS_STYLE_WHITESPACE">
+<%helpers:single_keyword_computed name="white-space"
+                                  values="normal pre nowrap pre-wrap pre-line"
+                                  gecko_constant_prefix="NS_STYLE_WHITESPACE"
+                                  animatable="False">
     use values::computed::ComputedValueAsSpecified;
     impl ComputedValueAsSpecified for SpecifiedValue {}
 
@@ -448,7 +457,7 @@ ${helpers.single_keyword("text-justify",
     }
 </%helpers:single_keyword_computed>
 
-<%helpers:longhand name="text-shadow">
+<%helpers:longhand name="text-shadow" animatable="True">
     use cssparser::{self, ToCss};
     use std::fmt;
     use values::LocalToCss;
@@ -635,16 +644,22 @@ ${helpers.single_keyword("text-justify",
 // TODO(pcwalton): `full-width`
 ${helpers.single_keyword("text-transform",
                          "none capitalize uppercase lowercase",
-                         extra_gecko_values="full-width")}
+                         extra_gecko_values="full-width",
+                         animatable=False)}
 
-${helpers.single_keyword("text-rendering", "auto optimizespeed optimizelegibility geometricprecision")}
+${helpers.single_keyword("text-rendering",
+                         "auto optimizespeed optimizelegibility geometricprecision",
+                         animatable=False)}
 
 // CSS Text Module Level 3
 // https://www.w3.org/TR/css-text-3/
-${helpers.single_keyword("hyphens", "none manual auto", products="gecko")}
+${helpers.single_keyword("hyphens", "none manual auto",
+                         products="gecko", animatable=False)}
 
 // CSS Ruby Layout Module Level 1
 // https://www.w3.org/TR/css-ruby-1/
-${helpers.single_keyword("ruby-align", "start center space-between space-around", products="gecko")}
+${helpers.single_keyword("ruby-align", "start center space-between space-around",
+                         products="gecko", animatable=False)}
 
-${helpers.single_keyword("ruby-position", "over under", products="gecko")}
+${helpers.single_keyword("ruby-position", "over under",
+                         products="gecko", animatable=False)}

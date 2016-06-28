@@ -10,15 +10,19 @@
                                               "bool") for side in ["top", "right", "bottom", "left"]]) %>
 
 % for side in ["top", "right", "bottom", "left"]:
-    ${helpers.predefined_type("border-%s-color" % side, "CSSColor", "::cssparser::Color::CurrentColor")}
+    ${helpers.predefined_type("border-%s-color" % side, "CSSColor",
+                              "::cssparser::Color::CurrentColor",
+                              animatable=True)}
 % endfor
 
 % for side in ["top", "right", "bottom", "left"]:
-    ${helpers.predefined_type("border-%s-style" % side, "BorderStyle", "specified::BorderStyle::none", need_clone=True)}
+    ${helpers.predefined_type("border-%s-style" % side, "BorderStyle",
+                              "specified::BorderStyle::none",
+                              need_clone=True, animatable=False)}
 % endfor
 
 % for side in ["top", "right", "bottom", "left"]:
-    <%helpers:longhand name="border-${side}-width">
+    <%helpers:longhand name="border-${side}-width" animatable="True">
         use app_units::Au;
         use cssparser::ToCss;
         use std::fmt;
@@ -60,13 +64,15 @@
 % for corner in ["top-left", "top-right", "bottom-right", "bottom-left"]:
     ${helpers.predefined_type("border-" + corner + "-radius", "BorderRadiusSize",
                               "computed::BorderRadiusSize::zero()",
-                              "parse")}
+                              "parse",
+                              animatable=True)}
 % endfor
 
-${helpers.single_keyword("box-decoration-break", "slice clone", products="gecko")}
+${helpers.single_keyword("box-decoration-break", "slice clone",
+                         products="gecko", animatable=False)}
 
-${helpers.single_keyword("-moz-float-edge",
-                         "content-box margin-box",
+${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
                          gecko_ffi_name="mFloatEdge",
                          gecko_constant_prefix="NS_STYLE_FLOAT_EDGE",
-                         products="gecko")}
+                         products="gecko",
+                         animatable=False)}

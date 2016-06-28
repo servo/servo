@@ -6,7 +6,8 @@
 
 <% data.new_style_struct("Column", inherited=False) %>
 
-<%helpers:longhand name="column-width" experimental="True">
+// FIXME: This prop should be animatable.
+<%helpers:longhand name="column-width" experimental="True" animatable="False">
     use cssparser::ToCss;
     use std::fmt;
     use values::LocalToCss;
@@ -70,7 +71,8 @@
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="column-count" experimental="True">
+// FIXME: This prop should be animatable.
+<%helpers:longhand name="column-count" experimental="True" animatable="False">
     use cssparser::ToCss;
     use std::fmt;
 
@@ -137,7 +139,8 @@
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="column-gap" experimental="True">
+// FIXME: This prop should be animatable.
+<%helpers:longhand name="column-gap" experimental="True" animatable="False">
     use cssparser::ToCss;
     use std::fmt;
     use values::LocalToCss;
