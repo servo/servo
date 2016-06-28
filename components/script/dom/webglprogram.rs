@@ -16,12 +16,13 @@ use dom::webglrenderingcontext::MAX_UNIFORM_AND_ATTRIBUTE_LEN;
 use dom::webglshader::WebGLShader;
 use ipc_channel::ipc::{self, IpcSender};
 use std::cell::Cell;
-use webrender_traits::{WebGLCommand, WebGLError, WebGLParameter, WebGLResult};
+use webrender_traits::{WebGLCommand, WebGLError, WebGLParameter};
+use webrender_traits::{WebGLProgramId, WebGLResult};
 
 #[dom_struct]
 pub struct WebGLProgram {
     webgl_object: WebGLObject,
-    id: u32,
+    id: WebGLProgramId,
     is_deleted: Cell<bool>,
     linked: Cell<bool>,
     fragment_shader: MutNullableHeap<JS<WebGLShader>>,
@@ -31,7 +32,9 @@ pub struct WebGLProgram {
 }
 
 impl WebGLProgram {
-    fn new_inherited(renderer: IpcSender<CanvasMsg>, id: u32) -> WebGLProgram {
+    fn new_inherited(renderer: IpcSender<CanvasMsg>,
+                     id: WebGLProgramId)
+                     -> WebGLProgram {
         WebGLProgram {
             webgl_object: WebGLObject::new_inherited(),
             id: id,
@@ -49,17 +52,22 @@ impl WebGLProgram {
         renderer.send(CanvasMsg::WebGL(WebGLCommand::CreateProgram(sender))).unwrap();
 
         let result = receiver.recv().unwrap();
-        result.map(|program_id| WebGLProgram::new(global, renderer, *program_id))
+        result.map(|program_id| WebGLProgram::new(global, renderer, program_id))
     }
 
-    pub fn new(global: GlobalRef, renderer: IpcSender<CanvasMsg>, id: u32) -> Root<WebGLProgram> {
-        reflect_dom_object(box WebGLProgram::new_inherited(renderer, id), global, WebGLProgramBinding::Wrap)
+    pub fn new(global: GlobalRef,
+               renderer: IpcSender<CanvasMsg>,
+               id: WebGLProgramId)
+               -> Root<WebGLProgram> {
+        reflect_dom_object(box WebGLProgram::new_inherited(renderer, id),
+                           global,
+                           WebGLProgramBinding::Wrap)
     }
 }
 
 
 impl WebGLProgram {
-    pub fn id(&self) -> u32 {
+    pub fn id(&self) -> WebGLProgramId {
         self.id
     }
 

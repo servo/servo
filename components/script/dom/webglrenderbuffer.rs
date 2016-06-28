@@ -11,12 +11,12 @@ use dom::bindings::reflector::reflect_dom_object;
 use dom::webglobject::WebGLObject;
 use ipc_channel::ipc::{self, IpcSender};
 use std::cell::Cell;
-use webrender_traits::WebGLCommand;
+use webrender_traits::{WebGLCommand, WebGLRenderbufferId};
 
 #[dom_struct]
 pub struct WebGLRenderbuffer {
     webgl_object: WebGLObject,
-    id: u32,
+    id: WebGLRenderbufferId,
     ever_bound: Cell<bool>,
     is_deleted: Cell<bool>,
     #[ignore_heap_size_of = "Defined in ipc-channel"]
@@ -24,7 +24,9 @@ pub struct WebGLRenderbuffer {
 }
 
 impl WebGLRenderbuffer {
-    fn new_inherited(renderer: IpcSender<CanvasMsg>, id: u32) -> WebGLRenderbuffer {
+    fn new_inherited(renderer: IpcSender<CanvasMsg>,
+                     id: WebGLRenderbufferId)
+                     -> WebGLRenderbuffer {
         WebGLRenderbuffer {
             webgl_object: WebGLObject::new_inherited(),
             id: id,
@@ -40,24 +42,29 @@ impl WebGLRenderbuffer {
         renderer.send(CanvasMsg::WebGL(WebGLCommand::CreateRenderbuffer(sender))).unwrap();
 
         let result = receiver.recv().unwrap();
-        result.map(|renderbuffer_id| WebGLRenderbuffer::new(global, renderer, *renderbuffer_id))
+        result.map(|renderbuffer_id| WebGLRenderbuffer::new(global, renderer, renderbuffer_id))
     }
 
-    pub fn new(global: GlobalRef, renderer: IpcSender<CanvasMsg>, id: u32)
+    pub fn new(global: GlobalRef,
+               renderer: IpcSender<CanvasMsg>,
+               id: WebGLRenderbufferId)
                -> Root<WebGLRenderbuffer> {
-        reflect_dom_object(box WebGLRenderbuffer::new_inherited(renderer, id), global, WebGLRenderbufferBinding::Wrap)
+        reflect_dom_object(box WebGLRenderbuffer::new_inherited(renderer, id),
+                           global,
+                           WebGLRenderbufferBinding::Wrap)
     }
 }
 
 
 impl WebGLRenderbuffer {
-    pub fn id(&self) -> u32 {
+    pub fn id(&self) -> WebGLRenderbufferId {
         self.id
     }
 
     pub fn bind(&self, target: u32) {
         self.ever_bound.set(true);
-        self.renderer.send(CanvasMsg::WebGL(WebGLCommand::BindRenderbuffer(target, self.id))).unwrap();
+        let msg = CanvasMsg::WebGL(WebGLCommand::BindRenderbuffer(target, Some(self.id)));
+        self.renderer.send(msg).unwrap();
     }
 
     pub fn delete(&self) {

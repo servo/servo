@@ -7,16 +7,19 @@ use dom::bindings::codegen::Bindings::WebGLUniformLocationBinding;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use webrender_traits::WebGLProgramId;
 
 #[dom_struct]
 pub struct WebGLUniformLocation {
     reflector_: Reflector,
     id: i32,
-    program_id: u32,
+    program_id: WebGLProgramId,
 }
 
 impl WebGLUniformLocation {
-    fn new_inherited(id: i32, program_id: u32) -> WebGLUniformLocation {
+    fn new_inherited(id: i32,
+                     program_id: WebGLProgramId)
+                     -> WebGLUniformLocation {
         WebGLUniformLocation {
             reflector_: Reflector::new(),
             id: id,
@@ -24,16 +27,20 @@ impl WebGLUniformLocation {
         }
     }
 
-    pub fn new(global: GlobalRef, id: i32, program_id: u32) -> Root<WebGLUniformLocation> {
-        reflect_dom_object(
-            box WebGLUniformLocation::new_inherited(id, program_id), global, WebGLUniformLocationBinding::Wrap)
+    pub fn new(global: GlobalRef,
+               id: i32,
+               program_id: WebGLProgramId)
+               -> Root<WebGLUniformLocation> {
+        reflect_dom_object(box WebGLUniformLocation::new_inherited(id, program_id),
+                           global,
+                           WebGLUniformLocationBinding::Wrap)
     }
 
     pub fn id(&self) -> i32 {
         self.id
     }
 
-    pub fn program_id(&self) -> u32 {
+    pub fn program_id(&self) -> WebGLProgramId {
         self.program_id
     }
 }

@@ -15,7 +15,7 @@ use dom::webglobject::WebGLObject;
 use ipc_channel::ipc::{self, IpcSender};
 use std::cell::Cell;
 use std::cmp;
-use webrender_traits::{WebGLCommand, WebGLError, WebGLResult};
+use webrender_traits::{WebGLCommand, WebGLError, WebGLResult, WebGLTextureId};
 
 pub enum TexParameterValue {
     Float(f32),
@@ -30,7 +30,7 @@ no_jsmanaged_fields!([ImageInfo; MAX_LEVEL_COUNT * MAX_FACE_COUNT]);
 #[dom_struct]
 pub struct WebGLTexture {
     webgl_object: WebGLObject,
-    id: u32,
+    id: WebGLTextureId,
     /// The target to which this texture was bound the first time
     target: Cell<Option<u32>>,
     is_deleted: Cell<bool>,
@@ -45,7 +45,9 @@ pub struct WebGLTexture {
 }
 
 impl WebGLTexture {
-    fn new_inherited(renderer: IpcSender<CanvasMsg>, id: u32) -> WebGLTexture {
+    fn new_inherited(renderer: IpcSender<CanvasMsg>,
+                     id: WebGLTextureId)
+                     -> WebGLTexture {
         WebGLTexture {
             webgl_object: WebGLObject::new_inherited(),
             id: id,
@@ -64,17 +66,22 @@ impl WebGLTexture {
         renderer.send(CanvasMsg::WebGL(WebGLCommand::CreateTexture(sender))).unwrap();
 
         let result = receiver.recv().unwrap();
-        result.map(|texture_id| WebGLTexture::new(global, renderer, *texture_id))
+        result.map(|texture_id| WebGLTexture::new(global, renderer, texture_id))
     }
 
-    pub fn new(global: GlobalRef, renderer: IpcSender<CanvasMsg>, id: u32) -> Root<WebGLTexture> {
-        reflect_dom_object(box WebGLTexture::new_inherited(renderer, id), global, WebGLTextureBinding::Wrap)
+    pub fn new(global: GlobalRef,
+               renderer: IpcSender<CanvasMsg>,
+               id: WebGLTextureId)
+               -> Root<WebGLTexture> {
+        reflect_dom_object(box WebGLTexture::new_inherited(renderer, id),
+                           global,
+                           WebGLTextureBinding::Wrap)
     }
 }
 
 
 impl WebGLTexture {
-    pub fn id(&self) -> u32 {
+    pub fn id(&self) -> WebGLTextureId {
         self.id
     }
 
@@ -99,7 +106,8 @@ impl WebGLTexture {
             self.target.set(Some(target));
         }
 
-        self.renderer.send(CanvasMsg::WebGL(WebGLCommand::BindTexture(target, self.id))).unwrap();
+        let msg = CanvasMsg::WebGL(WebGLCommand::BindTexture(target, Some(self.id)));
+        self.renderer.send(msg).unwrap();
 
         Ok(())
     }

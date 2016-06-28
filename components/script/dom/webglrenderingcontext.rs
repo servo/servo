@@ -661,7 +661,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             slot.set(None);
             // Unbind the current buffer
             self.ipc_renderer
-                .send(CanvasMsg::WebGL(WebGLCommand::BindBuffer(target, 0)))
+                .send(CanvasMsg::WebGL(WebGLCommand::BindBuffer(target, None)))
                 .unwrap()
         }
     }
@@ -692,7 +692,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         } else {
             // Unbind the currently bound renderbuffer
             self.ipc_renderer
-                .send(CanvasMsg::WebGL(WebGLCommand::BindRenderbuffer(target, 0)))
+                .send(CanvasMsg::WebGL(WebGLCommand::BindRenderbuffer(target, None)))
                 .unwrap()
         }
     }
@@ -713,7 +713,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         } else {
             // Unbind the currently bound texture
             self.ipc_renderer
-                .send(CanvasMsg::WebGL(WebGLCommand::BindTexture(target, 0)))
+                .send(CanvasMsg::WebGL(WebGLCommand::BindTexture(target, None)))
                 .unwrap()
         }
     }
