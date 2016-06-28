@@ -22,7 +22,7 @@ ${helpers.predefined_type("opacity",
         fn has_viewport_percentage(&self) -> bool {
             let &SpecifiedValue(ref vec) = self;
             vec.iter().any(|ref x| x.has_viewport_percentage())
-        }    
+        }
     }
 
     #[derive(Debug, Clone, PartialEq)]
@@ -35,7 +35,7 @@ ${helpers.predefined_type("opacity",
             self.offset_y.has_viewport_percentage() ||
             self.blur_radius.has_viewport_percentage() ||
             self.spread_radius.has_viewport_percentage()
-        }    
+        }
     }
 
     #[derive(Debug, Clone, PartialEq)]
@@ -303,7 +303,7 @@ ${helpers.predefined_type("opacity",
             self.right.map_or(false, |x| x.has_viewport_percentage()) ||
             self.bottom.map_or(false, |x| x.has_viewport_percentage()) ||
             self.left.has_viewport_percentage()
-        }    
+        }
     }
 
     #[derive(Clone, Debug, PartialEq, Copy)]
@@ -319,7 +319,7 @@ ${helpers.predefined_type("opacity",
         fn has_viewport_percentage(&self) -> bool {
             let &SpecifiedValue(clip) = self;
             clip.map_or(false, |x| x.has_viewport_percentage())
-        }    
+        }
     }
 
     #[derive(Clone, Debug, PartialEq, Copy)]
@@ -444,7 +444,7 @@ ${helpers.predefined_type("opacity",
         fn has_viewport_percentage(&self) -> bool {
             let &SpecifiedValue(ref vec) = self;
             vec.iter().any(|ref x| x.has_viewport_percentage())
-        }    
+        }
     }
 
     #[derive(Debug, Clone, PartialEq)]
@@ -457,7 +457,7 @@ ${helpers.predefined_type("opacity",
                 SpecifiedFilter::Blur(length) => length.has_viewport_percentage(),
                 _ => false
             }
-        }    
+        }
     }
 
     // TODO(pcwalton): `drop-shadow`
@@ -807,7 +807,7 @@ ${helpers.predefined_type("opacity",
                 SpecifiedOperation::Perspective(length) => length.has_viewport_percentage(),
                 _ => false
             }
-        }    
+        }
     }
 
     impl ToCss for SpecifiedOperation {
@@ -873,7 +873,7 @@ ${helpers.predefined_type("opacity",
         fn has_viewport_percentage(&self) -> bool {
             let &SpecifiedValue(ref specified_ops) = self;
             specified_ops.iter().any(|ref x| x.has_viewport_percentage())
-        }    
+        }
     }
 
     #[derive(Clone, Debug, PartialEq)]
@@ -1283,13 +1283,13 @@ ${helpers.single_keyword("transform-style",
             pub depth: Length,
         }
     }
-    
+
     impl HasViewportPercentage for SpecifiedValue {
         fn has_viewport_percentage(&self) -> bool {
             self.horizontal.has_viewport_percentage() ||
             self.vertical.has_viewport_percentage() ||
             self.depth.has_viewport_percentage()
-        }    
+        }
     }
 
     #[derive(Clone, Copy, Debug, PartialEq)]
@@ -1388,7 +1388,7 @@ ${helpers.predefined_type("perspective",
     impl HasViewportPercentage for SpecifiedValue {
         fn has_viewport_percentage(&self) -> bool {
             self.horizontal.has_viewport_percentage() || self.vertical.has_viewport_percentage()
-        }    
+        }
     }
 
     #[derive(Clone, Copy, Debug, PartialEq)]

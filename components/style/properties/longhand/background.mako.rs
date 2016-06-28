@@ -34,7 +34,7 @@ ${helpers.predefined_type("background-color", "CSSColor",
             }
         }
     }
- 
+
     impl NoViewportPercentage for SpecifiedValue {}
 
     #[derive(Debug, Clone, PartialEq)]

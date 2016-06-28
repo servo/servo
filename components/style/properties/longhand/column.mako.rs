@@ -18,8 +18,8 @@
             match *self {
                 SpecifiedValue::Specified(length) => length.has_viewport_percentage(),
                 _ => false
-            } 
-        }    
+            }
+        }
     }
 
     #[derive(Debug, Clone, Copy, PartialEq)]
@@ -164,8 +164,8 @@
             match *self {
                 SpecifiedValue::Specified(length) => length.has_viewport_percentage(),
                 _ => false
-            } 
-        }    
+            }
+        }
     }
 
     #[derive(Debug, Clone, Copy, PartialEq)]

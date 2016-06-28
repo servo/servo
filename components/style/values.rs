@@ -105,14 +105,12 @@ pub mod specified {
     use std::fmt;
     use std::ops::Mul;
     use style_traits::values::specified::AllowedNumericType;
-    use super::LocalToCss;
-    use super::{HasViewportPercentage, NoViewportPercentage};
     use super::computed::{TContext, ToComputedValue};
-    use super::{CSSFloat, FONT_MEDIUM_PX};
+    use super::{CSSFloat, FONT_MEDIUM_PX, HasViewportPercentage, LocalToCss, NoViewportPercentage};
     use url::Url;
 
     impl NoViewportPercentage for i32 {}  // For PropertyDeclaration::Order
-    
+
     #[derive(Clone, PartialEq, Debug)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct CSSColor {
@@ -208,7 +206,7 @@ pub mod specified {
         Vh(CSSFloat),
         Vmin(CSSFloat),
         Vmax(CSSFloat)
-    } 
+    }
 
     impl HasViewportPercentage for ViewportPercentageLength {
         fn has_viewport_percentage(&self) -> bool {
@@ -1182,7 +1180,7 @@ pub mod specified {
     #[derive(Clone, PartialEq, Copy, Debug)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct BorderRadiusSize(pub Size2D<LengthOrPercentage>);
-    
+
     impl NoViewportPercentage for BorderRadiusSize {}
 
     impl BorderRadiusSize {
@@ -1580,7 +1578,7 @@ pub mod specified {
     #[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct Number(pub CSSFloat);
-    
+
     impl NoViewportPercentage for Number {}
 
     impl Number {

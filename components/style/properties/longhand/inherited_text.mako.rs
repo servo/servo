@@ -203,7 +203,7 @@
             match *self {
                 SpecifiedValue::Specified(length) => length.has_viewport_percentage(),
                 _ => false
-            } 
+            }
         }
     }
 
@@ -277,7 +277,7 @@
             match *self {
                 SpecifiedValue::Specified(length) => length.has_viewport_percentage(),
                 _ => false
-            } 
+            }
         }
     }
 
@@ -503,8 +503,7 @@ ${helpers.single_keyword("text-justify",
         fn has_viewport_percentage(&self) -> bool {
             let &SpecifiedValue(ref vec) = self;
             vec.iter().any(|ref x| x .has_viewport_percentage())
-            
-        }    
+        }
     }
 
     #[derive(Clone, PartialEq, Debug)]
@@ -516,7 +515,7 @@ ${helpers.single_keyword("text-justify",
             self.offset_x.has_viewport_percentage() ||
             self.offset_y.has_viewport_percentage() ||
             self.blur_radius.has_viewport_percentage()
-        }    
+        }
     }
 
     #[derive(Clone, PartialEq, Debug)]
