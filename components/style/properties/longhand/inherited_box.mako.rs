@@ -6,20 +6,22 @@
 
 <% data.new_style_struct("InheritedBox", inherited=True, gecko_name="Visibility") %>
 
-${helpers.single_keyword("direction", "ltr rtl", need_clone=True)}
+${helpers.single_keyword("direction", "ltr rtl", need_clone=True, animatable=False)}
 
 // TODO: collapse. Well, do tables first.
 ${helpers.single_keyword("visibility",
                          "visible hidden",
                          extra_gecko_values="collapse",
-                         gecko_ffi_name="mVisible")}
+                         gecko_ffi_name="mVisible",
+                         animatable=True)}
 
 // CSS Writing Modes Level 3
 // http://dev.w3.org/csswg/css-writing-modes/
 ${helpers.single_keyword("writing-mode",
                          "horizontal-tb vertical-rl vertical-lr",
                          experimental=True,
-                         need_clone=True)}
+                         need_clone=True,
+                         animatable=False)}
 
 // FIXME(SimonSapin): Add 'mixed' and 'upright' (needs vertical text support)
 // FIXME(SimonSapin): initial (first) value should be 'mixed', when that's implemented
@@ -29,13 +31,16 @@ ${helpers.single_keyword("text-orientation",
                          experimental=True,
                          need_clone=True,
                          extra_gecko_values="mixed upright",
-                         extra_servo_values="sideways-right sideways-left")}
+                         extra_servo_values="sideways-right sideways-left",
+                         animatable=False)}
 
 // CSS Color Module Level 4
 // https://drafts.csswg.org/css-color/
-${helpers.single_keyword("color-adjust", "economy exact", products="gecko")}
+${helpers.single_keyword("color-adjust",
+                         "economy exact", products="gecko",
+                         animatable=False)}
 
-<%helpers:longhand name="image-rendering">
+<%helpers:longhand name="image-rendering" animatable="False">
     pub mod computed_value {
         use cssparser::ToCss;
         use std::fmt;
@@ -92,7 +97,10 @@ ${helpers.single_keyword("color-adjust", "economy exact", products="gecko")}
 
 // Used in the bottom-up flow construction traversal to avoid constructing flows for
 // descendants of nodes with `display: none`.
-<%helpers:longhand name="-servo-under-display-none" derived_from="display" products="servo">
+<%helpers:longhand name="-servo-under-display-none"
+                   derived_from="display"
+                   products="servo"
+                   animatable="False">
     use cssparser::ToCss;
     use std::fmt;
     use values::computed::ComputedValueAsSpecified;

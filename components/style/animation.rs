@@ -4,83 +4,266 @@
 
 //! CSS transitions and animations.
 
-use app_units::Au;
 use bezier::Bezier;
-use cssparser::{Color, RGBA};
+use context::SharedStyleContext;
 use dom::{OpaqueNode, TRestyleDamage};
 use euclid::point::Point2D;
-use properties::longhands::background_position::computed_value::T as BackgroundPosition;
-use properties::longhands::border_spacing::computed_value::T as BorderSpacing;
-use properties::longhands::clip::computed_value::ClipRect;
-use properties::longhands::font_weight::computed_value::T as FontWeight;
-use properties::longhands::line_height::computed_value::T as LineHeight;
-use properties::longhands::text_shadow::computed_value::T as TextShadowList;
-use properties::longhands::text_shadow::computed_value::TextShadow;
-use properties::longhands::transform::computed_value::ComputedMatrix;
-use properties::longhands::transform::computed_value::ComputedOperation as TransformOperation;
-use properties::longhands::transform::computed_value::T as TransformList;
-use properties::longhands::transition_property;
-use properties::longhands::transition_property::computed_value::TransitionProperty;
+use keyframes::{KeyframesStep, KeyframesStepValue};
+use properties::animated_properties::{AnimatedProperty, TransitionProperty};
+use properties::longhands::animation_direction::computed_value::AnimationDirection;
+use properties::longhands::animation_iteration_count::computed_value::AnimationIterationCount;
+use properties::longhands::animation_play_state::computed_value::AnimationPlayState;
 use properties::longhands::transition_timing_function::computed_value::StartEnd;
 use properties::longhands::transition_timing_function::computed_value::TransitionTimingFunction;
-use properties::longhands::vertical_align::computed_value::T as VerticalAlign;
-use properties::longhands::visibility::computed_value::T as Visibility;
-use properties::longhands::z_index::computed_value::T as ZIndex;
 use properties::style_struct_traits::Box;
-use properties::{ComputedValues, ServoComputedValues};
-use std::cmp::Ordering;
-use std::iter::repeat;
+use properties::{self, ComputedValues};
+use selector_impl::SelectorImplExt;
+use selectors::matching::DeclarationBlock;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
+use string_cache::Atom;
 use time;
-use values::CSSFloat;
-use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
-use values::computed::{CalcLengthOrPercentage, Length, LengthOrPercentage, Time};
+use values::computed::Time;
 
-/// State relating to an animation.
-#[derive(Clone)]
-pub struct Animation {
-    /// An opaque reference to the DOM node participating in the animation.
-    pub node: OpaqueNode,
-    /// A description of the property animation that is occurring.
-    pub property_animation: PropertyAnimation,
-    /// The start time of the animation, as returned by `time::precise_time_s()`.
-    pub start_time: f64,
-    /// The end time of the animation, as returned by `time::precise_time_s()`.
-    pub end_time: f64,
+/// This structure represents a keyframes animation current iteration state.
+///
+/// If the iteration count is infinite, there's no other state, otherwise we
+/// have to keep track the current iteration and the max iteration count.
+#[derive(Debug, Clone)]
+pub enum KeyframesIterationState {
+    Infinite,
+    // current, max
+    Finite(u32, u32),
 }
 
-impl Animation {
-    /// Returns the duration of this animation in seconds.
+/// This structure represents wether an animation is actually running.
+///
+/// An animation can be running, or paused at a given time.
+#[derive(Debug, Clone)]
+pub enum KeyframesRunningState {
+    /// This animation is paused. The inner field is the percentage of progress
+    /// when it was paused, from 0 to 1.
+    Paused(f64),
+    /// This animation is actually running.
+    Running,
+}
+
+/// This structure represents the current keyframe animation state, i.e., the
+/// duration, the current and maximum iteration count, and the state (either
+/// playing or paused).
+// TODO: unify the use of f32/f64 in this file.
+#[derive(Debug, Clone)]
+pub struct KeyframesAnimationState<Impl: SelectorImplExt> {
+    /// The time this animation started at.
+    pub started_at: f64,
+    /// The duration of this animation.
+    pub duration: f64,
+    /// The delay of the animation.
+    pub delay: f64,
+    /// The current iteration state for the animation.
+    pub iteration_state: KeyframesIterationState,
+    /// Werther this animation is paused.
+    pub running_state: KeyframesRunningState,
+    /// The declared animation direction of this animation.
+    pub direction: AnimationDirection,
+    /// The current animation direction. This can only be `normal` or `reverse`.
+    pub current_direction: AnimationDirection,
+    /// Werther this keyframe animation is outdated due to a restyle.
+    pub expired: bool,
+    /// The original cascade style, needed to compute the generated keyframes of
+    /// the animation.
+    pub cascade_style: Arc<Impl::ComputedValues>,
+}
+
+impl<Impl: SelectorImplExt> KeyframesAnimationState<Impl> {
+    /// Performs a tick in the animation state, i.e., increments the counter of
+    /// the current iteration count, updates times and then toggles the
+    /// direction if appropriate.
+    ///
+    /// Returns true if the animation should keep running.
+    pub fn tick(&mut self) -> bool {
+        debug!("KeyframesAnimationState::tick");
+
+        self.started_at += self.duration + self.delay;
+        match self.running_state {
+            // If it's paused, don't update direction or iteration count.
+            KeyframesRunningState::Paused(_) => return true,
+            KeyframesRunningState::Running => {},
+        }
+
+        if let KeyframesIterationState::Finite(ref mut current, ref max) = self.iteration_state {
+            *current += 1;
+            // NB: This prevent us from updating the direction, which might be
+            // needed for the correct handling of animation-fill-mode.
+            if *current >= *max {
+                return false;
+            }
+        }
+
+        // Update the next iteration direction if applicable.
+        match self.direction {
+            AnimationDirection::alternate |
+            AnimationDirection::alternate_reverse => {
+                self.current_direction = match self.current_direction {
+                    AnimationDirection::normal => AnimationDirection::reverse,
+                    AnimationDirection::reverse => AnimationDirection::normal,
+                    _ => unreachable!(),
+                };
+            }
+            _ => {},
+        }
+
+        true
+    }
+
+    /// Updates the appropiate state from other animation.
+    ///
+    /// This happens when an animation is re-submitted to layout, presumably
+    /// because of an state change.
+    ///
+    /// There are some bits of state we can't just replace, over all taking in
+    /// account times, so here's that logic.
+    pub fn update_from_other(&mut self, other: &Self) {
+        use self::KeyframesRunningState::*;
+
+        debug!("KeyframesAnimationState::update_from_other({:?}, {:?})", self, other);
+
+        // NB: We shall not touch the started_at field, since we don't want to
+        // restart the animation.
+        let old_started_at = self.started_at;
+        let old_duration = self.duration;
+        let old_direction = self.current_direction;
+        let old_running_state = self.running_state.clone();
+        let old_iteration_state = self.iteration_state.clone();
+        *self = other.clone();
+
+        let mut new_started_at = old_started_at;
+
+        // If we're unpausing the animation, fake the start time so we seem to
+        // restore it.
+        //
+        // If the animation keeps paused, keep the old value.
+        //
+        // If we're pausing the animation, compute the progress value.
+        match (&mut self.running_state, old_running_state) {
+            (&mut Running, Paused(progress))
+                => new_started_at = time::precise_time_s() - (self.duration * progress),
+            (&mut Paused(ref mut new), Paused(old))
+                => *new = old,
+            (&mut Paused(ref mut progress), Running)
+                => *progress = (time::precise_time_s() - old_started_at) / old_duration,
+            _ => {},
+        }
+
+        // Don't update the iteration count, just the iteration limit.
+        // TODO: see how changing the limit affects rendering in other browsers.
+        // We might need to keep the iteration count even when it's infinite.
+        match (&mut self.iteration_state, old_iteration_state) {
+            (&mut KeyframesIterationState::Finite(ref mut iters, _), KeyframesIterationState::Finite(old_iters, _))
+                => *iters = old_iters,
+            _ => {}
+        }
+
+        self.current_direction = old_direction;
+        self.started_at = new_started_at;
+    }
+
     #[inline]
-    pub fn duration(&self) -> f64 {
-        self.end_time - self.start_time
+    fn is_paused(&self) -> bool {
+        match self.running_state {
+            KeyframesRunningState::Paused(..) => true,
+            KeyframesRunningState::Running => false,
+        }
+    }
+}
+
+/// State relating to an animation.
+#[derive(Clone, Debug)]
+pub enum Animation<Impl: SelectorImplExt> {
+    /// A transition is just a single frame triggered at a time, with a reflow.
+    ///
+    /// the f64 field is the start time as returned by `time::precise_time_s()`.
+    ///
+    /// The `bool` field is werther this animation should no longer run.
+    Transition(OpaqueNode, f64, AnimationFrame, bool),
+    /// A keyframes animation is identified by a name, and can have a
+    /// node-dependent state (i.e. iteration count, etc.).
+    Keyframes(OpaqueNode, Atom, KeyframesAnimationState<Impl>),
+}
+
+impl<Impl: SelectorImplExt> Animation<Impl> {
+    #[inline]
+    pub fn mark_as_expired(&mut self) {
+        debug_assert!(!self.is_expired());
+        match *self {
+            Animation::Transition(_, _, _, ref mut expired) => *expired = true,
+            Animation::Keyframes(_, _, ref mut state) => state.expired = true,
+        }
+    }
+
+    #[inline]
+    pub fn is_expired(&self) -> bool {
+        match *self {
+            Animation::Transition(_, _, _, expired) => expired,
+            Animation::Keyframes(_, _, ref state) => state.expired,
+        }
+    }
+
+    #[inline]
+    pub fn node(&self) -> &OpaqueNode {
+        match *self {
+            Animation::Transition(ref node, _, _, _) => node,
+            Animation::Keyframes(ref node, _, _) => node,
+        }
+    }
+
+    #[inline]
+    pub fn is_paused(&self) -> bool {
+        match *self {
+            Animation::Transition(..) => false,
+            Animation::Keyframes(_, _, ref state) => state.is_paused(),
+        }
     }
 }
 
 
-#[derive(Clone, Debug)]
+/// A single animation frame of a single property.
+#[derive(Debug, Clone)]
+pub struct AnimationFrame {
+    /// A description of the property animation that is occurring.
+    pub property_animation: PropertyAnimation,
+    /// The duration of the animation. This is either relative in the keyframes
+    /// case (a number between 0 and 1), or absolute in the transition case.
+    pub duration: f64,
+}
+
+#[derive(Debug, Clone)]
 pub struct PropertyAnimation {
     property: AnimatedProperty,
     timing_function: TransitionTimingFunction,
-    duration: Time,
+    duration: Time, // TODO: isn't this just repeated?
 }
 
 impl PropertyAnimation {
     /// Creates a new property animation for the given transition index and old and new styles.
     /// Any number of animations may be returned, from zero (if the property did not animate) to
     /// one (for a single transition property) to arbitrarily many (for `all`).
-    pub fn from_transition(transition_index: usize,
-                           old_style: &ServoComputedValues,
-                           new_style: &mut ServoComputedValues)
-                           -> Vec<PropertyAnimation> {
-        let mut result = Vec::new();
-        let transition_property =
-            new_style.as_servo().get_box().transition_property.0[transition_index];
+    pub fn from_transition<C: ComputedValues>(transition_index: usize,
+                                              old_style: &C,
+                                              new_style: &mut C)
+                                              -> Vec<PropertyAnimation> {
+        let mut result = vec![];
+        let box_style = new_style.as_servo().get_box();
+        let transition_property = box_style.transition_property.0[transition_index];
+        let timing_function = *box_style.transition_timing_function.0.get_mod(transition_index);
+        let duration = *box_style.transition_duration.0.get_mod(transition_index);
+
+
         if transition_property != TransitionProperty::All {
             if let Some(property_animation) =
                     PropertyAnimation::from_transition_property(transition_property,
-                                                                transition_index,
+                                                                timing_function,
+                                                                duration,
                                                                 old_style,
                                                                 new_style) {
                 result.push(property_animation)
@@ -88,118 +271,44 @@ impl PropertyAnimation {
             return result
         }
 
-        for transition_property in
-                transition_property::computed_value::ALL_TRANSITION_PROPERTIES.iter() {
+        TransitionProperty::each(|transition_property| {
             if let Some(property_animation) =
-                    PropertyAnimation::from_transition_property(*transition_property,
-                                                                transition_index,
+                    PropertyAnimation::from_transition_property(transition_property,
+                                                                timing_function,
+                                                                duration,
                                                                 old_style,
                                                                 new_style) {
                 result.push(property_animation)
             }
-        }
+        });
 
         result
     }
 
-    fn from_transition_property(transition_property: TransitionProperty,
-                                transition_index: usize,
-                                old_style: &ServoComputedValues,
-                                new_style: &mut ServoComputedValues)
-                                -> Option<PropertyAnimation> {
-        let box_style = new_style.get_box();
-        macro_rules! match_transition {
-                ( $( [$name:ident; $structname:ident; $field:ident] ),* ) => {
-                    match transition_property {
-                        TransitionProperty::All => {
-                            panic!("Don't use `TransitionProperty::All` with \
-                                   `PropertyAnimation::from_transition_property`!")
-                        }
-                        $(
-                            TransitionProperty::$name => {
-                                AnimatedProperty::$name(old_style.$structname().$field,
-                                                        new_style.$structname().$field)
-                            }
-                        )*
-                        TransitionProperty::Clip => {
-                            AnimatedProperty::Clip(old_style.get_effects().clip.0,
-                                                   new_style.get_effects().clip.0)
-                        }
-                        TransitionProperty::LetterSpacing => {
-                            AnimatedProperty::LetterSpacing(old_style.get_inheritedtext().letter_spacing.0,
-                                                            new_style.get_inheritedtext().letter_spacing.0)
-                        }
-                        TransitionProperty::TextShadow => {
-                            AnimatedProperty::TextShadow(old_style.get_inheritedtext().text_shadow.clone(),
-                                                         new_style.get_inheritedtext().text_shadow.clone())
-                        }
-                        TransitionProperty::Transform => {
-                            AnimatedProperty::Transform(old_style.get_effects().transform.clone(),
-                                                        new_style.get_effects().transform.clone())
-                        }
-                        TransitionProperty::WordSpacing => {
-                            AnimatedProperty::WordSpacing(old_style.get_inheritedtext().word_spacing.0,
-                                                          new_style.get_inheritedtext().word_spacing.0)
-                        }
-                    }
-                }
-        }
-        let animated_property = match_transition!(
-            [BackgroundColor; get_background; background_color],
-            [BackgroundPosition; get_background; background_position],
-            [BorderBottomColor; get_border; border_bottom_color],
-            [BorderBottomWidth; get_border; border_bottom_width],
-            [BorderLeftColor; get_border; border_left_color],
-            [BorderLeftWidth; get_border; border_left_width],
-            [BorderRightColor; get_border; border_right_color],
-            [BorderRightWidth; get_border; border_right_width],
-            [BorderSpacing; get_inheritedtable; border_spacing],
-            [BorderTopColor; get_border; border_top_color],
-            [BorderTopWidth; get_border; border_top_width],
-            [Bottom; get_position; bottom],
-            [Color; get_color; color],
-            [FontSize; get_font; font_size],
-            [FontWeight; get_font; font_weight],
-            [Height; get_position; height],
-            [Left; get_position; left],
-            [LineHeight; get_inheritedtext; line_height],
-            [MarginBottom; get_margin; margin_bottom],
-            [MarginLeft; get_margin; margin_left],
-            [MarginRight; get_margin; margin_right],
-            [MarginTop; get_margin; margin_top],
-            [MaxHeight; get_position; max_height],
-            [MaxWidth; get_position; max_width],
-            [MinHeight; get_position; min_height],
-            [MinWidth; get_position; min_width],
-            [Opacity; get_effects; opacity],
-            [OutlineColor; get_outline; outline_color],
-            [OutlineWidth; get_outline; outline_width],
-            [PaddingBottom; get_padding; padding_bottom],
-            [PaddingLeft; get_padding; padding_left],
-            [PaddingRight; get_padding; padding_right],
-            [PaddingTop; get_padding; padding_top],
-            [Right; get_position; right],
-            [TextIndent; get_inheritedtext; text_indent],
-            [Top; get_position; top],
-            [VerticalAlign; get_box; vertical_align],
-            [Visibility; get_inheritedbox; visibility],
-            [Width; get_position; width],
-            [ZIndex; get_position; z_index]);
+    fn from_transition_property<C: ComputedValues>(transition_property: TransitionProperty,
+                                                   timing_function: TransitionTimingFunction,
+                                                   duration: Time,
+                                                   old_style: &C,
+                                                   new_style: &C)
+                                                   -> Option<PropertyAnimation> {
+        let animated_property = AnimatedProperty::from_transition_property(&transition_property,
+                                                                           old_style,
+                                                                           new_style);
 
         let property_animation = PropertyAnimation {
             property: animated_property,
-            timing_function:
-                *box_style.transition_timing_function.0.get_mod(transition_index),
-            duration: *box_style.transition_duration.0.get_mod(transition_index),
+            timing_function: timing_function,
+            duration: duration,
         };
-        if property_animation.does_not_animate() {
-            None
-        } else {
+
+        if property_animation.does_animate() {
             Some(property_animation)
+        } else {
+            None
         }
     }
 
-    pub fn update(&self, style: &mut ServoComputedValues, time: f64) {
+    pub fn update<C: ComputedValues>(&self, style: &mut C, time: f64) {
         let progress = match self.timing_function {
             TransitionTimingFunction::CubicBezier(p1, p2) => {
                 // See `WebCore::AnimationBase::solveEpsilon(double)` in WebKit.
@@ -215,725 +324,12 @@ impl PropertyAnimation {
             }
         };
 
-        macro_rules! match_property(
-            ( $( [$name:ident; $structname:ident; $field:ident] ),* ) => {
-                match self.property {
-                    $(
-                        AnimatedProperty::$name(ref start, ref end) => {
-                            if let Some(value) = start.interpolate(end, progress) {
-                                style.$structname().$field = value
-                            }
-                        }
-                    )*
-                    AnimatedProperty::Clip(ref start, ref end) => {
-                        if let Some(value) = start.interpolate(end, progress) {
-                            style.mutate_effects().clip.0 = value
-                        }
-                    }
-                    AnimatedProperty::LetterSpacing(ref start, ref end) => {
-                        if let Some(value) = start.interpolate(end, progress) {
-                            style.mutate_inheritedtext().letter_spacing.0 = value
-                        }
-                    }
-                    AnimatedProperty::WordSpacing(ref start, ref end) => {
-                        if let Some(value) = start.interpolate(end, progress) {
-                            style.mutate_inheritedtext().word_spacing.0 = value
-                        }
-                    }
-                 }
-            });
-        match_property!(
-            [BackgroundColor; mutate_background; background_color],
-            [BackgroundPosition; mutate_background; background_position],
-            [BorderBottomColor; mutate_border; border_bottom_color],
-            [BorderBottomWidth; mutate_border; border_bottom_width],
-            [BorderLeftColor; mutate_border; border_left_color],
-            [BorderLeftWidth; mutate_border; border_left_width],
-            [BorderRightColor; mutate_border; border_right_color],
-            [BorderRightWidth; mutate_border; border_right_width],
-            [BorderSpacing; mutate_inheritedtable; border_spacing],
-            [BorderTopColor; mutate_border; border_top_color],
-            [BorderTopWidth; mutate_border; border_top_width],
-            [Bottom; mutate_position; bottom],
-            [Color; mutate_color; color],
-            [FontSize; mutate_font; font_size],
-            [FontWeight; mutate_font; font_weight],
-            [Height; mutate_position; height],
-            [Left; mutate_position; left],
-            [LineHeight; mutate_inheritedtext; line_height],
-            [MarginBottom; mutate_margin; margin_bottom],
-            [MarginLeft; mutate_margin; margin_left],
-            [MarginRight; mutate_margin; margin_right],
-            [MarginTop; mutate_margin; margin_top],
-            [MaxHeight; mutate_position; max_height],
-            [MaxWidth; mutate_position; max_width],
-            [MinHeight; mutate_position; min_height],
-            [MinWidth; mutate_position; min_width],
-            [Opacity; mutate_effects; opacity],
-            [OutlineColor; mutate_outline; outline_color],
-            [OutlineWidth; mutate_outline; outline_width],
-            [PaddingBottom; mutate_padding; padding_bottom],
-            [PaddingLeft; mutate_padding; padding_left],
-            [PaddingRight; mutate_padding; padding_right],
-            [PaddingTop; mutate_padding; padding_top],
-            [Right; mutate_position; right],
-            [TextIndent; mutate_inheritedtext; text_indent],
-            [TextShadow; mutate_inheritedtext; text_shadow],
-            [Top; mutate_position; top],
-            [Transform; mutate_effects; transform],
-            [VerticalAlign; mutate_box; vertical_align],
-            [Visibility; mutate_inheritedbox; visibility],
-            [Width; mutate_position; width],
-            [ZIndex; mutate_position; z_index]);
+        self.property.update(style, progress);
     }
 
     #[inline]
-    fn does_not_animate(&self) -> bool {
-        self.property.does_not_animate() || self.duration == Time(0.0)
-    }
-}
-
-#[derive(Clone, Debug)]
-enum AnimatedProperty {
-    BackgroundColor(Color, Color),
-    BackgroundPosition(BackgroundPosition, BackgroundPosition),
-    BorderBottomColor(Color, Color),
-    BorderBottomWidth(Length, Length),
-    BorderLeftColor(Color, Color),
-    BorderLeftWidth(Length, Length),
-    BorderRightColor(Color, Color),
-    BorderRightWidth(Length, Length),
-    BorderSpacing(BorderSpacing, BorderSpacing),
-    BorderTopColor(Color, Color),
-    BorderTopWidth(Length, Length),
-    Bottom(LengthOrPercentageOrAuto, LengthOrPercentageOrAuto),
-    Color(RGBA, RGBA),
-    Clip(Option<ClipRect>, Option<ClipRect>),
-    FontSize(Length, Length),
-    FontWeight(FontWeight, FontWeight),
-    Height(LengthOrPercentageOrAuto, LengthOrPercentageOrAuto),
-    Left(LengthOrPercentageOrAuto, LengthOrPercentageOrAuto),
-    LetterSpacing(Option<Au>, Option<Au>),
-    LineHeight(LineHeight, LineHeight),
-    MarginBottom(LengthOrPercentageOrAuto, LengthOrPercentageOrAuto),
-    MarginLeft(LengthOrPercentageOrAuto, LengthOrPercentageOrAuto),
-    MarginRight(LengthOrPercentageOrAuto, LengthOrPercentageOrAuto),
-    MarginTop(LengthOrPercentageOrAuto, LengthOrPercentageOrAuto),
-    MaxHeight(LengthOrPercentageOrNone, LengthOrPercentageOrNone),
-    MaxWidth(LengthOrPercentageOrNone, LengthOrPercentageOrNone),
-    MinHeight(LengthOrPercentage, LengthOrPercentage),
-    MinWidth(LengthOrPercentage, LengthOrPercentage),
-    Opacity(CSSFloat, CSSFloat),
-    OutlineColor(Color, Color),
-    OutlineWidth(Length, Length),
-    PaddingBottom(LengthOrPercentage, LengthOrPercentage),
-    PaddingLeft(LengthOrPercentage, LengthOrPercentage),
-    PaddingRight(LengthOrPercentage, LengthOrPercentage),
-    PaddingTop(LengthOrPercentage, LengthOrPercentage),
-    Right(LengthOrPercentageOrAuto, LengthOrPercentageOrAuto),
-    TextIndent(LengthOrPercentage, LengthOrPercentage),
-    TextShadow(TextShadowList, TextShadowList),
-    Top(LengthOrPercentageOrAuto, LengthOrPercentageOrAuto),
-    Transform(TransformList, TransformList),
-    VerticalAlign(VerticalAlign, VerticalAlign),
-    Visibility(Visibility, Visibility),
-    Width(LengthOrPercentageOrAuto, LengthOrPercentageOrAuto),
-    WordSpacing(Option<Au>, Option<Au>),
-    ZIndex(ZIndex, ZIndex),
-}
-
-impl AnimatedProperty {
-    #[inline]
-    fn does_not_animate(&self) -> bool {
-        match *self {
-            AnimatedProperty::Top(ref a, ref b) |
-            AnimatedProperty::Right(ref a, ref b) |
-            AnimatedProperty::Bottom(ref a, ref b) |
-            AnimatedProperty::Left(ref a, ref b) |
-            AnimatedProperty::MarginTop(ref a, ref b) |
-            AnimatedProperty::MarginRight(ref a, ref b) |
-            AnimatedProperty::MarginBottom(ref a, ref b) |
-            AnimatedProperty::MarginLeft(ref a, ref b) |
-            AnimatedProperty::Width(ref a, ref b) |
-            AnimatedProperty::Height(ref a, ref b) => a == b,
-            AnimatedProperty::MaxWidth(ref a, ref b) |
-            AnimatedProperty::MaxHeight(ref a, ref b) => a == b,
-            AnimatedProperty::MinWidth(ref a, ref b) |
-            AnimatedProperty::MinHeight(ref a, ref b) |
-            AnimatedProperty::TextIndent(ref a, ref b) => a == b,
-            AnimatedProperty::FontSize(ref a, ref b) |
-            AnimatedProperty::BorderTopWidth(ref a, ref b) |
-            AnimatedProperty::BorderRightWidth(ref a, ref b) |
-            AnimatedProperty::BorderBottomWidth(ref a, ref b) |
-            AnimatedProperty::BorderLeftWidth(ref a, ref b) => a == b,
-            AnimatedProperty::BorderTopColor(ref a, ref b) |
-            AnimatedProperty::BorderRightColor(ref a, ref b) |
-            AnimatedProperty::BorderBottomColor(ref a, ref b) |
-            AnimatedProperty::BorderLeftColor(ref a, ref b) |
-            AnimatedProperty::OutlineColor(ref a, ref b) |
-            AnimatedProperty::BackgroundColor(ref a, ref b) => a == b,
-            AnimatedProperty::PaddingTop(ref a, ref b) |
-            AnimatedProperty::PaddingRight(ref a, ref b) |
-            AnimatedProperty::PaddingBottom(ref a, ref b) |
-            AnimatedProperty::PaddingLeft(ref a, ref b) => a == b,
-            AnimatedProperty::LineHeight(ref a, ref b) => a == b,
-            AnimatedProperty::LetterSpacing(ref a, ref b) => a == b,
-            AnimatedProperty::BackgroundPosition(ref a, ref b) => a == b,
-            AnimatedProperty::BorderSpacing(ref a, ref b) => a == b,
-            AnimatedProperty::Clip(ref a, ref b) => a == b,
-            AnimatedProperty::Color(ref a, ref b) => a == b,
-            AnimatedProperty::FontWeight(ref a, ref b) => a == b,
-            AnimatedProperty::Opacity(ref a, ref b) => a == b,
-            AnimatedProperty::OutlineWidth(ref a, ref b) => a == b,
-            AnimatedProperty::TextShadow(ref a, ref b) => a == b,
-            AnimatedProperty::VerticalAlign(ref a, ref b) => a == b,
-            AnimatedProperty::Visibility(ref a, ref b) => a == b,
-            AnimatedProperty::WordSpacing(ref a, ref b) => a == b,
-            AnimatedProperty::ZIndex(ref a, ref b) => a == b,
-            AnimatedProperty::Transform(ref a, ref b) => a == b,
-        }
-    }
-}
-
-/// A trait used to implement [interpolation][interpolated-types].
-///
-/// [interpolated-types]: https://drafts.csswg.org/css-transitions/#interpolated-types
-trait Interpolate: Sized {
-    fn interpolate(&self, other: &Self, time: f64) -> Option<Self>;
-}
-
-impl Interpolate for Au {
-    #[inline]
-    fn interpolate(&self, other: &Au, time: f64) -> Option<Au> {
-        Some(Au((self.0 as f64 + (other.0 as f64 - self.0 as f64) * time).round() as i32))
-    }
-}
-
-impl <T> Interpolate for Option<T> where T: Interpolate {
-    #[inline]
-    fn interpolate(&self, other: &Option<T>, time: f64) -> Option<Option<T>> {
-        match (self, other) {
-            (&Some(ref this), &Some(ref other)) => {
-                this.interpolate(other, time).and_then(|value| {
-                    Some(Some(value))
-                })
-            }
-            (_, _) => None
-        }
-    }
-}
-
-/// https://drafts.csswg.org/css-transitions/#animtype-number
-impl Interpolate for f32 {
-    #[inline]
-    fn interpolate(&self, other: &f32, time: f64) -> Option<f32> {
-        Some(((*self as f64) + ((*other as f64) - (*self as f64)) * time) as f32)
-    }
-}
-
-/// https://drafts.csswg.org/css-transitions/#animtype-number
-impl Interpolate for f64 {
-    #[inline]
-    fn interpolate(&self, other: &f64, time: f64) -> Option<f64> {
-        Some(*self + (*other - *self) * time)
-    }
-}
-
-/// https://drafts.csswg.org/css-transitions/#animtype-integer
-impl Interpolate for i32 {
-    #[inline]
-    fn interpolate(&self, other: &i32, time: f64) -> Option<i32> {
-        let a = *self as f64;
-        let b = *other as f64;
-        Some((a + (b - a) * time).round() as i32)
-    }
-}
-
-impl Interpolate for Angle {
-    #[inline]
-    fn interpolate(&self, other: &Angle, time: f64) -> Option<Angle> {
-        self.radians().interpolate(&other.radians(), time).map(Angle)
-    }
-}
-
-/// https://drafts.csswg.org/css-transitions/#animtype-visibility
-impl Interpolate for Visibility {
-    #[inline]
-    fn interpolate(&self, other: &Visibility, time: f64)
-                   -> Option<Visibility> {
-        match (*self, *other) {
-            (Visibility::visible, _) | (_, Visibility::visible) => {
-                if time >= 0.0 && time <= 1.0 {
-                    Some(Visibility::visible)
-                } else if time < 0.0 {
-                    Some(*self)
-                } else {
-                    Some(*other)
-                }
-            }
-            (_, _) => None,
-        }
-    }
-}
-
-/// https://drafts.csswg.org/css-transitions/#animtype-integer
-impl Interpolate for ZIndex {
-    #[inline]
-    fn interpolate(&self, other: &ZIndex, time: f64)
-                   -> Option<ZIndex> {
-        match (*self, *other) {
-            (ZIndex::Number(ref this),
-             ZIndex::Number(ref other)) => {
-                this.interpolate(other, time).and_then(|value| {
-                    Some(ZIndex::Number(value))
-                })
-            }
-            (_, _) => None,
-        }
-    }
-}
-
-/// https://drafts.csswg.org/css-transitions/#animtype-length
-impl Interpolate for VerticalAlign {
-    #[inline]
-    fn interpolate(&self, other: &VerticalAlign, time: f64)
-                   -> Option<VerticalAlign> {
-        match (*self, *other) {
-            (VerticalAlign::LengthOrPercentage(LengthOrPercentage::Length(ref this)),
-             VerticalAlign::LengthOrPercentage(LengthOrPercentage::Length(ref other))) => {
-                this.interpolate(other, time).and_then(|value| {
-                    Some(VerticalAlign::LengthOrPercentage(LengthOrPercentage::Length(value)))
-                })
-            }
-            (_, _) => None,
-        }
-    }
-}
-
-/// https://drafts.csswg.org/css-transitions/#animtype-simple-list
-impl Interpolate for BorderSpacing {
-    #[inline]
-    fn interpolate(&self, other: &BorderSpacing, time: f64)
-                   -> Option<BorderSpacing> {
-        self.horizontal.interpolate(&other.horizontal, time).and_then(|horizontal| {
-            self.vertical.interpolate(&other.vertical, time).and_then(|vertical| {
-                Some(BorderSpacing { horizontal: horizontal, vertical: vertical })
-            })
-        })
-    }
-}
-
-/// https://drafts.csswg.org/css-transitions/#animtype-color
-impl Interpolate for RGBA {
-    #[inline]
-    fn interpolate(&self, other: &RGBA, time: f64) -> Option<RGBA> {
-        match (self.red.interpolate(&other.red, time),
-               self.green.interpolate(&other.green, time),
-               self.blue.interpolate(&other.blue, time),
-               self.alpha.interpolate(&other.alpha, time)) {
-            (Some(red), Some(green), Some(blue), Some(alpha)) => {
-                Some(RGBA { red: red, green: green, blue: blue, alpha: alpha })
-            }
-            (_, _, _, _) => None
-        }
-    }
-}
-
-/// https://drafts.csswg.org/css-transitions/#animtype-color
-impl Interpolate for Color {
-    #[inline]
-    fn interpolate(&self, other: &Color, time: f64) -> Option<Color> {
-        match (*self, *other) {
-            (Color::RGBA(ref this), Color::RGBA(ref other)) => {
-                this.interpolate(other, time).and_then(|value| {
-                    Some(Color::RGBA(value))
-                })
-            }
-            (_, _) => None,
-        }
-    }
-}
-
-/// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
-impl Interpolate for CalcLengthOrPercentage {
-    #[inline]
-    fn interpolate(&self, other: &CalcLengthOrPercentage, time: f64)
-                   -> Option<CalcLengthOrPercentage> {
-        Some(CalcLengthOrPercentage {
-            length: self.length().interpolate(&other.length(), time),
-            percentage: self.percentage().interpolate(&other.percentage(), time),
-        })
-    }
-}
-
-/// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
-impl Interpolate for LengthOrPercentage {
-    #[inline]
-    fn interpolate(&self, other: &LengthOrPercentage, time: f64)
-                   -> Option<LengthOrPercentage> {
-        match (*self, *other) {
-            (LengthOrPercentage::Length(ref this),
-             LengthOrPercentage::Length(ref other)) => {
-                this.interpolate(other, time).and_then(|value| {
-                    Some(LengthOrPercentage::Length(value))
-                })
-            }
-            (LengthOrPercentage::Percentage(ref this),
-             LengthOrPercentage::Percentage(ref other)) => {
-                this.interpolate(other, time).and_then(|value| {
-                    Some(LengthOrPercentage::Percentage(value))
-                })
-            }
-            (this, other) => {
-                let this: CalcLengthOrPercentage = From::from(this);
-                let other: CalcLengthOrPercentage = From::from(other);
-                this.interpolate(&other, time).and_then(|value| {
-                    Some(LengthOrPercentage::Calc(value))
-                })
-            }
-        }
-    }
-}
-
-/// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
-impl Interpolate for LengthOrPercentageOrAuto {
-    #[inline]
-    fn interpolate(&self, other: &LengthOrPercentageOrAuto, time: f64)
-                   -> Option<LengthOrPercentageOrAuto> {
-        match (*self, *other) {
-            (LengthOrPercentageOrAuto::Length(ref this),
-             LengthOrPercentageOrAuto::Length(ref other)) => {
-                this.interpolate(other, time).and_then(|value| {
-                    Some(LengthOrPercentageOrAuto::Length(value))
-                })
-            }
-            (LengthOrPercentageOrAuto::Percentage(ref this),
-             LengthOrPercentageOrAuto::Percentage(ref other)) => {
-                this.interpolate(other, time).and_then(|value| {
-                    Some(LengthOrPercentageOrAuto::Percentage(value))
-                })
-            }
-            (LengthOrPercentageOrAuto::Auto, LengthOrPercentageOrAuto::Auto) => {
-                Some(LengthOrPercentageOrAuto::Auto)
-            }
-            (this, other) => {
-                let this: Option<CalcLengthOrPercentage> = From::from(this);
-                let other: Option<CalcLengthOrPercentage> = From::from(other);
-                this.interpolate(&other, time).unwrap_or(None).and_then(|value| {
-                    Some(LengthOrPercentageOrAuto::Calc(value))
-                })
-            }
-        }
-    }
-}
-
-/// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
-impl Interpolate for LengthOrPercentageOrNone {
-    #[inline]
-    fn interpolate(&self, other: &LengthOrPercentageOrNone, time: f64)
-                   -> Option<LengthOrPercentageOrNone> {
-        match (*self, *other) {
-            (LengthOrPercentageOrNone::Length(ref this),
-             LengthOrPercentageOrNone::Length(ref other)) => {
-                this.interpolate(other, time).and_then(|value| {
-                    Some(LengthOrPercentageOrNone::Length(value))
-                })
-            }
-            (LengthOrPercentageOrNone::Percentage(ref this),
-             LengthOrPercentageOrNone::Percentage(ref other)) => {
-                this.interpolate(other, time).and_then(|value| {
-                    Some(LengthOrPercentageOrNone::Percentage(value))
-                })
-            }
-            (LengthOrPercentageOrNone::None, LengthOrPercentageOrNone::None) => {
-                Some(LengthOrPercentageOrNone::None)
-            }
-            (_, _) => None,
-        }
-    }
-}
-
-/// https://drafts.csswg.org/css-transitions/#animtype-number
-/// https://drafts.csswg.org/css-transitions/#animtype-length
-impl Interpolate for LineHeight {
-    #[inline]
-    fn interpolate(&self, other: &LineHeight, time: f64)
-                   -> Option<LineHeight> {
-        match (*self, *other) {
-            (LineHeight::Length(ref this),
-             LineHeight::Length(ref other)) => {
-                this.interpolate(other, time).and_then(|value| {
-                    Some(LineHeight::Length(value))
-                })
-            }
-            (LineHeight::Number(ref this),
-             LineHeight::Number(ref other)) => {
-                this.interpolate(other, time).and_then(|value| {
-                    Some(LineHeight::Number(value))
-                })
-            }
-            (LineHeight::Normal, LineHeight::Normal) => {
-                Some(LineHeight::Normal)
-            }
-            (_, _) => None,
-        }
-    }
-}
-
-/// https://drafts.csswg.org/css-transitions/#animtype-font-weight
-impl Interpolate for FontWeight {
-    #[inline]
-    fn interpolate(&self, other: &FontWeight, time: f64)
-                   -> Option<FontWeight> {
-        let a = (*self as u32) as f64;
-        let b = (*other as u32) as f64;
-        let weight = a + (b - a) * time;
-        Some(if weight < 150. {
-            FontWeight::Weight100
-        } else if weight < 250. {
-            FontWeight::Weight200
-        } else if weight < 350. {
-            FontWeight::Weight300
-        } else if weight < 450. {
-            FontWeight::Weight400
-        } else if weight < 550. {
-            FontWeight::Weight500
-        } else if weight < 650. {
-            FontWeight::Weight600
-        } else if weight < 750. {
-            FontWeight::Weight700
-        } else if weight < 850. {
-            FontWeight::Weight800
-        } else {
-            FontWeight::Weight900
-        })
-    }
-}
-
-/// https://drafts.csswg.org/css-transitions/#animtype-rect
-impl Interpolate for ClipRect {
-    #[inline]
-    fn interpolate(&self, other: &ClipRect, time: f64)
-                   -> Option<ClipRect> {
-        match (self.top.interpolate(&other.top, time),
-               self.right.interpolate(&other.right, time),
-               self.bottom.interpolate(&other.bottom, time),
-               self.left.interpolate(&other.left, time)) {
-            (Some(top), Some(right), Some(bottom), Some(left)) => {
-                Some(ClipRect { top: top, right: right, bottom: bottom, left: left })
-            },
-            (_, _, _, _) => None,
-        }
-    }
-}
-
-/// https://drafts.csswg.org/css-transitions/#animtype-simple-list
-impl Interpolate for BackgroundPosition {
-    #[inline]
-    fn interpolate(&self, other: &BackgroundPosition, time: f64)
-                   -> Option<BackgroundPosition> {
-        match (self.horizontal.interpolate(&other.horizontal, time),
-               self.vertical.interpolate(&other.vertical, time)) {
-            (Some(horizontal), Some(vertical)) => {
-                Some(BackgroundPosition { horizontal: horizontal, vertical: vertical })
-            },
-            (_, _) => None,
-        }
-    }
-}
-
-/// https://drafts.csswg.org/css-transitions/#animtype-shadow-list
-impl Interpolate for TextShadow {
-    #[inline]
-    fn interpolate(&self, other: &TextShadow, time: f64)
-                   -> Option<TextShadow> {
-        match (self.offset_x.interpolate(&other.offset_x, time),
-               self.offset_y.interpolate(&other.offset_y, time),
-               self.blur_radius.interpolate(&other.blur_radius, time),
-               self.color.interpolate(&other.color, time)) {
-            (Some(offset_x), Some(offset_y), Some(blur_radius), Some(color)) => {
-                Some(TextShadow { offset_x: offset_x, offset_y: offset_y, blur_radius: blur_radius, color: color })
-            },
-            (_, _, _, _) => None,
-        }
-    }
-}
-
-/// https://drafts.csswg.org/css-transitions/#animtype-shadow-list
-impl Interpolate for TextShadowList {
-    #[inline]
-    fn interpolate(&self, other: &TextShadowList, time: f64)
-                   -> Option<TextShadowList> {
-        let zero = TextShadow {
-            offset_x: Au(0),
-            offset_y: Au(0),
-            blur_radius: Au(0),
-            color: Color::RGBA(RGBA {
-                red: 0.0, green: 0.0, blue: 0.0, alpha: 0.0
-            })
-        };
-
-        let interpolate_each = |(a, b): (&TextShadow, &TextShadow)| {
-            a.interpolate(b, time).unwrap()
-        };
-
-        Some(TextShadowList(match self.0.len().cmp(&other.0.len()) {
-            Ordering::Less => other.0.iter().chain(repeat(&zero)).zip(other.0.iter()).map(interpolate_each).collect(),
-            _ => self.0.iter().zip(other.0.iter().chain(repeat(&zero))).map(interpolate_each).collect(),
-        }))
-    }
-}
-
-/// Check if it's possible to do a direct numerical interpolation
-/// between these two transform lists.
-/// http://dev.w3.org/csswg/css-transforms/#transform-transform-animation
-fn can_interpolate_list(from_list: &[TransformOperation],
-                        to_list: &[TransformOperation]) -> bool {
-    // Lists must be equal length
-    if from_list.len() != to_list.len() {
-        return false;
-    }
-
-    // Each transform operation must match primitive type in other list
-    for (from, to) in from_list.iter().zip(to_list) {
-        match (from, to) {
-            (&TransformOperation::Matrix(..), &TransformOperation::Matrix(..)) |
-            (&TransformOperation::Skew(..), &TransformOperation::Skew(..)) |
-            (&TransformOperation::Translate(..), &TransformOperation::Translate(..)) |
-            (&TransformOperation::Scale(..), &TransformOperation::Scale(..)) |
-            (&TransformOperation::Rotate(..), &TransformOperation::Rotate(..)) |
-            (&TransformOperation::Perspective(..), &TransformOperation::Perspective(..)) => {}
-            _ => {
-                return false;
-            }
-        }
-    }
-
-    true
-}
-
-/// Interpolate two transform lists.
-/// https://drafts.csswg.org/css-transforms/#interpolation-of-transforms
-fn interpolate_transform_list(from_list: &[TransformOperation],
-                              to_list: &[TransformOperation],
-                              time: f64) -> TransformList {
-    let mut result = vec!();
-
-    if can_interpolate_list(from_list, to_list) {
-        for (from, to) in from_list.iter().zip(to_list) {
-            match (from, to) {
-                (&TransformOperation::Matrix(from),
-                 &TransformOperation::Matrix(_to)) => {
-                    // TODO(gw): Implement matrix decomposition and interpolation
-                    result.push(TransformOperation::Matrix(from));
-                }
-                (&TransformOperation::Skew(fx, fy),
-                 &TransformOperation::Skew(tx, ty)) => {
-                    let ix = fx.interpolate(&tx, time).unwrap();
-                    let iy = fy.interpolate(&ty, time).unwrap();
-                    result.push(TransformOperation::Skew(ix, iy));
-                }
-                (&TransformOperation::Translate(fx, fy, fz),
-                 &TransformOperation::Translate(tx, ty, tz)) => {
-                    let ix = fx.interpolate(&tx, time).unwrap();
-                    let iy = fy.interpolate(&ty, time).unwrap();
-                    let iz = fz.interpolate(&tz, time).unwrap();
-                    result.push(TransformOperation::Translate(ix, iy, iz));
-                }
-                (&TransformOperation::Scale(fx, fy, fz),
-                 &TransformOperation::Scale(tx, ty, tz)) => {
-                    let ix = fx.interpolate(&tx, time).unwrap();
-                    let iy = fy.interpolate(&ty, time).unwrap();
-                    let iz = fz.interpolate(&tz, time).unwrap();
-                    result.push(TransformOperation::Scale(ix, iy, iz));
-                }
-                (&TransformOperation::Rotate(fx, fy, fz, fa),
-                 &TransformOperation::Rotate(_tx, _ty, _tz, _ta)) => {
-                    // TODO(gw): Implement matrix decomposition and interpolation
-                    result.push(TransformOperation::Rotate(fx, fy, fz, fa));
-                }
-                (&TransformOperation::Perspective(fd),
-                 &TransformOperation::Perspective(_td)) => {
-                    // TODO(gw): Implement matrix decomposition and interpolation
-                    result.push(TransformOperation::Perspective(fd));
-                }
-                _ => {
-                    // This should be unreachable due to the can_interpolate_list() call.
-                    unreachable!();
-                }
-            }
-        }
-    } else {
-        // TODO(gw): Implement matrix decomposition and interpolation
-        result.extend_from_slice(from_list);
-    }
-
-    TransformList(Some(result))
-}
-
-/// Build an equivalent 'identity transform function list' based
-/// on an existing transform list.
-/// https://drafts.csswg.org/css-transforms/#none-transform-animation
-fn build_identity_transform_list(list: &[TransformOperation]) -> Vec<TransformOperation> {
-    let mut result = vec!();
-
-    for operation in list {
-        match *operation {
-            TransformOperation::Matrix(..) => {
-                let identity = ComputedMatrix::identity();
-                result.push(TransformOperation::Matrix(identity));
-            }
-            TransformOperation::Skew(..) => {
-                result.push(TransformOperation::Skew(Angle(0.0), Angle(0.0)));
-            }
-            TransformOperation::Translate(..) => {
-                result.push(TransformOperation::Translate(LengthOrPercentage::zero(),
-                                                          LengthOrPercentage::zero(),
-                                                          Au(0)));
-            }
-            TransformOperation::Scale(..) => {
-                result.push(TransformOperation::Scale(1.0, 1.0, 1.0));
-            }
-            TransformOperation::Rotate(..) => {
-                result.push(TransformOperation::Rotate(0.0, 0.0, 1.0, Angle(0.0)));
-            }
-            TransformOperation::Perspective(..) => {
-                // http://dev.w3.org/csswg/css-transforms/#identity-transform-function
-                let identity = ComputedMatrix::identity();
-                result.push(TransformOperation::Matrix(identity));
-            }
-        }
-    }
-
-    result
-}
-
-/// https://drafts.csswg.org/css-transforms/#interpolation-of-transforms
-impl Interpolate for TransformList {
-    #[inline]
-    fn interpolate(&self, other: &TransformList, time: f64) -> Option<TransformList> {
-        let result = match (&self.0, &other.0) {
-            (&Some(ref from_list), &Some(ref to_list)) => {
-                // https://drafts.csswg.org/css-transforms/#transform-transform-animation
-                interpolate_transform_list(from_list, &to_list, time)
-            }
-            (&Some(ref from_list), &None) => {
-                // https://drafts.csswg.org/css-transforms/#none-transform-animation
-                let to_list = build_identity_transform_list(from_list);
-                interpolate_transform_list(from_list, &to_list, time)
-            }
-            (&None, &Some(ref to_list)) => {
-                // https://drafts.csswg.org/css-transforms/#none-transform-animation
-                let from_list = build_identity_transform_list(to_list);
-                interpolate_transform_list(&from_list, to_list, time)
-            }
-            _ => {
-                // https://drafts.csswg.org/css-transforms/#none-none-animation
-                TransformList(None)
-            }
-        };
-
-        Some(result)
+    fn does_animate(&self) -> bool {
+        self.property.does_animate() && self.duration != Time(0.0)
     }
 }
 
@@ -948,67 +344,343 @@ pub trait GetMod {
 
 impl<T> GetMod for Vec<T> {
     type Item = T;
+    #[inline]
     fn get_mod(&self, i: usize) -> &T {
         &(*self)[i % self.len()]
     }
 }
 
-/// Inserts transitions into the queue of running animations as applicable for the given style
-/// difference. This is called from the layout worker threads. Returns true if any animations were
-/// kicked off and false otherwise.
-pub fn start_transitions_if_applicable<C: ComputedValues>(new_animations_sender: &Mutex<Sender<Animation>>,
-                                                          node: OpaqueNode,
-                                                          old_style: &C,
-                                                          new_style: &mut C)
-                                                          -> bool {
+/// Inserts transitions into the queue of running animations as applicable for
+/// the given style difference. This is called from the layout worker threads.
+/// Returns true if any animations were kicked off and false otherwise.
+//
+// TODO(emilio): Take rid of this mutex splitting SharedLayoutContex into a
+// cloneable part and a non-cloneable part..
+pub fn start_transitions_if_applicable<Impl: SelectorImplExt>(new_animations_sender: &Mutex<Sender<Animation<Impl>>>,
+                                                              node: OpaqueNode,
+                                                              old_style: &Impl::ComputedValues,
+                                                              new_style: &mut Arc<Impl::ComputedValues>)
+                                                              -> bool {
     let mut had_animations = false;
     for i in 0..new_style.get_box().transition_count() {
         // Create any property animations, if applicable.
-        let property_animations = PropertyAnimation::from_transition(i, old_style.as_servo(), new_style.as_servo_mut());
+        let property_animations = PropertyAnimation::from_transition(i, old_style, Arc::make_mut(new_style));
         for property_animation in property_animations {
             // Set the property to the initial value.
-            property_animation.update(new_style.as_servo_mut(), 0.0);
+            // NB: get_mut is guaranteed to succeed since we called make_mut()
+            // above.
+            property_animation.update(Arc::get_mut(new_style).unwrap(), 0.0);
 
             // Kick off the animation.
             let now = time::precise_time_s();
             let box_style = new_style.as_servo().get_box();
             let start_time =
                 now + (box_style.transition_delay.0.get_mod(i).seconds() as f64);
-            new_animations_sender.lock().unwrap().send(Animation {
-                node: node,
-                property_animation: property_animation,
-                start_time: start_time,
-                end_time: start_time +
-                    (box_style.transition_duration.0.get_mod(i).seconds() as f64),
-            }).unwrap();
+            new_animations_sender
+                .lock().unwrap()
+                .send(Animation::Transition(node, start_time, AnimationFrame {
+                    duration: box_style.transition_duration.0.get_mod(i).seconds() as f64,
+                    property_animation: property_animation,
+                }, /* is_expired = */ false)).unwrap();
 
-            had_animations = true
+            had_animations = true;
         }
     }
 
     had_animations
 }
 
-/// Updates a single animation and associated style based on the current time. If `damage` is
-/// provided, inserts the appropriate restyle damage.
-pub fn update_style_for_animation<C: ComputedValues,
-                                  Damage: TRestyleDamage<ConcreteComputedValues=C>>(animation: &Animation,
-                                                                                    style: &mut Arc<C>,
-                                                                                    damage: Option<&mut Damage>) {
-    let now = time::precise_time_s();
-    let mut progress = (now - animation.start_time) / animation.duration();
+fn compute_style_for_animation_step<Impl: SelectorImplExt>(context: &SharedStyleContext<Impl>,
+                                                           step: &KeyframesStep,
+                                                           previous_style: &Impl::ComputedValues,
+                                                           style_from_cascade: &Impl::ComputedValues)
+                                                           -> Impl::ComputedValues {
+    match step.value {
+        // TODO: avoiding this spurious clone might involve having to create
+        // an Arc in the below (more common case).
+        KeyframesStepValue::ComputedValues => style_from_cascade.clone(),
+        KeyframesStepValue::Declarations(ref declarations) => {
+            let declaration_block = DeclarationBlock {
+                declarations: declarations.clone(),
+                source_order: 0,
+                specificity: ::std::u32::MAX,
+            };
+            let (computed, _) = properties::cascade(context.viewport_size,
+                                                    &[declaration_block],
+                                                    false,
+                                                    Some(previous_style),
+                                                    None,
+                                                    context.error_reporter.clone());
+            computed
+        }
+    }
+}
+
+pub fn maybe_start_animations<Impl: SelectorImplExt>(context: &SharedStyleContext<Impl>,
+                                                     node: OpaqueNode,
+                                                     new_style: &Arc<Impl::ComputedValues>) -> bool
+{
+    let mut had_animations = false;
+
+    let box_style = new_style.as_servo().get_box();
+    for (i, name) in box_style.animation_name.0.iter().enumerate() {
+        debug!("maybe_start_animations: name={}", name);
+        let total_duration = box_style.animation_duration.0.get_mod(i).seconds();
+        if total_duration == 0. {
+            continue
+        }
+
+        if let Some(ref anim) = context.stylist.animations().get(&name) {
+            debug!("maybe_start_animations: animation {} found", name);
+
+            // If this animation doesn't have any keyframe, we can just continue
+            // without submitting it to the compositor, since both the first and
+            // the second keyframes would be synthetised from the computed
+            // values.
+            if anim.steps.is_empty() {
+                continue;
+            }
+
+            let delay = box_style.animation_delay.0.get_mod(i).seconds();
+            let now = time::precise_time_s();
+            let animation_start = now + delay as f64;
+            let duration = box_style.animation_duration.0.get_mod(i).seconds();
+            let iteration_state = match *box_style.animation_iteration_count.0.get_mod(i) {
+                AnimationIterationCount::Infinite => KeyframesIterationState::Infinite,
+                AnimationIterationCount::Number(n) => KeyframesIterationState::Finite(0, n),
+            };
+
+            let animation_direction = *box_style.animation_direction.0.get_mod(i);
+
+            let initial_direction = match animation_direction {
+                AnimationDirection::normal |
+                AnimationDirection::alternate => AnimationDirection::normal,
+                AnimationDirection::reverse |
+                AnimationDirection::alternate_reverse => AnimationDirection::reverse,
+            };
+
+            let running_state = match *box_style.animation_play_state.0.get_mod(i) {
+                AnimationPlayState::paused => KeyframesRunningState::Paused(0.),
+                AnimationPlayState::running => KeyframesRunningState::Running,
+            };
+
+
+            context.new_animations_sender
+                   .lock().unwrap()
+                   .send(Animation::Keyframes(node, name.clone(), KeyframesAnimationState {
+                       started_at: animation_start,
+                       duration: duration as f64,
+                       delay: delay as f64,
+                       iteration_state: iteration_state,
+                       running_state: running_state,
+                       direction: animation_direction,
+                       current_direction: initial_direction,
+                       expired: false,
+                       cascade_style: new_style.clone(),
+                   })).unwrap();
+            had_animations = true;
+        }
+    }
+
+    had_animations
+}
+
+/// Updates a given computed style for a given animation frame. Returns a bool
+/// representing if the style was indeed updated.
+pub fn update_style_for_animation_frame<C: ComputedValues>(mut new_style: &mut Arc<C>,
+                                                           now: f64,
+                                                           start_time: f64,
+                                                           frame: &AnimationFrame) -> bool {
+    let mut progress = (now - start_time) / frame.duration;
     if progress > 1.0 {
         progress = 1.0
     }
+
     if progress <= 0.0 {
-        return
+        return false;
     }
 
-    let mut new_style = (*style).clone();
-    animation.property_animation.update(Arc::make_mut(&mut new_style).as_servo_mut(), progress);
-    if let Some(damage) = damage {
-        *damage = *damage | Damage::compute(Some(style), &new_style);
-    }
+    frame.property_animation.update(Arc::make_mut(&mut new_style), progress);
 
-    *style = new_style
+    true
+}
+/// Updates a single animation and associated style based on the current time.
+/// If `damage` is provided, inserts the appropriate restyle damage.
+pub fn update_style_for_animation<Damage, Impl>(context: &SharedStyleContext<Impl>,
+                                                animation: &Animation<Impl>,
+                                                style: &mut Arc<Damage::ConcreteComputedValues>,
+                                                damage: Option<&mut Damage>)
+where Impl: SelectorImplExt,
+      Damage: TRestyleDamage<ConcreteComputedValues = Impl::ComputedValues> {
+    debug!("update_style_for_animation: entering");
+    match *animation {
+        Animation::Transition(_, start_time, ref frame, expired) => {
+            debug_assert!(!expired);
+            debug!("update_style_for_animation: transition found");
+            let now = time::precise_time_s();
+            let mut new_style = (*style).clone();
+            let updated_style = update_style_for_animation_frame(&mut new_style,
+                                                                 now, start_time,
+                                                                 frame);
+            if updated_style {
+                if let Some(damage) = damage {
+                    *damage = *damage | Damage::compute(Some(style), &new_style);
+                }
+
+                *style = new_style
+            }
+        }
+        Animation::Keyframes(_, ref name, ref state) => {
+            debug_assert!(!state.expired);
+            debug!("update_style_for_animation: animation found: \"{}\", {:?}", name, state);
+            let duration = state.duration;
+            let started_at = state.started_at;
+
+            let now = match state.running_state {
+                KeyframesRunningState::Running => time::precise_time_s(),
+                KeyframesRunningState::Paused(progress) => started_at + duration * progress,
+            };
+
+            let animation = match context.stylist.animations().get(name) {
+                None => {
+                    warn!("update_style_for_animation: Animation {:?} not found", name);
+                    return;
+                }
+                Some(animation) => animation,
+            };
+
+            debug_assert!(!animation.steps.is_empty());
+
+            let maybe_index = style.as_servo()
+                                   .get_box().animation_name.0.iter()
+                                   .position(|animation_name| name == animation_name);
+
+            let index = match maybe_index {
+                Some(index) => index,
+                None => {
+                    warn!("update_style_for_animation: Animation {:?} not found in style", name);
+                    return;
+                }
+            };
+
+            let total_duration = style.as_servo().get_box().animation_duration.0.get_mod(index).seconds() as f64;
+            if total_duration == 0. {
+                debug!("update_style_for_animation: zero duration for animation {:?}", name);
+                return;
+            }
+
+            let mut total_progress = (now - started_at) / total_duration;
+            if total_progress < 0. {
+                warn!("Negative progress found for animation {:?}", name);
+                return;
+            }
+            if total_progress > 1. {
+                total_progress = 1.;
+            }
+
+            debug!("update_style_for_animation: anim \"{}\", steps: {:?}, state: {:?}, progress: {}",
+                   name, animation.steps, state, total_progress);
+
+            // Get the target and the last keyframe position.
+            let last_keyframe_position;
+            let target_keyframe_position;
+            match state.current_direction {
+                AnimationDirection::normal => {
+                    target_keyframe_position =
+                        animation.steps.iter().position(|step| {
+                            total_progress as f32 <= step.start_percentage.0
+                        });
+
+                    last_keyframe_position = target_keyframe_position.and_then(|pos| {
+                        if pos != 0 { Some(pos - 1) } else { None }
+                    }).unwrap_or(0);
+                }
+                AnimationDirection::reverse => {
+                    target_keyframe_position =
+                        animation.steps.iter().rev().position(|step| {
+                            total_progress as f32 <= 1. - step.start_percentage.0
+                        }).map(|pos| animation.steps.len() - pos - 1);
+
+                    last_keyframe_position = target_keyframe_position.and_then(|pos| {
+                        if pos != animation.steps.len() - 1 { Some(pos + 1) } else { None }
+                    }).unwrap_or(animation.steps.len() - 1);
+                }
+                _ => unreachable!(),
+            }
+
+            debug!("update_style_for_animation: keyframe from {:?} to {:?}",
+                   last_keyframe_position, target_keyframe_position);
+
+            let target_keyframe = match target_keyframe_position {
+                Some(target) => &animation.steps[target],
+                None => {
+                    warn!("update_style_for_animation: No current keyframe found for animation \"{}\" at progress {}",
+                          name, total_progress);
+                    return;
+                }
+            };
+
+            let last_keyframe = &animation.steps[last_keyframe_position];
+
+            let relative_timespan = (target_keyframe.start_percentage.0 - last_keyframe.start_percentage.0).abs();
+            let relative_duration = relative_timespan as f64 * duration;
+            let last_keyframe_ended_at = match state.current_direction {
+                AnimationDirection::normal => {
+                    state.started_at + (total_duration * last_keyframe.start_percentage.0 as f64)
+                }
+                AnimationDirection::reverse => {
+                    state.started_at + (total_duration * (1. - last_keyframe.start_percentage.0 as f64))
+                }
+                _ => unreachable!(),
+            };
+            let relative_progress = (now - last_keyframe_ended_at) / relative_duration;
+
+            // TODO: How could we optimise it? Is it such a big deal?
+            let from_style = compute_style_for_animation_step(context,
+                                                              last_keyframe,
+                                                              &**style,
+                                                              &state.cascade_style);
+
+            // NB: The spec says that the timing function can be overwritten
+            // from the keyframe style.
+            let mut timing_function = *style.as_servo().get_box().animation_timing_function.0.get_mod(index);
+            if !from_style.as_servo().get_box().animation_timing_function.0.is_empty() {
+                timing_function = from_style.as_servo().get_box().animation_timing_function.0[0];
+            }
+
+            let target_style = compute_style_for_animation_step(context,
+                                                                target_keyframe,
+                                                                &from_style,
+                                                                &state.cascade_style);
+
+            let mut new_style = (*style).clone();
+
+            for transition_property in &animation.properties_changed {
+                debug!("update_style_for_animation: scanning prop {:?} for animation \"{}\"",
+                       transition_property, name);
+                match PropertyAnimation::from_transition_property(*transition_property,
+                                                                  timing_function,
+                                                                  Time(relative_duration as f32),
+                                                                  &from_style,
+                                                                  &target_style) {
+                    Some(property_animation) => {
+                        debug!("update_style_for_animation: got property animation for prop {:?}", transition_property);
+                        debug!("update_style_for_animation: {:?}", property_animation);
+                        property_animation.update(Arc::make_mut(&mut new_style), relative_progress);
+                    }
+                    None => {
+                        debug!("update_style_for_animation: property animation {:?} not animating",
+                               transition_property);
+                    }
+                }
+            }
+
+            debug!("update_style_for_animation: got style change in animation \"{}\"", name);
+            if let Some(damage) = damage {
+                *damage = *damage | Damage::compute(Some(style), &new_style);
+            }
+
+            *style = new_style;
+        }
+    }
 }

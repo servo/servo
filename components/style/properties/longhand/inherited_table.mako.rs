@@ -6,11 +6,17 @@
 
 <% data.new_style_struct("InheritedTable", inherited=True, gecko_name="TableBorder") %>
 
-${helpers.single_keyword("border-collapse", "separate collapse", gecko_constant_prefix="NS_STYLE_BORDER")}
-${helpers.single_keyword("empty-cells", "show hide", gecko_constant_prefix="NS_STYLE_TABLE_EMPTY_CELLS")}
-${helpers.single_keyword("caption-side", "top bottom", extra_gecko_values="right left top-outside bottom-outside")}
+${helpers.single_keyword("border-collapse", "separate collapse",
+                         gecko_constant_prefix="NS_STYLE_BORDER",
+                         animatable=False)}
+${helpers.single_keyword("empty-cells", "show hide",
+                         gecko_constant_prefix="NS_STYLE_TABLE_EMPTY_CELLS",
+                         animatable=False)}
+${helpers.single_keyword("caption-side", "top bottom",
+                         extra_gecko_values="right left top-outside bottom-outside",
+                         animatable=False)}
 
-<%helpers:longhand name="border-spacing">
+<%helpers:longhand name="border-spacing" animatable="False">
     use app_units::Au;
     use values::LocalToCss;
 

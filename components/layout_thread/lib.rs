@@ -98,7 +98,6 @@ use std::ops::{Deref, DerefMut};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{channel, Sender, Receiver};
 use std::sync::{Arc, Mutex, MutexGuard, RwLock};
-use style::animation::Animation;
 use style::computed_values::{filter, mix_blend_mode};
 use style::context::ReflowGoal;
 use style::dom::{TDocument, TElement, TNode};
@@ -109,7 +108,7 @@ use style::parallel::WorkQueueData;
 use style::properties::ComputedValues;
 use style::refcell::RefCell;
 use style::selector_matching::USER_OR_USER_AGENT_STYLESHEETS;
-use style::servo::{SharedStyleContext, Stylesheet, Stylist};
+use style::servo::{Animation, SharedStyleContext, Stylesheet, Stylist};
 use style::stylesheets::CSSRuleIteratorExt;
 use url::Url;
 use util::geometry::MAX_RECT;
@@ -1290,7 +1289,7 @@ impl LayoutThread {
         self.tick_animations(&mut rw_data);
     }
 
-    pub fn tick_animations(&mut self, rw_data: &mut LayoutThreadData) {
+    fn tick_animations(&mut self, rw_data: &mut LayoutThreadData) {
         let reflow_info = Reflow {
             goal: ReflowGoal::ForDisplay,
             page_clip_rect: MAX_RECT,
@@ -1307,8 +1306,9 @@ impl LayoutThread {
                     self.profiler_metadata(),
                     self.time_profiler_chan.clone(),
                     || {
-                        animation::recalc_style_for_animations(flow_ref::deref_mut(&mut root_flow),
-                                                               &*animations)
+                        animation::recalc_style_for_animations(&layout_context,
+                                                               flow_ref::deref_mut(&mut root_flow),
+                                                               &animations)
                     });
         }
 

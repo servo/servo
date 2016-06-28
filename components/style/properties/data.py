@@ -13,7 +13,7 @@ def to_rust_ident(name):
 
 
 def to_camel_case(ident):
-    return re.sub("_([a-z])", lambda m: m.group(1).upper(), ident.strip("_").capitalize())
+    return re.sub("(^|_|-)([a-z])", lambda m: m.group(2).upper(), ident.strip("_").strip("-"))
 
 
 class Keyword(object):
@@ -45,7 +45,7 @@ class Keyword(object):
 
 
 class Longhand(object):
-    def __init__(self, style_struct, name, derived_from=None, keyword=None,
+    def __init__(self, style_struct, name, animatable=None, derived_from=None, keyword=None,
                  predefined_type=None, custom_cascade=False, experimental=False, internal=False,
                  need_clone=False, gecko_ffi_name=None):
         self.name = name
@@ -60,6 +60,16 @@ class Longhand(object):
         self.need_clone = need_clone
         self.gecko_ffi_name = gecko_ffi_name or "m" + self.camel_case
         self.derived_from = (derived_from or "").split()
+
+        # This is done like this since just a plain bool argument seemed like
+        # really random.
+        if animatable is None:
+            raise TypeError("animatable should be specified for " + name + ")")
+        if isinstance(animatable, bool):
+            self.animatable = animatable
+        else:
+            assert animatable == "True" or animatable == "False"
+            self.animatable = animatable == "True"
 
 
 class Shorthand(object):

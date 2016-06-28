@@ -9,6 +9,7 @@ use properties::{self, ServoComputedValues};
 use selector_matching::{USER_OR_USER_AGENT_STYLESHEETS, QUIRKS_MODE_STYLESHEET};
 use selectors::Element;
 use selectors::parser::{ParserContext, SelectorImpl};
+use std::fmt::Debug;
 use stylesheets::Stylesheet;
 
 /// This function determines if a pseudo-element is eagerly cascaded or not.
@@ -62,7 +63,9 @@ pub trait ElementExt: Element {
     fn is_link(&self) -> bool;
 }
 
-pub trait SelectorImplExt : SelectorImpl + Sized {
+// NB: The `Clone` trait is here for convenience due to:
+// https://github.com/rust-lang/rust/issues/26925
+pub trait SelectorImplExt : SelectorImpl + Clone + Debug + Sized {
     type ComputedValues: properties::ComputedValues;
 
     fn pseudo_element_cascade_type(pseudo: &Self::PseudoElement) -> PseudoElementCascadeType;
@@ -90,6 +93,7 @@ pub trait SelectorImplExt : SelectorImpl + Sized {
         })
     }
 
+    fn pseudo_is_before_or_after(pseudo: &Self::PseudoElement) -> bool;
 
     fn pseudo_class_state_flag(pc: &Self::NonTSPseudoClass) -> ElementState;
 
@@ -109,6 +113,15 @@ pub enum PseudoElement {
 }
 
 impl PseudoElement {
+    #[inline]
+    pub fn is_before_or_after(&self) -> bool {
+        match *self {
+            PseudoElement::Before |
+            PseudoElement::After => true,
+            _ => false,
+        }
+    }
+
     #[inline]
     pub fn cascade_type(&self) -> PseudoElementCascadeType {
         match *self {
@@ -247,6 +260,11 @@ impl SelectorImplExt for ServoSelectorImpl {
     #[inline]
     fn pseudo_class_state_flag(pc: &NonTSPseudoClass) -> ElementState {
         pc.state_flag()
+    }
+
+    #[inline]
+    fn pseudo_is_before_or_after(pseudo: &PseudoElement) -> bool {
+        pseudo.is_before_or_after()
     }
 
     #[inline]

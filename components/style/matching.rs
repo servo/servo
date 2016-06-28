@@ -7,7 +7,7 @@
 #![allow(unsafe_code)]
 
 use animation::{self, Animation};
-use context::SharedStyleContext;
+use context::{SharedStyleContext, LocalStyleContext};
 use data::PrivateStyleData;
 use dom::{TElement, TNode, TRestyleDamage};
 use properties::{ComputedValues, PropertyDeclaration, cascade};
@@ -21,8 +21,7 @@ use smallvec::SmallVec;
 use std::collections::HashMap;
 use std::hash::{BuildHasherDefault, Hash, Hasher};
 use std::slice::Iter;
-use std::sync::mpsc::Sender;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use string_cache::{Atom, Namespace};
 use util::arc_ptr_eq;
 use util::cache::{LRUCache, SimpleHashCache};
@@ -54,7 +53,9 @@ fn create_common_style_affecting_attributes_from_element<E: TElement>(element: &
 
 pub struct ApplicableDeclarations<Impl: SelectorImplExt> {
     pub normal: SmallVec<[DeclarationBlock; 16]>,
-    pub per_pseudo: HashMap<Impl::PseudoElement, Vec<DeclarationBlock>, BuildHasherDefault<::fnv::FnvHasher>>,
+    pub per_pseudo: HashMap<Impl::PseudoElement,
+                            Vec<DeclarationBlock>,
+                            BuildHasherDefault<::fnv::FnvHasher>>,
 
     /// Whether the `normal` declarations are shareable with other nodes.
     pub normal_shareable: bool,
@@ -365,7 +366,11 @@ pub enum StyleSharingResult<ConcreteRestyleDamage: TRestyleDamage> {
 }
 
 trait PrivateMatchMethods: TNode
-    where <Self::ConcreteElement as Element>::Impl: SelectorImplExt {
+    where <Self::ConcreteElement as Element>::Impl: SelectorImplExt<ComputedValues = Self::ConcreteComputedValues> {
+    /// Actually cascades style for a node or a pseudo-element of a node.
+    ///
+    /// Note that animations only apply to nodes or ::before or ::after
+    /// pseudo-elements.
     fn cascade_node_pseudo_element(&self,
                                    context: &SharedStyleContext<<Self::ConcreteElement as Element>::Impl>,
                                    parent_style: Option<&Arc<Self::ConcreteComputedValues>>,
@@ -373,7 +378,6 @@ trait PrivateMatchMethods: TNode
                                    mut style: Option<&mut Arc<Self::ConcreteComputedValues>>,
                                    applicable_declarations_cache:
                                     &mut ApplicableDeclarationsCache<Self::ConcreteComputedValues>,
-                                   new_animations_sender: &Mutex<Sender<Animation>>,
                                    shareable: bool,
                                    animate_properties: bool)
                                    -> (Self::ConcreteRestyleDamage, Arc<Self::ConcreteComputedValues>) {
@@ -382,14 +386,15 @@ trait PrivateMatchMethods: TNode
             cacheable = !self.update_animations_for_cascade(context, &mut style) && cacheable;
         }
 
-        let mut this_style;
+        let this_style;
         match parent_style {
             Some(ref parent_style) => {
                 let cache_entry = applicable_declarations_cache.find(applicable_declarations);
                 let cached_computed_values = match cache_entry {
-                    None => None,
                     Some(ref style) => Some(&**style),
+                    None => None,
                 };
+
                 let (the_style, is_cacheable) = cascade(context.viewport_size,
                                                         applicable_declarations,
                                                         shareable,
@@ -411,22 +416,31 @@ trait PrivateMatchMethods: TNode
             }
         };
 
-        // Trigger transitions if necessary. This will reset `this_style` back to its old value if
-        // it did trigger a transition.
+        let mut this_style = Arc::new(this_style);
+
         if animate_properties {
+            let this_opaque = self.opaque();
+            // Trigger any present animations if necessary.
+            let mut animations_started = animation::maybe_start_animations::<<Self::ConcreteElement as Element>::Impl>(
+                &context,
+                this_opaque,
+                &this_style);
+
+            // Trigger transitions if necessary. This will reset `this_style` back
+            // to its old value if it did trigger a transition.
             if let Some(ref style) = style {
-                let animations_started =
-                    animation::start_transitions_if_applicable::<Self::ConcreteComputedValues>(
-                        new_animations_sender,
-                        self.opaque(),
+                animations_started |=
+                    animation::start_transitions_if_applicable::<<Self::ConcreteElement as Element>::Impl>(
+                        &context.new_animations_sender,
+                        this_opaque,
                         &**style,
                         &mut this_style);
-                cacheable = cacheable && !animations_started
             }
+
+            cacheable = cacheable && !animations_started
         }
 
         // Calculate style difference.
-        let this_style = Arc::new(this_style);
         let damage = Self::ConcreteRestyleDamage::compute(style.map(|s| &*s), &*this_style);
 
         // Cache the resolved style if it was cacheable.
@@ -457,7 +471,11 @@ trait PrivateMatchMethods: TNode
             had_animations_to_expire = animations_to_expire.is_some();
             if let Some(ref animations) = animations_to_expire {
                 for animation in *animations {
-                    animation.property_animation.update(Arc::make_mut(style).as_servo_mut(), 1.0);
+                    // NB: Expiring a keyframes animation is the same as not
+                    // applying the keyframes style to it, so we're safe.
+                    if let Animation::Transition(_, _, ref frame, _) = *animation {
+                        frame.property_animation.update(Arc::make_mut(style), 1.0);
+                    }
                 }
             }
         }
@@ -474,11 +492,11 @@ trait PrivateMatchMethods: TNode
                                             .is_some();
         if had_running_animations {
             let mut all_running_animations = context.running_animations.write().unwrap();
-            for running_animation in all_running_animations.get(&this_opaque).unwrap() {
-                animation::update_style_for_animation::<Self::ConcreteComputedValues,
-                                                        Self::ConcreteRestyleDamage>(running_animation, style, None);
+            for mut running_animation in all_running_animations.get_mut(&this_opaque).unwrap() {
+                animation::update_style_for_animation::<Self::ConcreteRestyleDamage,
+                    <Self::ConcreteElement as Element>::Impl>(context, running_animation, style, None);
+                running_animation.mark_as_expired();
             }
-            all_running_animations.remove(&this_opaque);
         }
 
         had_animations_to_expire || had_running_animations
@@ -486,7 +504,8 @@ trait PrivateMatchMethods: TNode
 }
 
 impl<N: TNode> PrivateMatchMethods for N
-    where <N::ConcreteElement as Element>::Impl: SelectorImplExt {}
+    where <N::ConcreteElement as Element>::Impl:
+                SelectorImplExt<ComputedValues = N::ConcreteComputedValues> {}
 
 trait PrivateElementMatchMethods: TElement {
     fn share_style_with_candidate_if_possible(&self,
@@ -641,24 +660,26 @@ pub trait MatchMethods : TNode {
 
     unsafe fn cascade_node(&self,
                            context: &SharedStyleContext<<Self::ConcreteElement as Element>::Impl>,
+                           local_context: &LocalStyleContext<Self::ConcreteComputedValues>,
                            parent: Option<Self>,
-                           applicable_declarations: &ApplicableDeclarations<<Self::ConcreteElement as Element>::Impl>,
-                           applicable_declarations_cache:
-                             &mut ApplicableDeclarationsCache<Self::ConcreteComputedValues>,
-                           new_animations_sender: &Mutex<Sender<Animation>>)
-                           where <Self::ConcreteElement as Element>::Impl: SelectorImplExt {
+                           applicable_declarations: &ApplicableDeclarations<<Self::ConcreteElement as Element>::Impl>)
+    where <Self::ConcreteElement as Element>::Impl: SelectorImplExt<ComputedValues = Self::ConcreteComputedValues>
+    {
         // Get our parent's style. This must be unsafe so that we don't touch the parent's
         // borrow flags.
         //
         // FIXME(pcwalton): Isolate this unsafety into the `wrapper` module to allow
         // enforced safe, race-free access to the parent style.
         let parent_style = match parent {
-            None => None,
             Some(parent_node) => {
                 let parent_style = (*parent_node.borrow_data_unchecked().unwrap()).style.as_ref().unwrap();
                 Some(parent_style)
             }
+            None => None,
         };
+
+        let mut applicable_declarations_cache =
+            local_context.applicable_declarations_cache.borrow_mut();
 
         let damage;
         if self.is_text_node() {
@@ -677,8 +698,7 @@ pub trait MatchMethods : TNode {
                     parent_style,
                     &applicable_declarations.normal,
                     data.style.as_mut(),
-                    applicable_declarations_cache,
-                    new_animations_sender,
+                    &mut applicable_declarations_cache,
                     applicable_declarations.normal_shareable,
                     true);
 
@@ -690,15 +710,18 @@ pub trait MatchMethods : TNode {
 
 
                     if !applicable_declarations_for_this_pseudo.is_empty() {
+                        // NB: Transitions and animations should only work for
+                        // pseudo-elements ::before and ::after
+                        let should_animate_properties =
+                            <Self::ConcreteElement as Element>::Impl::pseudo_is_before_or_after(&pseudo);
                         let (new_damage, style) = self.cascade_node_pseudo_element(
                             context,
                             Some(data.style.as_ref().unwrap()),
                             &*applicable_declarations_for_this_pseudo,
                             data.per_pseudo.get_mut(&pseudo),
-                            applicable_declarations_cache,
-                            new_animations_sender,
+                            &mut applicable_declarations_cache,
                             false,
-                            false);
+                            should_animate_properties);
                         data.per_pseudo.insert(pseudo, style);
 
                         damage = damage | new_damage;

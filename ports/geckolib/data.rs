@@ -6,18 +6,19 @@ use euclid::Size2D;
 use euclid::size::TypedSize2D;
 use gecko_bindings::bindings::RawServoStyleSet;
 use num_cpus;
-use selector_impl::{Stylist, Stylesheet, SharedStyleContext};
+use selector_impl::{GeckoSelectorImpl, Stylist, Stylesheet, SharedStyleContext};
 use std::cmp;
 use std::collections::HashMap;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::{Arc, RwLock};
-use style::animation::Animation;
 use style::dom::OpaqueNode;
 use style::media_queries::{Device, MediaType};
 use style::parallel::WorkQueueData;
 use util::geometry::ViewportPx;
 use util::thread_state;
 use util::workqueue::WorkQueue;
+
+pub type Animation = ::style::animation::Animation<GeckoSelectorImpl>;
 
 pub struct PerDocumentStyleData {
     /// Rule processor.

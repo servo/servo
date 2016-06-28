@@ -7,6 +7,7 @@
 use dom::PresentationalHintsSynthetizer;
 use element_state::*;
 use error_reporting::StdoutErrorReporter;
+use keyframes::KeyframesAnimation;
 use media_queries::{Device, MediaType};
 use parser::ParserContextExtraData;
 use properties::{self, PropertyDeclaration, PropertyDeclarationBlock};
@@ -22,8 +23,9 @@ use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
 use std::process;
 use std::sync::Arc;
+use string_cache::Atom;
 use style_traits::viewport::ViewportConstraints;
-use stylesheets::{CSSRuleIteratorExt, Origin, Stylesheet};
+use stylesheets::{CSSRule, CSSRuleIteratorExt, Origin, Stylesheet};
 use url::Url;
 use util::opts;
 use util::resource_files::read_resource_file;
@@ -126,6 +128,9 @@ pub struct Stylist<Impl: SelectorImplExt> {
                          PerPseudoElementSelectorMap<Impl>,
                          BuildHasherDefault<::fnv::FnvHasher>>,
 
+    /// A map with all the animations indexed by name.
+    animations: HashMap<Atom, KeyframesAnimation>,
+
     /// Applicable declarations for a given non-eagerly cascaded pseudo-element.
     /// These are eagerly computed once, and then used to resolve the new
     /// computed values on the fly on layout.
@@ -150,6 +155,7 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
 
             element_map: PerPseudoElementSelectorMap::new(),
             pseudos_map: HashMap::with_hasher(Default::default()),
+            animations: HashMap::with_hasher(Default::default()),
             precomputed_pseudo_element_decls: HashMap::with_hasher(Default::default()),
             rules_source_order: 0,
             state_deps: DependencySet::new(),
@@ -173,6 +179,7 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
 
         self.element_map = PerPseudoElementSelectorMap::new();
         self.pseudos_map = HashMap::with_hasher(Default::default());
+        self.animations = HashMap::with_hasher(Default::default());
         Impl::each_eagerly_cascaded_pseudo_element(|pseudo| {
             self.pseudos_map.insert(pseudo, PerPseudoElementSelectorMap::new());
         });
@@ -233,16 +240,35 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
             };
         );
 
-        for style_rule in stylesheet.effective_rules(&self.device).style() {
-            append!(style_rule, normal);
-            append!(style_rule, important);
-            rules_source_order += 1;
-            for selector in &style_rule.selectors {
-                self.state_deps.note_selector(selector.compound_selectors.clone());
+        for rule in stylesheet.effective_rules(&self.device) {
+            match *rule {
+                CSSRule::Style(ref style_rule) => {
+                    append!(style_rule, normal);
+                    append!(style_rule, important);
+                    rules_source_order += 1;
+                    for selector in &style_rule.selectors {
+                        self.state_deps.note_selector(selector.compound_selectors.clone());
+                    }
+
+                    self.rules_source_order = rules_source_order;
+                }
+                CSSRule::Keyframes(ref keyframes_rule) => {
+                    debug!("Found valid keyframes rule: {:?}", keyframes_rule);
+                    if let Some(animation) = KeyframesAnimation::from_keyframes(&keyframes_rule.keyframes) {
+                        debug!("Found valid keyframe animation: {:?}", animation);
+                        self.animations.insert(keyframes_rule.name.clone(),
+                                               animation);
+                    } else {
+                        // If there's a valid keyframes rule, even if it doesn't
+                        // produce an animation, should shadow other animations
+                        // with the same name.
+                        self.animations.remove(&keyframes_rule.name);
+                    }
+                }
+                // We don't care about any other rule.
+                _ => {}
             }
         }
-
-        self.rules_source_order = rules_source_order;
 
         Impl::each_precomputed_pseudo_element(|pseudo| {
             // TODO: Consider not doing this and just getting the rules on the
@@ -270,7 +296,8 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
             let (computed, _) =
                 properties::cascade(self.device.au_viewport_size(),
                                     &declarations, false,
-                                    parent.map(|p| &**p), None,
+                                    parent.map(|p| &**p),
+                                    None,
                                     Box::new(StdoutErrorReporter));
             Some(Arc::new(computed))
         } else {
@@ -436,6 +463,11 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
     #[inline]
     pub fn is_device_dirty(&self) -> bool {
         self.is_device_dirty
+    }
+
+    #[inline]
+    pub fn animations(&self) -> &HashMap<Atom, KeyframesAnimation> {
+        &self.animations
     }
 }
 

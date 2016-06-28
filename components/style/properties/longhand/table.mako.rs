@@ -6,4 +6,5 @@
 
 <% data.new_style_struct("Table", inherited=False) %>
 
-${helpers.single_keyword("table-layout", "auto fixed", gecko_ffi_name="mLayoutStrategy")}
+${helpers.single_keyword("table-layout", "auto fixed",
+                         gecko_ffi_name="mLayoutStrategy", animatable=False)}

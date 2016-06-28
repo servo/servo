@@ -8,10 +8,11 @@
 
 % for side in ["top", "right", "bottom", "left"]:
     ${helpers.predefined_type(side, "LengthOrPercentageOrAuto",
-                              "computed::LengthOrPercentageOrAuto::Auto")}
+                              "computed::LengthOrPercentageOrAuto::Auto",
+                              animatable=True)}
 % endfor
 
-<%helpers:longhand name="z-index">
+<%helpers:longhand name="z-index" animatable="True">
     use values::computed::ComputedValueAsSpecified;
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
@@ -62,39 +63,49 @@
 // http://www.w3.org/TR/css3-flexbox/
 
 // Flex container properties
-${helpers.single_keyword("flex-direction", "row row-reverse column column-reverse", experimental=True)}
+${helpers.single_keyword("flex-direction", "row row-reverse column column-reverse",
+                         experimental=True, animatable=False)}
 
-${helpers.single_keyword("flex-wrap", "nowrap wrap wrap-reverse", experimental=True)}
+${helpers.single_keyword("flex-wrap", "nowrap wrap wrap-reverse",
+                         experimental=True, animatable=False)}
 
 // FIXME(stshine): The type of 'justify-content' and 'align-content' is uint16_t in gecko
 // FIXME(stshine): Its higher bytes are used to store fallback value. Disable them in geckolib for now
 ${helpers.single_keyword("justify-content", "flex-start flex-end center space-between space-around",
                          experimental=True,
                          gecko_constant_prefix="NS_STYLE_JUSTIFY",
-                         products="servo")}
+                         products="servo",
+                         animatable=False)}
 
 ${helpers.single_keyword("align-items", "stretch flex-start flex-end center baseline",
                          experimental=True,
                          need_clone=True,
-                         gecko_constant_prefix="NS_STYLE_ALIGN")}
+                         gecko_constant_prefix="NS_STYLE_ALIGN",
+                         animatable=False)}
 
 ${helpers.single_keyword("align-content", "stretch flex-start flex-end center space-between space-around",
                          experimental=True,
                          gecko_constant_prefix="NS_STYLE_ALIGN",
-                         products="servo")}
+                         products="servo",
+                         animatable=False)}
 
 // Flex item properties
-${helpers.predefined_type("flex-grow", "Number", "0.0", "parse_non_negative", experimental=True)}
+${helpers.predefined_type("flex-grow", "Number",
+                          "0.0", "parse_non_negative",
+                          experimental=True, animatable=True)}
 
-${helpers.predefined_type("flex-shrink", "Number", "1.0", "parse_non_negative", experimental=True)}
+${helpers.predefined_type("flex-shrink", "Number",
+                          "1.0", "parse_non_negative",
+                          experimental=True, animatable=True)}
 
 ${helpers.single_keyword("align-self", "auto stretch flex-start flex-end center baseline",
                          experimental=True,
                          need_clone=True,
-                         gecko_constant_prefix="NS_STYLE_ALIGN")}
+                         gecko_constant_prefix="NS_STYLE_ALIGN",
+                         animatable=False)}
 
 // https://drafts.csswg.org/css-flexbox/#propdef-order
-<%helpers:longhand name="order">
+<%helpers:longhand name="order" animatable="True">
     use values::computed::ComputedValueAsSpecified;
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
@@ -115,41 +126,53 @@ ${helpers.single_keyword("align-self", "auto stretch flex-start flex-end center 
     }
 </%helpers:longhand>
 
+// FIXME: This property should be animatable.
 ${helpers.predefined_type("flex-basis",
                           "LengthOrPercentageOrAutoOrContent",
-                          "computed::LengthOrPercentageOrAutoOrContent::Auto")}
+                          "computed::LengthOrPercentageOrAutoOrContent::Auto",
+                          animatable=False)}
 
 ${helpers.predefined_type("width",
                           "LengthOrPercentageOrAuto",
                           "computed::LengthOrPercentageOrAuto::Auto",
-                          "parse_non_negative")}
+                          "parse_non_negative",
+                          animatable=True)}
 
 ${helpers.predefined_type("height",
                           "LengthOrPercentageOrAuto",
                           "computed::LengthOrPercentageOrAuto::Auto",
-                          "parse_non_negative")}
+                          "parse_non_negative",
+                          animatable=True)}
 
 ${helpers.predefined_type("min-width",
                           "LengthOrPercentage",
                           "computed::LengthOrPercentage::Length(Au(0))",
-                          "parse_non_negative")}
+                          "parse_non_negative",
+                          animatable=True)}
+
 ${helpers.predefined_type("max-width",
                           "LengthOrPercentageOrNone",
                           "computed::LengthOrPercentageOrNone::None",
-                          "parse_non_negative")}
+                          "parse_non_negative",
+                          animatable=True)}
 
 ${helpers.predefined_type("min-height",
                           "LengthOrPercentage",
                           "computed::LengthOrPercentage::Length(Au(0))",
-                          "parse_non_negative")}
+                          "parse_non_negative",
+                          animatable=True)}
+
 ${helpers.predefined_type("max-height",
                           "LengthOrPercentageOrNone",
                           "computed::LengthOrPercentageOrNone::None",
-                          "parse_non_negative")}
+                          "parse_non_negative",
+                          animatable=True)}
 
 ${helpers.single_keyword("box-sizing",
-                         "content-box border-box")}
+                         "content-box border-box",
+                         animatable=False)}
 
 // CSS Image Values and Replaced Content Module Level 3
 // https://drafts.csswg.org/css-images-3/
-${helpers.single_keyword("object-fit", "fill contain cover none scale-down", products="gecko")}
+${helpers.single_keyword("object-fit", "fill contain cover none scale-down",
+                         products="gecko", animatable=False)}

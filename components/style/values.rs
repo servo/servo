@@ -1391,16 +1391,13 @@ pub mod specified {
     pub fn parse_border_radius(input: &mut Parser) -> Result<BorderRadiusSize, ()> {
         input.try(BorderRadiusSize::parse).or_else(|()| {
                 match_ignore_ascii_case! { try!(input.expect_ident()),
-                                           "thin" =>
-                                           Ok(BorderRadiusSize::circle(
-                                               LengthOrPercentage::Length(Length::from_px(1.)))),
-                                           "medium" =>
-                                           Ok(BorderRadiusSize::circle(
-                                               LengthOrPercentage::Length(Length::from_px(3.)))),
-                                           "thick" =>
-                                           Ok(BorderRadiusSize::circle(
-                                               LengthOrPercentage::Length(Length::from_px(5.)))),
-                                           _ => Err(())
+                    "thin" => Ok(BorderRadiusSize::circle(
+                                     LengthOrPercentage::Length(Length::from_px(1.)))),
+                    "medium" => Ok(BorderRadiusSize::circle(
+                                       LengthOrPercentage::Length(Length::from_px(3.)))),
+                    "thick" => Ok(BorderRadiusSize::circle(
+                                      LengthOrPercentage::Length(Length::from_px(5.)))),
+                    _ => Err(())
                 }
             })
     }
@@ -1752,7 +1749,7 @@ pub mod computed {
     }
 
 
-    #[derive(PartialEq, Clone, Copy)]
+    #[derive(Debug, PartialEq, Clone, Copy)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct BorderRadiusSize(pub Size2D<LengthOrPercentage>);
 

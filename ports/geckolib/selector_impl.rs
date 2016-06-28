@@ -16,6 +16,7 @@ pub type PrivateStyleData = style::data::PrivateStyleData<GeckoSelectorImpl, Gec
 #[cfg(feature = "servo_features")]
 known_heap_size!(0, GeckoSelectorImpl, PseudoElement, NonTSPseudoClass);
 
+#[derive(Debug, Clone)]
 pub struct GeckoSelectorImpl;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -377,6 +378,15 @@ impl SelectorImplExt for GeckoSelectorImpl {
         fun(AnonBox(MozSVGOuterSVGAnonChild));
         fun(AnonBox(MozSVGForeignContent));
         fun(AnonBox(MozSVGText));
+    }
+
+    #[inline]
+    fn pseudo_is_before_or_after(pseudo: &PseudoElement) -> bool {
+        match *pseudo {
+            PseudoElement::Before |
+            PseudoElement::After => true,
+            _ => false,
+        }
     }
 
     #[inline]

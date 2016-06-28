@@ -11,7 +11,10 @@
                          additional_methods=[Method("transition_count", "usize")]) %>
 
 // TODO(SimonSapin): don't parse `inline-table`, since we don't support it
-<%helpers:longhand name="display" need_clone="True" custom_cascade="${product == 'servo'}">
+<%helpers:longhand name="display"
+                   need_clone="True"
+                   animatable="False"
+                   custom_cascade="${product == 'servo'}">
     <%
         values = """inline block inline-block
             table inline-table table-row-group table-header-group table-footer-group
@@ -86,9 +89,14 @@
 
 </%helpers:longhand>
 
-${helpers.single_keyword("position", "static absolute relative fixed", need_clone=True, extra_gecko_values="sticky")}
+${helpers.single_keyword("position", "static absolute relative fixed",
+                         need_clone=True, extra_gecko_values="sticky", animatable=False)}
 
-<%helpers:single_keyword_computed name="float" values="none left right" need_clone="True" gecko_ffi_name="mFloats">
+<%helpers:single_keyword_computed name="float"
+                                  values="none left right"
+                                  animatable="False"
+                                  need_clone="True"
+                                  gecko_ffi_name="mFloats">
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
 
@@ -107,9 +115,13 @@ ${helpers.single_keyword("position", "static absolute relative fixed", need_clon
 
 </%helpers:single_keyword_computed>
 
-${helpers.single_keyword("clear", "none left right both", gecko_ffi_name="mBreakType")}
+${helpers.single_keyword("clear", "none left right both",
+                         animatable=False, gecko_ffi_name="mBreakType")}
 
-<%helpers:longhand name="-servo-display-for-hypothetical-box" derived_from="display" products="servo">
+<%helpers:longhand name="-servo-display-for-hypothetical-box"
+                   animatable="False"
+                   derived_from="display"
+                   products="servo">
     pub use super::display::{SpecifiedValue, get_initial_value};
     pub use super::display::{parse};
 
@@ -125,7 +137,8 @@ ${helpers.single_keyword("clear", "none left right both", gecko_ffi_name="mBreak
 
 </%helpers:longhand>
 
-<%helpers:longhand name="vertical-align">
+<%helpers:longhand name="vertical-align"
+                   animatable="True">
   use cssparser::ToCss;
   use std::fmt;
 
@@ -219,18 +232,21 @@ ${helpers.single_keyword("clear", "none left right both", gecko_ffi_name="mBreak
 // CSS 2.1, Section 11 - Visual effects
 
 // Non-standard, see https://developer.mozilla.org/en-US/docs/Web/CSS/overflow-clip-box#Specifications
-${helpers.single_keyword("-servo-overflow-clip-box", "padding-box content-box", products="servo",
-               internal=True)}
+${helpers.single_keyword("-servo-overflow-clip-box", "padding-box content-box",
+                         products="servo", animatable=False, internal=True)}
 
-${helpers.single_keyword("overflow-clip-box", "padding-box content-box", products="gecko",
-               internal=True)}
-
-// FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
-${helpers.single_keyword("overflow-x", "visible hidden scroll auto", need_clone=True,
-                       gecko_constant_prefix="NS_STYLE_OVERFLOW")}
+${helpers.single_keyword("overflow-clip-box", "padding-box content-box",
+                         products="gecko", animatable=False, internal=True)}
 
 // FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
-<%helpers:longhand name="overflow-y" need_clone="True">
+${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
+                         need_clone=True, animatable=False,
+                         gecko_constant_prefix="NS_STYLE_OVERFLOW")}
+
+// FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
+<%helpers:longhand name="overflow-y"
+                   need_clone="True"
+                   animatable="False">
   use super::overflow_x;
 
   use cssparser::ToCss;
@@ -269,7 +285,8 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto", need_clone=
 </%helpers:longhand>
 
 // TODO(pcwalton): Multiple transitions.
-<%helpers:longhand name="transition-duration">
+<%helpers:longhand name="transition-duration" animatable="False">
+    use values::computed::ComputedValueAsSpecified;
     use values::specified::Time;
 
     pub use self::computed_value::T as SpecifiedValue;
@@ -286,15 +303,6 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto", need_clone=
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T(pub Vec<SingleComputedValue>);
 
-        impl ToComputedValue for T {
-            type ComputedValue = T;
-
-            #[inline]
-            fn to_computed_value<Cx: TContext>(&self, _: &Cx) -> T {
-                (*self).clone()
-            }
-        }
-
         impl ToCss for T {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
                 if self.0.is_empty() {
@@ -310,6 +318,8 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto", need_clone=
             }
         }
     }
+
+    impl ComputedValueAsSpecified for SpecifiedValue {}
 
     #[inline]
     pub fn parse_one(input: &mut Parser) -> Result<SingleSpecifiedValue,()> {
@@ -333,7 +343,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto", need_clone=
 
 // TODO(pcwalton): Lots more timing functions.
 // TODO(pcwalton): Multiple transitions.
-<%helpers:longhand name="transition-timing-function">
+<%helpers:longhand name="transition-timing-function" animatable="False">
     use self::computed_value::{StartEnd, TransitionTimingFunction};
 
     use euclid::point::Point2D;
@@ -531,170 +541,17 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto", need_clone=
     }
 </%helpers:longhand>
 
-// TODO(pcwalton): Lots more properties.
-<%helpers:longhand name="transition-property">
-    use self::computed_value::TransitionProperty;
-
+<%helpers:longhand name="transition-property" animatable="False">
     pub use self::computed_value::SingleComputedValue as SingleSpecifiedValue;
     pub use self::computed_value::T as SpecifiedValue;
 
     pub mod computed_value {
         use cssparser::ToCss;
         use std::fmt;
-
-        pub use self::TransitionProperty as SingleComputedValue;
-
-        #[derive(Copy, Clone, Debug, PartialEq)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub enum TransitionProperty {
-            All,
-            BackgroundColor,
-            BackgroundPosition,
-            BorderBottomColor,
-            BorderBottomWidth,
-            BorderLeftColor,
-            BorderLeftWidth,
-            BorderRightColor,
-            BorderRightWidth,
-            BorderSpacing,
-            BorderTopColor,
-            BorderTopWidth,
-            Bottom,
-            Color,
-            Clip,
-            FontSize,
-            FontWeight,
-            Height,
-            Left,
-            LetterSpacing,
-            LineHeight,
-            MarginBottom,
-            MarginLeft,
-            MarginRight,
-            MarginTop,
-            MaxHeight,
-            MaxWidth,
-            MinHeight,
-            MinWidth,
-            Opacity,
-            OutlineColor,
-            OutlineWidth,
-            PaddingBottom,
-            PaddingLeft,
-            PaddingRight,
-            PaddingTop,
-            Right,
-            TextIndent,
-            TextShadow,
-            Top,
-            Transform,
-            VerticalAlign,
-            Visibility,
-            Width,
-            WordSpacing,
-            ZIndex,
-        }
-
-        pub static ALL_TRANSITION_PROPERTIES: [TransitionProperty; 45] = [
-            TransitionProperty::BackgroundColor,
-            TransitionProperty::BackgroundPosition,
-            TransitionProperty::BorderBottomColor,
-            TransitionProperty::BorderBottomWidth,
-            TransitionProperty::BorderLeftColor,
-            TransitionProperty::BorderLeftWidth,
-            TransitionProperty::BorderRightColor,
-            TransitionProperty::BorderRightWidth,
-            TransitionProperty::BorderSpacing,
-            TransitionProperty::BorderTopColor,
-            TransitionProperty::BorderTopWidth,
-            TransitionProperty::Bottom,
-            TransitionProperty::Color,
-            TransitionProperty::Clip,
-            TransitionProperty::FontSize,
-            TransitionProperty::FontWeight,
-            TransitionProperty::Height,
-            TransitionProperty::Left,
-            TransitionProperty::LetterSpacing,
-            TransitionProperty::LineHeight,
-            TransitionProperty::MarginBottom,
-            TransitionProperty::MarginLeft,
-            TransitionProperty::MarginRight,
-            TransitionProperty::MarginTop,
-            TransitionProperty::MaxHeight,
-            TransitionProperty::MaxWidth,
-            TransitionProperty::MinHeight,
-            TransitionProperty::MinWidth,
-            TransitionProperty::Opacity,
-            TransitionProperty::OutlineColor,
-            TransitionProperty::OutlineWidth,
-            TransitionProperty::PaddingBottom,
-            TransitionProperty::PaddingLeft,
-            TransitionProperty::PaddingRight,
-            TransitionProperty::PaddingTop,
-            TransitionProperty::Right,
-            TransitionProperty::TextIndent,
-            TransitionProperty::TextShadow,
-            TransitionProperty::Top,
-            TransitionProperty::Transform,
-            TransitionProperty::VerticalAlign,
-            TransitionProperty::Visibility,
-            TransitionProperty::Width,
-            TransitionProperty::WordSpacing,
-            TransitionProperty::ZIndex,
-        ];
-
-        impl ToCss for TransitionProperty {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                match *self {
-                    TransitionProperty::All => dest.write_str("all"),
-                    TransitionProperty::BackgroundColor => dest.write_str("background-color"),
-                    TransitionProperty::BackgroundPosition => dest.write_str("background-position"),
-                    TransitionProperty::BorderBottomColor => dest.write_str("border-bottom-color"),
-                    TransitionProperty::BorderBottomWidth => dest.write_str("border-bottom-width"),
-                    TransitionProperty::BorderLeftColor => dest.write_str("border-left-color"),
-                    TransitionProperty::BorderLeftWidth => dest.write_str("border-left-width"),
-                    TransitionProperty::BorderRightColor => dest.write_str("border-right-color"),
-                    TransitionProperty::BorderRightWidth => dest.write_str("border-right-width"),
-                    TransitionProperty::BorderSpacing => dest.write_str("border-spacing"),
-                    TransitionProperty::BorderTopColor => dest.write_str("border-top-color"),
-                    TransitionProperty::BorderTopWidth => dest.write_str("border-top-width"),
-                    TransitionProperty::Bottom => dest.write_str("bottom"),
-                    TransitionProperty::Color => dest.write_str("color"),
-                    TransitionProperty::Clip => dest.write_str("clip"),
-                    TransitionProperty::FontSize => dest.write_str("font-size"),
-                    TransitionProperty::FontWeight => dest.write_str("font-weight"),
-                    TransitionProperty::Height => dest.write_str("height"),
-                    TransitionProperty::Left => dest.write_str("left"),
-                    TransitionProperty::LetterSpacing => dest.write_str("letter-spacing"),
-                    TransitionProperty::LineHeight => dest.write_str("line-height"),
-                    TransitionProperty::MarginBottom => dest.write_str("margin-bottom"),
-                    TransitionProperty::MarginLeft => dest.write_str("margin-left"),
-                    TransitionProperty::MarginRight => dest.write_str("margin-right"),
-                    TransitionProperty::MarginTop => dest.write_str("margin-top"),
-                    TransitionProperty::MaxHeight => dest.write_str("max-height"),
-                    TransitionProperty::MaxWidth => dest.write_str("max-width"),
-                    TransitionProperty::MinHeight => dest.write_str("min-height"),
-                    TransitionProperty::MinWidth => dest.write_str("min-width"),
-                    TransitionProperty::Opacity => dest.write_str("opacity"),
-                    TransitionProperty::OutlineColor => dest.write_str("outline-color"),
-                    TransitionProperty::OutlineWidth => dest.write_str("outline-width"),
-                    TransitionProperty::PaddingBottom => dest.write_str("padding-bottom"),
-                    TransitionProperty::PaddingLeft => dest.write_str("padding-left"),
-                    TransitionProperty::PaddingRight => dest.write_str("padding-right"),
-                    TransitionProperty::PaddingTop => dest.write_str("padding-top"),
-                    TransitionProperty::Right => dest.write_str("right"),
-                    TransitionProperty::TextIndent => dest.write_str("text-indent"),
-                    TransitionProperty::TextShadow => dest.write_str("text-shadow"),
-                    TransitionProperty::Top => dest.write_str("top"),
-                    TransitionProperty::Transform => dest.write_str("transform"),
-                    TransitionProperty::VerticalAlign => dest.write_str("vertical-align"),
-                    TransitionProperty::Visibility => dest.write_str("visibility"),
-                    TransitionProperty::Width => dest.write_str("width"),
-                    TransitionProperty::WordSpacing => dest.write_str("word-spacing"),
-                    TransitionProperty::ZIndex => dest.write_str("z-index"),
-                }
-            }
-        }
+        // NB: Can't generate the type here because it needs all the longhands
+        // generated beforehand.
+        pub use properties::animated_properties::TransitionProperty;
+        pub use properties::animated_properties::TransitionProperty as SingleComputedValue;
 
         #[derive(Clone, Debug, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -721,61 +578,8 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto", need_clone=
         computed_value::T(Vec::new())
     }
 
-    pub fn parse_one(input: &mut Parser) -> Result<SingleSpecifiedValue,()> {
-        match_ignore_ascii_case! {
-            try!(input.expect_ident()),
-            "all" => Ok(TransitionProperty::All),
-            "background-color" => Ok(TransitionProperty::BackgroundColor),
-            "background-position" => Ok(TransitionProperty::BackgroundPosition),
-            "border-bottom-color" => Ok(TransitionProperty::BorderBottomColor),
-            "border-bottom-width" => Ok(TransitionProperty::BorderBottomWidth),
-            "border-left-color" => Ok(TransitionProperty::BorderLeftColor),
-            "border-left-width" => Ok(TransitionProperty::BorderLeftWidth),
-            "border-right-color" => Ok(TransitionProperty::BorderRightColor),
-            "border-right-width" => Ok(TransitionProperty::BorderRightWidth),
-            "border-spacing" => Ok(TransitionProperty::BorderSpacing),
-            "border-top-color" => Ok(TransitionProperty::BorderTopColor),
-            "border-top-width" => Ok(TransitionProperty::BorderTopWidth),
-            "bottom" => Ok(TransitionProperty::Bottom),
-            "color" => Ok(TransitionProperty::Color),
-            "clip" => Ok(TransitionProperty::Clip),
-            "font-size" => Ok(TransitionProperty::FontSize),
-            "font-weight" => Ok(TransitionProperty::FontWeight),
-            "height" => Ok(TransitionProperty::Height),
-            "left" => Ok(TransitionProperty::Left),
-            "letter-spacing" => Ok(TransitionProperty::LetterSpacing),
-            "line-height" => Ok(TransitionProperty::LineHeight),
-            "margin-bottom" => Ok(TransitionProperty::MarginBottom),
-            "margin-left" => Ok(TransitionProperty::MarginLeft),
-            "margin-right" => Ok(TransitionProperty::MarginRight),
-            "margin-top" => Ok(TransitionProperty::MarginTop),
-            "max-height" => Ok(TransitionProperty::MaxHeight),
-            "max-width" => Ok(TransitionProperty::MaxWidth),
-            "min-height" => Ok(TransitionProperty::MinHeight),
-            "min-width" => Ok(TransitionProperty::MinWidth),
-            "opacity" => Ok(TransitionProperty::Opacity),
-            "outline-color" => Ok(TransitionProperty::OutlineColor),
-            "outline-width" => Ok(TransitionProperty::OutlineWidth),
-            "padding-bottom" => Ok(TransitionProperty::PaddingBottom),
-            "padding-left" => Ok(TransitionProperty::PaddingLeft),
-            "padding-right" => Ok(TransitionProperty::PaddingRight),
-            "padding-top" => Ok(TransitionProperty::PaddingTop),
-            "right" => Ok(TransitionProperty::Right),
-            "text-indent" => Ok(TransitionProperty::TextIndent),
-            "text-shadow" => Ok(TransitionProperty::TextShadow),
-            "top" => Ok(TransitionProperty::Top),
-            "transform" => Ok(TransitionProperty::Transform),
-            "vertical-align" => Ok(TransitionProperty::VerticalAlign),
-            "visibility" => Ok(TransitionProperty::Visibility),
-            "width" => Ok(TransitionProperty::Width),
-            "word-spacing" => Ok(TransitionProperty::WordSpacing),
-            "z-index" => Ok(TransitionProperty::ZIndex),
-            _ => Err(())
-        }
-    }
-
     pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
-        Ok(SpecifiedValue(try!(input.parse_comma_separated(parse_one))))
+        Ok(SpecifiedValue(try!(input.parse_comma_separated(SingleSpecifiedValue::parse))))
     }
 
     impl ToComputedValue for SpecifiedValue {
@@ -788,54 +592,208 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto", need_clone=
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="transition-delay">
+<%helpers:longhand name="transition-delay" animatable="False">
     pub use properties::longhands::transition_duration::{SingleSpecifiedValue, SpecifiedValue};
     pub use properties::longhands::transition_duration::{computed_value};
     pub use properties::longhands::transition_duration::{get_initial_single_value};
     pub use properties::longhands::transition_duration::{get_initial_value, parse, parse_one};
 </%helpers:longhand>
 
+<%helpers:longhand name="animation-name" animatable="False">
+    use values::computed::ComputedValueAsSpecified;
+
+    pub mod computed_value {
+        use cssparser::ToCss;
+        use std::fmt;
+        use string_cache::Atom;
+
+        #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
+        pub struct T(pub Vec<Atom>);
+
+        impl ToCss for T {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                if self.0.is_empty() {
+                    return dest.write_str("none")
+                }
+
+                for (i, name) in self.0.iter().enumerate() {
+                    if i != 0 {
+                        try!(dest.write_str(", "));
+                    }
+                    // NB: to_string() needed due to geckolib backend.
+                    try!(dest.write_str(&*name.to_string()));
+                }
+                Ok(())
+            }
+        }
+    }
+
+    pub use self::computed_value::T as SpecifiedValue;
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        computed_value::T(vec![])
+    }
+
+    pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+        use std::borrow::Cow;
+        Ok(SpecifiedValue(try!(input.parse_comma_separated(|input| {
+            input.expect_ident().map(Atom::from)
+        }))))
+    }
+
+    impl ComputedValueAsSpecified for SpecifiedValue {}
+</%helpers:longhand>
+
+<%helpers:longhand name="animation-duration" animatable="False">
+    pub use super::transition_duration::computed_value;
+    pub use super::transition_duration::{parse, get_initial_value};
+    pub use super::transition_duration::SpecifiedValue;
+</%helpers:longhand>
+
+<%helpers:longhand name="animation-timing-function" animatable="False">
+    pub use super::transition_timing_function::computed_value;
+    pub use super::transition_timing_function::{parse, get_initial_value};
+    pub use super::transition_timing_function::SpecifiedValue;
+</%helpers:longhand>
+
+<%helpers:longhand name="animation-iteration-count" animatable="False">
+    use values::computed::ComputedValueAsSpecified;
+
+    pub mod computed_value {
+        use cssparser::ToCss;
+        use std::fmt;
+
+        #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
+        pub enum AnimationIterationCount {
+            Number(u32),
+            Infinite,
+        }
+
+        impl ToCss for AnimationIterationCount {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                match *self {
+                    AnimationIterationCount::Number(n) => write!(dest, "{}", n),
+                    AnimationIterationCount::Infinite => dest.write_str("infinite"),
+                }
+            }
+        }
+
+        #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
+        pub struct T(pub Vec<AnimationIterationCount>);
+
+        impl ToCss for T {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                if self.0.is_empty() {
+                    return dest.write_str("none")
+                }
+                for (i, value) in self.0.iter().enumerate() {
+                    if i != 0 {
+                        try!(dest.write_str(", "))
+                    }
+                    try!(value.to_css(dest))
+                }
+                Ok(())
+            }
+        }
+    }
+
+    pub use self::computed_value::AnimationIterationCount;
+    pub use self::computed_value::T as SpecifiedValue;
+
+    pub fn parse_one(input: &mut Parser) -> Result<AnimationIterationCount, ()> {
+        if input.try(|input| input.expect_ident_matching("infinite")).is_ok() {
+            Ok(AnimationIterationCount::Infinite)
+        } else {
+            let number = try!(input.expect_integer());
+            if number < 0 {
+                return Err(());
+            }
+            Ok(AnimationIterationCount::Number(number as u32))
+        }
+    }
+
+
+    #[inline]
+    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        Ok(SpecifiedValue(try!(input.parse_comma_separated(parse_one))))
+    }
+
+    pub fn get_initial_value() -> computed_value::T {
+        computed_value::T(vec![AnimationIterationCount::Number(1)])
+    }
+
+    impl ComputedValueAsSpecified for SpecifiedValue {}
+</%helpers:longhand>
+
+${helpers.keyword_list("animation-direction",
+                       "normal reverse alternate alternate-reverse",
+                       animatable=False)}
+
+${helpers.keyword_list("animation-play-state",
+                       "running paused",
+                       need_clone=True,
+                       animatable=False)}
+
+${helpers.keyword_list("animation-fill-mode",
+                       "none forwards backwards both",
+                       animatable=False)}
+
+<%helpers:longhand name="animation-delay" animatable="False">
+    pub use super::transition_duration::computed_value;
+    pub use super::transition_duration::{parse, get_initial_value};
+    pub use super::transition_duration::SpecifiedValue;
+</%helpers:longhand>
+
 // CSSOM View Module
 // https://www.w3.org/TR/cssom-view-1/
 ${helpers.single_keyword("scroll-behavior",
                          "auto smooth",
-                         products="gecko")}
+                         products="gecko",
+                         animatable=False)}
 
 // Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/scroll-snap-type-x
 ${helpers.single_keyword("scroll-snap-type-x",
                          "none mandatory proximity",
                          products="gecko",
-                         gecko_constant_prefix="NS_STYLE_SCROLL_SNAP_TYPE")}
+                         gecko_constant_prefix="NS_STYLE_SCROLL_SNAP_TYPE",
+                         animatable=False)}
 
 // Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/scroll-snap-type-y
 ${helpers.single_keyword("scroll-snap-type-y",
                          "none mandatory proximity",
                          products="gecko",
-                         gecko_constant_prefix="NS_STYLE_SCROLL_SNAP_TYPE")}
+                         gecko_constant_prefix="NS_STYLE_SCROLL_SNAP_TYPE",
+                         animatable=False)}
 
 // Compositing and Blending Level 1
 // http://www.w3.org/TR/compositing-1/
 ${helpers.single_keyword("isolation",
                          "auto isolate",
-                         products="gecko")}
+                         products="gecko",
+                         animatable=False)}
 
 ${helpers.single_keyword("page-break-after",
                          "auto always avoid left right",
-                         products="gecko")}
+                         products="gecko",
+                         animatable=False)}
 ${helpers.single_keyword("page-break-before",
                          "auto always avoid left right",
-                         products="gecko")}
+                         products="gecko",
+                         animatable=False)}
 ${helpers.single_keyword("page-break-inside",
                          "auto avoid",
                          products="gecko",
                          gecko_ffi_name="mBreakInside",
-                         gecko_constant_prefix="NS_STYLE_PAGE_BREAK")}
+                         gecko_constant_prefix="NS_STYLE_PAGE_BREAK",
+                         animatable=False)}
 
 // CSS Basic User Interface Module Level 3
 // http://dev.w3.org/csswg/css-ui/
 ${helpers.single_keyword("resize",
                          "none both horizontal vertical",
-                         products="gecko")}
+                         products="gecko",
+                         animatable=False)}
 
 // Non-standard
 ${helpers.single_keyword("-moz-appearance",
@@ -862,10 +820,11 @@ ${helpers.single_keyword("-moz-appearance",
                          """,
                          gecko_ffi_name="mAppearance",
                          gecko_constant_prefix="NS_THEME",
-                         products="gecko")}
+                         products="gecko",
+                         animatable=False)}
 
 // Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-binding
-<%helpers:longhand name="-moz-binding" products="gecko">
+<%helpers:longhand name="-moz-binding" products="gecko" animatable="False">
     use cssparser::{CssStringWriter, ToCss};
     use gecko_bindings::ptr::{GeckoArcPrincipal, GeckoArcURI};
     use std::fmt::{self, Write};

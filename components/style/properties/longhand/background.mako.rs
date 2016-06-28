@@ -5,11 +5,12 @@
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
 <% data.new_style_struct("Background", inherited=False) %>
-${helpers.predefined_type(
-    "background-color", "CSSColor",
-    "::cssparser::Color::RGBA(::cssparser::RGBA { red: 0., green: 0., blue: 0., alpha: 0. }) /* transparent */")}
 
-<%helpers:longhand name="background-image">
+${helpers.predefined_type("background-color", "CSSColor",
+    "::cssparser::Color::RGBA(::cssparser::RGBA { red: 0., green: 0., blue: 0., alpha: 0. }) /* transparent */",
+    animatable=True)}
+
+<%helpers:longhand name="background-image" animatable="False">
     use cssparser::ToCss;
     use std::fmt;
     use values::specified::Image;
@@ -71,7 +72,7 @@ ${helpers.predefined_type(
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="background-position">
+<%helpers:longhand name="background-position" animatable="True">
         use cssparser::ToCss;
         use std::fmt;
         use values::LocalToCss;
@@ -186,15 +187,23 @@ ${helpers.predefined_type(
         }
 </%helpers:longhand>
 
-${helpers.single_keyword("background-repeat", "repeat repeat-x repeat-y no-repeat")}
+${helpers.single_keyword("background-repeat",
+                         "repeat repeat-x repeat-y no-repeat",
+                         animatable=False)}
 
-${helpers.single_keyword("background-attachment", "scroll fixed" + (" local" if product == "gecko" else ""))}
+${helpers.single_keyword("background-attachment",
+                         "scroll fixed" + (" local" if product == "gecko" else ""),
+                         animatable=False)}
 
-${helpers.single_keyword("background-clip", "border-box padding-box content-box")}
+${helpers.single_keyword("background-clip",
+                         "border-box padding-box content-box",
+                         animatable=False)}
 
-${helpers.single_keyword("background-origin", "padding-box border-box content-box")}
+${helpers.single_keyword("background-origin",
+                         "padding-box border-box content-box",
+                         animatable=False)}
 
-<%helpers:longhand name="background-size">
+<%helpers:longhand name="background-size" animatable="True">
     use cssparser::{ToCss, Token};
     use std::ascii::AsciiExt;
     use std::fmt;

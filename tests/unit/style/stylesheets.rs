@@ -9,11 +9,13 @@ use std::borrow::ToOwned;
 use std::sync::Arc;
 use std::sync::Mutex;
 use string_cache::{Atom, Namespace};
+use style::error_reporting::ParseErrorReporter;
+use style::keyframes::{Keyframe, KeyframeSelector, KeyframePercentage};
 use style::parser::ParserContextExtraData;
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, DeclaredValue, longhands};
-use style::stylesheets::{CSSRule, StyleRule, Origin};
-use style::error_reporting::ParseErrorReporter;
 use style::servo::Stylesheet;
+use style::stylesheets::{CSSRule, StyleRule, KeyframesRule, Origin};
+use style::values::specified::{LengthOrPercentageOrAuto, Percentage};
 use url::Url;
 
 #[test]
@@ -24,7 +26,10 @@ fn test_parse_stylesheet() {
         input[type=hidden i] { display: none !important; }
         html , body /**/ { display: block; }
         #d1 > .ok { background: blue; }
-    ";
+        @keyframes foo {
+            from { width: 0% }
+            to { width: 100%}
+        }";
     let url = Url::parse("about::test").unwrap();
     let stylesheet = Stylesheet::from_str(css, url, Origin::UserAgent,
                                           Box::new(CSSErrorReporterTest),
@@ -145,6 +150,28 @@ fn test_parse_stylesheet() {
                     important: Arc::new(vec![]),
                 },
             }),
+            CSSRule::Keyframes(KeyframesRule {
+                name: "foo".into(),
+                keyframes: vec![
+                    Keyframe {
+                        selector: KeyframeSelector::new_for_unit_testing(
+                                      vec![KeyframePercentage::new(0.)]),
+                        declarations: Arc::new(vec![
+                            PropertyDeclaration::Width(DeclaredValue::Value(
+                                LengthOrPercentageOrAuto::Percentage(Percentage(0.)))),
+                        ]),
+                    },
+                    Keyframe {
+                        selector: KeyframeSelector::new_for_unit_testing(
+                                      vec![KeyframePercentage::new(1.)]),
+                        declarations: Arc::new(vec![
+                            PropertyDeclaration::Width(DeclaredValue::Value(
+                                LengthOrPercentageOrAuto::Percentage(Percentage(1.)))),
+                        ]),
+                    },
+                ]
+            })
+
         ],
     });
 }

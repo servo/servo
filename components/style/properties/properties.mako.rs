@@ -14,7 +14,7 @@ use std::ascii::AsciiExt;
 use std::boxed::Box as StdBox;
 use std::collections::HashSet;
 use std::fmt;
-use std::fmt::Write;
+use std::fmt::{Debug, Write};
 use std::sync::Arc;
 
 use app_units::Au;
@@ -130,6 +130,10 @@ pub mod shorthands {
     <%include file="/shorthand/outline.mako.rs" />
     <%include file="/shorthand/padding.mako.rs" />
     <%include file="/shorthand/text.mako.rs" />
+}
+
+pub mod animated_properties {
+    <%include file="/helpers/animated_properties.mako.rs" />
 }
 
 
@@ -1044,13 +1048,31 @@ impl PropertyDeclaration {
             PropertyDeclaration::Custom(_, _) => &[]
         }
     }
+
+    /// Returns true if this property is one of the animable properties, false
+    /// otherwise.
+    pub fn is_animatable(&self) -> bool {
+        match *self {
+            % for property in data.longhands:
+            PropertyDeclaration::${property.camel_case}(_) => {
+                % if property.animatable:
+                    true
+                % else:
+                    false
+                % endif
+            }
+            % endfor
+            PropertyDeclaration::Custom(..) => false,
+        }
+    }
 }
 
 pub mod style_struct_traits {
     use super::longhands;
+    use std::fmt::Debug;
 
     % for style_struct in data.active_style_structs():
-        pub trait ${style_struct.trait_name}: Clone {
+        pub trait ${style_struct.trait_name}: Debug + Clone {
             % for longhand in style_struct.longhands:
                 #[allow(non_snake_case)]
                 fn set_${longhand.ident}(&mut self, v: longhands::${longhand.ident}::computed_value::T);
@@ -1079,7 +1101,7 @@ pub mod style_structs {
         #[derive(Clone, Debug)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         % else:
-        #[derive(PartialEq, Clone)]
+        #[derive(PartialEq, Clone, Debug)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         % endif
         pub struct ${style_struct.servo_struct_name} {
@@ -1121,32 +1143,45 @@ pub mod style_structs {
                 }
                 % endfor
             % elif style_struct.trait_name == "Box":
+                #[inline]
                 fn clone_display(&self) -> longhands::display::computed_value::T {
                     self.display.clone()
                 }
+                #[inline]
                 fn clone_position(&self) -> longhands::position::computed_value::T {
                     self.position.clone()
                 }
+                #[inline]
                 fn clone_float(&self) -> longhands::float::computed_value::T {
                     self.float.clone()
                 }
+                #[inline]
                 fn clone_overflow_x(&self) -> longhands::overflow_x::computed_value::T {
                     self.overflow_x.clone()
                 }
+                #[inline]
                 fn clone_overflow_y(&self) -> longhands::overflow_y::computed_value::T {
                     self.overflow_y.clone()
                 }
+                #[inline]
+                fn clone_animation_play_state(&self) -> longhands::animation_play_state::computed_value::T {
+                    self.animation_play_state.clone()
+                }
+                #[inline]
                 fn transition_count(&self) -> usize {
                     self.transition_property.0.len()
                 }
             % elif style_struct.trait_name == "Color":
+                #[inline]
                 fn clone_color(&self) -> longhands::color::computed_value::T {
                     self.color.clone()
                 }
             % elif style_struct.trait_name == "Font":
+                #[inline]
                 fn clone_font_size(&self) -> longhands::font_size::computed_value::T {
                     self.font_size.clone()
                 }
+                #[inline]
                 fn clone_font_weight(&self) -> longhands::font_weight::computed_value::T {
                     self.font_weight.clone()
                 }
@@ -1159,42 +1194,53 @@ pub mod style_structs {
                     self.hash = hasher.finish()
                 }
             % elif style_struct.trait_name == "InheritedBox":
+                #[inline]
                 fn clone_direction(&self) -> longhands::direction::computed_value::T {
                     self.direction.clone()
                 }
+                #[inline]
                 fn clone_writing_mode(&self) -> longhands::writing_mode::computed_value::T {
                     self.writing_mode.clone()
                 }
+                #[inline]
                 fn clone_text_orientation(&self) -> longhands::text_orientation::computed_value::T {
                     self.text_orientation.clone()
                 }
             % elif style_struct.trait_name == "InheritedText" and product == "servo":
+                #[inline]
                 fn clone__servo_text_decorations_in_effect(&self) ->
                     longhands::_servo_text_decorations_in_effect::computed_value::T {
                     self._servo_text_decorations_in_effect.clone()
                 }
             % elif style_struct.trait_name == "Outline":
+                #[inline]
                 fn clone_outline_style(&self) -> longhands::outline_style::computed_value::T {
                     self.outline_style.clone()
                 }
+                #[inline]
                 fn outline_has_nonzero_width(&self) -> bool {
                     self.outline_width != ::app_units::Au(0)
                 }
             % elif style_struct.trait_name == "Position":
+                #[inline]
                 fn clone_align_items(&self) -> longhands::align_items::computed_value::T {
                     self.align_items.clone()
                 }
+                #[inline]
                 fn clone_align_self(&self) -> longhands::align_self::computed_value::T {
                     self.align_self.clone()
                 }
             % elif style_struct.trait_name == "Text":
                 <% text_decoration_field = 'text_decoration' if product == 'servo' else 'text_decoration_line' %>
+                #[inline]
                 fn has_underline(&self) -> bool {
                     self.${text_decoration_field}.underline
                 }
+                #[inline]
                 fn has_overline(&self) -> bool {
                     self.${text_decoration_field}.overline
                 }
+                #[inline]
                 fn has_line_through(&self) -> bool {
                     self.${text_decoration_field}.line_through
                 }
@@ -1204,7 +1250,7 @@ pub mod style_structs {
     % endfor
 }
 
-pub trait ComputedValues : Clone + Send + Sync + 'static {
+pub trait ComputedValues : Debug + Clone + Send + Sync + 'static {
     % for style_struct in data.active_style_structs():
         type Concrete${style_struct.trait_name}: style_struct_traits::${style_struct.trait_name};
     % endfor
@@ -1247,7 +1293,7 @@ pub trait ComputedValues : Clone + Send + Sync + 'static {
     fn is_multicol(&self) -> bool;
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct ServoComputedValues {
     % for style_struct in data.active_style_structs():

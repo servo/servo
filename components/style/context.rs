@@ -34,16 +34,16 @@ pub struct SharedStyleContext<Impl: SelectorImplExt> {
 
     /// A channel on which new animations that have been triggered by style recalculation can be
     /// sent.
-    pub new_animations_sender: Mutex<Sender<Animation>>,
+    pub new_animations_sender: Mutex<Sender<Animation<Impl>>>,
 
     /// Why is this reflow occurring
     pub goal: ReflowGoal,
 
     /// The animations that are currently running.
-    pub running_animations: Arc<RwLock<HashMap<OpaqueNode, Vec<Animation>>>>,
+    pub running_animations: Arc<RwLock<HashMap<OpaqueNode, Vec<Animation<Impl>>>>>,
 
     /// The list of animations that have expired since the last style recalculation.
-    pub expired_animations: Arc<RwLock<HashMap<OpaqueNode, Vec<Animation>>>>,
+    pub expired_animations: Arc<RwLock<HashMap<OpaqueNode, Vec<Animation<Impl>>>>>,
 
     ///The CSS error reporter for all CSS loaded in this layout thread
     pub error_reporter: Box<ParseErrorReporter + Sync>,

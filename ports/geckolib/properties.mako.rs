@@ -39,7 +39,7 @@ use values::{StyleCoordHelpers, ToGeckoStyleCoord, convert_nscolor_to_rgba};
 use values::{convert_rgba_to_nscolor, debug_assert_unit_is_safe_to_copy};
 use values::round_border_to_device_pixels;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct GeckoComputedValues {
     % for style_struct in data.style_structs:
     ${style_struct.ident}: Arc<${style_struct.gecko_struct_name}>,
@@ -389,6 +389,12 @@ impl Debug for ${style_struct.gecko_struct_name} {
    force_stub += ["list-style-type", "text-overflow"]
    # These are booleans.
    force_stub += ["page-break-after", "page-break-before"]
+   # In a nsTArray, have to be done manually, but probably not too much work
+   # (the "filling them", not the "making them work")
+   force_stub += ["animation-name", "animation-duration",
+                  "animation-timing-function", "animation-iteration-count",
+                  "animation-direction", "animation-play-state",
+                  "animation-fill-mode", "animation-delay"]
 
    # Types used with predefined_type()-defined properties that we can auto-generate.
    predefined_types = {

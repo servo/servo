@@ -562,8 +562,8 @@ pub trait MaybeNew {
 
 impl MaybeNew for ViewportConstraints {
     fn maybe_new(initial_viewport: TypedSize2D<ViewportPx, f32>,
-                     rule: &ViewportRule)
-                     -> Option<ViewportConstraints>
+                 rule: &ViewportRule)
+                 -> Option<ViewportConstraints>
     {
         use std::cmp;
 
