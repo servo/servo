@@ -919,8 +919,7 @@ impl LayoutThread {
                                         root_background_color));
 
                 rw_data.display_list =
-                    Some(Arc::new(DisplayList::new(root_stacking_context,
-                                                   &mut Some(display_list_entries))))
+                    Some(Arc::new(DisplayList::new(root_stacking_context, display_list_entries)))
             }
 
             if data.goal == ReflowGoal::ForDisplay {
