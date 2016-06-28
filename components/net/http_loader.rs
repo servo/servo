@@ -89,8 +89,14 @@ pub enum ReadResult {
     EOF,
 }
 
+lazy_static! {
+    static ref BLOCK_SIZE: usize = prefs::get_pref("network.http.block-read-size")
+        .as_u64()
+        .unwrap_or(16384) as usize;
+}
+
 pub fn read_block<R: Read>(reader: &mut R) -> Result<ReadResult, ()> {
-    let mut buf = vec![0; 1024];
+    let mut buf = vec![0; *BLOCK_SIZE];
 
     match reader.read(&mut buf) {
         Ok(len) if len > 0 => {
