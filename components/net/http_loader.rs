@@ -617,18 +617,16 @@ fn send_request_to_devtools(msg: ChromeToDevtoolsControlMsg,
     devtools_chan.send(DevtoolsControlMsg::FromChrome(msg)).unwrap();
 }
 
-fn send_response_to_devtools(devtools_chan: Option<Sender<DevtoolsControlMsg>>,
+fn send_response_to_devtools(devtools_chan: &Sender<DevtoolsControlMsg>,
                              request_id: String,
                              headers: Option<Headers>,
                              status: Option<RawStatus>,
                              pipeline_id: PipelineId) {
-    if let Some(ref chan) = devtools_chan {
-        let response = DevtoolsHttpResponse { headers: headers, status: status, body: None, pipeline_id: pipeline_id };
-        let net_event_response = NetworkEvent::HttpResponse(response);
+    let response = DevtoolsHttpResponse { headers: headers, status: status, body: None, pipeline_id: pipeline_id };
+    let net_event_response = NetworkEvent::HttpResponse(response);
 
-        let msg = ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event_response);
-        chan.send(DevtoolsControlMsg::FromChrome(msg)).unwrap();
-    }
+    let msg = ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event_response);
+    devtools_chan.send(DevtoolsControlMsg::FromChrome(msg));
 }
 
 fn request_must_be_secured(url: &Url, hsts_list: &Arc<RwLock<HstsList>>) -> bool {
@@ -852,6 +850,14 @@ impl UIProvider for TFDProvider {
 
 struct TFDProvider;
 
+fn set_request_id(msg: ChromeToDevtoolsControlMsg, id: &str) -> ChromeToDevtoolsControlMsg {
+    match msg {
+        ChromeToDevtoolsControlMsg::NetworkEvent(_, event) =>
+            ChromeToDevtoolsControlMsg::NetworkEvent(String::from(id), event),
+        _ => msg
+    }
+}
+
 pub fn load<A, B>(load_data: &LoadData,
                   ui_provider: &B,
                   http_state: &HttpState,
@@ -1048,6 +1054,40 @@ pub fn load<A, B>(load_data: &LoadData,
                 doc_url = new_doc_url;
 
                 redirected_to.insert(doc_url.clone());
+
+                //Generate a new request id and send the redirecting request to the
+                //devtools.
+                let request_id = uuid::Uuid::new_v4().simple().to_string();
+                if let Some(m) = msg {
+                    let new_msg = set_request_id(m, request_id.as_str());
+                    send_request_to_devtools(new_msg, devtools_chan.as_ref().unwrap());
+                }
+                let mut adjusted_headers = response.headers().clone();
+
+                if viewing_source {
+                    adjusted_headers.set(ContentType(Mime(TopLevel::Text, SubLevel::Plain, vec![])));
+                }
+
+                let mut metadata: Metadata = Metadata::default(doc_url.clone());
+                metadata.set_content_type(match adjusted_headers.get() {
+                    Some(&ContentType(ref mime)) => Some(mime),
+                    None => None
+                });
+                metadata.headers = Some(adjusted_headers);
+                metadata.status = Some(response.status_raw().clone());
+                metadata.https_state = if doc_url.scheme() == "https" {
+                    HttpsState::Modern
+                } else {
+                    HttpsState::None
+                };
+                if let Some(pipeline_id) = load_data.pipeline_id {
+                    if let Some(ref chan) = devtools_chan {
+                        send_response_to_devtools(
+                            chan, request_id,
+                            metadata.headers.clone(), metadata.status.clone(),
+                            pipeline_id);
+                    }
+                }
                 continue;
             }
         }
@@ -1080,11 +1120,13 @@ pub fn load<A, B>(load_data: &LoadData,
         // Send an HttpResponse message to devtools with the corresponding request_id
         // TODO: Send this message even when the load fails?
         if let Some(pipeline_id) = load_data.pipeline_id {
+            if let Some(ref chan) = devtools_chan {
                 send_response_to_devtools(
-                    devtools_chan, request_id,
+                    chan, request_id,
                     metadata.headers.clone(), metadata.status.clone(),
                     pipeline_id);
-         }
+            }
+        }
         return StreamedResponse::from_http_response(box response, metadata)
     }
 }
