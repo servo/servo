@@ -593,7 +593,7 @@ pub enum ConstellationMsg {
     /// Request to load a page.
     LoadUrl(PipelineId, LoadData),
     /// Request to traverse the joint session history.
-    TraverseHistory(Option<(PipelineId)>, TraversalDirection),
+    TraverseHistory(Option<PipelineId>, TraversalDirection),
     /// Inform the constellation of a window being resized.
     WindowSize(WindowSizeData, WindowSizeType),
     /// Requests that the constellation instruct layout to begin a new tick of the animation.
