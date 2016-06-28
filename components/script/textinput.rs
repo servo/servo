@@ -215,6 +215,16 @@ impl<T: ClipboardProvider> TextInput<T> {
         })
     }
 
+    // Check that the selection is valid.
+    fn assert_ok_selection(&self) {
+        if let Some(begin) = self.selection_begin {
+            debug_assert!(begin.line < self.lines.len());
+            debug_assert!(begin.index <= self.lines[begin.line].len());
+        }
+        debug_assert!(self.edit_point.line < self.lines.len());
+        debug_assert!(self.edit_point.index <= self.lines[self.edit_point.line].len());
+    }
+
     /// Return the selection range as UTF-8 byte offsets from the start of the content.
     ///
     /// If there is no selection, returns an empty range at the insertion point.
@@ -319,6 +329,7 @@ impl<T: ClipboardProvider> TextInput<T> {
 
             self.lines = new_lines;
         }
+        self.assert_ok_selection();
     }
 
     /// Return the length in UTF-8 bytes of the current line under the editing point.
@@ -360,6 +371,7 @@ impl<T: ClipboardProvider> TextInput<T> {
 
         self.edit_point.line = target_line as usize;
         self.edit_point.index = len_of_first_n_chars(&self.lines[self.edit_point.line], col);
+        self.assert_ok_selection();
     }
 
     /// Adjust the editing point position by a given number of bytes. If the adjustment
@@ -441,6 +453,7 @@ impl<T: ClipboardProvider> TextInput<T> {
                                             self.edit_point.index + adjust as usize);
             }
         }
+        self.assert_ok_selection();
     }
 
     /// Deal with a newline input.
@@ -462,6 +475,7 @@ impl<T: ClipboardProvider> TextInput<T> {
         let last_line = self.lines.len() - 1;
         self.edit_point.line = last_line;
         self.edit_point.index = self.lines[last_line].len();
+        self.assert_ok_selection();
     }
 
     /// Remove the current selection.
@@ -534,6 +548,7 @@ impl<T: ClipboardProvider> TextInput<T> {
             }
             Key::End => {
                 self.edit_point.index = self.current_line_length();
+                self.assert_ok_selection();
                 KeyReaction::RedrawSelection
             }
             Key::PageUp => {
@@ -598,6 +613,7 @@ impl<T: ClipboardProvider> TextInput<T> {
         self.edit_point.line = min(self.edit_point.line, self.lines.len() - 1);
         self.edit_point.index = min(self.edit_point.index, self.current_line_length());
         self.selection_begin = None;
+        self.assert_ok_selection();
     }
 
     /// Get the insertion point as a byte offset from the start of the content.
@@ -646,16 +662,16 @@ impl<T: ClipboardProvider> TextInput<T> {
         let mut end = end as usize;
         let text_end = self.get_content().len();
 
-        if start > text_end {
-            start = text_end;
-        } else if end > text_end {
+        if end > text_end {
             end = text_end;
-        } else if start >= end {
+        }
+        if start > end {
             start = end;
         }
 
         self.selection_begin = Some(self.get_text_point_for_absolute_point(start));
         self.edit_point = self.get_text_point_for_absolute_point(end);
+        self.assert_ok_selection();
     }
 
     pub fn get_selection_start(&self) -> u32 {
