@@ -8,5 +8,6 @@
 
 % for side in ["top", "right", "bottom", "left"]:
     ${helpers.predefined_type("margin-" + side, "LengthOrPercentageOrAuto",
-                              "computed::LengthOrPercentageOrAuto::Length(Au(0))")}
+                              "computed::LengthOrPercentageOrAuto::Length(Au(0))",
+                              animatable=True)}
 % endfor
