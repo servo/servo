@@ -38,9 +38,9 @@ use std::collections::LinkedList;
 use std::fmt;
 use std::sync::{Arc, Mutex};
 use style::computed_values::content::ContentItem;
-use style::computed_values::{border_collapse, clear, display, mix_blend_mode, overflow_wrap};
-use style::computed_values::{overflow_x, position, text_decoration, transform_style};
-use style::computed_values::{vertical_align, white_space, word_break, z_index};
+use style::computed_values::{border_collapse, clear, color, display, mix_blend_mode};
+use style::computed_values::{overflow_wrap, overflow_x, position, text_decoration};
+use style::computed_values::{transform_style, vertical_align, white_space, word_break, z_index};
 use style::dom::TRestyleDamage;
 use style::logical_geometry::{LogicalMargin, LogicalRect, LogicalSize, WritingMode};
 use style::properties::{ComputedValues, ServoComputedValues};
@@ -1304,6 +1304,10 @@ impl Fragment {
         self.style().get_inheritedtext().white_space
     }
 
+    pub fn color(&self) -> color::T {
+        self.style().get_color().color
+    }
+
     /// Returns the text decoration of this fragment, according to the style of the nearest ancestor
     /// element.
     ///
@@ -2042,7 +2046,8 @@ impl Fragment {
                 // FIXME: Should probably use a whitelist of styles that can safely differ (#3165)
                 if self.style().get_font() != other.style().get_font() ||
                         self.text_decoration() != other.text_decoration() ||
-                        self.white_space() != other.white_space() {
+                        self.white_space() != other.white_space() ||
+                        self.color() != other.color() {
                     return false
                 }
 
