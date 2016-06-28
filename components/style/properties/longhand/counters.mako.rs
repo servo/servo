@@ -6,7 +6,7 @@
 
 <% data.new_style_struct("Counters", inherited=False, gecko_name="Content") %>
 
-<%helpers:longhand name="content">
+<%helpers:longhand name="content" animatable="False">
     use cssparser::Token;
     use std::ascii::AsciiExt;
     use values::computed::ComputedValueAsSpecified;
@@ -171,7 +171,7 @@
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="counter-increment">
+<%helpers:longhand name="counter-increment" animatable="False">
     use std::fmt;
     use super::content;
     use values::computed::ComputedValueAsSpecified;
@@ -241,7 +241,7 @@
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="counter-reset">
+<%helpers:longhand name="counter-reset" animatable="False">
     pub use super::counter_increment::{SpecifiedValue, computed_value, get_initial_value};
     use super::counter_increment::{parse_common};
 

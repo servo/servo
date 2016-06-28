@@ -20,6 +20,7 @@ use properties::longhands::box_shadow::computed_value::BoxShadow;
 use properties::longhands::transform::computed_value::ComputedMatrix;
 use properties::longhands::transform::computed_value::ComputedOperation as TransformOperation;
 use properties::longhands::transform::computed_value::T as TransformList;
+use properties::longhands::transform_origin::computed_value::T as TransformOrigin;
 use properties::longhands::vertical_align::computed_value::T as VerticalAlign;
 use properties::longhands::visibility::computed_value::T as Visibility;
 use properties::longhands::z_index::computed_value::T as ZIndex;
@@ -818,6 +819,31 @@ impl Interpolate for LengthOrNone {
                 len.interpolate(&other, time).map(LengthOrNone::Length),
             _ => None,
         }
+    }
+}
+
+impl Interpolate for TransformOrigin {
+    fn interpolate(&self, other: &Self, time: f64) -> Option<Self> {
+        let horizontal = match self.horizontal.interpolate(&other.horizontal, time) {
+            Some(h) => h,
+            None => return None,
+        };
+
+        let vertical = match self.vertical.interpolate(&other.vertical, time) {
+            Some(v) => v,
+            None => return None,
+        };
+
+        let depth = match self.depth.interpolate(&other.depth, time) {
+            Some(d) => d,
+            None => return None,
+        };
+
+        Some(TransformOrigin {
+            horizontal: horizontal,
+            vertical: vertical,
+            depth: depth,
+        })
     }
 }
 
