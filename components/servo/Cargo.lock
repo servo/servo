@@ -2609,13 +2609,14 @@ dependencies = [
 [[package]]
 name = "webrender_traits"
 version = "0.2.0"
-source = "git+https://github.com/servo/webrender_traits#9e9563e0a2528f169e826b3036adfc41cee9f160"
+source = "git+https://github.com/servo/webrender_traits#a466592568193d9ec8a57de9837dddb28ee9631e"
 dependencies = [
  "app_units 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "byteorder 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-graphics 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "gleam 0.2.19 (registry+https://github.com/rust-lang/crates.io-index)",
+ "heapsize 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.2.3 (git+https://github.com/servo/ipc-channel)",
  "offscreen_gl_context 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.7.11 (registry+https://github.com/rust-lang/crates.io-index)",

@@ -11,12 +11,12 @@ use dom::bindings::reflector::reflect_dom_object;
 use dom::webglobject::WebGLObject;
 use ipc_channel::ipc::{self, IpcSender};
 use std::cell::Cell;
-use webrender_traits::{WebGLCommand, WebGLError, WebGLResult};
+use webrender_traits::{WebGLBufferId, WebGLCommand, WebGLError, WebGLResult};
 
 #[dom_struct]
 pub struct WebGLBuffer {
     webgl_object: WebGLObject,
-    id: u32,
+    id: WebGLBufferId,
     /// The target to which this buffer was bound the first time
     target: Cell<Option<u32>>,
     capacity: Cell<usize>,
@@ -26,7 +26,9 @@ pub struct WebGLBuffer {
 }
 
 impl WebGLBuffer {
-    fn new_inherited(renderer: IpcSender<CanvasMsg>, id: u32) -> WebGLBuffer {
+    fn new_inherited(renderer: IpcSender<CanvasMsg>,
+                     id: WebGLBufferId)
+                     -> WebGLBuffer {
         WebGLBuffer {
             webgl_object: WebGLObject::new_inherited(),
             id: id,
@@ -43,17 +45,21 @@ impl WebGLBuffer {
         renderer.send(CanvasMsg::WebGL(WebGLCommand::CreateBuffer(sender))).unwrap();
 
         let result = receiver.recv().unwrap();
-        result.map(|buffer_id| WebGLBuffer::new(global, renderer, *buffer_id))
+        result.map(|buffer_id| WebGLBuffer::new(global, renderer, buffer_id))
     }
 
-    pub fn new(global: GlobalRef, renderer: IpcSender<CanvasMsg>, id: u32) -> Root<WebGLBuffer> {
-        reflect_dom_object(box WebGLBuffer::new_inherited(renderer, id), global, WebGLBufferBinding::Wrap)
+    pub fn new(global: GlobalRef,
+               renderer: IpcSender<CanvasMsg>,
+               id: WebGLBufferId)
+              -> Root<WebGLBuffer> {
+        reflect_dom_object(box WebGLBuffer::new_inherited(renderer, id),
+                           global, WebGLBufferBinding::Wrap)
     }
 }
 
 
 impl WebGLBuffer {
-    pub fn id(&self) -> u32 {
+    pub fn id(&self) -> WebGLBufferId {
         self.id
     }
 
@@ -66,7 +72,8 @@ impl WebGLBuffer {
         } else {
             self.target.set(Some(target));
         }
-        self.renderer.send(CanvasMsg::WebGL(WebGLCommand::BindBuffer(target, self.id))).unwrap();
+        let msg = CanvasMsg::WebGL(WebGLCommand::BindBuffer(target, Some(self.id)));
+        self.renderer.send(msg).unwrap();
 
         Ok(())
     }

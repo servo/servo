@@ -15,7 +15,7 @@ use dom::webglobject::WebGLObject;
 use ipc_channel::ipc::{self, IpcSender};
 use std::cell::Cell;
 use std::sync::{ONCE_INIT, Once};
-use webrender_traits::{WebGLCommand, WebGLParameter, WebGLResult};
+use webrender_traits::{WebGLCommand, WebGLParameter, WebGLResult, WebGLShaderId};
 
 #[derive(Clone, Copy, PartialEq, Debug, JSTraceable, HeapSizeOf)]
 pub enum ShaderCompilationStatus {
@@ -27,7 +27,7 @@ pub enum ShaderCompilationStatus {
 #[dom_struct]
 pub struct WebGLShader {
     webgl_object: WebGLObject,
-    id: u32,
+    id: WebGLShaderId,
     gl_type: u32,
     source: DOMRefCell<Option<DOMString>>,
     info_log: DOMRefCell<Option<String>>,
@@ -47,7 +47,10 @@ const SHADER_OUTPUT_FORMAT: Output = Output::Essl;
 static GLSLANG_INITIALIZATION: Once = ONCE_INIT;
 
 impl WebGLShader {
-    fn new_inherited(renderer: IpcSender<CanvasMsg>, id: u32, shader_type: u32) -> WebGLShader {
+    fn new_inherited(renderer: IpcSender<CanvasMsg>,
+                     id: WebGLShaderId,
+                     shader_type: u32)
+                     -> WebGLShader {
         GLSLANG_INITIALIZATION.call_once(|| ::angle::hl::initialize().unwrap());
         WebGLShader {
             webgl_object: WebGLObject::new_inherited(),
@@ -69,21 +72,23 @@ impl WebGLShader {
         renderer.send(CanvasMsg::WebGL(WebGLCommand::CreateShader(shader_type, sender))).unwrap();
 
         let result = receiver.recv().unwrap();
-        result.map(|shader_id| WebGLShader::new(global, renderer, *shader_id, shader_type))
+        result.map(|shader_id| WebGLShader::new(global, renderer, shader_id, shader_type))
     }
 
     pub fn new(global: GlobalRef,
                renderer: IpcSender<CanvasMsg>,
-               id: u32,
-               shader_type: u32) -> Root<WebGLShader> {
-        reflect_dom_object(
-            box WebGLShader::new_inherited(renderer, id, shader_type), global, WebGLShaderBinding::Wrap)
+               id: WebGLShaderId,
+               shader_type: u32)
+               -> Root<WebGLShader> {
+        reflect_dom_object(box WebGLShader::new_inherited(renderer, id, shader_type),
+                           global,
+                           WebGLShaderBinding::Wrap)
     }
 }
 
 
 impl WebGLShader {
-    pub fn id(&self) -> u32 {
+    pub fn id(&self) -> WebGLShaderId {
         self.id
     }
 
