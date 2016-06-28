@@ -215,13 +215,8 @@ pub struct DisplayList {
 
 impl DisplayList {
     pub fn new(mut root_stacking_context: StackingContext,
-               items: &mut Option<Vec<DisplayItem>>)
+               items: Vec<DisplayItem>)
                -> DisplayList {
-        let items = match items.take() {
-            Some(items) => items,
-            None => panic!("Tried to create empty display list."),
-        };
-
         let mut offsets = FnvHashMap(HashMap::with_hasher(Default::default()));
         DisplayList::sort_and_count_stacking_contexts(&mut root_stacking_context, &mut offsets, 0);
 
