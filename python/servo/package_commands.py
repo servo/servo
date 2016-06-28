@@ -43,7 +43,10 @@ def otool(s):
 
 
 def install_name_tool(old, new, binary):
-    subprocess.call(['install_name_tool', '-change', old, '@executable_path/' + new, binary])
+    try:
+        subprocess.check_call(['install_name_tool', '-change', old, '@executable_path/' + new, binary])
+    except subprocess.CalledProcessError as e:
+        print("install_name_tool exited with return value %d" % e.returncode)
 
 
 @CommandProvider
@@ -108,23 +111,27 @@ class PackageCommands(CommandBase):
             shutil.copy2(dir_to_resources + 'package-prefs.json', dir_to_resources + 'prefs.json')
             delete(dir_to_resources + '/package-prefs.json')
 
-            print("Finding dylibs to be copied")
-            need = set([dir_to_app + '/Contents/MacOS/servo'])
-            done = set()
-
-            while need:
-                needed = set(need)
-                need = set()
-                for f in needed:
-                    need.update(otool(f))
-                done.update(needed)
-                need.difference_update(done)
-
-            print("Copying dylibs")
-            for f in sorted(done):
-                if '/System/Library' not in f and '/usr/lib' not in f and 'servo' not in f:
-                    shutil.copyfile(f, dir_to_app + '/Contents/MacOS/' + f.split('/')[-1])
-                    install_name_tool(f, f.split('/')[-1], dir_to_app + '/Contents/MacOS/servo')
+            print("Finding dylibs and relinking")
+            need_checked = set([dir_to_app + '/Contents/MacOS/servo'])
+            checked = set()
+            while need_checked:
+                checking = set(need_checked)
+                need_checked = set()
+                for f in checking:
+                    # No need to check these for their dylibs
+                    if '/System/Library' in f or '/usr/lib' in f:
+                        continue
+                    need_relinked = set(otool(f))
+                    new_path = dir_to_app + '/Contents/MacOS/' + f.split('/')[-1]
+                    if not os.path.exists(new_path):
+                        shutil.copyfile(f, new_path)
+                    for dylib in need_relinked:
+                        if '/System/Library' in dylib or '/usr/lib' in dylib or 'servo' in dylib:
+                            continue
+                        install_name_tool(dylib, dylib.split('/')[-1], new_path)
+                    need_checked.update(need_relinked)
+                checked.update(checking)
+                need_checked.difference_update(checked)
 
             print("Writing run-servo")
             bhtml_path = path.join('${0%/*}/../Resources', browserhtml_path.split('/')[-1], 'out', 'index.html')
