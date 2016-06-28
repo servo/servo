@@ -11,7 +11,7 @@ else
 fi
 
 # Make sure we have llvm38.
-if [ ! -x "$(command -v clang++-3.8)" ]; then
+if [ ! -x "$(command -v clang-3.8)" ]; then
     echo "llmv38 must be installed. Mac users should |brew install llvm38|, Linux varies by distro."
     exit 1
 fi
@@ -27,12 +27,10 @@ fi
 
 # Don't try to clone twice.
 if [ ! -d rust-bindgen ]; then
-  git clone https://github.com/ecoal95/rust-bindgen.git
-  cd rust-bindgen
-  git checkout sm-hacks-rebase-squashed
-else
-  cd rust-bindgen
+  git clone https://github.com/servo/rust-bindgen.git
 fi
 
+cd rust-bindgen
+
 multirust override nightly
-cargo build
+cargo build --features llvm_stable
