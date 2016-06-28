@@ -15,8 +15,6 @@ use std::boxed::Box as StdBox;
 use std::collections::HashSet;
 use std::fmt;
 use std::fmt::Write;
-use std::intrinsics;
-use std::mem;
 use std::sync::Arc;
 
 use app_units::Au;
@@ -839,6 +837,16 @@ impl PropertyDeclaration {
         }
     }
 
+    #[inline]
+    pub fn discriminant_value(&self) -> usize {
+        match *self {
+            % for i, property in enumerate(data.longhands):
+                PropertyDeclaration::${property.camel_case}(..) => ${i},
+            % endfor
+            PropertyDeclaration::Custom(..) => ${len(data.longhands)}
+        }
+    }
+
     pub fn value(&self) -> String {
         let mut value = String::new();
         if let Err(_) = self.to_css(&mut value) {
@@ -1221,7 +1229,7 @@ pub trait ComputedValues : Clone + Send + Sync + 'static {
 
         fn initial_values() -> &'static Self;
 
-        fn do_cascade_property<F: FnOnce(&Vec<Option<CascadePropertyFn<Self>>>)>(f: F);
+        fn do_cascade_property<F: FnOnce(&Vec<CascadePropertyFn<Self>>)>(f: F);
 
     % for style_struct in data.active_style_structs():
         fn clone_${style_struct.trait_name_lower}(&self) ->
@@ -1292,7 +1300,7 @@ impl ComputedValues for ServoComputedValues {
 
         fn initial_values() -> &'static Self { &*INITIAL_SERVO_VALUES }
 
-        fn do_cascade_property<F: FnOnce(&Vec<Option<CascadePropertyFn<Self>>>)>(f: F) {
+        fn do_cascade_property<F: FnOnce(&Vec<CascadePropertyFn<Self>>)>(f: F) {
             CASCADE_PROPERTY.with(|x| f(x));
         }
 
@@ -1693,28 +1701,17 @@ pub type CascadePropertyFn<C /*: ComputedValues */> =
                      cacheable: &mut bool,
                      error_reporter: &mut StdBox<ParseErrorReporter + Send>);
 
-pub fn make_cascade_vec<C: ComputedValues>() -> Vec<Option<CascadePropertyFn<C>>> {
-    let mut result: Vec<Option<CascadePropertyFn<C>>> = Vec::new();
-    % for style_struct in data.active_style_structs():
-        % for property in style_struct.longhands:
-            let discriminant;
-            unsafe {
-                let variant = PropertyDeclaration::${property.camel_case}(mem::uninitialized());
-                discriminant = intrinsics::discriminant_value(&variant) as usize;
-                mem::forget(variant);
-            }
-            while result.len() < discriminant + 1 {
-                result.push(None)
-            }
-            result[discriminant] = Some(longhands::${property.ident}::cascade_property);
+pub fn make_cascade_vec<C: ComputedValues>() -> Vec<CascadePropertyFn<C>> {
+    vec![
+        % for property in data.longhands:
+            longhands::${property.ident}::cascade_property,
         % endfor
-    % endfor
-    result
+    ]
 }
 
 // This is a thread-local rather than a lazy static to avoid atomic operations when cascading
 // properties.
-thread_local!(static CASCADE_PROPERTY: Vec<Option<CascadePropertyFn<ServoComputedValues>>> = {
+thread_local!(static CASCADE_PROPERTY: Vec<CascadePropertyFn<ServoComputedValues>> = {
     make_cascade_vec::<ServoComputedValues>()
 });
 
@@ -1840,15 +1837,13 @@ pub fn cascade<C: ComputedValues>(
                     {
                         continue
                     }
-                    let discriminant = unsafe {
-                        intrinsics::discriminant_value(declaration) as usize
-                    };
-                    (cascade_property[discriminant].unwrap())(declaration,
-                                                              inherited_style,
-                                                              &mut context,
-                                                              &mut seen,
-                                                              &mut cacheable,
-                                                              &mut error_reporter);
+                    let discriminant = declaration.discriminant_value();
+                    (cascade_property[discriminant])(declaration,
+                                                     inherited_style,
+                                                     &mut context,
+                                                     &mut seen,
+                                                     &mut cacheable,
+                                                     &mut error_reporter);
                 }
             }
         % endfor

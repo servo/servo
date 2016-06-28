@@ -106,7 +106,7 @@ impl ComputedValues for GeckoComputedValues {
 
     fn initial_values() -> &'static Self { &*INITIAL_GECKO_VALUES }
 
-    fn do_cascade_property<F: FnOnce(&Vec<Option<CascadePropertyFn<Self>>>)>(f: F) {
+    fn do_cascade_property<F: FnOnce(&Vec<CascadePropertyFn<Self>>)>(f: F) {
         CASCADE_PROPERTY.with(|x| f(x));
     }
 
@@ -1135,6 +1135,6 @@ lazy_static! {
 
 // This is a thread-local rather than a lazy static to avoid atomic operations when cascading
 // properties.
-thread_local!(static CASCADE_PROPERTY: Vec<Option<CascadePropertyFn<GeckoComputedValues>>> = {
+thread_local!(static CASCADE_PROPERTY: Vec<CascadePropertyFn<GeckoComputedValues>> = {
     make_cascade_vec::<GeckoComputedValues>()
 });
