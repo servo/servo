@@ -636,13 +636,17 @@ impl StackingContext {
 
         for child in self.children.iter() {
             while let Some(item) = traversal.advance(self) {
-                item.hit_test(point, result);
+                if let Some(meta) = item.hit_test(point) {
+                    result.push(meta);
+                }
             }
             child.hit_test(traversal, &point, scroll_offsets, result);
         }
 
         while let Some(item) = traversal.advance(self) {
-            item.hit_test(point, result);
+            if let Some(meta) = item.hit_test(point) {
+                result.push(meta);
+            }
         }
     }
 
@@ -1331,21 +1335,21 @@ impl DisplayItem {
         println!("{}+ {:?}", indent, self);
     }
 
-    fn hit_test(&self, point: Point2D<Au>, result: &mut Vec<DisplayItemMetadata>) {
+    fn hit_test(&self, point: Point2D<Au>) -> Option<DisplayItemMetadata> {
         // TODO(pcwalton): Use a precise algorithm here. This will allow us to properly hit
         // test elements with `border-radius`, for example.
         let base_item = self.base();
         if !base_item.clip.might_intersect_point(&point) {
             // Clipped out.
-            return;
+            return None;
         }
         if !self.bounds().contains(&point) {
             // Can't possibly hit.
-            return;
+            return None;
         }
         if base_item.metadata.pointing.is_none() {
             // `pointer-events` is `none`. Ignore this item.
-            return;
+            return None;
         }
 
         match *self {
@@ -1364,18 +1368,17 @@ impl DisplayItem {
                                     (border.border_widths.top +
                                      border.border_widths.bottom)));
                 if interior_rect.contains(&point) {
-                    return;
+                    return None;
                 }
             }
             DisplayItem::BoxShadowClass(_) => {
                 // Box shadows can never be hit.
-                return
+                return None;
             }
             _ => {}
         }
 
-        // We found a hit!
-        result.push(base_item.metadata);
+        Some(base_item.metadata)
     }
 }
 
