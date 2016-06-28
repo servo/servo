@@ -22,8 +22,8 @@ mod logical_geometry;
 mod media_queries;
 mod properties;
 mod stylesheets;
-mod viewport;
 mod value;
+mod viewport;
 
 mod writing_modes {
     use style::logical_geometry::WritingMode;

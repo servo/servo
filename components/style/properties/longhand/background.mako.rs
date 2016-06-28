@@ -33,7 +33,7 @@ ${helpers.predefined_type(
             }
         }
     }
- 
+
     impl NoViewportPercentage for SpecifiedValue {}
 
     #[derive(Debug, Clone, PartialEq)]

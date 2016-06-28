@@ -11,11 +11,10 @@ use std::path::Path;
 use std::process::Command;
 use std::sync::Arc;
 use style::computed_values::display::T::inline_block;
-use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, DeclaredValue};
 use style::properties::longhands::border_top_width;
+use style::properties::{DeclaredValue, PropertyDeclaration, PropertyDeclarationBlock};
 use style::values::HasViewportPercentage;
-use style::values::specified::{Length, LengthOrPercentageOrAuto, LengthOrPercentage,
-                               ViewportPercentageLength};
+use style::values::specified::{Length, LengthOrPercentageOrAuto, LengthOrPercentage, ViewportPercentageLength};
 
 #[test]
 fn properties_list_json() {

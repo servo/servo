@@ -100,7 +100,7 @@ ${helpers.single_keyword("color-adjust", "economy exact", products="gecko")}
     use std::fmt;
     use values::computed::ComputedValueAsSpecified;
     use values::NoViewportPercentage;
- 
+
     impl NoViewportPercentage for SpecifiedValue {}
 
     #[derive(Copy, Clone, Debug, Eq, PartialEq)]

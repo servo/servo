@@ -254,7 +254,7 @@ pub fn recalc_style_at<'a, N, C>(context: &'a C,
             match *element.style_attribute() {
                 Some(ref property_declaration_block) => {
                     if property_declaration_block.declarations().any(|d| d.0.has_viewport_percentage()) {
-                        unsafe{
+                        unsafe {
                             node.set_dirty_on_viewport_size_changed();
                         }
                         node.set_descendants_dirty_on_viewport_size_changed();
