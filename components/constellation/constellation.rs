@@ -542,11 +542,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         pipelines.push(frame.current.0);
         pipelines.extend(frame.prev.iter().map(|&(pipeline_id, _)| pipeline_id));
 
-        // There may be duplicate pipeline IDs due to state and hash changes
-        pipelines.dedup();
-
         let mut frames = vec!(frame_id_root);
-        for pipeline_id in pipelines {
+
+        while let Some(pipeline_id) = pipelines.pop() {
             let pipeline = match self.pipelines.get(&pipeline_id) {
                 Some(pipeline) => pipeline,
                 None => {
@@ -555,7 +553,18 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 }
             };
             for frame_id in &pipeline.children {
-                frames.extend_from_slice(&self.full_frame_tree(*frame_id));
+                frames.push(*frame_id);
+                let frame = match self.frames.get(&frame_id) {
+                    Some(frame) => frame,
+                    None => {
+                        warn!("Trief to get pipelines from closed fram {:?}", frame_id);
+                        continue;
+                    }
+                };
+                let iter = frame.next.iter().map(|&(pipeline_id, _)| pipeline_id)
+                                     .chain(iter::once(frame.current.0))
+                                     .chain(frame.prev.iter().map(|&(pipeline_id, _)| pipeline_id));
+                pipelines.extend(iter);
             }
         }
 
