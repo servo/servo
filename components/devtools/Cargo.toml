@@ -10,7 +10,7 @@ path = "lib.rs"
 
 [dependencies]
 devtools_traits = {path = "../devtools_traits"}
-hyper = { version = "0.9", features = [ "serde-serialization" ] }
+hyper = { version = "0.9.9", features = [ "serde-serialization" ] }
 ipc-channel = {git = "https://github.com/servo/ipc-channel"}
 log = "0.3.5"
 msg = {path = "../msg"}

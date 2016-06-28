@@ -32,7 +32,7 @@ gfx_traits = {path = "../gfx_traits"}
 heapsize = "0.3.6"
 heapsize_plugin = "0.1.2"
 html5ever = {version = "0.5.1", features = ["heap_size", "unstable"]}
-hyper = {version = "0.9", features = ["serde-serialization"]}
+hyper = {version = "0.9.9", features = ["serde-serialization"]}
 image = "0.10"
 ipc-channel = {git = "https://github.com/servo/ipc-channel"}
 js = {git = "https://github.com/servo/rust-mozjs"}

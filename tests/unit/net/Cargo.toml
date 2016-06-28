@@ -13,7 +13,7 @@ content-blocker = "0.2"
 cookie = "0.2"
 devtools_traits = {path = "../../../components/devtools_traits"}
 flate2 = "0.2.0"
-hyper = "0.9"
+hyper = "0.9.9"
 ipc-channel = {git = "https://github.com/servo/ipc-channel"}
 msg = {path = "../../../components/msg"}
 net = {path = "../../../components/net"}

@@ -10,7 +10,7 @@ path = "lib.rs"
 
 [dependencies]
 euclid = "0.7.1"
-hyper = "0.9"
+hyper = "0.9.9"
 image = "0.10"
 ipc-channel = {git = "https://github.com/servo/ipc-channel"}
 log = "0.3.5"
