@@ -24,7 +24,7 @@ from mach.decorators import (
     Command,
 )
 
-from servo.command_base import CommandBase, cd, BuildNotFound
+from servo.command_base import CommandBase, cd, BuildNotFound, is_macosx
 from servo.post_build_commands import find_dep_path_newest
 
 
@@ -33,6 +33,17 @@ def delete(path):
         os.remove(path)         # Succeeds if path was a file
     except OSError:             # Or, if path was a directory...
         shutil.rmtree(path)     # Remove it and all its contents.
+
+
+def otool(s):
+    o = subprocess.Popen(['/usr/bin/otool', '-L', s], stdout=subprocess.PIPE)
+    for l in o.stdout:
+        if l[0] == '\t':
+            yield l.split(' ', 1)[0][1:]
+
+
+def install_name_tool(old, new, binary):
+    subprocess.call(['install_name_tool', '-change', old, '@executable_path/' + new, binary])
 
 
 @CommandProvider
@@ -71,6 +82,69 @@ class PackageCommands(CommandBase):
             except subprocess.CalledProcessError as e:
                 print("Packaging Android exited with return value %d" % e.returncode)
                 return e.returncode
+        elif is_macosx():
+            dir_to_build = '/'.join(binary_path.split('/')[:-1])
+            dir_to_dmg = '/'.join(binary_path.split('/')[:-2]) + '/dmg'
+            dir_to_app = dir_to_dmg + '/Servo.app'
+            dir_to_resources = dir_to_app + '/Contents/Resources/'
+            dir_to_root = '/'.join(binary_path.split('/')[:-3])
+            if os.path.exists(dir_to_dmg):
+                print("Cleaning up from previous packaging")
+                delete(dir_to_dmg)
+            browserhtml_path = find_dep_path_newest('browserhtml', binary_path)
+            if browserhtml_path is None:
+                print("Could not find browserhtml package; perhaps you haven't built Servo.")
+                return 1
+
+            print("Copying files")
+            shutil.copytree(dir_to_root + '/resources', dir_to_resources)
+            shutil.copytree(browserhtml_path, dir_to_resources + browserhtml_path.split('/')[-1])
+            shutil.copy2(dir_to_root + '/Info.plist', dir_to_app + '/Contents/Info.plist')
+            os.makedirs(dir_to_app + '/Contents/MacOS/')
+            shutil.copy2(dir_to_build + '/servo', dir_to_app + '/Contents/MacOS/')
+
+            print("Swapping prefs")
+            delete(dir_to_resources + '/prefs.json')
+            shutil.copy2(dir_to_resources + 'package-prefs.json', dir_to_resources + 'prefs.json')
+            delete(dir_to_resources + '/package-prefs.json')
+
+            print("Finding dylibs to be copied")
+            need = set([dir_to_app + '/Contents/MacOS/servo'])
+            done = set()
+
+            while need:
+                needed = set(need)
+                need = set()
+                for f in needed:
+                    need.update(otool(f))
+                done.update(needed)
+                need.difference_update(done)
+
+            print("Copying dylibs")
+            for f in sorted(done):
+                if '/System/Library' not in f and '/usr/lib' not in f and 'servo' not in f:
+                    shutil.copyfile(f, dir_to_app + '/Contents/MacOS/' + f.split('/')[-1])
+                    install_name_tool(f, f.split('/')[-1], dir_to_app + '/Contents/MacOS/servo')
+
+            print("Writing run-servo")
+            bhtml_path = path.join('${0%/*}/../Resources', browserhtml_path.split('/')[-1], 'out', 'index.html')
+            runservo = os.open(dir_to_app + '/Contents/MacOS/run-servo', os.O_WRONLY | os.O_CREAT, int("0755", 8))
+            os.write(runservo, '#!/bin/bash\nexec ${0%/*}/servo ' + bhtml_path)
+            os.close(runservo)
+
+            print("Creating dmg")
+            os.symlink('/Applications', dir_to_dmg + '/Applications')
+            dmg_path = '/'.join(dir_to_build.split('/')[:-1]) + '/'
+            dmg_path += datetime.utcnow().replace(microsecond=0).isoformat()
+            dmg_path += "-servo-tech-demo.dmg"
+            try:
+                subprocess.check_call(['hdiutil', 'create', '-volname', 'Servo', dmg_path, '-srcfolder', dir_to_dmg])
+            except subprocess.CalledProcessError as e:
+                print("Packaging MacOS dmg exited with return value %d" % e.returncode)
+                return e.returncode
+            print("Cleaning up")
+            delete(dir_to_dmg)
+            print("Packaged Servo into " + dmg_path)
         else:
             dir_to_package = '/'.join(binary_path.split('/')[:-1])
             browserhtml_path = find_dep_path_newest('browserhtml', binary_path)

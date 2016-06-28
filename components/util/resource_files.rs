@@ -39,20 +39,13 @@ pub fn resources_dir_path() -> PathBuf {
     let mut path = env::current_exe().expect("can't get exe path");
     // Follow symlink
     path = path.canonicalize().expect("path does not exist");
-    path.pop();
-    path.push("resources");
-    if !path.is_dir() {   // resources dir not in same dir as exe?
-        // exe is probably in target/{debug,release} so we need to go back to topdir
-        path.pop();
-        path.pop();
-        path.pop();
+
+    while path.pop() {
         path.push("resources");
-        if !path.is_dir() {
-            // exe is probably in target/$target_triple/{debug,release} so go back one more
-            path.pop();
-            path.pop();
-            path.push("resources");
+        if path.is_dir() {
+            break;
         }
+        path.pop();
     }
     *dir = Some(path.to_str().unwrap().to_owned());
     path
