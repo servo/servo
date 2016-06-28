@@ -16,7 +16,7 @@ cookie = { version = "0.2.5", features = ["serialize-serde", "serialize-rustc" ]
 device = {git = "https://github.com/servo/devices"}
 devtools_traits = {path = "../devtools_traits"}
 flate2 = "0.2.0"
-hyper = {version = "0.9", features = ["serde-serialization"]}
+hyper = {version = "0.9.9", features = ["serde-serialization"]}
 immeta = "0.3.1"
 ipc-channel = {git = "https://github.com/servo/ipc-channel"}
 lazy_static = "0.2"
