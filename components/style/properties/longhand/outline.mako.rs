@@ -10,9 +10,10 @@
                          additional_methods=[Method("outline_has_nonzero_width", "bool")]) %>
 
 // TODO(pcwalton): `invert`
-${helpers.predefined_type("outline-color", "CSSColor", "::cssparser::Color::CurrentColor")}
+${helpers.predefined_type("outline-color", "CSSColor", "::cssparser::Color::CurrentColor",
+                          animatable=True)}
 
-<%helpers:longhand name="outline-style" need_clone="True">
+<%helpers:longhand name="outline-style" need_clone="True" animatable="False">
     pub use values::specified::BorderStyle as SpecifiedValue;
     pub fn get_initial_value() -> SpecifiedValue { SpecifiedValue::none }
     pub mod computed_value {
@@ -26,7 +27,7 @@ ${helpers.predefined_type("outline-color", "CSSColor", "::cssparser::Color::Curr
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="outline-width">
+<%helpers:longhand name="outline-width" animatable="True">
     use app_units::Au;
     use cssparser::ToCss;
     use std::fmt;
@@ -60,10 +61,12 @@ ${helpers.predefined_type("outline-color", "CSSColor", "::cssparser::Color::Curr
 </%helpers:longhand>
 
 // The -moz-outline-radius-* properties are non-standard and not on a standards track.
+// TODO: Should they animate?
 % for corner in ["topleft", "topright", "bottomright", "bottomleft"]:
     ${helpers.predefined_type("-moz-outline-radius-" + corner, "BorderRadiusSize",
                               "computed::BorderRadiusSize::zero()",
-                              "parse", products="gecko")}
+                              "parse", products="gecko",
+                              animatable=False)}
 % endfor
 
-${helpers.predefined_type("outline-offset", "Length", "Au(0)")}
+${helpers.predefined_type("outline-offset", "Length", "Au(0)", animatable=True)}

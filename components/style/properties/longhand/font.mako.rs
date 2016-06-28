@@ -8,7 +8,7 @@
 <% data.new_style_struct("Font",
                          inherited=True,
                          additional_methods=[Method("compute_font_hash", is_mut=True)]) %>
-<%helpers:longhand name="font-family">
+<%helpers:longhand name="font-family" animatable="False">
     use self::computed_value::FontFamily;
     use values::computed::ComputedValueAsSpecified;
     pub use self::computed_value::T as SpecifiedValue;
@@ -117,10 +117,15 @@
 </%helpers:longhand>
 
 
-${helpers.single_keyword("font-style", "normal italic oblique", gecko_constant_prefix="NS_FONT_STYLE")}
-${helpers.single_keyword("font-variant", "normal small-caps")}
+${helpers.single_keyword("font-style",
+                         "normal italic oblique",
+                         gecko_constant_prefix="NS_FONT_STYLE",
+                         animatable=False)}
+${helpers.single_keyword("font-variant",
+                         "normal small-caps",
+                         animatable=False)}
 
-<%helpers:longhand name="font-weight" need_clone="True">
+<%helpers:longhand name="font-weight" need_clone="True" animatable="True">
     use cssparser::ToCss;
     use std::fmt;
 
@@ -241,7 +246,7 @@ ${helpers.single_keyword("font-variant", "normal small-caps")}
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="font-size" need_clone="True">
+<%helpers:longhand name="font-size" need_clone="True" animatable="True">
     use app_units::Au;
     use cssparser::ToCss;
     use std::fmt;
@@ -307,8 +312,14 @@ ${helpers.single_keyword("font-variant", "normal small-caps")}
     }
 </%helpers:longhand>
 
+// FIXME: This prop should be animatable
 ${helpers.single_keyword("font-stretch",
-                 "normal ultra-condensed extra-condensed condensed semi-condensed semi-expanded \
-                 expanded extra-expanded ultra-expanded")}
+                         "normal ultra-condensed extra-condensed condensed \
+                          semi-condensed semi-expanded expanded extra-expanded \
+                          ultra-expanded",
+                         animatable=False)}
 
-${helpers.single_keyword("font-kerning", "auto none normal", products="gecko")}
+${helpers.single_keyword("font-kerning",
+                         "auto none normal",
+                         products="gecko",
+                         animatable=False)}

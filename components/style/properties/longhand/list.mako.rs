@@ -6,7 +6,7 @@
 
 <% data.new_style_struct("List", inherited=True) %>
 
-${helpers.single_keyword("list-style-position", "outside inside")}
+${helpers.single_keyword("list-style-position", "outside inside", animatable=False)}
 
 // TODO(pcwalton): Implement the full set of counter styles per CSS-COUNTER-STYLES [1] 6.1:
 //
@@ -23,9 +23,10 @@ ${helpers.single_keyword("list-style-type", """
                            myanmar oriya persian telugu thai tibetan cjk-earthly-branch
                            cjk-heavenly-stem lower-greek hiragana hiragana-iroha katakana
                            katakana-iroha""",
-    gecko_constant_prefix="NS_STYLE_LIST_STYLE")}
+    gecko_constant_prefix="NS_STYLE_LIST_STYLE",
+    animatable=False)}
 
-<%helpers:longhand name="list-style-image">
+<%helpers:longhand name="list-style-image" animatable="False">
     use cssparser::{ToCss, Token};
     use std::fmt;
     use url::Url;
@@ -92,7 +93,7 @@ ${helpers.single_keyword("list-style-type", """
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="quotes">
+<%helpers:longhand name="quotes" animatable="False">
     use std::borrow::Cow;
     use std::fmt;
     use values::computed::ComputedValueAsSpecified;
