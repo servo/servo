@@ -258,6 +258,11 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
                         debug!("Found valid keyframe animation: {:?}", animation);
                         self.animations.insert(keyframes_rule.name.clone(),
                                                animation);
+                    } else {
+                        // If there's a valid keyframes rule, even if it doesn't
+                        // produce an animation, should shadow other animations
+                        // with the same name.
+                        self.animations.remove(&keyframes_rule.name);
                     }
                 }
                 // We don't care about any other rule.
