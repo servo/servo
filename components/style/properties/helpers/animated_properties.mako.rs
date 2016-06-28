@@ -15,6 +15,8 @@ use properties::longhands::font_weight::computed_value::T as FontWeight;
 use properties::longhands::line_height::computed_value::T as LineHeight;
 use properties::longhands::text_shadow::computed_value::T as TextShadowList;
 use properties::longhands::text_shadow::computed_value::TextShadow;
+use properties::longhands::box_shadow::computed_value::T as BoxShadowList;
+use properties::longhands::box_shadow::computed_value::BoxShadow;
 use properties::longhands::transform::computed_value::ComputedMatrix;
 use properties::longhands::transform::computed_value::ComputedOperation as TransformOperation;
 use properties::longhands::transform::computed_value::T as TransformList;
@@ -22,7 +24,7 @@ use properties::longhands::vertical_align::computed_value::T as VerticalAlign;
 use properties::longhands::visibility::computed_value::T as Visibility;
 use properties::longhands::z_index::computed_value::T as ZIndex;
 use properties::style_struct_traits::*;
-use std::cmp::Ordering;
+use std::cmp::{self, Ordering};
 use std::fmt;
 use std::iter::repeat;
 use super::ComputedValues;
@@ -288,7 +290,7 @@ impl Interpolate for BorderRadiusSize {
     }
 }
 
-/// https://drafts.csswg.org/css-transitions/#animtype-integer
+/// https://drafts.csswg.org/css-transitions/#animtype-length
 impl Interpolate for VerticalAlign {
     #[inline]
     fn interpolate(&self, other: &VerticalAlign, time: f64)
@@ -305,6 +307,7 @@ impl Interpolate for VerticalAlign {
     }
 }
 
+/// https://drafts.csswg.org/css-transitions/#animtype-simple-list
 impl Interpolate for BorderSpacing {
     #[inline]
     fn interpolate(&self, other: &BorderSpacing, time: f64)
@@ -333,6 +336,7 @@ impl Interpolate for RGBA {
     }
 }
 
+/// https://drafts.csswg.org/css-transitions/#animtype-color
 impl Interpolate for CSSParserColor {
     #[inline]
     fn interpolate(&self, other: &Self, time: f64) -> Option<Self> {
@@ -347,6 +351,7 @@ impl Interpolate for CSSParserColor {
     }
 }
 
+/// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
 impl Interpolate for CalcLengthOrPercentage {
     #[inline]
     fn interpolate(&self, other: &CalcLengthOrPercentage, time: f64)
@@ -358,6 +363,7 @@ impl Interpolate for CalcLengthOrPercentage {
     }
 }
 
+/// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
 impl Interpolate for LengthOrPercentage {
     #[inline]
     fn interpolate(&self, other: &LengthOrPercentage, time: f64)
@@ -386,6 +392,7 @@ impl Interpolate for LengthOrPercentage {
     }
 }
 
+/// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
 impl Interpolate for LengthOrPercentageOrAuto {
     #[inline]
     fn interpolate(&self, other: &LengthOrPercentageOrAuto, time: f64)
@@ -417,6 +424,7 @@ impl Interpolate for LengthOrPercentageOrAuto {
     }
 }
 
+/// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
 impl Interpolate for LengthOrPercentageOrNone {
     #[inline]
     fn interpolate(&self, other: &LengthOrPercentageOrNone, time: f64)
@@ -442,6 +450,8 @@ impl Interpolate for LengthOrPercentageOrNone {
     }
 }
 
+/// https://drafts.csswg.org/css-transitions/#animtype-number
+/// https://drafts.csswg.org/css-transitions/#animtype-length
 impl Interpolate for LineHeight {
     #[inline]
     fn interpolate(&self, other: &LineHeight, time: f64)
@@ -497,6 +507,7 @@ impl Interpolate for FontWeight {
     }
 }
 
+/// https://drafts.csswg.org/css-transitions/#animtype-rect
 impl Interpolate for ClipRect {
     #[inline]
     fn interpolate(&self, other: &ClipRect, time: f64)
@@ -513,6 +524,7 @@ impl Interpolate for ClipRect {
     }
 }
 
+/// https://drafts.csswg.org/css-transitions/#animtype-simple-list
 impl Interpolate for BackgroundPosition {
     #[inline]
     fn interpolate(&self, other: &BackgroundPosition, time: f64)
@@ -544,6 +556,7 @@ impl Interpolate for BackgroundSize {
     }
 }
 
+/// https://drafts.csswg.org/css-transitions/#animtype-shadow-list
 impl Interpolate for TextShadow {
     #[inline]
     fn interpolate(&self, other: &TextShadow, time: f64)
@@ -555,11 +568,12 @@ impl Interpolate for TextShadow {
             (Some(offset_x), Some(offset_y), Some(blur_radius), Some(color)) => {
                 Some(TextShadow { offset_x: offset_x, offset_y: offset_y, blur_radius: blur_radius, color: color })
             },
-            (_, _, _, _) => None,
+            _ => None,
         }
     }
 }
 
+/// https://drafts.csswg.org/css-transitions/#animtype-shadow-list
 impl Interpolate for TextShadowList {
     #[inline]
     fn interpolate(&self, other: &TextShadowList, time: f64)
@@ -708,6 +722,95 @@ fn build_identity_transform_list(list: &[TransformOperation]) -> Vec<TransformOp
     result
 }
 
+impl Interpolate for BoxShadowList {
+    #[inline]
+    fn interpolate(&self, other: &Self, time: f64)
+                   -> Option<Self> {
+        // The inset value must change
+        let mut zero = BoxShadow {
+            offset_x: Au(0),
+            offset_y: Au(0),
+            spread_radius: Au(0),
+            blur_radius: Au(0),
+            color: CSSParserColor::RGBA(RGBA {
+                red: 0.0, green: 0.0, blue: 0.0, alpha: 0.0
+            }),
+            inset: false,
+        };
+
+        let max_len = cmp::max(self.0.len(), other.0.len());
+        let mut result = Vec::with_capacity(max_len);
+
+        for i in 0..max_len {
+            let shadow = match (self.0.get(i), other.0.get(i)) {
+                (Some(shadow), Some(other)) => {
+                    match shadow.interpolate(other, time) {
+                        Some(shadow) => shadow,
+                        None => return None,
+                    }
+                }
+                (Some(shadow), None) => {
+                    zero.inset = shadow.inset;
+                    shadow.interpolate(&zero, time).unwrap()
+                }
+                (None, Some(shadow)) => {
+                    zero.inset = shadow.inset;
+                    zero.interpolate(&shadow, time).unwrap()
+                }
+                (None, None) => unreachable!(),
+            };
+            result.push(shadow);
+        }
+
+        Some(BoxShadowList(result))
+    }
+}
+
+/// https://drafts.csswg.org/css-transitions/#animtype-shadow-list
+impl Interpolate for BoxShadow {
+    #[inline]
+    fn interpolate(&self, other: &Self, time: f64)
+                  -> Option<Self> {
+        if self.inset != other.inset {
+            return None;
+        }
+
+        let x = match self.offset_x.interpolate(&other.offset_x, time) {
+            Some(x) => x,
+            None => return None,
+        };
+
+        let y = match self.offset_y.interpolate(&other.offset_y, time) {
+            Some(y) => y,
+            None => return None,
+        };
+
+        let color = match self.color.interpolate(&other.color, time) {
+            Some(c) => c,
+            None => return None,
+        };
+
+        let spread = match self.spread_radius.interpolate(&other.spread_radius, time) {
+            Some(s) => s,
+            None => return None,
+        };
+
+        let blur = match self.blur_radius.interpolate(&other.blur_radius, time) {
+            Some(r) => r,
+            None => return None,
+        };
+
+        Some(BoxShadow {
+            offset_x: x,
+            offset_y: y,
+            blur_radius: blur,
+            spread_radius: spread,
+            color: color,
+            inset: self.inset,
+        })
+    }
+}
+
 impl Interpolate for LengthOrNone {
     fn interpolate(&self, other: &Self, time: f64) -> Option<Self> {
         match (*self, *other) {
@@ -718,6 +821,7 @@ impl Interpolate for LengthOrNone {
     }
 }
 
+/// https://drafts.csswg.org/css-transforms/#interpolation-of-transforms
 impl Interpolate for TransformList {
     #[inline]
     fn interpolate(&self, other: &TransformList, time: f64) -> Option<TransformList> {
