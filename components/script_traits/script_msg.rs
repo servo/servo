@@ -92,7 +92,7 @@ pub enum ScriptMsg {
     /// or to the window if no subpage id is provided.
     MozBrowserEvent(PipelineId, Option<SubpageId>, MozBrowserEvent),
     /// HTMLIFrameElement Forward or Back traversal.
-    TraverseHistory(Option<(PipelineId)>, TraversalDirection),
+    TraverseHistory(Option<PipelineId>, TraversalDirection),
     /// Favicon detected
     NewFavicon(Url),
     /// Status message to be displayed in the chrome, eg. a link URL on mouseover.
