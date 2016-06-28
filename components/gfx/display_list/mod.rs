@@ -489,10 +489,7 @@ impl DisplayList {
             current_item_index: 0,
             last_item_index: self.list.len() - 1,
         };
-        let mut result = Vec::new();
-        self.root_stacking_context.hit_test(&mut traversal, point, scroll_offsets, &mut result);
-        result.reverse();
-        result.get(0).cloned()
+        self.root_stacking_context.hit_test(&mut traversal, point, scroll_offsets)
     }
 }
 
@@ -607,8 +604,8 @@ impl StackingContext {
     pub fn hit_test<'a>(&self,
                         traversal: &mut DisplayListTraversal<'a>,
                         point: &Point2D<Au>,
-                        scroll_offsets: &ScrollOffsetMap,
-                        result: &mut Vec<DisplayItemMetadata>) {
+                        scroll_offsets: &ScrollOffsetMap)
+                        -> Option<DisplayItemMetadata> {
         // Convert the point into stacking context local transform space.
         let mut point = if self.context_type == StackingContextType::Real {
             let point = *point - self.bounds.origin;
@@ -633,20 +630,26 @@ impl StackingContext {
             }
         }
 
+        let mut result = None;
+
         for child in self.children.iter() {
             while let Some(item) = traversal.advance(self) {
                 if let Some(meta) = item.hit_test(point) {
-                    result.push(meta);
+                    result = Some(meta);
                 }
             }
-            child.hit_test(traversal, &point, scroll_offsets, result);
+            if let Some(meta) = child.hit_test(traversal, &point, scroll_offsets) {
+                result = Some(meta);
+            }
         }
 
         while let Some(item) = traversal.advance(self) {
             if let Some(meta) = item.hit_test(point) {
-                result.push(meta);
+                result = Some(meta);
             }
         }
+
+        result
     }
 
     pub fn print_with_tree(&self, print_tree: &mut PrintTree) {
