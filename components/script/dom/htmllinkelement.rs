@@ -289,43 +289,46 @@ impl AsyncResponseListener for StylesheetContext {
     }
 
     fn response_complete(&mut self, status: Result<(), NetworkError>) {
+        let elem = self.elem.root();
+        let document = document_from_node(&*elem);
+
         if status.is_err() {
             self.elem.root().upcast::<EventTarget>().fire_simple_event("error");
-            return;
+        } else {
+            let data = mem::replace(&mut self.data, vec!());
+            let metadata = match self.metadata.take() {
+                Some(meta) => meta,
+                None => return,
+            };
+            // TODO: Get the actual value. http://dev.w3.org/csswg/css-syntax/#environment-encoding
+            let environment_encoding = UTF_8 as EncodingRef;
+            let protocol_encoding_label = metadata.charset.as_ref().map(|s| &**s);
+            let final_url = metadata.final_url;
+
+            let win = window_from_node(&*elem);
+
+            let mut sheet = Stylesheet::from_bytes(&data, final_url, protocol_encoding_label,
+                                                   Some(environment_encoding), Origin::Author,
+                                                   win.css_error_reporter(),
+                                                   ParserContextExtraData::default());
+            let media = self.media.take().unwrap();
+            sheet.set_media(Some(media));
+            let sheet = Arc::new(sheet);
+
+            let elem = elem.r();
+            let document = document.r();
+
+            let win = window_from_node(elem);
+            win.layout_chan().send(Msg::AddStylesheet(sheet.clone())).unwrap();
+
+            *elem.stylesheet.borrow_mut() = Some(sheet);
+            document.invalidate_stylesheets();
         }
-        let data = mem::replace(&mut self.data, vec!());
-        let metadata = match self.metadata.take() {
-            Some(meta) => meta,
-            None => return,
-        };
-        // TODO: Get the actual value. http://dev.w3.org/csswg/css-syntax/#environment-encoding
-        let environment_encoding = UTF_8 as EncodingRef;
-        let protocol_encoding_label = metadata.charset.as_ref().map(|s| &**s);
-        let final_url = metadata.final_url;
 
-        let elem = self.elem.root();
-        let win = window_from_node(&*elem);
-
-        let mut sheet = Stylesheet::from_bytes(&data, final_url, protocol_encoding_label,
-                                               Some(environment_encoding), Origin::Author,
-                                               win.css_error_reporter(),
-                                               ParserContextExtraData::default());
-        let media = self.media.take().unwrap();
-        sheet.set_media(Some(media));
-        let sheet = Arc::new(sheet);
-
-        let elem = elem.r();
-        let document = document_from_node(elem);
-        let document = document.r();
-
-        let win = window_from_node(elem);
-        win.layout_chan().send(Msg::AddStylesheet(sheet.clone())).unwrap();
-
-        *elem.stylesheet.borrow_mut() = Some(sheet);
-        document.invalidate_stylesheets();
         if elem.parser_inserted.get() {
             document.decrement_script_blocking_stylesheet_count();
         }
+
         document.finish_load(LoadType::Stylesheet(self.url.clone()));
     }
 }
