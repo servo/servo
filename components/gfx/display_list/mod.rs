@@ -480,11 +480,10 @@ impl DisplayList {
             &draw_target, &stacking_context.filters, stacking_context.blend_mode);
     }
 
-    /// Places all nodes containing the point of interest into `result`, topmost first. Respects
-    /// the `pointer-events` CSS property If `topmost_only` is true, stops after placing one node
-    /// into the list. `result` must be empty upon entry to this function.
+    /// Returns the topmost node containing the point of interest, respecting
+    /// the `pointer-events` CSS property.
     pub fn hit_test(&self, point: &Point2D<Au>, scroll_offsets: &ScrollOffsetMap)
-                    -> Vec<DisplayItemMetadata> {
+                    -> Option<DisplayItemMetadata> {
         let mut traversal = DisplayListTraversal {
             display_list: self,
             current_item_index: 0,
@@ -493,7 +492,7 @@ impl DisplayList {
         let mut result = Vec::new();
         self.root_stacking_context.hit_test(&mut traversal, point, scroll_offsets, &mut result);
         result.reverse();
-        result
+        result.get(0).cloned()
     }
 }
 
