@@ -96,7 +96,8 @@ use style::values::specified::Length;
 use url::Origin as UrlOrigin;
 use url::Url;
 use uuid::Uuid;
-use webrender_traits::WebGLError;
+use webrender_traits::{WebGLBufferId, WebGLError, WebGLFramebufferId, WebGLProgramId};
+use webrender_traits::{WebGLRenderbufferId, WebGLShaderId, WebGLTextureId};
 
 /// A trait to allow tracing (only) DOM objects.
 pub trait JSTraceable {
@@ -332,6 +333,13 @@ no_jsmanaged_fields!(SystemTime);
 no_jsmanaged_fields!(SelectedFileId);
 no_jsmanaged_fields!(OpaqueStyleAndLayoutData);
 no_jsmanaged_fields!(CSSErrorReporter);
+no_jsmanaged_fields!(WebGLBufferId);
+no_jsmanaged_fields!(WebGLFramebufferId);
+no_jsmanaged_fields!(WebGLProgramId);
+no_jsmanaged_fields!(WebGLRenderbufferId);
+no_jsmanaged_fields!(WebGLShaderId);
+no_jsmanaged_fields!(WebGLTextureId);
+
 
 impl JSTraceable for Box<ScriptChan + Send> {
     #[inline]

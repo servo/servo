@@ -11,12 +11,12 @@ use dom::bindings::reflector::reflect_dom_object;
 use dom::webglobject::WebGLObject;
 use ipc_channel::ipc::{self, IpcSender};
 use std::cell::Cell;
-use webrender_traits::{WebGLCommand, WebGLFramebufferBindingRequest};
+use webrender_traits::{WebGLCommand, WebGLFramebufferBindingRequest, WebGLFramebufferId};
 
 #[dom_struct]
 pub struct WebGLFramebuffer {
     webgl_object: WebGLObject,
-    id: u32,
+    id: WebGLFramebufferId,
     /// target can only be gl::FRAMEBUFFER at the moment
     target: Cell<Option<u32>>,
     is_deleted: Cell<bool>,
@@ -25,7 +25,9 @@ pub struct WebGLFramebuffer {
 }
 
 impl WebGLFramebuffer {
-    fn new_inherited(renderer: IpcSender<CanvasMsg>, id: u32) -> WebGLFramebuffer {
+    fn new_inherited(renderer: IpcSender<CanvasMsg>,
+                     id: WebGLFramebufferId)
+                     -> WebGLFramebuffer {
         WebGLFramebuffer {
             webgl_object: WebGLObject::new_inherited(),
             id: id,
@@ -41,18 +43,22 @@ impl WebGLFramebuffer {
         renderer.send(CanvasMsg::WebGL(WebGLCommand::CreateFramebuffer(sender))).unwrap();
 
         let result = receiver.recv().unwrap();
-        result.map(|fb_id| WebGLFramebuffer::new(global, renderer, *fb_id))
+        result.map(|fb_id| WebGLFramebuffer::new(global, renderer, fb_id))
     }
 
-    pub fn new(global: GlobalRef, renderer: IpcSender<CanvasMsg>, id: u32)
+    pub fn new(global: GlobalRef,
+               renderer: IpcSender<CanvasMsg>,
+               id: WebGLFramebufferId)
                -> Root<WebGLFramebuffer> {
-        reflect_dom_object(box WebGLFramebuffer::new_inherited(renderer, id), global, WebGLFramebufferBinding::Wrap)
+        reflect_dom_object(box WebGLFramebuffer::new_inherited(renderer, id),
+                           global,
+                           WebGLFramebufferBinding::Wrap)
     }
 }
 
 
 impl WebGLFramebuffer {
-    pub fn id(&self) -> u32 {
+    pub fn id(&self) -> WebGLFramebufferId {
         self.id
     }
 
