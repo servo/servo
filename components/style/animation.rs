@@ -123,8 +123,7 @@ impl<Impl: SelectorImplExt> KeyframesAnimationState<Impl> {
     ///
     /// There are some bits of state we can't just replace, over all taking in
     /// account times, so here's that logic.
-    pub fn update_from_other(&mut self, other: &Self)
-    where Self: Clone {
+    pub fn update_from_other(&mut self, other: &Self) {
         use self::KeyframesRunningState::*;
 
         debug!("KeyframesAnimationState::update_from_other({:?}, {:?})", self, other);
@@ -135,6 +134,7 @@ impl<Impl: SelectorImplExt> KeyframesAnimationState<Impl> {
         let old_duration = self.duration;
         let old_direction = self.current_direction;
         let old_running_state = self.running_state.clone();
+        let old_iteration_state = self.iteration_state.clone();
         *self = other.clone();
 
         let mut new_started_at = old_started_at;
@@ -153,6 +153,15 @@ impl<Impl: SelectorImplExt> KeyframesAnimationState<Impl> {
             (&mut Paused(ref mut progress), Running)
                 => *progress = (time::precise_time_s() - old_started_at) / old_duration,
             _ => {},
+        }
+
+        // Don't update the iteration count, just the iteration limit.
+        // TODO: see how changing the limit affects rendering in other browsers.
+        // We might need to keep the iteration count even when it's infinite.
+        match (&mut self.iteration_state, old_iteration_state) {
+            (&mut KeyframesIterationState::Finite(ref mut iters, _), KeyframesIterationState::Finite(old_iters, _))
+                => *iters = old_iters,
+            _ => {}
         }
 
         self.current_direction = old_direction;
