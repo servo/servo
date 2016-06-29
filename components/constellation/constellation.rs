@@ -249,6 +249,12 @@ struct FrameChange {
     document_ready: bool,
 }
 
+enum FrameTreeIteratorItem<'a> {
+    Found(&'a Frame, &'a Pipeline),
+    FrameNotFound(FrameId),
+    PipelineNotFound(FrameId, &'a Frame),
+}
+
 /// An iterator over a frame tree, returning nodes in depth-first order.
 /// Note that this iterator should _not_ be used to mutate nodes _during_
 /// iteration. Mutating nodes once the iterator is out of scope is OK.
@@ -256,12 +262,6 @@ struct FrameTreeIterator<'a> {
     stack: Vec<FrameId>,
     frames: &'a HashMap<FrameId, Frame>,
     pipelines: &'a HashMap<PipelineId, Pipeline>,
-}
-
-enum FrameTreeIteratorItem<'a> {
-    Found(&'a Frame, &'a Pipeline),
-    FrameNotFound(FrameId),
-    PipelineNotFound(FrameId, &'a Frame),
 }
 
 impl<'a> Iterator for FrameTreeIterator<'a> {
@@ -284,6 +284,24 @@ impl<'a> Iterator for FrameTreeIterator<'a> {
 
         self.stack.extend(pipeline.children.iter().map(|&c| c));
         Some(FrameTreeIteratorItem::Found(frame, pipeline))
+    }
+}
+
+/// An iterator over the consistent frames in the frame tree.
+struct ValidFrameTreeIterator<'a> {
+    inner: FrameTreeIterator<'a>,
+}
+
+impl<'a> Iterator for ValidFrameTreeIterator<'a> {
+    type Item = (&'a Frame, &'a Pipeline);
+    fn next(&mut self) -> Option<(&'a Frame, &'a Pipeline)> {
+        loop {
+            match self.inner.next() {
+                Some(FrameTreeIteratorItem::Found(frame, pipeline)) => return Some((frame, pipeline)),
+                None => return None,
+                _ => {}
+            }
+        }
     }
 }
 
@@ -474,11 +492,19 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
     // Get an iterator for the current frame tree. Specify self.root_frame_id to
     // iterate the entire tree, or a specific frame id to iterate only that sub-tree.
-    fn current_frame_tree_iter(&self, frame_id_root: Option<FrameId>) -> FrameTreeIterator {
+    fn frame_tree_iter(&self, frame_id_root: Option<FrameId>) -> FrameTreeIterator {
         FrameTreeIterator {
             stack: frame_id_root.into_iter().collect(),
             pipelines: &self.pipelines,
             frames: &self.frames,
+        }
+    }
+
+    // Get an iterator for the valid frames found in the current frame tree.
+    // This returns an iterator over `(&Frame, &Pipeline)`
+    fn valid_frame_tree_iter(&self, root: Option<FrameId>) -> ValidFrameTreeIterator {
+        ValidFrameTreeIterator {
+            inner: self.frame_tree_iter(root),
         }
     }
 
@@ -1544,12 +1570,12 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
     fn handle_set_visible_msg(&mut self, pipeline_id: PipelineId, visible: bool) {
         let frame_id = self.pipelines.get(&pipeline_id).and_then(|pipeline| pipeline.frame);
-        let child_pipeline_ids = self.current_frame_tree_iter(frame_id)
-                                     .flat_map(|item| match item {
-                                         FrameTreeIteratorItem::Found(_, pipeline) => Some(pipeline.id),
-                                         _ => None,
-                                     })
+
+        // FIXME: this is unsound, add a mutable iterator over the frame tree.
+        let child_pipeline_ids = self.valid_frame_tree_iter(frame_id)
+                                     .map(|(_, pipeline)| pipeline.id)
                                      .collect::<Vec<_>>();
+
         for id in child_pipeline_ids {
             if let Some(pipeline) = self.pipelines.get_mut(&id) {
                 pipeline.change_visibility(visible);
@@ -1874,7 +1900,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // matches what the compositor has painted. If all these conditions
         // are met, then the output image should not change and a reftest
         // screenshot can safely be written.
-        for frame_tree_iter_item in self.current_frame_tree_iter(self.root_frame_id) {
+        for frame_tree_iter_item in self.frame_tree_iter(self.root_frame_id) {
             let (frame, pipeline) = match frame_tree_iter_item {
                 FrameTreeIteratorItem::Found(frame, pipeline) => (frame, pipeline),
                 FrameTreeIteratorItem::FrameNotFound(frame_id) => {
@@ -2092,11 +2118,15 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
     // Revoke paint permission from a pipeline, and all children.
     fn revoke_paint_permission(&self, pipeline_id: PipelineId) {
-        let frame_id = self.pipelines.get(&pipeline_id).and_then(|pipeline| pipeline.frame);
-        for frame in self.current_frame_tree_iter(frame_id) {
-            if let FrameTreeIteratorItem::Found(_frame, pipeline) = frame {
-                pipeline.revoke_paint_permission();
-            }
+        let frame_id = match self.pipelines.get(&pipeline_id)
+                                           .and_then(|pipeline| pipeline.frame) {
+            Some(frame_id) => frame_id,
+            // Don't revoke paint permission in the whole tree.
+            None => return,
+        };
+
+        for (_frame, pipeline) in self.valid_frame_tree_iter(Some(frame_id)) {
+            pipeline.revoke_paint_permission();
         }
     }
 
@@ -2118,10 +2148,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             }
         }
 
-        for frame in self.current_frame_tree_iter(self.root_frame_id) {
-            if let FrameTreeIteratorItem::Found(_frame, pipeline) = frame {
-                pipeline.grant_paint_permission();
-            }
+        for (_frame, pipeline) in self.valid_frame_tree_iter(self.root_frame_id) {
+            pipeline.grant_paint_permission();
         }
     }
 
@@ -2200,11 +2228,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     fn pipeline_exists_in_tree(&self,
                                pipeline_id: PipelineId,
                                root_frame_id: Option<FrameId>) -> bool {
-        self.current_frame_tree_iter(root_frame_id)
-            .any(|item| match item {
-                FrameTreeIteratorItem::Found(_, pipeline) => pipeline.id == pipeline_id,
-                _ => false,
-            })
+        self.valid_frame_tree_iter(root_frame_id)
+            .any(|(_frame, pipeline)| pipeline.id == pipeline_id)
     }
-
 }
