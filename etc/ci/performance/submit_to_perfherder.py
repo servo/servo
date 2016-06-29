@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import argparse
 from functools import partial, reduce
 import json
@@ -46,20 +47,18 @@ def format_perf_data(perf_json):
 
         suite["subtests"].append({
             "name": format_testcase_name(testcase["testcase"]),
-            "value": value}
-        )
+            "value": value
+        })
 
     suites.append(suite)
 
-    return (
-        {
-            "performance_data": {
-                # Framework https://bugzilla.mozilla.org/show_bug.cgi?id=1271472
-                "framework": {"name": "servo-perf"},
-                "suites": suites
-            }
+    return {
+        "performance_data": {
+            # Framework https://bugzilla.mozilla.org/show_bug.cgi?id=1271472
+            "framework": {"name": "servo-perf"},
+            "suites": suites
         }
-    )
+    }
 
 
 # TODO: refactor this big function to smaller chunks

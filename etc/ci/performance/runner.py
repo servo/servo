@@ -139,11 +139,8 @@ def take_result_median(result_json, expected_runs):
 
 def save_result_json(results, filename, manifest, expected_runs):
 
-    # print(results)
     results = filter_result_by_manifest(results, manifest)
-    # print(results)
     results = take_result_median(results, expected_runs)
-    # print(results)
 
     if len(results) == 0:
         with open(filename, 'w') as f:
