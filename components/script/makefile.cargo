@@ -18,7 +18,7 @@ bindinggen_dependencies := $(addprefix $(BINDINGS_SRC)/,BindingGen.py Bindings.c
 
 globalgen_dependencies := $(addprefix $(BINDINGS_SRC)/,GlobalGen.py Bindings.conf Configuration.py CodegenRust.py parser/WebIDL.py) $(CACHE_DIR)/.done $(OUT_DIR)/Bindings/.done
 
-.PHONY: all
+.PHONY: all dom_docs
 all: $(AUTOGEN_SRC)
 
 $(OUT_DIR)/Bindings/.done:
@@ -33,6 +33,16 @@ $(OUT_DIR)/ParserResults.pkl: $(globalgen_dependencies) $(WEBIDLS)
 	$(PYTHON) \
 	  $(BINDINGS_SRC)/GlobalGen.py \
 	    --cachedir=$(CACHE_DIR) \
+	    $(BINDINGS_SRC)/Bindings.conf \
+	    $(OUT_DIR) \
+	    . \
+	    $(WEBIDLS)
+
+dom_docs: $(CACHE_DIR)/.done
+	$(PYTHON) \
+	  $(BINDINGS_SRC)/GlobalGen.py \
+            --cachedir=$(CACHE_DIR) \
+	    --only-html \
 	    $(BINDINGS_SRC)/Bindings.conf \
 	    $(OUT_DIR) \
 	    . \
