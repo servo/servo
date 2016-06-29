@@ -66,7 +66,10 @@ impl LocationMethods for Location {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-hash
-    fn SetHash(&self, value: USVString) {
+    fn SetHash(&self, mut value: USVString) {
+        if value.0.is_empty() {
+            value = USVString("#".to_owned());
+        }
         self.set_url_component(value, UrlHelper::SetHash);
     }
 
