@@ -81,11 +81,11 @@ impl ParserContext {
 
 impl AsyncResponseListener for ParserContext {
     fn headers_available(&mut self, meta_result: Result<Metadata, NetworkError>) {
-        let mut is_ssl_error = false;
+        let mut ssl_error = None;
         let metadata = match meta_result {
             Ok(meta) => Some(meta),
-            Err(NetworkError::SslValidation(url)) => {
-                is_ssl_error = true;
+            Err(NetworkError::SslValidation(url, reason)) => {
+                ssl_error = Some(reason);
                 let mut meta = Metadata::default(url);
                 let mime: Option<Mime> = "text/html".parse().ok();
                 meta.set_content_type(mime.as_ref());
@@ -124,10 +124,11 @@ impl AsyncResponseListener for ParserContext {
                 parser.set_plaintext_state();
             },
             Some(ContentType(Mime(TopLevel::Text, SubLevel::Html, _))) => { // Handle text/html
-                if is_ssl_error {
+                if let Some(reason) = ssl_error {
                     self.is_synthesized_document = true;
                     let page_bytes = read_resource_file("badcert.html").unwrap();
                     let page = String::from_utf8(page_bytes).unwrap();
+                    let page = page.replace("${reason}", &reason);
                     parser.pending_input().borrow_mut().push(page);
                     parser.parse_sync();
                 }

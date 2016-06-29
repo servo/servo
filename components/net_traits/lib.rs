@@ -667,7 +667,7 @@ pub enum NetworkError {
     Internal(String),
     LoadCancelled,
     /// SSL validation error that has to be handled in the HTML parser
-    SslValidation(Url),
+    SslValidation(Url, String),
 }
 
 /// Normalize `slice`, as defined by

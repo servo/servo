@@ -158,8 +158,8 @@ fn start_sending_opt(start_chan: LoadConsumer, metadata: Metadata,
         }
         LoadConsumer::Listener(target) => {
             match network_error {
-                Some(NetworkError::SslValidation(url)) => {
-                    let error = NetworkError::SslValidation(url);
+                Some(NetworkError::SslValidation(url, reason)) => {
+                    let error = NetworkError::SslValidation(url, reason);
                     target.invoke_with_listener(ResponseAction::HeadersAvailable(Err(error)));
                 }
                 _ => target.invoke_with_listener(ResponseAction::HeadersAvailable(Ok(metadata))),

@@ -33,6 +33,7 @@ use net_traits::hosts::replace_hosts;
 use net_traits::response::HttpsState;
 use net_traits::{CookieSource, IncludeSubdomains, LoadConsumer, LoadContext, LoadData};
 use net_traits::{Metadata, NetworkError, RequestSource, CustomResponse};
+use openssl;
 use openssl::ssl::error::{SslError, OpensslError};
 use profile_traits::time::{ProfilerCategory, profile, ProfilerChan, TimerMetadata};
 use profile_traits::time::{TimerMetadataReflowType, TimerMetadataFrameType};
@@ -143,8 +144,8 @@ fn load_for_consumer(load_data: LoadData,
         Err(error) => {
             match error.error {
                 LoadErrorType::ConnectionAborted { .. } => unreachable!(),
-                LoadErrorType::Ssl { .. } => send_error(error.url.clone(),
-                                                        NetworkError::SslValidation(error.url),
+                LoadErrorType::Ssl { reason } => send_error(error.url.clone(),
+                                                        NetworkError::SslValidation(error.url, reason),
                                                         start_chan),
                 LoadErrorType::Cancelled => send_error(error.url, NetworkError::LoadCancelled, start_chan),
                 _ => send_error(error.url, NetworkError::Internal(error.error.description().to_owned()), start_chan)
@@ -259,8 +260,21 @@ impl HttpRequestFactory for NetworkHttpRequestFactory {
             let error: &(Error + Send + 'static) = &**error;
             if let Some(&SslError::OpenSslErrors(ref errors)) = error.downcast_ref::<SslError>() {
                 if errors.iter().any(is_cert_verify_error) {
-                    let msg = format!("ssl error: {:?} {:?}", error.description(), error.cause());
-                    return Err(LoadError::new(url, LoadErrorType::Ssl { reason: msg }));
+                    let mut error_report = vec![format!("ssl error ({}):", openssl::version::version())];
+                    let mut suggestion = None;
+                    for err in errors {
+                        if is_unknown_message_digest_err(err) {
+                            suggestion = Some("<b>Servo recommends upgrading to a newer OpenSSL version.</b>");
+                        }
+                        error_report.push(format_ssl_error(err));
+                    }
+
+                    if let Some(suggestion) = suggestion {
+                        error_report.push(suggestion.to_owned());
+                    }
+
+                    let error_report = error_report.join("<br>\n");
+                    return Err(LoadError::new(url, LoadErrorType::Ssl { reason: error_report }));
                 }
             }
         }
@@ -1122,6 +1136,24 @@ fn is_cert_verify_error(error: &OpensslError) -> bool {
             library == "SSL routines" &&
             function == "SSL3_GET_SERVER_CERTIFICATE" &&
             reason == "certificate verify failed"
+        }
+    }
+}
+
+fn is_unknown_message_digest_err(error: &OpensslError) -> bool {
+    match error {
+        &OpensslError::UnknownError { ref library, ref function, ref reason } => {
+            library == "asn1 encoding routines" &&
+            function == "ASN1_item_verify" &&
+            reason == "unknown message digest algorithm"
+        }
+    }
+}
+
+fn format_ssl_error(error: &OpensslError) -> String {
+    match error {
+        &OpensslError::UnknownError { ref library, ref function, ref reason } => {
+            format!("{}: {} - {}", library, function, reason)
         }
     }
 }
