@@ -918,8 +918,7 @@ impl LayoutThread {
                                         root_background_color));
 
                 rw_data.display_list =
-                    Some(Arc::new(DisplayList::new(root_stacking_context,
-                                                   &mut Some(display_list_entries))))
+                    Some(Arc::new(DisplayList::new(root_stacking_context, display_list_entries)))
             }
 
             if data.goal == ReflowGoal::ForDisplay {
@@ -1157,17 +1156,11 @@ impl LayoutThread {
                 },
                 ReflowQueryType::HitTestQuery(point, update_cursor) => {
                     let point = Point2D::new(Au::from_f32_px(point.x), Au::from_f32_px(point.y));
-                    let result = match rw_data.display_list {
-                        None => panic!("Tried to hit test with no display list"),
-                        Some(ref display_list) => {
-                            display_list.hit_test(&point, &rw_data.stacking_context_scroll_offsets)
-                        }
-                    };
-                    rw_data.hit_test_response = if result.len() > 0 {
-                        (Some(result[0]), update_cursor)
-                    } else {
-                        (None, update_cursor)
-                    };
+                    let result = rw_data.display_list
+                                        .as_ref()
+                                        .expect("Tried to hit test with no display list")
+                                        .hit_test(&point, &rw_data.stacking_context_scroll_offsets);
+                    rw_data.hit_test_response = (result.last().cloned(), update_cursor);
                 },
                 ReflowQueryType::NodeGeometryQuery(node) => {
                     let node = unsafe { ServoLayoutNode::new(&node) };

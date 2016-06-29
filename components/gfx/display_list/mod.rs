@@ -215,13 +215,8 @@ pub struct DisplayList {
 
 impl DisplayList {
     pub fn new(mut root_stacking_context: StackingContext,
-               items: &mut Option<Vec<DisplayItem>>)
+               items: Vec<DisplayItem>)
                -> DisplayList {
-        let items = match items.take() {
-            Some(items) => items,
-            None => panic!("Tried to create empty display list."),
-        };
-
         let mut offsets = FnvHashMap(HashMap::with_hasher(Default::default()));
         DisplayList::sort_and_count_stacking_contexts(&mut root_stacking_context, &mut offsets, 0);
 
@@ -485,9 +480,8 @@ impl DisplayList {
             &draw_target, &stacking_context.filters, stacking_context.blend_mode);
     }
 
-    /// Places all nodes containing the point of interest into `result`, topmost first. Respects
-    /// the `pointer-events` CSS property If `topmost_only` is true, stops after placing one node
-    /// into the list. `result` must be empty upon entry to this function.
+    /// Return all nodes containing the point of interest, bottommost first,
+    /// and respecting the `pointer-events` CSS property.
     pub fn hit_test(&self, point: &Point2D<Au>, scroll_offsets: &ScrollOffsetMap)
                     -> Vec<DisplayItemMetadata> {
         let mut traversal = DisplayListTraversal {
@@ -497,7 +491,6 @@ impl DisplayList {
         };
         let mut result = Vec::new();
         self.root_stacking_context.hit_test(&mut traversal, point, scroll_offsets, &mut result);
-        result.reverse();
         result
     }
 }
@@ -641,13 +634,17 @@ impl StackingContext {
 
         for child in self.children.iter() {
             while let Some(item) = traversal.advance(self) {
-                item.hit_test(point, result);
+                if let Some(meta) = item.hit_test(point) {
+                    result.push(meta);
+                }
             }
             child.hit_test(traversal, &point, scroll_offsets, result);
         }
 
         while let Some(item) = traversal.advance(self) {
-            item.hit_test(point, result);
+            if let Some(meta) = item.hit_test(point) {
+                result.push(meta);
+            }
         }
     }
 
@@ -1336,21 +1333,21 @@ impl DisplayItem {
         println!("{}+ {:?}", indent, self);
     }
 
-    fn hit_test(&self, point: Point2D<Au>, result: &mut Vec<DisplayItemMetadata>) {
+    fn hit_test(&self, point: Point2D<Au>) -> Option<DisplayItemMetadata> {
         // TODO(pcwalton): Use a precise algorithm here. This will allow us to properly hit
         // test elements with `border-radius`, for example.
         let base_item = self.base();
         if !base_item.clip.might_intersect_point(&point) {
             // Clipped out.
-            return;
+            return None;
         }
         if !self.bounds().contains(&point) {
             // Can't possibly hit.
-            return;
+            return None;
         }
         if base_item.metadata.pointing.is_none() {
             // `pointer-events` is `none`. Ignore this item.
-            return;
+            return None;
         }
 
         match *self {
@@ -1369,18 +1366,17 @@ impl DisplayItem {
                                     (border.border_widths.top +
                                      border.border_widths.bottom)));
                 if interior_rect.contains(&point) {
-                    return;
+                    return None;
                 }
             }
             DisplayItem::BoxShadowClass(_) => {
                 // Box shadows can never be hit.
-                return
+                return None;
             }
             _ => {}
         }
 
-        // We found a hit!
-        result.push(base_item.metadata);
+        Some(base_item.metadata)
     }
 }
 
