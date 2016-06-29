@@ -39,7 +39,6 @@ pub mod cache;
 #[allow(unsafe_code)] pub mod debug_utils;
 pub mod geometry;
 #[cfg(feature = "servo")] #[allow(unsafe_code)] pub mod ipc;
-#[cfg(feature = "servo")] pub mod linked_list;
 #[allow(unsafe_code)] pub mod opts;
 #[cfg(feature = "servo")] pub mod panicking;
 pub mod prefs;
@@ -49,7 +48,6 @@ pub mod str;
 pub mod thread;
 pub mod thread_state;
 pub mod tid;
-#[cfg(feature = "servo")] pub mod time;
 pub mod vec;
 #[allow(unsafe_code)] pub mod workqueue;
 

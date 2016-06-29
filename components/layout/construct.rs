@@ -30,6 +30,7 @@ use fragment::{InlineBlockFragmentInfo, SpecificFragmentInfo, UnscannedTextFragm
 use gfx::display_list::OpaqueNode;
 use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFlow, InlineFragmentNodeFlags};
 use inline::{InlineFragmentNodeInfo, LAST_FRAGMENT_OF_ELEMENT};
+use linked_list::prepend_from;
 use list_item::{ListItemFlow, ListStyleTypeContent};
 use multicol::{MulticolFlow, MulticolColumnFlow};
 use parallel;
@@ -57,7 +58,6 @@ use table_wrapper::TableWrapperFlow;
 use text::TextRunScanner;
 use traversal::PostorderNodeMutTraversal;
 use url::Url;
-use util::linked_list;
 use util::opts;
 use wrapper::{TextContent, ThreadSafeLayoutNodeHelpers};
 
@@ -1805,8 +1805,7 @@ pub fn strip_ignorable_whitespace_from_start(this: &mut LinkedList<Fragment>) {
             }
         }
     }
-    linked_list::prepend_from(this,
-                              &mut leading_fragments_consisting_of_solely_bidi_control_characters);
+    prepend_from(this, &mut leading_fragments_consisting_of_solely_bidi_control_characters);
 }
 
 /// Strips ignorable whitespace from the end of a list of fragments.

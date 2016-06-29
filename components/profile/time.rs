@@ -19,12 +19,11 @@ use std::io::{self, Write};
 use std::path;
 use std::path::Path;
 use std::time::Duration;
-use std::{thread, f64};
+use std::{f64, thread, u32, u64};
 use std_time::precise_time_ns;
 use trace_dump::TraceDump;
 use util::opts::OutputOptions;
 use util::thread::spawn_named;
-use util::time::duration_from_seconds;
 
 pub trait Formattable {
     fn format(&self, output: &Option<OutputOptions>) -> String;
@@ -407,4 +406,18 @@ fn enforce_range<T>(min: T, max: T, value: T) -> T where T: Ord {
             }
         },
     }
+}
+
+pub fn duration_from_seconds(secs: f64) -> Duration {
+    pub const NANOS_PER_SEC: u32 = 1_000_000_000;
+
+    // Get number of seconds and check that it fits in a u64.
+    let whole_secs = secs.trunc();
+    assert!(whole_secs >= 0.0 && whole_secs <= u64::MAX as f64);
+
+    // Get number of nanoseconds. This should always fit in a u32, but check anyway.
+    let nanos = (secs.fract() * (NANOS_PER_SEC as f64)).trunc();
+    assert!(nanos >= 0.0 && nanos <= u32::MAX as f64);
+
+    Duration::new(whole_secs as u64, nanos as u32)
 }

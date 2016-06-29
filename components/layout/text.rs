@@ -16,6 +16,7 @@ use gfx::text::glyph::ByteIndex;
 use gfx::text::text_run::TextRun;
 use gfx::text::util::{self, CompressionMode};
 use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFragments, LAST_FRAGMENT_OF_ELEMENT};
+use linked_list::split_off_head;
 use range::Range;
 use std::borrow::ToOwned;
 use std::collections::LinkedList;
@@ -28,7 +29,6 @@ use style::properties::style_structs::ServoFont;
 use style::properties::{ComputedValues, ServoComputedValues};
 use unicode_bidi::{is_rtl, process_text};
 use unicode_script::{get_script, Script};
-use util::linked_list::split_off_head;
 
 /// Returns the concatenated text of a list of unscanned text fragments.
 fn text(fragments: &LinkedList<Fragment>) -> String {
