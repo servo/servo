@@ -13,7 +13,7 @@ interface HTMLInputElement : HTMLElement {
            attribute DOMString dirName;
            attribute boolean disabled;
   readonly attribute HTMLFormElement? form;
-  //readonly attribute FileList? files;
+  readonly attribute FileList? files;
              attribute DOMString formAction;
              attribute DOMString formEnctype;
              attribute DOMString formMethod;
