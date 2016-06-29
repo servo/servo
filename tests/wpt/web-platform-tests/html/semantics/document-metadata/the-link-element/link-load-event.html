@@ -11,7 +11,7 @@ document.getElementById('style_test').onload = t.step_func(function() {
   saw_link_onload = true;
 });
 window.addEventListener('load', function() {
-  t.step_func(function() {
+  t.step(function() {
     assert_true(saw_link_onload);
   });
   t.done();

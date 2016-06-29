@@ -327,6 +327,7 @@ impl AsyncResponseListener for StylesheetContext {
             document.decrement_script_blocking_stylesheet_count();
         }
         document.finish_load(LoadType::Stylesheet(self.url.clone()));
+        self.elem.root().upcast::<EventTarget>().fire_simple_event("load");
     }
 }
 
