@@ -40,6 +40,7 @@ use servo::Browser;
 use servo::compositing::windowing::WindowEvent;
 use servo::util::opts::{self, ArgumentParsingResult};
 use servo::util::panicking::initiate_panic_hook;
+use std::process;
 use std::rc::Rc;
 
 pub mod platform {
@@ -100,6 +101,11 @@ fn main() {
 
     if let Some(token) = content_process_token {
         return servo::run_content_process(token)
+    }
+
+    if opts::get().is_printing_version {
+        println!("Servo {}{}", env!("CARGO_PKG_VERSION"), env!("GIT_INFO"));
+        process::exit(0);
     }
 
     let window = app::create_window(None);

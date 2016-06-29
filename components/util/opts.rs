@@ -202,6 +202,9 @@ pub struct Opts {
 
     // don't skip any backtraces on panic
     pub full_backtraces: bool,
+
+    /// Print the version and exit.
+    pub is_printing_version: bool,
 }
 
 fn print_usage(app: &str, opts: &Options) {
@@ -507,6 +510,7 @@ pub fn default_opts() -> Opts {
         render_api: DEFAULT_RENDER_API,
         config_dir: None,
         full_backtraces: false,
+        is_printing_version: false,
     }
 }
 
@@ -564,6 +568,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     opts.optopt("G", "graphics", "Select graphics backend (gl or es2)", "gl");
     opts.optopt("", "config-dir",
                     "config directory following xdg spec on linux platform", "");
+    opts.optflag("v", "version", "Display servo version information");
 
 
     let opt_match = match opts.parse(args) {
@@ -753,6 +758,8 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         _ => args_fail(&format!("error: graphics option must be gl or es2:")),
     };
 
+    let is_printing_version = opt_match.opt_present("v") || opt_match.opt_present("version");
+
     let opts = Opts {
         is_running_problem_test: is_running_problem_test,
         url: Some(url),
@@ -807,6 +814,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         use_msaa: debug_options.use_msaa,
         config_dir: opt_match.opt_str("config-dir"),
         full_backtraces: debug_options.full_backtraces,
+        is_printing_version: is_printing_version,
     };
 
     set_defaults(opts);
