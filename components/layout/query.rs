@@ -150,6 +150,7 @@ impl LayoutRPC for LayoutRPCImpl {
         };
 
         nodes_from_point_list.iter()
+           .rev()
            .map(|metadata| metadata.node.to_untrusted_node_address())
            .collect()
     }

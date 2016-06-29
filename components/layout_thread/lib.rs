@@ -1160,7 +1160,7 @@ impl LayoutThread {
                                         .as_ref()
                                         .expect("Tried to hit test with no display list")
                                         .hit_test(&point, &rw_data.stacking_context_scroll_offsets);
-                    rw_data.hit_test_response = (result.get(0).cloned(), update_cursor);
+                    rw_data.hit_test_response = (result.last().cloned(), update_cursor);
                 },
                 ReflowQueryType::NodeGeometryQuery(node) => {
                     let node = unsafe { ServoLayoutNode::new(&node) };
