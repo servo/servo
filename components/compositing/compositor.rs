@@ -220,6 +220,9 @@ pub struct IOCompositor<Window: WindowMethods> {
     /// Pending scroll/zoom events.
     pending_scroll_zoom_events: Vec<ScrollZoomEvent>,
 
+    /// Whether we're waiting on a recomposite after dispatching a scroll.
+    waiting_for_results_of_scroll: bool,
+
     /// Used by the logic that determines when it is safe to output an
     /// image for the reftest framework.
     ready_to_save_state: ReadyState,
@@ -254,6 +257,8 @@ struct ScrollZoomEvent {
     cursor: TypedPoint2D<DevicePixel, i32>,
     /// The scroll event phase.
     phase: ScrollEventPhase,
+    /// The number of OS events that have been coalesced together into this one event.
+    event_count: u32,
 }
 
 #[derive(PartialEq, Debug)]
@@ -398,6 +403,10 @@ impl webrender_traits::RenderNotifier for RenderNotifier {
         self.compositor_proxy.recomposite(CompositingReason::NewWebRenderFrame);
     }
 
+    fn new_scroll_frame_ready(&mut self, composite_needed: bool) {
+        self.compositor_proxy.send(Msg::NewScrollFrameReady(composite_needed));
+    }
+
     fn pipeline_size_changed(&mut self,
                              pipeline_id: webrender_traits::PipelineId,
                              size: Option<Size2D<f32>>) {
@@ -468,6 +477,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             composition_request: CompositionRequest::NoCompositingNecessary,
             touch_handler: TouchHandler::new(),
             pending_scroll_zoom_events: Vec::new(),
+            waiting_for_results_of_scroll: false,
             composite_target: composite_target,
             shutdown_state: ShutdownState::NotShuttingDown,
             page_zoom: ScaleFactor::new(1.0),
@@ -677,7 +687,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             }
 
             (Msg::DelayedCompositionTimeout(timestamp), ShutdownState::NotShuttingDown) => {
-                debug!("delayed composition timeout!");
                 if let CompositionRequest::DelayedComposite(this_timestamp) =
                     self.composition_request {
                     if timestamp == this_timestamp {
@@ -786,6 +795,14 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                     None => {
                         warn!("Can't find requested layer in handling Msg::GetScrollOffset");
                     },
+                }
+            }
+
+            (Msg::NewScrollFrameReady(recomposite_needed), ShutdownState::NotShuttingDown) => {
+                self.waiting_for_results_of_scroll = false;
+                if recomposite_needed {
+                    self.composition_request = CompositionRequest::CompositeNow(
+                        CompositingReason::NewWebRenderScrollFrame);
                 }
             }
 
@@ -1186,8 +1203,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn schedule_delayed_composite_if_necessary(&mut self) {
         match self.composition_request {
-            CompositionRequest::CompositeNow(_) |
-            CompositionRequest::DelayedComposite(_) => return,
+            CompositionRequest::CompositeNow(_) => return,
+            CompositionRequest::DelayedComposite(_) |
             CompositionRequest::NoCompositingNecessary => {}
         }
 
@@ -1509,6 +1526,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                     delta: scroll_delta,
                     cursor: cursor,
                     phase: ScrollEventPhase::Move(true),
+                    event_count: 1,
                 });
                 self.composite_if_necessary_if_not_using_webrender(CompositingReason::Zoom);
             }
@@ -1563,6 +1581,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             delta: delta,
             cursor: cursor,
             phase: ScrollEventPhase::Move(self.scroll_in_progress),
+            event_count: 1,
         });
         self.composite_if_necessary_if_not_using_webrender(CompositingReason::Scroll);
     }
@@ -1576,6 +1595,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             delta: delta,
             cursor: cursor,
             phase: ScrollEventPhase::Start,
+            event_count: 1,
         });
         self.composite_if_necessary_if_not_using_webrender(CompositingReason::Scroll);
     }
@@ -1589,6 +1609,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             delta: delta,
             cursor: cursor,
             phase: ScrollEventPhase::End,
+            event_count: 1,
         });
         self.composite_if_necessary_if_not_using_webrender(CompositingReason::Scroll);
     }
@@ -1605,35 +1626,52 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                     let this_cursor = scroll_event.cursor;
                     if let Some(combined_event) = last_combined_event {
                         if combined_event.phase != scroll_event.phase {
-                            webrender_api.scroll(
-                                (combined_event.delta / self.scene.scale).to_untyped(),
-                                (combined_event.cursor.as_f32() / self.scene.scale).to_untyped(),
-                                combined_event.phase);
+                            let delta = (combined_event.delta / self.scene.scale).to_untyped();
+                            let cursor = (combined_event.cursor.as_f32() /
+                                          self.scene.scale).to_untyped();
+                            webrender_api.scroll(delta, cursor, combined_event.phase);
                             last_combined_event = None
                         }
                     }
 
-                    match last_combined_event {
-                        None => {
-                            last_combined_event = Some(ScrollZoomEvent {
+                    match (&mut last_combined_event, scroll_event.phase) {
+                        (last_combined_event @ &mut None, _) => {
+                            *last_combined_event = Some(ScrollZoomEvent {
                                 magnification: scroll_event.magnification,
                                 delta: this_delta,
                                 cursor: this_cursor,
                                 phase: scroll_event.phase,
+                                event_count: 1,
                             })
                         }
-                        Some(ref mut last_combined_event) => {
+                        (&mut Some(ref mut last_combined_event),
+                         ScrollEventPhase::Move(false)) => {
+                            // Mac OS X sometimes delivers scroll events out of vsync during a
+                            // fling. This causes events to get bunched up occasionally, causing
+                            // nasty-looking "pops". To mitigate this, during a fling we average
+                            // deltas instead of summing them.
+                            let old_event_count =
+                                ScaleFactor::new(last_combined_event.event_count as f32);
+                            last_combined_event.event_count += 1;
+                            let new_event_count =
+                                ScaleFactor::new(last_combined_event.event_count as f32);
+                            last_combined_event.delta =
+                                (last_combined_event.delta * old_event_count + this_delta) /
+                                new_event_count;
+                        }
+                        (&mut Some(ref mut last_combined_event), _) => {
                             last_combined_event.delta = last_combined_event.delta + this_delta;
+                            last_combined_event.event_count += 1
                         }
                     }
                 }
 
                 // TODO(gw): Support zoom (WR issue #28).
                 if let Some(combined_event) = last_combined_event {
-                    webrender_api.scroll(
-                        (combined_event.delta / self.scene.scale).to_untyped(),
-                        (combined_event.cursor.as_f32() / self.scene.scale).to_untyped(),
-                        combined_event.phase);
+                    let delta = (combined_event.delta / self.scene.scale).to_untyped();
+                    let cursor = (combined_event.cursor.as_f32() / self.scene.scale).to_untyped();
+                    webrender_api.scroll(delta, cursor, combined_event.phase);
+                    self.waiting_for_results_of_scroll = true
                 }
             }
             None => {
@@ -1815,6 +1853,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             delta: Point2D::typed(0.0, 0.0), // TODO: Scroll to keep the center in view?
             cursor:  Point2D::typed(-1, -1), // Make sure this hits the base layer.
             phase: ScrollEventPhase::Move(true),
+            event_count: 1,
         });
         self.composite_if_necessary_if_not_using_webrender(CompositingReason::Zoom);
     }
@@ -2281,6 +2320,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
         self.process_animations();
         self.start_scrolling_bounce_if_necessary();
+        self.waiting_for_results_of_scroll = false;
 
         Ok(rv)
     }
@@ -2515,7 +2555,27 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     pub fn handle_events(&mut self, messages: Vec<WindowEvent>) -> bool {
         // Check for new messages coming from the other threads in the system.
+        let mut compositor_messages = vec![];
+        let mut found_recomposite_msg = false;
         while let Some(msg) = self.port.try_recv_compositor_msg() {
+            match msg {
+                Msg::Recomposite(_) if found_recomposite_msg => {}
+                Msg::Recomposite(_) => {
+                    found_recomposite_msg = true;
+                    compositor_messages.push(msg)
+                }
+                _ => compositor_messages.push(msg),
+            }
+        }
+        if found_recomposite_msg {
+            compositor_messages.retain(|msg| {
+                match *msg {
+                    Msg::DelayedCompositionTimeout(_) => false,
+                    _ => true,
+                }
+            })
+        }
+        for msg in compositor_messages {
             if !self.handle_browser_message(msg) {
                 break
             }
@@ -2537,16 +2597,17 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             self.send_buffer_requests_for_all_layers();
         }
 
-        if !self.pending_scroll_zoom_events.is_empty() && opts::get().use_webrender {
-            self.process_pending_scroll_events()
-        }
-
         match self.composition_request {
             CompositionRequest::NoCompositingNecessary |
             CompositionRequest::DelayedComposite(_) => {}
             CompositionRequest::CompositeNow(_) => {
                 self.composite()
             }
+        }
+
+        if !self.pending_scroll_zoom_events.is_empty() && !self.waiting_for_results_of_scroll &&
+                opts::get().use_webrender {
+            self.process_pending_scroll_events()
         }
 
         self.shutdown_state != ShutdownState::FinishedShuttingDown
@@ -2650,4 +2711,6 @@ pub enum CompositingReason {
     Zoom,
     /// A new WebRender frame has arrived.
     NewWebRenderFrame,
+    /// WebRender has processed a scroll event and has generated a new frame.
+    NewWebRenderScrollFrame,
 }
