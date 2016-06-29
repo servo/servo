@@ -949,7 +949,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
 
         // Modify the style as necessary. (See the comment in
         // `properties::modify_style_for_replaced_content()`.)
-        let mut style = (*node.style(self.style_context())).clone();
+        let mut style = node.style(self.style_context()).clone();
         properties::modify_style_for_replaced_content(&mut style);
 
         // If this is generated content, then we need to initialize the accumulator with the
