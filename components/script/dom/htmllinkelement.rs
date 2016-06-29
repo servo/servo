@@ -22,6 +22,7 @@ use dom::virtualmethods::VirtualMethods;
 use encoding::EncodingRef;
 use encoding::all::UTF_8;
 use hyper::header::ContentType;
+use hyper::http::RawStatus;
 use hyper::mime::{Mime, TopLevel, SubLevel};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
@@ -296,15 +297,18 @@ impl AsyncResponseListener for StylesheetContext {
     fn response_complete(&mut self, status: Result<(), NetworkError>) {
         let elem = self.elem.root();
         let document = document_from_node(&*elem);
+        let mut successful = false;
 
-        if status.is_err() {
-            self.elem.root().upcast::<EventTarget>().fire_simple_event("error");
-        } else {
-            let data = mem::replace(&mut self.data, vec!());
+        if status.is_ok() {
             let metadata = match self.metadata.take() {
                 Some(meta) => meta,
                 None => return,
             };
+            let is_css = metadata.content_type.map_or(false, |ContentType(Mime(top, sub, _))|
+                top == TopLevel::Text && sub == SubLevel::Css);
+
+            let data = if is_css { mem::replace(&mut self.data, vec!()) } else { vec!() };
+
             // TODO: Get the actual value. http://dev.w3.org/csswg/css-syntax/#environment-encoding
             let environment_encoding = UTF_8 as EncodingRef;
             let protocol_encoding_label = metadata.charset.as_ref().map(|s| &**s);
@@ -328,6 +332,7 @@ impl AsyncResponseListener for StylesheetContext {
 
             *elem.stylesheet.borrow_mut() = Some(sheet);
             document.invalidate_stylesheets();
+            successful = metadata.status.map_or(false, |RawStatus(code, _)| code == 200);
         }
 
         if elem.parser_inserted.get() {
@@ -335,6 +340,10 @@ impl AsyncResponseListener for StylesheetContext {
         }
 
         document.finish_load(LoadType::Stylesheet(self.url.clone()));
+
+        let event = if successful { "load" } else { "error" };
+
+        elem.upcast::<EventTarget>().fire_simple_event(event);
     }
 }
 
