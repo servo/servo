@@ -32,6 +32,18 @@ test(function() {
   },'input setSelectionRange(0,input.value.length+1)');
 
   test(function() {
+    input.setSelectionRange(input.value.length+1,input.value.length+1)
+    assert_equals(input.selectionStart, input.value.length, "Arguments (start) greater than the length of the value of the text field must be treated as pointing at the end of the text field");
+    assert_equals(input.selectionEnd, input.value.length, "Arguments (end) greater than the length of the value of the text field must be treated as pointing at the end of the text field");
+  },'input setSelectionRange(input.value.length+1,input.value.length+1)');
+
+  test(function() {
+    input.setSelectionRange(input.value.length+1,1)
+    assert_equals(input.selectionStart, 1, "If end is less than or equal to start then the start of the selection and the end of the selection must both be placed immediately before the character with offset end");
+    assert_equals(input.selectionEnd, 1, "element.selectionEnd should be 1");
+  },'input setSelectionRange(input.value.length+1,input.value.length+1)');
+
+  test(function() {
     input.setSelectionRange(2,2)
     assert_equals(input.selectionStart, 2, "If end is less than or equal to start then the start of the selection and the end of the selection must both be placed immediately before the character with offset end");
     assert_equals(input.selectionEnd, 2, "If end is less than or equal to start then the start of the selection and the end of the selection must both be placed immediately before the character with offset end");
@@ -72,6 +84,18 @@ test(function() {
     input.setSelectionRange(0,1)
     assert_equals(input.selectionDirection, "none", "if the argument is omitted");
   },'input direction of setSelectionRange(0,1)');
+
+  test(function() {
+    input.setSelectionRange(1,-1);
+    assert_equals(input.selectionStart, 1, "element.selectionStart should be 1");
+    assert_equals(input.selectionEnd, input.value.length, "ECMAScript conversion to unsigned long");
+  },'input setSelectionRange(1,-1)');
+
+  test(function() {
+    input.setSelectionRange(-1,1);
+    assert_equals(input.selectionStart, 1, "ECMAScript conversion to unsigned long + if end is less than or equal to start then the start of the selection and the end of the selection must both be placed immediately before the character with offset end");
+    assert_equals(input.selectionEnd, 1, "element.selectionEnd should be 1");
+  },'input setSelectionRange(-1,1)');
 
   test(function() {
     input.setSelectionRange("string",1);
