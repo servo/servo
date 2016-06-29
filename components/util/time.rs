@@ -18,14 +18,3 @@ pub fn duration_from_seconds(secs: f64) -> Duration {
 
     Duration::new(whole_secs as u64, nanos as u32)
 }
-
-pub fn duration_from_nanoseconds(nanos: u64) -> Duration {
-    // Get number of seconds.
-    let secs = nanos / NANOS_PER_SEC as u64;
-
-    // Get number of extra nanoseconds. This should always fit in a u32, but check anyway.
-    let subsec_nanos = nanos % NANOS_PER_SEC as u64;
-    assert!(subsec_nanos <= u32::MAX as u64);
-
-    Duration::new(secs, subsec_nanos as u32)
-}

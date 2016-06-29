@@ -10,8 +10,9 @@
 use compositor_thread::{CompositorProxy, Msg};
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::thread::{self, Builder};
+use std::time::Duration;
+use std::u32;
 use time;
-use util::time::duration_from_nanoseconds;
 
 /// The amount of time in nanoseconds that we give to the painting thread to paint. When this
 /// expires, we give up and composite anyway.
@@ -92,3 +93,15 @@ impl DelayedCompositionTimer {
     }
 }
 
+fn duration_from_nanoseconds(nanos: u64) -> Duration {
+    pub const NANOS_PER_SEC: u32 = 1_000_000_000;
+
+    // Get number of seconds.
+    let secs = nanos / NANOS_PER_SEC as u64;
+
+    // Get number of extra nanoseconds. This should always fit in a u32, but check anyway.
+    let subsec_nanos = nanos % NANOS_PER_SEC as u64;
+    assert!(subsec_nanos <= u32::MAX as u64);
+
+    Duration::new(secs, subsec_nanos as u32)
+}
