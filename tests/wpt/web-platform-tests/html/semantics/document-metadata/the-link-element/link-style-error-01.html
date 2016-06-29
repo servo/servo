@@ -40,6 +40,7 @@ tText.step(function() {
     assert_true(true, "Got error event for 404 error.")
     tText.done()
   })
+  elt.onload = tText.unreached_func("load event should not be fired");
   elt.rel = "stylesheet";
   elt.href = "../../../../../common/css-red.txt";
   document.getElementsByTagName("head")[0].appendChild(elt);
