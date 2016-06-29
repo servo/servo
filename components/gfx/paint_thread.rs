@@ -567,6 +567,12 @@ impl WorkerThreadProxy {
              font_cache_thread: FontCacheThread,
              time_profiler_chan: time::ProfilerChan)
              -> Vec<WorkerThreadProxy> {
+        // Don't make any paint threads if we're using WebRender. They're just a waste of
+        // resources.
+        if opts::get().use_webrender {
+            return vec![]
+        }
+
         let thread_count = opts::get().paint_threads;
         (0..thread_count).map(|_| {
             let (from_worker_sender, from_worker_receiver) = channel();
