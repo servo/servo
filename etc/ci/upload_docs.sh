@@ -16,5 +16,7 @@ cp etc/doc.servo.org/* target/doc/
 
 python components/style/properties/build.py servo html
 
+OUT_DIR="`pwd`/target/doc" make -f makefile.cargo -C components/script dom_docs
+
 ghp-import -n target/doc
 git push -qf "https://${TOKEN}@github.com/servo/doc.servo.org.git" gh-pages

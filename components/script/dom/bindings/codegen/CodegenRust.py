@@ -8,6 +8,7 @@ from collections import defaultdict
 from itertools import groupby
 
 import operator
+import os
 import re
 import string
 import textwrap
@@ -6437,3 +6438,36 @@ impl %(base)s {
 
         # Done.
         return curr
+
+    @staticmethod
+    def SupportedDomApis(config):
+        descriptors = config.getDescriptors(isExposedConditionally=False)
+
+        base_path = os.path.join('dom', 'bindings', 'codegen')
+        with open(os.path.join(base_path, 'apis.html.template')) as f:
+            base_template = f.read()
+        with open(os.path.join(base_path, 'api.html.template')) as f:
+            api_template = f.read()
+        with open(os.path.join(base_path, 'property.html.template')) as f:
+            property_template = f.read()
+        with open(os.path.join(base_path, 'interface.html.template')) as f:
+            interface_template = f.read()
+
+        apis = []
+        interfaces = []
+        for descriptor in descriptors:
+            props = []
+            for m in descriptor.interface.members:
+                if PropertyDefiner.getStringAttr(m, 'Pref') or \
+                   PropertyDefiner.getStringAttr(m, 'Func') or \
+                   (m.isMethod() and m.isIdentifierLess()):
+                    continue
+                display = m.identifier.name + ('()' if m.isMethod() else '')
+                props += [property_template.replace('${name}', display)]
+            name = descriptor.interface.identifier.name
+            apis += [(api_template.replace('${interface}', name)
+                                  .replace('${properties}', '\n'.join(props)))]
+            interfaces += [interface_template.replace('${interface}', name)]
+
+        return CGGeneric((base_template.replace('${apis}', '\n'.join(apis))
+                                       .replace('${interfaces}', '\n'.join(interfaces))))
