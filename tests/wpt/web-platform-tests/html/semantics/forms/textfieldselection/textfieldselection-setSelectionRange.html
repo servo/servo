@@ -104,18 +104,6 @@ test(function() {
   },'input setSelectionRange("string",1)');
 
   test(function() {
-    input.setSelectionRange("string",1);
-    assert_equals(input.selectionStart, 0, "element.selectionStart should be 0");
-    assert_equals(input.selectionEnd, 1, "element.selectionEnd should be 1");
-  },'input setSelectionRange("string",1)');
-
-  test(function() {
-    input.setSelectionRange("string",1);
-    assert_equals(input.selectionStart, 0, "element.selectionStart should be 0");
-    assert_equals(input.selectionEnd, 1, "element.selectionEnd should be 1");
-  },'input setSelectionRange("string",1)');
-
-  test(function() {
     input.setSelectionRange(true,1);
     assert_equals(input.selectionStart, 1, "element.selectionStart should be 1");
     assert_equals(input.selectionEnd, 1, "element.selectionEnd should be 1");
