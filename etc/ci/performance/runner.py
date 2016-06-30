@@ -1,4 +1,5 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
+
 import argparse
 import itertools
 import json
@@ -45,8 +46,10 @@ def get_servo_command(url, timeout):
 
 
 def get_gecko_command(url, timeout):
-    test_cmd = ("timeout {timeout}s firefox --no-remote --profile ./firefox/servo {url}"
-                .format(timeout=timeout, url=url))
+    test_cmd = ("timeout {timeout}s ./firefox/firefox/firefox"
+                " --display=:0 --no-remote"
+                " -profile ./firefox/servo {url}").format(timeout=timeout,
+                                                          url=url)
     return test_cmd
 
 
@@ -66,22 +69,7 @@ def parse_log(log, testcase=None):
         elif copy:
             block.append(line)
 
-    def parse_block(block):
-        timing = {}
-        for line in block:
-            key = line.split(",")[1]
-            value = line.split(",")[2]
-
-            if key == "testcase":
-                timing[key] = value
-            else:
-                timing[key] = None if (value == "undefined") else int(value)
-        return timing
-
-    if len(blocks) == 0:
-        print("Didn't find any perf data in the log, test timeout?")
-        print("Fillng in a dummy perf data")
-        return [{
+    placeholder = {
             "navigationStart": 0,
             "unloadEventStart": -1,
             "domLoading": -1,
@@ -104,15 +92,60 @@ def parse_log(log, testcase=None):
             "responseEnd": -1,
             "testcase": testcase,
             "domComplete": -1,
-        }]
+        }
+
+    def parse_block(block):
+        timing = {}
+        for line in block:
+            try:
+                key = line.split(",")[1]
+                value = line.split(",")[2]
+            except:
+                print("[DEBUG] failed to parse the following block:")
+                print(block)
+                print('[DEBUG] log:')
+                print('-----')
+                print(log)
+                print('-----')
+                return placeholder
+
+            if key == "testcase":
+                timing[key] = value
+            else:
+                timing[key] = None if (value == "undefined") else int(value)
+
+        if testcase is not None and timing['testcase'] != testcase:
+            print('[DEBUG] log:')
+            print('-----')
+            print(log)
+            print('-----')
+            return placeholder
+
+        return timing
+
+    if len(blocks) == 0:
+        print("Didn't find any perf data in the log, test timeout?")
+        print("Fillng in a dummy perf data")
+        print('[DEBUG] log:')
+        print('-----')
+        print(log)
+        print('-----')
+
+        return [placeholder]
     else:
         return map(parse_block, blocks)
 
 
 def filter_result_by_manifest(result_json, manifest):
-    # print(manifest)
-    # print(result_json)
-    return [tc for tc in result_json if tc['testcase'] in manifest]
+    filtered = []
+    for name in manifest:
+        match = [tc for tc in result_json if tc['testcase'] == name]
+        if len(match) == 0:
+            raise Exception(("Missing test result: {}. This will cause a "
+                             "discontinuity in the treeherder graph, "
+                             "so we won't submit this data.").format(name))
+        filtered += match
+    return filtered
 
 
 def take_result_median(result_json, expected_runs):
@@ -161,7 +194,7 @@ Total {total} tests; {suc} succeeded, {fail} failed.
 Failure summary:
 """.format(
             total=len(results),
-            suc =len(list(filter(lambda x: x['domComplete'] != -1, results))),
+            suc=len(list(filter(lambda x: x['domComplete'] != -1, results))),
             fail=len(failures)
            )
     uniq_failures = list(set(map(lambda x: x['testcase'], failures)))

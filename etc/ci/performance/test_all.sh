@@ -3,8 +3,6 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-export DISPLAY=:0 # In servo-linux1
-
 source venv/bin/activate
 
 echo "Staring the local server"

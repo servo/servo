@@ -1,4 +1,7 @@
+#!/usr/bin/env python3
+
 import runner
+import pytest
 
 
 def test_log_parser():
@@ -164,8 +167,107 @@ Shutting down the Constellation after generating an output file or exit flag spe
 
 
 def test_log_parser_empty():
+    mock_log = b'''
+[PERF] perf block start
+[PERF]BROKEN!!!!!!!!!1
+[PERF]BROKEN!!!!!!!!!1
+[PERF]BROKEN!!!!!!!!!1
+[PERF]BROKEN!!!!!!!!!1
+[PERF]BROKEN!!!!!!!!!1
+[PERF] perf block end
+'''
+    mock_testcase = "http://localhost:8000/page_load_test/56.com/www.56.com/index.html"
+
+    expected = [{
+        "testcase": "http://localhost:8000/page_load_test/56.com/www.56.com/index.html",
+        "navigationStart": 0,
+        "unloadEventStart": -1,
+        "unloadEventEnd": -1,
+        "redirectStart": -1,
+        "redirectEnd": -1,
+        "fetchStart": -1,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "connectEnd": -1,
+        "secureConnectionStart": -1,
+        "requestStart": -1,
+        "responseStart": -1,
+        "responseEnd": -1,
+        "domLoading": -1,
+        "domInteractive": -1,
+        "domContentLoadedEventStart": -1,
+        "domContentLoadedEventEnd": -1,
+        "domComplete": -1,
+        "loadEventStart": -1,
+        "loadEventEnd": -1
+    }]
+    result = runner.parse_log(mock_log, mock_testcase)
+    assert(expected == list(result))
+
+
+def test_log_parser_error():
     mock_log = b'Nothing here! Test failed!'
     mock_testcase = "http://localhost:8000/page_load_test/56.com/www.56.com/index.html"
+
+    expected = [{
+        "testcase": "http://localhost:8000/page_load_test/56.com/www.56.com/index.html",
+        "navigationStart": 0,
+        "unloadEventStart": -1,
+        "unloadEventEnd": -1,
+        "redirectStart": -1,
+        "redirectEnd": -1,
+        "fetchStart": -1,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "connectEnd": -1,
+        "secureConnectionStart": -1,
+        "requestStart": -1,
+        "responseStart": -1,
+        "responseEnd": -1,
+        "domLoading": -1,
+        "domInteractive": -1,
+        "domContentLoadedEventStart": -1,
+        "domContentLoadedEventEnd": -1,
+        "domComplete": -1,
+        "loadEventStart": -1,
+        "loadEventEnd": -1
+    }]
+    result = runner.parse_log(mock_log, mock_testcase)
+    assert(expected == list(result))
+
+
+def test_log_parser_bad_testcase_name():
+    mock_testcase = "http://localhost:8000/page_load_test/56.com/www.56.com/index.html"
+    # Notice the testcase is about:blank, servo crashed
+    mock_log = b'''
+[PERF] perf block start
+[PERF],testcase,about:blank
+[PERF],navigationStart,1460358376
+[PERF],unloadEventStart,undefined
+[PERF],unloadEventEnd,undefined
+[PERF],redirectStart,undefined
+[PERF],redirectEnd,undefined
+[PERF],fetchStart,undefined
+[PERF],domainLookupStart,undefined
+[PERF],domainLookupEnd,undefined
+[PERF],connectStart,undefined
+[PERF],connectEnd,undefined
+[PERF],secureConnectionStart,undefined
+[PERF],requestStart,undefined
+[PERF],responseStart,undefined
+[PERF],responseEnd,undefined
+[PERF],domLoading,1460358376000
+[PERF],domInteractive,1460358388000
+[PERF],domContentLoadedEventStart,1460358388000
+[PERF],domContentLoadedEventEnd,1460358388000
+[PERF],domComplete,1460358389000
+[PERF],loadEventStart,undefined
+[PERF],loadEventEnd,undefined
+[PERF] perf block end
+Shutting down the Constellation after generating an output file or exit flag specified
+'''
 
     expected = [{
         "testcase": "http://localhost:8000/page_load_test/56.com/www.56.com/index.html",
@@ -231,10 +333,25 @@ def test_filter_result_by_manifest():
 
     manifest = [
         "http://localhost:8000/page_load_test/56.com/www.56.com/index.html",
-        "http://localhost:8000/page_load_test/5566.com/www.5566.com/index.html"
     ]
 
     assert(expected == runner.filter_result_by_manifest(input_json, manifest))
+
+
+def test_filter_result_by_manifest_error():
+    input_json = [{
+        "testcase": "1.html",
+        "domComplete": 1460358389000,
+    }]
+
+    manifest = [
+        "1.html",
+        "2.html"
+    ]
+
+    with pytest.raises(Exception) as execinfo:
+        runner.filter_result_by_manifest(input_json, manifest)
+    assert "Missing test result" in str(execinfo.value)
 
 
 def test_take_result_median_odd():
@@ -299,6 +416,7 @@ def test_take_result_median_error():
     }]
 
     assert(expected == runner.take_result_median(input_json, len(input_json)))
+
 
 def test_log_result():
     results = [{

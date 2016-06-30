@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 import argparse
 from functools import partial, reduce
 import json
@@ -7,6 +8,7 @@ import random
 import string
 from thclient import (TreeherderClient, TreeherderResultSetCollection,
                       TreeherderJobCollection)
+import time
 
 from runner import format_result_summary
 
@@ -18,12 +20,13 @@ def geometric_mean(iterable):
 
 def format_testcase_name(name):
     temp = name.replace('http://localhost:8000/page_load_test/', '')
+    temp = temp.replace('http://localhost:8000/tp6/', '')
     temp = temp.split('/')[0]
     temp = temp[0:80]
     return temp
 
 
-def format_perf_data(perf_json):
+def format_perf_data(perf_json, engine='servo'):
     suites = []
     measurement = "domComplete"  # Change this to an array when we have more
 
@@ -33,8 +36,13 @@ def format_perf_data(perf_json):
     measurementFromNavStart = partial(get_time_from_nav_start,
                                       measurement=measurement)
 
+    if (engine == 'gecko'):
+        name = 'gecko.{}'.format(measurement)
+    else:
+        name = measurement
+
     suite = {
-        "name": measurement,
+        "name": name,
         "value": geometric_mean(map(measurementFromNavStart, perf_json)),
         "subtests": []
     }
@@ -47,58 +55,26 @@ def format_perf_data(perf_json):
 
         suite["subtests"].append({
             "name": format_testcase_name(testcase["testcase"]),
-            "value": value
-        })
+            "value": value}
+        )
 
     suites.append(suite)
 
-    return {
-        "performance_data": {
-            # Framework https://bugzilla.mozilla.org/show_bug.cgi?id=1271472
-            "framework": {"name": "servo-perf"},
-            "suites": suites
+    return (
+        {
+            "performance_data": {
+                # https://bugzilla.mozilla.org/show_bug.cgi?id=1271472
+                "framework": {"name": "servo-perf"},
+                "suites": suites
+            }
         }
-    }
-
-
-# TODO: refactor this big function to smaller chunks
-def submit(perf_data, failures, revision, summary):
-
-    print("[DEBUG] performance data:")
-    print(perf_data)
-    print("[DEBUG] failures:")
-    print(map(lambda x: x['testcase'], failures))
-    # TODO: read the correct guid from test result
-    hashlen = len(revision['commit'])
-    # job_guid = "x" * hashlen
-    job_guid = ''.join(
-        random.choice(string.ascii_letters + string.digits) for i in range(hashlen)
     )
 
+
+def create_resultset_collection(dataset):
+    print("[DEBUG] ResultSet Collection:")
+    print(dataset)
     trsc = TreeherderResultSetCollection()
-
-    author = "{} <{}>".format(revision['author']['name'],
-                              revision['author']['email'])
-
-    dataset = [
-        {
-            # The top-most revision in the list of commits for a push.
-            'revision': revision['commit'],
-            'author': author,
-            'push_timestamp': int(revision['author']['timestamp']),
-            'type': 'push',
-            # a list of revisions associated with the resultset. There should
-            # be at least one.
-            'revisions': [
-                {
-                    'comment': revision['subject'],
-                    'revision': revision['commit'],
-                    'repository': 'servo',
-                    'author': author
-                }
-            ]
-        }
-    ]
 
     for data in dataset:
 
@@ -125,119 +101,12 @@ def submit(perf_data, failures, revision, summary):
 
         trsc.add(trs)
 
-    result = "success"
-    if len(failures) > 0:
-        result = "testfailed"
+    return trsc
 
-    dataset = [
-        {
-            'project': 'servo',
-            'revision': revision['commit'],
-            'job': {
-                'job_guid': job_guid,
-                'product_name': 'servo',
-                'reason': 'scheduler',
-                # TODO:What is `who` for?
-                'who': 'Servo',
-                'desc': 'Servo Page Load Time Tests',
-                'name': 'Servo Page Load Time',
-                # The symbol representing the job displayed in
-                # treeherder.allizom.org
-                'job_symbol': 'PL',
 
-                # The symbol representing the job group in
-                # treeherder.allizom.org
-                'group_symbol': 'SP',
-                'group_name': 'Servo Perf',
-
-                # TODO: get the real timing from the test runner
-                'submit_timestamp': revision['author']['timestamp'],
-                'start_timestamp':  revision['author']['timestamp'],
-                'end_timestamp':  revision['author']['timestamp'],
-
-                'state': 'completed',
-                'result': result,  # "success" or "testfailed"
-
-                'machine': 'local-machine',
-                # TODO: read platform test result
-                'build_platform': {
-                    'platform': 'linux64',
-                    'os_name': 'linux',
-                    'architecture': 'x86_64'
-                },
-                'machine_platform': {
-                    'platform': 'linux64',
-                    'os_name': 'linux',
-                    'architecture': 'x86_64'
-                },
-
-                'option_collection': {'opt': True},
-
-                # jobs can belong to different tiers
-                # setting the tier here will determine which tier the job
-                # belongs to.  However, if a job is set as Tier of 1, but
-                # belongs to the Tier 2 profile on the server, it will still
-                # be saved as Tier 2.
-                'tier': 1,
-
-                # the ``name`` of the log can be the default of "buildbot_text"
-                # however, you can use a custom name.  See below.
-                # TODO: point this to the log when we have them uploaded
-                'log_references': [
-                    {
-                        'url': 'TBD',
-                        'name': 'test log'
-                    }
-                ],
-                # The artifact can contain any kind of structured data
-                # associated with a test.
-                'artifacts': [
-                    {
-                        'type': 'json',
-                        'name': 'performance_data',
-                        # 'job_guid': job_guid,
-                        'blob': perf_data
-                        # {
-                        #    "performance_data": {
-                        #        # that is not `talos`?
-                        #        "framework": {"name": "talos"},
-                        #        "suites": [{
-                        #            "name": "performance.timing.domComplete",
-                        #            "value": random.choice(range(15,25)),
-                        #            "subtests": [
-                        #                {"name": "responseEnd", "value": 123},
-                        #                {"name": "loadEventEnd", "value": 223}
-                        #            ]
-                        #        }]
-                        #     }
-                        # }
-                    },
-                    {
-                        'type': 'json',
-                        'name': 'Job Info',
-                        # 'job_guid': job_guid,
-                        "blob": {
-                            "job_details": [
-                                {
-                                    "content_type": "link",
-                                    "url": "https://www.github.com/servo/servo",
-                                    "value": "GitHub",
-                                    "title": "Source code"
-                                },
-                                {
-                                    "content_type": "raw_html",
-                                    "title": "Result Summary",
-                                    "value": summary
-                                }
-                            ]
-                        }
-                    }
-                ],
-                # List of job guids that were coalesced to this job
-                'coalesced': []
-            }
-        }
-    ]
+def create_job_collection(dataset):
+    print("[DEBUG] Job Collection:")
+    print(dataset)
 
     tjc = TreeherderJobCollection()
 
@@ -291,6 +160,174 @@ def submit(perf_data, failures, revision, summary):
             )
         tjc.add(tj)
 
+        return tjc
+
+
+# TODO: refactor this big function to smaller chunks
+def submit(perf_data, failures, revision, summary, engine):
+
+    print("[DEBUG] failures:")
+    print(list(map(lambda x: x['testcase'], failures)))
+
+    author = "{} <{}>".format(revision['author']['name'],
+                              revision['author']['email'])
+
+    dataset = [
+        {
+            # The top-most revision in the list of commits for a push.
+            'revision': revision['commit'],
+            'author': author,
+            'push_timestamp': int(revision['author']['timestamp']),
+            'type': 'push',
+            # a list of revisions associated with the resultset. There should
+            # be at least one.
+            'revisions': [
+                {
+                    'comment': revision['subject'],
+                    'revision': revision['commit'],
+                    'repository': 'servo',
+                    'author': author
+                }
+            ]
+        }
+    ]
+
+    trsc = create_resultset_collection(dataset)
+
+    result = "success"
+    # FIXME: Always passing until https://bugzil.la/1276178 is fixed
+    # if len(failures) > 0:
+    #     result = "testfailed"
+
+    hashlen = len(revision['commit'])
+    job_guid = ''.join(
+        random.choice(string.ascii_letters + string.digits) for i in range(hashlen)
+    )
+
+    if (engine == "gecko"):
+        project = "servo"
+        job_symbol = 'PLG'
+        group_symbol = 'SPG'
+        group_name = 'Servo Perf on Gecko'
+    else:
+        project = "servo"
+        job_symbol = 'PL'
+        group_symbol = 'SP'
+        group_name = 'Servo Perf'
+
+    dataset = [
+        {
+            'project': project,
+            'revision': revision['commit'],
+            'job': {
+                'job_guid': job_guid,
+                'product_name': project,
+                'reason': 'scheduler',
+                # TODO: What is `who` for?
+                'who': 'Servo',
+                'desc': 'Servo Page Load Time Tests',
+                'name': 'Servo Page Load Time',
+                # The symbol representing the job displayed in
+                # treeherder.allizom.org
+                'job_symbol': job_symbol,
+
+                # The symbol representing the job group in
+                # treeherder.allizom.org
+                'group_symbol': group_symbol,
+                'group_name': group_name,
+
+                # TODO: get the real timing from the test runner
+                'submit_timestamp': str(int(time.time())),
+                'start_timestamp':  str(int(time.time())),
+                'end_timestamp':  str(int(time.time())),
+
+                'state': 'completed',
+                'result': result,  # "success" or "testfailed"
+
+                'machine': 'local-machine',
+                # TODO: read platform from test result
+                'build_platform': {
+                    'platform': 'linux64',
+                    'os_name': 'linux',
+                    'architecture': 'x86_64'
+                },
+                'machine_platform': {
+                    'platform': 'linux64',
+                    'os_name': 'linux',
+                    'architecture': 'x86_64'
+                },
+
+                'option_collection': {'opt': True},
+
+                # jobs can belong to different tiers
+                # setting the tier here will determine which tier the job
+                # belongs to.  However, if a job is set as Tier of 1, but
+                # belongs to the Tier 2 profile on the server, it will still
+                # be saved as Tier 2.
+                'tier': 1,
+
+                # the ``name`` of the log can be the default of "buildbot_text"
+                # however, you can use a custom name.  See below.
+                # TODO: point this to the log when we have them uploaded to S3
+                'log_references': [
+                    {
+                        'url': 'TBD',
+                        'name': 'test log'
+                    }
+                ],
+                # The artifact can contain any kind of structured data
+                # associated with a test.
+                'artifacts': [
+                    {
+                        'type': 'json',
+                        'name': 'performance_data',
+                        # 'job_guid': job_guid,
+                        'blob': perf_data
+                        # Perf data format:
+                        # {
+                        #    "performance_data": {
+                        #        # that is not `talos`?
+                        #        "framework": {"name": "talos"},
+                        #        "suites": [{
+                        #            "name": "performance.timing.domComplete",
+                        #            "value": random.choice(range(15,25)),
+                        #            "subtests": [
+                        #                {"name": "responseEnd", "value": 123},
+                        #                {"name": "loadEventEnd", "value": 223}
+                        #            ]
+                        #        }]
+                        #     }
+                        # }
+                    },
+                    {
+                        'type': 'json',
+                        'name': 'Job Info',
+                        # 'job_guid': job_guid,
+                        "blob": {
+                            "job_details": [
+                                {
+                                    "content_type": "link",
+                                    "url": "https://www.github.com/servo/servo",
+                                    "value": "GitHub",
+                                    "title": "Source code"
+                                },
+                                {
+                                    "content_type": "raw_html",
+                                    "title": "Result Summary",
+                                    "value": summary
+                                }
+                            ]
+                        }
+                    }
+                ],
+                # List of job guids that were coalesced to this job
+                'coalesced': []
+            }
+        }
+    ]
+
+    tjc = create_job_collection(dataset)
+
     # TODO: extract this read credential code out of this function.
     with open('credential.json', 'r') as f:
         cred = json.load(f)
@@ -318,6 +355,11 @@ def main():
                         help="the output json from runner")
     parser.add_argument("revision_json",
                         help="the json containing the servo revision data")
+    parser.add_argument("--engine",
+                        type=str,
+                        default='servo',
+                        help=("The engine to run the tests on. Currently only"
+                              " servo and gecko are supported."))
     args = parser.parse_args()
 
     with open(args.perf_json, 'r') as f:
@@ -326,12 +368,12 @@ def main():
     with open(args.revision_json, 'r') as f:
         revision = json.load(f)
 
-    perf_data = format_perf_data(result_json)
+    perf_data = format_perf_data(result_json, args.engine)
     failures = list(filter(lambda x: x['domComplete'] == -1, result_json))
     summary = format_result_summary(result_json)
     summary = summary.replace('\n', '<br/>')
 
-    submit(perf_data, failures, revision, summary)
+    submit(perf_data, failures, revision, summary, args.engine)
     print("Done!")
 
 
