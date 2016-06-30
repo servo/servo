@@ -486,7 +486,7 @@ pub fn default_opts() -> Opts {
         trace_layout: false,
         devtools_port: None,
         webdriver_port: None,
-        initial_window_size: Size2D::typed(800, 600),
+        initial_window_size: Size2D::typed(1024, 768),
         user_agent: default_user_agent_string(DEFAULT_USER_AGENT),
         multiprocess: false,
         random_pipeline_closure_probability: None,
