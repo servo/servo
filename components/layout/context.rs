@@ -23,17 +23,18 @@ use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
 use std::rc::Rc;
+use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex, RwLock};
 use style::context::{LocalStyleContext, StyleContext};
 use style::matching::{ApplicableDeclarationsCache, StyleSharingCandidateCache};
-use style::properties::ServoComputedValues;
 use style::selector_impl::ServoSelectorImpl;
-use style::servo::SharedStyleContext;
+use style::servo::{Animation, SharedStyleContext};
 use url::Url;
 use util::opts;
 
 struct LocalLayoutContext {
-    style_context: LocalStyleContext<ServoComputedValues>,
+    style_context: LocalStyleContext<ServoSelectorImpl>,
+
     font_context: RefCell<FontContext>,
 }
 
@@ -64,10 +65,13 @@ fn create_or_get_local_context(shared_layout_context: &SharedLayoutContext)
             context
         } else {
             let font_cache_thread = shared_layout_context.font_cache_thread.lock().unwrap().clone();
+            let new_animations_sender = shared_layout_context.new_animations_sender.lock().unwrap().clone();
+
             let context = Rc::new(LocalLayoutContext {
                 style_context: LocalStyleContext {
                     applicable_declarations_cache: RefCell::new(ApplicableDeclarationsCache::new()),
                     style_sharing_candidate_cache: RefCell::new(StyleSharingCandidateCache::new()),
+                    new_animations_sender: new_animations_sender,
                 },
                 font_context: RefCell::new(FontContext::new(font_cache_thread)),
             });
@@ -91,6 +95,9 @@ pub struct SharedLayoutContext {
     /// Interface to the font cache thread.
     pub font_cache_thread: Mutex<FontCacheThread>,
 
+    /// A channel used to send the new animations back to layout.
+    pub new_animations_sender: Mutex<Sender<Animation>>,
+
     /// The visible rects for each layer, as reported to us by the compositor.
     pub visible_rects: Arc<HashMap<LayerId, Rect<Au>, BuildHasherDefault<FnvHasher>>>,
 
@@ -110,7 +117,7 @@ impl<'a> StyleContext<'a, ServoSelectorImpl> for LayoutContext<'a> {
         &self.shared.style_context
     }
 
-    fn local_context(&self) -> &LocalStyleContext<ServoComputedValues> {
+    fn local_context(&self) -> &LocalStyleContext<ServoSelectorImpl> {
         &self.cached_local_layout_context.style_context
     }
 }

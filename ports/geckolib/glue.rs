@@ -5,6 +5,7 @@
 #![allow(unsafe_code)]
 
 use app_units::Au;
+use context::SharedStyleData;
 use data::PerDocumentStyleData;
 use env_logger;
 use euclid::Size2D;
@@ -77,7 +78,7 @@ pub extern "C" fn Servo_Initialize() -> () {
 fn restyle_subtree(node: GeckoNode, raw_data: *mut RawServoStyleSet) {
     debug_assert!(node.is_element() || node.is_text_node());
 
-    let data = unsafe { &mut *(raw_data as *mut PerDocumentStyleData) };
+    let per_doc_data = unsafe { &mut *(raw_data as *mut PerDocumentStyleData) };
 
     // Force the creation of our lazily-constructed initial computed values on
     // the main thread, since it's not safe to call elsewhere.
@@ -88,24 +89,27 @@ fn restyle_subtree(node: GeckoNode, raw_data: *mut RawServoStyleSet) {
     // along in startup than the sensible place to call Servo_Initialize.
     GeckoComputedValues::initial_values();
 
-    let _needs_dirtying = Arc::get_mut(&mut data.stylist).unwrap()
-                              .update(&data.stylesheets, data.stylesheets_changed);
-    data.stylesheets_changed = false;
+    let _needs_dirtying = Arc::get_mut(&mut per_doc_data.stylist).unwrap()
+                              .update(&per_doc_data.stylesheets,
+                                      per_doc_data.stylesheets_changed);
+    per_doc_data.stylesheets_changed = false;
 
-    let shared_style_context = SharedStyleContext {
-        viewport_size: Size2D::new(Au(0), Au(0)),
-        screen_size_changed: false,
-        generation: 0,
-        goal: ReflowGoal::ForScriptQuery,
-        stylist: data.stylist.clone(),
-        new_animations_sender: Mutex::new(data.new_animations_sender.clone()),
-        running_animations: data.running_animations.clone(),
-        expired_animations: data.expired_animations.clone(),
-        error_reporter: Box::new(StdoutErrorReporter),
+    let shared_style_data = SharedStyleData {
+        shared_style_context: SharedStyleContext {
+            viewport_size: Size2D::new(Au(0), Au(0)),
+            screen_size_changed: false,
+            generation: 0,
+            goal: ReflowGoal::ForScriptQuery,
+            stylist: per_doc_data.stylist.clone(),
+            running_animations: per_doc_data.running_animations.clone(),
+            expired_animations: per_doc_data.expired_animations.clone(),
+            error_reporter: Box::new(StdoutErrorReporter),
+        },
+        new_animations_sender: Mutex::new(per_doc_data.new_animations_sender.clone()),
     };
 
     if node.is_dirty() || node.has_dirty_descendants() {
-        parallel::traverse_dom::<GeckoNode, RecalcStyleOnly>(node, &shared_style_context, &mut data.work_queue);
+        parallel::traverse_dom::<GeckoNode, RecalcStyleOnly>(node, &shared_style_data, &mut per_doc_data.work_queue);
     }
 }
 

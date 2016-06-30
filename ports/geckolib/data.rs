@@ -2,11 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use context::SharedStyleData;
 use euclid::Size2D;
 use euclid::size::TypedSize2D;
 use gecko_bindings::bindings::RawServoStyleSet;
 use num_cpus;
-use selector_impl::{GeckoSelectorImpl, Stylist, Stylesheet, SharedStyleContext};
+use selector_impl::{Animation, Stylist, Stylesheet};
 use std::cmp;
 use std::collections::HashMap;
 use std::sync::mpsc::{channel, Receiver, Sender};
@@ -17,8 +18,6 @@ use style::parallel::WorkQueueData;
 use util::geometry::ViewportPx;
 use util::thread_state;
 use util::workqueue::WorkQueue;
-
-pub type Animation = ::style::animation::Animation<GeckoSelectorImpl>;
 
 pub struct PerDocumentStyleData {
     /// Rule processor.
@@ -37,7 +36,7 @@ pub struct PerDocumentStyleData {
     pub expired_animations: Arc<RwLock<HashMap<OpaqueNode, Vec<Animation>>>>,
 
     // FIXME(bholley): This shouldn't be per-document.
-    pub work_queue: WorkQueue<SharedStyleContext, WorkQueueData>,
+    pub work_queue: WorkQueue<SharedStyleData, WorkQueueData>,
 }
 
 impl PerDocumentStyleData {

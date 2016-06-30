@@ -495,7 +495,6 @@ impl LayoutThread {
                 stylist: rw_data.stylist.clone(),
                 generation: self.generation,
                 goal: goal,
-                new_animations_sender: Mutex::new(self.new_animations_sender.clone()),
                 running_animations: self.running_animations.clone(),
                 expired_animations: self.expired_animations.clone(),
                 error_reporter: self.error_reporter.clone(),
@@ -503,6 +502,7 @@ impl LayoutThread {
             image_cache_thread: self.image_cache_thread.clone(),
             image_cache_sender: Mutex::new(self.image_cache_sender.clone()),
             font_cache_thread: Mutex::new(self.font_cache_thread.clone()),
+            new_animations_sender: Mutex::new(self.new_animations_sender.clone()),
             visible_rects: self.visible_rects.clone(),
             webrender_image_cache: self.webrender_image_cache.clone(),
         }
