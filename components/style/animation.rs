@@ -422,6 +422,11 @@ pub fn maybe_start_animations<Impl: SelectorImplExt>(context: &SharedStyleContex
 {
     let mut had_animations = false;
 
+    // FIXME(emilio): Implement animations for geckolib.
+    if !new_style.is_servo() {
+        return false;
+    }
+
     let box_style = new_style.as_servo().get_box();
     for (i, name) in box_style.animation_name.0.iter().enumerate() {
         debug!("maybe_start_animations: name={}", name);
