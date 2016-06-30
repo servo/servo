@@ -9,8 +9,11 @@
 
 from __future__ import print_function, unicode_literals
 
-import os
+import sys
 import os.path as path
+sys.path.append(path.join(path.dirname(sys.argv[0]), "components", "style", "properties", "Mako-0.9.1.zip"))
+
+import os
 import shutil
 import subprocess
 import tarfile
@@ -24,7 +27,9 @@ from mach.decorators import (
     Command,
 )
 
-from servo.command_base import CommandBase, cd, BuildNotFound, is_macosx
+from mako.template import Template
+
+from servo.command_base import CommandBase, cd, BuildNotFound, is_macosx, is_windows
 from servo.post_build_commands import find_dep_path_newest
 
 
@@ -40,6 +45,11 @@ def otool(s):
     for l in o.stdout:
         if l[0] == '\t':
             yield l.split(' ', 1)[0][1:]
+
+
+def listfiles(directory):
+    return [f for f in os.listdir(directory)
+            if path.isfile(path.join(directory, f))]
 
 
 def install_name_tool(old, new, binary):
@@ -76,7 +86,7 @@ class PackageCommands(CommandBase):
                 env["ANT_FLAVOR"] = "release"
                 dev_flag = ""
 
-            target_dir = os.path.dirname(binary_path)
+            target_dir = path.dirname(binary_path)
             output_apk = "{}.apk".format(binary_path)
             try:
                 with cd(path.join("support", "android", "build-apk")):
@@ -91,7 +101,7 @@ class PackageCommands(CommandBase):
             dir_to_app = dir_to_dmg + '/Servo.app'
             dir_to_resources = dir_to_app + '/Contents/Resources/'
             dir_to_root = '/'.join(binary_path.split('/')[:-3])
-            if os.path.exists(dir_to_dmg):
+            if path.exists(dir_to_dmg):
                 print("Cleaning up from previous packaging")
                 delete(dir_to_dmg)
             browserhtml_path = find_dep_path_newest('browserhtml', binary_path)
@@ -123,7 +133,7 @@ class PackageCommands(CommandBase):
                         continue
                     need_relinked = set(otool(f))
                     new_path = dir_to_app + '/Contents/MacOS/' + f.split('/')[-1]
-                    if not os.path.exists(new_path):
+                    if not path.exists(new_path):
                         shutil.copyfile(f, new_path)
                     for dylib in need_relinked:
                         if '/System/Library' in dylib or '/usr/lib' in dylib or 'servo' in dylib:
@@ -153,6 +163,45 @@ class PackageCommands(CommandBase):
             print("Cleaning up")
             delete(dir_to_dmg)
             print("Packaged Servo into " + dmg_path)
+        elif is_windows():
+            dir_to_package = path.dirname(binary_path)
+            dir_to_root = self.get_top_dir()
+            dir_to_msi = path.join(dir_to_package, 'msi')
+            if path.exists(dir_to_msi):
+                print("Cleaning up from previous packaging")
+                delete(dir_to_msi)
+            os.makedirs(dir_to_msi)
+            top_path = dir_to_root
+            browserhtml_path = find_dep_path_newest('browserhtml', binary_path)
+            if browserhtml_path is None:
+                print("Could not find browserhtml package; perhaps you haven't built Servo.")
+                return 1
+            browserhtml_path = path.join(browserhtml_path, "out")
+            # generate Servo.wxs
+            template_path = path.join(dir_to_root, "support", "windows", "Servo.wxs.mako")
+            template = Template(open(template_path).read())
+            wxs_path = path.join(dir_to_msi, "Servo.wxs")
+            open(wxs_path, "w").write(template.render(
+                exe_path=dir_to_package,
+                top_path=top_path,
+                browserhtml_path=browserhtml_path))
+            # run candle and light
+            print("Creating MSI")
+            try:
+                with cd(dir_to_msi):
+                    subprocess.check_call(['candle', wxs_path])
+            except subprocess.CalledProcessError as e:
+                print("WiX candle exited with return value %d" % e.returncode)
+                return e.returncode
+            try:
+                wxsobj_path = "{}.wixobj".format(path.splitext(wxs_path)[0])
+                with cd(dir_to_msi):
+                    subprocess.check_call(['light', wxsobj_path])
+            except subprocess.CalledProcessError as e:
+                print("WiX light exited with return value %d" % e.returncode)
+                return e.returncode
+            msi_path = path.join(dir_to_msi, "Servo.msi")
+            print("Packaged Servo into {}".format(msi_path))
         else:
             dir_to_package = '/'.join(binary_path.split('/')[:-1])
             dir_to_root = '/'.join(binary_path.split('/')[:-3])
