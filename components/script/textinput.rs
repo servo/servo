@@ -486,12 +486,17 @@ impl<T: ClipboardProvider> TextInput<T> {
     /// Process a given `KeyboardEvent` and return an action for the caller to execute.
     pub fn handle_keydown(&mut self, event: &KeyboardEvent) -> KeyReaction {
         if let Some(key) = event.get_key() {
-            self.handle_keydown_aux(key, event.get_key_modifiers())
+            self.handle_keydown_aux(event.char(), key, event.get_key_modifiers())
         } else {
             KeyReaction::Nothing
         }
     }
-    pub fn handle_keydown_aux(&mut self, key: Key, mods: KeyModifiers) -> KeyReaction {
+
+    pub fn handle_keydown_aux(&mut self, ch: Option<char>, key: Key, mods: KeyModifiers) -> KeyReaction {
+        if let Some(ch) = ch {
+            self.insert_char(ch);
+            return KeyReaction::DispatchInput;
+        }
         let maybe_select = if mods.contains(SHIFT) { Selection::Selected } else { Selection::NotSelected };
         match key {
             Key::A if is_control_key(mods) => {

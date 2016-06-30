@@ -1093,7 +1093,7 @@ impl Document {
                                           alt,
                                           shift,
                                           meta,
-                                          None,
+                                          props.char_code,
                                           props.key_code);
         let event = keyevent.upcast::<Event>();
         event.fire(target);
@@ -1120,7 +1120,7 @@ impl Document {
                                            shift,
                                            meta,
                                            props.char_code,
-                                           0);
+                                           props.key_code);
             let ev = event.upcast::<Event>();
             ev.fire(target);
             prevented = ev.DefaultPrevented();

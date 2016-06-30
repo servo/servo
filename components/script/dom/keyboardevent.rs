@@ -19,6 +19,7 @@ use msg::constellation_msg;
 use msg::constellation_msg::{Key, KeyModifiers};
 use std::borrow::Cow;
 use std::cell::Cell;
+use std::char;
 
 no_jsmanaged_fields!(Key);
 
@@ -124,6 +125,10 @@ impl KeyboardEvent {
                 char_code: ch.map(|ch| ch as u32),
                 key_code: key_keycode(key),
             }
+    }
+
+    pub fn char(&self) -> Option<char> {
+        self.char_code.get().map(|code| char::from_u32(code).unwrap())
     }
 }
 
