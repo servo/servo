@@ -1125,7 +1125,7 @@ impl Document {
         }
 
         if !prevented {
-            constellation.send(ConstellationMsg::SendKeyEvent(key, state, modifiers, ch)).unwrap();
+            constellation.send(ConstellationMsg::SendKeyEvent(ch, key, state, modifiers)).unwrap();
         }
 
         // This behavior is unspecced

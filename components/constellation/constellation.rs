@@ -803,7 +803,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 self.compositor_proxy.send(ToCompositorMsg::ChangePageTitle(pipeline_id, title))
             }
 
-            FromScriptMsg::SendKeyEvent(key, key_state, key_modifiers, ch) => {
+            FromScriptMsg::SendKeyEvent(ch, key, key_state, key_modifiers) => {
                 self.compositor_proxy.send(ToCompositorMsg::KeyEvent(ch, key, key_state, key_modifiers))
             }
 
@@ -1407,7 +1407,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         match pipeline_id {
             Some(pipeline_id) => {
-                let event = CompositorEvent::KeyEvent(key, state, mods, ch);
+                let event = CompositorEvent::KeyEvent(ch, key, state, mods);
                 let msg = ConstellationControlMsg::SendEvent(pipeline_id, event);
                 let result = match self.pipelines.get(&pipeline_id) {
                     Some(pipeline) => pipeline.script_chan.send(msg),
@@ -1629,7 +1629,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     None => return warn!("Pipeline {:?} SendKeys after closure.", pipeline_id),
                 };
                 for (key, mods, state) in cmd {
-                    let event = CompositorEvent::KeyEvent(key, state, mods, None);
+                    let event = CompositorEvent::KeyEvent(None, key, state, mods);
                     let control_msg = ConstellationControlMsg::SendEvent(pipeline_id, event);
                     if let Err(e) = script_channel.send(control_msg) {
                         return self.handle_send_error(pipeline_id, e);

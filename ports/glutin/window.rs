@@ -242,9 +242,8 @@ impl Window {
     fn handle_window_event(&self, event: glutin::Event) -> bool {
         match event {
             Event::ReceivedCharacter(ch) => {
-                // Glutin ends up providing non-printable characters like escape and backspace,
-                // which is no good for trying to figure out the logical key that was pressed.
-                if !ch.is_control() && ch.len_utf8() == 1 {
+                assert!(self.pending_key_event_char.get().is_none());
+                if !ch.is_control() {
                     self.pending_key_event_char.set(Some(ch));
                 }
             }
@@ -266,7 +265,9 @@ impl Window {
                         // Retrieve any previosly stored ReceivedCharacter value.
                         // Store the association between the scan code and the actual
                         // character value, if there is one.
-                        let ch = self.pending_key_event_char.get();
+                        let ch = self.pending_key_event_char
+                                     .get()
+                                     .and_then(|ch| filter_nonprintable(ch, virtual_key_code));
                         self.pending_key_event_char.set(None);
                         if let Some(ch) = ch {
                             self.pressed_key_map.borrow_mut().push((scan_code, ch));
@@ -959,6 +960,77 @@ fn glutin_pressure_stage_to_touchpad_pressure_phase(stage: i64) -> TouchpadPress
         TouchpadPressurePhase::AfterFirstClick
     } else {
         TouchpadPressurePhase::AfterSecondClick
+    }
+}
+
+fn filter_nonprintable(ch: char, key_code: VirtualKeyCode) -> Option<char> {
+    use glutin::VirtualKeyCode::*;
+    match key_code {
+        Escape |
+        F1 |
+        F2 |
+        F3 |
+        F4 |
+        F5 |
+        F6 |
+        F7 |
+        F8 |
+        F9 |
+        F10 |
+        F11 |
+        F12 |
+        F13 |
+        F14 |
+        F15 |
+        Snapshot |
+        Scroll |
+        Pause |
+        Insert |
+        Home |
+        Delete |
+        End |
+        PageDown |
+        PageUp |
+        Left |
+        Up |
+        Right |
+        Down |
+        Back |
+        LAlt |
+        LControl |
+        LMenu |
+        LShift |
+        LWin |
+        Mail |
+        MediaSelect |
+        MediaStop |
+        Mute |
+        MyComputer |
+        NavigateForward |
+        NavigateBackward |
+        NextTrack |
+        NoConvert |
+        PlayPause |
+        Power |
+        PrevTrack |
+        RAlt |
+        RControl |
+        RMenu |
+        RShift |
+        RWin |
+        Sleep |
+        Stop |
+        VolumeDown |
+        VolumeUp |
+        Wake |
+        WebBack |
+        WebFavorites |
+        WebForward |
+        WebHome |
+        WebRefresh |
+        WebSearch |
+        WebStop => None,
+        _ => Some(ch),
     }
 }
 
