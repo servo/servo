@@ -81,7 +81,6 @@ fn builder_with_platform_options(mut builder: glutin::WindowBuilder) -> glutin::
         builder = builder.with_activation_policy(ActivationPolicy::Prohibited)
     }
     builder.with_app_name(String::from("Servo"))
-           .with_transparent_corner_radius(8)
 }
 
 #[cfg(not(target_os = "macos"))]
@@ -261,7 +260,8 @@ impl Window {
             Event::Resized(width, height) => {
                 self.event_queue.borrow_mut().push(WindowEvent::Resize(Size2D::typed(width, height)));
             }
-            Event::MouseInput(element_state, mouse_button) => {
+            Event::MouseInput(element_state, mouse_button, _) => {
+                // FIXME(#11130, pcwalton): The third field should be used.
                 if mouse_button == MouseButton::Left ||
                                     mouse_button == MouseButton::Right {
                         let mouse_pos = self.mouse_pos.get();
