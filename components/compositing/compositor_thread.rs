@@ -185,6 +185,9 @@ pub enum Msg {
     GetScrollOffset(PipelineId, LayerId, IpcSender<Point2D<f32>>),
     /// Pipeline visibility changed
     PipelineVisibilityChanged(PipelineId, bool),
+    /// WebRender has successfully processed a scroll. The boolean specifies whether a composite is
+    /// needed.
+    NewScrollFrameReady(bool),
     /// A pipeline was shut down.
     // This message acts as a synchronization point between the constellation,
     // when it shuts down a pipeline, to the compositor; when the compositor
@@ -228,6 +231,7 @@ impl Debug for Msg {
             Msg::PipelineVisibilityChanged(..) => write!(f, "PipelineVisibilityChanged"),
             Msg::PipelineExited(..) => write!(f, "PipelineExited"),
             Msg::GetScrollOffset(..) => write!(f, "GetScrollOffset"),
+            Msg::NewScrollFrameReady(..) => write!(f, "NewScrollFrameReady"),
         }
     }
 }
