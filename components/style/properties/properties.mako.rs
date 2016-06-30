@@ -1082,12 +1082,61 @@ pub mod style_struct_traits {
                     #[allow(non_snake_case)]
                     fn clone_${longhand.ident}(&self) -> longhands::${longhand.ident}::computed_value::T;
                 % endif
+                % if longhand.need_index:
+                    #[allow(non_snake_case)]
+                    fn ${longhand.ident}_count(&self) -> usize;
+
+                    #[allow(non_snake_case)]
+                    fn ${longhand.ident}_at(&self, index: usize)
+                        -> longhands::${longhand.ident}::computed_value::SingleComputedValue;
+
+                    #[allow(non_snake_case)]
+                    #[inline]
+                    fn ${longhand.ident}_iter<'a>(&'a self)
+                        -> ${longhand.camel_case}Iter<'a, Self> {
+                        ${longhand.camel_case}Iter {
+                            style_struct: self,
+                            current: 0,
+                            max: self.${longhand.ident}_count(),
+                        }
+                    }
+
+                    #[allow(non_snake_case)]
+                    #[inline]
+                    fn ${longhand.ident}_mod(&self, index: usize)
+                        -> longhands::${longhand.ident}::computed_value::SingleComputedValue {
+                        self.${longhand.ident}_at(index % self.${longhand.ident}_count())
+                    }
+                % endif
             % endfor
             % for additional in style_struct.additional_methods:
                 #[allow(non_snake_case)]
                 ${additional.declare()}
             % endfor
         }
+
+        % for longhand in style_struct.longhands:
+            % if longhand.need_index:
+                pub struct ${longhand.camel_case}Iter<'a, S: ${style_struct.trait_name} + 'static> {
+                    style_struct: &'a S,
+                    current: usize,
+                    max: usize,
+                }
+
+                impl<'a, S: ${style_struct.trait_name} + 'static> Iterator for ${longhand.camel_case}Iter<'a, S> {
+                    type Item = longhands::${longhand.ident}::computed_value::SingleComputedValue;
+
+                    fn next(&mut self) -> Option<Self::Item> {
+                        self.current += 1;
+                        if self.current <= self.max {
+                            Some(self.style_struct.${longhand.ident}_at(self.current - 1))
+                        } else {
+                            None
+                        }
+                    }
+                }
+            % endif
+        % endfor
     % endfor
 }
 
@@ -1140,6 +1189,17 @@ pub mod style_structs {
                         self.${longhand.ident}.clone()
                     }
                 % endif
+
+                % if longhand.need_index:
+                    fn ${longhand.ident}_count(&self) -> usize {
+                        self.${longhand.ident}.0.len()
+                    }
+
+                    fn ${longhand.ident}_at(&self, index: usize)
+                        -> longhands::${longhand.ident}::computed_value::SingleComputedValue {
+                        self.${longhand.ident}.0[index].clone()
+                    }
+                % endif
             % endfor
             % if style_struct.trait_name == "Border":
                 % for side in ["top", "right", "bottom", "left"]:
@@ -1147,11 +1207,6 @@ pub mod style_structs {
                         self.border_${side}_width != ::app_units::Au(0)
                     }
                 % endfor
-            % elif style_struct.trait_name == "Box":
-                #[inline]
-                fn transition_count(&self) -> usize {
-                    self.transition_property.0.len()
-                }
             % elif style_struct.trait_name == "Font":
                 fn compute_font_hash(&mut self) {
                     // Corresponds to the fields in `gfx::font_template::FontTemplateDescriptor`.
