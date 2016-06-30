@@ -184,9 +184,7 @@ class CommandBase(object):
         self.config["tools"].setdefault("system-cargo", False)
         self.config["tools"].setdefault("rust-root", "")
         self.config["tools"].setdefault("cargo-root", "")
-        if not self.config["tools"]["system-rust"]:
-            self.config["tools"]["rust-root"] = path.join(
-                context.sharedir, "rust", self.rust_path())
+        self.set_use_stable_rust(False)
         if not self.config["tools"]["system-cargo"]:
             self.config["tools"]["cargo-root"] = path.join(
                 context.sharedir, "cargo", self.cargo_build_id())
@@ -205,16 +203,33 @@ class CommandBase(object):
         self.config["android"].setdefault("platform", "android-18")
         self.config["android"].setdefault("target", "arm-linux-androideabi")
 
-    _rust_path = None
+    _use_stable_rust = False
+    _rust_version = None
+    _rust_version_is_stable = False
     _cargo_build_id = None
 
+    def set_use_stable_rust(self, use_stable_rust=True):
+        self._use_stable_rust = use_stable_rust
+        if not self.config["tools"]["system-rust"]:
+            self.config["tools"]["rust-root"] = path.join(
+                self.context.sharedir, "rust", self.rust_path())
+
+    def use_stable_rust(self):
+        return self._use_stable_rust
+
     def rust_path(self):
-        if self._rust_path is None:
-            filename = path.join(self.context.topdir, "rust-nightly-date")
+        if self._use_stable_rust:
+            return "rustc-%s-%s" % (self.rust_version(), host_triple())
+        else:
+            return "%s/rustc-nightly-%s" % (self.rust_version(), host_triple())
+
+    def rust_version(self):
+        if self._rust_version is None or self._use_stable_rust != self._rust_version_is_stable:
+            filename = path.join(self.context.topdir,
+                                 "rust-stable-version" if self._use_stable_rust else "rust-nightly-date")
             with open(filename) as f:
-                date = f.read().strip()
-            self._rust_path = ("%s/rustc-nightly-%s" % (date, host_triple()))
-        return self._rust_path
+                self._rust_version = f.read().strip()
+        return self._rust_version
 
     def cargo_build_id(self):
         if self._cargo_build_id is None:
@@ -317,7 +332,9 @@ class CommandBase(object):
 
         env["CARGO_HOME"] = self.config["tools"]["cargo-home-dir"]
 
-        if "CARGO_TARGET_DIR" not in env:
+        if self.use_stable_rust():
+            env["CARGO_TARGET_DIR"] = path.join(self.context.topdir, "ports/stable-rust/target")
+        elif "CARGO_TARGET_DIR" not in env:
             env["CARGO_TARGET_DIR"] = path.join(self.context.topdir, "target")
 
         if extra_lib:
@@ -426,7 +443,8 @@ class CommandBase(object):
 
         if not (self.config['tools']['system-rust'] or (rustc_binary_exists and target_exists)):
             print("looking for rustc at %s" % (rustc_path))
-            Registrar.dispatch("bootstrap-rust", context=self.context, target=filter(None, [target]))
+            Registrar.dispatch("bootstrap-rust", context=self.context, target=filter(None, [target]),
+                               stable=self._use_stable_rust)
 
         cargo_path = path.join(self.config["tools"]["cargo-root"], "cargo", "bin",
                                "cargo" + BIN_SUFFIX)
