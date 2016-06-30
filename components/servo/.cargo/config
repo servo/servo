@@ -9,3 +9,6 @@ ar = "arm-linux-gnueabihf-ar"
 [target.aarch64-unknown-linux-gnu]
 linker = "aarch64-linux-gnu-gcc"
 ar = "aarch64-linux-gnu-ar"
+
+[target.'cfg(target_os=windows)']
+linker = "./fake-ld.cmd"
