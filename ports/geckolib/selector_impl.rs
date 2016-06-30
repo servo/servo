@@ -12,6 +12,7 @@ pub type Stylist = style::selector_matching::Stylist<GeckoSelectorImpl>;
 pub type Stylesheet = style::stylesheets::Stylesheet<GeckoSelectorImpl>;
 pub type SharedStyleContext = style::context::SharedStyleContext<GeckoSelectorImpl>;
 pub type PrivateStyleData = style::data::PrivateStyleData<GeckoSelectorImpl, GeckoComputedValues>;
+pub type Animation = style::animation::Animation<GeckoSelectorImpl>;
 
 #[cfg(feature = "servo_features")]
 known_heap_size!(0, GeckoSelectorImpl, PseudoElement, NonTSPseudoClass);

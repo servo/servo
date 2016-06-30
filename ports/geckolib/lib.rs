@@ -24,6 +24,7 @@ extern crate style_traits;
 extern crate url;
 extern crate util;
 
+mod context;
 mod data;
 #[allow(non_snake_case)]
 pub mod glue;

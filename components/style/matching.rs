@@ -373,6 +373,7 @@ trait PrivateMatchMethods: TNode
     /// pseudo-elements.
     fn cascade_node_pseudo_element(&self,
                                    context: &SharedStyleContext<<Self::ConcreteElement as Element>::Impl>,
+                                   local_context: &LocalStyleContext<<Self::ConcreteElement as Element>::Impl>,
                                    parent_style: Option<&Arc<Self::ConcreteComputedValues>>,
                                    applicable_declarations: &[DeclarationBlock],
                                    mut style: Option<&mut Arc<Self::ConcreteComputedValues>>,
@@ -423,6 +424,7 @@ trait PrivateMatchMethods: TNode
             // Trigger any present animations if necessary.
             let mut animations_started = animation::maybe_start_animations::<<Self::ConcreteElement as Element>::Impl>(
                 &context,
+                &local_context.new_animations_sender,
                 this_opaque,
                 &this_style);
 
@@ -431,7 +433,7 @@ trait PrivateMatchMethods: TNode
             if let Some(ref style) = style {
                 animations_started |=
                     animation::start_transitions_if_applicable::<<Self::ConcreteElement as Element>::Impl>(
-                        &context.new_animations_sender,
+                        &local_context.new_animations_sender,
                         this_opaque,
                         &**style,
                         &mut this_style);
@@ -660,7 +662,7 @@ pub trait MatchMethods : TNode {
 
     unsafe fn cascade_node(&self,
                            context: &SharedStyleContext<<Self::ConcreteElement as Element>::Impl>,
-                           local_context: &LocalStyleContext<Self::ConcreteComputedValues>,
+                           local_context: &LocalStyleContext<<Self::ConcreteElement as Element>::Impl>,
                            parent: Option<Self>,
                            applicable_declarations: &ApplicableDeclarations<<Self::ConcreteElement as Element>::Impl>)
     where <Self::ConcreteElement as Element>::Impl: SelectorImplExt<ComputedValues = Self::ConcreteComputedValues>
@@ -695,6 +697,7 @@ pub trait MatchMethods : TNode {
                 let mut data = &mut *data_ref;
                 let (mut damage, final_style) = self.cascade_node_pseudo_element(
                     context,
+                    local_context,
                     parent_style,
                     &applicable_declarations.normal,
                     data.style.as_mut(),
@@ -716,6 +719,7 @@ pub trait MatchMethods : TNode {
                             <Self::ConcreteElement as Element>::Impl::pseudo_is_before_or_after(&pseudo);
                         let (new_damage, style) = self.cascade_node_pseudo_element(
                             context,
+                            local_context,
                             Some(data.style.as_ref().unwrap()),
                             &*applicable_declarations_for_this_pseudo,
                             data.per_pseudo.get_mut(&pseudo),
