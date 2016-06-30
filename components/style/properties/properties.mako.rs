@@ -1078,22 +1078,9 @@ pub mod style_struct_traits {
                 fn set_${longhand.ident}(&mut self, v: longhands::${longhand.ident}::computed_value::T);
                 #[allow(non_snake_case)]
                 fn copy_${longhand.ident}_from(&mut self, other: &Self);
-                % if longhand.need_borrow:
-                    #[allow(non_snake_case)]
-                    fn borrow_${longhand.ident}(&self) -> &longhands::${longhand.ident}::computed_value::T;
-                % endif
-
                 % if longhand.need_clone:
-                    % if longhand.need_borrow:
-                        #[allow(non_snake_case)]
-                        #[inline]
-                        fn clone_${longhand.ident}(&self) -> longhands::${longhand.ident}::computed_value::T {
-                            self.borrow_${longhand.ident}().clone()
-                        }
-                    % else:
-                        #[allow(non_snake_case)]
-                        fn clone_${longhand.ident}(&self) -> longhands::${longhand.ident}::computed_value::T;
-                    % endif
+                    #[allow(non_snake_case)]
+                    fn clone_${longhand.ident}(&self) -> longhands::${longhand.ident}::computed_value::T;
                 % endif
             % endfor
             % for additional in style_struct.additional_methods:
@@ -1151,12 +1138,6 @@ pub mod style_structs {
                     #[inline]
                     fn clone_${longhand.ident}(&self) -> longhands::${longhand.ident}::computed_value::T {
                         self.${longhand.ident}.clone()
-                    }
-                % endif
-                % if longhand.need_borrow:
-                    #[inline]
-                    fn borrow_${longhand.ident}(&self) -> &longhands::${longhand.ident}::computed_value::T {
-                        &self.${longhand.ident}
                     }
                 % endif
             % endfor

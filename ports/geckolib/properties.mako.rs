@@ -447,11 +447,6 @@ impl ${style_struct.trait_name} for ${style_struct.gecko_struct_name} {
         unimplemented!()
     }
     % endif
-    % if longhand.need_borrow:
-    fn borrow_${longhand.ident}(&self) -> &longhands::${longhand.ident}::computed_value::T {
-        unimplemented!()
-    }
-    % endif
     % endfor
     <% additionals = [x for x in style_struct.additional_methods
                       if skip_additionals != "*" and not x.name in skip_additionals.split()] %>

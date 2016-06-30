@@ -600,8 +600,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 </%helpers:longhand>
 
 <%helpers:longhand name="animation-name"
-                   animatable="False"
-                   need_borrow="True">
+                   animatable="False">
     use values::computed::ComputedValueAsSpecified;
 
     pub mod computed_value {
@@ -648,23 +647,20 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 </%helpers:longhand>
 
 <%helpers:longhand name="animation-duration"
-                   animatable="False"
-                   need_borrow="True">
+                   animatable="False">
     pub use super::transition_duration::computed_value;
     pub use super::transition_duration::{parse, get_initial_value};
     pub use super::transition_duration::SpecifiedValue;
 </%helpers:longhand>
 
 <%helpers:longhand name="animation-timing-function"
-                   animatable="False"
-                   need_borrow="True">
+                   animatable="False">
     pub use super::transition_timing_function::computed_value;
     pub use super::transition_timing_function::{parse, get_initial_value};
     pub use super::transition_timing_function::SpecifiedValue;
 </%helpers:longhand>
 
-<%helpers:longhand name="animation-iteration-count" animatable="False"
-                   need_borrow="True">
+<%helpers:longhand name="animation-iteration-count" animatable="False">
     use values::computed::ComputedValueAsSpecified;
 
     pub mod computed_value {
@@ -735,23 +731,19 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 
 ${helpers.keyword_list("animation-direction",
                        "normal reverse alternate alternate-reverse",
-                       animatable=False,
-                       need_borrow=True)}
+                       animatable=False)}
 
 ${helpers.keyword_list("animation-play-state",
                        "running paused",
                        need_clone=True,
-                       animatable=False,
-                       need_borrow=True)}
+                       animatable=False)}
 
 ${helpers.keyword_list("animation-fill-mode",
                        "none forwards backwards both",
-                       animatable=False,
-                       need_borrow=True)}
+                       animatable=False)}
 
 <%helpers:longhand name="animation-delay"
-                   animatable="False"
-                   need_borrow="True">
+                   animatable="False">
     pub use super::transition_duration::computed_value;
     pub use super::transition_duration::{parse, get_initial_value};
     pub use super::transition_duration::SpecifiedValue;
