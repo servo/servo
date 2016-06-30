@@ -45,7 +45,7 @@ pub fn traverse_dom<N, C>(root: N,
                           where N: TNode, C: DomTraversalContext<N> {
     run_queue_with_custom_work_data_type(queue, |queue| {
         queue.push(WorkUnit {
-            fun:  top_down_dom::<N, C>,
+            fun: top_down_dom::<N, C>,
             data: (Box::new(vec![root.to_unsafe()]), root.opaque()),
         });
     }, queue_data);

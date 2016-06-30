@@ -108,7 +108,7 @@ use style::parallel::WorkQueueData;
 use style::properties::ComputedValues;
 use style::refcell::RefCell;
 use style::selector_matching::USER_OR_USER_AGENT_STYLESHEETS;
-use style::servo::{Animation, SharedStyleContext, Stylesheet, Stylist};
+use style::servo::{Animation, LocalStyleContextCreationInfo, SharedStyleContext, Stylesheet, Stylist};
 use style::stylesheets::CSSRuleIteratorExt;
 use url::Url;
 use util::geometry::MAX_RECT;
@@ -488,6 +488,8 @@ impl LayoutThread {
                                    screen_size_changed: bool,
                                    goal: ReflowGoal)
                                    -> SharedLayoutContext {
+        let local_style_context_creation_data = LocalStyleContextCreationInfo::new(self.new_animations_sender.clone());
+
         SharedLayoutContext {
             style_context: SharedStyleContext {
                 viewport_size: self.viewport_size.clone(),
@@ -495,10 +497,10 @@ impl LayoutThread {
                 stylist: rw_data.stylist.clone(),
                 generation: self.generation,
                 goal: goal,
-                new_animations_sender: Mutex::new(self.new_animations_sender.clone()),
                 running_animations: self.running_animations.clone(),
                 expired_animations: self.expired_animations.clone(),
                 error_reporter: self.error_reporter.clone(),
+                local_context_creation_data: Mutex::new(local_style_context_creation_data),
             },
             image_cache_thread: self.image_cache_thread.clone(),
             image_cache_sender: Mutex::new(self.image_cache_sender.clone()),

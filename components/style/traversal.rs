@@ -218,8 +218,7 @@ pub fn recalc_style_at<'a, N, C>(context: &'a C,
 
                 // Perform the CSS cascade.
                 unsafe {
-                    node.cascade_node(&context.shared_context(),
-                                      &context.local_context(),
+                    node.cascade_node(context,
                                       parent_opt,
                                       &applicable_declarations);
                 }
