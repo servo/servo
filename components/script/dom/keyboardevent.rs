@@ -37,6 +37,7 @@ pub struct KeyboardEvent {
     is_composing: Cell<bool>,
     char_code: Cell<Option<u32>>,
     key_code: Cell<u32>,
+    printable: Cell<Option<char>>,
 }
 
 impl KeyboardEvent {
@@ -55,6 +56,7 @@ impl KeyboardEvent {
             is_composing: Cell::new(false),
             char_code: Cell::new(None),
             key_code: Cell::new(0),
+            printable: Cell::new(None),
         }
     }
 
@@ -86,13 +88,14 @@ impl KeyboardEvent {
         let ev = KeyboardEvent::new_uninitialized(window);
         ev.InitKeyboardEvent(type_, canBubble, cancelable, view, key_string, location,
                              DOMString::new(), repeat, DOMString::new());
-        ev.key.set(logical_key(ch, key, location));
+        ev.key.set(key);
         *ev.code.borrow_mut() = code;
         ev.ctrl.set(ctrlKey);
         ev.alt.set(altKey);
         ev.shift.set(shiftKey);
         ev.meta.set(metaKey);
         ev.char_code.set(char_code);
+        ev.printable.set(ch);
         ev.key_code.set(key_code);
         ev.is_composing.set(isComposing);
         ev
@@ -129,6 +132,10 @@ impl KeyboardEvent {
 
 
 impl KeyboardEvent {
+    pub fn printable(&self) -> Option<char> {
+        self.printable.get()
+    }
+
     pub fn get_key(&self) -> Option<Key> {
         self.key.get().clone()
     }
@@ -150,18 +157,6 @@ impl KeyboardEvent {
         result
     }
 }
-
-fn logical_key(ch: Option<char>, key: Option<Key>, location: u32) -> Option<Key> {
-    if let Some(ch) = ch {
-        let key = key_from_string(&format!("{}", ch), location);
-        if key.is_some() {
-            return key;
-        }
-    }
-
-    key
-}
-
 
 // https://w3c.github.io/uievents-key/#key-value-tables
 pub fn key_value(ch: Option<char>, key: Key, mods: KeyModifiers) -> Cow<'static, str> {
