@@ -275,7 +275,7 @@ pub enum CompositorEvent {
     /// Touchpad pressure event
     TouchpadPressureEvent(Point2D<f32>, f32, TouchpadPressurePhase),
     /// A key was pressed.
-    KeyEvent(Key, KeyState, KeyModifiers),
+    KeyEvent(Key, KeyState, KeyModifiers, Option<char>),
 }
 
 /// Touchpad pressure phase for TouchpadPressureEvent.
@@ -544,7 +544,7 @@ pub enum ConstellationMsg {
     /// Query the constellation to see if the current compositor output is stable
     IsReadyToSaveImage(HashMap<PipelineId, Epoch>),
     /// Inform the constellation of a key event.
-    KeyEvent(Key, KeyState, KeyModifiers),
+    KeyEvent(Option<char>, Key, KeyState, KeyModifiers),
     /// Request to load a page.
     LoadUrl(PipelineId, LoadData),
     /// Request to navigate a frame.

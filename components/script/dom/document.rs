@@ -1047,6 +1047,7 @@ impl Document {
 
     /// The entry point for all key processing for web content
     pub fn dispatch_key_event(&self,
+                              ch: Option<char>,
                               key: Key,
                               state: KeyState,
                               modifiers: KeyModifiers,
@@ -1073,7 +1074,7 @@ impl Document {
                                       }
                                       .to_owned());
 
-        let props = KeyboardEvent::key_properties(key, modifiers);
+        let props = KeyboardEvent::key_properties(ch, key, modifiers);
 
         let keyevent = KeyboardEvent::new(&self.window,
                                           ev_type,
@@ -1081,8 +1082,9 @@ impl Document {
                                           true,
                                           Some(&self.window),
                                           0,
+                                          ch,
                                           Some(key),
-                                          DOMString::from(props.key_string),
+                                          DOMString::from(props.key_string.clone()),
                                           DOMString::from(props.code),
                                           props.location,
                                           is_repeating,
@@ -1091,7 +1093,7 @@ impl Document {
                                           alt,
                                           shift,
                                           meta,
-                                          None,
+                                          props.char_code,
                                           props.key_code);
         let event = keyevent.upcast::<Event>();
         event.fire(target);
@@ -1106,6 +1108,7 @@ impl Document {
                                            true,
                                            Some(&self.window),
                                            0,
+                                           ch,
                                            Some(key),
                                            DOMString::from(props.key_string),
                                            DOMString::from(props.code),
@@ -1117,7 +1120,7 @@ impl Document {
                                            shift,
                                            meta,
                                            props.char_code,
-                                           0);
+                                           props.key_code);
             let ev = event.upcast::<Event>();
             ev.fire(target);
             prevented = ev.DefaultPrevented();
@@ -1125,7 +1128,7 @@ impl Document {
         }
 
         if !prevented {
-            constellation.send(ConstellationMsg::SendKeyEvent(key, state, modifiers)).unwrap();
+            constellation.send(ConstellationMsg::SendKeyEvent(key, state, modifiers, ch)).unwrap();
         }
 
         // This behavior is unspecced
