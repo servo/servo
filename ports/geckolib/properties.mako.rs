@@ -447,6 +447,12 @@ impl ${style_struct.trait_name} for ${style_struct.gecko_struct_name} {
         unimplemented!()
     }
     % endif
+    % if longhand.need_index:
+    fn ${longhand.ident}_count(&self) -> usize { 0 }
+    fn ${longhand.ident}_at(&self, _index: usize) -> longhands::${longhand.ident}::computed_value::SingleComputedValue {
+        unimplemented!()
+    }
+    % endif
     % endfor
     <% additionals = [x for x in style_struct.additional_methods
                       if skip_additionals != "*" and not x.name in skip_additionals.split()] %>
