@@ -395,13 +395,6 @@ impl<'le> TElement for ServoLayoutElement<'le> {
     fn attr_equals(&self, namespace: &Namespace, attr: &Atom, val: &Atom) -> bool {
         self.get_attr(namespace, attr).map_or(false, |x| x == val)
     }
-
-    #[inline]
-    fn get_attr(&self, namespace: &Namespace, name: &Atom) -> Option<&str> {
-        unsafe {
-            (*self.element.unsafe_get()).get_attr_val_for_layout(namespace, name)
-        }
-    }
 }
 
 
@@ -410,6 +403,13 @@ impl<'le> ServoLayoutElement<'le> {
         ServoLayoutElement {
             element: el,
             chain: PhantomData,
+        }
+    }
+
+    #[inline]
+    fn get_attr(&self, namespace: &Namespace, name: &Atom) -> Option<&str> {
+        unsafe {
+            (*self.element.unsafe_get()).get_attr_val_for_layout(namespace, name)
         }
     }
 }

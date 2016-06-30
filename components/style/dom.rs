@@ -210,8 +210,6 @@ pub trait TElement : Sized + Copy + Clone + ElementExt + PresentationalHintsSynt
     fn has_attr(&self, namespace: &Namespace, attr: &Atom) -> bool;
     fn attr_equals(&self, namespace: &Namespace, attr: &Atom, value: &Atom) -> bool;
 
-    fn get_attr<'a>(&'a self, namespace: &Namespace, attr: &Atom) -> Option<&'a str>;
-
     /// Properly marks nodes as dirty in response to restyle hints.
     fn note_restyle_hint(&self, mut hint: RestyleHint) {
         // Bail early if there's no restyling to do.
