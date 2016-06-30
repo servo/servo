@@ -599,7 +599,8 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     pub use properties::longhands::transition_duration::{get_initial_value, parse, parse_one};
 </%helpers:longhand>
 
-<%helpers:longhand name="animation-name" animatable="False">
+<%helpers:longhand name="animation-name"
+                   animatable="False">
     use values::computed::ComputedValueAsSpecified;
 
     pub mod computed_value {
@@ -645,13 +646,15 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     impl ComputedValueAsSpecified for SpecifiedValue {}
 </%helpers:longhand>
 
-<%helpers:longhand name="animation-duration" animatable="False">
+<%helpers:longhand name="animation-duration"
+                   animatable="False">
     pub use super::transition_duration::computed_value;
     pub use super::transition_duration::{parse, get_initial_value};
     pub use super::transition_duration::SpecifiedValue;
 </%helpers:longhand>
 
-<%helpers:longhand name="animation-timing-function" animatable="False">
+<%helpers:longhand name="animation-timing-function"
+                   animatable="False">
     pub use super::transition_timing_function::computed_value;
     pub use super::transition_timing_function::{parse, get_initial_value};
     pub use super::transition_timing_function::SpecifiedValue;
@@ -739,7 +742,8 @@ ${helpers.keyword_list("animation-fill-mode",
                        "none forwards backwards both",
                        animatable=False)}
 
-<%helpers:longhand name="animation-delay" animatable="False">
+<%helpers:longhand name="animation-delay"
+                   animatable="False">
     pub use super::transition_duration::computed_value;
     pub use super::transition_duration::{parse, get_initial_value};
     pub use super::transition_duration::SpecifiedValue;

@@ -1126,65 +1126,33 @@ pub mod style_structs {
 
         impl super::style_struct_traits::${style_struct.trait_name} for ${style_struct.servo_struct_name} {
             % for longhand in style_struct.longhands:
+                #[inline]
                 fn set_${longhand.ident}(&mut self, v: longhands::${longhand.ident}::computed_value::T) {
                     self.${longhand.ident} = v;
                 }
+                #[inline]
                 fn copy_${longhand.ident}_from(&mut self, other: &Self) {
                     self.${longhand.ident} = other.${longhand.ident}.clone();
                 }
+                % if longhand.need_clone:
+                    #[inline]
+                    fn clone_${longhand.ident}(&self) -> longhands::${longhand.ident}::computed_value::T {
+                        self.${longhand.ident}.clone()
+                    }
+                % endif
             % endfor
             % if style_struct.trait_name == "Border":
                 % for side in ["top", "right", "bottom", "left"]:
-                fn clone_border_${side}_style(&self) -> longhands::border_${side}_style::computed_value::T {
-                    self.border_${side}_style.clone()
-                }
-                fn border_${side}_has_nonzero_width(&self) -> bool {
-                    self.border_${side}_width != ::app_units::Au(0)
-                }
+                    fn border_${side}_has_nonzero_width(&self) -> bool {
+                        self.border_${side}_width != ::app_units::Au(0)
+                    }
                 % endfor
             % elif style_struct.trait_name == "Box":
-                #[inline]
-                fn clone_display(&self) -> longhands::display::computed_value::T {
-                    self.display.clone()
-                }
-                #[inline]
-                fn clone_position(&self) -> longhands::position::computed_value::T {
-                    self.position.clone()
-                }
-                #[inline]
-                fn clone_float(&self) -> longhands::float::computed_value::T {
-                    self.float.clone()
-                }
-                #[inline]
-                fn clone_overflow_x(&self) -> longhands::overflow_x::computed_value::T {
-                    self.overflow_x.clone()
-                }
-                #[inline]
-                fn clone_overflow_y(&self) -> longhands::overflow_y::computed_value::T {
-                    self.overflow_y.clone()
-                }
-                #[inline]
-                fn clone_animation_play_state(&self) -> longhands::animation_play_state::computed_value::T {
-                    self.animation_play_state.clone()
-                }
                 #[inline]
                 fn transition_count(&self) -> usize {
                     self.transition_property.0.len()
                 }
-            % elif style_struct.trait_name == "Color":
-                #[inline]
-                fn clone_color(&self) -> longhands::color::computed_value::T {
-                    self.color.clone()
-                }
             % elif style_struct.trait_name == "Font":
-                #[inline]
-                fn clone_font_size(&self) -> longhands::font_size::computed_value::T {
-                    self.font_size.clone()
-                }
-                #[inline]
-                fn clone_font_weight(&self) -> longhands::font_weight::computed_value::T {
-                    self.font_weight.clone()
-                }
                 fn compute_font_hash(&mut self) {
                     // Corresponds to the fields in `gfx::font_template::FontTemplateDescriptor`.
                     let mut hasher: FnvHasher = Default::default();
@@ -1193,42 +1161,10 @@ pub mod style_structs {
                     self.font_family.hash(&mut hasher);
                     self.hash = hasher.finish()
                 }
-            % elif style_struct.trait_name == "InheritedBox":
-                #[inline]
-                fn clone_direction(&self) -> longhands::direction::computed_value::T {
-                    self.direction.clone()
-                }
-                #[inline]
-                fn clone_writing_mode(&self) -> longhands::writing_mode::computed_value::T {
-                    self.writing_mode.clone()
-                }
-                #[inline]
-                fn clone_text_orientation(&self) -> longhands::text_orientation::computed_value::T {
-                    self.text_orientation.clone()
-                }
-            % elif style_struct.trait_name == "InheritedText" and product == "servo":
-                #[inline]
-                fn clone__servo_text_decorations_in_effect(&self) ->
-                    longhands::_servo_text_decorations_in_effect::computed_value::T {
-                    self._servo_text_decorations_in_effect.clone()
-                }
             % elif style_struct.trait_name == "Outline":
-                #[inline]
-                fn clone_outline_style(&self) -> longhands::outline_style::computed_value::T {
-                    self.outline_style.clone()
-                }
                 #[inline]
                 fn outline_has_nonzero_width(&self) -> bool {
                     self.outline_width != ::app_units::Au(0)
-                }
-            % elif style_struct.trait_name == "Position":
-                #[inline]
-                fn clone_align_items(&self) -> longhands::align_items::computed_value::T {
-                    self.align_items.clone()
-                }
-                #[inline]
-                fn clone_align_self(&self) -> longhands::align_self::computed_value::T {
-                    self.align_self.clone()
                 }
             % elif style_struct.trait_name == "Text":
                 <% text_decoration_field = 'text_decoration' if product == 'servo' else 'text_decoration_line' %>
