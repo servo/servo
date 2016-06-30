@@ -33,7 +33,6 @@ use style::custom_properties::ComputedValuesMap;
 use style::logical_geometry::WritingMode;
 use style::properties::{CascadePropertyFn, ServoComputedValues, ComputedValues};
 use style::properties::longhands;
-use style::properties::make_cascade_vec;
 use style::properties::style_struct_traits::*;
 use values::{StyleCoordHelpers, ToGeckoStyleCoord, convert_nscolor_to_rgba};
 use values::{convert_rgba_to_nscolor, debug_assert_unit_is_safe_to_copy};
@@ -106,8 +105,9 @@ impl ComputedValues for GeckoComputedValues {
 
     fn initial_values() -> &'static Self { &*INITIAL_GECKO_VALUES }
 
-    fn do_cascade_property<F: FnOnce(&Vec<CascadePropertyFn<Self>>)>(f: F) {
-        CASCADE_PROPERTY.with(|x| f(x));
+    #[inline]
+    fn do_cascade_property<F: FnOnce(&[CascadePropertyFn<Self>])>(f: F) {
+        f(&CASCADE_PROPERTY)
     }
 
     % for style_struct in data.style_structs:
@@ -1139,8 +1139,8 @@ lazy_static! {
     };
 }
 
-// This is a thread-local rather than a lazy static to avoid atomic operations when cascading
-// properties.
-thread_local!(static CASCADE_PROPERTY: Vec<CascadePropertyFn<GeckoComputedValues>> = {
-    make_cascade_vec::<GeckoComputedValues>()
-});
+static CASCADE_PROPERTY: [CascadePropertyFn<GeckoComputedValues>; ${len(data.longhands)}] = [
+    % for property in data.longhands:
+        longhands::${property.ident}::cascade_property,
+    % endfor
+];

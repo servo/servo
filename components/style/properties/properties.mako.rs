@@ -1275,7 +1275,7 @@ pub trait ComputedValues : Debug + Clone + Send + Sync + 'static {
 
         fn initial_values() -> &'static Self;
 
-        fn do_cascade_property<F: FnOnce(&Vec<CascadePropertyFn<Self>>)>(f: F);
+        fn do_cascade_property<F: FnOnce(&[CascadePropertyFn<Self>])>(f: F);
 
     % for style_struct in data.active_style_structs():
         fn clone_${style_struct.trait_name_lower}(&self) ->
@@ -1346,8 +1346,9 @@ impl ComputedValues for ServoComputedValues {
 
         fn initial_values() -> &'static Self { &*INITIAL_SERVO_VALUES }
 
-        fn do_cascade_property<F: FnOnce(&Vec<CascadePropertyFn<Self>>)>(f: F) {
-            CASCADE_PROPERTY.with(|x| f(x));
+        #[inline]
+        fn do_cascade_property<F: FnOnce(&[CascadePropertyFn<Self>])>(f: F) {
+            f(&CASCADE_PROPERTY)
         }
 
     % for style_struct in data.active_style_structs():
@@ -1747,19 +1748,11 @@ pub type CascadePropertyFn<C /*: ComputedValues */> =
                      cacheable: &mut bool,
                      error_reporter: &mut StdBox<ParseErrorReporter + Send>);
 
-pub fn make_cascade_vec<C: ComputedValues>() -> Vec<CascadePropertyFn<C>> {
-    vec![
-        % for property in data.longhands:
-            longhands::${property.ident}::cascade_property,
-        % endfor
-    ]
-}
-
-// This is a thread-local rather than a lazy static to avoid atomic operations when cascading
-// properties.
-thread_local!(static CASCADE_PROPERTY: Vec<CascadePropertyFn<ServoComputedValues>> = {
-    make_cascade_vec::<ServoComputedValues>()
-});
+static CASCADE_PROPERTY: [CascadePropertyFn<ServoComputedValues>; ${len(data.longhands)}] = [
+    % for property in data.longhands:
+        longhands::${property.ident}::cascade_property,
+    % endfor
+];
 
 /// Performs the CSS cascade, computing new styles for an element from its parent style and
 /// optionally a cached related style. The arguments are:
