@@ -380,16 +380,6 @@ impl<'le> TElement for GeckoElement<'le> {
                                        /* ignoreCase = */ false)
         }
     }
-
-    #[inline]
-    fn get_attr<'a>(&'a self, namespace: &Namespace, name: &Atom) -> Option<&'a str> {
-        unsafe {
-            let mut length: u32 = 0;
-            let ptr = Gecko_GetAttrAsUTF8(self.element, namespace.0.as_ptr(), name.as_ptr(),
-                                          &mut length);
-            reinterpret_string(ptr, length)
-        }
-    }
 }
 
 impl<'le> PresentationalHintsSynthetizer for GeckoElement<'le> {
