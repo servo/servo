@@ -32,7 +32,7 @@ main() {
     elif [[ "${platform}" == "mac" ]]; then
         package=target/*.dmg
     elif [[ "${platform}" == "windows" ]]; then
-        package=target/*.tar.gz
+        package=target/msi/*.msi
     else
         usage >&2
         return 1
