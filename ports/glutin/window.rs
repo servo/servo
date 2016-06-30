@@ -576,7 +576,7 @@ impl Window {
     }
 
     fn glutin_mods_to_script_mods(modifiers: KeyModifiers) -> constellation_msg::KeyModifiers {
-        let mut result = constellation_msg::KeyModifiers::from_bits(0).expect("infallible");
+        let mut result = constellation_msg::KeyModifiers::empty();
         if modifiers.intersects(LEFT_SHIFT | RIGHT_SHIFT) {
             result.insert(SHIFT);
         }
