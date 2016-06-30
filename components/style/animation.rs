@@ -253,10 +253,10 @@ impl PropertyAnimation {
                                               new_style: &mut C)
                                               -> Vec<PropertyAnimation> {
         let mut result = vec![];
-        let box_style = new_style.as_servo().get_box();
-        let transition_property = box_style.transition_property.0[transition_index];
-        let timing_function = *box_style.transition_timing_function.0.get_mod(transition_index);
-        let duration = *box_style.transition_duration.0.get_mod(transition_index);
+        let box_style = new_style.get_box();
+        let transition_property = box_style.transition_property_at(transition_index);
+        let timing_function = box_style.transition_timing_function_mod(transition_index);
+        let duration = box_style.transition_duration_mod(transition_index);
 
 
         if transition_property != TransitionProperty::All {
@@ -362,7 +362,7 @@ pub fn start_transitions_if_applicable<Impl: SelectorImplExt>(new_animations_sen
                                                               new_style: &mut Arc<Impl::ComputedValues>)
                                                               -> bool {
     let mut had_animations = false;
-    for i in 0..new_style.get_box().transition_count() {
+    for i in 0..new_style.get_box().transition_property_count() {
         // Create any property animations, if applicable.
         let property_animations = PropertyAnimation::from_transition(i, old_style, Arc::make_mut(new_style));
         for property_animation in property_animations {
@@ -372,14 +372,14 @@ pub fn start_transitions_if_applicable<Impl: SelectorImplExt>(new_animations_sen
             property_animation.update(Arc::get_mut(new_style).unwrap(), 0.0);
 
             // Kick off the animation.
+            let box_style = new_style.get_box();
             let now = time::precise_time_s();
-            let box_style = new_style.as_servo().get_box();
             let start_time =
-                now + (box_style.transition_delay.0.get_mod(i).seconds() as f64);
+                now + (box_style.transition_delay_mod(i).seconds() as f64);
             new_animations_sender
                 .lock().unwrap()
                 .send(Animation::Transition(node, start_time, AnimationFrame {
-                    duration: box_style.transition_duration.0.get_mod(i).seconds() as f64,
+                    duration: box_style.transition_duration_mod(i).seconds() as f64,
                     property_animation: property_animation,
                 }, /* is_expired = */ false)).unwrap();
 
@@ -427,10 +427,10 @@ pub fn maybe_start_animations<Impl: SelectorImplExt>(context: &SharedStyleContex
         return false;
     }
 
-    let box_style = new_style.as_servo().get_box();
-    for (i, name) in box_style.animation_name.0.iter().enumerate() {
+    let box_style = new_style.get_box();
+    for (i, name) in box_style.animation_name_iter().enumerate() {
         debug!("maybe_start_animations: name={}", name);
-        let total_duration = box_style.animation_duration.0.get_mod(i).seconds();
+        let total_duration = box_style.animation_duration_mod(i).seconds();
         if total_duration == 0. {
             continue
         }
@@ -446,16 +446,16 @@ pub fn maybe_start_animations<Impl: SelectorImplExt>(context: &SharedStyleContex
                 continue;
             }
 
-            let delay = box_style.animation_delay.0.get_mod(i).seconds();
+            let delay = box_style.animation_delay_mod(i).seconds();
             let now = time::precise_time_s();
             let animation_start = now + delay as f64;
-            let duration = box_style.animation_duration.0.get_mod(i).seconds();
-            let iteration_state = match *box_style.animation_iteration_count.0.get_mod(i) {
+            let duration = box_style.animation_duration_mod(i).seconds();
+            let iteration_state = match box_style.animation_iteration_count_mod(i) {
                 AnimationIterationCount::Infinite => KeyframesIterationState::Infinite,
                 AnimationIterationCount::Number(n) => KeyframesIterationState::Finite(0, n),
             };
 
-            let animation_direction = *box_style.animation_direction.0.get_mod(i);
+            let animation_direction = box_style.animation_direction_mod(i);
 
             let initial_direction = match animation_direction {
                 AnimationDirection::normal |
@@ -464,7 +464,7 @@ pub fn maybe_start_animations<Impl: SelectorImplExt>(context: &SharedStyleContex
                 AnimationDirection::alternate_reverse => AnimationDirection::reverse,
             };
 
-            let running_state = match *box_style.animation_play_state.0.get_mod(i) {
+            let running_state = match box_style.animation_play_state_mod(i) {
                 AnimationPlayState::paused => KeyframesRunningState::Paused(0.),
                 AnimationPlayState::running => KeyframesRunningState::Running,
             };
@@ -556,9 +556,9 @@ where Impl: SelectorImplExt,
 
             debug_assert!(!animation.steps.is_empty());
 
-            let maybe_index = style.as_servo()
-                                   .get_box().animation_name.0.iter()
-                                   .position(|animation_name| name == animation_name);
+            let maybe_index = style.get_box()
+                                   .animation_name_iter()
+                                   .position(|animation_name| *name == animation_name);
 
             let index = match maybe_index {
                 Some(index) => index,
@@ -568,7 +568,7 @@ where Impl: SelectorImplExt,
                 }
             };
 
-            let total_duration = style.as_servo().get_box().animation_duration.0.get_mod(index).seconds() as f64;
+            let total_duration = style.get_box().animation_duration_mod(index).seconds() as f64;
             if total_duration == 0. {
                 debug!("update_style_for_animation: zero duration for animation {:?}", name);
                 return;
@@ -648,9 +648,9 @@ where Impl: SelectorImplExt,
 
             // NB: The spec says that the timing function can be overwritten
             // from the keyframe style.
-            let mut timing_function = *style.as_servo().get_box().animation_timing_function.0.get_mod(index);
-            if !from_style.as_servo().get_box().animation_timing_function.0.is_empty() {
-                timing_function = from_style.as_servo().get_box().animation_timing_function.0[0];
+            let mut timing_function = style.get_box().animation_timing_function_mod(index);
+            if from_style.get_box().animation_timing_function_count() != 0 {
+                timing_function = from_style.get_box().animation_timing_function_at(0);
             }
 
             let target_style = compute_style_for_animation_step(context,
