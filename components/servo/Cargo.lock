@@ -4,7 +4,7 @@ version = "0.0.1"
 dependencies = [
  "android_glue 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "backtrace 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "browserhtml 0.1.9 (git+https://github.com/browserhtml/browserhtml?branch=gh-pages)",
+ "browserhtml 0.1.11 (git+https://github.com/browserhtml/browserhtml?branch=gh-pages)",
  "canvas 0.0.1",
  "canvas_traits 0.0.1",
  "compiletest_helper 0.0.1",
@@ -189,8 +189,8 @@ source = "git+https://github.com/ende76/brotli-rs#d8507fd07e9fa57ed8251d5dc500dc
 
 [[package]]
 name = "browserhtml"
-version = "0.1.9"
-source = "git+https://github.com/browserhtml/browserhtml?branch=gh-pages#9f3853256957ce64c86cfe4744278acba205d12f"
+version = "0.1.11"
+source = "git+https://github.com/browserhtml/browserhtml?branch=gh-pages#cb89e4281961a24032dff1d65462ab6a38fc55ac"
 
 [[package]]
 name = "byteorder"
