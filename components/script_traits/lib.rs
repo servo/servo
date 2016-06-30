@@ -282,7 +282,7 @@ pub enum CompositorEvent {
     /// Touchpad pressure event
     TouchpadPressureEvent(Point2D<f32>, f32, TouchpadPressurePhase),
     /// A key was pressed.
-    KeyEvent(Key, KeyState, KeyModifiers, Option<char>),
+    KeyEvent(Option<char>, Key, KeyState, KeyModifiers),
 }
 
 /// Touchpad pressure phase for TouchpadPressureEvent.
