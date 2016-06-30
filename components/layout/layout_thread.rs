@@ -1008,7 +1008,9 @@ impl LayoutThread {
 
         // Parallelize if there's more than 750 objects based on rzambre's suggestion
         // https://github.com/servo/servo/issues/10110
-        self.parallel_flag = opts::get().layout_threads > 1 && data.dom_count > 750;
+        //self.parallel_flag = opts::get().layout_threads > 1;// && data.dom_count > 750;
+        self.parallel_flag = false;
+        //self.parallel_flag = true;
         debug!("layout: received layout request for: {}", self.url);
         debug!("Number of objects in DOM: {}", data.dom_count);
         debug!("layout: parallel? {}", self.parallel_flag);

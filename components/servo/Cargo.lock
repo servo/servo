@@ -1156,7 +1156,7 @@ dependencies = [
  "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
  "script 0.0.1",
  "script_traits 0.0.1",
- "selectors 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "selectors 0.6.0 (git+https://github.com/avadacatavra/rust-selectors.git)",
  "serde_json 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_macros 0.7.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "smallvec 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1909,7 +1909,7 @@ dependencies = [
  "regex 0.1.71 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
  "script_traits 0.0.1",
- "selectors 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "selectors 0.6.0 (git+https://github.com/avadacatavra/rust-selectors.git)",
  "serde 0.7.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "smallvec 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "string_cache 0.2.18 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1959,6 +1959,22 @@ dependencies = [
  "time 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
+]
+
+[[package]]
+name = "selectors"
+version = "0.6.0"
+source = "git+https://github.com/avadacatavra/rust-selectors.git#53b34326085235a7bfafedb8253aad03ae4d00f0"
+dependencies = [
+ "bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cssparser 0.5.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "fnv 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "heapsize 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "heapsize_plugin 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "matches 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "quickersort 2.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "smallvec 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "string_cache 0.2.18 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -2166,7 +2182,7 @@ dependencies = [
  "num-traits 0.1.32 (registry+https://github.com/rust-lang/crates.io-index)",
  "plugins 0.0.1",
  "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
- "selectors 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "selectors 0.6.0 (git+https://github.com/avadacatavra/rust-selectors.git)",
  "serde 0.7.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_macros 0.7.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "smallvec 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",

@@ -840,6 +840,7 @@ impl<T: Debug> Debug for LogicalRect<T> {
 impl<T: Zero> LogicalRect<T> {
     #[inline]
     pub fn zero(mode: WritingMode) -> LogicalRect<T> {
+        debug!("LogicalRect(zero) with mode: {:?}", mode);
         LogicalRect {
             start: LogicalPoint::zero(mode),
             size: LogicalSize::zero(mode),
@@ -852,6 +853,8 @@ impl<T: Copy> LogicalRect<T> {
     #[inline]
     pub fn new(mode: WritingMode, inline_start: T, block_start: T, inline: T, block: T)
                -> LogicalRect<T> {
+        debug!("LogicalRect(new) with mode: {:?}", mode);
+                   
         LogicalRect {
             start: LogicalPoint::new(mode, inline_start, block_start),
             size: LogicalSize::new(mode, inline, block),
@@ -862,6 +865,8 @@ impl<T: Copy> LogicalRect<T> {
     #[inline]
     pub fn from_point_size(mode: WritingMode, start: LogicalPoint<T>, size: LogicalSize<T>)
                            -> LogicalRect<T> {
+        debug!("LogicalRect(pt size) with mode: {:?}", mode);
+                               
         start.debug_writing_mode.check(mode);
         size.debug_writing_mode.check(mode);
         LogicalRect {
@@ -922,6 +927,7 @@ impl<T: Copy + Add<T, Output=T> + Sub<T, Output=T>> LogicalRect<T> {
 
     #[inline]
     pub fn to_physical(&self, mode: WritingMode, container_size: Size2D<T>) -> Rect<T> {
+        debug!("To_physical: {:?} vs. debug {:?}", mode, self.debug_writing_mode);
         self.debug_writing_mode.check(mode);
         let x;
         let y;
@@ -959,6 +965,7 @@ impl<T: Copy + Add<T, Output=T> + Sub<T, Output=T>> LogicalRect<T> {
     #[inline]
     pub fn convert(&self, mode_from: WritingMode, mode_to: WritingMode, container_size: Size2D<T>)
                    -> LogicalRect<T> {
+        debug!("Converted mode from {:?} to {:?}", mode_from, mode_to);
         if mode_from == mode_to {
             self.debug_writing_mode.check(mode_from);
             *self

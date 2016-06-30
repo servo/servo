@@ -46,6 +46,7 @@ impl<'a> ParserContext<'a> {
                                error_reporter: Box<ParseErrorReporter + Send>,
                                extra_data: ParserContextExtraData)
                                -> ParserContext<'a> {
+        debug!("PARSER WITH EXTRA DATA");
         let mut selector_context = SelectorParserContext::new();
         selector_context.in_user_agent_stylesheet = stylesheet_origin == Origin::UserAgent;
         ParserContext {
@@ -59,6 +60,7 @@ impl<'a> ParserContext<'a> {
 
     pub fn new(stylesheet_origin: Origin, base_url: &'a Url, error_reporter: Box<ParseErrorReporter + Send>)
                -> ParserContext<'a> {
+        debug!("I WANT MY PARSER");
         let extra_data = ParserContextExtraData::default();
         ParserContext::new_with_extra_data(stylesheet_origin, base_url, error_reporter, extra_data)
     }
@@ -67,6 +69,7 @@ impl<'a> ParserContext<'a> {
 
 impl<'a> ParserContext<'a> {
     pub fn parse_url(&self, input: &str) -> Url {
+        debug!("parse city bitch");
         self.base_url.join(input)
             .unwrap_or_else(|_| Url::parse("about:invalid").unwrap())
     }

@@ -592,6 +592,7 @@ fn deduplicate_property_declarations(declarations: Vec<PropertyDeclaration>)
                 seen_custom.push(name.clone())
             }
         }
+        debug!("Last declaration: {:?}", declaration);
         deduplicated.push(declaration)
     }
     deduplicated
@@ -911,6 +912,7 @@ impl PropertyDeclaration {
 
     pub fn parse(name: &str, context: &ParserContext, input: &mut Parser,
                  result_list: &mut Vec<PropertyDeclaration>) -> PropertyDeclarationParseResult {
+        debug!("parse: {}", name);
         if let Ok(name) = ::custom_properties::parse_name(name) {
             let value = match input.try(CSSWideKeyword::parse) {
                 Ok(CSSWideKeyword::UnsetKeyword) |  // Custom properties are alawys inherited
@@ -921,6 +923,7 @@ impl PropertyDeclaration {
                     Err(()) => return PropertyDeclarationParseResult::InvalidValue,
                 }
             };
+            
             result_list.push(PropertyDeclaration::Custom(Atom::from(name), value));
             return PropertyDeclarationParseResult::ValidOrIgnoredDeclaration;
         }
@@ -1509,12 +1512,14 @@ impl ServoComputedValues {
 
 /// Return a WritingMode bitflags from the relevant CSS properties.
 pub fn get_writing_mode<S: style_struct_traits::InheritedBox>(inheritedbox_style: &S) -> WritingMode {
+
     use logical_geometry;
     let mut flags = WritingMode::empty();
     match inheritedbox_style.clone_direction() {
         computed_values::direction::T::ltr => {},
         computed_values::direction::T::rtl => {
             flags.insert(logical_geometry::FLAG_RTL);
+            debug!("IS RTL");
         },
     }
     match inheritedbox_style.clone_writing_mode() {
@@ -1849,6 +1854,7 @@ pub fn cascade<C: ComputedValues>(
 
     let mut style = context.style;
 
+
     let positioned = matches!(style.get_box().clone_position(),
         longhands::position::SpecifiedValue::absolute |
         longhands::position::SpecifiedValue::fixed);
@@ -1943,6 +1949,9 @@ pub fn cascade<C: ComputedValues>(
     }
 
     let mode = get_writing_mode(style.get_inheritedbox());
+
+    debug!("Mode: {}", mode);    //get the property name!!!
+
     style.set_writing_mode(mode);
     (style, cacheable)
 }

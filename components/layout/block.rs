@@ -1131,6 +1131,8 @@ impl BlockFlow {
         self.base.position = LogicalRect::from_point_size(self.base.writing_mode,
                                                           origin,
                                                           self.base.position.size);
+
+    debug!("{}", self.base.writing_mode);
     }
 
     pub fn explicit_block_containing_size(&self, layout_context: &LayoutContext) -> Option<Au> {
@@ -1345,6 +1347,7 @@ impl BlockFlow {
 
         let mut inline_start_margin_edge = inline_start_content_edge;
         let mut inline_end_margin_edge = inline_end_content_edge;
+        
 
         let mut iterator = self.base.child_iter_mut().enumerate().peekable();
         while let Some((i, kid)) = iterator.next() {
@@ -1358,9 +1361,11 @@ impl BlockFlow {
                 if kid_base.flags.contains(INLINE_POSITION_IS_STATIC) {
                     kid_base.position.start.i =
                         if kid_mode.is_bidi_ltr() == containing_block_mode.is_bidi_ltr() {
+                            debug!("Is LTR");
                             inline_start_content_edge
                         } else {
                             // The kid's inline 'start' is at the parent's 'end'
+                            debug!("Is RTL");
                             inline_end_content_edge
                         };
                 }
@@ -2333,6 +2338,7 @@ pub trait ISizeAndMarginsComputer {
 
             // FIXME (mbrubeck): Get correct containing block for positioned blocks?
             let container_mode = block.base.block_container_writing_mode;
+            debug!("Flow {} is in container writing mode {}", block.base.debug_id(), container_mode);
             let container_size = block.base.block_container_inline_size;
 
             let fragment = block.fragment();

@@ -54,7 +54,7 @@ ref_slice = "1.0"
 regex = "0.1.43"
 rustc-serialize = "0.3"
 script_traits = {path = "../script_traits"}
-selectors = {version = "0.6", features = ["heap_size"]}
+selectors = {git = "https://github.com/avadacatavra/rust-selectors.git", features = ["heap_size"]}
 serde = "0.7"
 smallvec = "0.1"
 string_cache = {version = "0.2.18", features = ["heap_size", "unstable"]}

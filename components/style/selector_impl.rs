@@ -167,6 +167,7 @@ impl SelectorImpl for ServoSelectorImpl {
 
     fn parse_non_ts_pseudo_class(context: &ParserContext,
                                  name: &str) -> Result<NonTSPseudoClass, ()> {
+        debug!("parse non ts pseudo class, {}", name);
         use self::NonTSPseudoClass::*;
         let pseudo_class = match_ignore_ascii_case! { name,
             "any-link" => AnyLink,
@@ -196,6 +197,7 @@ impl SelectorImpl for ServoSelectorImpl {
 
     fn parse_pseudo_element(context: &ParserContext,
                             name: &str) -> Result<PseudoElement, ()> {
+        debug!("parse pseudo element: {}", name);
         use self::PseudoElement::*;
         let pseudo_element = match_ignore_ascii_case! { name,
             "before" => Before,

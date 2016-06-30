@@ -50,6 +50,7 @@ pub fn traverse_flow_tree_preorder(root: &mut FlowRef,
         }
 
         for kid in flow::child_iter_mut(flow) {
+            debug!("Assign sizes for KID");     //not called
             doit(kid, assign_inline_sizes, assign_block_sizes);
         }
 

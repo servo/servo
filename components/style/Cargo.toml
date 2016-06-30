@@ -29,7 +29,7 @@ matches = "0.1"
 num-traits = "0.1.32"
 plugins = {path = "../plugins"}
 rustc-serialize = "0.3"
-selectors = {version = "0.6", features = ["heap_size", "unstable"]}
+selectors = {git = "https://github.com/avadacatavra/rust-selectors.git", features = ["heap_size", "unstable"]}
 serde = {version = "0.7", features = ["nightly"]}
 serde_macros = "0.7"
 smallvec = "0.1"
