@@ -216,6 +216,8 @@ class ServoRefTestExecutor(ProcessTestExecutor):
 
             if viewport_size:
                 command += ["--resolution", viewport_size]
+            else:
+                command += ["--resolution", "800x600"]
 
             if dpi:
                 command += ["--device-pixel-ratio", dpi]

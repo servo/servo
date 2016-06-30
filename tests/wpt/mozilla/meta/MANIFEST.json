@@ -5509,7 +5509,8 @@
                 "=="
               ]
             ],
-            "url": "/_mozilla/css/viewport_meta.html"
+            "url": "/_mozilla/css/viewport_meta.html",
+            "viewport_size": "800x600"
           }
         ],
         "css/viewport_percentage_vmin_vmax_a.html": [
@@ -5573,7 +5574,8 @@
                 "=="
               ]
             ],
-            "url": "/_mozilla/css/viewport_rule.html"
+            "url": "/_mozilla/css/viewport_rule.html",
+            "viewport_size": "800x600"
           }
         ],
         "css/visibility_hidden.html": [
@@ -12609,7 +12611,8 @@
               "=="
             ]
           ],
-          "url": "/_mozilla/css/viewport_meta.html"
+          "url": "/_mozilla/css/viewport_meta.html",
+          "viewport_size": "800x600"
         }
       ],
       "css/viewport_percentage_vmin_vmax_a.html": [
@@ -12673,7 +12676,8 @@
               "=="
             ]
           ],
-          "url": "/_mozilla/css/viewport_rule.html"
+          "url": "/_mozilla/css/viewport_rule.html",
+          "viewport_size": "800x600"
         }
       ],
       "css/visibility_hidden.html": [

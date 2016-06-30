@@ -486,7 +486,7 @@ pub fn default_opts() -> Opts {
         trace_layout: false,
         devtools_port: None,
         webdriver_port: None,
-        initial_window_size: Size2D::typed(800, 600),
+        initial_window_size: Size2D::typed(1024, 740),
         user_agent: default_user_agent_string(DEFAULT_USER_AGENT),
         multiprocess: false,
         random_pipeline_closure_probability: None,
@@ -543,7 +543,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     opts.optflag("F", "soft-fail", "Display about:failure on thread failure instead of exiting");
     opts.optflagopt("", "devtools", "Start remote devtools server on port", "6000");
     opts.optflagopt("", "webdriver", "Start remote WebDriver server on port", "7000");
-    opts.optopt("", "resolution", "Set window resolution.", "800x600");
+    opts.optopt("", "resolution", "Set window resolution.", "1024x740");
     opts.optopt("u",
                 "user-agent",
                 "Set custom user agent string (or android / desktop for platform default)",
@@ -717,7 +717,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
             Size2D::typed(res[0], res[1])
         }
         None => {
-            Size2D::typed(800, 600)
+            Size2D::typed(1024, 740)
         }
     };
 
