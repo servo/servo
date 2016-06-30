@@ -302,6 +302,14 @@ impl HTMLInputElementMethods for HTMLInputElement {
         self.form_owner()
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-input-files
+    fn GetFiles(&self) -> Option<Root<FileList>> {
+        match self.filelist.get() {
+            Some(ref fl) => Some(fl.clone()),
+            None => None,
+        }
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-input-defaultchecked
     make_bool_getter!(DefaultChecked, "checked");
 
@@ -794,6 +802,12 @@ impl VirtualMethods for HTMLInputElement {
                             el.set_read_write_state(read_write);
                         } else {
                             el.set_read_write_state(false);
+                        }
+
+                        if new_type == InputType::InputFile {
+                            let window = window_from_node(self);
+                            let filelist = FileList::new(window.r(), vec![]);
+                            self.filelist.set(Some(&filelist));
                         }
 
                         let new_value_mode = self.value_mode();
