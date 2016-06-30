@@ -1937,12 +1937,14 @@ impl ScriptThread {
                 document.r().handle_touchpad_pressure_event(self.js_runtime.rt(), point, pressure, phase);
             }
 
-            KeyEvent(key, state, modifiers) => {
+            KeyEvent(key, state, modifiers, ch) => {
                 let document = match self.root_browsing_context().find(pipeline_id) {
                     Some(browsing_context) => browsing_context.active_document(),
                     None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
                 };
-                document.dispatch_key_event(key, state, modifiers, &self.constellation_chan);
+                // FIXME: https://github.com/servo/ipc-channel/issues/84
+                let ch = ch.map(|ch| ch as char);
+                document.dispatch_key_event(ch, key, state, modifiers, &self.constellation_chan);
             }
         }
     }

@@ -9,7 +9,7 @@ use dom::bindings::str::DOMString;
 use dom::keyboardevent::{KeyboardEvent, key_value};
 use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
 use msg::constellation_msg::{Key, KeyModifiers};
-use std::borrow::ToOwned;
+use std::borrow::{ToOwned, Borrow};
 use std::cmp::{max, min};
 use std::default::Default;
 use std::ops::Range;
@@ -510,7 +510,7 @@ impl<T: ClipboardProvider> TextInput<T> {
                 KeyReaction::DispatchInput
             },
             _ if is_printable_key(key) => {
-                self.insert_string(key_value(key, mods));
+                self.insert_string::<&str>(key_value(None, key, mods).borrow());
                 KeyReaction::DispatchInput
             }
             Key::Space => {
