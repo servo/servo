@@ -74,6 +74,7 @@ impl ComputedValues for GeckoComputedValues {
 % endfor
 
     // These will go away, and we will never implement them.
+    fn is_servo(&self) -> bool { false }
     fn as_servo<'a>(&'a self) -> &'a ServoComputedValues { unimplemented!() }
     fn as_servo_mut<'a>(&'a mut self) -> &'a mut ServoComputedValues { unimplemented!() }
 
