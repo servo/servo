@@ -12,7 +12,7 @@ usage() {
 
 
 upload() {
-    s3cmd put "${2}" "s3://servo-developer-preview/nightly/${1}"
+    s3cmd put "${2}" "s3://servo-builds/nightly/${1}"
 }
 
 
