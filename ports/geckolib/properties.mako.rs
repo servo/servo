@@ -286,7 +286,7 @@ def set_gecko_property(ffi_name, expr):
 % endif
 </%def>
 
-<%def name="impl_color(ident, gecko_ffi_name, color_flags_ffi_name=None, need_clone=None)">
+<%def name="impl_color(ident, gecko_ffi_name, color_flags_ffi_name=None, need_clone=False)">
 <%call expr="impl_color_setter(ident, gecko_ffi_name, color_flags_ffi_name)"></%call>
 <%call expr="impl_color_copy(ident, gecko_ffi_name, color_flags_ffi_name)"></%call>
 % if need_clone:
