@@ -235,11 +235,21 @@
             }
         }
 
+        pub use self::computed_value::${to_camel_case(name)} as SingleSpecifiedValue;
+
+        #[inline]
+        pub fn parse_one(input: &mut Parser) -> Result<SingleSpecifiedValue, ()> {
+            SingleSpecifiedValue::parse(input)
+        }
+
         #[inline]
         pub fn get_initial_value() -> computed_value::T {
-            computed_value::T(vec![
-                computed_value::${to_camel_case(name)}::${to_rust_ident(values.split()[0])}
-            ])
+            computed_value::T(vec![get_initial_single_value()])
+        }
+
+        #[inline]
+        pub fn get_initial_single_value() -> SingleSpecifiedValue {
+            SingleSpecifiedValue::${to_rust_ident(values.split()[0])}
         }
 
         #[inline]
