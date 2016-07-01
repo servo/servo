@@ -12,7 +12,12 @@ usage() {
 
 
 upload() {
-    s3cmd put "${2}" "s3://servo-builds/nightly/${1}/"
+    local package_filename 
+    package_filename="$(basename "${2}")"
+    local -r nightly_upload_dir="s3://servo-builds/nightly/${1}"
+    local -r package_upload_path="${nightly_upload_dir}/${package_filename}"
+    s3cmd put "${2}" "${package_upload_path}"
+    s3cmd cp "${package_upload_path}" "${nightly_upload_dir}/servo-latest.${3}"
 }
 
 
@@ -22,17 +27,21 @@ main() {
         return 1
     fi
 
-    local platform package
+    local platform package extension
     platform="${1}"
 
     if [[ "${platform}" == "android" ]]; then
-        package=target/arm-linux-androideabi/release/*.apk
+        extension=apk
+        package=target/arm-linux-androideabi/release/*."${extension}"
     elif [[ "${platform}" == "linux" ]]; then
-        package=target/*.tar.gz
+        extension=tar.gz
+        package=target/*."${extension}"
     elif [[ "${platform}" == "mac" ]]; then
-        package=target/*.dmg
+        extension=dmg
+        package=target/*."${extension}"
     elif [[ "${platform}" == "windows" ]]; then
-        package=target/*.tar.gz
+        extension=tar.gz
+        package=target/*."${extension}"
     else
         usage >&2
         return 1
@@ -41,7 +50,7 @@ main() {
     # Lack of quotes on package allows glob expansion
     # Note that this is not robust in the case of embedded spaces
     # TODO(aneeshusa): make this glob robust using e.g. arrays or Python
-    upload "${platform}" ${package}
+    upload "${platform}" ${package} "${extension}"
 }
 
 main "$@"
