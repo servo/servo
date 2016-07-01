@@ -86,7 +86,7 @@ impl LoadBlocker {
 impl Drop for LoadBlocker {
     fn drop(&mut self) {
         if !thread::panicking() {
-            assert!(self.load.is_none());
+            debug_assert!(self.load.is_none());
         }
     }
 }
