@@ -123,28 +123,32 @@ impl HTMLImageElement {
             }
             Some((src, base_url)) => {
                 let img_url = base_url.join(&src);
-                // FIXME: handle URL parse errors more gracefully.
-                let img_url = img_url.unwrap();
-                self.current_request.borrow_mut().url = Some(img_url.clone());
+                if let Ok(img_url) = img_url {
+                    self.current_request.borrow_mut().url = Some(img_url.clone());
 
-                let trusted_node = Trusted::new(self);
-                let (responder_sender, responder_receiver) = ipc::channel().unwrap();
-                let script_chan = window.networking_task_source();
-                let wrapper = window.get_runnable_wrapper();
-                ROUTER.add_route(responder_receiver.to_opaque(), box move |message| {
-                    // Return the image via a message to the script thread, which marks the element
-                    // as dirty and triggers a reflow.
-                    let image_response = message.to().unwrap();
-                    let runnable = ImageResponseHandlerRunnable::new(
-                        trusted_node.clone(), image_response);
-                    let runnable = wrapper.wrap_runnable(runnable);
-                    let _ = script_chan.send(CommonScriptMsg::RunnableMsg(
-                        UpdateReplacedElement, runnable));
-                });
+                    let trusted_node = Trusted::new(self);
+                    let (responder_sender, responder_receiver) = ipc::channel().unwrap();
+                    let script_chan = window.networking_task_source();
+                    let wrapper = window.get_runnable_wrapper();
+                    ROUTER.add_route(responder_receiver.to_opaque(), box move |message| {
+                        // Return the image via a message to the script thread, which marks the element
+                        // as dirty and triggers a reflow.
+                        let image_response = message.to().unwrap();
+                        let runnable = ImageResponseHandlerRunnable::new(
+                            trusted_node.clone(), image_response);
+                        let runnable = wrapper.wrap_runnable(runnable);
+                        let _ = script_chan.send(CommonScriptMsg::RunnableMsg(
+                            UpdateReplacedElement, runnable));
+                    });
 
-                image_cache.request_image_and_metadata(img_url,
-                                          window.image_cache_chan(),
-                                          Some(ImageResponder::new(responder_sender)));
+                    image_cache.request_image_and_metadata(img_url,
+                                              window.image_cache_chan(),
+                                              Some(ImageResponder::new(responder_sender)));
+                } else {
+                    debug!("Failed to parse URL {} with base {}", src, base_url);
+                    self.current_request.borrow_mut().url = None;
+                    self.current_request.borrow_mut().image = None;
+                }
             }
         }
     }
