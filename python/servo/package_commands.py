@@ -13,7 +13,6 @@ import os
 import os.path as path
 import shutil
 import subprocess
-import tarfile
 
 from mach.registrar import Registrar
 from datetime import datetime
@@ -24,7 +23,13 @@ from mach.decorators import (
     Command,
 )
 
-from servo.command_base import CommandBase, cd, BuildNotFound, is_macosx
+from servo.command_base import (
+    archive_deterministically,
+    BuildNotFound,
+    cd,
+    CommandBase,
+    is_macosx,
+)
 from servo.post_build_commands import find_dep_path_newest
 
 
@@ -156,7 +161,10 @@ class PackageCommands(CommandBase):
         else:
             dir_to_package = '/'.join(binary_path.split('/')[:-1])
             dir_to_root = '/'.join(binary_path.split('/')[:-3])
-            shutil.copytree(dir_to_root + '/resources', dir_to_package + '/resources')
+            resources_dir = dir_to_package + '/resources'
+            if os.path.exists(resources_dir):
+                delete(resources_dir)
+            shutil.copytree(dir_to_root + '/resources', resources_dir)
             browserhtml_path = find_dep_path_newest('browserhtml', binary_path)
             if browserhtml_path is None:
                 print("Could not find browserhtml package; perhaps you haven't built Servo.")
@@ -185,9 +193,9 @@ class PackageCommands(CommandBase):
             time = datetime.utcnow().replace(microsecond=0).isoformat()
             time = time.replace(':', "-")
             tar_path += time + "-servo-tech-demo.tar.gz"
-            with tarfile.open(tar_path, "w:gz") as tar:
-                # arcname is to add by relative rather than absolute path
-                tar.add(dir_to_package, arcname='servo/')
+
+            archive_deterministically(dir_to_package, tar_path, prepend_path='servo/')
+
             print("Packaged Servo into " + tar_path)
 
     @Command('install',
