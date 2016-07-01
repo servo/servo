@@ -57,7 +57,6 @@ class Longhand(object):
         self.experimental = ("layout.%s.enabled" % name) if experimental else None
         self.custom_cascade = custom_cascade
         self.internal = internal
-        self.need_clone = need_clone
         self.need_index = need_index
         self.gecko_ffi_name = gecko_ffi_name or "m" + self.camel_case
         self.derived_from = (derived_from or "").split()
@@ -71,6 +70,12 @@ class Longhand(object):
         else:
             assert animatable == "True" or animatable == "False"
             self.animatable = animatable == "True"
+
+        # NB: Animatable implies clone because a property animation requires a
+        # copy of the computed value.
+        #
+        # See components/style/helpers/animated_properties.mako.rs.
+        self.need_clone = need_clone or self.animatable
 
 
 class Shorthand(object):

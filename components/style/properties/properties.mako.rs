@@ -1246,14 +1246,6 @@ pub trait ComputedValues : Debug + Clone + Send + Sync + 'static {
         type Concrete${style_struct.trait_name}: style_struct_traits::${style_struct.trait_name};
     % endfor
 
-        // Temporary bailout case for stuff we haven't made work with the trait
-        // yet - panics for non-Servo implementations.
-        //
-        // Used only for animations. Don't use it in other places.
-        fn is_servo(&self) -> bool;
-        fn as_servo<'a>(&'a self) -> &'a ServoComputedValues;
-        fn as_servo_mut<'a>(&'a mut self) -> &'a mut ServoComputedValues;
-
         fn new(custom_properties: Option<Arc<::custom_properties::ComputedValuesMap>>,
                shareable: bool,
                writing_mode: WritingMode,
@@ -1301,13 +1293,6 @@ impl ComputedValues for ServoComputedValues {
     % for style_struct in data.active_style_structs():
         type Concrete${style_struct.trait_name} = style_structs::${style_struct.servo_struct_name};
     % endfor
-
-        #[inline]
-        fn is_servo(&self) -> bool { true }
-        #[inline]
-        fn as_servo<'a>(&'a self) -> &'a ServoComputedValues { self }
-        #[inline]
-        fn as_servo_mut<'a>(&'a mut self) -> &'a mut ServoComputedValues { self }
 
         fn new(custom_properties: Option<Arc<::custom_properties::ComputedValuesMap>>,
                shareable: bool,
