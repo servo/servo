@@ -458,7 +458,8 @@ pub fn determine_request_referrer(headers: &mut Headers,
         let cross_origin = ref_url.origin() != url.origin();
         return match referrer_policy {
             Some(ReferrerPolicy::NoReferrer) => None,
-            Some(ReferrerPolicy::OriginOnly) => strip_url(ref_url, true),
+            Some(ReferrerPolicy::Origin) => strip_url(ref_url, true),
+            Some(ReferrerPolicy::SameOrigin) => if cross_origin { None } else { strip_url(ref_url, false) },
             Some(ReferrerPolicy::UnsafeUrl) => strip_url(ref_url, false),
             Some(ReferrerPolicy::OriginWhenCrossOrigin) => strip_url(ref_url, cross_origin),
             Some(ReferrerPolicy::NoRefWhenDowngrade) | None => no_ref_when_downgrade_header(ref_url, url),

@@ -1626,10 +1626,10 @@ fn assert_referer_header_not_included(origin_info: &LoadOrigin, request_url: &st
 }
 
 #[test]
-fn test_referer_set_to_origin_with_originonly_policy() {
+fn test_referer_set_to_origin_with_origin_policy() {
     let request_url = "http://mozilla.com";
     let referrer_url = "http://username:password@someurl.com/some/path#fragment";
-    let referrer_policy = Some(ReferrerPolicy::OriginOnly);
+    let referrer_policy = Some(ReferrerPolicy::Origin);
     let expected_referrer = "http://someurl.com/";
 
     let origin_info = LoadOriginInfo {
@@ -1638,6 +1638,35 @@ fn test_referer_set_to_origin_with_originonly_policy() {
     };
 
     assert_referer_header_matches(&origin_info, request_url, expected_referrer);
+}
+
+#[test]
+fn test_referer_set_to_ref_url_with_sameorigin_policy_same_orig() {
+    let request_url = "http://mozilla.com";
+    let referrer_url = "http://username:password@mozilla.com/some/path#fragment";
+    let referrer_policy = Some(ReferrerPolicy::SameOrigin);
+    let expected_referrer = "http://mozilla.com/some/path";
+
+    let origin_info = LoadOriginInfo {
+        referrer_url: referrer_url,
+        referrer_policy: referrer_policy
+    };
+
+    assert_referer_header_matches(&origin_info, request_url, expected_referrer);
+}
+
+#[test]
+fn test_no_referer_set_with_sameorigin_policy_cross_orig() {
+    let request_url = "http://mozilla.com";
+    let referrer_url = "http://username:password@someurl.com/some/path#fragment";
+    let referrer_policy = Some(ReferrerPolicy::SameOrigin);
+
+    let origin_info = LoadOriginInfo {
+        referrer_url: referrer_url,
+        referrer_policy: referrer_policy
+    };
+
+    assert_referer_header_not_included(&origin_info, request_url);
 }
 
 #[test]
