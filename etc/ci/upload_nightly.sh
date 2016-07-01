@@ -13,7 +13,7 @@ usage() {
 
 upload() {
     s3cmd put "${2}" "s3://servo-builds/nightly/${1}/"
-    s3cmd put "${2}" "s3://servo-builds/nightly/${1}/servo-latest${3}"
+    s3cmd put "${2}" "s3://servo-builds/nightly/${1}/servo-latest.${3}"
 }
 
 
@@ -27,17 +27,17 @@ main() {
     platform="${1}"
 
     if [[ "${platform}" == "android" ]]; then
-        extension=.apk
-        package=target/arm-linux-androideabi/release/*${extension}
+        extension=apk
+        package=target/arm-linux-androideabi/release/*."${extension}"
     elif [[ "${platform}" == "linux" ]]; then
-        extension=.tar.gz
-        package=target/*${extension}
+        extension=tar.gz
+        package=target/*."${extension}"
     elif [[ "${platform}" == "mac" ]]; then
-        extension=.dmg
-        package=target/*${extension}
+        extension=dmg
+        package=target/*."${extension}"
     elif [[ "${platform}" == "windows" ]]; then
-        extension=.tar.gz
-        package=target/*${extension}
+        extension=tar.gz
+        package=target/*."${extension}"
     else
         usage >&2
         return 1
@@ -46,7 +46,7 @@ main() {
     # Lack of quotes on package allows glob expansion
     # Note that this is not robust in the case of embedded spaces
     # TODO(aneeshusa): make this glob robust using e.g. arrays or Python
-    upload "${platform}" ${package} ${extension}
+    upload "${platform}" ${package} "${extension}""
 }
 
 main "$@"
