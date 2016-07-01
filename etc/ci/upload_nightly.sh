@@ -46,7 +46,7 @@ main() {
     # Lack of quotes on package allows glob expansion
     # Note that this is not robust in the case of embedded spaces
     # TODO(aneeshusa): make this glob robust using e.g. arrays or Python
-    upload "${platform}" ${package} "${extension}""
+    upload "${platform}" ${package} "${extension}"
 }
 
 main "$@"
