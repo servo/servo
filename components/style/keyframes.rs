@@ -154,8 +154,12 @@ fn get_animated_properties(keyframe: &Keyframe) -> Vec<TransitionProperty> {
 
 impl KeyframesAnimation {
     pub fn from_keyframes(keyframes: &[Keyframe]) -> Option<Self> {
+        if keyframes.is_empty() {
+            return None;
+        }
+
         let animated_properties = get_animated_properties(&keyframes[0]);
-        if keyframes.is_empty() || animated_properties.is_empty() {
+        if animated_properties.is_empty() {
             return None;
         }
 
