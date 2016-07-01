@@ -13,7 +13,6 @@ import os
 import os.path as path
 import shutil
 import subprocess
-import tarfile
 
 from mach.registrar import Registrar
 from datetime import datetime
@@ -183,9 +182,21 @@ class PackageCommands(CommandBase):
             tar_path = '/'.join(dir_to_package.split('/')[:-1]) + '/'
             tar_path += datetime.utcnow().replace(microsecond=0).isoformat()
             tar_path += "-servo-tech-demo.tar.gz"
-            with tarfile.open(tar_path, "w:gz") as tar:
-                # arcname is to add by relative rather than absolute path
-                tar.add(dir_to_package, arcname='servo/')
+
+            # Archive deterministically
+            # See https://reproducible-builds.org/docs/archives/
+            archive_cmd = (
+                "find . -print0 "
+                "  | LC_ALL=C sort -z "
+                "  | tar  --null -T - --no-recursion --mtime='1970-01-01 00:00Z' "
+                "         --transform 's,^./,{root_dir}/,' "
+                "         --owner=root --group=root --numeric-owner -cf - "
+                "  | gzip -n > '{tar_path}'"
+            ).format(root_dir='servo', tar_path=tar_path)
+
+            with cd(dir_to_package):
+                subprocess.call(archive_cmd, shell=True)
+
             print("Packaged Servo into " + tar_path)
 
     @Command('install',
