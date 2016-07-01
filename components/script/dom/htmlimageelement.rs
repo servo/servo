@@ -44,7 +44,8 @@ enum State {
 #[derive(JSTraceable, HeapSizeOf)]
 struct ImageRequest {
     state: State,
-    url: Option<Url>,
+    parsed_url: Option<Url>,
+    source_url: Option<DOMString>,
     image: Option<Arc<Image>>,
     metadata: Option<ImageMetadata>,
 }
@@ -56,8 +57,8 @@ pub struct HTMLImageElement {
 }
 
 impl HTMLImageElement {
-    pub fn get_url(&self) -> Option<Url>{
-        self.current_request.borrow().url.clone()
+    pub fn get_url(&self) -> Option<Url> {
+        self.current_request.borrow().parsed_url.clone()
     }
 }
 
@@ -118,13 +119,15 @@ impl HTMLImageElement {
         let image_cache = window.image_cache_thread();
         match value {
             None => {
-                self.current_request.borrow_mut().url = None;
+                self.current_request.borrow_mut().parsed_url = None;
+                self.current_request.borrow_mut().source_url = None;
                 self.current_request.borrow_mut().image = None;
             }
             Some((src, base_url)) => {
                 let img_url = base_url.join(&src);
                 if let Ok(img_url) = img_url {
-                    self.current_request.borrow_mut().url = Some(img_url.clone());
+                    self.current_request.borrow_mut().parsed_url = Some(img_url.clone());
+                    self.current_request.borrow_mut().source_url = Some(src);
 
                     let trusted_node = Trusted::new(self);
                     let (responder_sender, responder_receiver) = ipc::channel().unwrap();
@@ -145,9 +148,40 @@ impl HTMLImageElement {
                                               window.image_cache_chan(),
                                               Some(ImageResponder::new(responder_sender)));
                 } else {
+                    // https://html.spec.whatwg.org/multipage/#update-the-image-data
+                    // Step 11 (error substeps)
                     debug!("Failed to parse URL {} with base {}", src, base_url);
-                    self.current_request.borrow_mut().url = None;
-                    self.current_request.borrow_mut().image = None;
+                    let mut req = self.current_request.borrow_mut();
+
+                    // Substeps 1,2
+                    req.image = None;
+                    req.parsed_url = None;
+                    req.state = State::Broken;
+                    // todo: set pending request to null
+                    // (pending requests aren't being used yet)
+
+
+                    struct ImgParseErrorRunnable {
+                        img: Trusted<HTMLImageElement>,
+                        src: String,
+                    }
+                    impl Runnable for ImgParseErrorRunnable {
+                        fn handler(self: Box<Self>) {
+                            // https://html.spec.whatwg.org/multipage/#update-the-image-data
+                            // Step 11, substep 5
+                            let img = self.img.root();
+                            img.current_request.borrow_mut().source_url = Some(self.src.into());
+                            img.upcast::<EventTarget>().fire_simple_event("error");
+                            img.upcast::<EventTarget>().fire_simple_event("loadend");
+                        }
+                    }
+
+                    let runnable = Box::new(ImgParseErrorRunnable {
+                        img: Trusted::new(self),
+                        src: src.into(),
+                    });
+                    let script_chan = window.networking_task_source();
+                    let _ = script_chan.send(CommonScriptMsg::RunnableMsg(UpdateReplacedElement, runnable));
                 }
             }
         }
@@ -157,13 +191,15 @@ impl HTMLImageElement {
             htmlelement: HTMLElement::new_inherited(localName, prefix, document),
             current_request: DOMRefCell::new(ImageRequest {
                 state: State::Unavailable,
-                url: None,
+                parsed_url: None,
+                source_url: None,
                 image: None,
                 metadata: None
             }),
             pending_request: DOMRefCell::new(ImageRequest {
                 state: State::Unavailable,
-                url: None,
+                parsed_url: None,
+                source_url: None,
                 image: None,
                 metadata: None
             }),
@@ -213,7 +249,7 @@ impl LayoutHTMLImageElementHelpers for LayoutJS<HTMLImageElement> {
 
     #[allow(unsafe_code)]
     unsafe fn image_url(&self) -> Option<Url> {
-        (*self.unsafe_get()).current_request.borrow_for_layout().url.clone()
+        (*self.unsafe_get()).current_request.borrow_for_layout().parsed_url.clone()
     }
 
     #[allow(unsafe_code)]
@@ -317,9 +353,9 @@ impl HTMLImageElementMethods for HTMLImageElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-img-currentsrc
     fn CurrentSrc(&self) -> DOMString {
-        let ref url = self.current_request.borrow().url;
+        let ref url = self.current_request.borrow().source_url;
         match *url {
-            Some(ref url) => DOMString::from(url.as_str()),
+            Some(ref url) => url.clone(),
             None => DOMString::from(""),
         }
     }
