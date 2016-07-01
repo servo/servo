@@ -353,7 +353,8 @@ ${impl_split_style_coord(ident,
                          need_clone=need_clone)}
 </%def>
 
-<%def name="impl_corner_style_coord(ident, x_unit_ffi_name, x_union_ffi_name, y_unit_ffi_name, y_union_ffi_name)">
+<%def name="impl_corner_style_coord(ident, x_unit_ffi_name, x_union_ffi_name, \
+                                    y_unit_ffi_name, y_union_ffi_name, need_clone=False)">
     fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
         v.0.width.to_gecko_style_coord(&mut self.gecko.${x_unit_ffi_name},
                                        &mut self.gecko.${x_union_ffi_name});
@@ -368,6 +369,19 @@ ${impl_split_style_coord(ident,
         self.gecko.${y_unit_ffi_name} = other.gecko.${y_unit_ffi_name};
         self.gecko.${y_union_ffi_name} = other.gecko.${y_union_ffi_name};
     }
+    % if need_clone:
+        fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
+            use style::properties::longhands::${ident}::computed_value::T;
+            use euclid::Size2D;
+            let width = ToGeckoStyleCoord::from_gecko_style_coord(&self.gecko.${x_unit_ffi_name},
+                                                                  &self.gecko.${x_union_ffi_name})
+                            .expect("Failed to clone ${ident}");
+            let height = ToGeckoStyleCoord::from_gecko_style_coord(&self.gecko.${y_unit_ffi_name},
+                                                                 &self.gecko.${y_union_ffi_name})
+                            .expect("Failed to clone ${ident}");
+            T(Size2D::new(width, height))
+        }
+    % endif
 </%def>
 
 <%def name="impl_style_struct(style_struct)">
@@ -582,10 +596,8 @@ fn static_assert() {
                                "mBorderRadius.mUnits[%s]" % corner.x_index,
                                "mBorderRadius.mValues[%s]" % corner.x_index,
                                "mBorderRadius.mUnits[%s]" % corner.y_index,
-                               "mBorderRadius.mValues[%s]" % corner.y_index) %>
-    fn clone_border_${corner.ident}_radius(&self) -> longhands::border_${corner.ident}_radius::computed_value::T {
-        unimplemented!(); // TODO: Only used for animations
-    }
+                               "mBorderRadius.mValues[%s]" % corner.y_index,
+                               need_clone=True) %>
     % endfor
 </%self:impl_trait>
 
@@ -807,7 +819,23 @@ fn static_assert() {
     }
 
     fn clone_vertical_align(&self) -> longhands::vertical_align::computed_value::T {
-        unimplemented!(); // TODO: only used for animations.
+        use style::properties::longhands::vertical_align::computed_value::T;
+        use style::values::computed::LengthOrPercentage;
+
+        if self.gecko.mVerticalAlign.is_enum() {
+            match self.gecko.mVerticalAlign.get_enum() as u32 {
+                % for value in keyword.values_for('gecko'):
+                    structs::${keyword.gecko_constant(value)}
+                        => T::${to_rust_ident(value)},
+                % endfor
+                _ => panic!("Unexpected enum variant for vertical-align"),
+            }
+        } else {
+            let v = LengthOrPercentage::from_gecko_style_coord(&self.gecko.mVerticalAlign.mUnit,
+                                                               &self.gecko.mVerticalAlign.mValue)
+                .expect("Expected length or percentage for vertical-align");
+            T::LengthOrPercentage(v)
+        }
     }
 
     <%call expr="impl_coord_copy('vertical_align', 'mVerticalAlign')"></%call>
