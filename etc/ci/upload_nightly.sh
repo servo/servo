@@ -13,7 +13,7 @@ usage() {
 
 upload() {
     s3cmd put "${2}" "s3://servo-builds/nightly/${1}/"
-    s3cmd put "${2}" "s3://servo-builds/nightly/${1}/servo-latest.${3}"
+    s3cmd cp "s3://servo-builds/nightly/${1}/${2}" "s3://servo-builds/nightly/${1}/servo-latest.${3}"
 }
 
 
