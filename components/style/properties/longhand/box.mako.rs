@@ -490,8 +490,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 
     pub fn parse_one(input: &mut Parser) -> Result<SingleSpecifiedValue,()> {
         if let Ok(function_name) = input.try(|input| input.expect_function()) {
-            return match_ignore_ascii_case! {
-                function_name,
+            return match_ignore_ascii_case! { function_name,
                 "cubic-bezier" => {
                     let (mut p1x, mut p1y, mut p2x, mut p2y) = (0.0, 0.0, 0.0, 0.0);
                     try!(input.parse_nested_block(|input| {
@@ -582,6 +581,12 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
         computed_value::T(Vec::new())
     }
 
+
+    #[inline]
+    pub fn parse_one(input: &mut Parser) -> Result<SingleSpecifiedValue, ()> {
+        SingleSpecifiedValue::parse(input)
+    }
+
     pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
         Ok(SpecifiedValue(try!(input.parse_comma_separated(SingleSpecifiedValue::parse))))
     }
@@ -640,6 +645,18 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     }
 
     pub use self::computed_value::T as SpecifiedValue;
+    pub use string_cache::Atom as SingleSpecifiedValue;
+
+    #[inline]
+    pub fn parse_one(input: &mut Parser) -> Result<SingleSpecifiedValue, ()> {
+        use cssparser::Token;
+
+        Ok(match input.next() {
+            Ok(Token::Ident(ref value)) if value != "none" => Atom::from(&**value),
+            Ok(Token::QuotedString(value)) => Atom::from(&*value),
+            _ => return Err(()),
+        })
+    }
 
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
@@ -648,9 +665,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 
     pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
         use std::borrow::Cow;
-        Ok(SpecifiedValue(try!(input.parse_comma_separated(|input| {
-            input.expect_ident().map(Atom::from)
-        }))))
+        Ok(SpecifiedValue(try!(input.parse_comma_separated(parse_one))))
     }
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
@@ -660,16 +675,20 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                    need_index="True"
                    animatable="False">
     pub use super::transition_duration::computed_value;
-    pub use super::transition_duration::{parse, get_initial_value};
+    pub use super::transition_duration::{get_initial_value, get_initial_single_value};
+    pub use super::transition_duration::{parse, parse_one};
     pub use super::transition_duration::SpecifiedValue;
+    pub use super::transition_duration::SingleSpecifiedValue;
 </%helpers:longhand>
 
 <%helpers:longhand name="animation-timing-function"
                    need_index="True"
                    animatable="False">
     pub use super::transition_timing_function::computed_value;
-    pub use super::transition_timing_function::{parse, get_initial_value};
+    pub use super::transition_timing_function::{get_initial_value, get_initial_single_value};
+    pub use super::transition_timing_function::{parse, parse_one};
     pub use super::transition_timing_function::SpecifiedValue;
+    pub use super::transition_timing_function::SingleSpecifiedValue;
 </%helpers:longhand>
 
 <%helpers:longhand name="animation-iteration-count"
@@ -720,7 +739,13 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     }
 
     pub use self::computed_value::AnimationIterationCount;
+    pub use self::computed_value::AnimationIterationCount as SingleSpecifiedValue;
     pub use self::computed_value::T as SpecifiedValue;
+
+    #[inline]
+    pub fn get_initial_single_value() -> AnimationIterationCount {
+        AnimationIterationCount::Number(1)
+    }
 
     pub fn parse_one(input: &mut Parser) -> Result<AnimationIterationCount, ()> {
         if input.try(|input| input.expect_ident_matching("infinite")).is_ok() {
@@ -740,8 +765,9 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
         Ok(SpecifiedValue(try!(input.parse_comma_separated(parse_one))))
     }
 
+    #[inline]
     pub fn get_initial_value() -> computed_value::T {
-        computed_value::T(vec![AnimationIterationCount::Number(1)])
+        computed_value::T(vec![get_initial_single_value()])
     }
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
@@ -767,8 +793,10 @@ ${helpers.keyword_list("animation-fill-mode",
                    need_index="True"
                    animatable="False">
     pub use super::transition_duration::computed_value;
-    pub use super::transition_duration::{parse, get_initial_value};
+    pub use super::transition_duration::{get_initial_value, get_initial_single_value};
+    pub use super::transition_duration::{parse, parse_one};
     pub use super::transition_duration::SpecifiedValue;
+    pub use super::transition_duration::SingleSpecifiedValue;
 </%helpers:longhand>
 
 // CSSOM View Module
