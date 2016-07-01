@@ -7,6 +7,7 @@ use platform::font::FontHandle;
 use platform::font_context::FontContextHandle;
 use platform::font_template::FontTemplateData;
 use std::fmt::{Debug, Error, Formatter};
+use std::io::Error as IoError;
 use std::sync::{Arc, Weak};
 use std::u32;
 use string_cache::Atom;
@@ -77,9 +78,9 @@ impl Debug for FontTemplate {
 /// is common, regardless of the number of instances of
 /// this font handle per thread.
 impl FontTemplate {
-    pub fn new(identifier: Atom, maybe_bytes: Option<Vec<u8>>) -> FontTemplate {
+    pub fn new(identifier: Atom, maybe_bytes: Option<Vec<u8>>) -> Result<FontTemplate, IoError> {
         let maybe_data = match maybe_bytes {
-            Some(_) => Some(FontTemplateData::new(identifier.clone(), maybe_bytes)),
+            Some(_) => Some(try!(FontTemplateData::new(identifier.clone(), maybe_bytes))),
             None => None,
         };
 
@@ -93,13 +94,13 @@ impl FontTemplate {
             None => None,
         };
 
-        FontTemplate {
+        Ok(FontTemplate {
             identifier: identifier,
             descriptor: None,
             weak_ref: maybe_weak_ref,
             strong_ref: maybe_strong_ref,
             is_valid: true,
-        }
+        })
     }
 
     pub fn identifier(&self) -> &Atom {
@@ -117,7 +118,7 @@ impl FontTemplate {
         // so that we can do font matching against it again in the future
         // without having to reload the font (unless it is an actual match).
         match self.descriptor {
-            Some(actual_desc) if *requested_desc == actual_desc => Some(self.data()),
+            Some(actual_desc) if *requested_desc == actual_desc => self.data().ok(),
             Some(_) => None,
             None => {
                 if self.instantiate(fctx).is_err() {
@@ -127,7 +128,7 @@ impl FontTemplate {
                 if self.descriptor
                        .as_ref()
                        .expect("Instantiation succeeded but no descriptor?") == requested_desc {
-                    Some(self.data())
+                    self.data().ok()
                 } else {
                     None
                 }
@@ -143,7 +144,9 @@ impl FontTemplate {
                                            -> Option<(Arc<FontTemplateData>, u32)> {
         match self.descriptor {
             Some(actual_descriptor) => {
-                Some((self.data(), actual_descriptor.distance_from(requested_descriptor)))
+                self.data().ok().map(|data| {
+                    (data, actual_descriptor.distance_from(requested_descriptor))
+                })
             }
             None => {
                 if self.instantiate(font_context).is_ok() {
@@ -151,7 +154,7 @@ impl FontTemplate {
                                        .as_ref()
                                        .expect("Instantiation successful but no descriptor?")
                                        .distance_from(requested_descriptor);
-                    Some((self.data(), distance))
+                    (self.data().ok().map(|data| (data, distance)))
                 } else {
                     None
                 }
@@ -164,7 +167,7 @@ impl FontTemplate {
             return Err(())
         }
 
-        let data = self.data();
+        let data = try!(self.data().map_err(|_| ()));
         let handle: Result<FontHandle, ()> = FontHandleMethods::new_from_template(font_context,
                                                                                   data,
                                                                                   None);
@@ -179,7 +182,7 @@ impl FontTemplate {
     /// Get the data for creating a font.
     pub fn get(&mut self) -> Option<Arc<FontTemplateData>> {
         if self.is_valid {
-            Some(self.data())
+            self.data().ok()
         } else {
             None
         }
@@ -188,19 +191,19 @@ impl FontTemplate {
     /// Get the font template data. If any strong references still
     /// exist, it will return a clone, otherwise it will load the
     /// font data and store a weak reference to it internally.
-    pub fn data(&mut self) -> Arc<FontTemplateData> {
+    pub fn data(&mut self) -> Result<Arc<FontTemplateData>, IoError> {
         let maybe_data = match self.weak_ref {
             Some(ref data) => data.upgrade(),
             None => None,
         };
 
         if let Some(data) = maybe_data {
-            return data
+            return Ok(data)
         }
 
         assert!(self.strong_ref.is_none());
-        let template_data = Arc::new(FontTemplateData::new(self.identifier.clone(), None));
+        let template_data = Arc::new(try!(FontTemplateData::new(self.identifier.clone(), None)));
         self.weak_ref = Some(Arc::downgrade(&template_data));
-        template_data
+        Ok(template_data)
     }
 }
