@@ -249,6 +249,7 @@ def set_gecko_property(ffi_name, expr):
 <%def name="impl_color_copy(ident, gecko_ffi_name, color_flags_ffi_name=None)">
     fn copy_${ident}_from(&mut self, other: &Self) {
         % if color_flags_ffi_name:
+            ${clear_color_flags(color_flags_ffi_name)}
             if ${get_current_color_flag_from("other.gecko." + color_flags_ffi_name)} {
                 ${set_current_color_flag(color_flags_ffi_name)}
             }
