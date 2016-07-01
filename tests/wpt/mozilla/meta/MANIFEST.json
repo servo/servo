@@ -6072,6 +6072,12 @@
         ]
       },
       "testharness": {
+        "css/empty-keyframes.html": [
+          {
+            "path": "css/empty-keyframes.html",
+            "url": "/_mozilla/css/empty-keyframes.html"
+          }
+        ],
         "css/flex-item-assign-inline-size.html": [
           {
             "path": "css/flex-item-assign-inline-size.html",
