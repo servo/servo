@@ -354,10 +354,12 @@ impl MozBrowserEventDetailBuilder for HTMLIFrameElement {
                 rval.set(NullValue());
             }
             MozBrowserEvent::Error(error_type, description, report) => {
+                let version = format!("Servo {}{}", env!("CARGO_PKG_VERSION"), env!("GIT_INFO"));
                 BrowserElementErrorEventDetail {
                     type_: Some(DOMString::from(error_type.name())),
                     description: description.map(DOMString::from),
                     report: report.map(DOMString::from),
+                    version: Some(DOMString::from_string(version)),
                 }.to_jsval(cx, rval);
             },
             MozBrowserEvent::SecurityChange(https_state) => {

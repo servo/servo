@@ -2165,7 +2165,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         if let Some(ancestor_info) = ancestor_info {
             match self.pipelines.get(&ancestor_info.0) {
                 Some(ancestor) => {
-                    let event = MozBrowserEvent::Error(MozBrowserErrorType::Fatal, Some(reason), Some(backtrace));
+                    let event = MozBrowserEvent::Error(MozBrowserErrorType::Fatal,
+                                                       Some(reason),
+                                                       Some(backtrace));
                     ancestor.trigger_mozbrowser_event(ancestor_info.1, event);
                 },
                 None => return warn!("Mozbrowsererror via closed pipeline {:?}.", ancestor_info.0),
