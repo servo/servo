@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+//! Two simple cache data structures.
+
 use rand;
 use rand::Rng;
 use std::hash::{Hash, Hasher, SipHasher};
