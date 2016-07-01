@@ -142,8 +142,9 @@ class PackageCommands(CommandBase):
             print("Creating dmg")
             os.symlink('/Applications', dir_to_dmg + '/Applications')
             dmg_path = '/'.join(dir_to_build.split('/')[:-1]) + '/'
-            dmg_path += datetime.utcnow().replace(microsecond=0).isoformat()
-            dmg_path += "-servo-tech-demo.dmg"
+            time = datetime.utcnow().replace(microsecond=0).isoformat()
+            time = time.replace(':', '-')
+            dmg_path += time + "-servo-tech-demo.dmg"
             try:
                 subprocess.check_call(['hdiutil', 'create', '-volname', 'Servo', dmg_path, '-srcfolder', dir_to_dmg])
             except subprocess.CalledProcessError as e:
@@ -181,8 +182,9 @@ class PackageCommands(CommandBase):
             os.close(runservo)
             print("Creating tarball")
             tar_path = '/'.join(dir_to_package.split('/')[:-1]) + '/'
-            tar_path += datetime.utcnow().replace(microsecond=0).isoformat()
-            tar_path += "-servo-tech-demo.tar.gz"
+            time = datetime.utcnow().replace(microsecond=0).isoformat()
+            time = time.replace(':', "-")
+            tar_path += time + "-servo-tech-demo.tar.gz"
             with tarfile.open(tar_path, "w:gz") as tar:
                 # arcname is to add by relative rather than absolute path
                 tar.add(dir_to_package, arcname='servo/')
