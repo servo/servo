@@ -18,6 +18,7 @@ extern crate url;
 extern crate util;
 
 mod attr;
+mod cache;
 mod logical_geometry;
 mod media_queries;
 mod properties;
