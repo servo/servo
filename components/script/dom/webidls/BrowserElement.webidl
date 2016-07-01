@@ -61,6 +61,7 @@ dictionary BrowserElementErrorEventDetail {
   DOMString type;
   DOMString description;
   DOMString report;
+  DOMString version;
 };
 
 dictionary BrowserElementLocationChangeEventDetail {
