@@ -508,16 +508,17 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                     Ok(TransitionTimingFunction::CubicBezier(p1, p2))
                 },
                 "steps" => {
-                    let (mut step_count, mut start_end) = (0, computed_value::StartEnd::Start);
+                    let (mut step_count, mut start_end) = (0, computed_value::StartEnd::End);
                     try!(input.parse_nested_block(|input| {
                         step_count = try!(specified::parse_integer(input));
-                        try!(input.expect_comma());
-                        start_end = try!(match_ignore_ascii_case! {
-                            try!(input.expect_ident()),
-                            "start" => Ok(computed_value::StartEnd::Start),
-                            "end" => Ok(computed_value::StartEnd::End),
-                            _ => Err(())
-                        });
+                        if input.try(|input| input.expect_comma()).is_ok() {
+                            start_end = try!(match_ignore_ascii_case! {
+                                try!(input.expect_ident()),
+                                "start" => Ok(computed_value::StartEnd::Start),
+                                "end" => Ok(computed_value::StartEnd::End),
+                                _ => Err(())
+                            });
+                        }
                         Ok(())
                     }));
                     Ok(TransitionTimingFunction::Steps(step_count as u32, start_end))
