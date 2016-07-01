@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-use util::cache::LRUCache;
+use style::cache::LRUCache;
 
 #[test]
 fn test_lru_cache() {
