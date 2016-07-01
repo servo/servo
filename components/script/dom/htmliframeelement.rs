@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+extern crate bitflags;
+
 use document_loader::{LoadType, LoadBlocker};
 use dom::attr::Attr;
 use dom::bindings::cell::DOMRefCell;
@@ -50,7 +52,7 @@ use style::context::ReflowGoal;
 use url::Url;
 use util::prefs::mozbrowser_enabled;
 
-#[derive(HeapSizeOf)]
+/*#[derive(JSTraceable, HeapSizeOf, Copy, Clone)]
 enum SandboxAllowance {
     AllowNothing = 0x00,
     AllowSameOrigin = 0x01,
@@ -60,6 +62,20 @@ enum SandboxAllowance {
     AllowPointerLock = 0x10,
     AllowPopups = 0x20
 }
+*/
+
+bitflags! {
+	#[derive(JSTraceable, HeapSizeOf)]
+    	pub flags SandboxAllowance: u8 {
+		const ALLOW_NOTHING = 0x00,
+    		const ALLOW_SAME_ORIGIN = 0x01,
+	        const ALLOW_TOP_NAVIGATION = 0x02,
+    		const ALLOW_FORMS = 0x04,
+    		const ALLOW_SCRIPTS = 0x08,
+    		const ALLOW_POINTER_LOCK = 0x10,
+    		const ALLOW_POPUPS = 0x20
+	}
+}
 
 #[dom_struct]
 pub struct HTMLIFrameElement {
@@ -67,7 +83,7 @@ pub struct HTMLIFrameElement {
     pipeline_id: Cell<Option<PipelineId>>,
     subpage_id: Cell<Option<SubpageId>>,
     sandbox: MutNullableHeap<JS<DOMTokenList>>,
-    sandbox_allowance: Cell<Option<u8>>,
+    sandbox_allowance: Cell<Option<SandboxAllowance>>,
     load_blocker: DOMRefCell<Option<LoadBlocker>>,
     visibility: Cell<bool>,
 }
@@ -589,17 +605,17 @@ impl VirtualMethods for HTMLIFrameElement {
         match attr.local_name() {
             &atom!("sandbox") => {
                 self.sandbox_allowance.set(mutation.new_value(attr).map(|value| {
-                    let mut modes = SandboxAllowance::AllowNothing as u8;
+                    let mut modes = ALLOW_NOTHING;
                     for token in value.as_tokens() {
                         modes |= match &*token.to_ascii_lowercase() {
-                            "allow-same-origin" => SandboxAllowance::AllowSameOrigin,
-                            "allow-forms" => SandboxAllowance::AllowForms,
-                            "allow-pointer-lock" => SandboxAllowance::AllowPointerLock,
-                            "allow-popups" => SandboxAllowance::AllowPopups,
-                            "allow-scripts" => SandboxAllowance::AllowScripts,
-                            "allow-top-navigation" => SandboxAllowance::AllowTopNavigation,
-                            _ => SandboxAllowance::AllowNothing
-                        } as u8;
+                            "allow-same-origin" => ALLOW_SAME_ORIGIN,
+                            "allow-forms" => ALLOW_FORMS,
+                            "allow-pointer-lock" => ALLOW_POINTER_LOCK,
+                            "allow-popups" => ALLOW_POPUPS,
+                            "allow-scripts" => ALLOW_SCRIPTS,
+                            "allow-top-navigation" => ALLOW_TOP_NAVIGATION,
+                            _ => ALLOW_NOTHING
+                        };
                     }
                     modes
                 }));
