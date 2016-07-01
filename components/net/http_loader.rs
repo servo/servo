@@ -570,7 +570,7 @@ impl StreamedResponse {
                 Decoder::Deflate(DeflateDecoder::new(response))
             }
             Some(Encoding::EncodingExt(ref ext)) if ext == "br" => {
-                Decoder::Brotli(Decompressor::new(response))
+                Decoder::Brotli(Decompressor::new(response, 1024))
             }
             _ => {
                 Decoder::Plain(response)

@@ -10,7 +10,7 @@ path = "lib.rs"
 
 [dependencies]
 bitflags = "0.7"
-brotli = {git = "https://github.com/ende76/brotli-rs"}
+brotli = "1.0.6"
 content-blocker = "0.2"
 cookie = { version = "0.2.5", features = ["serialize-serde", "serialize-rustc" ] }
 device = {git = "https://github.com/servo/devices"}
