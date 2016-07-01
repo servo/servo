@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
+use cache::HashCache;
 use euclid::{Point2D, Rect, Size2D};
 use font_template::FontTemplateDescriptor;
 use platform::font::{FontHandle, FontTable};
@@ -22,7 +23,6 @@ use text::glyph::{ByteIndex, GlyphData, GlyphId, GlyphStore};
 use text::shaping::ShaperMethods;
 use time;
 use unicode_script::Script;
-use util::cache::HashCache;
 use webrender_traits;
 
 macro_rules! ot_tag {

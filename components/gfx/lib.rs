@@ -86,6 +86,7 @@ extern crate xi_unicode;
 pub use paint_context::PaintContext;
 
 // Misc.
+mod cache;
 mod filters;
 
 // Private painting modules
