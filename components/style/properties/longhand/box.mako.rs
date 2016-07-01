@@ -285,8 +285,8 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 
 // TODO(pcwalton): Multiple transitions.
 <%helpers:longhand name="transition-duration"
-                   animatable="False"
-                   need_index="True">
+                   need_index="True"
+                   animatable="False">
     use values::computed::ComputedValueAsSpecified;
     use values::specified::Time;
 
@@ -545,8 +545,8 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 </%helpers:longhand>
 
 <%helpers:longhand name="transition-property"
-                   animatable="False"
-                   need_index="True">
+                   need_index="True"
+                   animatable="False">
     pub use self::computed_value::SingleComputedValue as SingleSpecifiedValue;
     pub use self::computed_value::T as SpecifiedValue;
 
@@ -747,19 +747,19 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 
 ${helpers.keyword_list("animation-direction",
                        "normal reverse alternate alternate-reverse",
-                       animatable=False,
-                       need_index=True)}
+                       need_index=True,
+                       animatable=False)}
 
 ${helpers.keyword_list("animation-play-state",
                        "running paused",
                        need_clone=True,
-                       animatable=False,
-                       need_index=True)}
+                       need_index=True,
+                       animatable=False)}
 
 ${helpers.keyword_list("animation-fill-mode",
                        "none forwards backwards both",
-                       animatable=False,
-                       need_index=True)}
+                       need_index=True,
+                       animatable=False)}
 
 <%helpers:longhand name="animation-delay"
                    need_index="True"
