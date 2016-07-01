@@ -772,7 +772,7 @@ impl LayoutThread {
             traversal.shutdown()
         }
 
-        self.paint_chan.send(LayoutToPaintMsg::Exit).unwrap();
+        let _ = self.paint_chan.send(LayoutToPaintMsg::Exit);
     }
 
     fn handle_add_stylesheet<'a, 'b>(&self,
