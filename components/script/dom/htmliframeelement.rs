@@ -51,16 +51,16 @@ use url::Url;
 use util::prefs::mozbrowser_enabled;
 
 bitflags! {
-	#[derive(JSTraceable, HeapSizeOf)]
-    	pub flags SandboxAllowance: u8 {
-		const ALLOW_NOTHING = 0x00,
-    		const ALLOW_SAME_ORIGIN = 0x01,
-	        const ALLOW_TOP_NAVIGATION = 0x02,
-    		const ALLOW_FORMS = 0x04,
-    		const ALLOW_SCRIPTS = 0x08,
-    		const ALLOW_POINTER_LOCK = 0x10,
-    		const ALLOW_POPUPS = 0x20
-	}
+    #[derive(JSTraceable, HeapSizeOf)]
+    pub flags SandboxAllowance: u8 {
+	const ALLOW_NOTHING = 0x00,
+    	const ALLOW_SAME_ORIGIN = 0x01,
+	const ALLOW_TOP_NAVIGATION = 0x02,
+    	const ALLOW_FORMS = 0x04,
+    	const ALLOW_SCRIPTS = 0x08,
+    	const ALLOW_POINTER_LOCK = 0x10,
+    	const ALLOW_POPUPS = 0x20
+    }
 }
 
 #[dom_struct]
