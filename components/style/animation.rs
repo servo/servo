@@ -626,7 +626,9 @@ where Impl: SelectorImplExt,
             // NB: The spec says that the timing function can be overwritten
             // from the keyframe style.
             let mut timing_function = style.get_box().animation_timing_function_mod(index);
-            if from_style.get_box().animation_timing_function_count() != 0 {
+            if last_keyframe.declared_timing_function {
+                // NB: animation_timing_function can never be empty, always has
+                // at least the default value (`ease`).
                 timing_function = from_style.get_box().animation_timing_function_at(0);
             }
 

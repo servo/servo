@@ -1,0 +1,23 @@
+<!doctype html>
+<meta charset="utf-8">
+<style>
+  @keyframes foo {
+    from { background: white; animation-timing-function: ease; }
+    to { background: black; }
+  }
+
+  @keyframes bar {
+    from { background: white }
+    to { background: black }
+  }
+
+  div {
+    height: 50px;
+    width: 100px;
+    animation: foo 1s infinite steps(4, end);
+  }
+  .bar { animation-name: bar }
+</style>
+<p>You should see an eased animation in the first-element, and a stepped one in the second one</p>
+<div></div>
+<div class="bar"></div>
