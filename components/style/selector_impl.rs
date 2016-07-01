@@ -65,7 +65,7 @@ pub trait ElementExt: Element {
 
 // NB: The `Clone` trait is here for convenience due to:
 // https://github.com/rust-lang/rust/issues/26925
-pub trait SelectorImplExt : SelectorImpl + Clone + Debug + Sized {
+pub trait SelectorImplExt : SelectorImpl + Clone + Debug + Sized + 'static {
     type ComputedValues: properties::ComputedValues;
 
     fn pseudo_element_cascade_type(pseudo: &Self::PseudoElement) -> PseudoElementCascadeType;

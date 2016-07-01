@@ -19,8 +19,8 @@ use properties::style_struct_traits::Box;
 use properties::{self, ComputedValues};
 use selector_impl::SelectorImplExt;
 use selectors::matching::DeclarationBlock;
+use std::sync::Arc;
 use std::sync::mpsc::Sender;
-use std::sync::{Arc, Mutex};
 use string_cache::Atom;
 use time;
 use values::computed::Time;
@@ -356,7 +356,7 @@ impl<T> GetMod for Vec<T> {
 //
 // TODO(emilio): Take rid of this mutex splitting SharedLayoutContex into a
 // cloneable part and a non-cloneable part..
-pub fn start_transitions_if_applicable<Impl: SelectorImplExt>(new_animations_sender: &Mutex<Sender<Animation<Impl>>>,
+pub fn start_transitions_if_applicable<Impl: SelectorImplExt>(new_animations_sender: &Sender<Animation<Impl>>,
                                                               node: OpaqueNode,
                                                               old_style: &Impl::ComputedValues,
                                                               new_style: &mut Arc<Impl::ComputedValues>)
@@ -377,7 +377,6 @@ pub fn start_transitions_if_applicable<Impl: SelectorImplExt>(new_animations_sen
             let start_time =
                 now + (box_style.transition_delay.0.get_mod(i).seconds() as f64);
             new_animations_sender
-                .lock().unwrap()
                 .send(Animation::Transition(node, start_time, AnimationFrame {
                     duration: box_style.transition_duration.0.get_mod(i).seconds() as f64,
                     property_animation: property_animation,
@@ -417,6 +416,7 @@ fn compute_style_for_animation_step<Impl: SelectorImplExt>(context: &SharedStyle
 }
 
 pub fn maybe_start_animations<Impl: SelectorImplExt>(context: &SharedStyleContext<Impl>,
+                                                     new_animations_sender: &Sender<Animation<Impl>>,
                                                      node: OpaqueNode,
                                                      new_style: &Arc<Impl::ComputedValues>) -> bool
 {
@@ -465,19 +465,18 @@ pub fn maybe_start_animations<Impl: SelectorImplExt>(context: &SharedStyleContex
             };
 
 
-            context.new_animations_sender
-                   .lock().unwrap()
-                   .send(Animation::Keyframes(node, name.clone(), KeyframesAnimationState {
-                       started_at: animation_start,
-                       duration: duration as f64,
-                       delay: delay as f64,
-                       iteration_state: iteration_state,
-                       running_state: running_state,
-                       direction: animation_direction,
-                       current_direction: initial_direction,
-                       expired: false,
-                       cascade_style: new_style.clone(),
-                   })).unwrap();
+            new_animations_sender
+                .send(Animation::Keyframes(node, name.clone(), KeyframesAnimationState {
+                    started_at: animation_start,
+                    duration: duration as f64,
+                    delay: delay as f64,
+                    iteration_state: iteration_state,
+                    running_state: running_state,
+                    direction: animation_direction,
+                    current_direction: initial_direction,
+                    expired: false,
+                    cascade_style: new_style.clone(),
+                })).unwrap();
             had_animations = true;
         }
     }

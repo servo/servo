@@ -15,4 +15,5 @@ pub type Stylesheet = stylesheets::Stylesheet<ServoSelectorImpl>;
 pub type PrivateStyleData = data::PrivateStyleData<ServoSelectorImpl, ServoComputedValues>;
 pub type Stylist = selector_matching::Stylist<ServoSelectorImpl>;
 pub type SharedStyleContext = context::SharedStyleContext<ServoSelectorImpl>;
+pub type LocalStyleContextCreationInfo = context::LocalStyleContextCreationInfo<ServoSelectorImpl>;
 pub type Animation = animation::Animation<ServoSelectorImpl>;
