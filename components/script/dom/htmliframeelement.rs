@@ -49,6 +49,7 @@ use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use style::context::ReflowGoal;
 use url::Url;
 use util::prefs::mozbrowser_enabled;
+use util::servo_version;
 
 #[derive(HeapSizeOf)]
 enum SandboxAllowance {
@@ -358,6 +359,7 @@ impl MozBrowserEventDetailBuilder for HTMLIFrameElement {
                     type_: Some(DOMString::from(error_type.name())),
                     description: description.map(DOMString::from),
                     report: report.map(DOMString::from),
+                    version: Some(DOMString::from_string(servo_version().into())),
                 }.to_jsval(cx, rval);
             },
             MozBrowserEvent::SecurityChange(https_state) => {
