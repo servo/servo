@@ -174,7 +174,7 @@ class PackageCommands(CommandBase):
                           '--pref', 'dom.mozbrowser.enabled',
                           '--pref', 'dom.forcetouch.enabled',
                           '--pref', 'shell.builtin-key-shortcuts.enabled=false',
-                          path.join(browserhtml_path, 'out', 'index.html')]
+                          path.join('./build/' + browserhtml_path.split('/')[-1], 'out', 'index.html')]
 
             runservo = os.open(dir_to_package + '/runservo.sh', os.O_WRONLY | os.O_CREAT, int("0755", 8))
             os.write(runservo, "./servo " + ' '.join(servo_args))
