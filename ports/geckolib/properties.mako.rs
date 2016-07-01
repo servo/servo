@@ -246,22 +246,6 @@ def set_gecko_property(ffi_name, expr):
     }
 </%def>
 
-<%def name="impl_color_setter(ident, gecko_ffi_name, color_flags_ffi_name=None)">
-    #[allow(unreachable_code)]
-    fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
-        use cssparser::Color;
-        ${clear_color_flags(color_flags_ffi_name)}
-        let result = match v {
-            Color::CurrentColor => {
-                ${set_current_color_flag(color_flags_ffi_name)}
-                0
-            },
-            Color::RGBA(rgba) => convert_rgba_to_nscolor(&rgba),
-        };
-        ${set_gecko_property(gecko_ffi_name, "result")}
-    }
-</%def>
-
 <%def name="impl_color_copy(ident, gecko_ffi_name, color_flags_ffi_name=None)">
     fn copy_${ident}_from(&mut self, other: &Self) {
         % if color_flags_ffi_name:
