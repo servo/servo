@@ -12,8 +12,12 @@ usage() {
 
 
 upload() {
-    s3cmd put "${2}" "s3://servo-builds/nightly/${1}/"
-    s3cmd cp "s3://servo-builds/nightly/${1}/${2}" "s3://servo-builds/nightly/${1}/servo-latest.${3}"
+    local s3path filename
+    s3path="s3://servo-builds/nightly"
+    filename=test=$(basename "${2}"")
+    
+    s3cmd put "${s3path}/${2}" "${s3path}/${1}/"
+    s3cmd cp "${s3path}/${1}/${filename}" "${s3path}/${1}/servo-latest.${3}"
 }
 
 
