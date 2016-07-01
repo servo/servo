@@ -12,8 +12,9 @@ usage() {
 
 
 upload() {
-    local nightly_upload_dir package_filename package_upload_path
-    local -r nightly_upload_dir="s3://servo-builds/nightly/${1}"
+    local package_filename 
+    local -r package_upload_path nightly_upload_dir
+    nightly_upload_dir="s3://servo-builds/nightly/${1}"
     package_filename="$(basename "${2}")"
     package_upload_path="${nightly_upload_dir}/${package_filename}"
     s3cmd put "${2}" "${package_upload_path}"
