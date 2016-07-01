@@ -50,18 +50,6 @@ use style::context::ReflowGoal;
 use url::Url;
 use util::prefs::mozbrowser_enabled;
 
-/*#[derive(JSTraceable, HeapSizeOf, Copy, Clone)]
-enum SandboxAllowance {
-    AllowNothing = 0x00,
-    AllowSameOrigin = 0x01,
-    AllowTopNavigation = 0x02,
-    AllowForms = 0x04,
-    AllowScripts = 0x08,
-    AllowPointerLock = 0x10,
-    AllowPopups = 0x20
-}
-*/
-
 bitflags! {
 	#[derive(JSTraceable, HeapSizeOf)]
     	pub flags SandboxAllowance: u8 {
