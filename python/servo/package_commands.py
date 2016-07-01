@@ -154,6 +154,8 @@ class PackageCommands(CommandBase):
             print("Packaged Servo into " + dmg_path)
         else:
             dir_to_package = '/'.join(binary_path.split('/')[:-1])
+            dir_to_root = '/'.join(binary_path.split('/')[:-3])
+            shutil.copytree(dir_to_root + '/resources', dir_to_package + '/resources')
             browserhtml_path = find_dep_path_newest('browserhtml', binary_path)
             if browserhtml_path is None:
                 print("Could not find browserhtml package; perhaps you haven't built Servo.")
@@ -172,7 +174,7 @@ class PackageCommands(CommandBase):
                           '--pref', 'dom.mozbrowser.enabled',
                           '--pref', 'dom.forcetouch.enabled',
                           '--pref', 'shell.builtin-key-shortcuts.enabled=false',
-                          path.join(browserhtml_path, 'out', 'index.html')]
+                          path.join('./build/' + browserhtml_path.split('/')[-1], 'out', 'index.html')]
 
             runservo = os.open(dir_to_package + '/runservo.sh', os.O_WRONLY | os.O_CREAT, int("0755", 8))
             os.write(runservo, "./servo " + ' '.join(servo_args))
