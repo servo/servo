@@ -333,7 +333,8 @@ pub enum FrameType {
 pub enum ReferrerPolicy {
     NoReferrer,
     NoRefWhenDowngrade,
-    OriginOnly,
+    Origin,
+    SameOrigin,
     OriginWhenCrossOrigin,
     UnsafeUrl,
 }
