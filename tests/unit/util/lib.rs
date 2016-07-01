@@ -6,7 +6,6 @@
 
 extern crate util;
 
-mod cache;
 mod opts;
 mod prefs;
 mod thread;

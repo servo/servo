@@ -20,7 +20,6 @@ extern crate getopts;
 #[allow(unused_extern_crates)] #[macro_use] extern crate lazy_static;
 #[macro_use] extern crate log;
 extern crate num_cpus;
-extern crate rand;
 extern crate rustc_serialize;
 #[cfg(feature = "servo")] extern crate serde;
 extern crate url;
@@ -30,7 +29,6 @@ extern crate xdg;
 use std::sync::Arc;
 
 pub mod basedir;
-pub mod cache;
 pub mod geometry;
 #[cfg(feature = "servo")] #[allow(unsafe_code)] pub mod ipc;
 #[allow(unsafe_code)] pub mod opts;
