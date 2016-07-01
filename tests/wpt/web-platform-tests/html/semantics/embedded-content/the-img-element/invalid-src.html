@@ -1,0 +1,13 @@
+<!doctype html>
+<meta charset="utf-8">
+<title></title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Loading a non-parsing URL as an image should silently fail -->
+<img id=myimg src="http://this is a broken url" />
+<script>
+test(function() {
+    document.getElementById("myimg").src = "http://also a broken url";
+});
+
+</script>
