@@ -15,7 +15,7 @@ use std::sync::{Arc, Mutex};
 
 lazy_static! {
     pub static ref PREFS: Preferences = {
-        let prefs = read_prefs().unwrap_or(HashMap::new());
+        let prefs = read_prefs().unwrap_or_default();
         Preferences(Arc::new(Mutex::new(prefs)))
     };
 }
