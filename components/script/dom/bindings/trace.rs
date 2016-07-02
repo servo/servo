@@ -111,6 +111,8 @@ no_jsmanaged_fields!(EncodingRef);
 
 no_jsmanaged_fields!(Reflector);
 
+no_jsmanaged_fields!(String);
+
 /// Trace a `JSVal`.
 pub fn trace_jsval(tracer: *mut JSTracer, description: &str, val: &Heap<JSVal>) {
     unsafe {
