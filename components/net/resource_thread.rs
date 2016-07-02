@@ -117,14 +117,14 @@ pub fn start_sending_sniffed_opt(start_chan: LoadConsumer, mut metadata: Metadat
 
         let supplied_type =
             metadata.content_type.as_ref().map(|&Serde(ContentType(Mime(ref toplevel, ref sublevel, _)))| {
-            (format!("{}", toplevel), format!("{}", sublevel))
+            (toplevel.to_owned(), format!("{}", sublevel))
         });
         let (toplevel, sublevel) = classifier.classify(context,
                                                        no_sniff,
                                                        check_for_apache_bug,
                                                        &supplied_type,
                                                        &partial_body);
-        let mime_tp: TopLevel = toplevel.parse().unwrap();
+        let mime_tp: TopLevel = toplevel.into();
         let mime_sb: SubLevel = sublevel.parse().unwrap();
         metadata.content_type =
             Some(Serde(ContentType(Mime(mime_tp, mime_sb, vec![]))));
