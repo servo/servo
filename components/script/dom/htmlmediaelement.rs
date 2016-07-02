@@ -36,6 +36,7 @@ use task_source::TaskSource;
 use task_source::dom_manipulation::DOMManipulationTask;
 use time::{self, Timespec, Duration};
 use url::Url;
+use video_metadata;
 
 struct HTMLMediaElementContext {
     /// The element that initiated the request.
@@ -89,7 +90,20 @@ impl AsyncResponseListener for HTMLMediaElementContext {
         // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
         // => "Once enough of the media data has been fetched to determine the duration..."
         if !self.have_metadata {
-            //TODO: actually check if the payload contains the full metadata
+            match video_metadata::get_format_from_slice(&self.data) {
+                video_metadata::Result::Complete(meta) => {
+                    *elem.video.borrow_mut() = Some(VideoMedia {
+                        format: format!("{:?}", meta.format),
+                        duration: Duration::seconds(meta.duration.as_secs() as i64) +
+                                  Duration::nanoseconds(meta.duration.subsec_nanos() as i64),
+                        width: meta.size.width,
+                        height: meta.size.height,
+                        video: meta.video,
+                        audio: meta.audio,
+                    });
+                }
+                _ => {}
+            }
 
             // Step 6
             elem.change_ready_state(HAVE_METADATA);
@@ -166,6 +180,19 @@ impl HTMLMediaElementContext {
     }
 }
 
+no_jsmanaged_fields!(Duration);
+
+#[derive(JSTraceable, HeapSizeOf)]
+pub struct VideoMedia {
+    format: String,
+    #[ignore_heap_size_of = "defined in time"]
+    duration: Duration,
+    width: u16,
+    height: u16,
+    video: String,
+    audio: Option<String>,
+}
+
 #[dom_struct]
 pub struct HTMLMediaElement {
     htmlelement: HTMLElement,
@@ -177,6 +204,7 @@ pub struct HTMLMediaElement {
     error: MutNullableHeap<JS<MediaError>>,
     paused: Cell<bool>,
     autoplaying: Cell<bool>,
+    video: DOMRefCell<Option<VideoMedia>>,
 }
 
 impl HTMLMediaElement {
@@ -194,6 +222,7 @@ impl HTMLMediaElement {
             error: Default::default(),
             paused: Cell::new(true),
             autoplaying: Cell::new(true),
+            video: DOMRefCell::new(None),
         }
     }
 
