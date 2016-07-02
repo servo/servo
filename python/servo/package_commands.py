@@ -166,19 +166,17 @@ class PackageCommands(CommandBase):
                 if f not in keep:
                     delete(dir_to_package + '/' + f)
             for f in os.listdir(dir_to_package + '/build/'):
-                if 'browserhtml' not in f:
+                if f not in browserhtml_path:
                     delete(dir_to_package + '/build/' + f)
-            print("Writing runservo.sh")
-            # TODO: deduplicate this arg list from post_build_commands
-            servo_args = ['-w', '-b',
-                          '--pref', 'dom.mozbrowser.enabled',
-                          '--pref', 'dom.forcetouch.enabled',
-                          '--pref', 'shell.builtin-key-shortcuts.enabled=false',
-                          path.join('./build/' + browserhtml_path.split('/')[-1], 'out', 'index.html')]
 
-            runservo = os.open(dir_to_package + '/runservo.sh', os.O_WRONLY | os.O_CREAT, int("0755", 8))
-            os.write(runservo, "#!/usr/bin/env sh\n./servo " + ' '.join(servo_args))
-            os.close(runservo)
+            shutil.copytree(browserhtml_path, dir_to_package + '/build/bhtml')
+            delete(browserhtml_path)
+
+            print("Swapping prefs")
+            delete(dir_to_package + '/resources/prefs.json')
+            shutil.copy2(dir_to_package + '/resources/package-prefs.json', dir_to_package + '/resources/prefs.json')
+            delete(dir_to_package + '/resources/package-prefs.json')
+
             print("Creating tarball")
             tar_path = '/'.join(dir_to_package.split('/')[:-1]) + '/'
             tar_path += datetime.utcnow().replace(microsecond=0).isoformat()
