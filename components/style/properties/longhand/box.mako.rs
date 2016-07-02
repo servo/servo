@@ -7,8 +7,7 @@
 
 <% data.new_style_struct("Box",
                          inherited=False,
-                         gecko_name="Display",
-                         additional_methods=[Method("transition_count", "usize")]) %>
+                         gecko_name="Display") %>
 
 // TODO(SimonSapin): don't parse `inline-table`, since we don't support it
 <%helpers:longhand name="display"
@@ -285,7 +284,9 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 </%helpers:longhand>
 
 // TODO(pcwalton): Multiple transitions.
-<%helpers:longhand name="transition-duration" animatable="False">
+<%helpers:longhand name="transition-duration"
+                   need_index="True"
+                   animatable="False">
     use values::computed::ComputedValueAsSpecified;
     use values::specified::Time;
 
@@ -343,7 +344,9 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 
 // TODO(pcwalton): Lots more timing functions.
 // TODO(pcwalton): Multiple transitions.
-<%helpers:longhand name="transition-timing-function" animatable="False">
+<%helpers:longhand name="transition-timing-function"
+                   need_index="True"
+                   animatable="False">
     use self::computed_value::{StartEnd, TransitionTimingFunction};
 
     use euclid::point::Point2D;
@@ -541,7 +544,9 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="transition-property" animatable="False">
+<%helpers:longhand name="transition-property"
+                   need_index="True"
+                   animatable="False">
     pub use self::computed_value::SingleComputedValue as SingleSpecifiedValue;
     pub use self::computed_value::T as SpecifiedValue;
 
@@ -592,20 +597,26 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="transition-delay" animatable="False">
+<%helpers:longhand name="transition-delay"
+                   need_index="True"
+                   animatable="False">
     pub use properties::longhands::transition_duration::{SingleSpecifiedValue, SpecifiedValue};
     pub use properties::longhands::transition_duration::{computed_value};
     pub use properties::longhands::transition_duration::{get_initial_single_value};
     pub use properties::longhands::transition_duration::{get_initial_value, parse, parse_one};
 </%helpers:longhand>
 
-<%helpers:longhand name="animation-name" animatable="False">
+<%helpers:longhand name="animation-name"
+                   need_index="True"
+                   animatable="False">
     use values::computed::ComputedValueAsSpecified;
 
     pub mod computed_value {
         use cssparser::ToCss;
         use std::fmt;
         use string_cache::Atom;
+
+        pub use string_cache::Atom as SingleComputedValue;
 
         #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
         pub struct T(pub Vec<Atom>);
@@ -645,24 +656,32 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     impl ComputedValueAsSpecified for SpecifiedValue {}
 </%helpers:longhand>
 
-<%helpers:longhand name="animation-duration" animatable="False">
+<%helpers:longhand name="animation-duration"
+                   need_index="True"
+                   animatable="False">
     pub use super::transition_duration::computed_value;
     pub use super::transition_duration::{parse, get_initial_value};
     pub use super::transition_duration::SpecifiedValue;
 </%helpers:longhand>
 
-<%helpers:longhand name="animation-timing-function" animatable="False">
+<%helpers:longhand name="animation-timing-function"
+                   need_index="True"
+                   animatable="False">
     pub use super::transition_timing_function::computed_value;
     pub use super::transition_timing_function::{parse, get_initial_value};
     pub use super::transition_timing_function::SpecifiedValue;
 </%helpers:longhand>
 
-<%helpers:longhand name="animation-iteration-count" animatable="False">
+<%helpers:longhand name="animation-iteration-count"
+                   need_index="True"
+                   animatable="False">
     use values::computed::ComputedValueAsSpecified;
 
     pub mod computed_value {
         use cssparser::ToCss;
         use std::fmt;
+
+        pub use self::AnimationIterationCount as SingleComputedValue;
 
         #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
         pub enum AnimationIterationCount {
@@ -728,18 +747,23 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 
 ${helpers.keyword_list("animation-direction",
                        "normal reverse alternate alternate-reverse",
+                       need_index=True,
                        animatable=False)}
 
 ${helpers.keyword_list("animation-play-state",
                        "running paused",
                        need_clone=True,
+                       need_index=True,
                        animatable=False)}
 
 ${helpers.keyword_list("animation-fill-mode",
                        "none forwards backwards both",
+                       need_index=True,
                        animatable=False)}
 
-<%helpers:longhand name="animation-delay" animatable="False">
+<%helpers:longhand name="animation-delay"
+                   need_index="True"
+                   animatable="False">
     pub use super::transition_duration::computed_value;
     pub use super::transition_duration::{parse, get_initial_value};
     pub use super::transition_duration::SpecifiedValue;

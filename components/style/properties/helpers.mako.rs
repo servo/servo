@@ -225,6 +225,8 @@
                 }
             }
 
+            pub use self::${to_camel_case(name)} as SingleComputedValue;
+
             define_css_keyword_enum! { ${to_camel_case(name)}:
                 % for value in data.longhands_by_name[name].keyword.values_for(product):
                     "${value}" => ${to_rust_ident(value)},
