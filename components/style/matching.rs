@@ -498,9 +498,11 @@ trait PrivateMatchMethods: TNode
         if had_running_animations {
             let mut all_running_animations = context.running_animations.write().unwrap();
             for mut running_animation in all_running_animations.get_mut(&this_opaque).unwrap() {
-                animation::update_style_for_animation::<Self::ConcreteRestyleDamage,
-                    <Self::ConcreteElement as Element>::Impl>(context, running_animation, style, None);
-                running_animation.mark_as_expired();
+                if !running_animation.is_expired() {
+                    animation::update_style_for_animation::<Self::ConcreteRestyleDamage,
+                        <Self::ConcreteElement as Element>::Impl>(context, running_animation, style, None);
+                    running_animation.mark_as_expired();
+                }
             }
         }
 

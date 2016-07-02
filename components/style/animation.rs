@@ -83,6 +83,7 @@ impl<Impl: SelectorImplExt> KeyframesAnimationState<Impl> {
     /// Returns true if the animation should keep running.
     pub fn tick(&mut self) -> bool {
         debug!("KeyframesAnimationState::tick");
+        debug_assert!(!self.expired);
 
         self.started_at += self.duration + self.delay;
         match self.running_state {
@@ -512,9 +513,9 @@ pub fn update_style_for_animation<Damage, Impl>(context: &SharedStyleContext<Imp
 where Impl: SelectorImplExt,
       Damage: TRestyleDamage<ConcreteComputedValues = Impl::ComputedValues> {
     debug!("update_style_for_animation: entering");
+    debug_assert!(!animation.is_expired());
     match *animation {
         Animation::Transition(_, start_time, ref frame, expired) => {
-            debug_assert!(!expired);
             debug!("update_style_for_animation: transition found");
             let now = time::precise_time_s();
             let mut new_style = (*style).clone();
@@ -530,7 +531,6 @@ where Impl: SelectorImplExt,
             }
         }
         Animation::Keyframes(_, ref name, ref state) => {
-            debug_assert!(!state.expired);
             debug!("update_style_for_animation: animation found: \"{}\", {:?}", name, state);
             let duration = state.duration;
             let started_at = state.started_at;
