@@ -15,6 +15,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{Root, MutNullableHeap, JS};
 use dom::bindings::refcounted::Trusted;
+use dom::bindings::reflector::Reflectable;
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{Element, AttributeMutation};
@@ -36,6 +37,7 @@ use task_source::TaskSource;
 use task_source::dom_manipulation::DOMManipulationTask;
 use time::{self, Timespec, Duration};
 use url::Url;
+use video_metadata;
 
 struct HTMLMediaElementContext {
     /// The element that initiated the request.
@@ -89,7 +91,19 @@ impl AsyncResponseListener for HTMLMediaElementContext {
         // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
         // => "Once enough of the media data has been fetched to determine the duration..."
         if !self.have_metadata {
-            //TODO: actually check if the payload contains the full metadata
+            match video_metadata::get_format_from_slice(&self.data) {
+                video_metadata::Result::Complete(meta) => {
+                    elem.video = Some(VideoMedia {
+                        format: format!("{:?}", meta.format),
+                        duration: meta.duration,
+                        width: meta.size.width,
+                        height: meta.size.height,
+                        video: meta.video,
+                        audio: meta.audio,
+                    });
+                }
+                _ => {}
+            }
 
             // Step 6
             elem.change_ready_state(HAVE_METADATA);
@@ -167,6 +181,16 @@ impl HTMLMediaElementContext {
 }
 
 #[dom_struct]
+pub struct VideoMedia {
+    format: String,
+    duration: Duration,
+    width: u16,
+    height: u16,
+    video: String,
+    audio: Option<String>,
+}
+
+#[dom_struct]
 pub struct HTMLMediaElement {
     htmlelement: HTMLElement,
     network_state: Cell<u16>,
@@ -177,6 +201,7 @@ pub struct HTMLMediaElement {
     error: MutNullableHeap<JS<MediaError>>,
     paused: Cell<bool>,
     autoplaying: Cell<bool>,
+    video: Option<VideoMedia>,
 }
 
 impl HTMLMediaElement {
@@ -194,6 +219,7 @@ impl HTMLMediaElement {
             error: Default::default(),
             paused: Cell::new(true),
             autoplaying: Cell::new(true),
+            video: None,
         }
     }
 
