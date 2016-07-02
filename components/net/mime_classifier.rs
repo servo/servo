@@ -4,6 +4,7 @@
 
 use net_traits::LoadContext;
 use std::borrow::ToOwned;
+use hyper;
 
 pub struct MimeClassifier {
     image_classifier: GroupedClassifier,
@@ -48,7 +49,25 @@ pub enum NoSniffFlag {
     OFF
 }
 
-pub type MimeType = (String, String);
+pub type MimeType = (MimeTopLevel, String);
+
+
+#[derive(Clone, Copy)]
+pub enum MimeTopLevel {
+    Application,
+    Text,
+    Video,
+}
+
+impl Into<hyper::mime::TopLevel> for MimeTopLevel {
+    fn into(self) -> hyper::mime::TopLevel {
+        match self {
+            MimeTopLevel::Application => hyper::mime::TopLevel::Application,
+            MimeTopLevel::Text => hyper::mime::TopLevel::Text,
+            MimeTopLevel::Video => hyper::mime::TopLevel::Video,
+        }
+    }
+}
 
 impl MimeClassifier {
     //Performs MIME Type Sniffing Algorithm (sections 7 and 8)
@@ -59,7 +78,7 @@ impl MimeClassifier {
                     supplied_type: &Option<MimeType>,
                     data: &[u8]) -> MimeType {
         let supplied_type_or_octet_stream = supplied_type.clone()
-                                                         .unwrap_or(("application".to_owned(),
+                                                         .unwrap_or((MimeTopLevel::Application,
                                                                      "octet-stream".to_owned()));
         match context {
             LoadContext::Browsing => match *supplied_type {
@@ -105,7 +124,7 @@ impl MimeClassifier {
                 // This section was *not* finalized in the specs at the time
                 // of this implementation.
                 match *supplied_type {
-                    None => ("application".to_owned(), "octet-stream".to_owned()),
+                    None => (MimeTopLevel::Application, "octet-stream".to_owned()),
                     _ => supplied_type_or_octet_stream,
                 }
             },
@@ -115,7 +134,7 @@ impl MimeClassifier {
                 // This section was *not* finalized in the specs at the time
                 // of this implementation.
                 match *supplied_type {
-                    None => ("text".to_owned(), "css".to_owned()),
+                    None => (MimeTopLevel::Text, "css".to_owned()),
                     _ => supplied_type_or_octet_stream,
                 }
             },
@@ -125,7 +144,7 @@ impl MimeClassifier {
                 // This section was *not* finalized in the specs at the time
                 // of this implementation.
                 match *supplied_type {
-                    None => ("text".to_owned(), "javascript".to_owned()),
+                    None => (MimeTopLevel::Text, "javascript".to_owned()),
                     _ => supplied_type_or_octet_stream,
                 }
             },
@@ -141,14 +160,14 @@ impl MimeClassifier {
                 //
                 // This section was *not* finalized in the specs at the time
                 // of this implementation.
-                ("text".to_owned(), "vtt".to_owned())
+                (MimeTopLevel::Text, "vtt".to_owned())
             },
             LoadContext::CacheManifest => {
                 // 8.9 Sniffing in a cache manifest context
                 //
                 // This section was *not* finalized in the specs at the time
                 // of this implementation.
-                ("text".to_owned(), "cache-manifest".to_owned())
+                (MimeTopLevel::Text, "cache-manifest".to_owned())
             },
         }
     }
@@ -403,7 +422,7 @@ impl Mp4Matcher {
 impl MIMEChecker for Mp4Matcher {
     fn classify(&self, data: &[u8]) -> Option<MimeType> {
         if self.matches(data) {
-            Some(("video".to_owned(), "mp4".to_owned()))
+            Some((MimeTopLevel::Video, "mp4".to_owned()))
         } else {
             None
         }

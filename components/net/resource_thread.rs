@@ -124,7 +124,7 @@ pub fn start_sending_sniffed_opt(start_chan: LoadConsumer, mut metadata: Metadat
                                                        check_for_apache_bug,
                                                        &supplied_type,
                                                        &partial_body);
-        let mime_tp: TopLevel = toplevel.parse().unwrap();
+        let mime_tp: TopLevel = toplevel.into();
         let mime_sb: SubLevel = sublevel.parse().unwrap();
         metadata.content_type =
             Some(Serde(ContentType(Mime(mime_tp, mime_sb, vec![]))));
