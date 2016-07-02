@@ -36,7 +36,7 @@ use util::geometry::ScreenPx;
 use util::opts;
 #[cfg(not(target_os = "android"))]
 use util::opts::RenderApi;
-use util::prefs;
+use util::prefs::PREFS;
 use util::resource_files;
 #[cfg(target_os = "windows")] use winapi;
 
@@ -822,7 +822,7 @@ impl WindowMethods for Window {
             }
 
             (NONE, Key::Escape) => {
-                if let Some(true) = prefs::get_pref("shell.builtin-key-shortcuts.enabled").as_boolean() {
+                if let Some(true) = PREFS.get("shell.builtin-key-shortcuts.enabled").as_boolean() {
                     self.event_queue.borrow_mut().push(WindowEvent::Quit);
                 }
             }
@@ -865,7 +865,7 @@ impl WindowMethods for Window {
                 self.scroll_window(-LINE_HEIGHT, 0.0, TouchEventType::Move);
             }
             (CMD_OR_CONTROL, Key::R) => {
-                if let Some(true) = prefs::get_pref("shell.builtin-key-shortcuts.enabled").as_boolean() {
+                if let Some(true) = PREFS.get("shell.builtin-key-shortcuts.enabled").as_boolean() {
                     self.event_queue.borrow_mut().push(WindowEvent::Reload);
                 }
             }

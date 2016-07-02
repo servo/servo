@@ -2250,7 +2250,7 @@ class CGConstructorEnabled(CGAbstractMethod):
         pref = iface.getExtendedAttribute("Pref")
         if pref:
             assert isinstance(pref, list) and len(pref) == 1
-            conditions.append('prefs::get_pref("%s").as_boolean().unwrap_or(false)' % pref[0])
+            conditions.append('PREFS.get("%s").as_boolean().unwrap_or(false)' % pref[0])
         func = iface.getExtendedAttribute("Func")
         if func:
             assert isinstance(func, list) and len(func) == 1
@@ -5605,7 +5605,7 @@ class CGBindingRoot(CGThing):
             'dom::browsingcontext::BrowsingContext',
             'mem::heap_size_of_raw_self_and_children',
             'libc',
-            'util::prefs',
+            'util::prefs::PREFS',
             'script_runtime::{store_panic_result, maybe_take_panic_result}',
             'std::borrow::ToOwned',
             'std::cmp',
