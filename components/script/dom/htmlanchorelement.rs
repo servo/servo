@@ -29,7 +29,7 @@ use std::default::Default;
 use string_cache::Atom;
 use style::attr::AttrValue;
 use url::Url;
-use util::prefs::mozbrowser_enabled;
+use util::prefs::PREFS;
 
 #[dom_struct]
 pub struct HTMLAnchorElement {
@@ -575,7 +575,7 @@ fn follow_hyperlink(subject: &Element, hyperlink_suffix: Option<String>) {
 
     // Step 8: navigate to the URL.
     if let Some(target) = target {
-        if mozbrowser_enabled() && !is_current_browsing_context(target.Value()) {
+        if PREFS.is_mozbrowser_enabled() && !is_current_browsing_context(target.Value()) {
             // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowseropenwindow
             // TODO: referrer and opener
             // TODO: should we send the normalized url or the non-normalized href?

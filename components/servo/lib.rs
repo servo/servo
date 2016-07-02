@@ -81,8 +81,9 @@ use profile_traits::time;
 use script_traits::ConstellationMsg;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
+use util::opts;
+use util::prefs::PREFS;
 use util::resource_files::resources_dir_path;
-use util::{opts, prefs};
 
 pub use gleam::gl;
 
@@ -257,7 +258,7 @@ pub fn run_content_process(token: String) {
 
     let unprivileged_content = unprivileged_content_receiver.recv().unwrap();
     opts::set_defaults(unprivileged_content.opts());
-    prefs::extend_prefs(unprivileged_content.prefs());
+    PREFS.extend(unprivileged_content.prefs());
 
     // Enter the sandbox if necessary.
     if opts::get().sandbox {

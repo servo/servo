@@ -127,7 +127,7 @@ use style::servo::Stylesheet;
 use time;
 use url::Url;
 use url::percent_encoding::percent_decode;
-use util::prefs::mozbrowser_enabled;
+use util::prefs::PREFS;
 use util::str::{split_html_space_chars, str_join};
 
 #[derive(JSTraceable, PartialEq, HeapSizeOf)]
@@ -1262,7 +1262,7 @@ impl Document {
     }
 
     pub fn trigger_mozbrowser_event(&self, event: MozBrowserEvent) {
-        if mozbrowser_enabled() {
+        if PREFS.is_mozbrowser_enabled() {
             if let Some((containing_pipeline_id, subpage_id, _)) = self.window.parent_info() {
                 let event = ConstellationMsg::MozBrowserEvent(containing_pipeline_id,
                                                               subpage_id,
