@@ -498,9 +498,22 @@ trait PrivateMatchMethods: TNode
         if had_running_animations {
             let mut all_running_animations = context.running_animations.write().unwrap();
             for mut running_animation in all_running_animations.get_mut(&this_opaque).unwrap() {
-                animation::update_style_for_animation::<Self::ConcreteRestyleDamage,
-                    <Self::ConcreteElement as Element>::Impl>(context, running_animation, style, None);
-                running_animation.mark_as_expired();
+                // This shouldn't happen frequently, but under some
+                // circumstances mainly huge load or debug builds, the
+                // constellation might be delayed in sending the
+                // `TickAllAnimations` message to layout.
+                //
+                // Thus, we can't assume all the animations have been already
+                // updated by layout, because other restyle due to script might
+                // be triggered by layout before the animation tick.
+                //
+                // See #12171 and the associated PR for an example where this
+                // happened while debugging other release panic.
+                if !running_animation.is_expired() {
+                    animation::update_style_for_animation::<Self::ConcreteRestyleDamage,
+                        <Self::ConcreteElement as Element>::Impl>(context, running_animation, style, None);
+                    running_animation.mark_as_expired();
+                }
             }
         }
 
