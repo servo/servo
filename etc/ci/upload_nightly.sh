@@ -10,12 +10,12 @@ usage() {
     printf "usage: ${0} android|linux|mac|windows\n"
 }
 
-
 upload() {
-    local package_filename 
+    local package_filename current_date_time
     package_filename="$(basename "${2}")"
+    current_date_time=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
     local -r nightly_upload_dir="s3://servo-builds/nightly/${1}"
-    local -r package_upload_path="${nightly_upload_dir}/${package_filename}"
+    local -r package_upload_path="${nightly_upload_dir}/${current_date_time}-${package_filename}"
     s3cmd put "${2}" "${package_upload_path}"
     s3cmd cp "${package_upload_path}" "${nightly_upload_dir}/servo-latest.${3}"
 }
