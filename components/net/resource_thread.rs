@@ -48,7 +48,7 @@ use std::sync::{Arc, RwLock};
 use storage_thread::StorageThreadFactory;
 use url::Url;
 use util::opts;
-use util::prefs;
+use util::prefs::PREFS;
 use util::thread::spawn_named;
 use websocket_loader;
 
@@ -106,7 +106,7 @@ pub fn start_sending_sniffed_opt(start_chan: LoadConsumer, mut metadata: Metadat
                                  classifier: Arc<MIMEClassifier>, partial_body: &[u8],
                                  context: LoadContext)
                                  -> Result<ProgressSender, ()> {
-    if prefs::get_pref("network.mime.sniff").as_boolean().unwrap_or(false) {
+    if PREFS.get("network.mime.sniff").as_boolean().unwrap_or(false) {
         // TODO: should be calculated in the resource loader, from pull requeset #4094
         let mut no_sniff = NoSniffFlag::OFF;
         let mut check_for_apache_bug = ApacheBugFlag::OFF;

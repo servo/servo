@@ -70,7 +70,7 @@ impl HTMLMetaElement {
     }
 
     fn apply_viewport(&self) {
-        if !::util::prefs::get_pref("layout.viewport.enabled").as_boolean().unwrap_or(false) {
+        if !::util::prefs::PREFS.get("layout.viewport.enabled").as_boolean().unwrap_or(false) {
             return;
         }
         let element = self.upcast::<Element>();

@@ -96,7 +96,7 @@ use timers::{IsInterval, OneshotTimerCallback, OneshotTimerHandle, OneshotTimers
 use tinyfiledialogs::{self, MessageBoxIcon};
 use url::Url;
 use util::geometry::{self, MAX_RECT};
-use util::prefs::mozbrowser_enabled;
+use util::prefs::PREFS;
 use util::str::HTML_SPACE_CHARACTERS;
 use util::{breakpoint, opts};
 use webdriver_handlers::jsval_to_webdriver;
@@ -1581,7 +1581,7 @@ impl Window {
 
     /// Returns whether this window is mozbrowser.
     pub fn is_mozbrowser(&self) -> bool {
-        mozbrowser_enabled() && self.parent_info().is_none()
+        PREFS.is_mozbrowser_enabled() && self.parent_info().is_none()
     }
 
     /// Returns whether mozbrowser is enabled and `obj` has been created
@@ -1757,4 +1757,3 @@ fn debug_reflow_events(id: PipelineId, goal: &ReflowGoal, query_type: &ReflowQue
 
     println!("{}", debug_msg);
 }
-

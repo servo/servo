@@ -37,7 +37,7 @@ use std::sync::mpsc::{Receiver, RecvError, Select, Sender, channel};
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 use url::Url;
-use util::prefs;
+use util::prefs::PREFS;
 use util::thread::spawn_named;
 use util::thread_state;
 use util::thread_state::{IN_WORKER, SCRIPT};
@@ -225,7 +225,7 @@ impl ServiceWorkerGlobalScope {
             scope.mem_profiler_chan().run_with_memory_reporting(|| {
                 // Service workers are time limited
                 let sw_lifetime = Instant::now();
-                let sw_lifetime_timeout = prefs::get_pref("dom.serviceworker.timeout_seconds").as_u64().unwrap();
+                let sw_lifetime_timeout = PREFS.get("dom.serviceworker.timeout_seconds").as_u64().unwrap();
                 while let Ok(event) = global.receive_event() {
                     if scope.is_closing() {
                         break;

@@ -51,7 +51,7 @@ use time::Tm;
 #[cfg(any(target_os = "macos", target_os = "linux"))]
 use tinyfiledialogs;
 use url::{Url, Position};
-use util::prefs;
+use util::prefs::PREFS;
 use util::thread::spawn_named;
 use uuid;
 
@@ -860,7 +860,7 @@ pub fn load<A, B>(load_data: &LoadData,
                   user_agent: String,
                   cancel_listener: &CancellationListener)
                   -> Result<StreamedResponse, LoadError> where A: HttpRequest + 'static, B: UIProvider {
-    let max_redirects = prefs::get_pref("network.http.redirection-limit").as_i64().unwrap() as u32;
+    let max_redirects = PREFS.get("network.http.redirection-limit").as_i64().unwrap() as u32;
     let mut iters = 0;
     // URL of the document being loaded, as seen by all the higher-level code.
     let mut doc_url = load_data.url.clone();

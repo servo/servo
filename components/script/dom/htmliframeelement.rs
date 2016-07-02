@@ -48,7 +48,7 @@ use string_cache::Atom;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use style::context::ReflowGoal;
 use url::Url;
-use util::prefs::mozbrowser_enabled;
+use util::prefs::PREFS;
 
 #[derive(HeapSizeOf)]
 enum SandboxAllowance {
@@ -142,7 +142,7 @@ impl HTMLIFrameElement {
               .send(ConstellationMsg::ScriptLoadedURLInIFrame(load_info))
               .unwrap();
 
-        if mozbrowser_enabled() {
+        if PREFS.is_mozbrowser_enabled() {
             // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserloadstart
             self.dispatch_mozbrowser_event(MozBrowserEvent::LoadStart);
         }
@@ -161,7 +161,7 @@ impl HTMLIFrameElement {
         // TODO(gw): Support mozbrowser event types that have detail which is not a string.
         // See https://developer.mozilla.org/en-US/docs/Web/API/Using_the_Browser_API
         // for a list of mozbrowser events.
-        assert!(mozbrowser_enabled());
+        assert!(PREFS.is_mozbrowser_enabled());
 
         if self.Mozbrowser() {
             let window = window_from_node(self);
