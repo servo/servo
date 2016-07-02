@@ -9,8 +9,11 @@
 
 from __future__ import print_function, unicode_literals
 
-import os
+import sys
 import os.path as path
+sys.path.append(path.join(path.dirname(sys.argv[0]), "components", "style", "properties", "Mako-0.9.1.zip"))
+
+import os
 import shutil
 import subprocess
 import tarfile
@@ -26,6 +29,7 @@ from mach.decorators import (
 
 from servo.command_base import CommandBase, cd, BuildNotFound, is_macosx
 from servo.post_build_commands import find_dep_path_newest
+from mako.template import Template
 
 
 def delete(path):
@@ -132,6 +136,23 @@ class PackageCommands(CommandBase):
                     need_checked.update(need_relinked)
                 checked.update(checking)
                 need_checked.difference_update(checked)
+
+            print("Adding version to Credits.rtf")
+            git_sha = subprocess.check_output([
+                'git', 'rev-parse', '--short', 'HEAD'
+            ]).strip()
+            git_is_dirty = bool(subprocess.check_output([
+                'git', 'status', '--porcelain'
+            ]).strip())
+            version = 'Git Hash: ' + git_sha
+            if git_is_dirty:
+                version += '-dirty'
+
+            credits = dir_to_resources + 'Credits.rtf.mako'
+            template_path = credits
+            template = Template(open(template_path).read())
+            credits_path = dir_to_resources + 'Credits.rtf'
+            open(credits_path, "w").write(template.render(version=version))
 
             print("Writing run-servo")
             bhtml_path = path.join('${0%/*}/../Resources', browserhtml_path.split('/')[-1], 'out', 'index.html')
