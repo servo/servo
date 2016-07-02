@@ -9,11 +9,15 @@
 
 from __future__ import print_function, unicode_literals
 
-import os
+import sys
 import os.path as path
+sys.path.append(path.join(path.dirname(sys.argv[0]), "components", "style", "properties", "Mako-0.9.1.zip"))
+
+import os
 import shutil
 import subprocess
 import tarfile
+import mako.template
 
 from mach.registrar import Registrar
 from datetime import datetime
@@ -132,6 +136,25 @@ class PackageCommands(CommandBase):
                     need_checked.update(need_relinked)
                 checked.update(checking)
                 need_checked.difference_update(checked)
+
+            print("Adding version to Credits.rtf")
+            version_command = [binary_path, '--version']
+            p = subprocess.Popen(version_command,
+                                 stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE,
+                                 universal_newlines=True)
+            version, stderr = p.communicate()
+            if p.returncode != 0:
+                print("Error occurred when getting Servo version: " + stderr)
+                return 1
+            version = "Nightly version: " + version
+
+            template_path = os.path.join(dir_to_resources, 'Credits.rtf.mako')
+            credits_path = os.path.join(dir_to_resources, 'Credits.rtf')
+            with open(template_path) as template_file:
+                template = mako.template.Template(template_file.read())
+                with open(credits_path, "w") as credits_file:
+                    credits_file.write(template.render(version=version))
 
             print("Writing run-servo")
             bhtml_path = path.join('${0%/*}/../Resources', browserhtml_path.split('/')[-1], 'out', 'index.html')
