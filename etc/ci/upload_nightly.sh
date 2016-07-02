@@ -13,7 +13,7 @@ usage() {
 upload() {
     local package_filename current_date_time
     package_filename="$(basename "${2}")"
-    current_date_time=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+    current_date_time="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
     local -r nightly_upload_dir="s3://servo-builds/nightly/${1}"
     local -r package_upload_path="${nightly_upload_dir}/${current_date_time}-${package_filename}"
     s3cmd put "${2}" "${package_upload_path}"
