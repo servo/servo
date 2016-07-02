@@ -48,14 +48,16 @@ pub enum NoSniffFlag {
     OFF
 }
 
+pub type MimeType = (String, String);
+
 impl MIMEClassifier {
     //Performs MIME Type Sniffing Algorithm (sections 7 and 8)
     pub fn classify(&self,
                     context: LoadContext,
                     no_sniff_flag: NoSniffFlag,
                     apache_bug_flag: ApacheBugFlag,
-                    supplied_type: &Option<(String, String)>,
-                    data: &[u8]) -> (String, String) {
+                    supplied_type: &Option<MimeType>,
+                    data: &[u8]) -> MimeType {
         let supplied_type_or_octet_stream = supplied_type.clone()
                                                          .unwrap_or(("application".to_owned(),
                                                                      "octet-stream".to_owned()));
@@ -177,7 +179,7 @@ impl MIMEClassifier {
     }
 
     //some sort of iterator over the classifiers might be better?
-    fn sniff_unknown_type(&self, no_sniff_flag: NoSniffFlag, data: &[u8]) -> (String, String) {
+    fn sniff_unknown_type(&self, no_sniff_flag: NoSniffFlag, data: &[u8]) -> MimeType {
         let should_sniff_scriptable = no_sniff_flag == NoSniffFlag::OFF;
         let sniffed = if should_sniff_scriptable {
             self.scriptable_classifier.classify(data)
@@ -193,7 +195,7 @@ impl MIMEClassifier {
             .expect("BinaryOrPlaintextClassifier always succeeds")
     }
 
-    fn sniff_text_or_data(&self, data: &[u8]) -> (String, String) {
+    fn sniff_text_or_data(&self, data: &[u8]) -> MimeType {
         self.binary_or_plaintext.classify(data).expect("BinaryOrPlaintextClassifier always succeeds")
     }
 
@@ -243,20 +245,20 @@ impl MIMEClassifier {
         }
     }
 
-    fn maybe_get_media_type(supplied_type: &Option<(String, String)>) -> Option<MediaType> {
+    fn maybe_get_media_type(supplied_type: &Option<MimeType>) -> Option<MediaType> {
         supplied_type.as_ref().and_then(|&(ref media_type, ref media_subtype)| {
             MIMEClassifier::get_media_type(media_type, media_subtype)
         })
     }
 }
 
-pub fn as_string_option(tup: Option<(&'static str, &'static str)>) -> Option<(String, String)> {
+pub fn as_string_option(tup: Option<(&'static str, &'static str)>) -> Option<MimeType> {
     tup.map(|(a, b)| (a.to_owned(), b.to_owned()))
 }
 
 //Interface used for composite types
 trait MIMEChecker {
-    fn classify(&self, data: &[u8]) -> Option<(String, String)>;
+    fn classify(&self, data: &[u8]) -> Option<MimeType>;
     /// Validate the MIME checker configuration
     fn validate(&self) -> Result<(), String>;
 }
@@ -322,7 +324,7 @@ impl ByteMatcher {
 }
 
 impl MIMEChecker for ByteMatcher {
-    fn classify(&self, data: &[u8]) -> Option<(String, String)> {
+    fn classify(&self, data: &[u8]) -> Option<MimeType> {
         self.matches(data).map(|_| {
             (self.content_type.0.to_owned(), self.content_type.1.to_owned())
         })
@@ -358,7 +360,7 @@ struct TagTerminatedByteMatcher {
 }
 
 impl MIMEChecker for TagTerminatedByteMatcher {
-    fn classify(&self, data: &[u8]) -> Option<(String, String)> {
+    fn classify(&self, data: &[u8]) -> Option<MimeType> {
         self.matcher.matches(data).and_then(|j|
             if j < data.len() && (data[j] == b' ' || data[j] == b'>') {
                 Some((self.matcher.content_type.0.to_owned(),
@@ -399,7 +401,7 @@ impl Mp4Matcher {
 
 }
 impl MIMEChecker for Mp4Matcher {
-    fn classify(&self, data: &[u8]) -> Option<(String, String)> {
+    fn classify(&self, data: &[u8]) -> Option<MimeType> {
         if self.matches(data) {
             Some(("video".to_owned(), "mp4".to_owned()))
         } else {
@@ -432,7 +434,7 @@ impl BinaryOrPlaintextClassifier {
     }
 }
 impl MIMEChecker for BinaryOrPlaintextClassifier {
-    fn classify(&self, data: &[u8]) -> Option<(String, String)> {
+    fn classify(&self, data: &[u8]) -> Option<MimeType> {
         as_string_option(Some(self.classify_impl(data)))
     }
 
@@ -532,7 +534,7 @@ impl GroupedClassifier {
     }
 }
 impl MIMEChecker for GroupedClassifier {
-    fn classify(&self, data: &[u8]) -> Option<(String, String)> {
+    fn classify(&self, data: &[u8]) -> Option<MimeType> {
         self.byte_matchers
             .iter()
             .filter_map(|matcher| matcher.classify(data))
@@ -643,7 +645,7 @@ impl FeedsClassifier {
 }
 
 impl MIMEChecker for FeedsClassifier {
-    fn classify(&self, data: &[u8]) -> Option<(String, String)> {
+    fn classify(&self, data: &[u8]) -> Option<MimeType> {
        as_string_option(self.classify_impl(data))
     }
 
