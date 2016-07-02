@@ -177,7 +177,7 @@ class PackageCommands(CommandBase):
                           path.join('./build/' + browserhtml_path.split('/')[-1], 'out', 'index.html')]
 
             runservo = os.open(dir_to_package + '/runservo.sh', os.O_WRONLY | os.O_CREAT, int("0755", 8))
-            os.write(runservo, "./servo " + ' '.join(servo_args))
+            os.write(runservo, "#!/usr/bin/env sh\n./servo " + ' '.join(servo_args))
             os.close(runservo)
             print("Creating tarball")
             tar_path = '/'.join(dir_to_package.split('/')[:-1]) + '/'
