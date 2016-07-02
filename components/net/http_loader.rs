@@ -26,7 +26,7 @@ use hyper::net::Fresh;
 use hyper::status::{StatusClass, StatusCode};
 use ipc_channel::ipc;
 use log;
-use mime_classifier::MIMEClassifier;
+use mime_classifier::MimeClassifier;
 use msg::constellation_msg::{PipelineId, ReferrerPolicy};
 use net_traits::ProgressMsg::{Done, Payload};
 use net_traits::hosts::replace_hosts;
@@ -62,7 +62,7 @@ pub fn factory(user_agent: String,
                connector: Arc<Pool<Connector>>)
                -> Box<FnBox(LoadData,
                             LoadConsumer,
-                            Arc<MIMEClassifier>,
+                            Arc<MimeClassifier>,
                             CancellationListener) + Send> {
     box move |load_data: LoadData, senders, classifier, cancel_listener| {
         spawn_named(format!("http_loader for {}", load_data.url), move || {
@@ -127,7 +127,7 @@ fn precise_time_ms() -> u64 {
 
 fn load_for_consumer(load_data: LoadData,
                      start_chan: LoadConsumer,
-                     classifier: Arc<MIMEClassifier>,
+                     classifier: Arc<MimeClassifier>,
                      connector: Arc<Pool<Connector>>,
                      http_state: HttpState,
                      devtools_chan: Option<Sender<DevtoolsControlMsg>>,
@@ -1093,7 +1093,7 @@ fn send_data<R: Read>(context: LoadContext,
                       reader: &mut R,
                       start_chan: LoadConsumer,
                       metadata: Metadata,
-                      classifier: Arc<MIMEClassifier>,
+                      classifier: Arc<MimeClassifier>,
                       cancel_listener: &CancellationListener) {
     let (progress_chan, mut chunk) = {
         let buf = match read_block(reader) {

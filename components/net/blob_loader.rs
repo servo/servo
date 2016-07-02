@@ -7,7 +7,7 @@ use hyper::header::{DispositionType, ContentDisposition, DispositionParam};
 use hyper::header::{Headers, ContentType, ContentLength, Charset};
 use hyper::http::RawStatus;
 use mime::{Mime, Attr};
-use mime_classifier::MIMEClassifier;
+use mime_classifier::MimeClassifier;
 use net_traits::ProgressMsg::Done;
 use net_traits::blob_url_store::{parse_blob_url, BlobURLStoreEntry, BlobURLStoreError};
 use net_traits::response::HttpsState;
@@ -22,7 +22,7 @@ use std::sync::{Arc, RwLock};
 
 pub fn load(load_data: LoadData, consumer: LoadConsumer,
             blob_url_store: Arc<RwLock<BlobURLStore>>,
-            classifier: Arc<MIMEClassifier>) { // XXX: Move it into net process later
+            classifier: Arc<MimeClassifier>) { // XXX: Move it into net process later
 
     match parse_blob_url(&load_data.url) {
         None => {
@@ -48,7 +48,7 @@ pub fn load(load_data: LoadData, consumer: LoadConsumer,
 
 fn load_blob(load_data: &LoadData,
              start_chan: LoadConsumer,
-             classifier: Arc<MIMEClassifier>,
+             classifier: Arc<MimeClassifier>,
              entry: &BlobURLStoreEntry) {
     let content_type: Mime = entry.type_string.parse().unwrap_or(mime!(Text / Plain));
     let charset = content_type.get_param(Attr::Charset);

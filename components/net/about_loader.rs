@@ -6,7 +6,7 @@ use file_loader;
 use hyper::header::ContentType;
 use hyper::http::RawStatus;
 use hyper::mime::{Mime, SubLevel, TopLevel};
-use mime_classifier::MIMEClassifier;
+use mime_classifier::MimeClassifier;
 use net_traits::ProgressMsg::Done;
 use net_traits::response::HttpsState;
 use net_traits::{LoadConsumer, LoadData, Metadata, NetworkError};
@@ -24,7 +24,7 @@ fn url_from_non_relative_scheme(load_data: &mut LoadData, filename: &str) {
 
 pub fn factory(mut load_data: LoadData,
                start_chan: LoadConsumer,
-               classifier: Arc<MIMEClassifier>,
+               classifier: Arc<MimeClassifier>,
                cancel_listener: CancellationListener) {
     let url = load_data.url.clone();
     match url.path() {

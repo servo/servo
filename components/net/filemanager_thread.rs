@@ -4,7 +4,7 @@
 
 use blob_loader;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
-use mime_classifier::MIMEClassifier;
+use mime_classifier::MimeClassifier;
 use mime_guess::guess_mime_type_opt;
 use net_traits::blob_url_store::{BlobURLStoreEntry, BlobURLStoreError, BlobURLStoreMsg};
 use net_traits::filemanager_thread::{FileManagerThreadMsg, FileManagerResult, FilterPattern};
@@ -90,7 +90,7 @@ impl<UI: 'static + UIProvider> FileManagerThreadFactory<UI> for IpcSender<FileMa
 struct FileManager<UI: 'static + UIProvider> {
     receiver: IpcReceiver<FileManagerThreadMsg>,
     idmap: HashMap<Uuid, PathBuf>,
-    classifier: Arc<MIMEClassifier>,
+    classifier: Arc<MimeClassifier>,
     blob_url_store: Arc<RwLock<BlobURLStore>>,
     ui: &'static UI,
 }
@@ -100,7 +100,7 @@ impl<UI: 'static + UIProvider> FileManager<UI> {
         FileManager {
             receiver: recv,
             idmap: HashMap::new(),
-            classifier: Arc::new(MIMEClassifier::new()),
+            classifier: Arc::new(MimeClassifier::new()),
             blob_url_store: Arc::new(RwLock::new(BlobURLStore::new())),
             ui: ui
         }

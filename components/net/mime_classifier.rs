@@ -5,7 +5,7 @@
 use net_traits::LoadContext;
 use std::borrow::ToOwned;
 
-pub struct MIMEClassifier {
+pub struct MimeClassifier {
     image_classifier: GroupedClassifier,
     audio_video_classifier: GroupedClassifier,
     scriptable_classifier: GroupedClassifier,
@@ -50,7 +50,7 @@ pub enum NoSniffFlag {
 
 pub type MimeType = (String, String);
 
-impl MIMEClassifier {
+impl MimeClassifier {
     //Performs MIME Type Sniffing Algorithm (sections 7 and 8)
     pub fn classify(&self,
                     context: LoadContext,
@@ -66,14 +66,14 @@ impl MIMEClassifier {
                 None => self.sniff_unknown_type(no_sniff_flag, data),
                 Some(ref supplied_type) => {
                     let &(ref media_type, ref media_subtype) = supplied_type;
-                    if MIMEClassifier::is_explicit_unknown(media_type, media_subtype) {
+                    if MimeClassifier::is_explicit_unknown(media_type, media_subtype) {
                         self.sniff_unknown_type(no_sniff_flag, data)
                     } else {
                         match no_sniff_flag {
                             NoSniffFlag::ON => supplied_type.clone(),
                             NoSniffFlag::OFF => match apache_bug_flag {
                                 ApacheBugFlag::ON => self.sniff_text_or_data(data),
-                                ApacheBugFlag::OFF => match MIMEClassifier::get_media_type(media_type,
+                                ApacheBugFlag::OFF => match MimeClassifier::get_media_type(media_type,
                                                                                            media_subtype) {
                                     Some(MediaType::Html) => self.feeds_classifier.classify(data),
                                     Some(MediaType::Image) => self.image_classifier.classify(data),
@@ -87,14 +87,14 @@ impl MIMEClassifier {
             },
             LoadContext::Image => {
                 // Section 8.2 Sniffing an image context
-                match MIMEClassifier::maybe_get_media_type(supplied_type) {
+                match MimeClassifier::maybe_get_media_type(supplied_type) {
                     Some(MediaType::Xml) => None,
                     _ => self.image_classifier.classify(data),
                 }.unwrap_or(supplied_type_or_octet_stream)
             },
             LoadContext::AudioVideo => {
                 // Section 8.3 Sniffing an image context
-                match MIMEClassifier::maybe_get_media_type(supplied_type) {
+                match MimeClassifier::maybe_get_media_type(supplied_type) {
                     Some(MediaType::Xml) => None,
                     _ => self.audio_video_classifier.classify(data),
                 }.unwrap_or(supplied_type_or_octet_stream)
@@ -131,7 +131,7 @@ impl MIMEClassifier {
             },
             LoadContext::Font => {
                 // 8.7 Sniffing in a font context
-                match MIMEClassifier::maybe_get_media_type(supplied_type) {
+                match MimeClassifier::maybe_get_media_type(supplied_type) {
                     Some(MediaType::Xml) => None,
                     _ => self.font_classifier.classify(data),
                 }.unwrap_or(supplied_type_or_octet_stream)
@@ -153,8 +153,8 @@ impl MIMEClassifier {
         }
     }
 
-    pub fn new() -> MIMEClassifier {
-         MIMEClassifier {
+    pub fn new() -> MimeClassifier {
+         MimeClassifier {
              image_classifier: GroupedClassifier::image_classifer(),
              audio_video_classifier: GroupedClassifier::audio_video_classifier(),
              scriptable_classifier: GroupedClassifier::scriptable_classifier(),
@@ -232,13 +232,13 @@ impl MIMEClassifier {
 
     fn get_media_type(media_type: &str,
                           media_subtype: &str) -> Option<MediaType> {
-        if MIMEClassifier::is_xml(media_type, media_subtype) {
+        if MimeClassifier::is_xml(media_type, media_subtype) {
             Some(MediaType::Xml)
-        } else if MIMEClassifier::is_html(media_type, media_subtype) {
+        } else if MimeClassifier::is_html(media_type, media_subtype) {
            Some(MediaType::Html)
-        } else if MIMEClassifier::is_image(media_type) {
+        } else if MimeClassifier::is_image(media_type) {
             Some(MediaType::Image)
-        } else if MIMEClassifier::is_audio_video(media_type, media_subtype) {
+        } else if MimeClassifier::is_audio_video(media_type, media_subtype) {
             Some(MediaType::AudioVideo)
         } else {
             None
@@ -247,7 +247,7 @@ impl MIMEClassifier {
 
     fn maybe_get_media_type(supplied_type: &Option<MimeType>) -> Option<MediaType> {
         supplied_type.as_ref().and_then(|&(ref media_type, ref media_subtype)| {
-            MIMEClassifier::get_media_type(media_type, media_subtype)
+            MimeClassifier::get_media_type(media_type, media_subtype)
         })
     }
 }
