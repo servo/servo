@@ -64,3 +64,7 @@ pub fn arc_ptr_eq<T: 'static>(a: &Arc<T>, b: &Arc<T>) -> bool {
     let b: &T = &**b;
     (a as *const T) == (b as *const T)
 }
+
+pub fn servo_version() -> &'static str {
+    concat!("Servo ", env!("CARGO_PKG_VERSION"), env!("GIT_INFO"))
+}
