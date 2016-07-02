@@ -216,4 +216,3 @@ class PackageCommands(CommandBase):
 
         print(["adb", "install", "-r", apk_path])
         return subprocess.call(["adb", "install", "-r", apk_path], env=self.build_env())
-        
