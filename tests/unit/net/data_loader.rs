@@ -36,12 +36,12 @@ fn assert_parse(url:          &'static str,
                 charset:      Option<String>,
                 data:         Option<Vec<u8>>) {
     use net::data_loader::load;
-    use net::mime_classifier::MIMEClassifier;
+    use net::mime_classifier::MimeClassifier;
     use net::resource_thread::CancellationListener;
     use std::sync::Arc;
 
     let (start_chan, start_port) = ipc::channel().unwrap();
-    let classifier = Arc::new(MIMEClassifier::new());
+    let classifier = Arc::new(MimeClassifier::new());
     load(LoadData::new(LoadContext::Browsing, Url::parse(url).unwrap(), &DataLoadTest),
          Channel(start_chan),
          classifier, CancellationListener::new(None));

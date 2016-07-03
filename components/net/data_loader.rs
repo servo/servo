@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use hyper::mime::{Mime, TopLevel, SubLevel, Attr, Value};
-use mime_classifier::MIMEClassifier;
+use mime_classifier::MimeClassifier;
 use net_traits::LoadConsumer;
 use net_traits::ProgressMsg::{Payload, Done};
 use net_traits::{LoadData, Metadata, NetworkError};
@@ -15,7 +15,7 @@ use url::{Position, Url};
 
 pub fn factory(load_data: LoadData,
                senders: LoadConsumer,
-               classifier: Arc<MIMEClassifier>,
+               classifier: Arc<MimeClassifier>,
                cancel_listener: CancellationListener) {
     // NB: we don't spawn a new thread.
     // Hypothesis: data URLs are too small for parallel base64 etc. to be worth it.
@@ -72,7 +72,7 @@ pub fn decode(url: &Url) -> Result<DecodeData, DecodeError> {
 
 pub fn load(load_data: LoadData,
             start_chan: LoadConsumer,
-            classifier: Arc<MIMEClassifier>,
+            classifier: Arc<MimeClassifier>,
             cancel_listener: CancellationListener) {
     let url = load_data.url;
 
