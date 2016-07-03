@@ -33,9 +33,8 @@ use style::custom_properties::ComputedValuesMap;
 use style::logical_geometry::WritingMode;
 use style::properties::{CascadePropertyFn, ServoComputedValues, ComputedValues};
 use style::properties::longhands;
-use style::properties::make_cascade_vec;
 use style::properties::style_struct_traits::*;
-use values::{StyleCoordHelpers, ToGeckoStyleCoord, convert_nscolor_to_rgba};
+use values::{StyleCoordHelpers, GeckoStyleCoordConvertible, convert_nscolor_to_rgba};
 use values::{convert_rgba_to_nscolor, debug_assert_unit_is_safe_to_copy};
 use values::round_border_to_device_pixels;
 
@@ -74,10 +73,6 @@ impl ComputedValues for GeckoComputedValues {
     type Concrete${style_struct.trait_name} = ${style_struct.gecko_struct_name};
 % endfor
 
-    // These will go away, and we will never implement them.
-    fn as_servo<'a>(&'a self) -> &'a ServoComputedValues { unimplemented!() }
-    fn as_servo_mut<'a>(&'a mut self) -> &'a mut ServoComputedValues { unimplemented!() }
-
     fn new(custom_properties: Option<Arc<ComputedValuesMap>>,
            shareable: bool,
            writing_mode: WritingMode,
@@ -106,8 +101,9 @@ impl ComputedValues for GeckoComputedValues {
 
     fn initial_values() -> &'static Self { &*INITIAL_GECKO_VALUES }
 
-    fn do_cascade_property<F: FnOnce(&Vec<CascadePropertyFn<Self>>)>(f: F) {
-        CASCADE_PROPERTY.with(|x| f(x));
+    #[inline]
+    fn do_cascade_property<F: FnOnce(&[CascadePropertyFn<Self>])>(f: F) {
+        f(&CASCADE_PROPERTY)
     }
 
     % for style_struct in data.style_structs:
@@ -147,7 +143,13 @@ pub struct ${style_struct.gecko_struct_name} {
     }
 </%def>
 
-<%def name="impl_simple_copy(ident, gecko_ffi_name)">
+<%def name="impl_simple_clone(ident, gecko_ffi_name)">
+    fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
+        self.gecko.${gecko_ffi_name}
+    }
+</%def>
+
+<%def name="impl_simple_copy(ident, gecko_ffi_name, *kwargs)">
     fn copy_${ident}_from(&mut self, other: &Self) {
         self.gecko.${gecko_ffi_name} = other.gecko.${gecko_ffi_name};
     }
@@ -247,12 +249,24 @@ def set_gecko_property(ffi_name, expr):
 <%def name="impl_color_copy(ident, gecko_ffi_name, color_flags_ffi_name=None)">
     fn copy_${ident}_from(&mut self, other: &Self) {
         % if color_flags_ffi_name:
-        ${clear_color_flags(color_flags_ffi_name)}
-        if ${get_current_color_flag_from("other.gecko." + color_flags_ffi_name)} {
-            ${set_current_color_flag(color_flags_ffi_name)}
-        }
+            ${clear_color_flags(color_flags_ffi_name)}
+            if ${get_current_color_flag_from("other.gecko." + color_flags_ffi_name)} {
+                ${set_current_color_flag(color_flags_ffi_name)}
+            }
         % endif
-        self.gecko.${gecko_ffi_name} = other.gecko.${gecko_ffi_name};
+        self.gecko.${gecko_ffi_name} = other.gecko.${gecko_ffi_name}
+    }
+</%def>
+
+<%def name="impl_color_clone(ident, gecko_ffi_name, color_flags_ffi_name=None)">
+    fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
+        use cssparser::Color;
+        % if color_flags_ffi_name:
+            if ${get_current_color_flag_from("self.gecko." + color_flags_ffi_name)} {
+                return Color::CurrentColor
+            }
+        % endif
+        Color::RGBA(convert_nscolor_to_rgba(${get_gecko_property(gecko_ffi_name)}))
     }
 </%def>
 
@@ -264,14 +278,20 @@ def set_gecko_property(ffi_name, expr):
 % endif
 </%def>
 
-<%def name="impl_simple(ident, gecko_ffi_name)">
+<%def name="impl_simple(ident, gecko_ffi_name, need_clone=False)">
 <%call expr="impl_simple_setter(ident, gecko_ffi_name)"></%call>
 <%call expr="impl_simple_copy(ident, gecko_ffi_name)"></%call>
+% if need_clone:
+    <%call expr="impl_simple_clone(ident, gecko_ffi_name)"></%call>
+% endif
 </%def>
 
-<%def name="impl_color(ident, gecko_ffi_name, color_flags_ffi_name=None)">
+<%def name="impl_color(ident, gecko_ffi_name, color_flags_ffi_name=None, need_clone=False)">
 <%call expr="impl_color_setter(ident, gecko_ffi_name, color_flags_ffi_name)"></%call>
 <%call expr="impl_color_copy(ident, gecko_ffi_name, color_flags_ffi_name)"></%call>
+% if need_clone:
+    <%call expr="impl_color_clone(ident, gecko_ffi_name, color_flags_ffi_name)"></%call>
+% endif
 </%def>
 
 <%def name="impl_app_units(ident, gecko_ffi_name, need_clone, round_to_pixels=False)">
@@ -291,7 +311,7 @@ def set_gecko_property(ffi_name, expr):
 % endif
 </%def>
 
-<%def name="impl_split_style_coord(ident, unit_ffi_name, union_ffi_name)">
+<%def name="impl_split_style_coord(ident, unit_ffi_name, union_ffi_name, need_clone=False)">
     fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
         v.to_gecko_style_coord(&mut self.gecko.${unit_ffi_name},
                                &mut self.gecko.${union_ffi_name});
@@ -301,13 +321,25 @@ def set_gecko_property(ffi_name, expr):
         self.gecko.${unit_ffi_name} =  other.gecko.${unit_ffi_name};
         self.gecko.${union_ffi_name} = other.gecko.${union_ffi_name};
     }
+    % if need_clone:
+        fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
+            use style::properties::longhands::${ident}::computed_value::T;
+            T::from_gecko_style_coord(&self.gecko.${unit_ffi_name},
+                                      &self.gecko.${union_ffi_name})
+                .expect("clone for ${ident} failed")
+        }
+    % endif
 </%def>
 
-<%def name="impl_style_coord(ident, gecko_ffi_name)">
-<%call expr="impl_split_style_coord(ident, '%s.mUnit' % gecko_ffi_name, '%s.mValue' % gecko_ffi_name)"></%call>
+<%def name="impl_style_coord(ident, gecko_ffi_name, need_clone=False)">
+${impl_split_style_coord(ident,
+                         "%s.mUnit" % gecko_ffi_name,
+                         "%s.mValue" % gecko_ffi_name,
+                         need_clone=need_clone)}
 </%def>
 
-<%def name="impl_corner_style_coord(ident, x_unit_ffi_name, x_union_ffi_name, y_unit_ffi_name, y_union_ffi_name)">
+<%def name="impl_corner_style_coord(ident, x_unit_ffi_name, x_union_ffi_name, \
+                                    y_unit_ffi_name, y_union_ffi_name, need_clone=False)">
     fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
         v.0.width.to_gecko_style_coord(&mut self.gecko.${x_unit_ffi_name},
                                        &mut self.gecko.${x_union_ffi_name});
@@ -322,6 +354,19 @@ def set_gecko_property(ffi_name, expr):
         self.gecko.${y_unit_ffi_name} = other.gecko.${y_unit_ffi_name};
         self.gecko.${y_union_ffi_name} = other.gecko.${y_union_ffi_name};
     }
+    % if need_clone:
+        fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
+            use style::properties::longhands::${ident}::computed_value::T;
+            use euclid::Size2D;
+            let width = GeckoStyleCoordConvertible::from_gecko_style_coord(&self.gecko.${x_unit_ffi_name},
+                                                                           &self.gecko.${x_union_ffi_name})
+                            .expect("Failed to clone ${ident}");
+            let height = GeckoStyleCoordConvertible::from_gecko_style_coord(&self.gecko.${y_unit_ffi_name},
+                                                                            &self.gecko.${y_union_ffi_name})
+                            .expect("Failed to clone ${ident}");
+            T(Size2D::new(width, height))
+        }
+    % endif
 </%def>
 
 <%def name="impl_style_struct(style_struct)">
@@ -424,7 +469,7 @@ impl ${style_struct.trait_name} for ${style_struct.gecko_struct_name} {
         impl_keyword(longhand.ident, longhand.gecko_ffi_name, longhand.keyword, longhand.need_clone)
     for longhand in predefined_longhands:
         impl_fn = predefined_types[longhand.predefined_type]
-        impl_fn(longhand.ident, longhand.gecko_ffi_name)
+        impl_fn(longhand.ident, longhand.gecko_ffi_name, need_clone=longhand.need_clone)
     %>
 
     /*
@@ -443,6 +488,12 @@ impl ${style_struct.trait_name} for ${style_struct.gecko_struct_name} {
     }
     % if longhand.need_clone:
     fn clone_${longhand.ident}(&self) -> longhands::${longhand.ident}::computed_value::T {
+        unimplemented!()
+    }
+    % endif
+    % if longhand.need_index:
+    fn ${longhand.ident}_count(&self) -> usize { 0 }
+    fn ${longhand.ident}_at(&self, _index: usize) -> longhands::${longhand.ident}::computed_value::SingleComputedValue {
         unimplemented!()
     }
     % endif
@@ -515,9 +566,9 @@ fn static_assert() {
                     need_clone=True) %>
 
     <% impl_color("border_%s_color" % side.ident, "mBorderColor[%s]" % side.index,
-                  color_flags_ffi_name="mBorderStyle[%s]" % side.index) %>
+                  color_flags_ffi_name="mBorderStyle[%s]" % side.index, need_clone=True) %>
 
-    <% impl_app_units("border_%s_width" % side.ident, "mComputedBorder.%s" % side.ident, need_clone=False,
+    <% impl_app_units("border_%s_width" % side.ident, "mComputedBorder.%s" % side.ident, need_clone=True,
                       round_to_pixels=True) %>
 
     fn border_${side.ident}_has_nonzero_width(&self) -> bool {
@@ -530,7 +581,8 @@ fn static_assert() {
                                "mBorderRadius.mUnits[%s]" % corner.x_index,
                                "mBorderRadius.mValues[%s]" % corner.x_index,
                                "mBorderRadius.mUnits[%s]" % corner.y_index,
-                               "mBorderRadius.mValues[%s]" % corner.y_index) %>
+                               "mBorderRadius.mValues[%s]" % corner.y_index,
+                               need_clone=True) %>
     % endfor
 </%self:impl_trait>
 
@@ -541,7 +593,8 @@ fn static_assert() {
     % for side in SIDES:
     <% impl_split_style_coord("margin_%s" % side.ident,
                               "mMargin.mUnits[%s]" % side.index,
-                              "mMargin.mValues[%s]" % side.index) %>
+                              "mMargin.mValues[%s]" % side.index,
+                              need_clone=True) %>
     % endfor
 </%self:impl_trait>
 
@@ -552,7 +605,8 @@ fn static_assert() {
     % for side in SIDES:
     <% impl_split_style_coord("padding_%s" % side.ident,
                               "mPadding.mUnits[%s]" % side.index,
-                              "mPadding.mValues[%s]" % side.index) %>
+                              "mPadding.mValues[%s]" % side.index,
+                              need_clone=True) %>
     % endfor
 </%self:impl_trait>
 
@@ -563,7 +617,8 @@ fn static_assert() {
     % for side in SIDES:
     <% impl_split_style_coord("%s" % side.ident,
                               "mOffset.mUnits[%s]" % side.index,
-                              "mOffset.mValues[%s]" % side.index) %>
+                              "mOffset.mValues[%s]" % side.index,
+                              need_clone=True) %>
     % endfor
 
     fn set_z_index(&mut self, v: longhands::z_index::computed_value::T) {
@@ -578,6 +633,17 @@ fn static_assert() {
         debug_assert_unit_is_safe_to_copy(self.gecko.mZIndex.mUnit);
         self.gecko.mZIndex.mUnit = other.gecko.mZIndex.mUnit;
         self.gecko.mZIndex.mValue = other.gecko.mZIndex.mValue;
+    }
+
+    fn clone_z_index(&self) -> longhands::z_index::computed_value::T {
+        use style::properties::longhands::z_index::computed_value::T;
+
+        if self.gecko.mZIndex.is_auto() {
+            return T::Auto;
+        }
+
+        debug_assert!(self.gecko.mZIndex.is_int());
+        T::Number(self.gecko.mZIndex.get_int())
     }
 
     fn set_box_sizing(&mut self, v: longhands::box_sizing::computed_value::T) {
@@ -602,9 +668,9 @@ fn static_assert() {
 
     <% impl_keyword("outline_style", "mOutlineStyle", border_style_keyword, need_clone=True) %>
 
-    <% impl_color("outline_color", "mOutlineColor", color_flags_ffi_name="mOutlineStyle") %>
+    <% impl_color("outline_color", "mOutlineColor", color_flags_ffi_name="mOutlineStyle", need_clone=True) %>
 
-    <% impl_app_units("outline_width", "mActualOutlineWidth", need_clone=False,
+    <% impl_app_units("outline_width", "mActualOutlineWidth", need_clone=True,
                       round_to_pixels=True) %>
 
     % for corner in CORNERS:
@@ -675,7 +741,7 @@ fn static_assert() {
     fn set_font_weight(&mut self, v: longhands::font_weight::computed_value::T) {
         self.gecko.mFont.weight = v as u16;
     }
-    <%call expr="impl_simple_copy('font_weight', 'mFont.weight')"></%call>
+    ${impl_simple_copy('font_weight', 'mFont.weight')}
 
     fn clone_font_weight(&self) -> longhands::font_weight::computed_value::T {
         debug_assert!(self.gecko.mFont.weight >= 100);
@@ -697,7 +763,7 @@ fn static_assert() {
                                             "table-header-group table-footer-group table-row table-column-group " +
                                             "table-column table-cell table-caption list-item flex none " +
                                             "-moz-box -moz-inline-box") %>
-    <%call expr="impl_keyword('display', 'mDisplay', display_keyword, True)"></%call>
+    ${impl_keyword('display', 'mDisplay', display_keyword, True)}
 
     // overflow-y is implemented as a newtype of overflow-x, so we need special handling.
     // We could generalize this if we run into other newtype keywords.
@@ -711,7 +777,7 @@ fn static_assert() {
             % endfor
         };
     }
-    <%call expr="impl_simple_copy('overflow_y', 'mOverflowY')"></%call>
+    ${impl_simple_copy('overflow_y', 'mOverflowY')}
     fn clone_overflow_y(&self) -> longhands::overflow_y::computed_value::T {
         use style::properties::longhands::overflow_x::computed_value::T as BaseType;
         use style::properties::longhands::overflow_y::computed_value::T as NewType;
@@ -734,6 +800,26 @@ fn static_assert() {
                     self.gecko.mVerticalAlign.set_enum(structs::${keyword.gecko_constant(value)} as i32),
             % endfor
             T::LengthOrPercentage(v) => self.gecko.mVerticalAlign.set(v),
+        }
+    }
+
+    fn clone_vertical_align(&self) -> longhands::vertical_align::computed_value::T {
+        use style::properties::longhands::vertical_align::computed_value::T;
+        use style::values::computed::LengthOrPercentage;
+
+        if self.gecko.mVerticalAlign.is_enum() {
+            match self.gecko.mVerticalAlign.get_enum() as u32 {
+                % for value in keyword.values_for('gecko'):
+                    structs::${keyword.gecko_constant(value)}
+                        => T::${to_rust_ident(value)},
+                % endfor
+                _ => panic!("Unexpected enum variant for vertical-align"),
+            }
+        } else {
+            let v = LengthOrPercentage::from_gecko_style_coord(&self.gecko.mVerticalAlign.mUnit,
+                                                               &self.gecko.mVerticalAlign.mValue)
+                .expect("Expected length or percentage for vertical-align");
+            T::LengthOrPercentage(v)
         }
     }
 
@@ -770,7 +856,7 @@ fn static_assert() {
                   skip_longhands="${skip_background_longhands}"
                   skip_additionals="*">
 
-    <% impl_color("background_color", "mBackgroundColor") %>
+    <% impl_color("background_color", "mBackgroundColor", need_clone=True) %>
 
     fn copy_background_repeat_from(&mut self, other: &Self) {
         self.gecko.mImage.mRepeatCount = cmp::min(1, other.gecko.mImage.mRepeatCount);
@@ -945,8 +1031,8 @@ fn static_assert() {
 
 <%self:impl_trait style_struct_name="List" skip_longhands="list-style-type" skip_additionals="*">
 
-    <% impl_keyword_setter("list_style_type", "__LIST_STYLE_TYPE__",
-                           data.longhands_by_name["list-style-type"].keyword) %>
+    ${impl_keyword_setter("list_style_type", "__LIST_STYLE_TYPE__",
+                           data.longhands_by_name["list-style-type"].keyword)}
     fn copy_list_style_type_from(&mut self, other: &Self) {
         unsafe {
             Gecko_CopyListStyleTypeFrom(&mut self.gecko, &other.gecko);
@@ -960,7 +1046,7 @@ fn static_assert() {
 
     <% text_align_keyword = Keyword("text-align", "start end left right center justify -moz-center -moz-left " +
                                                   "-moz-right match-parent") %>
-    <%call expr="impl_keyword('text_align', 'mTextAlign', text_align_keyword, need_clone=False)"></%call>
+    ${impl_keyword('text_align', 'mTextAlign', text_align_keyword, need_clone=False)}
 
     fn set_line_height(&mut self, v: longhands::line_height::computed_value::T) {
         use style::properties::longhands::line_height::computed_value::T;
@@ -974,6 +1060,22 @@ fn static_assert() {
         }
     }
 
+    fn clone_line_height(&self) -> longhands::line_height::computed_value::T {
+        use style::properties::longhands::line_height::computed_value::T;
+        if self.gecko.mLineHeight.is_normal() {
+            return T::Normal;
+        }
+        if self.gecko.mLineHeight.is_coord() {
+            return T::Length(self.gecko.mLineHeight.get_coord());
+        }
+        if self.gecko.mLineHeight.is_factor() {
+            return T::Number(self.gecko.mLineHeight.get_factor());
+        }
+
+        debug_assert!(self.gecko.mLineHeight.get_enum() == structs::NS_STYLE_LINE_HEIGHT_BLOCK_HEIGHT as i32);
+        T::MozBlockHeight
+    }
+
     <%call expr="impl_coord_copy('line_height', 'mLineHeight')"></%call>
 
 </%self:impl_trait>
@@ -982,8 +1084,8 @@ fn static_assert() {
                   skip_longhands="text-decoration-color text-decoration-line"
                   skip_additionals="*">
 
-    <% impl_color("text_decoration_color", "mTextDecorationColor",
-                  color_flags_ffi_name="mTextDecorationStyle") %>
+    ${impl_color("text_decoration_color", "mTextDecorationColor",
+                  color_flags_ffi_name="mTextDecorationStyle", need_clone=True)}
 
     fn set_text_decoration_line(&mut self, v: longhands::text_decoration_line::computed_value::T) {
         let mut bits: u8 = 0;
@@ -999,14 +1101,19 @@ fn static_assert() {
         self.gecko.mTextDecorationLine = bits;
     }
 
-    <%call expr="impl_simple_copy('text_decoration_line', 'mTextDecorationLine')"></%call>
+    ${impl_simple_copy('text_decoration_line', 'mTextDecorationLine')}
 
+    #[inline]
     fn has_underline(&self) -> bool {
         (self.gecko.mTextDecorationLine & (structs::NS_STYLE_TEXT_DECORATION_LINE_UNDERLINE as u8)) != 0
     }
+
+    #[inline]
     fn has_overline(&self) -> bool {
         (self.gecko.mTextDecorationLine & (structs::NS_STYLE_TEXT_DECORATION_LINE_OVERLINE as u8)) != 0
     }
+
+    #[inline]
     fn has_line_through(&self) -> bool {
         (self.gecko.mTextDecorationLine & (structs::NS_STYLE_TEXT_DECORATION_LINE_LINE_THROUGH as u8)) != 0
     }
@@ -1026,7 +1133,6 @@ fn static_assert() {
 
 <%self:impl_trait style_struct_name="Color"
                   skip_longhands="*">
-
     fn set_color(&mut self, v: longhands::color::computed_value::T) {
         let result = convert_rgba_to_nscolor(&v);
         ${set_gecko_property("mColor", "result")}
@@ -1042,7 +1148,6 @@ fn static_assert() {
 
 <%self:impl_trait style_struct_name="Pointing"
                   skip_longhands="cursor">
-
     fn set_cursor(&mut self, v: longhands::cursor::computed_value::T) {
         use style::properties::longhands::cursor::computed_value::T;
         use style_traits::cursor::Cursor;
@@ -1090,7 +1195,6 @@ fn static_assert() {
     }
 
     ${impl_simple_copy('cursor', 'mCursor')}
-
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Column"
@@ -1104,7 +1208,6 @@ fn static_assert() {
     }
 
     ${impl_coord_copy('column_width', 'mColumnWidth')}
-
 </%self:impl_trait>
 
 <%def name="define_ffi_struct_accessor(style_struct)">
@@ -1139,8 +1242,8 @@ lazy_static! {
     };
 }
 
-// This is a thread-local rather than a lazy static to avoid atomic operations when cascading
-// properties.
-thread_local!(static CASCADE_PROPERTY: Vec<CascadePropertyFn<GeckoComputedValues>> = {
-    make_cascade_vec::<GeckoComputedValues>()
-});
+static CASCADE_PROPERTY: [CascadePropertyFn<GeckoComputedValues>; ${len(data.longhands)}] = [
+    % for property in data.longhands:
+        longhands::${property.ident}::cascade_property,
+    % endfor
+];

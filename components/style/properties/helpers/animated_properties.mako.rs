@@ -127,22 +127,17 @@ impl AnimatedProperty {
         }
     }
 
-    // NB: Transition properties need clone
     pub fn from_transition_property<C: ComputedValues>(transition_property: &TransitionProperty,
                                                        old_style: &C,
                                                        new_style: &C) -> AnimatedProperty {
-        // TODO: Generalise this for GeckoLib, adding clone_xxx to the
-        // appropiate longhands.
-        let old_style = old_style.as_servo();
-        let new_style = new_style.as_servo();
         match *transition_property {
             TransitionProperty::All => panic!("Can't use TransitionProperty::All here."),
             % for prop in data.longhands:
                 % if prop.animatable:
                     TransitionProperty::${prop.camel_case} => {
                         AnimatedProperty::${prop.camel_case}(
-                            old_style.get_${prop.style_struct.ident.strip("_")}().${prop.ident}.clone(),
-                            new_style.get_${prop.style_struct.ident.strip("_")}().${prop.ident}.clone())
+                            old_style.get_${prop.style_struct.ident.strip("_")}().clone_${prop.ident}(),
+                            new_style.get_${prop.style_struct.ident.strip("_")}().clone_${prop.ident}())
                     }
                 % endif
             % endfor
