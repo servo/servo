@@ -13,7 +13,6 @@ import os
 import os.path as path
 import shutil
 import subprocess
-import tarfile
 
 from mach.registrar import Registrar
 from datetime import datetime
@@ -183,9 +182,29 @@ class PackageCommands(CommandBase):
             tar_path = '/'.join(dir_to_package.split('/')[:-1]) + '/'
             tar_path += datetime.utcnow().replace(microsecond=0).isoformat()
             tar_path += "-servo-tech-demo.tar.gz"
-            with tarfile.open(tar_path, "w:gz") as tar:
-                # arcname is to add by relative rather than absolute path
-                tar.add(dir_to_package, arcname='servo/')
+
+            # Archive deterministically
+            # See https://reproducible-builds.org/docs/archives/
+            archive_root_dir = 'servo'
+            with cd(dir_to_package):
+                p1 = subprocess.Popen(['find', '.', '-print0'],
+                                      stdout=subprocess.PIPE)
+                p2 = subprocess.Popen(['sort', '-z'], env=dict(os.environ, LC_ALL='C'),
+                                      stdin=p1.stdout, stdout=subprocess.PIPE)
+                p3 = subprocess.Popen(['tar', '--null', '-T', '-', '--no-recursion',
+                                       '--mtime', '1970-01-01 00:00Z',
+                                       '--transform', 's,^./,{}/,'.format(archive_root_dir),
+                                       '--owner=root', '--group=root', '--numeric-owner',
+                                       '-cf', '-'],
+                                      stdin=p2.stdout, stdout=subprocess.PIPE)
+                with open(tar_path, 'wb') as tar_fh:
+                    archive_proc = subprocess.Popen(['gzip', '-n'],
+                                                    stdin=p3.stdout, stdout=tar_fh)
+                    p1.stdout.close()
+                    p2.stdout.close()
+                    p3.stdout.close()
+                    archive_proc.communicate()
+
             print("Packaged Servo into " + tar_path)
 
     @Command('install',
