@@ -1150,6 +1150,7 @@ impl Activatable for HTMLInputElement {
                                   EventCancelable::NotCancelable);
             },
             InputType::InputFile => {
+                // https://html.spec.whatwg.org/multipage/#file-upload-state-(type=file)
                 let window = window_from_node(self);
                 let filemanager = window.resource_threads().sender();
 
@@ -1157,6 +1158,7 @@ impl Activatable for HTMLInputElement {
                 let mut error = None;
 
                 let filter = filter_from_accept(&self.Accept());
+                let target = self.upcast::<EventTarget>();
 
                 if self.Multiple() {
                     let (chan, recv) = ipc::channel().expect("Error initializing channel");
@@ -1168,6 +1170,13 @@ impl Activatable for HTMLInputElement {
                             for selected in selected_files {
                                 files.push(File::new_from_selected(window.r(), selected));
                             }
+
+                            target.fire_event("input",
+                                              EventBubbles::Bubbles,
+                                              EventCancelable::NotCancelable);
+                            target.fire_event("change",
+                                              EventBubbles::Bubbles,
+                                              EventCancelable::NotCancelable);
                         },
                         Err(err) => error = Some(err),
                     };
@@ -1177,7 +1186,16 @@ impl Activatable for HTMLInputElement {
                     let _ = filemanager.send(msg).unwrap();
 
                     match recv.recv().expect("IpcSender side error") {
-                        Ok(selected) => files.push(File::new_from_selected(window.r(), selected)),
+                        Ok(selected) => {
+                            files.push(File::new_from_selected(window.r(), selected));
+
+                            target.fire_event("input",
+                                              EventBubbles::Bubbles,
+                                              EventCancelable::NotCancelable);
+                            target.fire_event("change",
+                                              EventBubbles::Bubbles,
+                                              EventCancelable::NotCancelable);
+                        },
                         Err(err) => error = Some(err),
                     };
                 }
