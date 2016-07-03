@@ -117,7 +117,7 @@ impl URL {
     pub fn CreateObjectURL(global: GlobalRef, blob: &Blob) -> DOMString {
         /// XXX: Second field is an unicode-serialized Origin, it is a temporary workaround
         ///      and should not be trusted. See issue https://github.com/servo/servo/issues/11722
-        let origin = global.get_url().origin().unicode_serialization();
+        let origin = URL::get_blob_origin(&global.get_url());
 
         if blob.IsClosed() {
             // Generate a dummy id
@@ -195,6 +195,19 @@ impl URL {
         result.push_str(id);
 
         result
+    }
+
+    // XXX: change String to FileOrigin
+    /* NOTE(izgzhen): WebKit will return things like blob:file:///XXX
+       while Chrome will return blob:null/XXX
+       This is not well-specified, and I prefer the WebKit way here
+    */
+    fn get_blob_origin(url: &Url) -> String {
+        if url.scheme() == "file" {
+            "file://".to_string()
+        } else {
+            url.origin().unicode_serialization()
+        }
     }
 }
 
