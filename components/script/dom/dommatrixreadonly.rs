@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DOMMatrixBinding::{DOMMatrixInit, DOMMatrixMethods};
 use dom::bindings::codegen::Bindings::DOMMatrixReadOnlyBinding::{DOMMatrixReadOnlyMethods, Wrap};
 use dom::bindings::codegen::Bindings::DOMPointBinding::DOMPointInit;
@@ -14,13 +15,13 @@ use dom::dommatrix::DOMMatrix;
 use dom::dompoint::DOMPoint;
 use euclid::Matrix4D;
 use euclid::Point4D;
-use std::cell::{Cell, RefCell};
+use std::cell::Cell;
 use std::f64;
 
 #[dom_struct]
 pub struct DOMMatrixReadOnly {
     reflector_: Reflector,
-    matrix: RefCell<Matrix4D<f64>>,
+    matrix: DOMRefCell<Matrix4D<f64>>,
     is2D: Cell<bool>,
 }
 
@@ -78,7 +79,7 @@ impl DOMMatrixReadOnly {
     pub fn new_inherited(is2D: bool, matrix: Matrix4D<f64>) -> Self {
         DOMMatrixReadOnly {
             reflector_: Reflector::new(),
-            matrix: RefCell::new(matrix),
+            matrix: DOMRefCell::new(matrix),
             is2D: Cell::new(is2D),
          }
     }

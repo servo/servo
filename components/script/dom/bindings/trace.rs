@@ -73,7 +73,7 @@ use script_traits::{TimerEventId, TimerSource, TouchpadPressurePhase, UntrustedN
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 use std::boxed::FnBox;
-use std::cell::{Cell, RefCell, UnsafeCell};
+use std::cell::{Cell, UnsafeCell};
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::hash::{BuildHasher, Hash};
 use std::intrinsics::return_address;
@@ -308,9 +308,6 @@ no_jsmanaged_fields!(RGBA);
 no_jsmanaged_fields!(EuclidLength<Unit, T>);
 no_jsmanaged_fields!(Matrix2D<T>);
 no_jsmanaged_fields!(Matrix4D<T>);
-// workaround that no_jsmanaged_fields! supports only one level of generics
-type RefCellMatrix4D<T> = RefCell<Matrix4D<T>>;
-no_jsmanaged_fields!(RefCellMatrix4D<T>);
 no_jsmanaged_fields!(StorageType);
 no_jsmanaged_fields!(CanvasGradientStop, LinearGradientStyle, RadialGradientStyle);
 no_jsmanaged_fields!(LineCapStyle, LineJoinStyle, CompositionOrBlending);
