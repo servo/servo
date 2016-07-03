@@ -950,7 +950,7 @@ impl PropertyDeclaration {
                             }
                         % endif
                         % if property.experimental:
-                            if !::util::prefs::get_pref("${property.experimental}")
+                            if !::util::prefs::PREFS.get("${property.experimental}")
                                 .as_boolean().unwrap_or(false) {
                                 return PropertyDeclarationParseResult::ExperimentalProperty
                             }
@@ -975,7 +975,7 @@ impl PropertyDeclaration {
                         }
                     % endif
                     % if shorthand.experimental:
-                        if !::util::prefs::get_pref("${shorthand.experimental}")
+                        if !::util::prefs::PREFS.get("${shorthand.experimental}")
                             .as_boolean().unwrap_or(false) {
                             return PropertyDeclarationParseResult::ExperimentalProperty
                         }

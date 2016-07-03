@@ -46,7 +46,7 @@ use std::sync::mpsc::Sender;
 use std::thread;
 use std::time::Duration;
 use url::Url;
-use util::prefs::{get_pref, reset_all_prefs, reset_pref, set_pref, PrefValue};
+use util::prefs::{PREFS, PrefValue};
 use util::thread::spawn_named;
 use uuid::Uuid;
 use webdriver::command::WindowSizeParameters;
@@ -813,7 +813,7 @@ impl Handler {
                         parameters: &GetPrefsParameters) -> WebDriverResult<WebDriverResponse> {
         let prefs = parameters.prefs
             .iter()
-            .map(|item| (item.clone(), get_pref(item).to_json()))
+            .map(|item| (item.clone(), PREFS.get(item).to_json()))
             .collect::<BTreeMap<_, _>>();
 
         Ok(WebDriverResponse::Generic(ValueResponse::new(prefs.to_json())))
@@ -822,7 +822,7 @@ impl Handler {
     fn handle_set_prefs(&self,
                         parameters: &SetPrefsParameters) -> WebDriverResult<WebDriverResponse> {
         for &(ref key, ref value) in parameters.prefs.iter() {
-            set_pref(key, value.clone());
+            PREFS.set(key, value.clone());
         }
         Ok(WebDriverResponse::Void)
     }
@@ -830,12 +830,12 @@ impl Handler {
     fn handle_reset_prefs(&self,
                           parameters: &GetPrefsParameters) -> WebDriverResult<WebDriverResponse> {
         let prefs = if parameters.prefs.len() == 0 {
-            reset_all_prefs();
+            PREFS.reset_all();
             BTreeMap::new()
         } else {
             parameters.prefs
                 .iter()
-                .map(|item| (item.clone(), reset_pref(item).to_json()))
+                .map(|item| (item.clone(), PREFS.reset(item).to_json()))
                 .collect::<BTreeMap<_, _>>()
         };
         Ok(WebDriverResponse::Generic(ValueResponse::new(prefs.to_json())))

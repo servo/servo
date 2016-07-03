@@ -36,7 +36,7 @@ use util;
 use util::geometry::{PagePx, ViewportPx};
 use util::ipc::OptionalIpcSender;
 use util::opts::{self, Opts};
-use util::prefs::{self, Pref};
+use util::prefs::{PREFS, Pref};
 use webrender_traits;
 
 pub enum ChildProcess {
@@ -234,7 +234,7 @@ impl Pipeline {
                 panic_chan: state.panic_chan,
                 script_port: script_port,
                 opts: (*opts::get()).clone(),
-                prefs: prefs::get_cloned(),
+                prefs: PREFS.cloned(),
                 layout_to_paint_chan: layout_to_paint_chan,
                 pipeline_port: pipeline_port,
                 pipeline_namespace_id: state.pipeline_namespace_id,
@@ -378,7 +378,7 @@ impl Pipeline {
     pub fn trigger_mozbrowser_event(&self,
                                      subpage_id: SubpageId,
                                      event: MozBrowserEvent) {
-        assert!(prefs::mozbrowser_enabled());
+        assert!(PREFS.is_mozbrowser_enabled());
 
         let event = ConstellationControlMsg::MozBrowserEvent(self.id,
                                                              subpage_id,

@@ -29,7 +29,7 @@ use js::jsval::{JSVal, NullValue};
 use std::borrow::ToOwned;
 use std::ptr;
 use std::rc::Rc;
-use util::prefs::get_pref;
+use util::prefs::PREFS;
 
 #[dom_struct]
 pub struct TestBinding {
@@ -558,10 +558,10 @@ impl TestBindingMethods for TestBinding {
     fn PassVariadicAny(&self, _: *mut JSContext, _: Vec<HandleValue>) {}
     fn PassVariadicObject(&self, _: *mut JSContext, _: Vec<*mut JSObject>) {}
     fn BooleanMozPreference(&self, pref_name: DOMString) -> bool {
-        get_pref(pref_name.as_ref()).as_boolean().unwrap_or(false)
+        PREFS.get(pref_name.as_ref()).as_boolean().unwrap_or(false)
     }
     fn StringMozPreference(&self, pref_name: DOMString) -> DOMString {
-        get_pref(pref_name.as_ref()).as_string().map(|s| DOMString::from(s)).unwrap_or_else(|| DOMString::new())
+        PREFS.get(pref_name.as_ref()).as_string().map(|s| DOMString::from(s)).unwrap_or_else(|| DOMString::new())
     }
     fn PrefControlledAttributeDisabled(&self) -> bool { false }
     fn PrefControlledAttributeEnabled(&self) -> bool { false }

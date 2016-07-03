@@ -49,8 +49,9 @@ use time::{precise_time_ns, precise_time_s};
 use touch::{TouchHandler, TouchAction};
 use url::Url;
 use util::geometry::{PagePx, ScreenPx, ViewportPx};
+use util::opts;
+use util::prefs::PREFS;
 use util::print_tree::PrintTree;
-use util::{opts, prefs};
 use webrender;
 use webrender_traits::{self, ScrollEventPhase};
 use windowing::{self, MouseWindowEvent, WindowEvent, WindowMethods, WindowNavigateMsg};
@@ -1871,7 +1872,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn on_touchpad_pressure_event(&self, cursor: TypedPoint2D<DevicePixel, f32>, pressure: f32,
                                   phase: TouchpadPressurePhase) {
-        if let Some(true) = prefs::get_pref("dom.forcetouch.enabled").as_boolean() {
+        if let Some(true) = PREFS.get("dom.forcetouch.enabled").as_boolean() {
             match self.find_topmost_layer_at_point(cursor / self.scene.scale) {
                 Some(result) => result.layer.send_touchpad_pressure_event(self, result.point, pressure, phase),
                 None => {},

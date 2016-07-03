@@ -14,9 +14,9 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 lazy_static! {
-    static ref PREFS: Arc<Mutex<HashMap<String, Pref>>> = {
-        let prefs = read_prefs().unwrap_or(HashMap::new());
-        Arc::new(Mutex::new(prefs))
+    pub static ref PREFS: Preferences = {
+        let prefs = read_prefs().unwrap_or_else(|_| HashMap::new());
+        Preferences(Arc::new(Mutex::new(prefs)))
     };
 }
 
@@ -167,14 +167,6 @@ pub fn read_prefs_from_file<T>(mut file: T)
     Ok(prefs)
 }
 
-pub fn get_cloned() -> HashMap<String, Pref> {
-    PREFS.lock().unwrap().clone()
-}
-
-pub fn extend_prefs(extension: HashMap<String, Pref>) {
-    PREFS.lock().unwrap().extend(extension);
-}
-
 pub fn add_user_prefs() {
     match opts::get().config_dir {
         Some(ref config_path) => {
@@ -194,7 +186,7 @@ fn init_user_prefs(path: &mut PathBuf) {
     path.push("prefs.json");
     if let Ok(file) = File::open(path) {
         if let Ok(prefs) = read_prefs_from_file(file) {
-            extend_prefs(prefs);
+            PREFS.extend(prefs);
         }
     } else {
     writeln!(&mut stderr(), "Error opening prefs.json from config directory")
@@ -215,44 +207,56 @@ fn read_prefs() -> Result<HashMap<String, Pref>, ()> {
     read_prefs_from_file(file)
 }
 
-pub fn get_pref(name: &str) -> Arc<PrefValue> {
-    PREFS.lock().unwrap().get(name).map_or(Arc::new(PrefValue::Missing), |x| x.value().clone())
-}
+pub struct Preferences(Arc<Mutex<HashMap<String, Pref>>>);
 
-pub fn set_pref(name: &str, value: PrefValue) {
-    let mut prefs = PREFS.lock().unwrap();
-    if let Some(pref) = prefs.get_mut(name) {
-        pref.set(value);
-        return;
+impl Preferences {
+    pub fn get(&self, name: &str) -> Arc<PrefValue> {
+        self.0.lock().unwrap().get(name).map_or(Arc::new(PrefValue::Missing), |x| x.value().clone())
     }
-    prefs.insert(name.to_owned(), Pref::new(value));
-}
 
-pub fn reset_pref(name: &str) -> Arc<PrefValue> {
-    let mut prefs = PREFS.lock().unwrap();
-    let result = match prefs.get_mut(name) {
-        None => return Arc::new(PrefValue::Missing),
-        Some(&mut Pref::NoDefault(_)) => Arc::new(PrefValue::Missing),
-        Some(&mut Pref::WithDefault(ref default, ref mut set_value)) => {
-            *set_value = None;
-            default.clone()
-        },
-    };
-    if *result == PrefValue::Missing {
-        prefs.remove(name);
+    pub fn cloned(&self) -> HashMap<String, Pref> {
+        self.0.lock().unwrap().clone()
     }
-    result
-}
 
-pub fn reset_all_prefs() {
-    let names = {
-        PREFS.lock().unwrap().keys().cloned().collect::<Vec<String>>()
-    };
-    for name in names.iter() {
-        reset_pref(name);
+    pub fn is_mozbrowser_enabled(&self) -> bool {
+        self.get("dom.mozbrowser.enabled").as_boolean().unwrap_or(false)
     }
-}
 
-pub fn mozbrowser_enabled() -> bool {
-    get_pref("dom.mozbrowser.enabled").as_boolean().unwrap_or(false)
+    pub fn set(&self, name: &str, value: PrefValue) {
+        let mut prefs = self.0.lock().unwrap();
+        if let Some(pref) = prefs.get_mut(name) {
+            pref.set(value);
+            return;
+        }
+        prefs.insert(name.to_owned(), Pref::new(value));
+    }
+
+    pub fn reset(&self, name: &str) -> Arc<PrefValue> {
+        let mut prefs = self.0.lock().unwrap();
+        let result = match prefs.get_mut(name) {
+            None => return Arc::new(PrefValue::Missing),
+            Some(&mut Pref::NoDefault(_)) => Arc::new(PrefValue::Missing),
+            Some(&mut Pref::WithDefault(ref default, ref mut set_value)) => {
+                *set_value = None;
+                default.clone()
+            },
+        };
+        if *result == PrefValue::Missing {
+            prefs.remove(name);
+        }
+        result
+    }
+
+    pub fn reset_all(&self) {
+        let names = {
+            self.0.lock().unwrap().keys().cloned().collect::<Vec<String>>()
+        };
+        for name in names.iter() {
+            self.reset(name);
+        }
+    }
+
+    pub fn extend(&self, extension: HashMap<String, Pref>) {
+        self.0.lock().unwrap().extend(extension);
+    }
 }

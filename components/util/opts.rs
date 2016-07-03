@@ -9,7 +9,7 @@ use euclid::size::{Size2D, TypedSize2D};
 use geometry::ScreenPx;
 use getopts::Options;
 use num_cpus;
-use prefs::{self, PrefValue};
+use prefs::{self, PrefValue, PREFS};
 use resource_files::set_resources_path;
 use std::cmp;
 use std::default::Default;
@@ -605,7 +605,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     }
 
     let cwd = env::current_dir().unwrap();
-    let homepage_pref = prefs::get_pref("shell.homepage");
+    let homepage_pref = PREFS.get("shell.homepage");
     let url_opt = if !opt_match.free.is_empty() {
         Some(&opt_match.free[0][..])
     } else {
@@ -745,10 +745,10 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
 
     let do_not_use_native_titlebar =
         opt_match.opt_present("b") ||
-        !prefs::get_pref("shell.native-titlebar.enabled").as_boolean().unwrap();
+        !PREFS.get("shell.native-titlebar.enabled").as_boolean().unwrap();
 
     let use_webrender =
-        (prefs::get_pref("gfx.webrender.enabled").as_boolean().unwrap() || opt_match.opt_present("w")) &&
+        (PREFS.get("gfx.webrender.enabled").as_boolean().unwrap() || opt_match.opt_present("w")) &&
         !opt_match.opt_present("z");
 
     let render_api = match opt_match.opt_str("G") {
@@ -830,9 +830,9 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         let pref_name = split[0];
         let value = split.get(1);
         match value {
-            Some(&"false") => prefs::set_pref(pref_name, PrefValue::Boolean(false)),
-            Some(&"true") | None => prefs::set_pref(pref_name, PrefValue::Boolean(true)),
-            _ => prefs::set_pref(pref_name, PrefValue::String(value.unwrap().to_string()))
+            Some(&"false") => PREFS.set(pref_name, PrefValue::Boolean(false)),
+            Some(&"true") | None => PREFS.set(pref_name, PrefValue::Boolean(true)),
+            _ => PREFS.set(pref_name, PrefValue::String(value.unwrap().to_string()))
         };
     }
 

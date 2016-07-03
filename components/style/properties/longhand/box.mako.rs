@@ -58,7 +58,7 @@
             % for value in values:
                 "${value}" => {
                     % if value in experimental_values:
-                        if !::util::prefs::get_pref("layout.${value}.enabled")
+                        if !::util::prefs::PREFS.get("layout.${value}.enabled")
                             .as_boolean().unwrap_or(false) {
                             return Err(())
                         }
