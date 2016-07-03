@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use document_loader::LoadType;
 use dom::attr::Attr;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
@@ -26,12 +25,15 @@ use dom::window::ScriptHelpers;
 use encoding::label::encoding_from_whatwg_label;
 use encoding::types::{DecoderTrap, EncodingRef};
 use html5ever::tree_builder::NextParserState;
+use hyper::header::Headers;
 use hyper::http::RawStatus;
+use hyper::method::Method;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsval::UndefinedValue;
-use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata, NetworkError};
-use net_traits::request::{CORSSettings, ParserMetadata};
+use net_traits::CoreResourceMsg::PotentialCORSFetch;
+use net_traits::request::{CORSSettings, Destination, ParserMetadata, PotentialCORSRequestInit, Type as RequestType};
+use net_traits::{FetchResponseListener, IpcSend, Metadata, NetworkError};
 use network_listener::{NetworkListener, PreInvoke};
 use std::ascii::AsciiExt;
 use std::cell::Cell;
@@ -164,8 +166,12 @@ struct ScriptContext {
     status: Result<(), NetworkError>
 }
 
-impl AsyncResponseListener for ScriptContext {
-    fn headers_available(&mut self, metadata: Result<Metadata, NetworkError>) {
+impl FetchResponseListener for ScriptContext {
+    fn process_request_body(&mut self) {} // TODO(KiChjang): Perhaps add custom steps to perform fetch here?
+
+    fn process_request_eof(&mut self) {} // TODO(KiChjang): Perhaps add custom steps to perform fetch here?
+
+    fn process_response(&mut self, metadata: Result<Metadata, NetworkError>) {
         self.metadata = metadata.ok();
 
         let status_code = self.metadata.as_ref().and_then(|m| {
@@ -182,18 +188,17 @@ impl AsyncResponseListener for ScriptContext {
         };
     }
 
-    fn data_available(&mut self, payload: Vec<u8>) {
+    fn process_response_chunk(&mut self, mut chunk: Vec<u8>) {
         if self.status.is_ok() {
-            let mut payload = payload;
-            self.data.append(&mut payload);
+            self.data.append(&mut chunk);
         }
     }
 
     /// https://html.spec.whatwg.org/multipage/#fetch-a-classic-script
     /// step 4-9
-    fn response_complete(&mut self, status: Result<(), NetworkError>) {
+    fn process_response_eof(&mut self, response: Result<(), NetworkError>) {
         // Step 5.
-        let load = status.and(self.status.clone()).map(|_| {
+        let load = response.and(self.status.clone()).map(|_| {
             let metadata = self.metadata.take().unwrap();
 
             // Step 6.
@@ -212,9 +217,6 @@ impl AsyncResponseListener for ScriptContext {
         let elem = self.elem.root();
         *elem.load.borrow_mut() = Some(load);
         elem.ready_to_be_parser_executed.set(true);
-
-        let document = document_from_node(elem.r());
-        document.finish_load(LoadType::Script(self.url.clone()));
     }
 }
 
@@ -223,33 +225,54 @@ impl PreInvoke for ScriptContext {}
 /// https://html.spec.whatwg.org/multipage/#fetch-a-classic-script
 fn fetch_a_classic_script(script: &HTMLScriptElement,
                           url: Url,
+                          cors_setting: Option<CORSSettings>,
+                          cryptographic_nonce: DOMString,
+                          parser_state: ParserMetadata,
                           character_encoding: EncodingRef) {
-    // TODO(#9186): use the fetch infrastructure.
+    let doc = document_from_node(script);
+
+    // Step 1, 2.
+    let request = PotentialCORSRequestInit {
+        method: Method::Get,
+        url: url.clone(),
+        headers: Headers::new(),
+        body: None,
+        type_: RequestType::Script,
+        destination: Destination::Script,
+        synchronous: false,
+        use_cors_preflight: false,
+        use_url_credentials: true,
+        cryptographic_metadata: String::from(cryptographic_nonce),
+        parser_metadata: parser_state,
+        origin: doc.url().clone(),
+        referer_url: None,
+        referrer_policy: None,
+        cors_attribute_state: cors_setting,
+        same_origin_fallback: false,
+    };
+
+    // TODO: Step 3, Add custom steps to perform fetch
+
     let context = Arc::new(Mutex::new(ScriptContext {
         elem: Trusted::new(script),
         character_encoding: character_encoding,
-        data: vec!(),
+        data: vec![],
         metadata: None,
-        url: url.clone(),
-        status: Ok(())
+        url: url,
+        status: Ok(()),
     }));
-
-    let doc = document_from_node(script);
-
     let (action_sender, action_receiver) = ipc::channel().unwrap();
     let listener = NetworkListener {
         context: context,
         script_chan: doc.window().networking_task_source(),
         wrapper: Some(doc.window().get_runnable_wrapper()),
     };
-    let response_target = AsyncResponseTarget {
-        sender: action_sender,
-    };
-    ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
-        listener.notify_action(message.to().unwrap());
-    });
 
-    doc.load_async(LoadType::Script(url), response_target);
+    ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
+        listener.notify_fetch(message.to().unwrap());
+    });
+    let core_resource_thread = doc.loader().resource_threads().clone().sender();
+    core_resource_thread.send(PotentialCORSFetch(request, action_sender)).unwrap();
 }
 
 impl HTMLScriptElement {
@@ -408,8 +431,19 @@ impl HTMLScriptElement {
                 };
 
                 // Step 18.6.
-                fetch_a_classic_script(self, url, encoding);
-                true
+                match self.type_.get() {
+                    ScriptType::Classic => {
+                        fetch_a_classic_script(self, url, cors_setting,
+                                               cryptographic_nonce, parser_state, encoding);
+                        true
+                    }
+                    ScriptType::Module => {
+                        // TODO: Support module scripts
+                        warn!("Module script is unsupported for script {}", &**src);
+                        return NextParserState::Continue;
+                    }
+                    ScriptType::Unset => unreachable!()
+                }
             },
             // TODO: Step 19.
             None => false,
