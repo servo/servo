@@ -25,43 +25,32 @@ pub struct DOMMatrixReadOnly {
     is2D: Cell<bool>,
 }
 
-pub struct MatrixParts {
-    pub matrix: Matrix4D<f64>,
-    pub is2D: bool,
-}
-
-pub fn dommatrixinit_to_matrix(dict: &DOMMatrixInit) -> Fallible<MatrixParts> {
-    let mut d = dict.clone();
-    validate_and_fixup_dommatrixinit(&mut d)
+pub fn dommatrixinit_to_matrix(dict: &DOMMatrixInit) -> Fallible<(bool, Matrix4D<f64>)> {
+    let mut dict = dict.clone();
+    validate_and_fixup_dommatrixinit(&mut dict)
         .map(|dict| {
-            MatrixParts {
-                matrix: Matrix4D::new(dict.m11.unwrap_or(1.0), dict.m12.unwrap_or(0.0), dict.m13, dict.m14,
-                                      dict.m21.unwrap_or(0.0), dict.m22.unwrap_or(1.0), dict.m23, dict.m24,
-                                      dict.m31,                dict.m32,                dict.m33, dict.m34,
-                                      dict.m41.unwrap_or(0.0), dict.m42.unwrap_or(0.0), dict.m43, dict.m44),
-                is2D: dict.is2D.unwrap(),
-            }
+            (dict.is2D.unwrap(),
+             Matrix4D::new(dict.m11.unwrap_or(1.0), dict.m12.unwrap_or(0.0), dict.m13, dict.m14,
+                           dict.m21.unwrap_or(0.0), dict.m22.unwrap_or(1.0), dict.m23, dict.m24,
+                           dict.m31,                dict.m32,                dict.m33, dict.m34,
+                           dict.m41.unwrap_or(0.0), dict.m42.unwrap_or(0.0), dict.m43, dict.m44))
         })
 }
 
 
-pub fn entries_to_matrix(entries: &[f64]) -> Fallible<MatrixParts> {
+pub fn entries_to_matrix(entries: &[f64]) -> Fallible<(bool, Matrix4D<f64>)> {
     if entries.len() == 6 {
-        Ok(MatrixParts {
-            matrix: Matrix4D::new(entries[0], entries[1], 0.0, 0.0,
-                                  entries[2], entries[3], 0.0, 0.0,
-                                  0.0,        0.0,        1.0, 0.0,
-                                  entries[4], entries[5], 0.0, 1.0),
-            is2D: true,
-        })
+        Ok((true,
+            Matrix4D::new(entries[0], entries[1], 0.0, 0.0,
+                          entries[2], entries[3], 0.0, 0.0,
+                          0.0,        0.0,        1.0, 0.0,
+                          entries[4], entries[5], 0.0, 1.0)))
     } else if entries.len() == 16 {
-        Ok(MatrixParts {
-            matrix: Matrix4D::new(entries[0],  entries[1],  entries[2],  entries[3],
-                                  entries[4],  entries[5],  entries[6],  entries[7],
-                                  entries[8],  entries[9],  entries[10], entries[11],
-                                  entries[12], entries[13], entries[14], entries[15]),
-            is2D: false,
-        })
+        Ok((false,
+            Matrix4D::new(entries[0],  entries[1],  entries[2],  entries[3],
+                          entries[4],  entries[5],  entries[6],  entries[7],
+                          entries[8],  entries[9],  entries[10], entries[11],
+                          entries[12], entries[13], entries[14], entries[15])))
     } else {
         let err_msg = format!("Expected 6 or 16 entries, but found {}.", entries.len());
         Err(error::Error::Type(err_msg.to_owned()))
@@ -87,19 +76,23 @@ impl DOMMatrixReadOnly {
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-dommatrixreadonly
     pub fn Constructor(global: GlobalRef) -> Fallible<Root<Self>> {
         entries_to_matrix(&[1.0, 0.0, 0.0, 1.0, 0.0, 0.0])
-            .map(|MatrixParts { matrix, is2D }| Self::new(global, is2D, matrix))
+            .map(|(is2D, matrix)| {
+                Self::new(global, is2D, matrix)
+            })
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-dommatrixreadonly-numbersequence
     pub fn Constructor_(global: GlobalRef, entries: Vec<f64>) -> Fallible<Root<Self>> {
         entries_to_matrix(&entries[..])
-            .map(|MatrixParts { matrix, is2D }| Self::new(global, is2D, matrix))
+            .map(|(is2D, matrix)| {
+                Self::new(global, is2D, matrix)
+            })
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-frommatrix
     pub fn FromMatrix(global: GlobalRef, other: &DOMMatrixInit) -> Fallible<Root<Self>> {
         dommatrixinit_to_matrix(&other)
-            .map(|MatrixParts { matrix, is2D }|{
+            .map(|(is2D, matrix)| {
                 Self::new(global, is2D, matrix)
             })
     }
@@ -194,8 +187,8 @@ impl DOMMatrixReadOnly {
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-multiplyself
     pub fn multiply_self(&self, other: &DOMMatrixInit) -> Fallible<&Self> {
         let mut matrix = self.matrix.borrow_mut();
-        dommatrixinit_to_matrix(&other).map(|parts| {
-            *matrix = matrix.mul(&parts.matrix);
+        dommatrixinit_to_matrix(&other).map(|(_, other_matrix)| {
+            *matrix = matrix.mul(&other_matrix);
             self
         })
     }
@@ -203,8 +196,8 @@ impl DOMMatrixReadOnly {
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-premultiplyself
     pub fn pre_multiply_self(&self, other: &DOMMatrixInit) -> Fallible<&Self> {
         let mut matrix = self.matrix.borrow_mut();
-        dommatrixinit_to_matrix(&other).map(|parts| {
-            *matrix = parts.matrix.mul(&matrix);
+        dommatrixinit_to_matrix(&other).map(|(_, other_matrix)| {
+            *matrix = other_matrix.mul(&matrix);
             self
         })
     }

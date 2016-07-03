@@ -9,7 +9,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
-use dom::dommatrixreadonly::{dommatrixinit_to_matrix, DOMMatrixReadOnly, entries_to_matrix, MatrixParts};
+use dom::dommatrixreadonly::{dommatrixinit_to_matrix, DOMMatrixReadOnly, entries_to_matrix};
 use euclid::Matrix4D;
 
 
@@ -39,13 +39,15 @@ impl DOMMatrix {
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-dommatrix-numbersequence
     pub fn Constructor_(global: GlobalRef, entries: Vec<f64>) -> Fallible<Root<Self>> {
         entries_to_matrix(&entries[..])
-            .map(|MatrixParts { matrix, is2D }| Self::new(global, is2D, matrix))
+            .map(|(is2D, matrix)| {
+                Self::new(global, is2D, matrix)
+            })
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-frommatrix
     pub fn FromMatrix(global: GlobalRef, other: &DOMMatrixInit) -> Fallible<Root<Self>> {
         dommatrixinit_to_matrix(&other)
-            .map(|MatrixParts { matrix, is2D }|{
+            .map(|(is2D, matrix)| {
                 Self::new(global, is2D, matrix)
             })
     }
