@@ -9,7 +9,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
-use dom::dommatrixreadonly::DOMMatrixReadOnly;
+use dom::dommatrixreadonly::{dommatrixinit_to_matrix, DOMMatrixReadOnly, entries_to_matrix, MatrixParts};
 use euclid::Matrix4D;
 
 
@@ -20,41 +20,32 @@ pub struct DOMMatrix {
 
 impl DOMMatrix {
     #[allow(unrooted_must_root)]
-    fn new_inherited(parent: DOMMatrixReadOnly) -> DOMMatrix {
+    pub fn new(global: GlobalRef, is2D: bool, matrix: Matrix4D<f64>) -> Root<Self> {
+        let dommatrix = Self::new_inherited(is2D, matrix);
+        reflect_dom_object(box dommatrix, global, Wrap)
+    }
+
+    pub fn new_inherited(is2D: bool, matrix: Matrix4D<f64>) -> Self {
         DOMMatrix {
-            parent: parent
+            parent: DOMMatrixReadOnly::new_inherited(is2D, matrix)
         }
     }
 
-    fn new_from_matrix4D(is2D: bool, matrix: Matrix4D<f64>) -> DOMMatrix {
-        DOMMatrix::new_inherited(DOMMatrixReadOnly::new_from_matrix4D(is2D, matrix))
+    // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-dommatrix
+    pub fn Constructor(global: GlobalRef) -> Fallible<Root<Self>> {
+        Self::Constructor_(global, vec![1.0, 0.0, 0.0, 1.0, 0.0, 0.0])
     }
 
-    pub fn new_from_matrix4D_rooted(global: GlobalRef, is2D: bool, matrix: Matrix4D<f64>) -> Root<DOMMatrix> {
-        reflect_dom_object(box DOMMatrix::new_from_matrix4D(is2D, matrix), global, Wrap)
+    // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-dommatrix-numbersequence
+    pub fn Constructor_(global: GlobalRef, entries: Vec<f64>) -> Fallible<Root<Self>> {
+        entries_to_matrix(&entries[..])
+            .map(|MatrixParts { matrix, is2D }| Self::new(global, is2D, matrix))
     }
 
-    #[allow(unrooted_must_root)]
-    fn new_from_vec(entries: Vec<f64>) -> Fallible<DOMMatrix> {
-        DOMMatrixReadOnly::new_from_vec(entries)
-            .map(|dommatrix| DOMMatrix::new_inherited(dommatrix))
-    }
-
-    pub fn Constructor(global: GlobalRef) -> Fallible<Root<DOMMatrix>> {
-        let entries = vec![1.0, 0.0, 0.0, 1.0, 0.0, 0.0];
-        DOMMatrix::Constructor_(global, entries)
-    }
-
-    #[allow(unrooted_must_root)]
-    pub fn Constructor_(global: GlobalRef, entries: Vec<f64>) -> Fallible<Root<DOMMatrix>> {
-        DOMMatrix::new_from_vec(entries)
-            .map(|dommatrix| reflect_dom_object(box dommatrix, global, Wrap))
-    }
-
-    #[allow(unrooted_must_root)]
-    pub fn FromMatrix(global: GlobalRef, other: &DOMMatrixInit) -> Root<DOMMatrix> {
-        let parent = DOMMatrixReadOnly::new_from_init(other);
-        reflect_dom_object(box DOMMatrix::new_inherited(parent), global, Wrap)
+    // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-frommatrix
+    pub fn FromMatrix(global: GlobalRef, other: &DOMMatrixInit) -> Root<Self> {
+        let MatrixParts { matrix, is2D } = dommatrixinit_to_matrix(&other).unwrap(); // TODO handle failure
+        Self::new(global, is2D, matrix)
     }
 }
 
