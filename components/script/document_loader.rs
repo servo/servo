@@ -9,9 +9,9 @@ use dom::bindings::js::JS;
 use dom::document::Document;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::{PipelineId, ReferrerPolicy};
-use net_traits::request::RequestInit;
 use net_traits::{AsyncResponseTarget, PendingAsyncLoad, LoadContext};
 use net_traits::{FetchResponseMsg, ResourceThreads, IpcSend};
+use net_traits::request::RequestInit;
 use std::thread;
 use url::Url;
 
