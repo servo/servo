@@ -324,8 +324,8 @@ impl Interpolate for CalcLengthOrPercentage {
     #[inline]
     fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
         Ok(CalcLengthOrPercentage {
-            length: try!(self.length.interpolate(&other.length, time)),
-            percentage: try!(self.percentage.interpolate(&other.percentage, time)),
+            length: self.length.interpolate(&other.length, time).ok().and_then(|x|x),
+            percentage: self.percentage.interpolate(&other.percentage, time).ok().and_then(|x|x),
         })
     }
 }

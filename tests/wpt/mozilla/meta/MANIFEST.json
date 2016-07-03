@@ -5320,6 +5320,18 @@
             "url": "/_mozilla/css/transition_calc.html"
           }
         ],
+        "css/transition_calc_implicit.html": [
+          {
+            "path": "css/transition_calc_implicit.html",
+            "references": [
+              [
+                "/_mozilla/css/transition_calc_implicit_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/transition_calc_implicit.html"
+          }
+        ],
         "css/translate_clip.html": [
           {
             "path": "css/translate_clip.html",
@@ -12438,6 +12450,18 @@
             ]
           ],
           "url": "/_mozilla/css/transition_calc.html"
+        }
+      ],
+      "css/transition_calc_implicit.html": [
+        {
+          "path": "css/transition_calc_implicit.html",
+          "references": [
+            [
+              "/_mozilla/css/transition_calc_implicit_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/transition_calc_implicit.html"
         }
       ],
       "css/translate_clip.html": [
