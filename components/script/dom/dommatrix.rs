@@ -214,7 +214,7 @@ impl DOMMatrixMethods for DOMMatrix {
         fn A(&self) -> f64 {
             self.upcast::<DOMMatrixReadOnly>().A()
         }
-    
+
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-a
         fn SetA(&self, value: f64) {
             self.upcast::<DOMMatrixReadOnly>().set_m11(value);
