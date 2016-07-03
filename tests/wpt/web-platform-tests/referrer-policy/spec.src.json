@@ -94,10 +94,10 @@
       ]
     },
     {
-      "name": "origin-only",
-      "title": "Referrer Policy is set to 'origin-only'",
+      "name": "origin",
+      "title": "Referrer Policy is set to 'origin'",
       "description": "Check that all subresources in all casses get only the origin portion of the referrer URL.",
-      "specification_url": "https://w3c.github.io/webappsec/specs/referrer-policy/#referrer-policy-state-origin",
+      "specification_url": "https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-origin",
       "referrer_policy": "origin",
       "test_expansion": [
         {
@@ -110,6 +110,59 @@
           "origin": "*",
           "subresource": "*",
           "referrer_url": "origin"
+        }
+      ]
+    },
+    {
+      "name": "same-origin",
+      "title": "Referrer Policy is set to 'same-origin'",
+      "description": "Check that cross-origin subresources get no referrer information and same-origin get the stripped referrer URL.",
+      "specification_url": "https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-same-origin",
+      "referrer_policy": "same-origin",
+      "test_expansion": [
+        {
+          "name": "same-origin-insecure",
+          "expansion": "default",
+          "source_protocol": "http",
+          "target_protocol": "http",
+          "delivery_method": ["http-rp", "meta-referrer", "meta-csp", "attr-referrer"],
+          "redirection": "*",
+          "origin": "same-origin",
+          "subresource": "*",
+          "referrer_url": "stripped-referrer"
+        },
+        {
+          "name": "same-origin-secure-default",
+          "expansion": "default",
+          "source_protocol": "https",
+          "target_protocol": "https",
+          "delivery_method": ["http-rp", "meta-referrer", "meta-csp", "attr-referrer"],
+          "redirection": "*",
+          "origin": "same-origin",
+          "subresource": "*",
+          "referrer_url": "stripped-referrer"
+        },
+        {
+          "name": "same-origin-insecure",
+          "expansion": "override",
+          "source_protocol": "*",
+          "target_protocol": "*",
+          "delivery_method": ["http-rp", "meta-referrer", "meta-csp", "attr-referrer"],
+          "redirection": "swap-origin-redirect",
+          "origin": "same-origin",
+          "subresource": "*",
+          "referrer_url": "omitted"
+        },
+        {
+          "name": "cross-origin",
+          "expansion": "default",
+          "source_protocol": "*",
+          "target_protocol": "*",
+          "delivery_method": ["http-rp", "meta-referrer", "meta-csp", "attr-referrer"],
+          "redirection": "*",
+          "origin": "cross-origin",
+          "subresource": "*",
+          "referrer_url": "omitted"
         }
       ]
     },
@@ -329,6 +382,7 @@
     null,
     "no-referrer",
     "no-referrer-when-downgrade",
+    "same-origin",
     "origin",
     "origin-when-cross-origin",
     "unsafe-url"
