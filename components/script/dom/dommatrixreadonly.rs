@@ -109,117 +109,88 @@ impl DOMMatrixReadOnly {
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m11
-    pub fn SetM11(&self, value: f64) {
+    pub fn set_m11(&self, value: f64) {
         self.matrix.borrow_mut().m11 = value;
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m12
-    pub fn SetM12(&self, value: f64) {
+    pub fn set_m12(&self, value: f64) {
         self.matrix.borrow_mut().m12 = value;
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m13
-    pub fn SetM13(&self, value: f64) {
+    pub fn set_m13(&self, value: f64) {
         self.matrix.borrow_mut().m13 = value;
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m14
-    pub fn SetM14(&self, value: f64) {
+    pub fn set_m14(&self, value: f64) {
         self.matrix.borrow_mut().m14 = value;
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m21
-    pub fn SetM21(&self, value: f64) {
+    pub fn set_m21(&self, value: f64) {
         self.matrix.borrow_mut().m21 = value;
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m22
-    pub fn SetM22(&self, value: f64) {
+    pub fn set_m22(&self, value: f64) {
         self.matrix.borrow_mut().m22 = value;
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m23
-    pub fn SetM23(&self, value: f64) {
+    pub fn set_m23(&self, value: f64) {
         self.matrix.borrow_mut().m23 = value;
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m24
-    pub fn SetM24(&self, value: f64) {
+    pub fn set_m24(&self, value: f64) {
         self.matrix.borrow_mut().m24 = value;
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m31
-    pub fn SetM31(&self, value: f64) {
+    pub fn set_m31(&self, value: f64) {
         self.matrix.borrow_mut().m31 = value;
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m32
-    pub fn SetM32(&self, value: f64) {
+    pub fn set_m32(&self, value: f64) {
         self.matrix.borrow_mut().m32 = value;
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m33
-    pub fn SetM33(&self, value: f64) {
+    pub fn set_m33(&self, value: f64) {
         self.matrix.borrow_mut().m33 = value;
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m34
-    pub fn SetM34(&self, value: f64) {
+    pub fn set_m34(&self, value: f64) {
         self.matrix.borrow_mut().m34 = value;
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m41
-    pub fn SetM41(&self, value: f64) {
+    pub fn set_m41(&self, value: f64) {
         self.matrix.borrow_mut().m41 = value;
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m42
-    pub fn SetM42(&self, value: f64) {
+    pub fn set_m42(&self, value: f64) {
         self.matrix.borrow_mut().m42 = value;
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m43
-    pub fn SetM43(&self, value: f64) {
+    pub fn set_m43(&self, value: f64) {
         self.matrix.borrow_mut().m43 = value;
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m44
-    pub fn SetM44(&self, value: f64) {
+    pub fn set_m44(&self, value: f64) {
         self.matrix.borrow_mut().m44 = value;
     }
 
-    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-a
-    pub fn SetA(&self, value: f64) {
-        self.matrix.borrow_mut().m11 = value;
-    }
-
-    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-b
-    pub fn SetB(&self, value: f64) {
-        self.matrix.borrow_mut().m12 = value;
-    }
-
-    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-c
-    pub fn SetC(&self, value: f64) {
-        self.matrix.borrow_mut().m21 = value;
-    }
-
-    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-d
-    pub fn SetD(&self, value: f64) {
-        self.matrix.borrow_mut().m22 = value;
-    }
-
-    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-e
-    pub fn SetE(&self, value: f64) {
-        self.matrix.borrow_mut().m41 = value;
-    }
-
-    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-f
-    pub fn SetF(&self, value: f64) {
-        self.matrix.borrow_mut().m42 = value;
-    }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-multiplyself
-    pub fn MultiplySelf(&self, other: &DOMMatrixInit) -> Fallible<&Self> {
+    pub fn multiply_self(&self, other: &DOMMatrixInit) -> Fallible<&Self> {
         let mut matrix = self.matrix.borrow_mut();
         dommatrixinit_to_matrix(&other).map(|parts| {
             *matrix = matrix.mul(&parts.matrix);
@@ -228,7 +199,7 @@ impl DOMMatrixReadOnly {
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-premultiplyself
-    pub fn PreMultiplySelf(&self, other: &DOMMatrixInit) -> Fallible<&Self> {
+    pub fn pre_multiply_self(&self, other: &DOMMatrixInit) -> Fallible<&Self> {
         let mut matrix = self.matrix.borrow_mut();
         dommatrixinit_to_matrix(&other).map(|parts| {
             *matrix = parts.matrix.mul(&matrix);
@@ -237,7 +208,7 @@ impl DOMMatrixReadOnly {
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-translateself
-    pub fn TranslateSelf(&self, tx: f64, ty: f64, tz: f64) {
+    pub fn translate_self(&self, tx: f64, ty: f64, tz: f64) {
         let mut matrix = self.matrix.borrow_mut();
         let translation = Matrix4D::create_translation(tx, ty, tz);
         *matrix = translation.mul(&matrix);
@@ -247,7 +218,7 @@ impl DOMMatrixReadOnly {
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-scaleself
-    pub fn ScaleSelf(&self, scaleX: f64, scaleY: Option<f64>, scaleZ: f64, originX: f64, originY: f64, originZ: f64) {
+    pub fn scale_self(&self, scaleX: f64, scaleY: Option<f64>, scaleZ: f64, originX: f64, originY: f64, originZ: f64) {
         let mut matrix = self.matrix.borrow_mut();
         let translation = Matrix4D::create_translation(originX, originY, originZ);
         *matrix = translation.mul(&matrix);
@@ -261,7 +232,7 @@ impl DOMMatrixReadOnly {
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-scale3dself
-    pub fn Scale3dSelf(&self, scale: f64, originX: f64, originY: f64, originZ: f64) {
+    pub fn scale_3d_self(&self, scale: f64, originX: f64, originY: f64, originZ: f64) {
         let mut matrix = self.matrix.borrow_mut();
         let translation = Matrix4D::create_translation(originX, originY, originZ);
         *matrix = translation.mul(&matrix);
@@ -275,7 +246,7 @@ impl DOMMatrixReadOnly {
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-rotateself
-    pub fn RotateSelf(&self, rotX: f64, rotY: Option<f64>, rotZ: Option<f64>) {
+    pub fn rotate_self(&self, rotX: f64, rotY: Option<f64>, rotZ: Option<f64>) {
         let mut matrix = self.matrix.borrow_mut();
         let (rotX, rotY, rotZ) = match rotY {
             None     => (0.0, 0.0, rotX),
@@ -299,7 +270,7 @@ impl DOMMatrixReadOnly {
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-rotatefromvectorself
-    pub fn RotateFromVectorSelf(&self, x: f64, y: f64) {
+    pub fn rotate_from_vector_self(&self, x: f64, y: f64) {
         let mut matrix = self.matrix.borrow_mut();
         // don't do anything when the rotation angle is zero or undefined
         if y != 0.0 || x < 0.0 {
@@ -309,7 +280,7 @@ impl DOMMatrixReadOnly {
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-rotateaxisangleself
-    pub fn RotateAxisAngleSelf(&self, x: f64, y: f64, z: f64, angle: f64) {
+    pub fn rotate_axis_angle_self(&self, x: f64, y: f64, z: f64, angle: f64) {
         let mut matrix = self.matrix.borrow_mut();
         let (norm_x, norm_y, norm_z) = normalize_point(x, y, z);
         let rotation = Matrix4D::create_rotation(norm_x, norm_y, norm_z, angle.to_radians());
@@ -320,21 +291,21 @@ impl DOMMatrixReadOnly {
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-skewxself
-    pub fn SkewXSelf(&self, sx: f64) {
+    pub fn skew_x_self(&self, sx: f64) {
         let mut matrix = self.matrix.borrow_mut();
         let skew_x = Matrix4D::create_skew(sx.to_radians(), 0.0);
         *matrix = skew_x.mul(&matrix);
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-skewyself
-    pub fn SkewYSelf(&self, sy: f64) {
+    pub fn skew_y_self(&self, sy: f64) {
         let mut matrix = self.matrix.borrow_mut();
         let skew_y = Matrix4D::create_skew(0.0, sy.to_radians());
         *matrix = skew_y.mul(&matrix);
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-invertself
-    pub fn InvertSelf(&self) {
+    pub fn invert_self(&self) {
         let mut matrix = self.matrix.borrow_mut();
         if matrix.determinant() == 0.0 {
             *matrix = Matrix4D::new(f64::NAN, f64::NAN, f64::NAN, f64::NAN,
@@ -432,32 +403,32 @@ impl DOMMatrixReadOnlyMethods for DOMMatrixReadOnly {
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-a
     fn A(&self) -> f64 {
-        self.matrix.borrow().m11 as f64
+        self.M11()
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-b
     fn B(&self) -> f64 {
-        self.matrix.borrow().m12 as f64
+        self.M12()
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-c
     fn C(&self) -> f64 {
-        self.matrix.borrow().m21 as f64
+        self.M21()
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-d
     fn D(&self) -> f64 {
-        self.matrix.borrow().m22 as f64
+        self.M22()
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-e
     fn E(&self) -> f64 {
-        self.matrix.borrow().m41 as f64
+        self.M41()
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-f
     fn F(&self) -> f64 {
-        self.matrix.borrow().m42 as f64
+        self.M42()
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-is2d

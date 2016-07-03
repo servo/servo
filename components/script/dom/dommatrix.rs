@@ -57,7 +57,7 @@ impl DOMMatrixMethods for DOMMatrix {
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m11
         fn SetM11(&self, value: f64) {
-            self.upcast::<DOMMatrixReadOnly>().SetM11(value);
+            self.upcast::<DOMMatrixReadOnly>().set_m11(value);
         }
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m12
@@ -67,7 +67,7 @@ impl DOMMatrixMethods for DOMMatrix {
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m12
         fn SetM12(&self, value: f64) {
-            self.upcast::<DOMMatrixReadOnly>().SetM12(value);
+            self.upcast::<DOMMatrixReadOnly>().set_m12(value);
         }
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m13
@@ -77,7 +77,7 @@ impl DOMMatrixMethods for DOMMatrix {
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m13
         fn SetM13(&self, value: f64) {
-            self.upcast::<DOMMatrixReadOnly>().SetM13(value);
+            self.upcast::<DOMMatrixReadOnly>().set_m13(value);
         }
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m14
@@ -87,7 +87,7 @@ impl DOMMatrixMethods for DOMMatrix {
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m14
         fn SetM14(&self, value: f64) {
-            self.upcast::<DOMMatrixReadOnly>().SetM14(value);
+            self.upcast::<DOMMatrixReadOnly>().set_m14(value);
         }
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m21
@@ -97,7 +97,7 @@ impl DOMMatrixMethods for DOMMatrix {
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m21
         fn SetM21(&self, value: f64) {
-            self.upcast::<DOMMatrixReadOnly>().SetM21(value);
+            self.upcast::<DOMMatrixReadOnly>().set_m21(value);
         }
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m22
@@ -107,7 +107,7 @@ impl DOMMatrixMethods for DOMMatrix {
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m22
         fn SetM22(&self, value: f64) {
-            self.upcast::<DOMMatrixReadOnly>().SetM22(value);
+            self.upcast::<DOMMatrixReadOnly>().set_m22(value);
         }
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m23
@@ -117,7 +117,7 @@ impl DOMMatrixMethods for DOMMatrix {
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m23
         fn SetM23(&self, value: f64) {
-            self.upcast::<DOMMatrixReadOnly>().SetM23(value);
+            self.upcast::<DOMMatrixReadOnly>().set_m23(value);
         }
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m24
@@ -127,7 +127,7 @@ impl DOMMatrixMethods for DOMMatrix {
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m24
         fn SetM24(&self, value: f64) {
-            self.upcast::<DOMMatrixReadOnly>().SetM24(value);
+            self.upcast::<DOMMatrixReadOnly>().set_m24(value);
         }
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m31
@@ -137,7 +137,7 @@ impl DOMMatrixMethods for DOMMatrix {
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m31
         fn SetM31(&self, value: f64) {
-            self.upcast::<DOMMatrixReadOnly>().SetM31(value);
+            self.upcast::<DOMMatrixReadOnly>().set_m31(value);
         }
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m32
@@ -147,7 +147,7 @@ impl DOMMatrixMethods for DOMMatrix {
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m32
         fn SetM32(&self, value: f64) {
-            self.upcast::<DOMMatrixReadOnly>().SetM32(value);
+            self.upcast::<DOMMatrixReadOnly>().set_m32(value);
         }
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m33
@@ -157,7 +157,7 @@ impl DOMMatrixMethods for DOMMatrix {
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m33
         fn SetM33(&self, value: f64) {
-            self.upcast::<DOMMatrixReadOnly>().SetM33(value);
+            self.upcast::<DOMMatrixReadOnly>().set_m33(value);
         }
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m34
@@ -167,7 +167,7 @@ impl DOMMatrixMethods for DOMMatrix {
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m34
         fn SetM34(&self, value: f64) {
-            self.upcast::<DOMMatrixReadOnly>().SetM34(value);
+            self.upcast::<DOMMatrixReadOnly>().set_m34(value);
         }
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m41
@@ -177,7 +177,7 @@ impl DOMMatrixMethods for DOMMatrix {
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m41
         fn SetM41(&self, value: f64) {
-            self.upcast::<DOMMatrixReadOnly>().SetM41(value);
+            self.upcast::<DOMMatrixReadOnly>().set_m41(value);
         }
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m42
@@ -187,7 +187,7 @@ impl DOMMatrixMethods for DOMMatrix {
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m42
         fn SetM42(&self, value: f64) {
-            self.upcast::<DOMMatrixReadOnly>().SetM42(value);
+            self.upcast::<DOMMatrixReadOnly>().set_m42(value);
         }
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m43
@@ -197,7 +197,7 @@ impl DOMMatrixMethods for DOMMatrix {
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m43
         fn SetM43(&self, value: f64) {
-            self.upcast::<DOMMatrixReadOnly>().SetM43(value);
+            self.upcast::<DOMMatrixReadOnly>().set_m43(value);
         }
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m44
@@ -207,17 +207,17 @@ impl DOMMatrixMethods for DOMMatrix {
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m44
         fn SetM44(&self, value: f64) {
-            self.upcast::<DOMMatrixReadOnly>().SetM44(value);
+            self.upcast::<DOMMatrixReadOnly>().set_m44(value);
         }
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-a
         fn A(&self) -> f64 {
             self.upcast::<DOMMatrixReadOnly>().A()
         }
-
+    
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-a
         fn SetA(&self, value: f64) {
-            self.upcast::<DOMMatrixReadOnly>().SetA(value);
+            self.upcast::<DOMMatrixReadOnly>().set_m11(value);
         }
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-b
@@ -227,7 +227,7 @@ impl DOMMatrixMethods for DOMMatrix {
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-b
         fn SetB(&self, value: f64) {
-            self.upcast::<DOMMatrixReadOnly>().SetB(value);
+            self.upcast::<DOMMatrixReadOnly>().set_m12(value);
         }
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-c
@@ -237,7 +237,7 @@ impl DOMMatrixMethods for DOMMatrix {
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-c
         fn SetC(&self, value: f64) {
-            self.upcast::<DOMMatrixReadOnly>().SetC(value);
+            self.upcast::<DOMMatrixReadOnly>().set_m21(value);
         }
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-d
@@ -247,7 +247,7 @@ impl DOMMatrixMethods for DOMMatrix {
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-d
         fn SetD(&self, value: f64) {
-            self.upcast::<DOMMatrixReadOnly>().SetD(value);
+            self.upcast::<DOMMatrixReadOnly>().set_m22(value);
         }
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-e
@@ -257,7 +257,7 @@ impl DOMMatrixMethods for DOMMatrix {
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-e
         fn SetE(&self, value: f64) {
-            self.upcast::<DOMMatrixReadOnly>().SetE(value);
+            self.upcast::<DOMMatrixReadOnly>().set_m41(value);
         }
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-f
@@ -267,73 +267,73 @@ impl DOMMatrixMethods for DOMMatrix {
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-f
         fn SetF(&self, value: f64) {
-            self.upcast::<DOMMatrixReadOnly>().SetF(value);
+            self.upcast::<DOMMatrixReadOnly>().set_m42(value);
         }
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-multiplyself
         fn MultiplySelf(&self, other:&DOMMatrixInit) -> Root<DOMMatrix> {
-            self.upcast::<DOMMatrixReadOnly>().MultiplySelf(other);
+            self.upcast::<DOMMatrixReadOnly>().multiply_self(other);
             Root::from_ref(&self)
         }
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-premultiplyself
         fn PreMultiplySelf(&self, other:&DOMMatrixInit) -> Root<DOMMatrix> {
-            self.upcast::<DOMMatrixReadOnly>().PreMultiplySelf(other);
+            self.upcast::<DOMMatrixReadOnly>().pre_multiply_self(other);
             Root::from_ref(&self)
         }
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-translateself
         fn TranslateSelf(&self, tx: f64, ty: f64, tz: f64) -> Root<DOMMatrix> {
-            self.upcast::<DOMMatrixReadOnly>().TranslateSelf(tx, ty, tz);
+            self.upcast::<DOMMatrixReadOnly>().translate_self(tx, ty, tz);
             Root::from_ref(&self)
         }
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-scaleself
         fn ScaleSelf(&self, scaleX: f64, scaleY: Option<f64>, scaleZ: f64,
                             originX: f64, originY: f64, originZ: f64) -> Root<DOMMatrix> {
-            self.upcast::<DOMMatrixReadOnly>().ScaleSelf(scaleX, scaleY, scaleZ, originX, originY, originZ);
+            self.upcast::<DOMMatrixReadOnly>().scale_self(scaleX, scaleY, scaleZ, originX, originY, originZ);
             Root::from_ref(&self)
         }
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-scale3dself
         fn Scale3dSelf(&self, scale: f64, originX: f64, originY: f64, originZ: f64) -> Root<DOMMatrix> {
-            self.upcast::<DOMMatrixReadOnly>().Scale3dSelf(scale, originX, originY, originZ);
+            self.upcast::<DOMMatrixReadOnly>().scale_3d_self(scale, originX, originY, originZ);
             Root::from_ref(&self)
         }
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-rotateself
         fn RotateSelf(&self, rotX: f64, rotY: Option<f64>, rotZ: Option<f64>) -> Root<DOMMatrix> {
-            self.upcast::<DOMMatrixReadOnly>().RotateSelf(rotX, rotY, rotZ);
+            self.upcast::<DOMMatrixReadOnly>().rotate_self(rotX, rotY, rotZ);
             Root::from_ref(&self)
         }
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-rotatefromvectorself
         fn RotateFromVectorSelf(&self, x: f64, y: f64) -> Root<DOMMatrix> {
-            self.upcast::<DOMMatrixReadOnly>().RotateFromVectorSelf(x, y);
+            self.upcast::<DOMMatrixReadOnly>().rotate_from_vector_self(x, y);
             Root::from_ref(&self)
         }
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-rotateaxisangleself
         fn RotateAxisAngleSelf(&self, x: f64, y: f64, z: f64, angle: f64) -> Root<DOMMatrix> {
-            self.upcast::<DOMMatrixReadOnly>().RotateAxisAngleSelf(x, y, z, angle);
+            self.upcast::<DOMMatrixReadOnly>().rotate_axis_angle_self(x, y, z, angle);
             Root::from_ref(&self)
         }
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-skewxself
         fn SkewXSelf(&self, sx: f64) -> Root<DOMMatrix> {
-            self.upcast::<DOMMatrixReadOnly>().SkewXSelf(sx);
+            self.upcast::<DOMMatrixReadOnly>().skew_x_self(sx);
             Root::from_ref(&self)
         }
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-skewyself
         fn SkewYSelf(&self, sy: f64) -> Root<DOMMatrix> {
-            self.upcast::<DOMMatrixReadOnly>().SkewYSelf(sy);
+            self.upcast::<DOMMatrixReadOnly>().skew_y_self(sy);
             Root::from_ref(&self)
         }
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-invertself
         fn InvertSelf(&self) -> Root<DOMMatrix> {
-            self.upcast::<DOMMatrixReadOnly>().InvertSelf();
+            self.upcast::<DOMMatrixReadOnly>().invert_self();
             Root::from_ref(&self)
         }
 }
