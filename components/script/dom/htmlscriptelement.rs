@@ -15,6 +15,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::RootedReference;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::refcounted::Trusted;
+use dom::bindings::reflector::Reflectable;
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, ElementCreator};
@@ -27,13 +28,15 @@ use dom::window::ScriptHelpers;
 use encoding::label::encoding_from_whatwg_label;
 use encoding::types::{DecoderTrap, EncodingRef};
 use html5ever::tree_builder::NextParserState;
+use hyper::header::Headers;
 use hyper::http::RawStatus;
+use hyper::method::Method;
 use hyper_serde::Serde;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsval::UndefinedValue;
-use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata, NetworkError};
-use net_traits::request::CORSSettings;
+use net_traits::request::{CORSSettings, Destination, RequestInit, RequestMode, Type as RequestType};
+use net_traits::{FetchResponseListener, Metadata, NetworkError};
 use network_listener::{NetworkListener, PreInvoke};
 use std::ascii::AsciiExt;
 use std::cell::Cell;
@@ -155,8 +158,12 @@ struct ScriptContext {
     status: Result<(), NetworkError>
 }
 
-impl AsyncResponseListener for ScriptContext {
-    fn headers_available(&mut self, metadata: Result<Metadata, NetworkError>) {
+impl FetchResponseListener for ScriptContext {
+    fn process_request_body(&mut self) {} // TODO(KiChjang): Perhaps add custom steps to perform fetch here?
+
+    fn process_request_eof(&mut self) {} // TODO(KiChjang): Perhaps add custom steps to perform fetch here?
+
+    fn process_response(&mut self, metadata: Result<Metadata, NetworkError>) {
         self.metadata = metadata.ok();
 
         let status_code = self.metadata.as_ref().and_then(|m| {
@@ -173,18 +180,17 @@ impl AsyncResponseListener for ScriptContext {
         };
     }
 
-    fn data_available(&mut self, payload: Vec<u8>) {
+    fn process_response_chunk(&mut self, mut chunk: Vec<u8>) {
         if self.status.is_ok() {
-            let mut payload = payload;
-            self.data.append(&mut payload);
+            self.data.append(&mut chunk);
         }
     }
 
     /// https://html.spec.whatwg.org/multipage/#fetch-a-classic-script
     /// step 4-9
-    fn response_complete(&mut self, status: Result<(), NetworkError>) {
+    fn process_response_eof(&mut self, response: Result<(), NetworkError>) {
         // Step 5.
-        let load = status.and(self.status.clone()).map(|_| {
+        let load = response.and(self.status.clone()).map(|_| {
             let metadata = self.metadata.take().unwrap();
 
             // Step 6.
@@ -214,8 +220,33 @@ impl PreInvoke for ScriptContext {}
 /// https://html.spec.whatwg.org/multipage/#fetch-a-classic-script
 fn fetch_a_classic_script(script: &HTMLScriptElement,
                           url: Url,
+                          cors_setting: Option<CORSSettings>,
                           character_encoding: EncodingRef) {
-    // TODO(#9186): use the fetch infrastructure.
+    let doc = document_from_node(script);
+
+    // Step 1, 2.
+    let request = RequestInit {
+        method: Method::Get,
+        url: url.clone(),
+        headers: Headers::new(),
+        body: None,
+        type_: RequestType::Script,
+        destination: Destination::Script,
+        synchronous: false,
+        mode: RequestMode::CORSMode,
+        use_cors_preflight: false,
+        use_url_credentials: true,
+        origin: doc.url().clone(),
+        referer_url: None,
+        referrer_policy: None,
+        cors_attribute_state: cors_setting,
+        same_origin_fallback: false,
+        pipeline_id: Some(script.global().r().pipeline()),
+        .. RequestInit::default()
+    };
+
+    // TODO: Step 3, Add custom steps to perform fetch
+
     let context = Arc::new(Mutex::new(ScriptContext {
         elem: Trusted::new(script),
         character_encoding: character_encoding,
@@ -233,14 +264,11 @@ fn fetch_a_classic_script(script: &HTMLScriptElement,
         script_chan: doc.window().networking_task_source(),
         wrapper: Some(doc.window().get_runnable_wrapper()),
     };
-    let response_target = AsyncResponseTarget {
-        sender: action_sender,
-    };
-    ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
-        listener.notify_action(message.to().unwrap());
-    });
 
-    doc.load_async(LoadType::Script(url), response_target);
+    ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
+        listener.notify_fetch(message.to().unwrap());
+    });
+    doc.fetch_async(LoadType::Script(url), request, action_sender);
 }
 
 impl HTMLScriptElement {
@@ -326,7 +354,13 @@ impl HTMLScriptElement {
                               .and_then(|charset| encoding_from_whatwg_label(&charset.value()))
                               .unwrap_or_else(|| doc.encoding());
 
-        // TODO: Step 14: CORS.
+        // Step 14.
+        let cors_setting = match self.GetCrossOrigin() {
+            Some(ref s) if *s == "anonymous" => Some(CORSSettings::Anonymous),
+            Some(ref s) if *s == "use-credentials" => Some(CORSSettings::UseCredentials),
+            None => None,
+            _ => unreachable!()
+        };
 
         // TODO: Step 15: Nonce.
 
@@ -358,7 +392,7 @@ impl HTMLScriptElement {
                 };
 
                 // Step 18.6.
-                fetch_a_classic_script(self, url, encoding);
+                fetch_a_classic_script(self, url, cors_setting, encoding);
                 true
             },
             // TODO: Step 19.
