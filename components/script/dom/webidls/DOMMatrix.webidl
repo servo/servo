@@ -17,7 +17,7 @@ Constructor(sequence<unrestricted double> numberSequence)
 ]
 interface DOMMatrix : DOMMatrixReadOnly {
 
-    [NewObject] static DOMMatrix fromMatrix(optional DOMMatrixInit other);
+    [NewObject, Throws] static DOMMatrix fromMatrix(optional DOMMatrixInit other);
 //  [NewObject] static DOMMatrix fromFloat32Array(Float32Array array32);
 //  [NewObject] static DOMMatrix fromFloat64Array(Float64Array array64);
 

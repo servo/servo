@@ -97,9 +97,11 @@ impl DOMMatrixReadOnly {
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-frommatrix
-    pub fn FromMatrix(global: GlobalRef, other: &DOMMatrixInit) -> Root<Self> {
-        let MatrixParts { matrix, is2D } = dommatrixinit_to_matrix(&other).unwrap(); // TODO handle failure
-        Self::new(global, is2D, matrix)
+    pub fn FromMatrix(global: GlobalRef, other: &DOMMatrixInit) -> Fallible<Root<Self>> {
+        dommatrixinit_to_matrix(&other)
+            .map(|MatrixParts { matrix, is2D }|{
+                Self::new(global, is2D, matrix)
+            })
     }
 
     fn to_DOMMatrix(&self) -> Root<DOMMatrix> {
