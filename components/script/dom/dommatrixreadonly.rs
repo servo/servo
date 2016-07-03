@@ -25,39 +25,6 @@ pub struct DOMMatrixReadOnly {
     is2D: Cell<bool>,
 }
 
-pub fn dommatrixinit_to_matrix(dict: &DOMMatrixInit) -> Fallible<(bool, Matrix4D<f64>)> {
-    let mut dict = dict.clone();
-    validate_and_fixup_dommatrixinit(&mut dict)
-        .map(|dict| {
-            (dict.is2D.unwrap(),
-             Matrix4D::new(dict.m11.unwrap_or(1.0), dict.m12.unwrap_or(0.0), dict.m13, dict.m14,
-                           dict.m21.unwrap_or(0.0), dict.m22.unwrap_or(1.0), dict.m23, dict.m24,
-                           dict.m31,                dict.m32,                dict.m33, dict.m34,
-                           dict.m41.unwrap_or(0.0), dict.m42.unwrap_or(0.0), dict.m43, dict.m44))
-        })
-}
-
-
-pub fn entries_to_matrix(entries: &[f64]) -> Fallible<(bool, Matrix4D<f64>)> {
-    if entries.len() == 6 {
-        Ok((true,
-            Matrix4D::new(entries[0], entries[1], 0.0, 0.0,
-                          entries[2], entries[3], 0.0, 0.0,
-                          0.0,        0.0,        1.0, 0.0,
-                          entries[4], entries[5], 0.0, 1.0)))
-    } else if entries.len() == 16 {
-        Ok((false,
-            Matrix4D::new(entries[0],  entries[1],  entries[2],  entries[3],
-                          entries[4],  entries[5],  entries[6],  entries[7],
-                          entries[8],  entries[9],  entries[10], entries[11],
-                          entries[12], entries[13], entries[14], entries[15])))
-    } else {
-        let err_msg = format!("Expected 6 or 16 entries, but found {}.", entries.len());
-        Err(error::Error::Type(err_msg.to_owned()))
-    }
-}
-
-
 impl DOMMatrixReadOnly {
     #[allow(unrooted_must_root)]
     pub fn new(global: GlobalRef, is2D: bool, matrix: Matrix4D<f64>) -> Root<Self> {
@@ -584,8 +551,41 @@ impl DOMMatrixReadOnlyMethods for DOMMatrixReadOnly {
 }
 
 
+pub fn dommatrixinit_to_matrix(dict: &DOMMatrixInit) -> Fallible<(bool, Matrix4D<f64>)> {
+    let mut dict = dict.clone();
+    validate_and_fixup_dommatrixinit(&mut dict)
+        .map(|dict| {
+            (dict.is2D.unwrap(),
+             Matrix4D::new(dict.m11.unwrap_or(1.0), dict.m12.unwrap_or(0.0), dict.m13, dict.m14,
+                           dict.m21.unwrap_or(0.0), dict.m22.unwrap_or(1.0), dict.m23, dict.m24,
+                           dict.m31,                dict.m32,                dict.m33, dict.m34,
+                           dict.m41.unwrap_or(0.0), dict.m42.unwrap_or(0.0), dict.m43, dict.m44))
+        })
+}
+
+
+pub fn entries_to_matrix(entries: &[f64]) -> Fallible<(bool, Matrix4D<f64>)> {
+    if entries.len() == 6 {
+        Ok((true,
+            Matrix4D::new(entries[0], entries[1], 0.0, 0.0,
+                          entries[2], entries[3], 0.0, 0.0,
+                          0.0,        0.0,        1.0, 0.0,
+                          entries[4], entries[5], 0.0, 1.0)))
+    } else if entries.len() == 16 {
+        Ok((false,
+            Matrix4D::new(entries[0],  entries[1],  entries[2],  entries[3],
+                          entries[4],  entries[5],  entries[6],  entries[7],
+                          entries[8],  entries[9],  entries[10], entries[11],
+                          entries[12], entries[13], entries[14], entries[15])))
+    } else {
+        let err_msg = format!("Expected 6 or 16 entries, but found {}.", entries.len());
+        Err(error::Error::Type(err_msg.to_owned()))
+    }
+}
+
+
 // https://drafts.fxtf.org/geometry-1/#validate-and-fixup
-fn validate_and_fixup_dommatrixinit(dict: &DOMMatrixInit) -> Fallible<DOMMatrixInit> {
+fn validate_and_fixup_dommatrixinit(dict: &mut DOMMatrixInit) -> Fallible<&DOMMatrixInit> {
     // Step 1.
     if dict.a.is_some() && dict.m11.is_some() && dict.a.unwrap() != dict.m11.unwrap() ||
        dict.b.is_some() && dict.m12.is_some() && dict.b.unwrap() == dict.m12.unwrap() ||
@@ -599,34 +599,34 @@ fn validate_and_fixup_dommatrixinit(dict: &DOMMatrixInit) -> Fallible<DOMMatrixI
         dict.m33 != 1.0 || dict.m44 != 1.0) {
             Err(error::Error::Type("Invalid matrix initializer.".to_owned()))
     } else {
-        let mut dict_ret = dict.clone();
         // Step 2.
-        set_dict_fallback(&mut dict_ret.a, &mut dict_ret.m11, 1.0);
+        set_dict_fallback(&mut dict.a, &mut dict.m11, 1.0);
         // Step 3.
-        set_dict_fallback(&mut dict_ret.b, &mut dict_ret.m12, 1.0);
+        set_dict_fallback(&mut dict.b, &mut dict.m12, 1.0);
         // Step 4.
-        set_dict_fallback(&mut dict_ret.c, &mut dict_ret.m21, 0.0);
+        set_dict_fallback(&mut dict.c, &mut dict.m21, 0.0);
         // Step 5.
-        set_dict_fallback(&mut dict_ret.d, &mut dict_ret.m22, 0.0);
+        set_dict_fallback(&mut dict.d, &mut dict.m22, 0.0);
         // Step 6.
-        set_dict_fallback(&mut dict_ret.e, &mut dict_ret.m41, 0.0);
+        set_dict_fallback(&mut dict.e, &mut dict.m41, 0.0);
         // Step 7.
-        set_dict_fallback(&mut dict_ret.f, &mut dict_ret.m42, 0.0);
+        set_dict_fallback(&mut dict.f, &mut dict.m42, 0.0);
         // Step 8.
-        if dict_ret.is2D.is_none() &&
-            (dict_ret.m31 != 0.0 || dict_ret.m32 != 0.0 || dict_ret.m13 != 0.0 ||
-             dict_ret.m23 != 0.0 || dict_ret.m43 != 0.0 || dict_ret.m14 != 0.0 ||
-             dict_ret.m24 != 0.0 || dict_ret.m34 != 0.0 ||
-             dict_ret.m33 != 1.0 || dict_ret.m44 != 1.0) {
-                 dict_ret.is2D = Some(false);
+        if dict.is2D.is_none() &&
+            (dict.m31 != 0.0 || dict.m32 != 0.0 || dict.m13 != 0.0 ||
+             dict.m23 != 0.0 || dict.m43 != 0.0 || dict.m14 != 0.0 ||
+             dict.m24 != 0.0 || dict.m34 != 0.0 ||
+             dict.m33 != 1.0 || dict.m44 != 1.0) {
+                 dict.is2D = Some(false);
         }
         // Step 9.
-        if dict_ret.is2D.is_none() {
-            dict_ret.is2D = Some(true);
+        if dict.is2D.is_none() {
+            dict.is2D = Some(true);
         }
-        Ok(dict_ret)
+        Ok(dict)
     }
 }
+
 
 // https://drafts.fxtf.org/geometry-1/#set-the-dictionary-members
 #[inline]
@@ -644,6 +644,7 @@ fn set_dict_fallback(a: &mut Option<f64>, b: &mut Option<f64>, fallback: f64) {
     }
 }
 
+
 #[inline]
 fn normalize_point(x: f64, y: f64, z: f64) -> (f64, f64, f64) {
     let len = (x * x + y * y + z * z).sqrt();
@@ -653,6 +654,7 @@ fn normalize_point(x: f64, y: f64, z: f64) -> (f64, f64, f64) {
         (x / len, y / len, z / len)
     }
 }
+
 
 impl Clone for DOMMatrixInit {
     fn clone(&self) -> Self {
