@@ -76,6 +76,7 @@ class CheckTidiness(unittest.TestCase):
         self.assertEqual('use &str instead of &String', errors.next()[2])
         self.assertEqual('use &T instead of &Root<T>', errors.next()[2])
         self.assertEqual('operators should go at the end of the first line', errors.next()[2])
+        self.assertEqual('else braces should be on the same line', errors.next()[2])
         self.assertNoMoreErrors(errors)
 
     def test_spec_link(self):
