@@ -6,16 +6,15 @@
 //! reduce coupling between these two components.
 
 use euclid::scale_factor::ScaleFactor;
-use euclid::size::{Size2D, TypedSize2D};
+use euclid::size::TypedSize2D;
 use hyper::header::Headers;
 use hyper::method::Method;
-use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
+use ipc_channel::ipc::IpcSharedMemory;
 use layers::geometry::DevicePixel;
 use std::cell::Cell;
 use std::fmt;
 use url::Url;
 use util::geometry::{PagePx, ViewportPx};
-use webdriver_msg::{LoadStatus, WebDriverScriptCommand};
 use webrender_traits;
 
 pub type PanicMsg = (Option<PipelineId>, String, String);
@@ -184,17 +183,6 @@ bitflags! {
         const ALT = 0x04,
         const SUPER = 0x08,
     }
-}
-
-#[derive(Deserialize, Serialize)]
-pub enum WebDriverCommandMsg {
-    GetWindowSize(PipelineId, IpcSender<WindowSizeData>),
-    LoadUrl(PipelineId, LoadData, IpcSender<LoadStatus>),
-    Refresh(PipelineId, IpcSender<LoadStatus>),
-    ScriptCommand(PipelineId, WebDriverScriptCommand),
-    SendKeys(PipelineId, Vec<(Key, KeyModifiers, KeyState)>),
-    SetWindowSize(PipelineId, Size2D<u32>, IpcSender<WindowSizeData>),
-    TakeScreenshot(PipelineId, IpcSender<Option<Image>>),
 }
 
 #[derive(Clone, Copy, Deserialize, Eq, PartialEq, Serialize, HeapSizeOf)]

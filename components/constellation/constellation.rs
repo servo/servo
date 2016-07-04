@@ -24,7 +24,6 @@ use gfx_traits::Epoch;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout_traits::LayoutThreadFactory;
-use msg::constellation_msg::WebDriverCommandMsg;
 use msg::constellation_msg::{FrameId, FrameType, PipelineId};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
 use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId, NavigationDirection};
@@ -46,7 +45,7 @@ use script_traits::{ConstellationControlMsg, ConstellationMsg as FromCompositorM
 use script_traits::{DocumentState, LayoutControlMsg};
 use script_traits::{IFrameLoadInfo, IFrameSandboxState, TimerEventRequest};
 use script_traits::{LayoutMsg as FromLayoutMsg, ScriptMsg as FromScriptMsg, ScriptThreadFactory};
-use script_traits::{MozBrowserEvent, MozBrowserErrorType};
+use script_traits::{MozBrowserEvent, MozBrowserErrorType, WebDriverCommandMsg};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::io::Error as IOError;
