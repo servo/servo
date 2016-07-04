@@ -2,10 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use constellation_msg::PipelineId;
+#![allow(missing_docs)]
+
 use cookie_rs::Cookie;
 use euclid::rect::Rect;
 use ipc_channel::ipc::IpcSender;
+use msg::constellation_msg::PipelineId;
 use rustc_serialize::json::{Json, ToJson};
 use url::Url;
 

@@ -13,6 +13,7 @@
 
 extern crate app_units;
 extern crate canvas_traits;
+extern crate cookie as cookie_rs;
 extern crate devtools_traits;
 extern crate euclid;
 extern crate gfx_traits;
@@ -24,6 +25,7 @@ extern crate msg;
 extern crate net_traits;
 extern crate offscreen_gl_context;
 extern crate profile_traits;
+extern crate rustc_serialize;
 extern crate serde;
 extern crate style_traits;
 extern crate time;
@@ -31,6 +33,7 @@ extern crate url;
 extern crate util;
 
 mod script_msg;
+pub mod webdriver_msg;
 
 use app_units::Au;
 use devtools_traits::ScriptToDevtoolsControlMsg;
@@ -50,7 +53,6 @@ use libc::c_void;
 use msg::constellation_msg::{FrameId, FrameType, Image, Key, KeyModifiers, KeyState, LoadData};
 use msg::constellation_msg::{NavigationDirection, PanicMsg, PipelineId};
 use msg::constellation_msg::{PipelineNamespaceId, SubpageId, WindowSizeType};
-use msg::webdriver_msg::{LoadStatus, WebDriverScriptCommand};
 use net_traits::ResourceThreads;
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::ImageCacheThread;
@@ -62,6 +64,7 @@ use std::sync::mpsc::{Sender, Receiver};
 use url::Url;
 use util::geometry::{PagePx, ViewportPx};
 use util::ipc::OptionalOpaqueIpcSender;
+use webdriver_msg::{LoadStatus, WebDriverScriptCommand};
 
 pub use script_msg::{LayoutMsg, ScriptMsg, EventResult};
 
