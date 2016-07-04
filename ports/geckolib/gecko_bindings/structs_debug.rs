@@ -1879,168 +1879,6 @@ fn bindgen_test_layout_NS_ConvertUTF8toUTF16() {
     assert_eq!(::std::mem::align_of::<NS_ConvertUTF8toUTF16>() , 8usize);
 }
 pub type nsVoidableString = nsAutoString;
-pub enum ErrorReporter { }
-#[repr(u32)]
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
-pub enum nsCSSTokenType {
-    eCSSToken_Whitespace = 0,
-    eCSSToken_Comment = 1,
-    eCSSToken_Ident = 2,
-    eCSSToken_Function = 3,
-    eCSSToken_AtKeyword = 4,
-    eCSSToken_ID = 5,
-    eCSSToken_Hash = 6,
-    eCSSToken_Number = 7,
-    eCSSToken_Dimension = 8,
-    eCSSToken_Percentage = 9,
-    eCSSToken_String = 10,
-    eCSSToken_Bad_String = 11,
-    eCSSToken_URL = 12,
-    eCSSToken_Bad_URL = 13,
-    eCSSToken_Symbol = 14,
-    eCSSToken_Includes = 15,
-    eCSSToken_Dashmatch = 16,
-    eCSSToken_Beginsmatch = 17,
-    eCSSToken_Endsmatch = 18,
-    eCSSToken_Containsmatch = 19,
-    eCSSToken_URange = 20,
-    eCSSToken_HTMLComment = 21,
-}
-#[repr(u32)]
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
-pub enum nsCSSTokenSerializationType {
-    eCSSTokenSerialization_Nothing = 0,
-    eCSSTokenSerialization_Whitespace = 1,
-    eCSSTokenSerialization_AtKeyword_or_Hash = 2,
-    eCSSTokenSerialization_Number = 3,
-    eCSSTokenSerialization_Dimension = 4,
-    eCSSTokenSerialization_Percentage = 5,
-    eCSSTokenSerialization_URange = 6,
-    eCSSTokenSerialization_URL_or_BadURL = 7,
-    eCSSTokenSerialization_Function = 8,
-    eCSSTokenSerialization_Ident = 9,
-    eCSSTokenSerialization_CDC = 10,
-    eCSSTokenSerialization_DashMatch = 11,
-    eCSSTokenSerialization_ContainsMatch = 12,
-    eCSSTokenSerialization_Symbol_Hash = 13,
-    eCSSTokenSerialization_Symbol_At = 14,
-    eCSSTokenSerialization_Symbol_Dot_or_Plus = 15,
-    eCSSTokenSerialization_Symbol_Minus = 16,
-    eCSSTokenSerialization_Symbol_OpenParen = 17,
-    eCSSTokenSerialization_Symbol_Question = 18,
-    eCSSTokenSerialization_Symbol_Assorted = 19,
-    eCSSTokenSerialization_Symbol_Equals = 20,
-    eCSSTokenSerialization_Symbol_Bar = 21,
-    eCSSTokenSerialization_Symbol_Slash = 22,
-    eCSSTokenSerialization_Symbol_Asterisk = 23,
-    eCSSTokenSerialization_Other = 24,
-}
-#[repr(C)]
-pub struct nsCSSToken {
-    pub mIdent: nsAutoString,
-    pub mNumber: f32,
-    pub mInteger: i32,
-    pub mInteger2: i32,
-    pub mType: nsCSSTokenType,
-    pub mSymbol: ::std::os::raw::c_ushort,
-    pub mIntegerValid: bool,
-    pub mHasSign: bool,
-}
-#[test]
-fn bindgen_test_layout_nsCSSToken() {
-    assert_eq!(::std::mem::size_of::<nsCSSToken>() , 184usize);
-    assert_eq!(::std::mem::align_of::<nsCSSToken>() , 8usize);
-}
-#[repr(C)]
-#[derive(Debug, Copy)]
-pub struct nsCSSScannerPosition {
-    pub mOffset: u32,
-    pub mLineNumber: u32,
-    pub mLineOffset: u32,
-    pub mTokenLineNumber: u32,
-    pub mTokenLineOffset: u32,
-    pub mTokenOffset: u32,
-    pub mInitialized: bool,
-}
-impl ::std::clone::Clone for nsCSSScannerPosition {
-    fn clone(&self) -> Self { *self }
-}
-#[test]
-fn bindgen_test_layout_nsCSSScannerPosition() {
-    assert_eq!(::std::mem::size_of::<nsCSSScannerPosition>() , 28usize);
-    assert_eq!(::std::mem::align_of::<nsCSSScannerPosition>() , 4usize);
-}
-#[repr(u32)]
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
-pub enum nsCSSScannerExclude {
-    eCSSScannerExclude_None = 0,
-    eCSSScannerExclude_Comments = 1,
-    eCSSScannerExclude_WhitespaceAndComments = 2,
-}
-#[repr(C)]
-#[derive(Debug)]
-pub struct nsCSSScanner {
-    pub mBuffer: *const ::std::os::raw::c_ushort,
-    pub mOffset: u32,
-    pub mCount: u32,
-    pub mLineNumber: u32,
-    pub mLineOffset: u32,
-    pub mTokenLineNumber: u32,
-    pub mTokenLineOffset: u32,
-    pub mTokenOffset: u32,
-    pub mRecordStartOffset: u32,
-    pub mEOFCharacters: nsCSSScanner_EOFCharacters,
-    pub mReporter: *mut ErrorReporter,
-    pub mSVGMode: bool,
-    pub mRecording: bool,
-    pub mSeenBadToken: bool,
-    pub mSeenVariableReference: bool,
-}
-#[repr(u32)]
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
-pub enum nsCSSScanner_EOFCharacters {
-    eEOFCharacters_None = 0,
-    eEOFCharacters_DropBackslash = 1,
-    eEOFCharacters_ReplacementChar = 2,
-    eEOFCharacters_Asterisk = 4,
-    eEOFCharacters_Slash = 8,
-    eEOFCharacters_DoubleQuote = 16,
-    eEOFCharacters_SingleQuote = 32,
-    eEOFCharacters_CloseParen = 64,
-}
-#[test]
-fn bindgen_test_layout_nsCSSScanner() {
-    assert_eq!(::std::mem::size_of::<nsCSSScanner>() , 64usize);
-    assert_eq!(::std::mem::align_of::<nsCSSScanner>() , 8usize);
-}
-#[repr(C)]
-pub struct nsCSSGridTemplateAreaToken {
-    pub mName: nsAutoString,
-    pub isTrash: bool,
-}
-#[test]
-fn bindgen_test_layout_nsCSSGridTemplateAreaToken() {
-    assert_eq!(::std::mem::size_of::<nsCSSGridTemplateAreaToken>() ,
-               168usize);
-    assert_eq!(::std::mem::align_of::<nsCSSGridTemplateAreaToken>() , 8usize);
-}
-#[repr(C)]
-#[derive(Debug, Copy)]
-pub struct nsCSSGridTemplateAreaScanner {
-    pub mBuffer: *const ::std::os::raw::c_ushort,
-    pub mOffset: u32,
-    pub mCount: u32,
-}
-impl ::std::clone::Clone for nsCSSGridTemplateAreaScanner {
-    fn clone(&self) -> Self { *self }
-}
-#[test]
-fn bindgen_test_layout_nsCSSGridTemplateAreaScanner() {
-    assert_eq!(::std::mem::size_of::<nsCSSGridTemplateAreaScanner>() ,
-               16usize);
-    assert_eq!(::std::mem::align_of::<nsCSSGridTemplateAreaScanner>() ,
-               8usize);
-}
 /**
  * A "unique identifier". This is modeled after OSF DCE UUIDs.
  */
@@ -2225,6 +2063,151 @@ pub struct RefPtr_ConstRemovingRefPtrTraits<T, U> {
 pub struct RefPtrGetterAddRefs<T> {
     pub mTargetSmartPtr: *mut RefPtr<T>,
 }
+pub enum TileClient { }
+#[repr(C)]
+#[derive(Debug, Copy)]
+pub struct nsTArrayFallibleResult {
+    pub mResult: bool,
+}
+impl ::std::clone::Clone for nsTArrayFallibleResult {
+    fn clone(&self) -> Self { *self }
+}
+#[test]
+fn bindgen_test_layout_nsTArrayFallibleResult() {
+    assert_eq!(::std::mem::size_of::<nsTArrayFallibleResult>() , 1usize);
+    assert_eq!(::std::mem::align_of::<nsTArrayFallibleResult>() , 1usize);
+}
+#[repr(C)]
+#[derive(Debug, Copy)]
+pub struct nsTArrayInfallibleResult;
+impl ::std::clone::Clone for nsTArrayInfallibleResult {
+    fn clone(&self) -> Self { *self }
+}
+#[repr(C)]
+#[derive(Debug, Copy)]
+pub struct nsTArrayFallibleAllocatorBase;
+impl ::std::clone::Clone for nsTArrayFallibleAllocatorBase {
+    fn clone(&self) -> Self { *self }
+}
+#[repr(C)]
+#[derive(Debug, Copy)]
+pub struct nsTArrayInfallibleAllocatorBase;
+impl ::std::clone::Clone for nsTArrayInfallibleAllocatorBase {
+    fn clone(&self) -> Self { *self }
+}
+#[repr(C)]
+#[derive(Debug, Copy)]
+pub struct nsTArrayFallibleAllocator {
+    pub _base: nsTArrayFallibleAllocatorBase,
+}
+impl ::std::clone::Clone for nsTArrayFallibleAllocator {
+    fn clone(&self) -> Self { *self }
+}
+#[repr(C)]
+#[derive(Debug, Copy)]
+pub struct nsTArrayInfallibleAllocator {
+    pub _base: nsTArrayInfallibleAllocatorBase,
+}
+impl ::std::clone::Clone for nsTArrayInfallibleAllocator {
+    fn clone(&self) -> Self { *self }
+}
+#[repr(C)]
+#[derive(Debug, Copy)]
+pub struct nsTArrayHeader {
+    pub mLength: u32,
+    pub _bitfield_1: u32,
+}
+impl ::std::clone::Clone for nsTArrayHeader {
+    fn clone(&self) -> Self { *self }
+}
+#[test]
+fn bindgen_test_layout_nsTArrayHeader() {
+    assert_eq!(::std::mem::size_of::<nsTArrayHeader>() , 8usize);
+    assert_eq!(::std::mem::align_of::<nsTArrayHeader>() , 4usize);
+}
+extern "C" {
+    #[link_name = "_ZN14nsTArrayHeader9sEmptyHdrE"]
+    pub static mut nsTArrayHeader_consts_sEmptyHdr: nsTArrayHeader;
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct nsTArray_SafeElementAtHelper<E, Derived> {
+    pub _phantom0: ::std::marker::PhantomData<E>,
+    pub _phantom1: ::std::marker::PhantomData<Derived>,
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct nsTArray_SafeElementAtSmartPtrHelper<E, Derived> {
+    pub _phantom0: ::std::marker::PhantomData<E>,
+    pub _phantom1: ::std::marker::PhantomData<Derived>,
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct nsTArray_base<Alloc, Copy> {
+    pub mHdr: *mut nsTArrayHeader,
+    pub _phantom0: ::std::marker::PhantomData<Alloc>,
+    pub _phantom1: ::std::marker::PhantomData<Copy>,
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct nsTArray_base_IsAutoArrayRestorer<Alloc, Copy> {
+    pub mArray: *mut nsTArray_base<Alloc, Copy>,
+    pub mElemAlign: usize,
+    pub mIsAuto: bool,
+    pub _phantom0: ::std::marker::PhantomData<Copy>,
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct nsDefaultComparator<A, B> {
+    pub _phantom0: ::std::marker::PhantomData<A>,
+    pub _phantom1: ::std::marker::PhantomData<B>,
+}
+#[repr(C)]
+#[derive(Debug, Copy)]
+pub struct nsTArray_CopyWithMemutils;
+impl ::std::clone::Clone for nsTArray_CopyWithMemutils {
+    fn clone(&self) -> Self { *self }
+}
+extern "C" {
+    #[link_name = "_ZN25nsTArray_CopyWithMemutils12allowReallocE"]
+    pub static nsTArray_CopyWithMemutils_consts_allowRealloc: bool;
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct nsTArray_CopyWithConstructors<ElemType> {
+    pub _phantom0: ::std::marker::PhantomData<ElemType>,
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct nsTArray_CopyChooser<E> {
+    pub _phantom0: ::std::marker::PhantomData<E>,
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct nsTArray_TypedBase<E, Derived> {
+    pub _base: nsTArray_SafeElementAtHelper<E, Derived>,
+    pub _phantom0: ::std::marker::PhantomData<Derived>,
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct ItemComparatorEq<Item, Comparator> {
+    pub mItem: *const Item,
+    pub mComp: *const Comparator,
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct ItemComparatorFirstElementGT<Item, Comparator> {
+    pub mItem: *const Item,
+    pub mComp: *const Comparator,
+}
+/**
+ * <div rustbindgen replaces="nsTArray"></div>
+ */
+#[repr(C)]
+#[derive(Debug)]
+pub struct nsTArray<T> {
+    pub mBuffer: *mut T,
+}
 #[repr(C)]
 #[derive(Debug, Copy)]
 pub struct nsCOMPtr_helper;
@@ -2380,6 +2363,87 @@ pub struct nsAutoPtr_Proxy<T, R, Args> {
 #[derive(Debug, Copy, Clone)]
 pub struct nsAutoPtrGetterTransfers<T> {
     pub mTargetSmartPtr: *mut nsAutoPtr<T>,
+}
+/**
+ * This structure precedes the string buffers "we" allocate.  It may be the
+ * case that nsTAString::mData does not point to one of these special
+ * buffers.  The mFlags member variable distinguishes the buffer type.
+ *
+ * When this header is in use, it enables reference counting, and capacity
+ * tracking.  NOTE: A string buffer can be modified only if its reference
+ * count is 1.
+ */
+#[repr(C)]
+#[derive(Debug)]
+pub struct nsStringBuffer {
+    pub mRefCount: u32,
+    pub mStorageSize: u32,
+}
+#[test]
+fn bindgen_test_layout_nsStringBuffer() {
+    assert_eq!(::std::mem::size_of::<nsStringBuffer>() , 8usize);
+    assert_eq!(::std::mem::align_of::<nsStringBuffer>() , 4usize);
+}
+#[repr(C)]
+#[derive(Debug, Copy)]
+pub struct nsIAtom {
+    pub _base: nsISupports,
+    pub _bitfield_1: u32,
+    pub mHash: u32,
+    /**
+   * WARNING! There is an invisible constraint on |mString|: the chars it
+   * points to must belong to an nsStringBuffer. This is so that the
+   * nsStringBuffer::FromData() calls above are valid.
+   */
+    pub mString: *mut ::std::os::raw::c_ushort,
+}
+#[repr(C)]
+pub struct _vftable_nsIAtom {
+    pub _base: _vftable_nsISupports,
+}
+impl ::std::clone::Clone for nsIAtom {
+    fn clone(&self) -> Self { *self }
+}
+#[test]
+fn bindgen_test_layout_nsIAtom() {
+    assert_eq!(::std::mem::size_of::<nsIAtom>() , 24usize);
+    assert_eq!(::std::mem::align_of::<nsIAtom>() , 8usize);
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct nsAtomString {
+    pub _base: nsString,
+}
+#[test]
+fn bindgen_test_layout_nsAtomString() {
+    assert_eq!(::std::mem::size_of::<nsAtomString>() , 16usize);
+    assert_eq!(::std::mem::align_of::<nsAtomString>() , 8usize);
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct nsAtomCString {
+    pub _base: nsCString,
+}
+#[test]
+fn bindgen_test_layout_nsAtomCString() {
+    assert_eq!(::std::mem::size_of::<nsAtomCString>() , 16usize);
+    assert_eq!(::std::mem::align_of::<nsAtomCString>() , 8usize);
+}
+#[repr(C)]
+pub struct nsDependentAtomString {
+    pub _base: [u64; 2usize],
+}
+#[repr(C)]
+#[derive(Debug, Copy)]
+pub struct piecewise_construct_t;
+impl ::std::clone::Clone for piecewise_construct_t {
+    fn clone(&self) -> Self { *self }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct pair<_T1, _T2> {
+    pub first: _T1,
+    pub second: _T2,
 }
 pub type PLDHashNumber = u32;
 #[repr(C)]
@@ -2591,325 +2655,110 @@ pub struct nsTHashtable_Iterator<EntryType> {
 }
 #[repr(C)]
 pub struct nsDataHashtable;
-pub enum TileClient { }
+pub enum nsIContentSecurityPolicy { }
+pub enum nsIDOMDocument { }
 #[repr(C)]
-#[derive(Debug, Copy)]
-pub struct nsTArrayFallibleResult {
-    pub mResult: bool,
-}
-impl ::std::clone::Clone for nsTArrayFallibleResult {
-    fn clone(&self) -> Self { *self }
+pub struct nsIPrincipal {
+    pub _bindgen_opaque_blob: u64,
 }
 #[test]
-fn bindgen_test_layout_nsTArrayFallibleResult() {
-    assert_eq!(::std::mem::size_of::<nsTArrayFallibleResult>() , 1usize);
-    assert_eq!(::std::mem::align_of::<nsTArrayFallibleResult>() , 1usize);
+fn bindgen_test_layout_nsIPrincipal() {
+    assert_eq!(::std::mem::size_of::<nsIPrincipal>() , 8usize);
+    assert_eq!(::std::mem::align_of::<nsIPrincipal>() , 8usize);
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct nsTArrayInfallibleResult;
-impl ::std::clone::Clone for nsTArrayInfallibleResult {
+pub struct nsIExpandedPrincipal {
+    pub _base: nsISupports,
+}
+#[repr(C)]
+pub struct _vftable_nsIExpandedPrincipal {
+    pub _base: _vftable_nsISupports,
+}
+impl ::std::clone::Clone for nsIExpandedPrincipal {
     fn clone(&self) -> Self { *self }
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct nsTArrayFallibleAllocatorBase;
-impl ::std::clone::Clone for nsTArrayFallibleAllocatorBase {
+pub struct nsIURI {
+    pub _base: nsISupports,
+}
+#[repr(C)]
+pub struct _vftable_nsIURI {
+    pub _base: _vftable_nsISupports,
+}
+impl ::std::clone::Clone for nsIURI {
     fn clone(&self) -> Self { *self }
-}
-#[repr(C)]
-#[derive(Debug, Copy)]
-pub struct nsTArrayInfallibleAllocatorBase;
-impl ::std::clone::Clone for nsTArrayInfallibleAllocatorBase {
-    fn clone(&self) -> Self { *self }
-}
-#[repr(C)]
-#[derive(Debug, Copy)]
-pub struct nsTArrayFallibleAllocator {
-    pub _base: nsTArrayFallibleAllocatorBase,
-}
-impl ::std::clone::Clone for nsTArrayFallibleAllocator {
-    fn clone(&self) -> Self { *self }
-}
-#[repr(C)]
-#[derive(Debug, Copy)]
-pub struct nsTArrayInfallibleAllocator {
-    pub _base: nsTArrayInfallibleAllocatorBase,
-}
-impl ::std::clone::Clone for nsTArrayInfallibleAllocator {
-    fn clone(&self) -> Self { *self }
-}
-#[repr(C)]
-#[derive(Debug, Copy)]
-pub struct nsTArrayHeader {
-    pub mLength: u32,
-    pub _bitfield_1: u32,
-}
-impl ::std::clone::Clone for nsTArrayHeader {
-    fn clone(&self) -> Self { *self }
-}
-#[test]
-fn bindgen_test_layout_nsTArrayHeader() {
-    assert_eq!(::std::mem::size_of::<nsTArrayHeader>() , 8usize);
-    assert_eq!(::std::mem::align_of::<nsTArrayHeader>() , 4usize);
-}
-extern "C" {
-    #[link_name = "_ZN14nsTArrayHeader9sEmptyHdrE"]
-    pub static mut nsTArrayHeader_consts_sEmptyHdr: nsTArrayHeader;
-}
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct nsTArray_SafeElementAtHelper<E, Derived> {
-    pub _phantom0: ::std::marker::PhantomData<E>,
-    pub _phantom1: ::std::marker::PhantomData<Derived>,
-}
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct nsTArray_SafeElementAtSmartPtrHelper<E, Derived> {
-    pub _phantom0: ::std::marker::PhantomData<E>,
-    pub _phantom1: ::std::marker::PhantomData<Derived>,
-}
-#[repr(C)]
-#[derive(Debug)]
-pub struct nsTArray_base<Alloc, Copy> {
-    pub mHdr: *mut nsTArrayHeader,
-    pub _phantom0: ::std::marker::PhantomData<Alloc>,
-    pub _phantom1: ::std::marker::PhantomData<Copy>,
-}
-#[repr(C)]
-#[derive(Debug)]
-pub struct nsTArray_base_IsAutoArrayRestorer<Alloc, Copy> {
-    pub mArray: *mut nsTArray_base<Alloc, Copy>,
-    pub mElemAlign: usize,
-    pub mIsAuto: bool,
-    pub _phantom0: ::std::marker::PhantomData<Copy>,
-}
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct nsDefaultComparator<A, B> {
-    pub _phantom0: ::std::marker::PhantomData<A>,
-    pub _phantom1: ::std::marker::PhantomData<B>,
-}
-#[repr(C)]
-#[derive(Debug, Copy)]
-pub struct nsTArray_CopyWithMemutils;
-impl ::std::clone::Clone for nsTArray_CopyWithMemutils {
-    fn clone(&self) -> Self { *self }
-}
-extern "C" {
-    #[link_name = "_ZN25nsTArray_CopyWithMemutils12allowReallocE"]
-    pub static nsTArray_CopyWithMemutils_consts_allowRealloc: bool;
-}
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct nsTArray_CopyWithConstructors<ElemType> {
-    pub _phantom0: ::std::marker::PhantomData<ElemType>,
-}
-extern "C" {
-    #[link_name = "_ZN29nsTArray_CopyWithConstructors12allowReallocE"]
-    pub static nsTArray_CopyWithConstructors_consts_allowRealloc: bool;
-}
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct nsTArray_CopyChooser<E> {
-    pub _phantom0: ::std::marker::PhantomData<E>,
-}
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct nsTArray_TypedBase<E, Derived> {
-    pub _base: nsTArray_SafeElementAtHelper<E, Derived>,
-    pub _phantom0: ::std::marker::PhantomData<Derived>,
-}
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct ItemComparatorEq<Item, Comparator> {
-    pub mItem: *const Item,
-    pub mComp: *const Comparator,
-}
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct ItemComparatorFirstElementGT<Item, Comparator> {
-    pub mItem: *const Item,
-    pub mComp: *const Comparator,
 }
 /**
- * <div rustbindgen replaces="nsTArray"></div>
+ * Enum defining the mode in which a sheet is to be parsed.  This is
+ * usually, but not always, the same as the cascade level at which the
+ * sheet will apply (see nsStyleSet.h).  Most of the Loader APIs only
+ * support loading of author sheets.
+ *
+ * Author sheets are the normal case: styles embedded in or linked
+ * from HTML pages.  They are also the most restricted.
+ *
+ * User sheets can do anything author sheets can do, and also get
+ * access to a few CSS extensions that are not yet suitable for
+ * exposure on the public Web, but are very useful for expressing
+ * user style overrides, such as @-moz-document rules.
+ *
+ * Agent sheets have access to all author- and user-sheet features
+ * plus more extensions that are necessary for internal use but,
+ * again, not yet suitable for exposure on the public Web.  Some of
+ * these are outright unsafe to expose; in particular, incorrect
+ * styling of anonymous box pseudo-elements can violate layout
+ * invariants.
+ */
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub enum SheetParsingMode {
+    eAuthorSheetFeatures = 0,
+    eUserSheetFeatures = 1,
+    eAgentSheetFeatures = 2,
+}
+pub type nsLoadFlags = u32;
+#[repr(C)]
+#[derive(Debug, Copy)]
+pub struct nsIRequest {
+    pub _base: nsISupports,
+}
+#[repr(C)]
+pub struct _vftable_nsIRequest {
+    pub _base: _vftable_nsISupports,
+}
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub enum nsIRequest_nsIRequest_h_unnamed_7 {
+    LOAD_REQUESTMASK = 65535,
+    LOAD_NORMAL = 0,
+    LOAD_BACKGROUND = 1,
+    INHIBIT_PIPELINE = 64,
+    INHIBIT_CACHING = 128,
+    INHIBIT_PERSISTENT_CACHING = 256,
+    LOAD_BYPASS_CACHE = 512,
+    LOAD_FROM_CACHE = 1024,
+    VALIDATE_ALWAYS = 2048,
+    VALIDATE_NEVER = 4096,
+    VALIDATE_ONCE_PER_SESSION = 8192,
+    LOAD_ANONYMOUS = 16384,
+    LOAD_FRESH_CONNECTION = 32768,
+}
+impl ::std::clone::Clone for nsIRequest {
+    fn clone(&self) -> Self { *self }
+}
+/**
+ * A class for holding strong references to handle-managed objects.
+ *
+ * This is intended for use with objects like StyleSheetHandle, where
+ * the handle type is not a pointer but which can still have ->AddRef()
+ * and ->Release() called on it.
  */
 #[repr(C)]
 #[derive(Debug)]
-pub struct nsTArray<T> {
-    pub mBuffer: *mut T,
-}
-pub enum CSSVariableResolver { }
-#[repr(C)]
-pub struct CSSVariableValues {
-    pub mVariableIDs: [u64; 6usize],
-    /**
-   * Array of variables, indexed by variable ID.
-   */
-    pub mVariables: nsTArray<CSSVariableValues_Variable>,
-}
-#[repr(C)]
-#[derive(Debug)]
-pub struct CSSVariableValues_Variable {
-    pub mVariableName: nsString,
-    pub mValue: nsString,
-    pub mFirstToken: nsCSSTokenSerializationType,
-    pub mLastToken: nsCSSTokenSerializationType,
-}
-#[test]
-fn bindgen_test_layout_CSSVariableValues_Variable() {
-    assert_eq!(::std::mem::size_of::<CSSVariableValues_Variable>() , 40usize);
-    assert_eq!(::std::mem::align_of::<CSSVariableValues_Variable>() , 8usize);
-}
-#[test]
-fn bindgen_test_layout_CSSVariableValues() {
-    assert_eq!(::std::mem::size_of::<CSSVariableValues>() , 56usize);
-    assert_eq!(::std::mem::align_of::<CSSVariableValues>() , 8usize);
-}
-#[repr(i8)]
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
-pub enum SheetType {
-    Agent = 0,
-    User = 1,
-    PresHint = 2,
-    SVGAttrAnimation = 3,
-    Doc = 4,
-    ScopedDoc = 5,
-    StyleAttr = 6,
-    Override = 7,
-    Animation = 8,
-    Transition = 9,
-    Count = 10,
-    Unknown = -1,
-}
-/**
- * StaticAutoPtr and StaticRefPtr are like nsAutoPtr and nsRefPtr, except they
- * are suitable for use as global variables.
- *
- * In particular, a global instance of Static{Auto,Ref}Ptr doesn't cause the
- * compiler to emit  a static initializer (in release builds, anyway).
- *
- * In order to accomplish this, Static{Auto,Ref}Ptr must have a trivial
- * constructor and destructor.  As a consequence, it cannot initialize its raw
- * pointer to 0 on construction, and it cannot delete/release its raw pointer
- * upon destruction.
- *
- * Since the compiler guarantees that all global variables are initialized to
- * 0, these trivial constructors are safe.  Since we rely on this, the clang
- * plugin, run as part of our "static analysis" builds, makes it a compile-time
- * error to use Static{Auto,Ref}Ptr as anything except a global variable.
- *
- * Static{Auto,Ref}Ptr have a limited interface as compared to ns{Auto,Ref}Ptr;
- * this is intentional, since their range of acceptable uses is smaller.
- */
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct StaticAutoPtr<T> {
-    pub mRawPtr: *mut T,
-}
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct StaticRefPtr<T> {
-    pub mRawPtr: *mut T,
-}
-pub enum Zero { }
-pub enum _cairo_surface { }
-pub type cairo_surface_t = _cairo_surface;
-pub enum _cairo_user_data_key { }
-pub type cairo_user_data_key_t = _cairo_user_data_key;
-pub type thebes_destroy_func_t =
-    ::std::option::Option<unsafe extern "C" fn(data:
-                                                   *mut ::std::os::raw::c_void)>;
-/**
- * Currently needs to be 'double' for Cairo compatibility. Could
- * become 'float', perhaps, in some configurations.
- */
-pub type gfxFloat = f64;
-/**
- * Priority of a line break opportunity.
- *
- * eNoBreak       The line has no break opportunities
- * eWordWrapBreak The line has a break opportunity only within a word. With
- *                overflow-wrap|word-wrap: break-word we will break at this point only if
- *                there are no other break opportunities in the line.
- * eNormalBreak   The line has a break opportunity determined by the standard
- *                line-breaking algorithm.
- *
- * Future expansion: split eNormalBreak into multiple priorities, e.g.
- *                    punctuation break and whitespace break (bug 389710).
- *                   As and when we implement it, text-wrap: unrestricted will
- *                    mean that priorities are ignored and all line-break
- *                    opportunities are equal.
- *
- * @see gfxTextRun::BreakAndMeasureText
- * @see nsLineLayout::NotifyOptionalBreakPosition
- */
-#[repr(i32)]
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
-pub enum gfxBreakPriority {
-    eNoBreak = 0,
-    eWordWrapBreak = 1,
-    eNormalBreak = 2,
-}
-#[repr(i32)]
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
-pub enum gfxSurfaceType {
-    Image = 0,
-    PDF = 1,
-    PS = 2,
-    Xlib = 3,
-    Xcb = 4,
-    Glitz = 5,
-    Quartz = 6,
-    Win32 = 7,
-    BeOS = 8,
-    DirectFB = 9,
-    SVG = 10,
-    OS2 = 11,
-    Win32Printing = 12,
-    QuartzImage = 13,
-    Script = 14,
-    QPainter = 15,
-    Recording = 16,
-    VG = 17,
-    GL = 18,
-    DRM = 19,
-    Tee = 20,
-    XML = 21,
-    Skia = 22,
-    Subsurface = 23,
-    Max = 24,
-}
-#[repr(i32)]
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
-pub enum gfxContentType {
-    COLOR = 4096,
-    ALPHA = 8192,
-    COLOR_ALPHA = 12288,
-    SENTINEL = 65535,
-}
-#[repr(C)]
-#[derive(Debug, Copy)]
-pub struct piecewise_construct_t;
-impl ::std::clone::Clone for piecewise_construct_t {
-    fn clone(&self) -> Self { *self }
-}
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct pair<_T1, _T2> {
-    pub first: _T1,
-    pub second: _T2,
-}
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct __make_pair_return_impl<_Tp> {
-    pub _phantom0: ::std::marker::PhantomData<_Tp>,
-}
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct __make_pair_return<_Tp> {
-    pub _phantom0: ::std::marker::PhantomData<_Tp>,
+pub struct HandleRefPtr<T> {
+    pub mHandle: T,
 }
 pub type Float = f32;
 #[repr(i8)]
@@ -3142,7 +2991,7 @@ pub type gfxImageFormat = SurfaceFormat;
 pub struct RectCorner;
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
-pub enum RectCorner_Types_h_unnamed_6 {
+pub enum RectCorner_Types_h_unnamed_8 {
     TopLeft = 0,
     TopRight = 1,
     BottomRight = 2,
@@ -3261,6 +3110,266 @@ fn bindgen_test_layout_nsRect() {
     assert_eq!(::std::mem::size_of::<nsRect>() , 16usize);
     assert_eq!(::std::mem::align_of::<nsRect>() , 4usize);
 }
+pub enum AnimationEffectReadOnly { }
+pub enum AnimationEffectReadOnlyAtoms { }
+pub enum AnimationEffectTimingPropertiesAtoms { }
+pub enum ComputedTimingPropertiesAtoms { }
+#[repr(i32)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub enum FillMode {
+    None = 0,
+    Forwards = 1,
+    Backwards = 2,
+    Both = 3,
+    Auto = 4,
+    EndGuard_ = 5,
+}
+#[repr(i32)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub enum PlaybackDirection {
+    Normal = 0,
+    Reverse = 1,
+    Alternate = 2,
+    Alternate_reverse = 3,
+    EndGuard_ = 4,
+}
+pub type NativeType = AnimationEffectReadOnly;
+pub enum ErrorReporter { }
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub enum nsCSSTokenType {
+    eCSSToken_Whitespace = 0,
+    eCSSToken_Comment = 1,
+    eCSSToken_Ident = 2,
+    eCSSToken_Function = 3,
+    eCSSToken_AtKeyword = 4,
+    eCSSToken_ID = 5,
+    eCSSToken_Hash = 6,
+    eCSSToken_Number = 7,
+    eCSSToken_Dimension = 8,
+    eCSSToken_Percentage = 9,
+    eCSSToken_String = 10,
+    eCSSToken_Bad_String = 11,
+    eCSSToken_URL = 12,
+    eCSSToken_Bad_URL = 13,
+    eCSSToken_Symbol = 14,
+    eCSSToken_Includes = 15,
+    eCSSToken_Dashmatch = 16,
+    eCSSToken_Beginsmatch = 17,
+    eCSSToken_Endsmatch = 18,
+    eCSSToken_Containsmatch = 19,
+    eCSSToken_URange = 20,
+    eCSSToken_HTMLComment = 21,
+}
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub enum nsCSSTokenSerializationType {
+    eCSSTokenSerialization_Nothing = 0,
+    eCSSTokenSerialization_Whitespace = 1,
+    eCSSTokenSerialization_AtKeyword_or_Hash = 2,
+    eCSSTokenSerialization_Number = 3,
+    eCSSTokenSerialization_Dimension = 4,
+    eCSSTokenSerialization_Percentage = 5,
+    eCSSTokenSerialization_URange = 6,
+    eCSSTokenSerialization_URL_or_BadURL = 7,
+    eCSSTokenSerialization_Function = 8,
+    eCSSTokenSerialization_Ident = 9,
+    eCSSTokenSerialization_CDC = 10,
+    eCSSTokenSerialization_DashMatch = 11,
+    eCSSTokenSerialization_ContainsMatch = 12,
+    eCSSTokenSerialization_Symbol_Hash = 13,
+    eCSSTokenSerialization_Symbol_At = 14,
+    eCSSTokenSerialization_Symbol_Dot_or_Plus = 15,
+    eCSSTokenSerialization_Symbol_Minus = 16,
+    eCSSTokenSerialization_Symbol_OpenParen = 17,
+    eCSSTokenSerialization_Symbol_Question = 18,
+    eCSSTokenSerialization_Symbol_Assorted = 19,
+    eCSSTokenSerialization_Symbol_Equals = 20,
+    eCSSTokenSerialization_Symbol_Bar = 21,
+    eCSSTokenSerialization_Symbol_Slash = 22,
+    eCSSTokenSerialization_Symbol_Asterisk = 23,
+    eCSSTokenSerialization_Other = 24,
+}
+#[repr(C)]
+pub struct nsCSSToken {
+    pub mIdent: nsAutoString,
+    pub mNumber: f32,
+    pub mInteger: i32,
+    pub mInteger2: i32,
+    pub mType: nsCSSTokenType,
+    pub mSymbol: ::std::os::raw::c_ushort,
+    pub mIntegerValid: bool,
+    pub mHasSign: bool,
+}
+#[test]
+fn bindgen_test_layout_nsCSSToken() {
+    assert_eq!(::std::mem::size_of::<nsCSSToken>() , 184usize);
+    assert_eq!(::std::mem::align_of::<nsCSSToken>() , 8usize);
+}
+#[repr(C)]
+#[derive(Debug, Copy)]
+pub struct nsCSSScannerPosition {
+    pub mOffset: u32,
+    pub mLineNumber: u32,
+    pub mLineOffset: u32,
+    pub mTokenLineNumber: u32,
+    pub mTokenLineOffset: u32,
+    pub mTokenOffset: u32,
+    pub mInitialized: bool,
+}
+impl ::std::clone::Clone for nsCSSScannerPosition {
+    fn clone(&self) -> Self { *self }
+}
+#[test]
+fn bindgen_test_layout_nsCSSScannerPosition() {
+    assert_eq!(::std::mem::size_of::<nsCSSScannerPosition>() , 28usize);
+    assert_eq!(::std::mem::align_of::<nsCSSScannerPosition>() , 4usize);
+}
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub enum nsCSSScannerExclude {
+    eCSSScannerExclude_None = 0,
+    eCSSScannerExclude_Comments = 1,
+    eCSSScannerExclude_WhitespaceAndComments = 2,
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct nsCSSScanner {
+    pub mBuffer: *const ::std::os::raw::c_ushort,
+    pub mOffset: u32,
+    pub mCount: u32,
+    pub mLineNumber: u32,
+    pub mLineOffset: u32,
+    pub mTokenLineNumber: u32,
+    pub mTokenLineOffset: u32,
+    pub mTokenOffset: u32,
+    pub mRecordStartOffset: u32,
+    pub mEOFCharacters: nsCSSScanner_EOFCharacters,
+    pub mReporter: *mut ErrorReporter,
+    pub mSVGMode: bool,
+    pub mRecording: bool,
+    pub mSeenBadToken: bool,
+    pub mSeenVariableReference: bool,
+}
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub enum nsCSSScanner_EOFCharacters {
+    eEOFCharacters_None = 0,
+    eEOFCharacters_DropBackslash = 1,
+    eEOFCharacters_ReplacementChar = 2,
+    eEOFCharacters_Asterisk = 4,
+    eEOFCharacters_Slash = 8,
+    eEOFCharacters_DoubleQuote = 16,
+    eEOFCharacters_SingleQuote = 32,
+    eEOFCharacters_CloseParen = 64,
+}
+#[test]
+fn bindgen_test_layout_nsCSSScanner() {
+    assert_eq!(::std::mem::size_of::<nsCSSScanner>() , 64usize);
+    assert_eq!(::std::mem::align_of::<nsCSSScanner>() , 8usize);
+}
+#[repr(C)]
+pub struct nsCSSGridTemplateAreaToken {
+    pub mName: nsAutoString,
+    pub isTrash: bool,
+}
+#[test]
+fn bindgen_test_layout_nsCSSGridTemplateAreaToken() {
+    assert_eq!(::std::mem::size_of::<nsCSSGridTemplateAreaToken>() ,
+               168usize);
+    assert_eq!(::std::mem::align_of::<nsCSSGridTemplateAreaToken>() , 8usize);
+}
+#[repr(C)]
+#[derive(Debug, Copy)]
+pub struct nsCSSGridTemplateAreaScanner {
+    pub mBuffer: *const ::std::os::raw::c_ushort,
+    pub mOffset: u32,
+    pub mCount: u32,
+}
+impl ::std::clone::Clone for nsCSSGridTemplateAreaScanner {
+    fn clone(&self) -> Self { *self }
+}
+#[test]
+fn bindgen_test_layout_nsCSSGridTemplateAreaScanner() {
+    assert_eq!(::std::mem::size_of::<nsCSSGridTemplateAreaScanner>() ,
+               16usize);
+    assert_eq!(::std::mem::align_of::<nsCSSGridTemplateAreaScanner>() ,
+               8usize);
+}
+pub enum CSSVariableResolver { }
+#[repr(C)]
+pub struct CSSVariableValues {
+    pub mVariableIDs: [u64; 6usize],
+    /**
+   * Array of variables, indexed by variable ID.
+   */
+    pub mVariables: nsTArray<CSSVariableValues_Variable>,
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct CSSVariableValues_Variable {
+    pub mVariableName: nsString,
+    pub mValue: nsString,
+    pub mFirstToken: nsCSSTokenSerializationType,
+    pub mLastToken: nsCSSTokenSerializationType,
+}
+#[test]
+fn bindgen_test_layout_CSSVariableValues_Variable() {
+    assert_eq!(::std::mem::size_of::<CSSVariableValues_Variable>() , 40usize);
+    assert_eq!(::std::mem::align_of::<CSSVariableValues_Variable>() , 8usize);
+}
+#[test]
+fn bindgen_test_layout_CSSVariableValues() {
+    assert_eq!(::std::mem::size_of::<CSSVariableValues>() , 56usize);
+    assert_eq!(::std::mem::align_of::<CSSVariableValues>() , 8usize);
+}
+#[repr(i8)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub enum SheetType {
+    Agent = 0,
+    User = 1,
+    PresHint = 2,
+    SVGAttrAnimation = 3,
+    Doc = 4,
+    ScopedDoc = 5,
+    StyleAttr = 6,
+    Override = 7,
+    Animation = 8,
+    Transition = 9,
+    Count = 10,
+    Unknown = -1,
+}
+/**
+ * StaticAutoPtr and StaticRefPtr are like nsAutoPtr and nsRefPtr, except they
+ * are suitable for use as global variables.
+ *
+ * In particular, a global instance of Static{Auto,Ref}Ptr doesn't cause the
+ * compiler to emit  a static initializer (in release builds, anyway).
+ *
+ * In order to accomplish this, Static{Auto,Ref}Ptr must have a trivial
+ * constructor and destructor.  As a consequence, it cannot initialize its raw
+ * pointer to 0 on construction, and it cannot delete/release its raw pointer
+ * upon destruction.
+ *
+ * Since the compiler guarantees that all global variables are initialized to
+ * 0, these trivial constructors are safe.  Since we rely on this, the clang
+ * plugin, run as part of our "static analysis" builds, makes it a compile-time
+ * error to use Static{Auto,Ref}Ptr as anything except a global variable.
+ *
+ * Static{Auto,Ref}Ptr have a limited interface as compared to ns{Auto,Ref}Ptr;
+ * this is intentional, since their range of acceptable uses is smaller.
+ */
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct StaticAutoPtr<T> {
+    pub mRawPtr: *mut T,
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct StaticRefPtr<T> {
+    pub mRawPtr: *mut T,
+}
+pub enum Zero { }
 pub const eFamily_generic_first: FontFamilyType =
     FontFamilyType::eFamily_serif;
 pub const eFamily_generic_last: FontFamilyType =
@@ -3393,47 +3502,6 @@ fn bindgen_test_layout_nsFont() {
 #[repr(i8)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum StyleBoxSizing { Content = 0, Border = 1, }
-#[repr(i32)]
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
-pub enum PlaybackDirection { _BindgenOpaqueEnum = 0, }
-#[repr(i32)]
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
-pub enum FillMode { _BindgenOpaqueEnum = 0, }
-pub enum nsIContentSecurityPolicy { }
-pub enum nsIDOMDocument { }
-#[repr(C)]
-pub struct nsIPrincipal {
-    pub _bindgen_opaque_blob: u64,
-}
-#[test]
-fn bindgen_test_layout_nsIPrincipal() {
-    assert_eq!(::std::mem::size_of::<nsIPrincipal>() , 8usize);
-    assert_eq!(::std::mem::align_of::<nsIPrincipal>() , 8usize);
-}
-#[repr(C)]
-#[derive(Debug, Copy)]
-pub struct nsIExpandedPrincipal {
-    pub _base: nsISupports,
-}
-#[repr(C)]
-pub struct _vftable_nsIExpandedPrincipal {
-    pub _base: _vftable_nsISupports,
-}
-impl ::std::clone::Clone for nsIExpandedPrincipal {
-    fn clone(&self) -> Self { *self }
-}
-#[repr(C)]
-#[derive(Debug, Copy)]
-pub struct nsIURI {
-    pub _base: nsISupports,
-}
-#[repr(C)]
-pub struct _vftable_nsIURI {
-    pub _base: _vftable_nsISupports,
-}
-impl ::std::clone::Clone for nsIURI {
-    fn clone(&self) -> Self { *self }
-}
 pub const eCSSProperty_COUNT_DUMMY: nsCSSProperty =
     nsCSSProperty::eCSSProperty_z_index;
 pub const eCSSProperty_all: nsCSSProperty =
@@ -3994,26 +4062,6 @@ pub struct nsMainThreadPtrHolder<T> {
 pub struct nsMainThreadPtrHandle<T> {
     pub mPtr: RefPtr<T>,
 }
-/**
- * This structure precedes the string buffers "we" allocate.  It may be the
- * case that nsTAString::mData does not point to one of these special
- * buffers.  The mFlags member variable distinguishes the buffer type.
- *
- * When this header is in use, it enables reference counting, and capacity
- * tracking.  NOTE: A string buffer can be modified only if its reference
- * count is 1.
- */
-#[repr(C)]
-#[derive(Debug)]
-pub struct nsStringBuffer {
-    pub mRefCount: u32,
-    pub mStorageSize: u32,
-}
-#[test]
-fn bindgen_test_layout_nsStringBuffer() {
-    assert_eq!(::std::mem::size_of::<nsStringBuffer>() , 8usize);
-    assert_eq!(::std::mem::align_of::<nsStringBuffer>() , 4usize);
-}
 pub enum CSSStyleSheet { }
 #[repr(C)]
 pub struct URLValueData {
@@ -4174,14 +4222,14 @@ pub enum nsCSSUnit {
 #[derive(Debug)]
 pub struct nsCSSValue {
     pub mUnit: nsCSSUnit,
-    pub mValue: nsCSSValue_nsCSSValue_h_unnamed_9,
+    pub mValue: nsCSSValue_nsCSSValue_h_unnamed_10,
 }
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum nsCSSValue_Serialization { eNormalized = 0, eAuthorSpecified = 1, }
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct nsCSSValue_nsCSSValue_h_unnamed_9 {
+pub struct nsCSSValue_nsCSSValue_h_unnamed_10 {
     pub mInt: __BindgenUnionField<i32>,
     pub mFloat: __BindgenUnionField<f32>,
     pub mString: __BindgenUnionField<*mut nsStringBuffer>,
@@ -4204,15 +4252,15 @@ pub struct nsCSSValue_nsCSSValue_h_unnamed_9 {
     pub mFontFamilyList: __BindgenUnionField<*mut FontFamilyListRefCnt>,
     pub _bindgen_data_: u64,
 }
-impl nsCSSValue_nsCSSValue_h_unnamed_9 { }
-impl ::std::clone::Clone for nsCSSValue_nsCSSValue_h_unnamed_9 {
+impl nsCSSValue_nsCSSValue_h_unnamed_10 { }
+impl ::std::clone::Clone for nsCSSValue_nsCSSValue_h_unnamed_10 {
     fn clone(&self) -> Self { *self }
 }
 #[test]
-fn bindgen_test_layout_nsCSSValue_nsCSSValue_h_unnamed_9() {
-    assert_eq!(::std::mem::size_of::<nsCSSValue_nsCSSValue_h_unnamed_9>() ,
+fn bindgen_test_layout_nsCSSValue_nsCSSValue_h_unnamed_10() {
+    assert_eq!(::std::mem::size_of::<nsCSSValue_nsCSSValue_h_unnamed_10>() ,
                8usize);
-    assert_eq!(::std::mem::align_of::<nsCSSValue_nsCSSValue_h_unnamed_9>() ,
+    assert_eq!(::std::mem::align_of::<nsCSSValue_nsCSSValue_h_unnamed_10>() ,
                8usize);
 }
 #[test]
@@ -4499,125 +4547,6 @@ pub struct CounterStyleManager {
 fn bindgen_test_layout_CounterStyleManager() {
     assert_eq!(::std::mem::size_of::<CounterStyleManager>() , 72usize);
     assert_eq!(::std::mem::align_of::<CounterStyleManager>() , 8usize);
-}
-/**
- * Enum defining the mode in which a sheet is to be parsed.  This is
- * usually, but not always, the same as the cascade level at which the
- * sheet will apply (see nsStyleSet.h).  Most of the Loader APIs only
- * support loading of author sheets.
- *
- * Author sheets are the normal case: styles embedded in or linked
- * from HTML pages.  They are also the most restricted.
- *
- * User sheets can do anything author sheets can do, and also get
- * access to a few CSS extensions that are not yet suitable for
- * exposure on the public Web, but are very useful for expressing
- * user style overrides, such as @-moz-document rules.
- *
- * Agent sheets have access to all author- and user-sheet features
- * plus more extensions that are necessary for internal use but,
- * again, not yet suitable for exposure on the public Web.  Some of
- * these are outright unsafe to expose; in particular, incorrect
- * styling of anonymous box pseudo-elements can violate layout
- * invariants.
- */
-#[repr(u32)]
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
-pub enum SheetParsingMode {
-    eAuthorSheetFeatures = 0,
-    eUserSheetFeatures = 1,
-    eAgentSheetFeatures = 2,
-}
-pub type nsLoadFlags = u32;
-#[repr(C)]
-#[derive(Debug, Copy)]
-pub struct nsIRequest {
-    pub _base: nsISupports,
-}
-#[repr(C)]
-pub struct _vftable_nsIRequest {
-    pub _base: _vftable_nsISupports,
-}
-#[repr(u32)]
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
-pub enum nsIRequest_nsIRequest_h_unnamed_10 {
-    LOAD_REQUESTMASK = 65535,
-    LOAD_NORMAL = 0,
-    LOAD_BACKGROUND = 1,
-    INHIBIT_PIPELINE = 64,
-    INHIBIT_CACHING = 128,
-    INHIBIT_PERSISTENT_CACHING = 256,
-    LOAD_BYPASS_CACHE = 512,
-    LOAD_FROM_CACHE = 1024,
-    VALIDATE_ALWAYS = 2048,
-    VALIDATE_NEVER = 4096,
-    VALIDATE_ONCE_PER_SESSION = 8192,
-    LOAD_ANONYMOUS = 16384,
-    LOAD_FRESH_CONNECTION = 32768,
-}
-impl ::std::clone::Clone for nsIRequest {
-    fn clone(&self) -> Self { *self }
-}
-#[repr(C)]
-#[derive(Debug, Copy)]
-pub struct nsIAtom {
-    pub _base: nsISupports,
-    pub _bitfield_1: u32,
-    pub mHash: u32,
-    /**
-   * WARNING! There is an invisible constraint on |mString|: the chars it
-   * points to must belong to an nsStringBuffer. This is so that the
-   * nsStringBuffer::FromData() calls above are valid.
-   */
-    pub mString: *mut ::std::os::raw::c_ushort,
-}
-#[repr(C)]
-pub struct _vftable_nsIAtom {
-    pub _base: _vftable_nsISupports,
-}
-impl ::std::clone::Clone for nsIAtom {
-    fn clone(&self) -> Self { *self }
-}
-#[test]
-fn bindgen_test_layout_nsIAtom() {
-    assert_eq!(::std::mem::size_of::<nsIAtom>() , 24usize);
-    assert_eq!(::std::mem::align_of::<nsIAtom>() , 8usize);
-}
-#[repr(C)]
-#[derive(Debug)]
-pub struct nsAtomString {
-    pub _base: nsString,
-}
-#[test]
-fn bindgen_test_layout_nsAtomString() {
-    assert_eq!(::std::mem::size_of::<nsAtomString>() , 16usize);
-    assert_eq!(::std::mem::align_of::<nsAtomString>() , 8usize);
-}
-#[repr(C)]
-#[derive(Debug)]
-pub struct nsAtomCString {
-    pub _base: nsCString,
-}
-#[test]
-fn bindgen_test_layout_nsAtomCString() {
-    assert_eq!(::std::mem::size_of::<nsAtomCString>() , 16usize);
-    assert_eq!(::std::mem::align_of::<nsAtomCString>() , 8usize);
-}
-#[repr(C)]
-pub struct nsDependentAtomString {
-    pub _base: [u64; 2usize],
-}
-/**
- * A class for holding strong references to handle-managed objects.
- *
- * This is intended for use with objects like StyleSheetHandle, where
- * the handle type is not a pointer but which can still have ->AddRef()
- * and ->Release() called on it.
- */
-#[repr(C)]
-#[derive(Debug)]
-pub struct HandleRefPtr<T> {
-    pub mHandle: T,
 }
 /**
  * A class for holding strong references to nsPresArena-allocated
