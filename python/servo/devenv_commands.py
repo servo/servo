@@ -143,7 +143,7 @@ class MachCommands(CommandBase):
             ["git"] + ["grep"] + params + ['--'] + grep_paths + [':(exclude)*.min.js'],
             env=self.build_env())
 
-    @Command('wpt-upgrade',
+    @Command('wptrunner-upgrade',
              description='upgrade wptrunner.',
              category='devenv')
     def upgrade_wpt_runner(self):
@@ -151,6 +151,8 @@ class MachCommands(CommandBase):
             code = call(["git", "init"], env=self.build_env())
             if code:
                 return code
+            # No need to report an error if this fails, as it will for the first use
+            call(["git", "remote", "rm", "upstream"], env=self.build_env())
             code = call(
                 ["git", "remote", "add", "upstream", "https://github.com/w3c/wptrunner.git"], env=self.build_env())
             if code:
