@@ -46,7 +46,6 @@ pub mod str;
 pub mod thread;
 pub mod thread_state;
 pub mod tid;
-pub mod vec;
 #[allow(unsafe_code)] pub mod workqueue;
 
 #[cfg(feature = "servo")]

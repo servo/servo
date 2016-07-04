@@ -19,7 +19,6 @@ use std::borrow::ToOwned;
 use std::mem;
 use util::opts;
 use util::thread::spawn_named;
-use util::vec::byte_swap;
 use webrender_traits;
 
 impl<'a> CanvasPaintThread<'a> {

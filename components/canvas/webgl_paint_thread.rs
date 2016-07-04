@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use canvas_traits::{CanvasCommonMsg, CanvasMsg, CanvasPixelData, CanvasData, FromLayoutMsg};
+use canvas_traits::{CanvasCommonMsg, CanvasData, CanvasMsg, CanvasPixelData};
+use canvas_traits::{FromLayoutMsg, byte_swap};
 use euclid::size::Size2D;
 use gleam::gl;
 use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
@@ -10,7 +11,6 @@ use offscreen_gl_context::{ColorAttachmentType, GLContext, GLLimits, GLContextAt
 use std::borrow::ToOwned;
 use std::sync::mpsc::channel;
 use util::thread::spawn_named;
-use util::vec::byte_swap;
 use webrender_traits;
 
 enum WebGLPaintTaskData {
