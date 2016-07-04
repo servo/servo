@@ -50,6 +50,7 @@ use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use style::refcell::{Ref, RefCell, RefMut};
 use style::restyle_hints::ElementSnapshot;
 use style::selector_impl::ElementExt;
+use style::sink::Push;
 #[allow(unused_imports)] // Used in commented-out code.
 use url::Url;
 
@@ -377,7 +378,7 @@ impl<'le> TElement for GeckoElement<'le> {
 
 impl<'le> PresentationalHintsSynthetizer for GeckoElement<'le> {
     fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, _hints: &mut V)
-        where V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>
+        where V: Push<DeclarationBlock<Vec<PropertyDeclaration>>>
     {
         // FIXME(bholley) - Need to implement this.
     }

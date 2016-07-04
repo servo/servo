@@ -31,7 +31,6 @@ rand = "0.3"
 rustc-serialize = "0.3"
 serde = {version = "0.7.11", optional = true}
 serde_macros = {version = "0.7.11", optional = true}
-smallvec = "0.1"
 url = "1.0.0"
 
 [target.'cfg(all(unix, not(target_os = "macos"), not(target_os = "ios"), not(target_os = "android")))'.dependencies]

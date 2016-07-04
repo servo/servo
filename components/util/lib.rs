@@ -27,7 +27,6 @@ extern crate num_traits;
 extern crate rand;
 extern crate rustc_serialize;
 #[cfg(feature = "servo")] extern crate serde;
-extern crate smallvec;
 extern crate url;
 #[cfg(all(unix, not(target_os = "macos"), not(target_os = "ios"), not(target_os = "android")))]
 extern crate xdg;

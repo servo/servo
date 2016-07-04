@@ -49,7 +49,6 @@ use script_layout_interface::{HTMLCanvasData, LayoutNodeType, TrustedNodeAddress
 use script_layout_interface::{OpaqueStyleAndLayoutData, PartialStyleAndLayoutData};
 use selectors::matching::{DeclarationBlock, ElementFlags};
 use selectors::parser::{AttrSelector, NamespaceConstraint};
-use smallvec::VecLike;
 use std::marker::PhantomData;
 use std::mem::{transmute, transmute_copy};
 use string_cache::{Atom, BorrowedAtom, BorrowedNamespace, Namespace};
@@ -63,6 +62,7 @@ use style::refcell::{Ref, RefCell, RefMut};
 use style::restyle_hints::ElementSnapshot;
 use style::selector_impl::{NonTSPseudoClass, ServoSelectorImpl};
 use style::servo::{PrivateStyleData, SharedStyleContext};
+use style::sink::Push;
 use url::Url;
 use util::str::is_whitespace;
 
@@ -360,7 +360,7 @@ pub struct ServoLayoutElement<'le> {
 
 impl<'le> PresentationalHintsSynthetizer for ServoLayoutElement<'le> {
     fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, hints: &mut V)
-        where V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>
+        where V: Push<DeclarationBlock<Vec<PropertyDeclaration>>>
     {
         unsafe {
             self.element.synthesize_presentational_hints_for_legacy_attributes(hints);
@@ -995,5 +995,5 @@ impl <'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
 
 impl<'le> PresentationalHintsSynthetizer for ServoThreadSafeLayoutElement<'le> {
     fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, _hints: &mut V)
-        where V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>> {}
+        where V: Push<DeclarationBlock<Vec<PropertyDeclaration>>> {}
 }

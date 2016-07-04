@@ -75,7 +75,6 @@ use selectors::matching::{DeclarationBlock, ElementFlags, matches};
 use selectors::matching::{HAS_SLOW_SELECTOR, HAS_EDGE_CHILD_SELECTOR, HAS_SLOW_SELECTOR_LATER_SIBLINGS};
 use selectors::matching::{common_style_affecting_attributes, rare_style_affecting_attributes};
 use selectors::parser::{AttrSelector, NamespaceConstraint, parse_author_origin_selector_list_from_str};
-use smallvec::VecLike;
 use std::ascii::AsciiExt;
 use std::borrow::Cow;
 use std::cell::{Cell, Ref};
@@ -91,6 +90,7 @@ use style::properties::DeclaredValue;
 use style::properties::longhands::{self, background_image, border_spacing, font_family, overflow_x, font_size};
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, parse_style_attribute};
 use style::selector_impl::{NonTSPseudoClass, ServoSelectorImpl};
+use style::sink::Push;
 use style::values::CSSFloat;
 use style::values::specified::{self, CSSColor, CSSRGBA, LengthOrPercentage};
 
@@ -275,7 +275,7 @@ pub trait LayoutElementHelpers {
 
     #[allow(unsafe_code)]
     unsafe fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, &mut V)
-        where V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>;
+        where V: Push<DeclarationBlock<Vec<PropertyDeclaration>>>;
     #[allow(unsafe_code)]
     unsafe fn get_colspan(self) -> u32;
     #[allow(unsafe_code)]
@@ -308,7 +308,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
 
     #[allow(unsafe_code)]
     unsafe fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, hints: &mut V)
-        where V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>
+        where V: Push<DeclarationBlock<Vec<PropertyDeclaration>>>
     {
         #[inline]
         fn from_declaration(rule: PropertyDeclaration) -> DeclarationBlock<Vec<PropertyDeclaration>> {

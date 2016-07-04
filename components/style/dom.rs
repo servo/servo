@@ -15,7 +15,7 @@ use restyle_hints::{ElementSnapshot, RESTYLE_DESCENDANTS, RESTYLE_LATER_SIBLINGS
 use selector_impl::{ElementExt, SelectorImplExt};
 use selectors::Element;
 use selectors::matching::DeclarationBlock;
-use smallvec::VecLike;
+use sink::Push;
 use std::ops::BitOr;
 use std::sync::Arc;
 use string_cache::{Atom, Namespace};
@@ -194,7 +194,7 @@ pub trait TDocument : Sized + Copy + Clone {
 
 pub trait PresentationalHintsSynthetizer {
     fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, hints: &mut V)
-        where V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>;
+        where V: Push<DeclarationBlock<Vec<PropertyDeclaration>>>;
 }
 
 pub trait TElement : Sized + Copy + Clone + ElementExt + PresentationalHintsSynthetizer {
