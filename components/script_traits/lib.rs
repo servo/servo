@@ -18,6 +18,7 @@ extern crate euclid;
 extern crate gfx_traits;
 extern crate heapsize;
 extern crate ipc_channel;
+extern crate layers;
 extern crate libc;
 extern crate msg;
 extern crate net_traits;
@@ -37,15 +38,18 @@ use euclid::Size2D;
 use euclid::length::Length;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
+use euclid::scale_factor::ScaleFactor;
+use euclid::size::TypedSize2D;
 use gfx_traits::Epoch;
 use gfx_traits::LayerId;
 use gfx_traits::StackingContextId;
 use heapsize::HeapSizeOf;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
+use layers::geometry::DevicePixel;
 use libc::c_void;
 use msg::constellation_msg::{FrameId, FrameType, Image, Key, KeyModifiers, KeyState, LoadData};
 use msg::constellation_msg::{NavigationDirection, PanicMsg, PipelineId};
-use msg::constellation_msg::{PipelineNamespaceId, SubpageId, WindowSizeData, WindowSizeType};
+use msg::constellation_msg::{PipelineNamespaceId, SubpageId, WindowSizeType};
 use msg::webdriver_msg::{LoadStatus, WebDriverScriptCommand};
 use net_traits::ResourceThreads;
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
@@ -56,6 +60,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
 use std::sync::mpsc::{Sender, Receiver};
 use url::Url;
+use util::geometry::{PagePx, ViewportPx};
 use util::ipc::OptionalOpaqueIpcSender;
 
 pub use script_msg::{LayoutMsg, ScriptMsg, EventResult};
@@ -519,6 +524,20 @@ pub struct StackingContextScrollState {
     pub stacking_context_id: StackingContextId,
     /// The scrolling offset of this stacking context.
     pub scroll_offset: Point2D<f32>,
+}
+
+/// Data about the window size.
+#[derive(Copy, Clone, Deserialize, Serialize, HeapSizeOf)]
+pub struct WindowSizeData {
+    /// The size of the initial layout viewport, before parsing an
+    /// http://www.w3.org/TR/css-device-adapt/#initial-viewport
+    pub initial_viewport: TypedSize2D<ViewportPx, f32>,
+
+    /// The "viewing area" in page px. See `PagePx` documentation for details.
+    pub visible_viewport: TypedSize2D<PagePx, f32>,
+
+    /// The resolution of the window in dppx, not including any "pinch zoom" factor.
+    pub device_pixel_ratio: ScaleFactor<ViewportPx, DevicePixel, f32>,
 }
 
 /// Messages to the constellation originating from the WebDriver server.

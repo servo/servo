@@ -27,7 +27,7 @@ use layout_traits::LayoutThreadFactory;
 use msg::constellation_msg::{FrameId, FrameType, PipelineId};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
 use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId, NavigationDirection};
-use msg::constellation_msg::{SubpageId, WindowSizeData, WindowSizeType};
+use msg::constellation_msg::{SubpageId, WindowSizeType};
 use msg::constellation_msg::{self, PanicMsg};
 use msg::webdriver_msg;
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
@@ -45,7 +45,7 @@ use script_traits::{ConstellationControlMsg, ConstellationMsg as FromCompositorM
 use script_traits::{DocumentState, LayoutControlMsg};
 use script_traits::{IFrameLoadInfo, IFrameSandboxState, TimerEventRequest};
 use script_traits::{LayoutMsg as FromLayoutMsg, ScriptMsg as FromScriptMsg, ScriptThreadFactory};
-use script_traits::{MozBrowserEvent, MozBrowserErrorType, WebDriverCommandMsg};
+use script_traits::{MozBrowserEvent, MozBrowserErrorType, WebDriverCommandMsg, WindowSizeData};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::io::Error as IOError;
