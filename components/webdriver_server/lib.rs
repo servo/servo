@@ -561,8 +561,8 @@ impl Handler {
         }
 
         let (sender, receiver) = ipc::channel().unwrap();
-        try!(self.frame_script_command(WebDriverScriptCommand::FindElementCSS(parameters.value.clone(),
-                                                                              sender)));
+        try!(self.frame_script_command(WebDriverScriptCommand::FindElementsCSS(parameters.value.clone(),
+                                                                               sender)));
         match receiver.recv().unwrap() {
             Ok(value) => {
                 let resp_value: Vec<Json> = value.into_iter().map(
