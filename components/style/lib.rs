@@ -40,6 +40,7 @@ extern crate bitflags;
 extern crate core;
 #[macro_use]
 extern crate cssparser;
+extern crate deque;
 extern crate encoding;
 extern crate euclid;
 extern crate fnv;
@@ -49,12 +50,14 @@ extern crate gecko_bindings;
 #[allow(unused_extern_crates)]
 #[macro_use]
 extern crate lazy_static;
+extern crate libc;
 #[macro_use]
 extern crate log;
 #[allow(unused_extern_crates)]
 #[macro_use]
 extern crate matches;
 extern crate num_traits;
+extern crate rand;
 extern crate rustc_serialize;
 extern crate selectors;
 #[cfg(feature = "servo")] extern crate serde;
@@ -88,12 +91,14 @@ pub mod selector_impl;
 pub mod selector_matching;
 pub mod sequential;
 pub mod servo;
+pub mod sink;
 pub mod stylesheets;
 pub mod traversal;
 #[macro_use]
 #[allow(non_camel_case_types)]
 pub mod values;
 pub mod viewport;
+pub mod workqueue;
 
 /// The CSS properties supported by the style system.
 // Generated from the properties.mako.rs template by build.rs

@@ -18,6 +18,7 @@ use selectors::bloom::BloomFilter;
 use selectors::matching::DeclarationBlock as GenericDeclarationBlock;
 use selectors::matching::{Rule, SelectorMap};
 use selectors::parser::SelectorImpl;
+use sink::Push;
 use smallvec::VecLike;
 use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
@@ -389,7 +390,7 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
                                         applicable_declarations: &mut V)
                                         -> bool
                                         where E: Element<Impl=Impl> + PresentationalHintsSynthetizer,
-                                              V: VecLike<DeclarationBlock> {
+                                              V: Push<DeclarationBlock> + VecLike<DeclarationBlock> {
         assert!(!self.is_device_dirty);
         assert!(style_attribute.is_none() || pseudo_element.is_none(),
                 "Style attributes do not apply to pseudo-elements");
@@ -430,7 +431,8 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
         // Step 4: Normal style attributes.
         style_attribute.map(|sa| {
             shareable = false;
-            applicable_declarations.push(
+            Push::push(
+                applicable_declarations,
                 GenericDeclarationBlock::from_declarations(sa.normal.clone()))
         });
 
@@ -443,7 +445,8 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
         // Step 6: `!important` style attributes.
         style_attribute.map(|sa| {
             shareable = false;
-            applicable_declarations.push(
+            Push::push(
+                applicable_declarations,
                 GenericDeclarationBlock::from_declarations(sa.important.clone()))
         });
 

@@ -17,6 +17,7 @@ use flow_ref::{self, FlowRef};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx::display_list::StackingContext;
 use gfx_traits::StackingContextId;
+use gfx_traits::print_tree::PrintTree;
 use std::cmp::{min, max};
 use std::fmt;
 use std::sync::Arc;
@@ -25,7 +26,6 @@ use style::logical_geometry::LogicalSize;
 use style::properties::{ComputedValues, ServoComputedValues};
 use style::servo::SharedStyleContext;
 use style::values::computed::{LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
-use util::print_tree::PrintTree;
 
 pub struct MulticolFlow {
     pub block_flow: BlockFlow,

@@ -14,9 +14,9 @@ use std::sync::{Arc, RwLock};
 use style::dom::OpaqueNode;
 use style::media_queries::{Device, MediaType};
 use style::parallel::WorkQueueData;
+use style::workqueue::WorkQueue;
 use util::geometry::ViewportPx;
 use util::thread_state;
-use util::workqueue::WorkQueue;
 
 pub struct PerDocumentStyleData {
     /// Rule processor.

@@ -14,20 +14,17 @@
 extern crate app_units;
 #[cfg(feature = "servo")] extern crate backtrace;
 #[allow(unused_extern_crates)] #[macro_use] extern crate bitflags;
-extern crate deque;
 extern crate euclid;
 extern crate getopts;
 #[macro_use] extern crate heapsize;
 #[cfg(feature = "servo")] extern crate ipc_channel;
 #[allow(unused_extern_crates)] #[macro_use] extern crate lazy_static;
-extern crate libc;
 #[macro_use] extern crate log;
 extern crate num_cpus;
 extern crate num_traits;
 extern crate rand;
 extern crate rustc_serialize;
 #[cfg(feature = "servo")] extern crate serde;
-extern crate smallvec;
 extern crate url;
 #[cfg(all(unix, not(target_os = "macos"), not(target_os = "ios"), not(target_os = "android")))]
 extern crate xdg;
@@ -36,20 +33,16 @@ use std::sync::Arc;
 
 pub mod basedir;
 pub mod cache;
-#[allow(unsafe_code)] pub mod debug_utils;
 pub mod geometry;
 #[cfg(feature = "servo")] #[allow(unsafe_code)] pub mod ipc;
 #[allow(unsafe_code)] pub mod opts;
 #[cfg(feature = "servo")] pub mod panicking;
 pub mod prefs;
-#[cfg(feature = "servo")] pub mod print_tree;
 pub mod resource_files;
 pub mod str;
 pub mod thread;
 pub mod thread_state;
 pub mod tid;
-pub mod vec;
-#[allow(unsafe_code)] pub mod workqueue;
 
 #[cfg(feature = "servo")]
 #[allow(unsafe_code)]

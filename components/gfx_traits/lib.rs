@@ -23,6 +23,7 @@ extern crate serde;
 
 pub mod color;
 mod paint_listener;
+pub mod print_tree;
 
 pub use paint_listener::PaintListener;
 use azure::azure_hl::Color;
