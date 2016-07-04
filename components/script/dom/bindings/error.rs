@@ -11,7 +11,7 @@ use dom::domexception::{DOMErrorName, DOMException};
 use js::error::{throw_range_error, throw_type_error};
 use js::jsapi::JSAutoCompartment;
 use js::jsapi::{JSContext, JSObject};
-use js::jsapi::{JS_IsExceptionPending, JS_ReportPendingException, JS_SetPendingException};
+use js::jsapi::{JS_IsExceptionPending, JS_SetPendingException};
 use js::jsval::UndefinedValue;
 
 /// DOM exceptions that can be thrown by a native DOM method.
@@ -124,7 +124,7 @@ pub unsafe fn throw_dom_exception(cx: *mut JSContext, global: GlobalRef, result:
 pub unsafe fn report_pending_exception(cx: *mut JSContext, obj: *mut JSObject) {
     if JS_IsExceptionPending(cx) {
         let _ac = JSAutoCompartment::new(cx, obj);
-        JS_ReportPendingException(cx);
+        // XXX JS_ReportPendingException(cx);
     }
 }
 
