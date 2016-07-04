@@ -740,7 +740,10 @@ impl Node {
             Err(()) => Err(Error::Syntax),
             // Step 3.
             Ok(selectors) => {
-                Ok(QuerySelectorIterator::new(self.traverse_preorder(), selectors))
+                let mut descendants = self.traverse_preorder();
+                // Skip the root of the tree.
+                descendants.next();
+                Ok(QuerySelectorIterator::new(descendants, selectors))
             }
         }
     }
