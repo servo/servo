@@ -36270,6 +36270,12 @@
             "path": "html/browsers/browsing-the-web/navigating-across-documents/empty_fragment.html",
             "url": "/html/browsers/browsing-the-web/navigating-across-documents/empty_fragment.html"
           }
+        ],
+        "html/semantics/document-metadata/the-link-element/document-without-browsing-context.html": [
+          {
+            "path": "html/semantics/document-metadata/the-link-element/document-without-browsing-context.html",
+            "url": "/html/semantics/document-metadata/the-link-element/document-without-browsing-context.html"
+          }
         ]
       }
     },
