@@ -374,8 +374,7 @@ pub fn handle_is_selected(context: &BrowsingContext,
             }
             else if let Some(_) = node.downcast::<HTMLElement>() {
                 Ok(false) // regular elements are not selectable
-            }
-            else {
+            } else {
                 Err(())
             }
         },

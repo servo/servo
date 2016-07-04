@@ -41,6 +41,12 @@ impl test {
         let x = true;
         x
             && x;
+        if x {
+             ;
+        }
+        else {
+             ;
+        }
     }
 
 }
