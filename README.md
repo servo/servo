@@ -151,7 +151,7 @@ export ANDROID_TOOLCHAIN="/path/to/toolchain"
 export PATH="$PATH:/path/to/toolchain/bin"
 
 ./mach build --release --android
-./mach package --release
+./mach package --release --android
 ```
 
 Rather than setting the `ANDROID_*` environment variables every time, you can
