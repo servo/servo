@@ -268,10 +268,17 @@ impl FontCache {
             Source::Local(ref font) => {
                 let font_face_name = LowercaseString::new(font.name());
                 let templates = &mut self.web_families.get_mut(&family_name).unwrap();
+                let mut found = false;
                 for_each_variation(&font_face_name, |path| {
+                    found = true;
                     templates.add_template(Atom::from(&*path), None);
                 });
-                sender.send(()).unwrap();
+                if found {
+                    sender.send(()).unwrap();
+                } else {
+                    let msg = Command::AddWebFont(family_name, sources, sender);
+                    self.channel_to_self.send(msg).unwrap();
+                }
             }
         }
     }
