@@ -3,7 +3,6 @@
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import pytest
-import webdriver
 
 
 """pytest fixtures for use in Python-based WPT tests.
@@ -67,6 +66,8 @@ class Session(object):
     def dismiss_user_prompts(self):
         """Dismisses any open user prompts in windows."""
         current_window = self.client.window_handle
+
+        import webdriver
 
         for window in self.windows():
             self.client.window_handle = window
