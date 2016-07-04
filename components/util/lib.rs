@@ -14,7 +14,6 @@
 extern crate app_units;
 #[cfg(feature = "servo")] extern crate backtrace;
 #[allow(unused_extern_crates)] #[macro_use] extern crate bitflags;
-extern crate deque;
 extern crate euclid;
 extern crate getopts;
 #[macro_use] extern crate heapsize;
@@ -45,7 +44,6 @@ pub mod str;
 pub mod thread;
 pub mod thread_state;
 pub mod tid;
-#[allow(unsafe_code)] pub mod workqueue;
 
 #[cfg(feature = "servo")]
 #[allow(unsafe_code)]
