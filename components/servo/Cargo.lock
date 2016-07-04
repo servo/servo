@@ -58,6 +58,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "alloc-no-stdlib"
+version = "1.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "android_glue"
 version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -184,8 +189,11 @@ dependencies = [
 
 [[package]]
 name = "brotli"
-version = "0.3.23"
-source = "git+https://github.com/ende76/brotli-rs#d8507fd07e9fa57ed8251d5dc500dcd62df62c7c"
+version = "1.0.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "alloc-no-stdlib 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "browserhtml"
@@ -1391,7 +1399,7 @@ name = "net"
 version = "0.0.1"
 dependencies = [
  "bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "brotli 0.3.23 (git+https://github.com/ende76/brotli-rs)",
+ "brotli 1.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "content-blocker 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "cookie 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "device 0.0.1 (git+https://github.com/servo/devices)",
