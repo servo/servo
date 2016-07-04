@@ -17,7 +17,7 @@ use dom::bindings::inheritance::{CharacterDataTypeId, NodeTypeId};
 use dom::bindings::js::{JS, MutHeap, Root, RootedReference};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
-use dom::bindings::trace::{JSTraceable, RootedVec};
+use dom::bindings::trace::JSTraceable;
 use dom::bindings::weakref::{WeakRef, WeakRefVec};
 use dom::characterdata::CharacterData;
 use dom::document::Document;
@@ -762,7 +762,7 @@ impl RangeMethods for Range {
         }
 
         // Step 4.
-        let mut contained_children: RootedVec<JS<Node>> = RootedVec::new();
+        rooted_vec!(let mut contained_children);
         let ancestor = self.CommonAncestorContainer();
 
         let mut iter = start_node.following_nodes(ancestor.r());

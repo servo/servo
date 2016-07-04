@@ -28,7 +28,6 @@ use dom::bindings::num::Finite;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::str::{DOMString, USVString};
-use dom::bindings::trace::RootedVec;
 use dom::bindings::xmlname::XMLName::InvalidXMLName;
 use dom::bindings::xmlname::{validate_and_extract, namespace_from_domstring, xml_name_type};
 use dom::browsingcontext::BrowsingContext;
@@ -115,6 +114,7 @@ use std::cell::{Cell, Ref, RefMut};
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::default::Default;
+use std::iter::once;
 use std::mem;
 use std::ptr;
 use std::rc::Rc;
@@ -1009,18 +1009,15 @@ impl Document {
             }
         }
 
-        let mut touches = RootedVec::new();
+        rooted_vec!(let mut touches);
         touches.extend(self.active_touch_points.borrow().iter().cloned());
-
-        let mut changed_touches = RootedVec::new();
-        changed_touches.push(JS::from_ref(&*touch));
-
-        let mut target_touches = RootedVec::new();
+        rooted_vec!(let mut target_touches);
         target_touches.extend(self.active_touch_points
                                   .borrow()
                                   .iter()
                                   .filter(|t| t.Target() == target)
                                   .cloned());
+        rooted_vec!(let changed_touches <- once(touch));
 
         let event = TouchEvent::new(window,
                                     DOMString::from(event_name),
