@@ -20,7 +20,6 @@ use dom::eventtarget::EventTarget;
 use dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use dom::workerglobalscope::prepare_workerscope_init;
 use ipc_channel::ipc;
-use js::jsapi::RootedValue;
 use js::jsval::UndefinedValue;
 use script_thread::Runnable;
 use std::cell::Cell;
@@ -91,7 +90,7 @@ impl ServiceWorker {
         }
 
         let global = worker.r().global();
-        let error = RootedValue::new(global.r().get_cx(), UndefinedValue());
+        rooted!(in(global.r().get_cx()) let error = UndefinedValue());
         let errorevent = ErrorEvent::new(global.r(), atom!("error"),
                                          EventBubbles::Bubbles, EventCancelable::Cancelable,
                                          message, filename, lineno, colno, error.handle());

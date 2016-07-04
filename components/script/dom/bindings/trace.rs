@@ -465,7 +465,7 @@ impl RootedTraceableSet {
 /// Roots any JSTraceable thing
 ///
 /// If you have a valid Reflectable, use Root.
-/// If you have GC things like *mut JSObject or JSVal, use jsapi::Rooted.
+/// If you have GC things like *mut JSObject or JSVal, use rooted!.
 /// If you have an arbitrary number of Reflectables to root, use RootedVec<JS<T>>
 /// If you know what you're doing, use this.
 #[derive(JSTraceable)]
