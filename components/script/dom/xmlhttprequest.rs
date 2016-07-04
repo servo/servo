@@ -40,7 +40,7 @@ use hyper::mime::{self, Mime, Attr as MimeAttr, Value as MimeValue};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsapi::JS_ClearPendingException;
-use js::jsapi::{JSContext, JS_ParseJSON, RootedValue};
+use js::jsapi::{JSContext, JS_ParseJSON};
 use js::jsval::{JSVal, NullValue, UndefinedValue};
 use msg::constellation_msg::{PipelineId, ReferrerPolicy};
 use net_traits::CoreResourceMsg::Fetch;
@@ -771,7 +771,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     // https://xhr.spec.whatwg.org/#the-response-attribute
     fn Response(&self, cx: *mut JSContext) -> JSVal {
         unsafe {
-            let mut rval = RootedValue::new(cx, UndefinedValue());
+            rooted!(in(cx) let mut rval = UndefinedValue());
             match self.response_type.get() {
                 XMLHttpRequestResponseType::_empty | XMLHttpRequestResponseType::Text => {
                     let ready_state = self.ready_state.get();
@@ -808,7 +808,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                     self.response.borrow().to_jsval(cx, rval.handle_mut());
                 }
             }
-            rval.ptr
+            rval.get()
         }
     }
 
@@ -1176,7 +1176,7 @@ impl XMLHttpRequest {
         let json_text = UTF_8.decode(&bytes, DecoderTrap::Replace).unwrap();
         let json_text: Vec<u16> = json_text.encode_utf16().collect();
         // Step 5
-        let mut rval = RootedValue::new(cx, UndefinedValue());
+        rooted!(in(cx) let mut rval = UndefinedValue());
         unsafe {
             if !JS_ParseJSON(cx,
                              json_text.as_ptr(),
@@ -1187,7 +1187,7 @@ impl XMLHttpRequest {
             }
         }
         // Step 6
-        self.response_json.set(rval.ptr);
+        self.response_json.set(rval.get());
         self.response_json.get()
     }
 
