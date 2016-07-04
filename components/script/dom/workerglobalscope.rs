@@ -21,7 +21,7 @@ use dom::workerlocation::WorkerLocation;
 use dom::workernavigator::WorkerNavigator;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
-use js::jsapi::{HandleValue, JSContext, JSRuntime, RootedValue};
+use js::jsapi::{HandleValue, JSContext, JSRuntime};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use msg::constellation_msg::{PipelineId, ReferrerPolicy, PanicMsg};
@@ -309,7 +309,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
             };
         }
 
-        let mut rval = RootedValue::new(self.runtime.cx(), UndefinedValue());
+        rooted!(in(self.runtime.cx()) let mut rval = UndefinedValue());
         for url in urls {
             let (url, source) = match load_whole_resource(LoadContext::Script,
                                                           &self.resource_threads.sender(),
@@ -420,7 +420,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
 impl WorkerGlobalScope {
     #[allow(unsafe_code)]
     pub fn execute_script(&self, source: DOMString) {
-        let mut rval = RootedValue::new(self.runtime.cx(), UndefinedValue());
+        rooted!(in(self.runtime.cx()) let mut rval = UndefinedValue());
         match self.runtime.evaluate_script(
             self.reflector().get_jsobject(), &source, self.worker_url.as_str(), 1, rval.handle_mut()) {
             Ok(_) => (),

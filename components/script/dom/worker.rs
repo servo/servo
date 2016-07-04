@@ -23,7 +23,7 @@ use dom::eventtarget::EventTarget;
 use dom::messageevent::MessageEvent;
 use dom::workerglobalscope::prepare_workerscope_init;
 use ipc_channel::ipc;
-use js::jsapi::{HandleValue, JSContext, RootedValue, JSAutoCompartment};
+use js::jsapi::{HandleValue, JSContext, JSAutoCompartment};
 use js::jsval::UndefinedValue;
 use script_thread::Runnable;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -115,7 +115,7 @@ impl Worker {
         let global = worker.r().global();
         let target = worker.upcast();
         let _ac = JSAutoCompartment::new(global.r().get_cx(), target.reflector().get_jsobject().get());
-        let mut message = RootedValue::new(global.r().get_cx(), UndefinedValue());
+        rooted!(in(global.r().get_cx()) let mut message = UndefinedValue());
         data.read(global.r(), message.handle_mut());
         MessageEvent::dispatch_jsval(target, global.r(), message.handle());
     }
@@ -134,7 +134,7 @@ impl Worker {
         }
 
         let global = worker.r().global();
-        let error = RootedValue::new(global.r().get_cx(), UndefinedValue());
+        rooted!(in(global.r().get_cx()) let error = UndefinedValue());
         let errorevent = ErrorEvent::new(global.r(), atom!("error"),
                                          EventBubbles::Bubbles, EventCancelable::Cancelable,
                                          message, filename, lineno, colno, error.handle());

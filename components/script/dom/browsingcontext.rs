@@ -22,7 +22,7 @@ use js::jsapi::{Handle, HandleId, HandleObject, HandleValue, JSAutoCompartment};
 use js::jsapi::{JSContext, JSPROP_READONLY, JSErrNum, JSObject, PropertyDescriptor, JS_DefinePropertyById};
 use js::jsapi::{JS_ForwardGetPropertyTo, JS_ForwardSetPropertyTo, JS_GetClass, JSTracer, FreeOp};
 use js::jsapi::{JS_GetOwnPropertyDescriptorById, JS_HasPropertyById, MutableHandle};
-use js::jsapi::{MutableHandleValue, ObjectOpResult, RootedObject, RootedValue};
+use js::jsapi::{MutableHandleValue, ObjectOpResult};
 use js::jsval::{UndefinedValue, PrivateValue};
 use msg::constellation_msg::{PipelineId, SubpageId};
 use std::cell::Cell;
@@ -74,16 +74,15 @@ impl BrowsingContext {
             assert!(!parent.get().is_null());
             assert!(((*JS_GetClass(parent.get())).flags & JSCLASS_IS_GLOBAL) != 0);
             let _ac = JSAutoCompartment::new(cx, parent.get());
-            let window_proxy = RootedObject::new(cx,
-                NewWindowProxy(cx, parent, handler));
-            assert!(!window_proxy.ptr.is_null());
+            rooted!(in(cx) let window_proxy = NewWindowProxy(cx, parent, handler));
+            assert!(!window_proxy.is_null());
 
             let object = box BrowsingContext::new_inherited(frame_element, id);
 
             let raw = Box::into_raw(object);
-            SetProxyExtra(window_proxy.ptr, 0, &PrivateValue(raw as *const _));
+            SetProxyExtra(window_proxy.get(), 0, &PrivateValue(raw as *const _));
 
-            (*raw).init_reflector(window_proxy.ptr);
+            (*raw).init_reflector(window_proxy.get());
 
             Root::from_ref(&*raw)
         }
@@ -235,7 +234,7 @@ unsafe fn GetSubframeWindow(cx: *mut JSContext,
                             -> Option<Root<Window>> {
     let index = get_array_index_from_id(cx, id);
     if let Some(index) = index {
-        let target = RootedObject::new(cx, GetProxyPrivate(*proxy.ptr).to_object());
+        rooted!(in(cx) let target = GetProxyPrivate(*proxy.ptr).to_object());
         let win = root_from_handleobject::<Window>(target.handle()).unwrap();
         let mut found = false;
         return win.IndexedGetter(index, &mut found);
@@ -252,21 +251,22 @@ unsafe extern "C" fn getOwnPropertyDescriptor(cx: *mut JSContext,
                                               -> bool {
     let window = GetSubframeWindow(cx, proxy, id);
     if let Some(window) = window {
-        let mut val = RootedValue::new(cx, UndefinedValue());
+        rooted!(in(cx) let mut val = UndefinedValue());
         window.to_jsval(cx, val.handle_mut());
-        (*desc.ptr).value = val.ptr;
-        fill_property_descriptor(&mut *desc.ptr, *proxy.ptr, JSPROP_READONLY);
+        desc.value = val.get();
+        fill_property_descriptor(&mut desc, proxy.get(), JSPROP_READONLY);
         return true;
     }
 
-    let target = RootedObject::new(cx, GetProxyPrivate(*proxy.ptr).to_object());
+    rooted!(in(cx) let target = GetProxyPrivate(proxy.get()).to_object());
     if !JS_GetOwnPropertyDescriptorById(cx, target.handle(), id, desc) {
         return false;
     }
 
-    assert!(desc.get().obj.is_null() || desc.get().obj == target.ptr);
-    if desc.get().obj == target.ptr {
-        desc.get().obj = *proxy.ptr;
+    assert!(desc.obj.is_null() || desc.obj == target.get());
+    if desc.obj == target.get() {
+        // FIXME(#11868) Should assign to desc.obj, desc.get() is a copy.
+        desc.get().obj = proxy.get();
     }
 
     true
@@ -288,7 +288,7 @@ unsafe extern "C" fn defineProperty(cx: *mut JSContext,
         return true;
     }
 
-    let target = RootedObject::new(cx, GetProxyPrivate(*proxy.ptr).to_object());
+    rooted!(in(cx) let target = GetProxyPrivate(*proxy.ptr).to_object());
     JS_DefinePropertyById(cx, target.handle(), id, desc, res)
 }
 
@@ -304,7 +304,7 @@ unsafe extern "C" fn has(cx: *mut JSContext,
         return true;
     }
 
-    let target = RootedObject::new(cx, GetProxyPrivate(*proxy.ptr).to_object());
+    rooted!(in(cx) let target = GetProxyPrivate(*proxy.ptr).to_object());
     let mut found = false;
     if !JS_HasPropertyById(cx, target.handle(), id, &mut found) {
         return false;
@@ -327,7 +327,7 @@ unsafe extern "C" fn get(cx: *mut JSContext,
         return true;
     }
 
-    let target = RootedObject::new(cx, GetProxyPrivate(*proxy.ptr).to_object());
+    rooted!(in(cx) let target = GetProxyPrivate(*proxy.ptr).to_object());
     JS_ForwardGetPropertyTo(cx, target.handle(), id, receiver, vp)
 }
 
@@ -345,7 +345,7 @@ unsafe extern "C" fn set(cx: *mut JSContext,
         return true;
     }
 
-    let target = RootedObject::new(cx, GetProxyPrivate(*proxy.ptr).to_object());
+    rooted!(in(cx) let target = GetProxyPrivate(*proxy.ptr).to_object());
     JS_ForwardSetPropertyTo(cx,
                             target.handle(),
                             id,
