@@ -32,12 +32,12 @@ use js::jsapi::JSContext;
 use js::jsapi::{HandleValue, RootedValue};
 use js::jsval::UndefinedValue;
 use msg::constellation_msg::PipelineId;
-use msg::webdriver_msg::WebDriverCookieError;
-use msg::webdriver_msg::{WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue};
 use net_traits::CookieSource::{HTTP, NonHTTP};
 use net_traits::CoreResourceMsg::{GetCookiesDataForUrl, SetCookiesForUrlWithData};
 use net_traits::IpcSend;
 use script_thread::get_browsing_context;
+use script_traits::webdriver_msg::WebDriverCookieError;
+use script_traits::webdriver_msg::{WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue};
 use url::Url;
 
 fn find_node_by_unique_id(context: &BrowsingContext,
