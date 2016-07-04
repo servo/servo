@@ -12,7 +12,7 @@ use dom::{OpaqueNode, TNode, UnsafeNode};
 use std::mem;
 use std::sync::atomic::Ordering;
 use traversal::DomTraversalContext;
-use util::workqueue::{WorkQueue, WorkUnit, WorkerProxy};
+use workqueue::{WorkQueue, WorkUnit, WorkerProxy};
 
 #[allow(dead_code)]
 fn static_assertion(node: UnsafeNode) {
