@@ -42,7 +42,6 @@ pub mod geometry;
 #[allow(unsafe_code)] pub mod opts;
 #[cfg(feature = "servo")] pub mod panicking;
 pub mod prefs;
-#[cfg(feature = "servo")] pub mod print_tree;
 pub mod resource_files;
 pub mod str;
 pub mod thread;

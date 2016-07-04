@@ -24,6 +24,7 @@ use flow::{Flow, FlowClass, ImmutableFlowUtils, INLINE_POSITION_IS_STATIC, Opaqu
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx::display_list::StackingContext;
 use gfx_traits::StackingContextId;
+use gfx_traits::print_tree::PrintTree;
 use model::MaybeAuto;
 use std::cmp::{max, min};
 use std::fmt;
@@ -37,7 +38,6 @@ use style::values::CSSFloat;
 use style::values::computed::LengthOrPercentageOrAuto;
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize};
 use table_row;
-use util::print_tree::PrintTree;
 
 #[derive(Copy, Clone, RustcEncodable, Debug)]
 pub enum TableLayout {

@@ -17,6 +17,7 @@ use flow_list::MutFlowListIterator;
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx::display_list::StackingContext;
 use gfx_traits::StackingContextId;
+use gfx_traits::print_tree::PrintTree;
 use layout_debug;
 use model::MaybeAuto;
 use rustc_serialize::{Encodable, Encoder};
@@ -31,7 +32,6 @@ use style::servo::SharedStyleContext;
 use style::values::computed::LengthOrPercentageOrAuto;
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable, VecExt};
 use table_cell::{CollapsedBordersForCell, TableCellFlow};
-use util::print_tree::PrintTree;
 
 /// A single row of a table.
 pub struct TableRowFlow {
