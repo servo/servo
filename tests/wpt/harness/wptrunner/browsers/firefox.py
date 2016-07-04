@@ -3,6 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import os
+import platform
 import subprocess
 import sys
 
@@ -128,9 +129,15 @@ class FirefoxBrowser(Browser):
         self.profile.set_preferences({"marionette.defaultPrefs.enabled": True,
                                       "marionette.defaultPrefs.port": self.marionette_port,
                                       "dom.disable_open_during_load": False,
-                                      "network.dns.localDomains": ",".join(hostnames)})
+                                      "network.dns.localDomains": ",".join(hostnames),
+                                      "places.history.enabled": False})
         if self.e10s:
             self.profile.set_preferences({"browser.tabs.remote.autostart": True})
+
+        # Bug 1262954: winxp + e10s, disable hwaccel
+        if (self.e10s and platform.system() in ("Windows", "Microsoft") and
+            '5.1' in platform.version()):
+            self.profile.set_preferences({"layers.acceleration.disabled": True})
 
         if self.ca_certificate_path is not None:
             self.setup_ssl()

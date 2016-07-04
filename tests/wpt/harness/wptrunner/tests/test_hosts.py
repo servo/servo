@@ -4,11 +4,12 @@
 
 import unittest
 import sys
+from os.path import join, dirname
 from cStringIO import StringIO
 
-sys.path.insert(0, "..")
+sys.path.insert(0, join(dirname(__file__), "..", ".."))
 
-import hosts
+from wptrunner import hosts
 
 
 class HostsTest(unittest.TestCase):

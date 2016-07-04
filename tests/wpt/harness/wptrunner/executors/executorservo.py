@@ -4,11 +4,13 @@
 
 import base64
 import hashlib
+import httplib
 import json
 import os
 import subprocess
 import tempfile
 import threading
+import traceback
 import urlparse
 import uuid
 from collections import defaultdict
@@ -19,15 +21,23 @@ from .base import (ExecutorException,
                    Protocol,
                    RefTestImplementation,
                    testharness_result_converter,
-                   reftest_result_converter)
+                   reftest_result_converter,
+                   WdspecExecutor)
 from .process import ProcessTestExecutor
 from ..browsers.base import browser_command
-render_arg = None
+from ..wpttest import WdspecResult, WdspecSubtestResult
+from ..webdriver_server import ServoDriverServer
+from .executormarionette import WdspecRun
+from . import pytestrunner
 
+render_arg = None
+webdriver = None
+extra_timeout = 5 # seconds
 
 def do_delayed_imports():
-    global render_arg
+    global render_arg, webdriver
     from ..browsers.servo import render_arg
+    import webdriver
 
 hosts_text = """127.0.0.1 web-platform.test
 127.0.0.1 www.web-platform.test
@@ -275,3 +285,77 @@ class ServoRefTestExecutor(ProcessTestExecutor):
             self.logger.process_output(self.proc.pid,
                                        line,
                                        " ".join(self.command))
+
+class ServoWdspecProtocol(Protocol):
+    def __init__(self, executor, browser):
+        do_delayed_imports()
+        Protocol.__init__(self, executor, browser)
+        self.session = None
+        self.server = None
+
+    def setup(self, runner):
+        try:
+            self.server = ServoDriverServer(self.logger, binary=self.browser.binary, binary_args=self.browser.binary_args, render_backend=self.browser.render_backend)
+            self.server.start(block=False)
+            self.logger.info(
+                "WebDriver HTTP server listening at %s" % self.server.url)
+
+            self.logger.info(
+                "Establishing new WebDriver session with %s" % self.server.url)
+            self.session = webdriver.Session(
+                self.server.host, self.server.port, self.server.base_path)
+        except Exception:
+            self.logger.error(traceback.format_exc())
+            self.executor.runner.send_message("init_failed")
+        else:
+            self.executor.runner.send_message("init_succeeded")
+
+    def teardown(self):
+        if self.server is not None:
+            try:
+                if self.session.session_id is not None:
+                    self.session.end()
+            except Exception:
+                pass
+            if self.server.is_alive:
+                self.server.stop()
+
+    @property
+    def is_alive(self):
+        conn = httplib.HTTPConnection(self.server.host, self.server.port)
+        conn.request("HEAD", self.server.base_path + "invalid")
+        res = conn.getresponse()
+        return res.status == 404
+
+class ServoWdspecExecutor(WdspecExecutor):
+    def __init__(self, browser, server_config,
+                 timeout_multiplier=1, close_after_done=True, debug_info=None,
+                 **kwargs):
+        WdspecExecutor.__init__(self, browser, server_config,
+                                timeout_multiplier=timeout_multiplier,
+                                debug_info=debug_info)
+        self.protocol = ServoWdspecProtocol(self, browser)
+
+    def is_alive(self):
+        return self.protocol.is_alive
+
+    def on_environment_change(self, new_environment):
+        pass
+
+    def do_test(self, test):
+        timeout = test.timeout * self.timeout_multiplier + extra_timeout
+
+        success, data = WdspecRun(self.do_wdspec,
+                                  self.protocol.session,
+                                  test.path,
+                                  timeout).run()
+
+        if success:
+            return self.convert_result(test, data)
+
+        return (test.result_cls(*data), [])
+
+    def do_wdspec(self, session, path, timeout):
+        harness_result = ("OK", None)
+        subtest_results = pytestrunner.run(path, session, timeout=timeout)
+        return (harness_result, subtest_results)

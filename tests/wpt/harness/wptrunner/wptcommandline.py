@@ -45,61 +45,33 @@ def create_parser(product_choices=None):
         config_data = config.load()
         product_choices = products.products_enabled(config_data)
 
-    parser = argparse.ArgumentParser(description="Runner for web-platform-tests tests.")
-    parser.add_argument("--metadata", action="store", type=abs_path, dest="metadata_root",
-                        help="Path to the folder containing test metadata"),
-    parser.add_argument("--tests", action="store", type=abs_path, dest="tests_root",
-                        help="Path to test files"),
-    parser.add_argument("--run-info", action="store", type=abs_path,
-                        help="Path to directory containing extra json files to add to run info")
-    parser.add_argument("--config", action="store", type=abs_path, dest="config",
-                        help="Path to config file")
+    parser = argparse.ArgumentParser(description="""Runner for web-platform-tests tests.""",
+                                     usage="""%(prog)s [OPTION]... [TEST]...
 
+TEST is either the full path to a test file to run, or the URL of a test excluding
+scheme host and port.""")
     parser.add_argument("--manifest-update", action="store_true", default=False,
-                        help="Force regeneration of the test manifest")
+                        help="Regenerate the test manifest.")
 
-    parser.add_argument("--binary", action="store",
-                        type=abs_path, help="Binary to run tests against")
-    parser.add_argument('--binary-arg',
-                        default=[], action="append", dest="binary_args",
-                        help="Extra argument for the binary (servo)")
-    parser.add_argument("--webdriver-binary", action="store", metavar="BINARY",
-                        type=abs_path, help="WebDriver server binary to use")
-    parser.add_argument("--processes", action="store", type=int, default=None,
-                        help="Number of simultaneous processes to use")
-
+    parser.add_argument("--timeout-multiplier", action="store", type=float, default=None,
+                        help="Multiplier relative to standard test timeout to use")
     parser.add_argument("--run-by-dir", type=int, nargs="?", default=False,
                         help="Split run into groups by directories. With a parameter,"
                         "limit the depth of splits e.g. --run-by-dir=1 to split by top-level"
                         "directory")
-
-    parser.add_argument("--timeout-multiplier", action="store", type=float, default=None,
-                        help="Multiplier relative to standard test timeout to use")
-    parser.add_argument("--repeat", action="store", type=int, default=1,
-                        help="Number of times to run the tests")
-    parser.add_argument("--repeat-until-unexpected", action="store_true", default=None,
-                        help="Run tests in a loop until one returns an unexpected result")
+    parser.add_argument("--processes", action="store", type=int, default=None,
+                        help="Number of simultaneous processes to use")
 
     parser.add_argument("--no-capture-stdio", action="store_true", default=False,
                         help="Don't capture stdio and write to logging")
 
-    parser.add_argument("--product", action="store", choices=product_choices,
-                        default=None, help="Browser against which to run tests")
-
-    parser.add_argument("--list-test-groups", action="store_true",
-                        default=False,
-                        help="List the top level directories containing tests that will run.")
-    parser.add_argument("--list-disabled", action="store_true",
-                        default=False,
-                        help="List the tests that are disabled on the current platform")
-
-    build_type = parser.add_mutually_exclusive_group()
-    build_type.add_argument("--debug-build", dest="debug", action="store_true",
-                            default=None,
-                            help="Build is a debug build (overrides any mozinfo file)")
-    build_type.add_argument("--release-build", dest="debug", action="store_false",
-                            default=None,
-                            help="Build is a release (overrides any mozinfo file)")
+    mode_group = parser.add_argument_group("Mode")
+    mode_group.add_argument("--list-test-groups", action="store_true",
+                            default=False,
+                            help="List the top level directories containing tests that will run.")
+    mode_group.add_argument("--list-disabled", action="store_true",
+                            default=False,
+                            help="List the tests that are disabled on the current platform")
 
     test_selection_group = parser.add_argument_group("Test Selection")
     test_selection_group.add_argument("--test-types", action="store",
@@ -119,7 +91,10 @@ def create_parser(product_choices=None):
     debugging_group.add_argument('--debugger', const="__default__", nargs="?",
                                  help="run under a debugger, e.g. gdb or valgrind")
     debugging_group.add_argument('--debugger-args', help="arguments to the debugger")
-
+    debugging_group.add_argument("--repeat", action="store", type=int, default=1,
+                                 help="Number of times to run the tests")
+    debugging_group.add_argument("--repeat-until-unexpected", action="store_true", default=None,
+                                 help="Run tests in a loop until one returns an unexpected result")
     debugging_group.add_argument('--pause-after-test', action="store_true", default=None,
                                  help="Halt the test runner after each test (this happens by default if only a single test is run)")
     debugging_group.add_argument('--no-pause-after-test', dest="pause_after_test", action="store_false",
@@ -132,6 +107,38 @@ def create_parser(product_choices=None):
                                  help="Path or url to symbols file used to analyse crash minidumps.")
     debugging_group.add_argument("--stackwalk-binary", action="store", type=abs_path,
                                  help="Path to stackwalker program used to analyse minidumps.")
+
+    debugging_group.add_argument("--pdb", action="store_true",
+                                 help="Drop into pdb on python exception")
+
+    config_group = parser.add_argument_group("Configuration")
+    config_group.add_argument("--binary", action="store",
+                              type=abs_path, help="Binary to run tests against")
+    config_group.add_argument('--binary-arg',
+                              default=[], action="append", dest="binary_args",
+                              help="Extra argument for the binary (servo)")
+    config_group.add_argument("--webdriver-binary", action="store", metavar="BINARY",
+                              type=abs_path, help="WebDriver server binary to use")
+
+    config_group.add_argument("--metadata", action="store", type=abs_path, dest="metadata_root",
+                              help="Path to root directory containing test metadata"),
+    config_group.add_argument("--tests", action="store", type=abs_path, dest="tests_root",
+                              help="Path to root directory containing test files"),
+    config_group.add_argument("--run-info", action="store", type=abs_path,
+                              help="Path to directory containing extra json files to add to run info")
+    config_group.add_argument("--product", action="store", choices=product_choices,
+                              default=None, help="Browser against which to run tests")
+    config_group.add_argument("--config", action="store", type=abs_path, dest="config",
+                              help="Path to config file")
+
+    build_type = parser.add_mutually_exclusive_group()
+    build_type.add_argument("--debug-build", dest="debug", action="store_true",
+                            default=None,
+                            help="Build is a debug build (overrides any mozinfo file)")
+    build_type.add_argument("--release-build", dest="debug", action="store_false",
+                            default=None,
+                            help="Build is a release (overrides any mozinfo file)")
+
 
     chunking_group = parser.add_argument_group("Test Chunking")
     chunking_group.add_argument("--total-chunks", action="store", type=int, default=1,

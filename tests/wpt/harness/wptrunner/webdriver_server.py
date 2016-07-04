@@ -16,7 +16,8 @@ import mozprocess
 
 
 __all__ = ["SeleniumServer", "ChromeDriverServer",
-           "GeckoDriverServer", "WebDriverServer"]
+           "GeckoDriverServer", "ServoDriverServer",
+           "WebDriverServer"]
 
 
 class WebDriverServer(object):
@@ -86,9 +87,7 @@ class WebDriverServer(object):
 
     @property
     def is_alive(self):
-        return (self._proc is not None and
-                self._proc.proc is not None and
-                self._proc.poll() is None)
+        return hasattr(self._proc, "proc") and self._proc.poll() is None
 
     def on_output(self, line):
         self.logger.process_output(self.pid,
@@ -152,6 +151,28 @@ class GeckoDriverServer(WebDriverServer):
                 "--marionette-port", str(self.marionette_port),
                 "--webdriver-host", self.host,
                 "--webdriver-port", str(self.port)]
+
+
+class ServoDriverServer(WebDriverServer):
+    def __init__(self, logger, binary="servo", binary_args=None, host="127.0.0.1", port=None, render_backend=None):
+        env = os.environ.copy()
+        env["RUST_BACKTRACE"] = "1"
+        WebDriverServer.__init__(self, logger, binary, host=host, port=port, env=env)
+        self.binary_args = binary_args
+        self.render_backend = render_backend
+
+    def make_command(self):
+        command = [self.binary,
+                   "--webdriver", str(self.port),
+                   "--hard-fail",
+                   "--headless"]
+        if self.binary_args:
+            command += self.binary_args
+        if self.render_backend == "cpu":
+            command += ["--cpu"]
+        elif self.render_backend == "webrender":
+            command += ["--webrender"]
+        return command
 
 
 def cmd_arg(name, value=None):
