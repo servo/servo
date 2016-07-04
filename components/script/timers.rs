@@ -13,7 +13,7 @@ use dom::xmlhttprequest::XHRTimeoutCallback;
 use euclid::length::Length;
 use heapsize::HeapSizeOf;
 use ipc_channel::ipc::IpcSender;
-use js::jsapi::{HandleValue, Heap, RootedValue};
+use js::jsapi::{HandleValue, Heap};
 use js::jsval::{JSVal, UndefinedValue};
 use script_traits::{MsDuration, precise_time_ms};
 use script_traits::{TimerEvent, TimerEventId, TimerEventRequest, TimerSource};
@@ -488,7 +488,7 @@ impl JsTimerTask {
         match *&self.callback {
             InternalTimerCallback::StringTimerCallback(ref code_str) => {
                 let cx = this.global().r().get_cx();
-                let mut rval = RootedValue::new(cx, UndefinedValue());
+                rooted!(in(cx) let mut rval = UndefinedValue());
 
                 this.evaluate_js_on_global_with_result(code_str, rval.handle_mut());
             },

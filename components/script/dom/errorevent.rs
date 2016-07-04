@@ -13,7 +13,7 @@ use dom::bindings::js::{MutHeapJSVal, Root};
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
 use dom::event::{Event, EventBubbles, EventCancelable};
-use js::jsapi::{RootedValue, HandleValue, JSContext};
+use js::jsapi::{HandleValue, JSContext};
 use js::jsval::JSVal;
 use std::cell::Cell;
 use string_cache::Atom;
@@ -93,7 +93,7 @@ impl ErrorEvent {
 
         // Dictionaries need to be rooted
         // https://github.com/servo/servo/issues/6381
-        let error = RootedValue::new(global.get_cx(), init.error);
+        rooted!(in(global.get_cx()) let error = init.error);
         let event = ErrorEvent::new(global, Atom::from(type_),
                                 bubbles, cancelable,
                                 msg, file_name,

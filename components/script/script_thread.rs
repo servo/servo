@@ -58,7 +58,7 @@ use hyper::mime::{Mime, SubLevel, TopLevel};
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::glue::GetWindowProxyClass;
-use js::jsapi::{DOMProxyShadowsResult, HandleId, HandleObject, RootedValue};
+use js::jsapi::{DOMProxyShadowsResult, HandleId, HandleObject};
 use js::jsapi::{JSAutoCompartment, JSContext, JS_SetWrapObjectCallbacks};
 use js::jsapi::{JSTracer, SetWindowProxyClass};
 use js::jsval::UndefinedValue;
@@ -1747,7 +1747,7 @@ impl ScriptThread {
             // Script source is ready to be evaluated (11.)
             unsafe {
                 let _ac = JSAutoCompartment::new(self.get_cx(), window.reflector().get_jsobject().get());
-                let mut jsval = RootedValue::new(self.get_cx(), UndefinedValue());
+                rooted!(in(self.get_cx()) let mut jsval = UndefinedValue());
                 window.evaluate_js_on_global_with_result(&script_source, jsval.handle_mut());
                 let strval = DOMString::from_jsval(self.get_cx(),
                                                    jsval.handle(),

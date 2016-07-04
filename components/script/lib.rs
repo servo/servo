@@ -6,7 +6,7 @@
 #![feature(borrow_state)]
 #![feature(box_syntax)]
 #![feature(const_fn)]
-#![feature(core_intrinsics)]
+#![cfg_attr(debug_assertions, feature(core_intrinsics))]
 #![feature(custom_attribute)]
 #![feature(custom_derive)]
 #![feature(fnbox)]
@@ -50,6 +50,7 @@ extern crate html5ever;
 extern crate hyper;
 extern crate image;
 extern crate ipc_channel;
+#[macro_use]
 extern crate js;
 extern crate libc;
 #[macro_use]
