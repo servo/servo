@@ -43,11 +43,10 @@ use gfx_traits::StackingContextId;
 use heapsize::HeapSizeOf;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use libc::c_void;
-use msg::constellation_msg::{FrameId, FrameType, Key, KeyModifiers, KeyState, LoadData};
+use msg::constellation_msg::{FrameId, FrameType, Image, Key, KeyModifiers, KeyState, LoadData};
 use msg::constellation_msg::{NavigationDirection, PanicMsg, PipelineId};
-use msg::constellation_msg::{PipelineNamespaceId, SubpageId, WindowSizeData};
-use msg::constellation_msg::{WebDriverCommandMsg, WindowSizeType};
-use msg::webdriver_msg::WebDriverScriptCommand;
+use msg::constellation_msg::{PipelineNamespaceId, SubpageId, WindowSizeData, WindowSizeType};
+use msg::webdriver_msg::{LoadStatus, WebDriverScriptCommand};
 use net_traits::ResourceThreads;
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::ImageCacheThread;
@@ -520,6 +519,27 @@ pub struct StackingContextScrollState {
     pub stacking_context_id: StackingContextId,
     /// The scrolling offset of this stacking context.
     pub scroll_offset: Point2D<f32>,
+}
+
+/// Messages to the constellation originating from the WebDriver server.
+#[derive(Deserialize, Serialize)]
+pub enum WebDriverCommandMsg {
+    /// Get the window size.
+    GetWindowSize(PipelineId, IpcSender<WindowSizeData>),
+    /// Load a URL in the pipeline with the given ID.
+    LoadUrl(PipelineId, LoadData, IpcSender<LoadStatus>),
+    /// Refresh the pipeline with the given ID.
+    Refresh(PipelineId, IpcSender<LoadStatus>),
+    /// Pass a webdriver command to the script thread of the pipeline with the
+    /// given ID for execution.
+    ScriptCommand(PipelineId, WebDriverScriptCommand),
+    /// Act as if keys were pressed in the pipeline with the given ID.
+    SendKeys(PipelineId, Vec<(Key, KeyModifiers, KeyState)>),
+    /// Set the window size.
+    SetWindowSize(PipelineId, Size2D<u32>, IpcSender<WindowSizeData>),
+    /// Take a screenshot of the window, if the pipeline with the given ID is
+    /// the root pipeline.
+    TakeScreenshot(PipelineId, IpcSender<Option<Image>>),
 }
 
 /// Messages to the constellation.
