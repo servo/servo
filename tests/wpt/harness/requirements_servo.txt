@@ -1,1 +1,2 @@
 mozprocess >= 0.19
+pytest >= 2.9
