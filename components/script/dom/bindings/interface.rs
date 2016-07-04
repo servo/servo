@@ -11,7 +11,7 @@ use dom::bindings::guard::Guard;
 use dom::bindings::utils::get_proto_or_iface_array;
 use js::error::throw_type_error;
 use js::glue::{RUST_SYMBOL_TO_JSID, UncheckedUnwrapObject};
-use js::jsapi::{Class, ClassExtension, ClassSpec, GetGlobalForObjectCrossCompartment};
+use js::jsapi::{Class, ClassOps, GetGlobalForObjectCrossCompartment};
 use js::jsapi::{GetWellKnownSymbol, HandleObject, HandleValue, JSClass, JSContext};
 use js::jsapi::{JSFunctionSpec, JSNative, JSFUN_CONSTRUCTOR, JSPROP_ENUMERATE};
 use js::jsapi::{JSPROP_PERMANENT, JSPROP_READONLY, JSPROP_RESOLVING, JSPropertySpec};
@@ -101,6 +101,21 @@ unsafe extern "C" fn fun_to_string_hook(cx: *mut JSContext,
     ret
 }
 
+const OBJECT_OPS: ObjectOps = ObjectOps {
+    lookupProperty: None,
+    defineProperty: None,
+    hasProperty: None,
+    getProperty: None,
+    setProperty: None,
+    getOwnPropertyDescriptor: None,
+    deleteProperty: None,
+    watch: None,
+    unwatch: None,
+    getElements: None,
+    enumerate: None,
+    funToString: Some(fun_to_string_hook),
+};
+
 /// The class of a non-callback interface object.
 #[derive(Copy, Clone)]
 pub struct NonCallbackInterfaceObjectClass {
@@ -117,58 +132,39 @@ pub struct NonCallbackInterfaceObjectClass {
 unsafe impl Sync for NonCallbackInterfaceObjectClass {}
 
 impl NonCallbackInterfaceObjectClass {
+    /// Create `ClassOps` for a `NonCallbackInterfaceObjectClass`.
+    pub const fn ops(constructor_behavior: InterfaceConstructorBehavior)
+                     -> ClassOps {
+        ClassOps {
+            addProperty: None,
+            delProperty: None,
+            getProperty: None,
+            setProperty: None,
+            enumerate: None,
+            resolve: None,
+            mayResolve: None,
+            finalize: None,
+            call: constructor_behavior.call,
+            construct: constructor_behavior.construct,
+            hasInstance: Some(has_instance_hook),
+            trace: None,
+        }
+    }
+
     /// Create a new `NonCallbackInterfaceObjectClass` structure.
-    pub const fn new(
-            constructor_behavior: InterfaceConstructorBehavior,
-            string_rep: &'static [u8],
-            proto_id: PrototypeList::ID,
-            proto_depth: u16)
-            -> NonCallbackInterfaceObjectClass {
+    pub const fn new(ops: &'static ClassOps,
+                     string_rep: &'static [u8],
+                     proto_id: PrototypeList::ID,
+                     proto_depth: u16)
+                     -> NonCallbackInterfaceObjectClass {
         NonCallbackInterfaceObjectClass {
             class: Class {
                 name: b"Function\0" as *const _ as *const libc::c_char,
                 flags: 0,
-                addProperty: None,
-                delProperty: None,
-                getProperty: None,
-                setProperty: None,
-                enumerate: None,
-                resolve: None,
-                mayResolve: None,
-                finalize: None,
-                call: constructor_behavior.call,
-                construct: constructor_behavior.construct,
-                hasInstance: Some(has_instance_hook),
-                trace: None,
-                spec: ClassSpec {
-                    createConstructor_: None,
-                    createPrototype_: None,
-                    constructorFunctions_: ptr::null(),
-                    constructorProperties_: ptr::null(),
-                    prototypeFunctions_: ptr::null(),
-                    prototypeProperties_: ptr::null(),
-                    finishInit_: None,
-                    flags: 0,
-                },
-                ext: ClassExtension {
-                    isWrappedNative: false,
-                    weakmapKeyDelegateOp: None,
-                    objectMovedOp: None,
-                },
-                ops: ObjectOps {
-                    lookupProperty: None,
-                    defineProperty: None,
-                    hasProperty: None,
-                    getProperty: None,
-                    setProperty: None,
-                    getOwnPropertyDescriptor: None,
-                    deleteProperty: None,
-                    watch: None,
-                    unwatch: None,
-                    getElements: None,
-                    enumerate: None,
-                    funToString: Some(fun_to_string_hook),
-                }
+                cOps: ops,
+                spec: ptr::null(),
+                ext: ptr::null(),
+                oOps: &OBJECT_OPS,
             },
             proto_id: proto_id,
             proto_depth: proto_depth,
