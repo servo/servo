@@ -91,11 +91,12 @@ impl AsyncResponseListener for HTMLMediaElementContext {
         // => "Once enough of the media data has been fetched to determine the duration..."
         if !self.have_metadata {
             match video_metadata::get_format_from_slice(&self.data) {
-                video_metadata::Result::Complete(meta) => {
+                Ok(meta) => {
+                    let dur = meta.duration.unwrap_or(::std::time::Duration::new(0, 0));
                     *elem.video.borrow_mut() = Some(VideoMedia {
                         format: format!("{:?}", meta.format),
-                        duration: Duration::seconds(meta.duration.as_secs() as i64) +
-                                  Duration::nanoseconds(meta.duration.subsec_nanos() as i64),
+                        duration: Duration::seconds(dur.as_secs() as i64) +
+                                  Duration::nanoseconds(dur.subsec_nanos() as i64),
                         width: meta.size.width,
                         height: meta.size.height,
                         video: meta.video,
@@ -180,15 +181,13 @@ impl HTMLMediaElementContext {
     }
 }
 
-no_jsmanaged_fields!(Duration);
-
 #[derive(JSTraceable, HeapSizeOf)]
 pub struct VideoMedia {
     format: String,
     #[ignore_heap_size_of = "defined in time"]
     duration: Duration,
-    width: u16,
-    height: u16,
+    width: u32,
+    height: u32,
     video: String,
     audio: Option<String>,
 }
