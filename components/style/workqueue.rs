@@ -7,6 +7,8 @@
 //! Data associated with queues is simply a pair of unsigned integers. It is expected that a
 //! higher-level API on top of this could allow safe fork-join parallelism.
 
+#![allow(unsafe_code)]
+
 #[cfg(windows)]
 extern crate kernel32;
 
@@ -16,8 +18,8 @@ use libc::usleep;
 use rand::{Rng, XorShiftRng, weak_rng};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{Receiver, Sender, channel};
-use thread::spawn_named;
-use thread_state;
+use util::thread::spawn_named;
+use util::thread_state;
 
 /// A unit of work.
 ///
