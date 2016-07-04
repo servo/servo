@@ -70,8 +70,6 @@ IGNORED_DIRS = [
     # Generated and upstream code combined with our own. Could use cleanup
     os.path.join(".", "target"),
     os.path.join(".", "ports", "cef"),
-    # Tooling, generated locally from external repos.
-    os.path.join(".", "ports", "geckolib", "gecko_bindings", "tools"),
     # Hidden directories
     os.path.join(".", "."),
 ]
