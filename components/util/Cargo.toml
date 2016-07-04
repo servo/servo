@@ -17,7 +17,6 @@ servo = ["serde", "serde_macros", "backtrace", "ipc-channel", "app_units/plugins
 app_units = "0.2.5"
 backtrace = {version = "0.2.1", optional = true}
 bitflags = "0.7"
-deque = "0.3.1"
 euclid = "0.7.1"
 getopts = "0.2.11"
 heapsize = "0.3.0"
@@ -35,6 +34,3 @@ url = "1.0.0"
 
 [target.'cfg(all(unix, not(target_os = "macos"), not(target_os = "ios"), not(target_os = "android")))'.dependencies]
 xdg = "2.0"
-
-[target.'cfg(windows)'.dependencies]
-kernel32-sys = "0.2"
