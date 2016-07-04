@@ -237,12 +237,8 @@ fn create_constellation(opts: opts::Opts,
                         layout_thread::LayoutThread,
                         script::script_thread::ScriptThread>::start(initial_state);
 
-    // Send the URL command to the constellation.
-    match opts.url {
-        Some(url) => {
-            constellation_chan.send(ConstellationMsg::InitLoadUrl(url)).unwrap();
-        },
-        None => ()
+    if let Some(url) = opts.url {
+        constellation_chan.send(ConstellationMsg::InitLoadUrl(url)).unwrap();
     };
 
     constellation_chan
