@@ -22,7 +22,7 @@ use js::jsapi::{Handle, HandleId, HandleObject, HandleValue, JSAutoCompartment};
 use js::jsapi::{JSContext, JSPROP_READONLY, JSErrNum, JSObject, PropertyDescriptor, JS_DefinePropertyById};
 use js::jsapi::{JS_ForwardGetPropertyTo, JS_ForwardSetPropertyTo, JS_GetClass, JSTracer, FreeOp};
 use js::jsapi::{JS_GetOwnPropertyDescriptorById, JS_HasPropertyById, MutableHandle};
-use js::jsapi::{MutableHandleValue, ObjectOpResult};
+use js::jsapi::{MutableHandleObject, MutableHandleValue, ObjectOpResult};
 use js::jsval::{UndefinedValue, PrivateValue};
 use msg::constellation_msg::{PipelineId, SubpageId};
 use std::cell::Cell;
@@ -354,6 +354,28 @@ unsafe extern "C" fn set(cx: *mut JSContext,
                             res)
 }
 
+#[allow(unsafe_code)]
+unsafe extern "C" fn get_prototype_if_ordinary(_: *mut JSContext,
+                                               _: HandleObject,
+                                               is_ordinary: *mut bool,
+                                               _: MutableHandleObject)
+                                               -> bool {
+    // Window's [[GetPrototypeOf]] trap isn't the ordinary definition:
+    //
+    //   https://html.spec.whatwg.org/multipage/#windowproxy-getprototypeof
+    //
+    // We nonetheless can implement it with a static [[Prototype]], because
+    // wrapper-class handlers (particularly, XOW in FilteringWrapper.cpp) supply
+    // all non-ordinary behavior.
+    //
+    // But from a spec point of view, it's the exact same object in both cases --
+    // only the observer's changed.  So this getPrototypeIfOrdinary trap on the
+    // non-wrapper object *must* report non-ordinary, even if static [[Prototype]]
+    // usually means ordinary.
+    *is_ordinary = false;
+    return true;
+}
+
 static PROXY_HANDLER: ProxyTraps = ProxyTraps {
     enter: None,
     getOwnPropertyDescriptor: Some(getOwnPropertyDescriptor),
@@ -361,6 +383,7 @@ static PROXY_HANDLER: ProxyTraps = ProxyTraps {
     ownPropertyKeys: None,
     delete_: None,
     enumerate: None,
+    getPrototypeIfOrdinary: Some(get_prototype_if_ordinary),
     preventExtensions: None,
     isExtensible: None,
     has: Some(has),
