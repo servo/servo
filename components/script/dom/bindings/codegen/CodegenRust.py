@@ -1862,56 +1862,31 @@ class CGDOMJSClass(CGThing):
         elif self.descriptor.weakReferenceable:
             args["slots"] = "2"
         return """\
+static CLASS_OPS: js::jsapi::ClassOps = js::jsapi::ClassOps {
+    addProperty: None,
+    delProperty: None,
+    getProperty: None,
+    setProperty: None,
+    enumerate: %(enumerateHook)s,
+    resolve: %(resolveHook)s,
+    mayResolve: None,
+    finalize: Some(%(finalizeHook)s),
+    call: None,
+    hasInstance: None,
+    construct: None,
+    trace: Some(%(traceHook)s),
+};
+
 static Class: DOMJSClass = DOMJSClass {
     base: js::jsapi::Class {
         name: %(name)s as *const u8 as *const libc::c_char,
         flags: JSCLASS_IS_DOMJSCLASS | %(flags)s |
                (((%(slots)s) & JSCLASS_RESERVED_SLOTS_MASK) << JSCLASS_RESERVED_SLOTS_SHIFT)
                /* JSCLASS_HAS_RESERVED_SLOTS(%(slots)s) */,
-        addProperty: None,
-        delProperty: None,
-        getProperty: None,
-        setProperty: None,
-        enumerate: %(enumerateHook)s,
-        resolve: %(resolveHook)s,
-        mayResolve: None,
-        finalize: Some(%(finalizeHook)s),
-        call: None,
-        hasInstance: None,
-        construct: None,
-        trace: Some(%(traceHook)s),
-
-        spec: js::jsapi::ClassSpec {
-            createConstructor_: None,
-            createPrototype_: None,
-            constructorFunctions_: 0 as *const js::jsapi::JSFunctionSpec,
-            constructorProperties_: 0 as *const js::jsapi::JSPropertySpec,
-            prototypeFunctions_: 0 as *const js::jsapi::JSFunctionSpec,
-            prototypeProperties_: 0 as *const js::jsapi::JSPropertySpec,
-            finishInit_: None,
-            flags: 0,
-        },
-
-        ext: js::jsapi::ClassExtension {
-            isWrappedNative: false,
-            weakmapKeyDelegateOp: None,
-            objectMovedOp: None,
-        },
-
-        ops: js::jsapi::ObjectOps {
-            lookupProperty: None,
-            defineProperty: None,
-            hasProperty: None,
-            getProperty: None,
-            setProperty: None,
-            getOwnPropertyDescriptor: None,
-            deleteProperty: None,
-            watch: None,
-            unwatch: None,
-            getElements: None,
-            enumerate: None,
-            funToString: None,
-        },
+        cOps: &CLASS_OPS,
+        spec: ptr::null(),
+        ext: ptr::null(),
+        oOps: ptr::null(),
     },
     dom_class: %(domClass)s
 };""" % args
@@ -1937,19 +1912,8 @@ static PrototypeClass: JSClass = JSClass {
     flags:
         // JSCLASS_HAS_RESERVED_SLOTS(%(slotCount)s)
         (%(slotCount)s & JSCLASS_RESERVED_SLOTS_MASK) << JSCLASS_RESERVED_SLOTS_SHIFT,
-    addProperty: None,
-    delProperty: None,
-    getProperty: None,
-    setProperty: None,
-    enumerate: None,
-    resolve: None,
-    mayResolve: None,
-    finalize: None,
-    call: None,
-    hasInstance: None,
-    construct: None,
-    trace: None,
-    reserved: [0 as *mut os::raw::c_void; 23]
+    cOps: 0 as *const _,
+    reserved: [0 as *mut os::raw::c_void; 3]
 };
 """ % {'name': name, 'slotCount': slotCount}
 
@@ -1973,9 +1937,12 @@ class CGInterfaceObjectJSClass(CGThing):
             "depth": self.descriptor.prototypeDepth
         }
         return """\
+static INTERFACE_OBJECT_OPS: js::jsapi::ClassOps =
+    NonCallbackInterfaceObjectClass::ops(%(constructorBehavior)s);
+
 static InterfaceObjectClass: NonCallbackInterfaceObjectClass =
     NonCallbackInterfaceObjectClass::new(
-        %(constructorBehavior)s,
+        &INTERFACE_OBJECT_OPS,
         %(representation)s,
         PrototypeList::ID::%(id)s,
         %(depth)s);
@@ -2767,6 +2734,7 @@ let traps = ProxyTraps {
     ownPropertyKeys: Some(own_property_keys),
     delete_: Some(%(delete)s),
     enumerate: None,
+    getPrototypeIfOrdinary: Some(proxyhandler::get_prototype_if_ordinary),
     preventExtensions: Some(proxyhandler::prevent_extensions),
     isExtensible: Some(proxyhandler::is_extensible),
     has: None,
@@ -5537,7 +5505,7 @@ class CGBindingRoot(CGThing):
             'js::jsapi::{GetGlobalForObjectCrossCompartment , GetPropertyKeys, Handle}',
             'js::jsapi::{HandleId, HandleObject, HandleValue, HandleValueArray}',
             'js::jsapi::{INTERNED_STRING_TO_JSID, IsCallable, JS_CallFunctionValue}',
-            'js::jsapi::{JS_ComputeThis, JS_CopyPropertiesFrom, JS_ForwardGetPropertyTo}',
+            'js::jsapi::{JS_CopyPropertiesFrom, JS_ForwardGetPropertyTo}',
             'js::jsapi::{JS_GetClass, JS_GetErrorPrototype, JS_GetFunctionPrototype}',
             'js::jsapi::{JS_GetGlobalForObject, JS_GetObjectPrototype, JS_GetProperty}',
             'js::jsapi::{JS_GetPropertyById, JS_GetPropertyDescriptorById, JS_GetReservedSlot}',
