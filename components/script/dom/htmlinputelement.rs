@@ -1152,6 +1152,7 @@ impl Activatable for HTMLInputElement {
             InputType::InputFile => {
                 // https://html.spec.whatwg.org/multipage/#file-upload-state-(type=file)
                 let window = window_from_node(self);
+                let origin = window.get_url().origin().unicode_serialization();
                 let filemanager = window.resource_threads().sender();
 
                 let mut files: Vec<Root<File>> = vec![];
@@ -1162,7 +1163,7 @@ impl Activatable for HTMLInputElement {
 
                 if self.Multiple() {
                     let (chan, recv) = ipc::channel().expect("Error initializing channel");
-                    let msg = FileManagerThreadMsg::SelectFiles(filter, chan);
+                    let msg = FileManagerThreadMsg::SelectFiles(filter, chan, origin);
                     let _ = filemanager.send(msg).unwrap();
 
                     match recv.recv().expect("IpcSender side error") {
@@ -1182,7 +1183,7 @@ impl Activatable for HTMLInputElement {
                     };
                 } else {
                     let (chan, recv) = ipc::channel().expect("Error initializing channel");
-                    let msg = FileManagerThreadMsg::SelectFile(filter, chan);
+                    let msg = FileManagerThreadMsg::SelectFile(filter, chan, origin);
                     let _ = filemanager.send(msg).unwrap();
 
                     match recv.recv().expect("IpcSender side error") {
