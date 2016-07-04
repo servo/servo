@@ -36,7 +36,7 @@ html5ever = {version = "0.5.1", features = ["heap_size", "unstable"]}
 hyper = {version = "0.9.9", features = ["serde-serialization"]}
 image = "0.10"
 ipc-channel = {git = "https://github.com/servo/ipc-channel"}
-js = {git = "https://github.com/servo/rust-mozjs"}
+js = {git = "https://github.com/servo/rust-mozjs", branch = "smup-201607"}
 libc = "0.2"
 log = "0.3.5"
 mime = "0.2.1"
