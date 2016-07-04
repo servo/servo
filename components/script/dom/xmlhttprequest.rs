@@ -1128,9 +1128,8 @@ impl XMLHttpRequest {
                 // Step 5
                 if self.response_type.get() == XMLHttpRequestResponseType::_empty {
                     return None;
-                }
-                // Step 6
-                else {
+                } else {
+                    // Step 6
                     temp_doc = self.document_text_html();
                 }
             },
@@ -1143,8 +1142,7 @@ impl XMLHttpRequest {
             Some(Mime(_, mime::SubLevel::Ext(sub), _)) => {
                 if sub.ends_with("+xml") {
                     temp_doc = self.handle_xml();
-                }
-                else {
+                } else {
                     return None;
                 }
             },

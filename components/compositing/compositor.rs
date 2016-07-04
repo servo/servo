@@ -2261,8 +2261,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                             rendergl::render_scene(layer.clone(), context, &self.scene);
                             gl::disable(gl::SCISSOR_TEST);
 
-                        }
-                        else {
+                        } else {
                             rendergl::render_scene(layer.clone(), context, &self.scene);
                         }
                     }

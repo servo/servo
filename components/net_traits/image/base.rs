@@ -81,12 +81,12 @@ pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
 
 // https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img
 pub fn detect_image_format(buffer: &[u8]) -> Result<ImageFormat, &str> {
-    if is_gif(buffer)       { Ok(ImageFormat::GIF) }
-    else if is_jpeg(buffer) { Ok(ImageFormat::JPEG) }
-    else if is_png(buffer)  { Ok(ImageFormat::PNG) }
-    else if is_bmp(buffer)  { Ok(ImageFormat::BMP) }
-    else if is_ico(buffer)  { Ok(ImageFormat::ICO) }
-    else { Err("Image Format Not Supported") }
+    if is_gif(buffer)         { Ok(ImageFormat::GIF)
+    } else if is_jpeg(buffer) { Ok(ImageFormat::JPEG)
+    } else if is_png(buffer)  { Ok(ImageFormat::PNG)
+    } else if is_bmp(buffer)  { Ok(ImageFormat::BMP)
+    } else if is_ico(buffer)  { Ok(ImageFormat::ICO)
+    } else { Err("Image Format Not Supported") }
 }
 
 fn is_gif(buffer: &[u8]) -> bool {

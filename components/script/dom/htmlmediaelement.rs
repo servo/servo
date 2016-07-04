@@ -133,9 +133,8 @@ impl AsyncResponseListener for HTMLMediaElementContext {
 
             // Step 5
             elem.fire_simple_event("error");
-        }
-        // => "If the media data cannot be fetched at all..."
-        else {
+        } else {
+            // => "If the media data cannot be fetched at all..."
             elem.queue_dedicated_media_source_failure_steps();
         }
 
