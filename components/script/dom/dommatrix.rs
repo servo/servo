@@ -51,6 +51,10 @@ impl DOMMatrix {
                 Self::new(global, is2D, matrix)
             })
     }
+
+    pub fn from_readonly(global: GlobalRef, ro: &DOMMatrixReadOnly) -> Root<Self> {
+        Self::new(global, ro.is_2d(), ro.matrix().clone())
+    }
 }
 
 impl DOMMatrixMethods for DOMMatrix {

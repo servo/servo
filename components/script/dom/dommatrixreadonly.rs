@@ -64,10 +64,12 @@ impl DOMMatrixReadOnly {
             })
     }
 
-    fn to_DOMMatrix(&self) -> Root<DOMMatrix> {
-        let matrix = self.matrix.borrow().clone();
-        let is2D = self.is2D.get();
-        DOMMatrix::new(self.global().r(), is2D, matrix)
+    pub fn matrix(&self) -> Matrix4D<f64> {
+        self.matrix.borrow().clone()
+    }
+
+    pub fn is_2d(&self) -> bool {
+        self.is2D.get()
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m11
@@ -471,48 +473,48 @@ impl DOMMatrixReadOnlyMethods for DOMMatrixReadOnly {
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-translate
     fn Translate(&self, tx: f64, ty: f64, tz: f64) -> Root<DOMMatrix> {
-        self.to_DOMMatrix().TranslateSelf(tx, ty, tz)
+        DOMMatrix::from_readonly(self.global().r(), self).TranslateSelf(tx, ty, tz)
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-scale
     fn Scale(&self, scaleX: f64, scaleY: Option<f64>, scaleZ: f64,
                     originX: f64, originY: f64, originZ: f64) -> Root<DOMMatrix> {
-        self.to_DOMMatrix().ScaleSelf(scaleX, scaleY, scaleZ, originX, originY, originZ)
+        DOMMatrix::from_readonly(self.global().r(), self).ScaleSelf(scaleX, scaleY, scaleZ, originX, originY, originZ)
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-scale3d
     fn Scale3d(&self, scale: f64, originX: f64, originY: f64, originZ: f64) -> Root<DOMMatrix> {
-        self.to_DOMMatrix().Scale3dSelf(scale, originX, originY, originZ)
+        DOMMatrix::from_readonly(self.global().r(), self).Scale3dSelf(scale, originX, originY, originZ)
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-rotate
     fn Rotate(&self, rotX: f64, rotY: Option<f64>, rotZ: Option<f64>) -> Root<DOMMatrix> {
-        self.to_DOMMatrix().RotateSelf(rotX, rotY, rotZ)
+        DOMMatrix::from_readonly(self.global().r(), self).RotateSelf(rotX, rotY, rotZ)
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-rotatefromvector
     fn RotateFromVector(&self, x: f64, y: f64) -> Root<DOMMatrix> {
-        self.to_DOMMatrix().RotateFromVectorSelf(x, y)
+        DOMMatrix::from_readonly(self.global().r(), self).RotateFromVectorSelf(x, y)
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-rotateaxisangle
     fn RotateAxisAngle(&self, x: f64, y: f64, z: f64, angle: f64) -> Root<DOMMatrix> {
-        self.to_DOMMatrix().RotateAxisAngleSelf(x, y, z, angle)
+        DOMMatrix::from_readonly(self.global().r(), self).RotateAxisAngleSelf(x, y, z, angle)
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-skewx
     fn SkewX(&self, sx: f64) -> Root<DOMMatrix> {
-        self.to_DOMMatrix().SkewXSelf(sx)
+        DOMMatrix::from_readonly(self.global().r(), self).SkewXSelf(sx)
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-skewy
     fn SkewY(&self, sy: f64) -> Root<DOMMatrix> {
-        self.to_DOMMatrix().SkewYSelf(sy)
+        DOMMatrix::from_readonly(self.global().r(), self).SkewYSelf(sy)
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-multiply
     fn Multiply(&self, other: &DOMMatrixInit) -> Root<DOMMatrix> {
-        self.to_DOMMatrix().MultiplySelf(&other)
+        DOMMatrix::from_readonly(self.global().r(), self).MultiplySelf(&other)
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-flipx
@@ -539,7 +541,7 @@ impl DOMMatrixReadOnlyMethods for DOMMatrixReadOnly {
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-inverse
     fn Inverse(&self) -> Root<DOMMatrix> {
-        self.to_DOMMatrix().InvertSelf()
+        DOMMatrix::from_readonly(self.global().r(), self).InvertSelf()
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-transformpoint
