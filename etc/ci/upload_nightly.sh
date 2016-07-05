@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
 set -o errexit
 set -o nounset
 set -o pipefail
@@ -12,7 +16,7 @@ usage() {
 
 
 upload() {
-    local package_filename 
+    local package_filename
     package_filename="$(basename "${2}")"
     local -r nightly_upload_dir="s3://servo-builds/nightly/${1}"
     local -r package_upload_path="${nightly_upload_dir}/${package_filename}"
