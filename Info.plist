@@ -1,26 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-<key>CFBundleGetInfoString</key>
-<string>Servo</string>
-<key>CFBundleExecutable</key>
-<string>run-servo</string>
-<key>CFBundleIdentifier</key>
-<string>org.servo.Servo22</string>
-<key>CFBundleName</key>
-<string>Servo</string>
-<key>CFBundleIconFile</key>
-<string>servo.icns</string>
-<key>CFBundleShortVersionString</key>
-<string>0.0.1</string>
-<key>CFBundleInfoDictionaryVersion</key>
-<string>6.0</string>
-<key>CFBundlePackageType</key>
-<string>APPL</string>
-<key>NSHighResolutionCapable</key>
-<true/>
-<key>NSPrincipalClass</key>
-<string>NSApplication</string>
+	<key>CFBundleExecutable</key>
+	<string>run-servo</string>
+	<key>CFBundleGetInfoString</key>
+	<string>Servo</string>
+	<key>CFBundleIconFile</key>
+	<string>servo.icns</string>
+	<key>CFBundleIdentifier</key>
+	<string>org.servo.Servo</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>Servo</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>0.0.1</string>
+	<key>NSHighResolutionCapable</key>
+	<true/>
+	<key>NSPrincipalClass</key>
+	<string>NSApplication</string>
+	<key>NSQuitAlwaysKeepsWindows</key>
+	<false/>
 </dict>
 </plist>
