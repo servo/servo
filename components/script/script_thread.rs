@@ -64,7 +64,7 @@ use js::jsapi::{JSTracer, SetWindowProxyClass};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use mem::heap_size_of_self_and_children;
-use msg::constellation_msg::{FrameType, LoadData, PanicMsg, PipelineId, PipelineNamespace};
+use msg::constellation_msg::{FrameType, LoadData, PanicMsg, PipelineId};
 use msg::constellation_msg::{SubpageId, WindowSizeData, WindowSizeType};
 use msg::webdriver_msg::WebDriverScriptCommand;
 use net_traits::LoadData as NetLoadData;
@@ -454,7 +454,6 @@ impl ScriptThreadFactory for ScriptThread {
         thread::spawn_named_with_send_on_panic(format!("ScriptThread {:?}", state.id),
                                                thread_state::SCRIPT,
                                                move || {
-            PipelineNamespace::install(state.pipeline_namespace_id);
             let roots = RootCollection::new();
             let _stack_roots_tls = StackRootTLS::new(&roots);
             let id = state.id;

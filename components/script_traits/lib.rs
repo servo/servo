@@ -45,7 +45,7 @@ use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use libc::c_void;
 use msg::constellation_msg::{FrameId, FrameType, Key, KeyModifiers, KeyState, LoadData};
 use msg::constellation_msg::{NavigationDirection, PanicMsg, PipelineId};
-use msg::constellation_msg::{PipelineNamespaceId, SubpageId, WindowSizeData};
+use msg::constellation_msg::{SubpageId, WindowSizeData};
 use msg::constellation_msg::{WebDriverCommandMsg, WindowSizeType};
 use msg::webdriver_msg::WebDriverScriptCommand;
 use net_traits::ResourceThreads;
@@ -370,8 +370,6 @@ pub struct InitialScriptState {
     pub devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     /// Information about the initial window size.
     pub window_size: Option<WindowSizeData>,
-    /// The ID of the pipeline namespace for this script thread.
-    pub pipeline_namespace_id: PipelineNamespaceId,
     /// A ping will be sent on this channel once the script thread shuts down.
     pub content_process_shutdown_chan: IpcSender<()>,
 }

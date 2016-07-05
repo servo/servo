@@ -18,7 +18,7 @@ use ipc_channel::router::ROUTER;
 use layers::geometry::DevicePixel;
 use layout_traits::LayoutThreadFactory;
 use msg::constellation_msg::{FrameId, FrameType, LoadData, PanicMsg, PipelineId};
-use msg::constellation_msg::{PipelineNamespaceId, SubpageId, WindowSizeData};
+use msg::constellation_msg::{SubpageId, WindowSizeData};
 use net_traits::ResourceThreads;
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::ImageCacheThread;
@@ -118,8 +118,6 @@ pub struct InitialPipelineState {
     pub script_chan: Option<IpcSender<ConstellationControlMsg>>,
     /// Information about the page to load.
     pub load_data: LoadData,
-    /// The ID of the pipeline namespace for this script thread.
-    pub pipeline_namespace_id: PipelineNamespaceId,
     /// Pipeline visibility is inherited from parent
     pub parent_visibility: Option<bool>,
     /// Optional webrender api (if enabled).
@@ -237,7 +235,6 @@ impl Pipeline {
                 prefs: PREFS.cloned(),
                 layout_to_paint_chan: layout_to_paint_chan,
                 pipeline_port: pipeline_port,
-                pipeline_namespace_id: state.pipeline_namespace_id,
                 layout_content_process_shutdown_chan: layout_content_process_shutdown_chan,
                 layout_content_process_shutdown_port: layout_content_process_shutdown_port,
                 script_content_process_shutdown_chan: script_content_process_shutdown_chan,
@@ -428,7 +425,6 @@ pub struct UnprivilegedPipelineContent {
     opts: Opts,
     prefs: HashMap<String, Pref>,
     pipeline_port: IpcReceiver<LayoutControlMsg>,
-    pipeline_namespace_id: PipelineNamespaceId,
     layout_content_process_shutdown_chan: IpcSender<()>,
     layout_content_process_shutdown_port: IpcReceiver<()>,
     script_content_process_shutdown_chan: IpcSender<()>,
@@ -456,7 +452,6 @@ impl UnprivilegedPipelineContent {
             mem_profiler_chan: self.mem_profiler_chan.clone(),
             devtools_chan: self.devtools_chan,
             window_size: self.window_size,
-            pipeline_namespace_id: self.pipeline_namespace_id,
             content_process_shutdown_chan: self.script_content_process_shutdown_chan,
         }, self.load_data.clone());
 
