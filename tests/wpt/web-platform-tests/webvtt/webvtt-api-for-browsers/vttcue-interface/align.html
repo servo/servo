@@ -8,15 +8,15 @@ test(function(){
     var video = document.createElement('video');
     document.body.appendChild(video);
     var c1 = new VTTCue(0, 1, 'text1');
-    assert_equals(c1.align, 'middle');
+    assert_equals(c1.align, 'center');
     var track = document.createElement('track');
     var t = track.track;
     t.addCue(c1);
-    assert_equals(c1.align, 'middle');
+    assert_equals(c1.align, 'center');
     video.appendChild(track);
-    assert_equals(c1.align, 'middle');
+    assert_equals(c1.align, 'center');
     t.mode = 'showing';
-    assert_equals(c1.align, 'middle');
+    assert_equals(c1.align, 'center');
     c1.align = 'start';
     assert_equals(c1.align, 'start');
     c1.align = 'end';
@@ -35,9 +35,9 @@ t_parsed.step(function(){
         var c2 = t.track.cues[1];
         var c3 = t.track.cues[2];
         var c4 = t.track.cues[3];
-        assert_equals(c1.align, 'middle');
+        assert_equals(c1.align, 'center');
         assert_equals(c2.align, 'start');
-        assert_equals(c3.align, 'middle');
+        assert_equals(c3.align, 'center');
         assert_equals(c4.align, 'end');
         this.done();
     });
@@ -46,7 +46,7 @@ t_parsed.step(function(){
     });
     t.src = 'data:text/vtt,'+encodeURIComponent('WEBVTT\n\n00:00:00.000 --> 00:00:00.001\ntest\n\n'+
                                                 '00:00:00.000 --> 00:00:00.001 align:start\ntest\n\n'+
-                                                '00:00:00.000 --> 00:00:00.001 align:middle\ntest\n\n'+
+                                                '00:00:00.000 --> 00:00:00.001 align:center\ntest\n\n'+
                                                 '00:00:00.000 --> 00:00:00.001 align:end\ntest');
     t.track.mode = 'showing';
     video.appendChild(t);

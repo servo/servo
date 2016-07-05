@@ -20,10 +20,10 @@ var redirPath = dirname(location.pathname) + RESOURCES_DIR + "redirect.py";
 var preflightPath = dirname(location.pathname) + RESOURCES_DIR + "preflight.py";
 
 var localRedirect = "http://{{host}}:{{ports[http][0]}}" + redirPath;
-var remoteRedirect = "http://www1.{{host}}:{{ports[http][0]}}" + redirPath;
+var remoteRedirect = "http://{{host}}:{{ports[http][1]}}" + redirPath;
 
 var localLocation = "http://{{host}}:{{ports[http][0]}}" + preflightPath;
-var remoteLocation = "http://www1.{{host}}:{{ports[http][0]}}" + preflightPath;
+var remoteLocation = "http://{{host}}:{{ports[http][1]}}" + preflightPath;
 var remoteLocation2 = "http://www.{{host}}:{{ports[http][0]}}" + preflightPath;
 
 for (var code of [301, 302, 303, 307, 308]) {
@@ -35,13 +35,13 @@ for (var code of [301, 302, 303, 307, 308]) {
   corsRedirectCredentials("Redirect " + code + " from remote to same origin with user", remoteRedirect, localLocation, code, "user:");
   corsRedirectCredentials("Redirect " + code + " from remote to same origin with password", remoteRedirect, localLocation, code, ":password");
 
-  corsRedirectCredentials("Redirect " + code + " from remote to another remote with user and password", remoteRedirect, remoteLocation2, code, "user:password");
-  corsRedirectCredentials("Redirect " + code + " from remote to another remote with user", remoteRedirect, remoteLocation2, code, "user:");
-  corsRedirectCredentials("Redirect " + code + " from remote to another remote with password", remoteRedirect, remoteLocation2, code, ":password");
-
   corsRedirectCredentials("Redirect " + code + " from remote to same remote with user and password", remoteRedirect, remoteLocation, code, "user:password");
   corsRedirectCredentials("Redirect " + code + " from remote to same remote with user", remoteRedirect, remoteLocation, code, "user:");
   corsRedirectCredentials("Redirect " + code + " from remote to same remote with password", remoteRedirect, remoteLocation, code, ":password");
+
+  corsRedirectCredentials("Redirect " + code + " from remote to another remote with user and password", remoteRedirect, remoteLocation2, code, "user:password");
+  corsRedirectCredentials("Redirect " + code + " from remote to another remote with user", remoteRedirect, remoteLocation2, code, "user:");
+  corsRedirectCredentials("Redirect " + code + " from remote to another remote with password", remoteRedirect, remoteLocation2, code, ":password");
 }
 
 done();

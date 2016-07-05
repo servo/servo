@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-send()-method" data-tested-assertations="following::ol[1]/li[4] following::ol[1]/li[4]/dl[1]/dd[2]/p[3]"/>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-status-attribute"  data-tested-assertations="following::ol[1]/li[3]"/>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-responsetype-attribute"  data-tested-assertations="following::ol[1]/li[4]"/>
+    <link rel="help" href="https://xhr.spec.whatwg.org/#the-response-attribute"  data-tested-assertations="following::a[contains(@href,'#blob-response-entity-body')]/.."/>
+
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <title>XMLHttpRequest: The send() method: Blob data with no mime type</title>
+</head>
+
+<body>
+    <div id="log"></div>
+
+    <script type="text/javascript">
+        var blobTests = [
+            ["no mime type", new Blob(["data"])],
+            ["invalid mime type", new Blob(["data"], {type: "Invalid \r\n mime \r\n type"})]
+        ];
+
+        blobTests.forEach(function(item){
+            test(function() {
+                var xhr = new XMLHttpRequest();
+                xhr.open("POST", "./resources/content.py", false);
+                xhr.send(item[1]);
+
+                assert_equals(xhr.getResponseHeader("X-Request-Content-Length"), "4");
+                assert_equals(xhr.getResponseHeader("X-Request-Content-Type"), "NO");
+            }, "Synchronous blob loading with " + item[0]);
+
+            var atest = async_test("Asynchronous blob loading with " + item[0]);
+            atest.step(function() {
+                var xhr = new XMLHttpRequest();
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState == 4) {
+                        atest.step(function() {
+                            assert_equals(xhr.getResponseHeader("X-Request-Content-Length"), "4");
+                            assert_equals(xhr.getResponseHeader("X-Request-Content-Type"), "NO");
+                        });
+                        atest.done();
+                    }
+                }
+                xhr.open("POST", "./resources/content.py", true);
+                xhr.send(item[1]);
+            });
+        });
+    </script>
+</body>
+</html>

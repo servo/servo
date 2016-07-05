@@ -1,6 +1,7 @@
 <!doctype html>
 <meta charset=utf-8>
-<title>Web Animations API: DocumentTimeline tests</title>
+<title>Default document timeline tests</title>
+<link rel="help" href="https://w3c.github.io/web-animations/#the-documents-default-timeline">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <div id="log"></div>
@@ -16,15 +17,9 @@ test(function() {
     'document.timeline returns a different object for each document');
   assert_not_equals(iframe.contentDocument.timeline, null,
     'document.timeline on an iframe is not null');
-},
-'document.timeline identity tests',
-{
-  help:   'http://dev.w3.org/fxtf/web-animations/#the-document-timeline',
-  assert: [ 'Each document has a timeline called the document timeline' ],
-  author: 'Brian Birtles'
-});
+}, 'document.timeline identity tests');
 
-async_test(function(t) {
+promise_test(function(t) {
   assert_true(document.timeline.currentTime > 0,
     'document.timeline.currentTime is positive');
   // document.timeline.currentTime should be set even before document
@@ -40,31 +35,14 @@ async_test(function(t) {
   // We can't just compare document.timeline.currentTime to
   // window.performance.now() because currentTime is only updated on a sample
   // so we use requestAnimationFrame instead.
-  window.requestAnimationFrame(t.step_func(function(rafTime) {
+  return window.requestAnimationFrame(t.step_func(function(rafTime) {
     assert_equals(document.timeline.currentTime, rafTime,
                   'document.timeline.currentTime matches' +
                   ' requestAnimationFrame time');
-    t.done();
   }));
-},
-'document.timeline.currentTime value tests',
-{
-  help: [
-    'http://dev.w3.org/fxtf/web-animations/#the-global-clock',
-    'http://dev.w3.org/fxtf/web-animations/#the-document-timeline'
-  ],
-  assert: [
-    'The global clock is a source of monotonically increasing time values',
-    'The time values of the document timeline are calculated as a fixed' +
-    ' offset from the global clock',
-    'the zero time corresponds to the navigationStart moment',
-    'the time value of each document timeline must be equal to the time ' +
-    'passed to animation frame request callbacks for that browsing context'
-  ],
-  author: 'Brian Birtles'
-});
+}, 'document.timeline.currentTime value tests');
 
-async_test(function(t) {
+promise_test(function(t) {
   var valueAtStart = document.timeline.currentTime;
   var timeAtStart = window.performance.now();
   while (window.performance.now() - timeAtStart < 100) {
@@ -72,18 +50,10 @@ async_test(function(t) {
   }
   assert_equals(document.timeline.currentTime, valueAtStart,
     'document.timeline.currentTime does not change within a script block');
-  window.requestAnimationFrame(t.step_func(function() {
+  return window.requestAnimationFrame(t.step_func(function() {
     assert_true(document.timeline.currentTime > valueAtStart,
       'document.timeline.currentTime increases between script blocks');
-    t.done();
   }));
-},
-'document.timeline.currentTime liveness tests',
-{
-  help: 'http://dev.w3.org/fxtf/web-animations/#script-execution-and-live-updates-to-the-model',
-  assert: [ 'The value returned by the currentTime attribute of a' +
-            ' document timeline will not change within a script block' ],
-  author: 'Brian Birtles'
-});
+}, 'document.timeline.currentTime liveness tests');
 
 </script>

@@ -36,10 +36,10 @@ function cors(desc, scheme, subdomain, port) {
   }, desc + " [cors mode]");
 }
 
-cors("Cross domain basic usage", "http", "www1");
 cors("Same domain different port", "http", undefined, "{{ports[http][1]}}");
+cors("Same domain different protocol different port", "https", undefined, "{{ports[https][0]}}");
+cors("Cross domain basic usage", "http", "www1");
 cors("Cross domain different port", "http", "www1", "{{ports[http][1]}}");
 cors("Cross domain different protocol", "https", "www1", "{{ports[https][0]}}");
-cors("Same domain different protocol different port", "https", undefined, "{{ports[https][0]}}");
 
 done();
