@@ -4,6 +4,10 @@
 
 import pytest
 
+@pytest.fixture
+def webdriver():
+    import webdriver
+    return webdriver
 
 """pytest fixtures for use in Python-based WPT tests.
 
@@ -66,8 +70,6 @@ class Session(object):
     def dismiss_user_prompts(self):
         """Dismisses any open user prompts in windows."""
         current_window = self.client.window_handle
-
-        import webdriver
 
         for window in self.windows():
             self.client.window_handle = window
