@@ -2057,6 +2057,7 @@ impl ScriptThread {
         let listener = NetworkListener {
             context: context,
             script_chan: self.chan.clone(),
+            wrapper: None,
         };
         ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
             listener.notify_action(message.to().unwrap());
