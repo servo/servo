@@ -17,5 +17,5 @@ impl<'a, T> IntoIterator for &'a mut nsStyleAutoArray<T> {
     type IntoIter = Chain<Once<&'a mut T>, IterMut<'a, T>>;
     fn into_iter(self) -> Self::IntoIter {
         self.iter_mut()
-    } 
+    }
 }
