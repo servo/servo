@@ -31,6 +31,8 @@ use script_thread::Runnable;
 use std::sync::Arc;
 use string_cache::Atom;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
+use task_source::TaskSource;
+use task_source::dom_manipulation::DOMManipulationTask;
 use url::Url;
 
 #[derive(JSTraceable, HeapSizeOf)]
@@ -44,7 +46,8 @@ enum State {
 #[derive(JSTraceable, HeapSizeOf)]
 struct ImageRequest {
     state: State,
-    url: Option<Url>,
+    parsed_url: Option<Url>,
+    source_url: Option<DOMString>,
     image: Option<Arc<Image>>,
     metadata: Option<ImageMetadata>,
 }
@@ -56,8 +59,8 @@ pub struct HTMLImageElement {
 }
 
 impl HTMLImageElement {
-    pub fn get_url(&self) -> Option<Url>{
-        self.current_request.borrow().url.clone()
+    pub fn get_url(&self) -> Option<Url> {
+        self.current_request.borrow().parsed_url.clone()
     }
 }
 
@@ -118,33 +121,70 @@ impl HTMLImageElement {
         let image_cache = window.image_cache_thread();
         match value {
             None => {
-                self.current_request.borrow_mut().url = None;
+                self.current_request.borrow_mut().parsed_url = None;
+                self.current_request.borrow_mut().source_url = None;
                 self.current_request.borrow_mut().image = None;
             }
             Some((src, base_url)) => {
                 let img_url = base_url.join(&src);
-                // FIXME: handle URL parse errors more gracefully.
-                let img_url = img_url.unwrap();
-                self.current_request.borrow_mut().url = Some(img_url.clone());
+                if let Ok(img_url) = img_url {
+                    self.current_request.borrow_mut().parsed_url = Some(img_url.clone());
+                    self.current_request.borrow_mut().source_url = Some(src);
 
-                let trusted_node = Trusted::new(self);
-                let (responder_sender, responder_receiver) = ipc::channel().unwrap();
-                let script_chan = window.networking_task_source();
-                let wrapper = window.get_runnable_wrapper();
-                ROUTER.add_route(responder_receiver.to_opaque(), box move |message| {
-                    // Return the image via a message to the script thread, which marks the element
-                    // as dirty and triggers a reflow.
-                    let image_response = message.to().unwrap();
-                    let runnable = ImageResponseHandlerRunnable::new(
-                        trusted_node.clone(), image_response);
-                    let runnable = wrapper.wrap_runnable(runnable);
-                    let _ = script_chan.send(CommonScriptMsg::RunnableMsg(
-                        UpdateReplacedElement, runnable));
-                });
+                    let trusted_node = Trusted::new(self);
+                    let (responder_sender, responder_receiver) = ipc::channel().unwrap();
+                    let script_chan = window.networking_task_source();
+                    let wrapper = window.get_runnable_wrapper();
+                    ROUTER.add_route(responder_receiver.to_opaque(), box move |message| {
+                        // Return the image via a message to the script thread, which marks the element
+                        // as dirty and triggers a reflow.
+                        let image_response = message.to().unwrap();
+                        let runnable = ImageResponseHandlerRunnable::new(
+                            trusted_node.clone(), image_response);
+                        let runnable = wrapper.wrap_runnable(runnable);
+                        let _ = script_chan.send(CommonScriptMsg::RunnableMsg(
+                            UpdateReplacedElement, runnable));
+                    });
 
-                image_cache.request_image_and_metadata(img_url,
-                                          window.image_cache_chan(),
-                                          Some(ImageResponder::new(responder_sender)));
+                    image_cache.request_image_and_metadata(img_url,
+                                              window.image_cache_chan(),
+                                              Some(ImageResponder::new(responder_sender)));
+                } else {
+                    // https://html.spec.whatwg.org/multipage/#update-the-image-data
+                    // Step 11 (error substeps)
+                    debug!("Failed to parse URL {} with base {}", src, base_url);
+                    let mut req = self.current_request.borrow_mut();
+
+                    // Substeps 1,2
+                    req.image = None;
+                    req.parsed_url = None;
+                    req.state = State::Broken;
+                    // todo: set pending request to null
+                    // (pending requests aren't being used yet)
+
+
+                    struct ImgParseErrorRunnable {
+                        img: Trusted<HTMLImageElement>,
+                        src: String,
+                    }
+                    impl Runnable for ImgParseErrorRunnable {
+                        fn handler(self: Box<Self>) {
+                            // https://html.spec.whatwg.org/multipage/#update-the-image-data
+                            // Step 11, substep 5
+                            let img = self.img.root();
+                            img.current_request.borrow_mut().source_url = Some(self.src.into());
+                            img.upcast::<EventTarget>().fire_simple_event("error");
+                            img.upcast::<EventTarget>().fire_simple_event("loadend");
+                        }
+                    }
+
+                    let runnable = Box::new(ImgParseErrorRunnable {
+                        img: Trusted::new(self),
+                        src: src.into(),
+                    });
+                    let task = window.dom_manipulation_task_source();
+                    let _ = task.queue(DOMManipulationTask::Miscellaneous(runnable));
+                }
             }
         }
     }
@@ -153,13 +193,15 @@ impl HTMLImageElement {
             htmlelement: HTMLElement::new_inherited(localName, prefix, document),
             current_request: DOMRefCell::new(ImageRequest {
                 state: State::Unavailable,
-                url: None,
+                parsed_url: None,
+                source_url: None,
                 image: None,
                 metadata: None
             }),
             pending_request: DOMRefCell::new(ImageRequest {
                 state: State::Unavailable,
-                url: None,
+                parsed_url: None,
+                source_url: None,
                 image: None,
                 metadata: None
             }),
@@ -209,7 +251,7 @@ impl LayoutHTMLImageElementHelpers for LayoutJS<HTMLImageElement> {
 
     #[allow(unsafe_code)]
     unsafe fn image_url(&self) -> Option<Url> {
-        (*self.unsafe_get()).current_request.borrow_for_layout().url.clone()
+        (*self.unsafe_get()).current_request.borrow_for_layout().parsed_url.clone()
     }
 
     #[allow(unsafe_code)]
@@ -313,9 +355,9 @@ impl HTMLImageElementMethods for HTMLImageElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-img-currentsrc
     fn CurrentSrc(&self) -> DOMString {
-        let ref url = self.current_request.borrow().url;
+        let ref url = self.current_request.borrow().source_url;
         match *url {
-            Some(ref url) => DOMString::from(url.as_str()),
+            Some(ref url) => url.clone(),
             None => DOMString::from(""),
         }
     }
