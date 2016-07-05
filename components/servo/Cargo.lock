@@ -2465,7 +2465,6 @@ dependencies = [
  "ipc-channel 0.2.3 (git+https://github.com/servo/ipc-channel)",
  "lazy_static 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "num-traits 0.1.32 (registry+https://github.com/rust-lang/crates.io-index)",
  "num_cpus 0.2.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",

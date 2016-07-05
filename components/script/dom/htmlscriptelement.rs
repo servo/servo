@@ -38,8 +38,8 @@ use std::cell::Cell;
 use std::mem;
 use std::sync::{Arc, Mutex};
 use string_cache::Atom;
+use style::str::{HTML_SPACE_CHARACTERS, StaticStringVec};
 use url::Url;
-use util::str::{HTML_SPACE_CHARACTERS, StaticStringVec};
 
 #[dom_struct]
 pub struct HTMLScriptElement {

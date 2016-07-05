@@ -21,7 +21,6 @@ extern crate getopts;
 #[allow(unused_extern_crates)] #[macro_use] extern crate lazy_static;
 #[macro_use] extern crate log;
 extern crate num_cpus;
-extern crate num_traits;
 extern crate rand;
 extern crate rustc_serialize;
 #[cfg(feature = "servo")] extern crate serde;
@@ -39,10 +38,8 @@ pub mod geometry;
 #[cfg(feature = "servo")] pub mod panicking;
 pub mod prefs;
 pub mod resource_files;
-pub mod str;
 pub mod thread;
 pub mod thread_state;
-pub mod tid;
 
 #[cfg(feature = "servo")]
 #[allow(unsafe_code)]

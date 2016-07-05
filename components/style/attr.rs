@@ -12,10 +12,10 @@ use euclid::num::Zero;
 use num_traits::ToPrimitive;
 use std::ascii::AsciiExt;
 use std::str::FromStr;
+use str::{HTML_SPACE_CHARACTERS, read_exponent, read_fraction};
+use str::{read_numbers, split_commas, split_html_space_chars, str_join};
 use string_cache::{Atom, Namespace};
 use url::Url;
-use util::str::{HTML_SPACE_CHARACTERS, read_exponent, read_fraction};
-use util::str::{read_numbers, split_commas, split_html_space_chars};
 use values::specified::Length;
 
 // Duplicated from script::dom::values.
@@ -148,7 +148,6 @@ impl AttrValue {
 
     #[cfg(not(feature = "gecko"))] // Gecko can't borrow atoms as UTF-8.
     pub fn from_atomic_tokens(atoms: Vec<Atom>) -> AttrValue {
-        use util::str::str_join;
         // TODO(ajeffrey): effecient conversion of Vec<Atom> to String
         let tokens = String::from(str_join(&atoms, "\x20"));
         AttrValue::TokenList(tokens, atoms)

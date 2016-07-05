@@ -84,6 +84,7 @@ use style::context::ReflowGoal;
 use style::error_reporting::ParseErrorReporter;
 use style::properties::longhands::overflow_x;
 use style::selector_impl::PseudoElement;
+use style::str::HTML_SPACE_CHARACTERS;
 use task_source::dom_manipulation::DOMManipulationTaskSource;
 use task_source::file_reading::FileReadingTaskSource;
 use task_source::history_traversal::HistoryTraversalTaskSource;
@@ -96,7 +97,6 @@ use tinyfiledialogs::{self, MessageBoxIcon};
 use url::Url;
 use util::geometry::{self, MAX_RECT};
 use util::prefs::PREFS;
-use util::str::HTML_SPACE_CHARACTERS;
 use util::{breakpoint, opts};
 use webdriver_handlers::jsval_to_webdriver;
 

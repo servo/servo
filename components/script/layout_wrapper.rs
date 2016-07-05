@@ -63,8 +63,8 @@ use style::restyle_hints::ElementSnapshot;
 use style::selector_impl::{NonTSPseudoClass, ServoSelectorImpl};
 use style::servo::{PrivateStyleData, SharedStyleContext};
 use style::sink::Push;
+use style::str::is_whitespace;
 use url::Url;
-use util::str::is_whitespace;
 
 #[derive(Copy, Clone)]
 pub struct ServoLayoutNode<'a> {

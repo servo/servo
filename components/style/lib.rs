@@ -92,7 +92,9 @@ pub mod selector_matching;
 pub mod sequential;
 pub mod servo;
 pub mod sink;
+pub mod str;
 pub mod stylesheets;
+mod tid;
 pub mod traversal;
 #[macro_use]
 #[allow(non_camel_case_types)]

@@ -22,7 +22,7 @@ use dom::virtualmethods::VirtualMethods;
 use std::cell::Cell;
 use string_cache::Atom;
 use style::element_state::*;
-use util::str::{split_html_space_chars, str_join};
+use style::str::{split_html_space_chars, str_join};
 
 #[dom_struct]
 pub struct HTMLOptionElement {
