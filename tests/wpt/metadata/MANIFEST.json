@@ -36276,6 +36276,12 @@
             "path": "html/semantics/document-metadata/the-link-element/document-without-browsing-context.html",
             "url": "/html/semantics/document-metadata/the-link-element/document-without-browsing-context.html"
           }
+        ],
+        "html/semantics/embedded-content/the-img-element/invalid-src.html": [
+          {
+            "path": "html/semantics/embedded-content/the-img-element/invalid-src.html",
+            "url": "/html/semantics/embedded-content/the-img-element/invalid-src.html"
+          }
         ]
       }
     },
