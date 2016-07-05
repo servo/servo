@@ -93,6 +93,7 @@ use style::properties::PropertyDeclarationBlock;
 use style::restyle_hints::ElementSnapshot;
 use style::selector_impl::PseudoElement;
 use style::values::specified::Length;
+use time::Duration;
 use url::Origin as UrlOrigin;
 use url::Url;
 use uuid::Uuid;
@@ -110,6 +111,8 @@ no_jsmanaged_fields!(CSSError);
 no_jsmanaged_fields!(EncodingRef);
 
 no_jsmanaged_fields!(Reflector);
+
+no_jsmanaged_fields!(Duration);
 
 /// Trace a `JSVal`.
 pub fn trace_jsval(tracer: *mut JSTracer, description: &str, val: &Heap<JSVal>) {

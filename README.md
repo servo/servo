@@ -86,7 +86,7 @@ pacman -Su
 pacman -Sy git mingw-w64-x86_64-toolchain mingw-w64-x86_64-freetype \
     mingw-w64-x86_64-icu mingw-w64-x86_64-nspr mingw-w64-x86_64-ca-certificates \
     mingw-w64-x86_64-expat mingw-w64-x86_64-cmake tar diffutils patch \
-    patchutils make python2-setuptools
+    patchutils make python2-setuptools mingw-w64-x86_64-ffmpeg
 easy_install-2.7 pip virtualenv
 ```
 
