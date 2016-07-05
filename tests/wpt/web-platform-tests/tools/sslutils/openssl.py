@@ -252,10 +252,7 @@ class OpenSSLEnvironment(object):
         with open(path("index.txt"), "w"):
             pass
         with open(path("serial"), "w") as f:
-            serial = str(random.randint(0, 1000000))
-            if len(serial) % 2:
-                serial = "0" + serial
-            f.write(serial)
+            f.write(str(random.randint(0, 1000000)))
 
         self.path = path
 

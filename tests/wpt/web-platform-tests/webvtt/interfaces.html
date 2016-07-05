@@ -19,7 +19,7 @@ interface VTTCue : TextTrackCue {
            attribute boolean snapToLines;
            attribute (double or AutoKeyword) line;
            attribute AlignSetting lineAlign;
-           attribute double position;
+           attribute (double or AutoKeyword) position;
            attribute AlignSetting positionAlign;
            attribute double size;
            attribute AlignSetting align;

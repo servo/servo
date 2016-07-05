@@ -34,17 +34,19 @@ partial interface Presentation {
     attribute PresentationRequest? defaultRequest;
 };
 
-[Constructor(DOMString url)]
+[Constructor(DOMString url),
+ Constructor(DOMString[] urls)]
 interface PresentationRequest : EventTarget {
-    Promise<PresentationConnection> start();
-    Promise<PresentationConnection> reconnect(DOMString presentationId);
+    Promise<PresentationConnection>   start();
+    Promise<PresentationConnection>   reconnect(DOMString presentationId);
     Promise<PresentationAvailability> getAvailability();
+
     attribute EventHandler onconnectionavailable;
 };
 
 interface PresentationAvailability : EventTarget {
-    readonly attribute boolean value;
-    attribute EventHandler onchange;
+    readonly attribute boolean      value;
+             attribute EventHandler onchange;
 };
 
 [Constructor(DOMString type, PresentationConnectionAvailableEventInit eventInitDict)]
@@ -70,16 +72,17 @@ enum BinaryType {
 };
 
 interface PresentationConnection : EventTarget {
-    readonly attribute DOMString? id;
+    readonly attribute DOMString?                  id;
     readonly attribute PresentationConnectionState state;
     void close();
     void terminate();
-    attribute EventHandler onconnect;
-    attribute EventHandler onclose;
-    attribute EventHandler onterminate;
+    attribute EventHandler                onconnect;
+    attribute EventHandler                onclose;
+    attribute EventHandler                onterminate;
+
     // Communication
-    attribute BinaryType binaryType;
-    attribute EventHandler onmessage;
+    attribute BinaryType                  binaryType;
+    attribute EventHandler                onmessage;
     void send(DOMString message);
     void send(Blob data);
     void send(ArrayBuffer data);
@@ -95,12 +98,12 @@ enum PresentationConnectionClosedReason {
 [Constructor(DOMString type, PresentationConnectionClosedEventInit eventInitDict)]
 interface PresentationConnectionClosedEvent : Event {
     readonly attribute PresentationConnectionClosedReason reason;
-    readonly attribute DOMString message;
+    readonly attribute DOMString                          message;
 };
 
 dictionary PresentationConnectionClosedEventInit : EventInit {
     required PresentationConnectionClosedReason reason;
-    DOMString message;
+    		 DOMString                          message = "";
 };
 </script>
 

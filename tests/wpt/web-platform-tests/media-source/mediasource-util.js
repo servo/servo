@@ -413,4 +413,10 @@
         assert_equals(actual, expected, description);
     };
 
+    window['assertSeekableEquals'] = function(obj, expected, description)
+    {
+        var actual = timeRangesToString(obj.seekable);
+        assert_equals(actual, expected, description);
+    };
+
 })(window);
