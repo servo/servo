@@ -206,7 +206,8 @@
             use cssparser::ToCss;
             use std::fmt;
 
-            #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
+            #[derive(Debug, Clone, PartialEq)]
+            #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
             pub struct T(pub Vec<${to_camel_case(name)}>);
 
             impl ToCss for T {

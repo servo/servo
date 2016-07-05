@@ -18,6 +18,7 @@ default = ["servo_features"]
 # recompiled when building both Servo and geckolib in the same source tree.
 servo_features = [
   "heapsize",
+  "selectors/unstable",
   "style/servo",
   "time",
   "url/query_encoding",
@@ -36,7 +37,7 @@ lazy_static = "0.2"
 libc = "0.2"
 log = {version = "0.3.5", features = ["release_max_level_info"]}
 num_cpus = "0.2.2"
-selectors = {version = "0.6", features = ["unstable"]}
+selectors = "0.6"
 smallvec = "0.1"
 string_cache = {version = "0.2.20", features = ["unstable"]}
 style = {path = "../../components/style", features = ["gecko"]}
