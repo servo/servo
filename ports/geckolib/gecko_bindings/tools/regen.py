@@ -116,7 +116,7 @@ COMPILATION_TARGETS = {
             "nsStyleMargin", "nsStylePadding", "nsStyleBorder",
             "nsStyleOutline", "nsStyleXUL", "nsStyleSVGReset", "nsStyleColumn",
             "nsStyleEffects", "nsStyleImage", "nsStyleGradient",
-            "nsStyleCoord", "nsStyleGradientStop",
+            "nsStyleCoord", "nsStyleGradientStop", "nsStyleImageLayers",
 
             "SheetParsingMode", "nsMainThreadPtrHandle",
             "nsMainThreadPtrHolder", "nscolor", "nsFont", "FontFamilyList",
