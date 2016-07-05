@@ -19,9 +19,9 @@ use std::sync::Arc;
 // TODO: Check on GET
 // https://w3c.github.io/FileAPI/#requestResponseModel
 
-pub fn load_blob(load_data: &LoadData, start_chan: LoadConsumer,
+pub fn load_blob(load_data: LoadData, start_chan: LoadConsumer,
                  classifier: Arc<MimeClassifier>, opt_filename: Option<String>,
-                 rel_pos: &RelativePos, entry: &BlobURLStoreEntry) {
+                 rel_pos: RelativePos, entry: BlobURLStoreEntry) {
     let content_type: Mime = entry.type_string.parse().unwrap_or(mime!(Text / Plain));
     let charset = content_type.get_param(Attr::Charset);
 
