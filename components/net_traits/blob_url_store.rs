@@ -13,6 +13,10 @@ pub enum BlobURLStoreError {
     InvalidFileID,
     /// Invalid URL origin
     InvalidOrigin,
+    /// Invalid entry content
+    InvalidEntry,
+    /// External error, from like file system, I/O etc.
+    External,
 }
 
 /// Blob URL store entry, a packaged form of Blob DOM object
