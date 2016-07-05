@@ -131,11 +131,20 @@ class MachCommands(CommandBase):
                      action='append',
                      default=[],
                      help='Download rust stdlib for specified target')
-    def bootstrap_rustc(self, force=False, target=[]):
-        rust_dir = path.join(
-            self.context.sharedir, "rust", self.rust_path())
-        date = self.rust_path().split("/")[0]
-        install_dir = path.join(self.context.sharedir, "rust", date)
+    @CommandArgument('--stable',
+                     action='store_true',
+                     help='Use stable rustc version')
+    def bootstrap_rustc(self, force=False, target=[], stable=False):
+        self.set_use_stable_rust(stable)
+        version = self.rust_version()
+        rust_path = self.rust_path()
+        if stable:
+            rust_dir = path.join(
+                self.context.sharedir, "rust", version, rust_path)
+        else:
+            rust_dir = path.join(
+                self.context.sharedir, "rust", rust_path)
+        install_dir = path.join(self.context.sharedir, "rust", version)
 
         if not force and path.exists(path.join(rust_dir, "rustc", "bin", "rustc" + BIN_SUFFIX)):
             print("Rust compiler already downloaded.", end=" ")
@@ -145,12 +154,15 @@ class MachCommands(CommandBase):
                 shutil.rmtree(rust_dir)
             os.makedirs(rust_dir)
 
-            # The Rust compiler is hosted on the nightly server under the date with a name
-            # rustc-nightly-HOST-TRIPLE.tar.gz. We just need to pull down and extract it,
+            # The nightly Rust compiler is hosted on the nightly server under the date with a name
+            # rustc-nightly-HOST-TRIPLE.tar.gz, whereas the stable compiler is named
+            # rustc-VERSION-HOST-TRIPLE.tar.gz. We just need to pull down and extract it,
             # giving a directory name that will be the same as the tarball name (rustc is
             # in that directory).
-            rustc_url = ("https://static-rust-lang-org.s3.amazonaws.com/dist/%s.tar.gz"
-                         % self.rust_path())
+            if stable:
+                rustc_url = "https://static.rust-lang.org/dist/%s.tar.gz" % rust_path
+            else:
+                rustc_url = "https://static-rust-lang-org.s3.amazonaws.com/dist/%s.tar.gz" % rust_path
             tgz_file = rust_dir + '-rustc.tar.gz'
 
             download_file("Rust compiler", rustc_url, tgz_file)
@@ -159,11 +171,15 @@ class MachCommands(CommandBase):
             extract(tgz_file, install_dir)
             print("Rust compiler ready.")
 
-        # Each Rust stdlib has a name of the form `rust-std-nightly-TRIPLE.tar.gz`, with
+        # Each Rust stdlib has a name of the form `rust-std-nightly-TRIPLE.tar.gz` for the nightly
+        # releases, or rust-std-VERSION-TRIPLE.tar.gz for stable releases, with
         # a directory of the name `rust-std-TRIPLE` inside and then a `lib` directory.
         # This `lib` directory needs to be extracted and merged with the `rustc/lib`
         # directory from the host compiler above.
-        lib_dir = path.join(install_dir, "rustc-nightly-{}".format(host_triple()),
+        nightly_suffix = "" if stable else "-nightly"
+        stable_version = "-{}".format(version) if stable else ""
+        lib_dir = path.join(install_dir,
+                            "rustc{}{}-{}".format(nightly_suffix, stable_version, host_triple()),
                             "rustc", "lib", "rustlib")
 
         # ensure that the libs for the host's target is downloaded
@@ -179,18 +195,26 @@ class MachCommands(CommandBase):
                 print("Use |bootstrap-rust --force| to download again.")
                 continue
 
-            std_url = ("https://static-rust-lang-org.s3.amazonaws.com/dist/%s/rust-std-nightly-%s.tar.gz"
-                       % (date, target_triple))
-            tgz_file = install_dir + ('rust-std-nightly-%s.tar.gz' % target_triple)
+            if self.use_stable_rust():
+                std_url = ("https://static.rust-lang.org/dist/rust-std-%s-%s.tar.gz"
+                           % (version, target_triple))
+                tgz_file = install_dir + ('rust-std-%s-%s.tar.gz' % (version, target_triple))
+            else:
+                std_url = ("https://static-rust-lang-org.s3.amazonaws.com/dist/%s/rust-std-nightly-%s.tar.gz"
+                           % (version, target_triple))
+                tgz_file = install_dir + ('rust-std-nightly-%s.tar.gz' % target_triple)
 
             download_file("Host rust library for target %s" % target_triple, std_url, tgz_file)
             print("Extracting Rust stdlib for target %s..." % target_triple)
             extract(tgz_file, install_dir)
-            shutil.copytree(path.join(install_dir, "rust-std-nightly-%s" % target_triple,
+            shutil.copytree(path.join(install_dir,
+                                      "rust-std%s%s-%s" % (nightly_suffix, stable_version, target_triple),
                                       "rust-std-%s" % target_triple, "lib", "rustlib", target_triple),
-                            path.join(install_dir, "rustc-nightly-%s" % host_triple(),
+                            path.join(install_dir,
+                                      "rustc%s%s-%s" % (nightly_suffix, stable_version, host_triple),
                                       "rustc", "lib", "rustlib", target_triple))
-            shutil.rmtree(path.join(install_dir, "rust-std-nightly-%s" % target_triple))
+            shutil.rmtree(path.join(install_dir,
+                          "rust-std%s%s-%s" % (nightly_suffix, stable_version, target_triple)))
 
             print("Rust {} libs ready.".format(target_triple))
 
