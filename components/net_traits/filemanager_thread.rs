@@ -136,7 +136,7 @@ pub enum FileManagerThreadMsg {
     AddSlicedEntry(SelectedFileId, RelativePos, IpcSender<Result<SelectedFileId, BlobURLStoreError>>, FileOrigin),
 
     /// Decrease reference count
-    DecRef(SelectedFileId, FileOrigin),
+    DecRef(SelectedFileId, FileOrigin, IpcSender<Result<(), BlobURLStoreError>>),
 
     /// Increase reference count
     IncRef(SelectedFileId, FileOrigin),
