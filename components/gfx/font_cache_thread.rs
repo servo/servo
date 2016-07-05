@@ -165,11 +165,11 @@ impl FontCache {
             match msg {
                 Command::GetFontTemplate(family, descriptor, result) => {
                     let maybe_font_template = self.find_font_template(&family, &descriptor);
-                    result.send(Reply::GetFontTemplateReply(maybe_font_template)).unwrap();
+                    let _ = result.send(Reply::GetFontTemplateReply(maybe_font_template));
                 }
                 Command::GetLastResortFontTemplate(descriptor, result) => {
                     let font_template = self.last_resort_font_template(&descriptor);
-                    result.send(Reply::GetFontTemplateReply(Some(font_template))).unwrap();
+                    let _ = result.send(Reply::GetFontTemplateReply(Some(font_template)));
                 }
                 Command::AddWebFont(family_name, sources, result) => {
                     self.handle_add_web_font(family_name, sources, result);
@@ -180,7 +180,7 @@ impl FontCache {
                     drop(result.send(()));
                 }
                 Command::Exit(result) => {
-                    result.send(()).unwrap();
+                    let _ = result.send(());
                     break;
                 }
             }
