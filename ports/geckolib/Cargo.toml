@@ -36,7 +36,7 @@ lazy_static = "0.2"
 libc = "0.2"
 log = {version = "0.3.5", features = ["release_max_level_info"]}
 num_cpus = "0.2.2"
-selectors = {version = "0.6", features = ["unstable"]}
+selectors = "0.6"
 smallvec = "0.1"
 string_cache = {version = "0.2.20", features = ["unstable"]}
 style = {path = "../../components/style", features = ["gecko"]}
@@ -44,7 +44,7 @@ style_traits = {path = "../../components/style_traits"}
 time = {version = "0.1", optional = true, features = ["rustc-serialize"]}
 url = "1.0.0"
 util = {path = "../../components/util"}
-uuid = {version = "0.2", optional = true, features = ["v4", "serde"]}
+uuid = {version = "0.2", optional = true, features = ["v4"]}
 
 [replace]
 "string_cache:0.2.20" = {path = "string_cache"}

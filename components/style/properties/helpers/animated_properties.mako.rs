@@ -34,7 +34,8 @@ use values::computed::{CalcLengthOrPercentage, LengthOrPercentage};
 
 // NB: This needs to be here because it needs all the longhands generated
 // beforehand.
-#[derive(Copy, Clone, Debug, PartialEq, HeapSizeOf)]
+#[derive(Copy, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum TransitionProperty {
     All,
     % for prop in data.longhands:
@@ -92,7 +93,8 @@ impl ToCss for TransitionProperty {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, HeapSizeOf)]
+#[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum AnimatedProperty {
     % for prop in data.longhands:
         % if prop.animatable:

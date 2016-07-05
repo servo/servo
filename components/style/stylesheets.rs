@@ -67,7 +67,8 @@ pub enum CSSRule<Impl: SelectorImpl> {
 }
 
 
-#[derive(Debug, HeapSizeOf, PartialEq)]
+#[derive(Debug, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct KeyframesRule {
     pub name: Atom,
     pub keyframes: Vec<Keyframe>,
