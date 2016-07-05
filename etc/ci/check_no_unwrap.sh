@@ -1,12 +1,17 @@
 #!/usr/bin/env bash
-#
+
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
 # Make sure listed files do not contain "unwrap"
 
 set -o errexit
 set -o nounset
 set -o pipefail
 
-cd "$(git rev-parse --show-toplevel)" # cd into repo root so make sure paths works in any case
+# cd into repo root to make sure paths work in any case
+cd "$(git rev-parse --show-toplevel)"
 
 # files that should not contain "unwrap"
 FILES=("components/compositing/compositor.rs"
