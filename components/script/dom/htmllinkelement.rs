@@ -194,6 +194,10 @@ impl VirtualMethods for HTMLLinkElement {
 impl HTMLLinkElement {
     fn handle_stylesheet_url(&self, href: &str) {
         let document = document_from_node(self);
+        if document.browsing_context().is_none() {
+            return;
+        }
+
         match document.base_url().join(href) {
             Ok(url) => {
                 let element = self.upcast::<Element>();
