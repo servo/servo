@@ -15,8 +15,8 @@ use dom::node::Node;
 use dom::virtualmethods::VirtualMethods;
 use string_cache::Atom;
 use style::attr::AttrValue;
+use style::str::{HTML_SPACE_CHARACTERS, read_numbers};
 use style::values::specified;
-use util::str::{HTML_SPACE_CHARACTERS, read_numbers};
 
 #[dom_struct]
 pub struct HTMLFontElement {
