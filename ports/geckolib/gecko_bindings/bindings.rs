@@ -243,6 +243,8 @@ extern "C" {
     pub fn Gecko_GetNodeFlags(node: *mut RawGeckoNode) -> u32;
     pub fn Gecko_SetNodeFlags(node: *mut RawGeckoNode, flags: u32);
     pub fn Gecko_UnsetNodeFlags(node: *mut RawGeckoNode, flags: u32);
+    pub fn Gecko_ArrayEnsureCapacity(array: *mut ::std::os::raw::c_void,
+                                     capacity: usize, size: usize);
     pub fn Servo_StylesheetFromUTF8Bytes(bytes: *const u8, length: u32,
                                          parsing_mode: SheetParsingMode,
                                          base: *mut ThreadSafeURIHolder,
