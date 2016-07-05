@@ -23,7 +23,7 @@ COMPILATION_TARGETS = {
         "flags": [
             "-x", "c++", "-std=gnu++0x",
             "-allow-unknown-types", "-no-bitfield-methods",
-            "-no-type-renaming",
+            "-no-type-renaming", "-no-namespaced-constants",
             "-DTRACING=1", "-DIMPL_LIBXUL", "-DMOZ_STYLO_BINDINGS=1",
             "-DMOZILLA_INTERNAL_API",
         ],
@@ -44,10 +44,10 @@ COMPILATION_TARGETS = {
         ],
         "includes": [
             "{}/dist/include/nsThemeConstants.h",
+            "{}/dist/include/mozilla/dom/AnimationEffectReadOnlyBinding.h",
         ],
         "files": [
             "{}/dist/include/nsStyleStruct.h",
-            # TODO: Add the DOM files we need for animations.
         ],
         "build_kinds": {
             "debug": {
@@ -71,16 +71,19 @@ COMPILATION_TARGETS = {
             "gfxFontFamilyList.h", "gfxFontFeatures.h", "imgRequestProxy.h",
             "nsIRequest.h", "imgIRequest.h", "CounterStyleManager.h",
             "nsStyleConsts.h", "nsCSSValue.h", "SheetType.h", "nsIPrincipal.h",
-            "nsDataHashtable.h", "nsCSSScanner.h", "Types.h", "utility",
-            "nsTArray", "pair", "SheetParsingMode.h", "StaticPtr.h",
-            "nsProxyRelease.h"
+            "nsDataHashtable.h", "nsCSSScanner.h", "utility", "nsTArray",
+            "pair", "SheetParsingMode.h", "StaticPtr.h", "nsProxyRelease.h",
+            "mozilla/dom/AnimationEffectReadOnlyBinding.h",
+            "/Types.h",  # <- Disallow UnionTypes.h
         ],
         "blacklist": [
             "IsDestructibleFallbackImpl", "IsDestructibleFallback",
             "nsProxyReleaseEvent", "FallibleTArray", "nsTArray_Impl",
             "__is_tuple_like_impl", "tuple_size", "tuple",
             "__make_pair_return_impl", "__make_pair_return", "tuple_element",
-            "_Itup_cat"
+            "_Itup_cat", "AnimationEffectTimingProperties",
+            "FastAnimationEffectTimingProperties", "ComputedTimingProperties",
+            "FastComputedTimingProperties",
         ],
         "opaque_types": [
             "nsIntMargin", "nsIntPoint", "nsIntRect", "nsCOMArray",
