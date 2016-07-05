@@ -64,7 +64,7 @@ use script_layout_interface::rpc::{MarginStyleResponse, ResolvedStyleResponse};
 use script_runtime::{ScriptChan, ScriptPort, maybe_take_panic_result};
 use script_thread::SendableMainThreadScriptChan;
 use script_thread::{MainThreadScriptChan, MainThreadScriptMsg, RunnableWrapper};
-use script_traits::{ConstellationControlMsg, UntrustedNodeAddress};
+use script_traits::{ConstellationControlMsg, MozBrowserEvent, UntrustedNodeAddress};
 use script_traits::{DocumentState, MsDuration, TimerEvent, TimerEventId};
 use script_traits::{ScriptMsg as ConstellationMsg, TimerEventRequest, TimerSource};
 use std::ascii::AsciiExt;
@@ -474,7 +474,11 @@ impl WindowMethods for Window {
 
     // https://html.spec.whatwg.org/multipage/#dom-window-close
     fn Close(&self) {
-        self.main_thread_script_chan().send(MainThreadScriptMsg::ExitWindow(self.id.clone())).unwrap();
+        if self.is_mozbrowser() {
+            self.Document().trigger_mozbrowser_event(MozBrowserEvent::Close);
+        } else {
+            self.main_thread_script_chan().send(MainThreadScriptMsg::ExitWindow(self.id.clone())).unwrap();
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-2
