@@ -19,7 +19,7 @@ use gecko_bindings::bindings::Gecko_Destroy_${style_struct.gecko_ffi_name};
 use gecko_bindings::bindings::{Gecko_CopyMozBindingFrom, Gecko_CopyListStyleTypeFrom};
 use gecko_bindings::bindings::{Gecko_SetMozBinding, Gecko_SetListStyleType};
 use gecko_bindings::bindings::{Gecko_SetNullImageValue, Gecko_SetGradientImageValue};
-use gecko_bindings::bindings::{Gecko_CreateGradient};
+use gecko_bindings::bindings::{Gecko_ImageLayers_EnsureLength, Gecko_CreateGradient};
 use gecko_bindings::bindings::{Gecko_CopyImageValueFrom, Gecko_CopyFontFamilyFrom};
 use gecko_bindings::bindings::{Gecko_FontFamilyList_AppendGeneric, Gecko_FontFamilyList_AppendNamed};
 use gecko_bindings::bindings::{Gecko_FontFamilyList_Clear};
@@ -958,6 +958,11 @@ fn static_assert() {
             for image in &mut self.gecko.mImage.mLayers {
                 Gecko_SetNullImageValue(&mut image.mImage)
             }
+        }
+
+
+        unsafe {
+            Gecko_ImageLayers_EnsureLength(&mut self.gecko.mImage, images.0.len());
         }
 
         self.gecko.mImage.mImageCount = cmp::max(self.gecko.mImage.mLayers.len() as u32,
