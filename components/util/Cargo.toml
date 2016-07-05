@@ -24,7 +24,6 @@ ipc-channel = {git = "https://github.com/servo/ipc-channel", optional = true}
 lazy_static = "0.2"
 log = "0.3.5"
 num_cpus = "0.2.2"
-num-traits = "0.1.32"
 rand = "0.3"
 rustc-serialize = "0.3"
 serde = {version = "0.7.11", optional = true}

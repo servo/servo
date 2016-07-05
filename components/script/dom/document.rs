@@ -124,11 +124,11 @@ use style::attr::AttrValue;
 use style::context::ReflowGoal;
 use style::restyle_hints::ElementSnapshot;
 use style::servo::Stylesheet;
+use style::str::{split_html_space_chars, str_join};
 use time;
 use url::Url;
 use url::percent_encoding::percent_decode;
 use util::prefs::PREFS;
-use util::str::{split_html_space_chars, str_join};
 
 #[derive(JSTraceable, PartialEq, HeapSizeOf)]
 pub enum IsHTMLDocument {

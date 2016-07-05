@@ -21,9 +21,9 @@ use std::sync::Arc;
 use string_cache::Atom;
 use style::attr::AttrValue;
 use style::servo::Stylesheet;
+use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::{CSSRule, Origin};
 use style::viewport::ViewportRule;
-use util::str::HTML_SPACE_CHARACTERS;
 
 #[dom_struct]
 pub struct HTMLMetaElement {

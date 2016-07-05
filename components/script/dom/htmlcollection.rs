@@ -17,7 +17,7 @@ use dom::window::Window;
 use std::ascii::AsciiExt;
 use std::cell::Cell;
 use string_cache::{Atom, Namespace, QualName};
-use util::str::split_html_space_chars;
+use style::str::split_html_space_chars;
 
 pub trait CollectionFilter : JSTraceable {
     fn filter<'a>(&self, elem: &'a Element, root: &'a Node) -> bool;

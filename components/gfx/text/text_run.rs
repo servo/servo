@@ -11,8 +11,8 @@ use std::cell::Cell;
 use std::cmp::{Ordering, max};
 use std::slice::Iter;
 use std::sync::Arc;
+use style::str::char_is_whitespace;
 use text::glyph::{ByteIndex, GlyphStore};
-use util::str::char_is_whitespace;
 use webrender_traits;
 use xi_unicode::LineBreakIterator;
 

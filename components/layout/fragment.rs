@@ -44,6 +44,7 @@ use style::computed_values::{transform_style, vertical_align, white_space, word_
 use style::dom::TRestyleDamage;
 use style::logical_geometry::{LogicalMargin, LogicalRect, LogicalSize, WritingMode};
 use style::properties::{ComputedValues, ServoComputedValues};
+use style::str::char_is_whitespace;
 use style::values::computed::LengthOrPercentageOrNone;
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use text;
@@ -2358,7 +2359,7 @@ impl Fragment {
         match self.specific {
             SpecificFragmentInfo::ScannedText(ref mut scanned_text_fragment_info) => {
                 let leading_whitespace_byte_count = scanned_text_fragment_info.text()
-                    .find(|c| !util::str::char_is_whitespace(c))
+                    .find(|c| !char_is_whitespace(c))
                     .unwrap_or(scanned_text_fragment_info.text().len());
 
                 let whitespace_len = ByteIndex(leading_whitespace_byte_count as isize);
@@ -2382,7 +2383,7 @@ impl Fragment {
                         new_text_string.push(character);
                         continue
                     }
-                    if util::str::char_is_whitespace(character) {
+                    if char_is_whitespace(character) {
                         modified = true;
                         continue
                     }
@@ -2413,7 +2414,7 @@ impl Fragment {
             SpecificFragmentInfo::ScannedText(ref mut scanned_text_fragment_info) => {
                 let mut trailing_whitespace_start_byte = 0;
                 for (i, c) in scanned_text_fragment_info.text().char_indices().rev() {
-                    if !util::str::char_is_whitespace(c) {
+                    if !char_is_whitespace(c) {
                         trailing_whitespace_start_byte = i + c.len_utf8();
                         break;
                     }
@@ -2440,7 +2441,7 @@ impl Fragment {
                         trailing_bidi_control_characters_to_retain.push(character);
                         continue
                     }
-                    if util::str::char_is_whitespace(character) {
+                    if char_is_whitespace(character) {
                         modified = true;
                         continue
                     }

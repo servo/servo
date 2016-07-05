@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use util::str::{split_html_space_chars, str_join};
+use style::str::{split_html_space_chars, str_join};
 
 #[test]
 pub fn split_html_space_chars_whitespace() {
