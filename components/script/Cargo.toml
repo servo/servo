@@ -66,6 +66,7 @@ time = "0.1.12"
 url = {version = "1.0.0", features = ["heap_size", "query_encoding"]}
 util = {path = "../util"}
 uuid = {version = "0.2", features = ["v4"]}
+video-metadata = {git = "https://github.com/GuillaumeGomez/video-metadata-rs"}
 websocket = "0.17"
 xml5ever = {version = "0.1.2", features = ["unstable"]}
 
