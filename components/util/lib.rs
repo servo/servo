@@ -42,7 +42,6 @@ pub mod resource_files;
 pub mod str;
 pub mod thread;
 pub mod thread_state;
-pub mod tid;
 
 #[cfg(feature = "servo")]
 #[allow(unsafe_code)]

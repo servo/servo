@@ -11,8 +11,8 @@ use selector_impl::SelectorImplExt;
 use selectors::Element;
 use selectors::bloom::BloomFilter;
 use std::cell::RefCell;
+use tid::tid;
 use util::opts;
-use util::tid::tid;
 
 /// Every time we do another layout, the old bloom filters are invalid. This is
 /// detected by ticking a generation number every layout.
