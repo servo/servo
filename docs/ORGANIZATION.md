@@ -10,8 +10,6 @@
     * in-process server to allow manipulating browser instances via a remote Firefox developer tools client.
   * devtools_traits
     * APIs to the devtools crate for crates that don't want to depend on the devtools crate for build speed reasons.
-  * etc
-    * Useful tools and scripts for developers.
   * gfx
     * Draws the result of laying out a page, and sends the result to the compositor.
   * gfx_traits
@@ -48,6 +46,8 @@
     * In-process server to allow manipulating browser instances via a WebDriver client.
   * webdriver_traits
     * APIs to the webdriver crate for crates that don't want to depend on the webdriver crate for build speed reasons.
+* etc
+  * Useful tools and scripts for developers.
 * mach
   * A command-line tool to help with developer tasks.
 * ports
