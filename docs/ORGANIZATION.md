@@ -5,7 +5,9 @@
   * canvas_traits
     * APIs to the canvas crate for crates that don't want to depend on the canvas crate for build speed reasons.
   * compositing
-    * Integration with OS windowing/rendering and event loop, as well as management of resources for a top-level browsing context (ie. tab).
+    * Integration with OS windowing/rendering and event loop.
+  * constellation
+    * Management of resources for a top-level browsing context (ie. tab).
   * devtools
     * in-process server to allow manipulating browser instances via a remote Firefox developer tools client.
   * devtools_traits
@@ -16,6 +18,8 @@
     * APIs to the gfx crate for crates that don't want to depend on the gfx crate for build speed reasons.
   * layout
     * Converts page content into positioned, styled boxes and passes the result to the renderer.
+  * layout_thread
+    * Runs the threads for layout, communicates with the script thread, and calls into the layout crate to do the layout.
   * layout_traits
     * APIs to the layout crate for crates that don't want to depend on the layout crate for build speed reasons.
   * msg
@@ -32,6 +36,8 @@
     * APIs to the profile crate for crates that don't want to depend on the profile crate for build speed reasons.
   * script
     * Implementation of the DOM (native Rust code and bindings to SpiderMonkey).
+  * script_layout_interface
+    * The API the script crate provides for the layout crate.
   * script_traits
     * APIs to the script crate for crates that don't want to depend on the script crate for build speed reasons.
   * servo
@@ -44,8 +50,6 @@
     * assorted utility methods and types that are commonly used throughout the project.
   * webdriver_server
     * In-process server to allow manipulating browser instances via a WebDriver client.
-  * webdriver_traits
-    * APIs to the webdriver crate for crates that don't want to depend on the webdriver crate for build speed reasons.
 * etc
   * Useful tools and scripts for developers.
 * mach
@@ -53,13 +57,13 @@
 * ports
   * cef
     * Embedding implementation for the Chrome Embedding Framework (CEF) API.
+  * geckolib
+    * A static library to be linked into Gecko for the Stylo project.
   * glutin
     * Embedding implementation for the `glutin` windowing library.
 * python
   * servo
     * Implementations of servo-specific mach commands.
-  * mach
-    * Implementation of `mach` command-line tool.
   * tidy
     * Python package of code lints that are automatically run before merging changes.
 * resources
@@ -104,3 +108,4 @@
 * <https://github.com/servo/rust-selectors/>: a CSS selector matching library
 * <https://github.com/cyderize/rust-websocket/>: a WebSocket protocol implementation
 * <https://github.com/servo/rust-url/>: an implementation of the URL specification
+* <https://github.com/servo/webrender/> and <https://github.com/servo/webrender_traits/>: a GPU renderer
