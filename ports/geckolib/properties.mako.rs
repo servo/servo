@@ -963,6 +963,10 @@ fn static_assert() {
         self.gecko.mImage.mImageCount = cmp::max(self.gecko.mImage.mLayers.len() as u32,
                                                  self.gecko.mImage.mImageCount);
 
+        unsafe {
+            self.gecko.mImage.mLayers.mOtherElements.set_len((images.0.len() - 1) as u32);
+        }
+
         // TODO: pre-grow the nsTArray to the right capacity
         // otherwise the below code won't work
         for (image, geckoimage) in images.0.into_iter().zip(self.gecko.mImage.mLayers.iter_mut()) {
