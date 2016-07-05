@@ -20,7 +20,7 @@ use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::str::{ByteString, DOMString, USVString, is_token};
-use dom::blob::{Blob, DataSlice, BlobImpl};
+use dom::blob::{Blob, BlobImpl};
 use dom::document::DocumentSource;
 use dom::document::{Document, IsHTMLDocument};
 use dom::event::{Event, EventBubbles, EventCancelable};
@@ -1105,8 +1105,8 @@ impl XMLHttpRequest {
         let mime = self.final_mime_type().as_ref().map(Mime::to_string).unwrap_or("".to_owned());
 
         // Step 3, 4
-        let slice = DataSlice::from_bytes(self.response.borrow().to_vec());
-        let blob = Blob::new(self.global().r(), BlobImpl::new_from_slice(slice), mime);
+        let bytes = self.response.borrow().to_vec();
+        let blob = Blob::new(self.global().r(), BlobImpl::new_from_bytes(bytes), mime);
         self.response_blob.set(Some(blob.r()));
         blob
     }
@@ -1375,7 +1375,8 @@ impl Extractable for BodyInit {
                 } else {
                     Some(b.Type())
                 };
-                (b.get_slice_or_empty().get_bytes().to_vec(), content_type)
+                let bytes = b.get_bytes().unwrap_or(vec![]);
+                (bytes, content_type)
             },
         }
     }

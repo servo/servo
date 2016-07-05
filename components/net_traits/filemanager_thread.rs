@@ -130,7 +130,7 @@ pub enum FileManagerThreadMsg {
     LoadBlob(LoadData, LoadConsumer),
 
     /// Add an entry and send back the associated uuid
-    TransferMemory(BlobURLStoreEntry, RelativePos, IpcSender<Result<SelectedFileId, BlobURLStoreError>>, FileOrigin),
+    TransferMemory(BlobURLStoreEntry, IpcSender<Result<SelectedFileId, BlobURLStoreError>>, FileOrigin),
 
     /// Add a sliced entry pointing to the parent id with a relative slicing positing
     AddSlicedEntry(SelectedFileId, RelativePos, IpcSender<Result<SelectedFileId, BlobURLStoreError>>, FileOrigin),

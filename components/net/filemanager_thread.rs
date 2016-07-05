@@ -135,8 +135,8 @@ impl<UI: 'static + UIProvider> FileManager<UI> {
                         Err(_) => { let _ = sender.send(Err(FileManagerThreadError::ReadFileError)); }
                     }
                 }
-                FileManagerThreadMsg::TransferMemory(entry, rel_pos, sender, origin) =>
-                    self.transfer_memory(entry, rel_pos, sender, origin),
+                FileManagerThreadMsg::TransferMemory(entry, sender, origin) =>
+                    self.transfer_memory(entry, sender, origin),
                 FileManagerThreadMsg::AddSlicedEntry(id, rel_pos, sender, origin) =>
                     self.add_sliced_entry(id, rel_pos, sender, origin),
                 FileManagerThreadMsg::LoadBlob(load_data, consumer) => {
@@ -418,8 +418,9 @@ impl<UI: 'static + UIProvider> FileManager<UI> {
         }
     }
 
-    fn transfer_memory(&mut self, entry: BlobURLStoreEntry, rel_pos: RelativePos,
-                       sender: IpcSender<Result<SelectedFileId, BlobURLStoreError>>, origin: FileOrigin) {
+    fn transfer_memory(&mut self, entry: BlobURLStoreEntry,
+                       sender: IpcSender<Result<SelectedFileId, BlobURLStoreError>>,
+                       origin: FileOrigin) {
         match Url::parse(&origin) { // parse to check sanity
             Ok(_) => {
                 let id = Uuid::new_v4();
@@ -428,9 +429,8 @@ impl<UI: 'static + UIProvider> FileManager<UI> {
                     file_impl: FileImpl::Memory(entry),
                     refs: Cell::new(1),
                 });
-                let sliced_id = SelectedFileId(id.simple().to_string());
 
-                self.add_sliced_entry(sliced_id, rel_pos, sender, origin);
+                let _ = sender.send(Ok(SelectedFileId(id.simple().to_string())));
             }
             Err(_) => {
                 let _ = sender.send(Err(BlobURLStoreError::InvalidOrigin));

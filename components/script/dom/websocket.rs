@@ -16,7 +16,7 @@ use dom::bindings::js::Root;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::str::{DOMString, USVString, is_token};
-use dom::blob::{Blob, BlobImpl, DataSlice};
+use dom::blob::{Blob, BlobImpl};
 use dom::closeevent::CloseEvent;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
@@ -405,7 +405,7 @@ impl WebSocketMethods for WebSocket {
         if send_data {
             let mut other_sender = self.sender.borrow_mut();
             let my_sender = other_sender.as_mut().unwrap();
-            let bytes = blob.get_slice_or_empty().get_bytes().to_vec();
+            let bytes = blob.get_bytes().unwrap_or(vec![]);
             let _ = my_sender.send(WebSocketDomAction::SendMessage(MessageData::Binary(bytes)));
         }
 
@@ -591,8 +591,7 @@ impl Runnable for MessageReceivedTask {
                 MessageData::Binary(data) => {
                     match ws.binary_type.get() {
                         BinaryType::Blob => {
-                            let slice = DataSlice::from_bytes(data);
-                            let blob = Blob::new(global.r(), BlobImpl::new_from_slice(slice), "".to_owned());
+                            let blob = Blob::new(global.r(), BlobImpl::new_from_bytes(data), "".to_owned());
                             blob.to_jsval(cx, message.handle_mut());
                         }
                         BinaryType::Arraybuffer => {

@@ -324,9 +324,9 @@ impl HTMLFormElement {
                         content_disposition,
                         content_type));
 
-                    let slice = f.upcast::<Blob>().get_slice_or_empty();
+                    let bytes = &f.upcast::<Blob>().get_bytes().unwrap_or(vec![])[..];
 
-                    let decoded = encoding.decode(&slice.get_bytes(), DecoderTrap::Replace)
+                    let decoded = encoding.decode(bytes, DecoderTrap::Replace)
                                           .expect("Invalid encoding in file");
                     result.push_str(&decoded);
                 }

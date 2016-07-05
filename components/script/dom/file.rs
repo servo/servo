@@ -10,7 +10,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
-use dom::blob::{Blob, BlobImpl, DataSlice, blob_parts_to_bytes};
+use dom::blob::{Blob, BlobImpl, blob_parts_to_bytes};
 use dom::window::Window;
 use net_traits::filemanager_thread::SelectedFile;
 use time;
@@ -71,9 +71,8 @@ impl File {
         let ref blobPropertyBag = filePropertyBag.parent;
         let typeString = blobPropertyBag.get_typestring();
 
-        let slice = DataSlice::from_bytes(bytes);
         let modified = filePropertyBag.lastModified;
-        Ok(File::new(global, BlobImpl::new_from_slice(slice), filename, modified, &typeString))
+        Ok(File::new(global, BlobImpl::new_from_bytes(bytes), filename, modified, &typeString))
     }
 
     pub fn name(&self) -> &DOMString {
