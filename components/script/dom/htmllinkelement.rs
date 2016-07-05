@@ -226,6 +226,7 @@ impl HTMLLinkElement {
                 let listener = NetworkListener {
                     context: context,
                     script_chan: document.window().networking_task_source(),
+                    wrapper: Some(document.window().get_runnable_wrapper()),
                 };
                 let response_target = AsyncResponseTarget {
                     sender: action_sender,
