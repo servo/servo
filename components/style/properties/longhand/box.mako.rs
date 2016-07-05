@@ -618,7 +618,8 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 
         pub use string_cache::Atom as SingleComputedValue;
 
-        #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
+        #[derive(Debug, Clone, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T(pub Vec<Atom>);
 
         impl ToCss for T {
@@ -683,7 +684,8 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 
         pub use self::AnimationIterationCount as SingleComputedValue;
 
-        #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
+        #[derive(Debug, Clone, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub enum AnimationIterationCount {
             Number(u32),
             Infinite,
@@ -698,7 +700,8 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
             }
         }
 
-        #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
+        #[derive(Debug, Clone, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T(pub Vec<AnimationIterationCount>);
 
         impl ToCss for T {
