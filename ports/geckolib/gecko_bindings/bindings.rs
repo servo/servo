@@ -240,6 +240,8 @@ extern "C" {
                                principal: *mut ThreadSafePrincipalHolder);
     pub fn Gecko_CopyMozBindingFrom(des: *mut nsStyleDisplay,
                                     src: *const nsStyleDisplay);
+    pub fn Gecko_ArrayEnsureCapacity(array: *mut ::std::os::raw::c_void,
+                                     capacity: usize, size: usize);
     pub fn Servo_StylesheetFromUTF8Bytes(bytes: *const u8, length: u32,
                                          parsing_mode: SheetParsingMode,
                                          base: *mut ThreadSafeURIHolder,
