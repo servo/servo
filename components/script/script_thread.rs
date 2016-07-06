@@ -200,6 +200,7 @@ impl<T: Runnable + Send> Runnable for CancellableRunnable<T> {
 
 pub trait Runnable {
     fn is_cancelled(&self) -> bool { false }
+    fn name(&self) -> &'static str { "" }
     fn handler(self: Box<Self>) {}
     fn main_thread_handler(self: Box<Self>, _script_thread: &ScriptThread) { self.handler(); }
 }
