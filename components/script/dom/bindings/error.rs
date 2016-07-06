@@ -128,6 +128,8 @@ pub unsafe fn report_pending_exception(cx: *mut JSContext, obj: *mut JSObject) {
     if JS_IsExceptionPending(cx) {
         let _ac = JSAutoCompartment::new(cx, obj);
         // XXX JS_ReportPendingException(cx);
+        error!("Got pending exception");
+        println!("Got pending exception");
     }
 }
 
