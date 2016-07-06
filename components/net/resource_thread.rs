@@ -26,7 +26,7 @@ use mime_classifier::{ApacheBugFlag, MimeClassifier, NoSniffFlag};
 use net_traits::LoadContext;
 use net_traits::ProgressMsg::Done;
 use net_traits::filemanager_thread::FileManagerThreadMsg;
-use net_traits::request::{Request, RequestInit};
+use net_traits::request::{PotentialCORSRequestInit, Request, RequestInit};
 use net_traits::storage_thread::StorageThreadMsg;
 use net_traits::{AsyncResponseTarget, Metadata, ProgressMsg, ResponseAction, CoreResourceThread};
 use net_traits::{CoreResourceMsg, CookieSource, FetchResponseMsg, FetchTaskTarget, LoadConsumer};
@@ -269,6 +269,8 @@ impl ResourceChannelManager {
                 self.resource_manager.load(load_data, consumer, id_sender, control_sender.clone(), group),
             CoreResourceMsg::Fetch(init, sender) =>
                 self.resource_manager.fetch(init, sender, group),
+            CoreResourceMsg::PotentialCORSFetch(init, sender) =>
+                self.resource_manager.potential_cors_fetch(init, sender, group),
             CoreResourceMsg::WebsocketConnect(connect, connect_data) =>
                 self.resource_manager.websocket_connect(connect, connect_data, group),
             CoreResourceMsg::SetCookiesForUrl(request, cookie_list, source) =>
@@ -574,6 +576,29 @@ impl CoreResourceManager {
         let ua = self.user_agent.clone();
         spawn_named(format!("fetch thread for {}", init.url), move || {
             let request = Request::from_init(init);
+            // XXXManishearth: Check origin against pipeline id (also ensure that the mode is allowed)
+            // todo load context / mimesniff in fetch
+            // todo referrer policy?
+            // todo service worker stuff
+            let mut target = Some(Box::new(sender) as Box<FetchTaskTarget + Send + 'static>);
+            let context = FetchContext { state: http_state, user_agent: ua };
+            fetch(Rc::new(request), &mut target, context);
+        })
+    }
+
+    fn potential_cors_fetch(&self,
+                            init: PotentialCORSRequestInit,
+                            sender: IpcSender<FetchResponseMsg>,
+                            group: &ResourceGroup) {
+        let http_state = HttpState {
+            hsts_list: group.hsts_list.clone(),
+            cookie_jar: group.cookie_jar.clone(),
+            auth_cache: group.auth_cache.clone(),
+            blocked_content: BLOCKED_CONTENT_RULES.clone(),
+        };
+        let ua = self.user_agent.clone();
+        spawn_named(format!("fetch thread for {}", init.url), move || {
+            let request = Request::potential_cors_init(init);
             // XXXManishearth: Check origin against pipeline id (also ensure that the mode is allowed)
             // todo load context / mimesniff in fetch
             // todo referrer policy?

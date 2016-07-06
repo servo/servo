@@ -20,7 +20,7 @@ pub enum Initiator {
 }
 
 /// A request [type](https://fetch.spec.whatwg.org/#concept-request-type)
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Type {
     None, Audio, Font, Image,
     Script, Style, Track, Video
@@ -79,7 +79,7 @@ pub enum CacheMode {
 }
 
 /// [Parser metadata](https://fetch.spec.whatwg.org/#concept-request-parser-metadata)
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Serialize, Deserialize)]
 pub enum ParserMetadata {
     None,
     ParserInserted,
@@ -111,7 +111,7 @@ pub enum Window {
 }
 
 /// [CORS settings attribute](https://html.spec.whatwg.org/multipage/#attr-crossorigin-anonymous)
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Serialize, Deserialize)]
 pub enum CORSSettings {
     Anonymous,
     UseCredentials
@@ -138,6 +138,31 @@ pub struct RequestInit {
     // XXXManishearth these should be part of the client object
     pub referer_url: Option<Url>,
     pub referrer_policy: Option<ReferrerPolicy>,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct PotentialCORSRequestInit {
+    pub method: Method,
+    pub url: Url,
+    pub headers: Headers,
+    pub body: Option<Vec<u8>>,
+    // TODO: client object
+    pub type_: Type,
+    pub destination: Destination,
+    pub synchronous: bool,
+    pub use_cors_preflight: bool,
+    pub use_url_credentials: bool,
+    pub cryptographic_metadata: String,
+    pub parser_metadata: ParserMetadata,
+    // this should actually be set by fetch, but fetch
+    // doesn't have info about the client right now
+    pub origin: Url,
+    // XXXManishearth these should be part of the client object
+    pub referer_url: Option<Url>,
+    pub referrer_policy: Option<ReferrerPolicy>,
+    // CORS-specific attributes
+    pub cors_attribute_state: Option<CORSSettings>,
+    pub same_origin_fallback: bool,
 }
 
 /// A [Request](https://fetch.spec.whatwg.org/#requests) as defined by the Fetch spec
@@ -231,7 +256,6 @@ impl Request {
                                    false);
         *req.method.borrow_mut() = init.method;
         *req.headers.borrow_mut() = init.headers;
-        req.unsafe_request = init.unsafe_request;
         req.same_origin_data.set(init.same_origin_data);
         *req.body.borrow_mut() = init.body;
         req.destination = init.destination;
@@ -246,6 +270,30 @@ impl Request {
             Referer::NoReferer
         };
         req.referrer_policy.set(init.referrer_policy);
+        req
+    }
+
+    pub fn potential_cors_init(init: PotentialCORSRequestInit) -> Request {
+        let mut req = Request::potential_cors_request(init.url,
+                                                      init.cors_attribute_state,
+                                                      false,
+                                                      init.same_origin_fallback);
+        *req.method.borrow_mut() = init.method;
+        *req.headers.borrow_mut() = init.headers;
+        *req.body.borrow_mut() = init.body;
+        req.type_ = init.type_;
+        req.destination = init.destination;
+        req.synchronous = init.synchronous;
+        req.use_cors_preflight = init.use_cors_preflight;
+        req.use_url_credentials = init.use_url_credentials;
+        *req.referer.borrow_mut() = if let Some(url) = init.referer_url {
+            Referer::RefererUrl(url)
+        } else {
+            Referer::NoReferer
+        };
+        req.referrer_policy.set(init.referrer_policy);
+        *req.cryptographic_metadata.borrow_mut() = init.cryptographic_metadata;
+        req.parser_metadata.set(init.parser_metadata);
         req
     }
 

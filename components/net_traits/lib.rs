@@ -39,7 +39,7 @@ use hyper::method::Method;
 use hyper::mime::{Attr, Mime};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use msg::constellation_msg::{PipelineId, ReferrerPolicy};
-use request::{Request, RequestInit};
+use request::{PotentialCORSRequestInit, Request, RequestInit};
 use response::{HttpsState, Response};
 use std::io::Error as IOError;
 use std::thread;
@@ -422,6 +422,7 @@ pub enum CoreResourceMsg {
     /// Request the data associated with a particular URL
     Load(LoadData, LoadConsumer, Option<IpcSender<ResourceId>>),
     Fetch(RequestInit, IpcSender<FetchResponseMsg>),
+    PotentialCORSFetch(PotentialCORSRequestInit, IpcSender<FetchResponseMsg>),
     /// Try to make a websocket connection to a URL.
     WebsocketConnect(WebSocketCommunicate, WebSocketConnectData),
     /// Store a set of cookies for a given originating URL
