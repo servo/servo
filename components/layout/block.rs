@@ -488,6 +488,7 @@ pub enum BlockType {
     FloatNonReplaced,
     InlineBlockReplaced,
     InlineBlockNonReplaced,
+    Flex,
 }
 
 #[derive(Clone, PartialEq)]
@@ -579,6 +580,8 @@ impl BlockFlow {
             } else {
                 BlockType::InlineBlockNonReplaced
             }
+        } else if self.base.flags.is_flex() {
+            BlockType::Flex
         } else {
             if self.is_replaced_content() {
                 BlockType::Replaced
@@ -626,6 +629,12 @@ impl BlockFlow {
             }
             BlockType::InlineBlockNonReplaced => {
                 let inline_size_computer = InlineBlockNonReplaced;
+                inline_size_computer.compute_used_inline_size(self,
+                                                              shared_context,
+                                                              containing_block_inline_size);
+            }
+            BlockType::Flex => {
+                let inline_size_computer = FlexBlock;
                 inline_size_computer.compute_used_inline_size(self,
                                                               shared_context,
                                                               containing_block_inline_size);
@@ -2568,6 +2577,7 @@ pub struct FloatNonReplaced;
 pub struct FloatReplaced;
 pub struct InlineBlockNonReplaced;
 pub struct InlineBlockReplaced;
+pub struct FlexBlock;
 
 impl ISizeAndMarginsComputer for AbsoluteNonReplaced {
     /// Solve the horizontal constraint equation for absolute non-replaced elements.
@@ -3055,6 +3065,24 @@ impl ISizeAndMarginsComputer for InlineBlockReplaced {
         // For replaced block flow, the rest of the constraint solving will
         // take inline-size to be specified as the value computed here.
         MaybeAuto::Specified(fragment.content_inline_size())
+    }
+}
+
+impl ISizeAndMarginsComputer for FlexBlock {
+    /// Compute inline-start and inline-end margins and inline-size.
+    fn solve_inline_size_constraints(&self,
+                                     block: &mut BlockFlow,
+                                     input: &ISizeConstraintInput)
+                                     -> ISizeConstraintSolution {
+
+        let new_input = ISizeConstraintInput::new(MaybeAuto::Auto,
+               input.inline_start_margin,
+               input.inline_end_margin,
+               input.inline_start,
+               input.inline_end,
+               input.text_align,
+               input.available_inline_size);
+        self.solve_block_inline_size_constraints(block, &new_input)
     }
 }
 
