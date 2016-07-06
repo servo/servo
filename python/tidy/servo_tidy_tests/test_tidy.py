@@ -109,6 +109,11 @@ class CheckTidiness(unittest.TestCase):
         self.assertEqual('Invalid control character at: line 3 column 40 (char 61)', errors.next()[2])
         self.assertNoMoreErrors(errors)
 
+    def test_json_with_duplicate_key(self):
+        errors = tidy.collect_errors_for_files(iterFile('duplicate_key.json'), [tidy.check_json], [], print_text=False)
+        self.assertEqual('Duplicated Key (the_duplicated_key)', errors.next()[2])
+        self.assertNoMoreErrors(errors)
+
     def test_lock(self):
         errors = tidy.collect_errors_for_files(iterFile('duplicated_package.lock'), [tidy.check_lock], [], print_text=False)
         msg = """duplicate versions for package "test"
