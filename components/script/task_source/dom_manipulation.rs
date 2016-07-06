@@ -5,7 +5,7 @@
 use dom::bindings::refcounted::Trusted;
 use dom::event::{EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
-use script_thread::{MainThreadScriptMsg, Runnable, ScriptThread};
+use script_thread::{MainThreadScriptMsg, Runnable, RunnableWrapper, ScriptThread};
 use std::result::Result;
 use std::sync::mpsc::Sender;
 use string_cache::Atom;
@@ -25,46 +25,86 @@ impl DOMManipulationTaskSource {
                        target: &EventTarget,
                        name: Atom,
                        bubbles: EventBubbles,
-                       cancelable: EventCancelable) {
+                       cancelable: EventCancelable,
+                       wrapper: Option<RunnableWrapper>) {
         let target = Trusted::new(target);
-        let _ = self.0.send(MainThreadScriptMsg::DOMManipulation(DOMManipulationTask::FireEvent(
-            target, name, bubbles, cancelable)));
+        let runnable = match wrapper {
+            Some(wrapper) => {
+                wrapper.wrap_runnable(EventRunnable {
+                    target: target,
+                    name: name,
+                    bubbles: bubbles,
+                    cancelable: cancelable,
+                })
+            },
+            None => {
+                box EventRunnable {
+                    target: target,
+                    name: name,
+                    bubbles: bubbles,
+                    cancelable: cancelable,
+                }
+            }
+        };
+        let _ = self.0.send(MainThreadScriptMsg::DOMManipulation(DOMManipulationTask(runnable)));
     }
 
-    pub fn queue_simple_event(&self, target: &EventTarget, name: Atom) {
+    pub fn queue_simple_event(&self, target: &EventTarget, name: Atom, wrapper: Option<RunnableWrapper>) {
         let target = Trusted::new(target);
-        let _ = self.0.send(MainThreadScriptMsg::DOMManipulation(DOMManipulationTask::FireSimpleEvent(
-            target, name)));
+        let runnable = match wrapper {
+            Some(wrapper) => {
+                wrapper.wrap_runnable(SimpleEventRunnable {
+                    target: target,
+                    name: name,
+                })
+            },
+            None => {
+                box SimpleEventRunnable {
+                    target: target,
+                    name: name,
+                }
+            }
+        };
+        let _ = self.0.send(MainThreadScriptMsg::DOMManipulation(DOMManipulationTask(runnable)));
     }
 }
 
-pub enum DOMManipulationTask {
-    // https://dom.spec.whatwg.org/#concept-event-fire
-    FireEvent(Trusted<EventTarget>, Atom, EventBubbles, EventCancelable),
-    // https://html.spec.whatwg.org/multipage/#fire-a-simple-event
-    FireSimpleEvent(Trusted<EventTarget>, Atom),
-
-    Runnable(Box<Runnable + Send>),
+struct EventRunnable {
+    target: Trusted<EventTarget>,
+    name: Atom,
+    bubbles: EventBubbles,
+    cancelable: EventCancelable,
 }
+
+impl Runnable for EventRunnable {
+    fn name(&self) -> &'static str { "EventRunnable" }
+
+    fn handler(self: Box<EventRunnable>) {
+        let target = self.target.root();
+        target.fire_event(&*self.name, self.bubbles, self.cancelable);
+    }
+}
+
+struct SimpleEventRunnable {
+    target: Trusted<EventTarget>,
+    name: Atom,
+}
+
+impl Runnable for SimpleEventRunnable {
+    fn name(&self) -> &'static str { "SimpleEventRunnable" }
+
+    fn handler(self: Box<SimpleEventRunnable>) {
+        let target = self.target.root();
+        target.fire_simple_event(&*self.name);
+    }
+}
+
+pub struct DOMManipulationTask(pub Box<Runnable + Send>);
 
 impl DOMManipulationTask {
     pub fn handle_task(self, script_thread: &ScriptThread) {
-        use self::DOMManipulationTask::*;
-
-        match self {
-            FireEvent(element, name, bubbles, cancelable) => {
-                let target = element.root();
-                target.fire_event(&*name, bubbles, cancelable);
-            }
-            FireSimpleEvent(element, name) => {
-                let target = element.root();
-                target.fire_simple_event(&*name);
-            }
-            Runnable(runnable) => {
-                if !runnable.is_cancelled() {
-                    runnable.main_thread_handler(script_thread);
-                }
-            }
+        if !self.0.is_cancelled() {
+            self.0.main_thread_handler(script_thread);
         }
     }
 }

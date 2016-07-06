@@ -26,7 +26,7 @@ pub enum EventPhase {
     Bubbling  = EventConstants::BUBBLING_PHASE,
 }
 
-#[derive(PartialEq, HeapSizeOf)]
+#[derive(PartialEq, HeapSizeOf, Clone, Copy)]
 pub enum EventBubbles {
     Bubbles,
     DoesNotBubble
@@ -50,7 +50,7 @@ impl From<bool> for EventBubbles {
     }
 }
 
-#[derive(PartialEq, HeapSizeOf)]
+#[derive(PartialEq, HeapSizeOf, Clone, Copy)]
 pub enum EventCancelable {
     Cancelable,
     NotCancelable
