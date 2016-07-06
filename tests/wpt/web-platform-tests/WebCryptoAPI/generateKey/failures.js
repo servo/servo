@@ -35,6 +35,9 @@ function run_test(algorithmNames) {
     ];
 
     var testVectors = [];
+    if (algorithmNames && !Array.isArray(algorithmNames)) {
+        algorithmNames = [algorithmNames];
+    };
     allTestVectors.forEach(function(vector) {
         if (!algorithmNames || algorithmNames.includes(vector.name)) {
             testVectors.push(vector);

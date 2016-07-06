@@ -48,6 +48,8 @@
     });
   }, "iframe-sandbox-allowfullscreen");
 
+  /* Fullscreen enabled flag with dialog */
+
   function test_allowfullscreen_dialog(t, setup_iframe, check) {
     var iframe = document.createElement("iframe");
     setup_iframe(iframe);
@@ -86,4 +88,28 @@
       assert_false(newWin.document.fullscreenEnabled, "Document in the new window should inherit the sandboxed fullscreen flag and should not have fullscreen enabled flag set");
     });
   }, "iframe-sandbox-allowfullscreen-dialog");
+
+  /* Fullscreen enabled flag with about:blank */
+
+  function test_allowfullscreen_noload(setup_iframe, check) {
+    var iframe = document.createElement("iframe");
+    setup_iframe(iframe);
+    document.body.appendChild(iframe);
+    check(iframe.contentDocument);
+    document.body.removeChild(iframe);
+  }
+
+  test(function() {
+    test_allowfullscreen_noload(function() {}, function(doc) {
+      assert_false(doc.fullscreenEnabled, "Fullscreen should not be enabled without allowfullscreen attribute");
+    });
+  }, "iframe-noload-noallowfullscreen");
+
+  test(function() {
+    test_allowfullscreen_noload(function(iframe) {
+      iframe.setAttribute("allowfullscreen", true);
+    }, function(doc) {
+      assert_true(doc.fullscreenEnabled, "Fullscreen should be enabled with allowfullscreen attribute");
+    });
+  }, "iframe-noload-allowfullscreen");
 </script>
