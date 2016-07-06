@@ -279,69 +279,91 @@ impl DOMMatrixMethods for DOMMatrix {
         }
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-multiplyself
-        fn MultiplySelf(&self, other:&DOMMatrixInit) -> Root<DOMMatrix> {
-            self.upcast::<DOMMatrixReadOnly>().multiply_self(other);
-            Root::from_ref(&self)
+        fn MultiplySelf(&self, other:&DOMMatrixInit) -> Fallible<Root<DOMMatrix>> {
+            // Steps 1-3.
+            self.upcast::<DOMMatrixReadOnly>().multiply_self(other)
+                // Step 4.
+                .and(Ok(Root::from_ref(&self)))
         }
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-premultiplyself
-        fn PreMultiplySelf(&self, other:&DOMMatrixInit) -> Root<DOMMatrix> {
-            self.upcast::<DOMMatrixReadOnly>().pre_multiply_self(other);
-            Root::from_ref(&self)
+        fn PreMultiplySelf(&self, other:&DOMMatrixInit) -> Fallible<Root<DOMMatrix>> {
+            // Steps 1-3.
+            self.upcast::<DOMMatrixReadOnly>().pre_multiply_self(other)
+                // Step 4.
+                .and(Ok(Root::from_ref(&self)))
         }
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-translateself
         fn TranslateSelf(&self, tx: f64, ty: f64, tz: f64) -> Root<DOMMatrix> {
+            // Steps 1-2.
             self.upcast::<DOMMatrixReadOnly>().translate_self(tx, ty, tz);
+            // Step 3.
             Root::from_ref(&self)
         }
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-scaleself
         fn ScaleSelf(&self, scaleX: f64, scaleY: Option<f64>, scaleZ: f64,
                             originX: f64, originY: f64, originZ: f64) -> Root<DOMMatrix> {
+            // Steps 1-6.
             self.upcast::<DOMMatrixReadOnly>().scale_self(scaleX, scaleY, scaleZ, originX, originY, originZ);
+            // Step 7.
             Root::from_ref(&self)
         }
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-scale3dself
         fn Scale3dSelf(&self, scale: f64, originX: f64, originY: f64, originZ: f64) -> Root<DOMMatrix> {
+            // Steps 1-4.
             self.upcast::<DOMMatrixReadOnly>().scale_3d_self(scale, originX, originY, originZ);
+            // Step 5.
             Root::from_ref(&self)
         }
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-rotateself
         fn RotateSelf(&self, rotX: f64, rotY: Option<f64>, rotZ: Option<f64>) -> Root<DOMMatrix> {
+            // Steps 1-7.
             self.upcast::<DOMMatrixReadOnly>().rotate_self(rotX, rotY, rotZ);
+            // Step 8.
             Root::from_ref(&self)
         }
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-rotatefromvectorself
         fn RotateFromVectorSelf(&self, x: f64, y: f64) -> Root<DOMMatrix> {
+            // Step 1.
             self.upcast::<DOMMatrixReadOnly>().rotate_from_vector_self(x, y);
+            // Step 2.
             Root::from_ref(&self)
         }
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-rotateaxisangleself
         fn RotateAxisAngleSelf(&self, x: f64, y: f64, z: f64, angle: f64) -> Root<DOMMatrix> {
+            // Steps 1-2.
             self.upcast::<DOMMatrixReadOnly>().rotate_axis_angle_self(x, y, z, angle);
+            // Step 3.
             Root::from_ref(&self)
         }
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-skewxself
         fn SkewXSelf(&self, sx: f64) -> Root<DOMMatrix> {
+            // Step 1.
             self.upcast::<DOMMatrixReadOnly>().skew_x_self(sx);
+            // Step 2.
             Root::from_ref(&self)
         }
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-skewyself
         fn SkewYSelf(&self, sy: f64) -> Root<DOMMatrix> {
+            // Step 1.
             self.upcast::<DOMMatrixReadOnly>().skew_y_self(sy);
+            // Step 2.
             Root::from_ref(&self)
         }
 
         // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-invertself
         fn InvertSelf(&self) -> Root<DOMMatrix> {
+            // Steps 1-2.
             self.upcast::<DOMMatrixReadOnly>().invert_self();
+            // Step 3.
             Root::from_ref(&self)
         }
 }

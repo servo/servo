@@ -154,7 +154,7 @@ impl DOMMatrixReadOnly {
 
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-multiplyself
-    pub fn multiply_self(&self, other: &DOMMatrixInit) -> Fallible<&Self> {
+    pub fn multiply_self(&self, other: &DOMMatrixInit) -> Fallible<()> {
         // Step 1.
         dommatrixinit_to_matrix(&other).map(|(is2D, other_matrix)| {
             // Step 2.
@@ -164,13 +164,12 @@ impl DOMMatrixReadOnly {
             // Step 3.
             let mut matrix = self.matrix.borrow_mut();
             *matrix = matrix.mul(&other_matrix);
-            // Step 4.
-            self
+            // Step 4 in DOMMatrix.MultiplySelf
         })
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-premultiplyself
-    pub fn pre_multiply_self(&self, other: &DOMMatrixInit) -> Fallible<&Self> {
+    pub fn pre_multiply_self(&self, other: &DOMMatrixInit) -> Fallible<()> {
         // Step 1.
         dommatrixinit_to_matrix(&other).map(|(is2D, other_matrix)| {
             // Step 2.
@@ -180,13 +179,12 @@ impl DOMMatrixReadOnly {
             // Step 3.
             let mut matrix = self.matrix.borrow_mut();
             *matrix = other_matrix.mul(&matrix);
-            // Step 4.
-            self
+            // Step 4 in DOMMatrix.PreMultiplySelf
         })
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-translateself
-    pub fn translate_self(&self, tx: f64, ty: f64, tz: f64) -> &Self {
+    pub fn translate_self(&self, tx: f64, ty: f64, tz: f64) {
         // Step 1.
         let translation = Matrix4D::create_translation(tx, ty, tz);
         let mut matrix = self.matrix.borrow_mut();
@@ -195,13 +193,12 @@ impl DOMMatrixReadOnly {
         if tz != 0.0 {
             self.is2D.set(false);
         }
-        // Step 4.
-        self
+        // Step 3 in DOMMatrix.TranslateSelf
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-scaleself
     pub fn scale_self(&self, scaleX: f64, scaleY: Option<f64>, scaleZ: f64,
-                      mut originX: f64, mut originY: f64, mut originZ: f64) -> &Self {
+                      mut originX: f64, mut originY: f64, mut originZ: f64) {
         // Step 1.
         self.translate_self(originX, originY, originZ);
         // Step 2.
@@ -222,12 +219,11 @@ impl DOMMatrixReadOnly {
         if scaleZ != 1.0 || originZ != 0.0 {
             self.is2D.set(false);
         }
-        // Step 7.
-        self
+        // Step 7 in DOMMatrix.ScaleSelf
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-scale3dself
-    pub fn scale_3d_self(&self, scale: f64, originX: f64, originY: f64, originZ: f64) -> &Self {
+    pub fn scale_3d_self(&self, scale: f64, originX: f64, originY: f64, originZ: f64) {
         // Step 1.
         self.translate_self(originX, originY, originZ);
         // Step 2.
@@ -242,12 +238,11 @@ impl DOMMatrixReadOnly {
         if scale != 1.0 {
             self.is2D.set(false);
         }
-        // Step 5.
-        self
+        // Step 5 in DOMMatrix.Scale3dSelf
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-rotateself
-    pub fn rotate_self(&self, mut rotX: f64, mut rotY: Option<f64>, mut rotZ: Option<f64>) -> &Self {
+    pub fn rotate_self(&self, mut rotX: f64, mut rotY: Option<f64>, mut rotZ: Option<f64>) {
         // Step 1.
         if rotY.is_none() && rotZ.is_none() {
             rotZ = Some(rotX);
@@ -280,12 +275,11 @@ impl DOMMatrixReadOnly {
             let mut matrix = self.matrix.borrow_mut();
             *matrix = matrix.mul(&rotation);
         }
-        // Step 8.
-        self
+        // Step 8 in DOMMatrix.RotateSelf
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-rotatefromvectorself
-    pub fn rotate_from_vector_self(&self, x: f64, y: f64) -> &Self {
+    pub fn rotate_from_vector_self(&self, x: f64, y: f64) {
         // don't do anything when the rotation angle is zero or undefined
         if y != 0.0 || x < 0.0 {
             // Step 1.
@@ -293,12 +287,11 @@ impl DOMMatrixReadOnly {
             let mut matrix = self.matrix.borrow_mut();
             *matrix = Matrix4D::create_rotation(0.0, 0.0, 1.0, rotZ).mul(&matrix);
         }
-        // Step 2.
-        self
+        // Step 2 in DOMMatrix.RotateFromVectorSelf
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-rotateaxisangleself
-    pub fn rotate_axis_angle_self(&self, x: f64, y: f64, z: f64, angle: f64) -> &Self {
+    pub fn rotate_axis_angle_self(&self, x: f64, y: f64, z: f64, angle: f64) {
         // Step 1.
         let (norm_x, norm_y, norm_z) = normalize_point(x, y, z);
         let rotation = Matrix4D::create_rotation(norm_x, norm_y, norm_z, angle.to_radians());
@@ -308,32 +301,29 @@ impl DOMMatrixReadOnly {
         if x != 0.0 || y != 0.0 {
             self.is2D.set(false);
         }
-        // Step 3.
-        self
+        // Step 3 in DOMMatrix.RotateAxisAngleSelf
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-skewxself
-    pub fn skew_x_self(&self, sx: f64) -> &Self {
+    pub fn skew_x_self(&self, sx: f64) {
         // Step 1.
         let skew = Matrix4D::create_skew(sx.to_radians(), 0.0);
         let mut matrix = self.matrix.borrow_mut();
         *matrix = matrix.mul(&skew);
-        // Step 2.
-        self
+        // Step 2 in DOMMatrix.SkewXSelf
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-skewyself
-    pub fn skew_y_self(&self, sy: f64) -> &Self {
+    pub fn skew_y_self(&self, sy: f64) {
         // Step 1.
         let skew = Matrix4D::create_skew(0.0, sy.to_radians());
         let mut matrix = self.matrix.borrow_mut();
         *matrix = matrix.mul(&skew);
-        // Step 2.
-        self
+        // Step 2 in DOMMatrix.SkewYSelf
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-invertself
-    pub fn invert_self(&self) -> &Self {
+    pub fn invert_self(&self) {
         let mut matrix = self.matrix.borrow_mut();
         if matrix.determinant() != 0.0 {
             // Step 1.
@@ -346,8 +336,7 @@ impl DOMMatrixReadOnly {
                                     f64::NAN, f64::NAN, f64::NAN, f64::NAN);
             self.is2D.set(false);
         }
-        // Step 3.
-        self
+        // Step 3 in DOMMatrix.InvertSelf
     }
 }
 
@@ -519,7 +508,7 @@ impl DOMMatrixReadOnlyMethods for DOMMatrixReadOnly {
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-multiply
-    fn Multiply(&self, other: &DOMMatrixInit) -> Root<DOMMatrix> {
+    fn Multiply(&self, other: &DOMMatrixInit) -> Fallible<Root<DOMMatrix>> {
         DOMMatrix::from_readonly(self.global().r(), self).MultiplySelf(&other)
     }
 

@@ -47,8 +47,8 @@ interface DOMMatrix : DOMMatrixReadOnly {
     inherit attribute unrestricted double m44;
 
     // Mutable transform methods
-    DOMMatrix multiplySelf(optional DOMMatrixInit other);
-    DOMMatrix preMultiplySelf(optional DOMMatrixInit other);
+    [Throws] DOMMatrix multiplySelf(optional DOMMatrixInit other);
+    [Throws] DOMMatrix preMultiplySelf(optional DOMMatrixInit other);
     DOMMatrix translateSelf(optional unrestricted double tx = 0,
                             optional unrestricted double ty = 0,
                             optional unrestricted double tz = 0);
