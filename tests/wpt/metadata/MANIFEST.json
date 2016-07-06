@@ -36282,6 +36282,12 @@
             "path": "html/semantics/embedded-content/the-img-element/invalid-src.html",
             "url": "/html/semantics/embedded-content/the-img-element/invalid-src.html"
           }
+        ],
+        "html/semantics/scripting-1/the-script-element/script-not-executed-after-shutdown.html": [
+          {
+            "path": "html/semantics/scripting-1/the-script-element/script-not-executed-after-shutdown.html",
+            "url": "/html/semantics/scripting-1/the-script-element/script-not-executed-after-shutdown.html"
+          }
         ]
       }
     },

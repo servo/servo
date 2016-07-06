@@ -1,0 +1,11 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Script is not executed after script thread is shutdown</title>
+<script>
+onload = function() {
+  s = document.createElement('script');
+  s.type = 'text/javascript';
+  s.src = 'script-not-executed-after-shutdown.js?pipe=trickle(d1)';
+  document.body.appendChild(s)
+}
+</script>

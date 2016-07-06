@@ -72,6 +72,8 @@ impl<A: Action<Listener> + Send + 'static, Listener: PreInvoke + Send> Runnable 
         let mut context = this.context.lock().unwrap();
         if context.should_invoke() {
             this.action.process(&mut *context);
+        } else {
+            println!("NO INVOKE");
         }
     }
 }
