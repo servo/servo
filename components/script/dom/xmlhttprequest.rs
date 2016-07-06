@@ -47,7 +47,7 @@ use js::jsapi::{JSContext, JS_ParseJSON};
 use js::jsval::{JSVal, NullValue, UndefinedValue};
 use msg::constellation_msg::{PipelineId, ReferrerPolicy};
 use net_traits::CoreResourceMsg::Fetch;
-use net_traits::request::{CredentialsMode, Destination, RequestInit, RequestMode};
+use net_traits::request::{CORSSettings, Destination, RequestInit, RequestMode};
 use net_traits::trim_http_whitespace;
 use net_traits::{CoreResourceThread, LoadOrigin};
 use net_traits::{FetchResponseListener, Metadata, NetworkError};
@@ -558,10 +558,10 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         // Step 5
         //TODO - set referrer_policy/referrer_url in request
         let has_handlers = self.upload.upcast::<EventTarget>().has_handlers();
-        let credentials_mode = if self.with_credentials.get() {
-            CredentialsMode::Include
+        let cors_attribute_state = if self.with_credentials.get() {
+            Some(CORSSettings::UseCredentials)
         } else {
-            CredentialsMode::CredentialsSameOrigin
+            Some(CORSSettings::Anonymous)
         };
         let use_url_credentials = if let Some(ref url) = *self.request_url.borrow() {
             !url.username().is_empty() || url.password().is_some()
@@ -597,12 +597,14 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             synchronous: self.sync.get(),
             mode: RequestMode::CORSMode,
             use_cors_preflight: has_handlers,
-            credentials_mode: credentials_mode,
             use_url_credentials: use_url_credentials,
             origin: self.global().r().get_url(),
             referer_url: self.referrer_url.clone(),
             referrer_policy: self.referrer_policy.clone(),
             pipeline_id: self.pipeline_id(),
+            cors_attribute_state: cors_attribute_state,
+            // same_origin_fallback, request type
+            .. RequestInit::default()
         };
 
         if bypass_cross_origin_check {
