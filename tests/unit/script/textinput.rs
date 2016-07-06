@@ -7,10 +7,9 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-#[cfg(not(target_os = "macos"))]
-use msg::constellation_msg::CONTROL;
 #[cfg(target_os = "macos")]
 use msg::constellation_msg::SUPER;
+use msg::constellation_msg::{ALT, CONTROL};
 use msg::constellation_msg::{Key, KeyModifiers};
 use script::clipboard_provider::DummyClipboardContext;
 use script::dom::bindings::str::DOMString;
@@ -385,6 +384,66 @@ fn test_textinput_set_content() {
     assert_eq!(textinput.get_content(), "de");
     assert_eq!(textinput.edit_point.line, 0);
     assert_eq!(textinput.edit_point.index, 2);
+}
+
+#[test]
+#[cfg(target_os = "macos")]
+fn test_navigation_shortcuts() {
+    let mut textinput = TextInput::new(Lines::Multiple,
+                                       DOMString::from("foo bar \nbaz   quux    "),
+                                       DummyClipboardContext::new(""),
+                                       None,
+                                       SelectionDirection::None);
+
+    // Sanity checks - the DOM contains the right info, and our cursor is at the beginning of the
+    // string.
+    assert_eq!(textinput.get_content(), "foo bar \nbaz   quux    ");
+    assert_eq!(textinput.edit_point.index, 0);
+
+    // Test that CMD + Right moves to the end of the current line.
+    textinput.handle_keydown_aux(None, Key::Right, SUPER);
+    assert_eq!(textinput.edit_point.index, 8);
+
+    // Test that CMD + Left moves to the beginning of the current line.
+    textinput.handle_keydown_aux(None, Key::Left, SUPER);
+    assert_eq!(textinput.edit_point.index, 0);
+
+    // Test that CTRL + E moves to the end of the current line.
+    textinput.handle_keydown_aux(Some('e'), Key::E, CONTROL);
+    assert_eq!(textinput.edit_point.index, 8);
+
+    // Test that CTRL + A moves to the beginning of the current line.
+    textinput.handle_keydown_aux(Some('a'), Key::A, CONTROL);
+    assert_eq!(textinput.edit_point.index, 0);
+
+    // Move cursor from "|foo bar" to "foo bar|" before the next tests, so we can demonstrate they
+    // handle newlines correctly.
+    textinput.adjust_horizontal(7, Selection::NotSelected);
+
+    // Test that ALT + Right moves to the end of the next word.
+    textinput.handle_keydown_aux(None, Key::Right, ALT);
+    assert_eq!(textinput.edit_point.index, 3);
+
+    // Move cursor from "\nbaz|" to "\n|baz".
+    textinput.adjust_horizontal(-3, Selection::NotSelected);
+
+    // Test that ALT + Left moves to the beginning of the previous word.
+    textinput.handle_keydown_aux(None, Key::Left, ALT);
+    assert_eq!(textinput.edit_point.index, 4);
+
+    // Move to "foo bar|" for the next tests
+    textinput.adjust_horizontal(3, Selection::NotSelected);
+
+    // Test that CONTROL + ALT + F moves to the end of the next word.
+    textinput.handle_keydown_aux(Some('f'), Key::F, CONTROL | ALT);
+    assert_eq!(textinput.edit_point.index, 3);
+
+    // Move cursor from "\nbaz|" to "\n|baz".
+    textinput.adjust_horizontal(-3, Selection::NotSelected);
+
+    // Test that CONTROL + ALT + B moves to the beginning of the previous word.
+    textinput.handle_keydown_aux(Some('b'), Key::B, CONTROL | ALT);
+    assert_eq!(textinput.edit_point.index, 4);
 }
 
 #[test]
