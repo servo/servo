@@ -10,7 +10,7 @@ use gecko_bindings::bindings::Gecko_ClassOrClassList;
 use gecko_bindings::bindings::Gecko_GetElementId;
 use gecko_bindings::bindings::Gecko_GetNodeData;
 use gecko_bindings::bindings::ServoNodeData;
-use gecko_bindings::bindings::{Gecko_ElementState, Gecko_GetAttrAsUTF8, Gecko_GetDocumentElement};
+use gecko_bindings::bindings::{Gecko_ElementState, Gecko_GetDocumentElement};
 use gecko_bindings::bindings::{Gecko_GetFirstChild, Gecko_GetFirstChildElement};
 use gecko_bindings::bindings::{Gecko_GetLastChild, Gecko_GetLastChildElement};
 use gecko_bindings::bindings::{Gecko_GetNextSibling, Gecko_GetNextSiblingElement};
