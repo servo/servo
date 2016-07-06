@@ -57,6 +57,8 @@ pub enum Error {
     QuotaExceeded,
     /// TypeMismatchError DOMException
     TypeMismatch,
+    /// InvalidModificationError DOMException
+    InvalidModification,
 
     /// TypeError JavaScript Error
     Type(String),
@@ -97,6 +99,7 @@ pub unsafe fn throw_dom_exception(cx: *mut JSContext, global: GlobalRef, result:
         Error::NoModificationAllowed => DOMErrorName::NoModificationAllowedError,
         Error::QuotaExceeded => DOMErrorName::QuotaExceededError,
         Error::TypeMismatch => DOMErrorName::TypeMismatchError,
+        Error::InvalidModification => DOMErrorName::InvalidModificationError,
         Error::Type(message) => {
             assert!(!JS_IsExceptionPending(cx));
             throw_type_error(cx, &message);
