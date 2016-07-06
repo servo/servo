@@ -1044,6 +1044,7 @@ impl Document {
 
     /// The entry point for all key processing for web content
     pub fn dispatch_key_event(&self,
+                              ch: Option<char>,
                               key: Key,
                               state: KeyState,
                               modifiers: KeyModifiers,
@@ -1070,7 +1071,7 @@ impl Document {
                                       }
                                       .to_owned());
 
-        let props = KeyboardEvent::key_properties(key, modifiers);
+        let props = KeyboardEvent::key_properties(ch, key, modifiers);
 
         let keyevent = KeyboardEvent::new(&self.window,
                                           ev_type,
@@ -1078,8 +1079,9 @@ impl Document {
                                           true,
                                           Some(&self.window),
                                           0,
+                                          ch,
                                           Some(key),
-                                          DOMString::from(props.key_string),
+                                          DOMString::from(props.key_string.clone()),
                                           DOMString::from(props.code),
                                           props.location,
                                           is_repeating,
@@ -1103,6 +1105,7 @@ impl Document {
                                            true,
                                            Some(&self.window),
                                            0,
+                                           ch,
                                            Some(key),
                                            DOMString::from(props.key_string),
                                            DOMString::from(props.code),
@@ -1122,7 +1125,7 @@ impl Document {
         }
 
         if !prevented {
-            constellation.send(ConstellationMsg::SendKeyEvent(key, state, modifiers)).unwrap();
+            constellation.send(ConstellationMsg::SendKeyEvent(ch, key, state, modifiers)).unwrap();
         }
 
         // This behavior is unspecced

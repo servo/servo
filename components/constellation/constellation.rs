@@ -574,9 +574,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 debug!("constellation got get-pipeline-title message");
                 self.handle_get_pipeline_title_msg(pipeline_id);
             }
-            FromCompositorMsg::KeyEvent(key, state, modifiers) => {
+            FromCompositorMsg::KeyEvent(ch, key, state, modifiers) => {
                 debug!("constellation got key event message");
-                self.handle_key_msg(key, state, modifiers);
+                self.handle_key_msg(ch, key, state, modifiers);
             }
             // Load a new page from a typed url
             // If there is already a pending page (self.pending_frames), it will not be overridden;
@@ -803,8 +803,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 self.compositor_proxy.send(ToCompositorMsg::ChangePageTitle(pipeline_id, title))
             }
 
-            FromScriptMsg::SendKeyEvent(key, key_state, key_modifiers) => {
-                self.compositor_proxy.send(ToCompositorMsg::KeyEvent(key, key_state, key_modifiers))
+            FromScriptMsg::SendKeyEvent(ch, key, key_state, key_modifiers) => {
+                self.compositor_proxy.send(ToCompositorMsg::KeyEvent(ch, key, key_state, key_modifiers))
             }
 
             FromScriptMsg::TouchEventProcessed(result) => {
@@ -1396,7 +1396,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
     }
 
-    fn handle_key_msg(&mut self, key: Key, state: KeyState, mods: KeyModifiers) {
+    fn handle_key_msg(&mut self, ch: Option<char>, key: Key, state: KeyState, mods: KeyModifiers) {
         // Send to the explicitly focused pipeline (if it exists), or the root
         // frame's current pipeline. If neither exist, fall back to sending to
         // the compositor below.
@@ -1407,7 +1407,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         match pipeline_id {
             Some(pipeline_id) => {
-                let event = CompositorEvent::KeyEvent(key, state, mods);
+                let event = CompositorEvent::KeyEvent(ch, key, state, mods);
                 let msg = ConstellationControlMsg::SendEvent(pipeline_id, event);
                 let result = match self.pipelines.get(&pipeline_id) {
                     Some(pipeline) => pipeline.script_chan.send(msg),
@@ -1418,7 +1418,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 }
             },
             None => {
-                let event = ToCompositorMsg::KeyEvent(key, state, mods);
+                let event = ToCompositorMsg::KeyEvent(ch, key, state, mods);
                 self.compositor_proxy.clone_compositor_proxy().send(event);
             }
         }
@@ -1629,7 +1629,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     None => return warn!("Pipeline {:?} SendKeys after closure.", pipeline_id),
                 };
                 for (key, mods, state) in cmd {
-                    let event = CompositorEvent::KeyEvent(key, state, mods);
+                    let event = CompositorEvent::KeyEvent(None, key, state, mods);
                     let control_msg = ConstellationControlMsg::SendEvent(pipeline_id, event);
                     if let Err(e) = script_channel.send(control_msg) {
                         return self.handle_send_error(pipeline_id, e);

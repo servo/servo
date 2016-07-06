@@ -120,7 +120,7 @@ dependencies = [
 
 [[package]]
 name = "bincode"
-version = "0.5.7"
+version = "0.5.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "byteorder 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -970,7 +970,7 @@ name = "ipc-channel"
 version = "0.2.3"
 source = "git+https://github.com/servo/ipc-channel#48137d69955f5460da586c552de275ecdc3f4efe"
 dependencies = [
- "bincode 0.5.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bincode 0.5.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",

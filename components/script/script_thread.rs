@@ -1937,12 +1937,12 @@ impl ScriptThread {
                 document.r().handle_touchpad_pressure_event(self.js_runtime.rt(), point, pressure, phase);
             }
 
-            KeyEvent(key, state, modifiers) => {
+            KeyEvent(ch, key, state, modifiers) => {
                 let document = match self.root_browsing_context().find(pipeline_id) {
                     Some(browsing_context) => browsing_context.active_document(),
                     None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
                 };
-                document.dispatch_key_event(key, state, modifiers, &self.constellation_chan);
+                document.dispatch_key_event(ch, key, state, modifiers, &self.constellation_chan);
             }
         }
     }

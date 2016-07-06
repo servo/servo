@@ -14,10 +14,10 @@ use euclid::{Size2D, Point2D};
 #[cfg(target_os = "windows")] use gdi32;
 use gleam::gl;
 use glutin;
-use glutin::TouchPhase;
 #[cfg(target_os = "macos")]
 use glutin::os::macos::{ActivationPolicy, WindowBuilderExt};
 use glutin::{Api, ElementState, Event, GlRequest, MouseButton, VirtualKeyCode, MouseScrollDelta};
+use glutin::{ScanCode, TouchPhase};
 use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeDisplay;
 use msg::constellation_msg::{KeyState, NONE, CONTROL, SHIFT, ALT, SUPER};
@@ -99,6 +99,12 @@ pub struct Window {
     mouse_pos: Cell<Point2D<i32>>,
     key_modifiers: Cell<KeyModifiers>,
     current_url: RefCell<Option<Url>>,
+
+    /// The contents of the last ReceivedCharacter event for use in a subsequent KeyEvent.
+    pending_key_event_char: Cell<Option<char>>,
+    /// The list of keys that have been pressed but not yet released, to allow providing
+    /// the equivalent ReceivedCharacter data as was received for the press event.
+    pressed_key_map: RefCell<Vec<(ScanCode, char)>>,
 }
 
 #[cfg(not(target_os = "windows"))]
@@ -175,6 +181,9 @@ impl Window {
             mouse_pos: Cell::new(Point2D::new(0, 0)),
             key_modifiers: Cell::new(KeyModifiers::empty()),
             current_url: RefCell::new(None),
+
+            pending_key_event_char: Cell::new(None),
+            pressed_key_map: RefCell::new(vec![]),
         };
 
         gl::clear_color(0.6, 0.6, 0.6, 1.0);
@@ -232,7 +241,13 @@ impl Window {
 
     fn handle_window_event(&self, event: glutin::Event) -> bool {
         match event {
-            Event::KeyboardInput(element_state, _scan_code, Some(virtual_key_code)) => {
+            Event::ReceivedCharacter(ch) => {
+                assert!(self.pending_key_event_char.get().is_none());
+                if !ch.is_control() {
+                    self.pending_key_event_char.set(Some(ch));
+                }
+            }
+            Event::KeyboardInput(element_state, scan_code, Some(virtual_key_code)) => {
                 match virtual_key_code {
                     VirtualKeyCode::LControl => self.toggle_modifier(LEFT_CONTROL),
                     VirtualKeyCode::RControl => self.toggle_modifier(RIGHT_CONTROL),
@@ -245,13 +260,39 @@ impl Window {
                     _ => {}
                 }
 
+                let ch = match element_state {
+                    ElementState::Pressed => {
+                        // Retrieve any previosly stored ReceivedCharacter value.
+                        // Store the association between the scan code and the actual
+                        // character value, if there is one.
+                        let ch = self.pending_key_event_char
+                                     .get()
+                                     .and_then(|ch| filter_nonprintable(ch, virtual_key_code));
+                        self.pending_key_event_char.set(None);
+                        if let Some(ch) = ch {
+                            self.pressed_key_map.borrow_mut().push((scan_code, ch));
+                        }
+                        ch
+                    }
+
+                    ElementState::Released => {
+                        // Retrieve the associated character value for this release key,
+                        // if one was previously stored.
+                        let idx = self.pressed_key_map
+                                      .borrow()
+                                      .iter()
+                                      .position(|&(code, _)| code == scan_code);
+                        idx.map(|idx| self.pressed_key_map.borrow_mut().swap_remove(idx).1)
+                    }
+                };
+
                 if let Ok(key) = Window::glutin_key_to_script_key(virtual_key_code) {
                     let state = match element_state {
                         ElementState::Pressed => KeyState::Pressed,
                         ElementState::Released => KeyState::Released,
                     };
                     let modifiers = Window::glutin_mods_to_script_mods(self.key_modifiers.get());
-                    self.event_queue.borrow_mut().push(WindowEvent::KeyEvent(key, state, modifiers));
+                    self.event_queue.borrow_mut().push(WindowEvent::KeyEvent(ch, key, state, modifiers));
                 }
             }
             Event::KeyboardInput(_, _, None) => {
@@ -803,48 +844,47 @@ impl WindowMethods for Window {
     }
 
     /// Helper function to handle keyboard events.
-    fn handle_key(&self, key: Key, mods: constellation_msg::KeyModifiers) {
-        match (mods, key) {
-            (_, Key::Equal) => {
+    fn handle_key(&self, ch: Option<char>, key: Key, mods: constellation_msg::KeyModifiers) {
+        match (mods, ch, key) {
+            (_, Some('+'), _) => {
                 if mods & !SHIFT == CMD_OR_CONTROL {
                     self.event_queue.borrow_mut().push(WindowEvent::Zoom(1.1));
                 } else if mods & !SHIFT == CMD_OR_CONTROL | ALT {
                     self.event_queue.borrow_mut().push(WindowEvent::PinchZoom(1.1));
                 }
             }
-            (CMD_OR_CONTROL, Key::Minus) => {
+            (CMD_OR_CONTROL, Some('-'), _) => {
                 self.event_queue.borrow_mut().push(WindowEvent::Zoom(1.0 / 1.1));
             }
-            (_, Key::Minus) if mods == CMD_OR_CONTROL | ALT => {
+            (_, Some('-'), _) if mods == CMD_OR_CONTROL | ALT => {
                 self.event_queue.borrow_mut().push(WindowEvent::PinchZoom(1.0 / 1.1));
             }
-            (CMD_OR_CONTROL, Key::Num0) |
-            (CMD_OR_CONTROL, Key::Kp0) => {
+            (CMD_OR_CONTROL, Some('0'), _) => {
                 self.event_queue.borrow_mut().push(WindowEvent::ResetZoom);
             }
 
-            (NONE, Key::NavigateForward) => {
+            (NONE, None, Key::NavigateForward) => {
                 self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Forward));
             }
-            (NONE, Key::NavigateBackward) => {
+            (NONE, None, Key::NavigateBackward) => {
                 self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Back));
             }
 
-            (NONE, Key::Escape) => {
+            (NONE, None, Key::Escape) => {
                 if let Some(true) = PREFS.get("shell.builtin-key-shortcuts.enabled").as_boolean() {
                     self.event_queue.borrow_mut().push(WindowEvent::Quit);
                 }
             }
 
-            (CMD_OR_ALT, Key::Right) => {
+            (CMD_OR_ALT, None, Key::Right) => {
                 self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Forward));
             }
-            (CMD_OR_ALT, Key::Left) => {
+            (CMD_OR_ALT, None, Key::Left) => {
                 self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Back));
             }
 
-            (NONE, Key::PageDown) |
-            (NONE, Key::Space) => {
+            (NONE, None, Key::PageDown) |
+            (NONE, Some(' '), _) => {
                 self.scroll_window(0.0,
                                    -self.framebuffer_size()
                                         .as_f32()
@@ -852,8 +892,8 @@ impl WindowMethods for Window {
                                         .height + 2.0 * LINE_HEIGHT,
                                    TouchEventType::Move);
             }
-            (NONE, Key::PageUp) |
-            (SHIFT, Key::Space) => {
+            (NONE, None, Key::PageUp) |
+            (SHIFT, Some(' '), _) => {
                 self.scroll_window(0.0,
                                    self.framebuffer_size()
                                        .as_f32()
@@ -861,19 +901,19 @@ impl WindowMethods for Window {
                                        .height - 2.0 * LINE_HEIGHT,
                                    TouchEventType::Move);
             }
-            (NONE, Key::Up) => {
+            (NONE, None, Key::Up) => {
                 self.scroll_window(0.0, 3.0 * LINE_HEIGHT, TouchEventType::Move);
             }
-            (NONE, Key::Down) => {
+            (NONE, None, Key::Down) => {
                 self.scroll_window(0.0, -3.0 * LINE_HEIGHT, TouchEventType::Move);
             }
-            (NONE, Key::Left) => {
+            (NONE, None, Key::Left) => {
                 self.scroll_window(LINE_HEIGHT, 0.0, TouchEventType::Move);
             }
-            (NONE, Key::Right) => {
+            (NONE, None, Key::Right) => {
                 self.scroll_window(-LINE_HEIGHT, 0.0, TouchEventType::Move);
             }
-            (CMD_OR_CONTROL, Key::R) => {
+            (CMD_OR_CONTROL, Some('r'), _) => {
                 if let Some(true) = PREFS.get("shell.builtin-key-shortcuts.enabled").as_boolean() {
                     self.event_queue.borrow_mut().push(WindowEvent::Reload);
                 }
@@ -929,6 +969,77 @@ fn glutin_pressure_stage_to_touchpad_pressure_phase(stage: i64) -> TouchpadPress
         TouchpadPressurePhase::AfterFirstClick
     } else {
         TouchpadPressurePhase::AfterSecondClick
+    }
+}
+
+fn filter_nonprintable(ch: char, key_code: VirtualKeyCode) -> Option<char> {
+    use glutin::VirtualKeyCode::*;
+    match key_code {
+        Escape |
+        F1 |
+        F2 |
+        F3 |
+        F4 |
+        F5 |
+        F6 |
+        F7 |
+        F8 |
+        F9 |
+        F10 |
+        F11 |
+        F12 |
+        F13 |
+        F14 |
+        F15 |
+        Snapshot |
+        Scroll |
+        Pause |
+        Insert |
+        Home |
+        Delete |
+        End |
+        PageDown |
+        PageUp |
+        Left |
+        Up |
+        Right |
+        Down |
+        Back |
+        LAlt |
+        LControl |
+        LMenu |
+        LShift |
+        LWin |
+        Mail |
+        MediaSelect |
+        MediaStop |
+        Mute |
+        MyComputer |
+        NavigateForward |
+        NavigateBackward |
+        NextTrack |
+        NoConvert |
+        PlayPause |
+        Power |
+        PrevTrack |
+        RAlt |
+        RControl |
+        RMenu |
+        RShift |
+        RWin |
+        Sleep |
+        Stop |
+        VolumeDown |
+        VolumeUp |
+        Wake |
+        WebBack |
+        WebFavorites |
+        WebForward |
+        WebHome |
+        WebRefresh |
+        WebSearch |
+        WebStop => None,
+        _ => Some(ch),
     }
 }
 
