@@ -909,7 +909,7 @@ pub const NS_STYLE_BLEND_SATURATION: ::std::os::raw::c_uint = 13;
 pub const NS_STYLE_BLEND_COLOR: ::std::os::raw::c_uint = 14;
 pub const NS_STYLE_BLEND_LUMINOSITY: ::std::os::raw::c_uint = 15;
 pub const NS_STYLE_MASK_COMPOSITE_ADD: ::std::os::raw::c_uint = 0;
-pub const NS_STYLE_MASK_COMPOSITE_SUBSTRACT: ::std::os::raw::c_uint = 1;
+pub const NS_STYLE_MASK_COMPOSITE_SUBTRACT: ::std::os::raw::c_uint = 1;
 pub const NS_STYLE_MASK_COMPOSITE_INTERSECT: ::std::os::raw::c_uint = 2;
 pub const NS_STYLE_MASK_COMPOSITE_EXCLUDE: ::std::os::raw::c_uint = 3;
 pub const NS_STYLE_CONTROL_CHARACTER_VISIBILITY_HIDDEN: ::std::os::raw::c_uint
@@ -2690,34 +2690,6 @@ pub struct _vftable_nsIURI {
 impl ::std::clone::Clone for nsIURI {
     fn clone(&self) -> Self { *self }
 }
-/**
- * Enum defining the mode in which a sheet is to be parsed.  This is
- * usually, but not always, the same as the cascade level at which the
- * sheet will apply (see nsStyleSet.h).  Most of the Loader APIs only
- * support loading of author sheets.
- *
- * Author sheets are the normal case: styles embedded in or linked
- * from HTML pages.  They are also the most restricted.
- *
- * User sheets can do anything author sheets can do, and also get
- * access to a few CSS extensions that are not yet suitable for
- * exposure on the public Web, but are very useful for expressing
- * user style overrides, such as @-moz-document rules.
- *
- * Agent sheets have access to all author- and user-sheet features
- * plus more extensions that are necessary for internal use but,
- * again, not yet suitable for exposure on the public Web.  Some of
- * these are outright unsafe to expose; in particular, incorrect
- * styling of anonymous box pseudo-elements can violate layout
- * invariants.
- */
-#[repr(u32)]
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
-pub enum SheetParsingMode {
-    eAuthorSheetFeatures = 0,
-    eUserSheetFeatures = 1,
-    eAgentSheetFeatures = 2,
-}
 pub type nsLoadFlags = u32;
 #[repr(C)]
 #[derive(Debug, Copy)]
@@ -2747,6 +2719,34 @@ pub enum nsIRequest_nsIRequest_h_unnamed_7 {
 }
 impl ::std::clone::Clone for nsIRequest {
     fn clone(&self) -> Self { *self }
+}
+/**
+ * Enum defining the mode in which a sheet is to be parsed.  This is
+ * usually, but not always, the same as the cascade level at which the
+ * sheet will apply (see nsStyleSet.h).  Most of the Loader APIs only
+ * support loading of author sheets.
+ *
+ * Author sheets are the normal case: styles embedded in or linked
+ * from HTML pages.  They are also the most restricted.
+ *
+ * User sheets can do anything author sheets can do, and also get
+ * access to a few CSS extensions that are not yet suitable for
+ * exposure on the public Web, but are very useful for expressing
+ * user style overrides, such as @-moz-document rules.
+ *
+ * Agent sheets have access to all author- and user-sheet features
+ * plus more extensions that are necessary for internal use but,
+ * again, not yet suitable for exposure on the public Web.  Some of
+ * these are outright unsafe to expose; in particular, incorrect
+ * styling of anonymous box pseudo-elements can violate layout
+ * invariants.
+ */
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub enum SheetParsingMode {
+    eAuthorSheetFeatures = 0,
+    eUserSheetFeatures = 1,
+    eAgentSheetFeatures = 2,
 }
 /**
  * A class for holding strong references to handle-managed objects.
