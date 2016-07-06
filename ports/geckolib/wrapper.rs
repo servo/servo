@@ -4,6 +4,7 @@
 
 #![allow(unsafe_code)]
 
+use gecko_bindings::bindings;
 use gecko_bindings::bindings::Gecko_ChildrenCount;
 use gecko_bindings::bindings::Gecko_ClassOrClassList;
 use gecko_bindings::bindings::Gecko_GetElementId;
@@ -361,18 +362,23 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     #[inline]
-    fn get_attr<'a>(&'a self, namespace: &Namespace, name: &Atom) -> Option<&'a str> {
+    fn has_attr(&self, namespace: &Namespace, attr: &Atom) -> bool {
         unsafe {
-            let mut length: u32 = 0;
-            let ptr = Gecko_GetAttrAsUTF8(self.element, namespace.0.as_ptr(), name.as_ptr(),
-                                          &mut length);
-            reinterpret_string(ptr, length)
+            bindings::Gecko_HasAttr(self.element,
+                                    namespace.0.as_ptr(),
+                                    attr.as_ptr())
         }
     }
 
     #[inline]
-    fn get_attrs<'a>(&'a self, _name: &Atom) -> Vec<&'a str> {
-        unimplemented!()
+    fn attr_equals(&self, namespace: &Namespace, attr: &Atom, val: &Atom) -> bool {
+        unsafe {
+            bindings::Gecko_AttrEquals(self.element,
+                                       namespace.0.as_ptr(),
+                                       attr.as_ptr(),
+                                       val.as_ptr(),
+                                       /* ignoreCase = */ false)
+        }
     }
 }
 
@@ -506,27 +512,101 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
         }
     }
 
-    fn match_attr<F>(&self, attr: &AttrSelector, test: F) -> bool where F: Fn(&str) -> bool {
-        // FIXME(bholley): This is copy-pasted from the servo wrapper's version.
-        // We should find a way to share it.
-        let name = if self.is_html_element_in_html_document() {
-            &attr.lower_name
-        } else {
-            &attr.name
-        };
-        match attr.namespace {
-            NamespaceConstraint::Specific(ref ns) => {
-                self.get_attr(ns, name).map_or(false, |attr| test(attr))
-            },
-            NamespaceConstraint::Any => {
-                self.get_attrs(name).iter().any(|attr| test(*attr))
-            }
-        }
-    }
-
     fn is_html_element_in_html_document(&self) -> bool {
         unsafe {
             Gecko_IsHTMLElementInHTMLDocument(self.element)
+        }
+    }
+}
+
+trait AttrSelectorHelpers {
+    fn ns_or_null(&self) -> *mut nsIAtom;
+    fn select_name<'le>(&self, el: &GeckoElement<'le>) -> *mut nsIAtom;
+}
+
+impl AttrSelectorHelpers for AttrSelector {
+    fn ns_or_null(&self) -> *mut nsIAtom {
+        match self.namespace {
+            NamespaceConstraint::Any => ptr::null_mut(),
+            NamespaceConstraint::Specific(ref ns) => ns.0.as_ptr(),
+        }
+    }
+
+    fn select_name<'le>(&self, el: &GeckoElement<'le>) -> *mut nsIAtom {
+        if el.is_html_element_in_html_document() {
+            self.lower_name.as_ptr()
+        } else {
+            self.name.as_ptr()
+        }
+
+    }
+}
+
+impl<'le> ::selectors::MatchAttr for GeckoElement<'le> {
+    type AttrString = Atom;
+    fn match_attr_has(&self, attr: &AttrSelector) -> bool {
+        unsafe {
+            bindings::Gecko_HasAttr(self.element,
+                                    attr.ns_or_null(),
+                                    attr.select_name(self))
+        }
+    }
+    fn match_attr_equals(&self, attr: &AttrSelector, value: &Self::AttrString) -> bool {
+        unsafe {
+            bindings::Gecko_AttrEquals(self.element,
+                                       attr.ns_or_null(),
+                                       attr.select_name(self),
+                                       value.as_ptr(),
+                                       /* ignoreCase = */ false)
+        }
+    }
+    fn match_attr_equals_ignore_ascii_case(&self, attr: &AttrSelector, value: &Self::AttrString) -> bool {
+        unsafe {
+            bindings::Gecko_AttrEquals(self.element,
+                                       attr.ns_or_null(),
+                                       attr.select_name(self),
+                                       value.as_ptr(),
+                                       /* ignoreCase = */ false)
+        }
+    }
+    fn match_attr_includes(&self, attr: &AttrSelector, value: &Self::AttrString) -> bool {
+        unsafe {
+            bindings::Gecko_AttrIncludes(self.element,
+                                         attr.ns_or_null(),
+                                         attr.select_name(self),
+                                         value.as_ptr())
+        }
+    }
+    fn match_attr_dash(&self, attr: &AttrSelector, value: &Self::AttrString) -> bool {
+        unsafe {
+            bindings::Gecko_AttrDashEquals(self.element,
+                                           attr.ns_or_null(),
+                                           attr.select_name(self),
+                                           value.as_ptr())
+        }
+    }
+    fn match_attr_prefix(&self, attr: &AttrSelector, value: &Self::AttrString) -> bool {
+        unsafe {
+            bindings::Gecko_AttrHasPrefix(self.element,
+                                          attr.ns_or_null(),
+                                          attr.select_name(self),
+                                          value.as_ptr())
+        }
+    }
+    fn match_attr_substring(&self, attr: &AttrSelector, value: &Self::AttrString) -> bool {
+        unsafe {
+            bindings::Gecko_AttrHasSubstring(self.element,
+                                             attr.ns_or_null(),
+                                             attr.select_name(self),
+                                             value.as_ptr())
+        }
+    }
+    fn match_attr_suffix(&self, attr: &AttrSelector, value: &Self::AttrString) -> bool {
+        unsafe {
+            bindings::Gecko_AttrHasSuffix(self.element,
+                                          attr.ns_or_null(),
+                                          attr.select_name(self),
+                                          value.as_ptr())
         }
     }
 }

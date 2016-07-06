@@ -4,6 +4,7 @@
 
 use properties::GeckoComputedValues;
 use selectors::parser::{ParserContext, SelectorImpl};
+use string_cache::Atom;
 use style;
 use style::element_state::ElementState;
 use style::selector_impl::{PseudoElementCascadeType, SelectorImplExt};
@@ -157,6 +158,7 @@ impl NonTSPseudoClass {
 }
 
 impl SelectorImpl for GeckoSelectorImpl {
+    type AttrString = Atom;
     type PseudoElement = PseudoElement;
     type NonTSPseudoClass = NonTSPseudoClass;
     fn parse_non_ts_pseudo_class(_context: &ParserContext,

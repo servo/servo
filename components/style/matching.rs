@@ -34,16 +34,13 @@ fn create_common_style_affecting_attributes_from_element<E: TElement>(element: &
     for attribute_info in &common_style_affecting_attributes() {
         match attribute_info.mode {
             CommonStyleAffectingAttributeMode::IsPresent(flag) => {
-                if element.get_attr(&ns!(), &attribute_info.atom).is_some() {
+                if element.has_attr(&ns!(), &attribute_info.atom) {
                     flags.insert(flag)
                 }
             }
-            CommonStyleAffectingAttributeMode::IsEqual(target_value, flag) => {
-                match element.get_attr(&ns!(), &attribute_info.atom) {
-                    Some(element_value) if element_value == target_value => {
-                        flags.insert(flag)
-                    }
-                    _ => {}
+            CommonStyleAffectingAttributeMode::IsEqual(ref target_value, flag) => {
+                if element.attr_equals(&ns!(), &attribute_info.atom, target_value) {
+                    flags.insert(flag)
                 }
             }
         }
@@ -189,8 +186,7 @@ pub struct StyleSharingCandidate<C: ComputedValues> {
     pub style: Arc<C>,
     pub parent_style: Arc<C>,
     pub local_name: Atom,
-    // FIXME(pcwalton): Should be a list of atoms instead.
-    pub class: Option<String>,
+    pub classes: Vec<Atom>,
     pub namespace: Namespace,
     pub common_style_affecting_attributes: CommonStyleAffectingAttributes,
     pub link: bool,
@@ -201,7 +197,7 @@ impl<C: ComputedValues> PartialEq for StyleSharingCandidate<C> {
         arc_ptr_eq(&self.style, &other.style) &&
             arc_ptr_eq(&self.parent_style, &other.parent_style) &&
             self.local_name == other.local_name &&
-            self.class == other.class &&
+            self.classes == other.classes &&
             self.link == other.link &&
             self.namespace == other.namespace &&
             self.common_style_affecting_attributes == other.common_style_affecting_attributes
@@ -246,12 +242,13 @@ impl<C: ComputedValues> StyleSharingCandidate<C> {
             return None
         }
 
+        let mut classes = Vec::new();
+        element.each_class(|c| classes.push(c.clone()));
         Some(StyleSharingCandidate {
             style: style,
             parent_style: parent_style,
             local_name: element.get_local_name().clone(),
-            class: element.get_attr(&ns!(), &atom!("class"))
-                          .map(|string| string.to_owned()),
+            classes: classes,
             link: element.is_link(),
             namespace: (*element.get_namespace()).clone(),
             common_style_affecting_attributes:
@@ -264,14 +261,19 @@ impl<C: ComputedValues> StyleSharingCandidate<C> {
             return false
         }
 
-        // FIXME(pcwalton): Use `each_class` here instead of slow string comparison.
-        match (&self.class, element.get_attr(&ns!(), &atom!("class"))) {
-            (&None, Some(_)) | (&Some(_), None) => return false,
-            (&Some(ref this_class), Some(element_class)) if
-                    element_class != &**this_class => {
-                return false
+        let mut num_classes = 0;
+        let mut classes_match = true;
+        element.each_class(|c| {
+            num_classes += 1;
+            // Note that we could do this check more cheaply if we decided to
+            // only consider class lists as equal if the orders match, since
+            // we could then index by num_classes instead of using .contains().
+            if classes_match && !self.classes.contains(c) {
+                classes_match = false;
             }
-            (&Some(_), Some(_)) | (&None, None) => {}
+        });
+        if !classes_match || num_classes != self.classes.len() {
+            return false;
         }
 
         if *element.get_namespace() != self.namespace {
@@ -291,31 +293,25 @@ impl<C: ComputedValues> StyleSharingCandidate<C> {
             match attribute_info.mode {
                 CommonStyleAffectingAttributeMode::IsPresent(flag) => {
                     if self.common_style_affecting_attributes.contains(flag) !=
-                            element.get_attr(&ns!(), &attribute_info.atom).is_some() {
+                            element.has_attr(&ns!(), &attribute_info.atom) {
                         return false
                     }
                 }
-                CommonStyleAffectingAttributeMode::IsEqual(target_value, flag) => {
-                    match element.get_attr(&ns!(), &attribute_info.atom) {
-                        Some(ref element_value) if self.common_style_affecting_attributes
-                                                       .contains(flag) &&
-                                                       *element_value != target_value => {
+                CommonStyleAffectingAttributeMode::IsEqual(ref target_value, flag) => {
+                    let contains = self.common_style_affecting_attributes.contains(flag);
+                    if element.has_attr(&ns!(), &attribute_info.atom) {
+                        if !contains || !element.attr_equals(&ns!(), &attribute_info.atom, target_value) {
                             return false
                         }
-                        Some(_) if !self.common_style_affecting_attributes.contains(flag) => {
-                            return false
-                        }
-                        None if self.common_style_affecting_attributes.contains(flag) => {
-                            return false
-                        }
-                        _ => {}
+                    } else if contains {
+                        return false
                     }
                 }
             }
         }
 
         for attribute_name in &rare_style_affecting_attributes() {
-            if element.get_attr(&ns!(), attribute_name).is_some() {
+            if element.has_attr(&ns!(), attribute_name) {
                 return false
             }
         }
@@ -601,7 +597,7 @@ pub trait ElementMatchMethods : TElement
         if self.style_attribute().is_some() {
             return StyleSharingResult::CannotShare
         }
-        if self.get_attr(&ns!(), &atom!("id")).is_some() {
+        if self.has_attr(&ns!(), &atom!("id")) {
             return StyleSharingResult::CannotShare
         }
 

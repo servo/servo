@@ -5,7 +5,7 @@
 #![allow(unsafe_code)]
 
 use app_units::Au;
-use data::PerDocumentStyleData;
+use data::{NUM_THREADS, PerDocumentStyleData};
 use env_logger;
 use euclid::Size2D;
 use gecko_bindings::bindings::{RawGeckoDocument, RawGeckoElement, RawGeckoNode};
@@ -29,6 +29,7 @@ use style::parallel;
 use style::parser::ParserContextExtraData;
 use style::properties::{ComputedValues, PropertyDeclarationBlock};
 use style::selector_impl::{SelectorImplExt, PseudoElementCascadeType};
+use style::sequential;
 use style::stylesheets::Origin;
 use traversal::RecalcStyleOnly;
 use url::Url;
@@ -109,7 +110,12 @@ fn restyle_subtree(node: GeckoNode, raw_data: *mut RawServoStyleSet) {
     };
 
     if node.is_dirty() || node.has_dirty_descendants() {
-        parallel::traverse_dom::<GeckoNode, RecalcStyleOnly>(node, &shared_style_context, &mut per_doc_data.work_queue);
+        if per_doc_data.num_threads == 1 {
+            sequential::traverse_dom::<GeckoNode, RecalcStyleOnly>(node, &shared_style_context);
+        } else {
+            parallel::traverse_dom::<GeckoNode, RecalcStyleOnly>(node, &shared_style_context,
+                                                                 &mut per_doc_data.work_queue);
+        }
     }
 }
 
@@ -128,6 +134,11 @@ pub extern "C" fn Servo_RestyleDocument(doc: *mut RawGeckoDocument, raw_data: *m
         None => return,
     };
     restyle_subtree(node, raw_data);
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_StyleWorkerThreadCount() -> u32 {
+    *NUM_THREADS as u32
 }
 
 #[no_mangle]
