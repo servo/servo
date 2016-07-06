@@ -308,6 +308,9 @@ partial interface CSSStyleDeclaration {
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString transitionDelay;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString transition-delay;
 
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString flex;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString flexFlow;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString flex-flow;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString flexDirection;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString flex-direction;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString flexWrap;
