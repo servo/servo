@@ -37,7 +37,7 @@ linux-dev:
   - ./mach build-geckolib
   - bash ./etc/ci/lockfile_changed.sh
   - bash ./etc/ci/manifest_changed.sh
-  - bash ./etc/ci/check_no_unwrap.sh
+  - bash ./etc/ci/check_no_panic.sh
 
 linux-dev-yaml:
   - ./mach test-tidy --no-progress --all
@@ -49,7 +49,7 @@ linux-dev-yaml:
   - ./mach build-geckolib
   - bash ./etc/ci/lockfile_changed.sh
   - bash ./etc/ci/manifest_changed.sh
-  - bash ./etc/ci/check_no_unwrap.sh
+  - bash ./etc/ci/check_no_panic.sh
 
 linux-rel:
   - ./mach build --release
