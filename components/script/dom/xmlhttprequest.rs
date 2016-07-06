@@ -602,6 +602,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             referrer_url: self.referrer_url.clone(),
             referrer_policy: self.referrer_policy.clone(),
             pipeline_id: self.pipeline_id(),
+            .. RequestInit::default()
         };
 
         if bypass_cross_origin_check {

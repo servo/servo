@@ -6,6 +6,7 @@ use hyper::header::Headers;
 use hyper::method::Method;
 use msg::constellation_msg::{PipelineId, ReferrerPolicy};
 use std::cell::{Cell, RefCell};
+use std::default::Default;
 use std::mem::swap;
 use url::{Origin as UrlOrigin, Url};
 
@@ -20,7 +21,7 @@ pub enum Initiator {
 }
 
 /// A request [type](https://fetch.spec.whatwg.org/#concept-request-type)
-#[derive(Copy, Clone, PartialEq, HeapSizeOf)]
+#[derive(Copy, Clone, PartialEq, Serialize, Deserialize, HeapSizeOf)]
 pub enum Type {
     None, Audio, Font, Image,
     Script, Style, Track, Video
@@ -103,7 +104,7 @@ pub enum Window {
 }
 
 /// [CORS settings attribute](https://html.spec.whatwg.org/multipage/#attr-crossorigin-anonymous)
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Serialize, Deserialize)]
 pub enum CORSSettings {
     Anonymous,
     UseCredentials
@@ -122,6 +123,7 @@ pub struct RequestInit {
     pub same_origin_data: bool,
     pub body: Option<Vec<u8>>,
     // TODO: client object
+    pub type_: Type,
     pub destination: Destination,
     pub synchronous: bool,
     pub mode: RequestMode,
@@ -135,6 +137,30 @@ pub struct RequestInit {
     pub referrer_url: Option<Url>,
     pub referrer_policy: Option<ReferrerPolicy>,
     pub pipeline_id: Option<PipelineId>,
+}
+
+impl Default for RequestInit {
+    fn default() -> RequestInit {
+        RequestInit {
+            method: Method::Get,
+            url: Url::parse("about:blank").unwrap(),
+            headers: Headers::new(),
+            unsafe_request: false,
+            same_origin_data: false,
+            body: None,
+            type_: Type::None,
+            destination: Destination::None,
+            synchronous: false,
+            mode: RequestMode::NoCORS,
+            use_cors_preflight: false,
+            credentials_mode: CredentialsMode::Omit,
+            use_url_credentials: false,
+            origin: Url::parse("about:blank").unwrap(),
+            referrer_url: None,
+            referrer_policy: None,
+            pipeline_id: None,
+        }
+    }
 }
 
 /// A [Request](https://fetch.spec.whatwg.org/#requests) as defined by the Fetch spec
@@ -232,6 +258,7 @@ impl Request {
         req.unsafe_request = init.unsafe_request;
         req.same_origin_data.set(init.same_origin_data);
         *req.body.borrow_mut() = init.body;
+        req.type_ = init.type_;
         req.destination = init.destination;
         req.synchronous = init.synchronous;
         req.mode = init.mode;
@@ -246,56 +273,6 @@ impl Request {
         req.referrer_policy.set(init.referrer_policy);
         req.pipeline_id.set(init.pipeline_id);
         req
-    }
-
-    /// https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
-    pub fn potential_cors_request(url: Url,
-                                  cors_attribute_state: Option<CORSSettings>,
-                                  is_service_worker_global_scope: bool,
-                                  same_origin_fallback: bool,
-                                  pipeline_id: Option<PipelineId>) -> Request {
-        Request {
-            method: RefCell::new(Method::Get),
-            local_urls_only: false,
-            sandboxed_storage_area_urls: false,
-            headers: RefCell::new(Headers::new()),
-            unsafe_request: false,
-            body: RefCell::new(None),
-            is_service_worker_global_scope: is_service_worker_global_scope,
-            window: Cell::new(Window::Client),
-            keep_alive: Cell::new(false),
-            skip_service_worker: Cell::new(false),
-            initiator: Initiator::None,
-            type_: Type::None,
-            destination: Destination::None,
-            origin: RefCell::new(Origin::Client),
-            omit_origin_header: Cell::new(false),
-            same_origin_data: Cell::new(false),
-            referrer: RefCell::new(Referrer::Client),
-            referrer_policy: Cell::new(None),
-            synchronous: false,
-            // Step 1-2
-            mode: match cors_attribute_state {
-                Some(_) => RequestMode::CORSMode,
-                None if same_origin_fallback => RequestMode::SameOrigin,
-                None => RequestMode::NoCORS
-            },
-            use_cors_preflight: false,
-            // Step 3-4
-            credentials_mode: match cors_attribute_state {
-                Some(CORSSettings::Anonymous) => CredentialsMode::CredentialsSameOrigin,
-                _ => CredentialsMode::Include,
-            },
-            use_url_credentials: true,
-            cache_mode: Cell::new(CacheMode::Default),
-            redirect_mode: Cell::new(RedirectMode::Follow),
-            integrity_metadata: RefCell::new(String::new()),
-            url_list: RefCell::new(vec![url]),
-            redirect_count: Cell::new(0),
-            response_tainting: Cell::new(ResponseTainting::Basic),
-            pipeline_id: Cell::new(pipeline_id),
-            done: Cell::new(false)
-        }
     }
 
     pub fn url(&self) -> Url {
