@@ -484,8 +484,7 @@ impl HTMLFormElement {
         };
 
         // Step 3
-        window.dom_manipulation_task_source().queue(
-            DOMManipulationTask::PlannedNavigation(nav)).unwrap();
+        window.dom_manipulation_task_source().queue(DOMManipulationTask::Runnable(nav)).unwrap();
     }
 
     /// Interactively validate the constraints of form elements

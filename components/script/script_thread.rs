@@ -200,11 +200,8 @@ impl<T: Runnable + Send> Runnable for CancellableRunnable<T> {
 
 pub trait Runnable {
     fn is_cancelled(&self) -> bool { false }
-    fn handler(self: Box<Self>);
-}
-
-pub trait MainThreadRunnable {
-    fn handler(self: Box<Self>, script_thread: &ScriptThread);
+    fn handler(self: Box<Self>) {}
+    fn main_thread_handler(self: Box<Self>, _script_thread: &ScriptThread) { self.handler(); }
 }
 
 enum MixedMessage {
@@ -1223,7 +1220,7 @@ impl ScriptThread {
 
         // https://html.spec.whatwg.org/multipage/#the-end step 7
         let handler = box DocumentProgressHandler::new(Trusted::new(doc));
-        self.dom_manipulation_task_source.queue(DOMManipulationTask::DocumentProgress(handler)).unwrap();
+        self.dom_manipulation_task_source.queue(DOMManipulationTask::Runnable(handler)).unwrap();
 
         self.constellation_chan.send(ConstellationMsg::LoadComplete(pipeline)).unwrap();
     }
