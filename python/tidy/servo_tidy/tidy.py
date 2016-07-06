@@ -524,16 +524,28 @@ def check_webidl_spec(file_name, contents):
     yield (0, "No specification link found.")
 
 
+def check_for_possible_duplicate_json_keys(key_value_pairs):
+    keys = [x[0] for x in key_value_pairs]
+    seen_keys = set()
+    for key in keys:
+        if key in seen_keys:
+            raise KeyError(key)
+
+        seen_keys.add(key)
+
+
 def check_json(filename, contents):
     if not filename.endswith(".json"):
         raise StopIteration
 
     try:
-        json.loads(contents)
+        json.loads(contents, object_pairs_hook=check_for_possible_duplicate_json_keys)
     except ValueError as e:
         match = re.search(r"line (\d+) ", e.message)
         line_no = match and match.group(1)
         yield (line_no, e.message)
+    except KeyError as e:
+        yield (None, "Duplicated Key (%s)" % e.message)
 
 
 def check_spec(file_name, lines):
