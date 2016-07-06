@@ -211,7 +211,7 @@ class MachCommands(CommandBase):
                                       "rust-std%s%s-%s" % (nightly_suffix, stable_version, target_triple),
                                       "rust-std-%s" % target_triple, "lib", "rustlib", target_triple),
                             path.join(install_dir,
-                                      "rustc%s%s-%s" % (nightly_suffix, stable_version, host_triple),
+                                      "rustc%s%s-%s" % (nightly_suffix, stable_version, host_triple()),
                                       "rustc", "lib", "rustlib", target_triple))
             shutil.rmtree(path.join(install_dir,
                           "rust-std%s%s-%s" % (nightly_suffix, stable_version, target_triple)))
