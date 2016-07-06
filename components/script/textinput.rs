@@ -138,6 +138,10 @@ fn is_printable_key(key: Key) -> bool {
     }
 }
 
+fn maybe_select(mods: KeyModifiers) -> Selection {
+    if mods.contains(SHIFT) { Selection::Selected } else { Selection::NotSelected }
+}
+
 /// The length in bytes of the first n characters in a UTF-8 string.
 ///
 /// If the string has fewer than n characters, returns the length of the whole string.
@@ -411,6 +415,148 @@ impl<T: ClipboardProvider> TextInput<T> {
         self.perform_horizontal_adjustment(adjust, select);
     }
 
+    /// Adjust the editing point position to the (start|end) of the current line.
+    pub fn adjust_horizontal_to_end(&mut self, direction: Direction, select: Selection) {
+        if self.adjust_selection_for_horizontal_change(direction, select) {
+            return
+        }
+        let adjust = {
+            let current_line = &self.lines[self.edit_point.line];
+            match direction {
+                Direction::Forward => {
+                    let mut i = 0;
+
+                    // current_line[self.edit_point.index..].length() won't cut it here, as each
+                    // UTF-8 character has variable size.
+                    for ch in current_line[self.edit_point.index..].chars() {
+                        i = i + (ch.len_utf8() as isize);
+                    }
+
+                    i
+                }
+                Direction::Backward => {
+                    let mut i = 0;
+                    let mut iter = current_line[..self.edit_point.index].chars();
+
+                    loop {
+                        match iter.next_back() {
+                            Some(ch) => i = i - (ch.len_utf8() as isize),
+                            None => break,
+                        }
+                    }
+
+                    i
+                }
+            }
+        };
+        self.perform_horizontal_adjustment(adjust, select);
+    }
+
+    /// Returns the adjustment needed to move to the start of the previous or current word.
+    ///
+    /// "he<cursor>llo world\n\nhi" would be 2, since the cursor must move to the start of "hello".
+    /// "hello <cursor>world\n\nhi" would be 6, since the cursor must move to the start of "hello".
+    /// "hello world\n\n<cursor>hi" would be 7, since the cursor must move to the start of "world".
+    fn word_start_adjustment(&self) -> isize {
+        let mut adjust = 0;
+        let mut found_non_whitespace = false;
+        let mut edit_point_index = Some(self.edit_point.index);
+        let mut line_iter = self.lines[..(self.edit_point.line + 1)].iter();
+
+        'line: loop {
+            match line_iter.next_back() {
+                Some(line) => {
+                    let mut char_iter = match edit_point_index {
+                        Some(i) => line[..i].chars(),
+                        None => line.chars(),
+                    };
+
+                    'chars: loop {
+                        match char_iter.next_back() {
+                            Some(ch) => {
+                                let is_whitespace = ch.is_whitespace();
+
+                                // We want to ignore whitespace until we enter a word, then stop at
+                                // either the first whitespace we find or the end of the text.
+                                if is_whitespace && found_non_whitespace { break 'line; }
+                                // Ensure we record if we found a non whitespace char.  We may not,
+                                // in which case we have to jump to the next line.
+                                if !is_whitespace { found_non_whitespace = true; }
+
+                                adjust = adjust - (ch.len_utf8() as isize);
+                            },
+                            None => break 'chars,
+                        }
+                    }
+
+                    // If we've found some part of a word, we can stop at the end of the
+                    // current line.  Otherwise, we need to jump to the end of the first word
+                    // of the next line.
+                    if found_non_whitespace { break 'line; }
+
+                    adjust = adjust - 1; // Account for newline character
+                    edit_point_index = None;
+                },
+                None => break 'line,
+            }
+        }
+
+        adjust
+    }
+
+    /// Returns the adjustment needed to move to the end of the next or current word.
+    ///
+    /// "he<cursor>llo world\n\nhi" would be 3, since the cursor must move to the end of "hello".
+    /// "hello<cursor> world\n\nhi" would be 6, since the cursor must move to the end of "world".
+    /// "hello world<cursor>\n\nhi" would be 4, since the cursor must move to the end of "hi".
+    fn word_end_adjustment(&self) -> isize {
+        let mut adjust = 0;
+        let mut found_non_whitespace = false;
+        let mut edit_point_index = Some(self.edit_point.index);
+
+        'line: for line in self.lines[self.edit_point.line..].iter() {
+            let char_iter = match edit_point_index {
+                Some(i) => line[i..].chars(),
+                None => line.chars(),
+            };
+
+            'chars: for ch in char_iter {
+                let is_whitespace = ch.is_whitespace();
+
+                // We want to ignore whitespace until we enter a word, then stop at either the first
+                // whitespace we find or the end of the text.
+                if is_whitespace && found_non_whitespace { break 'line; }
+                // Ensure we record if we found a non whitespace char.  We may not, in which case
+                // we have to jump to the next line.
+                if !is_whitespace { found_non_whitespace = true; }
+
+                adjust = adjust + (ch.len_utf8() as isize);
+            }
+
+            // If we've found some part of a word, we can stop at the end of the
+            // current line.  Otherwise, we need to jump to the end of the first word
+            // of the next line.
+            if found_non_whitespace { break 'line; }
+
+            adjust = adjust + 1; // Account for newline character
+            edit_point_index = None;
+        }
+
+        adjust
+    }
+
+    /// Adjust the editing point position to the (start|end) of the (current|next|previous) word.
+    pub fn adjust_horizontal_by_word(&mut self, direction: Direction, select: Selection) {
+        if self.adjust_selection_for_horizontal_change(direction, select) {
+            return
+        }
+        let adjust = match direction {
+            Direction::Backward => self.word_start_adjustment(),
+            Direction::Forward => self.word_end_adjustment(),
+        };
+        self.perform_horizontal_adjustment(adjust, select);
+    }
+
     /// Return whether to cancel the caret move
     fn adjust_selection_for_horizontal_change(&mut self, adjust: Direction, select: Selection)
                                               -> bool {
@@ -491,28 +637,148 @@ impl<T: ClipboardProvider> TextInput<T> {
             KeyReaction::Nothing
         }
     }
+
+    fn handle_printable(&mut self, key: Key, mods: KeyModifiers) -> KeyReaction {
+        self.insert_string(key_value(key, mods));
+        KeyReaction::DispatchInput
+    }
+
+    /// On all platforms, (CTRL | CMD) + A will select all text in the input.
+    fn handle_a_cross_platform(&mut self, mods: KeyModifiers) -> KeyReaction {
+        if is_control_key(mods) {
+            self.select_all();
+            KeyReaction::RedrawSelection
+        } else {
+            self.handle_printable(Key::A, mods)
+        }
+    }
+
+    /// On macOS, CTRL + A jumps to the end of the current line.
+    #[cfg(target_os = "macos")]
+    fn handle_a(&mut self, mods: KeyModifiers) -> KeyReaction {
+        if mods.contains(CONTROL) && !mods.contains(SUPER | ALT) {
+            self.adjust_horizontal_to_end(Direction::Backward, maybe_select(mods));
+            KeyReaction::RedrawSelection
+        } else {
+            self.handle_a_cross_platform(mods)
+        }
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    fn handle_a(&mut self, mods: KeyModifiers) -> KeyReaction {
+        self.handle_a_cross_platform(mods)
+    }
+
+    /// On macOS, CTRL + ALT + B jumps to the start of the previous/current word.
+    #[cfg(target_os = "macos")]
+    fn handle_b(&mut self, mods: KeyModifiers) -> KeyReaction {
+        if mods.contains(CONTROL | ALT) && !mods.contains(SUPER) {
+            self.adjust_horizontal_by_word(Direction::Backward, maybe_select(mods));
+            KeyReaction::RedrawSelection
+        } else {
+            self.handle_printable(Key::B, mods)
+        }
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    fn handle_b(&mut self, mods: KeyModifiers) -> KeyReaction {
+        self.handle_printable(Key::B, mods)
+    }
+
+    /// On macOS, CTRL + E jumps to the end of the current line.
+    #[cfg(target_os = "macos")]
+    fn handle_e(&mut self, mods: KeyModifiers) -> KeyReaction {
+        if mods.contains(CONTROL) && !mods.contains(SUPER | ALT) {
+            self.adjust_horizontal_to_end(Direction::Forward, maybe_select(mods));
+            KeyReaction::RedrawSelection
+        } else {
+            self.handle_printable(Key::E, mods)
+        }
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    fn handle_e(&mut self, mods: KeyModifiers) -> KeyReaction {
+        self.handle_printable(Key::E, mods)
+    }
+
+    /// On macOS, CTRL + ALT + F jumps to the end of the next/current word.
+    #[cfg(target_os = "macos")]
+    fn handle_f(&mut self, mods: KeyModifiers) -> KeyReaction {
+        if mods.contains(CONTROL | ALT) && !mods.contains(SUPER) {
+            self.adjust_horizontal_by_word(Direction::Forward, maybe_select(mods));
+            KeyReaction::RedrawSelection
+        } else {
+            self.handle_printable(Key::F, mods)
+        }
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    fn handle_f(&mut self, mods: KeyModifiers) -> KeyReaction {
+        self.handle_printable(Key::F, mods)
+    }
+
+    /// On macOS, ALT + LEFT jumps to the start of the previous/current word.  CMD + LEFT jumps to
+    /// the start of the current line.
+    #[cfg(target_os = "macos")]
+    fn handle_left(&mut self, mods: KeyModifiers) -> KeyReaction {
+        if mods.contains(ALT) && !mods.contains(CONTROL | SUPER) {
+            self.adjust_horizontal_by_word(Direction::Backward, maybe_select(mods));
+            KeyReaction::RedrawSelection
+        } else if is_control_key(mods) {
+            self.adjust_horizontal_to_end(Direction::Backward, maybe_select(mods));
+            KeyReaction::RedrawSelection
+        } else {
+            self.adjust_horizontal_by_one(Direction::Backward, maybe_select(mods));
+            KeyReaction::RedrawSelection
+        }
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    fn handle_left(&mut self, mods: KeyModifiers) -> KeyReaction {
+        self.adjust_horizontal_by_one(Direction::Backward, maybe_select(mods));
+        KeyReaction::RedrawSelection
+    }
+
+    /// On macOS, ALT + RIGHT jumps to the end of the next/current word.  CMD + RIGHT jumps to the
+    /// end of the current line.
+    #[cfg(target_os = "macos")]
+    fn handle_right(&mut self, mods: KeyModifiers) -> KeyReaction {
+        if mods.contains(ALT) && !mods.contains(CONTROL | SUPER) {
+            self.adjust_horizontal_by_word(Direction::Forward, maybe_select(mods));
+            KeyReaction::RedrawSelection
+        } else if is_control_key(mods) {
+            self.adjust_horizontal_to_end(Direction::Forward, maybe_select(mods));
+            KeyReaction::RedrawSelection
+        } else {
+            self.adjust_horizontal_by_one(Direction::Forward, maybe_select(mods));
+            KeyReaction::RedrawSelection
+        }
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    fn handle_right(&mut self, mods: KeyModifiers) -> KeyReaction {
+        self.adjust_horizontal_by_one(Direction::Forward, maybe_select(mods));
+        KeyReaction::RedrawSelection
+    }
+
     pub fn handle_keydown_aux(&mut self, key: Key, mods: KeyModifiers) -> KeyReaction {
-        let maybe_select = if mods.contains(SHIFT) { Selection::Selected } else { Selection::NotSelected };
         match key {
-            Key::A if is_control_key(mods) => {
-                self.select_all();
-                KeyReaction::RedrawSelection
-            },
+            Key::A => self.handle_a(mods),
+            Key::B => self.handle_b(mods),
             Key::C if is_control_key(mods) => {
                 if let Some(text) = self.get_selection_text() {
                     self.clipboard_provider.set_clipboard_contents(text);
                 }
                 KeyReaction::DispatchInput
             },
+            Key::E => self.handle_e(mods),
+            Key::F => self.handle_f(mods),
             Key::V if is_control_key(mods) => {
                 let contents = self.clipboard_provider.clipboard_contents();
                 self.insert_string(contents);
                 KeyReaction::DispatchInput
             },
-            _ if is_printable_key(key) => {
-                self.insert_string(key_value(key, mods));
-                KeyReaction::DispatchInput
-            }
+            _ if is_printable_key(key) => self.handle_printable(key, mods),
             Key::Space => {
                 self.insert_char(' ');
                 KeyReaction::DispatchInput
@@ -525,20 +791,14 @@ impl<T: ClipboardProvider> TextInput<T> {
                 self.delete_char(Direction::Backward);
                 KeyReaction::DispatchInput
             }
-            Key::Left => {
-                self.adjust_horizontal_by_one(Direction::Backward, maybe_select);
-                KeyReaction::RedrawSelection
-            }
-            Key::Right => {
-                self.adjust_horizontal_by_one(Direction::Forward, maybe_select);
-                KeyReaction::RedrawSelection
-            }
+            Key::Left => self.handle_left(mods),
+            Key::Right => self.handle_right(mods),
             Key::Up => {
-                self.adjust_vertical(-1, maybe_select);
+                self.adjust_vertical(-1, maybe_select(mods));
                 KeyReaction::RedrawSelection
             }
             Key::Down => {
-                self.adjust_vertical(1, maybe_select);
+                self.adjust_vertical(1, maybe_select(mods));
                 KeyReaction::RedrawSelection
             }
             Key::Enter | Key::KpEnter => self.handle_return(),
@@ -552,11 +812,11 @@ impl<T: ClipboardProvider> TextInput<T> {
                 KeyReaction::RedrawSelection
             }
             Key::PageUp => {
-                self.adjust_vertical(-28, maybe_select);
+                self.adjust_vertical(-28, maybe_select(mods));
                 KeyReaction::RedrawSelection
             }
             Key::PageDown => {
-                self.adjust_vertical(28, maybe_select);
+                self.adjust_vertical(28, maybe_select(mods));
                 KeyReaction::RedrawSelection
             }
             Key::Tab => KeyReaction::TriggerDefaultAction,
