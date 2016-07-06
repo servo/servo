@@ -162,7 +162,6 @@ partial interface Window {
   readonly attribute Console console;
   void debug(DOMString arg);
   void gc();
-  void trap();
   [Func="Window::global_is_mozbrowser", Throws]
   void openURLInDefaultBrowser(DOMString href);
 };
