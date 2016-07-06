@@ -96,8 +96,8 @@ use timers::{IsInterval, OneshotTimerCallback, OneshotTimerHandle, OneshotTimers
 use tinyfiledialogs::{self, MessageBoxIcon};
 use url::Url;
 use util::geometry::{self, MAX_RECT};
+use util::opts;
 use util::prefs::PREFS;
-use util::{breakpoint, opts};
 use webdriver_handlers::jsval_to_webdriver;
 
 /// Current state of the window object
@@ -669,8 +669,9 @@ impl WindowMethods for Window {
         }
     }
 
+    #[allow(unsafe_code)]
     fn Trap(&self) {
-        breakpoint();
+        unsafe { ::std::intrinsics::breakpoint() }
     }
 
     #[allow(unsafe_code)]
