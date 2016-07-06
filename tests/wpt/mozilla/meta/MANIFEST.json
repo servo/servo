@@ -4960,6 +4960,18 @@
             "url": "/_mozilla/css/table_specified_width_a.html"
           }
         ],
+        "css/table_vertical_align_margin_padding.html": [
+          {
+            "path": "css/table_vertical_align_margin_padding.html",
+            "references": [
+              [
+                "/_mozilla/css/table_vertical_align_margin_padding_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/table_vertical_align_margin_padding.html"
+          }
+        ],
         "css/table_width_attribute_a.html": [
           {
             "path": "css/table_width_attribute_a.html",
@@ -12090,6 +12102,18 @@
             ]
           ],
           "url": "/_mozilla/css/table_specified_width_a.html"
+        }
+      ],
+      "css/table_vertical_align_margin_padding.html": [
+        {
+          "path": "css/table_vertical_align_margin_padding.html",
+          "references": [
+            [
+              "/_mozilla/css/table_vertical_align_margin_padding_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/table_vertical_align_margin_padding.html"
         }
       ],
       "css/table_width_attribute_a.html": [
