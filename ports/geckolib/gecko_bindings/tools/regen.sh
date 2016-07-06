@@ -1,4 +1,12 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+set -o errexit
+set -o nounset
+set -o pipefail
 
 if [ $# -eq 0 ]; then
   echo "Usage: $0 /path/to/gecko/objdir [other-regen.py-flags]"
@@ -13,7 +21,8 @@ fi
 
 # Check for /usr/include
 if [ ! -d /usr/include ]; then
-  echo "/usr/include doesn't exist. Mac users may need to run xcode-select --install."
+  echo "/usr/include doesn't exist." \
+       "Mac users may need to run xcode-select --install."
   exit 1
 fi
 
