@@ -24,7 +24,7 @@ interface MouseEvent : UIEvent {
 };
 
 // https://w3c.github.io/uievents/#dictdef-eventmodifierinit
-dictionary MouseEventInit : SharedKeyboardAndMouseEventInit {
+dictionary MouseEventInit : EventModifierInit {
     long           screenX = 0;
     long           screenY = 0;
     long           clientX = 0;

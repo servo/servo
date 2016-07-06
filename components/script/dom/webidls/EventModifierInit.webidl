@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://w3c.github.io/uievents/#dictdef-eventmodifierinit
-dictionary SharedKeyboardAndMouseEventInit : UIEventInit {
+dictionary EventModifierInit : UIEventInit {
     boolean ctrlKey = false;
     boolean shiftKey = false;
     boolean altKey = false;

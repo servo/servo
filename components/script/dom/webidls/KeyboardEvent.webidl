@@ -43,7 +43,7 @@ partial interface KeyboardEvent {
 };
 
 // https://w3c.github.io/uievents/#dictdef-keyboardeventinit
-dictionary KeyboardEventInit : SharedKeyboardAndMouseEventInit {
+dictionary KeyboardEventInit : EventModifierInit {
     DOMString     key = "";
     DOMString     code = "";
     unsigned long location = 0;
