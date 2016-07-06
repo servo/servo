@@ -19,7 +19,7 @@ use gecko_bindings::bindings::Gecko_Destroy_${style_struct.gecko_ffi_name};
 use gecko_bindings::bindings::{Gecko_CopyMozBindingFrom, Gecko_CopyListStyleTypeFrom};
 use gecko_bindings::bindings::{Gecko_SetMozBinding, Gecko_SetListStyleType};
 use gecko_bindings::bindings::{Gecko_SetNullImageValue, Gecko_SetGradientImageValue};
-use gecko_bindings::bindings::{Gecko_CreateGradient};
+use gecko_bindings::bindings::{Gecko_ImageLayers_EnsureLength, Gecko_CreateGradient};
 use gecko_bindings::bindings::{Gecko_CopyImageValueFrom, Gecko_CopyFontFamilyFrom};
 use gecko_bindings::bindings::{Gecko_FontFamilyList_AppendGeneric, Gecko_FontFamilyList_AppendNamed};
 use gecko_bindings::bindings::{Gecko_FontFamilyList_Clear};
@@ -960,12 +960,13 @@ fn static_assert() {
             }
         }
 
-        self.gecko.mImage.mImageCount = cmp::max(self.gecko.mImage.mLayers.len() as u32,
-                                                 self.gecko.mImage.mImageCount);
 
         unsafe {
-            self.gecko.mImage.mLayers.mOtherElements.set_len((images.0.len() - 1) as u32);
+            Gecko_ImageLayers_EnsureLength(&mut self.gecko.mImage, images.0.len());
         }
+
+        self.gecko.mImage.mImageCount = cmp::max(self.gecko.mImage.mLayers.len() as u32,
+                                                 self.gecko.mImage.mImageCount);
 
         // TODO: pre-grow the nsTArray to the right capacity
         // otherwise the below code won't work

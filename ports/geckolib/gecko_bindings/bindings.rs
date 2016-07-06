@@ -28,6 +28,7 @@ use structs::nsStyleImage;
 use structs::nsStyleGradient;
 use structs::nsStyleCoord;
 use structs::nsStyleGradientStop;
+use structs::nsStyleImageLayers;
 use structs::SheetParsingMode;
 use structs::nsMainThreadPtrHandle;
 use structs::nsMainThreadPtrHolder;
@@ -121,6 +122,9 @@ impl HeapSizeOf for nsStyleCoord { fn heap_size_of_children(&self) -> usize { 0 
 unsafe impl Send for nsStyleGradientStop {}
 unsafe impl Sync for nsStyleGradientStop {}
 impl HeapSizeOf for nsStyleGradientStop { fn heap_size_of_children(&self) -> usize { 0 } }
+unsafe impl Send for nsStyleImageLayers {}
+unsafe impl Sync for nsStyleImageLayers {}
+impl HeapSizeOf for nsStyleImageLayers { fn heap_size_of_children(&self) -> usize { 0 } }
 
 pub enum nsINode { }
 pub type RawGeckoNode = nsINode;
@@ -227,6 +231,8 @@ extern "C" {
                                     src: *const nsStyleDisplay);
     pub fn Gecko_ArrayEnsureCapacity(array: *mut ::std::os::raw::c_void,
                                      capacity: usize, size: usize);
+    pub fn Gecko_ImageLayers_EnsureLength(layers: *mut nsStyleImageLayers,
+                                          len: usize);
     pub fn Servo_StylesheetFromUTF8Bytes(bytes: *const u8, length: u32,
                                          parsing_mode: SheetParsingMode,
                                          base: *mut ThreadSafeURIHolder,

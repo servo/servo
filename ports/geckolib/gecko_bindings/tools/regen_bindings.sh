@@ -41,7 +41,7 @@ for STRUCT in nsStyleFont nsStyleColor nsStyleList nsStyleText \
               nsStyleTextReset nsStyleDisplay nsStyleContent nsStyleUIReset \
               nsStyleTable nsStyleMargin nsStylePadding nsStyleBorder \
               nsStyleOutline nsStyleXUL nsStyleSVGReset nsStyleColumn nsStyleEffects \
-              nsStyleImage nsStyleGradient nsStyleCoord nsStyleGradientStop
+              nsStyleImage nsStyleGradient nsStyleCoord nsStyleGradientStop nsStyleImageLayers
 do
   MAP_GECKO_TYPES=$MAP_GECKO_TYPES"-blacklist-type $STRUCT "
   MAP_GECKO_TYPES=$MAP_GECKO_TYPES"-raw-line 'use structs::$STRUCT;' "
