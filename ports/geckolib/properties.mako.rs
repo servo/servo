@@ -19,10 +19,10 @@ use gecko_bindings::bindings::Gecko_Destroy_${style_struct.gecko_ffi_name};
 use gecko_bindings::bindings::{Gecko_CopyMozBindingFrom, Gecko_CopyListStyleTypeFrom};
 use gecko_bindings::bindings::{Gecko_SetMozBinding, Gecko_SetListStyleType};
 use gecko_bindings::bindings::{Gecko_SetNullImageValue, Gecko_SetGradientImageValue};
-use gecko_bindings::bindings::{Gecko_ImageLayers_EnsureLength, Gecko_CreateGradient};
+use gecko_bindings::bindings::{Gecko_EnsureImageLayersLength, Gecko_CreateGradient};
 use gecko_bindings::bindings::{Gecko_CopyImageValueFrom, Gecko_CopyFontFamilyFrom};
 use gecko_bindings::bindings::{Gecko_FontFamilyList_AppendGeneric, Gecko_FontFamilyList_AppendNamed};
-use gecko_bindings::bindings::{Gecko_FontFamilyList_Clear};
+use gecko_bindings::bindings::{Gecko_FontFamilyList_Clear, Gecko_InitializeImageLayer};
 use gecko_bindings::structs;
 use glue::ArcHelpers;
 use std::fmt::{self, Debug};
@@ -949,6 +949,7 @@ fn static_assert() {
     fn set_background_image(&mut self, images: longhands::background_image::computed_value::T) {
         use gecko_bindings::structs::{NS_STYLE_GRADIENT_SHAPE_LINEAR, NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER};
         use gecko_bindings::structs::nsStyleCoord;
+        use gecko_bindings::structs::nsStyleImageLayers_LayerType::Background;
         use style::values::computed::Image;
         use style::values::specified::AngleOrCorner;
         use cssparser::Color as CSSColor;
@@ -958,11 +959,10 @@ fn static_assert() {
             for image in &mut self.gecko.mImage.mLayers {
                 Gecko_SetNullImageValue(&mut image.mImage)
             }
-        }
-
-
-        unsafe {
-            Gecko_ImageLayers_EnsureLength(&mut self.gecko.mImage, images.0.len());
+            Gecko_EnsureImageLayersLength(&mut self.gecko.mImage, images.0.len());
+            for image in &mut self.gecko.mImage.mLayers {
+                Gecko_InitializeImageLayer(image, Background as u8);
+            }
         }
 
         self.gecko.mImage.mImageCount = cmp::max(self.gecko.mImage.mLayers.len() as u32,

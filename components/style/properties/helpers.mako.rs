@@ -60,7 +60,7 @@
 
             impl ToCss for computed_value::T {
                 fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                    if self.0.len() >= 1 {
+                    if !self.0.is_empty() {
                         try!(self.0[0].to_css(dest));
                     }
                     for i in self.0.iter().skip(1) {

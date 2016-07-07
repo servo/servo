@@ -117,6 +117,10 @@ use structs::nsStyleImageLayers;
 unsafe impl Send for nsStyleImageLayers {}
 unsafe impl Sync for nsStyleImageLayers {}
 impl HeapSizeOf for nsStyleImageLayers { fn heap_size_of_children(&self) -> usize { 0 } }
+use structs::nsStyleImageLayers_Layer;
+unsafe impl Send for nsStyleImageLayers_Layer {}
+unsafe impl Sync for nsStyleImageLayers_Layer {}
+impl HeapSizeOf for nsStyleImageLayers_Layer { fn heap_size_of_children(&self) -> usize { 0 } }
 use structs::SheetParsingMode;
 use structs::nsMainThreadPtrHandle;
 use structs::nsMainThreadPtrHolder;
@@ -244,10 +248,12 @@ extern "C" {
                                principal: *mut ThreadSafePrincipalHolder);
     pub fn Gecko_CopyMozBindingFrom(des: *mut nsStyleDisplay,
                                     src: *const nsStyleDisplay);
-    pub fn Gecko_ArrayEnsureCapacity(array: *mut ::std::os::raw::c_void,
-                                     capacity: usize, size: usize);
-    pub fn Gecko_ImageLayers_EnsureLength(layers: *mut nsStyleImageLayers,
-                                          len: usize);
+    pub fn Gecko_EnsureTArrayCapacity(array: *mut ::std::os::raw::c_void,
+                                      capacity: usize, elem_size: usize);
+    pub fn Gecko_EnsureImageLayersLength(layers: *mut nsStyleImageLayers,
+                                         len: usize);
+    pub fn Gecko_InitializeImageLayer(layer: *mut nsStyleImageLayers_Layer,
+                                      layer_type: u8);
     pub fn Servo_StylesheetFromUTF8Bytes(bytes: *const u8, length: u32,
                                          parsing_mode: SheetParsingMode,
                                          base: *mut ThreadSafeURIHolder,
