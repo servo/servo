@@ -679,8 +679,6 @@ bitflags! {
 
         /// Whether this flow contains any text and/or replaced fragments.
         const CONTAINS_TEXT_OR_REPLACED_FRAGMENTS = 0b0001_0000_0000_0000_0000_0000,
-
-        const IS_FLEX = 0b0010_0000_0000_0000_0000_0000,
     }
 }
 
@@ -720,11 +718,6 @@ impl FlowFlags {
     #[inline]
     pub fn clears_floats(&self) -> bool {
         self.contains(CLEARS_LEFT) || self.contains(CLEARS_RIGHT)
-    }
-
-    #[inline]
-    pub fn is_flex(&self) -> bool {
-        self.contains(IS_FLEX)
     }
 }
 

@@ -14,7 +14,7 @@ use euclid::Point2D;
 use floats::FloatKind;
 use flow;
 use flow::{Flow, FlowClass, ImmutableFlowUtils, OpaqueFlow};
-use flow::{INLINE_POSITION_IS_STATIC, IS_ABSOLUTELY_POSITIONED, IS_FLEX};
+use flow::{INLINE_POSITION_IS_STATIC, IS_ABSOLUTELY_POSITIONED};
 use flow_ref::{self, FlowRef};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx::display_list::StackingContext;
@@ -290,8 +290,11 @@ impl FlexFlow {
                 0_f32
             };
 
-            let base = flow::mut_base(flow_ref::deref_mut(&mut kid.flow));
-            base.flags.insert(IS_FLEX);
+            let flowref = flow_ref::deref_mut(&mut kid.flow);
+            if flowref.is_block_like() {
+                flowref.as_mut_block().mark_as_flex();
+            }
+            let base = flow::mut_base(flowref);
             base.block_container_inline_size = max(kid.basis + Au::from_f32_px(grow_by), Au(0));
             base.block_container_writing_mode = container_mode;
             base.block_container_explicit_block_size = block_container_explicit_block_size;
