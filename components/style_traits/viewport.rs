@@ -7,8 +7,8 @@ use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
 use std::ascii::AsciiExt;
 use std::fmt;
-use util::geometry::{PagePx, ViewportPx};
 use values::specified::AllowedNumericType;
+use {PagePx, ViewportPx};
 
 define_css_keyword_enum!(UserZoom:
                          "zoom" => Zoom,

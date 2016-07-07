@@ -43,7 +43,7 @@ use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg};
 use std::sync::mpsc::Sender;
-use util::geometry::PagePx;
+use style_traits::PagePx;
 
 mod compositor;
 mod compositor_layer;

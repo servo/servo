@@ -61,8 +61,8 @@ use profile_traits::mem;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
 use std::sync::mpsc::{Sender, Receiver};
+use style_traits::{PagePx, ViewportPx};
 use url::Url;
-use util::geometry::{PagePx, ViewportPx};
 use util::ipc::OptionalOpaqueIpcSender;
 use webdriver_msg::{LoadStatus, WebDriverScriptCommand};
 

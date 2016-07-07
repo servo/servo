@@ -10,7 +10,7 @@ path = "lib.rs"
 
 [features]
 servo = ["heapsize", "heapsize_plugin", "serde", "serde_macros", "euclid/plugins",
-         "cssparser/heap_size", "cssparser/serde-serialization", "util/servo"]
+         "cssparser/heap_size", "cssparser/serde-serialization"]
 
 [dependencies]
 cssparser = "0.5.4"
@@ -20,4 +20,3 @@ heapsize_plugin = {version = "0.1.2", optional = true}
 rustc-serialize = "0.3"
 serde = {version = "0.7.11", optional = true}
 serde_macros = {version = "0.7.11", optional = true}
-util = {path = "../util"}
