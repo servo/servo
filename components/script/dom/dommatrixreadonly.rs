@@ -635,7 +635,7 @@ fn set_dict_fallback(a: &mut Option<f64>, b: &mut Option<f64>, fallback: f64) {
     } else if b.is_some() && a.is_none() {
         *a = *b;
     // Step 3.
-    } else {
+    } else if a.is_none() && b.is_none() {
         *a = Some(fallback);
         *b = Some(fallback);
     }
