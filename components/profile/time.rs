@@ -327,8 +327,7 @@ impl Profiler {
         true
     }
 
-
-    fn get_statistics(data: &[f64]) -> (f64, f64, f64, f64) {
+    pub fn get_statistics(data: &[f64]) -> (f64, f64, f64, f64) {
          let data_len = data.len();
          let (mean, median, min, max) =
              (data.iter().sum::<f64>() / (data_len as f64),
@@ -337,7 +336,6 @@ impl Profiler {
              data.iter().fold(-f64::INFINITY, |a, &b| a.max(b)));
         (mean, median, min, max)
     }
-
 
     fn print_buckets(&mut self) {
         match self.output {
