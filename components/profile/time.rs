@@ -334,11 +334,12 @@ impl Profiler {
         });
 
         let data_len = data.len();
+        debug_assert!(data_len > 0);
         let (mean, median, min, max) =
             (data.iter().sum::<f64>() / (data_len as f64),
             data[data_len / 2],
-            data.iter().fold(f64::INFINITY, |a, &b| a.min(b)),
-            data.iter().fold(-f64::INFINITY, |a, &b| a.max(b)));
+            data[0],
+            data[data_len-1]);
         (mean, median, min, max)
     }
 

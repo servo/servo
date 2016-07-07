@@ -37,7 +37,7 @@ fn time_profiler_stats_test() {
     assert_eq!(13.2599, odd_max);
 }
 
-#[cfg(debug)]
+#[cfg(debug_assertions)]
 #[test]
 #[should_panic]
 fn time_profiler_unsorted_stats_test() {
