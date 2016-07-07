@@ -1,0 +1,2 @@
+Content-Security-Policy: referrer origin
+Access-Control-Allow-Origin: *
