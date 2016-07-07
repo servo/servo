@@ -4,15 +4,14 @@
 
 //! Base classes to work with IDL callbacks.
 
-use dom::bindings::error::{Error, Fallible};
+use dom::bindings::error::{Error, Fallible, report_pending_exception};
 use dom::bindings::global::global_root_from_object;
 use dom::bindings::reflector::Reflectable;
 use js::jsapi::GetGlobalForObjectCrossCompartment;
-use js::jsapi::JSAutoCompartment;
+use js::jsapi::JS_GetProperty;
 use js::jsapi::{Heap, MutableHandleObject, RootedObject};
 use js::jsapi::{IsCallable, JSContext, JSObject, JS_WrapObject};
 use js::jsapi::{JSCompartment, JS_EnterCompartment, JS_LeaveCompartment};
-use js::jsapi::{JS_GetProperty, JS_IsExceptionPending, JS_ReportPendingException};
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::RootedGuard;
 use std::default::Default;
@@ -189,13 +188,8 @@ impl<'a> Drop for CallSetup<'a> {
     fn drop(&mut self) {
         unsafe {
             JS_LeaveCompartment(self.cx, self.old_compartment);
-        }
-        let need_to_deal_with_exception = self.handling == ExceptionHandling::Report &&
-                                          unsafe { JS_IsExceptionPending(self.cx) };
-        if need_to_deal_with_exception {
-            unsafe {
-                let _ac = JSAutoCompartment::new(self.cx, *self.exception_compartment);
-                JS_ReportPendingException(self.cx);
+            if self.handling == ExceptionHandling::Report {
+                report_pending_exception(self.cx, *self.exception_compartment);
             }
         }
     }
