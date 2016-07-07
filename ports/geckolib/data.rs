@@ -16,7 +16,7 @@ use style::dom::OpaqueNode;
 use style::media_queries::{Device, MediaType};
 use style::parallel::WorkQueueData;
 use style::workqueue::WorkQueue;
-use util::geometry::ViewportPx;
+use style_traits::ViewportPx;
 use util::thread_state;
 
 pub struct PerDocumentStyleData {

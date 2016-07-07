@@ -32,9 +32,10 @@ use range::Range;
 use std::default::Default;
 use std::{f32, mem, ptr};
 use style::computed_values::{border_style, filter, image_rendering, mix_blend_mode};
+use style_traits::PagePx;
 use text::TextRun;
 use text::glyph::ByteIndex;
-use util::geometry::{self, MAX_RECT, PagePx, ScreenPx};
+use util::geometry::{self, MAX_RECT, ScreenPx};
 use util::opts;
 
 pub struct PaintContext<'a> {

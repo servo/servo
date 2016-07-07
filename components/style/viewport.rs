@@ -18,9 +18,9 @@ use std::ascii::AsciiExt;
 use std::fmt;
 use std::iter::Enumerate;
 use std::str::Chars;
+use style_traits::ViewportPx;
 use style_traits::viewport::{Orientation, UserZoom, ViewportConstraints, Zoom};
 use stylesheets::Origin;
-use util::geometry::ViewportPx;
 use values::computed::{Context, ToComputedValue};
 use values::specified::{Length, LengthOrPercentageOrAuto, ViewportPercentageLength};
 
