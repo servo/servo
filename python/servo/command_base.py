@@ -333,10 +333,7 @@ class CommandBase(object):
 
         env["CARGO_HOME"] = self.config["tools"]["cargo-home-dir"]
 
-        if self.use_stable_rust():
-            env["CARGO_TARGET_DIR"] = path.join(self.context.topdir, "ports/stable-rust/target")
-        elif "CARGO_TARGET_DIR" not in env:
-            env["CARGO_TARGET_DIR"] = path.join(self.context.topdir, "target")
+        env["CARGO_TARGET_DIR"] = path.join(self.context.topdir, "target")
 
         if extra_lib:
             if sys.platform == "darwin":
