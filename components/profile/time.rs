@@ -340,7 +340,7 @@ impl Profiler {
             (data.iter().sum::<f64>() / (data_len as f64),
             data[data_len / 2],
             data[0],
-            data[data_len-1]);
+            data[data_len - 1]);
         (mean, median, min, max)
     }
 
