@@ -35,7 +35,7 @@ impl<T> nsTArray<T> {
         debug_assert!(!self.mBuffer.is_null());
         unsafe { mem::transmute(self.mBuffer) }
     }
-    fn header_mut <'a>(&'a mut self) -> &'a mut nsTArrayHeader {
+    fn header_mut<'a>(&'a mut self) -> &'a mut nsTArrayHeader {
         debug_assert!(!self.mBuffer.is_null());
         unsafe { mem::transmute(self.mBuffer) }
     }
