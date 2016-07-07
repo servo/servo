@@ -44,3 +44,11 @@ fn time_profiler_unsorted_stats_test() {
     let unsorted_data = vec![5.0, 7.5, 1.0, 8.9];
     time::Profiler::get_statistics(&unsorted_data);
 }
+
+#[cfg(debug_assertions)]
+#[test]
+#[should_panic]
+fn time_profiler_data_len_zero() {
+    let zero_data = vec![];
+    time::Profiler::get_statistics(&zero_data);
+}
