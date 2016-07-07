@@ -1,6 +1,0 @@
-[package]
-name = "stable-rust"
-version = "0.0.1"
-authors = ["The Servo Project Developers"]
-
-[dependencies]
