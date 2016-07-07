@@ -79,7 +79,7 @@ impl VirtualMethods for HTMLDetailsElement {
                 element: details,
                 toggle_number: counter
             };
-            let _ = task_source.queue(DOMManipulationTask::FireToggleEvent(runnable));
+            let _ = task_source.queue(DOMManipulationTask::Runnable(runnable));
         }
     }
 }
