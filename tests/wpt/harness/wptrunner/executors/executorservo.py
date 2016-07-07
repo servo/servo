@@ -224,10 +224,7 @@ class ServoRefTestExecutor(ProcessTestExecutor):
             for pref in test.environment.get('prefs', {}):
                 command += ["--pref", pref]
 
-            if viewport_size:
-                command += ["--resolution", viewport_size]
-            else:
-                command += ["--resolution", "800x600"]
+            command += ["--resolution", viewport_size or "800x600"]
 
             if dpi:
                 command += ["--device-pixel-ratio", dpi]
