@@ -498,7 +498,7 @@ where Impl: SelectorImplExt,
     debug!("update_style_for_animation: entering");
     debug_assert!(!animation.is_expired());
     match *animation {
-        Animation::Transition(_, start_time, ref frame, expired) => {
+        Animation::Transition(_, start_time, ref frame, _) => {
             debug!("update_style_for_animation: transition found");
             let now = time::precise_time_s();
             let mut new_style = (*style).clone();
