@@ -269,6 +269,7 @@ pub mod focusevent;
 pub mod forcetouchevent;
 pub mod formdata;
 pub mod hashchangeevent;
+pub mod headers;
 pub mod htmlanchorelement;
 pub mod htmlappletelement;
 pub mod htmlareaelement;
