@@ -6576,6 +6576,12 @@
             "url": "/_mozilla/mozilla/interfaces.html"
           }
         ],
+        "mozilla/interfaces.worker.js": [
+          {
+            "path": "mozilla/interfaces.worker.js",
+            "url": "/_mozilla/mozilla/interfaces.worker"
+          }
+        ],
         "mozilla/lenient_this.html": [
           {
             "path": "mozilla/lenient_this.html",
