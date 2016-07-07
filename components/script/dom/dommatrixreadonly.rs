@@ -599,11 +599,11 @@ fn validate_and_fixup_dommatrixinit(dict: &mut DOMMatrixInit) -> Fallible<&DOMMa
         // Step 2.
         set_dict_fallback(&mut dict.a, &mut dict.m11, 1.0);
         // Step 3.
-        set_dict_fallback(&mut dict.b, &mut dict.m12, 1.0);
+        set_dict_fallback(&mut dict.b, &mut dict.m12, 0.0);
         // Step 4.
         set_dict_fallback(&mut dict.c, &mut dict.m21, 0.0);
         // Step 5.
-        set_dict_fallback(&mut dict.d, &mut dict.m22, 0.0);
+        set_dict_fallback(&mut dict.d, &mut dict.m22, 1.0);
         // Step 6.
         set_dict_fallback(&mut dict.e, &mut dict.m41, 0.0);
         // Step 7.
@@ -665,20 +665,20 @@ impl Clone for DOMMatrixInit {
             is2D: self.is2D.clone(),
             m11: self.m11.clone(),
             m12: self.m12.clone(),
-            m13: self.m13,
-            m14: self.m14,
+            m13: self.m13.clone(),
+            m14: self.m14.clone(),
             m21: self.m21.clone(),
             m22: self.m22.clone(),
-            m23: self.m23,
-            m24: self.m24,
-            m31: self.m31,
-            m32: self.m32,
-            m33: self.m33,
-            m34: self.m34,
+            m23: self.m23.clone(),
+            m24: self.m24.clone(),
+            m31: self.m31.clone(),
+            m32: self.m32.clone(),
+            m33: self.m33.clone(),
+            m34: self.m34.clone(),
             m41: self.m41.clone(),
             m42: self.m42.clone(),
-            m43: self.m43,
-            m44: self.m44,
+            m43: self.m43.clone(),
+            m44: self.m44.clone(),
         }
     }
 }
