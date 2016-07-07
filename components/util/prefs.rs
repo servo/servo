@@ -11,12 +11,12 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::{Read, Write, stderr};
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, RwLock};
 
 lazy_static! {
     pub static ref PREFS: Preferences = {
-        let prefs = read_prefs().unwrap_or_else(|_| HashMap::new());
-        Preferences(Arc::new(Mutex::new(prefs)))
+        let prefs = read_prefs().ok().unwrap_or_else(HashMap::new);
+        Preferences(Arc::new(RwLock::new(prefs)))
     };
 }
 
@@ -207,15 +207,15 @@ fn read_prefs() -> Result<HashMap<String, Pref>, ()> {
     read_prefs_from_file(file)
 }
 
-pub struct Preferences(Arc<Mutex<HashMap<String, Pref>>>);
+pub struct Preferences(Arc<RwLock<HashMap<String, Pref>>>);
 
 impl Preferences {
     pub fn get(&self, name: &str) -> Arc<PrefValue> {
-        self.0.lock().unwrap().get(name).map_or(Arc::new(PrefValue::Missing), |x| x.value().clone())
+        self.0.read().unwrap().get(name).map_or(Arc::new(PrefValue::Missing), |x| x.value().clone())
     }
 
     pub fn cloned(&self) -> HashMap<String, Pref> {
-        self.0.lock().unwrap().clone()
+        self.0.read().unwrap().clone()
     }
 
     pub fn is_mozbrowser_enabled(&self) -> bool {
@@ -223,7 +223,7 @@ impl Preferences {
     }
 
     pub fn set(&self, name: &str, value: PrefValue) {
-        let mut prefs = self.0.lock().unwrap();
+        let mut prefs = self.0.write().unwrap();
         if let Some(pref) = prefs.get_mut(name) {
             pref.set(value);
             return;
@@ -232,7 +232,7 @@ impl Preferences {
     }
 
     pub fn reset(&self, name: &str) -> Arc<PrefValue> {
-        let mut prefs = self.0.lock().unwrap();
+        let mut prefs = self.0.write().unwrap();
         let result = match prefs.get_mut(name) {
             None => return Arc::new(PrefValue::Missing),
             Some(&mut Pref::NoDefault(_)) => Arc::new(PrefValue::Missing),
@@ -249,7 +249,7 @@ impl Preferences {
 
     pub fn reset_all(&self) {
         let names = {
-            self.0.lock().unwrap().keys().cloned().collect::<Vec<String>>()
+            self.0.read().unwrap().keys().cloned().collect::<Vec<String>>()
         };
         for name in names.iter() {
             self.reset(name);
@@ -257,6 +257,6 @@ impl Preferences {
     }
 
     pub fn extend(&self, extension: HashMap<String, Pref>) {
-        self.0.lock().unwrap().extend(extension);
+        self.0.write().unwrap().extend(extension);
     }
 }
