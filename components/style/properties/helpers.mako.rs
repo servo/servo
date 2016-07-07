@@ -33,6 +33,8 @@
     </%call>
 </%def>
 
+// FIXME (Manishearth): Add computed_value_as_specified argument
+// and handle the empty case correctly
 <%doc>
     To be used in cases where we have a grammar like
     "<thing> [ , <thing> ]*", but only support a single value
@@ -54,13 +56,14 @@
             }
             pub mod computed_value {
                 use super::single_value;
-                #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
+                #[derive(Debug, Clone, PartialEq)]
+                #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
                 pub struct T(pub Vec<single_value::computed_value::T>);
             }
 
             impl ToCss for computed_value::T {
                 fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                    if self.0.len() >= 1 {
+                    if !self.0.is_empty() {
                         try!(self.0[0].to_css(dest));
                     }
                     for i in self.0.iter().skip(1) {
@@ -71,12 +74,13 @@
                 }
             }
 
-            #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
+            #[derive(Debug, Clone, PartialEq)]
+            #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
             pub struct SpecifiedValue(pub Vec<single_value::SpecifiedValue>);
 
             impl ToCss for SpecifiedValue {
                 fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                    if self.0.len() >= 1 {
+                    if !self.0.is_empty() {
                         try!(self.0[0].to_css(dest))
                     }
                     for i in self.0.iter().skip(1) {

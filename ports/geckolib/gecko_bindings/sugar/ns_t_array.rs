@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use bindings::Gecko_ArrayEnsureCapacity;
+use bindings::Gecko_EnsureTArrayCapacity;
 use std::mem;
 use std::ops::{Deref, DerefMut};
 use std::os::raw::c_void;
@@ -35,9 +35,10 @@ impl<T> nsTArray<T> {
         debug_assert!(!self.mBuffer.is_null());
         unsafe { mem::transmute(self.mBuffer) }
     }
-    fn header_mut <'a>(&'a mut self) -> &'a mut nsTArrayHeader {
+    // unsafe, since header may be in shared static or something
+    unsafe fn header_mut<'a>(&'a mut self) -> &'a mut nsTArrayHeader {
         debug_assert!(!self.mBuffer.is_null());
-        unsafe { mem::transmute(self.mBuffer) }
+        mem::transmute(self.mBuffer)
     }
 
     #[inline]
@@ -48,12 +49,17 @@ impl<T> nsTArray<T> {
 
     fn ensure_capacity(&mut self, cap: usize) {
         unsafe {
-            Gecko_ArrayEnsureCapacity(self as *mut nsTArray<T> as *mut c_void, cap, mem::size_of::<T>())
+            Gecko_EnsureTArrayCapacity(self as *mut nsTArray<T> as *mut c_void, cap, mem::size_of::<T>())
         }
     }
 
     // unsafe because the array may contain uninits
+    // This will not call constructors, either manually
+    // add bindings or run the typed ensurecapacity call
+    // on the gecko side
     pub unsafe fn set_len(&mut self, len: u32) {
+        // this can leak
+        debug_assert!(len >= self.len() as u32);
         self.ensure_capacity(len as usize);
         let mut header = self.header_mut();
         header.mLength = len;
