@@ -328,12 +328,17 @@ impl Profiler {
     }
 
     pub fn get_statistics(data: &[f64]) -> (f64, f64, f64, f64) {
-         let data_len = data.len();
-         let (mean, median, min, max) =
-             (data.iter().sum::<f64>() / (data_len as f64),
-             data[data_len / 2],
-             data.iter().fold(f64::INFINITY, |a, &b| a.min(b)),
-             data.iter().fold(-f64::INFINITY, |a, &b| a.max(b)));
+        data.iter().fold(-f64::INFINITY, |a, &b| {
+            debug_assert!(a < b, "Data must be sorted");
+            b
+        });
+
+        let data_len = data.len();
+        let (mean, median, min, max) =
+            (data.iter().sum::<f64>() / (data_len as f64),
+            data[data_len / 2],
+            data.iter().fold(f64::INFINITY, |a, &b| a.min(b)),
+            data.iter().fold(-f64::INFINITY, |a, &b| a.max(b)));
         (mean, median, min, max)
     }
 
