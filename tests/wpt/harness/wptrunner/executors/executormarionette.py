@@ -292,7 +292,7 @@ class RemoteMarionetteProtocol(Protocol):
 class ExecuteAsyncScriptRun(object):
     def __init__(self, logger, func, marionette, url, timeout):
         self.logger = logger
-        self.result = None
+        self.result = (None, None)
         self.marionette = marionette
         self.func = func
         self.url = url
@@ -323,11 +323,9 @@ class ExecuteAsyncScriptRun(object):
             wait_timeout = None
 
         flag = self.result_flag.wait(wait_timeout)
-        if self.result is None:
+        if self.result[1] is None:
             self.logger.debug("Timed out waiting for a result")
-            assert not flag
             self.result = False, ("EXTERNAL-TIMEOUT", None)
-
         return self.result
 
     def _run(self):
@@ -409,7 +407,8 @@ class MarionetteTestharnessExecutor(TestharnessExecutor):
                                 "timeout": timeout_ms,
                                 "explicit_timeout": timeout is None}
 
-        return marionette.execute_async_script(script, new_sandbox=False)
+        rv = marionette.execute_async_script(script, new_sandbox=False)
+        return rv
 
 
 class MarionetteRefTestExecutor(RefTestExecutor):
@@ -487,7 +486,7 @@ class MarionetteRefTestExecutor(RefTestExecutor):
 class WdspecRun(object):
     def __init__(self, func, session, path, timeout):
         self.func = func
-        self.result = None
+        self.result = (None, None)
         self.session = session
         self.path = path
         self.timeout = timeout
@@ -504,8 +503,7 @@ class WdspecRun(object):
         executor.start()
 
         flag = self.result_flag.wait(self.timeout)
-        if self.result is None:
-            assert not flag
+        if self.result[1] is None:
             self.result = False, ("EXTERNAL-TIMEOUT", None)
 
         return self.result
