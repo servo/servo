@@ -327,6 +327,18 @@ impl Profiler {
         true
     }
 
+
+    fn get_statistics(data: &[f64]) -> (f64, f64, f64, f64) {
+         let data_len = data.len();
+         let (mean, median, min, max) =
+             (data.iter().sum::<f64>() / (data_len as f64),
+             data[data_len / 2],
+             data.iter().fold(f64::INFINITY, |a, &b| a.min(b)),
+             data.iter().fold(-f64::INFINITY, |a, &b| a.max(b)));
+        (mean, median, min, max)
+    }
+
+
     fn print_buckets(&mut self) {
         match self.output {
             Some(OutputOptions::FileName(ref filename)) => {
@@ -349,11 +361,7 @@ impl Profiler {
                     });
                     let data_len = data.len();
                     if data_len > 0 {
-                        let (mean, median, min, max) =
-                            (data.iter().sum::<f64>() / (data_len as f64),
-                             data[data_len / 2],
-                             data.iter().fold(f64::INFINITY, |a, &b| a.min(b)),
-                             data.iter().fold(-f64::INFINITY, |a, &b| a.max(b)));
+                        let (mean, median, min, max) = Self::get_statistics(data);
                         write!(file, "{}\t{}\t{:15.4}\t{:15.4}\t{:15.4}\t{:15.4}\t{:15}\n",
                             category.format(&self.output), meta.format(&self.output),
                             mean, median, min, max, data_len).unwrap();
@@ -378,11 +386,7 @@ impl Profiler {
                     });
                     let data_len = data.len();
                     if data_len > 0 {
-                        let (mean, median, min, max) =
-                            (data.iter().sum::<f64>() / (data_len as f64),
-                             data[data_len / 2],
-                             data.iter().fold(f64::INFINITY, |a, &b| a.min(b)),
-                             data.iter().fold(-f64::INFINITY, |a, &b| a.max(b)));
+                        let (mean, median, min, max) = Self::get_statistics(data);
                         writeln!(&mut lock, "{:-35}{} {:15.4} {:15.4} {:15.4} {:15.4} {:15}",
                                  category.format(&self.output), meta.format(&self.output), mean, median, min, max,
                                  data_len).unwrap();
