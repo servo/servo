@@ -6,7 +6,7 @@
 
 #![deny(unsafe_code)]
 
-use app_units::Au;
+use app_units::{Au, MAX_AU};
 use block::BlockFlow;
 use context::LayoutContext;
 use display_list_builder::{DisplayListBuildState, FlexFlowDisplayListBuilding};
@@ -21,14 +21,18 @@ use gfx::display_list::StackingContext;
 use gfx_traits::StackingContextId;
 use layout_debug;
 use model::{IntrinsicISizes, MaybeAuto, MinMaxConstraint};
+use model::{specified, specified_or_none};
 use script_layout_interface::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW};
-use std::cmp::max;
+use std::cmp::{max, min};
 use std::sync::Arc;
 use style::computed_values::flex_direction;
+use style::computed_values::{box_sizing, border_collapse};
 use style::logical_geometry::LogicalSize;
 use style::properties::{ComputedValues, ServoComputedValues};
 use style::servo::SharedStyleContext;
-use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
+use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
+use style::values::computed::{LengthOrPercentageOrAutoOrContent, LengthOrPercentageOrNone};
+
 
 /// The size of an axis. May be a specified size, a min/max
 /// constraint, or an unlimited size
@@ -69,22 +73,192 @@ impl AxisSize {
 // The logical axises are inline and block, the flex axises are main and cross.
 // When the flex container has flex-direction: column or flex-direction: column-reverse, the main axis
 // should be block. Otherwise, it should be inline.
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 enum Mode {
     Inline,
     Block
 }
 
+/// This function accepts the flex-basis and the size property in main direction from style,
+/// and the container size, then return the used value of flex basis. it can be used to help
+/// determining the flex base size and to indicate whether the main size of the item
+/// is definite after flex size resolving.
+fn from_flex_basis(flex_basis: LengthOrPercentageOrAutoOrContent,
+                   main_length: LengthOrPercentageOrAuto,
+                   containing_length: Option<Au>) -> MaybeAuto {
+    match (flex_basis, containing_length) {
+        (LengthOrPercentageOrAutoOrContent::Length(length), _) =>
+            MaybeAuto::Specified(length),
+        (LengthOrPercentageOrAutoOrContent::Percentage(percent), Some(size)) =>
+            MaybeAuto::Specified(size.scale_by(percent)),
+        (LengthOrPercentageOrAutoOrContent::Percentage(_), None) =>
+            MaybeAuto::Auto,
+        (LengthOrPercentageOrAutoOrContent::Calc(calc), Some(size)) =>
+            MaybeAuto::Specified(calc.length() + size.scale_by(calc.percentage())),
+        (LengthOrPercentageOrAutoOrContent::Calc(_), None) =>
+            MaybeAuto::Auto,
+        (LengthOrPercentageOrAutoOrContent::Content, _) =>
+            MaybeAuto::Auto,
+        (LengthOrPercentageOrAutoOrContent::Auto, Some(size)) =>
+            MaybeAuto::from_style(main_length, size),
+        (LengthOrPercentageOrAutoOrContent::Auto, None) => {
+            if let LengthOrPercentageOrAuto::Length(length) = main_length {
+                MaybeAuto::Specified(length)
+            } else {
+                MaybeAuto::Auto
+            }
+        }
+    }
+}
+
+/// Represents a child in a flex container. Most fields here are used in
+/// flex size resolving, and items are sorted by the 'order' property.
 #[derive(Debug)]
 struct FlexItem {
+    /// Main size of a flex item, used to store results of flexible length calcuation.
+    pub main_size: Au,
+    /// Used flex base size.
+    pub base_size: Au,
+    /// The minimal size in main direction.
+    pub min_size: Au,
+    /// The maximal main size. If this property is not actually set by style
+    /// It will be the largest size available for code reuse.
+    pub max_size: Au,
+    /// Reference to the actual flow.
     pub flow: FlowRef,
+    /// Style of the child flow, stored here to reduce overhead.
+    pub style: Arc<ServoComputedValues>,
+    /// The 'flex-grow' property of this item.
+    pub flex_grow: f32,
+    /// The 'flex-shrink' property of this item.
+    pub flex_shrink: f32,
+    /// The 'order' property of this item.
+    pub order: i32,
+    /// Whether the main size has met its constraint.
+    pub is_frozen: bool,
+    /// True if this flow has property 'visibility::collapse'.
+    pub is_strut: bool
 }
 
 impl FlexItem {
-    fn new(flow: FlowRef) -> FlexItem {
+    pub fn new(flow: FlowRef) -> FlexItem {
+        let style = flow.as_block().fragment.style.clone();
+        let flex_grow = style.get_position().flex_grow;
+        let flex_shrink = style.get_position().flex_shrink;
+        let order = style.get_position().order;
+        // TODO(stshine): for item with visibility:collapse, set is_strut to true.
+
         FlexItem {
-            flow: flow
+            main_size: Au(0),
+            base_size: Au(0),
+            min_size: Au(0),
+            max_size: MAX_AU,
+            flow: flow,
+            style: style,
+            flex_grow: flex_grow,
+            flex_shrink: flex_shrink,
+            order: order,
+            is_frozen: false,
+            is_strut: false
         }
+    }
+
+    /// Initialize the used flex base size, minimal main size and maximal main size.
+    /// For block mode container this method should be called in assign_block_size()
+    /// pass so that the item has already been layouted.
+    pub fn init_sizes(&mut self, containing_length: Au, mode: Mode) {
+        let block = flow_ref::deref_mut(&mut self.flow).as_mut_block();
+        match mode {
+            // TODO(stshine): the definition of min-{width, height} in style component
+            // should change to LengthOrPercentageOrAuto for automatic implied minimal size.
+            // https://drafts.csswg.org/css-flexbox-1/#min-size-auto
+            Mode::Inline => {
+                let basis = from_flex_basis(self.style.get_position().flex_basis,
+                                            self.style.content_inline_size(),
+                                            Some(containing_length));
+
+                // These methods compute auto margins to zero length, which is exactly what we want.
+                block.fragment.compute_border_and_padding(containing_length,
+                                                          border_collapse::T::separate);
+                block.fragment.compute_inline_direction_margins(containing_length);
+                block.fragment.compute_block_direction_margins(containing_length);
+
+                let adjustment = match self.style.get_position().box_sizing {
+                    box_sizing::T::content_box => Au(0),
+                    box_sizing::T::border_box =>
+                        block.fragment.border_padding.inline_start_end()
+                };
+                let content_size = block.base.intrinsic_inline_sizes.preferred_inline_size
+                    - block.fragment.surrounding_intrinsic_inline_size() + adjustment;
+                self.base_size = basis.specified_or_default(content_size);
+                self.max_size = specified_or_none(self.style.max_inline_size(), containing_length)
+                    .unwrap_or(MAX_AU);
+                self.min_size = specified(self.style.min_inline_size(), containing_length);
+            },
+            Mode::Block => {
+                let basis = from_flex_basis(self.style.get_position().flex_basis,
+                                            self.style.content_block_size(),
+                                            Some(containing_length));
+                let content_size = match self.style.get_position().box_sizing {
+                    box_sizing::T::border_box => block.fragment.border_box.size.block,
+                    box_sizing::T::content_box => block.fragment.border_box.size.block
+                        - block.fragment.border_padding.block_start_end(),
+                };
+                self.base_size = basis.specified_or_default(content_size);
+                self.max_size = specified_or_none(self.style.max_block_size(), containing_length)
+                    .unwrap_or(MAX_AU);
+                self.min_size = specified(self.style.min_block_size(), containing_length);
+            }
+        }
+    }
+
+    /// Return the outer main size of the item, including paddings and margins,
+    /// clamped by max and min size.
+    pub fn outer_main_size(&self, mode: Mode) -> Au {
+        let ref fragment = self.flow.as_block().fragment;
+        let adjustment = match mode {
+            Mode::Inline => {
+                match self.style.get_position().box_sizing {
+                    box_sizing::T::content_box =>
+                        fragment.border_padding.inline_start_end() + fragment.margin.inline_start_end(),
+                    box_sizing::T::border_box =>
+                        fragment.margin.inline_start_end()
+                }
+            },
+            Mode::Block => {
+                match self.style.get_position().box_sizing {
+                    box_sizing::T::content_box =>
+                        fragment.border_padding.block_start_end() + fragment.margin.block_start_end(),
+                    box_sizing::T::border_box =>
+                        fragment.margin.block_start_end()
+                }
+            }
+        };
+        max(self.min_size, min(self.base_size, self.max_size)) + adjustment
+    }
+
+    pub fn auto_margin_num(&self, mode: Mode) -> i32 {
+        let margin = self.style.logical_margin();
+        let mut margin_count = 0;
+        match mode {
+            Mode::Inline => {
+                if margin.inline_start == LengthOrPercentageOrAuto::Auto {
+                    margin_count += 1;
+                }
+                if margin.inline_end == LengthOrPercentageOrAuto::Auto {
+                    margin_count += 1;
+                }
+            }
+            Mode::Block => {
+                if margin.block_start == LengthOrPercentageOrAuto::Auto {
+                    margin_count += 1;
+                }
+                if margin.block_end == LengthOrPercentageOrAuto::Auto {
+                    margin_count += 1;
+                }
+            }
+        }
+        margin_count
     }
 }
 
