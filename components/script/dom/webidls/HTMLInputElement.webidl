@@ -70,6 +70,11 @@ interface HTMLInputElement : HTMLElement {
   void setSelectionRange(unsigned long start, unsigned long end, optional DOMString direction);
 
   // also has obsolete members
+
+  // Select with file-system paths for testing purpose
+  [Pref="dom.testing.htmlinputelement.select_files.enabled"]
+  void selectFiles(sequence<DOMString> path);
+
 };
 
 // https://html.spec.whatwg.org/multipage/#HTMLInputElement-partial
