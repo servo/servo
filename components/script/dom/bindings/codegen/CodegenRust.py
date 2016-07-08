@@ -1825,12 +1825,17 @@ def DOMClass(descriptor):
     protoList.extend(['PrototypeList::ID::Last'] * (descriptor.config.maxProtoChainLength - len(protoList)))
     prototypeChainString = ', '.join(protoList)
     heapSizeOf = 'heap_size_of_raw_self_and_children::<%s>' % descriptor.interface.identifier.name
+    if descriptor.isGlobal():
+        globals_ = camel_to_upper_snake(descriptor.name)
+    else:
+        globals_ = 'EMPTY'
     return """\
 DOMClass {
     interface_chain: [ %s ],
     type_id: %s,
     heap_size_of: %s as unsafe fn(_) -> _,
-}""" % (prototypeChainString, DOMClassTypeId(descriptor), heapSizeOf)
+    global: InterfaceObjectMap::%s,
+}""" % (prototypeChainString, DOMClassTypeId(descriptor), heapSizeOf, globals_)
 
 
 class CGDOMJSClass(CGThing):
@@ -2233,9 +2238,9 @@ match result {
 
 class CGConstructorEnabled(CGAbstractMethod):
     """
-    A method for testing whether we should be exposing this interface
-    object or navigator property.  This can perform various tests
-    depending on what conditions are specified on the interface.
+    A method for testing whether we should be exposing this interface object.
+    This can perform various tests depending on what conditions are specified
+    on the interface.
     """
     def __init__(self, descriptor):
         CGAbstractMethod.__init__(self, descriptor,
@@ -2248,6 +2253,11 @@ class CGConstructorEnabled(CGAbstractMethod):
         conditions = []
         iface = self.descriptor.interface
 
+        bits = " | ".join(sorted(
+            "InterfaceObjectMap::" + camel_to_upper_snake(i) for i in iface.exposureSet
+        ))
+        conditions.append("is_exposed_in(aObj, %s)" % bits)
+
         pref = iface.getExtendedAttribute("Pref")
         if pref:
             assert isinstance(pref, list) and len(pref) == 1
@@ -2257,8 +2267,6 @@ class CGConstructorEnabled(CGAbstractMethod):
         if func:
             assert isinstance(func, list) and len(func) == 1
             conditions.append("%s(aCx, aObj)" % func[0])
-
-        assert conditions
 
         return CGList((CGGeneric(cond) for cond in conditions), " &&\n")
 
@@ -2805,21 +2813,20 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
         return CGAbstractMethod.define(self)
 
     def definition_body(self):
-        def getCheck(desc):
-            if not desc.isExposedConditionally():
-                return ""
-            else:
-                return "if !ConstructorEnabled(cx, global) { return; }"
         if self.descriptor.interface.isCallback():
             function = "GetConstructorObject"
         else:
             function = "GetProtoObject"
         return CGGeneric("""\
 assert!(!global.get().is_null());
-%s
+
+if !ConstructorEnabled(cx, global) {
+    return;
+}
+
 rooted!(in(cx) let mut proto = ptr::null_mut());
 %s(cx, global, proto.handle_mut());
-assert!(!proto.is_null());""" % (getCheck(self.descriptor), function))
+assert!(!proto.is_null());""" % (function,))
 
 
 def needCx(returnType, arguments, considerTypes):
@@ -5133,8 +5140,7 @@ class CGDescriptor(CGThing):
 
         if descriptor.interface.hasInterfaceObject():
             cgThings.append(CGDefineDOMInterfaceMethod(descriptor))
-            if descriptor.isExposedConditionally():
-                cgThings.append(CGConstructorEnabled(descriptor))
+            cgThings.append(CGConstructorEnabled(descriptor))
 
         if descriptor.proxy:
             cgThings.append(CGDefineProxyHandler(descriptor))
@@ -5555,6 +5561,7 @@ class CGBindingRoot(CGThing):
             'js::glue::AppendToAutoIdVector',
             'js::rust::{GCMethods, define_methods, define_properties}',
             'dom::bindings',
+            'dom::bindings::codegen::InterfaceObjectMap',
             'dom::bindings::global::{GlobalRef, global_root_from_object, global_root_from_reflector}',
             'dom::bindings::interface::{InterfaceConstructorBehavior, NonCallbackInterfaceObjectClass}',
             'dom::bindings::interface::{create_callback_interface_object, create_interface_prototype_object}',
@@ -5562,6 +5569,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::interface::{define_guarded_methods, define_guarded_properties}',
             'dom::bindings::interface::{ConstantSpec, NonNullJSNative}',
             'dom::bindings::interface::ConstantVal::{IntVal, UintVal}',
+            'dom::bindings::interface::is_exposed_in',
             'dom::bindings::js::{JS, Root, RootedReference}',
             'dom::bindings::js::{OptionalRootedReference}',
             'dom::bindings::reflector::{Reflectable}',
@@ -6215,6 +6223,10 @@ class CallbackSetter(CallbackMember):
         return None
 
 
+def camel_to_upper_snake(s):
+    return "_".join(m.group(0).upper() for m in re.finditer("[A-Z][a-z]*", s))
+
+
 class GlobalGenRoots():
     """
     Roots for global codegen.
@@ -6231,6 +6243,18 @@ class GlobalGenRoots():
             "phf",
         ]
         imports = CGList([CGGeneric("use %s;" % mod) for mod in mods], "\n")
+
+        global_descriptors = config.getDescriptors(isGlobal=True)
+        flags = [("EMPTY", 0)]
+        flags.extend(
+            (camel_to_upper_snake(d.name), 2 ** idx)
+            for (idx, d) in enumerate(global_descriptors)
+        )
+        global_flags = CGWrapper(CGIndenter(CGList([
+            CGGeneric("const %s = %#x," % args)
+            for args in flags
+        ], "\n")), pre="pub flags Globals: u8 {\n", post="\n}")
+        globals_ = CGWrapper(CGIndenter(global_flags), pre="bitflags! {\n", post="\n}")
 
         pairs = []
         for d in config.getDescriptors(hasInterfaceObject=True):
@@ -6251,7 +6275,7 @@ class GlobalGenRoots():
 
         return CGList([
             CGGeneric(AUTOGENERATED_WARNING_COMMENT),
-            CGList([imports, phf], "\n\n")
+            CGList([imports, globals_, phf], "\n\n")
         ])
 
     @staticmethod
