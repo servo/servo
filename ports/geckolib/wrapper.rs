@@ -31,12 +31,10 @@ use selector_impl::{GeckoSelectorImpl, NonTSPseudoClass, PrivateStyleData};
 use selectors::Element;
 use selectors::matching::DeclarationBlock;
 use selectors::parser::{AttrSelector, NamespaceConstraint};
-use smallvec::VecLike;
 use std::marker::PhantomData;
 use std::ops::BitOr;
 use std::ptr;
 use std::slice;
-use std::str::from_utf8_unchecked;
 use std::sync::Arc;
 use string_cache::{Atom, BorrowedAtom, BorrowedNamespace, Namespace};
 use style::dom::{OpaqueNode, PresentationalHintsSynthetizer};
@@ -640,8 +638,4 @@ impl<'le> ElementExt for GeckoElement<'le> {
     fn is_link(&self) -> bool {
         self.match_non_ts_pseudo_class(NonTSPseudoClass::AnyLink)
     }
-}
-
-unsafe fn reinterpret_string<'a>(ptr: *const ::libc::c_char, length: u32) -> Option<&'a str> {
-    (ptr as *const u8).as_ref().map(|p| from_utf8_unchecked(slice::from_raw_parts(p, length as usize)))
 }
