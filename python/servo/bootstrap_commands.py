@@ -192,7 +192,7 @@ class MachCommands(CommandBase):
                 continue
 
             if self.use_stable_rust():
-                std_url = ("https://static.rust-lang.org/dist/rust-std-%s-%s.tar.gz"
+                std_url = ("https://static-rust-lang-org.s3.amazonaws.com/dist/rust-std-%s-%s.tar.gz"
                            % (version, target_triple))
                 tgz_file = install_dir + ('rust-std-%s-%s.tar.gz' % (version, target_triple))
             else:
