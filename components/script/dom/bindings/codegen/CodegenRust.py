@@ -2245,8 +2245,6 @@ class CGConstructorEnabled(CGAbstractMethod):
                                   unsafe_fn=True)
 
     def definition_body(self):
-        body = CGList([], "\n")
-
         conditions = []
         iface = self.descriptor.interface
 
@@ -2254,25 +2252,15 @@ class CGConstructorEnabled(CGAbstractMethod):
         if pref:
             assert isinstance(pref, list) and len(pref) == 1
             conditions.append('PREFS.get("%s").as_boolean().unwrap_or(false)' % pref[0])
+
         func = iface.getExtendedAttribute("Func")
         if func:
             assert isinstance(func, list) and len(func) == 1
             conditions.append("%s(aCx, aObj)" % func[0])
-        # We should really have some conditions
-        assert len(body) or len(conditions)
 
-        conditionsWrapper = ""
-        if len(conditions):
-            conditionsWrapper = CGWrapper(CGList((CGGeneric(cond) for cond in conditions),
-                                                 " &&\n"),
-                                          pre="return ",
-                                          post=";\n",
-                                          reindent=True)
-        else:
-            conditionsWrapper = CGGeneric("return true;\n")
+        assert conditions
 
-        body.append(conditionsWrapper)
-        return body
+        return CGList((CGGeneric(cond) for cond in conditions), " &&\n")
 
 
 def CreateBindingJSObject(descriptor, parent=None):
