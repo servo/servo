@@ -20,6 +20,7 @@ use std::sync::Arc;
 #[cfg(any(target_os = "macos", target_os = "linux"))]
 use tinyfiledialogs;
 use url::Url;
+use util::prefs::PREFS;
 use util::thread::spawn_named;
 use uuid::Uuid;
 
@@ -127,8 +128,10 @@ impl<UI: 'static + UIProvider> FileManager<UI> {
     fn start(&mut self) {
         loop {
             match self.receiver.recv().unwrap() {
-                FileManagerThreadMsg::SelectFile(filter, sender, origin) => self.select_file(filter, sender, origin),
-                FileManagerThreadMsg::SelectFiles(filter, sender, origin) => self.select_files(filter, sender, origin),
+                FileManagerThreadMsg::SelectFile(filter, sender, origin, opt_test_path) =>
+                    self.select_file(filter, sender, origin, opt_test_path),
+                FileManagerThreadMsg::SelectFiles(filter, sender, origin, opt_test_paths) =>
+                    self.select_files(filter, sender, origin, opt_test_paths),
                 FileManagerThreadMsg::ReadFile(sender, id, origin) => {
                     match self.try_read_file(id, origin) {
                         Ok(buffer) => { let _ = sender.send(Ok(buffer)); }
@@ -212,8 +215,15 @@ impl<UI: 'static + UIProvider> FileManager<UI> {
 
     fn select_file(&mut self, patterns: Vec<FilterPattern>,
                    sender: IpcSender<FileManagerResult<SelectedFile>>,
-                   origin: FileOrigin) {
-        match self.ui.open_file_dialog("", patterns) {
+                   origin: FileOrigin, opt_test_path: Option<String>) {
+        let select_files_enabled = PREFS.get("dom.testing.htmlinputelement.select_files.enabled").as_boolean();
+
+        let opt_s = match (opt_test_path, select_files_enabled) {
+            (Some(s), Some(true)) => Some(s),
+            _ => self.ui.open_file_dialog("", patterns),
+        };
+
+        match opt_s {
             Some(s) => {
                 let selected_path = Path::new(&s);
 
@@ -231,8 +241,15 @@ impl<UI: 'static + UIProvider> FileManager<UI> {
 
     fn select_files(&mut self, patterns: Vec<FilterPattern>,
                     sender: IpcSender<FileManagerResult<Vec<SelectedFile>>>,
-                    origin: FileOrigin) {
-        match self.ui.open_file_dialog_multi("", patterns) {
+                    origin: FileOrigin, opt_test_paths: Option<Vec<String>>) {
+        let select_files_enabled = PREFS.get("dom.testing.htmlinputelement.select_files.enabled").as_boolean();
+
+        let opt_v = match (opt_test_paths, select_files_enabled) {
+            (Some(v), Some(true)) => Some(v),
+            _ => self.ui.open_file_dialog_multi("", patterns),
+        };
+
+        match opt_v {
             Some(v) => {
                 let mut selected_paths = vec![];
 
