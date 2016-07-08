@@ -190,7 +190,7 @@ pub struct CancellableRunnable<T: Runnable + Send> {
 
 impl<T: Runnable + Send> Runnable for CancellableRunnable<T> {
     fn is_cancelled(&self) -> bool {
-        self.cancelled.load(Ordering::Relaxed)
+        self.cancelled.load(Ordering::SeqCst)
     }
 
     fn handler(self: Box<CancellableRunnable<T>>) {
@@ -2055,6 +2055,7 @@ impl ScriptThread {
         let listener = NetworkListener {
             context: context,
             script_chan: self.chan.clone(),
+            wrapper: None,
         };
         ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
             listener.notify_action(message.to().unwrap());

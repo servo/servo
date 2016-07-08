@@ -473,10 +473,12 @@ impl HTMLMediaElement {
             // 4.2
             let context = Arc::new(Mutex::new(HTMLMediaElementContext::new(self, url.clone())));
             let (action_sender, action_receiver) = ipc::channel().unwrap();
-            let script_chan = window_from_node(self).networking_task_source();
+            let window = window_from_node(self);
+            let script_chan = window.networking_task_source();
             let listener = box NetworkListener {
                 context: context,
                 script_chan: script_chan,
+                wrapper: Some(window.get_runnable_wrapper()),
             };
 
             let response_target = AsyncResponseTarget {

@@ -949,7 +949,7 @@ impl Window {
         self.current_state.set(WindowState::Zombie);
         *self.js_runtime.borrow_mut() = None;
         self.browsing_context.set(None);
-        self.ignore_further_async_events.store(true, Ordering::Relaxed);
+        self.ignore_further_async_events.store(true, Ordering::SeqCst);
     }
 
     /// https://drafts.csswg.org/cssom-view/#dom-window-scroll
