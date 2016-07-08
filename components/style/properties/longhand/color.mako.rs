@@ -25,7 +25,8 @@
         use cssparser;
         pub type T = cssparser::RGBA;
     }
-    #[inline] pub fn get_initial_value() -> computed_value::T {
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
         RGBA { red: 0., green: 0., blue: 0., alpha: 1. }  /* black */
     }
     pub fn parse_specified(_context: &ParserContext, input: &mut Parser)
