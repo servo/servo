@@ -2241,7 +2241,8 @@ class CGConstructorEnabled(CGAbstractMethod):
         CGAbstractMethod.__init__(self, descriptor,
                                   'ConstructorEnabled', 'bool',
                                   [Argument("*mut JSContext", "aCx"),
-                                   Argument("HandleObject", "aObj")])
+                                   Argument("HandleObject", "aObj")],
+                                  unsafe_fn=True)
 
     def definition_body(self):
         body = CGList([], "\n")
@@ -2809,7 +2810,8 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
             Argument('*mut JSContext', 'cx'),
             Argument('HandleObject', 'global'),
         ]
-        CGAbstractMethod.__init__(self, descriptor, 'DefineDOMInterface', 'void', args, pub=True)
+        CGAbstractMethod.__init__(self, descriptor, 'DefineDOMInterface',
+                                  'void', args, pub=True, unsafe_fn=True)
 
     def define(self):
         return CGAbstractMethod.define(self)
@@ -6250,10 +6252,10 @@ class GlobalGenRoots():
                 pairs.append((ctor.identifier.name, binding))
         pairs.sort(key=operator.itemgetter(0))
         mappings = [
-            CGGeneric('b"%s" => codegen::Bindings::%s::DefineDOMInterface as fn(_, _),' % pair)
+            CGGeneric('b"%s" => codegen::Bindings::%s::DefineDOMInterface as unsafe fn(_, _),' % pair)
             for pair in pairs
         ]
-        mapType = "phf::Map<&'static [u8], fn(*mut JSContext, HandleObject)>"
+        mapType = "phf::Map<&'static [u8], unsafe fn(*mut JSContext, HandleObject)>"
         phf = CGWrapper(
             CGIndenter(CGList(mappings, "\n")),
             pre="pub static MAP: %s = phf_map! {\n" % mapType,
