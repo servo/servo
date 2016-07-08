@@ -367,8 +367,8 @@ class Descriptor(DescriptorProvider):
         Returns true if this is the primary interface for a global object
         of some sort.
         """
-        return (self.interface.getExtendedAttribute("Global") or
-                self.interface.getExtendedAttribute("PrimaryGlobal"))
+        return bool(self.interface.getExtendedAttribute("Global") or
+                    self.interface.getExtendedAttribute("PrimaryGlobal"))
 
 
 # Some utility methods
