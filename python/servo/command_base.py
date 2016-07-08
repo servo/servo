@@ -434,10 +434,9 @@ class CommandBase(object):
         rustc_binary_exists = path.exists(rustc_path)
 
         base_target_path = path.join(rust_root, "rustc", "lib", "rustlib")
-        target_exists = True
-        if target is not None:
-            target_path = path.join(base_target_path, target)
-            target_exists = path.exists(target_path)
+
+        target_path = path.join(base_target_path, target or host_triple())
+        target_exists = path.exists(target_path)
 
         if not (self.config['tools']['system-rust'] or (rustc_binary_exists and target_exists)):
             print("looking for rustc at %s" % (rustc_path))
