@@ -1,11 +1,7 @@
-<!DOCTYPE HTML>
-<meta charset=utf-8>
-<title>Interfaces exposed on the window</title>
-<script src="/resources/testharness.js"></script>
-<script src="/resources/testharnessreport.js"></script>
-<script src="interfaces.js"></script>
-<script>
-// This is a list of interfaces that are exposed to every webpage.
+importScripts("/resources/testharness.js");
+importScripts("interfaces.js");
+
+// This is a list of interfaces that are exposed to every web worker.
 // Please only add things to this list with great care and proper review
 // from the associated module peers.
 
@@ -29,7 +25,7 @@ test_interfaces([
   "Comment",
   "Console",
   "CustomEvent",
-  "DedicatedWorkerGlobalScope", // #2823
+  "DedicatedWorkerGlobalScope",
   "Document",
   "DocumentFragment",
   "DocumentType",
@@ -177,12 +173,13 @@ test_interfaces([
   "WebSocket",
   "Window",
   "Worker",
-  "WorkerGlobalScope", // #2823
-  "WorkerLocation", // #2823
-  "WorkerNavigator", // #2823
+  "WorkerGlobalScope",
+  "WorkerLocation",
+  "WorkerNavigator",
   "XMLDocument",
   "XMLHttpRequest",
   "XMLHttpRequestEventTarget",
   "XMLHttpRequestUpload",
 ]);
-</script>
+
+done();
