@@ -2178,12 +2178,12 @@ class CGAbstractMethod(CGThing):
         if self.alwaysInline:
             decorators.append('#[inline]')
 
+        if self.pub:
+            decorators.append('pub')
+
         if self.extern:
             decorators.append('unsafe')
             decorators.append('extern')
-
-        if self.pub:
-            decorators.append('pub')
 
         if not decorators:
             return ''
