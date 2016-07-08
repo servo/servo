@@ -14,6 +14,7 @@ use gecko_bindings::bindings::{Gecko_ElementState, Gecko_GetDocumentElement};
 use gecko_bindings::bindings::{Gecko_GetFirstChild, Gecko_GetFirstChildElement};
 use gecko_bindings::bindings::{Gecko_GetLastChild, Gecko_GetLastChildElement};
 use gecko_bindings::bindings::{Gecko_GetNextSibling, Gecko_GetNextSiblingElement};
+use gecko_bindings::bindings::{Gecko_GetNodeFlags, Gecko_SetNodeFlags, Gecko_UnsetNodeFlags};
 use gecko_bindings::bindings::{Gecko_GetParentElement, Gecko_GetParentNode};
 use gecko_bindings::bindings::{Gecko_GetPrevSibling, Gecko_GetPrevSiblingElement};
 use gecko_bindings::bindings::{Gecko_GetServoDeclarationBlock, Gecko_IsHTMLElementInHTMLDocument};
@@ -185,21 +186,44 @@ impl<'ln> TNode for GeckoNode<'ln> {
     }
 
     fn is_dirty(&self) -> bool {
-        // FIXME(bholley)
-        true
+        use gecko_bindings::structs::NodeFlags::*;
+        // Return true unconditionally if we're not yet styled. This is a hack
+        // and should go away soon.
+        if unsafe { Gecko_GetNodeData(self.node) }.is_null() {
+            return true;
+        }
+
+        let flags = unsafe { Gecko_GetNodeFlags(self.node) };
+        flags & (NODE_IS_DIRTY_FOR_SERVO as u32) != 0
     }
 
-    unsafe fn set_dirty(&self, _value: bool) {
-        unimplemented!()
+    unsafe fn set_dirty(&self, value: bool) {
+        use gecko_bindings::structs::NodeFlags::*;
+        if value {
+            Gecko_SetNodeFlags(self.node, NODE_IS_DIRTY_FOR_SERVO as u32)
+        } else {
+            Gecko_UnsetNodeFlags(self.node, NODE_IS_DIRTY_FOR_SERVO as u32)
+        }
     }
 
     fn has_dirty_descendants(&self) -> bool {
-        // FIXME(bholley)
-        true
+        use gecko_bindings::structs::NodeFlags::*;
+        // Return true unconditionally if we're not yet styled. This is a hack
+        // and should go away soon.
+        if unsafe { Gecko_GetNodeData(self.node) }.is_null() {
+            return true;
+        }
+        let flags = unsafe { Gecko_GetNodeFlags(self.node) };
+        flags & (NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO as u32) != 0
     }
 
-    unsafe fn set_dirty_descendants(&self, _value: bool) {
-        unimplemented!()
+    unsafe fn set_dirty_descendants(&self, value: bool) {
+        use gecko_bindings::structs::NodeFlags::*;
+        if value {
+            Gecko_SetNodeFlags(self.node, NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO as u32)
+        } else {
+            Gecko_UnsetNodeFlags(self.node, NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO as u32)
+        }
     }
 
     fn can_be_fragmented(&self) -> bool {
@@ -430,7 +454,8 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
     }
 
     fn is_empty(&self) -> bool {
-        unimplemented!()
+        // XXX(emilio): Implement this properly.
+        false
     }
 
     fn get_local_name<'a>(&'a self) -> BorrowedAtom<'a> {
