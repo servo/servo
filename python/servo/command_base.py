@@ -218,10 +218,11 @@ class CommandBase(object):
         return self._use_stable_rust
 
     def rust_path(self):
+        version = self.rust_version()
         if self._use_stable_rust:
-            return "rustc-%s-%s" % (self.rust_version(), host_triple())
+            return "%s/rustc-%s-%s" % (version, version, host_triple())
         else:
-            return "%s/rustc-nightly-%s" % (self.rust_version(), host_triple())
+            return "%s/rustc-nightly-%s" % (version, host_triple())
 
     def rust_version(self):
         if self._rust_version is None or self._use_stable_rust != self._rust_version_is_stable:
@@ -332,10 +333,7 @@ class CommandBase(object):
 
         env["CARGO_HOME"] = self.config["tools"]["cargo-home-dir"]
 
-        if self.use_stable_rust():
-            env["CARGO_TARGET_DIR"] = path.join(self.context.topdir, "ports/stable-rust/target")
-        elif "CARGO_TARGET_DIR" not in env:
-            env["CARGO_TARGET_DIR"] = path.join(self.context.topdir, "target")
+        env["CARGO_TARGET_DIR"] = path.join(self.context.topdir, "target")
 
         if extra_lib:
             if sys.platform == "darwin":
@@ -436,10 +434,9 @@ class CommandBase(object):
         rustc_binary_exists = path.exists(rustc_path)
 
         base_target_path = path.join(rust_root, "rustc", "lib", "rustlib")
-        target_exists = True
-        if target is not None:
-            target_path = path.join(base_target_path, target)
-            target_exists = path.exists(target_path)
+
+        target_path = path.join(base_target_path, target or host_triple())
+        target_exists = path.exists(target_path)
 
         if not (self.config['tools']['system-rust'] or (rustc_binary_exists and target_exists)):
             print("looking for rustc at %s" % (rustc_path))

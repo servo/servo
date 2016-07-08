@@ -138,12 +138,7 @@ class MachCommands(CommandBase):
         self.set_use_stable_rust(stable)
         version = self.rust_version()
         rust_path = self.rust_path()
-        if stable:
-            rust_dir = path.join(
-                self.context.sharedir, "rust", version, rust_path)
-        else:
-            rust_dir = path.join(
-                self.context.sharedir, "rust", rust_path)
+        rust_dir = path.join(self.context.sharedir, "rust", rust_path)
         install_dir = path.join(self.context.sharedir, "rust", version)
 
         if not force and path.exists(path.join(rust_dir, "rustc", "bin", "rustc" + BIN_SUFFIX)):
@@ -160,9 +155,10 @@ class MachCommands(CommandBase):
             # giving a directory name that will be the same as the tarball name (rustc is
             # in that directory).
             if stable:
-                rustc_url = "https://static.rust-lang.org/dist/%s.tar.gz" % rust_path
+                tarball = "rustc-%s-%s.tar.gz" % (version, host_triple())
             else:
-                rustc_url = "https://static-rust-lang-org.s3.amazonaws.com/dist/%s.tar.gz" % rust_path
+                tarball = "%s/rustc-nightly-%s.tar.gz" % (version, host_triple())
+            rustc_url = "https://static-rust-lang-org.s3.amazonaws.com/dist/" + tarball
             tgz_file = rust_dir + '-rustc.tar.gz'
 
             download_file("Rust compiler", rustc_url, tgz_file)
@@ -196,7 +192,7 @@ class MachCommands(CommandBase):
                 continue
 
             if self.use_stable_rust():
-                std_url = ("https://static.rust-lang.org/dist/rust-std-%s-%s.tar.gz"
+                std_url = ("https://static-rust-lang-org.s3.amazonaws.com/dist/rust-std-%s-%s.tar.gz"
                            % (version, target_triple))
                 tgz_file = install_dir + ('rust-std-%s-%s.tar.gz' % (version, target_triple))
             else:

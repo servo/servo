@@ -265,43 +265,6 @@ class MachCommands(CommandBase):
         print("Build completed in %s" % format_duration(elapsed))
         return status
 
-    @Command('build-stable',
-             description='Build Servo using stable rustc',
-             category='build')
-    @CommandArgument('--target', '-t',
-                     default=None,
-                     help='Cross compile for given target platform')
-    @CommandArgument('--release', '-r',
-                     action='store_true',
-                     help='Build in release mode')
-    @CommandArgument('--dev', '-d',
-                     action='store_true',
-                     help='Build in development mode')
-    @CommandArgument('--jobs', '-j',
-                     default=None,
-                     help='Number of jobs to run in parallel')
-    @CommandArgument('--features',
-                     default=None,
-                     help='Space-separated list of features to also build',
-                     nargs='+')
-    @CommandArgument('--android',
-                     default=None,
-                     action='store_true',
-                     help='Build for Android')
-    @CommandArgument('--debug-mozjs',
-                     default=None,
-                     action='store_true',
-                     help='Enable debug assertions in mozjs')
-    @CommandArgument('--verbose', '-v',
-                     action='store_true',
-                     help='Print verbose output')
-    @CommandArgument('params', nargs='...',
-                     help="Command-line arguments to be passed through to Cargo")
-    def build_stable(self, target=None, release=False, dev=False, jobs=None,
-                     features=None, android=None, verbose=False, debug_mozjs=False, params=None):
-        self.set_use_stable_rust()
-        self.build(target, release, dev, jobs, features, android, verbose, debug_mozjs, params)
-
     @Command('build-cef',
              description='Build the Chromium Embedding Framework library',
              category='build')
@@ -356,6 +319,7 @@ class MachCommands(CommandBase):
                      action='store_true',
                      help='Build in release mode')
     def build_geckolib(self, jobs=None, verbose=False, release=False):
+        self.set_use_stable_rust()
         self.ensure_bootstrapped()
 
         ret = None
@@ -367,11 +331,12 @@ class MachCommands(CommandBase):
         if release:
             opts += ["--release"]
 
-        build_start = time()
         env = self.build_env()
+        env["CARGO_TARGET_DIR"] = path.join(self.context.topdir, "target", "geckolib")
+
+        build_start = time()
         with cd(path.join("ports", "geckolib")):
-            ret = call(["cargo", "build"] + opts,
-                       env=env, verbose=verbose)
+            ret = call(["cargo", "build"] + opts, env=env, verbose=verbose)
         elapsed = time() - build_start
 
         # Generate Desktop Notification if elapsed-time > some threshold value
