@@ -21,6 +21,7 @@ use std::sync::{Arc, RwLock};
 #[cfg(any(target_os = "macos", target_os = "linux"))]
 use tinyfiledialogs;
 use url::Url;
+use util::prefs::PREFS;
 use util::thread::spawn_named;
 use uuid::Uuid;
 
@@ -128,14 +129,14 @@ impl<UI: 'static + UIProvider> FileManager<UI> {
         loop {
             let store = self.store.clone();
             match self.receiver.recv().unwrap() {
-                FileManagerThreadMsg::SelectFile(filter, sender, origin) => {
+                FileManagerThreadMsg::SelectFile(filter, sender, origin, opt_test_path) => {
                     spawn_named("select file".to_owned(), move || {
-                        store.select_file(filter, sender, origin);
+                        store.select_file(filter, sender, origin, opt_test_path);
                     });
                 }
-                FileManagerThreadMsg::SelectFiles(filter, sender, origin) => {
+                FileManagerThreadMsg::SelectFiles(filter, sender, origin, opt_test_paths) => {
                     spawn_named("select files".to_owned(), move || {
-                        store.select_files(filter, sender, origin);
+                        store.select_files(filter, sender, origin, opt_test_paths);
                     })
                 }
                 FileManagerThreadMsg::ReadFile(sender, id, origin) => {
@@ -309,8 +310,17 @@ impl <UI: 'static + UIProvider> FileManagerStore<UI> {
 
     fn select_file(&self, patterns: Vec<FilterPattern>,
                    sender: IpcSender<FileManagerResult<SelectedFile>>,
-                   origin: FileOrigin) {
-        match self.ui.open_file_dialog("", patterns) {
+                   origin: FileOrigin, opt_test_path: Option<String>) {
+        // Check if the select_files preference is enabled
+        // to ensure process-level security against compromised script;
+        // Then try applying opt_test_path directly for testing convenience
+        let opt_s = if select_files_pref_enabled() {
+            opt_test_path
+        } else {
+            self.ui.open_file_dialog("", patterns)
+        };
+
+        match opt_s {
             Some(s) => {
                 let selected_path = Path::new(&s);
 
@@ -328,8 +338,17 @@ impl <UI: 'static + UIProvider> FileManagerStore<UI> {
 
     fn select_files(&self, patterns: Vec<FilterPattern>,
                     sender: IpcSender<FileManagerResult<Vec<SelectedFile>>>,
-                    origin: FileOrigin) {
-        match self.ui.open_file_dialog_multi("", patterns) {
+                    origin: FileOrigin, opt_test_paths: Option<Vec<String>>) {
+        // Check if the select_files preference is enabled
+        // to ensure process-level security against compromised script;
+        // Then try applying opt_test_paths directly for testing convenience
+        let opt_v = if select_files_pref_enabled() {
+            opt_test_paths
+        } else {
+            self.ui.open_file_dialog_multi("", patterns)
+        };
+
+        match opt_v {
             Some(v) => {
                 let mut selected_paths = vec![];
 
@@ -480,4 +499,10 @@ impl <UI: 'static + UIProvider> FileManagerStore<UI> {
             }
         }
     }
+}
+
+
+fn select_files_pref_enabled() -> bool {
+    PREFS.get("dom.testing.htmlinputelement.select_files.enabled")
+         .as_boolean().unwrap_or(false)
 }

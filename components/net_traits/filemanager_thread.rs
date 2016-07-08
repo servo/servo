@@ -118,10 +118,10 @@ pub struct FilterPattern(pub String);
 #[derive(Deserialize, Serialize)]
 pub enum FileManagerThreadMsg {
     /// Select a single file, return triple (FileID, FileName, lastModified)
-    SelectFile(Vec<FilterPattern>, IpcSender<FileManagerResult<SelectedFile>>, FileOrigin),
+    SelectFile(Vec<FilterPattern>, IpcSender<FileManagerResult<SelectedFile>>, FileOrigin, Option<String>),
 
     /// Select multiple files, return a vector of triples
-    SelectFiles(Vec<FilterPattern>, IpcSender<FileManagerResult<Vec<SelectedFile>>>, FileOrigin),
+    SelectFiles(Vec<FilterPattern>, IpcSender<FileManagerResult<Vec<SelectedFile>>>, FileOrigin, Option<Vec<String>>),
 
     /// Read file, return the bytes
     ReadFile(IpcSender<FileManagerResult<Vec<u8>>>, SelectedFileId, FileOrigin),
