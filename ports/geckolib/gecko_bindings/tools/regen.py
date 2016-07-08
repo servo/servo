@@ -78,7 +78,7 @@ COMPILATION_TARGETS = {
         ],
         "blacklist": [
             "IsDestructibleFallbackImpl", "IsDestructibleFallback",
-            "nsProxyReleaseEvent", "FallibleTArray", "nsTArray_Impl",
+            "ProxyReleaseEvent", "FallibleTArray", "nsTArray_Impl",
             "__is_tuple_like_impl", "tuple_size", "tuple",
             "__make_pair_return_impl", "__make_pair_return", "tuple_element",
             "_Itup_cat", "AnimationEffectTimingProperties",

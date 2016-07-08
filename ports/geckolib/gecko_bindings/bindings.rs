@@ -298,10 +298,6 @@ extern "C" {
     pub fn Servo_RestyleSubtree(node: *mut RawGeckoNode,
                                 set: *mut RawServoStyleSet);
     pub fn Servo_StyleWorkerThreadCount() -> u32;
-    pub fn Gecko_GetAttrAsUTF8(element: *mut RawGeckoElement,
-                               ns: *mut nsIAtom, name: *mut nsIAtom,
-                               length: *mut u32)
-     -> *const ::std::os::raw::c_char;
     pub fn Gecko_Construct_nsStyleFont(ptr: *mut nsStyleFont);
     pub fn Gecko_CopyConstruct_nsStyleFont(ptr: *mut nsStyleFont,
                                            other: *const nsStyleFont);
