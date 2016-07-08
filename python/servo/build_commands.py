@@ -332,7 +332,7 @@ class MachCommands(CommandBase):
             opts += ["--release"]
 
         env = self.build_env()
-        env["CARGO_TARGET_DIR"] = path.join(self.context.topdir, "ports/geckolib/target")
+        env["CARGO_TARGET_DIR"] = path.join(self.context.topdir, "target", "geckolib")
 
         build_start = time()
         with cd(path.join("ports", "geckolib")):
