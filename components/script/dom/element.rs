@@ -2522,8 +2522,13 @@ impl Element {
         self.state.get().contains(IN_ACTIVE_STATE)
     }
 
+    /// https://html.spec.whatwg.org/multipage/#concept-selector-active
     pub fn set_active_state(&self, value: bool) {
-        self.set_state(IN_ACTIVE_STATE, value)
+        self.set_state(IN_ACTIVE_STATE, value);
+
+        if let Some(parent) = self.upcast::<Node>().GetParentElement() {
+            parent.set_active_state(value);
+        }
     }
 
     pub fn focus_state(&self) -> bool {
