@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#canvasgradient
-// [Exposed=(Window,Worker)]
+[Exposed=(Window,Worker)]
 interface CanvasGradient {
   // opaque object
   [Throws]

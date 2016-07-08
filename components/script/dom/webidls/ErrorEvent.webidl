@@ -4,7 +4,7 @@
 
 // https://html.spec.whatwg.org/multipage/#the-errorevent-interface
 
-[Constructor(DOMString type, optional ErrorEventInit eventInitDict)/*, Exposed=(Window,Worker)*/]
+[Constructor(DOMString type, optional ErrorEventInit eventInitDict), Exposed=(Window,Worker)]
 interface ErrorEvent : Event {
   readonly attribute DOMString message;
   readonly attribute DOMString filename;

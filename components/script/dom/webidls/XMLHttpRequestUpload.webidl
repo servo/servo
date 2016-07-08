@@ -12,6 +12,6 @@
  * http://www.openwebfoundation.org/legal/the-owf-1-0-agreements/owfa-1-0.
  */
 
-//[Exposed=Window,Worker]
+[Exposed=(Window,Worker)]
 interface XMLHttpRequestUpload : XMLHttpRequestEventTarget {
 };

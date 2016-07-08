@@ -5,7 +5,7 @@
  // http://dev.w3.org/2006/webapi/FileAPI/#APIASynch
 
 //typedef (DOMString or ArrayBuffer) FileReaderResult;
-[Constructor, Exposed=Window/*,Worker*/]
+[Constructor, Exposed=(Window,Worker)]
 interface FileReader: EventTarget {
 
   // async read methods

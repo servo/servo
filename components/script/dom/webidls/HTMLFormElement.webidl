@@ -4,6 +4,7 @@
 
 // https://html.spec.whatwg.org/multipage/#htmlformelement
 //[OverrideBuiltins]
+[Exposed=(Window,Worker)]
 interface HTMLFormElement : HTMLElement {
            attribute DOMString acceptCharset;
            attribute DOMString action;

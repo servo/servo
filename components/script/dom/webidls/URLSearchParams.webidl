@@ -6,7 +6,7 @@
  * https://url.spec.whatwg.org/#interface-urlsearchparams
  */
 
-[Constructor(optional (USVString or URLSearchParams) init/* = ""*/)]
+[Constructor(optional (USVString or URLSearchParams) init/* = ""*/), Exposed=(Window,Worker)]
 interface URLSearchParams {
   void append(USVString name, USVString value);
   void delete(USVString name);

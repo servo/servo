@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 //https://html.spec.whatwg.org/multipage/#the-closeevent-interfaces
-[Constructor(DOMString type, optional CloseEventInit eventInitDict)/*, Exposed=(Window,Worker)*/]
+[Constructor(DOMString type, optional CloseEventInit eventInitDict), Exposed=(Window,Worker)]
 interface CloseEvent : Event {
   readonly attribute boolean wasClean;
   readonly attribute unsigned short code;

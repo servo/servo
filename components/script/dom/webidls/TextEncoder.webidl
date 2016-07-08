@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 /* https://encoding.spec.whatwg.org/#interface-textencoder */
-[Constructor(optional DOMString utfLabel = "utf-8")/*, Exposed=Window,Worker */]
+[Constructor(optional DOMString utfLabel = "utf-8"), Exposed=(Window,Worker)]
 interface TextEncoder {
    readonly attribute DOMString encoding;
    [NewObject]

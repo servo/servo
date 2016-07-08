@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmltablecolelement
+[Exposed=(Window,Worker)]
 interface HTMLTableColElement : HTMLElement {
   //         attribute unsigned long span;
 

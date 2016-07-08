@@ -9,6 +9,7 @@
  * © Copyright 2014 Mozilla Foundation.
  */
 
+[Exposed=(Window,Worker)]
 interface Console {
   // These should be DOMString message, DOMString message2, ...
   void log(DOMString... messages);

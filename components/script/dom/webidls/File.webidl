@@ -7,7 +7,7 @@
 [Constructor(sequence<BlobPart> fileBits,
             DOMString fileName,
             optional FilePropertyBag options),
- Exposed=Window/*,Worker*/]
+ Exposed=(Window,Worker)]
 interface File : Blob {
   readonly attribute DOMString name;
   readonly attribute long long lastModified;
