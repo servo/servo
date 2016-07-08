@@ -2143,8 +2143,8 @@ class CGAbstractMethod(CGThing):
     docs is None or documentation for the method in a string.
     """
     def __init__(self, descriptor, name, returnType, args, inline=False,
-                 alwaysInline=False, extern=False, pub=False, templateArgs=None,
-                 unsafe=False, docs=None, doesNotPanic=False):
+                 alwaysInline=False, extern=False, unsafe_fn=False, pub=False,
+                 templateArgs=None, unsafe=False, docs=None, doesNotPanic=False):
         CGThing.__init__(self)
         self.descriptor = descriptor
         self.name = name
@@ -2152,6 +2152,7 @@ class CGAbstractMethod(CGThing):
         self.args = args
         self.alwaysInline = alwaysInline
         self.extern = extern
+        self.unsafe_fn = extern or unsafe_fn
         self.templateArgs = templateArgs
         self.pub = pub
         self.unsafe = unsafe
@@ -2181,8 +2182,10 @@ class CGAbstractMethod(CGThing):
         if self.pub:
             decorators.append('pub')
 
-        if self.extern:
+        if self.unsafe_fn:
             decorators.append('unsafe')
+
+        if self.extern:
             decorators.append('extern')
 
         if not decorators:
