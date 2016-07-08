@@ -31,7 +31,6 @@ test_interfaces([
   "DocumentType",
   "DOMException",
   "DOMImplementation",
-  "DOMParser",
   "DOMTokenList",
   "DOMStringMap",
   "Element",
