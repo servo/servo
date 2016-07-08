@@ -368,9 +368,10 @@ class MachCommands(CommandBase):
             opts += ["--release"]
 
         build_start = time()
+        env = self.build_env()
         with cd(path.join("ports", "geckolib")):
             ret = call(["cargo", "build"] + opts,
-                       env=self.build_env(), verbose=verbose)
+                       env=env, verbose=verbose)
         elapsed = time() - build_start
 
         # Generate Desktop Notification if elapsed-time > some threshold value
