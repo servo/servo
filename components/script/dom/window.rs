@@ -128,6 +128,7 @@ pub enum ReflowReason {
     FramedContentChanged,
     IFrameLoadEvent,
     MissingExplicitReflow,
+    ElementStateChanged,
 }
 
 pub type ScrollPoint = Point2D<Au>;
@@ -1753,6 +1754,7 @@ fn debug_reflow_events(id: PipelineId, goal: &ReflowGoal, query_type: &ReflowQue
         ReflowReason::FramedContentChanged => "\tFramedContentChanged",
         ReflowReason::IFrameLoadEvent => "\tIFrameLoadEvent",
         ReflowReason::MissingExplicitReflow => "\tMissingExplicitReflow",
+        ReflowReason::ElementStateChanged => "\tElementStateChanged",
     });
 
     println!("{}", debug_msg);
