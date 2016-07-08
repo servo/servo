@@ -190,7 +190,7 @@ pub struct CancellableRunnable<T: Runnable + Send> {
 
 impl<T: Runnable + Send> Runnable for CancellableRunnable<T> {
     fn is_cancelled(&self) -> bool {
-        self.cancelled.load(Ordering::Relaxed)
+        self.cancelled.load(Ordering::SeqCst)
     }
 
     fn handler(self: Box<CancellableRunnable<T>>) {
