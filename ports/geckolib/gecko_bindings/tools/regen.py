@@ -74,7 +74,8 @@ COMPILATION_TARGETS = {
             "nsDataHashtable.h", "nsCSSScanner.h", "utility", "nsTArray",
             "pair", "SheetParsingMode.h", "StaticPtr.h", "nsProxyRelease.h",
             "mozilla/dom/AnimationEffectReadOnlyBinding.h",
-            "/Types.h",  # <- Disallow UnionTypes.h
+            "/Types.h",   # <- Disallow UnionTypes.h
+            "nsINode.h",  # <- For `NodeFlags`.
         ],
         "blacklist": [
             "IsDestructibleFallbackImpl", "IsDestructibleFallback",
@@ -84,6 +85,7 @@ COMPILATION_TARGETS = {
             "_Itup_cat", "AnimationEffectTimingProperties",
             "FastAnimationEffectTimingProperties", "ComputedTimingProperties",
             "FastComputedTimingProperties",
+            "nsINode",
         ],
         "opaque_types": [
             "nsIntMargin", "nsIntPoint", "nsIntRect", "nsCOMArray",
