@@ -85,6 +85,8 @@ class Configuration:
                 getter = lambda x: x.interface.isCallback()
             elif key == 'isJSImplemented':
                 getter = lambda x: x.interface.isJSImplemented()
+            elif key == 'isGlobal':
+                getter = lambda x: x.isGlobal()
             else:
                 getter = lambda x: getattr(x, key)
             curr = filter(lambda x: getter(x) == val, curr)

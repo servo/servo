@@ -93,6 +93,9 @@ pub struct DOMClass {
 
     /// The HeapSizeOf function wrapper for that interface.
     pub heap_size_of: unsafe fn(*const c_void) -> usize,
+
+    /// The `Globals` flag for this global interface, if any.
+    pub global: InterfaceObjectMap::Globals,
 }
 unsafe impl Sync for DOMClass {}
 
