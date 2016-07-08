@@ -73,3 +73,15 @@ fn test_default_config_dir_create_read_write() {
 
     fs::remove_file(&json_path).unwrap();
 }
+
+#[test]
+fn test_handles_duplicated_prefs_key() {
+  let json_str = "{\
+  \"layout.writing-mode.enabled\": true,\
+  \"layout.writing-mode.enabled\": false\
+}";
+
+    let prefs = read_prefs_from_file(json_str.as_bytes());
+    let prefs = prefs.unwrap();
+    assert_eq!(prefs.len(), 1);
+}
