@@ -6,6 +6,7 @@
  * https://html.spec.whatwg.org/multipage/#beforeunloadevent
  */
 
+[Exposed=(Window,Worker)]
 interface BeforeUnloadEvent : Event {
   attribute DOMString returnValue;
 };

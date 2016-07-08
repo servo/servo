@@ -4,7 +4,7 @@
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothuuid
 
-[Pref="dom.bluetooth.enabled"]
+[Pref="dom.bluetooth.enabled", Exposed=(Window,Worker)]
 interface BluetoothUUID {
     [Throws]
     static UUID getService(BluetoothServiceUUID name);

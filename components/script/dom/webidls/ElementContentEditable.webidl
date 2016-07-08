@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#elementcontenteditable
-[NoInterfaceObject]
+[NoInterfaceObject, Exposed=(Window,Worker)]
 interface ElementContentEditable {
   // attribute DOMString contentEditable;
   // readonly attribute boolean isContentEditable;

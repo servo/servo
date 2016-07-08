@@ -8,6 +8,7 @@
  * Copyright © 2013 W3C® (MIT, ERCIM, Keio, Beihang), All Rights Reserved.
  */
 
+[Exposed=(Window,Worker)]
 interface CSSStyleDeclaration {
   [SetterThrows]
            attribute DOMString cssText;

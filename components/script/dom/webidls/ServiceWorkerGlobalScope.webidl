@@ -4,7 +4,7 @@
 
 // https://slightlyoff.github.io/ServiceWorker/spec/service_worker/#service-worker-global-scope
 
-[Global, Pref="dom.serviceworker.enabled"/*=(Worker,ServiceWorker), Exposed=ServiceWorker*/]
+[Global=(Worker,ServiceWorker), Pref="dom.serviceworker.enabled"]
 interface ServiceWorkerGlobalScope : WorkerGlobalScope {
   // A container for a list of Client objects that correspond to
   // browsing contexts (or shared workers) that are on the origin of this SW

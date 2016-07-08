@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#pluginarray
-[LegacyUnenumerableNamedProperties]
+[LegacyUnenumerableNamedProperties, Exposed=(Window,Worker)]
 interface PluginArray {
   void refresh(optional boolean reload = false);
   readonly attribute unsigned long length;

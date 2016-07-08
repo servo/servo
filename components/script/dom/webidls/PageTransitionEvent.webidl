@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#the-pagetransitionevent-interface
-[Constructor(DOMString type, optional PageTransitionEventInit eventInitDict)/*, Exposed=(Window,Worker)*/]
+[Constructor(DOMString type, optional PageTransitionEventInit eventInitDict), Exposed=(Window,Worker)]
 interface PageTransitionEvent : Event {
   readonly attribute boolean persisted;
 };

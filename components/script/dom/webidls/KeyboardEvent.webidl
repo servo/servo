@@ -7,7 +7,7 @@
  *
  */
 
-[Constructor(DOMString typeArg, optional KeyboardEventInit keyboardEventInitDict)]
+[Constructor(DOMString typeArg, optional KeyboardEventInit keyboardEventInitDict), Exposed=(Window,Worker)]
 interface KeyboardEvent : UIEvent {
     // KeyLocationCode
     const unsigned long DOM_KEY_LOCATION_STANDARD = 0x00;

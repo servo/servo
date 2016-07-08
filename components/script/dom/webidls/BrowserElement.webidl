@@ -19,7 +19,7 @@ callback BrowserElementNextPaintEventCallback = void ();
 //  DOMString? origin;
 //};
 
-[NoInterfaceObject]
+[NoInterfaceObject, Exposed=(Window,Worker)]
 interface BrowserElement {
 };
 
@@ -104,7 +104,7 @@ dictionary BrowserElementVisibilityChangeEventDetail {
 BrowserElement implements BrowserElementCommon;
 BrowserElement implements BrowserElementPrivileged;
 
-[NoInterfaceObject]
+[NoInterfaceObject, Exposed=(Window,Worker)]
 interface BrowserElementCommon {
   [Throws,
    Pref="dom.mozbrowser.enabled",
@@ -137,7 +137,7 @@ interface BrowserElementCommon {
   //void removeNextPaintListener(BrowserElementNextPaintEventCallback listener);
 };
 
-[NoInterfaceObject]
+[NoInterfaceObject, Exposed=(Window,Worker)]
 interface BrowserElementPrivileged {
   //[Throws,
   // Pref="dom.mozBrowserFramesEnabled",

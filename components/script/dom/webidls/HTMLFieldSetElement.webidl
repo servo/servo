@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmlfieldsetelement
+[Exposed=(Window,Worker)]
 interface HTMLFieldSetElement : HTMLElement {
            attribute boolean disabled;
   readonly attribute HTMLFormElement? form;

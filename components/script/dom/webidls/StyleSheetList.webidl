@@ -4,6 +4,7 @@
 
 // https://drafts.csswg.org/cssom/#the-stylesheetlist-interface
 // [ArrayClass]
+[Exposed=(Window,Worker)]
 interface StyleSheetList {
   getter StyleSheet? item(unsigned long index);
   readonly attribute unsigned long length;
