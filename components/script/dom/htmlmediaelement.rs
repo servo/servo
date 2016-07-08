@@ -793,7 +793,6 @@ impl PauseIfNotInDocumentTask {
 }
 
 impl Runnable for PauseIfNotInDocumentTask {
-
     fn name(&self) -> &'static str { "PauseIfNotInDocumentTask" }
 
     fn handler(self: Box<PauseIfNotInDocumentTask>) {
