@@ -61,6 +61,7 @@ use profile_traits::mem;
 use profile_traits::time as profile_time;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
+use std::fmt;
 use std::sync::mpsc::{Sender, Receiver};
 use style_traits::{PagePx, ViewportPx};
 use url::Url;
@@ -205,6 +206,37 @@ pub enum ConstellationControlMsg {
     ReportCSSError(PipelineId, String, usize, usize, String),
     /// Reload the given page.
     Reload(PipelineId),
+}
+
+impl fmt::Debug for ConstellationControlMsg {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        use self::ConstellationControlMsg::*;
+        write!(formatter, "ConstellationMsg::{}", match *self {
+            AttachLayout(..) => "AttachLayout",
+            Resize(..) => "Resize",
+            ResizeInactive(..) => "ResizeInactive",
+            ExitPipeline(..) => "ExitPipeline",
+            SendEvent(..) => "SendEvent",
+            Viewport(..) => "Viewport",
+            SetScrollState(..) => "SetScrollState",
+            GetTitle(..) => "GetTitle",
+            Freeze(..) => "Freeze",
+            Thaw(..) => "Thaw",
+            ChangeFrameVisibilityStatus(..) => "ChangeFrameVisibilityStatus",
+            NotifyVisibilityChange(..) => "NotifyVisibilityChange",
+            Navigate(..) => "Navigate",
+            MozBrowserEvent(..) => "MozBrowserEvent",
+            UpdateSubpageId(..) => "UpdateSubpageId",
+            FocusIFrame(..) => "FocusIFrame",
+            WebDriverScriptCommand(..) => "WebDriverScriptCommand",
+            TickAllAnimations(..) => "TickAllAnimations",
+            WebFontLoaded(..) => "WebFontLoaded",
+            DispatchFrameLoadEvent { .. } => "DispatchFrameLoadEvent",
+            FramedContentChanged(..) => "FramedContentChanged",
+            ReportCSSError(..) => "ReportCSSError",
+            Reload(..) => "Reload",
+        })
+    }
 }
 
 /// Used to determine if a script has any pending asynchronous activity.
