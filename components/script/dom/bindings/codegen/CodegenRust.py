@@ -1817,15 +1817,15 @@ def DOMClassTypeId(desc):
 
 
 def DOMClass(descriptor):
-        protoList = ['PrototypeList::ID::' + proto for proto in descriptor.prototypeChain]
-        # Pad out the list to the right length with ID::Last so we
-        # guarantee that all the lists are the same length.  ID::Last
-        # is never the ID of any prototype, so it's safe to use as
-        # padding.
-        protoList.extend(['PrototypeList::ID::Last'] * (descriptor.config.maxProtoChainLength - len(protoList)))
-        prototypeChainString = ', '.join(protoList)
-        heapSizeOf = 'heap_size_of_raw_self_and_children::<%s>' % descriptor.interface.identifier.name
-        return """\
+    protoList = ['PrototypeList::ID::' + proto for proto in descriptor.prototypeChain]
+    # Pad out the list to the right length with ID::Last so we
+    # guarantee that all the lists are the same length.  ID::Last
+    # is never the ID of any prototype, so it's safe to use as
+    # padding.
+    protoList.extend(['PrototypeList::ID::Last'] * (descriptor.config.maxProtoChainLength - len(protoList)))
+    prototypeChainString = ', '.join(protoList)
+    heapSizeOf = 'heap_size_of_raw_self_and_children::<%s>' % descriptor.interface.identifier.name
+    return """\
 DOMClass {
     interface_chain: [ %s ],
     type_id: %s,
