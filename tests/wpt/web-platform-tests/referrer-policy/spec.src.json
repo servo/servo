@@ -3,16 +3,49 @@
     {
       "name": "unset-referrer-policy",
       "title": "Referrer Policy is not explicitly defined",
-      "description": "Check that sub-resource gets the referrer URL when no explicit Referrer Policy is set.",
-      "specification_url": "https://w3c.github.io/webappsec/specs/referrer-policy/#referrer-policy-states",
+      "description": "Check that referrer URL follows no-referrer-when-downgrade policy when no explicit Referrer Policy is set.",
+      "specification_url": "https://w3c.github.io/webappsec-referrer-policy/#referrer-policies",
       "referrer_policy": null,
       "test_expansion": [
         {
-          "name": "generic",
+          "name": "insecure-protocol",
           "expansion": "default",
-          "source_protocol": "*",
-          "target_protocol": "*",
-            "delivery_method": ["http-rp", "meta-referrer", "meta-csp", "attr-referrer"],
+          "source_protocol": "http",
+          "target_protocol": "http",
+          "delivery_method": ["http-rp", "meta-referrer", "meta-csp", "attr-referrer"],
+          "redirection": "*",
+          "origin": "*",
+          "subresource": "*",
+          "referrer_url": "stripped-referrer"
+        },
+        {
+          "name": "upgrade-protocol",
+          "expansion": "default",
+          "source_protocol": "http",
+          "target_protocol": "https",
+          "delivery_method": ["http-rp", "meta-referrer", "meta-csp", "attr-referrer"],
+          "redirection": "*",
+          "origin": "*",
+          "subresource": "*",
+          "referrer_url": "stripped-referrer"
+        },
+        {
+          "name": "downgrade-protocol",
+          "expansion": "default",
+          "source_protocol": "https",
+          "target_protocol": "http",
+          "delivery_method": ["http-rp", "meta-referrer", "meta-csp", "attr-referrer"],
+          "redirection": "*",
+          "origin": "*",
+          "subresource": "*",
+          "referrer_url": "omitted"
+        },
+        {
+          "name": "secure-protocol",
+          "expansion": "default",
+          "source_protocol": "https",
+          "target_protocol": "https",
+          "delivery_method": ["http-rp", "meta-referrer", "meta-csp", "attr-referrer"],
           "redirection": "*",
           "origin": "*",
           "subresource": "*",
@@ -24,7 +57,7 @@
       "name": "no-referrer",
       "title": "Referrer Policy is set to 'no-referrer'",
       "description": "Check that sub-resource never gets the referrer URL.",
-      "specification_url": "https://w3c.github.io/webappsec/specs/referrer-policy/#referrer-policy-state-no-referrer",
+      "specification_url": "https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-no-referrer",
       "referrer_policy": "no-referrer",
       "test_expansion": [
         {
@@ -44,7 +77,7 @@
       "name": "no-referrer-when-downgrade",
       "title": "Referrer Policy is set to 'no-referrer-when-downgrade'",
       "description": "Check that non a priori insecure subresource gets the full Referrer URL. A priori insecure subresource gets no referrer information.",
-      "specification_url": "https://w3c.github.io/webappsec/specs/referrer-policy/#referrer-policy-state-no-referrer-when-downgrade",
+      "specification_url": "https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-no-referrer-when-downgrade",
       "referrer_policy": "no-referrer-when-downgrade",
       "test_expansion": [
         {
@@ -78,7 +111,7 @@
           "redirection": "*",
           "origin": "*",
           "subresource": "*",
-          "referrer_url": "origin"
+          "referrer_url": "omitted"
         },
         {
           "name": "secure-protocol",
@@ -94,10 +127,10 @@
       ]
     },
     {
-      "name": "origin-only",
-      "title": "Referrer Policy is set to 'origin-only'",
+      "name": "origin",
+      "title": "Referrer Policy is set to 'origin'",
       "description": "Check that all subresources in all casses get only the origin portion of the referrer URL.",
-      "specification_url": "https://w3c.github.io/webappsec/specs/referrer-policy/#referrer-policy-state-origin",
+      "specification_url": "https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-origin",
       "referrer_policy": "origin",
       "test_expansion": [
         {
@@ -114,10 +147,63 @@
       ]
     },
     {
+      "name": "same-origin",
+      "title": "Referrer Policy is set to 'same-origin'",
+      "description": "Check that cross-origin subresources get no referrer information and same-origin get the stripped referrer URL.",
+      "specification_url": "https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-same-origin",
+      "referrer_policy": "same-origin",
+      "test_expansion": [
+        {
+          "name": "same-origin-insecure",
+          "expansion": "default",
+          "source_protocol": "http",
+          "target_protocol": "http",
+          "delivery_method": ["http-rp", "meta-referrer", "meta-csp", "attr-referrer"],
+          "redirection": "*",
+          "origin": "same-origin",
+          "subresource": "*",
+          "referrer_url": "stripped-referrer"
+        },
+        {
+          "name": "same-origin-secure-default",
+          "expansion": "default",
+          "source_protocol": "https",
+          "target_protocol": "https",
+          "delivery_method": ["http-rp", "meta-referrer", "meta-csp", "attr-referrer"],
+          "redirection": "*",
+          "origin": "same-origin",
+          "subresource": "*",
+          "referrer_url": "stripped-referrer"
+        },
+        {
+          "name": "same-origin-insecure",
+          "expansion": "override",
+          "source_protocol": "*",
+          "target_protocol": "*",
+          "delivery_method": ["http-rp", "meta-referrer", "meta-csp", "attr-referrer"],
+          "redirection": "swap-origin-redirect",
+          "origin": "same-origin",
+          "subresource": "*",
+          "referrer_url": "omitted"
+        },
+        {
+          "name": "cross-origin",
+          "expansion": "default",
+          "source_protocol": "*",
+          "target_protocol": "*",
+          "delivery_method": ["http-rp", "meta-referrer", "meta-csp", "attr-referrer"],
+          "redirection": "*",
+          "origin": "cross-origin",
+          "subresource": "*",
+          "referrer_url": "omitted"
+        }
+      ]
+    },
+    {
       "name": "origin-when-cross-origin",
       "title": "Referrer Policy is set to 'origin-when-cross-origin'",
       "description": "Check that cross-origin subresources get the origin portion of the referrer URL and same-origin get the stripped referrer URL.",
-      "specification_url": "https://w3c.github.io/webappsec/specs/referrer-policy/#referrer-policy-state-origin-when-cross-origin",
+      "specification_url": "https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-origin-when-cross-origin",
       "referrer_policy": "origin-when-cross-origin",
       "test_expansion": [
         {
@@ -192,7 +278,7 @@
       "name": "unsafe-url",
       "title": "Referrer Policy is set to 'unsafe-url'",
       "description": "Check that all sub-resources get the stripped referrer URL.",
-      "specification_url": "https://w3c.github.io/webappsec/specs/referrer-policy/#referrer-policy-state-unsafe-url",
+      "specification_url": "https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-unsafe-url",
       "referrer_policy": "unsafe-url",
       "test_expansion": [
         {
@@ -329,6 +415,7 @@
     null,
     "no-referrer",
     "no-referrer-when-downgrade",
+    "same-origin",
     "origin",
     "origin-when-cross-origin",
     "unsafe-url"

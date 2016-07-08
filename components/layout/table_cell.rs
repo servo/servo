@@ -16,6 +16,7 @@ use flow::{self, Flow, FlowClass, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx::display_list::StackingContext;
 use gfx_traits::StackingContextId;
+use gfx_traits::print_tree::PrintTree;
 use layout_debug;
 use model::MaybeAuto;
 use script_layout_interface::restyle_damage::REFLOW;
@@ -28,7 +29,6 @@ use style::properties::{ComputedValues, ServoComputedValues};
 use style::servo::SharedStyleContext;
 use table::InternalTable;
 use table_row::{CollapsedBorder, CollapsedBorderProvenance};
-use util::print_tree::PrintTree;
 
 /// A table formatting context.
 #[derive(RustcEncodable)]

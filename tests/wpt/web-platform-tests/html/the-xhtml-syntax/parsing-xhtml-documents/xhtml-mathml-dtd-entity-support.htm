@@ -35,8 +35,7 @@
   setup(function() {}, {explicit_done: true});
 
   var xhr = new XMLHttpRequest();
-  //xhr.open("GET", "entities.json");
-  xhr.open("GET", "https://w3c.github.io/html/entities.json");
+  xhr.open("GET", "/common/entities.json");
   xhr.onload = function () {
     // Note: for proper XML parsing of the Doctype, Edge requires a non-empty string for url part
     var entitiesJSON = JSON.parse(xhr.response);

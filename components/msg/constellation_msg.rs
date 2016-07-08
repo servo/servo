@@ -5,33 +5,15 @@
 //! The high-level interface from script to constellation. Using this abstract interface helps
 //! reduce coupling between these two components.
 
-use euclid::scale_factor::ScaleFactor;
-use euclid::size::{Size2D, TypedSize2D};
 use hyper::header::Headers;
 use hyper::method::Method;
-use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
-use layers::geometry::DevicePixel;
+use ipc_channel::ipc::IpcSharedMemory;
 use std::cell::Cell;
 use std::fmt;
 use url::Url;
-use util::geometry::{PagePx, ViewportPx};
-use webdriver_msg::{LoadStatus, WebDriverScriptCommand};
 use webrender_traits;
 
 pub type PanicMsg = (Option<PipelineId>, String, String);
-
-#[derive(Copy, Clone, Deserialize, Serialize, HeapSizeOf)]
-pub struct WindowSizeData {
-    /// The size of the initial layout viewport, before parsing an
-    /// http://www.w3.org/TR/css-device-adapt/#initial-viewport
-    pub initial_viewport: TypedSize2D<ViewportPx, f32>,
-
-    /// The "viewing area" in page px. See `PagePx` documentation for details.
-    pub visible_viewport: TypedSize2D<PagePx, f32>,
-
-    /// The resolution of the window in dppx, not including any "pinch zoom" factor.
-    pub device_pixel_ratio: ScaleFactor<ViewportPx, DevicePixel, f32>,
-}
 
 #[derive(Deserialize, Eq, PartialEq, Serialize, Copy, Clone, HeapSizeOf)]
 pub enum WindowSizeType {
@@ -184,17 +166,6 @@ bitflags! {
         const ALT = 0x04,
         const SUPER = 0x08,
     }
-}
-
-#[derive(Deserialize, Serialize)]
-pub enum WebDriverCommandMsg {
-    GetWindowSize(PipelineId, IpcSender<WindowSizeData>),
-    LoadUrl(PipelineId, LoadData, IpcSender<LoadStatus>),
-    Refresh(PipelineId, IpcSender<LoadStatus>),
-    ScriptCommand(PipelineId, WebDriverScriptCommand),
-    SendKeys(PipelineId, Vec<(Key, KeyModifiers, KeyState)>),
-    SetWindowSize(PipelineId, Size2D<u32>, IpcSender<WindowSizeData>),
-    TakeScreenshot(PipelineId, IpcSender<Option<Image>>),
 }
 
 #[derive(Clone, Copy, Deserialize, Eq, PartialEq, Serialize, HeapSizeOf)]

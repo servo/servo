@@ -34,7 +34,8 @@ use values::computed::{CalcLengthOrPercentage, LengthOrPercentage};
 
 // NB: This needs to be here because it needs all the longhands generated
 // beforehand.
-#[derive(Copy, Clone, Debug, PartialEq, HeapSizeOf)]
+#[derive(Copy, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum TransitionProperty {
     All,
     % for prop in data.longhands:
@@ -92,7 +93,8 @@ impl ToCss for TransitionProperty {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, HeapSizeOf)]
+#[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum AnimatedProperty {
     % for prop in data.longhands:
         % if prop.animatable:
@@ -127,22 +129,17 @@ impl AnimatedProperty {
         }
     }
 
-    // NB: Transition properties need clone
     pub fn from_transition_property<C: ComputedValues>(transition_property: &TransitionProperty,
                                                        old_style: &C,
                                                        new_style: &C) -> AnimatedProperty {
-        // TODO: Generalise this for GeckoLib, adding clone_xxx to the
-        // appropiate longhands.
-        let old_style = old_style.as_servo();
-        let new_style = new_style.as_servo();
         match *transition_property {
             TransitionProperty::All => panic!("Can't use TransitionProperty::All here."),
             % for prop in data.longhands:
                 % if prop.animatable:
                     TransitionProperty::${prop.camel_case} => {
                         AnimatedProperty::${prop.camel_case}(
-                            old_style.get_${prop.style_struct.ident.strip("_")}().${prop.ident}.clone(),
-                            new_style.get_${prop.style_struct.ident.strip("_")}().${prop.ident}.clone())
+                            old_style.get_${prop.style_struct.ident.strip("_")}().clone_${prop.ident}(),
+                            new_style.get_${prop.style_struct.ident.strip("_")}().clone_${prop.ident}())
                     }
                 % endif
             % endfor
@@ -329,8 +326,8 @@ impl Interpolate for CalcLengthOrPercentage {
     #[inline]
     fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
         Ok(CalcLengthOrPercentage {
-            length: try!(self.length.interpolate(&other.length, time)),
-            percentage: try!(self.percentage.interpolate(&other.percentage, time)),
+            length: self.length.interpolate(&other.length, time).ok().and_then(|x|x),
+            percentage: self.percentage.interpolate(&other.percentage, time).ok().and_then(|x|x),
         })
     }
 }

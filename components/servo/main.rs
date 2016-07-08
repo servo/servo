@@ -40,6 +40,7 @@ use servo::Browser;
 use servo::compositing::windowing::WindowEvent;
 use servo::util::opts::{self, ArgumentParsingResult};
 use servo::util::panicking::initiate_panic_hook;
+use servo::util::servo_version;
 use std::process;
 use std::rc::Rc;
 
@@ -104,7 +105,7 @@ fn main() {
     }
 
     if opts::get().is_printing_version {
-        println!("Servo {}{}", env!("CARGO_PKG_VERSION"), env!("GIT_INFO"));
+        println!("{}", servo_version());
         process::exit(0);
     }
 

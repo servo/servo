@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use about_loader;
-use mime_classifier::MIMEClassifier;
+use mime_classifier::MimeClassifier;
 use mime_guess::guess_mime_type;
 use msg::constellation_msg::{PipelineId, ReferrerPolicy};
 use net_traits::ProgressMsg::{Done, Payload};
@@ -72,7 +72,7 @@ fn read_all(reader: &mut File, progress_chan: &ProgressSender, cancel_listener: 
 }
 
 fn get_progress_chan(load_data: LoadData, file_path: PathBuf,
-                     senders: LoadConsumer, classifier: Arc<MIMEClassifier>, buf: &[u8])
+                     senders: LoadConsumer, classifier: Arc<MimeClassifier>, buf: &[u8])
                      -> Result<ProgressSender, ()> {
     let mut metadata = Metadata::default(load_data.url);
     let mime_type = guess_mime_type(file_path.as_path());
@@ -82,7 +82,7 @@ fn get_progress_chan(load_data: LoadData, file_path: PathBuf,
 
 pub fn factory(load_data: LoadData,
                senders: LoadConsumer,
-               classifier: Arc<MIMEClassifier>,
+               classifier: Arc<MimeClassifier>,
                cancel_listener: CancellationListener) {
     assert!(load_data.url.scheme() == "file");
     spawn_named("file_loader".to_owned(), move || {

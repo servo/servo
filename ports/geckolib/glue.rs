@@ -5,7 +5,7 @@
 #![allow(unsafe_code)]
 
 use app_units::Au;
-use data::PerDocumentStyleData;
+use data::{NUM_THREADS, PerDocumentStyleData};
 use env_logger;
 use euclid::Size2D;
 use gecko_bindings::bindings::{RawGeckoDocument, RawGeckoElement, RawGeckoNode};
@@ -22,13 +22,14 @@ use std::ptr;
 use std::slice;
 use std::str::from_utf8_unchecked;
 use std::sync::{Arc, Mutex};
-use style::context::ReflowGoal;
+use style::context::{LocalStyleContextCreationInfo, ReflowGoal};
 use style::dom::{TDocument, TElement, TNode};
 use style::error_reporting::StdoutErrorReporter;
 use style::parallel;
 use style::parser::ParserContextExtraData;
 use style::properties::{ComputedValues, PropertyDeclarationBlock};
 use style::selector_impl::{SelectorImplExt, PseudoElementCascadeType};
+use style::sequential;
 use style::stylesheets::Origin;
 use traversal::RecalcStyleOnly;
 use url::Url;
@@ -77,7 +78,7 @@ pub extern "C" fn Servo_Initialize() -> () {
 fn restyle_subtree(node: GeckoNode, raw_data: *mut RawServoStyleSet) {
     debug_assert!(node.is_element() || node.is_text_node());
 
-    let data = unsafe { &mut *(raw_data as *mut PerDocumentStyleData) };
+    let per_doc_data = unsafe { &mut *(raw_data as *mut PerDocumentStyleData) };
 
     // Force the creation of our lazily-constructed initial computed values on
     // the main thread, since it's not safe to call elsewhere.
@@ -88,24 +89,33 @@ fn restyle_subtree(node: GeckoNode, raw_data: *mut RawServoStyleSet) {
     // along in startup than the sensible place to call Servo_Initialize.
     GeckoComputedValues::initial_values();
 
-    let _needs_dirtying = Arc::get_mut(&mut data.stylist).unwrap()
-                              .update(&data.stylesheets, data.stylesheets_changed);
-    data.stylesheets_changed = false;
+    let _needs_dirtying = Arc::get_mut(&mut per_doc_data.stylist).unwrap()
+                              .update(&per_doc_data.stylesheets,
+                                      per_doc_data.stylesheets_changed);
+    per_doc_data.stylesheets_changed = false;
+
+    let local_context_data =
+        LocalStyleContextCreationInfo::new(per_doc_data.new_animations_sender.clone());
 
     let shared_style_context = SharedStyleContext {
         viewport_size: Size2D::new(Au(0), Au(0)),
         screen_size_changed: false,
         generation: 0,
         goal: ReflowGoal::ForScriptQuery,
-        stylist: data.stylist.clone(),
-        new_animations_sender: Mutex::new(data.new_animations_sender.clone()),
-        running_animations: data.running_animations.clone(),
-        expired_animations: data.expired_animations.clone(),
+        stylist: per_doc_data.stylist.clone(),
+        running_animations: per_doc_data.running_animations.clone(),
+        expired_animations: per_doc_data.expired_animations.clone(),
         error_reporter: Box::new(StdoutErrorReporter),
+        local_context_creation_data: Mutex::new(local_context_data),
     };
 
     if node.is_dirty() || node.has_dirty_descendants() {
-        parallel::traverse_dom::<GeckoNode, RecalcStyleOnly>(node, &shared_style_context, &mut data.work_queue);
+        if per_doc_data.num_threads == 1 {
+            sequential::traverse_dom::<GeckoNode, RecalcStyleOnly>(node, &shared_style_context);
+        } else {
+            parallel::traverse_dom::<GeckoNode, RecalcStyleOnly>(node, &shared_style_context,
+                                                                 &mut per_doc_data.work_queue);
+        }
     }
 }
 
@@ -124,6 +134,11 @@ pub extern "C" fn Servo_RestyleDocument(doc: *mut RawGeckoDocument, raw_data: *m
         None => return,
     };
     restyle_subtree(node, raw_data);
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_StyleWorkerThreadCount() -> u32 {
+    *NUM_THREADS as u32
 }
 
 #[no_mangle]

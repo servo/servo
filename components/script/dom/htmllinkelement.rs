@@ -40,9 +40,9 @@ use style::attr::AttrValue;
 use style::media_queries::{MediaQueryList, parse_media_query_list};
 use style::parser::ParserContextExtraData;
 use style::servo::Stylesheet;
+use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::Origin;
 use url::Url;
-use util::str::HTML_SPACE_CHARACTERS;
 
 no_jsmanaged_fields!(Stylesheet);
 
@@ -194,6 +194,10 @@ impl VirtualMethods for HTMLLinkElement {
 impl HTMLLinkElement {
     fn handle_stylesheet_url(&self, href: &str) {
         let document = document_from_node(self);
+        if document.browsing_context().is_none() {
+            return;
+        }
+
         match document.base_url().join(href) {
             Ok(url) => {
                 let element = self.upcast::<Element>();

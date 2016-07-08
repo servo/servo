@@ -23,7 +23,7 @@ use dom::workerglobalscope::WorkerGlobalScope;
 use dom::workerglobalscope::WorkerGlobalScopeInit;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
-use js::jsapi::{JS_SetInterruptCallback, JSAutoCompartment, JSContext, RootedValue};
+use js::jsapi::{JS_SetInterruptCallback, JSAutoCompartment, JSContext};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use msg::constellation_msg::PipelineId;
@@ -37,7 +37,7 @@ use std::sync::mpsc::{Receiver, RecvError, Select, Sender, channel};
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 use url::Url;
-use util::prefs;
+use util::prefs::PREFS;
 use util::thread::spawn_named;
 use util::thread_state;
 use util::thread_state::{IN_WORKER, SCRIPT};
@@ -225,7 +225,7 @@ impl ServiceWorkerGlobalScope {
             scope.mem_profiler_chan().run_with_memory_reporting(|| {
                 // Service workers are time limited
                 let sw_lifetime = Instant::now();
-                let sw_lifetime_timeout = prefs::get_pref("dom.serviceworker.timeout_seconds").as_u64().unwrap();
+                let sw_lifetime_timeout = PREFS.get("dom.serviceworker.timeout_seconds").as_u64().unwrap();
                 while let Ok(event) = global.receive_event() {
                     if scope.is_closing() {
                         break;
@@ -283,7 +283,7 @@ impl ServiceWorkerGlobalScope {
                 let target = self.upcast();
                 let _ac = JSAutoCompartment::new(scope.get_cx(),
                                                  scope.reflector().get_jsobject().get());
-                let mut message = RootedValue::new(scope.get_cx(), UndefinedValue());
+                rooted!(in(scope.get_cx()) let mut message = UndefinedValue());
                 data.read(GlobalRef::Worker(scope), message.handle_mut());
                 MessageEvent::dispatch_jsval(target, GlobalRef::Worker(scope), message.handle());
             },

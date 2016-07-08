@@ -36,7 +36,7 @@ use dom::urlhelper::UrlHelper;
 use dom::virtualmethods::VirtualMethods;
 use dom::window::{ReflowReason, Window};
 use ipc_channel::ipc;
-use js::jsapi::{JSAutoCompartment, RootedValue, JSContext, MutableHandleValue};
+use js::jsapi::{JSAutoCompartment, JSContext, MutableHandleValue};
 use js::jsval::{UndefinedValue, NullValue};
 use msg::constellation_msg::{FrameType, LoadData, NavigationDirection, PipelineId, SubpageId};
 use net_traits::response::HttpsState;
@@ -48,17 +48,20 @@ use string_cache::Atom;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use style::context::ReflowGoal;
 use url::Url;
-use util::prefs::mozbrowser_enabled;
+use util::prefs::PREFS;
+use util::servo_version;
 
-#[derive(HeapSizeOf)]
-enum SandboxAllowance {
-    AllowNothing = 0x00,
-    AllowSameOrigin = 0x01,
-    AllowTopNavigation = 0x02,
-    AllowForms = 0x04,
-    AllowScripts = 0x08,
-    AllowPointerLock = 0x10,
-    AllowPopups = 0x20
+bitflags! {
+    #[derive(JSTraceable, HeapSizeOf)]
+    flags SandboxAllowance: u8 {
+        const ALLOW_NOTHING = 0x00,
+        const ALLOW_SAME_ORIGIN = 0x01,
+        const ALLOW_TOP_NAVIGATION = 0x02,
+        const ALLOW_FORMS = 0x04,
+        const ALLOW_SCRIPTS = 0x08,
+        const ALLOW_POINTER_LOCK = 0x10,
+        const ALLOW_POPUPS = 0x20
+    }
 }
 
 #[dom_struct]
@@ -67,7 +70,7 @@ pub struct HTMLIFrameElement {
     pipeline_id: Cell<Option<PipelineId>>,
     subpage_id: Cell<Option<SubpageId>>,
     sandbox: MutNullableHeap<JS<DOMTokenList>>,
-    sandbox_allowance: Cell<Option<u8>>,
+    sandbox_allowance: Cell<Option<SandboxAllowance>>,
     load_blocker: DOMRefCell<Option<LoadBlocker>>,
     visibility: Cell<bool>,
 }
@@ -142,7 +145,7 @@ impl HTMLIFrameElement {
               .send(ConstellationMsg::ScriptLoadedURLInIFrame(load_info))
               .unwrap();
 
-        if mozbrowser_enabled() {
+        if PREFS.is_mozbrowser_enabled() {
             // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserloadstart
             self.dispatch_mozbrowser_event(MozBrowserEvent::LoadStart);
         }
@@ -161,14 +164,14 @@ impl HTMLIFrameElement {
         // TODO(gw): Support mozbrowser event types that have detail which is not a string.
         // See https://developer.mozilla.org/en-US/docs/Web/API/Using_the_Browser_API
         // for a list of mozbrowser events.
-        assert!(mozbrowser_enabled());
+        assert!(PREFS.is_mozbrowser_enabled());
 
         if self.Mozbrowser() {
             let window = window_from_node(self);
             let custom_event = unsafe {
                 let cx = window.get_cx();
                 let _ac = JSAutoCompartment::new(cx, window.reflector().get_jsobject().get());
-                let mut detail = RootedValue::new(cx, UndefinedValue());
+                rooted!(in(cx) let mut detail = UndefinedValue());
                 let event_name = Atom::from(event.name());
                 self.build_mozbrowser_event_detail(event, cx, detail.handle_mut());
                 CustomEvent::new(GlobalRef::Window(window.r()),
@@ -358,6 +361,7 @@ impl MozBrowserEventDetailBuilder for HTMLIFrameElement {
                     type_: Some(DOMString::from(error_type.name())),
                     description: description.map(DOMString::from),
                     report: report.map(DOMString::from),
+                    version: Some(DOMString::from_string(servo_version().into())),
                 }.to_jsval(cx, rval);
             },
             MozBrowserEvent::SecurityChange(https_state) => {
@@ -589,17 +593,17 @@ impl VirtualMethods for HTMLIFrameElement {
         match attr.local_name() {
             &atom!("sandbox") => {
                 self.sandbox_allowance.set(mutation.new_value(attr).map(|value| {
-                    let mut modes = SandboxAllowance::AllowNothing as u8;
+                    let mut modes = ALLOW_NOTHING;
                     for token in value.as_tokens() {
                         modes |= match &*token.to_ascii_lowercase() {
-                            "allow-same-origin" => SandboxAllowance::AllowSameOrigin,
-                            "allow-forms" => SandboxAllowance::AllowForms,
-                            "allow-pointer-lock" => SandboxAllowance::AllowPointerLock,
-                            "allow-popups" => SandboxAllowance::AllowPopups,
-                            "allow-scripts" => SandboxAllowance::AllowScripts,
-                            "allow-top-navigation" => SandboxAllowance::AllowTopNavigation,
-                            _ => SandboxAllowance::AllowNothing
-                        } as u8;
+                            "allow-same-origin" => ALLOW_SAME_ORIGIN,
+                            "allow-forms" => ALLOW_FORMS,
+                            "allow-pointer-lock" => ALLOW_POINTER_LOCK,
+                            "allow-popups" => ALLOW_POPUPS,
+                            "allow-scripts" => ALLOW_SCRIPTS,
+                            "allow-top-navigation" => ALLOW_TOP_NAVIGATION,
+                            _ => ALLOW_NOTHING
+                        };
                     }
                     modes
                 }));

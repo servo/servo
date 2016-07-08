@@ -15,12 +15,12 @@ use flow::{Flow, FlowClass, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx::display_list::StackingContext;
 use gfx_traits::StackingContextId;
+use gfx_traits::print_tree::PrintTree;
 use std::fmt;
 use std::sync::Arc;
 use style::logical_geometry::LogicalSize;
 use style::properties::ServoComputedValues;
 use style::servo::SharedStyleContext;
-use util::print_tree::PrintTree;
 
 /// A table formatting context.
 pub struct TableCaptionFlow {

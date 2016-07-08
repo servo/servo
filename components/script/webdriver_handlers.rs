@@ -28,16 +28,15 @@ use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::size::Size2D;
 use ipc_channel::ipc::{self, IpcSender};
-use js::jsapi::JSContext;
-use js::jsapi::{HandleValue, RootedValue};
+use js::jsapi::{JSContext, HandleValue};
 use js::jsval::UndefinedValue;
 use msg::constellation_msg::PipelineId;
-use msg::webdriver_msg::WebDriverCookieError;
-use msg::webdriver_msg::{WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue};
 use net_traits::CookieSource::{HTTP, NonHTTP};
 use net_traits::CoreResourceMsg::{GetCookiesDataForUrl, SetCookiesForUrlWithData};
 use net_traits::IpcSend;
 use script_thread::get_browsing_context;
+use script_traits::webdriver_msg::WebDriverCookieError;
+use script_traits::webdriver_msg::{WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue};
 use url::Url;
 
 fn find_node_by_unique_id(context: &BrowsingContext,
@@ -77,7 +76,7 @@ pub fn handle_execute_script(context: &BrowsingContext,
     let window = context.active_window();
     let result = unsafe {
         let cx = window.get_cx();
-        let mut rval = RootedValue::new(cx, UndefinedValue());
+        rooted!(in(cx) let mut rval = UndefinedValue());
         window.evaluate_js_on_global_with_result(&eval, rval.handle_mut());
         jsval_to_webdriver(cx, rval.handle())
     };
@@ -92,7 +91,7 @@ pub fn handle_execute_async_script(context: &BrowsingContext,
     let window = context.active_window();
     let cx = window.get_cx();
     window.set_webdriver_script_chan(Some(reply));
-    let mut rval = RootedValue::new(cx, UndefinedValue());
+    rooted!(in(cx) let mut rval = UndefinedValue());
     window.evaluate_js_on_global_with_result(&eval, rval.handle_mut());
 }
 
@@ -375,8 +374,7 @@ pub fn handle_is_selected(context: &BrowsingContext,
             }
             else if let Some(_) = node.downcast::<HTMLElement>() {
                 Ok(false) // regular elements are not selectable
-            }
-            else {
+            } else {
                 Err(())
             }
         },

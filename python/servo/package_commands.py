@@ -142,8 +142,9 @@ class PackageCommands(CommandBase):
             print("Creating dmg")
             os.symlink('/Applications', dir_to_dmg + '/Applications')
             dmg_path = '/'.join(dir_to_build.split('/')[:-1]) + '/'
-            dmg_path += datetime.utcnow().replace(microsecond=0).isoformat()
-            dmg_path += "-servo-tech-demo.dmg"
+            time = datetime.utcnow().replace(microsecond=0).isoformat()
+            time = time.replace(':', '-')
+            dmg_path += time + "-servo-tech-demo.dmg"
             try:
                 subprocess.check_call(['hdiutil', 'create', '-volname', 'Servo', dmg_path, '-srcfolder', dir_to_dmg])
             except subprocess.CalledProcessError as e:
@@ -154,6 +155,8 @@ class PackageCommands(CommandBase):
             print("Packaged Servo into " + dmg_path)
         else:
             dir_to_package = '/'.join(binary_path.split('/')[:-1])
+            dir_to_root = '/'.join(binary_path.split('/')[:-3])
+            shutil.copytree(dir_to_root + '/resources', dir_to_package + '/resources')
             browserhtml_path = find_dep_path_newest('browserhtml', binary_path)
             if browserhtml_path is None:
                 print("Could not find browserhtml package; perhaps you haven't built Servo.")
@@ -172,15 +175,16 @@ class PackageCommands(CommandBase):
                           '--pref', 'dom.mozbrowser.enabled',
                           '--pref', 'dom.forcetouch.enabled',
                           '--pref', 'shell.builtin-key-shortcuts.enabled=false',
-                          path.join(browserhtml_path, 'out', 'index.html')]
+                          path.join('./build/' + browserhtml_path.split('/')[-1], 'out', 'index.html')]
 
-            runservo = os.open(dir_to_package + 'runservo.sh', os.O_WRONLY | os.O_CREAT, int("0755", 8))
-            os.write(runservo, "./servo " + ' '.join(servo_args))
+            runservo = os.open(dir_to_package + '/runservo.sh', os.O_WRONLY | os.O_CREAT, int("0755", 8))
+            os.write(runservo, "#!/usr/bin/env sh\n./servo " + ' '.join(servo_args))
             os.close(runservo)
             print("Creating tarball")
             tar_path = '/'.join(dir_to_package.split('/')[:-1]) + '/'
-            tar_path += datetime.utcnow().replace(microsecond=0).isoformat()
-            tar_path += "-servo-tech-demo.tar.gz"
+            time = datetime.utcnow().replace(microsecond=0).isoformat()
+            time = time.replace(':', "-")
+            tar_path += time + "-servo-tech-demo.tar.gz"
             with tarfile.open(tar_path, "w:gz") as tar:
                 # arcname is to add by relative rather than absolute path
                 tar.add(dir_to_package, arcname='servo/')

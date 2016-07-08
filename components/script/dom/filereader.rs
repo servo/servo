@@ -13,7 +13,7 @@ use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::str::DOMString;
-use dom::blob::{Blob, DataSlice};
+use dom::blob::Blob;
 use dom::domexception::{DOMErrorName, DOMException};
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
@@ -27,6 +27,7 @@ use script_runtime::ScriptThreadEventCategory::FileRead;
 use script_runtime::{ScriptChan, CommonScriptMsg};
 use script_thread::Runnable;
 use std::cell::Cell;
+use std::sync::Arc;
 use string_cache::Atom;
 use util::thread::spawn_named;
 
@@ -160,7 +161,7 @@ impl FileReader {
 
     // https://w3c.github.io/FileAPI/#dfn-readAsText
     pub fn process_read_eof(filereader: TrustedFileReader, gen_id: GenerationId,
-                            data: ReadMetaData, blob_contents: DataSlice) {
+                            data: ReadMetaData, blob_contents: Arc<Vec<u8>>) {
         let fr = filereader.root();
 
         macro_rules! return_on_abort(
@@ -176,12 +177,11 @@ impl FileReader {
         fr.change_ready_state(FileReaderReadyState::Done);
         // Step 8.2
 
-        let bytes = blob_contents.get_bytes();
         let output = match data.function {
             FileReaderFunction::ReadAsDataUrl =>
-                FileReader::perform_readasdataurl(data, bytes),
+                FileReader::perform_readasdataurl(data, &blob_contents),
             FileReaderFunction::ReadAsText =>
-                FileReader::perform_readastext(data, bytes),
+                FileReader::perform_readastext(data, &blob_contents),
         };
 
         *fr.result.borrow_mut() = Some(output);
@@ -349,7 +349,7 @@ impl FileReader {
         self.change_ready_state(FileReaderReadyState::Loading);
 
         // Step 4
-        let blob_contents = blob.get_slice_or_empty();
+        let blob_contents = Arc::new(blob.get_bytes().unwrap_or(vec![]));
 
         let type_ = blob.Type();
 
@@ -376,7 +376,7 @@ pub enum FileReaderEvent {
     ProcessRead(TrustedFileReader, GenerationId),
     ProcessReadData(TrustedFileReader, GenerationId),
     ProcessReadError(TrustedFileReader, GenerationId, DOMErrorName),
-    ProcessReadEOF(TrustedFileReader, GenerationId, ReadMetaData, DataSlice)
+    ProcessReadEOF(TrustedFileReader, GenerationId, ReadMetaData, Arc<Vec<u8>>)
 }
 
 impl Runnable for FileReaderEvent {
@@ -400,7 +400,7 @@ impl Runnable for FileReaderEvent {
 }
 
 // https://w3c.github.io/FileAPI/#thread-read-operation
-fn perform_annotated_read_operation(gen_id: GenerationId, data: ReadMetaData, blob_contents: DataSlice,
+fn perform_annotated_read_operation(gen_id: GenerationId, data: ReadMetaData, blob_contents: Arc<Vec<u8>>,
     filereader: TrustedFileReader, script_chan: Box<ScriptChan + Send>) {
     let chan = &script_chan;
     // Step 4

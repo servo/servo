@@ -113,11 +113,14 @@ impl FontHandle {
                     let pair_data_start = subtable_start + FORMAT_0_HEADER_LEN;
 
                     result.pair_data_range = pair_data_start..end;
+                    if result.pair_data_range.len() != n_pairs * KERN_PAIR_LEN {
+                        debug!("Bad data in kern header. Disable fast path.");
+                        return None;
+                    }
+
                     let pt_per_font_unit = self.ctfont.pt_size() as f64 /
                                            self.ctfont.units_per_em() as f64;
                     result.px_per_font_unit = pt_to_px(pt_per_font_unit);
-
-                    debug_assert_eq!(n_pairs * KERN_PAIR_LEN, result.pair_data_range.len());
                 }
                 start = end;
             }

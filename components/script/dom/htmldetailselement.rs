@@ -79,7 +79,7 @@ impl VirtualMethods for HTMLDetailsElement {
                 element: details,
                 toggle_number: counter
             };
-            let _ = task_source.queue(DOMManipulationTask::FireToggleEvent(runnable));
+            let _ = task_source.queue(DOMManipulationTask::Runnable(runnable));
         }
     }
 }
@@ -90,6 +90,8 @@ pub struct DetailsNotificationRunnable {
 }
 
 impl Runnable for DetailsNotificationRunnable {
+    fn name(&self) -> &'static str { "DetailsNotificationRunnable" }
+
     fn handler(self: Box<DetailsNotificationRunnable>) {
         let target = self.element.root();
         if target.check_toggle_count(self.toggle_number) {

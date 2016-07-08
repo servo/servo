@@ -8,8 +8,8 @@ WEBVTT
 "size":50,
 "position":25}
 
-00:00:00.000 --> 00:00:01.000 align:middle line:1 vertical:rl size:0% position:100%
-{"align":"middle",
+00:00:00.000 --> 00:00:01.000 align:center line:1 vertical:rl size:0% position:100%
+{"align":"center",
 "line":1,
 "vertical":"rl",
 "size":0,

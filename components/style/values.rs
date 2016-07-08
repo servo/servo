@@ -1194,6 +1194,11 @@ pub mod specified {
         pub fn radians(self) -> f32 {
             self.0
         }
+
+        #[inline]
+        pub fn from_radians(r: f32) -> Self {
+            Angle(r)
+        }
     }
 
     const RAD_PER_DEG: CSSFloat = PI / 180.0;

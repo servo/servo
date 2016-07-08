@@ -43,9 +43,7 @@ use js::jsapi::{JS_GetRuntime, JS_GC, MutableHandleValue, SetWindowProxy};
 use js::rust::CompileOptionsWrapper;
 use js::rust::Runtime;
 use libc;
-use msg::constellation_msg::{FrameType, LoadData, PanicMsg, PipelineId, SubpageId};
-use msg::constellation_msg::{WindowSizeData, WindowSizeType};
-use msg::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
+use msg::constellation_msg::{FrameType, LoadData, PanicMsg, PipelineId, SubpageId, WindowSizeType};
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread};
 use net_traits::storage_thread::StorageType;
@@ -64,9 +62,10 @@ use script_layout_interface::rpc::{MarginStyleResponse, ResolvedStyleResponse};
 use script_runtime::{ScriptChan, ScriptPort, maybe_take_panic_result};
 use script_thread::SendableMainThreadScriptChan;
 use script_thread::{MainThreadScriptChan, MainThreadScriptMsg, RunnableWrapper};
+use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use script_traits::{ConstellationControlMsg, UntrustedNodeAddress};
 use script_traits::{DocumentState, MsDuration, TimerEvent, TimerEventId};
-use script_traits::{ScriptMsg as ConstellationMsg, TimerEventRequest, TimerSource};
+use script_traits::{ScriptMsg as ConstellationMsg, TimerEventRequest, TimerSource, WindowSizeData};
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Cell;
@@ -85,6 +84,7 @@ use style::context::ReflowGoal;
 use style::error_reporting::ParseErrorReporter;
 use style::properties::longhands::overflow_x;
 use style::selector_impl::PseudoElement;
+use style::str::HTML_SPACE_CHARACTERS;
 use task_source::dom_manipulation::DOMManipulationTaskSource;
 use task_source::file_reading::FileReadingTaskSource;
 use task_source::history_traversal::HistoryTraversalTaskSource;
@@ -96,9 +96,8 @@ use timers::{IsInterval, OneshotTimerCallback, OneshotTimerHandle, OneshotTimers
 use tinyfiledialogs::{self, MessageBoxIcon};
 use url::Url;
 use util::geometry::{self, MAX_RECT};
-use util::prefs::mozbrowser_enabled;
-use util::str::HTML_SPACE_CHARACTERS;
-use util::{breakpoint, opts};
+use util::opts;
+use util::prefs::PREFS;
 use webdriver_handlers::jsval_to_webdriver;
 
 /// Current state of the window object
@@ -670,8 +669,9 @@ impl WindowMethods for Window {
         }
     }
 
+    #[allow(unsafe_code)]
     fn Trap(&self) {
-        breakpoint();
+        unsafe { ::std::intrinsics::breakpoint() }
     }
 
     #[allow(unsafe_code)]
@@ -1581,7 +1581,7 @@ impl Window {
 
     /// Returns whether this window is mozbrowser.
     pub fn is_mozbrowser(&self) -> bool {
-        mozbrowser_enabled() && self.parent_info().is_none()
+        PREFS.is_mozbrowser_enabled() && self.parent_info().is_none()
     }
 
     /// Returns whether mozbrowser is enabled and `obj` has been created
@@ -1757,4 +1757,3 @@ fn debug_reflow_events(id: PipelineId, goal: &ReflowGoal, query_type: &ReflowQue
 
     println!("{}", debug_msg);
 }
-

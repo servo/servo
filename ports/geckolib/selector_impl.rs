@@ -4,6 +4,7 @@
 
 use properties::GeckoComputedValues;
 use selectors::parser::{ParserContext, SelectorImpl};
+use string_cache::Atom;
 use style;
 use style::element_state::ElementState;
 use style::selector_impl::{PseudoElementCascadeType, SelectorImplExt};
@@ -12,6 +13,7 @@ pub type Stylist = style::selector_matching::Stylist<GeckoSelectorImpl>;
 pub type Stylesheet = style::stylesheets::Stylesheet<GeckoSelectorImpl>;
 pub type SharedStyleContext = style::context::SharedStyleContext<GeckoSelectorImpl>;
 pub type PrivateStyleData = style::data::PrivateStyleData<GeckoSelectorImpl, GeckoComputedValues>;
+pub type Animation = style::animation::Animation<GeckoSelectorImpl>;
 
 #[cfg(feature = "servo_features")]
 known_heap_size!(0, GeckoSelectorImpl, PseudoElement, NonTSPseudoClass);
@@ -156,6 +158,7 @@ impl NonTSPseudoClass {
 }
 
 impl SelectorImpl for GeckoSelectorImpl {
+    type AttrString = Atom;
     type PseudoElement = PseudoElement;
     type NonTSPseudoClass = NonTSPseudoClass;
     fn parse_non_ts_pseudo_class(_context: &ParserContext,

@@ -21,6 +21,7 @@ mod attr;
 mod logical_geometry;
 mod media_queries;
 mod properties;
+mod str;
 mod stylesheets;
 mod viewport;
 

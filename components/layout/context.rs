@@ -25,15 +25,14 @@ use std::hash::BuildHasherDefault;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex, RwLock};
 use style::context::{LocalStyleContext, StyleContext};
-use style::matching::{ApplicableDeclarationsCache, StyleSharingCandidateCache};
-use style::properties::ServoComputedValues;
 use style::selector_impl::ServoSelectorImpl;
 use style::servo::SharedStyleContext;
 use url::Url;
 use util::opts;
 
 struct LocalLayoutContext {
-    style_context: LocalStyleContext<ServoComputedValues>,
+    style_context: LocalStyleContext<ServoSelectorImpl>,
+
     font_context: RefCell<FontContext>,
 }
 
@@ -64,11 +63,10 @@ fn create_or_get_local_context(shared_layout_context: &SharedLayoutContext)
             context
         } else {
             let font_cache_thread = shared_layout_context.font_cache_thread.lock().unwrap().clone();
+            let local_style_data = shared_layout_context.style_context.local_context_creation_data.lock().unwrap();
+
             let context = Rc::new(LocalLayoutContext {
-                style_context: LocalStyleContext {
-                    applicable_declarations_cache: RefCell::new(ApplicableDeclarationsCache::new()),
-                    style_sharing_candidate_cache: RefCell::new(StyleSharingCandidateCache::new()),
-                },
+                style_context: LocalStyleContext::new(&local_style_data),
                 font_context: RefCell::new(FontContext::new(font_cache_thread)),
             });
             *r = Some(context.clone());
@@ -110,7 +108,7 @@ impl<'a> StyleContext<'a, ServoSelectorImpl> for LayoutContext<'a> {
         &self.shared.style_context
     }
 
-    fn local_context(&self) -> &LocalStyleContext<ServoComputedValues> {
+    fn local_context(&self) -> &LocalStyleContext<ServoSelectorImpl> {
         &self.cached_local_layout_context.style_context
     }
 }

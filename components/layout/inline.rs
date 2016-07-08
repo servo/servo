@@ -21,6 +21,7 @@ use gfx::display_list::{OpaqueNode, StackingContext};
 use gfx::font::FontMetrics;
 use gfx::font_context::FontContext;
 use gfx_traits::StackingContextId;
+use gfx_traits::print_tree::PrintTree;
 use layout_debug;
 use model::IntrinsicISizesContribution;
 use range::{Range, RangeIndex};
@@ -41,7 +42,6 @@ use style::values::computed::LengthOrPercentage;
 use text;
 use unicode_bidi;
 use util;
-use util::print_tree::PrintTree;
 
 // From gfxFontConstants.h in Firefox
 static FONT_SUBSCRIPT_OFFSET_RATIO: f32 = 0.20;

@@ -6,11 +6,13 @@
 <script src="/resources/WebIDLParser.js"></script>
 <script src="/resources/idlharness.js"></script>
 <div id="log"></div>
-<script type="text/plain" id="DocumentTimeline-IDL">
+<script type="text/plain" id="AnimationTimeline-IDL">
 interface AnimationTimeline {
   readonly attribute double? currentTime;
 };
-
+</script>
+<script type="text/plain" id="DocumentTimeline-IDL">
+[Constructor (DOMHighResTimeStamp originTime)]
 interface DocumentTimeline : AnimationTimeline {
 };
 </script>
@@ -20,6 +22,8 @@ interface DocumentTimeline : AnimationTimeline {
 var idlArray;
 test(function() {
   idlArray = new IdlArray();
+  idlArray.add_untested_idls(
+    document.getElementById('AnimationTimeline-IDL').textContent);
   idlArray.add_idls(
     document.getElementById('DocumentTimeline-IDL').textContent);
   idlArray.add_objects( { DocumentTimeline: ['document.timeline'] } );

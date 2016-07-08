@@ -5,7 +5,7 @@
 use dom::bindings::refcounted::Trusted;
 use dom::event::{EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
-use script_thread::{MainThreadRunnable, MainThreadScriptMsg, Runnable, ScriptThread};
+use script_thread::{MainThreadScriptMsg, Runnable, ScriptThread};
 use std::result::Result;
 use std::sync::mpsc::Sender;
 use string_cache::Atom;
@@ -39,20 +39,12 @@ impl DOMManipulationTaskSource {
 }
 
 pub enum DOMManipulationTask {
-    // https://html.spec.whatwg.org/multipage/#the-end step 7
-    DocumentProgress(Box<Runnable + Send>),
     // https://dom.spec.whatwg.org/#concept-event-fire
     FireEvent(Trusted<EventTarget>, Atom, EventBubbles, EventCancelable),
     // https://html.spec.whatwg.org/multipage/#fire-a-simple-event
     FireSimpleEvent(Trusted<EventTarget>, Atom),
-    // https://html.spec.whatwg.org/multipage/#details-notification-task-steps
-    FireToggleEvent(Box<Runnable + Send>),
-    // Placeholder until there's a real media element task queue implementation
-    MediaTask(Box<Runnable + Send>),
-    // https://html.spec.whatwg.org/multipage/#planned-navigation
-    PlannedNavigation(Box<Runnable + Send>),
-    // https://html.spec.whatwg.org/multipage/#send-a-storage-notification
-    SendStorageNotification(Box<MainThreadRunnable + Send>)
+
+    Runnable(Box<Runnable + Send>),
 }
 
 impl DOMManipulationTask {
@@ -60,7 +52,6 @@ impl DOMManipulationTask {
         use self::DOMManipulationTask::*;
 
         match self {
-            DocumentProgress(runnable) => runnable.handler(),
             FireEvent(element, name, bubbles, cancelable) => {
                 let target = element.root();
                 target.fire_event(&*name, bubbles, cancelable);
@@ -69,10 +60,11 @@ impl DOMManipulationTask {
                 let target = element.root();
                 target.fire_simple_event(&*name);
             }
-            FireToggleEvent(runnable) => runnable.handler(),
-            MediaTask(runnable) => runnable.handler(),
-            PlannedNavigation(runnable) => runnable.handler(),
-            SendStorageNotification(runnable) => runnable.handler(script_thread)
+            Runnable(runnable) => {
+                if !runnable.is_cancelled() {
+                    runnable.main_thread_handler(script_thread);
+                }
+            }
         }
     }
 }

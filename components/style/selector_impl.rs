@@ -65,7 +65,7 @@ pub trait ElementExt: Element {
 
 // NB: The `Clone` trait is here for convenience due to:
 // https://github.com/rust-lang/rust/issues/26925
-pub trait SelectorImplExt : SelectorImpl + Clone + Debug + Sized {
+pub trait SelectorImplExt : SelectorImpl + Clone + Debug + Sized + 'static {
     type ComputedValues: properties::ComputedValues;
 
     fn pseudo_element_cascade_type(pseudo: &Self::PseudoElement) -> PseudoElementCascadeType;
@@ -181,6 +181,7 @@ impl NonTSPseudoClass {
 pub struct ServoSelectorImpl;
 
 impl SelectorImpl for ServoSelectorImpl {
+    type AttrString = String;
     type PseudoElement = PseudoElement;
     type NonTSPseudoClass = NonTSPseudoClass;
 
@@ -278,7 +279,7 @@ impl SelectorImplExt for ServoSelectorImpl {
     }
 }
 
-impl<E: Element<Impl=ServoSelectorImpl>> ElementExt for E {
+impl<E: Element<Impl=ServoSelectorImpl, AttrString=String>> ElementExt for E {
     fn is_link(&self) -> bool {
         self.match_non_ts_pseudo_class(NonTSPseudoClass::AnyLink)
     }

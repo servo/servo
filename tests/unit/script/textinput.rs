@@ -401,7 +401,7 @@ fn test_clipboard_paste() {
                                        SelectionDirection::None);
     assert_eq!(textinput.get_content(), "defg");
     assert_eq!(textinput.edit_point.index, 0);
-    textinput.handle_keydown_aux(Key::V, MODIFIERS);
+    textinput.handle_keydown_aux(Some('v'), Key::V, MODIFIERS);
     assert_eq!(textinput.get_content(), "abcdefg");
 }
 

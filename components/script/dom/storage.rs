@@ -17,7 +17,7 @@ use dom::urlhelper::UrlHelper;
 use ipc_channel::ipc::{self, IpcSender};
 use net_traits::IpcSend;
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
-use script_thread::{MainThreadRunnable, ScriptThread};
+use script_thread::{Runnable, ScriptThread};
 use task_source::TaskSource;
 use task_source::dom_manipulation::DOMManipulationTask;
 use url::Url;
@@ -161,7 +161,7 @@ impl Storage {
         let global_ref = global_root.r();
         let task_source = global_ref.as_window().dom_manipulation_task_source();
         let trusted_storage = Trusted::new(self);
-        task_source.queue(DOMManipulationTask::SendStorageNotification(
+        task_source.queue(DOMManipulationTask::Runnable(
             box StorageEventRunnable::new(trusted_storage, key, old_value, new_value))).unwrap();
     }
 }
@@ -180,8 +180,10 @@ impl StorageEventRunnable {
     }
 }
 
-impl MainThreadRunnable for StorageEventRunnable {
-    fn handler(self: Box<StorageEventRunnable>, script_thread: &ScriptThread) {
+impl Runnable for StorageEventRunnable {
+    fn name(&self) -> &'static str { "StorageEventRunnable" }
+
+    fn main_thread_handler(self: Box<StorageEventRunnable>, script_thread: &ScriptThread) {
         let this = *self;
         let storage_root = this.element.root();
         let storage = storage_root.r();

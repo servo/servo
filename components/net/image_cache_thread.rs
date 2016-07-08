@@ -406,11 +406,11 @@ impl ImageCache {
             }
             ImageCacheCommand::GetImageIfAvailable(url, use_placeholder, consumer) => {
                 let result = self.get_image_if_available(url, use_placeholder);
-                consumer.send(result).unwrap();
+                let _ = consumer.send(result);
             }
             ImageCacheCommand::GetImageOrMetadataIfAvailable(url, use_placeholder, consumer) => {
                 let result = self.get_image_or_meta_if_available(url, use_placeholder);
-                consumer.send(result).unwrap();
+                let _ = consumer.send(result);
             }
             ImageCacheCommand::StoreDecodeImage(url, image_vector) => {
                 self.store_decode_image(url, image_vector);

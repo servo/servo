@@ -5320,6 +5320,18 @@
             "url": "/_mozilla/css/transition_calc.html"
           }
         ],
+        "css/transition_calc_implicit.html": [
+          {
+            "path": "css/transition_calc_implicit.html",
+            "references": [
+              [
+                "/_mozilla/css/transition_calc_implicit_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/transition_calc_implicit.html"
+          }
+        ],
         "css/translate_clip.html": [
           {
             "path": "css/translate_clip.html",
@@ -5521,7 +5533,8 @@
                 "=="
               ]
             ],
-            "url": "/_mozilla/css/viewport_meta.html"
+            "url": "/_mozilla/css/viewport_meta.html",
+            "viewport_size": "800x600"
           }
         ],
         "css/viewport_percentage_vmin_vmax_a.html": [
@@ -5585,7 +5598,8 @@
                 "=="
               ]
             ],
-            "url": "/_mozilla/css/viewport_rule.html"
+            "url": "/_mozilla/css/viewport_rule.html",
+            "viewport_size": "800x600"
           }
         ],
         "css/visibility_hidden.html": [
@@ -6070,6 +6084,12 @@
         ]
       },
       "testharness": {
+        "css/empty-keyframes.html": [
+          {
+            "path": "css/empty-keyframes.html",
+            "url": "/_mozilla/css/empty-keyframes.html"
+          }
+        ],
         "css/flex-item-assign-inline-size.html": [
           {
             "path": "css/flex-item-assign-inline-size.html",
@@ -6554,6 +6574,12 @@
           {
             "path": "mozilla/interfaces.html",
             "url": "/_mozilla/mozilla/interfaces.html"
+          }
+        ],
+        "mozilla/interfaces.worker.js": [
+          {
+            "path": "mozilla/interfaces.worker.js",
+            "url": "/_mozilla/mozilla/interfaces.worker"
           }
         ],
         "mozilla/lenient_this.html": [
@@ -12432,6 +12458,18 @@
           "url": "/_mozilla/css/transition_calc.html"
         }
       ],
+      "css/transition_calc_implicit.html": [
+        {
+          "path": "css/transition_calc_implicit.html",
+          "references": [
+            [
+              "/_mozilla/css/transition_calc_implicit_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/transition_calc_implicit.html"
+        }
+      ],
       "css/translate_clip.html": [
         {
           "path": "css/translate_clip.html",
@@ -12633,7 +12671,8 @@
               "=="
             ]
           ],
-          "url": "/_mozilla/css/viewport_meta.html"
+          "url": "/_mozilla/css/viewport_meta.html",
+          "viewport_size": "800x600"
         }
       ],
       "css/viewport_percentage_vmin_vmax_a.html": [
@@ -12697,7 +12736,8 @@
               "=="
             ]
           ],
-          "url": "/_mozilla/css/viewport_rule.html"
+          "url": "/_mozilla/css/viewport_rule.html",
+          "viewport_size": "800x600"
         }
       ],
       "css/visibility_hidden.html": [

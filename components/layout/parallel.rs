@@ -17,10 +17,10 @@ use std::sync::atomic::{AtomicIsize, Ordering};
 use style::dom::UnsafeNode;
 use style::parallel::run_queue_with_custom_work_data_type;
 use style::parallel::{CHUNK_SIZE, WorkQueueData};
+use style::workqueue::{WorkQueue, WorkUnit, WorkerProxy};
 use traversal::AssignBSizes;
 use traversal::{AssignISizes, BubbleISizes};
 use util::opts;
-use util::workqueue::{WorkQueue, WorkUnit, WorkerProxy};
 
 pub use style::parallel::traverse_dom;
 

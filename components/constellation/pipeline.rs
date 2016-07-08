@@ -18,7 +18,7 @@ use ipc_channel::router::ROUTER;
 use layers::geometry::DevicePixel;
 use layout_traits::LayoutThreadFactory;
 use msg::constellation_msg::{FrameId, FrameType, LoadData, PanicMsg, PipelineId};
-use msg::constellation_msg::{PipelineNamespaceId, SubpageId, WindowSizeData};
+use msg::constellation_msg::{PipelineNamespaceId, SubpageId};
 use net_traits::ResourceThreads;
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::ImageCacheThread;
@@ -26,7 +26,7 @@ use profile_traits::mem as profile_mem;
 use profile_traits::time;
 use script_traits::{ConstellationControlMsg, InitialScriptState, MozBrowserEvent};
 use script_traits::{LayoutControlMsg, LayoutMsg, NewLayoutInfo, ScriptMsg};
-use script_traits::{ScriptThreadFactory, TimerEventRequest};
+use script_traits::{ScriptThreadFactory, TimerEventRequest, WindowSizeData};
 use std::collections::HashMap;
 use std::io::Error as IOError;
 use std::process;
@@ -36,7 +36,7 @@ use util;
 use util::geometry::{PagePx, ViewportPx};
 use util::ipc::OptionalIpcSender;
 use util::opts::{self, Opts};
-use util::prefs::{self, Pref};
+use util::prefs::{PREFS, Pref};
 use webrender_traits;
 
 pub enum ChildProcess {
@@ -234,7 +234,7 @@ impl Pipeline {
                 panic_chan: state.panic_chan,
                 script_port: script_port,
                 opts: (*opts::get()).clone(),
-                prefs: prefs::get_cloned(),
+                prefs: PREFS.cloned(),
                 layout_to_paint_chan: layout_to_paint_chan,
                 pipeline_port: pipeline_port,
                 pipeline_namespace_id: state.pipeline_namespace_id,
@@ -378,7 +378,7 @@ impl Pipeline {
     pub fn trigger_mozbrowser_event(&self,
                                      subpage_id: SubpageId,
                                      event: MozBrowserEvent) {
-        assert!(prefs::mozbrowser_enabled());
+        assert!(PREFS.is_mozbrowser_enabled());
 
         let event = ConstellationControlMsg::MozBrowserEvent(self.id,
                                                              subpage_id,

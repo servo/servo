@@ -28,7 +28,6 @@ use dom::bindings::num::Finite;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::str::{DOMString, USVString};
-use dom::bindings::trace::RootedVec;
 use dom::bindings::xmlname::XMLName::InvalidXMLName;
 use dom::bindings::xmlname::{validate_and_extract, namespace_from_domstring, xml_name_type};
 use dom::browsingcontext::BrowsingContext;
@@ -115,6 +114,7 @@ use std::cell::{Cell, Ref, RefMut};
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::default::Default;
+use std::iter::once;
 use std::mem;
 use std::ptr;
 use std::rc::Rc;
@@ -124,11 +124,11 @@ use style::attr::AttrValue;
 use style::context::ReflowGoal;
 use style::restyle_hints::ElementSnapshot;
 use style::servo::Stylesheet;
+use style::str::{split_html_space_chars, str_join};
 use time;
 use url::Url;
 use url::percent_encoding::percent_decode;
-use util::prefs::mozbrowser_enabled;
-use util::str::{split_html_space_chars, str_join};
+use util::prefs::PREFS;
 
 #[derive(JSTraceable, PartialEq, HeapSizeOf)]
 pub enum IsHTMLDocument {
@@ -1009,18 +1009,15 @@ impl Document {
             }
         }
 
-        let mut touches = RootedVec::new();
+        rooted_vec!(let mut touches);
         touches.extend(self.active_touch_points.borrow().iter().cloned());
-
-        let mut changed_touches = RootedVec::new();
-        changed_touches.push(JS::from_ref(&*touch));
-
-        let mut target_touches = RootedVec::new();
+        rooted_vec!(let mut target_touches);
         target_touches.extend(self.active_touch_points
                                   .borrow()
                                   .iter()
                                   .filter(|t| t.Target() == target)
                                   .cloned());
+        rooted_vec!(let changed_touches <- once(touch));
 
         let event = TouchEvent::new(window,
                                     DOMString::from(event_name),
@@ -1047,6 +1044,7 @@ impl Document {
 
     /// The entry point for all key processing for web content
     pub fn dispatch_key_event(&self,
+                              ch: Option<char>,
                               key: Key,
                               state: KeyState,
                               modifiers: KeyModifiers,
@@ -1073,7 +1071,7 @@ impl Document {
                                       }
                                       .to_owned());
 
-        let props = KeyboardEvent::key_properties(key, modifiers);
+        let props = KeyboardEvent::key_properties(ch, key, modifiers);
 
         let keyevent = KeyboardEvent::new(&self.window,
                                           ev_type,
@@ -1081,8 +1079,9 @@ impl Document {
                                           true,
                                           Some(&self.window),
                                           0,
+                                          ch,
                                           Some(key),
-                                          DOMString::from(props.key_string),
+                                          DOMString::from(props.key_string.clone()),
                                           DOMString::from(props.code),
                                           props.location,
                                           is_repeating,
@@ -1106,6 +1105,7 @@ impl Document {
                                            true,
                                            Some(&self.window),
                                            0,
+                                           ch,
                                            Some(key),
                                            DOMString::from(props.key_string),
                                            DOMString::from(props.code),
@@ -1125,7 +1125,7 @@ impl Document {
         }
 
         if !prevented {
-            constellation.send(ConstellationMsg::SendKeyEvent(key, state, modifiers)).unwrap();
+            constellation.send(ConstellationMsg::SendKeyEvent(ch, key, state, modifiers)).unwrap();
         }
 
         // This behavior is unspecced
@@ -1262,7 +1262,7 @@ impl Document {
     }
 
     pub fn trigger_mozbrowser_event(&self, event: MozBrowserEvent) {
-        if mozbrowser_enabled() {
+        if PREFS.is_mozbrowser_enabled() {
             if let Some((containing_pipeline_id, subpage_id, _)) = self.window.parent_info() {
                 let event = ConstellationMsg::MozBrowserEvent(containing_pipeline_id,
                                                               subpage_id,
@@ -2869,6 +2869,8 @@ impl DocumentProgressHandler {
 }
 
 impl Runnable for DocumentProgressHandler {
+    fn name(&self) -> &'static str { "DocumentProgressHandler" }
+
     fn handler(self: Box<DocumentProgressHandler>) {
         let document = self.addr.root();
         let window = document.window();

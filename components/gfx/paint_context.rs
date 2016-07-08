@@ -1788,8 +1788,11 @@ impl ScaledFontExtensionMethods for ScaledFont {
         let mut options = struct__AzDrawOptions {
             mAlpha: 1f64 as AzFloat,
             mCompositionOp: CompositionOp::Over as u8,
-            mAntialiasMode: if antialias { AntialiasMode::Subpixel as u8 }
-                            else { AntialiasMode::None as u8 }
+            mAntialiasMode: if antialias {
+                                AntialiasMode::Subpixel as u8
+                            } else {
+                                AntialiasMode::None as u8
+                            }
         };
 
         let mut origin = baseline_origin.clone();

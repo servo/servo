@@ -21,7 +21,7 @@ use hyper::client::pool::Pool;
 use hyper::header::{ContentType, Header, SetCookie};
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender, IpcReceiverSet};
-use mime_classifier::{ApacheBugFlag, MIMEClassifier, NoSniffFlag};
+use mime_classifier::{ApacheBugFlag, MimeClassifier, NoSniffFlag};
 use net_traits::LoadContext;
 use net_traits::ProgressMsg::Done;
 use net_traits::filemanager_thread::FileManagerThreadMsg;
@@ -48,7 +48,7 @@ use std::sync::{Arc, RwLock};
 use storage_thread::StorageThreadFactory;
 use url::Url;
 use util::opts;
-use util::prefs;
+use util::prefs::PREFS;
 use util::thread::spawn_named;
 use websocket_loader;
 
@@ -95,7 +95,7 @@ pub fn send_error(url: Url, err: NetworkError, start_chan: LoadConsumer) {
 
 /// For use by loaders in responding to a Load message that allows content sniffing.
 pub fn start_sending_sniffed(start_chan: LoadConsumer, metadata: Metadata,
-                             classifier: Arc<MIMEClassifier>, partial_body: &[u8],
+                             classifier: Arc<MimeClassifier>, partial_body: &[u8],
                              context: LoadContext)
                              -> ProgressSender {
     start_sending_sniffed_opt(start_chan, metadata, classifier, partial_body, context).ok().unwrap()
@@ -103,10 +103,10 @@ pub fn start_sending_sniffed(start_chan: LoadConsumer, metadata: Metadata,
 
 /// For use by loaders in responding to a Load message that allows content sniffing.
 pub fn start_sending_sniffed_opt(start_chan: LoadConsumer, mut metadata: Metadata,
-                                 classifier: Arc<MIMEClassifier>, partial_body: &[u8],
+                                 classifier: Arc<MimeClassifier>, partial_body: &[u8],
                                  context: LoadContext)
                                  -> Result<ProgressSender, ()> {
-    if prefs::get_pref("network.mime.sniff").as_boolean().unwrap_or(false) {
+    if PREFS.get("network.mime.sniff").as_boolean().unwrap_or(false) {
         // TODO: should be calculated in the resource loader, from pull requeset #4094
         let mut no_sniff = NoSniffFlag::OFF;
         let mut check_for_apache_bug = ApacheBugFlag::OFF;
@@ -459,7 +459,7 @@ pub struct AuthCache {
 
 pub struct CoreResourceManager {
     user_agent: String,
-    mime_classifier: Arc<MIMEClassifier>,
+    mime_classifier: Arc<MimeClassifier>,
     devtools_chan: Option<Sender<DevtoolsControlMsg>>,
     profiler_chan: ProfilerChan,
     cancel_load_map: HashMap<ResourceId, Sender<()>>,
@@ -472,7 +472,7 @@ impl CoreResourceManager {
                profiler_chan: ProfilerChan) -> CoreResourceManager {
         CoreResourceManager {
             user_agent: user_agent,
-            mime_classifier: Arc::new(MIMEClassifier::new()),
+            mime_classifier: Arc::new(MimeClassifier::new()),
             devtools_chan: devtools_channel,
             profiler_chan: profiler_chan,
             cancel_load_map: HashMap::new(),
@@ -510,10 +510,10 @@ impl CoreResourceManager {
             id_sender: Option<IpcSender<ResourceId>>,
             resource_thread: CoreResourceThread,
             resource_grp: &ResourceGroup) {
-        fn from_factory(factory: fn(LoadData, LoadConsumer, Arc<MIMEClassifier>, CancellationListener))
+        fn from_factory(factory: fn(LoadData, LoadConsumer, Arc<MimeClassifier>, CancellationListener))
                         -> Box<FnBox(LoadData,
                                      LoadConsumer,
-                                     Arc<MIMEClassifier>,
+                                     Arc<MimeClassifier>,
                                      CancellationListener) + Send> {
             box move |load_data, senders, classifier, cancel_listener| {
                 factory(load_data, senders, classifier, cancel_listener)

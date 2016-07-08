@@ -206,7 +206,8 @@
             use cssparser::ToCss;
             use std::fmt;
 
-            #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
+            #[derive(Debug, Clone, PartialEq)]
+            #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
             pub struct T(pub Vec<${to_camel_case(name)}>);
 
             impl ToCss for T {
@@ -224,6 +225,8 @@
                     Ok(())
                 }
             }
+
+            pub use self::${to_camel_case(name)} as SingleComputedValue;
 
             define_css_keyword_enum! { ${to_camel_case(name)}:
                 % for value in data.longhands_by_name[name].keyword.values_for(product):

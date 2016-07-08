@@ -9,7 +9,7 @@ use euclid::size::{Size2D, TypedSize2D};
 use geometry::ScreenPx;
 use getopts::Options;
 use num_cpus;
-use prefs::{self, PrefValue};
+use prefs::{self, PrefValue, PREFS};
 use resource_files::set_resources_path;
 use std::cmp;
 use std::default::Default;
@@ -486,7 +486,7 @@ pub fn default_opts() -> Opts {
         trace_layout: false,
         devtools_port: None,
         webdriver_port: None,
-        initial_window_size: Size2D::typed(800, 600),
+        initial_window_size: Size2D::typed(1024, 740),
         user_agent: default_user_agent_string(DEFAULT_USER_AGENT),
         multiprocess: false,
         random_pipeline_closure_probability: None,
@@ -543,7 +543,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     opts.optflag("F", "soft-fail", "Display about:failure on thread failure instead of exiting");
     opts.optflagopt("", "devtools", "Start remote devtools server on port", "6000");
     opts.optflagopt("", "webdriver", "Start remote WebDriver server on port", "7000");
-    opts.optopt("", "resolution", "Set window resolution.", "800x600");
+    opts.optopt("", "resolution", "Set window resolution.", "1024x740");
     opts.optopt("u",
                 "user-agent",
                 "Set custom user agent string (or android / desktop for platform default)",
@@ -605,7 +605,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     }
 
     let cwd = env::current_dir().unwrap();
-    let homepage_pref = prefs::get_pref("shell.homepage");
+    let homepage_pref = PREFS.get("shell.homepage");
     let url_opt = if !opt_match.free.is_empty() {
         Some(&opt_match.free[0][..])
     } else {
@@ -717,7 +717,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
             Size2D::typed(res[0], res[1])
         }
         None => {
-            Size2D::typed(800, 600)
+            Size2D::typed(1024, 740)
         }
     };
 
@@ -745,10 +745,10 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
 
     let do_not_use_native_titlebar =
         opt_match.opt_present("b") ||
-        !prefs::get_pref("shell.native-titlebar.enabled").as_boolean().unwrap();
+        !PREFS.get("shell.native-titlebar.enabled").as_boolean().unwrap();
 
     let use_webrender =
-        (prefs::get_pref("gfx.webrender.enabled").as_boolean().unwrap() || opt_match.opt_present("w")) &&
+        (PREFS.get("gfx.webrender.enabled").as_boolean().unwrap() || opt_match.opt_present("w")) &&
         !opt_match.opt_present("z");
 
     let render_api = match opt_match.opt_str("G") {
@@ -830,9 +830,9 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         let pref_name = split[0];
         let value = split.get(1);
         match value {
-            Some(&"false") => prefs::set_pref(pref_name, PrefValue::Boolean(false)),
-            Some(&"true") | None => prefs::set_pref(pref_name, PrefValue::Boolean(true)),
-            _ => prefs::set_pref(pref_name, PrefValue::String(value.unwrap().to_string()))
+            Some(&"false") => PREFS.set(pref_name, PrefValue::Boolean(false)),
+            Some(&"true") | None => PREFS.set(pref_name, PrefValue::Boolean(true)),
+            _ => PREFS.set(pref_name, PrefValue::String(value.unwrap().to_string()))
         };
     }
 

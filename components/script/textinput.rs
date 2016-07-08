@@ -6,7 +6,7 @@
 
 use clipboard_provider::ClipboardProvider;
 use dom::bindings::str::DOMString;
-use dom::keyboardevent::{KeyboardEvent, key_value};
+use dom::keyboardevent::KeyboardEvent;
 use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
 use msg::constellation_msg::{Key, KeyModifiers};
 use std::borrow::ToOwned;
@@ -118,24 +118,6 @@ fn is_control_key(mods: KeyModifiers) -> bool {
 #[cfg(not(target_os = "macos"))]
 fn is_control_key(mods: KeyModifiers) -> bool {
     mods.contains(CONTROL) && !mods.contains(SUPER | ALT)
-}
-
-fn is_printable_key(key: Key) -> bool {
-    match key {
-        Key::Space | Key::Apostrophe | Key::Comma | Key::Minus |
-        Key::Period | Key::Slash | Key::GraveAccent | Key::Num0 |
-        Key::Num1 | Key::Num2 | Key::Num3 | Key::Num4 | Key::Num5 |
-        Key::Num6 | Key::Num7 | Key::Num8 | Key::Num9 | Key::Semicolon |
-        Key::Equal | Key::A | Key::B | Key::C | Key::D | Key::E | Key::F |
-        Key::G | Key::H | Key::I | Key::J | Key::K | Key::L | Key::M | Key::N |
-        Key::O | Key::P | Key::Q | Key::R | Key::S | Key::T | Key::U | Key::V |
-        Key::W | Key::X | Key::Y | Key::Z | Key::LeftBracket | Key::Backslash |
-        Key::RightBracket | Key::Kp0 | Key::Kp1 | Key::Kp2 | Key::Kp3 |
-        Key::Kp4 | Key::Kp5 | Key::Kp6 | Key::Kp7 | Key::Kp8 | Key::Kp9 |
-        Key::KpDecimal | Key::KpDivide | Key::KpMultiply | Key::KpSubtract |
-        Key::KpAdd | Key::KpEqual => true,
-        _ => false,
-    }
 }
 
 /// The length in bytes of the first n characters in a UTF-8 string.
@@ -486,80 +468,80 @@ impl<T: ClipboardProvider> TextInput<T> {
     /// Process a given `KeyboardEvent` and return an action for the caller to execute.
     pub fn handle_keydown(&mut self, event: &KeyboardEvent) -> KeyReaction {
         if let Some(key) = event.get_key() {
-            self.handle_keydown_aux(key, event.get_key_modifiers())
+            self.handle_keydown_aux(event.printable(), key, event.get_key_modifiers())
         } else {
             KeyReaction::Nothing
         }
     }
-    pub fn handle_keydown_aux(&mut self, key: Key, mods: KeyModifiers) -> KeyReaction {
+
+    pub fn handle_keydown_aux(&mut self,
+                              printable: Option<char>,
+                              key: Key,
+                              mods: KeyModifiers) -> KeyReaction {
         let maybe_select = if mods.contains(SHIFT) { Selection::Selected } else { Selection::NotSelected };
-        match key {
-            Key::A if is_control_key(mods) => {
+        match (printable, key) {
+            (Some('a'), _) if is_control_key(mods) => {
                 self.select_all();
                 KeyReaction::RedrawSelection
             },
-            Key::C if is_control_key(mods) => {
+            (Some('c'), _) if is_control_key(mods) => {
                 if let Some(text) = self.get_selection_text() {
                     self.clipboard_provider.set_clipboard_contents(text);
                 }
                 KeyReaction::DispatchInput
             },
-            Key::V if is_control_key(mods) => {
+            (Some('v'), _) if is_control_key(mods) => {
                 let contents = self.clipboard_provider.clipboard_contents();
                 self.insert_string(contents);
                 KeyReaction::DispatchInput
             },
-            _ if is_printable_key(key) => {
-                self.insert_string(key_value(key, mods));
+            (Some(c), _) => {
+                self.insert_char(c);
                 KeyReaction::DispatchInput
             }
-            Key::Space => {
-                self.insert_char(' ');
-                KeyReaction::DispatchInput
-            }
-            Key::Delete => {
+            (None, Key::Delete) => {
                 self.delete_char(Direction::Forward);
                 KeyReaction::DispatchInput
             }
-            Key::Backspace => {
+            (None, Key::Backspace) => {
                 self.delete_char(Direction::Backward);
                 KeyReaction::DispatchInput
             }
-            Key::Left => {
+            (None, Key::Left) => {
                 self.adjust_horizontal_by_one(Direction::Backward, maybe_select);
                 KeyReaction::RedrawSelection
             }
-            Key::Right => {
+            (None, Key::Right) => {
                 self.adjust_horizontal_by_one(Direction::Forward, maybe_select);
                 KeyReaction::RedrawSelection
             }
-            Key::Up => {
+            (None, Key::Up) => {
                 self.adjust_vertical(-1, maybe_select);
                 KeyReaction::RedrawSelection
             }
-            Key::Down => {
+            (None, Key::Down) => {
                 self.adjust_vertical(1, maybe_select);
                 KeyReaction::RedrawSelection
             }
-            Key::Enter | Key::KpEnter => self.handle_return(),
-            Key::Home => {
+            (None, Key::Enter) | (None, Key::KpEnter) => self.handle_return(),
+            (None, Key::Home) => {
                 self.edit_point.index = 0;
                 KeyReaction::RedrawSelection
             }
-            Key::End => {
+            (None, Key::End) => {
                 self.edit_point.index = self.current_line_length();
                 self.assert_ok_selection();
                 KeyReaction::RedrawSelection
             }
-            Key::PageUp => {
+            (None, Key::PageUp) => {
                 self.adjust_vertical(-28, maybe_select);
                 KeyReaction::RedrawSelection
             }
-            Key::PageDown => {
+            (None, Key::PageDown) => {
                 self.adjust_vertical(28, maybe_select);
                 KeyReaction::RedrawSelection
             }
-            Key::Tab => KeyReaction::TriggerDefaultAction,
+            (None, Key::Tab) => KeyReaction::TriggerDefaultAction,
             _ => KeyReaction::Nothing,
         }
     }

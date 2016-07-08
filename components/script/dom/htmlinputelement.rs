@@ -42,10 +42,10 @@ use std::ops::Range;
 use string_cache::Atom;
 use style::attr::AttrValue;
 use style::element_state::*;
+use style::str::split_commas;
 use textinput::KeyReaction::{DispatchInput, Nothing, RedrawSelection, TriggerDefaultAction};
 use textinput::Lines::Single;
 use textinput::{TextInput, SelectionDirection};
-use util::str::split_commas;
 
 const DEFAULT_SUBMIT_VALUE: &'static str = "Submit";
 const DEFAULT_RESET_VALUE: &'static str = "Reset";
@@ -1150,17 +1150,20 @@ impl Activatable for HTMLInputElement {
                                   EventCancelable::NotCancelable);
             },
             InputType::InputFile => {
+                // https://html.spec.whatwg.org/multipage/#file-upload-state-(type=file)
                 let window = window_from_node(self);
+                let origin = window.get_url().origin().unicode_serialization();
                 let filemanager = window.resource_threads().sender();
 
                 let mut files: Vec<Root<File>> = vec![];
                 let mut error = None;
 
                 let filter = filter_from_accept(&self.Accept());
+                let target = self.upcast::<EventTarget>();
 
                 if self.Multiple() {
                     let (chan, recv) = ipc::channel().expect("Error initializing channel");
-                    let msg = FileManagerThreadMsg::SelectFiles(filter, chan);
+                    let msg = FileManagerThreadMsg::SelectFiles(filter, chan, origin);
                     let _ = filemanager.send(msg).unwrap();
 
                     match recv.recv().expect("IpcSender side error") {
@@ -1168,16 +1171,32 @@ impl Activatable for HTMLInputElement {
                             for selected in selected_files {
                                 files.push(File::new_from_selected(window.r(), selected));
                             }
+
+                            target.fire_event("input",
+                                              EventBubbles::Bubbles,
+                                              EventCancelable::NotCancelable);
+                            target.fire_event("change",
+                                              EventBubbles::Bubbles,
+                                              EventCancelable::NotCancelable);
                         },
                         Err(err) => error = Some(err),
                     };
                 } else {
                     let (chan, recv) = ipc::channel().expect("Error initializing channel");
-                    let msg = FileManagerThreadMsg::SelectFile(filter, chan);
+                    let msg = FileManagerThreadMsg::SelectFile(filter, chan, origin);
                     let _ = filemanager.send(msg).unwrap();
 
                     match recv.recv().expect("IpcSender side error") {
-                        Ok(selected) => files.push(File::new_from_selected(window.r(), selected)),
+                        Ok(selected) => {
+                            files.push(File::new_from_selected(window.r(), selected));
+
+                            target.fire_event("input",
+                                              EventBubbles::Bubbles,
+                                              EventCancelable::NotCancelable);
+                            target.fire_event("change",
+                                              EventBubbles::Bubbles,
+                                              EventCancelable::NotCancelable);
+                        },
                         Err(err) => error = Some(err),
                     };
                 }

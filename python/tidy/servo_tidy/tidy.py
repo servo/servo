@@ -70,8 +70,6 @@ IGNORED_DIRS = [
     # Generated and upstream code combined with our own. Could use cleanup
     os.path.join(".", "target"),
     os.path.join(".", "ports", "cef"),
-    # Tooling, generated locally from external repos.
-    os.path.join(".", "ports", "geckolib", "gecko_bindings", "tools"),
     # Hidden directories
     os.path.join(".", "."),
 ]
@@ -415,6 +413,7 @@ def check_rust(file_name, lines):
             (r"^&&", "operators should go at the end of the first line", no_filter),
             (r"\{[A-Za-z0-9_]+\};", "use statement contains braces for single import",
                 lambda match, line: line.startswith('use ')),
+            (r"^\s*else {", "else braces should be on the same line", no_filter),
         ]
 
         for pattern, message, filter_func in regex_rules:
@@ -637,7 +636,7 @@ def get_file_list(directory, only_changed_files=False, exclude_dirs=[]):
         args = ["git", "ls-files", "--others", "--exclude-standard", directory]
         file_list += subprocess.check_output(args)
         for f in file_list.splitlines():
-            if os.path.join('.', os.path.dirname(f)) not in exclude_dirs:
+            if not any(os.path.join('.', os.path.dirname(f)).startswith(path) for path in exclude_dirs):
                 yield os.path.join('.', f)
     elif exclude_dirs:
         for root, dirs, files in os.walk(directory, topdown=True):

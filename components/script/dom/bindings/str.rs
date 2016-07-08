@@ -5,7 +5,7 @@
 //! The `ByteString` struct.
 
 use std::ascii::AsciiExt;
-use std::borrow::ToOwned;
+use std::borrow::{ToOwned, Cow};
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::ops;
@@ -201,6 +201,15 @@ impl From<String> for DOMString {
 impl<'a> From<&'a str> for DOMString {
     fn from(contents: &str) -> DOMString {
         DOMString::from(String::from(contents))
+    }
+}
+
+impl<'a> From<Cow<'a, str>> for DOMString {
+    fn from(contents: Cow<'a, str>) -> DOMString {
+        match contents {
+            Cow::Owned(s) => DOMString::from(s),
+            Cow::Borrowed(s) => DOMString::from(s),
+        }
     }
 }
 

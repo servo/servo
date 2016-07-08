@@ -44,6 +44,7 @@ use flow_ref::FlowRef;
 use fragment::SpecificFragmentInfo;
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, HAS_LAYER, Overflow};
 use gfx::display_list::{ClippingRegion, StackingContext};
+use gfx_traits::print_tree::PrintTree;
 use gfx_traits::{LayerId, StackingContextId};
 use layout_debug;
 use model::{CollapsibleMargins, MaybeAuto, specified, specified_or_none};
@@ -62,7 +63,6 @@ use style::servo::SharedStyleContext;
 use style::values::computed::{LengthOrNone, LengthOrPercentageOrNone};
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use util::geometry::MAX_RECT;
-use util::print_tree::PrintTree;
 
 /// The number of screens of data we're allowed to generate display lists for in each direction.
 const DISPLAY_PORT_SIZE_FACTOR: i32 = 8;

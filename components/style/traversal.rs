@@ -11,8 +11,8 @@ use selector_impl::SelectorImplExt;
 use selectors::Element;
 use selectors::bloom::BloomFilter;
 use std::cell::RefCell;
+use tid::tid;
 use util::opts;
-use util::tid::tid;
 
 /// Every time we do another layout, the old bloom filters are invalid. This is
 /// detected by ticking a generation number every layout.
@@ -218,8 +218,7 @@ pub fn recalc_style_at<'a, N, C>(context: &'a C,
 
                 // Perform the CSS cascade.
                 unsafe {
-                    node.cascade_node(&context.shared_context(),
-                                      &context.local_context(),
+                    node.cascade_node(context,
                                       parent_opt,
                                       &applicable_declarations);
                 }

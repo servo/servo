@@ -15,6 +15,7 @@ use flow::{Flow, FlowClass, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx::display_list::StackingContext;
 use gfx_traits::StackingContextId;
+use gfx_traits::print_tree::PrintTree;
 use layout_debug;
 use rustc_serialize::{Encodable, Encoder};
 use std::fmt;
@@ -26,7 +27,6 @@ use style::properties::{ComputedValues, ServoComputedValues};
 use style::servo::SharedStyleContext;
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable, TableLikeFlow};
 use table_row;
-use util::print_tree::PrintTree;
 
 /// A table formatting context.
 pub struct TableRowGroupFlow {

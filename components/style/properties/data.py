@@ -47,7 +47,7 @@ class Keyword(object):
 class Longhand(object):
     def __init__(self, style_struct, name, animatable=None, derived_from=None, keyword=None,
                  predefined_type=None, custom_cascade=False, experimental=False, internal=False,
-                 need_clone=False, gecko_ffi_name=None):
+                 need_clone=False, need_index=False, gecko_ffi_name=None):
         self.name = name
         self.keyword = keyword
         self.predefined_type = predefined_type
@@ -57,7 +57,7 @@ class Longhand(object):
         self.experimental = ("layout.%s.enabled" % name) if experimental else None
         self.custom_cascade = custom_cascade
         self.internal = internal
-        self.need_clone = need_clone
+        self.need_index = need_index
         self.gecko_ffi_name = gecko_ffi_name or "m" + self.camel_case
         self.derived_from = (derived_from or "").split()
 
@@ -70,6 +70,12 @@ class Longhand(object):
         else:
             assert animatable == "True" or animatable == "False"
             self.animatable = animatable == "True"
+
+        # NB: Animatable implies clone because a property animation requires a
+        # copy of the computed value.
+        #
+        # See components/style/helpers/animated_properties.mako.rs.
+        self.need_clone = need_clone or self.animatable
 
 
 class Shorthand(object):

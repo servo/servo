@@ -24,6 +24,7 @@ extern crate style_traits;
 extern crate url;
 extern crate util;
 
+mod context;
 mod data;
 #[allow(non_snake_case)]
 pub mod glue;
@@ -38,3 +39,7 @@ mod wrapper;
 pub mod properties {
     include!(concat!(env!("OUT_DIR"), "/properties.rs"));
 }
+
+// FIXME(bholley): This should probably go away once we harmonize the allocators.
+#[no_mangle]
+pub extern "C" fn je_malloc_usable_size(_: *const ::libc::c_void) -> ::libc::size_t { 0 }

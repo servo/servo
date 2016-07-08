@@ -56,8 +56,8 @@ use js::jsapi::{GCTraceKindToAscii, Heap, TraceKind, JSObject, JSTracer};
 use js::jsval::JSVal;
 use js::rust::Runtime;
 use libc;
-use msg::constellation_msg::{FrameType, PipelineId, SubpageId, WindowSizeData, WindowSizeType, ReferrerPolicy};
-use net_traits::filemanager_thread::SelectedFileId;
+use msg::constellation_msg::{FrameType, PipelineId, SubpageId, WindowSizeType, ReferrerPolicy};
+use net_traits::filemanager_thread::{SelectedFileId, RelativePos};
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread};
 use net_traits::response::HttpsState;
@@ -70,15 +70,13 @@ use script_layout_interface::OpaqueStyleAndLayoutData;
 use script_layout_interface::reporter::CSSErrorReporter;
 use script_layout_interface::rpc::LayoutRPC;
 use script_runtime::ScriptChan;
-use script_traits::{TimerEventId, TimerSource, TouchpadPressurePhase, UntrustedNodeAddress};
+use script_traits::{TimerEventId, TimerSource, TouchpadPressurePhase, UntrustedNodeAddress, WindowSizeData};
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 use std::boxed::FnBox;
 use std::cell::{Cell, UnsafeCell};
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::hash::{BuildHasher, Hash};
-use std::intrinsics::return_address;
-use std::iter::{FromIterator, IntoIterator};
 use std::mem;
 use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
@@ -278,7 +276,7 @@ impl<A: JSTraceable, B: JSTraceable, C: JSTraceable> JSTraceable for (A, B, C) {
     }
 }
 
-no_jsmanaged_fields!(bool, f32, f64, String, Url, AtomicBool, AtomicUsize, UrlOrigin, Uuid);
+no_jsmanaged_fields!(bool, f32, f64, String, Url, AtomicBool, AtomicUsize, UrlOrigin, Uuid, char);
 no_jsmanaged_fields!(usize, u8, u16, u32, u64);
 no_jsmanaged_fields!(isize, i8, i16, i32, i64);
 no_jsmanaged_fields!(Sender<T>);
@@ -331,6 +329,7 @@ no_jsmanaged_fields!(ReferrerPolicy);
 no_jsmanaged_fields!(ResourceThreads);
 no_jsmanaged_fields!(SystemTime);
 no_jsmanaged_fields!(SelectedFileId);
+no_jsmanaged_fields!(RelativePos);
 no_jsmanaged_fields!(OpaqueStyleAndLayoutData);
 no_jsmanaged_fields!(CSSErrorReporter);
 no_jsmanaged_fields!(WebGLBufferId);
@@ -465,8 +464,8 @@ impl RootedTraceableSet {
 /// Roots any JSTraceable thing
 ///
 /// If you have a valid Reflectable, use Root.
-/// If you have GC things like *mut JSObject or JSVal, use jsapi::Rooted.
-/// If you have an arbitrary number of Reflectables to root, use RootedVec<JS<T>>
+/// If you have GC things like *mut JSObject or JSVal, use rooted!.
+/// If you have an arbitrary number of Reflectables to root, use rooted_vec!.
 /// If you know what you're doing, use this.
 #[derive(JSTraceable)]
 pub struct RootedTraceable<'a, T: 'a + JSTraceable> {
@@ -493,73 +492,73 @@ impl<'a, T: JSTraceable> Drop for RootedTraceable<'a, T> {
     }
 }
 
-/// A vector of items that are rooted for the lifetime of this struct.
+/// A vector of items to be rooted with `RootedVec`.
+/// Guaranteed to be empty when not rooted.
+/// Usage: `rooted_vec!(let mut v);` or if you have an
+/// iterator of `Root`s, `rooted_vec!(let v <- iterator);`.
 #[allow(unrooted_must_root)]
-#[no_move]
 #[derive(JSTraceable)]
 #[allow_unrooted_interior]
-pub struct RootedVec<T: JSTraceable> {
+pub struct RootableVec<T: JSTraceable> {
     v: Vec<T>,
 }
 
-
-impl<T: JSTraceable> RootedVec<T> {
-    /// Create a vector of items of type T that is rooted for
-    /// the lifetime of this struct
-    pub fn new() -> RootedVec<T> {
-        let addr = unsafe { return_address() as *const libc::c_void };
-
-        unsafe { RootedVec::new_with_destination_address(addr) }
-    }
-
-    /// Create a vector of items of type T. This constructor is specific
-    /// for RootTraceableSet.
-    pub unsafe fn new_with_destination_address(addr: *const libc::c_void) -> RootedVec<T> {
-        RootedTraceableSet::add::<RootedVec<T>>(&*(addr as *const _));
-        RootedVec::<T> {
+impl<T: JSTraceable> RootableVec<T> {
+    /// Create a vector of items of type T that can be rooted later.
+    pub fn new_unrooted() -> RootableVec<T> {
+        RootableVec {
             v: vec![],
         }
-    }
+   }
 }
 
-impl<T: JSTraceable + Reflectable> RootedVec<JS<T>> {
-    /// Obtain a safe slice of references that can't outlive that RootedVec.
-    pub fn r(&self) -> &[&T] {
-        unsafe { mem::transmute(&self.v[..]) }
-    }
+/// A vector of items that are rooted for the lifetime 'a.
+#[allow_unrooted_interior]
+pub struct RootedVec<'a, T: 'a + JSTraceable> {
+    root: &'a mut RootableVec<T>,
 }
 
-impl<T: JSTraceable> Drop for RootedVec<T> {
-    fn drop(&mut self) {
+impl<'a, T: JSTraceable + Reflectable> RootedVec<'a, JS<T>> {
+    /// Create a vector of items of type T that is rooted for
+    /// the lifetime of this struct
+    pub fn new<I: Iterator<Item = Root<T>>>(root: &'a mut RootableVec<JS<T>>, iter: I)
+                                            -> RootedVec<'a, JS<T>> {
         unsafe {
-            RootedTraceableSet::remove(self);
+            RootedTraceableSet::add(root);
+        }
+        root.v.extend(iter.map(|item| JS::from_ref(&*item)));
+        RootedVec {
+            root: root,
         }
     }
 }
 
-impl<T: JSTraceable> Deref for RootedVec<T> {
+impl<'a, T: JSTraceable + Reflectable> RootedVec<'a, JS<T>> {
+    /// Obtain a safe slice of references that can't outlive that RootedVec.
+    pub fn r(&self) -> &[&T] {
+        unsafe { mem::transmute(&self[..]) }
+    }
+}
+
+impl<'a, T: JSTraceable> Drop for RootedVec<'a, T> {
+    fn drop(&mut self) {
+        self.clear();
+        unsafe {
+            RootedTraceableSet::remove(self.root);
+        }
+    }
+}
+
+impl<'a, T: JSTraceable> Deref for RootedVec<'a, T> {
     type Target = Vec<T>;
     fn deref(&self) -> &Vec<T> {
-        &self.v
+        &self.root.v
     }
 }
 
-impl<T: JSTraceable> DerefMut for RootedVec<T> {
+impl<'a, T: JSTraceable> DerefMut for RootedVec<'a, T> {
     fn deref_mut(&mut self) -> &mut Vec<T> {
-        &mut self.v
-    }
-}
-
-impl<A: JSTraceable + Reflectable> FromIterator<Root<A>> for RootedVec<JS<A>> {
-    #[allow(moved_no_move)]
-    fn from_iter<T>(iterable: T) -> RootedVec<JS<A>>
-        where T: IntoIterator<Item = Root<A>>
-    {
-        let mut vec = unsafe {
-            RootedVec::new_with_destination_address(return_address() as *const libc::c_void)
-        };
-        vec.extend(iterable.into_iter().map(|item| JS::from_ref(&*item)));
-        vec
+        &mut self.root.v
     }
 }
 

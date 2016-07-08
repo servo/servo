@@ -103,7 +103,7 @@ pub enum ScriptMsg {
     /// https://html.spec.whatwg.org/multipage/#document.title
     SetTitle(PipelineId, Option<String>),
     /// Send a key event
-    SendKeyEvent(Key, KeyState, KeyModifiers),
+    SendKeyEvent(Option<char>, Key, KeyState, KeyModifiers),
     /// Get Window Informations size and position
     GetClientWindow(IpcSender<(Size2D<u32>, Point2D<i32>)>),
     /// Move the window to a point

@@ -21,9 +21,9 @@ use std::sync::Arc;
 use string_cache::Atom;
 use style::attr::AttrValue;
 use style::servo::Stylesheet;
+use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::{CSSRule, Origin};
 use style::viewport::ViewportRule;
-use util::str::HTML_SPACE_CHARACTERS;
 
 #[dom_struct]
 pub struct HTMLMetaElement {
@@ -70,7 +70,7 @@ impl HTMLMetaElement {
     }
 
     fn apply_viewport(&self) {
-        if !::util::prefs::get_pref("layout.viewport.enabled").as_boolean().unwrap_or(false) {
+        if !::util::prefs::PREFS.get("layout.viewport.enabled").as_boolean().unwrap_or(false) {
             return;
         }
         let element = self.upcast::<Element>();

@@ -10,7 +10,7 @@ use dom::bindings::global::GlobalRef;
 use dom::domexception::{DOMErrorName, DOMException};
 use js::error::{throw_range_error, throw_type_error};
 use js::jsapi::JSAutoCompartment;
-use js::jsapi::{JSContext, JSObject, RootedValue};
+use js::jsapi::{JSContext, JSObject};
 use js::jsapi::{JS_IsExceptionPending, JS_ReportPendingException, JS_SetPendingException};
 use js::jsval::UndefinedValue;
 
@@ -57,6 +57,8 @@ pub enum Error {
     QuotaExceeded,
     /// TypeMismatchError DOMException
     TypeMismatch,
+    /// InvalidModificationError DOMException
+    InvalidModification,
 
     /// TypeError JavaScript Error
     Type(String),
@@ -97,6 +99,7 @@ pub unsafe fn throw_dom_exception(cx: *mut JSContext, global: GlobalRef, result:
         Error::NoModificationAllowed => DOMErrorName::NoModificationAllowedError,
         Error::QuotaExceeded => DOMErrorName::QuotaExceededError,
         Error::TypeMismatch => DOMErrorName::TypeMismatchError,
+        Error::InvalidModification => DOMErrorName::InvalidModificationError,
         Error::Type(message) => {
             assert!(!JS_IsExceptionPending(cx));
             throw_type_error(cx, &message);
@@ -115,7 +118,7 @@ pub unsafe fn throw_dom_exception(cx: *mut JSContext, global: GlobalRef, result:
 
     assert!(!JS_IsExceptionPending(cx));
     let exception = DOMException::new(global, code);
-    let mut thrown = RootedValue::new(cx, UndefinedValue());
+    rooted!(in(cx) let mut thrown = UndefinedValue());
     exception.to_jsval(cx, thrown.handle_mut());
     JS_SetPendingException(cx, thrown.handle());
 }

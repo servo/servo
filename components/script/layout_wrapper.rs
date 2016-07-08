@@ -49,7 +49,6 @@ use script_layout_interface::{HTMLCanvasData, LayoutNodeType, TrustedNodeAddress
 use script_layout_interface::{OpaqueStyleAndLayoutData, PartialStyleAndLayoutData};
 use selectors::matching::{DeclarationBlock, ElementFlags};
 use selectors::parser::{AttrSelector, NamespaceConstraint};
-use smallvec::VecLike;
 use std::marker::PhantomData;
 use std::mem::{transmute, transmute_copy};
 use string_cache::{Atom, BorrowedAtom, BorrowedNamespace, Namespace};
@@ -63,8 +62,9 @@ use style::refcell::{Ref, RefCell, RefMut};
 use style::restyle_hints::ElementSnapshot;
 use style::selector_impl::{NonTSPseudoClass, ServoSelectorImpl};
 use style::servo::{PrivateStyleData, SharedStyleContext};
+use style::sink::Push;
+use style::str::is_whitespace;
 use url::Url;
-use util::str::is_whitespace;
 
 #[derive(Copy, Clone)]
 pub struct ServoLayoutNode<'a> {
@@ -360,7 +360,7 @@ pub struct ServoLayoutElement<'le> {
 
 impl<'le> PresentationalHintsSynthetizer for ServoLayoutElement<'le> {
     fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, hints: &mut V)
-        where V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>
+        where V: Push<DeclarationBlock<Vec<PropertyDeclaration>>>
     {
         unsafe {
             self.element.synthesize_presentational_hints_for_legacy_attributes(hints);
@@ -387,17 +387,13 @@ impl<'le> TElement for ServoLayoutElement<'le> {
     }
 
     #[inline]
-    fn get_attr(&self, namespace: &Namespace, name: &Atom) -> Option<&str> {
-        unsafe {
-            (*self.element.unsafe_get()).get_attr_val_for_layout(namespace, name)
-        }
+    fn has_attr(&self, namespace: &Namespace, attr: &Atom) -> bool {
+        self.get_attr(namespace, attr).is_some()
     }
 
     #[inline]
-    fn get_attrs(&self, name: &Atom) -> Vec<&str> {
-        unsafe {
-            (*self.element.unsafe_get()).get_attr_vals_for_layout(name)
-        }
+    fn attr_equals(&self, namespace: &Namespace, attr: &Atom, val: &Atom) -> bool {
+        self.get_attr(namespace, attr).map_or(false, |x| x == val)
     }
 }
 
@@ -409,10 +405,39 @@ impl<'le> ServoLayoutElement<'le> {
             chain: PhantomData,
         }
     }
+
+    #[inline]
+    fn get_attr(&self, namespace: &Namespace, name: &Atom) -> Option<&str> {
+        unsafe {
+            (*self.element.unsafe_get()).get_attr_val_for_layout(namespace, name)
+        }
+    }
 }
 
 fn as_element<'le>(node: LayoutJS<Node>) -> Option<ServoLayoutElement<'le>> {
     node.downcast().map(ServoLayoutElement::from_layout_js)
+}
+
+impl<'le> ::selectors::MatchAttrGeneric for ServoLayoutElement<'le> {
+    fn match_attr<F>(&self, attr: &AttrSelector, test: F) -> bool where F: Fn(&str) -> bool {
+        use ::selectors::Element;
+        let name = if self.is_html_element_in_html_document() {
+            &attr.lower_name
+        } else {
+            &attr.name
+        };
+        match attr.namespace {
+            NamespaceConstraint::Specific(ref ns) => {
+                self.get_attr(ns, name).map_or(false, |attr| test(attr))
+            },
+            NamespaceConstraint::Any => {
+                let attrs = unsafe {
+                    (*self.element.unsafe_get()).get_attr_vals_for_layout(name)
+                };
+                attrs.iter().any(|attr| test(*attr))
+            }
+        }
+    }
 }
 
 impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
@@ -546,22 +571,6 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
                 for class in *classes {
                     callback(class)
                 }
-            }
-        }
-    }
-
-    fn match_attr<F>(&self, attr: &AttrSelector, test: F) -> bool where F: Fn(&str) -> bool {
-        let name = if self.is_html_element_in_html_document() {
-            &attr.lower_name
-        } else {
-            &attr.name
-        };
-        match attr.namespace {
-            NamespaceConstraint::Specific(ref ns) => {
-                self.get_attr(ns, name).map_or(false, |attr| test(attr))
-            },
-            NamespaceConstraint::Any => {
-                self.get_attrs(name).iter().any(|attr| test(*attr))
             }
         }
     }
@@ -900,7 +909,23 @@ impl<'le> ThreadSafeLayoutElement for ServoThreadSafeLayoutElement<'le> {
 ///
 /// Note that the element implementation is needed only for selector matching,
 /// not for inheritance (styles are inherited appropiately).
-impl <'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
+impl<'le> ::selectors::MatchAttrGeneric for ServoThreadSafeLayoutElement<'le> {
+    fn match_attr<F>(&self, attr: &AttrSelector, test: F) -> bool
+        where F: Fn(&str) -> bool {
+        match attr.namespace {
+            NamespaceConstraint::Specific(ref ns) => {
+                self.get_attr(ns, &attr.name).map_or(false, |attr| test(attr))
+            },
+            NamespaceConstraint::Any => {
+                unsafe {
+                    self.element.get_attr_vals_for_layout(&attr.name).iter()
+                        .any(|attr| test(*attr))
+                }
+            }
+        }
+    }
+}
+impl<'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
     type Impl = ServoSelectorImpl;
 
     fn parent_element(&self) -> Option<Self> {
@@ -962,21 +987,6 @@ impl <'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
         false
     }
 
-    fn match_attr<F>(&self, attr: &AttrSelector, test: F) -> bool
-        where F: Fn(&str) -> bool {
-        match attr.namespace {
-            NamespaceConstraint::Specific(ref ns) => {
-                self.get_attr(ns, &attr.name).map_or(false, |attr| test(attr))
-            },
-            NamespaceConstraint::Any => {
-                unsafe {
-                    self.element.get_attr_vals_for_layout(&attr.name).iter()
-                        .any(|attr| test(*attr))
-                }
-            }
-        }
-    }
-
     fn is_empty(&self) -> bool {
         warn!("ServoThreadSafeLayoutElement::is_empty called");
         false
@@ -995,5 +1005,5 @@ impl <'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
 
 impl<'le> PresentationalHintsSynthetizer for ServoThreadSafeLayoutElement<'le> {
     fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, _hints: &mut V)
-        where V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>> {}
+        where V: Push<DeclarationBlock<Vec<PropertyDeclaration>>> {}
 }
