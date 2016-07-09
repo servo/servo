@@ -2,6 +2,6 @@
 
 #define IDI_ICON 0x101
 
-CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST " ../components/servo/servo.exe.manifest"
+CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST "/components/servo/servo.exe.manifest"
 
 IDI_ICON ICON "Servo.ico"
