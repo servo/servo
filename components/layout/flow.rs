@@ -1304,6 +1304,9 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
                 Arc::new(TableCellFlow::from_node_fragment_and_visibility_flag(node, fragment, !hide))
             },
             FlowClass::Flex => {
+                properties::modify_style_for_anonymous_flow(
+                    &mut style,
+                    display::T::block);
                 let fragment =
                     Fragment::from_opaque_node_and_style(node.opaque(),
                                                          PseudoElementType::Normal,
