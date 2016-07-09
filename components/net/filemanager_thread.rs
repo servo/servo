@@ -11,12 +11,13 @@ use net_traits::filemanager_thread::{FileManagerThreadMsg, FileManagerResult, Fi
 use net_traits::filemanager_thread::{SelectedFile, RelativePos, FileManagerThreadError, SelectedFileId};
 use net_traits::{LoadConsumer, LoadData, NetworkError};
 use resource_thread::send_error;
-use std::cell::Cell;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::Read;
+use std::ops::Index;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::sync::atomic::{self, AtomicUsize, Ordering};
+use std::sync::{Arc, RwLock};
 #[cfg(any(target_os = "macos", target_os = "linux"))]
 use tinyfiledialogs;
 use url::Url;
@@ -96,10 +97,11 @@ struct FileStoreEntry {
     /// Backend implementation
     file_impl: FileImpl,
     /// Reference counting
-    refs: Cell<usize>,
+    refs: AtomicUsize,
 }
 
 /// File backend implementation
+#[derive(Clone)]
 enum FileImpl {
     PathOnly(PathBuf),
     Memory(BlobURLStoreEntry),
@@ -108,57 +110,76 @@ enum FileImpl {
 
 struct FileManager<UI: 'static + UIProvider> {
     receiver: IpcReceiver<FileManagerThreadMsg>,
-    store: HashMap<Uuid, FileStoreEntry>,
+    store: Arc<FileManagerStore<UI>>,
     classifier: Arc<MimeClassifier>,
-    ui: &'static UI,
 }
 
 impl<UI: 'static + UIProvider> FileManager<UI> {
     fn new(recv: IpcReceiver<FileManagerThreadMsg>, ui: &'static UI) -> FileManager<UI> {
         FileManager {
             receiver: recv,
-            store: HashMap::new(),
+            store: Arc::new(FileManagerStore::new(ui)),
             classifier: Arc::new(MimeClassifier::new()),
-            ui: ui,
         }
     }
 
     /// Start the file manager event loop
     fn start(&mut self) {
         loop {
+            let store = self.store.clone();
             match self.receiver.recv().unwrap() {
-                FileManagerThreadMsg::SelectFile(filter, sender, origin) => self.select_file(filter, sender, origin),
-                FileManagerThreadMsg::SelectFiles(filter, sender, origin) => self.select_files(filter, sender, origin),
-                FileManagerThreadMsg::ReadFile(sender, id, origin) => {
-                    match self.try_read_file(id, origin) {
-                        Ok(buffer) => { let _ = sender.send(Ok(buffer)); }
-                        Err(_) => { let _ = sender.send(Err(FileManagerThreadError::ReadFileError)); }
-                    }
+                FileManagerThreadMsg::SelectFile(filter, sender, origin) => {
+                    spawn_named("select file".to_owned(), move || {
+                        store.select_file(filter, sender, origin);
+                    });
                 }
-                FileManagerThreadMsg::TransferMemory(entry, sender, origin) =>
-                    self.transfer_memory(entry, sender, origin),
-                FileManagerThreadMsg::AddSlicedEntry(id, rel_pos, sender, origin) =>
-                    self.add_sliced_entry(id, rel_pos, sender, origin),
+                FileManagerThreadMsg::SelectFiles(filter, sender, origin) => {
+                    spawn_named("select files".to_owned(), move || {
+                        store.select_files(filter, sender, origin);
+                    })
+                }
+                FileManagerThreadMsg::ReadFile(sender, id, origin) => {
+                    spawn_named("read file".to_owned(), move || {
+                        match store.try_read_file(id, origin) {
+                            Ok(buffer) => { let _ = sender.send(Ok(buffer)); }
+                            Err(_) => { let _ = sender.send(Err(FileManagerThreadError::ReadFileError)); }
+                        }
+                    })
+                }
+                FileManagerThreadMsg::TransferMemory(entry, sender, origin) => {
+                    spawn_named("transfer memory".to_owned(), move || {
+                        store.transfer_memory(entry, sender, origin);
+                    })
+                }
+                FileManagerThreadMsg::AddSlicedEntry(id, rel_pos, sender, origin) =>{
+                    spawn_named("add sliced entry".to_owned(), move || {
+                        store.add_sliced_entry(id, rel_pos, sender, origin);
+                    })
+                }
                 FileManagerThreadMsg::LoadBlob(load_data, consumer) => {
-                    match parse_blob_url(&load_data.url) {
+                    match parse_blob_url(&load_data.url.clone()) {
                         None => {
                             let e = format!("Invalid blob URL format {:?}", load_data.url);
                             let format_err = NetworkError::Internal(e);
                             send_error(load_data.url.clone(), format_err, consumer);
                         }
                         Some((id, _fragment)) => {
-                            self.process_request(&load_data, consumer, &RelativePos::full_range(), &id);
+                            self.process_request(load_data, consumer, RelativePos::full_range(), id);
                         }
                     }
                 },
-                FileManagerThreadMsg::DecRef(id, origin) => {
+                FileManagerThreadMsg::DecRef(id, origin, sender) => {
                     if let Ok(id) = Uuid::parse_str(&id.0) {
-                        self.dec_ref(id, origin);
+                        spawn_named("dec ref".to_owned(), move || {
+                            let _ = sender.send(store.dec_ref(&id, &origin));
+                        })
                     }
                 }
                 FileManagerThreadMsg::IncRef(id, origin) => {
                     if let Ok(id) = Uuid::parse_str(&id.0) {
-                        self.inc_ref(id, origin);
+                        spawn_named("inc ref".to_owned(), move || {
+                            let _ = store.inc_ref(&id, &origin);
+                        })
                     }
                 }
                 FileManagerThreadMsg::Exit => break,
@@ -166,51 +187,127 @@ impl<UI: 'static + UIProvider> FileManager<UI> {
         }
     }
 
-    fn inc_ref(&mut self, id: Uuid, origin_in: FileOrigin) {
-        match self.store.get(&id) {
-            Some(entry) => {
-                if entry.origin == origin_in {
-                    entry.refs.set(entry.refs.get() + 1);
+    fn process_request(&self, load_data: LoadData, consumer: LoadConsumer,
+                       rel_pos: RelativePos, id: Uuid) {
+        let origin_in = load_data.url.origin().unicode_serialization();
+        match self.store.get_impl(&id, &origin_in) {
+            Ok(file_impl) => {
+                match file_impl {
+                    FileImpl::Memory(buffered) => {
+                        let classifier = self.classifier.clone();
+                        spawn_named("load blob".to_owned(), move ||
+                            load_blob(load_data, consumer, classifier,
+                                      None, rel_pos, buffered));
+                    }
+                    FileImpl::PathOnly(filepath) => {
+                        let opt_filename = filepath.file_name()
+                                                   .and_then(|osstr| osstr.to_str())
+                                                   .map(|s| s.to_string());
+
+                        let mut bytes = vec![];
+                        let mut handler = File::open(&filepath).unwrap();
+                        let mime = guess_mime_type_opt(filepath);
+                        let size = handler.read_to_end(&mut bytes).unwrap();
+
+                        let entry = BlobURLStoreEntry {
+                            type_string: match mime {
+                                Some(x) => format!("{}", x),
+                                None    => "".to_string(),
+                            },
+                            size: size as u64,
+                            bytes: bytes,
+                        };
+                        let classifier = self.classifier.clone();
+                        spawn_named("load blob".to_owned(), move ||
+                            load_blob(load_data, consumer, classifier,
+                                      opt_filename, rel_pos, entry));
+                    },
+                    FileImpl::Sliced(id, rel_pos) => {
+                        self.process_request(load_data, consumer, rel_pos, id);
+                    }
                 }
             }
-            None => return, // Invalid UUID
+            Err(e) => {
+                send_error(load_data.url.clone(), NetworkError::Internal(format!("{:?}", e)), consumer);
+            }
+        }
+    }
+}
+
+struct FileManagerStore<UI: 'static + UIProvider> {
+    entries: RwLock<HashMap<Uuid, FileStoreEntry>>,
+    ui: &'static UI,
+}
+
+impl <UI: 'static + UIProvider> FileManagerStore<UI> {
+    fn new(ui: &'static UI) -> Self {
+        FileManagerStore {
+            entries: RwLock::new(HashMap::new()),
+            ui: ui,
         }
     }
 
-    fn add_sliced_entry(&mut self, id: SelectedFileId, rel_pos: RelativePos,
+    /// Copy out the file backend implementation content
+    fn get_impl(&self, id: &Uuid, origin_in: &FileOrigin) -> Result<FileImpl, BlobURLStoreError> {
+        match self.entries.read().unwrap().get(id) {
+            Some(ref e) => {
+                if *origin_in != *e.origin {
+                    Err(BlobURLStoreError::InvalidOrigin)
+                } else {
+                    Ok(e.file_impl.clone())
+                }
+            }
+            None => Err(BlobURLStoreError::InvalidFileID),
+        }
+    }
+
+    fn insert(&self, id: Uuid, entry: FileStoreEntry) {
+        self.entries.write().unwrap().insert(id, entry);
+    }
+
+    fn remove(&self, id: &Uuid) {
+        self.entries.write().unwrap().remove(id);
+    }
+
+    fn inc_ref(&self, id: &Uuid, origin_in: &FileOrigin) -> Result<(), BlobURLStoreError>{
+        match self.entries.read().unwrap().get(id) {
+            Some(entry) => {
+                if entry.origin == *origin_in {
+                    entry.refs.fetch_add(1, Ordering::Relaxed);
+                    Ok(())
+                } else {
+                    Err(BlobURLStoreError::InvalidOrigin)
+                }
+            }
+            None => Err(BlobURLStoreError::InvalidFileID),
+        }
+    }
+
+    fn add_sliced_entry(&self, parent_id: SelectedFileId, rel_pos: RelativePos,
                         sender: IpcSender<Result<SelectedFileId, BlobURLStoreError>>,
                         origin_in: FileOrigin) {
-        if let Ok(id) = Uuid::parse_str(&id.0) {
-            match self.store.get(&id) {
-                Some(entry) => {
-                    if entry.origin == origin_in {
-                        // inc_ref on parent entry
-                        entry.refs.set(entry.refs.get() + 1);
-                    } else {
-                        let _ = sender.send(Err(BlobURLStoreError::InvalidOrigin));
-                        return;
-                    }
-                },
-                None => {
-                    let _ = sender.send(Err(BlobURLStoreError::InvalidFileID));
-                    return;
+        if let Ok(parent_id) = Uuid::parse_str(&parent_id.0) {
+            match self.inc_ref(&parent_id, &origin_in) {
+                Ok(_) => {
+                    let new_id = Uuid::new_v4();
+                    self.insert(new_id, FileStoreEntry {
+                        origin: origin_in,
+                        file_impl: FileImpl::Sliced(parent_id, rel_pos),
+                        refs: AtomicUsize::new(1),
+                    });
+
+                    let _ = sender.send(Ok(SelectedFileId(new_id.simple().to_string())));
                 }
-            };
-
-            let new_id = Uuid::new_v4();
-            self.store.insert(new_id, FileStoreEntry {
-                origin: origin_in.clone(),
-                file_impl: FileImpl::Sliced(id, rel_pos),
-                refs: Cell::new(1),
-            });
-
-            let _ = sender.send(Ok(SelectedFileId(new_id.simple().to_string())));
+                Err(e) => {
+                    let _ = sender.send(Err(e));
+                }
+            }
         } else {
             let _ = sender.send(Err(BlobURLStoreError::InvalidFileID));
         }
     }
 
-    fn select_file(&mut self, patterns: Vec<FilterPattern>,
+    fn select_file(&self, patterns: Vec<FilterPattern>,
                    sender: IpcSender<FileManagerResult<SelectedFile>>,
                    origin: FileOrigin) {
         match self.ui.open_file_dialog("", patterns) {
@@ -229,7 +326,7 @@ impl<UI: 'static + UIProvider> FileManager<UI> {
         }
     }
 
-    fn select_files(&mut self, patterns: Vec<FilterPattern>,
+    fn select_files(&self, patterns: Vec<FilterPattern>,
                     sender: IpcSender<FileManagerResult<Vec<SelectedFile>>>,
                     origin: FileOrigin) {
         match self.ui.open_file_dialog_multi("", patterns) {
@@ -258,16 +355,16 @@ impl<UI: 'static + UIProvider> FileManager<UI> {
         }
     }
 
-    fn create_entry(&mut self, file_path: &Path, origin: &str) -> Option<SelectedFile> {
+    fn create_entry(&self, file_path: &Path, origin: &str) -> Option<SelectedFile> {
         match File::open(file_path) {
             Ok(handler) => {
                 let id = Uuid::new_v4();
                 let file_impl = FileImpl::PathOnly(file_path.to_path_buf());
 
-                self.store.insert(id, FileStoreEntry {
+                self.insert(id, FileStoreEntry {
                     origin: origin.to_string(),
                     file_impl: file_impl,
-                    refs: Cell::new(1),
+                    refs: AtomicUsize::new(1),
                 });
 
                 // Unix Epoch: https://doc.servo.org/std/time/constant.UNIX_EPOCH.html
@@ -303,42 +400,40 @@ impl<UI: 'static + UIProvider> FileManager<UI> {
         }
     }
 
-    fn try_read_file(&self, id: SelectedFileId, origin_in: String) -> Result<Vec<u8>, ()> {
-        let id = try!(Uuid::parse_str(&id.0).map_err(|_| ()));
+    fn try_read_file(&self, id: SelectedFileId, origin_in: FileOrigin) -> Result<Vec<u8>, BlobURLStoreError> {
+        let id = try!(Uuid::parse_str(&id.0).map_err(|_| BlobURLStoreError::InvalidFileID));
 
-        match self.store.get(&id) {
-            Some(entry) => {
-                match entry.file_impl {
-                    FileImpl::PathOnly(ref filepath) => {
-                        if *entry.origin == origin_in {
-                            let mut buffer = vec![];
-                            let mut handler = try!(File::open(filepath).map_err(|_| ()));
-                            try!(handler.read_to_end(&mut buffer).map_err(|_| ()));
-                            Ok(buffer)
-                        } else {
-                            Err(())
-                        }
+        match self.get_impl(&id, &origin_in) {
+            Ok(file_impl) => {
+                match file_impl {
+                    FileImpl::PathOnly(filepath) => {
+                        let mut buffer = vec![];
+                        let mut handler = try!(File::open(filepath)
+                                              .map_err(|_| BlobURLStoreError::InvalidEntry));
+                        try!(handler.read_to_end(&mut buffer)
+                            .map_err(|_| BlobURLStoreError::External));
+                        Ok(buffer)
                     },
-                    FileImpl::Memory(ref buffered) => {
-                        Ok(buffered.bytes.clone())
+                    FileImpl::Memory(buffered) => {
+                        Ok(buffered.bytes)
                     },
-                    FileImpl::Sliced(ref id, ref _rel_pos) => {
+                    FileImpl::Sliced(id, rel_pos) => {
                         self.try_read_file(SelectedFileId(id.simple().to_string()), origin_in)
+                            .map(|bytes| bytes.index(rel_pos.to_abs_range(bytes.len())).to_vec())
                     }
                 }
             },
-            None => Err(()),
+            Err(e) => Err(e),
         }
     }
 
-    fn dec_ref(&mut self, id: Uuid, origin_in: FileOrigin) {
-        let (is_last_ref, opt_parent_id) = match self.store.get(&id) {
+    fn dec_ref(&self, id: &Uuid, origin_in: &FileOrigin) -> Result<(), BlobURLStoreError> {
+        let (is_last_ref, opt_parent_id) = match self.entries.read().unwrap().get(id) {
             Some(entry) => {
-                if *entry.origin == origin_in {
-                    let r = entry.refs.get();
+                if *entry.origin == *origin_in {
+                    let old_refs = entry.refs.fetch_sub(1, Ordering::Release);
 
-                    if r > 1 {
-                        entry.refs.set(r - 1);
+                    if old_refs > 1 {
                         (false, None)
                     } else {
                         if let FileImpl::Sliced(ref parent_id, _) = entry.file_impl {
@@ -349,85 +444,33 @@ impl<UI: 'static + UIProvider> FileManager<UI> {
                         }
                     }
                 } else { // Invalid origin
-                    return;
+                    return Err(BlobURLStoreError::InvalidOrigin);
                 }
             }
-            None => return, // Invalid UUID
+            None => return Err(BlobURLStoreError::InvalidFileID),
         };
 
         if is_last_ref {
-            self.store.remove(&id);
+            atomic::fence(Ordering::Acquire);
+            self.remove(id);
 
             if let Some(parent_id) = opt_parent_id {
-                self.dec_ref(parent_id, origin_in);
+                return self.dec_ref(&parent_id, origin_in);
             }
         }
+
+        Ok(())
     }
 
-    fn process_request(&self, load_data: &LoadData, consumer: LoadConsumer,
-                       rel_pos: &RelativePos, id: &Uuid) {
-        let origin_in = load_data.url.origin().unicode_serialization();
-        match self.store.get(id) {
-            Some(entry) => {
-                match entry.file_impl {
-                    FileImpl::Memory(ref buffered) => {
-                        if *entry.origin == origin_in {
-                            load_blob(&load_data, consumer, self.classifier.clone(),
-                                      None, rel_pos, buffered);
-                        } else {
-                            let e = format!("Invalid blob URL origin {:?}", origin_in);
-                            send_error(load_data.url.clone(), NetworkError::Internal(e), consumer);
-                        }
-                    },
-                    FileImpl::PathOnly(ref filepath) => {
-                        let opt_filename = filepath.file_name()
-                                               .and_then(|osstr| osstr.to_str())
-                                               .map(|s| s.to_string());
-
-                        if *entry.origin == origin_in {
-                            let mut bytes = vec![];
-                            let mut handler = File::open(filepath).unwrap();
-                            let mime = guess_mime_type_opt(filepath);
-                            let size = handler.read_to_end(&mut bytes).unwrap();
-
-                            let entry = BlobURLStoreEntry {
-                                type_string: match mime {
-                                    Some(x) => format!("{}", x),
-                                    None    => "".to_string(),
-                                },
-                                size: size as u64,
-                                bytes: bytes,
-                            };
-
-                            load_blob(&load_data, consumer, self.classifier.clone(),
-                                      opt_filename, rel_pos, &entry);
-                        } else {
-                            let e = format!("Invalid blob URL origin {:?}", origin_in);
-                            send_error(load_data.url.clone(), NetworkError::Internal(e), consumer);
-                        }
-                    },
-                    FileImpl::Sliced(ref id, ref rel_pos) => {
-                        self.process_request(load_data, consumer, rel_pos, id);
-                    }
-                }
-            }
-            _ => {
-                let e = format!("Invalid blob URL key {:?}", id.simple().to_string());
-                send_error(load_data.url.clone(), NetworkError::Internal(e), consumer);
-            }
-        }
-    }
-
-    fn transfer_memory(&mut self, entry: BlobURLStoreEntry,
-                       sender: IpcSender<Result<SelectedFileId, BlobURLStoreError>>,
-                       origin: FileOrigin) {
+    fn transfer_memory(&self, entry: BlobURLStoreEntry,
+                       sender: IpcSender<Result<SelectedFileId, BlobURLStoreError>>, origin: FileOrigin) {
         match Url::parse(&origin) { // parse to check sanity
             Ok(_) => {
                 let id = Uuid::new_v4();
-                self.store.insert(id, FileStoreEntry {
+                self.insert(id, FileStoreEntry {
                     origin: origin.clone(),
                     file_impl: FileImpl::Memory(entry),
-                    refs: Cell::new(1),
+                    refs: AtomicUsize::new(1),
                 });
 
                 let _ = sender.send(Ok(SelectedFileId(id.simple().to_string())));

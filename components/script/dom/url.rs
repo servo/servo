@@ -13,6 +13,7 @@ use dom::bindings::str::{DOMString, USVString};
 use dom::blob::Blob;
 use dom::urlhelper::UrlHelper;
 use dom::urlsearchparams::URLSearchParams;
+use ipc_channel::ipc;
 use net_traits::IpcSend;
 use net_traits::blob_url_store::parse_blob_url;
 use net_traits::filemanager_thread::{SelectedFileId, FileManagerThreadMsg};
@@ -142,17 +143,16 @@ impl URL {
         */
         let origin = global.get_url().origin().unicode_serialization();
 
-        match Url::parse(&url) {
-            Ok(url) => match parse_blob_url(&url) {
-                Some((id, _)) => {
-                    let filemanager = global.resource_threads().sender();
-                    let id = SelectedFileId(id.simple().to_string());
-                    let msg = FileManagerThreadMsg::DecRef(id, origin);
-                    let _ = filemanager.send(msg);
-                }
-                None => {}
-            },
-            Err(_) => {}
+        if let Ok(url) = Url::parse(&url) {
+             if let Some((id, _)) = parse_blob_url(&url) {
+                let filemanager = global.resource_threads().sender();
+                let id = SelectedFileId(id.simple().to_string());
+                let (tx, rx) = ipc::channel().unwrap();
+                let msg = FileManagerThreadMsg::DecRef(id, origin, tx);
+                let _ = filemanager.send(msg);
+
+                let _ = rx.recv().unwrap();
+            }
         }
     }
 
