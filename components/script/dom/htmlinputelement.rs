@@ -33,6 +33,7 @@ use dom::validation::Validatable;
 use dom::virtualmethods::VirtualMethods;
 use ipc_channel::ipc::{self, IpcSender};
 use mime_guess;
+use msg::constellation_msg::Key;
 use net_traits::IpcSend;
 use net_traits::filemanager_thread::{FileManagerThreadMsg, FilterPattern};
 use script_traits::ScriptMsg as ConstellationMsg;
@@ -1046,10 +1047,18 @@ impl VirtualMethods for HTMLInputElement {
                     let action = self.textinput.borrow_mut().handle_keydown(keyevent);
                     match action {
                         TriggerDefaultAction => {
-                            self.implicit_submission(keyevent.CtrlKey(),
-                                                     keyevent.ShiftKey(),
-                                                     keyevent.AltKey(),
-                                                     keyevent.MetaKey());
+                            if let Some(key) = keyevent.get_key() {
+                                match key {
+                                    Key::Enter | Key::KpEnter =>
+                                        self.implicit_submission(keyevent.CtrlKey(),
+                                                                 keyevent.ShiftKey(),
+                                                                 keyevent.AltKey(),
+                                                                 keyevent.MetaKey()),
+                                    // Issue #12071: Tab should not submit forms
+                                    // TODO(3982): Implement form keyboard navigation
+                                    _ => (),
+                                }
+                            };
                         },
                         DispatchInput => {
                             self.value_changed.set(true);
