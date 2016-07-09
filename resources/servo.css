@@ -128,7 +128,7 @@ label { cursor: default; }
 input:not([type=radio i]):not([type=checkbox i]):not([type=reset i]):not([type=button i]):not([type=submit i]),
 textarea {
   cursor: text;
-  overflow: hidden;
+  overflow: auto;
   -servo-overflow-clip-box: content-box;
 }
 
