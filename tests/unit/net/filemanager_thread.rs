@@ -40,7 +40,7 @@ fn test_filemanager() {
     {
         // Try to select a dummy file "tests/unit/net/test.txt"
         let (tx, rx) = ipc::channel().unwrap();
-        chan.send(FileManagerThreadMsg::SelectFile(patterns.clone(), tx, origin.clone())).unwrap();
+        chan.send(FileManagerThreadMsg::SelectFile(patterns.clone(), tx, origin.clone(), None)).unwrap();
         let selected = rx.recv().expect("Broken channel")
                                 .expect("The file manager failed to find test.txt");
 
@@ -88,7 +88,7 @@ fn test_filemanager() {
 
     {
         let (tx, rx) = ipc::channel().unwrap();
-        let _ = chan.send(FileManagerThreadMsg::SelectFile(patterns.clone(), tx, origin.clone()));
+        let _ = chan.send(FileManagerThreadMsg::SelectFile(patterns.clone(), tx, origin.clone(), None));
 
         assert!(rx.try_recv().is_err(), "The thread should not respond normally after exited");
     }

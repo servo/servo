@@ -6456,6 +6456,12 @@
             "url": "/_mozilla/mozilla/event_listener.html"
           }
         ],
+        "mozilla/file_upload.html": [
+          {
+            "path": "mozilla/file_upload.html",
+            "url": "/_mozilla/mozilla/file_upload.html"
+          }
+        ],
         "mozilla/focus_blur.html": [
           {
             "path": "mozilla/focus_blur.html",
