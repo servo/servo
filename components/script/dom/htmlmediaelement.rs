@@ -759,6 +759,8 @@ impl ResourceSelectionTask {
 }
 
 impl Runnable for ResourceSelectionTask {
+    fn name(&self) -> &'static str { "ResourceSelectionTask" }
+
     fn handler(self: Box<ResourceSelectionTask>) {
         self.elem.root().resource_selection_algorithm_sync(self.base_url);
     }
@@ -777,6 +779,8 @@ impl DedicatedMediaSourceFailureTask {
 }
 
 impl Runnable for DedicatedMediaSourceFailureTask {
+    fn name(&self) -> &'static str { "DedicatedMediaSourceFailureTask" }
+
     fn handler(self: Box<DedicatedMediaSourceFailureTask>) {
         self.elem.root().dedicated_media_source_failure();
     }
