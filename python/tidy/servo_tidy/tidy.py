@@ -40,6 +40,7 @@ IGNORED_FILES = [
     os.path.join(".", "ports", "geckolib", "gecko_bindings", "structs_release.rs"),
     os.path.join(".", "ports", "geckolib", "string_cache", "atom_macro.rs"),
     os.path.join(".", "resources", "hsts_preload.json"),
+    os.path.join(".", "resources", "windows.rc"),
     os.path.join(".", "tests", "wpt", "metadata", "MANIFEST.json"),
     os.path.join(".", "tests", "wpt", "metadata-css", "MANIFEST.json"),
     os.path.join(".", "components", "script", "dom", "webidls", "ForceTouchEvent.webidl"),

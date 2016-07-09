@@ -66,13 +66,12 @@ fn android_main() {
 fn windows_main() {
     let out_dir = env::var("OUT_DIR").ok().expect("can't find out_dir");
 
-    Command::new("windres").args(&[" ../../resources/windows.rc",  "-o"])
+    Command::new("windres").args(&["/resources/windows.rc",  "-o"])
                            .arg(&format!("{}/windows.rc.o", out_dir))
                            .status().unwrap();
     Command::new("ar").args(&["crus", "libwindows_rc.a", "windows.rc.o"])
                       .current_dir(&Path::new(&out_dir))
                       .status().unwrap();
-
     println!("cargo:rustc-link-search=native={}", out_dir);
     println!("cargo:rustc-link-lib=static=windows_rc");
 }
