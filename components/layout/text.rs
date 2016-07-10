@@ -340,21 +340,20 @@ impl TextRunScanner {
                 let mut byte_range = Range::new(ByteIndex(mapping.byte_range.begin() as isize),
                                                 ByteIndex(mapping.byte_range.length() as isize));
 
+                let mut flags = ScannedTextFlags::empty();
+                let text_size = old_fragment.border_box.size;
+
                 let requires_line_break_afterward_if_wrapping_on_newlines =
                     scanned_run.run.text[mapping.byte_range.begin()..mapping.byte_range.end()]
                     .ends_with('\n');
+
                 if requires_line_break_afterward_if_wrapping_on_newlines {
                     byte_range.extend_by(ByteIndex(-1)); // Trim the '\n'
+                    flags.insert(REQUIRES_LINE_BREAK_AFTERWARD_IF_WRAPPING_ON_NEWLINES);
                 }
 
-                let text_size = old_fragment.border_box.size;
-
-                let mut flags = ScannedTextFlags::empty();
                 if mapping.selected {
                     flags.insert(SELECTED);
-                }
-                if requires_line_break_afterward_if_wrapping_on_newlines {
-                    flags.insert(REQUIRES_LINE_BREAK_AFTERWARD_IF_WRAPPING_ON_NEWLINES);
                 }
 
                 let insertion_point = if mapping.contains_insertion_point(scanned_run.insertion_point) {
