@@ -81,6 +81,8 @@ impl ImageResponseHandlerRunnable {
 }
 
 impl Runnable for ImageResponseHandlerRunnable {
+    fn name(&self) -> &'static str { "ImageResponseHandlerRunnable" }
+
     fn handler(self: Box<Self>) {
         // Update the image field
         let element = self.element.root();
