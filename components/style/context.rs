@@ -15,6 +15,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex, RwLock};
+use timer::Timer;
 
 /// This structure is used to create a local style context from a shared one.
 pub struct LocalStyleContextCreationInfo {
@@ -57,6 +58,10 @@ pub struct SharedStyleContext {
 
     /// Data needed to create the local style context from the shared one.
     pub local_context_creation_data: Mutex<LocalStyleContextCreationInfo>,
+
+    /// The current timer for transitions and animations. This is needed to test
+    /// them.
+    pub timer: Timer,
 }
 
 pub struct LocalStyleContext {

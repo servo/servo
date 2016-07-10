@@ -581,6 +581,10 @@ impl TestBindingMethods for TestBinding {
         }
     }
 
+    fn AdvanceClock(&self, ms: i32) {
+        self.global().r().as_window().advance_animation_clock(ms);
+    }
+
     fn Panic(&self) { panic!("explicit panic from script") }
 }
 

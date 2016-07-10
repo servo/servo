@@ -1030,6 +1030,12 @@ impl Window {
         recv.recv().unwrap_or((Size2D::zero(), Point2D::zero()))
     }
 
+    /// Advances the layout animation clock by `delta` milliseconds, and then
+    /// forces a reflow.
+    pub fn advance_animation_clock(&self, delta: i32) {
+        self.layout_chan.send(Msg::AdvanceClockMs(delta)).unwrap();
+    }
+
     /// Reflows the page unconditionally if possible and not suppressed. This
     /// method will wait for the layout thread to complete (but see the `TODO`
     /// below). If there is no window size yet, the page is presumed invisible
