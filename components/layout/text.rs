@@ -344,7 +344,6 @@ impl TextRunScanner {
                 let text_size = old_fragment.border_box.size;
 
                 let requires_line_break_afterward_if_wrapping_on_newlines =
-                    !old_fragment.white_space().preserve_newlines() &&
                     scanned_run.run.text[mapping.byte_range.begin()..mapping.byte_range.end()]
                     .ends_with('\n');
 

@@ -1627,19 +1627,23 @@ impl Fragment {
         let mut inline_start_range = Range::new(text_fragment_info.range.begin(), ByteIndex(0));
         let mut inline_end_range = None;
         let mut overflowing = false;
+        let mut i = 0usize;
 
-        debug!("calculate_split_position_using_breaking_strategy: splitting text fragment \
+        println!("calculate_split_position_using_breaking_strategy: splitting text fragment \
                 (strlen={}, range={:?}, max_inline_size={:?})",
                text_fragment_info.run.text.len(),
                text_fragment_info.range,
                max_inline_size);
 
         for slice in slice_iterator {
-            debug!("calculate_split_position_using_breaking_strategy: considering slice \
+            println!("calculate_split_position_using_breaking_strategy({}): considering slice \
                     (offset={:?}, slice range={:?}, remaining_inline_size={:?})",
+                   i,
                    slice.offset,
                    slice.range,
                    remaining_inline_size);
+
+            i += 1;
 
             // Use the `remaining_inline_size` to find a split point if possible. If not, go around
             // the loop again with the next slice.
@@ -1659,7 +1663,8 @@ impl Fragment {
             // see if we're going to overflow the line. If so, perform a best-effort split.
             let mut remaining_range = slice.text_run_range();
             let split_is_empty = inline_start_range.is_empty() &&
-                    !self.requires_line_break_afterward_if_wrapping_on_newlines();
+                    !(self.requires_line_break_afterward_if_wrapping_on_newlines() &&
+                      !self.white_space().allow_wrap());
             if split_is_empty {
                 // We're going to overflow the line.
                 overflowing = true;
