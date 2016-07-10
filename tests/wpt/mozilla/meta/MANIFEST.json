@@ -6108,6 +6108,12 @@
         ]
       },
       "testharness": {
+        "css/animations/basic-linear-width.html": [
+          {
+            "path": "css/animations/basic-linear-width.html",
+            "url": "/_mozilla/css/animations/basic-linear-width.html"
+          }
+        ],
         "css/empty-keyframes.html": [
           {
             "path": "css/empty-keyframes.html",

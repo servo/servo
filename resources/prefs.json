@@ -45,6 +45,7 @@
   "js.mem.gc.empty_chunk_count_max": 30,
   "js.mem.gc.zeal.level": 0,
   "js.mem.gc.zeal.frequency": 100,
+  "layout.animations.test.enabled": false,
   "layout.columns.enabled": false,
   "layout.column-width.enabled": false,
   "layout.column-count.enabled": false,

@@ -40,6 +40,11 @@ pub enum Msg {
     /// Requests that the layout thread render the next frame of all animations.
     TickAnimations,
 
+    /// Updates layout's timer for animation testing from script.
+    ///
+    /// The inner field is the number of *milliseconds* to advance.
+    AdvanceClockMs(i32),
+
     /// Requests that the layout thread reflow with a newly-loaded Web font.
     ReflowWithNewlyLoadedWebFont,
 

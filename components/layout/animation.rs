@@ -15,7 +15,7 @@ use std::collections::HashMap;
 use std::sync::mpsc::Receiver;
 use style::animation::{Animation, update_style_for_animation};
 use style::selector_impl::{SelectorImplExt, ServoSelectorImpl};
-use time;
+use style::timer::Timer;
 
 /// Processes any new animations that were discovered after style recalculation.
 /// Also expire any old animations that have completed, inserting them into
@@ -24,7 +24,8 @@ pub fn update_animation_state<Impl: SelectorImplExt>(constellation_chan: &IpcSen
                                                      running_animations: &mut HashMap<OpaqueNode, Vec<Animation<Impl>>>,
                                                      expired_animations: &mut HashMap<OpaqueNode, Vec<Animation<Impl>>>,
                                                      new_animations_receiver: &Receiver<Animation<Impl>>,
-                                                     pipeline_id: PipelineId) {
+                                                     pipeline_id: PipelineId,
+                                                     timer: &Timer) {
     let mut new_running_animations = vec![];
     while let Ok(animation) = new_animations_receiver.try_recv() {
         let mut should_push = true;
@@ -38,7 +39,7 @@ pub fn update_animation_state<Impl: SelectorImplExt>(constellation_chan: &IpcSen
                     if let Animation::Keyframes(_, ref anim_name, ref mut anim_state) = *anim {
                         if *name == *anim_name {
                             debug!("update_animation_state: Found other animation {}", name);
-                            anim_state.update_from_other(&state);
+                            anim_state.update_from_other(&state, timer);
                             should_push = false;
                             break;
                         }
@@ -58,7 +59,7 @@ pub fn update_animation_state<Impl: SelectorImplExt>(constellation_chan: &IpcSen
         return
     }
 
-    let now = time::precise_time_s();
+    let now = timer.seconds();
     // Expire old running animations.
     //
     // TODO: Do not expunge Keyframes animations, since we need that state if
