@@ -380,6 +380,8 @@ pub enum FileReaderEvent {
 }
 
 impl Runnable for FileReaderEvent {
+    fn name(&self) -> &'static str { "FileReaderEvent" }
+
     fn handler(self: Box<FileReaderEvent>) {
         let file_reader_event = *self;
         match file_reader_event {
