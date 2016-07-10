@@ -738,6 +738,8 @@ impl FireSimpleEventTask {
 }
 
 impl Runnable for FireSimpleEventTask {
+    fn name(&self) -> &'static str { "FireSimpleEventTask" }
+
     fn handler(self: Box<FireSimpleEventTask>) {
         let elem = self.elem.root();
         elem.fire_simple_event(self.type_);
