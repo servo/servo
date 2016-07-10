@@ -435,7 +435,8 @@ trait PrivateMatchMethods: TNode
                         new_animations_sender,
                         this_opaque,
                         &**style,
-                        &mut this_style);
+                        &mut this_style,
+                        &shared_context.timer);
             }
 
             cacheable = cacheable && !animations_started
@@ -456,7 +457,8 @@ trait PrivateMatchMethods: TNode
 
     fn update_animations_for_cascade(&self,
                                      context: &SharedStyleContext<<Self::ConcreteElement as Element>::Impl>,
-                                     style: &mut Option<&mut Arc<Self::ConcreteComputedValues>>)
+                                     style: &mut Option<&mut
+                                     Arc<Self::ConcreteComputedValues>>)
                                      -> bool {
         let style = match *style {
             None => return false,

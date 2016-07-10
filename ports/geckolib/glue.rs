@@ -32,6 +32,7 @@ use style::properties::{ComputedValues, PropertyDeclarationBlock};
 use style::selector_impl::{SelectorImplExt, PseudoElementCascadeType};
 use style::sequential;
 use style::stylesheets::Origin;
+use style::timer::Timer;
 use traversal::RecalcStyleOnly;
 use url::Url;
 use wrapper::{GeckoDocument, GeckoElement, GeckoNode, NonOpaqueStyleData};
@@ -107,6 +108,7 @@ fn restyle_subtree(node: GeckoNode, raw_data: *mut RawServoStyleSet) {
         expired_animations: per_doc_data.expired_animations.clone(),
         error_reporter: Box::new(StdoutErrorReporter),
         local_context_creation_data: Mutex::new(local_context_data),
+        timer: Timer::new(),
     };
 
     if node.is_dirty() || node.has_dirty_descendants() {
