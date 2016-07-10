@@ -459,10 +459,12 @@ impl LineBreaker {
             kind: FloatKind::Left,
         });
 
+        let fragment_margin_box_inline_size = first_fragment.margin_box_inline_size();
+
         // Simple case: if the fragment fits, then we can stop here.
-        if line_bounds.size.inline > first_fragment.margin_box_inline_size() {
+        if line_bounds.size.inline > fragment_margin_box_inline_size {
             debug!("LineBreaker: fragment fits on line {}", self.lines.len());
-            return (line_bounds, first_fragment.margin_box_inline_size());
+            return (line_bounds, fragment_margin_box_inline_size);
         }
 
         // If not, but we can't split the fragment, then we'll place the line here and it will
@@ -471,7 +473,7 @@ impl LineBreaker {
             debug!("LineBreaker: line doesn't fit, but is unsplittable");
         }
 
-        (line_bounds, first_fragment.margin_box_inline_size())
+        (line_bounds, fragment_margin_box_inline_size)
     }
 
     /// Performs float collision avoidance. This is called when adding a fragment is going to

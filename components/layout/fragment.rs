@@ -1541,12 +1541,11 @@ impl Fragment {
     /// information are both optional due to the possibility of them being whitespace.
     pub fn calculate_split_position(&self, max_inline_size: Au, starts_line: bool)
                                     -> Option<SplitResult> {
-        let text_fragment_info =
-            if let SpecificFragmentInfo::ScannedText(ref text_fragment_info) = self.specific {
-                text_fragment_info
-            } else {
-                return None
-            };
+        let text_fragment_info = match self.specific {
+            SpecificFragmentInfo::ScannedText(ref text_fragment_info)
+                => text_fragment_info,
+            _   => return None,
+        };
 
         let mut flags = SplitOptions::empty();
         if starts_line {
@@ -1618,12 +1617,11 @@ impl Fragment {
             flags: SplitOptions)
             -> Option<SplitResult>
             where I: Iterator<Item=TextRunSlice<'a>> {
-        let text_fragment_info =
-            if let SpecificFragmentInfo::ScannedText(ref text_fragment_info) = self.specific {
-                text_fragment_info
-            } else {
-                return None
-            };
+        let text_fragment_info = match self.specific {
+            SpecificFragmentInfo::ScannedText(ref text_fragment_info)
+                => text_fragment_info,
+            _   => return None,
+        };
 
         let mut remaining_inline_size = max_inline_size;
         let mut inline_start_range = Range::new(text_fragment_info.range.begin(), ByteIndex(0));
