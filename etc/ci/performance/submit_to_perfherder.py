@@ -4,6 +4,7 @@ import argparse
 from functools import partial, reduce
 import json
 import operator
+import os
 import random
 import string
 from thclient import (TreeherderClient, TreeherderResultSetCollection,
@@ -327,8 +328,10 @@ def submit(perf_data, failures, revision, summary, engine):
     tjc = create_job_collection(dataset)
 
     # TODO: extract this read credential code out of this function.
-    with open('credential.json', 'r') as f:
-        cred = json.load(f)
+    cred = {
+        'client_id': os.environ['TREEHERDER_CLIENT_ID'],
+        'secret': os.environ['TREEHERDER_CLIENT_SECRET']
+    }
 
     client = TreeherderClient(protocol='https',
                               host='treeherder.allizom.org',

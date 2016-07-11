@@ -33,6 +33,7 @@ If you want to test the data submission code in `submit_to_perfherder.py`, you c
 * Put your `servo` binary, `revision.json` and `resources` folder in `servo/`
 * Run `prepare_manifest.sh` to tranform the tp5n manifest to our format
 * `python3 -m virtualenv venv; source venv/bin/activate; pip install treeherder-client`
+* Setup your Treeherder client ID and secret as environment variables `TREEHERDER_CLIENT_ID` and `TREEHERDER_CLIENT_SECRET`
 * Run `test_all.sh`
 * Test results are submitted to https://treeherder.allizom.org/#/jobs?repo=servo
 
