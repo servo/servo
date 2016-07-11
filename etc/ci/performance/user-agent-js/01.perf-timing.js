@@ -1,9 +1,17 @@
+print = function(o) {
+    console.log(o);
+    if (window.dump) {
+      window.dump(o + '\n');
+    }
+    //window.dump(o + '\n') // For Gecko
+}
+
 function formatLine(name, t){
-  console.log("[PERF]," + name + "," + t);
+  print("[PERF]," + name + "," + t);
 }
 
 function printPerfTiming(){
-  console.log("[PERF] perf block start")
+  print("[PERF] perf block start")
   formatLine("testcase", window.location);
   formatLine("navigationStart", performance.timing.navigationStart);
   formatLine("unloadEventStart", performance.timing.unloadEventStart);
@@ -26,6 +34,18 @@ function printPerfTiming(){
   formatLine("domComplete", performance.timing.domComplete);
   formatLine("loadEventStart", performance.timing.loadEventStart);
   formatLine("loadEventEnd", performance.timing.loadEventEnd);
-  console.log("[PERF] perf block end")
+  print("[PERF] perf block end")
 }
-window.addEventListener('load', printPerfTiming);
+
+if (document.readyState === "complete") { 
+    printPerfTiming()
+    window.close();
+} else {
+    window.addEventListener('load', printPerfTiming);
+    var timeout = 5;
+    window.setTimeout(function(){
+        print("[PERF] Timeout after " + timeout + " min. Force stop");
+        printPerfTiming();
+        window.close();
+    }, timeout * 60 * 1000)
+}
