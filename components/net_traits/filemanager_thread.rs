@@ -129,17 +129,25 @@ pub enum FileManagerThreadMsg {
     /// Load resource by Blob URL
     LoadBlob(LoadData, LoadConsumer),
 
-    /// Add an entry and send back the associated uuid
-    TransferMemory(BlobURLStoreEntry, IpcSender<Result<SelectedFileId, BlobURLStoreError>>, FileOrigin),
+    /// Add an entry as promoted memory-based blob and send back the associated FileID
+    /// as part of a valid Blob URL
+    PromoteMemory(BlobURLStoreEntry, IpcSender<Result<SelectedFileId, BlobURLStoreError>>, FileOrigin),
 
-    /// Add a sliced entry pointing to the parent id with a relative slicing positing
-    AddSlicedEntry(SelectedFileId, RelativePos, IpcSender<Result<SelectedFileId, BlobURLStoreError>>, FileOrigin),
+    /// Add a sliced entry pointing to the parent FileID, and send back the associated FileID
+    /// as part of a valid Blob URL
+    AddSlicedURLEntry(SelectedFileId, RelativePos, IpcSender<Result<SelectedFileId, BlobURLStoreError>>, FileOrigin),
 
-    /// Decrease reference count
+    /// Revoke Blob URL and send back the acknowledgement
+    RevokeBlobURL(SelectedFileId, FileOrigin, IpcSender<Result<(), BlobURLStoreError>>),
+
+    /// Decrease reference count and send back the acknowledgement
     DecRef(SelectedFileId, FileOrigin, IpcSender<Result<(), BlobURLStoreError>>),
 
     /// Increase reference count
     IncRef(SelectedFileId, FileOrigin),
+
+    /// Activate an internal FileID so it becomes valid as part of a Blob URL
+    ActivateBlobURL(SelectedFileId, IpcSender<Result<(), BlobURLStoreError>>, FileOrigin),
 
     /// Shut down this thread
     Exit,

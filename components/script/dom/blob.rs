@@ -151,9 +151,23 @@ impl Blob {
         }
     }
 
-    pub fn get_id(&self) -> SelectedFileId {
+    /// Get a FileID representing the Blob content,
+    /// used by URL.createObjectURL
+    pub fn get_blob_url_id(&self) -> SelectedFileId {
         match *self.blob_impl.borrow() {
-            BlobImpl::File(ref id, _) => id.clone(),
+            BlobImpl::File(ref id, _) => {
+                let global = self.global();
+                let origin = global.r().get_url().origin().unicode_serialization();
+                let filemanager = global.r().resource_threads().sender();
+                let (tx, rx) = ipc::channel().unwrap();
+
+                let _ = filemanager.send(FileManagerThreadMsg::ActivateBlobURL(id.clone(), tx, origin.clone()));
+
+                match rx.recv().unwrap() {
+                    Ok(_) => id.clone(),
+                    Err(_) => SelectedFileId("".to_string()) // Return a dummy id on error
+                }
+            }
             BlobImpl::Memory(ref slice) => self.promote_to_file(slice),
             BlobImpl::Sliced(ref parent, ref rel_pos) => {
                 match *parent.blob_impl.borrow() {
@@ -163,11 +177,11 @@ impl Blob {
                         SelectedFileId("".to_string())
                     }
                     BlobImpl::File(ref parent_id, _) =>
-                        self.create_sliced_id(parent_id, rel_pos),
+                        self.create_sliced_url_id(parent_id, rel_pos),
                     BlobImpl::Memory(ref bytes) => {
                         let parent_id = parent.promote_to_file(bytes);
                         *self.blob_impl.borrow_mut() = BlobImpl::Sliced(parent.clone(), rel_pos.clone());
-                        self.create_sliced_id(&parent_id, rel_pos)
+                        self.create_sliced_url_id(&parent_id, rel_pos)
                     }
                 }
             }
@@ -188,7 +202,7 @@ impl Blob {
         };
 
         let (tx, rx) = ipc::channel().unwrap();
-        let _ = filemanager.send(FileManagerThreadMsg::TransferMemory(entry, tx, origin.clone()));
+        let _ = filemanager.send(FileManagerThreadMsg::PromoteMemory(entry, tx, origin.clone()));
 
         match rx.recv().unwrap() {
             Ok(new_id) => SelectedFileId(new_id.0),
@@ -197,22 +211,46 @@ impl Blob {
         }
     }
 
-    fn create_sliced_id(&self, parent_id: &SelectedFileId,
-                        rel_pos: &RelativePos) -> SelectedFileId {
+    /// Get a FileID representing sliced parent-blob content
+    fn create_sliced_url_id(&self, parent_id: &SelectedFileId,
+                            rel_pos: &RelativePos) -> SelectedFileId {
         let global = self.global();
 
         let origin = global.r().get_url().origin().unicode_serialization();
 
         let filemanager = global.r().resource_threads().sender();
         let (tx, rx) = ipc::channel().unwrap();
-        let msg = FileManagerThreadMsg::AddSlicedEntry(parent_id.clone(),
-                                                       rel_pos.clone(),
-                                                       tx, origin.clone());
+        let msg = FileManagerThreadMsg::AddSlicedURLEntry(parent_id.clone(),
+                                                          rel_pos.clone(),
+                                                          tx, origin.clone());
         let _ = filemanager.send(msg);
         let new_id = rx.recv().unwrap().unwrap();
 
         // Return the indirect id reference
         SelectedFileId(new_id.0)
+    }
+
+    /// Cleanups at the time of destruction/closing
+    fn clean_up_file_resource(&self) {
+        if let BlobImpl::File(ref id, _) = *self.blob_impl.borrow() {
+            let global = self.global();
+            let origin = global.r().get_url().origin().unicode_serialization();
+
+            let filemanager = global.r().resource_threads().sender();
+            let (tx, rx) = ipc::channel().unwrap();
+
+            let msg = FileManagerThreadMsg::DecRef(id.clone(), origin, tx);
+            let _ = filemanager.send(msg);
+            let _ = rx.recv().unwrap();
+        }
+    }
+}
+
+impl Drop for Blob {
+    fn drop(&mut self) {
+        if !self.IsClosed() {
+            self.clean_up_file_resource();
+        }
     }
 }
 
@@ -307,8 +345,8 @@ impl BlobMethods for Blob {
         // Step 2
         self.isClosed_.set(true);
 
-        // TODO Step 3 if Blob URL Store is implemented
-
+        // Step 3
+        self.clean_up_file_resource();
     }
 }
 
