@@ -11,6 +11,9 @@ impl<T> nsStyleAutoArray<T> {
         once(&mut self.mFirstElement).chain(self.mOtherElements.iter_mut())
     }
 
+    // Note that often structs containing autoarrays will have
+    // additional member fields that contain the length, which must be kept
+    // in sync
     pub fn len(&self) -> usize {
         1 + self.mOtherElements.len()
     }

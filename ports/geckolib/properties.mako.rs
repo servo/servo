@@ -947,9 +947,9 @@ fn static_assert() {
     }
 
     fn set_background_image(&mut self, images: longhands::background_image::computed_value::T) {
+        use gecko_bindings::bindings::nsStyleImageLayers_LayerType as LayerType;
         use gecko_bindings::structs::{NS_STYLE_GRADIENT_SHAPE_LINEAR, NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER};
         use gecko_bindings::structs::nsStyleCoord;
-        use gecko_bindings::structs::nsStyleImageLayers_LayerType::Background;
         use style::values::computed::Image;
         use style::values::specified::AngleOrCorner;
         use cssparser::Color as CSSColor;
@@ -961,7 +961,7 @@ fn static_assert() {
             }
             Gecko_EnsureImageLayersLength(&mut self.gecko.mImage, images.0.len());
             for image in &mut self.gecko.mImage.mLayers {
-                Gecko_InitializeImageLayer(image, Background as u8);
+                Gecko_InitializeImageLayer(image, LayerType::Background);
             }
         }
 

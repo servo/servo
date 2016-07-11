@@ -33,6 +33,7 @@
     </%call>
 </%def>
 
+// FIXME (Manishearth): Add computed_value_as_specified argument and handle null case
 <%doc>
     To be used in cases where we have a grammar like
     "<thing> [ , <thing> ]*", but only support a single value
@@ -76,7 +77,7 @@
 
             impl ToCss for SpecifiedValue {
                 fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                    if self.0.len() >= 1 {
+                    if !self.0.is_empty() {
                         try!(self.0[0].to_css(dest))
                     }
                     for i in self.0.iter().skip(1) {

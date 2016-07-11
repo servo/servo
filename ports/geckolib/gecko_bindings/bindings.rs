@@ -144,6 +144,9 @@ pub enum RawServoStyleSheet { }
 pub enum RawServoStyleSet { }
 pub enum nsHTMLCSSStyleSheet { }
 pub enum ServoDeclarationBlock { }
+#[repr(i8)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub enum nsStyleImageLayers_LayerType { Background = 0, Mask = 1, }
 pub type ThreadSafePrincipalHolder = nsMainThreadPtrHolder<nsIPrincipal>;
 pub type ThreadSafeURIHolder = nsMainThreadPtrHolder<nsIURI>;
 extern "C" {
@@ -253,7 +256,8 @@ extern "C" {
     pub fn Gecko_EnsureImageLayersLength(layers: *mut nsStyleImageLayers,
                                          len: usize);
     pub fn Gecko_InitializeImageLayer(layer: *mut nsStyleImageLayers_Layer,
-                                      layer_type: u8);
+                                      layer_type:
+                                          nsStyleImageLayers_LayerType);
     pub fn Servo_StylesheetFromUTF8Bytes(bytes: *const u8, length: u32,
                                          parsing_mode: SheetParsingMode,
                                          base: *mut ThreadSafeURIHolder,
