@@ -16,7 +16,7 @@ from runner import format_result_summary
 
 def geometric_mean(iterable):
         filtered = list(filter(lambda x: x > 0, iterable))
-        return (reduce(operator.mul, filtered)) ** (1.0/len(filtered))
+        return (reduce(operator.mul, filtered)) ** (1.0 / len(filtered))
 
 
 def format_testcase_name(name):
@@ -237,8 +237,8 @@ def submit(perf_data, failures, revision, summary, engine):
 
                 # TODO: get the real timing from the test runner
                 'submit_timestamp': str(int(time.time())),
-                'start_timestamp':  str(int(time.time())),
-                'end_timestamp':  str(int(time.time())),
+                'start_timestamp': str(int(time.time())),
+                'end_timestamp': str(int(time.time())),
 
                 'state': 'completed',
                 'result': result,  # "success" or "testfailed"

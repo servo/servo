@@ -70,29 +70,29 @@ def parse_log(log, testcase=None):
             block.append(line)
 
     placeholder = {
-            "navigationStart": 0,
-            "unloadEventStart": -1,
-            "domLoading": -1,
-            "fetchStart": -1,
-            "responseStart": -1,
-            "loadEventEnd": -1,
-            "connectStart": -1,
-            "domainLookupStart": -1,
-            "redirectStart": -1,
-            "domContentLoadedEventEnd": -1,
-            "requestStart": -1,
-            "secureConnectionStart": -1,
-            "connectEnd": -1,
-            "loadEventStart": -1,
-            "domInteractive": -1,
-            "domContentLoadedEventStart": -1,
-            "redirectEnd": -1,
-            "domainLookupEnd": -1,
-            "unloadEventEnd": -1,
-            "responseEnd": -1,
-            "testcase": testcase,
-            "domComplete": -1,
-        }
+        "navigationStart": 0,
+        "unloadEventStart": -1,
+        "domLoading": -1,
+        "fetchStart": -1,
+        "responseStart": -1,
+        "loadEventEnd": -1,
+        "connectStart": -1,
+        "domainLookupStart": -1,
+        "redirectStart": -1,
+        "domContentLoadedEventEnd": -1,
+        "requestStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "loadEventStart": -1,
+        "domInteractive": -1,
+        "domContentLoadedEventStart": -1,
+        "redirectEnd": -1,
+        "domainLookupEnd": -1,
+        "unloadEventEnd": -1,
+        "responseEnd": -1,
+        "testcase": testcase,
+        "domComplete": -1,
+    }
 
     def parse_block(block):
         timing = {}
@@ -193,10 +193,10 @@ Total {total} tests; {suc} succeeded, {fail} failed.
 
 Failure summary:
 """.format(
-            total=len(results),
-            suc=len(list(filter(lambda x: x['domComplete'] != -1, results))),
-            fail=len(failures)
-           )
+        total=len(results),
+        suc=len(list(filter(lambda x: x['domComplete'] != -1, results))),
+        fail=len(failures)
+    )
     uniq_failures = list(set(map(lambda x: x['testcase'], failures)))
     for failure in uniq_failures:
         result_log += " - {}\n".format(failure)
