@@ -1,9 +1,7 @@
 Servo Page Load Time Test
 ==============
 
-[Tracking Bug](https://github.com/servo/servo/issues/10452)
-
-# Prerequisite
+# Prerequisites
 
 * Python3
 
@@ -49,15 +47,6 @@ If you want to test the data submission code in `submit_to_perfherder.py`, you c
 * Some of the tests will make Servo run forever, it's disabled right now. See https://github.com/servo/servo/issues/11087
 * Each testcase is a subtest on Perfherder, and their summary time is the geometric mean of all the subtests.
 * Notice that the test is different from the Talos TP5 test we run for Gecko. So you can NOT conclude that Servo is "faster" or "slower" than Gecko from this test.
-
-# Running in buildbot
-
-* We have a `master.cfg` for you to run it in buildbot. You can use the `servo-linux1` vagrant VM setup from [servo/saltfs](https://github.com/servo/saltfs) to run it.
-* You'll need to setup this repository manully in the VM, check the inline comments in `master.cfg` for detail.
-
-# Upload log to S3
-* `pip install boto3`
-* `python3 upload_log_to_s3.py <filename>`
 
 # Unit tests
 

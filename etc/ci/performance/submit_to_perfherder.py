@@ -55,20 +55,18 @@ def format_perf_data(perf_json, engine='servo'):
 
         suite["subtests"].append({
             "name": format_testcase_name(testcase["testcase"]),
-            "value": value}
-        )
+            "value": value
+        })
 
     suites.append(suite)
 
-    return (
-        {
-            "performance_data": {
-                # https://bugzilla.mozilla.org/show_bug.cgi?id=1271472
-                "framework": {"name": "servo-perf"},
-                "suites": suites
-            }
+    return {
+        "performance_data": {
+            # https://bugzilla.mozilla.org/show_bug.cgi?id=1271472
+            "framework": {"name": "servo-perf"},
+            "suites": suites
         }
-    )
+    }
 
 
 def create_resultset_collection(dataset):
@@ -334,8 +332,6 @@ def submit(perf_data, failures, revision, summary, engine):
 
     client = TreeherderClient(protocol='https',
                               host='treeherder.allizom.org',
-                              # protocol='http',
-                              # host='local.treeherder.mozilla.org',
                               client_id=cred['client_id'],
                               secret=cred['secret'])
 
