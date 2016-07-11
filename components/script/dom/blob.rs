@@ -14,10 +14,10 @@ use dom::bindings::str::DOMString;
 use encoding::all::UTF_8;
 use encoding::types::{EncoderTrap, Encoding};
 use ipc_channel::ipc;
+use mime::Mime;
 use net_traits::IpcSend;
 use net_traits::blob_url_store::BlobURLStoreEntry;
 use net_traits::filemanager_thread::{FileManagerThreadMsg, SelectedFileId, RelativePos};
-use std::ascii::AsciiExt;
 use std::cell::Cell;
 use std::ops::Index;
 
@@ -69,7 +69,9 @@ impl Blob {
         Blob {
             reflector_: Reflector::new(),
             blob_impl: DOMRefCell::new(blob_impl),
-            typeString: typeString,
+            // NOTE: Guarding the format correctness here,
+            // https://w3c.github.io/FileAPI/#dfn-type
+            typeString: normalize_type_string(&typeString),
             isClosed_: Cell::new(false),
         }
     }
@@ -118,7 +120,7 @@ impl Blob {
             }
         };
 
-        Ok(Blob::new(global, BlobImpl::new_from_bytes(bytes), blobPropertyBag.get_typestring()))
+        Ok(Blob::new(global, BlobImpl::new_from_bytes(bytes), blobPropertyBag.type_.to_string()))
     }
 
     /// Get a slice to inner data, this might incur synchronous read and caching
@@ -314,20 +316,8 @@ impl BlobMethods for Blob {
              end: Option<i64>,
              contentType: Option<DOMString>)
              -> Root<Blob> {
-        let relativeContentType = match contentType {
-            None => DOMString::new(),
-            Some(mut str) => {
-                if is_ascii_printable(&str) {
-                    str.make_ascii_lowercase();
-                    str
-                } else {
-                    DOMString::new()
-                }
-            }
-        };
-
         let rel_pos = RelativePos::from_opts(start, end);
-        Blob::new_sliced(self, rel_pos, relativeContentType)
+        Blob::new_sliced(self, rel_pos, contentType.unwrap_or(DOMString::from("")))
     }
 
     // https://w3c.github.io/FileAPI/#dfn-isClosed
@@ -350,15 +340,17 @@ impl BlobMethods for Blob {
     }
 }
 
-impl BlobBinding::BlobPropertyBag {
-    /// Get the normalized inner type string
-    /// https://w3c.github.io/FileAPI/#dfn-type
-    pub fn get_typestring(&self) -> String {
-        if is_ascii_printable(&self.type_) {
-            self.type_.to_lowercase()
-        } else {
-            "".to_string()
+/// Get the normalized, MIME-parsable type string
+/// https://w3c.github.io/FileAPI/#dfn-type
+fn normalize_type_string(s: &str) -> String {
+    if is_ascii_printable(s) {
+        let s_lower = s.to_lowercase();
+        match s_lower.parse() as Result<Mime, ()> {
+            Ok(_) => s_lower,
+            Err(_) => "".to_string()
         }
+    } else {
+        "".to_string()
     }
 }
 
