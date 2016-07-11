@@ -461,6 +461,7 @@ fn append_shorthand_value<'a, W, I>(dest: &mut W,
     match shorthand {
         Shorthand::Margin => try!(append_margin_shorthand(dest, declarations)),
         Shorthand::Padding => try!(append_padding_shorthand(dest, declarations)),
+        Shorthand::Overflow => try!(append_overflow_shorthand(dest, declarations)),
         _ => {}
     };
 
@@ -574,6 +575,64 @@ fn append_positional_shorthand<W, I>(dest: &mut W,
       }
 
       Ok(())
+}
+
+// FIXME: when x/y are different, it is rendering like overflow: auto hidden instead of separating
+// them out into overflow-x and overflow-y values.
+fn append_overflow_shorthand<'a, W, I>(dest: &mut W,
+                                    declarations: I)
+                            -> fmt::Result
+                            where W: fmt::Write, I: Iterator<Item=&'a PropertyDeclaration> {
+
+    use properties::longhands::overflow_y::computed_value::T as YContainer;
+
+    let mut x_value = None;
+    let mut y_value = None;
+
+    // Unfortunately, we must do a sub match on the OverflowX and OverflowY values,
+    // because their declared values are not of the same type and therefore
+    // we cannot use PartialEq without first extracting the value from the y container
+
+    for decl in declarations {
+        match decl {
+            &PropertyDeclaration::OverflowX(ref declared_value) => {
+                match declared_value {
+                    &DeclaredValue::Value(value) => { x_value = Some(value); },
+                    _ => return Err(fmt::Error)
+                }
+            },
+            &PropertyDeclaration::OverflowY(ref declared_value) => {
+                match declared_value {
+                    &DeclaredValue::Value(container_value) => {
+                        let YContainer(value) = container_value;
+                        y_value = Some(value);
+                    },
+                    _ => return Err(fmt::Error)
+                }
+            },
+            _ => return Err(fmt::Error)
+        }
+    }
+
+
+    let (x_value, y_value) = match (x_value, y_value) {
+        (Some(x_value), Some(y_value)) => {
+            (x_value, y_value)
+        },
+        _ => return Err(fmt::Error)
+    };
+
+
+    if x_value == y_value {
+        try!(x_value.to_css(dest));
+    }
+    else {
+        try!(x_value.to_css(dest));
+        try!(write!(dest, " "));
+        try!(y_value.to_css(dest));
+    }
+
+    Ok(())
 }
 
 fn append_serialization<'a, W, I>(dest: &mut W,
