@@ -26,8 +26,6 @@ extern crate url;
 #[cfg(all(unix, not(target_os = "macos"), not(target_os = "ios"), not(target_os = "android")))]
 extern crate xdg;
 
-use std::sync::Arc;
-
 pub mod basedir;
 pub mod geometry;
 #[cfg(feature = "servo")] #[allow(unsafe_code)] pub mod ipc;
@@ -37,14 +35,6 @@ pub mod prefs;
 pub mod resource_files;
 pub mod thread;
 pub mod thread_state;
-
-// Workaround for lack of `ptr_eq` on Arcs...
-#[inline]
-pub fn arc_ptr_eq<T: 'static>(a: &Arc<T>, b: &Arc<T>) -> bool {
-    let a: &T = &**a;
-    let b: &T = &**b;
-    (a as *const T) == (b as *const T)
-}
 
 pub fn servo_version() -> &'static str {
     concat!("Servo ", env!("CARGO_PKG_VERSION"), env!("GIT_INFO"))

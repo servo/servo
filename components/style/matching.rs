@@ -7,6 +7,7 @@
 #![allow(unsafe_code)]
 
 use animation::{self, Animation};
+use arc_ptr_eq;
 use cache::{LRUCache, SimpleHashCache};
 use context::{StyleContext, SharedStyleContext};
 use data::PrivateStyleData;
@@ -25,7 +26,6 @@ use std::hash::{BuildHasherDefault, Hash, Hasher};
 use std::slice::Iter;
 use std::sync::Arc;
 use string_cache::{Atom, Namespace};
-use util::arc_ptr_eq;
 use util::opts;
 
 fn create_common_style_affecting_attributes_from_element<E: TElement>(element: &E)

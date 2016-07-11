@@ -32,6 +32,7 @@ use std::cmp::max;
 use std::collections::VecDeque;
 use std::sync::Arc;
 use std::{fmt, i32, isize, mem};
+use style::arc_ptr_eq;
 use style::computed_values::{display, overflow_x, position, text_align, text_justify};
 use style::computed_values::{text_overflow, vertical_align, white_space};
 use style::context::StyleContext;
@@ -41,7 +42,6 @@ use style::servo::SharedStyleContext;
 use style::values::computed::LengthOrPercentage;
 use text;
 use unicode_bidi;
-use util;
 
 // From gfxFontConstants.h in Firefox
 static FONT_SUBSCRIPT_OFFSET_RATIO: f32 = 0.20;
@@ -360,7 +360,7 @@ impl LineBreaker {
                 (&mut SpecificFragmentInfo::ScannedText(ref mut result_info),
                  &SpecificFragmentInfo::ScannedText(ref candidate_info)) => {
                     result_info.selected() == candidate_info.selected() &&
-                    util::arc_ptr_eq(&result_info.run, &candidate_info.run) &&
+                    arc_ptr_eq(&result_info.run, &candidate_info.run) &&
                         inline_contexts_are_equal(&result.inline_context,
                                                   &candidate.inline_context)
                 }
@@ -1780,7 +1780,7 @@ impl InlineFragmentContext {
             return false
         }
         for (this_node, other_node) in self.nodes.iter().zip(&other.nodes) {
-            if !util::arc_ptr_eq(&this_node.style, &other_node.style) {
+            if !arc_ptr_eq(&this_node.style, &other_node.style) {
                 return false
             }
         }
