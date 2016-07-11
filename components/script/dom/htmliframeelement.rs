@@ -360,7 +360,7 @@ impl MozBrowserEventDetailBuilder for HTMLIFrameElement {
             MozBrowserEvent::Error(error_type, description, report) => {
                 BrowserElementErrorEventDetail {
                     type_: Some(DOMString::from(error_type.name())),
-                    description: description.map(DOMString::from),
+                    description: Some(DOMString::from(description)),
                     report: report.map(DOMString::from),
                     version: Some(DOMString::from_string(servo_version().into())),
                 }.to_jsval(cx, rval);

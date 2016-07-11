@@ -23,7 +23,7 @@ use ipc_channel::ipc::IpcSender;
 use js::jsapi::{HandleValue, JSContext, JSRuntime};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
-use msg::constellation_msg::{PipelineId, ReferrerPolicy, PanicMsg};
+use msg::constellation_msg::{PipelineId, ReferrerPolicy};
 use net_traits::{LoadContext, ResourceThreads, load_whole_resource};
 use net_traits::{LoadOrigin, IpcSend};
 use profile_traits::{mem, time};
@@ -58,7 +58,6 @@ pub fn prepare_workerscope_init(global: GlobalRef,
             time_profiler_chan: global.time_profiler_chan().clone(),
             from_devtools_sender: devtools_sender,
             constellation_chan: global.constellation_chan().clone(),
-            panic_chan: global.panic_chan().clone(),
             scheduler_chan: global.scheduler_chan().clone(),
             worker_id: worker_id
         };
@@ -110,9 +109,6 @@ pub struct WorkerGlobalScope {
 
     #[ignore_heap_size_of = "Defined in std"]
     scheduler_chan: IpcSender<TimerEventRequest>,
-
-    #[ignore_heap_size_of = "Defined in ipc-channel"]
-    panic_chan: IpcSender<PanicMsg>,
 }
 
 impl WorkerGlobalScope {
@@ -144,7 +140,6 @@ impl WorkerGlobalScope {
             devtools_wants_updates: Cell::new(false),
             constellation_chan: init.constellation_chan,
             scheduler_chan: init.scheduler_chan,
-            panic_chan: init.panic_chan,
         }
     }
 
@@ -219,10 +214,6 @@ impl WorkerGlobalScope {
         let WorkerId(id_num) = worker_id;
         self.next_worker_id.set(WorkerId(id_num + 1));
         worker_id
-    }
-
-    pub fn panic_chan(&self) -> &IpcSender<PanicMsg> {
-        &self.panic_chan
     }
 
     pub fn get_runnable_wrapper(&self) -> RunnableWrapper {
