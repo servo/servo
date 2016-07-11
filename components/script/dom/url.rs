@@ -16,7 +16,7 @@ use dom::urlsearchparams::URLSearchParams;
 use ipc_channel::ipc;
 use net_traits::IpcSend;
 use net_traits::blob_url_store::parse_blob_url;
-use net_traits::filemanager_thread::{SelectedFileId, FileManagerThreadMsg};
+use net_traits::filemanager_thread::{FileOrigin, SelectedFileId, FileManagerThreadMsg};
 use std::borrow::ToOwned;
 use std::default::Default;
 use url::quirks::domain_to_unicode;
@@ -125,7 +125,7 @@ impl URL {
             return DOMString::from(URL::unicode_serialization_blob_url(&origin, &id));
         }
 
-        let id = blob.get_id();
+        let id = blob.get_blob_url_id();
 
         DOMString::from(URL::unicode_serialization_blob_url(&origin, &id.0))
     }
@@ -148,7 +148,7 @@ impl URL {
                 let filemanager = global.resource_threads().sender();
                 let id = SelectedFileId(id.simple().to_string());
                 let (tx, rx) = ipc::channel().unwrap();
-                let msg = FileManagerThreadMsg::DecRef(id, origin, tx);
+                let msg = FileManagerThreadMsg::RevokeBlobURL(id, origin, tx);
                 let _ = filemanager.send(msg);
 
                 let _ = rx.recv().unwrap();
@@ -173,12 +173,11 @@ impl URL {
         result
     }
 
-    // XXX: change String to FileOrigin
     /* NOTE(izgzhen): WebKit will return things like blob:file:///XXX
        while Chrome will return blob:null/XXX
        This is not well-specified, and I prefer the WebKit way here
     */
-    fn get_blob_origin(url: &Url) -> String {
+    fn get_blob_origin(url: &Url) -> FileOrigin {
         if url.scheme() == "file" {
             "file://".to_string()
         } else {

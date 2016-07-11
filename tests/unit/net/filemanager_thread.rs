@@ -62,10 +62,10 @@ fn test_filemanager() {
         // Delete the id
         {
             let (tx2, rx2) = ipc::channel().unwrap();
-            chan.send(FileManagerThreadMsg::DecRef(selected.id.clone(), origin.clone(), tx2)).unwrap();
+            chan.send(FileManagerThreadMsg::RevokeBlobURL(selected.id.clone(), origin.clone(), tx2)).unwrap();
 
             let ret = rx2.recv().expect("Broken channel");
-            assert!(ret.is_ok(), "DecRef is not okay");
+            assert!(ret.is_ok(), "RevokeBlobURL is not okay");
         }
 
         // Test by reading again, expecting read error because we invalidated the id
