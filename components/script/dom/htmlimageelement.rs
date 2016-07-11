@@ -81,6 +81,8 @@ impl ImageResponseHandlerRunnable {
 }
 
 impl Runnable for ImageResponseHandlerRunnable {
+    fn name(&self) -> &'static str { "ImageResponseHandlerRunnable" }
+
     fn handler(self: Box<Self>) {
         // Update the image field
         let element = self.element.root();
@@ -183,7 +185,7 @@ impl HTMLImageElement {
                         src: src.into(),
                     });
                     let task = window.dom_manipulation_task_source();
-                    let _ = task.queue(DOMManipulationTask::Miscellaneous(runnable));
+                    let _ = task.queue(DOMManipulationTask::Runnable(runnable));
                 }
             }
         }

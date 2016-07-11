@@ -8,7 +8,6 @@ extern crate cssparser;
 extern crate env_logger;
 extern crate euclid;
 extern crate gecko_bindings;
-#[cfg(feature = "servo_features")] #[macro_use] extern crate heapsize;
 #[macro_use]
 extern crate lazy_static;
 extern crate libc;

@@ -242,7 +242,7 @@ impl HTMLMediaElement {
             elem: Trusted::new(self),
         };
         let win = window_from_node(self);
-        let _ = win.dom_manipulation_task_source().queue(DOMManipulationTask::MediaTask(box task));
+        let _ = win.dom_manipulation_task_source().queue(DOMManipulationTask::Runnable(box task));
     }
 
     // https://html.spec.whatwg.org/multipage/#internal-pause-steps step 2.2
@@ -266,13 +266,13 @@ impl HTMLMediaElement {
             elem: Trusted::new(self),
         };
         let win = window_from_node(self);
-        let _ = win.dom_manipulation_task_source().queue(DOMManipulationTask::MediaTask(box task));
+        let _ = win.dom_manipulation_task_source().queue(DOMManipulationTask::Runnable(box task));
     }
 
     fn queue_fire_simple_event(&self, type_: &'static str) {
         let win = window_from_node(self);
         let task = FireSimpleEventTask::new(self, type_);
-        let _ = win.dom_manipulation_task_source().queue(DOMManipulationTask::MediaTask(box task));
+        let _ = win.dom_manipulation_task_source().queue(DOMManipulationTask::Runnable(box task));
     }
 
     fn fire_simple_event(&self, type_: &str) {
@@ -473,10 +473,12 @@ impl HTMLMediaElement {
             // 4.2
             let context = Arc::new(Mutex::new(HTMLMediaElementContext::new(self, url.clone())));
             let (action_sender, action_receiver) = ipc::channel().unwrap();
-            let script_chan = window_from_node(self).networking_task_source();
+            let window = window_from_node(self);
+            let script_chan = window.networking_task_source();
             let listener = box NetworkListener {
                 context: context,
                 script_chan: script_chan,
+                wrapper: Some(window.get_runnable_wrapper()),
             };
 
             let response_target = AsyncResponseTarget {
@@ -497,7 +499,7 @@ impl HTMLMediaElement {
 
     fn queue_dedicated_media_source_failure_steps(&self) {
         let _ = window_from_node(self).dom_manipulation_task_source().queue(
-            DOMManipulationTask::MediaTask(box DedicatedMediaSourceFailureTask::new(self)));
+            DOMManipulationTask::Runnable(box DedicatedMediaSourceFailureTask::new(self)));
     }
 
     // https://html.spec.whatwg.org/multipage/#dedicated-media-source-failure-steps
@@ -736,6 +738,8 @@ impl FireSimpleEventTask {
 }
 
 impl Runnable for FireSimpleEventTask {
+    fn name(&self) -> &'static str { "FireSimpleEventTask" }
+
     fn handler(self: Box<FireSimpleEventTask>) {
         let elem = self.elem.root();
         elem.fire_simple_event(self.type_);
@@ -757,6 +761,8 @@ impl ResourceSelectionTask {
 }
 
 impl Runnable for ResourceSelectionTask {
+    fn name(&self) -> &'static str { "ResourceSelectionTask" }
+
     fn handler(self: Box<ResourceSelectionTask>) {
         self.elem.root().resource_selection_algorithm_sync(self.base_url);
     }
@@ -775,6 +781,8 @@ impl DedicatedMediaSourceFailureTask {
 }
 
 impl Runnable for DedicatedMediaSourceFailureTask {
+    fn name(&self) -> &'static str { "DedicatedMediaSourceFailureTask" }
+
     fn handler(self: Box<DedicatedMediaSourceFailureTask>) {
         self.elem.root().dedicated_media_source_failure();
     }

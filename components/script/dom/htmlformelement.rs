@@ -484,8 +484,7 @@ impl HTMLFormElement {
         };
 
         // Step 3
-        window.dom_manipulation_task_source().queue(
-            DOMManipulationTask::PlannedNavigation(nav)).unwrap();
+        window.dom_manipulation_task_source().queue(DOMManipulationTask::Runnable(nav)).unwrap();
     }
 
     /// Interactively validate the constraints of form elements
@@ -937,6 +936,8 @@ struct PlannedNavigation {
 }
 
 impl Runnable for PlannedNavigation {
+    fn name(&self) -> &'static str { "PlannedNavigation" }
+
     fn handler(self: Box<PlannedNavigation>) {
         if self.generation_id == self.form.root().generation_id.get() {
             let script_chan = self.script_chan.clone();

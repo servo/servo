@@ -11,13 +11,13 @@ use dom::bindings::codegen::Bindings::BluetoothRemoteGATTDescriptorBinding;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTDescriptorBinding::BluetoothRemoteGATTDescriptorMethods;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding::BluetoothRemoteGATTServiceMethods;
-use dom::bindings::error::Error::{Network, Security, Type};
+use dom::bindings::error::Error::{InvalidModification, Network, Security, Type};
 use dom::bindings::error::{Fallible, ErrorResult};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutHeap, Root};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::{ByteString, DOMString};
-use dom::bluetoothremotegattcharacteristic::BluetoothRemoteGATTCharacteristic;
+use dom::bluetoothremotegattcharacteristic::{BluetoothRemoteGATTCharacteristic, MAXIMUM_ATTRIBUTE_LENGTH};
 use ipc_channel::ipc::{self, IpcSender};
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
 
@@ -112,6 +112,12 @@ impl BluetoothRemoteGATTDescriptorMethods for BluetoothRemoteGATTDescriptor {
     fn WriteValue(&self, value: Vec<u8>) -> ErrorResult {
         if uuid_is_blacklisted(self.uuid.as_ref(), Blacklist::Writes) {
             return Err(Security)
+        }
+        if value.len() > MAXIMUM_ATTRIBUTE_LENGTH {
+            return Err(InvalidModification)
+        }
+        if !self.Characteristic().Service().Device().Gatt().Connected() {
+            return Err(Network)
         }
         let (sender, receiver) = ipc::channel().unwrap();
         self.get_bluetooth_thread().send(

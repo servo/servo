@@ -15,9 +15,6 @@ pub type SharedStyleContext = style::context::SharedStyleContext<GeckoSelectorIm
 pub type PrivateStyleData = style::data::PrivateStyleData<GeckoSelectorImpl, GeckoComputedValues>;
 pub type Animation = style::animation::Animation<GeckoSelectorImpl>;
 
-#[cfg(feature = "servo_features")]
-known_heap_size!(0, GeckoSelectorImpl, PseudoElement, NonTSPseudoClass);
-
 #[derive(Debug, Clone)]
 pub struct GeckoSelectorImpl;
 

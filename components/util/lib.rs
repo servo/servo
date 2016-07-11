@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![cfg_attr(feature = "servo", feature(core_intrinsics))]
 #![cfg_attr(feature = "servo", feature(custom_derive))]
 #![cfg_attr(feature = "servo", feature(fnbox))]
 #![cfg_attr(feature = "servo", feature(plugin))]
@@ -21,7 +20,6 @@ extern crate getopts;
 #[allow(unused_extern_crates)] #[macro_use] extern crate lazy_static;
 #[macro_use] extern crate log;
 extern crate num_cpus;
-extern crate rand;
 extern crate rustc_serialize;
 #[cfg(feature = "servo")] extern crate serde;
 extern crate url;
@@ -31,7 +29,6 @@ extern crate xdg;
 use std::sync::Arc;
 
 pub mod basedir;
-pub mod cache;
 pub mod geometry;
 #[cfg(feature = "servo")] #[allow(unsafe_code)] pub mod ipc;
 #[allow(unsafe_code)] pub mod opts;
@@ -40,12 +37,6 @@ pub mod prefs;
 pub mod resource_files;
 pub mod thread;
 pub mod thread_state;
-
-#[cfg(feature = "servo")]
-#[allow(unsafe_code)]
-pub fn breakpoint() {
-    unsafe { ::std::intrinsics::breakpoint() };
-}
 
 // Workaround for lack of `ptr_eq` on Arcs...
 #[inline]

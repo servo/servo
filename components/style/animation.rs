@@ -498,7 +498,7 @@ where Impl: SelectorImplExt,
     debug!("update_style_for_animation: entering");
     debug_assert!(!animation.is_expired());
     match *animation {
-        Animation::Transition(_, start_time, ref frame, expired) => {
+        Animation::Transition(_, start_time, ref frame, _) => {
             debug!("update_style_for_animation: transition found");
             let now = time::precise_time_s();
             let mut new_style = (*style).clone();
@@ -626,7 +626,9 @@ where Impl: SelectorImplExt,
             // NB: The spec says that the timing function can be overwritten
             // from the keyframe style.
             let mut timing_function = style.get_box().animation_timing_function_mod(index);
-            if from_style.get_box().animation_timing_function_count() != 0 {
+            if last_keyframe.declared_timing_function {
+                // NB: animation_timing_function can never be empty, always has
+                // at least the default value (`ease`).
                 timing_function = from_style.get_box().animation_timing_function_at(0);
             }
 

@@ -258,6 +258,7 @@ impl XMLHttpRequest {
         let listener = NetworkListener {
             context: context,
             script_chan: script_chan,
+            wrapper: None,
         };
         ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
             listener.notify_fetch(message.to().unwrap());

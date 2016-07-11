@@ -331,6 +331,7 @@ partial interface CSSStyleDeclaration {
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString alignSelf;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString align-self;
 
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString animation;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString animation-name;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString animationName;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString animation-duration;

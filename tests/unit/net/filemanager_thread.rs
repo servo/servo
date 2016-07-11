@@ -40,8 +40,8 @@ fn test_filemanager() {
     {
         // Try to select a dummy file "tests/unit/net/test.txt"
         let (tx, rx) = ipc::channel().unwrap();
-        chan.send(FileManagerThreadMsg::SelectFile(patterns.clone(), tx, origin.clone())).unwrap();
-        let selected = rx.recv().expect("File manager channel is broken")
+        chan.send(FileManagerThreadMsg::SelectFile(patterns.clone(), tx, origin.clone(), None)).unwrap();
+        let selected = rx.recv().expect("Broken channel")
                                 .expect("The file manager failed to find test.txt");
 
         // Expecting attributes conforming the spec
@@ -53,21 +53,27 @@ fn test_filemanager() {
             let (tx2, rx2) = ipc::channel().unwrap();
             chan.send(FileManagerThreadMsg::ReadFile(tx2, selected.id.clone(), origin.clone())).unwrap();
 
-            let msg = rx2.recv().expect("File manager channel is broken");
+            let msg = rx2.recv().expect("Broken channel");
 
             let vec = msg.expect("File manager reading failure is unexpected");
             assert!(test_file_content == vec, "Read content differs");
         }
 
         // Delete the id
-        chan.send(FileManagerThreadMsg::DecRef(selected.id.clone(), origin.clone())).unwrap();
+        {
+            let (tx2, rx2) = ipc::channel().unwrap();
+            chan.send(FileManagerThreadMsg::DecRef(selected.id.clone(), origin.clone(), tx2)).unwrap();
+
+            let ret = rx2.recv().expect("Broken channel");
+            assert!(ret.is_ok(), "DecRef is not okay");
+        }
 
         // Test by reading again, expecting read error because we invalidated the id
         {
             let (tx2, rx2) = ipc::channel().unwrap();
             chan.send(FileManagerThreadMsg::ReadFile(tx2, selected.id.clone(), origin.clone())).unwrap();
 
-            let msg = rx2.recv().expect("File manager channel is broken");
+            let msg = rx2.recv().expect("Broken channel");
 
             match msg {
                 Err(FileManagerThreadError::ReadFileError) => {},
@@ -82,7 +88,7 @@ fn test_filemanager() {
 
     {
         let (tx, rx) = ipc::channel().unwrap();
-        let _ = chan.send(FileManagerThreadMsg::SelectFile(patterns.clone(), tx, origin.clone()));
+        let _ = chan.send(FileManagerThreadMsg::SelectFile(patterns.clone(), tx, origin.clone(), None));
 
         assert!(rx.try_recv().is_err(), "The thread should not respond normally after exited");
     }

@@ -606,9 +606,18 @@ fn interpolate_transform_list(from_list: &[TransformOperation],
                     result.push(TransformOperation::Scale(ix, iy, iz));
                 }
                 (&TransformOperation::Rotate(fx, fy, fz, fa),
-                 &TransformOperation::Rotate(_tx, _ty, _tz, _ta)) => {
-                    // TODO(gw): Implement matrix decomposition and interpolation
-                    result.push(TransformOperation::Rotate(fx, fy, fz, fa));
+                 &TransformOperation::Rotate(tx, ty, tz, ta)) => {
+                    let norm_f = ((fx * fx) + (fy * fy) + (fz * fz)).sqrt();
+                    let norm_t = ((tx * tx) + (ty * ty) + (tz * tz)).sqrt();
+                    let (fx, fy, fz) = (fx / norm_f, fy / norm_f, fz / norm_f);
+                    let (tx, ty, tz) = (tx / norm_t, ty / norm_t, tz / norm_t);
+                    if fx == tx && fy == ty && fz == tz {
+                        let ia = fa.interpolate(&ta, time).unwrap();
+                        result.push(TransformOperation::Rotate(fx, fy, fz, ia));
+                    } else {
+                        // TODO(gw): Implement matrix decomposition and interpolation
+                        result.push(TransformOperation::Rotate(fx, fy, fz, fa));
+                    }
                 }
                 (&TransformOperation::Perspective(fd),
                  &TransformOperation::Perspective(_td)) => {

@@ -1,21 +1,21 @@
 # Hacking Servo - Quickstart
 
-This guide covers the basics things one needs to know to start hacking Servo.
+This guide covers the basic things one needs to know to start hacking Servo.
 It doesn't cover how Servo works (see the [documentation](#documentation) section for that),
-but describe how to setup your environment to compile, run, and debug Servo. For information
+but describes how to setup your environment to compile, run, and debug Servo. For information
 on the [Github Workflow](https://github.com/servo/servo/wiki/Github-workflow) and some helpful
-[Git Tips](https://github.com/servo/servo/wiki/Github-workflow#git-tips) see the
+[Git Tips](https://github.com/servo/servo/wiki/Github-workflow#git-tips), see the
 [Wiki](https://github.com/servo/servo/wiki).
 
 ## Building Servo
 
-Building Servo is quite easy. Install the prerequisites described in the [README](../README.md) file. Then type:
+Building Servo is quite easy. Install the prerequisites described in the [README](../README.md) file, then type:
 
 ```shell
 ./mach build -d
 ```
 
-*Note: on Mac, you might run into a SSL issue while compiling. You'll find a solution to this problem [here](https://github.com/sfackler/rust-openssl/issues/255).*
+*Note: on Mac, you might run into an SSL issue while compiling. You'll find a solution to this problem [here](https://github.com/sfackler/rust-openssl/issues/255).*
 
 The `-d` option means "debug build". You can also build with the `-r` option which means "release build". Building with `-d` will allow you to use a debugger (lldb). A `-r` build is more performant. Release builds are slower to build.
 
@@ -23,7 +23,7 @@ You can use and build a release build and a debug build in parallel.
 
 ## Running Servo
 
-The servo binary is located in `target/debug/servo` (or `target/release/servo`). You can directly run this binary. But we recommend using `./mach` instead:
+The servo binary is located in `target/debug/servo` (or `target/release/servo`). You can directly run this binary, but we recommend using `./mach` instead:
 
 ``` shell
 ./mach run -d -- http://github.com
@@ -45,7 +45,7 @@ If you build with `-d`, run with `-d`. If you build with `-r`, run with `-r`.
 ./mach run -d [mach options] -- [servo options]
 ```
 
-The `--`  separates `mach` options from `servo` options. This is not required, but we recommend it. `mach` and `servo` have some options with the same name (`--help`, `--debug`), the `--` makes it clear where options apply.
+The `--`  separates `mach` options from `servo` options. This is not required, but we recommend it. `mach` and `servo` have some options with the same name (`--help`, `--debug`), so the `--` makes it clear where options apply.
 
 ## Mach and Servo options
 
@@ -68,14 +68,14 @@ Even if you have never seen any Rust code, it's not too hard to read Servo's cod
 
 This won't be enough to do any serious work at first, but if you want to navigate the code and fix basic bugs, that should do it. It's a good starting point, and as you dig into Servo source code, you'll learn more.
 
-For a more exhaustive documentation:
+For more exhaustive documentation:
 
 - [doc.rust-lang.org](https://doc.rust-lang.org)
 - [rust by example](http://rustbyexample.com)
 
 ## Cargo and Crates
 
-A Rust library is called a crate. Servo uses plenty of crates. These crates are dependencies. They are listed in files called `Cargo.toml`. Servo is split in components and ports (see `components` and `ports` directories). Each has its own dependencies, each has its own `Cargo.toml` file.
+A Rust library is called a crate. Servo uses plenty of crates. These crates are dependencies. They are listed in files called `Cargo.toml`. Servo is split in components and ports (see `components` and `ports` directories). Each has its own dependencies, and each has its own `Cargo.toml` file.
 
 `Cargo.toml` files list the dependencies. You can edit this file.
 
@@ -198,7 +198,7 @@ From here, use:
 (lldb) print varname
 ```
 
-And to search for a function full name/regex:
+And to search for a function's full name/regex:
 
 ```shell
 (lldb) image lookup -r -n <name> #lldb
@@ -241,7 +241,7 @@ To run a test:
 
 ### Updating a test:
 
-In some cases extensive tests for the feature you're working on may already exist under tests/wpt:
+In some cases, extensive tests for the feature you're working on already exist under tests/wpt:
 
 - Make a release build
 - run `./mach test-wpt --release --log-raw=/path/to/some/logfile`

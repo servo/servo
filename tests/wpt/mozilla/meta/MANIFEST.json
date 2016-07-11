@@ -4540,6 +4540,18 @@
             "url": "/_mozilla/css/root_pseudo_a.html"
           }
         ],
+        "css/rotate_anim.html": [
+          {
+            "path": "css/rotate_anim.html",
+            "references": [
+              [
+                "/_mozilla/css/rotate_anim_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/rotate_anim.html"
+          }
+        ],
         "css/rtl_body.html": [
           {
             "path": "css/rtl_body.html",
@@ -4958,6 +4970,18 @@
               ]
             ],
             "url": "/_mozilla/css/table_specified_width_a.html"
+          }
+        ],
+        "css/table_vertical_align_margin_padding.html": [
+          {
+            "path": "css/table_vertical_align_margin_padding.html",
+            "references": [
+              [
+                "/_mozilla/css/table_vertical_align_margin_padding_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/table_vertical_align_margin_padding.html"
           }
         ],
         "css/table_width_attribute_a.html": [
@@ -6444,6 +6468,12 @@
             "url": "/_mozilla/mozilla/event_listener.html"
           }
         ],
+        "mozilla/file_upload.html": [
+          {
+            "path": "mozilla/file_upload.html",
+            "url": "/_mozilla/mozilla/file_upload.html"
+          }
+        ],
         "mozilla/focus_blur.html": [
           {
             "path": "mozilla/focus_blur.html",
@@ -6574,6 +6604,12 @@
           {
             "path": "mozilla/interfaces.html",
             "url": "/_mozilla/mozilla/interfaces.html"
+          }
+        ],
+        "mozilla/interfaces.worker.js": [
+          {
+            "path": "mozilla/interfaces.worker.js",
+            "url": "/_mozilla/mozilla/interfaces.worker"
           }
         ],
         "mozilla/lenient_this.html": [
@@ -11672,6 +11708,18 @@
           "url": "/_mozilla/css/root_pseudo_a.html"
         }
       ],
+      "css/rotate_anim.html": [
+        {
+          "path": "css/rotate_anim.html",
+          "references": [
+            [
+              "/_mozilla/css/rotate_anim_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/rotate_anim.html"
+        }
+      ],
       "css/rtl_body.html": [
         {
           "path": "css/rtl_body.html",
@@ -12090,6 +12138,18 @@
             ]
           ],
           "url": "/_mozilla/css/table_specified_width_a.html"
+        }
+      ],
+      "css/table_vertical_align_margin_padding.html": [
+        {
+          "path": "css/table_vertical_align_margin_padding.html",
+          "references": [
+            [
+              "/_mozilla/css/table_vertical_align_margin_padding_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/table_vertical_align_margin_padding.html"
         }
       ],
       "css/table_width_attribute_a.html": [

@@ -6,7 +6,7 @@ use net_traits::{Action, AsyncResponseListener, FetchResponseListener};
 use net_traits::{FetchResponseMsg, ResponseAction};
 use script_runtime::ScriptThreadEventCategory::NetworkEvent;
 use script_runtime::{CommonScriptMsg, ScriptChan};
-use script_thread::Runnable;
+use script_thread::{Runnable, RunnableWrapper};
 use std::sync::{Arc, Mutex};
 
 /// An off-thread sink for async network event runnables. All such events are forwarded to
@@ -14,15 +14,25 @@ use std::sync::{Arc, Mutex};
 pub struct NetworkListener<Listener: PreInvoke + Send + 'static> {
     pub context: Arc<Mutex<Listener>>,
     pub script_chan: Box<ScriptChan + Send>,
+    pub wrapper: Option<RunnableWrapper>,
 }
 
 impl<Listener: PreInvoke + Send + 'static> NetworkListener<Listener> {
     pub fn notify<A: Action<Listener> + Send + 'static>(&self, action: A) {
-        if let Err(err) = self.script_chan.send(CommonScriptMsg::RunnableMsg(NetworkEvent, box ListenerRunnable {
+        let runnable = ListenerRunnable {
             context: self.context.clone(),
             action: action,
-        })) {
-            warn!("failed to deliver network data: {:?}", err);
+        };
+        if let Some(ref wrapper) = self.wrapper {
+            if let Err(err) = self.script_chan.send(
+                CommonScriptMsg::RunnableMsg(NetworkEvent, wrapper.wrap_runnable(runnable))) {
+                warn!("failed to deliver network data: {:?}", err);
+            }
+        } else {
+            if let Err(err) = self.script_chan.send(
+                CommonScriptMsg::RunnableMsg(NetworkEvent, box runnable)) {
+                warn!("failed to deliver network data: {:?}", err);
+            }
         }
     }
 }

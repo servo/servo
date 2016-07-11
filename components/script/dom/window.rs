@@ -96,8 +96,8 @@ use timers::{IsInterval, OneshotTimerCallback, OneshotTimerHandle, OneshotTimers
 use tinyfiledialogs::{self, MessageBoxIcon};
 use url::Url;
 use util::geometry::{self, MAX_RECT};
+use util::opts;
 use util::prefs::PREFS;
-use util::{breakpoint, opts};
 use webdriver_handlers::jsval_to_webdriver;
 
 /// Current state of the window object
@@ -128,6 +128,7 @@ pub enum ReflowReason {
     FramedContentChanged,
     IFrameLoadEvent,
     MissingExplicitReflow,
+    ElementStateChanged,
 }
 
 pub type ScrollPoint = Point2D<Au>;
@@ -669,8 +670,9 @@ impl WindowMethods for Window {
         }
     }
 
+    #[allow(unsafe_code)]
     fn Trap(&self) {
-        breakpoint();
+        unsafe { ::std::intrinsics::breakpoint() }
     }
 
     #[allow(unsafe_code)]
@@ -947,7 +949,7 @@ impl Window {
         self.current_state.set(WindowState::Zombie);
         *self.js_runtime.borrow_mut() = None;
         self.browsing_context.set(None);
-        self.ignore_further_async_events.store(true, Ordering::Relaxed);
+        self.ignore_further_async_events.store(true, Ordering::SeqCst);
     }
 
     /// https://drafts.csswg.org/cssom-view/#dom-window-scroll
@@ -1752,6 +1754,7 @@ fn debug_reflow_events(id: PipelineId, goal: &ReflowGoal, query_type: &ReflowQue
         ReflowReason::FramedContentChanged => "\tFramedContentChanged",
         ReflowReason::IFrameLoadEvent => "\tIFrameLoadEvent",
         ReflowReason::MissingExplicitReflow => "\tMissingExplicitReflow",
+        ReflowReason::ElementStateChanged => "\tElementStateChanged",
     });
 
     println!("{}", debug_msg);

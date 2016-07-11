@@ -190,7 +190,7 @@ pub struct CancellableRunnable<T: Runnable + Send> {
 
 impl<T: Runnable + Send> Runnable for CancellableRunnable<T> {
     fn is_cancelled(&self) -> bool {
-        self.cancelled.load(Ordering::Relaxed)
+        self.cancelled.load(Ordering::SeqCst)
     }
 
     fn handler(self: Box<CancellableRunnable<T>>) {
@@ -200,11 +200,9 @@ impl<T: Runnable + Send> Runnable for CancellableRunnable<T> {
 
 pub trait Runnable {
     fn is_cancelled(&self) -> bool { false }
-    fn handler(self: Box<Self>);
-}
-
-pub trait MainThreadRunnable {
-    fn handler(self: Box<Self>, script_thread: &ScriptThread);
+    fn name(&self) -> &'static str { "generic runnable" }
+    fn handler(self: Box<Self>) {}
+    fn main_thread_handler(self: Box<Self>, _script_thread: &ScriptThread) { self.handler(); }
 }
 
 enum MixedMessage {
@@ -1223,7 +1221,7 @@ impl ScriptThread {
 
         // https://html.spec.whatwg.org/multipage/#the-end step 7
         let handler = box DocumentProgressHandler::new(Trusted::new(doc));
-        self.dom_manipulation_task_source.queue(DOMManipulationTask::DocumentProgress(handler)).unwrap();
+        self.dom_manipulation_task_source.queue(DOMManipulationTask::Runnable(handler)).unwrap();
 
         self.constellation_chan.send(ConstellationMsg::LoadComplete(pipeline)).unwrap();
     }
@@ -2057,6 +2055,7 @@ impl ScriptThread {
         let listener = NetworkListener {
             context: context,
             script_chan: self.chan.clone(),
+            wrapper: None,
         };
         ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
             listener.notify_action(message.to().unwrap());

@@ -308,6 +308,7 @@ impl HTMLScriptElement {
                 let listener = NetworkListener {
                     context: context,
                     script_chan: doc.window().networking_task_source(),
+                    wrapper: Some(doc.window().get_runnable_wrapper()),
                 };
                 let response_target = AsyncResponseTarget {
                     sender: action_sender,

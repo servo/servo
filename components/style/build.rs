@@ -11,6 +11,10 @@ use walkdir::WalkDir;
 
 #[cfg(windows)]
 fn find_python() -> String {
+    if Command::new("python2.7.exe").arg("--version").output().is_ok() {
+        return "python2.7.exe".to_owned();
+    }
+
     if Command::new("python27.exe").arg("--version").output().is_ok() {
         return "python27.exe".to_owned();
     }
@@ -19,7 +23,8 @@ fn find_python() -> String {
         return "python.exe".to_owned();
     }
 
-    panic!("Can't find python (tried python27.exe and python.exe)! Try fixing PATH or setting the PYTHON env var");
+    panic!(concat!("Can't find python (tried python2.7.exe, python27.exe, and python.exe)! ",
+                   "Try fixing PATH or setting the PYTHON env var"));
 }
 
 #[cfg(not(windows))]
