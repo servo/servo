@@ -121,6 +121,10 @@ use structs::nsStyleImageLayers_Layer;
 unsafe impl Send for nsStyleImageLayers_Layer {}
 unsafe impl Sync for nsStyleImageLayers_Layer {}
 impl HeapSizeOf for nsStyleImageLayers_Layer { fn heap_size_of_children(&self) -> usize { 0 } }
+use structs::nsStyleImageLayers_LayerType;
+unsafe impl Send for nsStyleImageLayers_LayerType {}
+unsafe impl Sync for nsStyleImageLayers_LayerType {}
+impl HeapSizeOf for nsStyleImageLayers_LayerType { fn heap_size_of_children(&self) -> usize { 0 } }
 use structs::SheetParsingMode;
 use structs::nsMainThreadPtrHandle;
 use structs::nsMainThreadPtrHolder;
@@ -253,7 +257,8 @@ extern "C" {
     pub fn Gecko_EnsureImageLayersLength(layers: *mut nsStyleImageLayers,
                                          len: usize);
     pub fn Gecko_InitializeImageLayer(layer: *mut nsStyleImageLayers_Layer,
-                                      layer_type: u8);
+                                      layer_type:
+                                          nsStyleImageLayers_LayerType);
     pub fn Servo_StylesheetFromUTF8Bytes(bytes: *const u8, length: u32,
                                          parsing_mode: SheetParsingMode,
                                          base: *mut ThreadSafeURIHolder,

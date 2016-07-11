@@ -961,7 +961,7 @@ fn static_assert() {
             }
             Gecko_EnsureImageLayersLength(&mut self.gecko.mImage, images.0.len());
             for image in &mut self.gecko.mImage.mLayers {
-                Gecko_InitializeImageLayer(image, Background as u8);
+                Gecko_InitializeImageLayer(image, Background);
             }
         }
 
