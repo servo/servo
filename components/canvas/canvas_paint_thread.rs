@@ -30,7 +30,7 @@ impl<'a> CanvasPaintThread<'a> {
         let canvas_rect = Rect::new(Point2D::new(0i32, 0i32), canvas_size);
         let src_read_rect = canvas_rect.intersection(&read_rect).unwrap_or(Rect::zero());
 
-        let mut image_data = Vec::new();
+        let mut image_data = vec![];
         if src_read_rect.is_empty() || canvas_size.width <= 0 && canvas_size.height <= 0 {
           return image_data;
         }
@@ -110,7 +110,7 @@ impl<'a> CanvasPaintThread<'a> {
             drawtarget: draw_target,
             path_builder: path_builder,
             state: CanvasPaintState::new(),
-            saved_states: Vec::new(),
+            saved_states: vec![],
             webrender_api: webrender_api,
             webrender_image_key: webrender_image_key,
         }
@@ -543,13 +543,11 @@ impl<'a> CanvasPaintThread<'a> {
         self.drawtarget.snapshot().get_data_surface().with_data(|element| {
             if let Some(ref webrender_api) = self.webrender_api {
                 let size = self.drawtarget.get_size();
-                let mut bytes = Vec::new();
-                bytes.extend_from_slice(element);
                 webrender_api.update_image(self.webrender_image_key.unwrap(),
                                            size.width as u32,
                                            size.height as u32,
                                            webrender_traits::ImageFormat::RGBA8,
-                                           bytes);
+                                           element.into());
             }
 
             let pixel_data = CanvasPixelData {

@@ -15,7 +15,7 @@ use webrender_traits;
 
 enum WebGLPaintTaskData {
     WebRender(webrender_traits::RenderApi, webrender_traits::WebGLContextId),
-    Servo(GLContext<NativeGLContext>),
+    Readback(GLContext<NativeGLContext>, (Option<(webrender_traits::RenderApi, webrender_traits::ImageKey)>)),
 }
 
 pub struct WebGLPaintThread {
@@ -23,36 +23,56 @@ pub struct WebGLPaintThread {
     data: WebGLPaintTaskData,
 }
 
+fn create_readback_painter(size: Size2D<i32>,
+                           attrs: GLContextAttributes,
+                           webrender_api: Option<webrender_traits::RenderApi>)
+    -> Result<(WebGLPaintThread, GLLimits), String> {
+    let context = try!(GLContext::<NativeGLContext>::new(size, attrs, ColorAttachmentType::Texture, None));
+    let limits = context.borrow_limits().clone();
+    let webrender_api_and_image_key = webrender_api.map(|wr| {
+        let key = wr.alloc_image();
+        (wr, key)
+    });
+    let painter = WebGLPaintThread {
+        size: size,
+        data: WebGLPaintTaskData::Readback(context, webrender_api_and_image_key)
+    };
+
+    Ok((painter, limits))
+}
+
 impl WebGLPaintThread {
     fn new(size: Size2D<i32>,
            attrs: GLContextAttributes,
            webrender_api_sender: Option<webrender_traits::RenderApiSender>)
         -> Result<(WebGLPaintThread, GLLimits), String> {
-        let (data, limits) = if let Some(sender) = webrender_api_sender {
-            let webrender_api = sender.create_api();
-            let (id, limits) = try!(webrender_api.request_webgl_context(&size, attrs));
-            (WebGLPaintTaskData::WebRender(webrender_api, id), limits)
+        if let Some(sender) = webrender_api_sender {
+            let wr_api = sender.create_api();
+            match wr_api.request_webgl_context(&size, attrs) {
+                Ok((id, limits)) => {
+                    let painter = WebGLPaintThread {
+                        data: WebGLPaintTaskData::WebRender(wr_api, id),
+                        size: size
+                    };
+                    Ok((painter, limits))
+                },
+                Err(msg) => {
+                    warn!("Initial context creation failed, falling back to readback: {}", msg);
+                    create_readback_painter(size, attrs, Some(wr_api))
+                }
+            }
         } else {
-            let context = try!(GLContext::<NativeGLContext>::new(size, attrs, ColorAttachmentType::Texture, None));
-            let limits = context.borrow_limits().clone();
-            (WebGLPaintTaskData::Servo(context), limits)
-        };
-
-        let painter_object = WebGLPaintThread {
-            size: size,
-            data: data,
-        };
-
-        Ok((painter_object, limits))
+            create_readback_painter(size, attrs, None)
+        }
     }
 
-    pub fn handle_webgl_message(&self, message: webrender_traits::WebGLCommand) {
+    fn handle_webgl_message(&self, message: webrender_traits::WebGLCommand) {
         debug!("WebGL message: {:?}", message);
         match self.data {
             WebGLPaintTaskData::WebRender(ref api, id) => {
                 api.send_webgl_command(id, message);
             }
-            WebGLPaintTaskData::Servo(ref ctx) => {
+            WebGLPaintTaskData::Readback(ref ctx, _) => {
                 message.apply(ctx);
             }
         }
@@ -104,7 +124,7 @@ impl WebGLPaintThread {
 
     fn send_data(&mut self, chan: IpcSender<CanvasData>) {
         match self.data {
-            WebGLPaintTaskData::Servo(_) => {
+            WebGLPaintTaskData::Readback(_, ref webrender_api_and_image_key) => {
                 let width = self.size.width as usize;
                 let height = self.size.height as usize;
 
@@ -125,9 +145,19 @@ impl WebGLPaintThread {
                 // rgba -> bgra
                 byte_swap(&mut pixels);
 
+                if let Some((ref wr, wr_image_key)) = *webrender_api_and_image_key {
+                    // TODO: This shouldn't be a common path, but try to avoid
+                    // the spurious clone().
+                    wr.update_image(wr_image_key,
+                                    width as u32,
+                                    height as u32,
+                                    webrender_traits::ImageFormat::RGBA8,
+                                    pixels.clone());
+                }
+
                 let pixel_data = CanvasPixelData {
                     image_data: IpcSharedMemory::from_bytes(&pixels[..]),
-                    image_key: None,
+                    image_key: webrender_api_and_image_key.as_ref().map(|&(_, key)| key),
                 };
 
                 chan.send(CanvasData::Pixels(pixel_data)).unwrap();
@@ -141,7 +171,7 @@ impl WebGLPaintThread {
     #[allow(unsafe_code)]
     fn recreate(&mut self, size: Size2D<i32>) -> Result<(), &'static str> {
         match self.data {
-            WebGLPaintTaskData::Servo(ref mut context) => {
+            WebGLPaintTaskData::Readback(ref mut context, _) => {
                 if size.width > self.size.width ||
                    size.height > self.size.height {
                     try!(context.resize(size));
@@ -160,7 +190,7 @@ impl WebGLPaintThread {
     }
 
     fn init(&mut self) {
-        if let WebGLPaintTaskData::Servo(ref context) = self.data {
+        if let WebGLPaintTaskData::Readback(ref context, _) = self.data {
             context.make_current().unwrap();
         }
     }
