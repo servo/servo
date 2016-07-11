@@ -1,7 +1,5 @@
 function formatLine(name, t){
-  var output = "[PERF]," + name + "," + t;
-  console.log(output);
-  //document.getElementById('timing').innerHTML += output + "<br/>";
+  console.log("[PERF]," + name + "," + t);
 }
 
 function printPerfTiming(){
