@@ -499,7 +499,7 @@ interface MouseEvent : UIEvent {
     boolean getModifierState (DOMString keyArg);
 };
 
-dictionary MouseEventInit : SharedKeyboardAndMouseEventInit {
+dictionary MouseEventInit : EventModifierInit {
     long           screenX = 0;
     long           screenY = 0;
     long           clientX = 0;
@@ -509,7 +509,7 @@ dictionary MouseEventInit : SharedKeyboardAndMouseEventInit {
     EventTarget?   relatedTarget = null;
 };
 
-dictionary SharedKeyboardAndMouseEventInit : UIEventInit {
+dictionary EventModifierInit : UIEventInit {
     boolean ctrlKey = false;
     boolean shiftKey = false;
     boolean altKey = false;
