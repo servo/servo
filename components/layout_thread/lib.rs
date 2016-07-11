@@ -76,7 +76,7 @@ use layout::traversal::RecalcStyleAndConstructFlows;
 use layout::webrender_helpers::{WebRenderDisplayListConverter, WebRenderFrameBuilder};
 use layout::wrapper::{LayoutNodeLayoutData, NonOpaqueStyleAndLayoutData};
 use layout_traits::LayoutThreadFactory;
-use msg::constellation_msg::{PanicMsg, PipelineId};
+use msg::constellation_msg::PipelineId;
 use net_traits::image_cache_thread::UsePlaceholder;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheResult, ImageCacheThread};
 use profile_traits::mem::{self, Report, ReportKind, ReportsChan};
@@ -244,7 +244,6 @@ impl LayoutThreadFactory for LayoutThread {
               chan: (Sender<Msg>, Receiver<Msg>),
               pipeline_port: IpcReceiver<LayoutControlMsg>,
               constellation_chan: IpcSender<ConstellationMsg>,
-              panic_chan: IpcSender<PanicMsg>,
               script_chan: IpcSender<ConstellationControlMsg>,
               paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
               image_cache_thread: ImageCacheThread,
@@ -253,9 +252,10 @@ impl LayoutThreadFactory for LayoutThread {
               mem_profiler_chan: mem::ProfilerChan,
               content_process_shutdown_chan: IpcSender<()>,
               webrender_api_sender: Option<webrender_traits::RenderApiSender>) {
-        thread::spawn_named_with_send_on_panic(format!("LayoutThread {:?}", id),
-                                               thread_state::LAYOUT,
-                                               move || {
+        thread::spawn_named(format!("LayoutThread {:?}", id),
+                      move || {
+            thread_state::initialize(thread_state::LAYOUT);
+            PipelineId::install(id);
             { // Ensures layout thread is destroyed before we send shutdown message
                 let sender = chan.0;
                 let layout = LayoutThread::new(id,
@@ -278,7 +278,7 @@ impl LayoutThreadFactory for LayoutThread {
                 }, reporter_name, sender, Msg::CollectReports);
             }
             let _ = content_process_shutdown_chan.send(());
-        }, Some(id), panic_chan);
+        });
     }
 }
 
@@ -747,7 +747,6 @@ impl LayoutThread {
                              info.layout_pair,
                              info.pipeline_port,
                              info.constellation_chan,
-                             info.panic_chan,
                              info.script_chan.clone(),
                              info.paint_chan.to::<LayoutToPaintMsg>(),
                              self.image_cache_thread.clone(),

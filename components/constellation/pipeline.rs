@@ -17,7 +17,7 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layers::geometry::DevicePixel;
 use layout_traits::LayoutThreadFactory;
-use msg::constellation_msg::{FrameId, FrameType, LoadData, PanicMsg, PipelineId};
+use msg::constellation_msg::{FrameId, FrameType, LoadData, PipelineId};
 use msg::constellation_msg::{PipelineNamespaceId, SubpageId};
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::ImageCacheThread;
@@ -89,8 +89,6 @@ pub struct InitialPipelineState {
     pub constellation_chan: IpcSender<ScriptMsg>,
     /// A channel for the layout thread to send messages to the constellation.
     pub layout_to_constellation_chan: IpcSender<LayoutMsg>,
-    /// A channel to report panics
-    pub panic_chan: IpcSender<PanicMsg>,
     /// A channel to schedule timer events.
     pub scheduler_chan: IpcSender<TimerEventRequest>,
     /// A channel to the compositor.
@@ -159,7 +157,6 @@ impl Pipeline {
                     frame_type: frame_type,
                     load_data: state.load_data.clone(),
                     paint_chan: layout_to_paint_chan.clone().to_opaque(),
-                    panic_chan: state.panic_chan.clone(),
                     pipeline_port: pipeline_port,
                     layout_to_constellation_chan: state.layout_to_constellation_chan.clone(),
                     content_process_shutdown_chan: layout_content_process_shutdown_chan.clone(),
@@ -182,7 +179,6 @@ impl Pipeline {
                             layout_to_paint_port,
                             chrome_to_paint_port,
                             state.compositor_proxy.clone_compositor_proxy(),
-                            state.panic_chan.clone(),
                             state.font_cache_thread.clone(),
                             state.time_profiler_chan.clone(),
                             state.mem_profiler_chan.clone());
@@ -234,7 +230,6 @@ impl Pipeline {
                 layout_to_constellation_chan: state.layout_to_constellation_chan,
                 script_chan: script_chan.clone(),
                 load_data: state.load_data.clone(),
-                panic_chan: state.panic_chan,
                 script_port: script_port,
                 opts: (*opts::get()).clone(),
                 prefs: PREFS.cloned(),
@@ -426,7 +421,6 @@ pub struct UnprivilegedPipelineContent {
     window_size: Option<WindowSizeData>,
     script_chan: IpcSender<ConstellationControlMsg>,
     load_data: LoadData,
-    panic_chan: IpcSender<PanicMsg>,
     script_port: IpcReceiver<ConstellationControlMsg>,
     layout_to_paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
     opts: Opts,
@@ -452,7 +446,6 @@ impl UnprivilegedPipelineContent {
             control_port: self.script_port,
             constellation_chan: self.constellation_chan,
             scheduler_chan: self.scheduler_chan,
-            panic_chan: self.panic_chan.clone(),
             bluetooth_thread: self.bluetooth_thread,
             resource_threads: self.resource_threads,
             image_cache_thread: self.image_cache_thread.clone(),
@@ -470,7 +463,6 @@ impl UnprivilegedPipelineContent {
                     layout_pair,
                     self.pipeline_port,
                     self.layout_to_constellation_chan,
-                    self.panic_chan,
                     self.script_chan,
                     self.layout_to_paint_chan,
                     self.image_cache_thread,

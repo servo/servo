@@ -38,8 +38,8 @@ use std::sync::atomic::AtomicBool;
 use std::sync::mpsc::{Receiver, RecvError, Select, Sender, channel};
 use std::sync::{Arc, Mutex};
 use url::Url;
-use util::thread::spawn_named_with_send_on_panic;
-use util::thread_state::{IN_WORKER, SCRIPT};
+use util::thread::spawn_named;
+use util::thread_state;
 
 /// Set the `worker` field of a related DedicatedWorkerGlobalScope object to a particular
 /// value for the duration of this object's lifetime. This ensures that the related Worker
@@ -161,8 +161,10 @@ impl DedicatedWorkerGlobalScope {
                             closing: Arc<AtomicBool>) {
         let serialized_worker_url = worker_url.to_string();
         let name = format!("WebWorker for {}", serialized_worker_url);
-        let panic_chan = init.panic_chan.clone();
-        spawn_named_with_send_on_panic(name, SCRIPT | IN_WORKER, move || {
+        spawn_named(name, move || {
+            thread_state::initialize(thread_state::SCRIPT | thread_state::IN_WORKER);
+            PipelineId::install(id);
+
             let roots = RootCollection::new();
             let _stack_roots_tls = StackRootTLS::new(&roots);
             let (url, source) = match load_whole_resource(LoadContext::Script,
@@ -225,7 +227,7 @@ impl DedicatedWorkerGlobalScope {
                     global.handle_event(event);
                 }
             }, reporter_name, parent_sender, CommonScriptMsg::CollectReports);
-        }, Some(id.clone()), panic_chan);
+        });
     }
 
     pub fn script_chan(&self) -> Box<ScriptChan + Send> {

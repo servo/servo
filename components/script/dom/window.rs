@@ -45,7 +45,7 @@ use js::jsapi::{JS_GetRuntime, JS_GC, MutableHandleValue, SetWindowProxy};
 use js::rust::CompileOptionsWrapper;
 use js::rust::Runtime;
 use libc;
-use msg::constellation_msg::{FrameType, LoadData, PanicMsg, PipelineId, SubpageId, WindowSizeType};
+use msg::constellation_msg::{FrameType, LoadData, PipelineId, SubpageId, WindowSizeType};
 use net_traits::ResourceThreads;
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread};
@@ -266,9 +266,6 @@ pub struct Window {
 
     /// A list of scroll offsets for each scrollable element.
     scroll_offsets: DOMRefCell<HashMap<UntrustedNodeAddress, Point2D<f32>>>,
-
-    #[ignore_heap_size_of = "Defined in ipc-channel"]
-    panic_chan: IpcSender<PanicMsg>,
 }
 
 impl Window {
@@ -1424,10 +1421,6 @@ impl Window {
         &self.scheduler_chan
     }
 
-    pub fn panic_chan(&self) -> &IpcSender<PanicMsg> {
-        &self.panic_chan
-    }
-
     pub fn schedule_callback(&self, callback: OneshotTimerCallback, duration: MsDuration) -> OneshotTimerHandle {
         self.timers.schedule_callback(callback,
                                       duration,
@@ -1623,7 +1616,6 @@ impl Window {
                constellation_chan: IpcSender<ConstellationMsg>,
                control_chan: IpcSender<ConstellationControlMsg>,
                scheduler_chan: IpcSender<TimerEventRequest>,
-               panic_chan: IpcSender<PanicMsg>,
                timer_event_chan: IpcSender<TimerEvent>,
                layout_chan: Sender<Msg>,
                id: PipelineId,
@@ -1693,7 +1685,6 @@ impl Window {
             ignore_further_async_events: Arc::new(AtomicBool::new(false)),
             error_reporter: error_reporter,
             scroll_offsets: DOMRefCell::new(HashMap::new()),
-            panic_chan: panic_chan,
         };
 
         WindowBinding::Wrap(runtime.cx(), win)
