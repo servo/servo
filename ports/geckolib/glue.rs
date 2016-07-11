@@ -22,6 +22,7 @@ use std::ptr;
 use std::slice;
 use std::str::from_utf8_unchecked;
 use std::sync::{Arc, Mutex};
+use style::arc_ptr_eq;
 use style::context::{LocalStyleContextCreationInfo, ReflowGoal};
 use style::dom::{TDocument, TElement, TNode};
 use style::error_reporting::StdoutErrorReporter;
@@ -33,7 +34,6 @@ use style::sequential;
 use style::stylesheets::Origin;
 use traversal::RecalcStyleOnly;
 use url::Url;
-use util::arc_ptr_eq;
 use wrapper::{GeckoDocument, GeckoElement, GeckoNode, NonOpaqueStyleData};
 
 // TODO: This is ugly and should go away once we get an atom back-end.
