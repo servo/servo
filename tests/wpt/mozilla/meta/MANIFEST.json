@@ -6150,6 +6150,18 @@
             "url": "/_mozilla/css/test_variable_serialization_specified.html"
           }
         ],
+        "css/white-space-pre-line-long-line.html": [
+          {
+            "path": "css/white-space-pre-line-long-line.html",
+            "url": "/_mozilla/css/white-space-pre-line-long-line.html"
+          }
+        ],
+        "css/white-space-pre-wrap-long-line.html": [
+          {
+            "path": "css/white-space-pre-wrap-long-line.html",
+            "url": "/_mozilla/css/white-space-pre-wrap-long-line.html"
+          }
+        ],
         "mozilla/DOMParser.html": [
           {
             "path": "mozilla/DOMParser.html",
