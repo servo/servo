@@ -5,6 +5,7 @@
 use dom::activation::Activatable;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
+use dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListMethods;
 use dom::bindings::codegen::Bindings::HTMLAnchorElementBinding;
 use dom::bindings::codegen::Bindings::HTMLAnchorElementBinding::HTMLAnchorElementMethods;
 use dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
@@ -23,6 +24,7 @@ use dom::mouseevent::MouseEvent;
 use dom::node::{Node, document_from_node, window_from_node};
 use dom::urlhelper::UrlHelper;
 use dom::virtualmethods::VirtualMethods;
+use msg::constellation_msg::ReferrerPolicy;
 use num_traits::ToPrimitive;
 use script_traits::MozBrowserEvent;
 use std::default::Default;
@@ -536,7 +538,14 @@ impl Activatable for HTMLAnchorElement {
 
         // Step 4.
         //TODO: Download the link is `download` attribute is set.
-        follow_hyperlink(element, ismap_suffix);
+
+        // https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-delivery
+        let referrer_policy = match self.RelList().Contains("noreferrer".into()) {
+            true => Some(ReferrerPolicy::NoReferrer),
+            false => None,
+        };
+
+        follow_hyperlink(element, ismap_suffix, referrer_policy);
     }
 
     //TODO:https://html.spec.whatwg.org/multipage/#the-a-element
@@ -550,7 +559,7 @@ fn is_current_browsing_context(target: DOMString) -> bool {
 }
 
 /// https://html.spec.whatwg.org/multipage/#following-hyperlinks-2
-fn follow_hyperlink(subject: &Element, hyperlink_suffix: Option<String>) {
+fn follow_hyperlink(subject: &Element, hyperlink_suffix: Option<String>, referrer_policy: Option<ReferrerPolicy>) {
     // Step 1: replace.
     // Step 2: source browsing context.
     // Step 3: target browsing context.
@@ -587,6 +596,7 @@ fn follow_hyperlink(subject: &Element, hyperlink_suffix: Option<String>) {
     }
 
     debug!("following hyperlink to {}", url);
+
     let window = document.window();
-    window.load_url(url, false);
+    window.load_url(url, false, referrer_policy);
 }

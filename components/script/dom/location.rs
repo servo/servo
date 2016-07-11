@@ -40,7 +40,7 @@ impl Location {
                          setter: fn(&mut Url, USVString)) {
         let mut url = self.window.get_url();
         setter(&mut url, value);
-        self.window.load_url(url, false);
+        self.window.load_url(url, false, None);
     }
 }
 
@@ -51,13 +51,13 @@ impl LocationMethods for Location {
         //       _entry settings object_.
         let base_url = self.window.get_url();
         if let Ok(url) = base_url.join(&url.0) {
-            self.window.load_url(url, false);
+            self.window.load_url(url, false, None);
         }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-reload
     fn Reload(&self) {
-        self.window.load_url(self.get_url(), true);
+        self.window.load_url(self.get_url(), true, None);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-hash
@@ -106,7 +106,7 @@ impl LocationMethods for Location {
     // https://html.spec.whatwg.org/multipage/#dom-location-href
     fn SetHref(&self, value: USVString) {
         if let Ok(url) = self.window.get_url().join(&value.0) {
-            self.window.load_url(url, false);
+            self.window.load_url(url, false, None);
         }
     }
 
