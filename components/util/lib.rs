@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![cfg_attr(feature = "servo", feature(custom_derive))]
-#![cfg_attr(feature = "servo", feature(fnbox))]
 #![cfg_attr(feature = "servo", feature(plugin))]
 #![cfg_attr(feature = "servo", feature(reflect_marker))]
 #![cfg_attr(feature = "servo", plugin(serde_macros))]
@@ -12,7 +11,6 @@
 #![deny(unsafe_code)]
 
 extern crate app_units;
-#[cfg(feature = "servo")] extern crate backtrace;
 #[allow(unused_extern_crates)] #[macro_use] extern crate bitflags;
 extern crate euclid;
 extern crate getopts;
@@ -31,7 +29,6 @@ pub mod basedir;
 pub mod geometry;
 #[cfg(feature = "servo")] #[allow(unsafe_code)] pub mod ipc;
 #[allow(unsafe_code)] pub mod opts;
-#[cfg(feature = "servo")] pub mod panicking;
 pub mod prefs;
 pub mod resource_files;
 pub mod thread;
