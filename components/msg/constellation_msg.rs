@@ -13,8 +13,6 @@ use std::fmt;
 use url::Url;
 use webrender_traits;
 
-pub type PanicMsg = (Option<PipelineId>, String, String);
-
 #[derive(Deserialize, Eq, PartialEq, Serialize, Copy, Clone, HeapSizeOf)]
 pub enum WindowSizeType {
     Initial,
@@ -269,6 +267,8 @@ impl PipelineNamespace {
 
 thread_local!(pub static PIPELINE_NAMESPACE: Cell<Option<PipelineNamespace>> = Cell::new(None));
 
+thread_local!(pub static PIPELINE_ID: Cell<Option<PipelineId>> = Cell::new(None));
+
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
 pub struct PipelineNamespaceId(pub u32);
 
@@ -308,6 +308,15 @@ impl PipelineId {
         let PipelineIndex(index) = self.index;
         webrender_traits::PipelineId(namespace_id, index)
     }
+
+    pub fn install(id: PipelineId) {
+        PIPELINE_ID.with(|tls| tls.set(Some(id)))
+    }
+
+    pub fn installed() -> Option<PipelineId> {
+        PIPELINE_ID.with(|tls| tls.get())
+    }
+
 }
 
 impl fmt::Display for PipelineId {

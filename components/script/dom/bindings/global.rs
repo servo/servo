@@ -18,7 +18,7 @@ use ipc_channel::ipc::IpcSender;
 use js::jsapi::{CurrentGlobalOrNull, GetGlobalForObjectCrossCompartment};
 use js::jsapi::{JSContext, JSObject, JS_GetClass, MutableHandleValue};
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
-use msg::constellation_msg::{PipelineId, PanicMsg};
+use msg::constellation_msg::PipelineId;
 use net_traits::filemanager_thread::FileManagerThreadMsg;
 use net_traits::{ResourceThreads, CoreResourceThread, IpcSend};
 use profile_traits::{mem, time};
@@ -280,14 +280,6 @@ impl<'a> GlobalRef<'a> {
         match *self {
             GlobalRef::Window(ref window) => window.reflector(),
             GlobalRef::Worker(ref worker) => worker.reflector(),
-        }
-    }
-
-    /// Returns an `IpcSender` to report panics on.
-    pub fn panic_chan(&self) -> &IpcSender<PanicMsg> {
-        match *self {
-            GlobalRef::Window(ref window) => window.panic_chan(),
-            GlobalRef::Worker(ref worker) => worker.panic_chan(),
         }
     }
 
