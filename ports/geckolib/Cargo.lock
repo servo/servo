@@ -340,7 +340,6 @@ dependencies = [
  "cssparser 0.5.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
- "util 0.0.1",
 ]
 
 [[package]]

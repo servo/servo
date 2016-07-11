@@ -22,7 +22,34 @@ extern crate euclid;
 #[cfg(feature = "servo")] extern crate heapsize;
 extern crate rustc_serialize;
 #[cfg(feature = "servo")] extern crate serde;
-extern crate util;
+
+/// One CSS "px" in the coordinate system of the "initial viewport":
+/// http://www.w3.org/TR/css-device-adapt/#initial-viewport
+///
+/// ViewportPx is equal to ScreenPx times a "page zoom" factor controlled by the user.  This is
+/// the desktop-style "full page" zoom that enlarges content but then reflows the layout viewport
+/// so it still exactly fits the visible area.
+///
+/// At the default zoom level of 100%, one PagePx is equal to one ScreenPx.  However, if the
+/// document is zoomed in or out then this scale may be larger or smaller.
+#[derive(Clone, Copy, Debug)]
+pub enum ViewportPx {}
+
+/// One CSS "px" in the root coordinate system for the content document.
+///
+/// PagePx is equal to ViewportPx multiplied by a "viewport zoom" factor controlled by the user.
+/// This is the mobile-style "pinch zoom" that enlarges content without reflowing it.  When the
+/// viewport zoom is not equal to 1.0, then the layout viewport is no longer the same physical size
+/// as the viewable area.
+#[derive(Clone, Copy, Debug)]
+pub enum PagePx {}
+
+// In summary, the hierarchy of pixel units and the factors to convert from one to the next:
+//
+// DevicePixel
+//   / hidpi_ratio => ScreenPx
+//     / desktop_zoom => ViewportPx
+//       / pinch_zoom => PagePx
 
 pub mod cursor;
 #[macro_use]

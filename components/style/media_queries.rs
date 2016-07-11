@@ -10,7 +10,7 @@ use app_units::Au;
 use cssparser::{Delimiter, Parser, Token};
 use euclid::size::{Size2D, TypedSize2D};
 use properties::longhands;
-use util::geometry::ViewportPx;
+use style_traits::ViewportPx;
 use values::specified;
 
 
