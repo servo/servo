@@ -55,6 +55,7 @@ euclid = "0.7.1"
 gfx = {path = "../gfx"}
 gleam = "0.2"
 glutin_app = {path = "../../ports/glutin"}
+ipc-channel = {git = "https://github.com/servo/ipc-channel"}
 layout = {path = "../layout"}
 layout_thread = {path = "../layout_thread"}
 libc = "0.2"
@@ -92,9 +93,3 @@ android_glue = "0.1.3"
 
 [target.'cfg(not(target_os = "windows"))'.dependencies]
 gaol = {git = "https://github.com/servo/gaol"}
-
-[target.'cfg(not(any(target_os = "android", target_os = "windows")))'.dependencies]
-ipc-channel = {git = "https://github.com/servo/ipc-channel"}
-
-[target.'cfg(any(target_os = "android", target_os = "windows"))'.dependencies]
-ipc-channel = {git = "https://github.com/servo/ipc-channel", features = ["inprocess"]}
