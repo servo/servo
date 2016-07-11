@@ -45,7 +45,7 @@ use js::jsapi::{JS_GetRuntime, JS_GC, MutableHandleValue, SetWindowProxy};
 use js::rust::CompileOptionsWrapper;
 use js::rust::Runtime;
 use libc;
-use msg::constellation_msg::{FrameType, LoadData, PipelineId, SubpageId, WindowSizeType};
+use msg::constellation_msg::{FrameType, LoadData, PipelineId, ReferrerPolicy, SubpageId, WindowSizeType};
 use net_traits::ResourceThreads;
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread};
@@ -1359,11 +1359,13 @@ impl Window {
     }
 
     /// Commence a new URL load which will either replace this window or scroll to a fragment.
-    pub fn load_url(&self, url: Url) {
+    pub fn load_url(&self, url: Url, referrer_policy: Option<ReferrerPolicy>) {
         let doc = self.Document();
+        let referrer_policy = referrer_policy.or(doc.get_referrer_policy());
+
         self.main_thread_script_chan().send(
             MainThreadScriptMsg::Navigate(self.id,
-                LoadData::new(url, doc.get_referrer_policy(), Some(doc.url().clone())))).unwrap();
+                LoadData::new(url, referrer_policy, Some(doc.url().clone())))).unwrap();
     }
 
     pub fn handle_fire_timer(&self, timer_id: TimerEventId) {
