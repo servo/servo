@@ -588,7 +588,7 @@ impl FlowClass {
         match self {
             FlowClass::Block | FlowClass::ListItem | FlowClass::Table | FlowClass::TableRowGroup |
             FlowClass::TableRow | FlowClass::TableCaption | FlowClass::TableCell |
-            FlowClass::TableWrapper => true,
+            FlowClass::TableWrapper | FlowClass::Flex => true,
             _ => false,
         }
     }
