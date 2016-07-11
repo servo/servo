@@ -706,6 +706,14 @@ impl<'a> CanvasPaintThread<'a> {
     }
 }
 
+impl<'a> Drop for CanvasPaintThread<'a> {
+    fn drop(&mut self) {
+        if let Some(ref mut wr) = self.webrender_api {
+            wr.delete_image(self.webrender_image_key.unwrap());
+        }
+    }
+}
+
 /// Used by drawImage to get rid of the extra pixels of the image data that
 /// won't be copied to the canvas
 /// image_data: Color pixel data of the image
