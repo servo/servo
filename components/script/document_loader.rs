@@ -7,7 +7,7 @@
 
 use dom::bindings::js::JS;
 use dom::document::Document;
-use msg::constellation_msg::PipelineId;
+use msg::constellation_msg::{PipelineId, ReferrerPolicy};
 use net_traits::{PendingAsyncLoad, LoadContext};
 use net_traits::{RequestSource, AsyncResponseTarget};
 use net_traits::{ResourceThreads, IpcSend};
@@ -126,7 +126,8 @@ impl DocumentLoader {
     /// the future.
     pub fn prepare_async_load(&mut self,
                               load: LoadType,
-                              referrer: &Document) -> PendingAsyncLoad {
+                              referrer: &Document,
+                              referrer_policy: Option<ReferrerPolicy>) -> PendingAsyncLoad {
         let context = load.to_load_context();
         let url = load.url().clone();
         self.add_blocking_load(load);
@@ -135,7 +136,7 @@ impl DocumentLoader {
                               self.resource_threads.sender(),
                               url,
                               self.pipeline,
-                              referrer.get_referrer_policy(),
+                              referrer_policy.or(referrer.get_referrer_policy()),
                               Some(referrer.url().clone()),
                               RequestSource::Window(client_chan))
     }
@@ -144,8 +145,9 @@ impl DocumentLoader {
     pub fn load_async(&mut self,
                       load: LoadType,
                       listener: AsyncResponseTarget,
-                      referrer: &Document) {
-        let pending = self.prepare_async_load(load, referrer);
+                      referrer: &Document,
+                      referrer_policy: Option<ReferrerPolicy>) {
+        let pending = self.prepare_async_load(load, referrer, referrer_policy);
         pending.load_async(listener)
     }
 
