@@ -11,12 +11,11 @@ path = "lib.rs"
 
 [features]
 # servo as opposed to geckolib
-servo = ["serde", "serde_macros", "backtrace", "ipc-channel", "app_units/plugins",
+servo = ["serde", "serde_macros", "ipc-channel", "app_units/plugins",
          "euclid/plugins", "euclid/unstable", "url/heap_size", "url/serde", "plugins"]
 
 [dependencies]
 app_units = "0.2.5"
-backtrace = {version = "0.2.1", optional = true}
 bitflags = "0.7"
 euclid = "0.7.1"
 getopts = "0.2.11"

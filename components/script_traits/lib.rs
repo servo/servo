@@ -51,7 +51,7 @@ use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use layers::geometry::DevicePixel;
 use libc::c_void;
 use msg::constellation_msg::{FrameId, FrameType, Image, Key, KeyModifiers, KeyState, LoadData};
-use msg::constellation_msg::{NavigationDirection, PanicMsg, PipelineId, ReferrerPolicy};
+use msg::constellation_msg::{NavigationDirection, PipelineId, ReferrerPolicy};
 use msg::constellation_msg::{PipelineNamespaceId, SubpageId, WindowSizeType};
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::ImageCacheThread;
@@ -142,8 +142,6 @@ pub struct NewLayoutInfo {
     pub paint_chan: OptionalOpaqueIpcSender,
     /// A port on which layout can receive messages from the pipeline.
     pub pipeline_port: IpcReceiver<LayoutControlMsg>,
-    /// A channel for sending panics on
-    pub panic_chan: IpcSender<PanicMsg>,
     /// A sender for the layout thread to communicate to the constellation.
     pub layout_to_constellation_chan: IpcSender<LayoutMsg>,
     /// A shutdown channel so that layout can tell the content process to shut down when it's done.
@@ -394,8 +392,6 @@ pub struct InitialScriptState {
     pub control_port: IpcReceiver<ConstellationControlMsg>,
     /// A channel on which messages can be sent to the constellation from script.
     pub constellation_chan: IpcSender<ScriptMsg>,
-    /// A channel for sending panics to the constellation.
-    pub panic_chan: IpcSender<PanicMsg>,
     /// A channel to schedule timer events.
     pub scheduler_chan: IpcSender<TimerEventRequest>,
     /// A channel to the resource manager thread.
@@ -471,8 +467,8 @@ pub enum MozBrowserEvent {
     /// handling `<menuitem>` element available within the browser `<iframe>`'s content.
     ContextMenu,
     /// Sent when an error occurred while trying to load content within a browser `<iframe>`.
-    /// Includes an optional human-readable description, and an optional machine-readable report.
-    Error(MozBrowserErrorType, Option<String>, Option<String>),
+    /// Includes a human-readable description, and a machine-readable report.
+    Error(MozBrowserErrorType, String, String),
     /// Sent when the favicon of a browser `<iframe>` changes.
     IconChange(String, String, String),
     /// Sent when the browser `<iframe>` has reached the server.
@@ -656,8 +652,6 @@ pub struct WorkerGlobalScopeInit {
     pub constellation_chan: IpcSender<ScriptMsg>,
     /// Message to send to the scheduler
     pub scheduler_chan: IpcSender<TimerEventRequest>,
-    /// Sender which sends panic messages
-    pub panic_chan: IpcSender<PanicMsg>,
     /// The worker id
     pub worker_id: WorkerId,
 }

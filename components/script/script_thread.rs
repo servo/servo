@@ -64,7 +64,7 @@ use js::jsapi::{JSTracer, SetWindowProxyClass};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use mem::heap_size_of_self_and_children;
-use msg::constellation_msg::{FrameType, LoadData, PanicMsg, PipelineId, PipelineNamespace};
+use msg::constellation_msg::{FrameType, LoadData, PipelineId, PipelineNamespace};
 use msg::constellation_msg::{SubpageId, WindowSizeType, ReferrerPolicy};
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheResult, ImageCacheThread};
@@ -393,8 +393,6 @@ pub struct ScriptThread {
     timer_event_port: Receiver<TimerEvent>,
 
     content_process_shutdown_chan: IpcSender<()>,
-
-    panic_chan: IpcSender<PanicMsg>,
 }
 
 /// In the event of thread panic, all data on the stack runs its destructor. However, there
@@ -441,15 +439,15 @@ impl ScriptThreadFactory for ScriptThread {
     fn create(state: InitialScriptState,
               load_data: LoadData)
               -> (Sender<message::Msg>, Receiver<message::Msg>) {
-        let panic_chan = state.panic_chan.clone();
         let (script_chan, script_port) = channel();
 
         let (sender, receiver) = channel();
         let layout_chan = sender.clone();
         let pipeline_id = state.id;
-        thread::spawn_named_with_send_on_panic(format!("ScriptThread {:?}", state.id),
-                                               thread_state::SCRIPT,
-                                               move || {
+        thread::spawn_named(format!("ScriptThread {:?}", state.id),
+                            move || {
+            thread_state::initialize(thread_state::SCRIPT);
+            PipelineId::install(pipeline_id);
             PipelineNamespace::install(state.pipeline_namespace_id);
             let roots = RootCollection::new();
             let _stack_roots_tls = StackRootTLS::new(&roots);
@@ -479,7 +477,7 @@ impl ScriptThreadFactory for ScriptThread {
 
             // This must always be the very last operation performed before the thread completes
             failsafe.neuter();
-        }, Some(pipeline_id), panic_chan);
+        });
 
         (sender, receiver)
     }
@@ -592,7 +590,6 @@ impl ScriptThread {
             constellation_chan: state.constellation_chan,
             time_profiler_chan: state.time_profiler_chan,
             mem_profiler_chan: state.mem_profiler_chan,
-            panic_chan: state.panic_chan,
 
             devtools_chan: state.devtools_chan,
             devtools_port: devtools_port,
@@ -1142,7 +1139,6 @@ impl ScriptThread {
             frame_type,
             load_data,
             paint_chan,
-            panic_chan,
             pipeline_port,
             layout_to_constellation_chan,
             content_process_shutdown_chan,
@@ -1158,7 +1154,6 @@ impl ScriptThread {
             layout_pair: layout_pair,
             pipeline_port: pipeline_port,
             constellation_chan: layout_to_constellation_chan,
-            panic_chan: panic_chan,
             paint_chan: paint_chan,
             script_chan: self.control_chan.clone(),
             image_cache_thread: self.image_cache_thread.clone(),
@@ -1603,7 +1598,6 @@ impl ScriptThread {
                                  self.constellation_chan.clone(),
                                  self.control_chan.clone(),
                                  self.scheduler_chan.clone(),
-                                 self.panic_chan.clone(),
                                  ipc_timer_event_chan,
                                  incomplete.layout_chan,
                                  incomplete.pipeline_id,
