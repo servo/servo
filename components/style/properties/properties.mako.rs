@@ -1972,6 +1972,47 @@ pub fn cascade<C: ComputedValues>(
     (style, cacheable)
 }
 
+pub fn modify_style_for_anonymous_flow(style: &mut Arc<ServoComputedValues>,
+                                      new_display_value: longhands::display::computed_value::T) {
+    // The 'align-self' property needs some special treatment since
+    // its value depends on the 'align-items' value of its parent.
+    % if "align-items" in data.longhands_by_name:
+        use computed_values::align_self::T as align_self;
+        use computed_values::align_items::T as align_items;
+        let self_align =
+            match style.position.align_items {
+                align_items::stretch => align_self::stretch,
+                align_items::baseline => align_self::baseline,
+                align_items::flex_start => align_self::flex_start,
+                align_items::flex_end => align_self::flex_end,
+                align_items::center => align_self::center,
+            };
+    % endif
+    let inital_values = &*INITIAL_SERVO_VALUES;
+    let mut style = Arc::make_mut(style);
+    % for style_struct in data.active_style_structs():
+    % if not style_struct.inherited:
+        style.${style_struct.ident} = inital_values.clone_${style_struct.trait_name_lower}();
+    % endif
+    % endfor
+    % if "align-items" in data.longhands_by_name:
+       let position = Arc::make_mut(&mut style.position);
+       position.align_self = self_align;
+    % endif
+    if new_display_value != longhands::display::computed_value::T::inline {
+        let new_box = Arc::make_mut(&mut style.box_);
+        new_box.display = new_display_value;
+    }
+    let border = Arc::make_mut(&mut style.border);
+    % for side in ["top", "right", "bottom", "left"]:
+        // Like calling to_computed_value, which wouldn't type check.
+        border.border_${side}_width = Au(0);
+    % endfor
+    // Initial value of outline-style is always none for anonymous box.
+    let outline = Arc::make_mut(&mut style.outline);
+    outline.outline_width = Au(0);
+}
+
 /// Alters the given style to accommodate replaced content. This is called in flow construction. It
 /// handles cases like `<div style="position: absolute">foo bar baz</div>` (in which `foo`, `bar`,
 /// and `baz` must not be absolutely-positioned) and cases like `<sup>Foo</sup>` (in which the
