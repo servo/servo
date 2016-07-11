@@ -1360,14 +1360,14 @@ impl Document {
         loader.add_blocking_load(load)
     }
 
-    pub fn prepare_async_load(&self, load: LoadType) -> PendingAsyncLoad {
+    pub fn prepare_async_load(&self, load: LoadType, referrer_policy: Option<ReferrerPolicy>) -> PendingAsyncLoad {
         let mut loader = self.loader.borrow_mut();
-        loader.prepare_async_load(load, self)
+        loader.prepare_async_load(load, self, referrer_policy)
     }
 
-    pub fn load_async(&self, load: LoadType, listener: AsyncResponseTarget) {
+    pub fn load_async(&self, load: LoadType, listener: AsyncResponseTarget, referrer_policy: Option<ReferrerPolicy>) {
         let mut loader = self.loader.borrow_mut();
-        loader.load_async(load, listener, self);
+        loader.load_async(load, listener, self, referrer_policy);
     }
 
     pub fn finish_load(&self, load: LoadType) {
