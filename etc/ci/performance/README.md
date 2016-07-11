@@ -40,7 +40,7 @@ If you want to test the data submission code in `submit_to_perfherder.py`, you c
 ## For Gecko
 
 * Install Firefox Nightly in your PATH
-* Untar the `profile.tar.gz` in `firefox/`, make it `firefox/servo` so gecko will use it as a profile.
+* Install the `servo-perf-0.0.1.xpi` add-on to your Firefox Nightly
 
 # How it works
 
