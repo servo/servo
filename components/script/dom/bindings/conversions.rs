@@ -47,9 +47,9 @@ use js::glue::{RUST_JSID_IS_STRING, RUST_JSID_TO_STRING, UnwrapObject};
 use js::jsapi::{HandleId, HandleObject, HandleValue, JSClass, JSContext};
 use js::jsapi::{JSObject, JSString, JS_GetArrayBufferViewType, JS_GetClass};
 use js::jsapi::{JS_GetLatin1StringCharsAndLength, JS_GetObjectAsArrayBufferView};
-use js::jsapi::{JS_GetReservedSlot, JS_GetTwoByteStringCharsAndLength};
+use js::jsapi::{JS_GetReservedSlot, JS_GetTwoByteStringCharsAndLength, ToWindowProxyIfWindow};
 use js::jsapi::{JS_IsArrayObject, JS_NewStringCopyN, JS_StringHasLatin1Chars};
-use js::jsapi::{JS_WrapValue, MutableHandleValue, Type};
+use js::jsapi::{JS_WrapValue, MutableHandleValue, Type, IsObjectInContextCompartment};
 use js::jsval::{ObjectValue, StringValue};
 use js::rust::ToString;
 use libc;
@@ -276,9 +276,15 @@ impl ToJSValConvertible for Reflector {
     unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
         let obj = self.get_jsobject().get();
         assert!(!obj.is_null());
-        rval.set(ObjectValue(&*obj));
-        if !JS_WrapValue(cx, rval) {
-            panic!("JS_WrapValue failed.");
+        let same_compartment = IsObjectInContextCompartment(obj, cx);
+        if same_compartment {
+            rval.set(ObjectValue(&*ToWindowProxyIfWindow(obj)));
+        } else {
+            rval.set(ObjectValue(&*obj));
+
+            if !JS_WrapValue(cx, rval) {
+                panic!("JS_WrapValue failed.");
+            }
         }
     }
 }
