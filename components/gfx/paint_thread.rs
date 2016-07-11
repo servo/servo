@@ -17,10 +17,9 @@ use font_cache_thread::FontCacheThread;
 use font_context::FontContext;
 use gfx_traits::{ChromeToPaintMsg, Epoch, LayerId, LayerKind, LayerProperties};
 use gfx_traits::{PaintListener, PaintRequest, StackingContextId};
-use ipc_channel::ipc::IpcSender;
 use layers::layers::{BufferRequest, LayerBuffer, LayerBufferSet};
 use layers::platform::surface::{NativeDisplay, NativeSurface};
-use msg::constellation_msg::{PanicMsg, PipelineId};
+use msg::constellation_msg::PipelineId;
 use paint_context::PaintContext;
 use profile_traits::mem;
 use profile_traits::time;
@@ -377,13 +376,14 @@ impl<C> PaintThread<C> where C: PaintListener + Send + 'static {
                   layout_to_paint_port: Receiver<LayoutToPaintMsg>,
                   chrome_to_paint_port: Receiver<ChromeToPaintMsg>,
                   mut compositor: C,
-                  panic_chan: IpcSender<PanicMsg>,
                   font_cache_thread: FontCacheThread,
                   time_profiler_chan: time::ProfilerChan,
                   mem_profiler_chan: mem::ProfilerChan) {
-        thread::spawn_named_with_send_on_panic(format!("PaintThread {:?}", id),
-                                               thread_state::PAINT,
-                                               move || {
+        thread::spawn_named(format!("PaintThread {:?}", id),
+                            move || {
+            thread_state::initialize(thread_state::PAINT);
+            PipelineId::install(id);
+
             let native_display = compositor.native_display();
             let worker_threads = WorkerThreadProxy::spawn(native_display,
                                                           font_cache_thread,
@@ -412,7 +412,7 @@ impl<C> PaintThread<C> where C: PaintListener + Send + 'static {
             for worker_thread in &mut paint_thread.worker_threads {
                 worker_thread.exit()
             }
-        }, Some(id), panic_chan);
+        });
     }
 
     #[allow(unsafe_code)]

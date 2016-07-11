@@ -24,7 +24,7 @@ use ipc_channel::router::ROUTER;
 use js::jsapi::{HandleValue, JSContext, JSRuntime};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
-use msg::constellation_msg::{PipelineId, ReferrerPolicy, PanicMsg};
+use msg::constellation_msg::{PipelineId, ReferrerPolicy};
 use net_traits::{LoadContext, ResourceThreads, load_whole_resource};
 use net_traits::{RequestSource, LoadOrigin, CustomResponseSender, IpcSend};
 use profile_traits::{mem, time};
@@ -56,7 +56,6 @@ pub struct WorkerGlobalScopeInit {
     pub from_devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>,
     pub constellation_chan: IpcSender<ConstellationMsg>,
     pub scheduler_chan: IpcSender<TimerEventRequest>,
-    pub panic_chan: IpcSender<PanicMsg>,
     pub worker_id: WorkerId,
     pub closing: Arc<AtomicBool>,
 }
@@ -90,7 +89,6 @@ pub fn prepare_workerscope_init(global: GlobalRef,
             time_profiler_chan: global.time_profiler_chan().clone(),
             from_devtools_sender: optional_sender,
             constellation_chan: global.constellation_chan().clone(),
-            panic_chan: global.panic_chan().clone(),
             scheduler_chan: global.scheduler_chan().clone(),
             worker_id: worker_id,
             closing: closing,
@@ -145,9 +143,6 @@ pub struct WorkerGlobalScope {
     scheduler_chan: IpcSender<TimerEventRequest>,
 
     #[ignore_heap_size_of = "Defined in ipc-channel"]
-    panic_chan: IpcSender<PanicMsg>,
-
-    #[ignore_heap_size_of = "Defined in ipc-channel"]
     custom_msg_chan: IpcSender<CustomResponseSender>,
 
     #[ignore_heap_size_of = "Defined in std"]
@@ -184,7 +179,6 @@ impl WorkerGlobalScope {
             devtools_wants_updates: Cell::new(false),
             constellation_chan: init.constellation_chan,
             scheduler_chan: init.scheduler_chan,
-            panic_chan: init.panic_chan,
             custom_msg_chan: msg_chan,
             custom_msg_port: custom_msg_port
         }
@@ -265,10 +259,6 @@ impl WorkerGlobalScope {
         let WorkerId(id_num) = worker_id;
         self.next_worker_id.set(WorkerId(id_num + 1));
         worker_id
-    }
-
-    pub fn panic_chan(&self) -> &IpcSender<PanicMsg> {
-        &self.panic_chan
     }
 
     pub fn get_runnable_wrapper(&self) -> RunnableWrapper {
