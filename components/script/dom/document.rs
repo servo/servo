@@ -1489,7 +1489,7 @@ impl Document {
         update_with_current_time_ms(&self.dom_content_loaded_event_start);
 
         self.window().dom_manipulation_task_source().queue_event(self.upcast(), atom!("DOMContentLoaded"),
-            EventBubbles::Bubbles, EventCancelable::NotCancelable);
+            EventBubbles::Bubbles, EventCancelable::NotCancelable, Some(self.window().get_runnable_wrapper()));
         self.window().reflow(ReflowGoal::ForDisplay,
                              ReflowQueryType::NoQuery,
                              ReflowReason::DOMContentLoaded);
