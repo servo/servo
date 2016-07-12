@@ -174,10 +174,10 @@ pub struct RunnableWrapper {
 }
 
 impl RunnableWrapper {
-    pub fn wrap_runnable<T: Runnable + Send + 'static>(&self, runnable: T) -> Box<Runnable + Send> {
+    pub fn wrap_runnable<T: Runnable + Send + 'static>(&self, runnable: Box<T>) -> Box<Runnable + Send> {
         box CancellableRunnable {
             cancelled: self.cancelled.clone(),
-            inner: box runnable,
+            inner: runnable,
         }
     }
 }

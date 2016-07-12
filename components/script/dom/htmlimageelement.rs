@@ -141,7 +141,7 @@ impl HTMLImageElement {
                         // Return the image via a message to the script thread, which marks the element
                         // as dirty and triggers a reflow.
                         let image_response = message.to().unwrap();
-                        let runnable = ImageResponseHandlerRunnable::new(
+                        let runnable = box ImageResponseHandlerRunnable::new(
                             trusted_node.clone(), image_response);
                         let runnable = wrapper.wrap_runnable(runnable);
                         let _ = script_chan.send(CommonScriptMsg::RunnableMsg(
