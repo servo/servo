@@ -1,0 +1,31 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Check @context value",
+  "description": "'http://www.w3.org/ns/anno.jsonld must be' an @context value (Section 3.1)",
+  "assertionType": "must",
+  "expectedResult": "valid",
+  "errorMessage": "Error: 'http://www.w3.org/ns/anno.jsonld' is not an @context value.",
+  "type": "object",
+  "properties": {
+    "@context": {
+      "oneOf": [
+        { "type": "string",
+          "$ref": "#/definitions/contextValue" },
+        { "type": "array",
+          "$ref": "#/definitions/contextArray" }
+      ]
+    }
+  },
+  "definitions": {
+    "contextValue":
+       { "enum": [ "http://www.w3.org/ns/anno.jsonld" ] },
+    "contextArray":
+       { "not":
+          { "items":
+             { "not":
+                { "type": "string",
+                  "$ref": "#/definitions/contextValue" } }
+           }
+     }
+  }
+}

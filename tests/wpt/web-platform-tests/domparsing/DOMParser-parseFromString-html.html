@@ -51,6 +51,10 @@ test(function() {
 }, 'URL value');
 
 test(function() {
+    assert_equals(doc.baseURI, document.URL);
+}, 'baseURI value');
+
+test(function() {
     assert_equals(doc.location, null,
                   'The document must have a location value of null.');
 }, 'Location value');

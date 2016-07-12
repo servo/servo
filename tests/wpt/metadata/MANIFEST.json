@@ -98,6 +98,14 @@
         "url": "/XMLHttpRequest/send-authentication-prompt-manual.htm"
       },
       {
+        "path": "annotation-model/examples/example1-manual.html",
+        "url": "/annotation-model/examples/example1-manual.html"
+      },
+      {
+        "path": "annotation-model/examples/example2-manual.html",
+        "url": "/annotation-model/examples/example2-manual.html"
+      },
+      {
         "path": "battery-status/battery-charging-manual.html",
         "url": "/battery-status/battery-charging-manual.html"
       },
@@ -956,6 +964,10 @@
       {
         "path": "pointerevents/pointerevent_lostpointercapture_is_first-manual.html",
         "url": "/pointerevents/pointerevent_lostpointercapture_is_first-manual.html"
+      },
+      {
+        "path": "pointerevents/pointerevent_multiple_primary_pointers_boundary_events-manual.html",
+        "url": "/pointerevents/pointerevent_multiple_primary_pointers_boundary_events-manual.html"
       },
       {
         "path": "pointerevents/pointerevent_pointerId_scope-manual.html",
@@ -15826,6 +15838,14 @@
         "url": "/fetch/api/basic/request-headers.html"
       },
       {
+        "path": "fetch/api/basic/response-url-worker.html",
+        "url": "/fetch/api/basic/response-url-worker.html"
+      },
+      {
+        "path": "fetch/api/basic/response-url.html",
+        "url": "/fetch/api/basic/response-url.html"
+      },
+      {
         "path": "fetch/api/basic/scheme-about-worker.html",
         "url": "/fetch/api/basic/scheme-about-worker.html"
       },
@@ -19278,6 +19298,10 @@
         "url": "/html/semantics/embedded-content/the-img-element/img.complete.html"
       },
       {
+        "path": "html/semantics/embedded-content/the-img-element/invalid-src.html",
+        "url": "/html/semantics/embedded-content/the-img-element/invalid-src.html"
+      },
+      {
         "path": "html/semantics/embedded-content/the-img-element/relevant-mutations.html",
         "url": "/html/semantics/embedded-content/the-img-element/relevant-mutations.html"
       },
@@ -19900,6 +19924,10 @@
       {
         "path": "html/semantics/scripting-1/the-script-element/script-noembed-noframes-iframe.xhtml",
         "url": "/html/semantics/scripting-1/the-script-element/script-noembed-noframes-iframe.xhtml"
+      },
+      {
+        "path": "html/semantics/scripting-1/the-script-element/script-not-executed-after-shutdown.html",
+        "url": "/html/semantics/scripting-1/the-script-element/script-not-executed-after-shutdown.html"
       },
       {
         "path": "html/semantics/scripting-1/the-script-element/script-not-found-not-executed.html",
@@ -23056,6 +23084,14 @@
       {
         "path": "pointerevents/pointerevent_pointermove-on-chorded-mouse-button.html",
         "url": "/pointerevents/pointerevent_pointermove-on-chorded-mouse-button.html"
+      },
+      {
+        "path": "pointerevents/pointerevent_suppress_compat_events_on_click.html",
+        "url": "/pointerevents/pointerevent_suppress_compat_events_on_click.html"
+      },
+      {
+        "path": "pointerevents/pointerevent_suppress_compat_events_on_drag_mouse.html",
+        "url": "/pointerevents/pointerevent_suppress_compat_events_on_drag_mouse.html"
       },
       {
         "path": "pointerevents/pointerevent_touch-action-illegal.html",
@@ -29764,22 +29800,6 @@
       {
         "path": "shadow-dom/untriaged/user-interaction/editing/inheritance-of-content-editable-001.html",
         "url": "/shadow-dom/untriaged/user-interaction/editing/inheritance-of-content-editable-001.html"
-      },
-      {
-        "path": "shadow-dom/untriaged/user-interaction/focus-navigation/test-001.html",
-        "url": "/shadow-dom/untriaged/user-interaction/focus-navigation/test-001.html"
-      },
-      {
-        "path": "shadow-dom/untriaged/user-interaction/focus-navigation/test-002.html",
-        "url": "/shadow-dom/untriaged/user-interaction/focus-navigation/test-002.html"
-      },
-      {
-        "path": "shadow-dom/untriaged/user-interaction/focus-navigation/test-003.html",
-        "url": "/shadow-dom/untriaged/user-interaction/focus-navigation/test-003.html"
-      },
-      {
-        "path": "shadow-dom/untriaged/user-interaction/focus-navigation/test-004.html",
-        "url": "/shadow-dom/untriaged/user-interaction/focus-navigation/test-004.html"
       },
       {
         "path": "shadow-dom/untriaged/user-interaction/ranges-and-selections/test-001.html",
@@ -37183,22 +37203,7 @@
   "local_changes": {
     "deleted": [],
     "deleted_reftests": {},
-    "items": {
-      "testharness": {
-        "html/semantics/embedded-content/the-img-element/invalid-src.html": [
-          {
-            "path": "html/semantics/embedded-content/the-img-element/invalid-src.html",
-            "url": "/html/semantics/embedded-content/the-img-element/invalid-src.html"
-          }
-        ],
-        "html/semantics/scripting-1/the-script-element/script-not-executed-after-shutdown.html": [
-          {
-            "path": "html/semantics/scripting-1/the-script-element/script-not-executed-after-shutdown.html",
-            "url": "/html/semantics/scripting-1/the-script-element/script-not-executed-after-shutdown.html"
-          }
-        ]
-      }
-    },
+    "items": {},
     "reftest_nodes": {}
   },
   "reftest_nodes": {
@@ -43539,7 +43544,7 @@
       }
     ]
   },
-  "rev": "1e42017386ce1eaeed4925fb8bc7f5417752019a",
+  "rev": "53f3408ffe1fd0e56a37aff4aaf1fa8441c41d6d",
   "url_base": "/",
   "version": 3
 }
