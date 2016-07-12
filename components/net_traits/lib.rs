@@ -565,6 +565,9 @@ pub struct Metadata {
 
     /// Is successful HTTPS connection
     pub https_state: HttpsState,
+
+    /// Referrer Url
+    pub referrer: Option<Url>,
 }
 
 impl Metadata {
@@ -578,6 +581,7 @@ impl Metadata {
             // https://fetch.spec.whatwg.org/#concept-response-status-message
             status: Some(RawStatus(200, "OK".into())),
             https_state: HttpsState::None,
+            referrer: None,
         }
     }
 

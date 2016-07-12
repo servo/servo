@@ -279,7 +279,8 @@ pub fn parse_html_fragment(context_node: &Node,
                                  IsHTMLDocument::HTMLDocument,
                                  None, None,
                                  DocumentSource::FromParser,
-                                 loader);
+                                 loader,
+                                 None);
 
     // Step 2.
     document.set_quirks_mode(context_document.quirks_mode());

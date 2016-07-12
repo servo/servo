@@ -1704,6 +1704,11 @@ impl ScriptThread {
             _ => IsHTMLDocument::HTMLDocument,
         };
 
+        let referrer = match metadata.referrer {
+            Some(ref referrer) => Some(referrer.clone().into_string()),
+            None => None,
+        };
+
         let document = Document::new(window.r(),
                                      Some(&browsing_context),
                                      Some(final_url.clone()),
@@ -1711,7 +1716,8 @@ impl ScriptThread {
                                      content_type,
                                      last_modified,
                                      DocumentSource::FromParser,
-                                     loader);
+                                     loader,
+                                     referrer);
         if using_new_context {
             browsing_context.init(&document);
         } else {

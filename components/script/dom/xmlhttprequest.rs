@@ -1234,7 +1234,9 @@ impl XMLHttpRequest {
                       is_html_document,
                       content_type,
                       None,
-                      DocumentSource::FromParser, docloader)
+                      DocumentSource::FromParser,
+                      docloader,
+                      None)
     }
 
     fn filter_response_headers(&self) -> Headers {
