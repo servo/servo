@@ -1366,7 +1366,7 @@ dependencies = [
 [[package]]
 name = "mozjs_sys"
 version = "0.0.0"
-source = "git+https://github.com/servo/mozjs?branch=smup#e2e2f0363001f59608a77aff8243e016a2ff322f"
+source = "git+https://github.com/servo/mozjs?branch=smup#c23e472e39240b22044e10f514f9b57081f14707"
 dependencies = [
  "libc 0.2.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "libz-sys 1.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
