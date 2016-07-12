@@ -43,18 +43,24 @@ mod utils;
 
 #[plugin_registrar]
 pub fn plugin_registrar(reg: &mut Registry) {
-    reg.register_syntax_extension(intern("dom_struct"), MultiModifier(box jstraceable::expand_dom_struct));
-    reg.register_syntax_extension(intern("derive_JSTraceable"), MultiDecorator(box jstraceable::expand_jstraceable));
-    reg.register_syntax_extension(intern("_generate_reflector"), MultiDecorator(box reflector::expand_reflector));
-    reg.register_late_lint_pass(box lints::transmute_type::TransmutePass);
-    reg.register_late_lint_pass(box lints::unrooted_must_root::UnrootedPass::new());
-    reg.register_late_lint_pass(box lints::privatize::PrivatizePass);
-    reg.register_late_lint_pass(box lints::inheritance_integrity::InheritancePass);
-    reg.register_early_lint_pass(box lints::ban::BanPass);
-    reg.register_late_lint_pass(box tenacious::TenaciousPass);
-    reg.register_attribute("must_root".to_string(), Whitelisted);
-    reg.register_attribute("servo_lang".to_string(), Whitelisted);
-    reg.register_attribute("allow_unrooted_interior".to_string(), Whitelisted);
+    if let Some(ref krate) = reg.sess.opts.crate_name {
+        // Avoid paying the cost of unnecessary lints
+        if krate.starts_with("script") || krate.starts_with("layout") {
+            reg.register_syntax_extension(intern("dom_struct"), MultiModifier(box jstraceable::expand_dom_struct));
+            reg.register_syntax_extension(intern("derive_JSTraceable"), MultiDecorator(box jstraceable::expand_jstraceable));
+            reg.register_syntax_extension(intern("_generate_reflector"), MultiDecorator(box reflector::expand_reflector));
+            reg.register_late_lint_pass(box lints::transmute_type::TransmutePass);
+            reg.register_late_lint_pass(box lints::unrooted_must_root::UnrootedPass::new());
+            reg.register_late_lint_pass(box lints::privatize::PrivatizePass);
+            reg.register_late_lint_pass(box lints::inheritance_integrity::InheritancePass);
+            reg.register_early_lint_pass(box lints::ban::BanPass);
+            reg.register_late_lint_pass(box tenacious::TenaciousPass);
+            reg.register_attribute("must_root".to_string(), Whitelisted);
+            reg.register_attribute("servo_lang".to_string(), Whitelisted);
+            reg.register_attribute("allow_unrooted_interior".to_string(), Whitelisted);
+        }
+    }
+
     register_clippy(reg);
 }
 

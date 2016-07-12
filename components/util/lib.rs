@@ -7,6 +7,7 @@
 #![cfg_attr(feature = "servo", feature(plugin))]
 #![cfg_attr(feature = "servo", feature(reflect_marker))]
 #![cfg_attr(feature = "servo", plugin(serde_macros))]
+#![cfg_attr(feature = "servo", plugin(plugins))]
 
 #![deny(unsafe_code)]
 
