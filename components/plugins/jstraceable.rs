@@ -86,5 +86,5 @@ fn jstraceable_substructure(cx: &mut ExtCtxt, trait_span: Span, substr: &Substru
         stmts.push(call_trace(span, self_.clone()));
     }
 
-    cx.expr_block(cx.block(trait_span, stmts, None))
+    cx.expr_block(cx.block(trait_span, stmts))
 }
