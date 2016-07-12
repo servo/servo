@@ -1,0 +1,18 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id" : "choiceSet.json",
+  "type": "object",
+  "properties":
+  {
+    "type":
+    {
+      "type": "string",
+      "enum": ["Choice", "Composite", "List", "Independents"]
+    },
+    "items" :
+    {
+      "type" : "array"
+    }
+  },
+  "required": [ "type", "items" ]
+}

@@ -12,17 +12,17 @@ Guidelines for writing tests
     For example, if you want to test setting the start time, you might be
     tempted to put all the tests in:
 
-    > `/web-animations/Animation/startTime.html`
+    > `/web-animations/interfaces/Animation/startTime.html`
 
     However, in the spec most of the logic is in the &ldquo;Set the animation
     start time&ldquo; procedure in the &ldquo;Timing model&rdquo; section.
 
     Instead, try something like:
 
-    > *   `/web-animations/timing-model/animation/set-the-animation-start-time.html`<br>
+    > *   `/web-animations/timing-model/animations/set-the-animation-start-time.html`<br>
     >     Tests all the branches and inputs to the procedure as defined in the
     >     spec (using the `Animation.startTime` API).
-    > *   `/web-animations/Animation/startTime.html`<br>
+    > *   `/web-animations/interfaces/Animation/startTime.html`<br>
     >     Tests API-layer specific issues like mapping unresolved values to
     >      null, etc.
 

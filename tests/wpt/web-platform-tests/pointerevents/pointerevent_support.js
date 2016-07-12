@@ -105,6 +105,14 @@ function showPointerTypes() {
     complete_notice.style.display = "block";
 }
 
+function showLoggedEvents() {
+    var event_log_elem = document.getElementById("event-log");
+    event_log_elem.innerHTML = event_log.length ? event_log.join(", ") : "(none)";
+
+    var complete_notice = document.getElementById("complete-notice");
+    complete_notice.style.display = "block";
+}
+
 function log(msg, el) {
     if (++count > 10){
       count = 0;
