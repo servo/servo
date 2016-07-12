@@ -47,8 +47,10 @@ pub fn plugin_registrar(reg: &mut Registry) {
         // Avoid paying the cost of unnecessary lints
         if krate.starts_with("script") || krate.starts_with("layout") {
             reg.register_syntax_extension(intern("dom_struct"), MultiModifier(box jstraceable::expand_dom_struct));
-            reg.register_syntax_extension(intern("derive_JSTraceable"), MultiDecorator(box jstraceable::expand_jstraceable));
-            reg.register_syntax_extension(intern("_generate_reflector"), MultiDecorator(box reflector::expand_reflector));
+            reg.register_syntax_extension(intern("derive_JSTraceable"),
+                                          MultiDecorator(box jstraceable::expand_jstraceable));
+            reg.register_syntax_extension(intern("_generate_reflector"),
+                                          MultiDecorator(box reflector::expand_reflector));
             reg.register_late_lint_pass(box lints::unrooted_must_root::UnrootedPass::new());
             reg.register_late_lint_pass(box lints::privatize::PrivatizePass);
             reg.register_late_lint_pass(box lints::inheritance_integrity::InheritancePass);
