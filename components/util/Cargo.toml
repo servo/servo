@@ -11,7 +11,7 @@ path = "lib.rs"
 [features]
 # servo as opposed to geckolib
 servo = ["serde", "serde_macros", "backtrace", "ipc-channel", "app_units/plugins",
-         "euclid/plugins", "euclid/unstable", "url/heap_size", "url/serde"]
+         "euclid/plugins", "euclid/unstable", "url/heap_size", "url/serde", "plugins"]
 
 [dependencies]
 app_units = "0.2.5"
@@ -28,6 +28,7 @@ rustc-serialize = "0.3"
 serde = {version = "0.7.11", optional = true}
 serde_macros = {version = "0.7.11", optional = true}
 url = "1.0.0"
+plugins = {path = "../plugins", optional = true}
 
 [target.'cfg(all(unix, not(target_os = "macos"), not(target_os = "ios"), not(target_os = "android")))'.dependencies]
 xdg = "2.0"

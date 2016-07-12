@@ -94,11 +94,21 @@ class MachCommands(CommandBase):
     @Command('clippy',
              description='Run Clippy',
              category='devenv')
-    def clippy(self):
-        features = "--features=script/plugins/clippy"
+    @CommandArgument(
+        '--package', '-p', default=None,
+        help='Updates the selected package')
+    @CommandArgument(
+        '--json', '-j', action="store_true",
+        help='Outputs')
+    def clippy(self, package=None, json=False):
+        params = ["--features=script/plugins/clippy"]
+        if package:
+            params += ["-p", package]
+        if json:
+            params += ["--", "-Zunstable-options", "--error-format", "json"]
 
         with cd(path.join(self.context.topdir, "components", "servo")):
-            return subprocess.call(["cargo", "build", features],
+            return subprocess.call(["cargo", "rustc", "-v"] + params,
                                    env=self.build_env())
 
     @Command('rustc',

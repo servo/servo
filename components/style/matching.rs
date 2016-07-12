@@ -602,17 +602,14 @@ pub trait ElementMatchMethods : TElement
         }
 
         for (i, &(ref candidate, ())) in style_sharing_candidate_cache.iter().enumerate() {
-            match self.share_style_with_candidate_if_possible(parent.clone(), candidate) {
-                Some(shared_style) => {
-                    // Yay, cache hit. Share the style.
-                    let node = self.as_node();
-                    let style = &mut node.mutate_data().unwrap().style;
-                    let damage = <<Self as TElement>::ConcreteNode as TNode>
-                                     ::ConcreteRestyleDamage::compute((*style).as_ref(), &*shared_style);
-                    *style = Some(shared_style);
-                    return StyleSharingResult::StyleWasShared(i, damage)
-                }
-                None => {}
+            if let Some(shared_style) = self.share_style_with_candidate_if_possible(parent.clone(), candidate) {
+                // Yay, cache hit. Share the style.
+                let node = self.as_node();
+                let style = &mut node.mutate_data().unwrap().style;
+                let damage = <<Self as TElement>::ConcreteNode as TNode>
+                                 ::ConcreteRestyleDamage::compute((*style).as_ref(), &*shared_style);
+                *style = Some(shared_style);
+                return StyleSharingResult::StyleWasShared(i, damage)
             }
         }
 

@@ -18,7 +18,7 @@
 #![deny(unsafe_code)]
 
 #[cfg(feature = "clippy")]
-extern crate clippy;
+extern crate clippy_lints;
 #[macro_use]
 extern crate rustc;
 extern crate rustc_plugin;
@@ -44,12 +44,14 @@ mod utils;
 #[plugin_registrar]
 pub fn plugin_registrar(reg: &mut Registry) {
     reg.register_syntax_extension(intern("dom_struct"), MultiModifier(box jstraceable::expand_dom_struct));
-    reg.register_syntax_extension(intern("derive_JSTraceable"), MultiDecorator(box jstraceable::expand_jstraceable));
-    reg.register_syntax_extension(intern("_generate_reflector"), MultiDecorator(box reflector::expand_reflector));
-    reg.register_late_lint_pass(box lints::transmute_type::TransmutePass);
+    reg.register_syntax_extension(intern("derive_JSTraceable"),
+                                  MultiDecorator(box jstraceable::expand_jstraceable));
+    reg.register_syntax_extension(intern("_generate_reflector"),
+                                  MultiDecorator(box reflector::expand_reflector));
     reg.register_late_lint_pass(box lints::unrooted_must_root::UnrootedPass::new());
     reg.register_late_lint_pass(box lints::privatize::PrivatizePass);
     reg.register_late_lint_pass(box lints::inheritance_integrity::InheritancePass);
+    reg.register_late_lint_pass(box lints::transmute_type::TransmutePass);
     reg.register_early_lint_pass(box lints::ban::BanPass);
     reg.register_late_lint_pass(box tenacious::TenaciousPass);
     reg.register_attribute("must_root".to_string(), Whitelisted);
@@ -60,7 +62,7 @@ pub fn plugin_registrar(reg: &mut Registry) {
 
 #[cfg(feature = "clippy")]
 fn register_clippy(reg: &mut Registry) {
-    ::clippy::plugin_registrar(reg);
+    ::clippy_lints::register_plugins(reg);
 }
 #[cfg(not(feature = "clippy"))]
 fn register_clippy(_reg: &mut Registry) {

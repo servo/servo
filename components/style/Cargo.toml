@@ -16,7 +16,7 @@ servo = ["serde", "serde/nightly", "serde_macros", "heapsize", "heapsize_plugin"
          "style_traits/servo", "app_units/plugins", "euclid/plugins",
          "cssparser/heap_size", "cssparser/serde-serialization",
          "selectors/heap_size", "selectors/unstable", "string_cache/heap_size",
-         "url/heap_size"]
+         "url/heap_size", "plugins"]
 
 [dependencies]
 app_units = "0.2.5"
@@ -45,6 +45,7 @@ style_traits = {path = "../style_traits"}
 time = "0.1"
 url = "1.0.0"
 util = {path = "../util"}
+plugins = {path = "../plugins", optional = true}
 
 [target.'cfg(windows)'.dependencies]
 kernel32-sys = "0.2"
