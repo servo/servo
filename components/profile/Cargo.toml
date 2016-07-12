@@ -16,9 +16,9 @@ util = {path = "../util", features = ["servo"]}
 ipc-channel = {git = "https://github.com/servo/ipc-channel"}
 heartbeats-simple = "0.3"
 log = "0.3.5"
-serde = "0.7.11"
+serde = "0.7.15"
 serde_json = "0.7"
-serde_macros = "0.7.11"
+serde_macros = "0.7.15"
 time = "0.1.12"
 
 [target.'cfg(target_os = "macos")'.dependencies]

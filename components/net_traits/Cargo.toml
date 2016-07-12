@@ -20,8 +20,8 @@ image = "0.10"
 lazy_static = "0.2"
 log = "0.3.5"
 num-traits = "0.1.32"
-serde = "0.7.11"
-serde_macros = "0.7.11"
+serde = "0.7.15"
+serde_macros = "0.7.15"
 url = {version = "1.0.0", features = ["heap_size"]}
 websocket = "0.17"
 uuid = { version = "0.2.2", features = ["v4", "serde"] }

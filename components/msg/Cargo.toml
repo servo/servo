@@ -17,8 +17,8 @@ heapsize_plugin = "0.1.2"
 hyper = {version = "0.9.9", features = ["serde-serialization"]}
 ipc-channel = {git = "https://github.com/servo/ipc-channel"}
 plugins = {path = "../plugins"}
-serde = "0.7.11"
-serde_macros = "0.7.11"
+serde = "0.7.15"
+serde_macros = "0.7.15"
 url = {version = "1.0.0", features = ["heap_size", "serde"]}
 
 [dependencies.webrender_traits]
