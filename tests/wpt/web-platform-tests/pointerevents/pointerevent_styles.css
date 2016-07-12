@@ -77,6 +77,10 @@ display: none;
 font-weight: bold;
 }
 
+#event-log {
+font-weight: bold;
+}
+
 #listener {
 background: orange;
 border: 1px solid orange;
