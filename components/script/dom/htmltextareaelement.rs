@@ -260,7 +260,8 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
             &self.upcast(),
             atom!("select"),
             EventBubbles::Bubbles,
-            EventCancelable::NotCancelable);
+            EventCancelable::NotCancelable,
+            window.r());
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 }
@@ -383,7 +384,8 @@ impl VirtualMethods for HTMLTextAreaElement {
                                 &self.upcast(),
                                 atom!("input"),
                                 EventBubbles::Bubbles,
-                                EventCancelable::NotCancelable);
+                                EventCancelable::NotCancelable,
+                                window.r());
                         }
 
                         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);

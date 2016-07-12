@@ -5,6 +5,7 @@
 use dom::bindings::refcounted::Trusted;
 use dom::event::{EventBubbles, EventCancelable, EventRunnable};
 use dom::eventtarget::EventTarget;
+use dom::window::Window;
 use script_thread::{MainThreadScriptMsg, Runnable, ScriptThread};
 use std::result::Result;
 use std::sync::mpsc::Sender;
@@ -14,8 +15,9 @@ use task_source::TaskSource;
 #[derive(JSTraceable, Clone)]
 pub struct UserInteractionTaskSource(pub Sender<MainThreadScriptMsg>);
 
-impl TaskSource<UserInteractionTask> for UserInteractionTaskSource {
-    fn queue(&self, msg: UserInteractionTask) -> Result<(), ()> {
+impl TaskSource for UserInteractionTaskSource {
+    fn queue<T: Runnable + Send + 'static>(&self, msg: Box<T>, window: &Window) -> Result<(), ()> {
+        let msg = UserInteractionTask(window.get_runnable_wrapper().wrap_runnable(msg));
         self.0.send(MainThreadScriptMsg::UserInteraction(msg)).map_err(|_| ())
     }
 }
@@ -25,7 +27,8 @@ impl UserInteractionTaskSource {
                        target: &EventTarget,
                        name: Atom,
                        bubbles: EventBubbles,
-                       cancelable: EventCancelable) {
+                       cancelable: EventCancelable,
+                       window: &Window) {
         let target = Trusted::new(target);
         let runnable = box EventRunnable {
             target: target,
@@ -33,7 +36,7 @@ impl UserInteractionTaskSource {
             bubbles: bubbles,
             cancelable: cancelable,
         };
-        let _ = self.queue(UserInteractionTask(runnable));
+        let _ = self.queue(runnable, window);
     }
 }
 
