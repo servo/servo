@@ -6046,7 +6046,7 @@ class CallbackMember(CGNativeMember):
             # It's been done for us already
             return ""
         return (
-            "CallSetup s(CallbackPreserveColor(), aRv, aExceptionHandling);\n"
+            "let s = CallSetup(CallbackPreserveColor(), aRv, aExceptionHandling);\n"
             "JSContext* cx = s.get_context();\n"
             "if (!cx) {\n"
             "    return Err(JSFailed);\n"
