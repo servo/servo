@@ -8,9 +8,11 @@ use dom::bindings::codegen::Bindings::EventBinding::{EventConstants, EventMethod
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
+use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::eventtarget::EventTarget;
+use script_thread::Runnable;
 use std::cell::Cell;
 use std::default::Default;
 use string_cache::Atom;
@@ -26,7 +28,7 @@ pub enum EventPhase {
     Bubbling  = EventConstants::BUBBLING_PHASE,
 }
 
-#[derive(PartialEq, HeapSizeOf)]
+#[derive(PartialEq, HeapSizeOf, Copy, Clone)]
 pub enum EventBubbles {
     Bubbles,
     DoesNotBubble
@@ -50,7 +52,7 @@ impl From<bool> for EventBubbles {
     }
 }
 
-#[derive(PartialEq, HeapSizeOf)]
+#[derive(PartialEq, HeapSizeOf, Copy, Clone)]
 pub enum EventCancelable {
     Cancelable,
     NotCancelable
@@ -295,5 +297,37 @@ impl Event {
     pub fn fire(&self, target: &EventTarget) -> bool {
         self.set_trusted(true);
         target.dispatch_event(self)
+    }
+}
+
+// https://dom.spec.whatwg.org/#concept-event-fire
+pub struct EventRunnable {
+    pub target: Trusted<EventTarget>,
+    pub name: Atom,
+    pub bubbles: EventBubbles,
+    pub cancelable: EventCancelable,
+}
+
+impl Runnable for EventRunnable {
+    fn name(&self) -> &'static str { "EventRunnable" }
+
+    fn handler(self: Box<EventRunnable>) {
+        let target = self.target.root();
+        target.fire_event(&*self.name, self.bubbles, self.cancelable);
+    }
+}
+
+// https://html.spec.whatwg.org/multipage/#fire-a-simple-event
+pub struct SimpleEventRunnable {
+    pub target: Trusted<EventTarget>,
+    pub name: Atom,
+}
+
+impl Runnable for SimpleEventRunnable {
+    fn name(&self) -> &'static str { "SimpleEventRunnable" }
+
+    fn handler(self: Box<SimpleEventRunnable>) {
+        let target = self.target.root();
+        target.fire_simple_event(&*self.name);
     }
 }
