@@ -24,8 +24,8 @@ net_traits = {path = "../net_traits"}
 plugins = {path = "../plugins"}
 profile_traits = {path = "../profile_traits"}
 script_traits = {path = "../script_traits"}
-serde = "0.7.11"
-serde_macros = "0.7.11"
+serde = "0.7.15"
+serde_macros = "0.7.15"
 style_traits = {path = "../style_traits"}
 time = "0.1.17"
 url = {version = "1.0.0", features = ["heap_size"]}

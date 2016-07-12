@@ -38,8 +38,8 @@ num-traits = "0.1.32"
 rand = "0.3"
 rustc-serialize = "0.3"
 selectors = "0.7"
-serde = {version = "0.7.11", optional = true}
-serde_macros = {version = "0.7.11", optional = true}
+serde = {version = "0.7.15", optional = true}
+serde_macros = {version = "0.7.15", optional = true}
 smallvec = "0.1"
 string_cache = "0.2.20"
 style_traits = {path = "../style_traits"}
