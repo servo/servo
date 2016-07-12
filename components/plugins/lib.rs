@@ -18,7 +18,7 @@
 #![deny(unsafe_code)]
 
 #[cfg(feature = "clippy")]
-extern crate clippy;
+extern crate clippy_lints;
 #[macro_use]
 extern crate rustc;
 extern crate rustc_plugin;
@@ -60,7 +60,7 @@ pub fn plugin_registrar(reg: &mut Registry) {
 
 #[cfg(feature = "clippy")]
 fn register_clippy(reg: &mut Registry) {
-    ::clippy::plugin_registrar(reg);
+    ::clippy_lints::register_plugins(reg);
 }
 #[cfg(not(feature = "clippy"))]
 fn register_clippy(_reg: &mut Registry) {
