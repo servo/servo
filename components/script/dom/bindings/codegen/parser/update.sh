@@ -1,4 +1,4 @@
-wget https://mxr.mozilla.org/mozilla-central/source/dom/bindings/parser/WebIDL.py?raw=1 -O WebIDL.py
+wget https://hg.mozilla.org/mozilla-central/raw-file/tip/dom/bindings/parser/WebIDL.py -O WebIDL.py
 patch < abstract.patch
 patch < debug.patch
 patch < pref-main-thread.patch
