@@ -4,6 +4,7 @@
 
 use ipc_channel::ipc::{self, IpcSender};
 use net::filemanager_thread::{FileManagerThreadFactory, UIProvider};
+use net_traits::blob_url_store::BlobURLStoreError;
 use net_traits::filemanager_thread::{FilterPattern, FileManagerThreadMsg, FileManagerThreadError};
 use std::fs::File;
 use std::io::Read;
@@ -56,7 +57,7 @@ fn test_filemanager() {
             let msg = rx2.recv().expect("Broken channel");
 
             let vec = msg.expect("File manager reading failure is unexpected");
-            assert!(test_file_content == vec, "Read content differs");
+            assert_eq!(test_file_content, vec, "Read content differs");
         }
 
         // Delete the id
@@ -76,7 +77,7 @@ fn test_filemanager() {
             let msg = rx2.recv().expect("Broken channel");
 
             match msg {
-                Err(FileManagerThreadError::ReadFileError) => {},
+                Err(FileManagerThreadError::BlobURLStoreError(BlobURLStoreError::InvalidFileID)) => {},
                 other => {
                     assert!(false, "Get unexpected response after deleting the id: {:?}", other);
                 }

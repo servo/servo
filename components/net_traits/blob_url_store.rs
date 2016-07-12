@@ -6,7 +6,7 @@ use std::str::FromStr;
 use url::Url;
 use uuid::Uuid;
 
-/// Errors returns to BlobURLStoreMsg::Request
+/// Errors returned to Blob URL Store request
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum BlobURLStoreError {
     /// Invalid File UUID
@@ -16,12 +16,13 @@ pub enum BlobURLStoreError {
     /// Invalid entry content
     InvalidEntry,
     /// External error, from like file system, I/O etc.
-    External,
+    External(String),
 }
 
-/// Blob URL store entry, a packaged form of Blob DOM object
+/// Standalone blob buffer object
 #[derive(Clone, Serialize, Deserialize)]
-pub struct BlobURLStoreEntry {
+pub struct BlobBuf {
+    pub filename: Option<String>,
     /// MIME type string
     pub type_string: String,
     /// Size of content in bytes
