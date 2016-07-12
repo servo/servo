@@ -6828,6 +6828,222 @@
             "url": "/_mozilla/mozilla/range_deleteContents.html"
           }
         ],
+        "mozilla/referrer-policy/no-referrer-when-downgrade/attr-referrer/cross-origin/http-http/iframe-tag/insecure-protocol.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer-when-downgrade/attr-referrer/cross-origin/http-http/iframe-tag/insecure-protocol.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer-when-downgrade/attr-referrer/cross-origin/http-http/iframe-tag/insecure-protocol.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer-when-downgrade/attr-referrer/cross-origin/http-http/iframe-tag/insecure-protocol.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer-when-downgrade/attr-referrer/cross-origin/http-http/iframe-tag/insecure-protocol.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer-when-downgrade/attr-referrer/cross-origin/http-http/iframe-tag/insecure-protocol.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer-when-downgrade/attr-referrer/cross-origin/http-http/iframe-tag/insecure-protocol.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer-when-downgrade/attr-referrer/cross-origin/http-http/iframe-tag/insecure-protocol.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer-when-downgrade/attr-referrer/cross-origin/http-http/iframe-tag/insecure-protocol.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer-when-downgrade/attr-referrer/cross-origin/http-https/iframe-tag/upgrade-protocol.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer-when-downgrade/attr-referrer/cross-origin/http-https/iframe-tag/upgrade-protocol.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer-when-downgrade/attr-referrer/cross-origin/http-https/iframe-tag/upgrade-protocol.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer-when-downgrade/attr-referrer/cross-origin/http-https/iframe-tag/upgrade-protocol.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer-when-downgrade/attr-referrer/cross-origin/http-https/iframe-tag/upgrade-protocol.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer-when-downgrade/attr-referrer/cross-origin/http-https/iframe-tag/upgrade-protocol.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer-when-downgrade/attr-referrer/cross-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer-when-downgrade/attr-referrer/cross-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer-when-downgrade/attr-referrer/cross-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer-when-downgrade/attr-referrer/same-origin/http-http/iframe-tag/insecure-protocol.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer-when-downgrade/attr-referrer/same-origin/http-http/iframe-tag/insecure-protocol.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer-when-downgrade/attr-referrer/same-origin/http-http/iframe-tag/insecure-protocol.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer-when-downgrade/attr-referrer/same-origin/http-http/iframe-tag/insecure-protocol.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer-when-downgrade/attr-referrer/same-origin/http-http/iframe-tag/insecure-protocol.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer-when-downgrade/attr-referrer/same-origin/http-http/iframe-tag/insecure-protocol.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer-when-downgrade/attr-referrer/same-origin/http-http/iframe-tag/insecure-protocol.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer-when-downgrade/attr-referrer/same-origin/http-http/iframe-tag/insecure-protocol.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer-when-downgrade/attr-referrer/same-origin/http-http/iframe-tag/insecure-protocol.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer-when-downgrade/attr-referrer/same-origin/http-https/iframe-tag/upgrade-protocol.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer-when-downgrade/attr-referrer/same-origin/http-https/iframe-tag/upgrade-protocol.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer-when-downgrade/attr-referrer/same-origin/http-https/iframe-tag/upgrade-protocol.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer-when-downgrade/attr-referrer/same-origin/http-https/iframe-tag/upgrade-protocol.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer-when-downgrade/attr-referrer/same-origin/http-https/iframe-tag/upgrade-protocol.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer-when-downgrade/attr-referrer/same-origin/http-https/iframe-tag/upgrade-protocol.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer-when-downgrade/attr-referrer/same-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer-when-downgrade/attr-referrer/same-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer-when-downgrade/attr-referrer/same-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer-when-downgrade/http-rp/cross-origin/http-http/iframe-tag/insecure-protocol.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer-when-downgrade/http-rp/cross-origin/http-http/iframe-tag/insecure-protocol.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer-when-downgrade/http-rp/cross-origin/http-http/iframe-tag/insecure-protocol.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer-when-downgrade/http-rp/cross-origin/http-http/iframe-tag/insecure-protocol.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer-when-downgrade/http-rp/cross-origin/http-http/iframe-tag/insecure-protocol.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer-when-downgrade/http-rp/cross-origin/http-http/iframe-tag/insecure-protocol.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer-when-downgrade/http-rp/cross-origin/http-http/iframe-tag/insecure-protocol.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer-when-downgrade/http-rp/cross-origin/http-http/iframe-tag/insecure-protocol.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer-when-downgrade/http-rp/cross-origin/http-http/iframe-tag/insecure-protocol.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer-when-downgrade/http-rp/cross-origin/http-https/iframe-tag/upgrade-protocol.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer-when-downgrade/http-rp/cross-origin/http-https/iframe-tag/upgrade-protocol.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer-when-downgrade/http-rp/cross-origin/http-https/iframe-tag/upgrade-protocol.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer-when-downgrade/http-rp/cross-origin/http-https/iframe-tag/upgrade-protocol.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer-when-downgrade/http-rp/cross-origin/http-https/iframe-tag/upgrade-protocol.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer-when-downgrade/http-rp/cross-origin/http-https/iframe-tag/upgrade-protocol.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer-when-downgrade/http-rp/cross-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer-when-downgrade/http-rp/cross-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer-when-downgrade/http-rp/cross-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer-when-downgrade/http-rp/same-origin/http-http/iframe-tag/insecure-protocol.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer-when-downgrade/http-rp/same-origin/http-http/iframe-tag/insecure-protocol.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer-when-downgrade/http-rp/same-origin/http-http/iframe-tag/insecure-protocol.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer-when-downgrade/http-rp/same-origin/http-http/iframe-tag/insecure-protocol.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer-when-downgrade/http-rp/same-origin/http-http/iframe-tag/insecure-protocol.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer-when-downgrade/http-rp/same-origin/http-http/iframe-tag/insecure-protocol.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer-when-downgrade/http-rp/same-origin/http-http/iframe-tag/insecure-protocol.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer-when-downgrade/http-rp/same-origin/http-http/iframe-tag/insecure-protocol.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer-when-downgrade/http-rp/same-origin/http-http/iframe-tag/insecure-protocol.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer-when-downgrade/http-rp/same-origin/http-https/iframe-tag/upgrade-protocol.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer-when-downgrade/http-rp/same-origin/http-https/iframe-tag/upgrade-protocol.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer-when-downgrade/http-rp/same-origin/http-https/iframe-tag/upgrade-protocol.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer-when-downgrade/http-rp/same-origin/http-https/iframe-tag/upgrade-protocol.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer-when-downgrade/http-rp/same-origin/http-https/iframe-tag/upgrade-protocol.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer-when-downgrade/http-rp/same-origin/http-https/iframe-tag/upgrade-protocol.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer-when-downgrade/http-rp/same-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer-when-downgrade/http-rp/same-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer-when-downgrade/http-rp/same-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer-when-downgrade/meta-csp/cross-origin/http-http/iframe-tag/insecure-protocol.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer-when-downgrade/meta-csp/cross-origin/http-http/iframe-tag/insecure-protocol.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer-when-downgrade/meta-csp/cross-origin/http-http/iframe-tag/insecure-protocol.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer-when-downgrade/meta-csp/cross-origin/http-http/iframe-tag/insecure-protocol.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer-when-downgrade/meta-csp/cross-origin/http-http/iframe-tag/insecure-protocol.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer-when-downgrade/meta-csp/cross-origin/http-http/iframe-tag/insecure-protocol.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer-when-downgrade/meta-csp/cross-origin/http-http/iframe-tag/insecure-protocol.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer-when-downgrade/meta-csp/cross-origin/http-http/iframe-tag/insecure-protocol.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer-when-downgrade/meta-csp/cross-origin/http-http/iframe-tag/insecure-protocol.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer-when-downgrade/meta-csp/cross-origin/http-https/iframe-tag/upgrade-protocol.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer-when-downgrade/meta-csp/cross-origin/http-https/iframe-tag/upgrade-protocol.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer-when-downgrade/meta-csp/cross-origin/http-https/iframe-tag/upgrade-protocol.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer-when-downgrade/meta-csp/cross-origin/http-https/iframe-tag/upgrade-protocol.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer-when-downgrade/meta-csp/cross-origin/http-https/iframe-tag/upgrade-protocol.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer-when-downgrade/meta-csp/cross-origin/http-https/iframe-tag/upgrade-protocol.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer-when-downgrade/meta-csp/cross-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer-when-downgrade/meta-csp/cross-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer-when-downgrade/meta-csp/cross-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer-when-downgrade/meta-csp/same-origin/http-http/iframe-tag/insecure-protocol.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer-when-downgrade/meta-csp/same-origin/http-http/iframe-tag/insecure-protocol.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer-when-downgrade/meta-csp/same-origin/http-http/iframe-tag/insecure-protocol.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer-when-downgrade/meta-csp/same-origin/http-http/iframe-tag/insecure-protocol.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer-when-downgrade/meta-csp/same-origin/http-http/iframe-tag/insecure-protocol.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer-when-downgrade/meta-csp/same-origin/http-http/iframe-tag/insecure-protocol.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer-when-downgrade/meta-csp/same-origin/http-http/iframe-tag/insecure-protocol.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer-when-downgrade/meta-csp/same-origin/http-http/iframe-tag/insecure-protocol.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer-when-downgrade/meta-csp/same-origin/http-http/iframe-tag/insecure-protocol.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer-when-downgrade/meta-csp/same-origin/http-https/iframe-tag/upgrade-protocol.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer-when-downgrade/meta-csp/same-origin/http-https/iframe-tag/upgrade-protocol.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer-when-downgrade/meta-csp/same-origin/http-https/iframe-tag/upgrade-protocol.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer-when-downgrade/meta-csp/same-origin/http-https/iframe-tag/upgrade-protocol.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer-when-downgrade/meta-csp/same-origin/http-https/iframe-tag/upgrade-protocol.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer-when-downgrade/meta-csp/same-origin/http-https/iframe-tag/upgrade-protocol.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer-when-downgrade/meta-csp/same-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer-when-downgrade/meta-csp/same-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer-when-downgrade/meta-csp/same-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html"
+          }
+        ],
         "mozilla/referrer-policy/no-referrer-when-downgrade/meta-referrer/cross-origin/http-http/iframe-tag/insecure-protocol.keep-origin-redirect.http.html": [
           {
             "path": "mozilla/referrer-policy/no-referrer-when-downgrade/meta-referrer/cross-origin/http-http/iframe-tag/insecure-protocol.keep-origin-redirect.http.html",
@@ -6844,6 +7060,24 @@
           {
             "path": "mozilla/referrer-policy/no-referrer-when-downgrade/meta-referrer/cross-origin/http-http/iframe-tag/insecure-protocol.swap-origin-redirect.http.html",
             "url": "/_mozilla/mozilla/referrer-policy/no-referrer-when-downgrade/meta-referrer/cross-origin/http-http/iframe-tag/insecure-protocol.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer-when-downgrade/meta-referrer/cross-origin/http-https/iframe-tag/upgrade-protocol.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer-when-downgrade/meta-referrer/cross-origin/http-https/iframe-tag/upgrade-protocol.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer-when-downgrade/meta-referrer/cross-origin/http-https/iframe-tag/upgrade-protocol.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer-when-downgrade/meta-referrer/cross-origin/http-https/iframe-tag/upgrade-protocol.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer-when-downgrade/meta-referrer/cross-origin/http-https/iframe-tag/upgrade-protocol.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer-when-downgrade/meta-referrer/cross-origin/http-https/iframe-tag/upgrade-protocol.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer-when-downgrade/meta-referrer/cross-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer-when-downgrade/meta-referrer/cross-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer-when-downgrade/meta-referrer/cross-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html"
           }
         ],
         "mozilla/referrer-policy/no-referrer-when-downgrade/meta-referrer/same-origin/http-http/iframe-tag/insecure-protocol.keep-origin-redirect.http.html": [
@@ -6864,6 +7098,240 @@
             "url": "/_mozilla/mozilla/referrer-policy/no-referrer-when-downgrade/meta-referrer/same-origin/http-http/iframe-tag/insecure-protocol.swap-origin-redirect.http.html"
           }
         ],
+        "mozilla/referrer-policy/no-referrer-when-downgrade/meta-referrer/same-origin/http-https/iframe-tag/upgrade-protocol.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer-when-downgrade/meta-referrer/same-origin/http-https/iframe-tag/upgrade-protocol.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer-when-downgrade/meta-referrer/same-origin/http-https/iframe-tag/upgrade-protocol.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer-when-downgrade/meta-referrer/same-origin/http-https/iframe-tag/upgrade-protocol.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer-when-downgrade/meta-referrer/same-origin/http-https/iframe-tag/upgrade-protocol.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer-when-downgrade/meta-referrer/same-origin/http-https/iframe-tag/upgrade-protocol.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer-when-downgrade/meta-referrer/same-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer-when-downgrade/meta-referrer/same-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer-when-downgrade/meta-referrer/same-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer/attr-referrer/cross-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer/attr-referrer/cross-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer/attr-referrer/cross-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer/attr-referrer/cross-origin/http-http/iframe-tag/generic.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer/attr-referrer/cross-origin/http-http/iframe-tag/generic.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer/attr-referrer/cross-origin/http-http/iframe-tag/generic.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer/attr-referrer/cross-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer/attr-referrer/cross-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer/attr-referrer/cross-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer/attr-referrer/cross-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer/attr-referrer/cross-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer/attr-referrer/cross-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer/attr-referrer/cross-origin/http-https/iframe-tag/generic.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer/attr-referrer/cross-origin/http-https/iframe-tag/generic.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer/attr-referrer/cross-origin/http-https/iframe-tag/generic.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer/attr-referrer/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer/attr-referrer/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer/attr-referrer/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer/attr-referrer/same-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer/attr-referrer/same-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer/attr-referrer/same-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer/attr-referrer/same-origin/http-http/iframe-tag/generic.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer/attr-referrer/same-origin/http-http/iframe-tag/generic.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer/attr-referrer/same-origin/http-http/iframe-tag/generic.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer/attr-referrer/same-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer/attr-referrer/same-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer/attr-referrer/same-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer/attr-referrer/same-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer/attr-referrer/same-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer/attr-referrer/same-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer/attr-referrer/same-origin/http-https/iframe-tag/generic.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer/attr-referrer/same-origin/http-https/iframe-tag/generic.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer/attr-referrer/same-origin/http-https/iframe-tag/generic.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer/attr-referrer/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer/attr-referrer/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer/attr-referrer/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer/http-rp/cross-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer/http-rp/cross-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer/http-rp/cross-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer/http-rp/cross-origin/http-http/iframe-tag/generic.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer/http-rp/cross-origin/http-http/iframe-tag/generic.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer/http-rp/cross-origin/http-http/iframe-tag/generic.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer/http-rp/cross-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer/http-rp/cross-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer/http-rp/cross-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer/http-rp/cross-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer/http-rp/cross-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer/http-rp/cross-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer/http-rp/cross-origin/http-https/iframe-tag/generic.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer/http-rp/cross-origin/http-https/iframe-tag/generic.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer/http-rp/cross-origin/http-https/iframe-tag/generic.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer/http-rp/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer/http-rp/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer/http-rp/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer/http-rp/same-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer/http-rp/same-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer/http-rp/same-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer/http-rp/same-origin/http-http/iframe-tag/generic.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer/http-rp/same-origin/http-http/iframe-tag/generic.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer/http-rp/same-origin/http-http/iframe-tag/generic.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer/http-rp/same-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer/http-rp/same-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer/http-rp/same-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer/http-rp/same-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer/http-rp/same-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer/http-rp/same-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer/http-rp/same-origin/http-https/iframe-tag/generic.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer/http-rp/same-origin/http-https/iframe-tag/generic.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer/http-rp/same-origin/http-https/iframe-tag/generic.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer/http-rp/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer/http-rp/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer/http-rp/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer/meta-csp/cross-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer/meta-csp/cross-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer/meta-csp/cross-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer/meta-csp/cross-origin/http-http/iframe-tag/generic.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer/meta-csp/cross-origin/http-http/iframe-tag/generic.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer/meta-csp/cross-origin/http-http/iframe-tag/generic.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer/meta-csp/cross-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer/meta-csp/cross-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer/meta-csp/cross-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer/meta-csp/cross-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer/meta-csp/cross-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer/meta-csp/cross-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer/meta-csp/cross-origin/http-https/iframe-tag/generic.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer/meta-csp/cross-origin/http-https/iframe-tag/generic.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer/meta-csp/cross-origin/http-https/iframe-tag/generic.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer/meta-csp/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer/meta-csp/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer/meta-csp/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer/meta-csp/same-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer/meta-csp/same-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer/meta-csp/same-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer/meta-csp/same-origin/http-http/iframe-tag/generic.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer/meta-csp/same-origin/http-http/iframe-tag/generic.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer/meta-csp/same-origin/http-http/iframe-tag/generic.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer/meta-csp/same-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer/meta-csp/same-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer/meta-csp/same-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer/meta-csp/same-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer/meta-csp/same-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer/meta-csp/same-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer/meta-csp/same-origin/http-https/iframe-tag/generic.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer/meta-csp/same-origin/http-https/iframe-tag/generic.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer/meta-csp/same-origin/http-https/iframe-tag/generic.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer/meta-csp/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer/meta-csp/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer/meta-csp/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html"
+          }
+        ],
         "mozilla/referrer-policy/no-referrer/meta-referrer/cross-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html": [
           {
             "path": "mozilla/referrer-policy/no-referrer/meta-referrer/cross-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html",
@@ -6880,6 +7348,24 @@
           {
             "path": "mozilla/referrer-policy/no-referrer/meta-referrer/cross-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html",
             "url": "/_mozilla/mozilla/referrer-policy/no-referrer/meta-referrer/cross-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer/meta-referrer/cross-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer/meta-referrer/cross-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer/meta-referrer/cross-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer/meta-referrer/cross-origin/http-https/iframe-tag/generic.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer/meta-referrer/cross-origin/http-https/iframe-tag/generic.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer/meta-referrer/cross-origin/http-https/iframe-tag/generic.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/no-referrer/meta-referrer/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/no-referrer/meta-referrer/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer/meta-referrer/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html"
           }
         ],
         "mozilla/referrer-policy/no-referrer/meta-referrer/same-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html": [
@@ -6900,40 +7386,310 @@
             "url": "/_mozilla/mozilla/referrer-policy/no-referrer/meta-referrer/same-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html"
           }
         ],
-        "mozilla/referrer-policy/origin-only/meta-referrer/cross-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html": [
+        "mozilla/referrer-policy/no-referrer/meta-referrer/same-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html": [
           {
-            "path": "mozilla/referrer-policy/origin-only/meta-referrer/cross-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html",
-            "url": "/_mozilla/mozilla/referrer-policy/origin-only/meta-referrer/cross-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html"
+            "path": "mozilla/referrer-policy/no-referrer/meta-referrer/same-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer/meta-referrer/same-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html"
           }
         ],
-        "mozilla/referrer-policy/origin-only/meta-referrer/cross-origin/http-http/iframe-tag/generic.no-redirect.http.html": [
+        "mozilla/referrer-policy/no-referrer/meta-referrer/same-origin/http-https/iframe-tag/generic.no-redirect.http.html": [
           {
-            "path": "mozilla/referrer-policy/origin-only/meta-referrer/cross-origin/http-http/iframe-tag/generic.no-redirect.http.html",
-            "url": "/_mozilla/mozilla/referrer-policy/origin-only/meta-referrer/cross-origin/http-http/iframe-tag/generic.no-redirect.http.html"
+            "path": "mozilla/referrer-policy/no-referrer/meta-referrer/same-origin/http-https/iframe-tag/generic.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer/meta-referrer/same-origin/http-https/iframe-tag/generic.no-redirect.http.html"
           }
         ],
-        "mozilla/referrer-policy/origin-only/meta-referrer/cross-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html": [
+        "mozilla/referrer-policy/no-referrer/meta-referrer/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html": [
           {
-            "path": "mozilla/referrer-policy/origin-only/meta-referrer/cross-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html",
-            "url": "/_mozilla/mozilla/referrer-policy/origin-only/meta-referrer/cross-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html"
+            "path": "mozilla/referrer-policy/no-referrer/meta-referrer/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/no-referrer/meta-referrer/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html"
           }
         ],
-        "mozilla/referrer-policy/origin-only/meta-referrer/same-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html": [
+        "mozilla/referrer-policy/origin-when-cross-origin/attr-referrer/cross-origin/http-http/iframe-tag/cross-origin.keep-origin-redirect.http.html": [
           {
-            "path": "mozilla/referrer-policy/origin-only/meta-referrer/same-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html",
-            "url": "/_mozilla/mozilla/referrer-policy/origin-only/meta-referrer/same-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html"
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/attr-referrer/cross-origin/http-http/iframe-tag/cross-origin.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/attr-referrer/cross-origin/http-http/iframe-tag/cross-origin.keep-origin-redirect.http.html"
           }
         ],
-        "mozilla/referrer-policy/origin-only/meta-referrer/same-origin/http-http/iframe-tag/generic.no-redirect.http.html": [
+        "mozilla/referrer-policy/origin-when-cross-origin/attr-referrer/cross-origin/http-http/iframe-tag/cross-origin.no-redirect.http.html": [
           {
-            "path": "mozilla/referrer-policy/origin-only/meta-referrer/same-origin/http-http/iframe-tag/generic.no-redirect.http.html",
-            "url": "/_mozilla/mozilla/referrer-policy/origin-only/meta-referrer/same-origin/http-http/iframe-tag/generic.no-redirect.http.html"
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/attr-referrer/cross-origin/http-http/iframe-tag/cross-origin.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/attr-referrer/cross-origin/http-http/iframe-tag/cross-origin.no-redirect.http.html"
           }
         ],
-        "mozilla/referrer-policy/origin-only/meta-referrer/same-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html": [
+        "mozilla/referrer-policy/origin-when-cross-origin/attr-referrer/cross-origin/http-http/iframe-tag/cross-origin.swap-origin-redirect.http.html": [
           {
-            "path": "mozilla/referrer-policy/origin-only/meta-referrer/same-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html",
-            "url": "/_mozilla/mozilla/referrer-policy/origin-only/meta-referrer/same-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html"
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/attr-referrer/cross-origin/http-http/iframe-tag/cross-origin.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/attr-referrer/cross-origin/http-http/iframe-tag/cross-origin.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin-when-cross-origin/attr-referrer/cross-origin/http-https/iframe-tag/cross-origin.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/attr-referrer/cross-origin/http-https/iframe-tag/cross-origin.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/attr-referrer/cross-origin/http-https/iframe-tag/cross-origin.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin-when-cross-origin/attr-referrer/cross-origin/http-https/iframe-tag/cross-origin.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/attr-referrer/cross-origin/http-https/iframe-tag/cross-origin.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/attr-referrer/cross-origin/http-https/iframe-tag/cross-origin.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin-when-cross-origin/attr-referrer/cross-origin/http-https/iframe-tag/cross-origin.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/attr-referrer/cross-origin/http-https/iframe-tag/cross-origin.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/attr-referrer/cross-origin/http-https/iframe-tag/cross-origin.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin-when-cross-origin/attr-referrer/same-origin/http-http/iframe-tag/same-origin-insecure.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/attr-referrer/same-origin/http-http/iframe-tag/same-origin-insecure.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/attr-referrer/same-origin/http-http/iframe-tag/same-origin-insecure.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin-when-cross-origin/attr-referrer/same-origin/http-http/iframe-tag/same-origin-insecure.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/attr-referrer/same-origin/http-http/iframe-tag/same-origin-insecure.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/attr-referrer/same-origin/http-http/iframe-tag/same-origin-insecure.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin-when-cross-origin/attr-referrer/same-origin/http-http/iframe-tag/same-origin-insecure.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/attr-referrer/same-origin/http-http/iframe-tag/same-origin-insecure.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/attr-referrer/same-origin/http-http/iframe-tag/same-origin-insecure.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin-when-cross-origin/attr-referrer/same-origin/http-https/iframe-tag/same-origin-downgrade.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/attr-referrer/same-origin/http-https/iframe-tag/same-origin-downgrade.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/attr-referrer/same-origin/http-https/iframe-tag/same-origin-downgrade.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin-when-cross-origin/attr-referrer/same-origin/http-https/iframe-tag/same-origin-downgrade.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/attr-referrer/same-origin/http-https/iframe-tag/same-origin-downgrade.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/attr-referrer/same-origin/http-https/iframe-tag/same-origin-downgrade.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin-when-cross-origin/attr-referrer/same-origin/http-https/iframe-tag/same-origin-downgrade.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/attr-referrer/same-origin/http-https/iframe-tag/same-origin-downgrade.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/attr-referrer/same-origin/http-https/iframe-tag/same-origin-downgrade.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin-when-cross-origin/attr-referrer/same-origin/http-https/iframe-tag/same-origin-insecure.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/attr-referrer/same-origin/http-https/iframe-tag/same-origin-insecure.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/attr-referrer/same-origin/http-https/iframe-tag/same-origin-insecure.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin-when-cross-origin/attr-referrer/same-origin/http-https/iframe-tag/same-origin-upgrade.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/attr-referrer/same-origin/http-https/iframe-tag/same-origin-upgrade.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/attr-referrer/same-origin/http-https/iframe-tag/same-origin-upgrade.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin-when-cross-origin/attr-referrer/same-origin/http-https/iframe-tag/same-origin-upgrade.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/attr-referrer/same-origin/http-https/iframe-tag/same-origin-upgrade.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/attr-referrer/same-origin/http-https/iframe-tag/same-origin-upgrade.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin-when-cross-origin/attr-referrer/same-origin/http-https/iframe-tag/same-origin-upgrade.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/attr-referrer/same-origin/http-https/iframe-tag/same-origin-upgrade.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/attr-referrer/same-origin/http-https/iframe-tag/same-origin-upgrade.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin-when-cross-origin/http-rp/cross-origin/http-http/iframe-tag/cross-origin.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/http-rp/cross-origin/http-http/iframe-tag/cross-origin.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/http-rp/cross-origin/http-http/iframe-tag/cross-origin.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin-when-cross-origin/http-rp/cross-origin/http-http/iframe-tag/cross-origin.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/http-rp/cross-origin/http-http/iframe-tag/cross-origin.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/http-rp/cross-origin/http-http/iframe-tag/cross-origin.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin-when-cross-origin/http-rp/cross-origin/http-http/iframe-tag/cross-origin.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/http-rp/cross-origin/http-http/iframe-tag/cross-origin.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/http-rp/cross-origin/http-http/iframe-tag/cross-origin.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin-when-cross-origin/http-rp/cross-origin/http-https/iframe-tag/cross-origin.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/http-rp/cross-origin/http-https/iframe-tag/cross-origin.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/http-rp/cross-origin/http-https/iframe-tag/cross-origin.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin-when-cross-origin/http-rp/cross-origin/http-https/iframe-tag/cross-origin.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/http-rp/cross-origin/http-https/iframe-tag/cross-origin.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/http-rp/cross-origin/http-https/iframe-tag/cross-origin.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin-when-cross-origin/http-rp/cross-origin/http-https/iframe-tag/cross-origin.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/http-rp/cross-origin/http-https/iframe-tag/cross-origin.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/http-rp/cross-origin/http-https/iframe-tag/cross-origin.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-http/iframe-tag/same-origin-insecure.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-http/iframe-tag/same-origin-insecure.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-http/iframe-tag/same-origin-insecure.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-http/iframe-tag/same-origin-insecure.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-http/iframe-tag/same-origin-insecure.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-http/iframe-tag/same-origin-insecure.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-http/iframe-tag/same-origin-insecure.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-http/iframe-tag/same-origin-insecure.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-http/iframe-tag/same-origin-insecure.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-https/iframe-tag/same-origin-downgrade.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-https/iframe-tag/same-origin-downgrade.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-https/iframe-tag/same-origin-downgrade.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-https/iframe-tag/same-origin-downgrade.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-https/iframe-tag/same-origin-downgrade.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-https/iframe-tag/same-origin-downgrade.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-https/iframe-tag/same-origin-downgrade.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-https/iframe-tag/same-origin-downgrade.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-https/iframe-tag/same-origin-downgrade.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-https/iframe-tag/same-origin-insecure.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-https/iframe-tag/same-origin-insecure.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-https/iframe-tag/same-origin-insecure.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-https/iframe-tag/same-origin-upgrade.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-https/iframe-tag/same-origin-upgrade.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-https/iframe-tag/same-origin-upgrade.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-https/iframe-tag/same-origin-upgrade.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-https/iframe-tag/same-origin-upgrade.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-https/iframe-tag/same-origin-upgrade.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-https/iframe-tag/same-origin-upgrade.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-https/iframe-tag/same-origin-upgrade.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-https/iframe-tag/same-origin-upgrade.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin-when-cross-origin/meta-csp/cross-origin/http-http/iframe-tag/cross-origin.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/meta-csp/cross-origin/http-http/iframe-tag/cross-origin.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/meta-csp/cross-origin/http-http/iframe-tag/cross-origin.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin-when-cross-origin/meta-csp/cross-origin/http-http/iframe-tag/cross-origin.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/meta-csp/cross-origin/http-http/iframe-tag/cross-origin.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/meta-csp/cross-origin/http-http/iframe-tag/cross-origin.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin-when-cross-origin/meta-csp/cross-origin/http-http/iframe-tag/cross-origin.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/meta-csp/cross-origin/http-http/iframe-tag/cross-origin.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/meta-csp/cross-origin/http-http/iframe-tag/cross-origin.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin-when-cross-origin/meta-csp/cross-origin/http-https/iframe-tag/cross-origin.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/meta-csp/cross-origin/http-https/iframe-tag/cross-origin.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/meta-csp/cross-origin/http-https/iframe-tag/cross-origin.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin-when-cross-origin/meta-csp/cross-origin/http-https/iframe-tag/cross-origin.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/meta-csp/cross-origin/http-https/iframe-tag/cross-origin.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/meta-csp/cross-origin/http-https/iframe-tag/cross-origin.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin-when-cross-origin/meta-csp/cross-origin/http-https/iframe-tag/cross-origin.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/meta-csp/cross-origin/http-https/iframe-tag/cross-origin.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/meta-csp/cross-origin/http-https/iframe-tag/cross-origin.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-http/iframe-tag/same-origin-insecure.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-http/iframe-tag/same-origin-insecure.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-http/iframe-tag/same-origin-insecure.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-http/iframe-tag/same-origin-insecure.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-http/iframe-tag/same-origin-insecure.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-http/iframe-tag/same-origin-insecure.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-http/iframe-tag/same-origin-insecure.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-http/iframe-tag/same-origin-insecure.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-http/iframe-tag/same-origin-insecure.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/iframe-tag/same-origin-downgrade.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/iframe-tag/same-origin-downgrade.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/iframe-tag/same-origin-downgrade.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/iframe-tag/same-origin-downgrade.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/iframe-tag/same-origin-downgrade.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/iframe-tag/same-origin-downgrade.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/iframe-tag/same-origin-downgrade.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/iframe-tag/same-origin-downgrade.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/iframe-tag/same-origin-downgrade.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/iframe-tag/same-origin-insecure.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/iframe-tag/same-origin-insecure.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/iframe-tag/same-origin-insecure.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/iframe-tag/same-origin-upgrade.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/iframe-tag/same-origin-upgrade.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/iframe-tag/same-origin-upgrade.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/iframe-tag/same-origin-upgrade.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/iframe-tag/same-origin-upgrade.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/iframe-tag/same-origin-upgrade.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/iframe-tag/same-origin-upgrade.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/iframe-tag/same-origin-upgrade.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/iframe-tag/same-origin-upgrade.swap-origin-redirect.http.html"
           }
         ],
         "mozilla/referrer-policy/origin-when-cross-origin/meta-referrer/cross-origin/http-http/iframe-tag/cross-origin.keep-origin-redirect.http.html": [
@@ -6954,6 +7710,24 @@
             "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/meta-referrer/cross-origin/http-http/iframe-tag/cross-origin.swap-origin-redirect.http.html"
           }
         ],
+        "mozilla/referrer-policy/origin-when-cross-origin/meta-referrer/cross-origin/http-https/iframe-tag/cross-origin.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/meta-referrer/cross-origin/http-https/iframe-tag/cross-origin.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/meta-referrer/cross-origin/http-https/iframe-tag/cross-origin.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin-when-cross-origin/meta-referrer/cross-origin/http-https/iframe-tag/cross-origin.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/meta-referrer/cross-origin/http-https/iframe-tag/cross-origin.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/meta-referrer/cross-origin/http-https/iframe-tag/cross-origin.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin-when-cross-origin/meta-referrer/cross-origin/http-https/iframe-tag/cross-origin.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/meta-referrer/cross-origin/http-https/iframe-tag/cross-origin.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/meta-referrer/cross-origin/http-https/iframe-tag/cross-origin.swap-origin-redirect.http.html"
+          }
+        ],
         "mozilla/referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-http/iframe-tag/same-origin-insecure.keep-origin-redirect.http.html": [
           {
             "path": "mozilla/referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-http/iframe-tag/same-origin-insecure.keep-origin-redirect.http.html",
@@ -6970,6 +7744,792 @@
           {
             "path": "mozilla/referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-http/iframe-tag/same-origin-insecure.swap-origin-redirect.http.html",
             "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-http/iframe-tag/same-origin-insecure.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/iframe-tag/same-origin-downgrade.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/iframe-tag/same-origin-downgrade.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/iframe-tag/same-origin-downgrade.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/iframe-tag/same-origin-downgrade.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/iframe-tag/same-origin-downgrade.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/iframe-tag/same-origin-downgrade.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/iframe-tag/same-origin-downgrade.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/iframe-tag/same-origin-downgrade.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/iframe-tag/same-origin-downgrade.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/iframe-tag/same-origin-insecure.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/iframe-tag/same-origin-insecure.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/iframe-tag/same-origin-insecure.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/iframe-tag/same-origin-upgrade.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/iframe-tag/same-origin-upgrade.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/iframe-tag/same-origin-upgrade.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/iframe-tag/same-origin-upgrade.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/iframe-tag/same-origin-upgrade.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/iframe-tag/same-origin-upgrade.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/iframe-tag/same-origin-upgrade.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/iframe-tag/same-origin-upgrade.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/iframe-tag/same-origin-upgrade.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin/attr-referrer/cross-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin/attr-referrer/cross-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin/attr-referrer/cross-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin/attr-referrer/cross-origin/http-http/iframe-tag/generic.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin/attr-referrer/cross-origin/http-http/iframe-tag/generic.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin/attr-referrer/cross-origin/http-http/iframe-tag/generic.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin/attr-referrer/cross-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin/attr-referrer/cross-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin/attr-referrer/cross-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin/attr-referrer/cross-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin/attr-referrer/cross-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin/attr-referrer/cross-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin/attr-referrer/cross-origin/http-https/iframe-tag/generic.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin/attr-referrer/cross-origin/http-https/iframe-tag/generic.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin/attr-referrer/cross-origin/http-https/iframe-tag/generic.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin/attr-referrer/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin/attr-referrer/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin/attr-referrer/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin/attr-referrer/same-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin/attr-referrer/same-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin/attr-referrer/same-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin/attr-referrer/same-origin/http-http/iframe-tag/generic.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin/attr-referrer/same-origin/http-http/iframe-tag/generic.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin/attr-referrer/same-origin/http-http/iframe-tag/generic.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin/attr-referrer/same-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin/attr-referrer/same-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin/attr-referrer/same-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin/attr-referrer/same-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin/attr-referrer/same-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin/attr-referrer/same-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin/attr-referrer/same-origin/http-https/iframe-tag/generic.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin/attr-referrer/same-origin/http-https/iframe-tag/generic.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin/attr-referrer/same-origin/http-https/iframe-tag/generic.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin/attr-referrer/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin/attr-referrer/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin/attr-referrer/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin/http-rp/cross-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin/http-rp/cross-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin/http-rp/cross-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin/http-rp/cross-origin/http-http/iframe-tag/generic.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin/http-rp/cross-origin/http-http/iframe-tag/generic.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin/http-rp/cross-origin/http-http/iframe-tag/generic.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin/http-rp/cross-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin/http-rp/cross-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin/http-rp/cross-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin/http-rp/cross-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin/http-rp/cross-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin/http-rp/cross-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin/http-rp/cross-origin/http-https/iframe-tag/generic.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin/http-rp/cross-origin/http-https/iframe-tag/generic.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin/http-rp/cross-origin/http-https/iframe-tag/generic.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin/http-rp/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin/http-rp/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin/http-rp/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin/http-rp/same-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin/http-rp/same-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin/http-rp/same-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin/http-rp/same-origin/http-http/iframe-tag/generic.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin/http-rp/same-origin/http-http/iframe-tag/generic.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin/http-rp/same-origin/http-http/iframe-tag/generic.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin/http-rp/same-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin/http-rp/same-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin/http-rp/same-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin/http-rp/same-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin/http-rp/same-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin/http-rp/same-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin/http-rp/same-origin/http-https/iframe-tag/generic.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin/http-rp/same-origin/http-https/iframe-tag/generic.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin/http-rp/same-origin/http-https/iframe-tag/generic.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin/http-rp/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin/http-rp/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin/http-rp/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin/meta-csp/cross-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin/meta-csp/cross-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin/meta-csp/cross-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin/meta-csp/cross-origin/http-http/iframe-tag/generic.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin/meta-csp/cross-origin/http-http/iframe-tag/generic.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin/meta-csp/cross-origin/http-http/iframe-tag/generic.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin/meta-csp/cross-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin/meta-csp/cross-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin/meta-csp/cross-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin/meta-csp/cross-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin/meta-csp/cross-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin/meta-csp/cross-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin/meta-csp/cross-origin/http-https/iframe-tag/generic.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin/meta-csp/cross-origin/http-https/iframe-tag/generic.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin/meta-csp/cross-origin/http-https/iframe-tag/generic.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin/meta-csp/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin/meta-csp/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin/meta-csp/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin/meta-csp/same-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin/meta-csp/same-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin/meta-csp/same-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin/meta-csp/same-origin/http-http/iframe-tag/generic.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin/meta-csp/same-origin/http-http/iframe-tag/generic.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin/meta-csp/same-origin/http-http/iframe-tag/generic.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin/meta-csp/same-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin/meta-csp/same-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin/meta-csp/same-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin/meta-csp/same-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin/meta-csp/same-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin/meta-csp/same-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin/meta-csp/same-origin/http-https/iframe-tag/generic.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin/meta-csp/same-origin/http-https/iframe-tag/generic.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin/meta-csp/same-origin/http-https/iframe-tag/generic.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin/meta-csp/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin/meta-csp/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin/meta-csp/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin/meta-referrer/cross-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin/meta-referrer/cross-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin/meta-referrer/cross-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin/meta-referrer/cross-origin/http-http/iframe-tag/generic.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin/meta-referrer/cross-origin/http-http/iframe-tag/generic.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin/meta-referrer/cross-origin/http-http/iframe-tag/generic.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin/meta-referrer/cross-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin/meta-referrer/cross-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin/meta-referrer/cross-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin/meta-referrer/cross-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin/meta-referrer/cross-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin/meta-referrer/cross-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin/meta-referrer/cross-origin/http-https/iframe-tag/generic.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin/meta-referrer/cross-origin/http-https/iframe-tag/generic.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin/meta-referrer/cross-origin/http-https/iframe-tag/generic.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin/meta-referrer/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin/meta-referrer/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin/meta-referrer/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin/meta-referrer/same-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin/meta-referrer/same-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin/meta-referrer/same-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin/meta-referrer/same-origin/http-http/iframe-tag/generic.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin/meta-referrer/same-origin/http-http/iframe-tag/generic.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin/meta-referrer/same-origin/http-http/iframe-tag/generic.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin/meta-referrer/same-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin/meta-referrer/same-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin/meta-referrer/same-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin/meta-referrer/same-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin/meta-referrer/same-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin/meta-referrer/same-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin/meta-referrer/same-origin/http-https/iframe-tag/generic.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin/meta-referrer/same-origin/http-https/iframe-tag/generic.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin/meta-referrer/same-origin/http-https/iframe-tag/generic.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/origin/meta-referrer/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/origin/meta-referrer/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/origin/meta-referrer/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/same-origin/attr-referrer/cross-origin/http-http/iframe-tag/cross-origin.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/same-origin/attr-referrer/cross-origin/http-http/iframe-tag/cross-origin.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/same-origin/attr-referrer/cross-origin/http-http/iframe-tag/cross-origin.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/same-origin/attr-referrer/cross-origin/http-http/iframe-tag/cross-origin.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/same-origin/attr-referrer/cross-origin/http-http/iframe-tag/cross-origin.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/same-origin/attr-referrer/cross-origin/http-http/iframe-tag/cross-origin.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/same-origin/attr-referrer/cross-origin/http-http/iframe-tag/cross-origin.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/same-origin/attr-referrer/cross-origin/http-http/iframe-tag/cross-origin.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/same-origin/attr-referrer/cross-origin/http-http/iframe-tag/cross-origin.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/same-origin/attr-referrer/cross-origin/http-https/iframe-tag/cross-origin.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/same-origin/attr-referrer/cross-origin/http-https/iframe-tag/cross-origin.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/same-origin/attr-referrer/cross-origin/http-https/iframe-tag/cross-origin.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/same-origin/attr-referrer/cross-origin/http-https/iframe-tag/cross-origin.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/same-origin/attr-referrer/cross-origin/http-https/iframe-tag/cross-origin.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/same-origin/attr-referrer/cross-origin/http-https/iframe-tag/cross-origin.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/same-origin/attr-referrer/cross-origin/http-https/iframe-tag/cross-origin.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/same-origin/attr-referrer/cross-origin/http-https/iframe-tag/cross-origin.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/same-origin/attr-referrer/cross-origin/http-https/iframe-tag/cross-origin.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/same-origin/attr-referrer/same-origin/http-http/iframe-tag/same-origin-insecure.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/same-origin/attr-referrer/same-origin/http-http/iframe-tag/same-origin-insecure.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/same-origin/attr-referrer/same-origin/http-http/iframe-tag/same-origin-insecure.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/same-origin/attr-referrer/same-origin/http-http/iframe-tag/same-origin-insecure.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/same-origin/attr-referrer/same-origin/http-http/iframe-tag/same-origin-insecure.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/same-origin/attr-referrer/same-origin/http-http/iframe-tag/same-origin-insecure.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/same-origin/attr-referrer/same-origin/http-http/iframe-tag/same-origin-insecure.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/same-origin/attr-referrer/same-origin/http-http/iframe-tag/same-origin-insecure.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/same-origin/attr-referrer/same-origin/http-http/iframe-tag/same-origin-insecure.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/same-origin/attr-referrer/same-origin/http-https/iframe-tag/same-origin-insecure.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/same-origin/attr-referrer/same-origin/http-https/iframe-tag/same-origin-insecure.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/same-origin/attr-referrer/same-origin/http-https/iframe-tag/same-origin-insecure.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/same-origin/http-rp/cross-origin/http-http/iframe-tag/cross-origin.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/same-origin/http-rp/cross-origin/http-http/iframe-tag/cross-origin.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/same-origin/http-rp/cross-origin/http-http/iframe-tag/cross-origin.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/same-origin/http-rp/cross-origin/http-http/iframe-tag/cross-origin.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/same-origin/http-rp/cross-origin/http-http/iframe-tag/cross-origin.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/same-origin/http-rp/cross-origin/http-http/iframe-tag/cross-origin.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/same-origin/http-rp/cross-origin/http-http/iframe-tag/cross-origin.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/same-origin/http-rp/cross-origin/http-http/iframe-tag/cross-origin.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/same-origin/http-rp/cross-origin/http-http/iframe-tag/cross-origin.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/same-origin/http-rp/cross-origin/http-https/iframe-tag/cross-origin.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/same-origin/http-rp/cross-origin/http-https/iframe-tag/cross-origin.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/same-origin/http-rp/cross-origin/http-https/iframe-tag/cross-origin.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/same-origin/http-rp/cross-origin/http-https/iframe-tag/cross-origin.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/same-origin/http-rp/cross-origin/http-https/iframe-tag/cross-origin.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/same-origin/http-rp/cross-origin/http-https/iframe-tag/cross-origin.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/same-origin/http-rp/cross-origin/http-https/iframe-tag/cross-origin.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/same-origin/http-rp/cross-origin/http-https/iframe-tag/cross-origin.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/same-origin/http-rp/cross-origin/http-https/iframe-tag/cross-origin.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/same-origin/http-rp/same-origin/http-http/iframe-tag/same-origin-insecure.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/same-origin/http-rp/same-origin/http-http/iframe-tag/same-origin-insecure.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/same-origin/http-rp/same-origin/http-http/iframe-tag/same-origin-insecure.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/same-origin/http-rp/same-origin/http-http/iframe-tag/same-origin-insecure.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/same-origin/http-rp/same-origin/http-http/iframe-tag/same-origin-insecure.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/same-origin/http-rp/same-origin/http-http/iframe-tag/same-origin-insecure.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/same-origin/http-rp/same-origin/http-http/iframe-tag/same-origin-insecure.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/same-origin/http-rp/same-origin/http-http/iframe-tag/same-origin-insecure.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/same-origin/http-rp/same-origin/http-http/iframe-tag/same-origin-insecure.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/same-origin/http-rp/same-origin/http-https/iframe-tag/same-origin-insecure.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/same-origin/http-rp/same-origin/http-https/iframe-tag/same-origin-insecure.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/same-origin/http-rp/same-origin/http-https/iframe-tag/same-origin-insecure.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/same-origin/meta-csp/cross-origin/http-http/iframe-tag/cross-origin.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/same-origin/meta-csp/cross-origin/http-http/iframe-tag/cross-origin.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/same-origin/meta-csp/cross-origin/http-http/iframe-tag/cross-origin.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/same-origin/meta-csp/cross-origin/http-http/iframe-tag/cross-origin.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/same-origin/meta-csp/cross-origin/http-http/iframe-tag/cross-origin.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/same-origin/meta-csp/cross-origin/http-http/iframe-tag/cross-origin.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/same-origin/meta-csp/cross-origin/http-http/iframe-tag/cross-origin.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/same-origin/meta-csp/cross-origin/http-http/iframe-tag/cross-origin.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/same-origin/meta-csp/cross-origin/http-http/iframe-tag/cross-origin.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/same-origin/meta-csp/cross-origin/http-https/iframe-tag/cross-origin.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/same-origin/meta-csp/cross-origin/http-https/iframe-tag/cross-origin.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/same-origin/meta-csp/cross-origin/http-https/iframe-tag/cross-origin.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/same-origin/meta-csp/cross-origin/http-https/iframe-tag/cross-origin.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/same-origin/meta-csp/cross-origin/http-https/iframe-tag/cross-origin.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/same-origin/meta-csp/cross-origin/http-https/iframe-tag/cross-origin.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/same-origin/meta-csp/cross-origin/http-https/iframe-tag/cross-origin.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/same-origin/meta-csp/cross-origin/http-https/iframe-tag/cross-origin.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/same-origin/meta-csp/cross-origin/http-https/iframe-tag/cross-origin.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/same-origin/meta-csp/same-origin/http-http/iframe-tag/same-origin-insecure.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/same-origin/meta-csp/same-origin/http-http/iframe-tag/same-origin-insecure.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/same-origin/meta-csp/same-origin/http-http/iframe-tag/same-origin-insecure.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/same-origin/meta-csp/same-origin/http-http/iframe-tag/same-origin-insecure.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/same-origin/meta-csp/same-origin/http-http/iframe-tag/same-origin-insecure.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/same-origin/meta-csp/same-origin/http-http/iframe-tag/same-origin-insecure.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/same-origin/meta-csp/same-origin/http-http/iframe-tag/same-origin-insecure.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/same-origin/meta-csp/same-origin/http-http/iframe-tag/same-origin-insecure.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/same-origin/meta-csp/same-origin/http-http/iframe-tag/same-origin-insecure.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/same-origin/meta-csp/same-origin/http-https/iframe-tag/same-origin-insecure.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/same-origin/meta-csp/same-origin/http-https/iframe-tag/same-origin-insecure.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/same-origin/meta-csp/same-origin/http-https/iframe-tag/same-origin-insecure.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/same-origin/meta-referrer/cross-origin/http-http/iframe-tag/cross-origin.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/same-origin/meta-referrer/cross-origin/http-http/iframe-tag/cross-origin.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/same-origin/meta-referrer/cross-origin/http-http/iframe-tag/cross-origin.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/same-origin/meta-referrer/cross-origin/http-http/iframe-tag/cross-origin.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/same-origin/meta-referrer/cross-origin/http-http/iframe-tag/cross-origin.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/same-origin/meta-referrer/cross-origin/http-http/iframe-tag/cross-origin.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/same-origin/meta-referrer/cross-origin/http-http/iframe-tag/cross-origin.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/same-origin/meta-referrer/cross-origin/http-http/iframe-tag/cross-origin.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/same-origin/meta-referrer/cross-origin/http-http/iframe-tag/cross-origin.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/same-origin/meta-referrer/cross-origin/http-https/iframe-tag/cross-origin.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/same-origin/meta-referrer/cross-origin/http-https/iframe-tag/cross-origin.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/same-origin/meta-referrer/cross-origin/http-https/iframe-tag/cross-origin.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/same-origin/meta-referrer/cross-origin/http-https/iframe-tag/cross-origin.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/same-origin/meta-referrer/cross-origin/http-https/iframe-tag/cross-origin.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/same-origin/meta-referrer/cross-origin/http-https/iframe-tag/cross-origin.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/same-origin/meta-referrer/cross-origin/http-https/iframe-tag/cross-origin.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/same-origin/meta-referrer/cross-origin/http-https/iframe-tag/cross-origin.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/same-origin/meta-referrer/cross-origin/http-https/iframe-tag/cross-origin.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/same-origin/meta-referrer/same-origin/http-http/iframe-tag/same-origin-insecure.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/same-origin/meta-referrer/same-origin/http-http/iframe-tag/same-origin-insecure.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/same-origin/meta-referrer/same-origin/http-http/iframe-tag/same-origin-insecure.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/same-origin/meta-referrer/same-origin/http-http/iframe-tag/same-origin-insecure.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/same-origin/meta-referrer/same-origin/http-http/iframe-tag/same-origin-insecure.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/same-origin/meta-referrer/same-origin/http-http/iframe-tag/same-origin-insecure.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/same-origin/meta-referrer/same-origin/http-http/iframe-tag/same-origin-insecure.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/same-origin/meta-referrer/same-origin/http-http/iframe-tag/same-origin-insecure.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/same-origin/meta-referrer/same-origin/http-http/iframe-tag/same-origin-insecure.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/same-origin/meta-referrer/same-origin/http-https/iframe-tag/same-origin-insecure.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/same-origin/meta-referrer/same-origin/http-https/iframe-tag/same-origin-insecure.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/same-origin/meta-referrer/same-origin/http-https/iframe-tag/same-origin-insecure.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unsafe-url/attr-referrer/cross-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unsafe-url/attr-referrer/cross-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unsafe-url/attr-referrer/cross-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unsafe-url/attr-referrer/cross-origin/http-http/iframe-tag/generic.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unsafe-url/attr-referrer/cross-origin/http-http/iframe-tag/generic.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unsafe-url/attr-referrer/cross-origin/http-http/iframe-tag/generic.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unsafe-url/attr-referrer/cross-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unsafe-url/attr-referrer/cross-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unsafe-url/attr-referrer/cross-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unsafe-url/attr-referrer/cross-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unsafe-url/attr-referrer/cross-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unsafe-url/attr-referrer/cross-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unsafe-url/attr-referrer/cross-origin/http-https/iframe-tag/generic.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unsafe-url/attr-referrer/cross-origin/http-https/iframe-tag/generic.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unsafe-url/attr-referrer/cross-origin/http-https/iframe-tag/generic.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unsafe-url/attr-referrer/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unsafe-url/attr-referrer/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unsafe-url/attr-referrer/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unsafe-url/attr-referrer/same-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unsafe-url/attr-referrer/same-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unsafe-url/attr-referrer/same-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unsafe-url/attr-referrer/same-origin/http-http/iframe-tag/generic.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unsafe-url/attr-referrer/same-origin/http-http/iframe-tag/generic.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unsafe-url/attr-referrer/same-origin/http-http/iframe-tag/generic.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unsafe-url/attr-referrer/same-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unsafe-url/attr-referrer/same-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unsafe-url/attr-referrer/same-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unsafe-url/attr-referrer/same-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unsafe-url/attr-referrer/same-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unsafe-url/attr-referrer/same-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unsafe-url/attr-referrer/same-origin/http-https/iframe-tag/generic.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unsafe-url/attr-referrer/same-origin/http-https/iframe-tag/generic.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unsafe-url/attr-referrer/same-origin/http-https/iframe-tag/generic.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unsafe-url/attr-referrer/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unsafe-url/attr-referrer/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unsafe-url/attr-referrer/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unsafe-url/http-rp/cross-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unsafe-url/http-rp/cross-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unsafe-url/http-rp/cross-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unsafe-url/http-rp/cross-origin/http-http/iframe-tag/generic.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unsafe-url/http-rp/cross-origin/http-http/iframe-tag/generic.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unsafe-url/http-rp/cross-origin/http-http/iframe-tag/generic.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unsafe-url/http-rp/cross-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unsafe-url/http-rp/cross-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unsafe-url/http-rp/cross-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unsafe-url/http-rp/cross-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unsafe-url/http-rp/cross-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unsafe-url/http-rp/cross-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unsafe-url/http-rp/cross-origin/http-https/iframe-tag/generic.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unsafe-url/http-rp/cross-origin/http-https/iframe-tag/generic.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unsafe-url/http-rp/cross-origin/http-https/iframe-tag/generic.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unsafe-url/http-rp/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unsafe-url/http-rp/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unsafe-url/http-rp/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unsafe-url/http-rp/same-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unsafe-url/http-rp/same-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unsafe-url/http-rp/same-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unsafe-url/http-rp/same-origin/http-http/iframe-tag/generic.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unsafe-url/http-rp/same-origin/http-http/iframe-tag/generic.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unsafe-url/http-rp/same-origin/http-http/iframe-tag/generic.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unsafe-url/http-rp/same-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unsafe-url/http-rp/same-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unsafe-url/http-rp/same-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unsafe-url/http-rp/same-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unsafe-url/http-rp/same-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unsafe-url/http-rp/same-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unsafe-url/http-rp/same-origin/http-https/iframe-tag/generic.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unsafe-url/http-rp/same-origin/http-https/iframe-tag/generic.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unsafe-url/http-rp/same-origin/http-https/iframe-tag/generic.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unsafe-url/http-rp/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unsafe-url/http-rp/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unsafe-url/http-rp/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unsafe-url/meta-csp/cross-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unsafe-url/meta-csp/cross-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unsafe-url/meta-csp/cross-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unsafe-url/meta-csp/cross-origin/http-http/iframe-tag/generic.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unsafe-url/meta-csp/cross-origin/http-http/iframe-tag/generic.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unsafe-url/meta-csp/cross-origin/http-http/iframe-tag/generic.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unsafe-url/meta-csp/cross-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unsafe-url/meta-csp/cross-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unsafe-url/meta-csp/cross-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unsafe-url/meta-csp/cross-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unsafe-url/meta-csp/cross-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unsafe-url/meta-csp/cross-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unsafe-url/meta-csp/cross-origin/http-https/iframe-tag/generic.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unsafe-url/meta-csp/cross-origin/http-https/iframe-tag/generic.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unsafe-url/meta-csp/cross-origin/http-https/iframe-tag/generic.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unsafe-url/meta-csp/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unsafe-url/meta-csp/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unsafe-url/meta-csp/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unsafe-url/meta-csp/same-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unsafe-url/meta-csp/same-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unsafe-url/meta-csp/same-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unsafe-url/meta-csp/same-origin/http-http/iframe-tag/generic.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unsafe-url/meta-csp/same-origin/http-http/iframe-tag/generic.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unsafe-url/meta-csp/same-origin/http-http/iframe-tag/generic.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unsafe-url/meta-csp/same-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unsafe-url/meta-csp/same-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unsafe-url/meta-csp/same-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unsafe-url/meta-csp/same-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unsafe-url/meta-csp/same-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unsafe-url/meta-csp/same-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unsafe-url/meta-csp/same-origin/http-https/iframe-tag/generic.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unsafe-url/meta-csp/same-origin/http-https/iframe-tag/generic.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unsafe-url/meta-csp/same-origin/http-https/iframe-tag/generic.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unsafe-url/meta-csp/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unsafe-url/meta-csp/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unsafe-url/meta-csp/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html"
           }
         ],
         "mozilla/referrer-policy/unsafe-url/meta-referrer/cross-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html": [
@@ -6990,6 +8550,24 @@
             "url": "/_mozilla/mozilla/referrer-policy/unsafe-url/meta-referrer/cross-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html"
           }
         ],
+        "mozilla/referrer-policy/unsafe-url/meta-referrer/cross-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unsafe-url/meta-referrer/cross-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unsafe-url/meta-referrer/cross-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unsafe-url/meta-referrer/cross-origin/http-https/iframe-tag/generic.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unsafe-url/meta-referrer/cross-origin/http-https/iframe-tag/generic.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unsafe-url/meta-referrer/cross-origin/http-https/iframe-tag/generic.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unsafe-url/meta-referrer/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unsafe-url/meta-referrer/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unsafe-url/meta-referrer/cross-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html"
+          }
+        ],
         "mozilla/referrer-policy/unsafe-url/meta-referrer/same-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html": [
           {
             "path": "mozilla/referrer-policy/unsafe-url/meta-referrer/same-origin/http-http/iframe-tag/generic.keep-origin-redirect.http.html",
@@ -7006,6 +8584,312 @@
           {
             "path": "mozilla/referrer-policy/unsafe-url/meta-referrer/same-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html",
             "url": "/_mozilla/mozilla/referrer-policy/unsafe-url/meta-referrer/same-origin/http-http/iframe-tag/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unsafe-url/meta-referrer/same-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unsafe-url/meta-referrer/same-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unsafe-url/meta-referrer/same-origin/http-https/iframe-tag/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unsafe-url/meta-referrer/same-origin/http-https/iframe-tag/generic.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unsafe-url/meta-referrer/same-origin/http-https/iframe-tag/generic.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unsafe-url/meta-referrer/same-origin/http-https/iframe-tag/generic.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unsafe-url/meta-referrer/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unsafe-url/meta-referrer/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unsafe-url/meta-referrer/same-origin/http-https/iframe-tag/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unset-referrer-policy/attr-referrer/cross-origin/http-http/iframe-tag/insecure-protocol.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unset-referrer-policy/attr-referrer/cross-origin/http-http/iframe-tag/insecure-protocol.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unset-referrer-policy/attr-referrer/cross-origin/http-http/iframe-tag/insecure-protocol.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unset-referrer-policy/attr-referrer/cross-origin/http-http/iframe-tag/insecure-protocol.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unset-referrer-policy/attr-referrer/cross-origin/http-http/iframe-tag/insecure-protocol.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unset-referrer-policy/attr-referrer/cross-origin/http-http/iframe-tag/insecure-protocol.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unset-referrer-policy/attr-referrer/cross-origin/http-http/iframe-tag/insecure-protocol.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unset-referrer-policy/attr-referrer/cross-origin/http-http/iframe-tag/insecure-protocol.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unset-referrer-policy/attr-referrer/cross-origin/http-http/iframe-tag/insecure-protocol.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unset-referrer-policy/attr-referrer/cross-origin/http-https/iframe-tag/upgrade-protocol.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unset-referrer-policy/attr-referrer/cross-origin/http-https/iframe-tag/upgrade-protocol.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unset-referrer-policy/attr-referrer/cross-origin/http-https/iframe-tag/upgrade-protocol.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unset-referrer-policy/attr-referrer/cross-origin/http-https/iframe-tag/upgrade-protocol.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unset-referrer-policy/attr-referrer/cross-origin/http-https/iframe-tag/upgrade-protocol.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unset-referrer-policy/attr-referrer/cross-origin/http-https/iframe-tag/upgrade-protocol.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unset-referrer-policy/attr-referrer/cross-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unset-referrer-policy/attr-referrer/cross-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unset-referrer-policy/attr-referrer/cross-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unset-referrer-policy/attr-referrer/same-origin/http-http/iframe-tag/insecure-protocol.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unset-referrer-policy/attr-referrer/same-origin/http-http/iframe-tag/insecure-protocol.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unset-referrer-policy/attr-referrer/same-origin/http-http/iframe-tag/insecure-protocol.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unset-referrer-policy/attr-referrer/same-origin/http-http/iframe-tag/insecure-protocol.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unset-referrer-policy/attr-referrer/same-origin/http-http/iframe-tag/insecure-protocol.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unset-referrer-policy/attr-referrer/same-origin/http-http/iframe-tag/insecure-protocol.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unset-referrer-policy/attr-referrer/same-origin/http-http/iframe-tag/insecure-protocol.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unset-referrer-policy/attr-referrer/same-origin/http-http/iframe-tag/insecure-protocol.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unset-referrer-policy/attr-referrer/same-origin/http-http/iframe-tag/insecure-protocol.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unset-referrer-policy/attr-referrer/same-origin/http-https/iframe-tag/upgrade-protocol.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unset-referrer-policy/attr-referrer/same-origin/http-https/iframe-tag/upgrade-protocol.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unset-referrer-policy/attr-referrer/same-origin/http-https/iframe-tag/upgrade-protocol.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unset-referrer-policy/attr-referrer/same-origin/http-https/iframe-tag/upgrade-protocol.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unset-referrer-policy/attr-referrer/same-origin/http-https/iframe-tag/upgrade-protocol.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unset-referrer-policy/attr-referrer/same-origin/http-https/iframe-tag/upgrade-protocol.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unset-referrer-policy/attr-referrer/same-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unset-referrer-policy/attr-referrer/same-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unset-referrer-policy/attr-referrer/same-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unset-referrer-policy/http-rp/cross-origin/http-http/iframe-tag/insecure-protocol.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unset-referrer-policy/http-rp/cross-origin/http-http/iframe-tag/insecure-protocol.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unset-referrer-policy/http-rp/cross-origin/http-http/iframe-tag/insecure-protocol.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unset-referrer-policy/http-rp/cross-origin/http-http/iframe-tag/insecure-protocol.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unset-referrer-policy/http-rp/cross-origin/http-http/iframe-tag/insecure-protocol.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unset-referrer-policy/http-rp/cross-origin/http-http/iframe-tag/insecure-protocol.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unset-referrer-policy/http-rp/cross-origin/http-http/iframe-tag/insecure-protocol.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unset-referrer-policy/http-rp/cross-origin/http-http/iframe-tag/insecure-protocol.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unset-referrer-policy/http-rp/cross-origin/http-http/iframe-tag/insecure-protocol.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unset-referrer-policy/http-rp/cross-origin/http-https/iframe-tag/upgrade-protocol.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unset-referrer-policy/http-rp/cross-origin/http-https/iframe-tag/upgrade-protocol.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unset-referrer-policy/http-rp/cross-origin/http-https/iframe-tag/upgrade-protocol.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unset-referrer-policy/http-rp/cross-origin/http-https/iframe-tag/upgrade-protocol.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unset-referrer-policy/http-rp/cross-origin/http-https/iframe-tag/upgrade-protocol.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unset-referrer-policy/http-rp/cross-origin/http-https/iframe-tag/upgrade-protocol.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unset-referrer-policy/http-rp/cross-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unset-referrer-policy/http-rp/cross-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unset-referrer-policy/http-rp/cross-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unset-referrer-policy/http-rp/same-origin/http-http/iframe-tag/insecure-protocol.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unset-referrer-policy/http-rp/same-origin/http-http/iframe-tag/insecure-protocol.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unset-referrer-policy/http-rp/same-origin/http-http/iframe-tag/insecure-protocol.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unset-referrer-policy/http-rp/same-origin/http-http/iframe-tag/insecure-protocol.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unset-referrer-policy/http-rp/same-origin/http-http/iframe-tag/insecure-protocol.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unset-referrer-policy/http-rp/same-origin/http-http/iframe-tag/insecure-protocol.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unset-referrer-policy/http-rp/same-origin/http-http/iframe-tag/insecure-protocol.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unset-referrer-policy/http-rp/same-origin/http-http/iframe-tag/insecure-protocol.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unset-referrer-policy/http-rp/same-origin/http-http/iframe-tag/insecure-protocol.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unset-referrer-policy/http-rp/same-origin/http-https/iframe-tag/upgrade-protocol.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unset-referrer-policy/http-rp/same-origin/http-https/iframe-tag/upgrade-protocol.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unset-referrer-policy/http-rp/same-origin/http-https/iframe-tag/upgrade-protocol.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unset-referrer-policy/http-rp/same-origin/http-https/iframe-tag/upgrade-protocol.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unset-referrer-policy/http-rp/same-origin/http-https/iframe-tag/upgrade-protocol.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unset-referrer-policy/http-rp/same-origin/http-https/iframe-tag/upgrade-protocol.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unset-referrer-policy/http-rp/same-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unset-referrer-policy/http-rp/same-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unset-referrer-policy/http-rp/same-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unset-referrer-policy/meta-csp/cross-origin/http-http/iframe-tag/insecure-protocol.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unset-referrer-policy/meta-csp/cross-origin/http-http/iframe-tag/insecure-protocol.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unset-referrer-policy/meta-csp/cross-origin/http-http/iframe-tag/insecure-protocol.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unset-referrer-policy/meta-csp/cross-origin/http-http/iframe-tag/insecure-protocol.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unset-referrer-policy/meta-csp/cross-origin/http-http/iframe-tag/insecure-protocol.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unset-referrer-policy/meta-csp/cross-origin/http-http/iframe-tag/insecure-protocol.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unset-referrer-policy/meta-csp/cross-origin/http-http/iframe-tag/insecure-protocol.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unset-referrer-policy/meta-csp/cross-origin/http-http/iframe-tag/insecure-protocol.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unset-referrer-policy/meta-csp/cross-origin/http-http/iframe-tag/insecure-protocol.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unset-referrer-policy/meta-csp/cross-origin/http-https/iframe-tag/upgrade-protocol.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unset-referrer-policy/meta-csp/cross-origin/http-https/iframe-tag/upgrade-protocol.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unset-referrer-policy/meta-csp/cross-origin/http-https/iframe-tag/upgrade-protocol.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unset-referrer-policy/meta-csp/cross-origin/http-https/iframe-tag/upgrade-protocol.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unset-referrer-policy/meta-csp/cross-origin/http-https/iframe-tag/upgrade-protocol.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unset-referrer-policy/meta-csp/cross-origin/http-https/iframe-tag/upgrade-protocol.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unset-referrer-policy/meta-csp/cross-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unset-referrer-policy/meta-csp/cross-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unset-referrer-policy/meta-csp/cross-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unset-referrer-policy/meta-csp/same-origin/http-http/iframe-tag/insecure-protocol.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unset-referrer-policy/meta-csp/same-origin/http-http/iframe-tag/insecure-protocol.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unset-referrer-policy/meta-csp/same-origin/http-http/iframe-tag/insecure-protocol.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unset-referrer-policy/meta-csp/same-origin/http-http/iframe-tag/insecure-protocol.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unset-referrer-policy/meta-csp/same-origin/http-http/iframe-tag/insecure-protocol.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unset-referrer-policy/meta-csp/same-origin/http-http/iframe-tag/insecure-protocol.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unset-referrer-policy/meta-csp/same-origin/http-http/iframe-tag/insecure-protocol.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unset-referrer-policy/meta-csp/same-origin/http-http/iframe-tag/insecure-protocol.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unset-referrer-policy/meta-csp/same-origin/http-http/iframe-tag/insecure-protocol.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unset-referrer-policy/meta-csp/same-origin/http-https/iframe-tag/upgrade-protocol.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unset-referrer-policy/meta-csp/same-origin/http-https/iframe-tag/upgrade-protocol.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unset-referrer-policy/meta-csp/same-origin/http-https/iframe-tag/upgrade-protocol.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unset-referrer-policy/meta-csp/same-origin/http-https/iframe-tag/upgrade-protocol.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unset-referrer-policy/meta-csp/same-origin/http-https/iframe-tag/upgrade-protocol.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unset-referrer-policy/meta-csp/same-origin/http-https/iframe-tag/upgrade-protocol.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unset-referrer-policy/meta-csp/same-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unset-referrer-policy/meta-csp/same-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unset-referrer-policy/meta-csp/same-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unset-referrer-policy/meta-referrer/cross-origin/http-http/iframe-tag/insecure-protocol.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unset-referrer-policy/meta-referrer/cross-origin/http-http/iframe-tag/insecure-protocol.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unset-referrer-policy/meta-referrer/cross-origin/http-http/iframe-tag/insecure-protocol.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unset-referrer-policy/meta-referrer/cross-origin/http-http/iframe-tag/insecure-protocol.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unset-referrer-policy/meta-referrer/cross-origin/http-http/iframe-tag/insecure-protocol.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unset-referrer-policy/meta-referrer/cross-origin/http-http/iframe-tag/insecure-protocol.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unset-referrer-policy/meta-referrer/cross-origin/http-http/iframe-tag/insecure-protocol.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unset-referrer-policy/meta-referrer/cross-origin/http-http/iframe-tag/insecure-protocol.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unset-referrer-policy/meta-referrer/cross-origin/http-http/iframe-tag/insecure-protocol.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unset-referrer-policy/meta-referrer/cross-origin/http-https/iframe-tag/upgrade-protocol.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unset-referrer-policy/meta-referrer/cross-origin/http-https/iframe-tag/upgrade-protocol.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unset-referrer-policy/meta-referrer/cross-origin/http-https/iframe-tag/upgrade-protocol.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unset-referrer-policy/meta-referrer/cross-origin/http-https/iframe-tag/upgrade-protocol.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unset-referrer-policy/meta-referrer/cross-origin/http-https/iframe-tag/upgrade-protocol.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unset-referrer-policy/meta-referrer/cross-origin/http-https/iframe-tag/upgrade-protocol.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unset-referrer-policy/meta-referrer/cross-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unset-referrer-policy/meta-referrer/cross-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unset-referrer-policy/meta-referrer/cross-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-http/iframe-tag/insecure-protocol.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-http/iframe-tag/insecure-protocol.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-http/iframe-tag/insecure-protocol.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-http/iframe-tag/insecure-protocol.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-http/iframe-tag/insecure-protocol.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-http/iframe-tag/insecure-protocol.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-http/iframe-tag/insecure-protocol.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-http/iframe-tag/insecure-protocol.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-http/iframe-tag/insecure-protocol.swap-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-https/iframe-tag/upgrade-protocol.keep-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-https/iframe-tag/upgrade-protocol.keep-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-https/iframe-tag/upgrade-protocol.keep-origin-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-https/iframe-tag/upgrade-protocol.no-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-https/iframe-tag/upgrade-protocol.no-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-https/iframe-tag/upgrade-protocol.no-redirect.http.html"
+          }
+        ],
+        "mozilla/referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html": [
+          {
+            "path": "mozilla/referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html",
+            "url": "/_mozilla/mozilla/referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-https/iframe-tag/upgrade-protocol.swap-origin-redirect.http.html"
           }
         ],
         "mozilla/response-data-brotli.htm": [

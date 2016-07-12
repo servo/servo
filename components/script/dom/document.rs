@@ -2832,7 +2832,8 @@ pub fn determine_policy_for_token(token: &str) -> Option<ReferrerPolicy> {
     return match lower.as_ref() {
         "never" | "no-referrer" => Some(ReferrerPolicy::NoReferrer),
         "default" | "no-referrer-when-downgrade" => Some(ReferrerPolicy::NoRefWhenDowngrade),
-        "origin" => Some(ReferrerPolicy::OriginOnly),
+        "origin" => Some(ReferrerPolicy::Origin),
+        "same-origin" => Some(ReferrerPolicy::SameOrigin),
         "origin-when-cross-origin" => Some(ReferrerPolicy::OriginWhenCrossOrigin),
         "always" | "unsafe-url" => Some(ReferrerPolicy::UnsafeUrl),
         "" => Some(ReferrerPolicy::NoReferrer),
