@@ -15,6 +15,7 @@ unstable = []
 heap_size = []
 
 [dependencies]
+cfg-if = "0.1.0"
 gecko_bindings = {version = "0.0.1", path = "../gecko_bindings"}
 heapsize = "0.3.5"
 libc = "0.2"
