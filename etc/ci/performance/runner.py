@@ -21,7 +21,7 @@ def parse_manifest(text):
 
 def execute_test(url, command, timeout):
     print("Running test:")
-    print(command)
+    print(' '.join(command))
     print("Timeout:{}".format(timeout))
     try:
         return subprocess.check_output(command, stderr=subprocess.STDOUT,
@@ -29,7 +29,7 @@ def execute_test(url, command, timeout):
     except subprocess.CalledProcessError as e:
         print("Unexpected Fail:")
         print(e)
-        print("You may want to re-run the test manually:\n{}".format(command))
+        print("You may want to re-run the test manually:\n{}".format(' '.join(command)))
     except subprocess.TimeoutExpired:
         print("Test timeout: {}".format(url))
     return ""
@@ -37,19 +37,19 @@ def execute_test(url, command, timeout):
 
 def get_servo_command(url, timeout):
     ua_script_path = "{}/user-agent-js".format(os.getcwd())
-    test_cmd = ("timeout {timeout}s ./servo/servo '{url}'"
-                " --userscripts {ua} -x -o {png}").format(timeout=timeout,
-                                                          url=url,
-                                                          ua=ua_script_path,
-                                                          png="output.png")
+    test_cmd = ["timeout", "{timeout}s".format(timeout),
+                "./servo/servo", url,
+                " --userscripts", ua_script_path,
+                "-x", "-o", "output.png"]
     return test_cmd
 
 
 def get_gecko_command(url, timeout):
-    test_cmd = ("timeout {timeout}s ./firefox/firefox/firefox"
-                " --display=:0 --no-remote"
-                " -profile ./firefox/servo {url}").format(timeout=timeout,
-                                                          url=url)
+    test_cmd = ["timeout", "{timeout}s".format(timeout),
+                "./firefox/firefox/firefox",
+                " --display=:0", "--no-remote"
+                " -profile", "./firefox/servo",
+                url]
     return test_cmd
 
 
