@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use blob_url_store::{BlobURLStoreEntry, BlobURLStoreError};
+use blob_url_store::{BlobBuf, BlobURLStoreError};
 use ipc_channel::ipc::IpcSender;
 use num_traits::ToPrimitive;
 use std::cmp::{max, min};
@@ -33,7 +33,7 @@ impl RelativePos {
     pub fn full_range() -> RelativePos {
         RelativePos {
             start: 0,
-            end: Some(0),
+            end: None,
         }
     }
 
@@ -106,6 +106,7 @@ pub struct SelectedFile {
     pub id: SelectedFileId,
     pub filename: PathBuf,
     pub modified: u64,
+    pub size: u64,
     // https://w3c.github.io/FileAPI/#dfn-type
     pub type_string: String,
 }
@@ -131,7 +132,7 @@ pub enum FileManagerThreadMsg {
 
     /// Add an entry as promoted memory-based blob and send back the associated FileID
     /// as part of a valid Blob URL
-    PromoteMemory(BlobURLStoreEntry, IpcSender<Result<SelectedFileId, BlobURLStoreError>>, FileOrigin),
+    PromoteMemory(BlobBuf, IpcSender<Result<SelectedFileId, BlobURLStoreError>>, FileOrigin),
 
     /// Add a sliced entry pointing to the parent FileID, and send back the associated FileID
     /// as part of a valid Blob URL
@@ -161,8 +162,8 @@ pub enum FileManagerThreadError {
     InvalidSelection,
     /// The selection action is cancelled by user
     UserCancelled,
-    /// Failure to process file information such as file name, modified time etc.
-    FileInfoProcessingError,
-    /// Failure to read the file content
-    ReadFileError,
+    /// Errors returned from file system request
+    FileSystemError(String),
+    /// Blob URL Store error
+    BlobURLStoreError(BlobURLStoreError),
 }
