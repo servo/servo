@@ -32,7 +32,6 @@ use std::sync::Arc;
 use string_cache::Atom;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use task_source::TaskSource;
-use task_source::dom_manipulation::DOMManipulationTask;
 use url::Url;
 
 #[derive(JSTraceable, HeapSizeOf)]
@@ -180,12 +179,12 @@ impl HTMLImageElement {
                         }
                     }
 
-                    let runnable = Box::new(ImgParseErrorRunnable {
+                    let runnable = ImgParseErrorRunnable {
                         img: Trusted::new(self),
                         src: src.into(),
-                    });
+                    };
                     let task = window.dom_manipulation_task_source();
-                    let _ = task.queue(DOMManipulationTask(runnable));
+                    let _ = task.queue(runnable, window);
                 }
             }
         }

@@ -53,7 +53,6 @@ use string_cache::Atom;
 use style::attr::AttrValue;
 use style::str::split_html_space_chars;
 use task_source::TaskSource;
-use task_source::dom_manipulation::DOMManipulationTask;
 use url::form_urlencoded;
 
 #[derive(JSTraceable, PartialEq, Clone, Copy, HeapSizeOf)]
@@ -475,7 +474,7 @@ impl HTMLFormElement {
         self.generation_id.set(GenerationId(prev_id + 1));
 
         // Step 2
-        let nav = box PlannedNavigation {
+        let nav = PlannedNavigation {
             load_data: load_data,
             pipeline_id: window.pipeline(),
             script_chan: window.main_thread_script_chan().clone(),
@@ -484,7 +483,7 @@ impl HTMLFormElement {
         };
 
         // Step 3
-        window.dom_manipulation_task_source().queue(DOMManipulationTask(nav)).unwrap();
+        window.dom_manipulation_task_source().queue(nav, window).unwrap();
     }
 
     /// Interactively validate the constraints of form elements

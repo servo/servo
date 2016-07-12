@@ -23,16 +23,13 @@ impl<Listener: PreInvoke + Send + 'static> NetworkListener<Listener> {
             context: self.context.clone(),
             action: action,
         };
-        if let Some(ref wrapper) = self.wrapper {
-            if let Err(err) = self.script_chan.send(
-                CommonScriptMsg::RunnableMsg(NetworkEvent, wrapper.wrap_runnable(runnable))) {
-                warn!("failed to deliver network data: {:?}", err);
-            }
+        let result = if let Some(ref wrapper) = self.wrapper {
+            self.script_chan.send(CommonScriptMsg::RunnableMsg(NetworkEvent, wrapper.wrap_runnable(runnable)))
         } else {
-            if let Err(err) = self.script_chan.send(
-                CommonScriptMsg::RunnableMsg(NetworkEvent, box runnable)) {
-                warn!("failed to deliver network data: {:?}", err);
-            }
+            self.script_chan.send(CommonScriptMsg::RunnableMsg(NetworkEvent, box runnable))
+        };
+        if let Err(err) = result {
+            warn!("failed to deliver network data: {:?}", err);
         }
     }
 }

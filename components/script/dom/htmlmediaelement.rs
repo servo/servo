@@ -33,7 +33,6 @@ use std::cell::Cell;
 use std::sync::{Arc, Mutex};
 use string_cache::Atom;
 use task_source::TaskSource;
-use task_source::dom_manipulation::DOMManipulationTask;
 use time::{self, Timespec, Duration};
 use url::Url;
 
@@ -242,7 +241,7 @@ impl HTMLMediaElement {
             elem: Trusted::new(self),
         };
         let win = window_from_node(self);
-        let _ = win.dom_manipulation_task_source().queue(DOMManipulationTask(box task));
+        let _ = win.dom_manipulation_task_source().queue(task, win.r());
     }
 
     // https://html.spec.whatwg.org/multipage/#internal-pause-steps step 2.2
@@ -266,13 +265,13 @@ impl HTMLMediaElement {
             elem: Trusted::new(self),
         };
         let win = window_from_node(self);
-        let _ = win.dom_manipulation_task_source().queue(DOMManipulationTask(box task));
+        let _ = win.dom_manipulation_task_source().queue(task, win.r());
     }
 
     fn queue_fire_simple_event(&self, type_: &'static str) {
         let win = window_from_node(self);
         let task = FireSimpleEventTask::new(self, type_);
-        let _ = win.dom_manipulation_task_source().queue(DOMManipulationTask(box task));
+        let _ = win.dom_manipulation_task_source().queue(task, win.r());
     }
 
     fn fire_simple_event(&self, type_: &str) {
@@ -498,8 +497,8 @@ impl HTMLMediaElement {
     }
 
     fn queue_dedicated_media_source_failure_steps(&self) {
-        let _ = window_from_node(self).dom_manipulation_task_source().queue(
-            DOMManipulationTask(box DedicatedMediaSourceFailureTask::new(self)));
+        let window = window_from_node(self);
+        let _ = window.dom_manipulation_task_source().queue(DedicatedMediaSourceFailureTask::new(self), window.r());
     }
 
     // https://html.spec.whatwg.org/multipage/#dedicated-media-source-failure-steps
