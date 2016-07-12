@@ -462,6 +462,8 @@ fn append_shorthand_value<'a, W, I>(dest: &mut W,
         Shorthand::Margin => try!(append_margin_shorthand(dest, declarations)),
         Shorthand::Padding => try!(append_padding_shorthand(dest, declarations)),
         Shorthand::Overflow => try!(append_overflow_shorthand(dest, declarations)),
+        Shorthand::ListStyle => try!(append_list_style_shorthand(dest, declarations)),
+        Shorthand::Outline => try!(append_outline_shorthand(dest, declarations)),
         _ => {}
     };
 
@@ -631,6 +633,96 @@ fn append_overflow_shorthand<'a, W, I>(dest: &mut W,
         try!(write!(dest, " "));
         try!(y_value.to_css(dest));
     }
+
+    Ok(())
+}
+
+fn append_list_style_shorthand<'a, W, I>(dest: &mut W,
+                                    declarations: I)
+                            -> fmt::Result
+                            where W: fmt::Write, I: Iterator<Item=&'a PropertyDeclaration> {
+
+    let mut position = None;
+    let mut image = None;
+    let mut symbol_type = None;
+
+    for decl in declarations {
+        match decl {
+            &PropertyDeclaration::ListStylePosition(ref value) => { position = Some(value); },
+            &PropertyDeclaration::ListStyleImage(ref value) => { image = Some(value); },
+            &PropertyDeclaration::ListStyleType(ref value) => { symbol_type = Some(value); },
+            _ => return Err(fmt::Error)
+        }
+    }
+
+    let (position, image, symbol_type) = match (position, image, symbol_type) {
+        (Some(position), Some(image,), Some(symbol_type)) => {
+            (position, image, symbol_type)
+        },
+        _ => return Err(fmt::Error)
+    };
+
+    match position {
+        &DeclaredValue::Initial => try!(write!(dest, "outside")),
+        _ => try!(position.to_css(dest))
+    }
+
+    try!(write!(dest, " "));
+
+    match image {
+        &DeclaredValue::Initial => try!(write!(dest, "none")),
+        _ => try!(image.to_css(dest))
+    };
+
+    try!(write!(dest, " "));
+
+    match symbol_type {
+        &DeclaredValue::Initial => try!(write!(dest, "disc")),
+        _ => try!(symbol_type.to_css(dest))
+    };
+
+    Ok(())
+}
+
+fn append_outline_shorthand<'a, W, I>(dest: &mut W,
+                                    declarations: I)
+                            -> fmt::Result
+                            where W: fmt::Write, I: Iterator<Item=&'a PropertyDeclaration> {
+    let mut width = None;
+    let mut style = None;
+    let mut color = None;
+
+    for decl in declarations {
+        match decl {
+            &PropertyDeclaration::OutlineWidth(ref value) => { width = Some(value); },
+            &PropertyDeclaration::OutlineStyle(ref value) => { style = Some(value); },
+            &PropertyDeclaration::OutlineColor(ref value) => { color = Some(value); },
+            _ => return Err(fmt::Error)
+        }
+    }
+
+    let (width, style, color) = match (width, style, color) {
+        (Some(width), Some(style), Some(color)) => {
+            (width, style, color)
+        },
+        _ => return Err(fmt::Error)
+    };
+
+    try!(width.to_css(dest));
+    try!(write!(dest, " "));
+
+    match style {
+        &DeclaredValue::Initial => try!(write!(dest, "none")),
+        _ => try!(style.to_css(dest))
+    };
+
+    match color {
+        &DeclaredValue::Initial => {},
+        _ => {
+            try!(write!(dest, " "));
+            try!(color.to_css(dest));
+        }
+    };
 
     Ok(())
 }
