@@ -8,8 +8,10 @@ pub mod history_traversal;
 pub mod networking;
 pub mod user_interaction;
 
+use dom::window::Window;
+use script_thread::Runnable;
 use std::result::Result;
 
-pub trait TaskSource<T> {
-    fn queue(&self, msg: T) -> Result<(), ()>;
+pub trait TaskSource {
+    fn queue<T: Runnable + Send + 'static>(&self, msg: Box<T>, window: &Window) -> Result<(), ()>;
 }

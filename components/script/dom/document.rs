@@ -1488,11 +1488,12 @@ impl Document {
 
         update_with_current_time_ms(&self.dom_content_loaded_event_start);
 
-        self.window().dom_manipulation_task_source().queue_event(self.upcast(), atom!("DOMContentLoaded"),
-            EventBubbles::Bubbles, EventCancelable::NotCancelable);
-        self.window().reflow(ReflowGoal::ForDisplay,
-                             ReflowQueryType::NoQuery,
-                             ReflowReason::DOMContentLoaded);
+        let window = self.window();
+        window.dom_manipulation_task_source().queue_event(self.upcast(), atom!("DOMContentLoaded"),
+            EventBubbles::Bubbles, EventCancelable::NotCancelable, window);
+        window.reflow(ReflowGoal::ForDisplay,
+                      ReflowQueryType::NoQuery,
+                      ReflowReason::DOMContentLoaded);
 
         update_with_current_time_ms(&self.dom_content_loaded_event_end);
     }

@@ -189,8 +189,14 @@ pub struct CancellableRunnable<T: Runnable + Send> {
 }
 
 impl<T: Runnable + Send> Runnable for CancellableRunnable<T> {
+    fn name(&self) -> &'static str { self.inner.name() }
+
     fn is_cancelled(&self) -> bool {
         self.cancelled.load(Ordering::SeqCst)
+    }
+
+    fn main_thread_handler(self: Box<CancellableRunnable<T>>, script_thread: &ScriptThread) {
+        self.inner.main_thread_handler(script_thread);
     }
 
     fn handler(self: Box<CancellableRunnable<T>>) {
@@ -1221,7 +1227,7 @@ impl ScriptThread {
 
         // https://html.spec.whatwg.org/multipage/#the-end step 7
         let handler = box DocumentProgressHandler::new(Trusted::new(doc));
-        self.dom_manipulation_task_source.queue(DOMManipulationTask(handler)).unwrap();
+        self.dom_manipulation_task_source.queue(handler, doc.window()).unwrap();
 
         self.constellation_chan.send(ConstellationMsg::LoadComplete(pipeline)).unwrap();
     }
