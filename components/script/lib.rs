@@ -19,6 +19,7 @@
 #![feature(slice_patterns)]
 #![feature(stmt_expr_attributes)]
 #![feature(question_mark)]
+#![feature(try_from)]
 
 #![deny(unsafe_code)]
 #![allow(non_snake_case)]
