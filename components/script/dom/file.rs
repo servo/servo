@@ -54,7 +54,8 @@ impl File {
 
         let global = GlobalRef::Window(window);
 
-        File::new(global, BlobImpl::new_from_file(selected.id), name, Some(selected.modified as i64), "")
+        File::new(global, BlobImpl::new_from_file(selected.id, selected.filename, selected.size),
+                  name, Some(selected.modified as i64), "")
     }
 
     // https://w3c.github.io/FileAPI/#file-constructor
