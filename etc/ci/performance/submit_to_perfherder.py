@@ -82,6 +82,7 @@ def create_resultset_collection(dataset):
         trs.add_push_timestamp(data['push_timestamp'])
         trs.add_revision(data['revision'])
         trs.add_author(data['author'])
+        # TODO: figure out where type is used
         # trs.add_type(data['type'])
 
         revisions = []
@@ -147,10 +148,6 @@ def create_job_collection(dataset):
 
         tj.add_option_collection(data['job']['option_collection'])
 
-        # for log_reference in data['job']['log_references']:
-        #    tj.add_log_reference( 'buildbot_text', log_reference['url'])
-
-        # data['artifact'] is a list of artifacts
         for artifact_data in data['job']['artifacts']:
             tj.add_artifact(
                 artifact_data['name'],
@@ -194,7 +191,7 @@ def submit(perf_data, failures, revision, summary, engine):
     trsc = create_resultset_collection(dataset)
 
     result = "success"
-    # FIXME: Always passing until https://bugzil.la/1276178 is fixed
+    # TODO: verify a failed test won't affect Perfherder visualization
     # if len(failures) > 0:
     #     result = "testfailed"
 
@@ -280,23 +277,10 @@ def submit(perf_data, failures, revision, summary, engine):
                     {
                         'type': 'json',
                         'name': 'performance_data',
+                        # TODO: include the job_guid when the runner actually
+                        # generates one
                         # 'job_guid': job_guid,
                         'blob': perf_data
-                        # Perf data format:
-                        # {
-                        #    "performance_data": {
-                        #        # that is not `talos`?
-                        #        "framework": {"name": "talos"},
-                        #        "suites": [{
-                        #            "name": "performance.timing.domComplete",
-                        #            "value": random.choice(range(15,25)),
-                        #            "subtests": [
-                        #                {"name": "responseEnd", "value": 123},
-                        #                {"name": "loadEventEnd", "value": 223}
-                        #            ]
-                        #        }]
-                        #     }
-                        # }
                     },
                     {
                         'type': 'json',
@@ -347,9 +331,9 @@ def submit(perf_data, failures, revision, summary, engine):
 def main():
     parser = argparse.ArgumentParser(
         description=("Submit Servo performance data to Perfherder. "
-                     "Put your treeherder credentail in credentail.json. "
-                     "You can refer to credential.json.example.")
-    )
+                     "Remember to set your Treeherder credentail as environment"
+                     " variable \'TREEHERDER_CLIENT_ID\' and "
+                     "\'TREEHERDER_CLIENT_SECRET\'"))
     parser.add_argument("perf_json",
                         help="the output json from runner")
     parser.add_argument("revision_json",
@@ -369,8 +353,7 @@ def main():
 
     perf_data = format_perf_data(result_json, args.engine)
     failures = list(filter(lambda x: x['domComplete'] == -1, result_json))
-    summary = format_result_summary(result_json)
-    summary = summary.replace('\n', '<br/>')
+    summary = format_result_summary(result_json).replace('\n', '<br/>')
 
     submit(perf_data, failures, revision, summary, args.engine)
     print("Done!")

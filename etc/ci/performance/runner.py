@@ -69,6 +69,10 @@ def parse_log(log, testcase=None):
         elif copy:
             block.append(line)
 
+    # We need to still include the failed tests, otherwise Treeherder will
+    # consider the result to be a new test series, and thus a new graph. So we
+    # use a placeholder with values = -1 to make Treeherder happy, and still be
+    # able to identify failed tests (successful tests have time >=0).
     placeholder = {
         "navigationStart": 0,
         "unloadEventStart": -1,
@@ -98,8 +102,7 @@ def parse_log(log, testcase=None):
         timing = {}
         for line in block:
             try:
-                key = line.split(",")[1]
-                value = line.split(",")[2]
+                (_, key, value) = line.split(",")
             except:
                 print("[DEBUG] failed to parse the following block:")
                 print(block)
@@ -238,14 +241,14 @@ def main():
         testcases = load_manifest(args.tp5_manifest)
         results = []
         for testcase in testcases:
+            command = command_factory(testcase, args.timeout)
             for run in range(args.runs):
                 print("Running test {}/{} on {}".format(run + 1,
                                                         args.runs,
                                                         testcase))
-                command = command_factory(testcase, args.timeout)
                 log = execute_test(testcase, command, args.timeout)
                 result = parse_log(log, testcase)
-                # TODO: check for other measurements
+                # TODO: Record and analyze other performance.timing properties
                 results += result
 
         print(format_result_summary(results))

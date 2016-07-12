@@ -3,7 +3,6 @@ print = function(o) {
     if (window.dump) {
       window.dump(o + '\n');
     }
-    //window.dump(o + '\n') // For Gecko
 }
 
 function formatLine(name, t){
