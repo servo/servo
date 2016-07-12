@@ -947,7 +947,7 @@ fn static_assert() {
     }
 
     fn set_background_image(&mut self, images: longhands::background_image::computed_value::T) {
-        use gecko_bindings::bindings::nsStyleImageLayers_LayerType as LayerType;
+        use gecko_bindings::structs::nsStyleImageLayers_LayerType as LayerType;
         use gecko_bindings::structs::{NS_STYLE_GRADIENT_SHAPE_LINEAR, NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER};
         use gecko_bindings::structs::nsStyleCoord;
         use style::values::computed::Image;

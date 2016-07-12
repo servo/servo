@@ -5001,6 +5001,9 @@ pub enum nsStyleImageLayers_nsStyleStruct_h_unnamed_19 {
     maskMode = 10,
     composite = 11,
 }
+#[repr(i8)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub enum nsStyleImageLayers_LayerType { Background = 0, Mask = 1, }
 #[repr(C)]
 #[derive(Debug, Copy)]
 pub struct nsStyleImageLayers_Position {
