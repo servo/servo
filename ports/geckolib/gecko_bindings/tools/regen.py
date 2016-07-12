@@ -117,12 +117,15 @@ COMPILATION_TARGETS = {
             "nsStyleOutline", "nsStyleXUL", "nsStyleSVGReset", "nsStyleColumn",
             "nsStyleEffects", "nsStyleImage", "nsStyleGradient",
             "nsStyleCoord", "nsStyleGradientStop", "nsStyleImageLayers",
-            "nsStyleImageLayers_Layer",
+            "nsStyleImageLayers_Layer", "nsStyleImageLayers::LayerType",
 
             "SheetParsingMode", "nsMainThreadPtrHandle",
             "nsMainThreadPtrHolder", "nscolor", "nsFont", "FontFamilyList",
             "FontFamilyType", "nsIAtom",
         ],
+        "void_types": [
+            "nsINode", "nsIDocument", "nsIPrincipal", "nsIURI",
+        ]
     }
 }
 
@@ -225,23 +228,33 @@ def build(objdir, target_name, kind_name=None,
         for ty in current_target["opaque_types"]:
             flags.append("-opaque-type")
             flags.append(ty)
+    if "void_types" in current_target:
+        for ty in current_target["void_types"]:
+            flags.append("-raw-line")
+            flags.append("pub enum {} {{}}".format(ty))
 
     if "structs_types" in current_target:
         for ty in current_target["structs_types"]:
+            ty_fragments = ty.split("::")
+            mangled_name = ty.replace("::", "_")
             flags.append("-blacklist-type")
-            flags.append(ty)
+            flags.append(ty_fragments[-1])
             flags.append("-raw-line")
-            flags.append("use structs::{};".format(ty))
+            if len(ty_fragments) > 1:
+                flags.append("use structs::{} as {};".format(mangled_name, ty_fragments[-1]))
+            else:
+                flags.append("use structs::{};".format(mangled_name))
             # TODO: this is hacky, figure out a better way to do it without
             # hardcoding everything...
             if ty.startswith("nsStyle"):
                 flags.extend([
                     "-raw-line",
-                    "unsafe impl Send for {} {{}}".format(ty),
+                    "unsafe impl Send for {} {{}}".format(ty_fragments[-1]),
                     "-raw-line",
-                    "unsafe impl Sync for {} {{}}".format(ty),
+                    "unsafe impl Sync for {} {{}}".format(ty_fragments[-1]),
                     "-raw-line",
-                    "impl HeapSizeOf for {} {{ fn heap_size_of_children(&self) -> usize {{ 0 }} }}".format(ty)
+                    "impl HeapSizeOf for {} {{ fn heap_size_of_children(&self) -> usize {{ 0 }} }}"
+                    .format(ty_fragments[-1])
                 ])
 
     flags.append("-o")
