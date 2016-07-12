@@ -27,6 +27,7 @@
 #![cfg_attr(feature = "servo", feature(custom_derive))]
 #![cfg_attr(feature = "servo", feature(plugin))]
 #![cfg_attr(feature = "servo", plugin(heapsize_plugin))]
+#![cfg_attr(feature = "servo", plugin(plugins))]
 #![cfg_attr(feature = "servo", plugin(serde_macros))]
 
 #![deny(unsafe_code)]
