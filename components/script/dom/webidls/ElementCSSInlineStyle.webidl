@@ -4,7 +4,7 @@
 
 //http://dev.w3.org/csswg/cssom/#elementcssinlinestyle
 
-[NoInterfaceObject]
+[NoInterfaceObject, Exposed=(Window,Worker)]
 interface ElementCSSInlineStyle {
   [SameObject/*, PutForwards=cssText*/] readonly attribute CSSStyleDeclaration style;
 };

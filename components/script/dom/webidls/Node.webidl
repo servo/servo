@@ -6,7 +6,7 @@
  * https://dom.spec.whatwg.org/#interface-node
  */
 
-[Abstract]
+[Abstract, Exposed=(Window,Worker)]
 interface Node : EventTarget {
   const unsigned short ELEMENT_NODE = 1;
   const unsigned short ATTRIBUTE_NODE = 2; // historical

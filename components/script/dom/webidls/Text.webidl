@@ -10,7 +10,7 @@
  */
 
 // https://dom.spec.whatwg.org/#text
-[Constructor(optional DOMString data = "")]
+[Constructor(optional DOMString data = ""), Exposed=(Window,Worker)]
 interface Text : CharacterData {
   [NewObject, Throws]
   Text splitText(unsigned long offset);

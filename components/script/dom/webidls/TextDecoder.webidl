@@ -8,8 +8,7 @@ dictionary TextDecoderOptions {
   //boolean ignoreBOM = false;
 };
 
-[Constructor(optional DOMString label = "utf-8", optional TextDecoderOptions options)/*,
- Exposed=Window,Worker*/]
+[Constructor(optional DOMString label = "utf-8", optional TextDecoderOptions options), Exposed=(Window,Worker)]
 interface TextDecoder {
   readonly attribute DOMString encoding;
   readonly attribute boolean fatal;

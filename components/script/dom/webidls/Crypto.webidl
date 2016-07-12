@@ -7,7 +7,7 @@
  *
  */
 
-[NoInterfaceObject]
+[NoInterfaceObject, Exposed=(Window,Worker)]
 interface GlobalCrypto {
   readonly attribute Crypto crypto;
 };
@@ -15,7 +15,7 @@ interface GlobalCrypto {
 Window implements GlobalCrypto;
 WorkerGlobalScope implements GlobalCrypto;
 
-//[Exposed=(Window,Worker)]
+[Exposed=(Window,Worker)]
 interface Crypto {
   //readonly attribute SubtleCrypto subtle;
   //ArrayBufferView getRandomValues(ArrayBufferView array);

@@ -12,7 +12,7 @@
 // http://dev.w3.org/fxtf/geometry/Overview.html#dompointreadonly
 [Constructor(optional unrestricted double x = 0, optional unrestricted double y = 0,
              optional unrestricted double z = 0, optional unrestricted double w = 1),
- /*Exposed=(Window,Worker)*/]
+ Exposed=(Window,Worker)]
 interface DOMPointReadOnly {
     readonly attribute unrestricted double x;
     readonly attribute unrestricted double y;

@@ -11,5 +11,6 @@
  * and create derivative works of this document.
  */
 
+[Exposed=(Window,Worker)]
 interface HTMLUnknownElement : HTMLElement {
 };

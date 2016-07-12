@@ -3,8 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://url.spec.whatwg.org/#url
-[Constructor(USVString url, optional USVString base)/*,
- Exposed=(Window,Worker)*/]
+[Constructor(USVString url, optional USVString base), Exposed=(Window,Worker)]
 interface URL {
   static USVString domainToASCII(USVString domain);
   static USVString domainToUnicode(USVString domain);

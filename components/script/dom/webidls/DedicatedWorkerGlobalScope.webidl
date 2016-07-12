@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#dedicatedworkerglobalscope
-[Global/*=Worker,DedicatedWorker*/]
+[Global=(Worker,DedicatedWorker), Exposed=DedicatedWorker]
 /*sealed*/ interface DedicatedWorkerGlobalScope : WorkerGlobalScope {
   [Throws]
   void postMessage(any message/*, optional sequence<Transferable> transfer*/);

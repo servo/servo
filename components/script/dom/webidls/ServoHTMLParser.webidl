@@ -6,6 +6,6 @@
 // web pages.
 
 // FIXME: find a better way to hide this from content (#3688)
-[NoInterfaceObject]
+[NoInterfaceObject, Exposed=(Window,Worker)]
 interface ServoHTMLParser {
 };

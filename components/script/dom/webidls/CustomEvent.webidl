@@ -13,8 +13,8 @@
  * http://www.openwebfoundation.org/legal/the-owf-1-0-agreements/owfa-1-0.
  */
 
-[Constructor(DOMString type, optional CustomEventInit eventInitDict)/*,
- Exposed=Window,Worker*/]
+[Constructor(DOMString type, optional CustomEventInit eventInitDict),
+ Exposed=(Window,Worker)]
 interface CustomEvent : Event {
   readonly attribute any detail;
 

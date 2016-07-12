@@ -4,7 +4,7 @@
 
 [Constructor(optional unrestricted double x = 0, optional unrestricted double y = 0,
              optional unrestricted double width = 0, optional unrestricted double height = 0),
- /*Exposed=(Window,Worker)*/]
+ Exposed=(Window,Worker)]
 // https://drafts.fxtf.org/geometry/#domrect
 interface DOMRectReadOnly {
   // [NewObject] static DOMRectReadOnly fromRect(optional DOMRectInit other);
