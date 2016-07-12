@@ -36,6 +36,7 @@ pub fn factory(mut load_data: LoadData,
                 headers: None,
                 status: Some(RawStatus(200, "OK".into())),
                 https_state: HttpsState::None,
+                referrer: None,
             };
             if let Ok(chan) = start_sending_sniffed_opt(start_chan,
                                                         metadata,
