@@ -242,7 +242,6 @@ impl Window {
     fn handle_window_event(&self, event: glutin::Event) -> bool {
         match event {
             Event::ReceivedCharacter(ch) => {
-                assert!(self.pending_key_event_char.get().is_none());
                 if !ch.is_control() {
                     self.pending_key_event_char.set(Some(ch));
                 }
