@@ -627,7 +627,7 @@ dependencies = [
 
 [[package]]
 name = "fnv"
-version = "1.0.2"
+version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -698,7 +698,7 @@ dependencies = [
  "core-graphics 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-text 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "fnv 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "fnv 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "freetype 0.1.0 (git+https://github.com/servo/rust-freetype)",
  "gfx_traits 0.0.1",
  "harfbuzz-sys 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1051,7 +1051,7 @@ dependencies = [
  "canvas_traits 0.0.1",
  "cssparser 0.5.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "fnv 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "fnv 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "gfx 0.0.1",
  "gfx_traits 0.0.1",
  "heapsize 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1088,7 +1088,7 @@ dependencies = [
  "app_units 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "azure 0.4.6 (git+https://github.com/servo/rust-azure)",
  "euclid 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "fnv 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "fnv 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "gfx 0.0.1",
  "gfx_traits 0.0.1",
  "heapsize 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1765,7 +1765,7 @@ dependencies = [
  "devtools_traits 0.0.1",
  "encoding 0.2.32 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "fnv 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "fnv 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "gfx_traits 0.0.1",
  "heapsize 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_plugin 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1874,7 +1874,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "cssparser 0.5.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "fnv 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "fnv 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_plugin 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "matches 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2116,7 +2116,7 @@ dependencies = [
  "deque 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "encoding 0.2.32 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "fnv 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "fnv 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_plugin 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "kernel32-sys 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2460,7 +2460,7 @@ dependencies = [
  "core-graphics 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-text 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "fnv 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "fnv 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "freetype 0.1.0 (git+https://github.com/servo/rust-freetype)",
  "gleam 0.2.20 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.4.0 (git+https://github.com/servo/ipc-channel)",
