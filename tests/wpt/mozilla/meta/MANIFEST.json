@@ -792,6 +792,18 @@
             "url": "/_mozilla/css/border_collapse_missing_cell_a.html"
           }
         ],
+        "css/border_collapse_row_a.html": [
+          {
+            "path": "css/border_collapse_row_a.html",
+            "references": [
+              [
+                "/_mozilla/css/border_collapse_row_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/border_collapse_row_a.html"
+          }
+        ],
         "css/border_collapse_rowgroup_a.html": [
           {
             "path": "css/border_collapse_rowgroup_a.html",
@@ -7946,6 +7958,18 @@
             ]
           ],
           "url": "/_mozilla/css/border_collapse_missing_cell_a.html"
+        }
+      ],
+      "css/border_collapse_row_a.html": [
+        {
+          "path": "css/border_collapse_row_a.html",
+          "references": [
+            [
+              "/_mozilla/css/border_collapse_row_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/border_collapse_row_a.html"
         }
       ],
       "css/border_collapse_rowgroup_a.html": [

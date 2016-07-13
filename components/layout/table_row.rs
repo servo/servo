@@ -242,10 +242,13 @@ impl Flow for TableRowFlow {
                                      .style()
                                      .get_inheritedtable()
                                      .border_collapse == border_collapse::T::collapse;
-        // FIXME(pcwalton): Shouldn't use `CollapsedBorder::new()` here.
-        self.preliminary_collapsed_borders.reset(CollapsedBorder::new());
+        let row_style = &*self.block_flow.fragment.style;
+        self.preliminary_collapsed_borders.reset(
+            CollapsedBorder::inline_start(&row_style,
+                                          CollapsedBorderProvenance::FromTableRow));
 
         {
+            let children_count = self.block_flow.base.children.len();
             let mut iterator = self.block_flow.base.child_iter_mut().enumerate().peekable();
             while let Some((i, kid)) = iterator.next() {
                 assert!(kid.is_table_cell());
@@ -265,6 +268,8 @@ impl Flow for TableRowFlow {
                     // Perform border collapse if necessary.
                     if collapsing_borders {
                         perform_inline_direction_border_collapse_for_row(
+                            row_style,
+                            children_count,
                             i,
                             child_table_cell,
                             &mut iterator,
@@ -826,10 +831,20 @@ pub struct BorderCollapseInfoForChildTableCell<'a> {
 /// table row. This is done eagerly here so that at least the inline inside border collapse
 /// computations can be parallelized across all the rows of the table.
 fn perform_inline_direction_border_collapse_for_row(
+        row_style: &ServoComputedValues,
+        children_count: usize,
         child_index: usize,
         child_table_cell: &mut TableCellFlow,
         iterator: &mut Peekable<Enumerate<MutFlowListIterator>>,
         preliminary_collapsed_borders: &mut CollapsedBordersForRow) {
+    // In the first cell, combine its border with the one coming from the row.
+    if child_index == 0 {
+        let first_inline_border = &mut preliminary_collapsed_borders.inline[0];
+        first_inline_border.combine(
+            &CollapsedBorder::inline_start(&*child_table_cell.block_flow.fragment.style,
+                                           CollapsedBorderProvenance::FromPreviousTableCell));
+    }
+
     let inline_collapsed_border = preliminary_collapsed_borders.inline.push_or_set(
         child_index + 1,
         CollapsedBorder::inline_end(&*child_table_cell.block_flow.fragment.style,
@@ -842,12 +857,25 @@ fn perform_inline_direction_border_collapse_for_row(
                                            CollapsedBorderProvenance::FromNextTableCell))
     };
 
-    let block_start_border =
+    // In the last cell, also take into account the border that may
+    // come from the row.
+    if child_index + 1 == children_count {
+        inline_collapsed_border.combine(
+            &CollapsedBorder::inline_end(&row_style,
+                                         CollapsedBorderProvenance::FromTableRow));
+    }
+
+    let mut block_start_border =
         CollapsedBorder::block_start(&*child_table_cell.block_flow.fragment.style,
                                      CollapsedBorderProvenance::FromNextTableCell);
+    block_start_border.combine(
+        &CollapsedBorder::block_start(row_style, CollapsedBorderProvenance::FromTableRow));
     preliminary_collapsed_borders.block_start.push_or_set(child_index, block_start_border);
-    let block_end_border =
+    let mut block_end_border =
         CollapsedBorder::block_end(&*child_table_cell.block_flow.fragment.style,
-                                   CollapsedBorderProvenance::FromPreviousTableCell);
+                                        CollapsedBorderProvenance::FromPreviousTableCell);
+    block_end_border.combine(
+        &CollapsedBorder::block_end(row_style, CollapsedBorderProvenance::FromTableRow));
+
     preliminary_collapsed_borders.block_end.push_or_set(child_index, block_end_border);
 }
