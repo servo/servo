@@ -311,11 +311,12 @@ impl Flow for TableFlow {
                         &mut self.collapsed_block_direction_border_widths_for_table);
                     previous_collapsed_block_end_borders =
                         PreviousBlockCollapsedBorders::FromPreviousRow(
-                            row.final_collapsed_borders.block_end.clone())
+                            row.final_collapsed_borders.block_end.clone());
                 }
                 first_row = false
-            }
+            };
         }
+
 
         computation.surrounding_size = computation.surrounding_size +
                                        self.total_horizontal_spacing();
@@ -425,7 +426,7 @@ impl Flow for TableFlow {
                     collapsed_inline_direction_border_widths_for_table,
                     &mut collapsed_block_direction_border_widths_for_table);
             }
-        })
+        });
     }
 
     fn assign_block_size<'a>(&mut self, _: &'a LayoutContext<'a>) {
@@ -589,7 +590,7 @@ impl ColumnIntrinsicInlineSize {
 ///
 /// TODO(pcwalton): There will probably be some `border-collapse`-related info in here too
 /// eventually.
-#[derive(RustcEncodable, Clone, Copy)]
+#[derive(RustcEncodable, Clone, Copy, Debug)]
 pub struct ColumnComputedInlineSize {
     /// The computed size of this inline column.
     pub size: Au,
@@ -629,27 +630,21 @@ fn perform_border_collapse_for_row(child_table_row: &mut TableRowFlow,
                                    next_block_borders: NextBlockCollapsedBorders,
                                    inline_spacing: &mut Vec<Au>,
                                    block_spacing: &mut Vec<Au>) {
+    let number_of_borders_inline_direction = child_table_row.preliminary_collapsed_borders.inline.len();
     // Compute interior inline borders.
     for (i, this_inline_border) in child_table_row.preliminary_collapsed_borders
                                                   .inline
-                                                  .iter()
+                                                  .iter_mut()
                                                   .enumerate() {
         child_table_row.final_collapsed_borders.inline.push_or_set(i, *this_inline_border);
+        if i == 0 {
+            child_table_row.final_collapsed_borders.inline[i].combine(&table_inline_borders.start);
+        } else if i + 1 == number_of_borders_inline_direction {
+            child_table_row.final_collapsed_borders.inline[i].combine(&table_inline_borders.end);
+        }
 
         let inline_spacing = inline_spacing.get_mut_or_push(i, Au(0));
-        *inline_spacing = cmp::max(*inline_spacing, this_inline_border.width)
-    }
-
-    // Collapse edge interior borders with the table.
-    if let Some(ref mut first_inline_borders) = child_table_row.final_collapsed_borders
-                                                               .inline
-                                                               .get_mut(0) {
-        first_inline_borders.combine(&table_inline_borders.start)
-    }
-    if let Some(ref mut last_inline_borders) = child_table_row.final_collapsed_borders
-                                                              .inline
-                                                              .last_mut() {
-        last_inline_borders.combine(&table_inline_borders.end)
+        *inline_spacing = cmp::max(*inline_spacing, child_table_row.final_collapsed_borders.inline[i].width)
     }
 
     // Compute block-start borders.
@@ -777,6 +772,7 @@ impl TableLikeFlow for BlockFlow {
 }
 
 /// Inline collapsed borders for the table itself.
+#[derive(Debug)]
 struct TableInlineCollapsedBorders {
     /// The table border at the start of the inline direction.
     start: CollapsedBorder,
