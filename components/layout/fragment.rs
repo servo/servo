@@ -882,17 +882,12 @@ impl Fragment {
         let size = LogicalSize::new(self.style.writing_mode,
                                     split.inline_size,
                                     self.border_box.size.block);
+        // Remove the insertion point if it is not in this fragment's range.
         let (flags, insertion_point) = match self.specific {
             SpecificFragmentInfo::ScannedText(ref info) => {
                 match info.insertion_point {
-                    Some(index) => {
-                        if split.range.contains(index) {
-                            (info.flags, info.insertion_point)
-                        } else {
-                            (info.flags, None)
-                        }
-                    }
-                    None => (info.flags, None)
+                    Some(index) if split.range.contains(index) => (info.flags, info.insertion_point),
+                    _ => (info.flags, None)
                 }
             },
             _ => (ScannedTextFlags::empty(), None)
