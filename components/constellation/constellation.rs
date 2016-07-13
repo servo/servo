@@ -934,13 +934,13 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         debug!("Panic handler for pipeline {:?}: {}.", pipeline_id, reason);
 
+        // Notify the browser chrome that the pipeline has failed
+        self.trigger_mozbrowsererror(pipeline_id, reason, backtrace);
+
         if let Some(pipeline_id) = pipeline_id {
             let pipeline_url = self.pipelines.get(&pipeline_id).map(|pipeline| pipeline.url.clone());
             let parent_info = self.pipelines.get(&pipeline_id).and_then(|pipeline| pipeline.parent_info);
             let window_size = self.pipelines.get(&pipeline_id).and_then(|pipeline| pipeline.size);
-
-            // Notify the browser chrome that the pipeline has failed
-            self.trigger_mozbrowsererror(pipeline_id, reason, backtrace);
 
             self.close_pipeline(pipeline_id, ExitPipelineMode::Force);
             self.pipelines.remove(&pipeline_id);
@@ -1160,7 +1160,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                                 // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowsershowmodalprompt
                                 let event = MozBrowserEvent::ShowModalPrompt("alert".to_owned(), "Alert".to_owned(),
                                                                              String::from(message), "".to_owned());
-                                root_pipeline.trigger_mozbrowser_event(subpage_id, event);
+                                root_pipeline.trigger_mozbrowser_event(Some(subpage_id), event);
                             }
                             None => return warn!("Alert sent to Pipeline {:?} after closure.", root_pipeline_id),
                         }
@@ -1454,7 +1454,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
     fn handle_mozbrowser_event_msg(&mut self,
                                    containing_pipeline_id: PipelineId,
-                                   subpage_id: SubpageId,
+                                   subpage_id: Option<SubpageId>,
                                    event: MozBrowserEvent) {
         assert!(PREFS.is_mozbrowser_enabled());
 
@@ -2147,7 +2147,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                         let can_go_backward = !frame.prev.is_empty();
                         let can_go_forward = !frame.next.is_empty();
                         let event = MozBrowserEvent::LocationChange(url, can_go_backward, can_go_forward);
-                        parent_pipeline.trigger_mozbrowser_event(subpage_id, event);
+                        parent_pipeline.trigger_mozbrowser_event(Some(subpage_id), event);
                     }
                 }
             }
@@ -2156,20 +2156,29 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
     // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowsererror
     // Note that this does not require the pipeline to be an immediate child of the root
-    fn trigger_mozbrowsererror(&self, pipeline_id: PipelineId, reason: String, backtrace: String) {
+    fn trigger_mozbrowsererror(&self, pipeline_id: Option<PipelineId>, reason: String, backtrace: String) {
         if !PREFS.is_mozbrowser_enabled() { return; }
 
-        let ancestor_info = self.get_mozbrowser_ancestor_info(pipeline_id);
+        let event = MozBrowserEvent::Error(MozBrowserErrorType::Fatal, Some(reason), Some(backtrace));
 
-        if let Some(ancestor_info) = ancestor_info {
-            match self.pipelines.get(&ancestor_info.0) {
-                Some(ancestor) => {
-                    let event = MozBrowserEvent::Error(MozBrowserErrorType::Fatal, Some(reason), Some(backtrace));
-                    ancestor.trigger_mozbrowser_event(ancestor_info.1, event);
-                },
-                None => return warn!("Mozbrowsererror via closed pipeline {:?}.", ancestor_info.0),
+        let ancestor_info = pipeline_id
+            .and_then(|id| self.get_mozbrowser_ancestor_info(id));
+
+        if let Some((ancestor_id, subpage_id)) = ancestor_info {
+            if let Some(ancestor) = self.pipelines.get(&ancestor_id) {
+                return ancestor.trigger_mozbrowser_event(Some(subpage_id), event);
             }
         }
+
+        let root_pipeline = self.root_frame_id
+            .and_then(|root_frame_id| self.frames.get(&root_frame_id))
+            .and_then(|root_frame| self.pipelines.get(&root_frame.current));
+
+        if let Some(root_pipeline) = root_pipeline {
+            return root_pipeline.trigger_mozbrowser_event(None, event);
+        }
+
+        warn!("Mozbrowser error after root pipeline closed.");
     }
 
     fn focused_pipeline_in_tree(&self, frame_id: FrameId) -> bool {
