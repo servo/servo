@@ -129,7 +129,7 @@ impl ImageCacheThread {
                          result_chan: ImageCacheChan,
                          responder: Option<ImageResponder>) {
         let msg = ImageCacheCommand::RequestImage(url, result_chan, responder);
-        self.chan.send(msg).unwrap();
+        let _ = self.chan.send(msg);
     }
 
     /// Asynchronously request an image and metadata.
@@ -139,7 +139,7 @@ impl ImageCacheThread {
                                       result_chan: ImageCacheChan,
                                       responder: Option<ImageResponder>) {
         let msg = ImageCacheCommand::RequestImageAndMetadata(url, result_chan, responder);
-        self.chan.send(msg).unwrap();
+        let _ = self.chan.send(msg);
     }
 
     /// Get the current state of an image. See ImageCacheCommand::GetImageIfAvailable.
@@ -147,8 +147,8 @@ impl ImageCacheThread {
                                   -> Result<Arc<Image>, ImageState> {
         let (sender, receiver) = ipc::channel().unwrap();
         let msg = ImageCacheCommand::GetImageIfAvailable(url, use_placeholder, sender);
-        self.chan.send(msg).unwrap();
-        receiver.recv().unwrap()
+        let _ = self.chan.send(msg);
+        try!(receiver.recv().map_err(|_| ImageState::LoadError))
     }
 
     /// Get the current state of an image, returning its metadata if available.
@@ -157,8 +157,8 @@ impl ImageCacheThread {
                                   -> Result<ImageOrMetadataAvailable, ImageState> {
         let (sender, receiver) = ipc::channel().unwrap();
         let msg = ImageCacheCommand::GetImageOrMetadataIfAvailable(url, use_placeholder, sender);
-        self.chan.send(msg).unwrap();
-        receiver.recv().unwrap()
+        let _ = self.chan.send(msg);
+        try!(receiver.recv().map_err(|_| ImageState::LoadError))
     }
 
     /// Decode the given image bytes and cache the result for the given URL.
@@ -166,13 +166,13 @@ impl ImageCacheThread {
                                    url: Url,
                                    image_data: Vec<u8>) {
         let msg = ImageCacheCommand::StoreDecodeImage(url, image_data);
-        self.chan.send(msg).unwrap();
+        let _ = self.chan.send(msg);
     }
 
     /// Shutdown the image cache thread.
     pub fn exit(&self) {
         let (response_chan, response_port) = ipc::channel().unwrap();
-        self.chan.send(ImageCacheCommand::Exit(response_chan)).unwrap();
-        response_port.recv().unwrap();
+        let _ = self.chan.send(ImageCacheCommand::Exit(response_chan));
+        let _ = response_port.recv();
     }
 }
