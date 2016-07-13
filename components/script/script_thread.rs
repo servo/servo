@@ -65,7 +65,7 @@ use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use mem::heap_size_of_self_and_children;
 use msg::constellation_msg::{FrameType, LoadData, PanicMsg, PipelineId, PipelineNamespace};
-use msg::constellation_msg::{SubpageId, WindowSizeType};
+use msg::constellation_msg::{ReferrerPolicy, SubpageId, WindowSizeType};
 use net_traits::LoadData as NetLoadData;
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheResult, ImageCacheThread};
@@ -1710,6 +1710,27 @@ impl ScriptThread {
             _ => IsHTMLDocument::HTMLDocument,
         };
 
+        use hyper::header::ReferrerPolicy as ReferrerPolicyHeader;
+        let referrer_policy = if let Some(headers) = metadata.headers {
+            match headers.get::<ReferrerPolicyHeader>() {
+                Some(&ReferrerPolicyHeader::NoReferrer) =>
+                    Some(ReferrerPolicy::NoReferrer),
+                Some(&ReferrerPolicyHeader::NoReferrerWhenDowngrade) =>
+                    Some(ReferrerPolicy::NoRefWhenDowngrade),
+                Some(&ReferrerPolicyHeader::SameOrigin) =>
+                    Some(ReferrerPolicy::SameOrigin),
+                Some(&ReferrerPolicyHeader::Origin) =>
+                    Some(ReferrerPolicy::Origin),
+                Some(&ReferrerPolicyHeader::OriginWhenCrossOrigin) =>
+                    Some(ReferrerPolicy::OriginWhenCrossOrigin),
+                Some(&ReferrerPolicyHeader::UnsafeUrl) =>
+                    Some(ReferrerPolicy::UnsafeUrl),
+                None => None,
+            }
+        } else {
+            None
+        };
+
         let document = Document::new(window.r(),
                                      Some(&browsing_context),
                                      Some(final_url.clone()),
@@ -1717,7 +1738,8 @@ impl ScriptThread {
                                      content_type,
                                      last_modified,
                                      DocumentSource::FromParser,
-                                     loader);
+                                     loader,
+                                     referrer_policy);
         if using_new_context {
             browsing_context.init(&document);
         } else {

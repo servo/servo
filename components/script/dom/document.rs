@@ -1630,7 +1630,8 @@ impl Document {
                          content_type: Option<DOMString>,
                          last_modified: Option<String>,
                          source: DocumentSource,
-                         doc_loader: DocumentLoader)
+                         doc_loader: DocumentLoader,
+                         referrer_policy: Option<ReferrerPolicy>)
                          -> Document {
         let url = url.unwrap_or_else(|| Url::parse("about:blank").unwrap());
 
@@ -1647,6 +1648,21 @@ impl Document {
         } else {
             // Default to DOM standard behaviour
             Origin::opaque_identifier()
+        };
+
+        // TODO: we currently default to Some(NoReferrer) instead of None (i.e. unset)
+        // for an important reason. Many of the methods by which a referrer policy is communicated
+        // are currently unimplemented, and so in such cases we may be ignoring the desired policy.
+        // If the default were left unset, then in Step 7 of the Fetch algorithm we adopt
+        // no-referrer-when-downgrade. However, since we are potentially ignoring a stricter
+        // referrer policy, this might be passing too much info. Hence, we default to the
+        // strictest policy, which is no-referrer.
+        // Once other delivery methods are implemented, make the unset case really
+        // unset (i.e. None).
+        let referrer_policy = if referrer_policy.is_some() {
+            referrer_policy
+        } else {
+            Some(ReferrerPolicy::NoReferrer)
         };
 
         Document {
@@ -1715,8 +1731,7 @@ impl Document {
             https_state: Cell::new(HttpsState::None),
             touchpad_pressure_phase: Cell::new(TouchpadPressurePhase::BeforeClick),
             origin: origin,
-            //TODO - setting this for now so no Referer header set
-            referrer_policy: Cell::new(Some(ReferrerPolicy::NoReferrer)),
+            referrer_policy: Cell::new(referrer_policy),
         }
     }
 
@@ -1733,7 +1748,8 @@ impl Document {
                          None,
                          None,
                          DocumentSource::NotFromParser,
-                         docloader))
+                         docloader,
+                         None))
     }
 
     pub fn new(window: &Window,
@@ -1743,7 +1759,8 @@ impl Document {
                content_type: Option<DOMString>,
                last_modified: Option<String>,
                source: DocumentSource,
-               doc_loader: DocumentLoader)
+               doc_loader: DocumentLoader,
+               referrer_policy: Option<ReferrerPolicy>)
                -> Root<Document> {
         let document = reflect_dom_object(box Document::new_inherited(window,
                                                                       browsing_context,
@@ -1752,7 +1769,8 @@ impl Document {
                                                                       content_type,
                                                                       last_modified,
                                                                       source,
-                                                                      doc_loader),
+                                                                      doc_loader,
+                                                                      referrer_policy),
                                           GlobalRef::Window(window),
                                           DocumentBinding::Wrap);
         {
@@ -1816,7 +1834,8 @@ impl Document {
                                         None,
                                         None,
                                         DocumentSource::NotFromParser,
-                                        DocumentLoader::new(&self.loader()));
+                                        DocumentLoader::new(&self.loader()),
+                                        None);
             new_doc.appropriate_template_contents_owner_document.set(Some(&new_doc));
             new_doc
         })
