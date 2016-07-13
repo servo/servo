@@ -1463,6 +1463,7 @@ dependencies = [
 name = "net_traits"
 version = "0.0.1"
 dependencies = [
+ "bincode 0.5.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "cookie 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_plugin 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
