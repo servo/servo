@@ -1600,8 +1600,7 @@ impl Window {
     #[allow(unsafe_code)]
     pub fn dispatch_mozbrowser_event(&self, event: MozBrowserEvent) {
         assert!(PREFS.is_mozbrowser_enabled());
-        let rooted = Root::from_ref(self);
-        let custom_event = unsafe { build_mozbrowser_custom_event(rooted, event) };
+        let custom_event = build_mozbrowser_custom_event(&self, event);
         custom_event.upcast::<Event>().fire(self.upcast());
     }
 }

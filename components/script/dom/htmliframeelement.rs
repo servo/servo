@@ -165,7 +165,7 @@ impl HTMLIFrameElement {
 
         if self.Mozbrowser() {
             let window = window_from_node(self);
-            let custom_event = unsafe { build_mozbrowser_custom_event(window, event) };
+            let custom_event = build_mozbrowser_custom_event(&window, event);
             custom_event.upcast::<Event>().fire(self.upcast());
         }
     }
@@ -322,7 +322,7 @@ impl HTMLIFrameElementLayoutMethods for LayoutJS<HTMLIFrameElement> {
 }
 
 #[allow(unsafe_code)]
-pub unsafe fn build_mozbrowser_custom_event(window: Root<Window>, event: MozBrowserEvent) -> Root<CustomEvent> {
+pub fn build_mozbrowser_custom_event(window: &Window, event: MozBrowserEvent) -> Root<CustomEvent> {
     // TODO(gw): Support mozbrowser event types that have detail which is not a string.
     // See https://developer.mozilla.org/en-US/docs/Web/API/Using_the_Browser_API
     // for a list of mozbrowser events.
@@ -330,8 +330,8 @@ pub unsafe fn build_mozbrowser_custom_event(window: Root<Window>, event: MozBrow
     let _ac = JSAutoCompartment::new(cx, window.reflector().get_jsobject().get());
     rooted!(in(cx) let mut detail = UndefinedValue());
     let event_name = Atom::from(event.name());
-    build_mozbrowser_event_detail(event, cx, detail.handle_mut());
-    CustomEvent::new(GlobalRef::Window(window.r()),
+    unsafe { build_mozbrowser_event_detail(event, cx, detail.handle_mut()); }
+    CustomEvent::new(GlobalRef::Window(window),
                      event_name,
                      true,
                      true,
