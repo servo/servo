@@ -651,8 +651,17 @@ impl<T: ClipboardProvider> TextInput<T> {
             start = end;
         }
 
-        self.selection_begin = Some(self.get_text_point_for_absolute_point(start));
-        self.edit_point = self.get_text_point_for_absolute_point(end);
+        match self.selection_direction {
+            SelectionDirection::None |
+            SelectionDirection::Forward => {
+                self.selection_begin = Some(self.get_text_point_for_absolute_point(start));
+                self.edit_point = self.get_text_point_for_absolute_point(end);
+            },
+            SelectionDirection::Backward => {
+                self.selection_begin = Some(self.get_text_point_for_absolute_point(end));
+                self.edit_point = self.get_text_point_for_absolute_point(start);
+            }
+        }
         self.assert_ok_selection();
     }
 
