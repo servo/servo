@@ -1242,6 +1242,7 @@ impl XMLHttpRequest {
                       None,
                       DocumentSource::FromParser,
                       docloader,
+                      None,
                       None)
     }
 

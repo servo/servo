@@ -1721,7 +1721,8 @@ impl Node {
                 let document = Document::new(window, None,
                                              Some((*document.url()).clone()),
                                              is_html_doc, None,
-                                             None, DocumentSource::NotFromParser, loader, None);
+                                             None, DocumentSource::NotFromParser, loader,
+                                             None, None);
                 Root::upcast::<Node>(document)
             },
             NodeTypeId::Element(..) => {

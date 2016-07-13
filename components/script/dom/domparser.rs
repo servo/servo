@@ -69,6 +69,7 @@ impl DOMParserMethods for DOMParser {
                                              None,
                                              DocumentSource::FromParser,
                                              loader,
+                                             None,
                                              None);
                 parse_html(document.r(), s, url, ParseContext::Owner(None));
                 document.set_ready_state(DocumentReadyState::Complete);
@@ -84,6 +85,7 @@ impl DOMParserMethods for DOMParser {
                                              None,
                                              DocumentSource::NotFromParser,
                                              loader,
+                                             None,
                                              None);
                 parse_xml(document.r(), s, url, xml::ParseContext::Owner(None));
                 Ok(document)

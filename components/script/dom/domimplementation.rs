@@ -130,6 +130,7 @@ impl DOMImplementationMethods for DOMImplementation {
                                 None,
                                 DocumentSource::NotFromParser,
                                 loader,
+                                None,
                                 None);
 
         {
