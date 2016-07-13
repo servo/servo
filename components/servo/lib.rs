@@ -214,7 +214,7 @@ fn create_constellation(opts: opts::Opts,
         new_resource_threads(opts.user_agent.clone(),
                              devtools_chan.clone(),
                              time_profiler_chan.clone());
-    let image_cache_thread = new_image_cache_thread(public_resource_threads.sender(),
+    let image_cache_thread = new_image_cache_thread(public_resource_threads.clone(),
                                                     webrender_api_sender.as_ref().map(|wr| wr.create_api()));
     let font_cache_thread = FontCacheThread::new(public_resource_threads.sender(),
                                                  webrender_api_sender.as_ref().map(|wr| wr.create_api()));

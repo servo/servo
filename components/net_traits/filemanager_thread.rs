@@ -5,10 +5,11 @@
 use blob_url_store::{BlobBuf, BlobURLStoreError};
 use ipc_channel::ipc::IpcSender;
 use num_traits::ToPrimitive;
+use request::RequestInit;
 use std::cmp::{max, min};
 use std::ops::Range;
 use std::path::PathBuf;
-use super::{LoadConsumer, LoadData};
+use super::{LoadConsumer, LoadData, FetchResponseMsg};
 
 // HACK: Not really process-safe now, we should send Origin
 //       directly instead of this in future, blocked on #11722
@@ -134,6 +135,9 @@ pub enum FileManagerThreadMsg {
     /// Load resource by Blob URL
     LoadBlob(LoadData, LoadConsumer),
 
+    /// Fetch resource by Blob URL (from XHR)
+    Fetch(RequestInit, IpcSender<FetchResponseMsg>),
+
     /// Add an entry as promoted memory-based blob and send back the associated FileID
     /// as part of a valid Blob URL
     PromoteMemory(BlobBuf, IpcSender<Result<SelectedFileId, BlobURLStoreError>>, FileOrigin),
@@ -144,6 +148,9 @@ pub enum FileManagerThreadMsg {
 
     /// Revoke Blob URL and send back the acknowledgement
     RevokeBlobURL(SelectedFileId, FileOrigin, IpcSender<Result<(), BlobURLStoreError>>),
+
+    /// Make a Blob permanently valid
+    LongLive(SelectedFileId, FileOrigin, IpcSender<Result<(), BlobURLStoreError>>),
 
     /// Decrease reference count and send back the acknowledgement
     DecRef(SelectedFileId, FileOrigin, IpcSender<Result<(), BlobURLStoreError>>),

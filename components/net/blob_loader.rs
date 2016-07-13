@@ -7,7 +7,7 @@ use hyper::header::{Headers, ContentType, ContentLength, Charset};
 use hyper::http::RawStatus;
 use mime::{Mime, Attr};
 use mime_classifier::MimeClassifier;
-use net_traits::ProgressMsg::Done;
+use net_traits::ProgressMsg::{Payload, Done};
 use net_traits::blob_url_store::BlobBuf;
 use net_traits::response::HttpsState;
 use net_traits::{LoadConsumer, LoadData, Metadata};
@@ -51,6 +51,7 @@ pub fn load_blob(load_data: LoadData, start_chan: LoadConsumer,
     if let Ok(chan) =
         start_sending_sniffed_opt(start_chan, metadata, classifier,
                                   &blob_buf.bytes, load_data.context.clone()) {
+        let _ = chan.send(Payload(blob_buf.bytes));
         let _ = chan.send(Done(Ok(())));
     }
 }
