@@ -19,7 +19,6 @@ use script_thread::Runnable;
 use std::cell::Cell;
 use string_cache::Atom;
 use task_source::TaskSource;
-use task_source::dom_manipulation::DOMManipulationTask;
 
 #[dom_struct]
 pub struct HTMLDetailsElement {
@@ -72,14 +71,13 @@ impl VirtualMethods for HTMLDetailsElement {
             self.toggle_counter.set(counter);
 
             let window = window_from_node(self);
-            let window = window.r();
             let task_source = window.dom_manipulation_task_source();
             let details = Trusted::new(self);
             let runnable = box DetailsNotificationRunnable {
                 element: details,
                 toggle_number: counter
             };
-            let _ = task_source.queue(DOMManipulationTask::Runnable(runnable));
+            let _ = task_source.queue(runnable, window.r());
         }
     }
 }

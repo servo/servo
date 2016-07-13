@@ -3,9 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::refcounted::Trusted;
-use dom::event::{EventBubbles, EventCancelable};
+use dom::event::{EventBubbles, EventCancelable, EventRunnable};
 use dom::eventtarget::EventTarget;
-use script_thread::MainThreadScriptMsg;
+use dom::window::Window;
+use script_thread::{MainThreadScriptMsg, Runnable, ScriptThread};
 use std::result::Result;
 use std::sync::mpsc::Sender;
 use string_cache::Atom;
@@ -14,38 +15,37 @@ use task_source::TaskSource;
 #[derive(JSTraceable, Clone)]
 pub struct UserInteractionTaskSource(pub Sender<MainThreadScriptMsg>);
 
-impl TaskSource<UserInteractionTask> for UserInteractionTaskSource {
-    fn queue(&self, msg: UserInteractionTask) -> Result<(), ()> {
+impl TaskSource for UserInteractionTaskSource {
+    fn queue<T: Runnable + Send + 'static>(&self, msg: Box<T>, window: &Window) -> Result<(), ()> {
+        let msg = UserInteractionTask(window.get_runnable_wrapper().wrap_runnable(msg));
         self.0.send(MainThreadScriptMsg::UserInteraction(msg)).map_err(|_| ())
     }
 }
 
 impl UserInteractionTaskSource {
     pub fn queue_event(&self,
-                   target: &EventTarget,
-                   name: Atom,
-                   bubbles: EventBubbles,
-                   cancelable: EventCancelable) {
+                       target: &EventTarget,
+                       name: Atom,
+                       bubbles: EventBubbles,
+                       cancelable: EventCancelable,
+                       window: &Window) {
         let target = Trusted::new(target);
-        let _ = self.0.send(MainThreadScriptMsg::UserInteraction(UserInteractionTask::FireEvent(
-            target, name, bubbles, cancelable)));
+        let runnable = box EventRunnable {
+            target: target,
+            name: name,
+            bubbles: bubbles,
+            cancelable: cancelable,
+        };
+        let _ = self.queue(runnable, window);
     }
 }
 
-pub enum UserInteractionTask {
-    // https://dom.spec.whatwg.org/#concept-event-fire
-    FireEvent(Trusted<EventTarget>, Atom, EventBubbles, EventCancelable),
-}
+pub struct UserInteractionTask(pub Box<Runnable + Send>);
 
 impl UserInteractionTask {
-    pub fn handle_task(self) {
-        use self::UserInteractionTask::*;
-
-        match self {
-            FireEvent(element, name, bubbles, cancelable) => {
-                let target = element.root();
-                target.fire_event(&*name, bubbles, cancelable);
-            }
+    pub fn handle_task(self, script_thread: &ScriptThread) {
+        if !self.0.is_cancelled() {
+            self.0.main_thread_handler(script_thread);
         }
     }
 }

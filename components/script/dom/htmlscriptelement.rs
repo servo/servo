@@ -460,12 +460,13 @@ impl HTMLScriptElement {
         if external {
             self.dispatch_load_event();
         } else {
-            window.dom_manipulation_task_source().queue_simple_event(self.upcast(), atom!("load"));
+            window.dom_manipulation_task_source().queue_simple_event(self.upcast(), atom!("load"), window.r());
         }
     }
 
     pub fn queue_error_event(&self) {
-        window_from_node(self).dom_manipulation_task_source().queue_simple_event(self.upcast(), atom!("error"));
+        let window = window_from_node(self);
+        window.dom_manipulation_task_source().queue_simple_event(self.upcast(), atom!("error"), window.r());
     }
 
     pub fn dispatch_before_script_execute_event(&self) -> bool {
