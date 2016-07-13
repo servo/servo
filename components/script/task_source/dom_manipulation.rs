@@ -16,7 +16,7 @@ use task_source::TaskSource;
 pub struct DOMManipulationTaskSource(pub Sender<MainThreadScriptMsg>);
 
 impl TaskSource for DOMManipulationTaskSource {
-    fn queue<T: Runnable + Send + 'static>(&self, msg: T, window: &Window) -> Result<(), ()> {
+    fn queue<T: Runnable + Send + 'static>(&self, msg: Box<T>, window: &Window) -> Result<(), ()> {
         let msg = DOMManipulationTask(window.get_runnable_wrapper().wrap_runnable(msg));
         self.0.send(MainThreadScriptMsg::DOMManipulation(msg)).map_err(|_| ())
     }
@@ -30,7 +30,7 @@ impl DOMManipulationTaskSource {
                        cancelable: EventCancelable,
                        window: &Window) {
         let target = Trusted::new(target);
-        let runnable = EventRunnable {
+        let runnable = box EventRunnable {
             target: target,
             name: name,
             bubbles: bubbles,
@@ -41,7 +41,7 @@ impl DOMManipulationTaskSource {
 
     pub fn queue_simple_event(&self, target: &EventTarget, name: Atom, window: &Window) {
         let target = Trusted::new(target);
-        let runnable = SimpleEventRunnable {
+        let runnable = box SimpleEventRunnable {
             target: target,
             name: name,
         };

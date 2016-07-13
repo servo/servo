@@ -174,10 +174,10 @@ pub struct RunnableWrapper {
 }
 
 impl RunnableWrapper {
-    pub fn wrap_runnable<T: Runnable + Send + 'static>(&self, runnable: T) -> Box<Runnable + Send> {
+    pub fn wrap_runnable<T: Runnable + Send + 'static>(&self, runnable: Box<T>) -> Box<Runnable + Send> {
         box CancellableRunnable {
             cancelled: self.cancelled.clone(),
-            inner: box runnable,
+            inner: runnable,
         }
     }
 }
@@ -1226,7 +1226,7 @@ impl ScriptThread {
         doc.mut_loader().inhibit_events();
 
         // https://html.spec.whatwg.org/multipage/#the-end step 7
-        let handler = DocumentProgressHandler::new(Trusted::new(doc));
+        let handler = box DocumentProgressHandler::new(Trusted::new(doc));
         self.dom_manipulation_task_source.queue(handler, doc.window()).unwrap();
 
         self.constellation_chan.send(ConstellationMsg::LoadComplete(pipeline)).unwrap();

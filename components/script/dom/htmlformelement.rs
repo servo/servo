@@ -474,7 +474,7 @@ impl HTMLFormElement {
         self.generation_id.set(GenerationId(prev_id + 1));
 
         // Step 2
-        let nav = PlannedNavigation {
+        let nav = box PlannedNavigation {
             load_data: load_data,
             pipeline_id: window.pipeline(),
             script_chan: window.main_thread_script_chan().clone(),

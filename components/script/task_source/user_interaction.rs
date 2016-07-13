@@ -16,7 +16,7 @@ use task_source::TaskSource;
 pub struct UserInteractionTaskSource(pub Sender<MainThreadScriptMsg>);
 
 impl TaskSource for UserInteractionTaskSource {
-    fn queue<T: Runnable + Send + 'static>(&self, msg: T, window: &Window) -> Result<(), ()> {
+    fn queue<T: Runnable + Send + 'static>(&self, msg: Box<T>, window: &Window) -> Result<(), ()> {
         let msg = UserInteractionTask(window.get_runnable_wrapper().wrap_runnable(msg));
         self.0.send(MainThreadScriptMsg::UserInteraction(msg)).map_err(|_| ())
     }
@@ -30,7 +30,7 @@ impl UserInteractionTaskSource {
                        cancelable: EventCancelable,
                        window: &Window) {
         let target = Trusted::new(target);
-        let runnable = EventRunnable {
+        let runnable = box EventRunnable {
             target: target,
             name: name,
             bubbles: bubbles,

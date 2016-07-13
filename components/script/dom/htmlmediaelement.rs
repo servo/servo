@@ -237,7 +237,7 @@ impl HTMLMediaElement {
             }
         }
 
-        let task = Task {
+        let task = box Task {
             elem: Trusted::new(self),
         };
         let win = window_from_node(self);
@@ -261,7 +261,7 @@ impl HTMLMediaElement {
             }
         }
 
-        let task = Task {
+        let task = box Task {
             elem: Trusted::new(self),
         };
         let win = window_from_node(self);
@@ -270,7 +270,7 @@ impl HTMLMediaElement {
 
     fn queue_fire_simple_event(&self, type_: &'static str) {
         let win = window_from_node(self);
-        let task = FireSimpleEventTask::new(self, type_);
+        let task = box FireSimpleEventTask::new(self, type_);
         let _ = win.dom_manipulation_task_source().queue(task, win.r());
     }
 
@@ -498,7 +498,7 @@ impl HTMLMediaElement {
 
     fn queue_dedicated_media_source_failure_steps(&self) {
         let window = window_from_node(self);
-        let _ = window.dom_manipulation_task_source().queue(DedicatedMediaSourceFailureTask::new(self), window.r());
+        let _ = window.dom_manipulation_task_source().queue(box DedicatedMediaSourceFailureTask::new(self), window.r());
     }
 
     // https://html.spec.whatwg.org/multipage/#dedicated-media-source-failure-steps

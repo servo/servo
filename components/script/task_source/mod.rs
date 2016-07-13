@@ -13,5 +13,5 @@ use script_thread::Runnable;
 use std::result::Result;
 
 pub trait TaskSource {
-    fn queue<T: Runnable + Send + 'static>(&self, msg: T, window: &Window) -> Result<(), ()>;
+    fn queue<T: Runnable + Send + 'static>(&self, msg: Box<T>, window: &Window) -> Result<(), ()>;
 }

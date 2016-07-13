@@ -73,7 +73,7 @@ impl VirtualMethods for HTMLDetailsElement {
             let window = window_from_node(self);
             let task_source = window.dom_manipulation_task_source();
             let details = Trusted::new(self);
-            let runnable = DetailsNotificationRunnable {
+            let runnable = box DetailsNotificationRunnable {
                 element: details,
                 toggle_number: counter
             };

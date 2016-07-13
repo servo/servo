@@ -19,14 +19,14 @@ pub struct NetworkListener<Listener: PreInvoke + Send + 'static> {
 
 impl<Listener: PreInvoke + Send + 'static> NetworkListener<Listener> {
     pub fn notify<A: Action<Listener> + Send + 'static>(&self, action: A) {
-        let runnable = ListenerRunnable {
+        let runnable = box ListenerRunnable {
             context: self.context.clone(),
             action: action,
         };
         let result = if let Some(ref wrapper) = self.wrapper {
             self.script_chan.send(CommonScriptMsg::RunnableMsg(NetworkEvent, wrapper.wrap_runnable(runnable)))
         } else {
-            self.script_chan.send(CommonScriptMsg::RunnableMsg(NetworkEvent, box runnable))
+            self.script_chan.send(CommonScriptMsg::RunnableMsg(NetworkEvent, runnable))
         };
         if let Err(err) = result {
             warn!("failed to deliver network data: {:?}", err);
