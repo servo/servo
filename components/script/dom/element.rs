@@ -78,6 +78,7 @@ use selectors::parser::{AttrSelector, NamespaceConstraint, parse_author_origin_s
 use std::ascii::AsciiExt;
 use std::borrow::Cow;
 use std::cell::{Cell, Ref};
+use std::convert::TryFrom;
 use std::default::Default;
 use std::mem;
 use std::sync::Arc;
@@ -126,8 +127,10 @@ pub enum AdjacentPosition {
     BeforeEnd,
 }
 
-impl AdjacentPosition {
-    pub fn parse(position: &str) -> Fallible<AdjacentPosition> {
+impl<'a> TryFrom<&'a str> for AdjacentPosition {
+    type Err = Error;
+
+    fn try_from(position: &'a str) -> Result<AdjacentPosition, Self::Err> {
         match_ignore_ascii_case! { &*position,
             "beforebegin" => Ok(AdjacentPosition::BeforeBegin),
             "afterbegin"  => Ok(AdjacentPosition::AfterBegin),
@@ -2028,7 +2031,7 @@ impl ElementMethods for Element {
     // https://dom.spec.whatwg.org/#dom-element-insertadjacentelement
     fn InsertAdjacentElement(&self, where_: DOMString, element: &Element)
                              -> Fallible<Option<Root<Element>>> {
-        let where_ = try!(AdjacentPosition::parse(&*where_));
+        let where_ = try!(AdjacentPosition::try_from(&*where_));
         let inserted_node = try!(self.insert_adjacent(where_, element.upcast()));
         Ok(inserted_node.map(|node| Root::downcast(node).unwrap()))
     }
@@ -2040,7 +2043,7 @@ impl ElementMethods for Element {
         let text = Text::new(data, &document_from_node(self));
 
         // Step 2.
-        let where_ = try!(AdjacentPosition::parse(&*where_));
+        let where_ = try!(AdjacentPosition::try_from(&*where_));
         self.insert_adjacent(where_, text.upcast()).map(|_| ())
     }
 
@@ -2048,7 +2051,7 @@ impl ElementMethods for Element {
     fn InsertAdjacentHTML(&self, position: DOMString, text: DOMString)
                           -> ErrorResult {
         // Step 1.
-        let position = try!(AdjacentPosition::parse(&*position));
+        let position = try!(AdjacentPosition::try_from(&*position));
 
         let context = match position {
             AdjacentPosition::BeforeBegin | AdjacentPosition::AfterEnd => {
