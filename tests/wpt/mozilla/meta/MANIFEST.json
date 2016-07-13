@@ -6105,6 +6105,18 @@
             ],
             "url": "/_mozilla/mozilla/webgl/tex_image_2d_simple.html"
           }
+        ],
+        "mozilla/blob_url_xhr.html": [
+          {
+            "path": "mozilla/blob_url_xhr.html",
+            "references": [
+              [
+                "/_mozilla/mozilla/blob_url_xhr_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/mozilla/blob_url_xhr.html"
+          }
         ]
       },
       "testharness": {

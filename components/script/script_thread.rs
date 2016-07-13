@@ -68,6 +68,7 @@ use msg::constellation_msg::{FrameType, LoadData, PanicMsg, PipelineId, Pipeline
 use msg::constellation_msg::{SubpageId, WindowSizeType};
 use net_traits::LoadData as NetLoadData;
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
+use net_traits::filemanager_thread::FileManagerThreadMsg;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheResult, ImageCacheThread};
 use net_traits::{AsyncResponseTarget, CoreResourceMsg, LoadConsumer, LoadContext, Metadata, ResourceThreads};
 use net_traits::{RequestSource, CustomResponse, CustomResponseSender, IpcSend};
@@ -2068,9 +2069,9 @@ impl ScriptThread {
             load_data.url = Url::parse("about:blank").unwrap();
         }
 
-        self.resource_threads.send(CoreResourceMsg::Load(NetLoadData {
+        let net_load_data = NetLoadData {
             context: LoadContext::Browsing,
-            url: load_data.url,
+            url: load_data.url.clone(),
             method: load_data.method,
             headers: Headers::new(),
             preserved_headers: load_data.headers,
@@ -2081,7 +2082,15 @@ impl ScriptThread {
             referrer_policy: load_data.referrer_policy,
             referrer_url: load_data.referrer_url,
             source: RequestSource::Window(self.custom_message_chan.clone())
-        }, LoadConsumer::Listener(response_target), None)).unwrap();
+        };
+
+        if load_data.url.scheme() == "blob" {
+            let msg = FileManagerThreadMsg::LoadBlob(net_load_data, LoadConsumer::Listener(response_target));
+            self.resource_threads.send(msg).unwrap();
+        } else {
+            let msg = CoreResourceMsg::Load(net_load_data, LoadConsumer::Listener(response_target), None);
+            self.resource_threads.send(msg).unwrap(); // XXX: unwrap?!
+        }
 
         self.incomplete_loads.borrow_mut().push(incomplete);
     }

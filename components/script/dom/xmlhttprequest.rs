@@ -20,7 +20,7 @@ use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::str::{ByteString, DOMString, USVString, is_token};
-use dom::blob::{Blob, BlobImpl};
+use dom::blob::{Blob, BlobImpl, long_live_blob_url};
 use dom::document::DocumentSource;
 use dom::document::{Document, IsHTMLDocument};
 use dom::event::{Event, EventBubbles, EventCancelable};
@@ -43,10 +43,11 @@ use js::jsapi::JS_ClearPendingException;
 use js::jsapi::{JSContext, JS_ParseJSON};
 use js::jsval::{JSVal, NullValue, UndefinedValue};
 use msg::constellation_msg::{PipelineId, ReferrerPolicy};
-use net_traits::CoreResourceMsg::Fetch;
+use net_traits::{CoreResourceMsg, ResourceThreads, IpcSend};
 use net_traits::request::{CredentialsMode, Destination, RequestInit, RequestMode};
+use net_traits::filemanager_thread::FileManagerThreadMsg;
 use net_traits::trim_http_whitespace;
-use net_traits::{CoreResourceThread, LoadOrigin};
+use net_traits::LoadOrigin;
 use net_traits::{FetchResponseListener, Metadata, NetworkError, RequestSource};
 use network_listener::{NetworkListener, PreInvoke};
 use parse::html::{ParseContext, parse_html};
@@ -214,7 +215,7 @@ impl XMLHttpRequest {
 
     fn initiate_async_xhr(context: Arc<Mutex<XHRContext>>,
                           script_chan: Box<ScriptChan + Send>,
-                          core_resource_thread: CoreResourceThread,
+                          resource_threads: ResourceThreads,
                           init: RequestInit) {
         impl FetchResponseListener for XHRContext {
                 fn process_request_body(&mut self) {
@@ -263,7 +264,12 @@ impl XMLHttpRequest {
         ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
             listener.notify_fetch(message.to().unwrap());
         });
-        core_resource_thread.send(Fetch(init, action_sender)).unwrap();
+
+        if init.url.scheme() == "blob" {
+            resource_threads.send(FileManagerThreadMsg::Fetch(init, action_sender)).unwrap(); // XXX: unwrap?
+        } else {
+            resource_threads.send(CoreResourceMsg::Fetch(init, action_sender)).unwrap(); // XXX: unwrap?
+        }
     }
 }
 
@@ -368,6 +374,11 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                 // Step 11 - abort existing requests
                 self.terminate_ongoing_fetch();
 
+                // See WPT test: FileAPI/blob/Blob-XHR-revoke.html
+                if parsed_url.scheme() == "blob" {
+                    long_live_blob_url(self.global().r(), &parsed_url);
+                }
+
                 // Step 12
                 *self.request_method.borrow_mut() = parsed_method;
                 *self.request_url.borrow_mut() = Some(parsed_url);
@@ -381,6 +392,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                 if self.ready_state.get() != XMLHttpRequestState::Opened {
                     self.change_ready_state(XMLHttpRequestState::Opened);
                 }
+
                 Ok(())
             },
             // Step 3
@@ -1292,9 +1304,9 @@ impl XMLHttpRequest {
             (global.networking_task_source(), None)
         };
 
-        let core_resource_thread = global.core_resource_thread();
+        let resource_threads = global.resource_threads();
         XMLHttpRequest::initiate_async_xhr(context.clone(), script_chan,
-                                           core_resource_thread, init);
+                                           resource_threads, init);
 
         if let Some(script_port) = script_port {
             loop {
