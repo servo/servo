@@ -161,25 +161,11 @@ impl HTMLIFrameElement {
 
     #[allow(unsafe_code)]
     pub fn dispatch_mozbrowser_event(&self, event: MozBrowserEvent) {
-        // TODO(gw): Support mozbrowser event types that have detail which is not a string.
-        // See https://developer.mozilla.org/en-US/docs/Web/API/Using_the_Browser_API
-        // for a list of mozbrowser events.
         assert!(PREFS.is_mozbrowser_enabled());
 
         if self.Mozbrowser() {
             let window = window_from_node(self);
-            let custom_event = unsafe {
-                let cx = window.get_cx();
-                let _ac = JSAutoCompartment::new(cx, window.reflector().get_jsobject().get());
-                rooted!(in(cx) let mut detail = UndefinedValue());
-                let event_name = Atom::from(event.name());
-                self.build_mozbrowser_event_detail(event, cx, detail.handle_mut());
-                CustomEvent::new(GlobalRef::Window(window.r()),
-                                 event_name,
-                                 true,
-                                 true,
-                                 detail.handle())
-            };
+            let custom_event = build_mozbrowser_custom_event(&window, event);
             custom_event.upcast::<Event>().fire(self.upcast());
         }
     }
@@ -336,96 +322,103 @@ impl HTMLIFrameElementLayoutMethods for LayoutJS<HTMLIFrameElement> {
     }
 }
 
-pub trait MozBrowserEventDetailBuilder {
-    #[allow(unsafe_code)]
-    unsafe fn build_mozbrowser_event_detail(&self,
-                                            event: MozBrowserEvent,
-                                            cx: *mut JSContext,
-                                            rval: MutableHandleValue);
+#[allow(unsafe_code)]
+pub fn build_mozbrowser_custom_event(window: &Window, event: MozBrowserEvent) -> Root<CustomEvent> {
+    // TODO(gw): Support mozbrowser event types that have detail which is not a string.
+    // See https://developer.mozilla.org/en-US/docs/Web/API/Using_the_Browser_API
+    // for a list of mozbrowser events.
+    let cx = window.get_cx();
+    let _ac = JSAutoCompartment::new(cx, window.reflector().get_jsobject().get());
+    rooted!(in(cx) let mut detail = UndefinedValue());
+    let event_name = Atom::from(event.name());
+    unsafe { build_mozbrowser_event_detail(event, cx, detail.handle_mut()); }
+    CustomEvent::new(GlobalRef::Window(window),
+                     event_name,
+                     true,
+                     true,
+                     detail.handle())
 }
 
-impl MozBrowserEventDetailBuilder for HTMLIFrameElement {
-    #[allow(unsafe_code)]
-    unsafe fn build_mozbrowser_event_detail(&self,
-                                            event: MozBrowserEvent,
-                                            cx: *mut JSContext,
-                                            rval: MutableHandleValue) {
-        match event {
-            MozBrowserEvent::AsyncScroll | MozBrowserEvent::Close | MozBrowserEvent::ContextMenu |
-            MozBrowserEvent::LoadEnd | MozBrowserEvent::LoadStart |
-            MozBrowserEvent::Connected | MozBrowserEvent::OpenSearch  |
-            MozBrowserEvent::UsernameAndPasswordRequired => {
-                rval.set(NullValue());
-            }
-            MozBrowserEvent::Error(error_type, description, report) => {
-                BrowserElementErrorEventDetail {
-                    type_: Some(DOMString::from(error_type.name())),
-                    description: description.map(DOMString::from),
-                    report: report.map(DOMString::from),
-                    version: Some(DOMString::from_string(servo_version().into())),
-                }.to_jsval(cx, rval);
-            },
-            MozBrowserEvent::SecurityChange(https_state) => {
-                BrowserElementSecurityChangeDetail {
-                    // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowsersecuritychange
-                    state: Some(DOMString::from(match https_state {
-                        HttpsState::Modern => "secure",
-                        HttpsState::Deprecated => "broken",
-                        HttpsState::None => "insecure",
-                    }.to_owned())),
-                    // FIXME - Not supported yet:
-                    trackingContent: None,
-                    mixedContent: None,
-                    trackingState: None,
-                    extendedValidation: None,
-                    mixedState: None,
-                }.to_jsval(cx, rval);
-            }
-            MozBrowserEvent::TitleChange(ref string) => {
-                string.to_jsval(cx, rval);
-            }
-            MozBrowserEvent::LocationChange(url, can_go_back, can_go_forward) => {
-                BrowserElementLocationChangeEventDetail {
-                    url: Some(DOMString::from(url)),
-                    canGoBack: Some(can_go_back),
-                    canGoForward: Some(can_go_forward),
-                }.to_jsval(cx, rval);
-            }
-            MozBrowserEvent::OpenTab(url) => {
-                BrowserElementOpenTabEventDetail {
-                    url: Some(DOMString::from(url)),
-                }.to_jsval(cx, rval);
-            }
-            MozBrowserEvent::OpenWindow(url, target, features) => {
-                BrowserElementOpenWindowEventDetail {
-                    url: Some(DOMString::from(url)),
-                    target: target.map(DOMString::from),
-                    features: features.map(DOMString::from),
-                }.to_jsval(cx, rval);
-            }
-            MozBrowserEvent::IconChange(rel, href, sizes) => {
-                BrowserElementIconChangeEventDetail {
-                    rel: Some(DOMString::from(rel)),
-                    href: Some(DOMString::from(href)),
-                    sizes: Some(DOMString::from(sizes)),
-                }.to_jsval(cx, rval);
-            }
-            MozBrowserEvent::ShowModalPrompt(prompt_type, title, message, return_value) => {
-                BrowserShowModalPromptEventDetail {
-                    promptType: Some(DOMString::from(prompt_type)),
-                    title: Some(DOMString::from(title)),
-                    message: Some(DOMString::from(message)),
-                    returnValue: Some(DOMString::from(return_value)),
-                }.to_jsval(cx, rval)
-            }
-            MozBrowserEvent::VisibilityChange(visibility) => {
-                BrowserElementVisibilityChangeEventDetail {
-                    visible: Some(visibility),
-                }.to_jsval(cx, rval);
-            }
+#[allow(unsafe_code)]
+unsafe fn build_mozbrowser_event_detail(event: MozBrowserEvent,
+                                        cx: *mut JSContext,
+                                        rval: MutableHandleValue) {
+    match event {
+        MozBrowserEvent::AsyncScroll | MozBrowserEvent::Close | MozBrowserEvent::ContextMenu |
+        MozBrowserEvent::LoadEnd | MozBrowserEvent::LoadStart |
+        MozBrowserEvent::Connected | MozBrowserEvent::OpenSearch  |
+        MozBrowserEvent::UsernameAndPasswordRequired => {
+            rval.set(NullValue());
+        }
+        MozBrowserEvent::Error(error_type, description, report) => {
+            BrowserElementErrorEventDetail {
+                type_: Some(DOMString::from(error_type.name())),
+                description: description.map(DOMString::from),
+                report: report.map(DOMString::from),
+                version: Some(DOMString::from_string(servo_version().into())),
+            }.to_jsval(cx, rval);
+        },
+        MozBrowserEvent::SecurityChange(https_state) => {
+            BrowserElementSecurityChangeDetail {
+                // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowsersecuritychange
+                state: Some(DOMString::from(match https_state {
+                    HttpsState::Modern => "secure",
+                    HttpsState::Deprecated => "broken",
+                    HttpsState::None => "insecure",
+                }.to_owned())),
+                // FIXME - Not supported yet:
+                trackingContent: None,
+                mixedContent: None,
+                trackingState: None,
+                extendedValidation: None,
+                mixedState: None,
+            }.to_jsval(cx, rval);
+        }
+        MozBrowserEvent::TitleChange(ref string) => {
+            string.to_jsval(cx, rval);
+        }
+        MozBrowserEvent::LocationChange(url, can_go_back, can_go_forward) => {
+            BrowserElementLocationChangeEventDetail {
+                url: Some(DOMString::from(url)),
+                canGoBack: Some(can_go_back),
+                canGoForward: Some(can_go_forward),
+            }.to_jsval(cx, rval);
+        }
+        MozBrowserEvent::OpenTab(url) => {
+            BrowserElementOpenTabEventDetail {
+                url: Some(DOMString::from(url)),
+            }.to_jsval(cx, rval);
+        }
+        MozBrowserEvent::OpenWindow(url, target, features) => {
+            BrowserElementOpenWindowEventDetail {
+                url: Some(DOMString::from(url)),
+                target: target.map(DOMString::from),
+                features: features.map(DOMString::from),
+            }.to_jsval(cx, rval);
+        }
+        MozBrowserEvent::IconChange(rel, href, sizes) => {
+            BrowserElementIconChangeEventDetail {
+                rel: Some(DOMString::from(rel)),
+                href: Some(DOMString::from(href)),
+                sizes: Some(DOMString::from(sizes)),
+            }.to_jsval(cx, rval);
+        }
+        MozBrowserEvent::ShowModalPrompt(prompt_type, title, message, return_value) => {
+            BrowserShowModalPromptEventDetail {
+                promptType: Some(DOMString::from(prompt_type)),
+                title: Some(DOMString::from(title)),
+                message: Some(DOMString::from(message)),
+                returnValue: Some(DOMString::from(return_value)),
+            }.to_jsval(cx, rval)
+        }
+        MozBrowserEvent::VisibilityChange(visibility) => {
+            BrowserElementVisibilityChangeEventDetail {
+                visible: Some(visibility),
+            }.to_jsval(cx, rval);
         }
     }
 }
+
 
 pub fn Navigate(iframe: &HTMLIFrameElement, direction: NavigationDirection) -> ErrorResult {
     if iframe.Mozbrowser() {
