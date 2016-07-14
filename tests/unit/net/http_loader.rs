@@ -37,7 +37,7 @@ use util::prefs::{self, PREFS};
 
 const DEFAULT_USER_AGENT: &'static str = "Test-agent";
 
-struct HttpTest;
+pub struct HttpTest;
 
 impl LoadOrigin for HttpTest {
     fn referrer_url(&self) -> Option<Url> {
@@ -96,7 +96,7 @@ fn read_response(reader: &mut Read) -> String {
     }
 }
 
-struct MockResponse {
+pub struct MockResponse {
     h: Headers,
     sc: StatusCode,
     sr: RawStatus,
@@ -104,7 +104,7 @@ struct MockResponse {
 }
 
 impl MockResponse {
-    fn new(h: Headers, sc: StatusCode, sr: RawStatus, msg: Vec<u8>) -> MockResponse {
+    pub fn new(h: Headers, sc: StatusCode, sr: RawStatus, msg: Vec<u8>) -> MockResponse {
         MockResponse { h: h, sc: sc, sr: sr, msg: Cursor::new(msg) }
     }
 }
@@ -133,13 +133,13 @@ fn redirect_to(host: String) -> MockResponse {
     )
 }
 
-struct TestProvider {
+pub struct TestProvider {
     username: String,
     password: String,
 }
 
 impl TestProvider {
-    fn new() -> TestProvider {
+    pub fn new() -> TestProvider {
         TestProvider { username: "default".to_owned(), password: "default".to_owned() }
     }
 }
@@ -179,7 +179,7 @@ fn respond_404() -> MockResponse {
     )
 }
 
-enum ResponseType {
+pub enum ResponseType {
     Redirect(String),
     RedirectWithHeaders(String, Headers),
     Text(Vec<u8>),
@@ -188,12 +188,12 @@ enum ResponseType {
     Dummy404
 }
 
-struct MockRequest {
+pub struct MockRequest {
     t: ResponseType
 }
 
 impl MockRequest {
-    fn new(t: ResponseType) -> MockRequest {
+    pub fn new(t: ResponseType) -> MockRequest {
         MockRequest { t: t }
     }
 }
@@ -339,7 +339,7 @@ impl HttpRequest for AssertMustHaveBodyRequest {
     }
 }
 
-fn expect_devtools_http_request(devtools_port: &Receiver<DevtoolsControlMsg>) -> DevtoolsHttpRequest {
+pub fn expect_devtools_http_request(devtools_port: &Receiver<DevtoolsControlMsg>) -> DevtoolsHttpRequest {
     match devtools_port.recv().unwrap() {
         DevtoolsControlMsg::FromChrome(
         ChromeToDevtoolsControlMsg::NetworkEvent(_, net_event)) => {
@@ -355,7 +355,7 @@ fn expect_devtools_http_request(devtools_port: &Receiver<DevtoolsControlMsg>) ->
     }
 }
 
-fn expect_devtools_http_response(devtools_port: &Receiver<DevtoolsControlMsg>) -> DevtoolsHttpResponse {
+pub fn expect_devtools_http_response(devtools_port: &Receiver<DevtoolsControlMsg>) -> DevtoolsHttpResponse {
     match devtools_port.recv().unwrap() {
         DevtoolsControlMsg::FromChrome(
             ChromeToDevtoolsControlMsg::NetworkEvent(_, net_event_response)) => {
@@ -526,6 +526,7 @@ fn test_request_and_response_data_with_network_messages() {
         timeStamp: devhttprequest.timeStamp,
         connect_time: devhttprequest.connect_time,
         send_time: devhttprequest.send_time,
+        is_xhr: false,
     };
 
     let content = "Yay!";
