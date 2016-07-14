@@ -2,15 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use blob_loader::load_blob;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
-use mime_classifier::MimeClassifier;
 use mime_guess::guess_mime_type_opt;
-use net_traits::blob_url_store::{BlobBuf, BlobURLStoreError, parse_blob_url};
+use net_traits::blob_url_store::{BlobBuf, BlobURLStoreError};
 use net_traits::filemanager_thread::{FileManagerThreadMsg, FileManagerResult, FilterPattern, FileOrigin};
 use net_traits::filemanager_thread::{SelectedFile, RelativePos, FileManagerThreadError, SelectedFileId};
-use net_traits::{LoadConsumer, LoadData, NetworkError};
-use resource_thread::send_error;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{Read, Seek, SeekFrom};
@@ -133,7 +129,6 @@ enum FileImpl {
 struct FileManager<UI: 'static + UIProvider> {
     receiver: IpcReceiver<FileManagerThreadMsg>,
     store: Arc<FileManagerStore<UI>>,
-    classifier: Arc<MimeClassifier>,
 }
 
 impl<UI: 'static + UIProvider> FileManager<UI> {
@@ -141,7 +136,6 @@ impl<UI: 'static + UIProvider> FileManager<UI> {
         FileManager {
             receiver: recv,
             store: Arc::new(FileManagerStore::new(ui)),
-            classifier: Arc::new(MimeClassifier::new()),
         }
     }
 
@@ -160,9 +154,9 @@ impl<UI: 'static + UIProvider> FileManager<UI> {
                         store.select_files(filter, sender, origin, opt_test_paths);
                     })
                 }
-                FileManagerThreadMsg::ReadFile(sender, id, origin) => {
+                FileManagerThreadMsg::ReadFile(sender, id, check_url_validity, origin) => {
                     spawn_named("read file".to_owned(), move || {
-                        match store.try_read_file(id, origin) {
+                        match store.try_read_file(id, check_url_validity, origin) {
                             Ok(buffer) => { let _ = sender.send(Ok(buffer)); }
                             Err(e) => {
                                 let _ = sender.send(Err(FileManagerThreadError::BlobURLStoreError(e)));
@@ -170,9 +164,9 @@ impl<UI: 'static + UIProvider> FileManager<UI> {
                         }
                     })
                 }
-                FileManagerThreadMsg::PromoteMemory(blob_buf, sender, origin) => {
+                FileManagerThreadMsg::PromoteMemory(blob_buf, set_valid, sender, origin) => {
                     spawn_named("transfer memory".to_owned(), move || {
-                        store.promote_memory(blob_buf, sender, origin);
+                        store.promote_memory(blob_buf, set_valid, sender, origin);
                     })
                 }
                 FileManagerThreadMsg::AddSlicedURLEntry(id, rel_pos, sender, origin) =>{
@@ -180,18 +174,6 @@ impl<UI: 'static + UIProvider> FileManager<UI> {
                         store.add_sliced_url_entry(id, rel_pos, sender, origin);
                     })
                 }
-                FileManagerThreadMsg::LoadBlob(load_data, consumer) => {
-                    match parse_blob_url(&load_data.url.clone()) {
-                        None => {
-                            let e = format!("Invalid blob URL format {:?}", load_data.url);
-                            let format_err = NetworkError::Internal(e);
-                            send_error(load_data.url.clone(), format_err, consumer);
-                        }
-                        Some((id, _fragment)) => {
-                            self.process_request(load_data, consumer, id);
-                        }
-                    }
-                },
                 FileManagerThreadMsg::RevokeBlobURL(id, origin, sender) => {
                     if let Ok(id) = Uuid::parse_str(&id.0) {
                         spawn_named("revoke blob url".to_owned(), move || {
@@ -233,18 +215,6 @@ impl<UI: 'static + UIProvider> FileManager<UI> {
             };
         }
     }
-
-    fn process_request(&self, load_data: LoadData, consumer: LoadConsumer, id: Uuid) {
-        let origin_in = load_data.url.origin().unicode_serialization();
-        // check_url_validity is true since content is requested by this URL
-        match self.store.get_blob_buf(&id, &origin_in, RelativePos::full_range(), true) {
-            Ok(blob_buf) => {
-                let classifier = self.classifier.clone();
-                spawn_named("load blob".to_owned(), move || load_blob(load_data, consumer, classifier, blob_buf));
-            }
-            Err(e) => send_error(load_data.url.clone(), NetworkError::Internal(format!("{:?}", e)), consumer),
-        }
-    }
 }
 
 /// File manager's data store. It maintains a thread-safe mapping
@@ -271,7 +241,8 @@ impl <UI: 'static + UIProvider> FileManagerStore<UI> {
                 if *origin_in != *entry.origin {
                     Err(BlobURLStoreError::InvalidOrigin)
                 } else {
-                    if check_url_validity && !entry.is_valid_url.load(Ordering::Acquire) {
+                    let is_valid = entry.is_valid_url.load(Ordering::Acquire);
+                    if check_url_validity && !is_valid {
                         Err(BlobURLStoreError::InvalidFileID)
                     } else {
                         Ok(entry.file_impl.clone())
@@ -497,44 +468,47 @@ impl <UI: 'static + UIProvider> FileManagerStore<UI> {
         }
     }
 
-    fn try_read_file(&self, id: SelectedFileId, origin_in: FileOrigin) -> Result<Vec<u8>, BlobURLStoreError> {
+    // Convenient wrapper over get_blob_buf
+    fn try_read_file(&self, id: SelectedFileId, check_url_validity: bool,
+                     origin_in: FileOrigin) -> Result<BlobBuf, BlobURLStoreError> {
         let id = try!(Uuid::parse_str(&id.0).map_err(|_| BlobURLStoreError::InvalidFileID));
-
-        // No need to check URL validity in reading a file by FileReader
-        let blob_buf = try!(self.get_blob_buf(&id, &origin_in, RelativePos::full_range(), false));
-
-        Ok(blob_buf.bytes)
+        self.get_blob_buf(&id, &origin_in, RelativePos::full_range(), check_url_validity)
     }
 
     fn dec_ref(&self, id: &Uuid, origin_in: &FileOrigin,
                unset_url_validity: bool) -> Result<(), BlobURLStoreError> {
-        let (is_last_ref, opt_parent_id) = match self.entries.read().unwrap().get(id) {
+        let (do_remove, opt_parent_id) = match self.entries.read().unwrap().get(id) {
             Some(entry) => {
                 if *entry.origin == *origin_in {
                     let old_refs = entry.refs.fetch_sub(1, Ordering::Release);
 
-                    if old_refs > 1 {
-                        if unset_url_validity {
-                            entry.is_valid_url.store(false, Ordering::Release);
-                        }
+                    if unset_url_validity {
+                        entry.is_valid_url.store(false, Ordering::Release);
+                    }
 
+                    if old_refs > 1 {
+                        // not the last reference, no need to touch parent
                         (false, None)
                     } else {
+                        // last reference, and if it has a reference to parent id
+                        // dec_ref on parent later if necessary
+                        let is_valid = entry.is_valid_url.load(Ordering::Acquire);
                         if let FileImpl::Sliced(ref parent_id, _) = entry.file_impl {
-                            // if it has a reference to parent id, dec_ref on parent later
-                            (true, Some(parent_id.clone()))
+                            (!is_valid, Some(parent_id.clone()))
                         } else {
-                            (true, None)
+                            (!is_valid, None)
                         }
                     }
-                } else { // Invalid origin
+                } else {
                     return Err(BlobURLStoreError::InvalidOrigin);
                 }
             }
             None => return Err(BlobURLStoreError::InvalidFileID),
         };
 
-        if is_last_ref {
+        // Trigger removing if its last reference is gone and it is
+        // not a part of a valid Blob URL
+        if do_remove {
             atomic::fence(Ordering::Acquire);
             self.remove(id);
 
@@ -548,7 +522,7 @@ impl <UI: 'static + UIProvider> FileManagerStore<UI> {
         Ok(())
     }
 
-    fn promote_memory(&self, blob_buf: BlobBuf,
+    fn promote_memory(&self, blob_buf: BlobBuf, set_valid: bool,
                        sender: IpcSender<Result<SelectedFileId, BlobURLStoreError>>, origin: FileOrigin) {
         match Url::parse(&origin) { // parse to check sanity
             Ok(_) => {
@@ -558,7 +532,7 @@ impl <UI: 'static + UIProvider> FileManagerStore<UI> {
                     file_impl: FileImpl::Memory(blob_buf),
                     refs: AtomicUsize::new(1),
                     // Valid here since PromoteMemory implies URL creation
-                    is_valid_url: AtomicBool::new(true),
+                    is_valid_url: AtomicBool::new(set_valid),
                 });
 
                 let _ = sender.send(Ok(SelectedFileId(id.simple().to_string())));

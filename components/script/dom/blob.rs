@@ -15,7 +15,7 @@ use encoding::all::UTF_8;
 use encoding::types::{EncoderTrap, Encoding};
 use ipc_channel::ipc;
 use net_traits::IpcSend;
-use net_traits::blob_url_store::BlobBuf;
+use net_traits::blob_url_store::{BlobBuf, get_blob_origin};
 use net_traits::filemanager_thread::{FileManagerThreadMsg, SelectedFileId, RelativePos};
 use std::ascii::AsciiExt;
 use std::cell::Cell;
@@ -174,7 +174,7 @@ impl Blob {
         match *self.blob_impl.borrow() {
             BlobImpl::File(ref f) => {
                 let global = self.global();
-                let origin = global.r().get_url().origin().unicode_serialization();
+                let origin = get_blob_origin(&global.r().get_url());
                 let filemanager = global.r().resource_threads().sender();
                 let (tx, rx) = ipc::channel().unwrap();
 
@@ -185,7 +185,9 @@ impl Blob {
                     Err(_) => SelectedFileId("".to_string()) // Return a dummy id on error
                 }
             }
-            BlobImpl::Memory(ref slice) => self.promote_to_file(slice),
+            BlobImpl::Memory(ref slice) => {
+                self.promote(slice, true)
+            }
             BlobImpl::Sliced(ref parent, ref rel_pos) => {
                 match *parent.blob_impl.borrow() {
                     BlobImpl::Sliced(_, _) => {
@@ -196,7 +198,7 @@ impl Blob {
                     BlobImpl::File(ref f) =>
                         self.create_sliced_url_id(&f.id, rel_pos),
                     BlobImpl::Memory(ref bytes) => {
-                        let parent_id = parent.promote_to_file(bytes);
+                        let parent_id = parent.promote(bytes, false);
                         *self.blob_impl.borrow_mut() = BlobImpl::Sliced(parent.clone(), rel_pos.clone());
                         self.create_sliced_url_id(&parent_id, rel_pos)
                     }
@@ -206,10 +208,12 @@ impl Blob {
     }
 
     /// Promite memory-based Blob to file-based,
-    /// The bytes in data slice will be transferred to file manager thread
-    fn promote_to_file(&self, bytes: &[u8]) -> SelectedFileId {
+    /// The bytes in data slice will be transferred to file manager thread.
+    /// Depending on set_valid, the returned FileID can be part of
+    /// valid or invalid Blob URL.
+    fn promote(&self, bytes: &[u8], set_valid: bool) -> SelectedFileId {
         let global = self.global();
-        let origin = global.r().get_url().origin().unicode_serialization();
+        let origin = get_blob_origin(&global.r().get_url());
         let filemanager = global.r().resource_threads().sender();
 
         let blob_buf = BlobBuf {
@@ -220,7 +224,7 @@ impl Blob {
         };
 
         let (tx, rx) = ipc::channel().unwrap();
-        let _ = filemanager.send(FileManagerThreadMsg::PromoteMemory(blob_buf, tx, origin.clone()));
+        let _ = filemanager.send(FileManagerThreadMsg::PromoteMemory(blob_buf, set_valid, tx, origin.clone()));
 
         match rx.recv().unwrap() {
             Ok(new_id) => SelectedFileId(new_id.0),
@@ -234,7 +238,7 @@ impl Blob {
                             rel_pos: &RelativePos) -> SelectedFileId {
         let global = self.global();
 
-        let origin = global.r().get_url().origin().unicode_serialization();
+        let origin = get_blob_origin(&global.r().get_url());
 
         let filemanager = global.r().resource_threads().sender();
         let (tx, rx) = ipc::channel().unwrap();
@@ -252,7 +256,7 @@ impl Blob {
     fn clean_up_file_resource(&self) {
         if let BlobImpl::File(ref f) = *self.blob_impl.borrow() {
             let global = self.global();
-            let origin = global.r().get_url().origin().unicode_serialization();
+            let origin = get_blob_origin(&global.r().get_url());
 
             let filemanager = global.r().resource_threads().sender();
             let (tx, rx) = ipc::channel().unwrap();
@@ -275,19 +279,15 @@ impl Drop for Blob {
 fn read_file(global: GlobalRef, id: SelectedFileId) -> Result<Vec<u8>, ()> {
     let file_manager = global.filemanager_thread();
     let (chan, recv) = ipc::channel().map_err(|_|())?;
-    let origin = global.get_url().origin().unicode_serialization();
-    let msg = FileManagerThreadMsg::ReadFile(chan, id, origin);
+    let origin = get_blob_origin(&global.get_url());
+    let check_url_validity = false;
+    let msg = FileManagerThreadMsg::ReadFile(chan, id, check_url_validity, origin);
     let _ = file_manager.send(msg);
 
-    let result = match recv.recv() {
-        Ok(ret) => ret,
-        Err(e) => {
-            debug!("File manager thread has problem {:?}", e);
-            return Err(())
-        }
-    };
-
-    result.map_err(|_|())
+    match recv.recv().unwrap() {
+        Ok(blob_buf) => Ok(blob_buf.bytes),
+        Err(_) => Err(()),
+    }
 }
 
 /// Extract bytes from BlobParts, used by Blob and File constructor
@@ -389,7 +389,7 @@ fn is_ascii_printable(string: &str) -> bool {
 /// Bump the reference counter in file manager thread
 fn inc_ref_id(global: GlobalRef, id: SelectedFileId) {
     let file_manager = global.filemanager_thread();
-    let origin = global.get_url().origin().unicode_serialization();
+    let origin = get_blob_origin(&global.get_url());
     let msg = FileManagerThreadMsg::IncRef(id, origin);
     let _ = file_manager.send(msg);
 }

@@ -368,6 +368,12 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                 // Step 11 - abort existing requests
                 self.terminate_ongoing_fetch();
 
+                // TODO(izgzhen): In the WPT test: FileAPI/blob/Blob-XHR-revoke.html,
+                // the xhr.open(url) is expected to hold a reference to the URL,
+                // thus renders following revocations invalid. Though we won't
+                // implement this for now, if ever needed, we should check blob
+                // scheme and trigger corresponding actions here.
+
                 // Step 12
                 *self.request_method.borrow_mut() = parsed_method;
                 *self.request_url.borrow_mut() = Some(parsed_url);

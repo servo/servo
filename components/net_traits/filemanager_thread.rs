@@ -8,7 +8,6 @@ use num_traits::ToPrimitive;
 use std::cmp::{max, min};
 use std::ops::Range;
 use std::path::PathBuf;
-use super::{LoadConsumer, LoadData};
 
 // HACK: Not really process-safe now, we should send Origin
 //       directly instead of this in future, blocked on #11722
@@ -128,15 +127,13 @@ pub enum FileManagerThreadMsg {
     /// Select multiple files, return a vector of triples
     SelectFiles(Vec<FilterPattern>, IpcSender<FileManagerResult<Vec<SelectedFile>>>, FileOrigin, Option<Vec<String>>),
 
-    /// Read file, return the bytes
-    ReadFile(IpcSender<FileManagerResult<Vec<u8>>>, SelectedFileId, FileOrigin),
-
-    /// Load resource by Blob URL
-    LoadBlob(LoadData, LoadConsumer),
+    /// Read file by FileID, optionally check URL validity based on
+    /// third flag, return the blob buffer object
+    ReadFile(IpcSender<FileManagerResult<BlobBuf>>, SelectedFileId, bool, FileOrigin),
 
     /// Add an entry as promoted memory-based blob and send back the associated FileID
-    /// as part of a valid Blob URL
-    PromoteMemory(BlobBuf, IpcSender<Result<SelectedFileId, BlobURLStoreError>>, FileOrigin),
+    /// as part of a valid/invalid Blob URL depending on the second bool flag
+    PromoteMemory(BlobBuf, bool, IpcSender<Result<SelectedFileId, BlobURLStoreError>>, FileOrigin),
 
     /// Add a sliced entry pointing to the parent FileID, and send back the associated FileID
     /// as part of a valid Blob URL
