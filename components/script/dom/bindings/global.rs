@@ -23,7 +23,7 @@ use net_traits::filemanager_thread::FileManagerThreadMsg;
 use net_traits::{ResourceThreads, CoreResourceThread, RequestSource, IpcSend};
 use profile_traits::{mem, time};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
-use script_thread::{MainThreadScriptChan, ScriptThread};
+use script_thread::{MainThreadScriptChan, ScriptThread, RunnableWrapper};
 use script_traits::{MsDuration, ScriptMsg as ConstellationMsg, TimerEventRequest};
 use task_source::dom_manipulation::DOMManipulationTaskSource;
 use timers::{OneshotTimerCallback, OneshotTimerHandle};
@@ -295,6 +295,15 @@ impl<'a> GlobalRef<'a> {
         match *self {
             GlobalRef::Window(ref window) => window.panic_chan(),
             GlobalRef::Worker(ref worker) => worker.panic_chan(),
+        }
+    }
+
+    /// Returns a wrapper for runnables to ensure they are cancelled if the global
+    /// is being destroyed.
+    pub fn get_runnable_wrapper(&self) -> RunnableWrapper {
+        match *self {
+            GlobalRef::Window(ref window) => window.get_runnable_wrapper(),
+            GlobalRef::Worker(ref worker) => worker.get_runnable_wrapper(),
         }
     }
 }

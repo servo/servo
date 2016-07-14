@@ -29,6 +29,7 @@ use net_traits::{LoadContext, ResourceThreads, load_whole_resource};
 use net_traits::{RequestSource, LoadOrigin, CustomResponseSender, IpcSend};
 use profile_traits::{mem, time};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, maybe_take_panic_result};
+use script_thread::RunnableWrapper;
 use script_traits::ScriptMsg as ConstellationMsg;
 use script_traits::{MsDuration, TimerEvent, TimerEventId, TimerEventRequest, TimerSource};
 use std::cell::Cell;
@@ -267,6 +268,12 @@ impl WorkerGlobalScope {
 
     pub fn panic_chan(&self) -> &IpcSender<PanicMsg> {
         &self.panic_chan
+    }
+
+    pub fn get_runnable_wrapper(&self) -> RunnableWrapper {
+        RunnableWrapper {
+            cancelled: self.closing.clone(),
+        }
     }
 }
 
