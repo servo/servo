@@ -24,6 +24,7 @@ use gecko_bindings::bindings::{Gecko_IsUnvisitedLink, Gecko_IsVisitedLink};
 use gecko_bindings::bindings::{Gecko_LocalName, Gecko_Namespace, Gecko_NodeIsElement, Gecko_SetNodeData};
 use gecko_bindings::bindings::{RawGeckoDocument, RawGeckoElement, RawGeckoNode};
 use gecko_bindings::structs::nsIAtom;
+use gecko_bindings::structs::{NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO, NODE_IS_DIRTY_FOR_SERVO};
 use glue::GeckoDeclarationBlock;
 use libc::uintptr_t;
 use properties::GeckoComputedValues;
@@ -184,7 +185,6 @@ impl<'ln> TNode for GeckoNode<'ln> {
     }
 
     fn is_dirty(&self) -> bool {
-        use gecko_bindings::structs::NodeFlags::*;
         // Return true unconditionally if we're not yet styled. This is a hack
         // and should go away soon.
         if unsafe { Gecko_GetNodeData(self.node) }.is_null() {
@@ -196,7 +196,6 @@ impl<'ln> TNode for GeckoNode<'ln> {
     }
 
     unsafe fn set_dirty(&self, value: bool) {
-        use gecko_bindings::structs::NodeFlags::*;
         if value {
             Gecko_SetNodeFlags(self.node, NODE_IS_DIRTY_FOR_SERVO as u32)
         } else {
@@ -205,7 +204,6 @@ impl<'ln> TNode for GeckoNode<'ln> {
     }
 
     fn has_dirty_descendants(&self) -> bool {
-        use gecko_bindings::structs::NodeFlags::*;
         // Return true unconditionally if we're not yet styled. This is a hack
         // and should go away soon.
         if unsafe { Gecko_GetNodeData(self.node) }.is_null() {
@@ -216,7 +214,6 @@ impl<'ln> TNode for GeckoNode<'ln> {
     }
 
     unsafe fn set_dirty_descendants(&self, value: bool) {
-        use gecko_bindings::structs::NodeFlags::*;
         if value {
             Gecko_SetNodeFlags(self.node, NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO as u32)
         } else {

@@ -33,6 +33,85 @@
     </%call>
 </%def>
 
+// FIXME (Manishearth): Add computed_value_as_specified argument
+// and handle the empty case correctly
+<%doc>
+    To be used in cases where we have a grammar like
+    "<thing> [ , <thing> ]*", but only support a single value
+    in servo
+</%doc>
+<%def name="gecko_autoarray_longhand(name, **kwargs)">
+    <%call expr="longhand(name, **kwargs)">
+        % if product == "gecko":
+            use cssparser::ToCss;
+            use std::fmt;
+
+            pub mod single_value {
+                use cssparser::Parser;
+                use parser::{ParserContext, ParserContextExtraData};
+                use properties::{CSSWideKeyword, DeclaredValue, Shorthand};
+                use values::computed::{TContext, ToComputedValue};
+                use values::{computed, specified};
+                ${caller.body()}
+            }
+            pub mod computed_value {
+                use super::single_value;
+                #[derive(Debug, Clone, PartialEq)]
+                #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+                pub struct T(pub Vec<single_value::computed_value::T>);
+            }
+
+            impl ToCss for computed_value::T {
+                fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                    if !self.0.is_empty() {
+                        try!(self.0[0].to_css(dest));
+                    }
+                    for i in self.0.iter().skip(1) {
+                        try!(dest.write_str(", "));
+                        try!(i.to_css(dest));
+                    }
+                    Ok(())
+                }
+            }
+
+            #[derive(Debug, Clone, PartialEq)]
+            #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+            pub struct SpecifiedValue(pub Vec<single_value::SpecifiedValue>);
+
+            impl ToCss for SpecifiedValue {
+                fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                    if !self.0.is_empty() {
+                        try!(self.0[0].to_css(dest))
+                    }
+                    for i in self.0.iter().skip(1) {
+                        try!(dest.write_str(", "));
+                        try!(i.to_css(dest));
+                    }
+                    Ok(())
+                }
+            }
+            pub fn get_initial_value() -> computed_value::T {
+                computed_value::T(vec![single_value::get_initial_value()])
+            }
+            pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+                input.parse_comma_separated(|parser| {
+                    single_value::parse(context, parser)
+                }).map(|ok| SpecifiedValue(ok))
+            }
+            impl ToComputedValue for SpecifiedValue {
+                type ComputedValue = computed_value::T;
+
+                #[inline]
+                fn to_computed_value<Cx: TContext>(&self, context: &Cx) -> computed_value::T {
+                    computed_value::T(self.0.iter().map(|x| x.to_computed_value(context)).collect())
+                }
+            }
+        % else:
+            ${caller.body()}
+        % endif
+    </%call>
+</%def>
+
 <%def name="raw_longhand(*args, **kwargs)">
     <%
         property = data.declare_longhand(*args, **kwargs)
