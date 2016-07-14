@@ -15,7 +15,6 @@ extern crate libc;
 extern crate log;
 extern crate num_cpus;
 extern crate selectors;
-extern crate smallvec;
 #[macro_use(atom, ns)]
 extern crate string_cache;
 extern crate style;

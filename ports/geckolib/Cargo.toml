@@ -21,7 +21,6 @@ libc = "0.2"
 log = {version = "0.3.5", features = ["release_max_level_info"]}
 num_cpus = "0.2.2"
 selectors = "0.7"
-smallvec = "0.1"
 string_cache = {version = "0.2.20", features = ["unstable"]}
 style = {path = "../../components/style", features = ["gecko"]}
 style_traits = {path = "../../components/style_traits"}
