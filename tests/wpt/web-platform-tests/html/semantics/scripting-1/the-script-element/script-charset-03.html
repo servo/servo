@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<head>
+<meta charset="utf-8">
+<title>Script changing @charset</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#scriptingLanguages">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+async_test(function() {
+  var s = document.createElement("script");
+  s.src = "external-script-windows1250.js";
+  s.charset = "windows-1250";
+  document.body.appendChild(s);
+  s.charset = "utf-8";
+  window.onload = this.step_func_done(function() {
+    assert_equals(window.getSomeString(), "\u015b\u0107\u0105\u017c\u017a");
+  });
+})
+</script>

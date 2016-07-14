@@ -37203,7 +37203,16 @@
   "local_changes": {
     "deleted": [],
     "deleted_reftests": {},
-    "items": {},
+    "items": {
+      "testharness": {
+        "html/semantics/scripting-1/the-script-element/script-charset-03.html": [
+          {
+            "path": "html/semantics/scripting-1/the-script-element/script-charset-03.html",
+            "url": "/html/semantics/scripting-1/the-script-element/script-charset-03.html"
+          }
+        ]
+      }
+    },
     "reftest_nodes": {}
   },
   "reftest_nodes": {
