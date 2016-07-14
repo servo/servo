@@ -432,8 +432,6 @@ impl Debug for ${style_struct.gecko_struct_name} {
    force_stub += ["font-kerning", "font-stretch", "font-variant"]
    # These have unusual representations in gecko.
    force_stub += ["list-style-type", "text-overflow"]
-   # These are booleans.
-   force_stub += ["page-break-after", "page-break-before"]
    # In a nsTArray, have to be done manually, but probably not too much work
    # (the "filling them", not the "making them work")
    force_stub += ["animation-name", "animation-duration",
@@ -755,7 +753,9 @@ fn static_assert() {
 
 </%self:impl_trait>
 
-<%self:impl_trait style_struct_name="Box" skip_longhands="display overflow-y vertical-align -moz-binding">
+<% skip_box_longhands= """display overflow-y vertical-align
+                          -moz-binding page-break-before page-break-after""" %>
+<%self:impl_trait style_struct_name="Box" skip_longhands="${skip_box_longhands}">
 
     // We manually-implement the |display| property until we get general
     // infrastructure for preffing certain values.
@@ -844,6 +844,43 @@ fn static_assert() {
     fn copy__moz_binding_from(&mut self, other: &Self) {
         unsafe { Gecko_CopyMozBindingFrom(&mut self.gecko, &other.gecko); }
     }
+
+    // Temp fix for Bugzilla bug 24000.
+    // Map 'auto' and 'avoid' to false, and 'always', 'left', and 'right' to true.
+    // "A conforming user agent may interpret the values 'left' and 'right'
+    // as 'always'." - CSS2.1, section 13.3.1
+    fn set_page_break_before(&mut self, v: longhands::page_break_before::computed_value::T) {
+        use style::computed_values::page_break_before::T;
+        let result = match v {
+            T::auto   => false,
+            T::always => true,
+            T::avoid  => false,
+            T::left   => true,
+            T::right  => true
+        };
+        // TODO(shinglyu): Rename Gecko's struct to mPageBreakBefore
+        self.gecko.mBreakBefore = result;
+    }
+
+    ${impl_simple_copy('page_break_before', 'mBreakBefore')}
+
+    // Temp fix for Bugzilla bug 24000.
+    // See set_page_break_before for detail.
+    fn set_page_break_after(&mut self, v: longhands::page_break_after::computed_value::T) {
+        use style::computed_values::page_break_after::T;
+        let result = match v {
+            T::auto   => false,
+            T::always => true,
+            T::avoid  => false,
+            T::left   => true,
+            T::right  => true
+        };
+        // TODO(shinglyu): Rename Gecko's struct to mPageBreakBefore
+        self.gecko.mBreakBefore = result;
+    }
+
+    ${impl_simple_copy('page_break_after', 'mBreakAfter')}
+
 </%self:impl_trait>
 
 // TODO: Gecko accepts lists in most background-related properties. We just use
