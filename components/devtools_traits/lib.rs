@@ -298,6 +298,7 @@ pub struct HttpRequest {
     pub timeStamp: i64,
     pub connect_time: u64,
     pub send_time: u64,
+    pub is_xhr: bool,
 }
 
 #[derive(Debug, PartialEq)]
