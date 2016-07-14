@@ -52,12 +52,12 @@ fn test_filemanager() {
         // Test by reading, expecting same content
         {
             let (tx2, rx2) = ipc::channel().unwrap();
-            chan.send(FileManagerThreadMsg::ReadFile(tx2, selected.id.clone(), origin.clone())).unwrap();
+            chan.send(FileManagerThreadMsg::ReadFile(tx2, selected.id.clone(), false, origin.clone())).unwrap();
 
             let msg = rx2.recv().expect("Broken channel");
 
-            let vec = msg.expect("File manager reading failure is unexpected");
-            assert_eq!(test_file_content, vec, "Read content differs");
+            let blob_buf = msg.expect("File manager reading failure is unexpected");
+            assert_eq!(test_file_content, blob_buf.bytes, "Read content differs");
         }
 
         // Delete the id
@@ -72,7 +72,7 @@ fn test_filemanager() {
         // Test by reading again, expecting read error because we invalidated the id
         {
             let (tx2, rx2) = ipc::channel().unwrap();
-            chan.send(FileManagerThreadMsg::ReadFile(tx2, selected.id.clone(), origin.clone())).unwrap();
+            chan.send(FileManagerThreadMsg::ReadFile(tx2, selected.id.clone(), false, origin.clone())).unwrap();
 
             let msg = rx2.recv().expect("Broken channel");
 
