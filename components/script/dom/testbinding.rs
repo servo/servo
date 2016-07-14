@@ -6,7 +6,8 @@
 
 use dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
-use dom::bindings::codegen::Bindings::TestBindingBinding::{DocumentOrTypedefTest, self, TestBindingMethods};
+use dom::bindings::codegen::Bindings::TestBindingBinding;
+use dom::bindings::codegen::Bindings::TestBindingBinding::{DocumentOrTypedefTest, TestBindingMethods};
 use dom::bindings::codegen::Bindings::TestBindingBinding::{TestDictionary, TestDictionaryDefaults, TestEnum};
 use dom::bindings::codegen::UnionTypes::{BlobOrBoolean, BlobOrBlobSequence};
 use dom::bindings::codegen::UnionTypes::{BlobOrString, BlobOrUnsignedLong, EventOrString};
@@ -570,7 +571,7 @@ impl TestBindingMethods for TestBinding {
     fn FuncControlledAttributeEnabled(&self) -> bool { false }
     fn FuncControlledMethodDisabled(&self) {}
     fn FuncControlledMethodEnabled(&self) {}
-    fn DocumentOrTypedef(&self, _: Option<Option<DocumentOrTypedefTest >>) -> () {}
+    fn DocumentOrTypedef(&self, _: Option<Option<DocumentOrTypedefTest>>) {}
 
     #[allow(unsafe_code)]
     fn CrashHard(&self) {

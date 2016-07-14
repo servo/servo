@@ -44,7 +44,7 @@ def main():
 
     # Parse the WebIDL.
     parser = WebIDL.Parser(options.cachedir)
-    for filename in sorted(fileList):
+    for filename in fileList:
         fullPath = os.path.normpath(os.path.join(baseDir, filename))
         with open(fullPath, 'rb') as f:
             lines = f.readlines()

@@ -2503,7 +2503,7 @@ class IDLUnionType(IDLType):
             return type.name
 
         for (i, type) in enumerate(self.memberTypes):
-            if not type.isComplete() and not isinstance(type, IDLTypedefType):
+            if not type.isComplete():
                 self.memberTypes[i] = type.complete(scope)
 
         self.name = "Or".join(typeName(type) for type in self.memberTypes)
@@ -2530,8 +2530,9 @@ class IDLUnionType(IDLType):
                                       [nullableType.location,
                                        self.flatMemberTypes[i].location])
                 self._dictionaryType = self.flatMemberTypes[i]
-            elif self.flatMemberTypes[i].isUnion() and not isinstance(self.flatMemberTypes[i], IDLTypedefType):
-                self.flatMemberTypes[i] = self.flatMemberTypes[i].memberTypes
+            elif self.flatMemberTypes[i].isUnion():
+                assert self.flatMemberTypes[i].isComplete()
+                self.flatMemberTypes += self.flatMemberTypes.pop(i).flatMemberTypes
                 continue
             i += 1
 
@@ -2690,6 +2691,10 @@ class IDLTypedefType(IDLType):
 
     def __str__(self):
         return self.name
+
+    @property
+    def flatMemberTypes():
+        return self.inner.flatMemberTypes
 
     def nullable(self):
         return self.inner.nullable()
