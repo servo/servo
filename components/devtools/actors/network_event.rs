@@ -43,6 +43,7 @@ pub struct NetworkEventActor {
     pub name: String,
     request: HttpRequest,
     response: HttpResponse,
+    is_xhr: bool,
 }
 
 #[derive(Serialize)]
@@ -340,7 +341,8 @@ impl NetworkEventActor {
                 headers: None,
                 status: None,
                 body: None,
-            }
+            },
+            is_xhr: false,
         }
     }
 
@@ -353,6 +355,7 @@ impl NetworkEventActor {
         self.request.timeStamp = request.timeStamp;
         self.request.connect_time = request.connect_time;
         self.request.send_time = request.send_time;
+        self.is_xhr = request.is_xhr;
     }
 
     pub fn add_response(&mut self, response: DevtoolsHttpResponse) {
@@ -369,7 +372,7 @@ impl NetworkEventActor {
             method: format!("{}", self.request.method),
             startedDateTime: format!("{}", self.request.startedDateTime.rfc3339()),
             timeStamp: self.request.timeStamp,
-            isXHR: false,
+            isXHR: self.is_xhr,
             private: false,
         }
     }
