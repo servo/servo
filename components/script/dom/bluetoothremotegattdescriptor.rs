@@ -63,7 +63,7 @@ impl BluetoothRemoteGATTDescriptor {
         global_ref.as_window().bluetooth_thread()
     }
 
-    pub fn get_instance_id(&self) -> String {
+    fn get_instance_id(&self) -> String {
         self.instanceID.clone()
     }
 }
