@@ -4,7 +4,7 @@
 
 use hyper::header::Headers;
 use hyper::method::Method;
-use msg::constellation_msg::ReferrerPolicy;
+use msg::constellation_msg::{PipelineId, ReferrerPolicy};
 use std::cell::{Cell, RefCell};
 use std::mem::swap;
 use url::{Origin as UrlOrigin, Url};
@@ -130,6 +130,7 @@ pub struct RequestInit {
     // XXXManishearth these should be part of the client object
     pub referer_url: Option<Url>,
     pub referrer_policy: Option<ReferrerPolicy>,
+    pub pipeline_id: Option<PipelineId>,
 }
 
 /// A [Request](https://fetch.spec.whatwg.org/#requests) as defined by the Fetch spec
@@ -159,6 +160,7 @@ pub struct Request {
     /// https://fetch.spec.whatwg.org/#concept-request-referrer
     pub referer: RefCell<Referer>,
     pub referrer_policy: Cell<Option<ReferrerPolicy>>,
+    pub pipeline_id: Cell<Option<PipelineId>>,
     pub synchronous: bool,
     pub mode: RequestMode,
     pub use_cors_preflight: bool,
@@ -198,6 +200,7 @@ impl Request {
             same_origin_data: Cell::new(false),
             referer: RefCell::new(Referer::Client),
             referrer_policy: Cell::new(None),
+            pipeline_id: Cell::new(None),
             synchronous: false,
             mode: RequestMode::NoCORS,
             use_cors_preflight: false,
@@ -234,6 +237,7 @@ impl Request {
             Referer::NoReferer
         };
         req.referrer_policy.set(init.referrer_policy);
+        req.pipeline_id.set(init.pipeline_id);
         req
     }
 
@@ -281,6 +285,7 @@ impl Request {
             url_list: RefCell::new(vec![url]),
             redirect_count: Cell::new(0),
             response_tainting: Cell::new(ResponseTainting::Basic),
+            pipeline_id: Cell::new(Some(PipelineId::new())),
             done: Cell::new(false)
         }
     }
