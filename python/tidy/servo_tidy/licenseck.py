@@ -82,3 +82,9 @@ licenses = [
 // except according to those terms.
 """,
 ]  # noqa: Indicate to flake8 that we do not want to check indentation here
+
+# The valid licenses, in the form we'd expect to see them in a Cargo.toml file.
+licenses_toml = [
+    'license = "MPL-2.0"',
+    'license = "MIT/Apache-2.0"',
+]
