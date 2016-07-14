@@ -267,22 +267,26 @@ impl HTMLScriptElement {
 
         // TODO: Step 14: CORS.
 
-        // TODO: Step 15: environment settings object.
+        // TODO: Step 15: Nonce.
+
+        // TODO: Step 16: Parser state.
+
+        // TODO: Step 17: environment settings object.
 
         let base_url = doc.base_url();
         let is_external = match element.get_attribute(&ns!(), &atom!("src")) {
-            // Step 16.
+            // Step 18.
             Some(ref src) => {
-                // Step 16.1.
+                // Step 18.1.
                 let src = src.value();
 
-                // Step 16.2.
+                // Step 18.2.
                 if src.is_empty() {
                     self.queue_error_event();
                     return NextParserState::Continue;
                 }
 
-                // Step 16.4-16.5.
+                // Step 18.4-18.5.
                 let url = match base_url.join(&src) {
                     Err(_) => {
                         error!("error parsing URL for script {}", &**src);
@@ -292,7 +296,7 @@ impl HTMLScriptElement {
                     Ok(url) => url,
                 };
 
-                // Step 16.6.
+                // Step 18.6.
                 // TODO(#9186): use the fetch infrastructure.
                 let elem = Trusted::new(self);
 
@@ -323,9 +327,9 @@ impl HTMLScriptElement {
             None => false,
         };
 
-        // Step 18.
+        // Step 20.
         let deferred = element.has_attribute(&atom!("defer"));
-        // Step 18.a: has src, has defer, was parser-inserted, is not async.
+        // Step 20.a: classic, has src, has defer, was parser-inserted, is not async.
         if is_external &&
            deferred &&
            was_parser_inserted &&
@@ -333,23 +337,23 @@ impl HTMLScriptElement {
             doc.add_deferred_script(self);
             // Second part implemented in Document::process_deferred_scripts.
             return NextParserState::Continue;
-        // Step 18.b: has src, was parser-inserted, is not async.
+        // Step 20.b: classic, has src, was parser-inserted, is not async.
         } else if is_external &&
                   was_parser_inserted &&
                   !async {
             doc.set_pending_parsing_blocking_script(Some(self));
             // Second part implemented in the load result handler.
-        // Step 18.c: has src, isn't async, isn't non-blocking.
+        // Step 20.c: classic, has src, isn't async, isn't non-blocking.
         } else if is_external &&
                   !async &&
                   !self.non_blocking.get() {
             doc.push_asap_in_order_script(self);
             // Second part implemented in Document::process_asap_scripts.
-        // Step 18.d: has src.
+        // Step 20.d: classic, has src.
         } else if is_external {
             doc.add_asap_script(self);
             // Second part implemented in Document::process_asap_scripts.
-        // Step 18.e: doesn't have src, was parser-inserted, is blocked on stylesheet.
+        // Step 20.e: doesn't have src, was parser-inserted, is blocked on stylesheet.
         } else if !is_external &&
                   was_parser_inserted &&
                   // TODO: check for script nesting levels.
@@ -357,7 +361,7 @@ impl HTMLScriptElement {
             doc.set_pending_parsing_blocking_script(Some(self));
             *self.load.borrow_mut() = Some(ScriptOrigin::Internal(text, base_url));
             self.ready_to_be_parser_executed.set(true);
-        // Step 18.f: otherwise.
+        // Step 20.f: otherwise.
         } else {
             assert!(!text.is_empty());
             self.ready_to_be_parser_executed.set(true);
