@@ -8,10 +8,17 @@ pub mod history_traversal;
 pub mod networking;
 pub mod user_interaction;
 
-use dom::window::Window;
-use script_thread::Runnable;
+use dom::bindings::global::GlobalRef;
+use script_thread::{Runnable, RunnableWrapper};
 use std::result::Result;
 
 pub trait TaskSource {
-    fn queue<T: Runnable + Send + 'static>(&self, msg: Box<T>, window: &Window) -> Result<(), ()>;
+    fn queue_with_wrapper<T>(&self,
+                             msg: Box<T>,
+                             wrapper: &RunnableWrapper)
+                             -> Result<(), ()>
+                             where T: Runnable + Send + 'static;
+    fn queue<T: Runnable + Send + 'static>(&self, msg: Box<T>, global: GlobalRef) -> Result<(), ()> {
+        self.queue_with_wrapper(msg, &global.get_runnable_wrapper())
+    }
 }

@@ -161,7 +161,8 @@ impl Storage {
         let window = global_ref.as_window();
         let task_source = window.dom_manipulation_task_source();
         let trusted_storage = Trusted::new(self);
-        task_source.queue(box StorageEventRunnable::new(trusted_storage, key, old_value, new_value), window).unwrap();
+        task_source.queue(box StorageEventRunnable::new(trusted_storage, key, old_value, new_value),
+                          global_ref).unwrap();
     }
 }
 
