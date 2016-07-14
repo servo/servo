@@ -27,7 +27,8 @@ impl HTMLVideoElement {
     pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLVideoElement> {
-        let element = HTMLVideoElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLVideoElementBinding::Wrap)
+        Node::reflect_node(box HTMLVideoElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLVideoElementBinding::Wrap)
     }
 }

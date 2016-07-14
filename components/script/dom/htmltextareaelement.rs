@@ -114,8 +114,9 @@ impl HTMLTextAreaElement {
     pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLTextAreaElement> {
-        let element = HTMLTextAreaElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLTextAreaElementBinding::Wrap)
+        Node::reflect_node(box HTMLTextAreaElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLTextAreaElementBinding::Wrap)
     }
 }
 

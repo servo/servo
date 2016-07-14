@@ -147,8 +147,9 @@ impl HTMLInputElement {
     pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLInputElement> {
-        let element = HTMLInputElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLInputElementBinding::Wrap)
+        Node::reflect_node(box HTMLInputElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLInputElementBinding::Wrap)
     }
 
     pub fn type_(&self) -> Atom {

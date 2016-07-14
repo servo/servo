@@ -42,8 +42,9 @@ impl HTMLStyleElement {
     pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLStyleElement> {
-        let element = HTMLStyleElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLStyleElementBinding::Wrap)
+        Node::reflect_node(box HTMLStyleElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLStyleElementBinding::Wrap)
     }
 
     pub fn parse_own_css(&self) {

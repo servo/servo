@@ -29,7 +29,8 @@ impl HTMLPreElement {
     pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLPreElement> {
-        let element = HTMLPreElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLPreElementBinding::Wrap)
+        Node::reflect_node(box HTMLPreElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLPreElementBinding::Wrap)
     }
 }

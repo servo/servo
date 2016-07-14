@@ -29,7 +29,8 @@ impl HTMLSourceElement {
     pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLSourceElement> {
-        let element = HTMLSourceElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLSourceElementBinding::Wrap)
+        Node::reflect_node(box HTMLSourceElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLSourceElementBinding::Wrap)
     }
 }

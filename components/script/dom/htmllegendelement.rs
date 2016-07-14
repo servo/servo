@@ -35,8 +35,9 @@ impl HTMLLegendElement {
                prefix: Option<DOMString>,
                document: &Document)
                -> Root<HTMLLegendElement> {
-        let element = HTMLLegendElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLLegendElementBinding::Wrap)
+        Node::reflect_node(box HTMLLegendElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLLegendElementBinding::Wrap)
     }
 }
 

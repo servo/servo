@@ -26,7 +26,8 @@ impl HTMLLIElement {
     pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLLIElement> {
-        let element = HTMLLIElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLLIElementBinding::Wrap)
+        Node::reflect_node(box HTMLLIElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLLIElementBinding::Wrap)
     }
 }

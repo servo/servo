@@ -29,7 +29,8 @@ impl HTMLDirectoryElement {
     pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLDirectoryElement> {
-        let element = HTMLDirectoryElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLDirectoryElementBinding::Wrap)
+        Node::reflect_node(box HTMLDirectoryElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLDirectoryElementBinding::Wrap)
     }
 }

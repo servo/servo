@@ -42,8 +42,9 @@ impl HTMLBodyElement {
     #[allow(unrooted_must_root)]
     pub fn new(localName: Atom, prefix: Option<DOMString>, document: &Document)
                -> Root<HTMLBodyElement> {
-        let element = HTMLBodyElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLBodyElementBinding::Wrap)
+        Node::reflect_node(box HTMLBodyElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLBodyElementBinding::Wrap)
     }
 
     /// https://drafts.csswg.org/cssom-view/#the-html-body-element

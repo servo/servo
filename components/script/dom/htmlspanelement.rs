@@ -26,7 +26,8 @@ impl HTMLSpanElement {
     pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLSpanElement> {
-        let element = HTMLSpanElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLSpanElementBinding::Wrap)
+        Node::reflect_node(box HTMLSpanElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLSpanElementBinding::Wrap)
     }
 }

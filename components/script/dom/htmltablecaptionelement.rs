@@ -29,7 +29,8 @@ impl HTMLTableCaptionElement {
     pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLTableCaptionElement> {
-        let element = HTMLTableCaptionElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLTableCaptionElementBinding::Wrap)
+        Node::reflect_node(box HTMLTableCaptionElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLTableCaptionElementBinding::Wrap)
     }
 }

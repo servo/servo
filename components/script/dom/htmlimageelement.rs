@@ -213,8 +213,9 @@ impl HTMLImageElement {
     pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLImageElement> {
-        let element = HTMLImageElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLImageElementBinding::Wrap)
+        Node::reflect_node(box HTMLImageElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLImageElementBinding::Wrap)
     }
 
     pub fn Image(global: GlobalRef,

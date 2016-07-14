@@ -34,8 +34,9 @@ impl HTMLDataListElement {
     pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLDataListElement> {
-        let element = HTMLDataListElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLDataListElementBinding::Wrap)
+        Node::reflect_node(box HTMLDataListElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLDataListElementBinding::Wrap)
     }
 }
 

@@ -82,8 +82,9 @@ impl HTMLFormElement {
     pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLFormElement> {
-        let element = HTMLFormElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLFormElementBinding::Wrap)
+        Node::reflect_node(box HTMLFormElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLFormElementBinding::Wrap)
     }
 
     pub fn generation_id(&self) -> GenerationId {

@@ -26,7 +26,8 @@ impl HTMLTimeElement {
     pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLTimeElement> {
-        let element = HTMLTimeElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLTimeElementBinding::Wrap)
+        Node::reflect_node(box HTMLTimeElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLTimeElementBinding::Wrap)
     }
 }

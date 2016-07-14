@@ -48,8 +48,9 @@ impl HTMLSelectElement {
     pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLSelectElement> {
-        let element = HTMLSelectElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLSelectElementBinding::Wrap)
+        Node::reflect_node(box HTMLSelectElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLSelectElementBinding::Wrap)
     }
 
     // https://html.spec.whatwg.org/multipage/#ask-for-a-reset

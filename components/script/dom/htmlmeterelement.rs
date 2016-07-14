@@ -30,8 +30,9 @@ impl HTMLMeterElement {
     pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLMeterElement> {
-        let element = HTMLMeterElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLMeterElementBinding::Wrap)
+        Node::reflect_node(box HTMLMeterElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLMeterElementBinding::Wrap)
     }
 }
 

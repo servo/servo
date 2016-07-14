@@ -89,8 +89,9 @@ impl HTMLScriptElement {
     #[allow(unrooted_must_root)]
     pub fn new(localName: Atom, prefix: Option<DOMString>, document: &Document,
                creator: ElementCreator) -> Root<HTMLScriptElement> {
-        let element = HTMLScriptElement::new_inherited(localName, prefix, document, creator);
-        Node::reflect_node(box element, document, HTMLScriptElementBinding::Wrap)
+        Node::reflect_node(box HTMLScriptElement::new_inherited(localName, prefix, document, creator),
+                           document,
+                           HTMLScriptElementBinding::Wrap)
     }
 }
 
