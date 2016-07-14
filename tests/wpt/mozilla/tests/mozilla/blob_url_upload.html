@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Blob URL with File Upload</title>
+<link rel="match" href="blob_url_upload_ref.html">
+<body>
+    <img src="" id="image">
+    <input type="file" id="file-input"">
+</body>
+<script type="text/javascript">
+    var image = document.getElementById("image");
+
+    var inputElem = document.getElementById("file-input");
+
+    inputElem.selectFiles(["./tests/wpt/mozilla/tests/mozilla/test.jpg"]);
+
+    var f = inputElem.files[0];
+
+    var url = URL.createObjectURL(f);
+
+    image.src = url;
+
+</script>

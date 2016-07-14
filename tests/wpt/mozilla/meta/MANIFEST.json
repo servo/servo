@@ -5782,6 +5782,18 @@
             "url": "/_mozilla/css/word_break_a.html"
           }
         ],
+        "mozilla/blob_url_upload.html": [
+          {
+            "path": "mozilla/blob_url_upload.html",
+            "references": [
+              [
+                "/_mozilla/mozilla/blob_url_upload_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/mozilla/blob_url_upload.html"
+          }
+        ],
         "mozilla/canvas/drawimage_html_image_1.html": [
           {
             "path": "mozilla/canvas/drawimage_html_image_1.html",
@@ -14850,6 +14862,18 @@
             ]
           ],
           "url": "/_mozilla/css/word_break_a.html"
+        }
+      ],
+      "mozilla/blob_url_upload.html": [
+        {
+          "path": "mozilla/blob_url_upload.html",
+          "references": [
+            [
+              "/_mozilla/mozilla/blob_url_upload_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/mozilla/blob_url_upload.html"
         }
       ],
       "mozilla/canvas/drawimage_html_image_1.html": [
