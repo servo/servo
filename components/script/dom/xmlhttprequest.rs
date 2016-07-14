@@ -594,6 +594,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             origin: self.global().r().get_url(),
             referer_url: self.referrer_url.clone(),
             referrer_policy: self.referrer_policy.clone(),
+            pipeline_id: self.pipeline_id(),
         };
 
         if bypass_cross_origin_check {
