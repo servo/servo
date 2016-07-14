@@ -432,8 +432,6 @@ impl Debug for ${style_struct.gecko_struct_name} {
    force_stub += ["font-kerning", "font-stretch", "font-variant"]
    # These have unusual representations in gecko.
    force_stub += ["list-style-type", "text-overflow"]
-   # These are booleans.
-   force_stub += ["page-break-after", "page-break-before"]
    # In a nsTArray, have to be done manually, but probably not too much work
    # (the "filling them", not the "making them work")
    force_stub += ["animation-name", "animation-duration",
@@ -755,7 +753,9 @@ fn static_assert() {
 
 </%self:impl_trait>
 
-<%self:impl_trait style_struct_name="Box" skip_longhands="display overflow-y vertical-align -moz-binding">
+<% skip_box_longhands= """display overflow-y vertical-align
+                          -moz-binding page-break-before page-break-after""" %>
+<%self:impl_trait style_struct_name="Box" skip_longhands="${skip_box_longhands}">
 
     // We manually-implement the |display| property until we get general
     // infrastructure for preffing certain values.
@@ -843,6 +843,40 @@ fn static_assert() {
     }
     fn copy__moz_binding_from(&mut self, other: &Self) {
         unsafe { Gecko_CopyMozBindingFrom(&mut self.gecko, &other.gecko); }
+    }
+
+    fn set_page_break_before(&mut self, v: longhands::page_break_before::computed_value::T) {
+        use style::computed_values::page_break_before::T;
+        let result = match v {
+            T::auto   => false,
+            T::always => true,
+            T::avoid  => false,
+            T::left   => true,
+            T::right  => true
+        };
+        // TODO(shinglyu): Rename Gecko's struct to mPageBreakBefore
+        self.gecko.mBreakBefore = result;
+    }
+
+    fn copy_page_break_before_from(&mut self, other: &Self) {
+        self.gecko.mBreakBefore = other.gecko.mBreakBefore;
+    }
+
+    fn set_page_break_after(&mut self, v: longhands::page_break_after::computed_value::T) {
+        use style::computed_values::page_break_after::T;
+        let result = match v {
+            T::auto   => false,
+            T::always => true,
+            T::avoid  => false,
+            T::left   => true,
+            T::right  => true
+        };
+        // TODO(shinglyu): Rename Gecko's struct to mPageBreakBefore
+        self.gecko.mBreakBefore = result;
+    }
+
+    fn copy_page_break_after_from(&mut self, other: &Self) {
+        self.gecko.mBreakAfter = other.gecko.mBreakAfter;
     }
 </%self:impl_trait>
 
