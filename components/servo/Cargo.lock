@@ -2494,7 +2494,7 @@ dependencies = [
 [[package]]
 name = "video-metadata"
 version = "0.1.2"
-source = "git+https://github.com/GuillaumeGomez/video-metadata-rs#c613de6a20c85ddda2db3b592ae595e8f993a699"
+source = "git+https://github.com/GuillaumeGomez/video-metadata-rs#bc7f45023765b0ff7a7235e02bac3bfe9f24acd7"
 dependencies = [
  "gcc 0.3.28 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
