@@ -1659,11 +1659,7 @@ impl Document {
         // strictest policy, which is no-referrer.
         // Once other delivery methods are implemented, make the unset case really
         // unset (i.e. None).
-        let referrer_policy = if referrer_policy.is_some() {
-            referrer_policy
-        } else {
-            Some(ReferrerPolicy::NoReferrer)
-        };
+        let referrer_policy = referrer_policy.or(Some(ReferrerPolicy::NoReferrer));
 
         Document {
             node: Node::new_document_node(),

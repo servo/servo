@@ -53,6 +53,7 @@ use euclid::point::Point2D;
 use gfx_traits::LayerId;
 use hyper::header::{ContentType, HttpDate};
 use hyper::header::{Headers, LastModified};
+use hyper::header::ReferrerPolicy as ReferrerPolicyHeader;
 use hyper::method::Method;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use ipc_channel::ipc::{self, IpcSender};
@@ -1710,23 +1711,21 @@ impl ScriptThread {
             _ => IsHTMLDocument::HTMLDocument,
         };
 
-        use hyper::header::ReferrerPolicy as ReferrerPolicyHeader;
         let referrer_policy = if let Some(headers) = metadata.headers {
-            match headers.get::<ReferrerPolicyHeader>() {
-                Some(&ReferrerPolicyHeader::NoReferrer) =>
-                    Some(ReferrerPolicy::NoReferrer),
-                Some(&ReferrerPolicyHeader::NoReferrerWhenDowngrade) =>
-                    Some(ReferrerPolicy::NoRefWhenDowngrade),
-                Some(&ReferrerPolicyHeader::SameOrigin) =>
-                    Some(ReferrerPolicy::SameOrigin),
-                Some(&ReferrerPolicyHeader::Origin) =>
-                    Some(ReferrerPolicy::Origin),
-                Some(&ReferrerPolicyHeader::OriginWhenCrossOrigin) =>
-                    Some(ReferrerPolicy::OriginWhenCrossOrigin),
-                Some(&ReferrerPolicyHeader::UnsafeUrl) =>
-                    Some(ReferrerPolicy::UnsafeUrl),
-                None => None,
-            }
+            headers.get::<ReferrerPolicyHeader>().map(|h| match *h {
+                ReferrerPolicyHeader::NoReferrer =>
+                    ReferrerPolicy::NoReferrer,
+                ReferrerPolicyHeader::NoReferrerWhenDowngrade =>
+                    ReferrerPolicy::NoRefWhenDowngrade,
+                ReferrerPolicyHeader::SameOrigin =>
+                    ReferrerPolicy::SameOrigin,
+                ReferrerPolicyHeader::Origin =>
+                    ReferrerPolicy::Origin,
+                ReferrerPolicyHeader::OriginWhenCrossOrigin =>
+                    ReferrerPolicyHeader::OriginWhenCrossOrigin,
+                ReferrerPolicyHeader::UnsafeUrl =>
+                    ReferrerPolicy::UnsafeUrl,
+            })
         } else {
             None
         };
