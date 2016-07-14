@@ -239,6 +239,8 @@ pub struct Document {
     origin: Origin,
     ///  https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-states
     referrer_policy: Cell<Option<ReferrerPolicy>>,
+    /// https://html.spec.whatwg.org/multipage/#dom-document-referrer
+    referrer: Option<String>,
 }
 
 #[derive(JSTraceable, HeapSizeOf)]
@@ -1630,7 +1632,8 @@ impl Document {
                          content_type: Option<DOMString>,
                          last_modified: Option<String>,
                          source: DocumentSource,
-                         doc_loader: DocumentLoader)
+                         doc_loader: DocumentLoader,
+                         referrer: Option<String>)
                          -> Document {
         let url = url.unwrap_or_else(|| Url::parse("about:blank").unwrap());
 
@@ -1717,6 +1720,7 @@ impl Document {
             origin: origin,
             //TODO - setting this for now so no Referer header set
             referrer_policy: Cell::new(Some(ReferrerPolicy::NoReferrer)),
+            referrer: referrer,
         }
     }
 
@@ -1733,7 +1737,8 @@ impl Document {
                          None,
                          None,
                          DocumentSource::NotFromParser,
-                         docloader))
+                         docloader,
+                         None))
     }
 
     pub fn new(window: &Window,
@@ -1743,7 +1748,8 @@ impl Document {
                content_type: Option<DOMString>,
                last_modified: Option<String>,
                source: DocumentSource,
-               doc_loader: DocumentLoader)
+               doc_loader: DocumentLoader,
+               referrer: Option<String>)
                -> Root<Document> {
         let document = reflect_dom_object(box Document::new_inherited(window,
                                                                       browsing_context,
@@ -1752,7 +1758,8 @@ impl Document {
                                                                       content_type,
                                                                       last_modified,
                                                                       source,
-                                                                      doc_loader),
+                                                                      doc_loader,
+                                                                      referrer),
                                           GlobalRef::Window(window),
                                           DocumentBinding::Wrap);
         {
@@ -1816,7 +1823,8 @@ impl Document {
                                         None,
                                         None,
                                         DocumentSource::NotFromParser,
-                                        DocumentLoader::new(&self.loader()));
+                                        DocumentLoader::new(&self.loader()),
+                                        None);
             new_doc.appropriate_template_contents_owner_document.set(Some(&new_doc));
             new_doc
         })
@@ -1932,6 +1940,14 @@ impl DocumentMethods for Document {
         } else {
             // Step 3.
             DOMString::new()
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-document-referrer
+    fn Referrer(&self) -> DOMString {
+        match self.referrer {
+            Some(ref referrer) => DOMString::from(referrer.to_string()),
+            None => DOMString::new()
         }
     }
 

@@ -1071,6 +1071,7 @@ pub fn load<A, B>(load_data: &LoadData,
         } else {
             HttpsState::None
         };
+        metadata.referrer = referrer_url;
 
         // Only notify the devtools about the final request that received a response.
         if let Some(msg) = msg {
