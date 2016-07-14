@@ -17,7 +17,7 @@ import site
 import StringIO
 import subprocess
 import sys
-from licenseck import licenses
+from licenseck import licenses, licenses_toml
 
 # License and header checks
 EMACS_HEADER = "/* -*- Mode:"
@@ -295,9 +295,14 @@ duplicate versions for package "{package}"
 def check_toml(file_name, lines):
     if not file_name.endswith(".toml"):
         raise StopIteration
+    ok_licensed = False
     for idx, line in enumerate(lines):
         if line.find("*") != -1:
             yield (idx + 1, "found asterisk instead of minimum version number")
+        for license in licenses_toml:
+            ok_licensed |= (license in line)
+    if not ok_licensed:
+        yield (0, ".toml file should contain a valid license.")
 
 
 def check_rust(file_name, lines):
