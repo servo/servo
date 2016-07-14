@@ -180,6 +180,35 @@ impl AsyncResponseListener for ScriptContext {
 
 impl PreInvoke for ScriptContext {}
 
+/// https://html.spec.whatwg.org/multipage/#fetch-a-classic-script
+fn fetch_a_classic_script(script: &HTMLScriptElement, url: Url) {
+    // TODO(#9186): use the fetch infrastructure.
+    let context = Arc::new(Mutex::new(ScriptContext {
+        elem: Trusted::new(script),
+        data: vec!(),
+        metadata: None,
+        url: url.clone(),
+        status: Ok(())
+    }));
+
+    let doc = document_from_node(script);
+
+    let (action_sender, action_receiver) = ipc::channel().unwrap();
+    let listener = NetworkListener {
+        context: context,
+        script_chan: doc.window().networking_task_source(),
+        wrapper: Some(doc.window().get_runnable_wrapper()),
+    };
+    let response_target = AsyncResponseTarget {
+        sender: action_sender,
+    };
+    ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
+        listener.notify_action(message.to().unwrap());
+    });
+
+    doc.load_async(LoadType::Script(url), response_target);
+}
+
 impl HTMLScriptElement {
     /// https://html.spec.whatwg.org/multipage/#prepare-a-script
     pub fn prepare(&self) -> NextParserState {
@@ -297,31 +326,7 @@ impl HTMLScriptElement {
                 };
 
                 // Step 18.6.
-                // TODO(#9186): use the fetch infrastructure.
-                let elem = Trusted::new(self);
-
-                let context = Arc::new(Mutex::new(ScriptContext {
-                    elem: elem,
-                    data: vec!(),
-                    metadata: None,
-                    url: url.clone(),
-                    status: Ok(())
-                }));
-
-                let (action_sender, action_receiver) = ipc::channel().unwrap();
-                let listener = NetworkListener {
-                    context: context,
-                    script_chan: doc.window().networking_task_source(),
-                    wrapper: Some(doc.window().get_runnable_wrapper()),
-                };
-                let response_target = AsyncResponseTarget {
-                    sender: action_sender,
-                };
-                ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
-                    listener.notify_action(message.to().unwrap());
-                });
-
-                doc.load_async(LoadType::Script(url), response_target);
+                fetch_a_classic_script(self, url);
                 true
             },
             None => false,
