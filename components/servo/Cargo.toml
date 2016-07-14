@@ -20,15 +20,14 @@ doc = false
 bench = false
 
 [replace]
-"azure:0.4.5" = { git = "https://github.com/vvuk/rust-azure.git", branch = "msvcize" }
-"servo-skia:0.20130412.0" = { git = "https://github.com/vvuk/skia.git", branch = "msvcize" }
+"azure:0.4.6" = { git = "https://github.com/vvuk/rust-azure.git", branch = "msvcize" }
 "mozjs_sys:0.0.0" = { git = "https://github.com/vvuk/mozjs.git", branch = "rust-msvc" }
 "js:0.1.3" = { git = "https://github.com/vvuk/rust-mozjs.git", branch = "rust-msvc" }
 "angle:0.1.0" = { git = "https://github.com/vvuk/angle.git", branch = "msvcize" }
 "expat-sys:2.1.2" = { git = "https://github.com/metajack/libexpat.git", branch = "msvcize" }
 "servo-freetype-sys:2.4.11" = { git = "https://github.com/vvuk/libfreetype2.git", branch = "msvcize" }
 "harfbuzz-sys:0.1.5" = { git = "https://github.com/vvuk/rust-harfbuzz.git", branch = "msvcize" }
-"servo-skia:0.20130412.9" = { git = "https://github.com/vvuk/skia.git", branch = "msvcize" }
+"servo-skia:0.20130412.10" = { git = "https://github.com/vvuk/skia.git", branch = "msvcize" }
 "servo-fontconfig-sys:2.11.3" = { git = "https://github.com/vvuk/libfontconfig.git", branch = "msvcize" }
 "hbs-builder:0.2.1" = { git = "https://github.com/vvuk/heartbeats-simple-sys.git", branch = "msvcize" }
 "hbs-acc-pow-sys:0.2.1" = { git = "https://github.com/vvuk/heartbeats-simple-sys.git", branch = "msvcize" }
