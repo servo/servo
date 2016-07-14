@@ -295,9 +295,13 @@ duplicate versions for package "{package}"
 def check_toml(file_name, lines):
     if not file_name.endswith(".toml"):
         raise StopIteration
+    mpl_licensed = False
     for idx, line in enumerate(lines):
         if line.find("*") != -1:
             yield (idx + 1, "found asterisk instead of minimum version number")
+        mpl_licensed |= ('license = "MPL-2.0"' in line)
+    if not mpl_licensed:
+        yield (0, ".toml file should contain MPL-2.0 license.")
 
 
 def check_rust(file_name, lines):

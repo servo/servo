@@ -3,6 +3,7 @@ name = "string_cache"
 description = "A crate to allow using Gecko's nsIAtom as a replacement for string_cache."
 version = "0.2.20"
 authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
 publish = false
 
 [lib]
