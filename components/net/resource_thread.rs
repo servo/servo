@@ -4,6 +4,7 @@
 
 //! A thread that takes a URL and streams back the binary data.
 use about_loader;
+use blob_loader;
 use chrome_loader;
 use connector::{Connector, create_http_connector};
 use content_blocker::BLOCKED_CONTENT_RULES;
@@ -173,18 +174,20 @@ fn start_sending_opt(start_chan: LoadConsumer, metadata: Metadata,
 pub fn new_resource_threads(user_agent: String,
                             devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                             profiler_chan: ProfilerChan) -> (ResourceThreads, ResourceThreads) {
-    let (public_core, private_core) = new_core_resource_thread(user_agent, devtools_chan, profiler_chan);
+    let filemanager_chan: IpcSender<FileManagerThreadMsg> = FileManagerThreadFactory::new(TFD_PROVIDER);
+    let (public_core, private_core) = new_core_resource_thread(user_agent, devtools_chan,
+                                                               profiler_chan, filemanager_chan.clone());
     let storage: IpcSender<StorageThreadMsg> = StorageThreadFactory::new();
-    let filemanager: IpcSender<FileManagerThreadMsg> = FileManagerThreadFactory::new(TFD_PROVIDER);
-    (ResourceThreads::new(public_core, storage.clone(), filemanager.clone()),
-     ResourceThreads::new(private_core, storage, filemanager))
+    (ResourceThreads::new(public_core, storage.clone(), filemanager_chan.clone()),
+     ResourceThreads::new(private_core, storage, filemanager_chan))
 }
 
 
 /// Create a CoreResourceThread
 pub fn new_core_resource_thread(user_agent: String,
                                 devtools_chan: Option<Sender<DevtoolsControlMsg>>,
-                                profiler_chan: ProfilerChan)
+                                profiler_chan: ProfilerChan,
+                                filemanager_chan: IpcSender<FileManagerThreadMsg>)
                                 -> (CoreResourceThread, CoreResourceThread) {
     let (public_setup_chan, public_setup_port) = ipc::channel().unwrap();
     let (private_setup_chan, private_setup_port) = ipc::channel().unwrap();
@@ -192,7 +195,7 @@ pub fn new_core_resource_thread(user_agent: String,
     let private_setup_chan_clone = private_setup_chan.clone();
     spawn_named("ResourceManager".to_owned(), move || {
         let resource_manager = CoreResourceManager::new(
-            user_agent, devtools_chan, profiler_chan
+            user_agent, devtools_chan, profiler_chan, filemanager_chan
         );
 
         let mut channel_manager = ResourceChannelManager {
@@ -462,6 +465,7 @@ pub struct CoreResourceManager {
     mime_classifier: Arc<MimeClassifier>,
     devtools_chan: Option<Sender<DevtoolsControlMsg>>,
     profiler_chan: ProfilerChan,
+    filemanager_chan: IpcSender<FileManagerThreadMsg>,
     cancel_load_map: HashMap<ResourceId, Sender<()>>,
     next_resource_id: ResourceId,
 }
@@ -469,12 +473,14 @@ pub struct CoreResourceManager {
 impl CoreResourceManager {
     pub fn new(user_agent: String,
                devtools_channel: Option<Sender<DevtoolsControlMsg>>,
-               profiler_chan: ProfilerChan) -> CoreResourceManager {
+               profiler_chan: ProfilerChan,
+               filemanager_chan: IpcSender<FileManagerThreadMsg>) -> CoreResourceManager {
         CoreResourceManager {
             user_agent: user_agent,
             mime_classifier: Arc::new(MimeClassifier::new()),
             devtools_chan: devtools_channel,
             profiler_chan: profiler_chan,
+            filemanager_chan: filemanager_chan,
             cancel_load_map: HashMap::new(),
             next_resource_id: ResourceId(0),
         }
@@ -548,6 +554,7 @@ impl CoreResourceManager {
             },
             "data" => from_factory(data_loader::factory),
             "about" => from_factory(about_loader::factory),
+            "blob" => blob_loader::factory(self.filemanager_chan.clone()),
             _ => {
                 debug!("resource_thread: no loader for scheme {}", load_data.url.scheme());
                 send_error(load_data.url, NetworkError::Internal("no loader for scheme".to_owned()), consumer);
