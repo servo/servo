@@ -227,13 +227,12 @@ impl HTMLScriptElement {
 
         // Step 9.
         let doc = document_from_node(self);
-        let document_from_node_ref = doc.r();
-        if self.parser_inserted.get() && &*self.parser_document != document_from_node_ref {
+        if self.parser_inserted.get() && &*self.parser_document != &*doc {
             return NextParserState::Continue;
         }
 
         // Step 10.
-        if !document_from_node_ref.is_scripting_enabled() {
+        if !doc.is_scripting_enabled() {
             return NextParserState::Continue;
         }
 
