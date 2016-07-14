@@ -184,7 +184,7 @@ impl HTMLImageElement {
                         src: src.into(),
                     };
                     let task = window.dom_manipulation_task_source();
-                    let _ = task.queue(runnable, window);
+                    let _ = task.queue(runnable, GlobalRef::Window(window));
                 }
             }
         }

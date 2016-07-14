@@ -2,11 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::global::GlobalRef;
 use dom::bindings::refcounted::Trusted;
 use dom::event::{EventBubbles, EventCancelable, EventRunnable};
 use dom::eventtarget::EventTarget;
 use dom::window::Window;
-use script_thread::{MainThreadScriptMsg, Runnable, ScriptThread};
+use script_thread::{MainThreadScriptMsg, Runnable, RunnableWrapper, ScriptThread};
 use std::result::Result;
 use std::sync::mpsc::Sender;
 use string_cache::Atom;
@@ -16,8 +17,12 @@ use task_source::TaskSource;
 pub struct UserInteractionTaskSource(pub Sender<MainThreadScriptMsg>);
 
 impl TaskSource for UserInteractionTaskSource {
-    fn queue<T: Runnable + Send + 'static>(&self, msg: Box<T>, window: &Window) -> Result<(), ()> {
-        let msg = UserInteractionTask(window.get_runnable_wrapper().wrap_runnable(msg));
+    fn queue_with_wrapper<T>(&self,
+                             msg: Box<T>,
+                             wrapper: &RunnableWrapper)
+                             -> Result<(), ()>
+                             where T: Runnable + Send + 'static {
+        let msg = UserInteractionTask(wrapper.wrap_runnable(msg));
         self.0.send(MainThreadScriptMsg::UserInteraction(msg)).map_err(|_| ())
     }
 }
@@ -36,7 +41,7 @@ impl UserInteractionTaskSource {
             bubbles: bubbles,
             cancelable: cancelable,
         };
-        let _ = self.queue(runnable, window);
+        let _ = self.queue(runnable, GlobalRef::Window(window));
     }
 }
 

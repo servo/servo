@@ -575,6 +575,8 @@ impl ScriptThread {
         // Ask the router to proxy IPC messages from the control port to us.
         let control_port = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(state.control_port);
 
+        let boxed_script_sender = MainThreadScriptChan(chan.clone()).clone();
+
         ScriptThread {
             browsing_context: MutNullableHeap::new(None),
             incomplete_loads: DOMRefCell::new(vec!()),
@@ -595,8 +597,8 @@ impl ScriptThread {
             dom_manipulation_task_source: DOMManipulationTaskSource(chan.clone()),
             user_interaction_task_source: UserInteractionTaskSource(chan.clone()),
             networking_task_source: NetworkingTaskSource(chan.clone()),
-            history_traversal_task_source: HistoryTraversalTaskSource(chan.clone()),
-            file_reading_task_source: FileReadingTaskSource(chan),
+            history_traversal_task_source: HistoryTraversalTaskSource(chan),
+            file_reading_task_source: FileReadingTaskSource(boxed_script_sender),
 
             control_chan: state.control_chan,
             control_port: control_port,
@@ -1227,7 +1229,7 @@ impl ScriptThread {
 
         // https://html.spec.whatwg.org/multipage/#the-end step 7
         let handler = box DocumentProgressHandler::new(Trusted::new(doc));
-        self.dom_manipulation_task_source.queue(handler, doc.window()).unwrap();
+        self.dom_manipulation_task_source.queue(handler, GlobalRef::Window(doc.window())).unwrap();
 
         self.constellation_chan.send(ConstellationMsg::LoadComplete(pipeline)).unwrap();
     }
@@ -1585,7 +1587,6 @@ impl ScriptThread {
         let UserInteractionTaskSource(ref user_sender) = self.user_interaction_task_source;
         let NetworkingTaskSource(ref network_sender) = self.networking_task_source;
         let HistoryTraversalTaskSource(ref history_sender) = self.history_traversal_task_source;
-        let FileReadingTaskSource(ref file_sender) = self.file_reading_task_source;
 
         let (ipc_timer_event_chan, ipc_timer_event_port) = ipc::channel().unwrap();
         ROUTER.route_ipc_receiver_to_mpsc_sender(ipc_timer_event_port,
@@ -1598,7 +1599,7 @@ impl ScriptThread {
                                  UserInteractionTaskSource(user_sender.clone()),
                                  NetworkingTaskSource(network_sender.clone()),
                                  HistoryTraversalTaskSource(history_sender.clone()),
-                                 FileReadingTaskSource(file_sender.clone()),
+                                 self.file_reading_task_source.clone(),
                                  self.image_cache_channel.clone(),
                                  self.custom_message_chan.clone(),
                                  self.image_cache_thread.clone(),

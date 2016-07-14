@@ -5,6 +5,7 @@
 use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLDetailsElementBinding;
 use dom::bindings::codegen::Bindings::HTMLDetailsElementBinding::HTMLDetailsElementMethods;
+use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::refcounted::Trusted;
@@ -78,7 +79,7 @@ impl VirtualMethods for HTMLDetailsElement {
                 element: details,
                 toggle_number: counter
             };
-            let _ = task_source.queue(runnable, window.r());
+            let _ = task_source.queue(runnable, GlobalRef::Window(&window));
         }
     }
 }
