@@ -339,7 +339,7 @@ impl HttpRequest for AssertMustHaveBodyRequest {
     }
 }
 
-fn expect_devtools_http_request(devtools_port: &Receiver<DevtoolsControlMsg>) -> DevtoolsHttpRequest {
+pub fn expect_devtools_http_request(devtools_port: &Receiver<DevtoolsControlMsg>) -> DevtoolsHttpRequest {
     match devtools_port.recv().unwrap() {
         DevtoolsControlMsg::FromChrome(
         ChromeToDevtoolsControlMsg::NetworkEvent(_, net_event)) => {
@@ -355,7 +355,7 @@ fn expect_devtools_http_request(devtools_port: &Receiver<DevtoolsControlMsg>) ->
     }
 }
 
-fn expect_devtools_http_response(devtools_port: &Receiver<DevtoolsControlMsg>) -> DevtoolsHttpResponse {
+pub fn expect_devtools_http_response(devtools_port: &Receiver<DevtoolsControlMsg>) -> DevtoolsHttpResponse {
     match devtools_port.recv().unwrap() {
         DevtoolsControlMsg::FromChrome(
             ChromeToDevtoolsControlMsg::NetworkEvent(_, net_event_response)) => {
@@ -526,6 +526,7 @@ fn test_request_and_response_data_with_network_messages() {
         timeStamp: devhttprequest.timeStamp,
         connect_time: devhttprequest.connect_time,
         send_time: devhttprequest.send_time,
+        is_xhr: false,
     };
 
     let content = "Yay!";
