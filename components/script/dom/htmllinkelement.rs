@@ -72,8 +72,9 @@ impl HTMLLinkElement {
                prefix: Option<DOMString>,
                document: &Document,
                creator: ElementCreator) -> Root<HTMLLinkElement> {
-        let element = HTMLLinkElement::new_inherited(localName, prefix, document, creator);
-        Node::reflect_node(box element, document, HTMLLinkElementBinding::Wrap)
+        Node::reflect_node(box HTMLLinkElement::new_inherited(localName, prefix, document, creator),
+                           document,
+                           HTMLLinkElementBinding::Wrap)
     }
 
     pub fn get_stylesheet(&self) -> Option<Arc<Stylesheet>> {

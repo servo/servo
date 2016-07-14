@@ -38,8 +38,9 @@ impl HTMLLabelElement {
     pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLLabelElement> {
-        let element = HTMLLabelElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLLabelElementBinding::Wrap)
+        Node::reflect_node(box HTMLLabelElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLLabelElementBinding::Wrap)
     }
 }
 

@@ -34,8 +34,9 @@ impl HTMLHeadElement {
     pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLHeadElement> {
-        let element = HTMLHeadElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLHeadElementBinding::Wrap)
+        Node::reflect_node(box HTMLHeadElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLHeadElementBinding::Wrap)
     }
 
     /// https://html.spec.whatwg.org/multipage/#meta-referrer

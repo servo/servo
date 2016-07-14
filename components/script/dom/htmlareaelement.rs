@@ -34,8 +34,9 @@ impl HTMLAreaElement {
     pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLAreaElement> {
-        let element = HTMLAreaElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLAreaElementBinding::Wrap)
+        Node::reflect_node(box HTMLAreaElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLAreaElementBinding::Wrap)
     }
 }
 

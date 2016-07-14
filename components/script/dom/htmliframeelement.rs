@@ -212,8 +212,9 @@ impl HTMLIFrameElement {
     pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLIFrameElement> {
-        let element = HTMLIFrameElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLIFrameElementBinding::Wrap)
+        Node::reflect_node(box HTMLIFrameElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLIFrameElementBinding::Wrap)
     }
 
     #[inline]

@@ -29,7 +29,8 @@ impl HTMLParagraphElement {
     pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLParagraphElement> {
-        let element = HTMLParagraphElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLParagraphElementBinding::Wrap)
+        Node::reflect_node(box HTMLParagraphElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLParagraphElementBinding::Wrap)
     }
 }

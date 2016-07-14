@@ -63,8 +63,9 @@ impl HTMLElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(localName: Atom, prefix: Option<DOMString>, document: &Document) -> Root<HTMLElement> {
-        let element = HTMLElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLElementBinding::Wrap)
+        Node::reflect_node(box HTMLElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLElementBinding::Wrap)
     }
 
     fn is_body_or_frameset(&self) -> bool {

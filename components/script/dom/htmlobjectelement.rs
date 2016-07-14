@@ -42,8 +42,9 @@ impl HTMLObjectElement {
     pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLObjectElement> {
-        let element = HTMLObjectElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLObjectElementBinding::Wrap)
+        Node::reflect_node(box HTMLObjectElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLObjectElementBinding::Wrap)
     }
 }
 

@@ -29,7 +29,8 @@ impl HTMLUnknownElement {
     pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLUnknownElement> {
-        let element = HTMLUnknownElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLUnknownElementBinding::Wrap)
+        Node::reflect_node(box HTMLUnknownElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLUnknownElementBinding::Wrap)
     }
 }

@@ -29,7 +29,8 @@ impl HTMLQuoteElement {
     pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLQuoteElement> {
-        let element = HTMLQuoteElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLQuoteElementBinding::Wrap)
+        Node::reflect_node(box HTMLQuoteElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLQuoteElementBinding::Wrap)
     }
 }

@@ -39,8 +39,9 @@ impl HTMLTemplateElement {
     pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLTemplateElement> {
-        let element = HTMLTemplateElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLTemplateElementBinding::Wrap)
+        Node::reflect_node(box HTMLTemplateElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLTemplateElementBinding::Wrap)
     }
 }
 

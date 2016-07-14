@@ -28,7 +28,8 @@ impl HTMLDataElement {
     pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLDataElement> {
-        let element = HTMLDataElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLDataElementBinding::Wrap)
+        Node::reflect_node(box HTMLDataElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLDataElementBinding::Wrap)
     }
 }

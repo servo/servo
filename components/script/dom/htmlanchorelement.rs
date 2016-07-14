@@ -54,8 +54,9 @@ impl HTMLAnchorElement {
     pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLAnchorElement> {
-        let element = HTMLAnchorElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLAnchorElementBinding::Wrap)
+        Node::reflect_node(box HTMLAnchorElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLAnchorElementBinding::Wrap)
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-hyperlink-url-set
