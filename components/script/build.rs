@@ -12,10 +12,11 @@ fn main() {
     // ParserResults.pkl, and then stomp on eachother.)
     let mut build = cmake::Config::new(".");
 
-    build.generator("Ninja");
-
     let target = env::var("TARGET").unwrap();
     if target.contains("windows-msvc") {
+        // We must use Ninja on Windows for this -- msbuild is painfully slow,
+        // and ninja is easier to install than make.
+        build.generator("Ninja");
         // because we're using ninja, we need to explicitly set these
         // to VC++, otherwise it'll try to use cc
         build.define("CMAKE_C_COMPILER", "cl.exe")
