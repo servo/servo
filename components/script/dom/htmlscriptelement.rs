@@ -179,7 +179,6 @@ impl AsyncResponseListener for ScriptContext {
         // https://html.spec.whatwg.org/multipage/#prepare-a-script
         // Step 18.6 (When the chosen algorithm asynchronously completes).
         let elem = self.elem.root();
-        // TODO: maybe set this to None again after script execution to save memory.
         *elem.load.borrow_mut() = Some(ScriptOrigin::External(load));
         elem.ready_to_be_parser_executed.set(true);
 
