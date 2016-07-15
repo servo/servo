@@ -1633,7 +1633,8 @@ impl Document {
                          last_modified: Option<String>,
                          source: DocumentSource,
                          doc_loader: DocumentLoader,
-                         referrer: Option<String>)
+                         referrer: Option<String>,
+                         referrer_policy: Option<ReferrerPolicy>)
                          -> Document {
         let url = url.unwrap_or_else(|| Url::parse("about:blank").unwrap());
 
@@ -1651,6 +1652,17 @@ impl Document {
             // Default to DOM standard behaviour
             Origin::opaque_identifier()
         };
+
+        // TODO: we currently default to Some(NoReferrer) instead of None (i.e. unset)
+        // for an important reason. Many of the methods by which a referrer policy is communicated
+        // are currently unimplemented, and so in such cases we may be ignoring the desired policy.
+        // If the default were left unset, then in Step 7 of the Fetch algorithm we adopt
+        // no-referrer-when-downgrade. However, since we are potentially ignoring a stricter
+        // referrer policy, this might be passing too much info. Hence, we default to the
+        // strictest policy, which is no-referrer.
+        // Once other delivery methods are implemented, make the unset case really
+        // unset (i.e. None).
+        let referrer_policy = referrer_policy.or(Some(ReferrerPolicy::NoReferrer));
 
         Document {
             node: Node::new_document_node(),
@@ -1718,9 +1730,8 @@ impl Document {
             https_state: Cell::new(HttpsState::None),
             touchpad_pressure_phase: Cell::new(TouchpadPressurePhase::BeforeClick),
             origin: origin,
-            //TODO - setting this for now so no Referer header set
-            referrer_policy: Cell::new(Some(ReferrerPolicy::NoReferrer)),
             referrer: referrer,
+            referrer_policy: Cell::new(referrer_policy),
         }
     }
 
@@ -1738,6 +1749,7 @@ impl Document {
                          None,
                          DocumentSource::NotFromParser,
                          docloader,
+                         None,
                          None))
     }
 
@@ -1749,7 +1761,8 @@ impl Document {
                last_modified: Option<String>,
                source: DocumentSource,
                doc_loader: DocumentLoader,
-               referrer: Option<String>)
+               referrer: Option<String>,
+               referrer_policy: Option<ReferrerPolicy>)
                -> Root<Document> {
         let document = reflect_dom_object(box Document::new_inherited(window,
                                                                       browsing_context,
@@ -1759,7 +1772,8 @@ impl Document {
                                                                       last_modified,
                                                                       source,
                                                                       doc_loader,
-                                                                      referrer),
+                                                                      referrer,
+                                                                      referrer_policy),
                                           GlobalRef::Window(window),
                                           DocumentBinding::Wrap);
         {
@@ -1824,6 +1838,7 @@ impl Document {
                                         None,
                                         DocumentSource::NotFromParser,
                                         DocumentLoader::new(&self.loader()),
+                                        None,
                                         None);
             new_doc.appropriate_template_contents_owner_document.set(Some(&new_doc));
             new_doc
@@ -2848,7 +2863,7 @@ pub fn determine_policy_for_token(token: &str) -> Option<ReferrerPolicy> {
     let lower = token.to_lowercase();
     return match lower.as_ref() {
         "never" | "no-referrer" => Some(ReferrerPolicy::NoReferrer),
-        "default" | "no-referrer-when-downgrade" => Some(ReferrerPolicy::NoRefWhenDowngrade),
+        "default" | "no-referrer-when-downgrade" => Some(ReferrerPolicy::NoReferrerWhenDowngrade),
         "origin" => Some(ReferrerPolicy::Origin),
         "same-origin" => Some(ReferrerPolicy::SameOrigin),
         "origin-when-cross-origin" => Some(ReferrerPolicy::OriginWhenCrossOrigin),

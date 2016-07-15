@@ -51,8 +51,8 @@ use dom::worker::TrustedWorkerAddress;
 use euclid::Rect;
 use euclid::point::Point2D;
 use gfx_traits::LayerId;
-use hyper::header::{ContentType, HttpDate};
-use hyper::header::{Headers, LastModified};
+use hyper::header::{ContentType, Headers, HttpDate, LastModified};
+use hyper::header::{ReferrerPolicy as ReferrerPolicyHeader};
 use hyper::method::Method;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use ipc_channel::ipc::{self, IpcSender};
@@ -65,7 +65,7 @@ use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use mem::heap_size_of_self_and_children;
 use msg::constellation_msg::{FrameType, LoadData, PanicMsg, PipelineId, PipelineNamespace};
-use msg::constellation_msg::{SubpageId, WindowSizeType};
+use msg::constellation_msg::{ReferrerPolicy, SubpageId, WindowSizeType};
 use net_traits::LoadData as NetLoadData;
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheResult, ImageCacheThread};
@@ -1716,6 +1716,25 @@ impl ScriptThread {
             None => None,
         };
 
+        let referrer_policy = if let Some(headers) = metadata.headers {
+            headers.get::<ReferrerPolicyHeader>().map(|h| match *h {
+                ReferrerPolicyHeader::NoReferrer =>
+                    ReferrerPolicy::NoReferrer,
+                ReferrerPolicyHeader::NoReferrerWhenDowngrade =>
+                    ReferrerPolicy::NoReferrerWhenDowngrade,
+                ReferrerPolicyHeader::SameOrigin =>
+                    ReferrerPolicy::SameOrigin,
+                ReferrerPolicyHeader::Origin =>
+                    ReferrerPolicy::Origin,
+                ReferrerPolicyHeader::OriginWhenCrossOrigin =>
+                    ReferrerPolicy::OriginWhenCrossOrigin,
+                ReferrerPolicyHeader::UnsafeUrl =>
+                    ReferrerPolicy::UnsafeUrl,
+            })
+        } else {
+            None
+        };
+
         let document = Document::new(window.r(),
                                      Some(&browsing_context),
                                      Some(final_url.clone()),
@@ -1724,7 +1743,8 @@ impl ScriptThread {
                                      last_modified,
                                      DocumentSource::FromParser,
                                      loader,
-                                     referrer);
+                                     referrer,
+                                     referrer_policy);
         if using_new_context {
             browsing_context.init(&document);
         } else {

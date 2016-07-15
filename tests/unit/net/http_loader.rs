@@ -1732,7 +1732,7 @@ fn test_http_to_https_considered_cross_origin_for_referer_header_logic() {
 fn test_referer_set_to_ref_url_with_noreferrerwhendowngrade_policy_https_to_https() {
     let request_url = "https://mozilla.com";
     let referrer_url = "https://username:password@mozilla.com/some/path#fragment";
-    let referrer_policy = Some(ReferrerPolicy::NoRefWhenDowngrade);
+    let referrer_policy = Some(ReferrerPolicy::NoReferrerWhenDowngrade);
     let expected_referrer = "https://mozilla.com/some/path";
 
     let origin_info = LoadOriginInfo {
@@ -1747,7 +1747,7 @@ fn test_referer_set_to_ref_url_with_noreferrerwhendowngrade_policy_https_to_http
 fn test_no_referer_set_with_noreferrerwhendowngrade_policy_https_to_http() {
     let request_url = "http://mozilla.com";
     let referrer_url = "https://username:password@mozilla.com/some/path#fragment";
-    let referrer_policy = Some(ReferrerPolicy::NoRefWhenDowngrade);
+    let referrer_policy = Some(ReferrerPolicy::NoReferrerWhenDowngrade);
 
     let origin_info = LoadOriginInfo {
         referrer_url: referrer_url,
@@ -1761,7 +1761,7 @@ fn test_no_referer_set_with_noreferrerwhendowngrade_policy_https_to_http() {
 fn test_referer_set_to_ref_url_with_noreferrerwhendowngrade_policy_http_to_https() {
     let request_url = "https://mozilla.com";
     let referrer_url = "http://username:password@mozilla.com/some/path#fragment";
-    let referrer_policy = Some(ReferrerPolicy::NoRefWhenDowngrade);
+    let referrer_policy = Some(ReferrerPolicy::NoReferrerWhenDowngrade);
     let expected_referrer = "http://mozilla.com/some/path";
 
     let origin_info = LoadOriginInfo {
@@ -1776,7 +1776,7 @@ fn test_referer_set_to_ref_url_with_noreferrerwhendowngrade_policy_http_to_https
 fn test_referer_set_to_ref_url_with_noreferrerwhendowngrade_policy_http_to_http() {
     let request_url = "http://mozilla.com";
     let referrer_url = "http://username:password@mozilla.com/some/path#fragment";
-    let referrer_policy = Some(ReferrerPolicy::NoRefWhenDowngrade);
+    let referrer_policy = Some(ReferrerPolicy::NoReferrerWhenDowngrade);
     let expected_referrer = "http://mozilla.com/some/path";
 
     let origin_info = LoadOriginInfo {
