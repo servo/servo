@@ -684,8 +684,14 @@ pub trait MatchMethods : TNode {
         // enforced safe, race-free access to the parent style.
         let parent_style = match parent {
             Some(parent_node) => {
-                let parent_style = (*parent_node.borrow_data_unchecked().unwrap()).style.as_ref().unwrap();
-                Some(parent_style)
+                match parent_node.borrow_data_unchecked()
+                                 .and_then(|data| (*data).style.as_ref()) {
+                    Some(style) => Some(style),
+                    None => {
+                        warn!("Found unstyled parent on cascade_node, bailing out");
+                        return;
+                    }
+                }
             }
             None => None,
         };
