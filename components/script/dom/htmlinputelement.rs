@@ -35,6 +35,7 @@ use ipc_channel::ipc::{self, IpcSender};
 use mime_guess;
 use msg::constellation_msg::Key;
 use net_traits::IpcSend;
+use net_traits::blob_url_store::get_blob_origin;
 use net_traits::filemanager_thread::{FileManagerThreadMsg, FilterPattern};
 use script_traits::ScriptMsg as ConstellationMsg;
 use std::borrow::ToOwned;
@@ -749,7 +750,7 @@ impl HTMLInputElement {
     // Select files by invoking UI or by passed in argument
     fn select_files(&self, opt_test_paths: Option<Vec<DOMString>>) {
         let window = window_from_node(self);
-        let origin = window.get_url().origin().unicode_serialization();
+        let origin = get_blob_origin(&window.get_url());
         let filemanager = window.resource_threads().sender();
 
         let mut files: Vec<Root<File>> = vec![];
@@ -770,13 +771,6 @@ impl HTMLInputElement {
                     for selected in selected_files {
                         files.push(File::new_from_selected(window.r(), selected));
                     }
-
-                    target.fire_event("input",
-                                      EventBubbles::Bubbles,
-                                      EventCancelable::NotCancelable);
-                    target.fire_event("change",
-                                      EventBubbles::Bubbles,
-                                      EventCancelable::NotCancelable);
                 },
                 Err(err) => error = Some(err),
             };
@@ -799,13 +793,6 @@ impl HTMLInputElement {
             match recv.recv().expect("IpcSender side error") {
                 Ok(selected) => {
                     files.push(File::new_from_selected(window.r(), selected));
-
-                    target.fire_event("input",
-                                      EventBubbles::Bubbles,
-                                      EventCancelable::NotCancelable);
-                    target.fire_event("change",
-                                      EventBubbles::Bubbles,
-                                      EventCancelable::NotCancelable);
                 },
                 Err(err) => error = Some(err),
             };
@@ -816,6 +803,13 @@ impl HTMLInputElement {
         } else {
             let filelist = FileList::new(window.r(), files);
             self.filelist.set(Some(&filelist));
+
+            target.fire_event("input",
+                              EventBubbles::Bubbles,
+                              EventCancelable::NotCancelable);
+            target.fire_event("change",
+                              EventBubbles::Bubbles,
+                              EventCancelable::NotCancelable);
         }
     }
 }
