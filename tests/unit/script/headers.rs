@@ -27,7 +27,7 @@ fn test_normalize_all_whitespace_bytestring() {
 fn test_normalize_non_empty_no_whitespace_bytestring() {
     // Non-empty, no whitespace ByteString test
     let no_whitespace_bytestring = ByteString::new(vec!['S' as u8, '!' as u8]);
-    let actual_normalgized_no_whitespace_bytestring = headers::normalize(no_whitespace_bytestring);
+    let actual_normalized_no_whitespace_bytestring = headers::normalize(no_whitespace_bytestring);
     let expected_normalized_no_whitespace_bytestring = ByteString::new(vec!['S' as u8, '!' as u8]);
     assert_eq!(actual_normalized_no_whitespace_bytestring, expected_normalized_no_whitespace_bytestring);
 }
