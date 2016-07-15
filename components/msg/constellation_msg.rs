@@ -332,7 +332,7 @@ pub enum FrameType {
 #[derive(Clone, Copy, Debug, Deserialize, HeapSizeOf, Serialize)]
 pub enum ReferrerPolicy {
     NoReferrer,
-    NoRefWhenDowngrade,
+    NoReferrerWhenDowngrade,
     Origin,
     SameOrigin,
     OriginWhenCrossOrigin,

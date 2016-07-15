@@ -1721,7 +1721,7 @@ impl ScriptThread {
                 ReferrerPolicyHeader::NoReferrer =>
                     ReferrerPolicy::NoReferrer,
                 ReferrerPolicyHeader::NoReferrerWhenDowngrade =>
-                    ReferrerPolicy::NoRefWhenDowngrade,
+                    ReferrerPolicy::NoReferrerWhenDowngrade,
                 ReferrerPolicyHeader::SameOrigin =>
                     ReferrerPolicy::SameOrigin,
                 ReferrerPolicyHeader::Origin =>

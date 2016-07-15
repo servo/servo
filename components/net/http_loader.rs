@@ -425,7 +425,7 @@ fn set_default_accept_language(headers: &mut Headers) {
 }
 
 /// https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-state-no-referrer-when-downgrade
-fn no_ref_when_downgrade_header(referrer_url: Url, url: Url) -> Option<Url> {
+fn no_referrer_when_downgrade_header(referrer_url: Url, url: Url) -> Option<Url> {
     if referrer_url.scheme() == "https" && url.scheme() != "https" {
         return None;
     }
@@ -462,7 +462,8 @@ pub fn determine_request_referrer(headers: &mut Headers,
             Some(ReferrerPolicy::SameOrigin) => if cross_origin { None } else { strip_url(ref_url, false) },
             Some(ReferrerPolicy::UnsafeUrl) => strip_url(ref_url, false),
             Some(ReferrerPolicy::OriginWhenCrossOrigin) => strip_url(ref_url, cross_origin),
-            Some(ReferrerPolicy::NoRefWhenDowngrade) | None => no_ref_when_downgrade_header(ref_url, url),
+            Some(ReferrerPolicy::NoReferrerWhenDowngrade) | None =>
+                no_referrer_when_downgrade_header(ref_url, url),
         };
     }
     return None;

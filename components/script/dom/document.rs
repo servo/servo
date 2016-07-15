@@ -2863,7 +2863,7 @@ pub fn determine_policy_for_token(token: &str) -> Option<ReferrerPolicy> {
     let lower = token.to_lowercase();
     return match lower.as_ref() {
         "never" | "no-referrer" => Some(ReferrerPolicy::NoReferrer),
-        "default" | "no-referrer-when-downgrade" => Some(ReferrerPolicy::NoRefWhenDowngrade),
+        "default" | "no-referrer-when-downgrade" => Some(ReferrerPolicy::NoReferrerWhenDowngrade),
         "origin" => Some(ReferrerPolicy::Origin),
         "same-origin" => Some(ReferrerPolicy::SameOrigin),
         "origin-when-cross-origin" => Some(ReferrerPolicy::OriginWhenCrossOrigin),
