@@ -6,14 +6,15 @@
 
 use attr::{AttrIdentifier, AttrValue};
 use element_state::*;
-use selector_impl::{TheSelectorImpl, AttrString, NonTSPseudoClass};
+use selector_impl::{TheSelectorImpl, NonTSPseudoClass};
+#[cfg(feature = "gecko")] use selector_impl::AttrValue as AttrValueType;
 use selectors::matching::matches_compound_selector;
-use selectors::parser::{AttrSelector, Combinator, CompoundSelector, SimpleSelector};
+use selectors::parser::{AttrSelector, Combinator, CompoundSelector, SimpleSelector, SelectorImpl};
 use selectors::{Element, MatchAttrGeneric};
 #[cfg(feature = "gecko")] use selectors::MatchAttr;
 use std::clone::Clone;
 use std::sync::Arc;
-use string_cache::{Atom, BorrowedAtom, BorrowedNamespace, Namespace};
+use string_cache::{Atom, Namespace};
 
 /// When the ElementState of an element (like IN_HOVER_STATE) changes, certain
 /// pseudo-classes (like :hover) may require us to restyle that element, its
@@ -88,12 +89,12 @@ static EMPTY_SNAPSHOT: ElementSnapshot = ElementSnapshot { state: None, attrs: N
 // We'll need to figure something out when we start using restyle hints with
 // geckolib, but in the mean time we can just use the trait parameters to
 // specialize it to the Servo configuration.
-struct ElementWrapper<'a, E> where E: Element<AttrString=AttrString> {
+struct ElementWrapper<'a, E> where E: Element {
     element: E,
     snapshot: &'a ElementSnapshot,
 }
 
-impl<'a, E> ElementWrapper<'a, E> where E: Element<AttrString=AttrString> {
+impl<'a, E> ElementWrapper<'a, E> where E: Element {
     pub fn new(el: E) -> ElementWrapper<'a, E> {
         ElementWrapper { element: el, snapshot: &EMPTY_SNAPSHOT }
     }
@@ -105,9 +106,11 @@ impl<'a, E> ElementWrapper<'a, E> where E: Element<AttrString=AttrString> {
 
 #[cfg(not(feature = "gecko"))]
 impl<'a, E> MatchAttrGeneric for ElementWrapper<'a, E>
-    where E: Element<Impl=TheSelectorImpl, AttrString=AttrString>,
-          E: MatchAttrGeneric {
-    fn match_attr<F>(&self, attr: &AttrSelector, test: F) -> bool
+    where E: Element<Impl=TheSelectorImpl>,
+          E: MatchAttrGeneric<Impl=TheSelectorImpl> {
+    type Impl = TheSelectorImpl;
+
+    fn match_attr<F>(&self, attr: &AttrSelector<TheSelectorImpl>, test: F) -> bool
                     where F: Fn(&str) -> bool {
         use selectors::parser::NamespaceConstraint;
         match self.snapshot.attrs {
@@ -125,47 +128,45 @@ impl<'a, E> MatchAttrGeneric for ElementWrapper<'a, E>
 }
 
 #[cfg(feature = "gecko")]
-impl<'a, E> MatchAttr for ElementWrapper<'a, E> where E: Element<AttrString=AttrString> {
-    type AttrString = AttrString;
+impl<'a, E> MatchAttr for ElementWrapper<'a, E> where E: Element {
+    type Impl = TheSelectorImpl;
 
-    fn match_attr_has(&self, _attr: &AttrSelector) -> bool {
+    fn match_attr_has(&self, _attr: &AttrSelector<Self::Impl>) -> bool {
         panic!("Not implemented for Gecko - this system will need to be redesigned");
     }
 
-    fn match_attr_equals(&self, _attr: &AttrSelector, _value: &Self::AttrString) -> bool {
+    fn match_attr_equals(&self, _attr: &AttrSelector<Self::Impl>, _value: &AttrValueType) -> bool {
         panic!("Not implemented for Gecko - this system will need to be redesigned");
     }
 
-    fn match_attr_equals_ignore_ascii_case(&self, _attr: &AttrSelector, _value: &Self::AttrString) -> bool {
+    fn match_attr_equals_ignore_ascii_case(&self, _attr: &AttrSelector<Self::Impl>, _value: &AttrValueType) -> bool {
         panic!("Not implemented for Gecko - this system will need to be redesigned");
     }
 
-    fn match_attr_includes(&self, _attr: &AttrSelector, _value: &Self::AttrString) -> bool {
+    fn match_attr_includes(&self, _attr: &AttrSelector<Self::Impl>, _value: &AttrValueType) -> bool {
         panic!("Not implemented for Gecko - this system will need to be redesigned");
     }
 
-    fn match_attr_dash(&self, _attr: &AttrSelector, _value: &Self::AttrString) -> bool {
+    fn match_attr_dash(&self, _attr: &AttrSelector<Self::Impl>, _value: &AttrValueType) -> bool {
         panic!("Not implemented for Gecko - this system will need to be redesigned");
     }
 
-    fn match_attr_prefix(&self, _attr: &AttrSelector, _value: &Self::AttrString) -> bool {
+    fn match_attr_prefix(&self, _attr: &AttrSelector<Self::Impl>, _value: &AttrValueType) -> bool {
         panic!("Not implemented for Gecko - this system will need to be redesigned");
     }
 
-    fn match_attr_substring(&self, _attr: &AttrSelector, _value: &Self::AttrString) -> bool {
+    fn match_attr_substring(&self, _attr: &AttrSelector<Self::Impl>, _value: &AttrValueType) -> bool {
         panic!("Not implemented for Gecko - this system will need to be redesigned");
     }
 
-    fn match_attr_suffix(&self, _attr: &AttrSelector, _value: &Self::AttrString) -> bool {
+    fn match_attr_suffix(&self, _attr: &AttrSelector<Self::Impl>, _value: &AttrValueType) -> bool {
         panic!("Not implemented for Gecko - this system will need to be redesigned");
     }
 }
 
 impl<'a, E> Element for ElementWrapper<'a, E>
-    where E: Element<Impl=TheSelectorImpl, AttrString=AttrString>,
-          E: MatchAttrGeneric {
-    type Impl = TheSelectorImpl;
-
+    where E: Element<Impl=TheSelectorImpl>,
+          E: MatchAttrGeneric<Impl=TheSelectorImpl> {
     fn match_non_ts_pseudo_class(&self, pseudo_class: NonTSPseudoClass) -> bool {
         let flag = TheSelectorImpl::pseudo_class_state_flag(&pseudo_class);
         if flag == ElementState::empty() {
@@ -196,10 +197,10 @@ impl<'a, E> Element for ElementWrapper<'a, E>
     fn is_html_element_in_html_document(&self) -> bool {
         self.element.is_html_element_in_html_document()
     }
-    fn get_local_name(&self) -> BorrowedAtom {
+    fn get_local_name(&self) -> &<Self::Impl as SelectorImpl>::BorrowedLocalName {
         self.element.get_local_name()
     }
-    fn get_namespace(&self) -> BorrowedNamespace {
+    fn get_namespace(&self) -> &<Self::Impl as SelectorImpl>::BorrowedNamespace {
         self.element.get_namespace()
     }
     fn get_id(&self) -> Option<Atom> {
@@ -361,7 +362,8 @@ impl DependencySet {
 impl DependencySet {
     pub fn compute_hint<E>(&self, el: &E, snapshot: &ElementSnapshot, current_state: ElementState)
                           -> RestyleHint
-                          where E: Element<Impl=TheSelectorImpl, AttrString=AttrString> + Clone + MatchAttrGeneric {
+                          where E: Element<Impl=TheSelectorImpl> + Clone
+                                   + MatchAttrGeneric<Impl=TheSelectorImpl> {
         let state_changes = snapshot.state.map_or(ElementState::empty(), |old_state| current_state ^ old_state);
         let attrs_changed = snapshot.attrs.is_some();
         let mut hint = RestyleHint::empty();

@@ -4,10 +4,11 @@
 
 //! The pseudo-classes and pseudo-elements supported by the style system.
 
+use matching::{common_style_affecting_attributes, CommonStyleAffectingAttributeMode};
 use selectors::Element;
-use selectors::parser::SelectorImpl;
+use selectors::parser::{AttrSelector, SelectorImpl};
 
-pub type AttrString = <TheSelectorImpl as SelectorImpl>::AttrString;
+pub type AttrValue = <TheSelectorImpl as SelectorImpl>::AttrValue;
 
 #[cfg(feature = "servo")]
 pub use servo_selector_impl::ServoSelectorImpl;
@@ -65,7 +66,7 @@ impl PseudoElementCascadeType {
     }
 }
 
-pub trait ElementExt: Element<Impl=TheSelectorImpl, AttrString=<TheSelectorImpl as SelectorImpl>::AttrString> {
+pub trait ElementExt: Element<Impl=TheSelectorImpl> {
     fn is_link(&self) -> bool;
 }
 
@@ -89,4 +90,30 @@ impl TheSelectorImpl {
             }
         })
     }
+}
+
+pub fn attr_exists_selector_is_shareable(attr_selector: &AttrSelector<TheSelectorImpl>) -> bool {
+    // NB(pcwalton): If you update this, remember to update the corresponding list in
+    // `can_share_style_with()` as well.
+    common_style_affecting_attributes().iter().all(|common_attr_info| {
+        !(common_attr_info.atom == attr_selector.name && match common_attr_info.mode {
+            CommonStyleAffectingAttributeMode::IsPresent(_) => true,
+            CommonStyleAffectingAttributeMode::IsEqual(..) => false,
+        })
+    })
+}
+
+pub fn attr_equals_selector_is_shareable(attr_selector: &AttrSelector<TheSelectorImpl>,
+                                         value: &AttrValue) -> bool {
+    // FIXME(pcwalton): Remove once we start actually supporting RTL text. This is in
+    // here because the UA style otherwise disables all style sharing completely.
+    atom!("dir") == *value &&
+    common_style_affecting_attributes().iter().all(|common_attr_info| {
+        !(common_attr_info.atom == attr_selector.name && match common_attr_info.mode {
+            CommonStyleAffectingAttributeMode::IsEqual(ref target_value, _) => {
+                *target_value == *value
+            }
+            CommonStyleAffectingAttributeMode::IsPresent(_) => false,
+        })
+    })
 }

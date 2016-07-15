@@ -6,9 +6,11 @@ use element_state::ElementState;
 use error_reporting::StdoutErrorReporter;
 use parser::ParserContextExtraData;
 use selector_impl::{ElementExt, PseudoElementCascadeType, TheSelectorImpl};
+use selector_impl::{attr_exists_selector_is_shareable, attr_equals_selector_is_shareable};
 use selectors::Element;
-use selectors::parser::{ParserContext, SelectorImpl};
+use selectors::parser::{AttrSelector, ParserContext, SelectorImpl};
 use std::process;
+use string_cache;
 use stylesheets::{Stylesheet, Origin};
 use url::Url;
 use util::opts;
@@ -93,11 +95,27 @@ impl NonTSPseudoClass {
 pub struct ServoSelectorImpl;
 
 impl SelectorImpl for ServoSelectorImpl {
-    type AttrString = String;
     type PseudoElement = PseudoElement;
     type NonTSPseudoClass = NonTSPseudoClass;
 
-    fn parse_non_ts_pseudo_class(context: &ParserContext,
+    type AttrValue = String;
+    type Identifier = string_cache::Atom;
+    type ClassName = string_cache::Atom;
+    type LocalName = string_cache::Atom;
+    type Namespace = string_cache::Namespace;
+    type BorrowedLocalName = string_cache::Atom;
+    type BorrowedNamespace = string_cache::Namespace;
+
+    fn attr_exists_selector_is_shareable(attr_selector: &AttrSelector<Self>) -> bool {
+        attr_exists_selector_is_shareable(attr_selector)
+    }
+
+    fn attr_equals_selector_is_shareable(attr_selector: &AttrSelector<Self>,
+                                         value: &Self::AttrValue) -> bool {
+        attr_equals_selector_is_shareable(attr_selector, value)
+    }
+
+    fn parse_non_ts_pseudo_class(context: &ParserContext<TheSelectorImpl>,
                                  name: &str) -> Result<NonTSPseudoClass, ()> {
         use self::NonTSPseudoClass::*;
         let pseudo_class = match_ignore_ascii_case! { name,
@@ -126,7 +144,7 @@ impl SelectorImpl for ServoSelectorImpl {
         Ok(pseudo_class)
     }
 
-    fn parse_pseudo_element(context: &ParserContext,
+    fn parse_pseudo_element(context: &ParserContext<TheSelectorImpl>,
                             name: &str) -> Result<PseudoElement, ()> {
         use self::PseudoElement::*;
         let pseudo_element = match_ignore_ascii_case! { name,
@@ -189,7 +207,7 @@ impl ServoSelectorImpl {
     }
 }
 
-impl<E: Element<Impl=TheSelectorImpl, AttrString=String>> ElementExt for E {
+impl<E: Element<Impl=TheSelectorImpl>> ElementExt for E {
     fn is_link(&self) -> bool {
         self.match_non_ts_pseudo_class(NonTSPseudoClass::AnyLink)
     }
