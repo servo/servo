@@ -61,7 +61,7 @@ pub struct HTMLScriptElement {
     parser_document: JS<Document>,
 
     /// The source this script was loaded from
-    load: DOMRefCell<Option<ScriptOrigin>>,
+    load: DOMRefCell<Option<Result<ScriptOrigin, NetworkError>>>,
 }
 
 impl HTMLScriptElement {
@@ -113,7 +113,7 @@ static SCRIPT_JS_MIMES: StaticStringVec = &[
 #[derive(HeapSizeOf, JSTraceable)]
 pub enum ScriptOrigin {
     Internal(DOMString, Url),
-    External(Result<(String, Url), NetworkError>),
+    External(String, Url),
 }
 
 /// The context required for asynchronously loading an external script source.
@@ -172,14 +172,14 @@ impl AsyncResponseListener for ScriptContext {
 
             // Step 7.
             let source_text = encoding.decode(&self.data, DecoderTrap::Replace).unwrap();
-            (source_text, metadata.final_url)
+            ScriptOrigin::External(source_text, metadata.final_url)
         });
 
         // Step 9.
         // https://html.spec.whatwg.org/multipage/#prepare-a-script
         // Step 18.6 (When the chosen algorithm asynchronously completes).
         let elem = self.elem.root();
-        *elem.load.borrow_mut() = Some(ScriptOrigin::External(load));
+        *elem.load.borrow_mut() = Some(load);
         elem.ready_to_be_parser_executed.set(true);
 
         let document = document_from_node(elem.r());
@@ -374,13 +374,13 @@ impl HTMLScriptElement {
                   // TODO: check for script nesting levels.
                   doc.get_script_blocking_stylesheets_count() > 0 {
             doc.set_pending_parsing_blocking_script(Some(self));
-            *self.load.borrow_mut() = Some(ScriptOrigin::Internal(text, base_url));
+            *self.load.borrow_mut() = Some(Ok(ScriptOrigin::Internal(text, base_url)));
             self.ready_to_be_parser_executed.set(true);
         // Step 20.f: otherwise.
         } else {
             assert!(!text.is_empty());
             self.ready_to_be_parser_executed.set(true);
-            *self.load.borrow_mut() = Some(ScriptOrigin::Internal(text, base_url));
+            *self.load.borrow_mut() = Some(Ok(ScriptOrigin::Internal(text, base_url)));
             self.execute();
             return NextParserState::Continue;
         }
@@ -411,18 +411,18 @@ impl HTMLScriptElement {
         let load = self.load.borrow_mut().take().unwrap();
         let (source, external, url) = match load {
             // Step 2.
-            ScriptOrigin::External(Err(e)) => {
+            Err(e) => {
                 warn!("error loading script {:?}", e);
                 self.dispatch_error_event();
                 return;
             }
 
-            ScriptOrigin::External(Ok((text, url))) => {
+            Ok(ScriptOrigin::External(text, url)) => {
                 debug!("loading external script, url = {}", url);
                 (DOMString::from(text), true, url)
             },
 
-            ScriptOrigin::Internal(text, url) => {
+            Ok(ScriptOrigin::Internal(text, url)) => {
                 (text, false, url)
             }
         };
