@@ -120,6 +120,7 @@ COMPILATION_TARGETS = {
             "nsStyleEffects", "nsStyleImage", "nsStyleGradient",
             "nsStyleCoord", "nsStyleGradientStop", "nsStyleImageLayers",
             "nsStyleImageLayers::Layer", "nsStyleImageLayers::LayerType",
+             "nsStyleUnit", "nsStyleUnion", "nsStyleCoord::CalcValue",
 
             "SheetParsingMode", "nsMainThreadPtrHandle",
             "nsMainThreadPtrHolder", "nscolor", "nsFont", "FontFamilyList",
