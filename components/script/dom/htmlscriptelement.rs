@@ -428,7 +428,7 @@ impl HTMLScriptElement {
         }
 
         let load = self.load.borrow_mut().take().unwrap();
-        let (source, external, url) = match load {
+        let script = match load {
             // Step 2.
             Err(e) => {
                 warn!("error loading script {:?}", e);
@@ -436,13 +436,12 @@ impl HTMLScriptElement {
                 return;
             }
 
-            Ok(ScriptOrigin { text, url, external }) => {
-                if external {
-                    debug!("loading external script, url = {}", url);
-                }
-                (text, external, url)
-            },
+            Ok(script) => script,
         };
+
+        if script.external {
+            debug!("loading external script, url = {}", script.url);
+        }
 
         // TODO(#12446): beforescriptexecute.
         if !self.dispatch_before_script_execute_event() {
@@ -465,9 +464,9 @@ impl HTMLScriptElement {
         // Step 5.a.2.
         let window = window_from_node(self);
         rooted!(in(window.get_cx()) let mut rval = UndefinedValue());
-        window.evaluate_script_on_global_with_result(&*source,
-                                                         url.as_str(),
-                                                         rval.handle_mut());
+        window.evaluate_script_on_global_with_result(&script.text,
+                                                     script.url.as_str(),
+                                                     rval.handle_mut());
 
         // Step 6.
         document.set_current_script(old_script.r());
@@ -480,7 +479,7 @@ impl HTMLScriptElement {
         self.dispatch_after_script_execute_event();
 
         // Step 8.
-        if external {
+        if script.external {
             self.dispatch_load_event();
         } else {
             window.dom_manipulation_task_source().queue_simple_event(self.upcast(), atom!("load"), window.r());
