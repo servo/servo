@@ -11,13 +11,13 @@ use keyframes::KeyframesAnimation;
 use media_queries::{Device, MediaType};
 use parser::ParserContextExtraData;
 use properties::{self, PropertyDeclaration, PropertyDeclarationBlock};
-use restyle_hints::{ElementSnapshot, RestyleHint, DependencySet};
-use selector_impl::{SelectorImplExt, ServoSelectorImpl};
+use restyle_hints::{RestyleHint, DependencySet};
+use selector_impl::{ElementExt, SelectorImplExt, ServoSelectorImpl};
+use selectors::Element;
 use selectors::bloom::BloomFilter;
 use selectors::matching::DeclarationBlock as GenericDeclarationBlock;
 use selectors::matching::{Rule, SelectorMap};
 use selectors::parser::SelectorImpl;
-use selectors::{Element, MatchAttrGeneric};
 use sink::Push;
 use smallvec::VecLike;
 use std::collections::HashMap;
@@ -463,16 +463,17 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
     }
 }
 
-impl<Impl: SelectorImplExt<AttrString=String>> Stylist<Impl> {
+impl<Impl: SelectorImplExt> Stylist<Impl> {
     pub fn compute_restyle_hint<E>(&self, element: &E,
-                                   snapshot: &ElementSnapshot,
+                                   snapshot: &E::Snapshot,
                                    // NB: We need to pass current_state as an argument because
                                    // selectors::Element doesn't provide access to ElementState
                                    // directly, and computing it from the ElementState would be
                                    // more expensive than getting it directly from the caller.
                                    current_state: ElementState)
                                    -> RestyleHint
-                                   where E: Element<Impl=Impl, AttrString=String> + Clone + MatchAttrGeneric {
+    where E: Element<Impl=Impl, AttrString = Impl::AttrString> + Clone,
+          E: ElementExt {
         self.state_deps.compute_hint(element, snapshot, current_state)
     }
 }

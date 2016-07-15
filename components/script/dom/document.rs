@@ -122,7 +122,7 @@ use std::sync::Arc;
 use string_cache::{Atom, QualName};
 use style::attr::AttrValue;
 use style::context::ReflowGoal;
-use style::restyle_hints::ElementSnapshot;
+use style::restyle_hints::ServoElementSnapshot;
 use style::servo::Stylesheet;
 use style::str::{split_html_space_chars, str_join};
 use time;
@@ -220,7 +220,7 @@ pub struct Document {
     appropriate_template_contents_owner_document: MutNullableHeap<JS<Document>>,
     /// For each element that has had a state or attribute change since the last restyle,
     /// track the original condition of the element.
-    modified_elements: DOMRefCell<HashMap<JS<Element>, ElementSnapshot>>,
+    modified_elements: DOMRefCell<HashMap<JS<Element>, ServoElementSnapshot>>,
     /// http://w3c.github.io/touch-events/#dfn-active-touch-point
     active_touch_points: DOMRefCell<Vec<JS<Touch>>>,
     /// Navigation Timing properties:
@@ -1597,7 +1597,7 @@ pub enum DocumentSource {
 #[allow(unsafe_code)]
 pub trait LayoutDocumentHelpers {
     unsafe fn is_html_document_for_layout(&self) -> bool;
-    unsafe fn drain_modified_elements(&self) -> Vec<(LayoutJS<Element>, ElementSnapshot)>;
+    unsafe fn drain_modified_elements(&self) -> Vec<(LayoutJS<Element>, ServoElementSnapshot)>;
 }
 
 #[allow(unsafe_code)]
@@ -1609,7 +1609,7 @@ impl LayoutDocumentHelpers for LayoutJS<Document> {
 
     #[inline]
     #[allow(unrooted_must_root)]
-    unsafe fn drain_modified_elements(&self) -> Vec<(LayoutJS<Element>, ElementSnapshot)> {
+    unsafe fn drain_modified_elements(&self) -> Vec<(LayoutJS<Element>, ServoElementSnapshot)> {
         let mut elements = (*self.unsafe_get()).modified_elements.borrow_mut_for_layout();
         let result = elements.drain().map(|(k, v)| (k.to_layout(), v)).collect();
         result
@@ -1851,7 +1851,10 @@ impl Document {
 
     pub fn element_state_will_change(&self, el: &Element) {
         let mut map = self.modified_elements.borrow_mut();
-        let snapshot = map.entry(JS::from_ref(el)).or_insert(ElementSnapshot::new());
+        let snapshot = map.entry(JS::from_ref(el))
+                          .or_insert_with(|| {
+                              ServoElementSnapshot::new(el.html_element_in_html_document())
+                          });
         if snapshot.state.is_none() {
             snapshot.state = Some(el.state());
         }
@@ -1859,7 +1862,10 @@ impl Document {
 
     pub fn element_attr_will_change(&self, el: &Element) {
         let mut map = self.modified_elements.borrow_mut();
-        let mut snapshot = map.entry(JS::from_ref(el)).or_insert(ElementSnapshot::new());
+        let mut snapshot = map.entry(JS::from_ref(el))
+                              .or_insert_with(|| {
+                                  ServoElementSnapshot::new(el.html_element_in_html_document())
+                              });
         if snapshot.attrs.is_none() {
             let attrs = el.attrs()
                           .iter()

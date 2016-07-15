@@ -6,6 +6,7 @@
 
 use element_state::ElementState;
 use properties::{self, ServoComputedValues};
+use restyle_hints::{ElementSnapshot, ServoElementSnapshot};
 use selector_matching::{USER_OR_USER_AGENT_STYLESHEETS, QUIRKS_MODE_STYLESHEET};
 use selectors::Element;
 use selectors::parser::{ParserContext, SelectorImpl};
@@ -60,6 +61,7 @@ impl PseudoElementCascadeType {
 }
 
 pub trait ElementExt: Element {
+    type Snapshot: ElementSnapshot<AttrString = Self::AttrString> + 'static;
     fn is_link(&self) -> bool;
 }
 
@@ -280,6 +282,8 @@ impl SelectorImplExt for ServoSelectorImpl {
 }
 
 impl<E: Element<Impl=ServoSelectorImpl, AttrString=String>> ElementExt for E {
+    type Snapshot = ServoElementSnapshot;
+
     fn is_link(&self) -> bool {
         self.match_non_ts_pseudo_class(NonTSPseudoClass::AnyLink)
     }

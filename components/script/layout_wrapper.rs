@@ -59,7 +59,7 @@ use style::element_state::*;
 use style::properties::{ComputedValues, ServoComputedValues};
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use style::refcell::{Ref, RefCell, RefMut};
-use style::restyle_hints::ElementSnapshot;
+use style::restyle_hints::ServoElementSnapshot;
 use style::selector_impl::{NonTSPseudoClass, ServoSelectorImpl};
 use style::servo::{PrivateStyleData, SharedStyleContext};
 use style::sink::Push;
@@ -353,7 +353,7 @@ impl<'ld> TDocument for ServoLayoutDocument<'ld> {
         self.as_node().children().find(ServoLayoutNode::is_element)
     }
 
-    fn drain_modified_elements(&self) -> Vec<(ServoLayoutElement<'ld>, ElementSnapshot)> {
+    fn drain_modified_elements(&self) -> Vec<(ServoLayoutElement<'ld>, ServoElementSnapshot)> {
         let elements =  unsafe { self.document.drain_modified_elements() };
         elements.into_iter().map(|(el, snapshot)| (ServoLayoutElement::from_layout_js(el), snapshot)).collect()
     }
