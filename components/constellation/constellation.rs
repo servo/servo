@@ -390,9 +390,12 @@ impl Log for FromCompositorLogger {
 
 fn log_entry(record: &LogRecord) -> Option<LogEntry> {
     match record.level() {
-        LogLevel::Error => Some(LogEntry::Error(
+        LogLevel::Error if thread::panicking() => Some(LogEntry::Panic(
             format!("{}", record.args()),
             format!("{:?}", Backtrace::new())
+        )),
+        LogLevel::Error => Some(LogEntry::Error(
+            format!("{}", record.args())
         )),
         LogLevel::Warn => Some(LogEntry::Warn(
             format!("{}", record.args())
@@ -1082,9 +1085,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     // TODO: trigger a mozbrowsererror even if there's no pipeline id
     fn handle_log_entry(&mut self, pipeline_id: Option<PipelineId>, thread_name: Option<String>, entry: LogEntry) {
         match (pipeline_id, entry) {
-            (Some(pipeline_id), LogEntry::Error(reason, backtrace)) =>
+            (Some(pipeline_id), LogEntry::Panic(reason, backtrace)) =>
                 self.trigger_mozbrowsererror(pipeline_id, reason, backtrace),
-            (None, LogEntry::Error(reason, _)) | (_, LogEntry::Warn(reason)) => {
+            (None, LogEntry::Panic(reason, _)) | (_, LogEntry::Error(reason)) | (_, LogEntry::Warn(reason)) => {
                 // VecDeque::truncate is unstable
                 if WARNINGS_BUFFER_SIZE <= self.handled_warnings.len() {
                     self.handled_warnings.pop_front();

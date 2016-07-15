@@ -45,8 +45,10 @@ pub enum EventResult {
 /// We need a separate type for this because LogLevel isn't serializable.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum LogEntry {
-    /// Error, with a reason and backtrace
-    Error(String, String),
+    /// Panic, with a reason and backtrace
+    Panic(String, String),
+    /// Error, with a reason
+    Error(String),
     /// warning, with a reason
     Warn(String)
 }
