@@ -80,6 +80,8 @@ pub mod data;
 pub mod dom;
 pub mod element_state;
 pub mod error_reporting;
+#[cfg(feature = "gecko")]
+pub mod gecko_conversions;
 pub mod font_face;
 pub mod keyframes;
 pub mod logical_geometry;
