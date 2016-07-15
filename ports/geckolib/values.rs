@@ -159,14 +159,16 @@ impl GeckoStyleCoordConvertible for LengthOrPercentage {
     fn to_gecko_style_coord(&self, unit: &mut nsStyleUnit, union: &mut nsStyleUnion) {
         match *self {
             LengthOrPercentage::Length(au) => {
+                unsafe { union.reset(unit) };
                 *unit = nsStyleUnit::eStyleUnit_Coord;
                 unsafe { *union.mInt.as_mut() = au.0; }
             },
             LengthOrPercentage::Percentage(p) => {
+                unsafe { union.reset(unit) };
                 *unit = nsStyleUnit::eStyleUnit_Percent;
                 unsafe { *union.mFloat.as_mut() = p; }
             },
-            LengthOrPercentage::Calc(_) => unimplemented!(),
+            LengthOrPercentage::Calc(calc) => unsafe {union.set_calc_value(unit, calc.into()) },
         };
     }
 
@@ -177,7 +179,7 @@ impl GeckoStyleCoordConvertible for LengthOrPercentage {
             nsStyleUnit::eStyleUnit_Percent
                 => Some(LengthOrPercentage::Percentage(unsafe { *union.mFloat.as_ref() })),
             nsStyleUnit::eStyleUnit_Calc
-                => unimplemented!(),
+                => Some(LengthOrPercentage::Calc(unsafe {union.get_calc().into()})),
             _ => None,
         }
     }
@@ -187,18 +189,21 @@ impl GeckoStyleCoordConvertible for LengthOrPercentageOrAuto {
     fn to_gecko_style_coord(&self, unit: &mut nsStyleUnit, union: &mut nsStyleUnion) {
         match *self {
             LengthOrPercentageOrAuto::Length(au) => {
+                unsafe { union.reset(unit) };
                 *unit = nsStyleUnit::eStyleUnit_Coord;
                 unsafe { *union.mInt.as_mut() = au.0; }
             },
             LengthOrPercentageOrAuto::Percentage(p) => {
+                unsafe { union.reset(unit) };
                 *unit = nsStyleUnit::eStyleUnit_Percent;
                 unsafe { *union.mFloat.as_mut() = p; }
             },
             LengthOrPercentageOrAuto::Auto => {
+                unsafe { union.reset(unit) };
                 *unit = nsStyleUnit::eStyleUnit_Auto;
                 unsafe { *union.mInt.as_mut() = 0; }
             },
-            LengthOrPercentageOrAuto::Calc(_) => unimplemented!(),
+            LengthOrPercentageOrAuto::Calc(calc) => unsafe {union.set_calc_value(unit, calc.into()) },
         };
     }
 
@@ -211,7 +216,7 @@ impl GeckoStyleCoordConvertible for LengthOrPercentageOrAuto {
             nsStyleUnit::eStyleUnit_Percent
                 => Some(LengthOrPercentageOrAuto::Percentage(unsafe { *union.mFloat.as_ref() })),
             nsStyleUnit::eStyleUnit_Calc
-                => unimplemented!(),
+                => Some(LengthOrPercentageOrAuto::Calc(unsafe {union.get_calc().into()})),
             _ => None,
         }
     }
@@ -221,18 +226,21 @@ impl GeckoStyleCoordConvertible for LengthOrPercentageOrNone {
     fn to_gecko_style_coord(&self, unit: &mut nsStyleUnit, union: &mut nsStyleUnion) {
         match *self {
             LengthOrPercentageOrNone::Length(au) => {
+                unsafe { union.reset(unit) };
                 *unit = nsStyleUnit::eStyleUnit_Coord;
                 unsafe { *union.mInt.as_mut() = au.0; }
             },
             LengthOrPercentageOrNone::Percentage(p) => {
+                unsafe { union.reset(unit) };
                 *unit = nsStyleUnit::eStyleUnit_Percent;
                 unsafe { *union.mFloat.as_mut() = p; }
             },
             LengthOrPercentageOrNone::None => {
+                unsafe { union.reset(unit) };
                 *unit = nsStyleUnit::eStyleUnit_None;
                 unsafe { *union.mInt.as_mut() = 0; }
             },
-            LengthOrPercentageOrNone::Calc(_) => unimplemented!(),
+            LengthOrPercentageOrNone::Calc(calc) => unsafe {union.set_calc_value(unit, calc.into()) },
         };
     }
 
@@ -245,7 +253,7 @@ impl GeckoStyleCoordConvertible for LengthOrPercentageOrNone {
             nsStyleUnit::eStyleUnit_Percent
                 => Some(LengthOrPercentageOrNone::Percentage(unsafe { *union.mFloat.as_ref() })),
             nsStyleUnit::eStyleUnit_Calc
-                => unimplemented!(),
+                => Some(LengthOrPercentageOrNone::Calc(unsafe {union.get_calc().into()})),
             _ => None,
         }
     }
