@@ -52,7 +52,7 @@ use selectors::parser::{AttrSelector, NamespaceConstraint};
 use std::marker::PhantomData;
 use std::mem::{transmute, transmute_copy};
 use std::sync::Arc;
-use string_cache::{Atom, BorrowedAtom, BorrowedNamespace, Namespace};
+use string_cache::{Atom, Namespace};
 use style::attr::AttrValue;
 use style::computed_values::display;
 use style::context::SharedStyleContext;
@@ -433,7 +433,10 @@ fn as_element<'le>(node: LayoutJS<Node>) -> Option<ServoLayoutElement<'le>> {
 }
 
 impl<'le> ::selectors::MatchAttrGeneric for ServoLayoutElement<'le> {
-    fn match_attr<F>(&self, attr: &AttrSelector, test: F) -> bool where F: Fn(&str) -> bool {
+    type Impl = ServoSelectorImpl;
+
+    fn match_attr<F>(&self, attr: &AttrSelector<ServoSelectorImpl>, test: F) -> bool
+    where F: Fn(&str) -> bool {
         use ::selectors::Element;
         let name = if self.is_html_element_in_html_document() {
             &attr.lower_name
@@ -455,8 +458,6 @@ impl<'le> ::selectors::MatchAttrGeneric for ServoLayoutElement<'le> {
 }
 
 impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
-    type Impl = ServoSelectorImpl;
-
     fn parent_element(&self) -> Option<ServoLayoutElement<'le>> {
         unsafe {
             self.element.upcast().parent_node_ref().and_then(as_element)
@@ -516,13 +517,13 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
     }
 
     #[inline]
-    fn get_local_name<'a>(&'a self) -> BorrowedAtom<'a> {
-        BorrowedAtom(self.element.local_name())
+    fn get_local_name(&self) -> &Atom {
+        self.element.local_name()
     }
 
     #[inline]
-    fn get_namespace<'a>(&'a self) -> BorrowedNamespace<'a> {
-        BorrowedNamespace(self.element.namespace())
+    fn get_namespace(&self) -> &Namespace {
+        self.element.namespace()
     }
 
     fn match_non_ts_pseudo_class(&self, pseudo_class: NonTSPseudoClass) -> bool {
@@ -823,8 +824,8 @@ impl<ConcreteNode> Iterator for ThreadSafeLayoutNodeChildrenIterator<ConcreteNod
                 loop {
                     let next_node = if let Some(ref node) = current_node {
                         if node.is_element() &&
-                           node.as_element().get_local_name() == atom!("summary") &&
-                           node.as_element().get_namespace() == ns!(html) {
+                           node.as_element().get_local_name() == &atom!("summary") &&
+                           node.as_element().get_namespace() == &ns!(html) {
                             self.current_node = None;
                             return Some(node.clone());
                         }
@@ -841,8 +842,8 @@ impl<ConcreteNode> Iterator for ThreadSafeLayoutNodeChildrenIterator<ConcreteNod
                 let node = self.current_node.clone();
                 let node = node.and_then(|node| {
                     if node.is_element() &&
-                       node.as_element().get_local_name() == atom!("summary") &&
-                       node.as_element().get_namespace() == ns!(html) {
+                       node.as_element().get_local_name() == &atom!("summary") &&
+                       node.as_element().get_namespace() == &ns!(html) {
                         unsafe { node.dangerous_next_sibling() }
                     } else {
                         Some(node)
@@ -902,13 +903,13 @@ impl<'le> ThreadSafeLayoutElement for ServoThreadSafeLayoutElement<'le> {
     }
 
     #[inline]
-    fn get_local_name<'a>(&'a self) -> BorrowedAtom<'a> {
-        BorrowedAtom(self.element.local_name())
+    fn get_local_name(&self) -> &Atom {
+        self.element.local_name()
     }
 
     #[inline]
-    fn get_namespace<'a>(&'a self) -> BorrowedNamespace<'a> {
-        BorrowedNamespace(self.element.namespace())
+    fn get_namespace(&self) -> &Namespace {
+        self.element.namespace()
     }
 }
 
@@ -925,7 +926,9 @@ impl<'le> ThreadSafeLayoutElement for ServoThreadSafeLayoutElement<'le> {
 /// Note that the element implementation is needed only for selector matching,
 /// not for inheritance (styles are inherited appropiately).
 impl<'le> ::selectors::MatchAttrGeneric for ServoThreadSafeLayoutElement<'le> {
-    fn match_attr<F>(&self, attr: &AttrSelector, test: F) -> bool
+    type Impl = ServoSelectorImpl;
+
+    fn match_attr<F>(&self, attr: &AttrSelector<ServoSelectorImpl>, test: F) -> bool
         where F: Fn(&str) -> bool {
         match attr.namespace {
             NamespaceConstraint::Specific(ref ns) => {
@@ -941,8 +944,6 @@ impl<'le> ::selectors::MatchAttrGeneric for ServoThreadSafeLayoutElement<'le> {
     }
 }
 impl<'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
-    type Impl = ServoSelectorImpl;
-
     fn parent_element(&self) -> Option<Self> {
         warn!("ServoThreadSafeLayoutElement::parent_element called");
         None
@@ -977,12 +978,12 @@ impl<'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
     }
 
     #[inline]
-    fn get_local_name<'a>(&'a self) -> BorrowedAtom<'a> {
+    fn get_local_name(&self) -> &Atom {
         ThreadSafeLayoutElement::get_local_name(self)
     }
 
     #[inline]
-    fn get_namespace<'a>(&'a self) -> BorrowedNamespace<'a> {
+    fn get_namespace(&self) -> &Namespace {
         ThreadSafeLayoutElement::get_namespace(self)
     }
 

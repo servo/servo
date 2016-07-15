@@ -11,7 +11,7 @@ use keyframes::KeyframesAnimation;
 use media_queries::{Device, MediaType};
 use properties::{self, PropertyDeclaration, PropertyDeclarationBlock, ComputedValues};
 use restyle_hints::{RestyleHint, DependencySet};
-use selector_impl::{ElementExt, TheSelectorImpl, PseudoElement, AttrString};
+use selector_impl::{ElementExt, TheSelectorImpl, PseudoElement};
 use selectors::Element;
 use selectors::bloom::BloomFilter;
 use selectors::matching::DeclarationBlock as GenericDeclarationBlock;
@@ -242,7 +242,7 @@ impl Stylist {
                                                   pseudo: &PseudoElement,
                                                   parent: &Arc<ComputedValues>)
                                                   -> Option<Arc<ComputedValues>>
-                                                  where E: Element<Impl=TheSelectorImpl, AttrString=AttrString> +
+                                                  where E: Element<Impl=TheSelectorImpl> +
                                                         PresentationalHintsSynthetizer {
         debug_assert!(TheSelectorImpl::pseudo_element_cascade_type(pseudo).is_lazy());
         if self.pseudos_map.get(pseudo).is_none() {
@@ -308,7 +308,7 @@ impl Stylist {
                                         pseudo_element: Option<&PseudoElement>,
                                         applicable_declarations: &mut V)
                                         -> bool
-                                        where E: Element<Impl=TheSelectorImpl, AttrString=AttrString> +
+                                        where E: Element<Impl=TheSelectorImpl> +
                                                  PresentationalHintsSynthetizer,
                                               V: Push<DeclarationBlock> + VecLike<DeclarationBlock> {
         assert!(!self.is_device_dirty);

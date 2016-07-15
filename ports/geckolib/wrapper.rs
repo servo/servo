@@ -26,6 +26,7 @@ use gecko_bindings::bindings::{Gecko_LocalName, Gecko_Namespace, Gecko_NodeIsEle
 use gecko_bindings::bindings::{RawGeckoDocument, RawGeckoElement, RawGeckoNode};
 use gecko_bindings::structs::{NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO, NODE_IS_DIRTY_FOR_SERVO};
 use gecko_bindings::structs::{nsIAtom, nsChangeHint, nsStyleContext};
+use gecko_string_cache::{Atom, Namespace, WeakAtom};
 use glue::GeckoDeclarationBlock;
 use libc::uintptr_t;
 use selectors::Element;
@@ -37,7 +38,6 @@ use std::marker::PhantomData;
 use std::ops::BitOr;
 use std::ptr;
 use std::sync::Arc;
-use string_cache::{Atom, BorrowedAtom, BorrowedNamespace, Namespace};
 use style::data::PrivateStyleData;
 use style::dom::{OpaqueNode, PresentationalHintsSynthetizer};
 use style::dom::{TDocument, TElement, TNode, TRestyleDamage, UnsafeNode};
@@ -433,7 +433,7 @@ impl<'le> TElement for GeckoElement<'le> {
     fn has_attr(&self, namespace: &Namespace, attr: &Atom) -> bool {
         unsafe {
             bindings::Gecko_HasAttr(self.element,
-                                    namespace.0.as_ptr(),
+                                    namespace.as_ptr(),
                                     attr.as_ptr())
         }
     }
@@ -442,7 +442,7 @@ impl<'le> TElement for GeckoElement<'le> {
     fn attr_equals(&self, namespace: &Namespace, attr: &Atom, val: &Atom) -> bool {
         unsafe {
             bindings::Gecko_AttrEquals(self.element,
-                                       namespace.0.as_ptr(),
+                                       namespace.as_ptr(),
                                        attr.as_ptr(),
                                        val.as_ptr(),
                                        /* ignoreCase = */ false)
@@ -459,8 +459,6 @@ impl<'le> PresentationalHintsSynthetizer for GeckoElement<'le> {
 }
 
 impl<'le> ::selectors::Element for GeckoElement<'le> {
-    type Impl = GeckoSelectorImpl;
-
     fn parent_element(&self) -> Option<Self> {
         unsafe {
             Gecko_GetParentElement(self.element).as_ref().map(|el| GeckoElement::from_ref(el))
@@ -502,15 +500,15 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
         false
     }
 
-    fn get_local_name<'a>(&'a self) -> BorrowedAtom<'a> {
+    fn get_local_name(&self) -> &WeakAtom {
         unsafe {
-            BorrowedAtom::new(Gecko_LocalName(self.element))
+            WeakAtom::new(Gecko_LocalName(self.element))
         }
     }
 
-    fn get_namespace<'a>(&'a self) -> BorrowedNamespace<'a> {
+    fn get_namespace(&self) -> &WeakAtom {
         unsafe {
-            BorrowedNamespace::new(Gecko_Namespace(self.element))
+            WeakAtom::new(Gecko_Namespace(self.element))
         }
     }
 
@@ -575,11 +573,11 @@ pub trait AttrSelectorHelpers {
     fn select_name(&self, is_html_element_in_html_document: bool) -> *mut nsIAtom;
 }
 
-impl AttrSelectorHelpers for AttrSelector {
+impl AttrSelectorHelpers for AttrSelector<GeckoSelectorImpl> {
     fn ns_or_null(&self) -> *mut nsIAtom {
         match self.namespace {
             NamespaceConstraint::Any => ptr::null_mut(),
-            NamespaceConstraint::Specific(ref ns) => ns.0.as_ptr(),
+            NamespaceConstraint::Specific(ref ns) => ns.as_ptr(),
         }
     }
 
@@ -593,15 +591,16 @@ impl AttrSelectorHelpers for AttrSelector {
 }
 
 impl<'le> ::selectors::MatchAttr for GeckoElement<'le> {
-    type AttrString = Atom;
-    fn match_attr_has(&self, attr: &AttrSelector) -> bool {
+    type Impl = GeckoSelectorImpl;
+
+    fn match_attr_has(&self, attr: &AttrSelector<Self::Impl>) -> bool {
         unsafe {
             bindings::Gecko_HasAttr(self.element,
                                     attr.ns_or_null(),
                                     attr.select_name(self.is_html_element_in_html_document()))
         }
     }
-    fn match_attr_equals(&self, attr: &AttrSelector, value: &Self::AttrString) -> bool {
+    fn match_attr_equals(&self, attr: &AttrSelector<Self::Impl>, value: &Atom) -> bool {
         unsafe {
             bindings::Gecko_AttrEquals(self.element,
                                        attr.ns_or_null(),
@@ -610,7 +609,7 @@ impl<'le> ::selectors::MatchAttr for GeckoElement<'le> {
                                        /* ignoreCase = */ false)
         }
     }
-    fn match_attr_equals_ignore_ascii_case(&self, attr: &AttrSelector, value: &Self::AttrString) -> bool {
+    fn match_attr_equals_ignore_ascii_case(&self, attr: &AttrSelector<Self::Impl>, value: &Atom) -> bool {
         unsafe {
             bindings::Gecko_AttrEquals(self.element,
                                        attr.ns_or_null(),
@@ -619,7 +618,7 @@ impl<'le> ::selectors::MatchAttr for GeckoElement<'le> {
                                        /* ignoreCase = */ false)
         }
     }
-    fn match_attr_includes(&self, attr: &AttrSelector, value: &Self::AttrString) -> bool {
+    fn match_attr_includes(&self, attr: &AttrSelector<Self::Impl>, value: &Atom) -> bool {
         unsafe {
             bindings::Gecko_AttrIncludes(self.element,
                                          attr.ns_or_null(),
@@ -627,7 +626,7 @@ impl<'le> ::selectors::MatchAttr for GeckoElement<'le> {
                                          value.as_ptr())
         }
     }
-    fn match_attr_dash(&self, attr: &AttrSelector, value: &Self::AttrString) -> bool {
+    fn match_attr_dash(&self, attr: &AttrSelector<Self::Impl>, value: &Atom) -> bool {
         unsafe {
             bindings::Gecko_AttrDashEquals(self.element,
                                            attr.ns_or_null(),
@@ -635,7 +634,7 @@ impl<'le> ::selectors::MatchAttr for GeckoElement<'le> {
                                            value.as_ptr())
         }
     }
-    fn match_attr_prefix(&self, attr: &AttrSelector, value: &Self::AttrString) -> bool {
+    fn match_attr_prefix(&self, attr: &AttrSelector<Self::Impl>, value: &Atom) -> bool {
         unsafe {
             bindings::Gecko_AttrHasPrefix(self.element,
                                           attr.ns_or_null(),
@@ -643,7 +642,7 @@ impl<'le> ::selectors::MatchAttr for GeckoElement<'le> {
                                           value.as_ptr())
         }
     }
-    fn match_attr_substring(&self, attr: &AttrSelector, value: &Self::AttrString) -> bool {
+    fn match_attr_substring(&self, attr: &AttrSelector<Self::Impl>, value: &Atom) -> bool {
         unsafe {
             bindings::Gecko_AttrHasSubstring(self.element,
                                              attr.ns_or_null(),
@@ -651,7 +650,7 @@ impl<'le> ::selectors::MatchAttr for GeckoElement<'le> {
                                              value.as_ptr())
         }
     }
-    fn match_attr_suffix(&self, attr: &AttrSelector, value: &Self::AttrString) -> bool {
+    fn match_attr_suffix(&self, attr: &AttrSelector<Self::Impl>, value: &Atom) -> bool {
         unsafe {
             bindings::Gecko_AttrHasSuffix(self.element,
                                           attr.ns_or_null(),

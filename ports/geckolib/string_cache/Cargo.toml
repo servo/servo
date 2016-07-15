@@ -1,5 +1,5 @@
 [package]
-name = "string_cache"
+name = "gecko_string_cache"
 description = "A crate to allow using Gecko's nsIAtom as a replacement for string_cache."
 version = "0.2.20"
 authors = ["The Servo Project Developers"]
@@ -7,17 +7,12 @@ license = "MPL-2.0"
 publish = false
 
 [lib]
-name = "string_cache"
 path = "lib.rs"
-
-[features]
-log-events = []
-unstable = []
-heap_size = []
 
 [dependencies]
 cfg-if = "0.1.0"
 gecko_bindings = {version = "0.0.1", path = "../gecko_bindings"}
 heapsize = "0.3.5"
 libc = "0.2"
+selectors = "0.8"
 serde = "0.7.15"

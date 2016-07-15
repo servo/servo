@@ -5,13 +5,13 @@
 //! Restyle hints: an optimization to avoid unnecessarily matching selectors.
 
 use element_state::*;
-use selector_impl::{ElementExt, TheSelectorImpl, AttrString, NonTSPseudoClass};
+use selector_impl::{ElementExt, TheSelectorImpl, NonTSPseudoClass, AttrValue};
 use selectors::matching::matches_compound_selector;
-use selectors::parser::{AttrSelector, Combinator, CompoundSelector, SimpleSelector};
+use selectors::parser::{AttrSelector, Combinator, CompoundSelector, SimpleSelector, SelectorImpl};
 use selectors::{Element, MatchAttr};
 use std::clone::Clone;
 use std::sync::Arc;
-use string_cache::{Atom, BorrowedAtom, BorrowedNamespace};
+use string_cache::Atom;
 
 /// When the ElementState of an element (like IN_HOVER_STATE) changes, certain
 /// pseudo-classes (like :hover) may require us to restyle that element, its
@@ -52,7 +52,7 @@ bitflags! {
 /// still need to take the ElementWrapper approach for attribute-dependent
 /// style. So we do it the same both ways for now to reduce complexity, but it's
 /// worth measuring the performance impact (if any) of the mStateMask approach.
-pub trait ElementSnapshot : Sized + MatchAttr {
+pub trait ElementSnapshot : Sized + MatchAttr<Impl=TheSelectorImpl> {
     /// The state of the snapshot, if any.
     fn state(&self) -> Option<ElementState>;
 
@@ -93,11 +93,11 @@ impl<'a, E> ElementWrapper<'a, E>
 }
 
 impl<'a, E> MatchAttr for ElementWrapper<'a, E>
-    where E: ElementExt<AttrString=AttrString>,
+    where E: ElementExt,
 {
-    type AttrString = E::AttrString;
+    type Impl = TheSelectorImpl;
 
-    fn match_attr_has(&self, attr: &AttrSelector) -> bool {
+    fn match_attr_has(&self, attr: &AttrSelector<TheSelectorImpl>) -> bool {
         match self.snapshot {
             Some(snapshot) if snapshot.has_attrs()
                 => snapshot.match_attr_has(attr),
@@ -106,8 +106,8 @@ impl<'a, E> MatchAttr for ElementWrapper<'a, E>
     }
 
     fn match_attr_equals(&self,
-                         attr: &AttrSelector,
-                         value: &Self::AttrString) -> bool {
+                         attr: &AttrSelector<TheSelectorImpl>,
+                         value: &AttrValue) -> bool {
         match self.snapshot {
             Some(snapshot) if snapshot.has_attrs()
                 => snapshot.match_attr_equals(attr, value),
@@ -116,8 +116,8 @@ impl<'a, E> MatchAttr for ElementWrapper<'a, E>
     }
 
     fn match_attr_equals_ignore_ascii_case(&self,
-                                           attr: &AttrSelector,
-                                           value: &Self::AttrString) -> bool {
+                                           attr: &AttrSelector<TheSelectorImpl>,
+                                           value: &AttrValue) -> bool {
         match self.snapshot {
             Some(snapshot) if snapshot.has_attrs()
                 => snapshot.match_attr_equals_ignore_ascii_case(attr, value),
@@ -126,8 +126,8 @@ impl<'a, E> MatchAttr for ElementWrapper<'a, E>
     }
 
     fn match_attr_includes(&self,
-                           attr: &AttrSelector,
-                           value: &Self::AttrString) -> bool {
+                           attr: &AttrSelector<TheSelectorImpl>,
+                           value: &AttrValue) -> bool {
         match self.snapshot {
             Some(snapshot) if snapshot.has_attrs()
                 => snapshot.match_attr_includes(attr, value),
@@ -136,8 +136,8 @@ impl<'a, E> MatchAttr for ElementWrapper<'a, E>
     }
 
     fn match_attr_dash(&self,
-                       attr: &AttrSelector,
-                       value: &Self::AttrString) -> bool {
+                       attr: &AttrSelector<TheSelectorImpl>,
+                       value: &AttrValue) -> bool {
         match self.snapshot {
             Some(snapshot) if snapshot.has_attrs()
                 => snapshot.match_attr_dash(attr, value),
@@ -146,8 +146,8 @@ impl<'a, E> MatchAttr for ElementWrapper<'a, E>
     }
 
     fn match_attr_prefix(&self,
-                         attr: &AttrSelector,
-                         value: &Self::AttrString) -> bool {
+                         attr: &AttrSelector<TheSelectorImpl>,
+                         value: &AttrValue) -> bool {
         match self.snapshot {
             Some(snapshot) if snapshot.has_attrs()
                 => snapshot.match_attr_prefix(attr, value),
@@ -156,8 +156,8 @@ impl<'a, E> MatchAttr for ElementWrapper<'a, E>
     }
 
     fn match_attr_substring(&self,
-                            attr: &AttrSelector,
-                            value: &Self::AttrString) -> bool {
+                            attr: &AttrSelector<TheSelectorImpl>,
+                            value: &AttrValue) -> bool {
         match self.snapshot {
             Some(snapshot) if snapshot.has_attrs()
                 => snapshot.match_attr_substring(attr, value),
@@ -166,8 +166,8 @@ impl<'a, E> MatchAttr for ElementWrapper<'a, E>
     }
 
     fn match_attr_suffix(&self,
-                         attr: &AttrSelector,
-                         value: &Self::AttrString) -> bool {
+                         attr: &AttrSelector<TheSelectorImpl>,
+                         value: &AttrValue) -> bool {
         match self.snapshot {
             Some(snapshot) if snapshot.has_attrs()
                 => snapshot.match_attr_suffix(attr, value),
@@ -177,10 +177,8 @@ impl<'a, E> MatchAttr for ElementWrapper<'a, E>
 }
 
 impl<'a, E> Element for ElementWrapper<'a, E>
-    where E: ElementExt<Impl=TheSelectorImpl, AttrString=AttrString>
+    where E: ElementExt<Impl=TheSelectorImpl>
 {
-    type Impl = TheSelectorImpl;
-
     fn match_non_ts_pseudo_class(&self, pseudo_class: NonTSPseudoClass) -> bool {
         let flag = TheSelectorImpl::pseudo_class_state_flag(&pseudo_class);
         if flag == ElementState::empty() {
@@ -217,11 +215,11 @@ impl<'a, E> Element for ElementWrapper<'a, E>
         self.element.is_html_element_in_html_document()
     }
 
-    fn get_local_name(&self) -> BorrowedAtom {
+    fn get_local_name(&self) -> &<Self::Impl as SelectorImpl>::BorrowedLocalName {
         self.element.get_local_name()
     }
 
-    fn get_namespace(&self) -> BorrowedNamespace {
+    fn get_namespace(&self) -> &<Self::Impl as SelectorImpl>::BorrowedNamespace {
         self.element.get_namespace()
     }
 

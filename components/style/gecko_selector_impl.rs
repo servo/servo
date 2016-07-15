@@ -4,8 +4,9 @@
 
 use element_state::ElementState;
 use selector_impl::PseudoElementCascadeType;
-use selectors::parser::{ParserContext, SelectorImpl};
-use string_cache::Atom;
+use selector_impl::{attr_exists_selector_is_shareable, attr_equals_selector_is_shareable};
+use selectors::parser::{ParserContext, SelectorImpl, AttrSelector};
+use string_cache::{Atom, WeakAtom};
 use stylesheets::Stylesheet;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -149,10 +150,27 @@ impl NonTSPseudoClass {
 }
 
 impl SelectorImpl for GeckoSelectorImpl {
-    type AttrString = Atom;
+    type AttrValue = Atom;
+    type Identifier = Atom;
+    type ClassName = Atom;
+    type LocalName = Atom;
+    type Namespace = Atom;
+    type BorrowedNamespace = WeakAtom;
+    type BorrowedLocalName = WeakAtom;
+
     type PseudoElement = PseudoElement;
     type NonTSPseudoClass = NonTSPseudoClass;
-    fn parse_non_ts_pseudo_class(_context: &ParserContext,
+
+    fn attr_exists_selector_is_shareable(attr_selector: &AttrSelector<Self>) -> bool {
+        attr_exists_selector_is_shareable(attr_selector)
+    }
+
+    fn attr_equals_selector_is_shareable(attr_selector: &AttrSelector<Self>,
+                                         value: &Self::AttrValue) -> bool {
+        attr_equals_selector_is_shareable(attr_selector, value)
+    }
+
+    fn parse_non_ts_pseudo_class(_context: &ParserContext<Self>,
                                  name: &str) -> Result<NonTSPseudoClass, ()> {
         use self::NonTSPseudoClass::*;
         let pseudo_class = match_ignore_ascii_case! { name,
@@ -174,7 +192,7 @@ impl SelectorImpl for GeckoSelectorImpl {
         Ok(pseudo_class)
     }
 
-    fn parse_pseudo_element(context: &ParserContext,
+    fn parse_pseudo_element(context: &ParserContext<Self>,
                             name: &str) -> Result<PseudoElement, ()> {
         use self::AnonBoxPseudoElement::*;
         use self::PseudoElement::*;
