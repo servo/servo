@@ -9,6 +9,7 @@
 //! navigation context, each `Pipeline` encompassing a `ScriptThread`,
 //! `LayoutThread`, and `PaintThread`.
 
+use backtrace::Backtrace;
 use canvas::canvas_paint_thread::CanvasPaintThread;
 use canvas::webgl_paint_thread::WebGLPaintThread;
 use canvas_traits::CanvasMsg;
@@ -24,6 +25,7 @@ use gfx_traits::Epoch;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout_traits::LayoutThreadFactory;
+use log::{Log, LogLevel, LogLevelFilter, LogMetadata, LogRecord};
 use msg::constellation_msg::{FrameId, FrameType, PipelineId};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
 use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId, NavigationDirection};
@@ -45,14 +47,16 @@ use script_traits::{ConstellationControlMsg, ConstellationMsg as FromCompositorM
 use script_traits::{DocumentState, LayoutControlMsg};
 use script_traits::{IFrameLoadInfo, IFrameSandboxState, TimerEventRequest};
 use script_traits::{LayoutMsg as FromLayoutMsg, ScriptMsg as FromScriptMsg, ScriptThreadFactory};
-use script_traits::{MozBrowserEvent, MozBrowserErrorType, WebDriverCommandMsg, WindowSizeData};
+use script_traits::{LogEntry, MozBrowserEvent, MozBrowserErrorType, WebDriverCommandMsg, WindowSizeData};
 use std::borrow::ToOwned;
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::io::Error as IOError;
 use std::marker::PhantomData;
 use std::mem::replace;
 use std::process;
 use std::sync::mpsc::{Sender, channel, Receiver};
+use std::sync::{Arc, Mutex};
+use std::thread;
 use style_traits::PagePx;
 use style_traits::cursor::Cursor;
 use style_traits::viewport::ViewportConstraints;
@@ -182,6 +186,10 @@ pub struct Constellation<Message, LTF, STF> {
     /// Have we seen any panics? Hopefully always false!
     handled_panic: bool,
 
+    /// Have we seen any warnings? Hopefully always empty!
+    /// The buffer contains `(thread_name, reason)` entries.
+    handled_warnings: VecDeque<(Option<String>, String)>,
+
     /// The random number generator and probability for closing pipelines.
     /// This is for testing the hardening of the constellation.
     random_pipeline_closure: Option<(StdRng, f32)>,
@@ -304,6 +312,100 @@ enum ExitPipelineMode {
     Force,
 }
 
+/// A logger directed at the constellation from content processes
+#[derive(Clone)]
+pub struct FromScriptLogger {
+    /// A channel to the constellation
+    pub constellation_chan: Arc<Mutex<IpcSender<FromScriptMsg>>>,
+}
+
+impl FromScriptLogger {
+    /// Create a new constellation logger.
+    pub fn new(constellation_chan: IpcSender<FromScriptMsg>) -> FromScriptLogger {
+        FromScriptLogger {
+            constellation_chan: Arc::new(Mutex::new(constellation_chan))
+        }
+    }
+
+    /// The maximum log level the constellation logger is interested in.
+    pub fn filter(&self) -> LogLevelFilter {
+        LogLevelFilter::Warn
+    }
+}
+
+impl Log for FromScriptLogger {
+    fn enabled(&self, metadata: &LogMetadata) -> bool {
+        metadata.level() <= LogLevel::Warn
+    }
+
+    fn log(&self, record: &LogRecord) {
+        if let Some(entry) = log_entry(record) {
+            // TODO: Store the pipeline id in TLS so we can recover it here
+            let thread_name = thread::current().name().map(ToOwned::to_owned);
+            let msg = FromScriptMsg::LogEntry(None, thread_name, entry);
+            if let Ok(chan) = self.constellation_chan.lock() {
+                let _ = chan.send(msg);
+            }
+        }
+    }
+}
+
+/// A logger directed at the constellation from the compositor
+#[derive(Clone)]
+pub struct FromCompositorLogger {
+    /// A channel to the constellation
+    pub constellation_chan: Arc<Mutex<Sender<FromCompositorMsg>>>,
+}
+
+impl FromCompositorLogger {
+    /// Create a new constellation logger.
+    pub fn new(constellation_chan: Sender<FromCompositorMsg>) -> FromCompositorLogger {
+        FromCompositorLogger {
+            constellation_chan: Arc::new(Mutex::new(constellation_chan))
+        }
+    }
+
+    /// The maximum log level the constellation logger is interested in.
+    pub fn filter(&self) -> LogLevelFilter {
+        LogLevelFilter::Warn
+    }
+}
+
+impl Log for FromCompositorLogger {
+    fn enabled(&self, metadata: &LogMetadata) -> bool {
+        metadata.level() <= LogLevel::Warn
+    }
+
+    fn log(&self, record: &LogRecord) {
+        if let Some(entry) = log_entry(record) {
+            // TODO: Store the pipeline id in TLS so we can recover it here
+            let thread_name = thread::current().name().map(ToOwned::to_owned);
+            let msg = FromCompositorMsg::LogEntry(None, thread_name, entry);
+            if let Ok(chan) = self.constellation_chan.lock() {
+                let _ = chan.send(msg);
+            }
+        }
+    }
+}
+
+fn log_entry(record: &LogRecord) -> Option<LogEntry> {
+    match record.level() {
+        LogLevel::Error if thread::panicking() => Some(LogEntry::Panic(
+            format!("{}", record.args()),
+            format!("{:?}", Backtrace::new())
+        )),
+        LogLevel::Error => Some(LogEntry::Error(
+            format!("{}", record.args())
+        )),
+        LogLevel::Warn => Some(LogEntry::Warn(
+            format!("{}", record.args())
+        )),
+        _ => None,
+    }
+}
+
+const WARNINGS_BUFFER_SIZE: usize = 32;
+
 impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     where LTF: LayoutThreadFactory<Message=Message>,
           STF: ScriptThreadFactory<Message=Message>
@@ -367,6 +469,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 webrender_api_sender: state.webrender_api_sender,
                 shutting_down: false,
                 handled_panic: false,
+                handled_warnings: VecDeque::new(),
                 random_pipeline_closure: opts::get().random_pipeline_closure_probability.map(|prob| {
                     let seed = opts::get().random_pipeline_closure_seed.unwrap_or_else(random);
                     let rng = StdRng::from_seed(&[seed]);
@@ -621,6 +724,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 debug!("constellation got reload message");
                 self.handle_reload_msg();
             }
+            FromCompositorMsg::LogEntry(pipeline_id, thread_name, entry) => {
+                self.handle_log_entry(pipeline_id, thread_name, entry);
+            }
         }
     }
 
@@ -798,6 +904,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             FromScriptMsg::Exit => {
                 self.compositor_proxy.send(ToCompositorMsg::Exit);
             }
+            FromScriptMsg::LogEntry(pipeline_id, thread_name, entry) => {
+                self.handle_log_entry(pipeline_id, thread_name, entry);
+            }
 
             FromScriptMsg::SetTitle(pipeline_id, title) => {
                 self.compositor_proxy.send(ToCompositorMsg::ChangePageTitle(pipeline_id, title))
@@ -971,6 +1080,21 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
 
         self.handled_panic = true;
+    }
+
+    // TODO: trigger a mozbrowsererror even if there's no pipeline id
+    fn handle_log_entry(&mut self, pipeline_id: Option<PipelineId>, thread_name: Option<String>, entry: LogEntry) {
+        match (pipeline_id, entry) {
+            (Some(pipeline_id), LogEntry::Panic(reason, backtrace)) =>
+                self.trigger_mozbrowsererror(pipeline_id, reason, backtrace),
+            (None, LogEntry::Panic(reason, _)) | (_, LogEntry::Error(reason)) | (_, LogEntry::Warn(reason)) => {
+                // VecDeque::truncate is unstable
+                if WARNINGS_BUFFER_SIZE <= self.handled_warnings.len() {
+                    self.handled_warnings.pop_front();
+                }
+                self.handled_warnings.push_back((thread_name, reason));
+            },
+        }
     }
 
     fn handle_init_load(&mut self, url: Url) {
@@ -2050,7 +2174,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     } else {
                         // Note that we deliberately do not do any of the tidying up
                         // associated with closing a pipeline. The constellation should cope!
-                        info!("Randomly closing pipeline {}.", pipeline_id);
+                        warn!("Randomly closing pipeline {}.", pipeline_id);
                         pipeline.force_exit();
                     }
                 }
@@ -2156,7 +2280,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
     // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowsererror
     // Note that this does not require the pipeline to be an immediate child of the root
-    fn trigger_mozbrowsererror(&self, pipeline_id: PipelineId, reason: String, backtrace: String) {
+    // TODO: allow the pipeline id to be optional, triggering the error on the root if it's not provided.
+    fn trigger_mozbrowsererror(&mut self, pipeline_id: PipelineId, reason: String, backtrace: String) {
         if !PREFS.is_mozbrowser_enabled() { return; }
 
         let ancestor_info = self.get_mozbrowser_ancestor_info(pipeline_id);
@@ -2164,7 +2289,21 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         if let Some(ancestor_info) = ancestor_info {
             match self.pipelines.get(&ancestor_info.0) {
                 Some(ancestor) => {
-                    let event = MozBrowserEvent::Error(MozBrowserErrorType::Fatal, Some(reason), Some(backtrace));
+                    let mut report = String::new();
+                    for (thread_name, warning) in self.handled_warnings.drain(..) {
+                        report.push_str("\nWARNING: ");
+                        if let Some(thread_name) = thread_name {
+                            report.push_str("<");
+                            report.push_str(&*thread_name);
+                            report.push_str(">: ");
+                        }
+                        report.push_str(&*warning);
+                    }
+                    report.push_str("\nERROR: ");
+                    report.push_str(&*reason);
+                    report.push_str("\n\n");
+                    report.push_str(&*backtrace);
+                    let event = MozBrowserEvent::Error(MozBrowserErrorType::Fatal, Some(reason), Some(report));
                     ancestor.trigger_mozbrowser_event(ancestor_info.1, event);
                 },
                 None => return warn!("Mozbrowsererror via closed pipeline {:?}.", ancestor_info.0),

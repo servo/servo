@@ -66,7 +66,7 @@ use url::Url;
 use util::ipc::OptionalOpaqueIpcSender;
 use webdriver_msg::{LoadStatus, WebDriverScriptCommand};
 
-pub use script_msg::{LayoutMsg, ScriptMsg, EventResult};
+pub use script_msg::{LayoutMsg, ScriptMsg, EventResult, LogEntry};
 
 /// The address of a node. Layout sends these back. They must be validated via
 /// `from_untrusted_node_address` before they can be used, because we do not trust layout.
@@ -436,6 +436,7 @@ pub enum MozBrowserEvent {
     /// handling `<menuitem>` element available within the browser `<iframe>`'s content.
     ContextMenu,
     /// Sent when an error occurred while trying to load content within a browser `<iframe>`.
+    /// Includes an optional human-readable description, and an optional machine-readable report.
     Error(MozBrowserErrorType, Option<String>, Option<String>),
     /// Sent when the favicon of a browser `<iframe>` changes.
     IconChange(String, String, String),
@@ -599,4 +600,6 @@ pub enum ConstellationMsg {
     WebDriverCommand(WebDriverCommandMsg),
     /// Reload the current page.
     Reload,
+    /// A log entry, with the pipeline id and thread name
+    LogEntry(Option<PipelineId>, Option<String>, LogEntry),
 }

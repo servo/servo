@@ -40,6 +40,19 @@ pub enum EventResult {
     DefaultPrevented,
 }
 
+/// A log entry reported to the constellation
+/// We don't report all log entries, just serious ones.
+/// We need a separate type for this because LogLevel isn't serializable.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum LogEntry {
+    /// Panic, with a reason and backtrace
+    Panic(String, String),
+    /// Error, with a reason
+    Error(String),
+    /// warning, with a reason
+    Warn(String)
+}
+
 /// Messages from the script to the constellation.
 #[derive(Deserialize, Serialize)]
 pub enum ScriptMsg {
@@ -114,6 +127,8 @@ pub enum ScriptMsg {
     TouchEventProcessed(EventResult),
     /// Get Scroll Offset
     GetScrollOffset(PipelineId, LayerId, IpcSender<Point2D<f32>>),
+    /// A log entry, with the pipeline id and thread name
+    LogEntry(Option<PipelineId>, Option<String>, LogEntry),
     /// Notifies the constellation that this pipeline has exited.
     PipelineExited(PipelineId),
     /// Requests that the compositor shut down.
