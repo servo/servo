@@ -12,11 +12,11 @@ name = "style"
 path = "lib.rs"
 
 [features]
-gecko = ["gecko_bindings", "selectors/gecko"]
+gecko = ["gecko_bindings", "gecko_string_cache"]
 servo = ["serde", "serde/nightly", "serde_macros", "heapsize", "heapsize_plugin",
          "style_traits/servo", "app_units/plugins", "euclid/plugins",
          "cssparser/heap_size", "cssparser/serde-serialization",
-         "selectors/heap_size", "selectors/unstable", "string_cache/heap_size",
+         "selectors/heap_size", "selectors/unstable", "string_cache",
          "url/heap_size", "plugins"]
 
 [dependencies]
@@ -28,6 +28,7 @@ encoding = "0.2"
 euclid = "0.7.1"
 fnv = "1.0"
 gecko_bindings = {path = "../../ports/geckolib/gecko_bindings", optional = true}
+gecko_string_cache = {path = "../../ports/geckolib/string_cache", optional = true}
 heapsize = {version = "0.3.0", optional = true}
 heapsize_plugin = {version = "0.1.2", optional = true}
 lazy_static = "0.2"
@@ -37,11 +38,11 @@ num-traits = "0.1.32"
 ordered-float = "0.2.2"
 rand = "0.3"
 rustc-serialize = "0.3"
-selectors = "0.7"
+selectors = "0.8.2"
 serde = {version = "0.7.15", optional = true}
 serde_macros = {version = "0.7.15", optional = true}
 smallvec = "0.1"
-string_cache = "0.2.20"
+string_cache = {version = "0.2.22", features = ["heap_size"], optional = true}
 style_traits = {path = "../style_traits"}
 time = "0.1"
 url = "1.0.0"

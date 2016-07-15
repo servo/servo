@@ -11,7 +11,7 @@ use msg::constellation_msg::PipelineId;
 use range::Range;
 use restyle_damage::RestyleDamage;
 use std::sync::Arc;
-use string_cache::{Atom, BorrowedAtom, BorrowedNamespace, Namespace};
+use string_cache::{Atom, Namespace};
 use style::computed_values::display;
 use style::context::SharedStyleContext;
 use style::dom::OpaqueNode;
@@ -86,7 +86,7 @@ pub trait LayoutNode: TNode {
 pub trait ThreadSafeLayoutNode: Clone + Copy + Sized + PartialEq {
     type ConcreteThreadSafeLayoutElement:
         ThreadSafeLayoutElement<ConcreteThreadSafeLayoutNode = Self>
-        + ::selectors::Element<Impl=ServoSelectorImpl, AttrString=String>;
+        + ::selectors::Element<Impl=ServoSelectorImpl>;
     type ChildrenIterator: Iterator<Item = Self> + Sized;
 
     /// Creates a new `ThreadSafeLayoutNode` for the same `LayoutNode`
@@ -158,8 +158,8 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Sized + PartialEq {
     #[inline]
     fn get_details_summary_pseudo(&self) -> Option<Self> {
         if self.is_element() &&
-           self.as_element().get_local_name() == atom!("details") &&
-           self.as_element().get_namespace() == ns!(html) {
+           self.as_element().get_local_name() == &atom!("details") &&
+           self.as_element().get_namespace() == &ns!(html) {
             Some(self.with_pseudo(PseudoElementType::DetailsSummary(None)))
         } else {
             None
@@ -169,8 +169,8 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Sized + PartialEq {
     #[inline]
     fn get_details_content_pseudo(&self) -> Option<Self> {
         if self.is_element() &&
-           self.as_element().get_local_name() == atom!("details") &&
-           self.as_element().get_namespace() == ns!(html) {
+           self.as_element().get_local_name() == &atom!("details") &&
+           self.as_element().get_namespace() == &ns!(html) {
             let display = if self.as_element().get_attr(&ns!(), &atom!("open")).is_some() {
                 None // Specified by the stylesheet
             } else {
@@ -351,7 +351,7 @@ pub trait DangerousThreadSafeLayoutNode: ThreadSafeLayoutNode {
 }
 
 pub trait ThreadSafeLayoutElement: Clone + Copy + Sized +
-                                   ::selectors::Element<Impl=ServoSelectorImpl, AttrString=String> +
+                                   ::selectors::Element<Impl=ServoSelectorImpl> +
                                    PresentationalHintsSynthetizer {
     type ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<ConcreteThreadSafeLayoutElement = Self>;
 
@@ -359,8 +359,8 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized +
     fn get_attr(&self, namespace: &Namespace, name: &Atom) -> Option<&str>;
 
     #[inline]
-    fn get_local_name<'a>(&'a self) -> BorrowedAtom<'a>;
+    fn get_local_name(&self) -> &Atom;
 
     #[inline]
-    fn get_namespace<'a>(&'a self) -> BorrowedNamespace<'a>;
+    fn get_namespace(&self) -> &Namespace;
 }

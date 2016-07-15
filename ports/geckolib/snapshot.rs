@@ -4,11 +4,12 @@
 use gecko_bindings::bindings;
 use gecko_bindings::structs::ServoElementSnapshot;
 use gecko_bindings::structs::ServoElementSnapshotFlags as Flags;
+use gecko_string_cache::Atom;
 use selectors::parser::AttrSelector;
 use snapshot_helpers;
-use string_cache::Atom;
 use style::element_state::ElementState;
 use style::restyle_hints::ElementSnapshot;
+use style::selector_impl::TheSelectorImpl;
 use wrapper::AttrSelectorHelpers;
 
 // NB: This is sound, in some sense, because during computation of restyle hints
@@ -34,9 +35,9 @@ impl GeckoElementSnapshot {
 }
 
 impl ::selectors::MatchAttr for GeckoElementSnapshot {
-    type AttrString = Atom;
+    type Impl = TheSelectorImpl;
 
-    fn match_attr_has(&self, attr: &AttrSelector) -> bool {
+    fn match_attr_has(&self, attr: &AttrSelector<TheSelectorImpl>) -> bool {
         unsafe {
             bindings::Gecko_SnapshotHasAttr(self.0,
                                             attr.ns_or_null(),
@@ -44,7 +45,7 @@ impl ::selectors::MatchAttr for GeckoElementSnapshot {
         }
     }
 
-    fn match_attr_equals(&self, attr: &AttrSelector, value: &Self::AttrString) -> bool {
+    fn match_attr_equals(&self, attr: &AttrSelector<TheSelectorImpl>, value: &Atom) -> bool {
         unsafe {
             bindings::Gecko_SnapshotAttrEquals(self.0,
                                                attr.ns_or_null(),
@@ -54,7 +55,7 @@ impl ::selectors::MatchAttr for GeckoElementSnapshot {
         }
     }
 
-    fn match_attr_equals_ignore_ascii_case(&self, attr: &AttrSelector, value: &Self::AttrString) -> bool {
+    fn match_attr_equals_ignore_ascii_case(&self, attr: &AttrSelector<TheSelectorImpl>, value: &Atom) -> bool {
         unsafe {
             bindings::Gecko_SnapshotAttrEquals(self.0,
                                                attr.ns_or_null(),
@@ -63,7 +64,7 @@ impl ::selectors::MatchAttr for GeckoElementSnapshot {
                                                /* ignoreCase = */ true)
         }
     }
-    fn match_attr_includes(&self, attr: &AttrSelector, value: &Self::AttrString) -> bool {
+    fn match_attr_includes(&self, attr: &AttrSelector<TheSelectorImpl>, value: &Atom) -> bool {
         unsafe {
             bindings::Gecko_SnapshotAttrIncludes(self.0,
                                                  attr.ns_or_null(),
@@ -71,7 +72,7 @@ impl ::selectors::MatchAttr for GeckoElementSnapshot {
                                                  value.as_ptr())
         }
     }
-    fn match_attr_dash(&self, attr: &AttrSelector, value: &Self::AttrString) -> bool {
+    fn match_attr_dash(&self, attr: &AttrSelector<TheSelectorImpl>, value: &Atom) -> bool {
         unsafe {
             bindings::Gecko_SnapshotAttrDashEquals(self.0,
                                                    attr.ns_or_null(),
@@ -79,7 +80,7 @@ impl ::selectors::MatchAttr for GeckoElementSnapshot {
                                                    value.as_ptr())
         }
     }
-    fn match_attr_prefix(&self, attr: &AttrSelector, value: &Self::AttrString) -> bool {
+    fn match_attr_prefix(&self, attr: &AttrSelector<TheSelectorImpl>, value: &Atom) -> bool {
         unsafe {
             bindings::Gecko_SnapshotAttrHasPrefix(self.0,
                                                   attr.ns_or_null(),
@@ -87,7 +88,7 @@ impl ::selectors::MatchAttr for GeckoElementSnapshot {
                                                   value.as_ptr())
         }
     }
-    fn match_attr_substring(&self, attr: &AttrSelector, value: &Self::AttrString) -> bool {
+    fn match_attr_substring(&self, attr: &AttrSelector<TheSelectorImpl>, value: &Atom) -> bool {
         unsafe {
             bindings::Gecko_SnapshotAttrHasSubstring(self.0,
                                                      attr.ns_or_null(),
@@ -95,7 +96,7 @@ impl ::selectors::MatchAttr for GeckoElementSnapshot {
                                                      value.as_ptr())
         }
     }
-    fn match_attr_suffix(&self, attr: &AttrSelector, value: &Self::AttrString) -> bool {
+    fn match_attr_suffix(&self, attr: &AttrSelector<TheSelectorImpl>, value: &Atom) -> bool {
         unsafe {
             bindings::Gecko_SnapshotAttrHasSuffix(self.0,
                                                   attr.ns_or_null(),

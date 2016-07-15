@@ -14,16 +14,13 @@ app_units = "0.2.5"
 env_logger = "0.3"
 euclid = "0.7.1"
 gecko_bindings = {version = "0.0.1", path = "gecko_bindings"}
+gecko_string_cache = {path = "string_cache"}
 lazy_static = "0.2"
 libc = "0.2"
 log = {version = "0.3.5", features = ["release_max_level_info"]}
 num_cpus = "0.2.2"
-selectors = "0.7"
-string_cache = {version = "0.2.20", features = ["unstable"]}
+selectors = "0.8"
 style = {path = "../../components/style", features = ["gecko"]}
 style_traits = {path = "../../components/style_traits"}
 url = "1.0.0"
 util = {path = "../../components/util"}
-
-[replace]
-"string_cache:0.2.20" = {path = "string_cache"}

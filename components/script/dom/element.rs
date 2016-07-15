@@ -73,7 +73,6 @@ use html5ever::tree_builder::{LimitedQuirks, NoQuirks, Quirks};
 use ref_filter_map::ref_filter_map;
 use selectors::matching::{DeclarationBlock, ElementFlags, matches};
 use selectors::matching::{HAS_SLOW_SELECTOR, HAS_EDGE_CHILD_SELECTOR, HAS_SLOW_SELECTOR_LATER_SIBLINGS};
-use selectors::matching::{common_style_affecting_attributes, rare_style_affecting_attributes};
 use selectors::parser::{AttrSelector, NamespaceConstraint, parse_author_origin_selector_list_from_str};
 use std::ascii::AsciiExt;
 use std::borrow::Cow;
@@ -83,9 +82,10 @@ use std::default::Default;
 use std::mem;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
-use string_cache::{Atom, BorrowedAtom, BorrowedNamespace, Namespace, QualName};
+use string_cache::{Atom, Namespace, QualName};
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use style::element_state::*;
+use style::matching::{common_style_affecting_attributes, rare_style_affecting_attributes};
 use style::parser::ParserContextExtraData;
 use style::properties::DeclaredValue;
 use style::properties::longhands::{self, background_image, border_spacing, font_family, overflow_x, font_size};
@@ -2235,7 +2235,9 @@ impl VirtualMethods for Element {
 }
 
 impl<'a> ::selectors::MatchAttrGeneric for Root<Element> {
-    fn match_attr<F>(&self, attr: &AttrSelector, test: F) -> bool
+    type Impl = ServoSelectorImpl;
+
+    fn match_attr<F>(&self, attr: &AttrSelector<ServoSelectorImpl>, test: F) -> bool
         where F: Fn(&str) -> bool
     {
         use ::selectors::Element;
@@ -2263,8 +2265,6 @@ impl<'a> ::selectors::MatchAttrGeneric for Root<Element> {
 }
 
 impl<'a> ::selectors::Element for Root<Element> {
-    type Impl = ServoSelectorImpl;
-
     fn parent_element(&self) -> Option<Root<Element>> {
         self.upcast::<Node>().GetParentElement()
     }
@@ -2299,12 +2299,12 @@ impl<'a> ::selectors::Element for Root<Element> {
         })
     }
 
-    fn get_local_name(&self) -> BorrowedAtom {
-        BorrowedAtom(self.local_name())
+    fn get_local_name(&self) -> &Atom {
+        self.local_name()
     }
 
-    fn get_namespace(&self) -> BorrowedNamespace {
-        BorrowedNamespace(self.namespace())
+    fn get_namespace(&self) -> &Namespace {
+        self.namespace()
     }
 
     fn match_non_ts_pseudo_class(&self, pseudo_class: NonTSPseudoClass) -> bool {
