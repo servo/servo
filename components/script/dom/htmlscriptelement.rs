@@ -111,9 +111,28 @@ static SCRIPT_JS_MIMES: StaticStringVec = &[
 ];
 
 #[derive(HeapSizeOf, JSTraceable)]
-pub enum ScriptOrigin {
-    Internal(DOMString, Url),
-    External(DOMString, Url),
+pub struct ScriptOrigin {
+    text: DOMString,
+    url: Url,
+    external: bool,
+}
+
+impl ScriptOrigin {
+    fn internal(text: DOMString, url: Url) -> ScriptOrigin {
+        ScriptOrigin {
+            text: text,
+            url: url,
+            external: false,
+        }
+    }
+
+    fn external(text: DOMString, url: Url) -> ScriptOrigin {
+        ScriptOrigin {
+            text: text,
+            url: url,
+            external: true,
+        }
+    }
 }
 
 /// The context required for asynchronously loading an external script source.
@@ -172,7 +191,7 @@ impl AsyncResponseListener for ScriptContext {
 
             // Step 7.
             let source_text = encoding.decode(&self.data, DecoderTrap::Replace).unwrap();
-            ScriptOrigin::External(DOMString::from(source_text), metadata.final_url)
+            ScriptOrigin::external(DOMString::from(source_text), metadata.final_url)
         });
 
         // Step 9.
@@ -374,13 +393,13 @@ impl HTMLScriptElement {
                   // TODO: check for script nesting levels.
                   doc.get_script_blocking_stylesheets_count() > 0 {
             doc.set_pending_parsing_blocking_script(Some(self));
-            *self.load.borrow_mut() = Some(Ok(ScriptOrigin::Internal(text, base_url)));
+            *self.load.borrow_mut() = Some(Ok(ScriptOrigin::internal(text, base_url)));
             self.ready_to_be_parser_executed.set(true);
         // Step 20.f: otherwise.
         } else {
             assert!(!text.is_empty());
             self.ready_to_be_parser_executed.set(true);
-            *self.load.borrow_mut() = Some(Ok(ScriptOrigin::Internal(text, base_url)));
+            *self.load.borrow_mut() = Some(Ok(ScriptOrigin::internal(text, base_url)));
             self.execute();
             return NextParserState::Continue;
         }
@@ -417,14 +436,12 @@ impl HTMLScriptElement {
                 return;
             }
 
-            Ok(ScriptOrigin::External(text, url)) => {
-                debug!("loading external script, url = {}", url);
-                (text, true, url)
+            Ok(ScriptOrigin { text, url, external }) => {
+                if external {
+                    debug!("loading external script, url = {}", url);
+                }
+                (text, external, url)
             },
-
-            Ok(ScriptOrigin::Internal(text, url)) => {
-                (text, false, url)
-            }
         };
 
         // TODO(#12446): beforescriptexecute.
