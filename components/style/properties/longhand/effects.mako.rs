@@ -12,18 +12,14 @@ ${helpers.predefined_type("opacity",
                           "1.0",
                           animatable=True)}
 
-<%helpers:longhand name="box-shadow" animatable="True">
+<%helpers:vector_longhand name="box-shadow" allow_empty="True" animatable="True">
     use cssparser::{self, ToCss};
     use std::fmt;
     use values::LocalToCss;
 
     #[derive(Debug, Clone, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub struct SpecifiedValue(Vec<SpecifiedBoxShadow>);
-
-    #[derive(Debug, Clone, PartialEq)]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub struct SpecifiedBoxShadow {
+    pub struct SpecifiedValue {
         pub offset_x: specified::Length,
         pub offset_y: specified::Length,
         pub blur_radius: specified::Length,
@@ -33,23 +29,6 @@ ${helpers.predefined_type("opacity",
     }
 
     impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            let mut iter = self.0.iter();
-            if let Some(shadow) = iter.next() {
-                try!(shadow.to_css(dest));
-            } else {
-                try!(dest.write_str("none"));
-                return Ok(())
-            }
-            for shadow in iter {
-                try!(dest.write_str(", "));
-                try!(shadow.to_css(dest));
-            }
-            Ok(())
-        }
-    }
-
-    impl ToCss for SpecifiedBoxShadow {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             if self.inset {
                 try!(dest.write_str("inset "));
@@ -75,13 +54,9 @@ ${helpers.predefined_type("opacity",
         use std::fmt;
         use values::computed;
 
-        #[derive(Clone, PartialEq, Debug)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct T(pub Vec<BoxShadow>);
-
         #[derive(Clone, PartialEq, Copy, Debug)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct BoxShadow {
+        pub struct T {
             pub offset_x: Au,
             pub offset_y: Au,
             pub blur_radius: Au,
@@ -92,23 +67,6 @@ ${helpers.predefined_type("opacity",
     }
 
     impl ToCss for computed_value::T {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            let mut iter = self.0.iter();
-            if let Some(shadow) = iter.next() {
-                try!(shadow.to_css(dest));
-            } else {
-                try!(dest.write_str("none"));
-                return Ok(())
-            }
-            for shadow in iter {
-                try!(dest.write_str(", "));
-                try!(shadow.to_css(dest));
-            }
-            Ok(())
-        }
-    }
-
-    impl ToCss for computed_value::BoxShadow {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             if self.inset {
                 try!(dest.write_str("inset "));
@@ -126,44 +84,26 @@ ${helpers.predefined_type("opacity",
         }
     }
 
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T(Vec::new())
-    }
-
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        if input.try(|input| input.expect_ident_matching("none")).is_ok() {
-            Ok(SpecifiedValue(Vec::new()))
-        } else {
-            input.parse_comma_separated(parse_one_box_shadow).map(SpecifiedValue)
-        }
-    }
-
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
 
         #[inline]
         fn to_computed_value<Cx: TContext>(&self, context: &Cx) -> computed_value::T {
-            computed_value::T(self.0.iter().map(|value| compute_one_box_shadow(value, context)).collect())
+            computed_value::T {
+                offset_x: self.offset_x.to_computed_value(context),
+                offset_y: self.offset_y.to_computed_value(context),
+                blur_radius: self.blur_radius.to_computed_value(context),
+                spread_radius: self.spread_radius.to_computed_value(context),
+                color: self.color
+                            .as_ref()
+                            .map(|color| color.parsed)
+                            .unwrap_or(cssparser::Color::CurrentColor),
+                inset: self.inset,
+            }
         }
     }
 
-    pub fn compute_one_box_shadow<Cx: TContext>(value: &SpecifiedBoxShadow, context: &Cx)
-                                  -> computed_value::BoxShadow {
-        computed_value::BoxShadow {
-            offset_x: value.offset_x.to_computed_value(context),
-            offset_y: value.offset_y.to_computed_value(context),
-            blur_radius: value.blur_radius.to_computed_value(context),
-            spread_radius: value.spread_radius.to_computed_value(context),
-            color: value.color
-                        .as_ref()
-                        .map(|color| color.parsed)
-                        .unwrap_or(cssparser::Color::CurrentColor),
-            inset: value.inset,
-        }
-    }
-
-    pub fn parse_one_box_shadow(input: &mut Parser) -> Result<SpecifiedBoxShadow, ()> {
+    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
         use app_units::Au;
         let mut lengths = [specified::Length::Absolute(Au(0)); 4];
         let mut lengths_parsed = false;
@@ -213,7 +153,7 @@ ${helpers.predefined_type("opacity",
             return Err(())
         }
 
-        Ok(SpecifiedBoxShadow {
+        Ok(SpecifiedValue {
             offset_x: lengths[0],
             offset_y: lengths[1],
             blur_radius: lengths[2],
@@ -222,7 +162,7 @@ ${helpers.predefined_type("opacity",
             inset: inset,
         })
     }
-</%helpers:longhand>
+</%helpers:vector_longhand>
 
 // FIXME: This prop should be animatable
 <%helpers:longhand name="clip" animatable="False">

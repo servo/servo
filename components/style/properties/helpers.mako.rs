@@ -44,6 +44,7 @@
     Setting allow_empty to False allows for cases where the vector
     is empty. The grammar for these is usually "none | <thing> [ , <thing> ]*".
     We assume that the default/initial value is an empty vector for these.
+    `initial_value` need not be defined for these.
 </%doc>
 <%def name="vector_longhand(name, gecko_only=False, allow_empty=False, **kwargs)">
     <%call expr="longhand(name, **kwargs)">
