@@ -10,6 +10,7 @@
  * Exposed=(Window,Worker)] */
  
 interface Headers {
+  [Throws]
   void append(ByteString name, ByteString value);
 }; 
 
