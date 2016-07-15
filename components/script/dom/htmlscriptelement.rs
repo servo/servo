@@ -409,65 +409,60 @@ impl HTMLScriptElement {
         }
 
         let load = self.load.borrow_mut().take().unwrap();
-
-        // Step 2.
         let (source, external, url) = match load {
-            // Step 2.a.
+            // Step 2.
             ScriptOrigin::External(Err(e)) => {
                 warn!("error loading script {:?}", e);
                 self.dispatch_error_event();
                 return;
             }
 
-            // Step 2.b.1.a.
             ScriptOrigin::External(Ok((text, url))) => {
                 debug!("loading external script, url = {}", url);
                 (DOMString::from(text), true, url)
             },
 
-            // Step 2.b.1.c.
             ScriptOrigin::Internal(text, url) => {
                 (text, false, url)
             }
         };
 
-        // Step 2.b.2.
+        // TODO(#12446): beforescriptexecute.
         if !self.dispatch_before_script_execute_event() {
             return;
         }
 
-        // Step 2.b.3.
+        // Step 3.
         // TODO: If the script is from an external file, then increment the
         // ignore-destructive-writes counter of the script element's node
         // document. Let neutralised doc be that Document.
 
-        // Step 2.b.4.
+        // Step 4.
         let document = document_from_node(self);
         let document = document.r();
         let old_script = document.GetCurrentScript();
 
-        // Step 2.b.5.
+        // Step 5.a.1.
         document.set_current_script(Some(self));
 
-        // Step 2.b.6.
-        // TODO: Create a script...
+        // Step 5.a.2.
         let window = window_from_node(self);
         rooted!(in(window.get_cx()) let mut rval = UndefinedValue());
         window.evaluate_script_on_global_with_result(&*source,
                                                          url.as_str(),
                                                          rval.handle_mut());
 
-        // Step 2.b.7.
+        // Step 6.
         document.set_current_script(old_script.r());
 
-        // Step 2.b.8.
+        // Step 7.
         // TODO: Decrement the ignore-destructive-writes counter of neutralised
         // doc, if it was incremented in the earlier step.
 
-        // Step 2.b.9.
+        // TODO(#12446): afterscriptexecute.
         self.dispatch_after_script_execute_event();
 
-        // Step 2.b.10.
+        // Step 8.
         if external {
             self.dispatch_load_event();
         } else {
