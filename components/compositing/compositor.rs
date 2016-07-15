@@ -1403,7 +1403,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                     warn!("Sending load url to constellation failed ({}).", e);
                 }
             },
-            Err(e) => error!("Parsing URL {} failed ({}).", url_string, e),
+            Err(e) => warn!("Parsing URL {} failed ({}).", url_string, e),
         }
     }
 

@@ -328,7 +328,7 @@ impl HTMLScriptElement {
                 // Step 18.4-18.5.
                 let url = match base_url.join(&src) {
                     Err(_) => {
-                        error!("error parsing URL for script {}", &**src);
+                        warn!("error parsing URL for script {}", &**src);
                         self.queue_error_event();
                         return NextParserState::Continue;
                     }
@@ -414,7 +414,7 @@ impl HTMLScriptElement {
         let (source, external, url) = match load {
             // Step 2.a.
             ScriptOrigin::External(Err(e)) => {
-                error!("error loading script {:?}", e);
+                warn!("error loading script {:?}", e);
                 self.dispatch_error_event();
                 return;
             }
