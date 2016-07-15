@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#worker-locations
-[Exposed=(Window,Worker)]
+[Exposed=Worker]
 interface WorkerLocation {
   /*stringifier*/ readonly attribute USVString href;
   // readonly attribute USVString origin;
