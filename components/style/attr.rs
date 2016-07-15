@@ -29,7 +29,7 @@ pub enum LengthOrPercentageOrAuto {
     Length(Au),
 }
 
-#[derive(PartialEq, Clone)]
+#[derive(PartialEq, Clone, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum AttrValue {
     String(String),

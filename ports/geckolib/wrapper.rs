@@ -7,7 +7,6 @@
 use gecko_bindings::bindings;
 use gecko_bindings::bindings::Gecko_ChildrenCount;
 use gecko_bindings::bindings::Gecko_ClassOrClassList;
-use gecko_bindings::bindings::Gecko_GetElementId;
 use gecko_bindings::bindings::Gecko_GetNodeData;
 use gecko_bindings::bindings::ServoNodeData;
 use gecko_bindings::bindings::{Gecko_ElementState, Gecko_GetDocumentElement};
@@ -20,7 +19,6 @@ use gecko_bindings::bindings::{Gecko_GetPrevSibling, Gecko_GetPrevSiblingElement
 use gecko_bindings::bindings::{Gecko_GetServoDeclarationBlock, Gecko_IsHTMLElementInHTMLDocument};
 use gecko_bindings::bindings::{Gecko_IsLink, Gecko_IsRootElement, Gecko_IsTextNode};
 use gecko_bindings::bindings::{Gecko_IsUnvisitedLink, Gecko_IsVisitedLink};
-#[allow(unused_imports)] // Used in commented-out code.
 use gecko_bindings::bindings::{Gecko_LocalName, Gecko_Namespace, Gecko_NodeIsElement, Gecko_SetNodeData};
 use gecko_bindings::bindings::{RawGeckoDocument, RawGeckoElement, RawGeckoNode};
 use gecko_bindings::structs::nsIAtom;
@@ -30,6 +28,7 @@ use libc::uintptr_t;
 use selectors::Element;
 use selectors::matching::DeclarationBlock;
 use selectors::parser::{AttrSelector, NamespaceConstraint};
+use snapshot::GeckoElementSnapshot;
 use std::marker::PhantomData;
 use std::ops::BitOr;
 use std::ptr;
@@ -40,19 +39,14 @@ use style::data::PrivateStyleData;
 use style::dom::{OpaqueNode, PresentationalHintsSynthetizer};
 use style::dom::{TDocument, TElement, TNode, TRestyleDamage, UnsafeNode};
 use style::element_state::ElementState;
-#[allow(unused_imports)] // Used in commented-out code.
 use style::error_reporting::StdoutErrorReporter;
 use style::gecko_selector_impl::{GeckoSelectorImpl, NonTSPseudoClass};
-#[allow(unused_imports)] // Used in commented-out code.
 use style::parser::ParserContextExtraData;
-#[allow(unused_imports)] // Used in commented-out code.
 use style::properties::{ComputedValues, parse_style_attribute};
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use style::refcell::{Ref, RefCell, RefMut};
-use style::restyle_hints::ElementSnapshot;
 use style::selector_impl::ElementExt;
 use style::sink::Push;
-#[allow(unused_imports)] // Used in commented-out code.
 use url::Url;
 
 pub type NonOpaqueStyleData = *mut RefCell<PrivateStyleData>;
@@ -324,7 +318,7 @@ impl<'ld> TDocument for GeckoDocument<'ld> {
         }
     }
 
-    fn drain_modified_elements(&self) -> Vec<(GeckoElement<'ld>, ElementSnapshot)> {
+    fn drain_modified_elements(&self) -> Vec<(GeckoElement<'ld>, GeckoElementSnapshot)> {
         unimplemented!()
         /*
         let elements =  unsafe { self.document.drain_modified_elements() };
@@ -497,13 +491,14 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
     }
 
     fn get_id(&self) -> Option<Atom> {
-        unsafe {
-            let ptr = Gecko_GetElementId(self.element);
-            if ptr.is_null() {
-                None
-            } else {
-                Some(Atom::from(ptr))
-            }
+        let ptr = unsafe {
+            bindings::Gecko_AtomAttrValue(self.element, atom!("id").as_ptr())
+        };
+
+        if ptr.is_null() {
+            None
+        } else {
+            Some(Atom::from(ptr))
         }
     }
 
@@ -548,9 +543,9 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
     }
 }
 
-trait AttrSelectorHelpers {
+pub trait AttrSelectorHelpers {
     fn ns_or_null(&self) -> *mut nsIAtom;
-    fn select_name<'le>(&self, el: &GeckoElement<'le>) -> *mut nsIAtom;
+    fn select_name(&self, is_html_element_in_html_document: bool) -> *mut nsIAtom;
 }
 
 impl AttrSelectorHelpers for AttrSelector {
@@ -561,13 +556,12 @@ impl AttrSelectorHelpers for AttrSelector {
         }
     }
 
-    fn select_name<'le>(&self, el: &GeckoElement<'le>) -> *mut nsIAtom {
-        if el.is_html_element_in_html_document() {
+    fn select_name(&self, is_html_element_in_html_document: bool) -> *mut nsIAtom {
+        if is_html_element_in_html_document {
             self.lower_name.as_ptr()
         } else {
             self.name.as_ptr()
         }
-
     }
 }
 
@@ -577,14 +571,14 @@ impl<'le> ::selectors::MatchAttr for GeckoElement<'le> {
         unsafe {
             bindings::Gecko_HasAttr(self.element,
                                     attr.ns_or_null(),
-                                    attr.select_name(self))
+                                    attr.select_name(self.is_html_element_in_html_document()))
         }
     }
     fn match_attr_equals(&self, attr: &AttrSelector, value: &Self::AttrString) -> bool {
         unsafe {
             bindings::Gecko_AttrEquals(self.element,
                                        attr.ns_or_null(),
-                                       attr.select_name(self),
+                                       attr.select_name(self.is_html_element_in_html_document()),
                                        value.as_ptr(),
                                        /* ignoreCase = */ false)
         }
@@ -593,7 +587,7 @@ impl<'le> ::selectors::MatchAttr for GeckoElement<'le> {
         unsafe {
             bindings::Gecko_AttrEquals(self.element,
                                        attr.ns_or_null(),
-                                       attr.select_name(self),
+                                       attr.select_name(self.is_html_element_in_html_document()),
                                        value.as_ptr(),
                                        /* ignoreCase = */ false)
         }
@@ -602,7 +596,7 @@ impl<'le> ::selectors::MatchAttr for GeckoElement<'le> {
         unsafe {
             bindings::Gecko_AttrIncludes(self.element,
                                          attr.ns_or_null(),
-                                         attr.select_name(self),
+                                         attr.select_name(self.is_html_element_in_html_document()),
                                          value.as_ptr())
         }
     }
@@ -610,7 +604,7 @@ impl<'le> ::selectors::MatchAttr for GeckoElement<'le> {
         unsafe {
             bindings::Gecko_AttrDashEquals(self.element,
                                            attr.ns_or_null(),
-                                           attr.select_name(self),
+                                           attr.select_name(self.is_html_element_in_html_document()),
                                            value.as_ptr())
         }
     }
@@ -618,7 +612,7 @@ impl<'le> ::selectors::MatchAttr for GeckoElement<'le> {
         unsafe {
             bindings::Gecko_AttrHasPrefix(self.element,
                                           attr.ns_or_null(),
-                                          attr.select_name(self),
+                                          attr.select_name(self.is_html_element_in_html_document()),
                                           value.as_ptr())
         }
     }
@@ -626,7 +620,7 @@ impl<'le> ::selectors::MatchAttr for GeckoElement<'le> {
         unsafe {
             bindings::Gecko_AttrHasSubstring(self.element,
                                              attr.ns_or_null(),
-                                             attr.select_name(self),
+                                             attr.select_name(self.is_html_element_in_html_document()),
                                              value.as_ptr())
         }
     }
@@ -634,13 +628,16 @@ impl<'le> ::selectors::MatchAttr for GeckoElement<'le> {
         unsafe {
             bindings::Gecko_AttrHasSuffix(self.element,
                                           attr.ns_or_null(),
-                                          attr.select_name(self),
+                                          attr.select_name(self.is_html_element_in_html_document()),
                                           value.as_ptr())
         }
     }
 }
 
 impl<'le> ElementExt for GeckoElement<'le> {
+    type Snapshot = GeckoElementSnapshot;
+
+    #[inline]
     fn is_link(&self) -> bool {
         self.match_non_ts_pseudo_class(NonTSPseudoClass::AnyLink)
     }

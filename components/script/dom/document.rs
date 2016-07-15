@@ -122,7 +122,7 @@ use std::sync::Arc;
 use string_cache::{Atom, QualName};
 use style::attr::AttrValue;
 use style::context::ReflowGoal;
-use style::restyle_hints::ElementSnapshot;
+use style::selector_impl::ElementSnapshot;
 use style::str::{split_html_space_chars, str_join};
 use style::stylesheets::Stylesheet;
 use time;
@@ -1851,7 +1851,10 @@ impl Document {
 
     pub fn element_state_will_change(&self, el: &Element) {
         let mut map = self.modified_elements.borrow_mut();
-        let snapshot = map.entry(JS::from_ref(el)).or_insert(ElementSnapshot::new());
+        let snapshot = map.entry(JS::from_ref(el))
+                          .or_insert_with(|| {
+                              ElementSnapshot::new(el.html_element_in_html_document())
+                          });
         if snapshot.state.is_none() {
             snapshot.state = Some(el.state());
         }
@@ -1859,7 +1862,10 @@ impl Document {
 
     pub fn element_attr_will_change(&self, el: &Element) {
         let mut map = self.modified_elements.borrow_mut();
-        let mut snapshot = map.entry(JS::from_ref(el)).or_insert(ElementSnapshot::new());
+        let mut snapshot = map.entry(JS::from_ref(el))
+                              .or_insert_with(|| {
+                                  ElementSnapshot::new(el.html_element_in_html_document())
+                              });
         if snapshot.attrs.is_none() {
             let attrs = el.attrs()
                           .iter()
