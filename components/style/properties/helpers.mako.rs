@@ -37,12 +37,17 @@
 // and handle the empty case correctly
 <%doc>
     To be used in cases where we have a grammar like
-    "<thing> [ , <thing> ]*", but only support a single value
-    in servo
+    "<thing> [ , <thing> ]*". `gecko_only` should be set
+    to True for cases where Servo takes a single value
+    and Stylo supports vector values.
+
+    If the computed value is the same as the specified value,
+    setting computed_is_specified to True will introduce additional
+    optimizations
 </%doc>
-<%def name="gecko_autoarray_longhand(name, **kwargs)">
+<%def name="vector_longhand(name, gecko_only=False, **kwargs)">
     <%call expr="longhand(name, **kwargs)">
-        % if product == "gecko":
+        % if product == "gecko" or not gecko_only:
             use cssparser::ToCss;
             use std::fmt;
 

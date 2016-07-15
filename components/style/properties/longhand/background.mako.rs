@@ -10,7 +10,7 @@ ${helpers.predefined_type("background-color", "CSSColor",
     "::cssparser::Color::RGBA(::cssparser::RGBA { red: 0., green: 0., blue: 0., alpha: 0. }) /* transparent */",
     animatable=True)}
 
-<%helpers:gecko_autoarray_longhand name="background-image" animatable="False">
+<%helpers:vector_longhand gecko_only="True" name="background-image" animatable="False">
     use cssparser::ToCss;
     use std::fmt;
     use values::specified::Image;
@@ -70,7 +70,7 @@ ${helpers.predefined_type("background-color", "CSSColor",
             }
         }
     }
-</%helpers:gecko_autoarray_longhand>
+</%helpers:vector_longhand>
 
 <%helpers:longhand name="background-position" animatable="True">
         use cssparser::ToCss;
