@@ -87,6 +87,8 @@ class Configuration:
                 getter = lambda x: x.interface.isJSImplemented()
             elif key == 'isGlobal':
                 getter = lambda x: x.isGlobal()
+            elif key == 'isExposedConditionally':
+                getter = lambda x: x.interface.isExposedConditionally()
             else:
                 getter = lambda x: getattr(x, key)
             curr = filter(lambda x: getter(x) == val, curr)
