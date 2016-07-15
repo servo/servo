@@ -68,7 +68,11 @@ pub fn handle_evaluate_js(global: &GlobalRef, eval: String, reply: IpcSender<Eva
 }
 
 pub fn handle_get_root_node(context: &BrowsingContext, pipeline: PipelineId, reply: IpcSender<NodeInfo>) {
-    let context = context.find(pipeline).unwrap();
+    let context = match context.find(pipeline) {
+        Some(found_context) => found_context,
+        None => return warn!("No root node found for pipeline id {}", pipeline)
+    };
+
     let document = context.active_document();
 
     let node = document.upcast::<Node>();
@@ -78,7 +82,11 @@ pub fn handle_get_root_node(context: &BrowsingContext, pipeline: PipelineId, rep
 pub fn handle_get_document_element(context: &BrowsingContext,
                                    pipeline: PipelineId,
                                    reply: IpcSender<NodeInfo>) {
-    let context = context.find(pipeline).unwrap();
+    let context = match context.find(pipeline) {
+        Some(found_context) => found_context,
+        None => return warn!("No document element found for pipeline id {}", pipeline)
+    };
+
     let document = context.active_document();
     let document_element = document.GetDocumentElement().unwrap();
 
@@ -90,7 +98,7 @@ fn find_node_by_unique_id(context: &BrowsingContext,
                           pipeline: PipelineId,
                           node_id: String)
                           -> Root<Node> {
-    let context = context.find(pipeline).unwrap();
+    let context = context.find(pipeline).expect(&format!("couldn't find node with unique id {}", node_id));
     let document = context.active_document();
     let node = document.upcast::<Node>();
 
