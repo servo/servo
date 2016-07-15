@@ -917,6 +917,11 @@ impl WindowMethods for Window {
                     self.event_queue.borrow_mut().push(WindowEvent::Reload);
                 }
             }
+            (CMD_OR_CONTROL, Some('q'), _) => {
+                if let Some(true) = PREFS.get("shell.builtin-key-shortcuts.enabled").as_boolean() {
+                    self.event_queue.borrow_mut().push(WindowEvent::Quit);
+                }
+            }
 
             _ => {
                 self.platform_handle_key(key, mods);
