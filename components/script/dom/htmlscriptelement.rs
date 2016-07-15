@@ -113,7 +113,7 @@ static SCRIPT_JS_MIMES: StaticStringVec = &[
 #[derive(HeapSizeOf, JSTraceable)]
 pub enum ScriptOrigin {
     Internal(DOMString, Url),
-    External(String, Url),
+    External(DOMString, Url),
 }
 
 /// The context required for asynchronously loading an external script source.
@@ -172,7 +172,7 @@ impl AsyncResponseListener for ScriptContext {
 
             // Step 7.
             let source_text = encoding.decode(&self.data, DecoderTrap::Replace).unwrap();
-            ScriptOrigin::External(source_text, metadata.final_url)
+            ScriptOrigin::External(DOMString::from(source_text), metadata.final_url)
         });
 
         // Step 9.
@@ -419,7 +419,7 @@ impl HTMLScriptElement {
 
             Ok(ScriptOrigin::External(text, url)) => {
                 debug!("loading external script, url = {}", url);
-                (DOMString::from(text), true, url)
+                (text, true, url)
             },
 
             Ok(ScriptOrigin::Internal(text, url)) => {
