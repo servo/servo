@@ -96,8 +96,9 @@ use msg::constellation_msg::{Key, KeyModifiers, KeyState};
 use msg::constellation_msg::{PipelineId, ReferrerPolicy, SubpageId};
 use net_traits::CookieSource::NonHTTP;
 use net_traits::CoreResourceMsg::{GetCookiesForUrl, SetCookiesForUrl};
+use net_traits::request::PotentialCORSRequestInit;
 use net_traits::response::HttpsState;
-use net_traits::{AsyncResponseTarget, PendingAsyncLoad, IpcSend};
+use net_traits::{AsyncResponseTarget, FetchResponseMsg, PendingAsyncLoad, IpcSend};
 use num_traits::ToPrimitive;
 use origin::Origin;
 use parse::{ParserRoot, ParserRef, MutNullableParserField};
@@ -1368,6 +1369,13 @@ impl Document {
     pub fn load_async(&self, load: LoadType, listener: AsyncResponseTarget) {
         let mut loader = self.loader.borrow_mut();
         loader.load_async(load, listener, self);
+    }
+
+    pub fn fetch_async(&self, load: LoadType,
+                       request: PotentialCORSRequestInit,
+                       fetch_target: IpcSender<FetchResponseMsg>) {
+        let mut loader = self.loader.borrow_mut();
+        loader.fetch_async(load, request, fetch_target, self);
     }
 
     pub fn finish_load(&self, load: LoadType) {
