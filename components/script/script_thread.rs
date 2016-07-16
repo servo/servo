@@ -65,7 +65,7 @@ use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use mem::heap_size_of_self_and_children;
 use msg::constellation_msg::{FrameType, LoadData, PipelineId, PipelineNamespace};
-use msg::constellation_msg::{SubpageId, WindowSizeType, ReferrerPolicy};
+use msg::constellation_msg::{SubpageId, WindowSizeType, referrer_policy_from_header};
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheResult, ImageCacheThread};
 use net_traits::{AsyncResponseTarget, CoreResourceMsg, LoadConsumer, LoadContext, Metadata, ResourceThreads};
@@ -1714,20 +1714,7 @@ impl ScriptThread {
         };
 
         let referrer_policy = if let Some(headers) = metadata.headers {
-            headers.get::<ReferrerPolicyHeader>().map(|h| match *h {
-                ReferrerPolicyHeader::NoReferrer =>
-                    ReferrerPolicy::NoReferrer,
-                ReferrerPolicyHeader::NoReferrerWhenDowngrade =>
-                    ReferrerPolicy::NoReferrerWhenDowngrade,
-                ReferrerPolicyHeader::SameOrigin =>
-                    ReferrerPolicy::SameOrigin,
-                ReferrerPolicyHeader::Origin =>
-                    ReferrerPolicy::Origin,
-                ReferrerPolicyHeader::OriginWhenCrossOrigin =>
-                    ReferrerPolicy::OriginWhenCrossOrigin,
-                ReferrerPolicyHeader::UnsafeUrl =>
-                    ReferrerPolicy::UnsafeUrl,
-            })
+            headers.get::<ReferrerPolicyHeader>().map(referrer_policy_from_header)
         } else {
             None
         };
