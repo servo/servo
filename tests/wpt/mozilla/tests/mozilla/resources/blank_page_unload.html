@@ -1,0 +1,25 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type" />
+
+        <title>Yellow Test Page</title>
+
+        <script type="text/javascript">
+            function onbeforeunload_handler()
+            {
+                var temp = "onbeforeunload";
+            }
+
+            function onunload_handler()
+            {
+                var temp = "onunload";
+            }
+        </script>
+    </head>
+    <body onbeforeunload="onbeforeunload_handler();"
+          onunload="onunload_handler();"
+          style="background-color:#FFFF00;">
+        <h1>Unload</h1>
+    </body>
+</html>
