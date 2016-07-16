@@ -498,6 +498,13 @@ impl PendingAsyncLoad {
         let consumer = LoadConsumer::Listener(listener);
         self.core_resource_thread.send(CoreResourceMsg::Load(load_data, consumer, None)).unwrap();
     }
+
+    /// Initiate the fetch associated with this pending load.
+    pub fn fetch_async(mut self, request: PotentialCORSRequestInit, fetch_target: IpcSender<FetchResponseMsg>) {
+        self.guard.neuter();
+
+        self.core_resource_thread.send(CoreResourceMsg::PotentialCORSFetch(request, fetch_target)).unwrap();
+    }
 }
 
 /// Message sent in response to `Load`.  Contains metadata, and a port
