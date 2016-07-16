@@ -18,15 +18,16 @@ use dom::bindings::str::DOMString;
 use dom::messageevent::MessageEvent;
 use dom::serviceworker::TrustedServiceWorkerAddress;
 use dom::workerglobalscope::WorkerGlobalScope;
-use ipc_channel::ipc::{self, IpcSender, IpcReceiver};
+use hyper::header::ReferrerPolicy as ReferrerPolicyHeader;
+use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::jsapi::{JS_SetInterruptCallback, JSAutoCompartment, JSContext};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
-use msg::constellation_msg::PipelineId;
+use msg::constellation_msg::{PipelineId, ReferrerPolicy, referrer_policy_from_header};
 use net_traits::{LoadContext, load_whole_resource, IpcSend};
 use script_runtime::{CommonScriptMsg, StackRootTLS, get_reports, new_rt_and_cx};
-use script_traits::{TimerEvent, WorkerGlobalScopeInit, ScopeThings, ServiceWorkerMsg};
+use script_traits::{ScopeThings, ServiceWorkerMsg, TimerEvent, WorkerGlobalScopeInit};
 use std::sync::mpsc::{Receiver, RecvError, Select, Sender, channel};
 use std::thread;
 use std::time::Duration;
@@ -71,7 +72,8 @@ impl ServiceWorkerGlobalScope {
                      timer_event_chan: IpcSender<TimerEvent>,
                      timer_event_port: Receiver<()>,
                      swmanager_sender: IpcSender<ServiceWorkerMsg>,
-                     scope_url: Url)
+                     scope_url: Url,
+                     referrer_policy: Option<ReferrerPolicy>)
                      -> ServiceWorkerGlobalScope {
         ServiceWorkerGlobalScope {
             workerglobalscope: WorkerGlobalScope::new_inherited(init,
@@ -79,7 +81,8 @@ impl ServiceWorkerGlobalScope {
                                                                 runtime,
                                                                 from_devtools_receiver,
                                                                 timer_event_chan,
-                                                                None),
+                                                                None,
+                                                                referrer_policy),
             id: id,
             receiver: receiver,
             timer_event_port: timer_event_port,
@@ -100,7 +103,8 @@ impl ServiceWorkerGlobalScope {
                timer_event_chan: IpcSender<TimerEvent>,
                timer_event_port: Receiver<()>,
                swmanager_sender: IpcSender<ServiceWorkerMsg>,
-               scope_url: Url)
+               scope_url: Url,
+               referrer_policy: Option<ReferrerPolicy>)
                -> Root<ServiceWorkerGlobalScope> {
         let cx = runtime.cx();
         let scope = box ServiceWorkerGlobalScope::new_inherited(init,
@@ -113,7 +117,8 @@ impl ServiceWorkerGlobalScope {
                                                                   timer_event_chan,
                                                                   timer_event_port,
                                                                   swmanager_sender,
-                                                                  scope_url);
+                                                                  scope_url,
+                                                                  referrer_policy);
         ServiceWorkerGlobalScopeBinding::Wrap(cx, scope)
     }
 
@@ -135,17 +140,23 @@ impl ServiceWorkerGlobalScope {
             thread_state::initialize(SCRIPT | IN_WORKER);
             let roots = RootCollection::new();
             let _stack_roots_tls = StackRootTLS::new(&roots);
-            let (url, source) = match load_whole_resource(LoadContext::Script,
-                                                          &init.resource_threads.sender(),
-                                                          script_url,
-                                                          &worker_load_origin) {
+            let (url, headers, source) = match load_whole_resource(LoadContext::Script,
+                                                                   &init.resource_threads.sender(),
+                                                                   script_url,
+                                                                   &worker_load_origin) {
                 Err(_) => {
                     println!("error loading script {}", serialized_worker_url);
                     return;
                 }
                 Ok((metadata, bytes)) => {
-                    (metadata.final_url, String::from_utf8(bytes).unwrap())
+                    (metadata.final_url, metadata.headers, String::from_utf8(bytes).unwrap())
                 }
+            };
+
+            let referrer_policy = if let Some(headers) = headers {
+                headers.get::<ReferrerPolicyHeader>().map(referrer_policy_from_header)
+            } else {
+                None
             };
 
             let runtime = unsafe { new_rt_and_cx() };
@@ -160,7 +171,8 @@ impl ServiceWorkerGlobalScope {
             let global = ServiceWorkerGlobalScope::new(
                 init, url, pipeline_id, devtools_mpsc_port, runtime,
                 own_sender, receiver,
-                timer_ipc_chan, timer_port, swmanager_sender, scope_url);
+                timer_ipc_chan, timer_port, swmanager_sender, scope_url,
+                referrer_policy);
             let scope = global.upcast::<WorkerGlobalScope>();
 
             unsafe {

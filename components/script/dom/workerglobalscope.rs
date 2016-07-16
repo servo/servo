@@ -109,6 +109,8 @@ pub struct WorkerGlobalScope {
 
     #[ignore_heap_size_of = "Defined in std"]
     scheduler_chan: IpcSender<TimerEventRequest>,
+
+    referrer_policy: Option<ReferrerPolicy>,
 }
 
 impl WorkerGlobalScope {
@@ -117,7 +119,8 @@ impl WorkerGlobalScope {
                          runtime: Runtime,
                          from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
                          timer_event_chan: IpcSender<TimerEvent>,
-                         closing: Option<Arc<AtomicBool>>)
+                         closing: Option<Arc<AtomicBool>>,
+                         referrer_policy: Option<ReferrerPolicy>)
                          -> WorkerGlobalScope {
         WorkerGlobalScope {
             eventtarget: EventTarget::new_inherited(),
@@ -140,6 +143,7 @@ impl WorkerGlobalScope {
             devtools_wants_updates: Cell::new(false),
             constellation_chan: init.constellation_chan,
             scheduler_chan: init.scheduler_chan,
+            referrer_policy: referrer_policy,
         }
     }
 
@@ -228,7 +232,7 @@ impl LoadOrigin for WorkerGlobalScope {
         None
     }
     fn referrer_policy(&self) -> Option<ReferrerPolicy> {
-        None
+        self.referrer_policy
     }
     fn pipeline_id(&self) -> Option<PipelineId> {
         Some(self.pipeline())
