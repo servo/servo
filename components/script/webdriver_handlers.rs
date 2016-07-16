@@ -77,10 +77,7 @@ pub fn handle_execute_script(context: &BrowsingContext,
                              reply: IpcSender<WebDriverJSResult>) {
     let context = match context.find(pipeline) {
         Some(context) => context,
-        None => {
-            reply.send(Err(WebDriverJSError::BrowsingContextNotFound)).unwrap();
-            return;
-        }
+        None => return reply.send(Err(WebDriverJSError::BrowsingContextNotFound)).unwrap()
     };
 
     let window = context.active_window();
@@ -99,10 +96,7 @@ pub fn handle_execute_async_script(context: &BrowsingContext,
                                    reply: IpcSender<WebDriverJSResult>) {
     let context = match context.find(pipeline) {
        Some(context) => context,
-       None => {
-           reply.send(Err(WebDriverJSError::BrowsingContextNotFound)).unwrap();
-           return;
-       }
+       None => return reply.send(Err(WebDriverJSError::BrowsingContextNotFound)).unwrap()
    };
 
     let window = context.active_window();
