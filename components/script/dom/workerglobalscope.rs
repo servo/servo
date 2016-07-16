@@ -152,6 +152,8 @@ pub struct WorkerGlobalScope {
 
     #[ignore_heap_size_of = "Defined in std"]
     custom_msg_port: Receiver<CustomResponseSender>,
+
+    referrer_policy: Option<ReferrerPolicy>,
 }
 
 impl WorkerGlobalScope {
@@ -159,7 +161,8 @@ impl WorkerGlobalScope {
                          worker_url: Url,
                          runtime: Runtime,
                          from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
-                         timer_event_chan: IpcSender<TimerEvent>)
+                         timer_event_chan: IpcSender<TimerEvent>,
+                         referrer_policy: Option<ReferrerPolicy>)
                          -> WorkerGlobalScope {
         let (msg_chan, msg_port) = ipc::channel().unwrap();
         let custom_msg_port = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(msg_port);
@@ -186,7 +189,8 @@ impl WorkerGlobalScope {
             scheduler_chan: init.scheduler_chan,
             panic_chan: init.panic_chan,
             custom_msg_chan: msg_chan,
-            custom_msg_port: custom_msg_port
+            custom_msg_port: custom_msg_port,
+            referrer_policy: referrer_policy,
         }
     }
 
@@ -283,7 +287,7 @@ impl LoadOrigin for WorkerGlobalScope {
         None
     }
     fn referrer_policy(&self) -> Option<ReferrerPolicy> {
-        None
+        self.referrer_policy
     }
     fn request_source(&self) -> RequestSource {
         RequestSource::None
