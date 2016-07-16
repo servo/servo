@@ -61,7 +61,7 @@ pub struct HTMLScriptElement {
     parser_document: JS<Document>,
 
     /// The source this script was loaded from
-    load: DOMRefCell<Option<ScriptOrigin>>,
+    load: DOMRefCell<Option<Result<ScriptOrigin, NetworkError>>>,
 }
 
 impl HTMLScriptElement {
@@ -111,9 +111,28 @@ static SCRIPT_JS_MIMES: StaticStringVec = &[
 ];
 
 #[derive(HeapSizeOf, JSTraceable)]
-pub enum ScriptOrigin {
-    Internal(DOMString, Url),
-    External(Result<(String, Url), NetworkError>),
+pub struct ScriptOrigin {
+    text: DOMString,
+    url: Url,
+    external: bool,
+}
+
+impl ScriptOrigin {
+    fn internal(text: DOMString, url: Url) -> ScriptOrigin {
+        ScriptOrigin {
+            text: text,
+            url: url,
+            external: false,
+        }
+    }
+
+    fn external(text: DOMString, url: Url) -> ScriptOrigin {
+        ScriptOrigin {
+            text: text,
+            url: url,
+            external: true,
+        }
+    }
 }
 
 /// The context required for asynchronously loading an external script source.
@@ -172,14 +191,14 @@ impl AsyncResponseListener for ScriptContext {
 
             // Step 7.
             let source_text = encoding.decode(&self.data, DecoderTrap::Replace).unwrap();
-            (source_text, metadata.final_url)
+            ScriptOrigin::external(DOMString::from(source_text), metadata.final_url)
         });
 
         // Step 9.
         // https://html.spec.whatwg.org/multipage/#prepare-a-script
         // Step 18.6 (When the chosen algorithm asynchronously completes).
         let elem = self.elem.root();
-        *elem.load.borrow_mut() = Some(ScriptOrigin::External(load));
+        *elem.load.borrow_mut() = Some(load);
         elem.ready_to_be_parser_executed.set(true);
 
         let document = document_from_node(elem.r());
@@ -374,13 +393,13 @@ impl HTMLScriptElement {
                   // TODO: check for script nesting levels.
                   doc.get_script_blocking_stylesheets_count() > 0 {
             doc.set_pending_parsing_blocking_script(Some(self));
-            *self.load.borrow_mut() = Some(ScriptOrigin::Internal(text, base_url));
+            *self.load.borrow_mut() = Some(Ok(ScriptOrigin::internal(text, base_url)));
             self.ready_to_be_parser_executed.set(true);
         // Step 20.f: otherwise.
         } else {
             assert!(!text.is_empty());
             self.ready_to_be_parser_executed.set(true);
-            *self.load.borrow_mut() = Some(ScriptOrigin::Internal(text, base_url));
+            *self.load.borrow_mut() = Some(Ok(ScriptOrigin::internal(text, base_url)));
             self.execute();
             return NextParserState::Continue;
         }
@@ -409,66 +428,58 @@ impl HTMLScriptElement {
         }
 
         let load = self.load.borrow_mut().take().unwrap();
-
-        // Step 2.
-        let (source, external, url) = match load {
-            // Step 2.a.
-            ScriptOrigin::External(Err(e)) => {
+        let script = match load {
+            // Step 2.
+            Err(e) => {
                 warn!("error loading script {:?}", e);
                 self.dispatch_error_event();
                 return;
             }
 
-            // Step 2.b.1.a.
-            ScriptOrigin::External(Ok((text, url))) => {
-                debug!("loading external script, url = {}", url);
-                (DOMString::from(text), true, url)
-            },
-
-            // Step 2.b.1.c.
-            ScriptOrigin::Internal(text, url) => {
-                (text, false, url)
-            }
+            Ok(script) => script,
         };
 
-        // Step 2.b.2.
+        if script.external {
+            debug!("loading external script, url = {}", script.url);
+        }
+
+        // TODO(#12446): beforescriptexecute.
         if !self.dispatch_before_script_execute_event() {
             return;
         }
 
-        // Step 2.b.3.
+        // Step 3.
         // TODO: If the script is from an external file, then increment the
         // ignore-destructive-writes counter of the script element's node
         // document. Let neutralised doc be that Document.
 
-        // Step 2.b.4.
+        // Step 4.
         let document = document_from_node(self);
         let document = document.r();
         let old_script = document.GetCurrentScript();
 
-        // Step 2.b.5.
+        // Step 5.a.1.
         document.set_current_script(Some(self));
 
-        // Step 2.b.6.
-        // TODO: Create a script...
+        // Step 5.a.2.
         let window = window_from_node(self);
         rooted!(in(window.get_cx()) let mut rval = UndefinedValue());
-        window.evaluate_script_on_global_with_result(&*source,
-                                                         url.as_str(),
-                                                         rval.handle_mut());
+        window.evaluate_script_on_global_with_result(&script.text,
+                                                     script.url.as_str(),
+                                                     rval.handle_mut());
 
-        // Step 2.b.7.
+        // Step 6.
         document.set_current_script(old_script.r());
 
-        // Step 2.b.8.
+        // Step 7.
         // TODO: Decrement the ignore-destructive-writes counter of neutralised
         // doc, if it was incremented in the earlier step.
 
-        // Step 2.b.9.
+        // TODO(#12446): afterscriptexecute.
         self.dispatch_after_script_execute_event();
 
-        // Step 2.b.10.
-        if external {
+        // Step 8.
+        if script.external {
             self.dispatch_load_event();
         } else {
             window.dom_manipulation_task_source().queue_simple_event(self.upcast(), atom!("load"), window.r());
