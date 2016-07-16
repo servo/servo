@@ -291,9 +291,17 @@ class RefTestImplementation(object):
         log_data = [{"url": nodes[0].url, "screenshot": screenshots[0]}, relation,
                     {"url": nodes[1].url, "screenshot": screenshots[1]}]
 
+        # image1/2 and differences are for mozlog 3.2 html logs
+        extra = {
+            'image1':'data:image/png;base64,' + screenshots[0],
+            'image2':'data:image/png;base64,' + screenshots[1],
+            'differences': "Not Implemented",
+            'reftest_screenshots':log_data
+        }
+
         return {"status": "FAIL",
                 "message": "\n".join(self.message),
-                "extra": {"reftest_screenshots": log_data}}
+                "extra": extra}
 
     def retake_screenshot(self, node, viewport_size, dpi):
         success, data = self.executor.screenshot(node, viewport_size, dpi)
