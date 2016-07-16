@@ -5,7 +5,7 @@
 //! The high-level interface from script to constellation. Using this abstract interface helps
 //! reduce coupling between these two components.
 
-use hyper::header::Headers;
+use hyper::header::{Headers, ReferrerPolicy as ReferrerPolicyHeader};
 use hyper::method::Method;
 use ipc_channel::ipc::IpcSharedMemory;
 use std::cell::Cell;
@@ -337,4 +337,15 @@ pub enum ReferrerPolicy {
     SameOrigin,
     OriginWhenCrossOrigin,
     UnsafeUrl,
+}
+
+pub fn referrer_policy_from_header(header: &ReferrerPolicyHeader) -> ReferrerPolicy {
+    match *header {
+        ReferrerPolicyHeader::NoReferrer => ReferrerPolicy::NoReferrer,
+        ReferrerPolicyHeader::NoReferrerWhenDowngrade => ReferrerPolicy::NoReferrerWhenDowngrade,
+        ReferrerPolicyHeader::SameOrigin => ReferrerPolicy::SameOrigin,
+        ReferrerPolicyHeader::Origin => ReferrerPolicy::Origin,
+        ReferrerPolicyHeader::OriginWhenCrossOrigin => ReferrerPolicy::OriginWhenCrossOrigin,
+        ReferrerPolicyHeader::UnsafeUrl => ReferrerPolicy::UnsafeUrl,
+    }
 }
