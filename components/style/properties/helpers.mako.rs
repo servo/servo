@@ -75,6 +75,8 @@
                     } else {
                         % if allow_empty:
                             try!(dest.write_str("none"));
+                        % else:
+                            error!("Found empty value for property ${name}");
                         % endif
                     }
                     for i in iter {
@@ -97,6 +99,8 @@
                     } else {
                         % if allow_empty:
                             try!(dest.write_str("none"));
+                        % else:
+                            error!("Found empty value for property ${name}");
                         % endif
                     }
                     for i in iter {
