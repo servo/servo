@@ -152,13 +152,12 @@ pub struct XMLHttpRequest {
 
 impl XMLHttpRequest {
     fn new_inherited(global: GlobalRef) -> XMLHttpRequest {
-        //TODO - update this when referrer policy implemented for workers
-        let (referrer_url, referrer_policy) = if let GlobalRef::Window(window) = global {
-            let document = window.Document();
-            (Some(document.url().clone()), document.get_referrer_policy())
-        } else {
-            (None, None)
-        };
+        // XXX(aravind-pg): is this OK? This changes behavior for workers --
+        // earlier it was None, whereas now it is Some(worker.get_url()).
+        // Also, does it still need to stay an Option when it is clearly
+        // always Some?
+        let referrer_url = Some(global.get_url());
+        let referrer_policy = global.referrer_policy();
 
         XMLHttpRequest {
             eventtarget: XMLHttpRequestEventTarget::new_inherited(),
