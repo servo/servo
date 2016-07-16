@@ -95,9 +95,10 @@ use js::jsapi::JS_GetRuntime;
 use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState};
 use msg::constellation_msg::{PipelineId, ReferrerPolicy};
-use net_traits::{AsyncResponseTarget, IpcSend, PendingAsyncLoad};
+use net_traits::{AsyncResponseTarget, FetchResponseMsg, IpcSend, PendingAsyncLoad};
 use net_traits::CookieSource::NonHTTP;
 use net_traits::CoreResourceMsg::{GetCookiesForUrl, SetCookiesForUrl};
+use net_traits::request::RequestInit;
 use net_traits::response::HttpsState;
 use num_traits::ToPrimitive;
 use origin::Origin;
@@ -1431,6 +1432,14 @@ impl Document {
     pub fn load_async(&self, load: LoadType, listener: AsyncResponseTarget, referrer_policy: Option<ReferrerPolicy>) {
         let mut loader = self.loader.borrow_mut();
         loader.load_async(load, listener, self, referrer_policy);
+    }
+
+    pub fn fetch_async(&self, load: LoadType,
+                       request: RequestInit,
+                       fetch_target: IpcSender<FetchResponseMsg>,
+                       referrer_policy: Option<ReferrerPolicy>) {
+        let mut loader = self.loader.borrow_mut();
+        loader.fetch_async(load, request, fetch_target, self, referrer_policy);
     }
 
     pub fn finish_load(&self, load: LoadType) {
