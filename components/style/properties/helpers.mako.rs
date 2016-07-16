@@ -37,12 +37,18 @@
 // and handle the empty case correctly
 <%doc>
     To be used in cases where we have a grammar like
-    "<thing> [ , <thing> ]*", but only support a single value
-    in servo
+    "<thing> [ , <thing> ]*". `gecko_only` should be set
+    to True for cases where Servo takes a single value
+    and Stylo supports vector values.
+
+    Setting allow_empty to False allows for cases where the vector
+    is empty. The grammar for these is usually "none | <thing> [ , <thing> ]*".
+    We assume that the default/initial value is an empty vector for these.
+    `initial_value` need not be defined for these.
 </%doc>
-<%def name="gecko_autoarray_longhand(name, **kwargs)">
+<%def name="vector_longhand(name, gecko_only=False, allow_empty=False, **kwargs)">
     <%call expr="longhand(name, **kwargs)">
-        % if product == "gecko":
+        % if product == "gecko" or not gecko_only:
             use cssparser::ToCss;
             use std::fmt;
 
@@ -63,10 +69,17 @@
 
             impl ToCss for computed_value::T {
                 fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                    if !self.0.is_empty() {
-                        try!(self.0[0].to_css(dest));
+                    let mut iter = self.0.iter();
+                    if let Some(val) = iter.next() {
+                        try!(val.to_css(dest));
+                    } else {
+                        % if allow_empty:
+                            try!(dest.write_str("none"));
+                        % else:
+                            error!("Found empty value for property ${name}");
+                        % endif
                     }
-                    for i in self.0.iter().skip(1) {
+                    for i in iter {
                         try!(dest.write_str(", "));
                         try!(i.to_css(dest));
                     }
@@ -80,10 +93,17 @@
 
             impl ToCss for SpecifiedValue {
                 fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                    if !self.0.is_empty() {
-                        try!(self.0[0].to_css(dest))
+                    let mut iter = self.0.iter();
+                    if let Some(val) = iter.next() {
+                        try!(val.to_css(dest));
+                    } else {
+                        % if allow_empty:
+                            try!(dest.write_str("none"));
+                        % else:
+                            error!("Found empty value for property ${name}");
+                        % endif
                     }
-                    for i in self.0.iter().skip(1) {
+                    for i in iter {
                         try!(dest.write_str(", "));
                         try!(i.to_css(dest));
                     }
@@ -91,12 +111,26 @@
                 }
             }
             pub fn get_initial_value() -> computed_value::T {
-                computed_value::T(vec![single_value::get_initial_value()])
+                % if allow_empty:
+                    computed_value::T(vec![])
+                % else:
+                    computed_value::T(vec![single_value::get_initial_value()])
+                % endif
             }
             pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-                input.parse_comma_separated(|parser| {
-                    single_value::parse(context, parser)
-                }).map(|ok| SpecifiedValue(ok))
+                % if allow_empty:
+                    if input.try(|input| input.expect_ident_matching("none")).is_ok() {
+                        Ok(SpecifiedValue(Vec::new()))
+                    } else {
+                        input.parse_comma_separated(|parser| {
+                            single_value::parse(context, parser)
+                        }).map(SpecifiedValue)
+                    }
+                % else:
+                    input.parse_comma_separated(|parser| {
+                        single_value::parse(context, parser)
+                    }).map(SpecifiedValue)
+                % endif
             }
             impl ToComputedValue for SpecifiedValue {
                 type ComputedValue = computed_value::T;
