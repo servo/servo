@@ -132,6 +132,10 @@ textarea {
   -servo-overflow-clip-box: content-box;
 }
 
+textarea {
+  overflow: auto;
+}
+
 /* https://html.spec.whatwg.org/multipage/rendering.html#the-details-and-summary-elements */
 details {
   display: block;
