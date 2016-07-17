@@ -466,7 +466,13 @@ fn append_shorthand_value<'a, W, I>(dest: &mut W,
         Shorthand::Outline => try!(append_outline_shorthand(dest, declarations)),
         // word-wrap name outdated -> https://developer.mozilla.org/en-US/docs/Web/CSS/overflow-wrap
         Shorthand::WordWrap => try!(append_overflow_wrap_shorthand(dest, declarations)),
+
+        // Flex/FlexFlow/Columns do not appear to be supported yet
         Shorthand::FlexFlow => try!(append_flex_flow_shorthand(dest, declarations)),
+        Shorthand::Flex => try!(append_flex_shorthand(dest, declarations)),
+        Shorthand::Columns => try!(append_columns_shorthand(dest, declarations)),
+
+        Shorthand::Animation => try!(append_animation_shorthand(dest, declarations)),
         _ => {}
     };
 
@@ -767,6 +773,117 @@ fn append_flex_flow_shorthand<'a, W, I>(dest: &mut W,
     }
 }
 
+fn append_flex_shorthand<'a, W, I>(dest: &mut W,
+                                   declarations: I) -> fmt::Result
+                                   where W: fmt::Write, I: Iterator<Item=&'a PropertyDeclaration> {
+    let mut flex_grow = None;
+    let mut flex_shrink = None;
+    let mut flex_basis = None;
+
+    for decl in declarations {
+        match decl {
+            &PropertyDeclaration::FlexGrow(ref value) => { flex_grow = Some(value); },
+            &PropertyDeclaration::FlexShrink(ref value) => { flex_shrink = Some(value); },
+            &PropertyDeclaration::FlexBasis(ref value) => { flex_basis = Some(value); },
+            _ => return Err(fmt::Error)
+        }
+    }
+
+    let (flex_grow, flex_shrink, flex_basis) = try_unwrap_longhands!(flex_grow, flex_shrink, flex_basis);
+
+
+    try!(flex_grow.to_css(dest));
+
+    try!(write!(dest, " "));
+
+    try!(flex_shrink.to_css(dest));
+
+    try!(write!(dest, " "));
+
+    flex_basis.to_css(dest)
+}
+
+fn append_columns_shorthand<'a, W, I>(dest: &mut W,
+                                      declarations: I) -> fmt::Result
+                                      where W: fmt::Write, I: Iterator<Item=&'a PropertyDeclaration> {
+    let mut column_width = None;
+    let mut column_count = None;
+
+    for decl in declarations {
+        match decl {
+            &PropertyDeclaration::ColumnWidth(ref value) => { column_width = Some(value); },
+            &PropertyDeclaration::ColumnCount(ref value) => { column_count = Some(value); },
+            _ => return Err(fmt::Error)
+        }
+    }
+
+    let (column_width, column_count) = try_unwrap_longhands!(column_width, column_count);
+
+    try!(column_width.to_css(dest));
+
+    try!(write!(dest, " "));
+
+    column_count.to_css(dest)
+}
+
+fn append_animation_shorthand<'a, W, I>(dest: &mut W,
+                                      declarations: I) -> fmt::Result
+                                      where W: fmt::Write, I: Iterator<Item=&'a PropertyDeclaration> {
+
+    let mut animation_name = None;
+    let mut animation_duration = None;
+    let mut animation_timing_function = None;
+    let mut animation_iteration_count = None;
+    let mut animation_direction = None;
+    let mut animation_play_state = None;
+    let mut animation_fill_mode = None;
+    let mut animation_delay = None;
+
+    for decl in declarations {
+        match decl {
+            &PropertyDeclaration::AnimationName(ref value) => { animation_name = Some(value); },
+            &PropertyDeclaration::AnimationDuration(ref value) => { animation_duration = Some(value); },
+            &PropertyDeclaration::AnimationTimingFunction(ref value) => { animation_timing_function = Some(value); },
+            &PropertyDeclaration::AnimationIterationCount(ref value) => { animation_iteration_count = Some(value); },
+            &PropertyDeclaration::AnimationDirection(ref value) => { animation_direction = Some(value); },
+            &PropertyDeclaration::AnimationPlayState(ref value) => { animation_play_state = Some(value); },
+            &PropertyDeclaration::AnimationFillMode(ref value) => { animation_fill_mode = Some(value); },
+            &PropertyDeclaration::AnimationDelay(ref value) => { animation_delay  = Some(value); },
+            _ => return Err(fmt::Error)
+        }
+    }
+
+    let (animation_name, animation_duration, animation_timing_function, animation_iteration_count,
+         animation_direction, animation_play_state, animation_fill_mode, animation_delay) =
+
+        try_unwrap_longhands!(animation_name, animation_duration, animation_timing_function, animation_iteration_count,
+             animation_direction, animation_play_state, animation_fill_mode, animation_delay);
+
+    try!(animation_duration.to_css(dest));
+    try!(write!(dest, " "));
+
+    // FIXME: timing function is displaying the actual mathematical name "cubic-bezier(0.25, 0.1, 0.25, 1)" instead
+    // of the common name "ease"
+    try!(animation_timing_function.to_css(dest));
+    try!(write!(dest, " "));
+
+    try!(animation_delay.to_css(dest));
+    try!(write!(dest, " "));
+
+    try!(animation_direction.to_css(dest));
+    try!(write!(dest, " "));
+
+    try!(animation_fill_mode.to_css(dest));
+    try!(write!(dest, " "));
+
+    try!(animation_iteration_count.to_css(dest));
+    try!(write!(dest, " "));
+
+    try!(animation_play_state.to_css(dest));
+    try!(write!(dest, " "));
+
+    animation_name.to_css(dest)
+}
 
 fn append_serialization<'a, W, I>(dest: &mut W,
                                   property_name: &str,
