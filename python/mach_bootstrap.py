@@ -155,7 +155,7 @@ def _activate_virtualenv(topdir):
         process.wait()
         if process.returncode:
             sys.exit("Pip failed to execute properly: {}"
-                     .format(process.communicate()[1]))
+                     .format(process.communicate()))
 
         open(marker_path, 'w').close()
 
