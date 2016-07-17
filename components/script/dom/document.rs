@@ -2868,8 +2868,7 @@ pub fn determine_policy_for_token(token: &str) -> Option<ReferrerPolicy> {
         "same-origin" => Some(ReferrerPolicy::SameOrigin),
         "origin-when-cross-origin" => Some(ReferrerPolicy::OriginWhenCrossOrigin),
         "always" | "unsafe-url" => Some(ReferrerPolicy::UnsafeUrl),
-        "" => Some(ReferrerPolicy::NoReferrer),
-        _ => None,
+        _ => Some(ReferrerPolicy::NoRefWhenDowngrade),
     }
 }
 
