@@ -465,11 +465,30 @@ fn append_shorthand_value<'a, W, I>(dest: &mut W,
         Shorthand::Overflow => try!(append_overflow_shorthand(dest, declarations)),
         Shorthand::ListStyle => try!(append_list_style_shorthand(dest, declarations)),
         Shorthand::Outline => try!(append_outline_shorthand(dest, declarations)),
+        // word-wrap name outdated -> https://developer.mozilla.org/en-US/docs/Web/CSS/overflow-wrap
+        Shorthand::WordWrap => try!(append_overflow_wrap_shorthand(dest, declarations)),
+        Shorthand::FlexFlow => try!(append_flex_flow_shorthand(dest, declarations)),
         _ => {}
     };
 
     Ok(())
 }
+
+// This macro helps resolve the Optional Property Declaration values into unwrapped values safely
+macro_rules! try_unwrap_longhands {
+    ( $( $x:ident ),* ) => {
+        {
+            match (
+                $( $x, )*
+            ) {
+
+                ( $( Some($x),  )* ) => ( $( $x, )* ),
+                _ => return Err(fmt::Error)
+            }
+        }
+    };
+}
+
 
 fn append_margin_shorthand<'a, W, I>(dest: &mut W,
                                     declarations: I)
@@ -490,13 +509,7 @@ fn append_margin_shorthand<'a, W, I>(dest: &mut W,
         }
     }
 
-    let (top, right, bottom, left) = match (top, right, bottom, left) {
-        (Some(top), Some(right), Some(bottom), Some(left)) => {
-            (top, right, bottom, left)
-        },
-        _ => return Err(fmt::Error)
-    };
-
+    let (top, right, bottom, left) = try_unwrap_longhands!(top, right, bottom, left);
     append_positional_shorthand(dest, top, right, bottom, left)
 }
 
@@ -519,13 +532,7 @@ fn append_padding_shorthand<'a, W, I>(dest: &mut W,
         }
     }
 
-    let (top, right, bottom, left) = match (top, right, bottom, left) {
-        (Some(top), Some(right), Some(bottom), Some(left)) => {
-            (top, right, bottom, left)
-        },
-        _ => return Err(fmt::Error)
-    };
-
+    let (top, right, bottom, left) = try_unwrap_longhands!(top, right, bottom, left);
     append_positional_shorthand(dest, top, right, bottom, left)
 }
 
@@ -618,13 +625,7 @@ fn append_overflow_shorthand<'a, W, I>(dest: &mut W,
     }
 
 
-    let (x_value, y_value) = match (x_value, y_value) {
-        (Some(x_value), Some(y_value)) => {
-            (x_value, y_value)
-        },
-        _ => return Err(fmt::Error)
-    };
-
+    let (x_value, y_value) = try_unwrap_longhands!(x_value, y_value);
 
     if x_value == y_value {
         try!(x_value.to_css(dest));
@@ -656,12 +657,7 @@ fn append_list_style_shorthand<'a, W, I>(dest: &mut W,
         }
     }
 
-    let (position, image, symbol_type) = match (position, image, symbol_type) {
-        (Some(position), Some(image,), Some(symbol_type)) => {
-            (position, image, symbol_type)
-        },
-        _ => return Err(fmt::Error)
-    };
+    let (position, image, symbol_type) = try_unwrap_longhands!(position, image, symbol_type);
 
     match position {
         &DeclaredValue::Initial => try!(write!(dest, "outside")),
@@ -702,12 +698,7 @@ fn append_outline_shorthand<'a, W, I>(dest: &mut W,
         }
     }
 
-    let (width, style, color) = match (width, style, color) {
-        (Some(width), Some(style), Some(color)) => {
-            (width, style, color)
-        },
-        _ => return Err(fmt::Error)
-    };
+    let (width, style, color) = try_unwrap_longhands!(width, style, color);
 
     try!(width.to_css(dest));
     try!(write!(dest, " "));
@@ -727,6 +718,56 @@ fn append_outline_shorthand<'a, W, I>(dest: &mut W,
 
     Ok(())
 }
+
+fn append_overflow_wrap_shorthand<'a, W, I>(dest: &mut W,
+                                    declarations: I)
+                            -> fmt::Result
+                            where W: fmt::Write, I: Iterator<Item=&'a PropertyDeclaration> {
+    let mut overflow_wrap = None;
+
+    for decl in declarations {
+        match decl {
+            &PropertyDeclaration::OverflowWrap(ref value) => { overflow_wrap = Some(value); },
+            _ => return Err(fmt::Error)
+        }
+    }
+
+    match overflow_wrap {
+        Some(overflow_wrap) => overflow_wrap.to_css(dest),
+        None => return Err(fmt::Error)
+    }
+}
+
+fn append_flex_flow_shorthand<'a, W, I>(dest: &mut W,
+                                    declarations: I)
+                            -> fmt::Result
+                            where W: fmt::Write, I: Iterator<Item=&'a PropertyDeclaration> {
+    let mut flex_direction = None;
+    let mut flex_wrap = None;
+
+    for decl in declarations {
+        match decl {
+            &PropertyDeclaration::FlexDirection(ref value) => { flex_direction = Some(value); },
+            &PropertyDeclaration::FlexWrap(ref value) => { flex_wrap = Some(value); },
+            _ => return Err(fmt::Error)
+        }
+    }
+
+    let (flex_direction, flex_wrap) = try_unwrap_longhands!(flex_direction, flex_wrap);
+
+    match flex_direction {
+        &DeclaredValue::Initial => try!(write!(dest, "row")),
+        _ => try!(flex_direction.to_css(dest))
+    };
+
+    try!(write!(dest, " "));
+
+    match flex_wrap {
+        &DeclaredValue::Initial => write!(dest, "nowrap"),
+        _ => flex_direction.to_css(dest)
+    }
+}
+
 
 fn append_serialization<'a, W, I>(dest: &mut W,
                                   property_name: &str,
