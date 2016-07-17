@@ -3,6 +3,7 @@ mach == 0.6.0
 mozdebug == 0.1
 mozinfo == 0.8
 mozlog == 3.0
+setuptools == 18.5
 toml == 0.9.1
 
 # For Python linting
