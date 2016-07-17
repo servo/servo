@@ -141,6 +141,7 @@ pub fn dispatch_event(target: &EventTarget,
                 event_path.push(JS::from_ref(document.window().upcast()));
             }
         }
+        vtable_for(target_node).before_handle_event(event);
     }
 
     // Steps 5-9. In a separate function to short-circuit various things easily.

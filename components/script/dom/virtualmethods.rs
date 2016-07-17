@@ -99,6 +99,13 @@ pub trait VirtualMethods {
         }
     }
 
+    /// Called before an event dispatch.
+    fn before_handle_event(&self, event: &Event) {
+        if let Some(ref s) = self.super_type() {
+            s.before_handle_event(event);
+        }
+    }
+
     /// Called during event dispatch after the bubbling phase completes.
     fn handle_event(&self, event: &Event) {
         if let Some(s) = self.super_type() {
