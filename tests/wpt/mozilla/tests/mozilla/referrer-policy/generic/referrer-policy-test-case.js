@@ -21,7 +21,8 @@ function ReferrerPolicyTestCase(scenario, testDescription, sanityChecker) {
     "img-tag":  queryImage,
     "script-tag": queryScript,
     "worker-request": queryWorker,
-    "xhr-request": queryXhr
+    "xhr-request": queryXhr,
+    "link-tag": queryCssLink
   };
 
   var referrerUrlResolver = {
@@ -98,7 +99,10 @@ function ReferrerPolicyTestCase(scenario, testDescription, sanityChecker) {
 
       var test = async_test(t._testDescription);
 
-      t._invokeSubresource(function(result) {
+      // FIXME Pass value to `expected_referrer` only if there's some
+      //       technical restrictions to pass (eg. postMessage is not
+      //       available).
+      t._invokeSubresource(function(result, expected_referrer) {
         // Check if the result is in valid format. NOOP in release.
         sanityChecker.checkSubresourceResult(
             test, t._scenario, t._subresourceUrl, result);
@@ -106,13 +110,13 @@ function ReferrerPolicyTestCase(scenario, testDescription, sanityChecker) {
         // Check the reported URL.
         test.step(function() {
           assert_equals(result.referrer,
-                        t._expectedReferrerUrl,
+                        expected_referrer || t._expectedReferrerUrl,
                         "Reported Referrer URL is '" +
-                        t._scenario.referrer_url + "'.");
+                        (expected_referrer || t._expectedReferrerUrl) + "'.");
           assert_equals(result.headers.referer,
-                        t._expectedReferrerUrl,
+                        expected_referrer || t._expectedReferrerUrl,
                         "Reported Referrer URL from HTTP header is '" +
-                        t._expectedReferrerUrl + "'");
+                        (expected_referrer || t._expectedReferrerUrl) + "'");
         }, "Reported Referrer URL is as expected: " + t._scenario.referrer_url);
 
         test.done();
