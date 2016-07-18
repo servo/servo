@@ -20,17 +20,18 @@ pub struct Headers {
     header_list: DOMRefCell<hyper::header::Headers>
 }
 
+// HeaderGroup refers to the header name categories described here:
+// https://fetch.spec.whatwg.org/#concept-header-name
 #[derive(PartialEq)]
 enum HeaderGroup {
     CorsSafelistedRequestHeader,
-    CorsNonwildcardRequestHeader,
-    CorsSafelistedResponseHeader,
-    Forbidden,
+    ForbiddenHeaderName,
     ForbiddenResponseHeader,
 }
 
+// https://fetch.spec.whatwg.org/#concept-headers-guard
 #[derive(JSTraceable, HeapSizeOf)]
-enum Guard {
+pub enum Guard {
     Immutable,
     Request,
     RequestNoCors,
@@ -53,33 +54,29 @@ impl Headers {
 
     // https://fetch.spec.whatwg.org/#concept-headers-append
     pub fn Append(&self, name: ByteString, value: ByteString) -> Result<(), Error> {
-        // Step 1) Normalize value.
+        // Step 1
         let value = normalize_value(value);
 
-        // Step 2) If name is not a name or value is not a value, throw a TypeError.
-        try!(validate_name_and_value(&name, &value));
+        // Step 2
+        let (valid_name, valid_value) = try!(validate_name_and_value(name, value));
+        let header_group = try!(find_header_group(&valid_name));
 
-        // Steps 3-6) Check if name and value are legal according to guard.
-        // 3) If guard is "immutable", throw a TypeError.
-        // 4) Otherwise, if guard is "request" and name is a forbidden header name, return.
-        // 5) Otherwise, if guard is "request-no-cors"
-        //    and name/value is not a CORS-safelisted request-header, return.
-        // 6) Otherwise, if guard is "response" and
-        //    name is a forbidden response-header name, return.
-        let name_string: String;
-        match String::from_utf8(name.into()) {
-            Ok(ns) => name_string = ns,
-            Err(_) => return Err(Error::Type(String::from("Non-UTF8 header name found"))),
-        }
-        let header_group = try!(find_header_group(&name_string));
-        match check_guard_against_header_group(&self.guard, header_group) {
-            Ok(true) => {
-                // Step 7) Append name/value to header list.
-                self.header_list.borrow_mut().set_raw(name_string, vec![value.into()]);
+        match (&self.guard, header_group) {
+            // Step 3
+            (&Guard::Immutable, _) =>
+                Err(Error::Type("Guard is immutable".to_string())),
+            // Step 4
+            (&Guard::Request, HeaderGroup::ForbiddenHeaderName) => Ok(()),
+            // Step 5
+            (&Guard::RequestNoCors, ref header_group)
+                if header_group != &HeaderGroup::CorsSafelistedRequestHeader => Ok(()),
+            // Step 6
+            (&Guard::Response, HeaderGroup::ForbiddenResponseHeader) => Ok(()),
+            _ => {
+                // Step 7
+                self.header_list.borrow_mut().set_raw(valid_name, vec![valid_value]);
                 Ok(())
             }
-            Ok(false) => Ok(()),
-            Err(err) => Err(err),
         }
     }
 }
@@ -90,7 +87,8 @@ impl Headers {
 // or `text/plain`.
 // "DPR", "Downlink", "Save-Data", "Viewport-Width", "Width":
 // once parsed, the value should not be failure.
-fn is_cors_safelisted_request(name: &str) -> bool {
+// https://fetch.spec.whatwg.org/#cors-safelisted-request-header
+fn is_cors_safelisted_request_header(name: &str) -> bool {
     match name {
         "accept" |
         "accept-language" |
@@ -99,32 +97,8 @@ fn is_cors_safelisted_request(name: &str) -> bool {
     }
 }
 
-fn is_cors_non_wildcard_request(name: &str) -> bool {
-    match name {
-        "authorization" => true,
-        _ => false,
-    }
-}
-
-// TODO
-// given a CORS-exposed header-name list list, is a header name that is
-// one of the following:
-// Cache-Control, Content-Language,
-// Content-Type, Expires, Last-Modified, Pragma
-// Any value in list that is not a forbidden response-header name.
-fn is_cors_safelisted_response(name: &str) -> bool {
-    match name {
-        "cache-control" |
-        "content-language" |
-        "content-type" |
-        "expires" |
-        "last-modified" |
-        "pragma" => true,
-        _ => false,
-    }
-}
-
-fn is_forbidden_response(name: &str) -> bool {
+// https://fetch.spec.whatwg.org/#forbidden-response-header-name
+fn is_forbidden_response_header(name: &str) -> bool {
     match name {
         "set-cookie" |
         "set-cookie2"  => true,
@@ -132,50 +106,37 @@ fn is_forbidden_response(name: &str) -> bool {
     }
 }
 
-fn is_forbidden(name: &str) -> bool {
-    if name.starts_with("proxy-") ||
-        name.starts_with("sec-") {
-            true
+// https://fetch.spec.whatwg.org/#forbidden-header-name
+fn is_forbidden_header_name(name: &str) -> bool {
+    let disallowed_headers =
+        ["accept-charset", "accept-encoding",
+         "access-control-request-headers",
+         "access-control-request-method",
+         "connection", "content-length",
+         "cookie", "cookie2", "date", "dnt",
+         "expect", "host", "keep-alive", "origin",
+         "referer", "te", "trailer", "transfer-encoding",
+         "upgrade", "via"];
+
+    let disallowed_header_prefixes = ["sec-", "proxy-"];
+
+    if disallowed_headers.iter().any(|header| *header == name) ||
+        disallowed_header_prefixes.iter().any(|prefix| name.starts_with(prefix)) {
+            return true;
         } else {
-            match name {
-                "accept-charset" |
-                "accept-encoding" |
-                "access-control-request-headers" |
-                "access-control-request-method" |
-                "connection" |
-                "content-length" |
-                "cookie" |
-                "cookie2" |
-                "date" |
-                "dnt" |
-                "expect" |
-                "host" |
-                "keep-alive" |
-                "origin" |
-                "referer" |
-                "te" |
-                "trailer" |
-                "transfer-encoding" |
-                "upgrade" |
-                "via" => true,
-                _ => false,
-            }
+            return false;
         }
 }
 
 fn find_header_group(name: &str) -> Result<HeaderGroup, Error> {
-    if is_cors_safelisted_request(&name) {
+    if is_cors_safelisted_request_header(&name) {
         Ok(HeaderGroup::CorsSafelistedRequestHeader)
-    } else if is_cors_non_wildcard_request(&name) {
-        Ok(HeaderGroup::CorsNonwildcardRequestHeader)
-    } else if is_cors_safelisted_response(&name) {
-        Ok(HeaderGroup::CorsSafelistedResponseHeader)
-    } else if is_forbidden_response(&name) {
+    } else if is_forbidden_header_name(&name) {
+        Ok(HeaderGroup::ForbiddenHeaderName)
+    } else if is_forbidden_response_header(&name) {
         Ok(HeaderGroup::ForbiddenResponseHeader)
-    } else if is_forbidden(&name) {
-        Ok(HeaderGroup::Forbidden)
     } else {
-        Err(Error::Type(String::from("Name does not have a group")))
+        Err(Error::Type("Name does not have a group".to_string()))
     }
 }
 
@@ -202,97 +163,62 @@ fn find_header_group(name: &str) -> Result<HeaderGroup, Error> {
 // [2] https://tools.ietf.org/html/rfc7230#section-3.2
 // [3] https://tools.ietf.org/html/rfc7230#section-3.2.6
 // [4] https://www.rfc-editor.org/errata_search.php?rfc=7230
-fn validate_name_and_value(name: &ByteString, value: &ByteString) -> Result<(), Error> {
-    if is_field_name(name) && is_field_content(value) {
-        Ok(())
-    } else {
-        Err(Error::Type(String::from("Name and/or Value are not valid")))
+fn validate_name_and_value(name: ByteString, value: ByteString)
+                           -> Result<(String, Vec<u8>), Error> {
+    if !is_field_name(&name) {
+        return Err(Error::Type("Name is not valid".to_string()));
     }
-}
-
-// Checks the guard and the name/value's header group to see if the combination is legal.
-fn check_guard_against_header_group(guard: &Guard, header_group: HeaderGroup) -> Result<bool, Error> {
-    match (guard, header_group) {
-        (&Guard::Immutable, _) =>
-            Err(Error::Type(String::from("Guard is immutable"))),
-        (&Guard::Request, HeaderGroup::Forbidden) => Ok(false),
-        (&Guard::RequestNoCors, ref header_group)
-            if header_group != &HeaderGroup::CorsSafelistedRequestHeader => Ok(false),
-        (&Guard::Response, HeaderGroup::ForbiddenResponseHeader) => Ok(false),
-        _ => Ok(true),
+    if !is_field_content(&value) {
+        return Err(Error::Type("Value is not valid".to_string()));
+    }
+    match String::from_utf8(name.into()) {
+        Ok(ns) => Ok((ns, value.into())),
+        _ => return Err(Error::Type("Non-UTF8 header name found".to_string())),
     }
 }
 
 // Removes trailing and leading HTTP whitespace bytes.
+// https://fetch.spec.whatwg.org/#concept-header-value-normalize
 pub fn normalize_value(value: ByteString) -> ByteString {
-    let opt_first_index = index_of_first_non_whitespace(&value);
-    match opt_first_index {
-        None => ByteString::new(vec![]),
-        Some(0) => {
-            let mut value: Vec<u8> = value.into();
-            loop {
-                match value.last().map(|ref_byte| *ref_byte) {
-                    None => panic!("Should have found non-whitespace character first."),
-                    Some(byte) if is_HTTP_whitespace(byte) => value.pop(),
-                    Some(_) => return ByteString::new(value),
-                };
-            }
-        }
-        Some(first_index) => {
-            let opt_last_index = index_of_last_non_whitespace(&value);
-            match opt_last_index {
-                None => panic!("Should have found non-whitespace character first."),
-                Some(last_index) => {
-                    let capacity = last_index - first_index + 1;
-                    let mut normalized_value = Vec::with_capacity(capacity);
-                    for byte in &value[first_index..last_index + 1] {
-                        normalized_value.push(*byte);
-                    }
-                    ByteString::new(normalized_value)
-                }
-            }
-        }
+    match (index_of_first_non_whitespace(&value), index_of_last_non_whitespace(&value)) {
+        (Some(begin), Some(end)) => ByteString::new(value[begin..end + 1].to_owned()),
+        _ => ByteString::new(vec![]),
     }
 }
 
 fn is_HTTP_whitespace(byte: u8) -> bool {
-    return byte == 0x09 ||   // horizontal tab
-        byte == 0x0A ||      // new line
-        byte == 0x0D ||      // return character
-        byte == 0x20;        // space
+    byte == b'\t' || byte == b'\n' || byte == b'\r' || byte == b' '
 }
 
 fn index_of_first_non_whitespace(value: &ByteString) -> Option<usize> {
     for (index, &byte) in value.iter().enumerate() {
-        if is_HTTP_whitespace(byte) {
-            continue;
+        if !is_HTTP_whitespace(byte) {
+            return Some(index);
         }
-        return Some(index)
     }
     None
 }
 
 fn index_of_last_non_whitespace(value: &ByteString) -> Option<usize> {
     for (index, &byte) in value.iter().enumerate().rev() {
-        if is_HTTP_whitespace(byte) {
-            continue;
+        if !is_HTTP_whitespace(byte) {
+            return Some(index);
         }
-        return Some(index)
     }
     None
 }
 
+// http://tools.ietf.org/html/rfc7230#section-3.2
 fn is_field_name(name: &ByteString) -> bool {
-    // http://tools.ietf.org/html/rfc7230#section-3.2
     is_token(&*name)
 }
 
+// https://tools.ietf.org/html/rfc7230#section-3.2
+// http://www.rfc-editor.org/errata_search.php?rfc=7230
+// Errata ID: 4189
+// field-content = field-vchar [ 1*( SP / HTAB / field-vchar )
+//                               field-vchar ]
 fn is_field_content(value: &ByteString) -> bool {
-    // http://tools.ietf.org/html/rfc2616#section-2.2
-    // http://www.rfc-editor.org/errata_search.php?rfc=7230
-    // Errata ID: 4189
-    // field-content = field-vchar [ 1*( SP / HTAB / field-vchar )
-    //                               field-vchar ]
     if value.len() == 0 {
         return false;
     }
@@ -314,29 +240,28 @@ fn is_field_content(value: &ByteString) -> bool {
 }
 
 fn is_space(x: u8) -> bool {
-    return x == 0x20;
+    x == b' '
 }
 
 fn is_htab(x: u8) -> bool {
-    return x == 0x09;
+    x == b'\t'
 }
 
+// https://tools.ietf.org/html/rfc7230#section-3.2
 fn is_field_vchar(x: u8) -> bool {
     is_vchar(x) || is_obs_text(x)
 }
 
+// https://tools.ietf.org/html/rfc5234#appendix-B.1
 fn is_vchar(x: u8) -> bool {
-    // http://tools.ietf.org/html/rfc2616#section-2.2
-    // field-vchar = VCHAR / obs-text
     match x {
-        0...31 | 127 => false, // CTLs
-        x if x > 127 => false, // non-CHARs
-        _ => true,
+        0x21...0x7E => true,
+        _ => false,
     }
 }
 
+// http://tools.ietf.org/html/rfc7230#section-3.2.6
 fn is_obs_text(x: u8) -> bool {
-    // http://tools.ietf.org/html/rfc7230#section-3.2.6
     match x {
         0x80...0xFF => true,
         _ => false,
