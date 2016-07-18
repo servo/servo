@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use structs::{nsStyleCoord_CalcValue, nsStyleCoord_Calc, nsStyleUnit, nsStyleUnion};
-use bindings::{Gecko_ResetStyleCoord, Gecko_SetStyleCoordCalcValue};
+use std::mem::transmute;
+use structs::{nsStyleCoord_CalcValue, nsStyleCoord_Calc, nsStyleUnit, nsStyleUnion, nsStyleCoord};
+use bindings::{Gecko_ResetStyleCoord, Gecko_SetStyleCoordCalcValue, Gecko_AddRefCalc};
 
 // Functions here are unsafe because it is possible to use the wrong nsStyleUnit
 // FIXME we should be pairing up nsStyleUnion and nsStyleUnit somehow
@@ -29,6 +30,25 @@ impl nsStyleUnion {
     }
 
     pub unsafe fn get_calc(&self) -> nsStyleCoord_CalcValue {
-        (*(*self.mPointer.as_ref() as *const nsStyleCoord_Calc))._base
+        (*self.as_calc())._base
+    }
+
+    pub unsafe fn addref_opt(&mut self, unit: &nsStyleUnit) {
+        if *unit == nsStyleUnit::eStyleUnit_Calc {
+            Gecko_AddRefCalc(self.as_calc_mut());
+        }
+    }
+
+    pub unsafe fn as_calc_mut(&mut self) -> &mut nsStyleCoord_Calc {
+        transmute(*self.mPointer.as_mut() as *mut nsStyleCoord_Calc)
+    }
+    pub unsafe fn as_calc(&self) -> &nsStyleCoord_Calc {
+        transmute(*self.mPointer.as_ref() as *const nsStyleCoord_Calc)
+    }
+}
+
+impl nsStyleCoord {
+    pub unsafe fn addref_opt(&mut self) {
+        self.mValue.addref_opt(&self.mUnit);
     }
 }
