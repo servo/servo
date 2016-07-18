@@ -35,7 +35,7 @@ use style::properties::{CascadePropertyFn, ServoComputedValues, ComputedValues};
 use style::properties::longhands;
 use style::properties::style_struct_traits::*;
 use values::{StyleCoordHelpers, GeckoStyleCoordConvertible, convert_nscolor_to_rgba};
-use values::{convert_rgba_to_nscolor, debug_assert_unit_is_safe_to_copy};
+use values::convert_rgba_to_nscolor;
 use values::round_border_to_device_pixels;
 
 #[derive(Clone, Debug)]
@@ -317,9 +317,10 @@ def set_gecko_property(ffi_name, expr):
                                &mut self.gecko.${union_ffi_name});
     }
     fn copy_${ident}_from(&mut self, other: &Self) {
-        debug_assert_unit_is_safe_to_copy(self.gecko.${unit_ffi_name});
+        unsafe { self.gecko.${union_ffi_name}.reset(&mut self.gecko.${unit_ffi_name}) };
         self.gecko.${unit_ffi_name} =  other.gecko.${unit_ffi_name};
         self.gecko.${union_ffi_name} = other.gecko.${union_ffi_name};
+        unsafe { self.gecko.${union_ffi_name}.addref_opt(&self.gecko.${unit_ffi_name}) };
     }
     % if need_clone:
         fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
@@ -347,12 +348,14 @@ ${impl_split_style_coord(ident,
                                         &mut self.gecko.${y_union_ffi_name});
     }
     fn copy_${ident}_from(&mut self, other: &Self) {
-        debug_assert_unit_is_safe_to_copy(self.gecko.${x_unit_ffi_name});
-        debug_assert_unit_is_safe_to_copy(self.gecko.${y_unit_ffi_name});
+        unsafe { self.gecko.${x_union_ffi_name}.reset(&mut self.gecko.${x_unit_ffi_name}) };
+        unsafe { self.gecko.${y_union_ffi_name}.reset(&mut self.gecko.${y_unit_ffi_name}) };
         self.gecko.${x_unit_ffi_name} = other.gecko.${x_unit_ffi_name};
         self.gecko.${x_union_ffi_name} = other.gecko.${x_union_ffi_name};
         self.gecko.${y_unit_ffi_name} = other.gecko.${y_unit_ffi_name};
         self.gecko.${y_union_ffi_name} = other.gecko.${y_union_ffi_name};
+        unsafe { self.gecko.${x_union_ffi_name}.addref_opt(&self.gecko.${x_unit_ffi_name}) };
+        unsafe { self.gecko.${y_union_ffi_name}.addref_opt(&self.gecko.${y_unit_ffi_name}) };
     }
     % if need_clone:
         fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
@@ -628,9 +631,10 @@ fn static_assert() {
     }
 
     fn copy_z_index_from(&mut self, other: &Self) {
-        debug_assert_unit_is_safe_to_copy(self.gecko.mZIndex.mUnit);
+        unsafe { self.gecko.mZIndex.mValue.reset(&mut self.gecko.mZIndex.mUnit) };
         self.gecko.mZIndex.mUnit = other.gecko.mZIndex.mUnit;
         self.gecko.mZIndex.mValue = other.gecko.mZIndex.mValue;
+        unsafe { self.gecko.mZIndex.mValue.addref_opt(&self.gecko.mZIndex.mUnit) };
     }
 
     fn clone_z_index(&self) -> longhands::z_index::computed_value::T {
