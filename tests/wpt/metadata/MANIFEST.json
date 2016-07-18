@@ -37210,6 +37210,1554 @@
             "path": "html/semantics/scripting-1/the-script-element/script-charset-03.html",
             "url": "/html/semantics/scripting-1/the-script-element/script-charset-03.html"
           }
+        ],
+        "referrer-policy/no-referrer-when-downgrade/http-rp/cross-origin/http-http/worker-request/insecure-protocol.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer-when-downgrade/http-rp/cross-origin/http-http/worker-request/insecure-protocol.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/no-referrer-when-downgrade/http-rp/cross-origin/http-http/worker-request/insecure-protocol.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer-when-downgrade/http-rp/cross-origin/http-http/worker-request/insecure-protocol.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer-when-downgrade/http-rp/cross-origin/http-http/worker-request/insecure-protocol.no-redirect.http.html",
+            "url": "/referrer-policy/no-referrer-when-downgrade/http-rp/cross-origin/http-http/worker-request/insecure-protocol.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer-when-downgrade/http-rp/cross-origin/http-http/worker-request/insecure-protocol.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer-when-downgrade/http-rp/cross-origin/http-http/worker-request/insecure-protocol.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/no-referrer-when-downgrade/http-rp/cross-origin/http-http/worker-request/insecure-protocol.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer-when-downgrade/http-rp/cross-origin/http-https/worker-request/upgrade-protocol.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer-when-downgrade/http-rp/cross-origin/http-https/worker-request/upgrade-protocol.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/no-referrer-when-downgrade/http-rp/cross-origin/http-https/worker-request/upgrade-protocol.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer-when-downgrade/http-rp/cross-origin/http-https/worker-request/upgrade-protocol.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer-when-downgrade/http-rp/cross-origin/http-https/worker-request/upgrade-protocol.no-redirect.http.html",
+            "url": "/referrer-policy/no-referrer-when-downgrade/http-rp/cross-origin/http-https/worker-request/upgrade-protocol.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer-when-downgrade/http-rp/cross-origin/http-https/worker-request/upgrade-protocol.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer-when-downgrade/http-rp/cross-origin/http-https/worker-request/upgrade-protocol.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/no-referrer-when-downgrade/http-rp/cross-origin/http-https/worker-request/upgrade-protocol.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer-when-downgrade/http-rp/same-origin/http-http/worker-request/insecure-protocol.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer-when-downgrade/http-rp/same-origin/http-http/worker-request/insecure-protocol.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/no-referrer-when-downgrade/http-rp/same-origin/http-http/worker-request/insecure-protocol.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer-when-downgrade/http-rp/same-origin/http-http/worker-request/insecure-protocol.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer-when-downgrade/http-rp/same-origin/http-http/worker-request/insecure-protocol.no-redirect.http.html",
+            "url": "/referrer-policy/no-referrer-when-downgrade/http-rp/same-origin/http-http/worker-request/insecure-protocol.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer-when-downgrade/http-rp/same-origin/http-http/worker-request/insecure-protocol.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer-when-downgrade/http-rp/same-origin/http-http/worker-request/insecure-protocol.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/no-referrer-when-downgrade/http-rp/same-origin/http-http/worker-request/insecure-protocol.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer-when-downgrade/http-rp/same-origin/http-https/worker-request/upgrade-protocol.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer-when-downgrade/http-rp/same-origin/http-https/worker-request/upgrade-protocol.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/no-referrer-when-downgrade/http-rp/same-origin/http-https/worker-request/upgrade-protocol.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer-when-downgrade/http-rp/same-origin/http-https/worker-request/upgrade-protocol.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer-when-downgrade/http-rp/same-origin/http-https/worker-request/upgrade-protocol.no-redirect.http.html",
+            "url": "/referrer-policy/no-referrer-when-downgrade/http-rp/same-origin/http-https/worker-request/upgrade-protocol.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer-when-downgrade/http-rp/same-origin/http-https/worker-request/upgrade-protocol.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer-when-downgrade/http-rp/same-origin/http-https/worker-request/upgrade-protocol.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/no-referrer-when-downgrade/http-rp/same-origin/http-https/worker-request/upgrade-protocol.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer-when-downgrade/meta-csp/cross-origin/http-http/worker-request/insecure-protocol.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer-when-downgrade/meta-csp/cross-origin/http-http/worker-request/insecure-protocol.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/no-referrer-when-downgrade/meta-csp/cross-origin/http-http/worker-request/insecure-protocol.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer-when-downgrade/meta-csp/cross-origin/http-http/worker-request/insecure-protocol.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer-when-downgrade/meta-csp/cross-origin/http-http/worker-request/insecure-protocol.no-redirect.http.html",
+            "url": "/referrer-policy/no-referrer-when-downgrade/meta-csp/cross-origin/http-http/worker-request/insecure-protocol.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer-when-downgrade/meta-csp/cross-origin/http-http/worker-request/insecure-protocol.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer-when-downgrade/meta-csp/cross-origin/http-http/worker-request/insecure-protocol.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/no-referrer-when-downgrade/meta-csp/cross-origin/http-http/worker-request/insecure-protocol.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer-when-downgrade/meta-csp/cross-origin/http-https/worker-request/upgrade-protocol.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer-when-downgrade/meta-csp/cross-origin/http-https/worker-request/upgrade-protocol.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/no-referrer-when-downgrade/meta-csp/cross-origin/http-https/worker-request/upgrade-protocol.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer-when-downgrade/meta-csp/cross-origin/http-https/worker-request/upgrade-protocol.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer-when-downgrade/meta-csp/cross-origin/http-https/worker-request/upgrade-protocol.no-redirect.http.html",
+            "url": "/referrer-policy/no-referrer-when-downgrade/meta-csp/cross-origin/http-https/worker-request/upgrade-protocol.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer-when-downgrade/meta-csp/cross-origin/http-https/worker-request/upgrade-protocol.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer-when-downgrade/meta-csp/cross-origin/http-https/worker-request/upgrade-protocol.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/no-referrer-when-downgrade/meta-csp/cross-origin/http-https/worker-request/upgrade-protocol.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer-when-downgrade/meta-csp/same-origin/http-http/worker-request/insecure-protocol.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer-when-downgrade/meta-csp/same-origin/http-http/worker-request/insecure-protocol.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/no-referrer-when-downgrade/meta-csp/same-origin/http-http/worker-request/insecure-protocol.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer-when-downgrade/meta-csp/same-origin/http-http/worker-request/insecure-protocol.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer-when-downgrade/meta-csp/same-origin/http-http/worker-request/insecure-protocol.no-redirect.http.html",
+            "url": "/referrer-policy/no-referrer-when-downgrade/meta-csp/same-origin/http-http/worker-request/insecure-protocol.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer-when-downgrade/meta-csp/same-origin/http-http/worker-request/insecure-protocol.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer-when-downgrade/meta-csp/same-origin/http-http/worker-request/insecure-protocol.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/no-referrer-when-downgrade/meta-csp/same-origin/http-http/worker-request/insecure-protocol.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer-when-downgrade/meta-csp/same-origin/http-https/worker-request/upgrade-protocol.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer-when-downgrade/meta-csp/same-origin/http-https/worker-request/upgrade-protocol.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/no-referrer-when-downgrade/meta-csp/same-origin/http-https/worker-request/upgrade-protocol.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer-when-downgrade/meta-csp/same-origin/http-https/worker-request/upgrade-protocol.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer-when-downgrade/meta-csp/same-origin/http-https/worker-request/upgrade-protocol.no-redirect.http.html",
+            "url": "/referrer-policy/no-referrer-when-downgrade/meta-csp/same-origin/http-https/worker-request/upgrade-protocol.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer-when-downgrade/meta-csp/same-origin/http-https/worker-request/upgrade-protocol.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer-when-downgrade/meta-csp/same-origin/http-https/worker-request/upgrade-protocol.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/no-referrer-when-downgrade/meta-csp/same-origin/http-https/worker-request/upgrade-protocol.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer-when-downgrade/meta-referrer/cross-origin/http-http/worker-request/insecure-protocol.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer-when-downgrade/meta-referrer/cross-origin/http-http/worker-request/insecure-protocol.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/no-referrer-when-downgrade/meta-referrer/cross-origin/http-http/worker-request/insecure-protocol.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer-when-downgrade/meta-referrer/cross-origin/http-http/worker-request/insecure-protocol.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer-when-downgrade/meta-referrer/cross-origin/http-http/worker-request/insecure-protocol.no-redirect.http.html",
+            "url": "/referrer-policy/no-referrer-when-downgrade/meta-referrer/cross-origin/http-http/worker-request/insecure-protocol.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer-when-downgrade/meta-referrer/cross-origin/http-http/worker-request/insecure-protocol.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer-when-downgrade/meta-referrer/cross-origin/http-http/worker-request/insecure-protocol.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/no-referrer-when-downgrade/meta-referrer/cross-origin/http-http/worker-request/insecure-protocol.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer-when-downgrade/meta-referrer/cross-origin/http-https/worker-request/upgrade-protocol.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer-when-downgrade/meta-referrer/cross-origin/http-https/worker-request/upgrade-protocol.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/no-referrer-when-downgrade/meta-referrer/cross-origin/http-https/worker-request/upgrade-protocol.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer-when-downgrade/meta-referrer/cross-origin/http-https/worker-request/upgrade-protocol.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer-when-downgrade/meta-referrer/cross-origin/http-https/worker-request/upgrade-protocol.no-redirect.http.html",
+            "url": "/referrer-policy/no-referrer-when-downgrade/meta-referrer/cross-origin/http-https/worker-request/upgrade-protocol.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer-when-downgrade/meta-referrer/cross-origin/http-https/worker-request/upgrade-protocol.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer-when-downgrade/meta-referrer/cross-origin/http-https/worker-request/upgrade-protocol.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/no-referrer-when-downgrade/meta-referrer/cross-origin/http-https/worker-request/upgrade-protocol.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer-when-downgrade/meta-referrer/same-origin/http-http/worker-request/insecure-protocol.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer-when-downgrade/meta-referrer/same-origin/http-http/worker-request/insecure-protocol.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/no-referrer-when-downgrade/meta-referrer/same-origin/http-http/worker-request/insecure-protocol.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer-when-downgrade/meta-referrer/same-origin/http-http/worker-request/insecure-protocol.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer-when-downgrade/meta-referrer/same-origin/http-http/worker-request/insecure-protocol.no-redirect.http.html",
+            "url": "/referrer-policy/no-referrer-when-downgrade/meta-referrer/same-origin/http-http/worker-request/insecure-protocol.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer-when-downgrade/meta-referrer/same-origin/http-http/worker-request/insecure-protocol.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer-when-downgrade/meta-referrer/same-origin/http-http/worker-request/insecure-protocol.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/no-referrer-when-downgrade/meta-referrer/same-origin/http-http/worker-request/insecure-protocol.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer-when-downgrade/meta-referrer/same-origin/http-https/worker-request/upgrade-protocol.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer-when-downgrade/meta-referrer/same-origin/http-https/worker-request/upgrade-protocol.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/no-referrer-when-downgrade/meta-referrer/same-origin/http-https/worker-request/upgrade-protocol.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer-when-downgrade/meta-referrer/same-origin/http-https/worker-request/upgrade-protocol.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer-when-downgrade/meta-referrer/same-origin/http-https/worker-request/upgrade-protocol.no-redirect.http.html",
+            "url": "/referrer-policy/no-referrer-when-downgrade/meta-referrer/same-origin/http-https/worker-request/upgrade-protocol.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer-when-downgrade/meta-referrer/same-origin/http-https/worker-request/upgrade-protocol.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer-when-downgrade/meta-referrer/same-origin/http-https/worker-request/upgrade-protocol.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/no-referrer-when-downgrade/meta-referrer/same-origin/http-https/worker-request/upgrade-protocol.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer/http-rp/cross-origin/http-http/worker-request/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer/http-rp/cross-origin/http-http/worker-request/generic.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/no-referrer/http-rp/cross-origin/http-http/worker-request/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer/http-rp/cross-origin/http-http/worker-request/generic.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer/http-rp/cross-origin/http-http/worker-request/generic.no-redirect.http.html",
+            "url": "/referrer-policy/no-referrer/http-rp/cross-origin/http-http/worker-request/generic.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer/http-rp/cross-origin/http-http/worker-request/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer/http-rp/cross-origin/http-http/worker-request/generic.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/no-referrer/http-rp/cross-origin/http-http/worker-request/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer/http-rp/cross-origin/http-https/worker-request/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer/http-rp/cross-origin/http-https/worker-request/generic.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/no-referrer/http-rp/cross-origin/http-https/worker-request/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer/http-rp/cross-origin/http-https/worker-request/generic.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer/http-rp/cross-origin/http-https/worker-request/generic.no-redirect.http.html",
+            "url": "/referrer-policy/no-referrer/http-rp/cross-origin/http-https/worker-request/generic.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer/http-rp/cross-origin/http-https/worker-request/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer/http-rp/cross-origin/http-https/worker-request/generic.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/no-referrer/http-rp/cross-origin/http-https/worker-request/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer/http-rp/same-origin/http-http/worker-request/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer/http-rp/same-origin/http-http/worker-request/generic.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/no-referrer/http-rp/same-origin/http-http/worker-request/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer/http-rp/same-origin/http-http/worker-request/generic.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer/http-rp/same-origin/http-http/worker-request/generic.no-redirect.http.html",
+            "url": "/referrer-policy/no-referrer/http-rp/same-origin/http-http/worker-request/generic.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer/http-rp/same-origin/http-http/worker-request/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer/http-rp/same-origin/http-http/worker-request/generic.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/no-referrer/http-rp/same-origin/http-http/worker-request/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer/http-rp/same-origin/http-https/worker-request/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer/http-rp/same-origin/http-https/worker-request/generic.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/no-referrer/http-rp/same-origin/http-https/worker-request/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer/http-rp/same-origin/http-https/worker-request/generic.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer/http-rp/same-origin/http-https/worker-request/generic.no-redirect.http.html",
+            "url": "/referrer-policy/no-referrer/http-rp/same-origin/http-https/worker-request/generic.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer/http-rp/same-origin/http-https/worker-request/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer/http-rp/same-origin/http-https/worker-request/generic.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/no-referrer/http-rp/same-origin/http-https/worker-request/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer/meta-csp/cross-origin/http-http/worker-request/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer/meta-csp/cross-origin/http-http/worker-request/generic.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/no-referrer/meta-csp/cross-origin/http-http/worker-request/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer/meta-csp/cross-origin/http-http/worker-request/generic.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer/meta-csp/cross-origin/http-http/worker-request/generic.no-redirect.http.html",
+            "url": "/referrer-policy/no-referrer/meta-csp/cross-origin/http-http/worker-request/generic.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer/meta-csp/cross-origin/http-http/worker-request/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer/meta-csp/cross-origin/http-http/worker-request/generic.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/no-referrer/meta-csp/cross-origin/http-http/worker-request/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer/meta-csp/cross-origin/http-https/worker-request/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer/meta-csp/cross-origin/http-https/worker-request/generic.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/no-referrer/meta-csp/cross-origin/http-https/worker-request/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer/meta-csp/cross-origin/http-https/worker-request/generic.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer/meta-csp/cross-origin/http-https/worker-request/generic.no-redirect.http.html",
+            "url": "/referrer-policy/no-referrer/meta-csp/cross-origin/http-https/worker-request/generic.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer/meta-csp/cross-origin/http-https/worker-request/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer/meta-csp/cross-origin/http-https/worker-request/generic.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/no-referrer/meta-csp/cross-origin/http-https/worker-request/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer/meta-csp/same-origin/http-http/worker-request/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer/meta-csp/same-origin/http-http/worker-request/generic.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/no-referrer/meta-csp/same-origin/http-http/worker-request/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer/meta-csp/same-origin/http-http/worker-request/generic.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer/meta-csp/same-origin/http-http/worker-request/generic.no-redirect.http.html",
+            "url": "/referrer-policy/no-referrer/meta-csp/same-origin/http-http/worker-request/generic.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer/meta-csp/same-origin/http-http/worker-request/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer/meta-csp/same-origin/http-http/worker-request/generic.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/no-referrer/meta-csp/same-origin/http-http/worker-request/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer/meta-csp/same-origin/http-https/worker-request/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer/meta-csp/same-origin/http-https/worker-request/generic.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/no-referrer/meta-csp/same-origin/http-https/worker-request/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer/meta-csp/same-origin/http-https/worker-request/generic.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer/meta-csp/same-origin/http-https/worker-request/generic.no-redirect.http.html",
+            "url": "/referrer-policy/no-referrer/meta-csp/same-origin/http-https/worker-request/generic.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer/meta-csp/same-origin/http-https/worker-request/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer/meta-csp/same-origin/http-https/worker-request/generic.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/no-referrer/meta-csp/same-origin/http-https/worker-request/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer/meta-referrer/cross-origin/http-http/worker-request/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer/meta-referrer/cross-origin/http-http/worker-request/generic.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/no-referrer/meta-referrer/cross-origin/http-http/worker-request/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer/meta-referrer/cross-origin/http-http/worker-request/generic.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer/meta-referrer/cross-origin/http-http/worker-request/generic.no-redirect.http.html",
+            "url": "/referrer-policy/no-referrer/meta-referrer/cross-origin/http-http/worker-request/generic.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer/meta-referrer/cross-origin/http-http/worker-request/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer/meta-referrer/cross-origin/http-http/worker-request/generic.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/no-referrer/meta-referrer/cross-origin/http-http/worker-request/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer/meta-referrer/cross-origin/http-https/worker-request/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer/meta-referrer/cross-origin/http-https/worker-request/generic.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/no-referrer/meta-referrer/cross-origin/http-https/worker-request/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer/meta-referrer/cross-origin/http-https/worker-request/generic.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer/meta-referrer/cross-origin/http-https/worker-request/generic.no-redirect.http.html",
+            "url": "/referrer-policy/no-referrer/meta-referrer/cross-origin/http-https/worker-request/generic.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer/meta-referrer/cross-origin/http-https/worker-request/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer/meta-referrer/cross-origin/http-https/worker-request/generic.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/no-referrer/meta-referrer/cross-origin/http-https/worker-request/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer/meta-referrer/same-origin/http-http/worker-request/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer/meta-referrer/same-origin/http-http/worker-request/generic.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/no-referrer/meta-referrer/same-origin/http-http/worker-request/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer/meta-referrer/same-origin/http-http/worker-request/generic.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer/meta-referrer/same-origin/http-http/worker-request/generic.no-redirect.http.html",
+            "url": "/referrer-policy/no-referrer/meta-referrer/same-origin/http-http/worker-request/generic.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer/meta-referrer/same-origin/http-http/worker-request/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer/meta-referrer/same-origin/http-http/worker-request/generic.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/no-referrer/meta-referrer/same-origin/http-http/worker-request/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer/meta-referrer/same-origin/http-https/worker-request/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer/meta-referrer/same-origin/http-https/worker-request/generic.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/no-referrer/meta-referrer/same-origin/http-https/worker-request/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer/meta-referrer/same-origin/http-https/worker-request/generic.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer/meta-referrer/same-origin/http-https/worker-request/generic.no-redirect.http.html",
+            "url": "/referrer-policy/no-referrer/meta-referrer/same-origin/http-https/worker-request/generic.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/no-referrer/meta-referrer/same-origin/http-https/worker-request/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/no-referrer/meta-referrer/same-origin/http-https/worker-request/generic.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/no-referrer/meta-referrer/same-origin/http-https/worker-request/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin-when-cross-origin/http-rp/cross-origin/http-http/worker-request/cross-origin.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin-when-cross-origin/http-rp/cross-origin/http-http/worker-request/cross-origin.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/origin-when-cross-origin/http-rp/cross-origin/http-http/worker-request/cross-origin.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin-when-cross-origin/http-rp/cross-origin/http-http/worker-request/cross-origin.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin-when-cross-origin/http-rp/cross-origin/http-http/worker-request/cross-origin.no-redirect.http.html",
+            "url": "/referrer-policy/origin-when-cross-origin/http-rp/cross-origin/http-http/worker-request/cross-origin.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin-when-cross-origin/http-rp/cross-origin/http-http/worker-request/cross-origin.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin-when-cross-origin/http-rp/cross-origin/http-http/worker-request/cross-origin.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/origin-when-cross-origin/http-rp/cross-origin/http-http/worker-request/cross-origin.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin-when-cross-origin/http-rp/cross-origin/http-https/worker-request/cross-origin.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin-when-cross-origin/http-rp/cross-origin/http-https/worker-request/cross-origin.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/origin-when-cross-origin/http-rp/cross-origin/http-https/worker-request/cross-origin.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin-when-cross-origin/http-rp/cross-origin/http-https/worker-request/cross-origin.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin-when-cross-origin/http-rp/cross-origin/http-https/worker-request/cross-origin.no-redirect.http.html",
+            "url": "/referrer-policy/origin-when-cross-origin/http-rp/cross-origin/http-https/worker-request/cross-origin.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin-when-cross-origin/http-rp/cross-origin/http-https/worker-request/cross-origin.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin-when-cross-origin/http-rp/cross-origin/http-https/worker-request/cross-origin.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/origin-when-cross-origin/http-rp/cross-origin/http-https/worker-request/cross-origin.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-http/worker-request/same-origin-insecure.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-http/worker-request/same-origin-insecure.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-http/worker-request/same-origin-insecure.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-http/worker-request/same-origin-insecure.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-http/worker-request/same-origin-insecure.no-redirect.http.html",
+            "url": "/referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-http/worker-request/same-origin-insecure.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-http/worker-request/same-origin-insecure.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-http/worker-request/same-origin-insecure.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-http/worker-request/same-origin-insecure.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-https/worker-request/same-origin-downgrade.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-https/worker-request/same-origin-downgrade.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-https/worker-request/same-origin-downgrade.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-https/worker-request/same-origin-downgrade.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-https/worker-request/same-origin-downgrade.no-redirect.http.html",
+            "url": "/referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-https/worker-request/same-origin-downgrade.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-https/worker-request/same-origin-downgrade.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-https/worker-request/same-origin-downgrade.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-https/worker-request/same-origin-downgrade.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-https/worker-request/same-origin-insecure.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-https/worker-request/same-origin-insecure.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-https/worker-request/same-origin-insecure.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-https/worker-request/same-origin-upgrade.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-https/worker-request/same-origin-upgrade.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-https/worker-request/same-origin-upgrade.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-https/worker-request/same-origin-upgrade.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-https/worker-request/same-origin-upgrade.no-redirect.http.html",
+            "url": "/referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-https/worker-request/same-origin-upgrade.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-https/worker-request/same-origin-upgrade.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-https/worker-request/same-origin-upgrade.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/origin-when-cross-origin/http-rp/same-origin/http-https/worker-request/same-origin-upgrade.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin-when-cross-origin/meta-csp/cross-origin/http-http/worker-request/cross-origin.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin-when-cross-origin/meta-csp/cross-origin/http-http/worker-request/cross-origin.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/origin-when-cross-origin/meta-csp/cross-origin/http-http/worker-request/cross-origin.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin-when-cross-origin/meta-csp/cross-origin/http-http/worker-request/cross-origin.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin-when-cross-origin/meta-csp/cross-origin/http-http/worker-request/cross-origin.no-redirect.http.html",
+            "url": "/referrer-policy/origin-when-cross-origin/meta-csp/cross-origin/http-http/worker-request/cross-origin.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin-when-cross-origin/meta-csp/cross-origin/http-http/worker-request/cross-origin.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin-when-cross-origin/meta-csp/cross-origin/http-http/worker-request/cross-origin.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/origin-when-cross-origin/meta-csp/cross-origin/http-http/worker-request/cross-origin.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin-when-cross-origin/meta-csp/cross-origin/http-https/worker-request/cross-origin.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin-when-cross-origin/meta-csp/cross-origin/http-https/worker-request/cross-origin.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/origin-when-cross-origin/meta-csp/cross-origin/http-https/worker-request/cross-origin.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin-when-cross-origin/meta-csp/cross-origin/http-https/worker-request/cross-origin.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin-when-cross-origin/meta-csp/cross-origin/http-https/worker-request/cross-origin.no-redirect.http.html",
+            "url": "/referrer-policy/origin-when-cross-origin/meta-csp/cross-origin/http-https/worker-request/cross-origin.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin-when-cross-origin/meta-csp/cross-origin/http-https/worker-request/cross-origin.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin-when-cross-origin/meta-csp/cross-origin/http-https/worker-request/cross-origin.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/origin-when-cross-origin/meta-csp/cross-origin/http-https/worker-request/cross-origin.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-http/worker-request/same-origin-insecure.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-http/worker-request/same-origin-insecure.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-http/worker-request/same-origin-insecure.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-http/worker-request/same-origin-insecure.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-http/worker-request/same-origin-insecure.no-redirect.http.html",
+            "url": "/referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-http/worker-request/same-origin-insecure.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-http/worker-request/same-origin-insecure.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-http/worker-request/same-origin-insecure.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-http/worker-request/same-origin-insecure.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/worker-request/same-origin-downgrade.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/worker-request/same-origin-downgrade.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/worker-request/same-origin-downgrade.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/worker-request/same-origin-downgrade.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/worker-request/same-origin-downgrade.no-redirect.http.html",
+            "url": "/referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/worker-request/same-origin-downgrade.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/worker-request/same-origin-downgrade.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/worker-request/same-origin-downgrade.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/worker-request/same-origin-downgrade.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/worker-request/same-origin-insecure.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/worker-request/same-origin-insecure.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/worker-request/same-origin-insecure.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/worker-request/same-origin-upgrade.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/worker-request/same-origin-upgrade.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/worker-request/same-origin-upgrade.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/worker-request/same-origin-upgrade.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/worker-request/same-origin-upgrade.no-redirect.http.html",
+            "url": "/referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/worker-request/same-origin-upgrade.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/worker-request/same-origin-upgrade.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/worker-request/same-origin-upgrade.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/origin-when-cross-origin/meta-csp/same-origin/http-https/worker-request/same-origin-upgrade.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin-when-cross-origin/meta-referrer/cross-origin/http-http/worker-request/cross-origin.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin-when-cross-origin/meta-referrer/cross-origin/http-http/worker-request/cross-origin.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/origin-when-cross-origin/meta-referrer/cross-origin/http-http/worker-request/cross-origin.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin-when-cross-origin/meta-referrer/cross-origin/http-http/worker-request/cross-origin.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin-when-cross-origin/meta-referrer/cross-origin/http-http/worker-request/cross-origin.no-redirect.http.html",
+            "url": "/referrer-policy/origin-when-cross-origin/meta-referrer/cross-origin/http-http/worker-request/cross-origin.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin-when-cross-origin/meta-referrer/cross-origin/http-http/worker-request/cross-origin.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin-when-cross-origin/meta-referrer/cross-origin/http-http/worker-request/cross-origin.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/origin-when-cross-origin/meta-referrer/cross-origin/http-http/worker-request/cross-origin.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin-when-cross-origin/meta-referrer/cross-origin/http-https/worker-request/cross-origin.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin-when-cross-origin/meta-referrer/cross-origin/http-https/worker-request/cross-origin.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/origin-when-cross-origin/meta-referrer/cross-origin/http-https/worker-request/cross-origin.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin-when-cross-origin/meta-referrer/cross-origin/http-https/worker-request/cross-origin.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin-when-cross-origin/meta-referrer/cross-origin/http-https/worker-request/cross-origin.no-redirect.http.html",
+            "url": "/referrer-policy/origin-when-cross-origin/meta-referrer/cross-origin/http-https/worker-request/cross-origin.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin-when-cross-origin/meta-referrer/cross-origin/http-https/worker-request/cross-origin.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin-when-cross-origin/meta-referrer/cross-origin/http-https/worker-request/cross-origin.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/origin-when-cross-origin/meta-referrer/cross-origin/http-https/worker-request/cross-origin.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-http/worker-request/same-origin-insecure.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-http/worker-request/same-origin-insecure.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-http/worker-request/same-origin-insecure.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-http/worker-request/same-origin-insecure.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-http/worker-request/same-origin-insecure.no-redirect.http.html",
+            "url": "/referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-http/worker-request/same-origin-insecure.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-http/worker-request/same-origin-insecure.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-http/worker-request/same-origin-insecure.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-http/worker-request/same-origin-insecure.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/worker-request/same-origin-downgrade.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/worker-request/same-origin-downgrade.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/worker-request/same-origin-downgrade.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/worker-request/same-origin-downgrade.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/worker-request/same-origin-downgrade.no-redirect.http.html",
+            "url": "/referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/worker-request/same-origin-downgrade.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/worker-request/same-origin-downgrade.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/worker-request/same-origin-downgrade.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/worker-request/same-origin-downgrade.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/worker-request/same-origin-insecure.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/worker-request/same-origin-insecure.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/worker-request/same-origin-insecure.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/worker-request/same-origin-upgrade.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/worker-request/same-origin-upgrade.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/worker-request/same-origin-upgrade.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/worker-request/same-origin-upgrade.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/worker-request/same-origin-upgrade.no-redirect.http.html",
+            "url": "/referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/worker-request/same-origin-upgrade.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/worker-request/same-origin-upgrade.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/worker-request/same-origin-upgrade.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/origin-when-cross-origin/meta-referrer/same-origin/http-https/worker-request/same-origin-upgrade.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin/http-rp/cross-origin/http-http/worker-request/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin/http-rp/cross-origin/http-http/worker-request/generic.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/origin/http-rp/cross-origin/http-http/worker-request/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin/http-rp/cross-origin/http-http/worker-request/generic.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin/http-rp/cross-origin/http-http/worker-request/generic.no-redirect.http.html",
+            "url": "/referrer-policy/origin/http-rp/cross-origin/http-http/worker-request/generic.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin/http-rp/cross-origin/http-http/worker-request/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin/http-rp/cross-origin/http-http/worker-request/generic.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/origin/http-rp/cross-origin/http-http/worker-request/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin/http-rp/cross-origin/http-https/worker-request/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin/http-rp/cross-origin/http-https/worker-request/generic.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/origin/http-rp/cross-origin/http-https/worker-request/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin/http-rp/cross-origin/http-https/worker-request/generic.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin/http-rp/cross-origin/http-https/worker-request/generic.no-redirect.http.html",
+            "url": "/referrer-policy/origin/http-rp/cross-origin/http-https/worker-request/generic.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin/http-rp/cross-origin/http-https/worker-request/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin/http-rp/cross-origin/http-https/worker-request/generic.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/origin/http-rp/cross-origin/http-https/worker-request/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin/http-rp/same-origin/http-http/worker-request/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin/http-rp/same-origin/http-http/worker-request/generic.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/origin/http-rp/same-origin/http-http/worker-request/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin/http-rp/same-origin/http-http/worker-request/generic.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin/http-rp/same-origin/http-http/worker-request/generic.no-redirect.http.html",
+            "url": "/referrer-policy/origin/http-rp/same-origin/http-http/worker-request/generic.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin/http-rp/same-origin/http-http/worker-request/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin/http-rp/same-origin/http-http/worker-request/generic.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/origin/http-rp/same-origin/http-http/worker-request/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin/http-rp/same-origin/http-https/worker-request/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin/http-rp/same-origin/http-https/worker-request/generic.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/origin/http-rp/same-origin/http-https/worker-request/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin/http-rp/same-origin/http-https/worker-request/generic.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin/http-rp/same-origin/http-https/worker-request/generic.no-redirect.http.html",
+            "url": "/referrer-policy/origin/http-rp/same-origin/http-https/worker-request/generic.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin/http-rp/same-origin/http-https/worker-request/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin/http-rp/same-origin/http-https/worker-request/generic.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/origin/http-rp/same-origin/http-https/worker-request/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin/meta-csp/cross-origin/http-http/worker-request/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin/meta-csp/cross-origin/http-http/worker-request/generic.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/origin/meta-csp/cross-origin/http-http/worker-request/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin/meta-csp/cross-origin/http-http/worker-request/generic.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin/meta-csp/cross-origin/http-http/worker-request/generic.no-redirect.http.html",
+            "url": "/referrer-policy/origin/meta-csp/cross-origin/http-http/worker-request/generic.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin/meta-csp/cross-origin/http-http/worker-request/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin/meta-csp/cross-origin/http-http/worker-request/generic.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/origin/meta-csp/cross-origin/http-http/worker-request/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin/meta-csp/cross-origin/http-https/worker-request/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin/meta-csp/cross-origin/http-https/worker-request/generic.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/origin/meta-csp/cross-origin/http-https/worker-request/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin/meta-csp/cross-origin/http-https/worker-request/generic.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin/meta-csp/cross-origin/http-https/worker-request/generic.no-redirect.http.html",
+            "url": "/referrer-policy/origin/meta-csp/cross-origin/http-https/worker-request/generic.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin/meta-csp/cross-origin/http-https/worker-request/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin/meta-csp/cross-origin/http-https/worker-request/generic.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/origin/meta-csp/cross-origin/http-https/worker-request/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin/meta-csp/same-origin/http-http/worker-request/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin/meta-csp/same-origin/http-http/worker-request/generic.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/origin/meta-csp/same-origin/http-http/worker-request/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin/meta-csp/same-origin/http-http/worker-request/generic.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin/meta-csp/same-origin/http-http/worker-request/generic.no-redirect.http.html",
+            "url": "/referrer-policy/origin/meta-csp/same-origin/http-http/worker-request/generic.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin/meta-csp/same-origin/http-http/worker-request/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin/meta-csp/same-origin/http-http/worker-request/generic.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/origin/meta-csp/same-origin/http-http/worker-request/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin/meta-csp/same-origin/http-https/worker-request/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin/meta-csp/same-origin/http-https/worker-request/generic.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/origin/meta-csp/same-origin/http-https/worker-request/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin/meta-csp/same-origin/http-https/worker-request/generic.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin/meta-csp/same-origin/http-https/worker-request/generic.no-redirect.http.html",
+            "url": "/referrer-policy/origin/meta-csp/same-origin/http-https/worker-request/generic.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin/meta-csp/same-origin/http-https/worker-request/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin/meta-csp/same-origin/http-https/worker-request/generic.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/origin/meta-csp/same-origin/http-https/worker-request/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin/meta-referrer/cross-origin/http-http/worker-request/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin/meta-referrer/cross-origin/http-http/worker-request/generic.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/origin/meta-referrer/cross-origin/http-http/worker-request/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin/meta-referrer/cross-origin/http-http/worker-request/generic.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin/meta-referrer/cross-origin/http-http/worker-request/generic.no-redirect.http.html",
+            "url": "/referrer-policy/origin/meta-referrer/cross-origin/http-http/worker-request/generic.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin/meta-referrer/cross-origin/http-http/worker-request/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin/meta-referrer/cross-origin/http-http/worker-request/generic.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/origin/meta-referrer/cross-origin/http-http/worker-request/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin/meta-referrer/cross-origin/http-https/worker-request/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin/meta-referrer/cross-origin/http-https/worker-request/generic.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/origin/meta-referrer/cross-origin/http-https/worker-request/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin/meta-referrer/cross-origin/http-https/worker-request/generic.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin/meta-referrer/cross-origin/http-https/worker-request/generic.no-redirect.http.html",
+            "url": "/referrer-policy/origin/meta-referrer/cross-origin/http-https/worker-request/generic.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin/meta-referrer/cross-origin/http-https/worker-request/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin/meta-referrer/cross-origin/http-https/worker-request/generic.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/origin/meta-referrer/cross-origin/http-https/worker-request/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin/meta-referrer/same-origin/http-http/worker-request/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin/meta-referrer/same-origin/http-http/worker-request/generic.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/origin/meta-referrer/same-origin/http-http/worker-request/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin/meta-referrer/same-origin/http-http/worker-request/generic.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin/meta-referrer/same-origin/http-http/worker-request/generic.no-redirect.http.html",
+            "url": "/referrer-policy/origin/meta-referrer/same-origin/http-http/worker-request/generic.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin/meta-referrer/same-origin/http-http/worker-request/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin/meta-referrer/same-origin/http-http/worker-request/generic.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/origin/meta-referrer/same-origin/http-http/worker-request/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin/meta-referrer/same-origin/http-https/worker-request/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin/meta-referrer/same-origin/http-https/worker-request/generic.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/origin/meta-referrer/same-origin/http-https/worker-request/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin/meta-referrer/same-origin/http-https/worker-request/generic.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin/meta-referrer/same-origin/http-https/worker-request/generic.no-redirect.http.html",
+            "url": "/referrer-policy/origin/meta-referrer/same-origin/http-https/worker-request/generic.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/origin/meta-referrer/same-origin/http-https/worker-request/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/origin/meta-referrer/same-origin/http-https/worker-request/generic.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/origin/meta-referrer/same-origin/http-https/worker-request/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/same-origin/http-rp/cross-origin/http-http/worker-request/cross-origin.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/same-origin/http-rp/cross-origin/http-http/worker-request/cross-origin.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/same-origin/http-rp/cross-origin/http-http/worker-request/cross-origin.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/same-origin/http-rp/cross-origin/http-http/worker-request/cross-origin.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/same-origin/http-rp/cross-origin/http-http/worker-request/cross-origin.no-redirect.http.html",
+            "url": "/referrer-policy/same-origin/http-rp/cross-origin/http-http/worker-request/cross-origin.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/same-origin/http-rp/cross-origin/http-http/worker-request/cross-origin.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/same-origin/http-rp/cross-origin/http-http/worker-request/cross-origin.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/same-origin/http-rp/cross-origin/http-http/worker-request/cross-origin.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/same-origin/http-rp/cross-origin/http-https/worker-request/cross-origin.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/same-origin/http-rp/cross-origin/http-https/worker-request/cross-origin.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/same-origin/http-rp/cross-origin/http-https/worker-request/cross-origin.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/same-origin/http-rp/cross-origin/http-https/worker-request/cross-origin.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/same-origin/http-rp/cross-origin/http-https/worker-request/cross-origin.no-redirect.http.html",
+            "url": "/referrer-policy/same-origin/http-rp/cross-origin/http-https/worker-request/cross-origin.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/same-origin/http-rp/cross-origin/http-https/worker-request/cross-origin.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/same-origin/http-rp/cross-origin/http-https/worker-request/cross-origin.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/same-origin/http-rp/cross-origin/http-https/worker-request/cross-origin.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/same-origin/http-rp/same-origin/http-http/worker-request/same-origin-insecure.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/same-origin/http-rp/same-origin/http-http/worker-request/same-origin-insecure.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/same-origin/http-rp/same-origin/http-http/worker-request/same-origin-insecure.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/same-origin/http-rp/same-origin/http-http/worker-request/same-origin-insecure.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/same-origin/http-rp/same-origin/http-http/worker-request/same-origin-insecure.no-redirect.http.html",
+            "url": "/referrer-policy/same-origin/http-rp/same-origin/http-http/worker-request/same-origin-insecure.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/same-origin/http-rp/same-origin/http-http/worker-request/same-origin-insecure.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/same-origin/http-rp/same-origin/http-http/worker-request/same-origin-insecure.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/same-origin/http-rp/same-origin/http-http/worker-request/same-origin-insecure.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/same-origin/http-rp/same-origin/http-https/worker-request/same-origin-insecure.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/same-origin/http-rp/same-origin/http-https/worker-request/same-origin-insecure.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/same-origin/http-rp/same-origin/http-https/worker-request/same-origin-insecure.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/same-origin/meta-csp/cross-origin/http-http/worker-request/cross-origin.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/same-origin/meta-csp/cross-origin/http-http/worker-request/cross-origin.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/same-origin/meta-csp/cross-origin/http-http/worker-request/cross-origin.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/same-origin/meta-csp/cross-origin/http-http/worker-request/cross-origin.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/same-origin/meta-csp/cross-origin/http-http/worker-request/cross-origin.no-redirect.http.html",
+            "url": "/referrer-policy/same-origin/meta-csp/cross-origin/http-http/worker-request/cross-origin.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/same-origin/meta-csp/cross-origin/http-http/worker-request/cross-origin.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/same-origin/meta-csp/cross-origin/http-http/worker-request/cross-origin.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/same-origin/meta-csp/cross-origin/http-http/worker-request/cross-origin.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/same-origin/meta-csp/cross-origin/http-https/worker-request/cross-origin.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/same-origin/meta-csp/cross-origin/http-https/worker-request/cross-origin.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/same-origin/meta-csp/cross-origin/http-https/worker-request/cross-origin.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/same-origin/meta-csp/cross-origin/http-https/worker-request/cross-origin.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/same-origin/meta-csp/cross-origin/http-https/worker-request/cross-origin.no-redirect.http.html",
+            "url": "/referrer-policy/same-origin/meta-csp/cross-origin/http-https/worker-request/cross-origin.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/same-origin/meta-csp/cross-origin/http-https/worker-request/cross-origin.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/same-origin/meta-csp/cross-origin/http-https/worker-request/cross-origin.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/same-origin/meta-csp/cross-origin/http-https/worker-request/cross-origin.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/same-origin/meta-csp/same-origin/http-http/worker-request/same-origin-insecure.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/same-origin/meta-csp/same-origin/http-http/worker-request/same-origin-insecure.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/same-origin/meta-csp/same-origin/http-http/worker-request/same-origin-insecure.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/same-origin/meta-csp/same-origin/http-http/worker-request/same-origin-insecure.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/same-origin/meta-csp/same-origin/http-http/worker-request/same-origin-insecure.no-redirect.http.html",
+            "url": "/referrer-policy/same-origin/meta-csp/same-origin/http-http/worker-request/same-origin-insecure.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/same-origin/meta-csp/same-origin/http-http/worker-request/same-origin-insecure.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/same-origin/meta-csp/same-origin/http-http/worker-request/same-origin-insecure.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/same-origin/meta-csp/same-origin/http-http/worker-request/same-origin-insecure.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/same-origin/meta-csp/same-origin/http-https/worker-request/same-origin-insecure.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/same-origin/meta-csp/same-origin/http-https/worker-request/same-origin-insecure.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/same-origin/meta-csp/same-origin/http-https/worker-request/same-origin-insecure.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/same-origin/meta-referrer/cross-origin/http-http/worker-request/cross-origin.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/same-origin/meta-referrer/cross-origin/http-http/worker-request/cross-origin.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/same-origin/meta-referrer/cross-origin/http-http/worker-request/cross-origin.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/same-origin/meta-referrer/cross-origin/http-http/worker-request/cross-origin.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/same-origin/meta-referrer/cross-origin/http-http/worker-request/cross-origin.no-redirect.http.html",
+            "url": "/referrer-policy/same-origin/meta-referrer/cross-origin/http-http/worker-request/cross-origin.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/same-origin/meta-referrer/cross-origin/http-http/worker-request/cross-origin.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/same-origin/meta-referrer/cross-origin/http-http/worker-request/cross-origin.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/same-origin/meta-referrer/cross-origin/http-http/worker-request/cross-origin.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/same-origin/meta-referrer/cross-origin/http-https/worker-request/cross-origin.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/same-origin/meta-referrer/cross-origin/http-https/worker-request/cross-origin.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/same-origin/meta-referrer/cross-origin/http-https/worker-request/cross-origin.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/same-origin/meta-referrer/cross-origin/http-https/worker-request/cross-origin.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/same-origin/meta-referrer/cross-origin/http-https/worker-request/cross-origin.no-redirect.http.html",
+            "url": "/referrer-policy/same-origin/meta-referrer/cross-origin/http-https/worker-request/cross-origin.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/same-origin/meta-referrer/cross-origin/http-https/worker-request/cross-origin.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/same-origin/meta-referrer/cross-origin/http-https/worker-request/cross-origin.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/same-origin/meta-referrer/cross-origin/http-https/worker-request/cross-origin.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/same-origin/meta-referrer/same-origin/http-http/worker-request/same-origin-insecure.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/same-origin/meta-referrer/same-origin/http-http/worker-request/same-origin-insecure.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/same-origin/meta-referrer/same-origin/http-http/worker-request/same-origin-insecure.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/same-origin/meta-referrer/same-origin/http-http/worker-request/same-origin-insecure.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/same-origin/meta-referrer/same-origin/http-http/worker-request/same-origin-insecure.no-redirect.http.html",
+            "url": "/referrer-policy/same-origin/meta-referrer/same-origin/http-http/worker-request/same-origin-insecure.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/same-origin/meta-referrer/same-origin/http-http/worker-request/same-origin-insecure.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/same-origin/meta-referrer/same-origin/http-http/worker-request/same-origin-insecure.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/same-origin/meta-referrer/same-origin/http-http/worker-request/same-origin-insecure.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/same-origin/meta-referrer/same-origin/http-https/worker-request/same-origin-insecure.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/same-origin/meta-referrer/same-origin/http-https/worker-request/same-origin-insecure.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/same-origin/meta-referrer/same-origin/http-https/worker-request/same-origin-insecure.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unsafe-url/http-rp/cross-origin/http-http/worker-request/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/unsafe-url/http-rp/cross-origin/http-http/worker-request/generic.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/unsafe-url/http-rp/cross-origin/http-http/worker-request/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unsafe-url/http-rp/cross-origin/http-http/worker-request/generic.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/unsafe-url/http-rp/cross-origin/http-http/worker-request/generic.no-redirect.http.html",
+            "url": "/referrer-policy/unsafe-url/http-rp/cross-origin/http-http/worker-request/generic.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unsafe-url/http-rp/cross-origin/http-http/worker-request/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/unsafe-url/http-rp/cross-origin/http-http/worker-request/generic.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/unsafe-url/http-rp/cross-origin/http-http/worker-request/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unsafe-url/http-rp/cross-origin/http-https/worker-request/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/unsafe-url/http-rp/cross-origin/http-https/worker-request/generic.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/unsafe-url/http-rp/cross-origin/http-https/worker-request/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unsafe-url/http-rp/cross-origin/http-https/worker-request/generic.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/unsafe-url/http-rp/cross-origin/http-https/worker-request/generic.no-redirect.http.html",
+            "url": "/referrer-policy/unsafe-url/http-rp/cross-origin/http-https/worker-request/generic.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unsafe-url/http-rp/cross-origin/http-https/worker-request/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/unsafe-url/http-rp/cross-origin/http-https/worker-request/generic.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/unsafe-url/http-rp/cross-origin/http-https/worker-request/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unsafe-url/http-rp/same-origin/http-http/worker-request/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/unsafe-url/http-rp/same-origin/http-http/worker-request/generic.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/unsafe-url/http-rp/same-origin/http-http/worker-request/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unsafe-url/http-rp/same-origin/http-http/worker-request/generic.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/unsafe-url/http-rp/same-origin/http-http/worker-request/generic.no-redirect.http.html",
+            "url": "/referrer-policy/unsafe-url/http-rp/same-origin/http-http/worker-request/generic.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unsafe-url/http-rp/same-origin/http-http/worker-request/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/unsafe-url/http-rp/same-origin/http-http/worker-request/generic.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/unsafe-url/http-rp/same-origin/http-http/worker-request/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unsafe-url/http-rp/same-origin/http-https/worker-request/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/unsafe-url/http-rp/same-origin/http-https/worker-request/generic.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/unsafe-url/http-rp/same-origin/http-https/worker-request/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unsafe-url/http-rp/same-origin/http-https/worker-request/generic.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/unsafe-url/http-rp/same-origin/http-https/worker-request/generic.no-redirect.http.html",
+            "url": "/referrer-policy/unsafe-url/http-rp/same-origin/http-https/worker-request/generic.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unsafe-url/http-rp/same-origin/http-https/worker-request/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/unsafe-url/http-rp/same-origin/http-https/worker-request/generic.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/unsafe-url/http-rp/same-origin/http-https/worker-request/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unsafe-url/meta-csp/cross-origin/http-http/worker-request/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/unsafe-url/meta-csp/cross-origin/http-http/worker-request/generic.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/unsafe-url/meta-csp/cross-origin/http-http/worker-request/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unsafe-url/meta-csp/cross-origin/http-http/worker-request/generic.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/unsafe-url/meta-csp/cross-origin/http-http/worker-request/generic.no-redirect.http.html",
+            "url": "/referrer-policy/unsafe-url/meta-csp/cross-origin/http-http/worker-request/generic.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unsafe-url/meta-csp/cross-origin/http-http/worker-request/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/unsafe-url/meta-csp/cross-origin/http-http/worker-request/generic.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/unsafe-url/meta-csp/cross-origin/http-http/worker-request/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unsafe-url/meta-csp/cross-origin/http-https/worker-request/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/unsafe-url/meta-csp/cross-origin/http-https/worker-request/generic.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/unsafe-url/meta-csp/cross-origin/http-https/worker-request/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unsafe-url/meta-csp/cross-origin/http-https/worker-request/generic.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/unsafe-url/meta-csp/cross-origin/http-https/worker-request/generic.no-redirect.http.html",
+            "url": "/referrer-policy/unsafe-url/meta-csp/cross-origin/http-https/worker-request/generic.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unsafe-url/meta-csp/cross-origin/http-https/worker-request/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/unsafe-url/meta-csp/cross-origin/http-https/worker-request/generic.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/unsafe-url/meta-csp/cross-origin/http-https/worker-request/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unsafe-url/meta-csp/same-origin/http-http/worker-request/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/unsafe-url/meta-csp/same-origin/http-http/worker-request/generic.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/unsafe-url/meta-csp/same-origin/http-http/worker-request/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unsafe-url/meta-csp/same-origin/http-http/worker-request/generic.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/unsafe-url/meta-csp/same-origin/http-http/worker-request/generic.no-redirect.http.html",
+            "url": "/referrer-policy/unsafe-url/meta-csp/same-origin/http-http/worker-request/generic.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unsafe-url/meta-csp/same-origin/http-http/worker-request/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/unsafe-url/meta-csp/same-origin/http-http/worker-request/generic.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/unsafe-url/meta-csp/same-origin/http-http/worker-request/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unsafe-url/meta-csp/same-origin/http-https/worker-request/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/unsafe-url/meta-csp/same-origin/http-https/worker-request/generic.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/unsafe-url/meta-csp/same-origin/http-https/worker-request/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unsafe-url/meta-csp/same-origin/http-https/worker-request/generic.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/unsafe-url/meta-csp/same-origin/http-https/worker-request/generic.no-redirect.http.html",
+            "url": "/referrer-policy/unsafe-url/meta-csp/same-origin/http-https/worker-request/generic.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unsafe-url/meta-csp/same-origin/http-https/worker-request/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/unsafe-url/meta-csp/same-origin/http-https/worker-request/generic.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/unsafe-url/meta-csp/same-origin/http-https/worker-request/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unsafe-url/meta-referrer/cross-origin/http-http/worker-request/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/unsafe-url/meta-referrer/cross-origin/http-http/worker-request/generic.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/unsafe-url/meta-referrer/cross-origin/http-http/worker-request/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unsafe-url/meta-referrer/cross-origin/http-http/worker-request/generic.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/unsafe-url/meta-referrer/cross-origin/http-http/worker-request/generic.no-redirect.http.html",
+            "url": "/referrer-policy/unsafe-url/meta-referrer/cross-origin/http-http/worker-request/generic.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unsafe-url/meta-referrer/cross-origin/http-http/worker-request/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/unsafe-url/meta-referrer/cross-origin/http-http/worker-request/generic.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/unsafe-url/meta-referrer/cross-origin/http-http/worker-request/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unsafe-url/meta-referrer/cross-origin/http-https/worker-request/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/unsafe-url/meta-referrer/cross-origin/http-https/worker-request/generic.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/unsafe-url/meta-referrer/cross-origin/http-https/worker-request/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unsafe-url/meta-referrer/cross-origin/http-https/worker-request/generic.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/unsafe-url/meta-referrer/cross-origin/http-https/worker-request/generic.no-redirect.http.html",
+            "url": "/referrer-policy/unsafe-url/meta-referrer/cross-origin/http-https/worker-request/generic.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unsafe-url/meta-referrer/cross-origin/http-https/worker-request/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/unsafe-url/meta-referrer/cross-origin/http-https/worker-request/generic.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/unsafe-url/meta-referrer/cross-origin/http-https/worker-request/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unsafe-url/meta-referrer/same-origin/http-http/worker-request/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/unsafe-url/meta-referrer/same-origin/http-http/worker-request/generic.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/unsafe-url/meta-referrer/same-origin/http-http/worker-request/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unsafe-url/meta-referrer/same-origin/http-http/worker-request/generic.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/unsafe-url/meta-referrer/same-origin/http-http/worker-request/generic.no-redirect.http.html",
+            "url": "/referrer-policy/unsafe-url/meta-referrer/same-origin/http-http/worker-request/generic.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unsafe-url/meta-referrer/same-origin/http-http/worker-request/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/unsafe-url/meta-referrer/same-origin/http-http/worker-request/generic.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/unsafe-url/meta-referrer/same-origin/http-http/worker-request/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unsafe-url/meta-referrer/same-origin/http-https/worker-request/generic.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/unsafe-url/meta-referrer/same-origin/http-https/worker-request/generic.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/unsafe-url/meta-referrer/same-origin/http-https/worker-request/generic.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unsafe-url/meta-referrer/same-origin/http-https/worker-request/generic.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/unsafe-url/meta-referrer/same-origin/http-https/worker-request/generic.no-redirect.http.html",
+            "url": "/referrer-policy/unsafe-url/meta-referrer/same-origin/http-https/worker-request/generic.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unsafe-url/meta-referrer/same-origin/http-https/worker-request/generic.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/unsafe-url/meta-referrer/same-origin/http-https/worker-request/generic.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/unsafe-url/meta-referrer/same-origin/http-https/worker-request/generic.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unset-referrer-policy/http-rp/cross-origin/http-http/worker-request/insecure-protocol.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/unset-referrer-policy/http-rp/cross-origin/http-http/worker-request/insecure-protocol.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/unset-referrer-policy/http-rp/cross-origin/http-http/worker-request/insecure-protocol.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unset-referrer-policy/http-rp/cross-origin/http-http/worker-request/insecure-protocol.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/unset-referrer-policy/http-rp/cross-origin/http-http/worker-request/insecure-protocol.no-redirect.http.html",
+            "url": "/referrer-policy/unset-referrer-policy/http-rp/cross-origin/http-http/worker-request/insecure-protocol.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unset-referrer-policy/http-rp/cross-origin/http-http/worker-request/insecure-protocol.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/unset-referrer-policy/http-rp/cross-origin/http-http/worker-request/insecure-protocol.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/unset-referrer-policy/http-rp/cross-origin/http-http/worker-request/insecure-protocol.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unset-referrer-policy/http-rp/cross-origin/http-https/worker-request/upgrade-protocol.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/unset-referrer-policy/http-rp/cross-origin/http-https/worker-request/upgrade-protocol.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/unset-referrer-policy/http-rp/cross-origin/http-https/worker-request/upgrade-protocol.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unset-referrer-policy/http-rp/cross-origin/http-https/worker-request/upgrade-protocol.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/unset-referrer-policy/http-rp/cross-origin/http-https/worker-request/upgrade-protocol.no-redirect.http.html",
+            "url": "/referrer-policy/unset-referrer-policy/http-rp/cross-origin/http-https/worker-request/upgrade-protocol.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unset-referrer-policy/http-rp/cross-origin/http-https/worker-request/upgrade-protocol.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/unset-referrer-policy/http-rp/cross-origin/http-https/worker-request/upgrade-protocol.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/unset-referrer-policy/http-rp/cross-origin/http-https/worker-request/upgrade-protocol.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unset-referrer-policy/http-rp/same-origin/http-http/worker-request/insecure-protocol.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/unset-referrer-policy/http-rp/same-origin/http-http/worker-request/insecure-protocol.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/unset-referrer-policy/http-rp/same-origin/http-http/worker-request/insecure-protocol.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unset-referrer-policy/http-rp/same-origin/http-http/worker-request/insecure-protocol.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/unset-referrer-policy/http-rp/same-origin/http-http/worker-request/insecure-protocol.no-redirect.http.html",
+            "url": "/referrer-policy/unset-referrer-policy/http-rp/same-origin/http-http/worker-request/insecure-protocol.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unset-referrer-policy/http-rp/same-origin/http-http/worker-request/insecure-protocol.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/unset-referrer-policy/http-rp/same-origin/http-http/worker-request/insecure-protocol.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/unset-referrer-policy/http-rp/same-origin/http-http/worker-request/insecure-protocol.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unset-referrer-policy/http-rp/same-origin/http-https/worker-request/upgrade-protocol.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/unset-referrer-policy/http-rp/same-origin/http-https/worker-request/upgrade-protocol.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/unset-referrer-policy/http-rp/same-origin/http-https/worker-request/upgrade-protocol.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unset-referrer-policy/http-rp/same-origin/http-https/worker-request/upgrade-protocol.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/unset-referrer-policy/http-rp/same-origin/http-https/worker-request/upgrade-protocol.no-redirect.http.html",
+            "url": "/referrer-policy/unset-referrer-policy/http-rp/same-origin/http-https/worker-request/upgrade-protocol.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unset-referrer-policy/http-rp/same-origin/http-https/worker-request/upgrade-protocol.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/unset-referrer-policy/http-rp/same-origin/http-https/worker-request/upgrade-protocol.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/unset-referrer-policy/http-rp/same-origin/http-https/worker-request/upgrade-protocol.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unset-referrer-policy/meta-csp/cross-origin/http-http/worker-request/insecure-protocol.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/unset-referrer-policy/meta-csp/cross-origin/http-http/worker-request/insecure-protocol.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/unset-referrer-policy/meta-csp/cross-origin/http-http/worker-request/insecure-protocol.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unset-referrer-policy/meta-csp/cross-origin/http-http/worker-request/insecure-protocol.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/unset-referrer-policy/meta-csp/cross-origin/http-http/worker-request/insecure-protocol.no-redirect.http.html",
+            "url": "/referrer-policy/unset-referrer-policy/meta-csp/cross-origin/http-http/worker-request/insecure-protocol.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unset-referrer-policy/meta-csp/cross-origin/http-http/worker-request/insecure-protocol.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/unset-referrer-policy/meta-csp/cross-origin/http-http/worker-request/insecure-protocol.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/unset-referrer-policy/meta-csp/cross-origin/http-http/worker-request/insecure-protocol.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unset-referrer-policy/meta-csp/cross-origin/http-https/worker-request/upgrade-protocol.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/unset-referrer-policy/meta-csp/cross-origin/http-https/worker-request/upgrade-protocol.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/unset-referrer-policy/meta-csp/cross-origin/http-https/worker-request/upgrade-protocol.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unset-referrer-policy/meta-csp/cross-origin/http-https/worker-request/upgrade-protocol.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/unset-referrer-policy/meta-csp/cross-origin/http-https/worker-request/upgrade-protocol.no-redirect.http.html",
+            "url": "/referrer-policy/unset-referrer-policy/meta-csp/cross-origin/http-https/worker-request/upgrade-protocol.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unset-referrer-policy/meta-csp/cross-origin/http-https/worker-request/upgrade-protocol.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/unset-referrer-policy/meta-csp/cross-origin/http-https/worker-request/upgrade-protocol.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/unset-referrer-policy/meta-csp/cross-origin/http-https/worker-request/upgrade-protocol.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unset-referrer-policy/meta-csp/same-origin/http-http/worker-request/insecure-protocol.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/unset-referrer-policy/meta-csp/same-origin/http-http/worker-request/insecure-protocol.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/unset-referrer-policy/meta-csp/same-origin/http-http/worker-request/insecure-protocol.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unset-referrer-policy/meta-csp/same-origin/http-http/worker-request/insecure-protocol.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/unset-referrer-policy/meta-csp/same-origin/http-http/worker-request/insecure-protocol.no-redirect.http.html",
+            "url": "/referrer-policy/unset-referrer-policy/meta-csp/same-origin/http-http/worker-request/insecure-protocol.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unset-referrer-policy/meta-csp/same-origin/http-http/worker-request/insecure-protocol.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/unset-referrer-policy/meta-csp/same-origin/http-http/worker-request/insecure-protocol.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/unset-referrer-policy/meta-csp/same-origin/http-http/worker-request/insecure-protocol.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unset-referrer-policy/meta-csp/same-origin/http-https/worker-request/upgrade-protocol.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/unset-referrer-policy/meta-csp/same-origin/http-https/worker-request/upgrade-protocol.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/unset-referrer-policy/meta-csp/same-origin/http-https/worker-request/upgrade-protocol.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unset-referrer-policy/meta-csp/same-origin/http-https/worker-request/upgrade-protocol.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/unset-referrer-policy/meta-csp/same-origin/http-https/worker-request/upgrade-protocol.no-redirect.http.html",
+            "url": "/referrer-policy/unset-referrer-policy/meta-csp/same-origin/http-https/worker-request/upgrade-protocol.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unset-referrer-policy/meta-csp/same-origin/http-https/worker-request/upgrade-protocol.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/unset-referrer-policy/meta-csp/same-origin/http-https/worker-request/upgrade-protocol.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/unset-referrer-policy/meta-csp/same-origin/http-https/worker-request/upgrade-protocol.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unset-referrer-policy/meta-referrer/cross-origin/http-http/worker-request/insecure-protocol.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/unset-referrer-policy/meta-referrer/cross-origin/http-http/worker-request/insecure-protocol.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/unset-referrer-policy/meta-referrer/cross-origin/http-http/worker-request/insecure-protocol.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unset-referrer-policy/meta-referrer/cross-origin/http-http/worker-request/insecure-protocol.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/unset-referrer-policy/meta-referrer/cross-origin/http-http/worker-request/insecure-protocol.no-redirect.http.html",
+            "url": "/referrer-policy/unset-referrer-policy/meta-referrer/cross-origin/http-http/worker-request/insecure-protocol.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unset-referrer-policy/meta-referrer/cross-origin/http-http/worker-request/insecure-protocol.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/unset-referrer-policy/meta-referrer/cross-origin/http-http/worker-request/insecure-protocol.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/unset-referrer-policy/meta-referrer/cross-origin/http-http/worker-request/insecure-protocol.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unset-referrer-policy/meta-referrer/cross-origin/http-https/worker-request/upgrade-protocol.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/unset-referrer-policy/meta-referrer/cross-origin/http-https/worker-request/upgrade-protocol.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/unset-referrer-policy/meta-referrer/cross-origin/http-https/worker-request/upgrade-protocol.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unset-referrer-policy/meta-referrer/cross-origin/http-https/worker-request/upgrade-protocol.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/unset-referrer-policy/meta-referrer/cross-origin/http-https/worker-request/upgrade-protocol.no-redirect.http.html",
+            "url": "/referrer-policy/unset-referrer-policy/meta-referrer/cross-origin/http-https/worker-request/upgrade-protocol.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unset-referrer-policy/meta-referrer/cross-origin/http-https/worker-request/upgrade-protocol.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/unset-referrer-policy/meta-referrer/cross-origin/http-https/worker-request/upgrade-protocol.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/unset-referrer-policy/meta-referrer/cross-origin/http-https/worker-request/upgrade-protocol.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-http/worker-request/insecure-protocol.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-http/worker-request/insecure-protocol.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-http/worker-request/insecure-protocol.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-http/worker-request/insecure-protocol.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-http/worker-request/insecure-protocol.no-redirect.http.html",
+            "url": "/referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-http/worker-request/insecure-protocol.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-http/worker-request/insecure-protocol.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-http/worker-request/insecure-protocol.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-http/worker-request/insecure-protocol.swap-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-https/worker-request/upgrade-protocol.keep-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-https/worker-request/upgrade-protocol.keep-origin-redirect.http.html",
+            "url": "/referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-https/worker-request/upgrade-protocol.keep-origin-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-https/worker-request/upgrade-protocol.no-redirect.http.html": [
+          {
+            "path": "referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-https/worker-request/upgrade-protocol.no-redirect.http.html",
+            "url": "/referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-https/worker-request/upgrade-protocol.no-redirect.http.html"
+          }
+        ],
+        "referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-https/worker-request/upgrade-protocol.swap-origin-redirect.http.html": [
+          {
+            "path": "referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-https/worker-request/upgrade-protocol.swap-origin-redirect.http.html",
+            "url": "/referrer-policy/unset-referrer-policy/meta-referrer/same-origin/http-https/worker-request/upgrade-protocol.swap-origin-redirect.http.html"
+          }
         ]
       }
     },
