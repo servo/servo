@@ -288,6 +288,8 @@ extern "C" {
                                                   *mut ServoDeclarationBlock);
     pub fn Servo_ClearDeclarationBlockCachePointer(declarations:
                                                        *mut ServoDeclarationBlock);
+    pub fn Servo_CSSSupports(property: *const u8, property_length: u32,
+                             value: *const u8, value_length: u32) -> bool;
     pub fn Servo_GetComputedValues(node: *mut RawGeckoNode)
      -> *mut ServoComputedValues;
     pub fn Servo_GetComputedValuesForAnonymousBox(parentStyleOrNull:

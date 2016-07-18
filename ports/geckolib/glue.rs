@@ -28,13 +28,13 @@ use style::dom::{TDocument, TElement, TNode};
 use style::error_reporting::StdoutErrorReporter;
 use style::parallel;
 use style::parser::ParserContextExtraData;
-use style::properties::{ComputedValues, PropertyDeclarationBlock};
+use style::properties::{ComputedValues, PropertyDeclarationBlock, parse_one_declaration};
 use style::selector_impl::{SelectorImplExt, PseudoElementCascadeType};
 use style::sequential;
 use style::stylesheets::Origin;
 use traversal::RecalcStyleOnly;
 use url::Url;
-use wrapper::{GeckoDocument, GeckoElement, GeckoNode, NonOpaqueStyleData};
+use wrapper::{DUMMY_BASE_URL, GeckoDocument, GeckoElement, GeckoNode, NonOpaqueStyleData};
 
 // TODO: This is ugly and should go away once we get an atom back-end.
 pub fn pseudo_element_from_atom(pseudo: *mut nsIAtom,
@@ -470,4 +470,19 @@ pub extern "C" fn Servo_SetDeclarationBlockImmutable(declarations: *mut ServoDec
 pub extern "C" fn Servo_ClearDeclarationBlockCachePointer(declarations: *mut ServoDeclarationBlock) {
     let declarations = unsafe { (declarations as *mut GeckoDeclarationBlock).as_mut().unwrap() };
     declarations.cache = ptr::null_mut();
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_CSSSupports(property: *const u8, property_length: u32,
+                                    value: *const u8, value_length: u32) -> bool {
+    let property = unsafe { from_utf8_unchecked(slice::from_raw_parts(property, property_length as usize)) };
+    let value    = unsafe { from_utf8_unchecked(slice::from_raw_parts(value, value_length as usize)) };
+
+    let base_url = &*DUMMY_BASE_URL;
+    let extra_data = ParserContextExtraData::default();
+
+    match parse_one_declaration(&property, &value, &base_url, Box::new(StdoutErrorReporter), extra_data) {
+        Ok(decls) => !decls.is_empty(),
+        Err(()) => false,
+    }
 }
