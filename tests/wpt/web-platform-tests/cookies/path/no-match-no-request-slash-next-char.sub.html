@@ -27,8 +27,7 @@
 
       document.cookie = "path_matches=1; expires=Thu, 01 Jan 1970 00:00:01 GMT; path=/cook";
 
-      return fetch("http://{{host}}:{{ports[http][0]}}/cookies/resources/echo-json.py",
-                 { "credentials": "include" })
+      return fetch("/cookies/resources/echo-json.py", { "credentials": "include" })
       .then(function (r) {
         return r.json();
       })

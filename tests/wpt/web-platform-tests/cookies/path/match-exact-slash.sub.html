@@ -25,8 +25,7 @@
   promise_test(function (t) {
       t.add_cleanup(clearKnownCookie);
 
-      return fetch("http://{{host}}:{{ports[http][0]}}/cookies/resources/echo-json.py",
-                 { "credentials": "include" })
+      return fetch("/cookies/resources/echo-json.py", { "credentials": "include" })
       .then(function (r) {
         return r.json();
       })
