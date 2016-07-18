@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId, DevtoolsPageInfo};
+use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
 use dom::bindings::error::{Error, ErrorResult, Fallible, report_pending_exception};
@@ -19,18 +19,18 @@ use dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use dom::window::{base64_atob, base64_btoa};
 use dom::workerlocation::WorkerLocation;
 use dom::workernavigator::WorkerNavigator;
-use ipc_channel::ipc::{self, IpcSender};
-use ipc_channel::router::ROUTER;
+use ipc_channel::ipc::IpcSender;
 use js::jsapi::{HandleValue, JSContext, JSRuntime};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use msg::constellation_msg::{PipelineId, ReferrerPolicy, PanicMsg};
 use net_traits::{LoadContext, ResourceThreads, load_whole_resource};
-use net_traits::{RequestSource, LoadOrigin, CustomResponseSender, IpcSend};
+use net_traits::{LoadOrigin, IpcSend};
 use profile_traits::{mem, time};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, maybe_take_panic_result};
 use script_thread::RunnableWrapper;
 use script_traits::ScriptMsg as ConstellationMsg;
+use script_traits::WorkerGlobalScopeInit;
 use script_traits::{MsDuration, TimerEvent, TimerEventId, TimerEventRequest, TimerSource};
 use std::cell::Cell;
 use std::default::Default;
@@ -48,52 +48,19 @@ pub enum WorkerGlobalScopeTypeId {
     DedicatedWorkerGlobalScope,
 }
 
-pub struct WorkerGlobalScopeInit {
-    pub resource_threads: ResourceThreads,
-    pub mem_profiler_chan: mem::ProfilerChan,
-    pub time_profiler_chan: time::ProfilerChan,
-    pub to_devtools_sender: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
-    pub from_devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>,
-    pub constellation_chan: IpcSender<ConstellationMsg>,
-    pub scheduler_chan: IpcSender<TimerEventRequest>,
-    pub panic_chan: IpcSender<PanicMsg>,
-    pub worker_id: WorkerId,
-    pub closing: Arc<AtomicBool>,
-}
-
 pub fn prepare_workerscope_init(global: GlobalRef,
-                                worker_type: String,
-                                worker_url: Url,
-                                devtools_sender: IpcSender<DevtoolScriptControlMsg>,
-                                closing: Arc<AtomicBool>) -> WorkerGlobalScopeInit {
+                                devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>) -> WorkerGlobalScopeInit {
     let worker_id = global.get_next_worker_id();
-    let optional_sender = match global.devtools_chan() {
-            Some(ref chan) => {
-                let pipeline_id = global.pipeline();
-                let title = format!("{} for {}", worker_type, worker_url);
-                let page_info = DevtoolsPageInfo {
-                    title: title,
-                    url: worker_url,
-                };
-                chan.send(ScriptToDevtoolsControlMsg::NewGlobal((pipeline_id, Some(worker_id)),
-                                                                devtools_sender.clone(),
-                                                                page_info)).unwrap();
-                Some(devtools_sender)
-            },
-            None => None,
-        };
-
     let init = WorkerGlobalScopeInit {
             resource_threads: global.resource_threads(),
             mem_profiler_chan: global.mem_profiler_chan().clone(),
             to_devtools_sender: global.devtools_chan(),
             time_profiler_chan: global.time_profiler_chan().clone(),
-            from_devtools_sender: optional_sender,
+            from_devtools_sender: devtools_sender,
             constellation_chan: global.constellation_chan().clone(),
             panic_chan: global.panic_chan().clone(),
             scheduler_chan: global.scheduler_chan().clone(),
-            worker_id: worker_id,
-            closing: closing,
+            worker_id: worker_id
         };
 
     init
@@ -105,7 +72,7 @@ pub struct WorkerGlobalScope {
     eventtarget: EventTarget,
     worker_id: WorkerId,
     worker_url: Url,
-    closing: Arc<AtomicBool>,
+    closing: Option<Arc<AtomicBool>>,
     #[ignore_heap_size_of = "Defined in js"]
     runtime: Runtime,
     next_worker_id: Cell<WorkerId>,
@@ -146,12 +113,6 @@ pub struct WorkerGlobalScope {
 
     #[ignore_heap_size_of = "Defined in ipc-channel"]
     panic_chan: IpcSender<PanicMsg>,
-
-    #[ignore_heap_size_of = "Defined in ipc-channel"]
-    custom_msg_chan: IpcSender<CustomResponseSender>,
-
-    #[ignore_heap_size_of = "Defined in std"]
-    custom_msg_port: Receiver<CustomResponseSender>,
 }
 
 impl WorkerGlobalScope {
@@ -159,16 +120,15 @@ impl WorkerGlobalScope {
                          worker_url: Url,
                          runtime: Runtime,
                          from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
-                         timer_event_chan: IpcSender<TimerEvent>)
+                         timer_event_chan: IpcSender<TimerEvent>,
+                         closing: Option<Arc<AtomicBool>>)
                          -> WorkerGlobalScope {
-        let (msg_chan, msg_port) = ipc::channel().unwrap();
-        let custom_msg_port = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(msg_port);
         WorkerGlobalScope {
             eventtarget: EventTarget::new_inherited(),
             next_worker_id: Cell::new(WorkerId(0)),
             worker_id: init.worker_id,
             worker_url: worker_url,
-            closing: init.closing,
+            closing: closing,
             runtime: runtime,
             resource_threads: init.resource_threads,
             location: Default::default(),
@@ -185,8 +145,6 @@ impl WorkerGlobalScope {
             constellation_chan: init.constellation_chan,
             scheduler_chan: init.scheduler_chan,
             panic_chan: init.panic_chan,
-            custom_msg_chan: msg_chan,
-            custom_msg_port: custom_msg_port
         }
     }
 
@@ -236,16 +194,12 @@ impl WorkerGlobalScope {
         self.runtime.cx()
     }
 
-    pub fn custom_message_chan(&self) -> IpcSender<CustomResponseSender> {
-        self.custom_msg_chan.clone()
-    }
-
-    pub fn custom_message_port(&self) -> &Receiver<CustomResponseSender> {
-        &self.custom_msg_port
-    }
-
     pub fn is_closing(&self) -> bool {
-        self.closing.load(Ordering::SeqCst)
+        if let Some(ref closing) = self.closing {
+            closing.load(Ordering::SeqCst)
+        } else {
+            false
+        }
     }
 
     pub fn resource_threads(&self) -> &ResourceThreads {
@@ -273,7 +227,7 @@ impl WorkerGlobalScope {
 
     pub fn get_runnable_wrapper(&self) -> RunnableWrapper {
         RunnableWrapper {
-            cancelled: self.closing.clone(),
+            cancelled: self.closing.clone().unwrap(),
         }
     }
 }
@@ -284,9 +238,6 @@ impl LoadOrigin for WorkerGlobalScope {
     }
     fn referrer_policy(&self) -> Option<ReferrerPolicy> {
         None
-    }
-    fn request_source(&self) -> RequestSource {
-        RequestSource::None
     }
     fn pipeline_id(&self) -> Option<PipelineId> {
         Some(self.pipeline())
@@ -451,13 +402,10 @@ impl WorkerGlobalScope {
     pub fn script_chan(&self) -> Box<ScriptChan + Send> {
         let dedicated =
             self.downcast::<DedicatedWorkerGlobalScope>();
-        let service_worker = self.downcast::<ServiceWorkerGlobalScope>();
         if let Some(dedicated) = dedicated {
             return dedicated.script_chan();
-        } else if let Some(service_worker) = service_worker {
-            return service_worker.script_chan();
         } else {
-            panic!("need to implement a sender for SharedWorker")
+            panic!("need to implement a sender for SharedWorker/ServiceWorker")
         }
     }
 
@@ -479,13 +427,10 @@ impl WorkerGlobalScope {
 
     pub fn new_script_pair(&self) -> (Box<ScriptChan + Send>, Box<ScriptPort + Send>) {
         let dedicated = self.downcast::<DedicatedWorkerGlobalScope>();
-        let service_worker = self.downcast::<ServiceWorkerGlobalScope>();
         if let Some(dedicated) = dedicated {
             return dedicated.new_script_pair();
-        } else if let Some(service_worker) = service_worker {
-            return service_worker.new_script_pair();
         } else {
-            panic!("need to implement a sender for SharedWorker")
+            panic!("need to implement a sender for SharedWorker/ServiceWorker")
         }
     }
 

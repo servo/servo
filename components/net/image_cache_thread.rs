@@ -11,7 +11,7 @@ use net_traits::image_cache_thread::ImageResponder;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheCommand, ImageCacheThread, ImageState};
 use net_traits::image_cache_thread::{ImageCacheResult, ImageOrMetadataAvailable, ImageResponse, UsePlaceholder};
 use net_traits::{AsyncResponseTarget, CoreResourceMsg, LoadConsumer, LoadData, CoreResourceThread, LoadOrigin};
-use net_traits::{ResponseAction, LoadContext, NetworkError, RequestSource};
+use net_traits::{ResponseAction, LoadContext, NetworkError};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
@@ -312,9 +312,6 @@ impl LoadOrigin for ImageCacheOrigin {
     }
     fn referrer_policy(&self) -> Option<ReferrerPolicy> {
         None
-    }
-    fn request_source(&self) -> RequestSource {
-        RequestSource::None
     }
     fn pipeline_id(&self) -> Option<PipelineId> {
         None

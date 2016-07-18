@@ -8,13 +8,17 @@ use IFrameLoadInfo;
 use MouseButton;
 use MouseEventType;
 use MozBrowserEvent;
+use WorkerGlobalScopeInit;
+use WorkerScriptLoadOrigin;
 use canvas_traits::CanvasMsg;
+use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use euclid::point::Point2D;
 use euclid::size::Size2D;
 use gfx_traits::LayerId;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
 use msg::constellation_msg::{NavigationDirection, PipelineId, SubpageId};
+use net_traits::CoreResourceMsg;
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use style_traits::cursor::Cursor;
 use style_traits::viewport::ViewportConstraints;
@@ -131,6 +135,51 @@ pub enum ScriptMsg {
     LogEntry(Option<PipelineId>, Option<String>, LogEntry),
     /// Notifies the constellation that this pipeline has exited.
     PipelineExited(PipelineId),
+    /// Store the data required to activate a service worker for the given scope
+    RegisterServiceWorker(ScopeThings, Url),
     /// Requests that the compositor shut down.
+    Exit
+}
+
+/// Entities required to spawn service workers
+#[derive(Deserialize, Serialize, Clone)]
+pub struct ScopeThings {
+    /// script resource url
+    pub script_url: Url,
+    /// pipeline which requested the activation
+    pub pipeline_id: PipelineId,
+    /// network load origin of the resource
+    pub worker_load_origin: WorkerScriptLoadOrigin,
+    /// base resources required to create worker global scopes
+    pub init: WorkerGlobalScopeInit,
+    /// the port to receive devtools message from
+    pub devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
+    /// service worker id
+    pub worker_id: WorkerId,
+}
+
+/// Channels to allow service worker manager to communicate with constellation and resource thread
+pub struct SWManagerSenders {
+    /// sender for communicating with constellation
+    pub swmanager_sender: IpcSender<SWManagerMsg>,
+    /// sender for communicating with resource thread
+    pub resource_sender: IpcSender<CoreResourceMsg>
+}
+
+/// Messages sent to Service Worker Manager thread
+#[derive(Deserialize, Serialize)]
+pub enum ServiceWorkerMsg {
+    /// Message to register the service worker
+    RegisterServiceWorker(ScopeThings, Url),
+    /// Timeout message sent by active service workers
+    Timeout(Url),
+    /// Exit the service worker manager
     Exit,
+}
+
+/// Messages outgoing from the Service Worker Manager thread to constellation
+#[derive(Deserialize, Serialize)]
+pub enum SWManagerMsg {
+    /// Provide the constellation with a means of communicating with the Service Worker Manager
+    OwnSender(IpcSender<ServiceWorkerMsg>),
 }

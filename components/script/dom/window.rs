@@ -44,10 +44,10 @@ use js::rust::CompileOptionsWrapper;
 use js::rust::Runtime;
 use libc;
 use msg::constellation_msg::{FrameType, LoadData, PanicMsg, PipelineId, SubpageId, WindowSizeType};
+use net_traits::ResourceThreads;
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread};
 use net_traits::storage_thread::StorageType;
-use net_traits::{ResourceThreads, CustomResponseSender};
 use num_traits::ToPrimitive;
 use open;
 use profile_traits::mem;
@@ -155,8 +155,6 @@ pub struct Window {
     image_cache_thread: ImageCacheThread,
     #[ignore_heap_size_of = "channels are hard"]
     image_cache_chan: ImageCacheChan,
-    #[ignore_heap_size_of = "channels are hard"]
-    custom_message_chan: IpcSender<CustomResponseSender>,
     browsing_context: MutNullableHeap<JS<BrowsingContext>>,
     performance: MutNullableHeap<JS<Performance>>,
     navigation_start: u64,
@@ -312,10 +310,6 @@ impl Window {
 
     pub fn image_cache_chan(&self) -> ImageCacheChan {
         self.image_cache_chan.clone()
-    }
-
-    pub fn custom_message_chan(&self) -> IpcSender<CustomResponseSender> {
-        self.custom_message_chan.clone()
     }
 
     pub fn get_next_worker_id(&self) -> WorkerId {
@@ -1605,7 +1599,6 @@ impl Window {
                history_task_source: HistoryTraversalTaskSource,
                file_task_source: FileReadingTaskSource,
                image_cache_chan: ImageCacheChan,
-               custom_message_chan: IpcSender<CustomResponseSender>,
                image_cache_thread: ImageCacheThread,
                resource_threads: ResourceThreads,
                bluetooth_thread: IpcSender<BluetoothMethodMsg>,
@@ -1641,7 +1634,6 @@ impl Window {
             history_traversal_task_source: history_task_source,
             file_reading_task_source: file_task_source,
             image_cache_chan: image_cache_chan,
-            custom_message_chan: custom_message_chan,
             console: Default::default(),
             crypto: Default::default(),
             navigator: Default::default(),

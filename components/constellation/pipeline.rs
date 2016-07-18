@@ -19,13 +19,13 @@ use layers::geometry::DevicePixel;
 use layout_traits::LayoutThreadFactory;
 use msg::constellation_msg::{FrameId, FrameType, LoadData, PanicMsg, PipelineId};
 use msg::constellation_msg::{PipelineNamespaceId, SubpageId};
-use net_traits::ResourceThreads;
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::ImageCacheThread;
+use net_traits::{ResourceThreads, IpcSend};
 use profile_traits::mem as profile_mem;
 use profile_traits::time;
 use script_traits::{ConstellationControlMsg, InitialScriptState, MozBrowserEvent};
-use script_traits::{LayoutControlMsg, LayoutMsg, NewLayoutInfo, ScriptMsg};
+use script_traits::{LayoutControlMsg, LayoutMsg, NewLayoutInfo, ScriptMsg, SWManagerMsg, SWManagerSenders};
 use script_traits::{ScriptThreadFactory, TimerEventRequest, WindowSizeData};
 use std::collections::HashMap;
 use std::io::Error as IOError;
@@ -99,6 +99,8 @@ pub struct InitialPipelineState {
     pub devtools_chan: Option<Sender<DevtoolsControlMsg>>,
     /// A channel to the bluetooth thread.
     pub bluetooth_thread: IpcSender<BluetoothMethodMsg>,
+    /// A channel to the service worker manager thread
+    pub swmanager_thread: IpcSender<SWManagerMsg>,
     /// A channel to the image cache thread.
     pub image_cache_thread: ImageCacheThread,
     /// A channel to the font cache thread.
@@ -222,6 +224,7 @@ impl Pipeline {
                 scheduler_chan: state.scheduler_chan,
                 devtools_chan: script_to_devtools_chan,
                 bluetooth_thread: state.bluetooth_thread,
+                swmanager_thread: state.swmanager_thread,
                 image_cache_thread: state.image_cache_thread,
                 font_cache_thread: state.font_cache_thread,
                 resource_threads: state.resource_threads,
@@ -414,6 +417,7 @@ pub struct UnprivilegedPipelineContent {
     scheduler_chan: IpcSender<TimerEventRequest>,
     devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     bluetooth_thread: IpcSender<BluetoothMethodMsg>,
+    swmanager_thread: IpcSender<SWManagerMsg>,
     image_cache_thread: ImageCacheThread,
     font_cache_thread: FontCacheThread,
     resource_threads: ResourceThreads,
@@ -545,5 +549,12 @@ impl UnprivilegedPipelineContent {
 
     pub fn prefs(&self) -> HashMap<String, Pref> {
         self.prefs.clone()
+    }
+
+    pub fn swmanager_senders(&self) -> SWManagerSenders {
+        SWManagerSenders {
+            swmanager_sender: self.swmanager_thread.clone(),
+            resource_sender: self.resource_threads.sender()
+        }
     }
 }

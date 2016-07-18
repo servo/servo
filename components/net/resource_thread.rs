@@ -30,7 +30,7 @@ use net_traits::request::{Request, RequestInit};
 use net_traits::storage_thread::StorageThreadMsg;
 use net_traits::{AsyncResponseTarget, Metadata, ProgressMsg, ResponseAction, CoreResourceThread};
 use net_traits::{CoreResourceMsg, CookieSource, FetchResponseMsg, FetchTaskTarget, LoadConsumer};
-use net_traits::{LoadData, LoadResponse, NetworkError, ResourceId};
+use net_traits::{LoadData, LoadResponse, NetworkError, ResourceId, CustomResponseMediator};
 use net_traits::{WebSocketCommunicate, WebSocketConnectData, ResourceThreads};
 use profile_traits::time::ProfilerChan;
 use rustc_serialize::json;
@@ -202,7 +202,7 @@ pub fn new_core_resource_thread(user_agent: String,
 }
 
 struct ResourceChannelManager {
-    resource_manager: CoreResourceManager,
+    resource_manager: CoreResourceManager
 }
 
 fn create_resource_groups() -> (ResourceGroup, ResourceGroup) {
@@ -278,6 +278,9 @@ impl ResourceChannelManager {
             CoreResourceMsg::GetCookiesForUrl(url, consumer, source) => {
                 let mut cookie_jar = group.cookie_jar.write().unwrap();
                 consumer.send(cookie_jar.cookies_for_url(&url, source)).unwrap();
+            }
+            CoreResourceMsg::NetworkMediator(mediator_chan) => {
+                self.resource_manager.swmanager_chan = Some(mediator_chan)
             }
             CoreResourceMsg::GetCookiesDataForUrl(url, consumer, source) => {
                 let mut cookie_jar = group.cookie_jar.write().unwrap();
@@ -456,6 +459,7 @@ pub struct CoreResourceManager {
     user_agent: String,
     mime_classifier: Arc<MimeClassifier>,
     devtools_chan: Option<Sender<DevtoolsControlMsg>>,
+    swmanager_chan: Option<IpcSender<CustomResponseMediator>>,
     profiler_chan: ProfilerChan,
     filemanager_chan: IpcSender<FileManagerThreadMsg>,
     cancel_load_map: HashMap<ResourceId, Sender<()>>,
@@ -471,6 +475,7 @@ impl CoreResourceManager {
             user_agent: user_agent,
             mime_classifier: Arc::new(MimeClassifier::new()),
             devtools_chan: devtools_channel,
+            swmanager_chan: None,
             profiler_chan: profiler_chan,
             filemanager_chan: filemanager_chan,
             cancel_load_map: HashMap::new(),
@@ -542,6 +547,7 @@ impl CoreResourceManager {
                                      http_state,
                                      self.devtools_chan.clone(),
                                      self.profiler_chan.clone(),
+                                     self.swmanager_chan.clone(),
                                      resource_grp.connector.clone())
             },
             "data" => from_factory(data_loader::factory),

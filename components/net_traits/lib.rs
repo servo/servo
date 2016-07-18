@@ -97,13 +97,10 @@ impl CustomResponse {
     }
 }
 
-pub type CustomResponseSender = IpcSender<Option<CustomResponse>>;
-
-#[derive(Clone, Deserialize, Serialize, HeapSizeOf)]
-pub enum RequestSource {
-    Window(#[ignore_heap_size_of = "Defined in ipc-channel"] IpcSender<CustomResponseSender>),
-    Worker(#[ignore_heap_size_of = "Defined in ipc-channel"] IpcSender<CustomResponseSender>),
-    None
+#[derive(Clone, Deserialize, Serialize)]
+pub struct CustomResponseMediator {
+    pub response_chan: IpcSender<Option<CustomResponse>>,
+    pub load_url: Url
 }
 
 #[derive(Clone, Deserialize, Serialize, HeapSizeOf)]
@@ -126,9 +123,7 @@ pub struct LoadData {
     pub context: LoadContext,
     /// The policy and referring URL for the originator of this request
     pub referrer_policy: Option<ReferrerPolicy>,
-    pub referrer_url: Option<Url>,
-    pub source: RequestSource,
-
+    pub referrer_url: Option<Url>
 }
 
 impl LoadData {
@@ -147,7 +142,6 @@ impl LoadData {
             context: context,
             referrer_policy: load_origin.referrer_policy(),
             referrer_url: load_origin.referrer_url().clone(),
-            source: load_origin.request_source()
         }
     }
 }
@@ -155,7 +149,6 @@ impl LoadData {
 pub trait LoadOrigin {
     fn referrer_url(&self) -> Option<Url>;
     fn referrer_policy(&self) -> Option<ReferrerPolicy>;
-    fn request_source(&self) -> RequestSource;
     fn pipeline_id(&self) -> Option<PipelineId>;
 }
 
@@ -436,6 +429,8 @@ pub enum CoreResourceMsg {
     Cancel(ResourceId),
     /// Synchronization message solely for knowing the state of the ResourceChannelManager loop
     Synchronize(IpcSender<()>),
+    /// Send the network sender in constellation to CoreResourceThread
+    NetworkMediator(IpcSender<CustomResponseMediator>),
     /// Break the load handler loop, send a reply when done cleaning up local resources
     //  and exit
     Exit(IpcSender<()>),
@@ -451,8 +446,7 @@ pub struct PendingAsyncLoad {
     guard: PendingLoadGuard,
     context: LoadContext,
     referrer_policy: Option<ReferrerPolicy>,
-    referrer_url: Option<Url>,
-    source: RequestSource
+    referrer_url: Option<Url>
 }
 
 struct PendingLoadGuard {
@@ -480,9 +474,6 @@ impl LoadOrigin for PendingAsyncLoad {
     fn referrer_policy(&self) -> Option<ReferrerPolicy> {
         self.referrer_policy.clone()
     }
-    fn request_source(&self) -> RequestSource {
-        self.source.clone()
-    }
     fn pipeline_id(&self) -> Option<PipelineId> {
         self.pipeline
     }
@@ -494,8 +485,7 @@ impl PendingAsyncLoad {
                url: Url,
                pipeline: Option<PipelineId>,
                referrer_policy: Option<ReferrerPolicy>,
-               referrer_url: Option<Url>,
-               source: RequestSource)
+               referrer_url: Option<Url>)
                -> PendingAsyncLoad {
         PendingAsyncLoad {
             core_resource_thread: core_resource_thread,
@@ -504,8 +494,7 @@ impl PendingAsyncLoad {
             guard: PendingLoadGuard { loaded: false, },
             context: context,
             referrer_policy: referrer_policy,
-            referrer_url: referrer_url,
-            source: source
+            referrer_url: referrer_url
         }
     }
 
