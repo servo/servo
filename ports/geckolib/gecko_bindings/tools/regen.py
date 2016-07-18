@@ -125,9 +125,6 @@ COMPILATION_TARGETS = {
             "nsMainThreadPtrHolder", "nscolor", "nsFont", "FontFamilyList",
             "FontFamilyType", "nsIAtom",
         ],
-        "void_types": [
-            "nsINode", "nsIDocument", "nsIPrincipal", "nsIURI",
-        ]
     }
 }
 
@@ -178,7 +175,13 @@ def build(objdir, target_name, kind_name=None,
             (kind_name in current_target["build_kinds"]))
 
     if bindgen is None:
-        bindgen = "{}/rust-bindgen/target/debug/bindgen".format(TOOLS_DIR)
+        bindgen = os.path.join(TOOLS_DIR, "rust-bindgen")
+
+    if os.path.isdir(bindgen):
+        bindgen = ["cargo", "run", "--manifest-path",
+                   os.path.join(bindgen, "Cargo.toml"), "--"]
+    else:
+        bindgen = [bindgen]
 
     if output_filename is None:
         filename = "{}.rs".format(target_name)
@@ -266,7 +269,7 @@ def build(objdir, target_name, kind_name=None,
     assert len(current_target["files"]) == 1
     flags.append(current_target["files"][0].format(objdir))
 
-    flags.insert(0, bindgen)
+    flags = bindgen + flags
     output = None
     try:
         output = subprocess.check_output(flags, stderr=subprocess.STDOUT)
