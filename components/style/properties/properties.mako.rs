@@ -1890,7 +1890,9 @@ pub fn cascade<C: ComputedValues>(
         longhands::position::SpecifiedValue::absolute |
         longhands::position::SpecifiedValue::fixed);
     let floated = style.get_box().clone_float() != longhands::float::SpecifiedValue::none;
-    if positioned || floated || is_root_element {
+    let is_flex_item =
+        context.inherited_style.get_box().clone_display() == computed_values::display::T::flex;
+    if positioned || floated || is_root_element || is_flex_item {
         use computed_values::display::T;
 
         let specified_display = style.get_box().clone_display();
@@ -1911,7 +1913,7 @@ pub fn cascade<C: ComputedValues>(
             let box_ = style.mutate_box();
             box_.set_display(computed_display);
             % if product == "servo":
-                box_.set__servo_display_for_hypothetical_box(if is_root_element {
+                box_.set__servo_display_for_hypothetical_box(if is_root_element || is_flex_item {
                     computed_display
                 } else {
                     specified_display
