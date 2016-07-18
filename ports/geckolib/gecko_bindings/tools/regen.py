@@ -284,10 +284,11 @@ def build(objdir, target_name, kind_name=None,
         print("[RUSTC]... ", end='')
         sys.stdout.flush()
 
-        tests_file = tempfile.NamedTemporaryFile()
+        with tempfile.NamedTemporaryFile(delete=False) as f:
+            test_file = f.name
         output = None
         try:
-            rustc_command = ["rustc", output_filename, "--test", "-o", tests_file.name]
+            rustc_command = ["rustc", output_filename, "--test", "-o", test_file]
             output = subprocess.check_output(rustc_command, stderr=subprocess.STDOUT)
             output = output.decode('utf8')
         except subprocess.CalledProcessError as e:
@@ -299,17 +300,17 @@ def build(objdir, target_name, kind_name=None,
         if verbose:
             print(output)
 
-        tests_file.file.close()
         print("[RUSTC_TEST]... ", end='')
         sys.stdout.flush()
 
         try:
-            output = subprocess.check_output([tests_file.name], stderr=subprocess.STDOUT)
+            output = subprocess.check_output([test_file], stderr=subprocess.STDOUT)
             output = output.decode('utf8')
         except subprocess.CalledProcessError as e:
             print("tests failed: ", e.output.decode('utf8'))
             return 1
 
+        os.remove(test_file)
         print("OK")
 
         # TODO: this -3 is hacky as heck
