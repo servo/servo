@@ -473,6 +473,8 @@ fn append_shorthand_value<'a, W, I>(dest: &mut W,
         Shorthand::Columns => try!(append_columns_shorthand(dest, declarations)),
 
         Shorthand::Animation => try!(append_animation_shorthand(dest, declarations)),
+        Shorthand::Transition => try!(append_transition_shorthand(dest, declarations)),
+        Shorthand::BorderWidth => try!(append_border_width_shorthand(dest, declarations)),
         _ => {}
     };
 
@@ -489,6 +491,22 @@ macro_rules! try_unwrap_longhands {
 
                 ( $( Some($x),  )* ) => ( $( $x, )* ),
                 _ => return Err(fmt::Error)
+            }
+        }
+    };
+}
+
+// This macro flattens DeclaredValues into their contained values in order to
+// perform processing
+macro_rules! try_unwrap_declared_values {
+    ( $( $x:ident ),* ) => {
+        {
+        match (
+            $( $x, )*
+        ) {
+
+            ( $( &DeclaredValue::Value(ref $x),  )* ) => ( $( $x, )* ),
+               _ => return Err(fmt::Error)
             }
         }
     };
@@ -515,6 +533,8 @@ fn append_margin_shorthand<'a, W, I>(dest: &mut W,
     }
 
     let (top, right, bottom, left) = try_unwrap_longhands!(top, right, bottom, left);
+    let (top, right, bottom, left) = try_unwrap_declared_values!(top, right, bottom, left);
+
     append_positional_shorthand(dest, top, right, bottom, left)
 }
 
@@ -538,16 +558,18 @@ fn append_padding_shorthand<'a, W, I>(dest: &mut W,
     }
 
     let (top, right, bottom, left) = try_unwrap_longhands!(top, right, bottom, left);
+    let (top, right, bottom, left) = try_unwrap_declared_values!(top, right, bottom, left);
+
     append_positional_shorthand(dest, top, right, bottom, left)
 }
 
 
 fn append_positional_shorthand<W, I>(dest: &mut W,
-                                  top: &DeclaredValue<I>,
-                                  right: &DeclaredValue<I>,
-                                  bottom: &DeclaredValue<I>,
-                                  left: &DeclaredValue<I>)
-                                  -> fmt::Result where W: fmt::Write, I: ToCss + ToComputedValue + PartialEq {
+                                  top: &I,
+                                  right: &I,
+                                  bottom: &I,
+                                  left: &I)
+                                  -> fmt::Result where W: fmt::Write, I: ToCss + PartialEq {
 
       if left == right {
           let horizontal_value = left;
@@ -793,11 +815,9 @@ fn append_flex_shorthand<'a, W, I>(dest: &mut W,
 
 
     try!(flex_grow.to_css(dest));
-
     try!(write!(dest, " "));
 
     try!(flex_shrink.to_css(dest));
-
     try!(write!(dest, " "));
 
     flex_basis.to_css(dest)
@@ -820,7 +840,6 @@ fn append_columns_shorthand<'a, W, I>(dest: &mut W,
     let (column_width, column_count) = try_unwrap_longhands!(column_width, column_count);
 
     try!(column_width.to_css(dest));
-
     try!(write!(dest, " "));
 
     column_count.to_css(dest)
@@ -883,6 +902,77 @@ fn append_animation_shorthand<'a, W, I>(dest: &mut W,
     try!(write!(dest, " "));
 
     animation_name.to_css(dest)
+}
+
+fn append_transition_shorthand<'a, W, I>(dest: &mut W,
+                                      declarations: I) -> fmt::Result
+                                      where W: fmt::Write, I: Iterator<Item=&'a PropertyDeclaration> {
+    let mut property_name = None;
+    let mut duration = None;
+    let mut timing_function = None;
+    let mut delay = None;
+
+    for decl in declarations {
+        match decl {
+            &PropertyDeclaration::TransitionProperty(ref value) => { property_name = Some(value); },
+            &PropertyDeclaration::TransitionDuration(ref value) => { duration = Some(value); },
+            &PropertyDeclaration::TransitionTimingFunction(ref value) => { timing_function = Some(value); },
+            &PropertyDeclaration::TransitionDelay(ref value) => { delay = Some(value); },
+            _ => return Err(fmt::Error)
+        }
+    }
+
+    let (property_name, duration, timing_function, delay) =
+        try_unwrap_longhands!(property_name, duration, timing_function, delay);
+
+    try!(property_name.to_css(dest));
+    try!(write!(dest, " "));
+
+    try!(duration.to_css(dest));
+    try!(write!(dest, " "));
+
+    try!(timing_function.to_css(dest));
+    try!(write!(dest, " "));
+
+    delay.to_css(dest)
+}
+
+fn append_border_width_shorthand<'a, W, I>(dest: &mut W,
+                                         declarations: I) -> fmt::Result
+                                         where W: fmt::Write, I: Iterator<Item=&'a PropertyDeclaration> {
+
+    use properties::longhands::border_top_width::SpecifiedValue as TopContainer;
+    use properties::longhands::border_right_width::SpecifiedValue as RightContainer;
+    use properties::longhands::border_bottom_width::SpecifiedValue as BottomContainer;
+    use properties::longhands::border_left_width::SpecifiedValue as LeftContainer;
+
+    let mut top_container = None;
+    let mut right_container = None;
+    let mut bottom_container = None;
+    let mut left_container = None;
+
+    for decl in declarations {
+        match decl {
+            &PropertyDeclaration::BorderTopWidth(ref value) => { top_container = Some(value); },
+            &PropertyDeclaration::BorderRightWidth(ref value) => { right_container = Some(value); },
+            &PropertyDeclaration::BorderBottomWidth(ref value) => { bottom_container = Some(value); },
+            &PropertyDeclaration::BorderLeftWidth(ref value) => { left_container = Some(value); },
+            _ => return Err(fmt::Error)
+        }
+    }
+
+    let (top_container, right_container, bottom_container, left_container) =
+        try_unwrap_longhands!(top_container, right_container, bottom_container, left_container);
+
+    let (top_container, right_container, bottom_container, left_container) =
+        try_unwrap_declared_values!(top_container, right_container, bottom_container, left_container);
+
+    let &TopContainer(ref top) = top_container;
+    let &RightContainer(ref right) = right_container;
+    let &BottomContainer(ref bottom) = bottom_container;
+    let &LeftContainer(ref left) = left_container;
+
+    append_positional_shorthand(dest, top, right, bottom, left)
 }
 
 fn append_serialization<'a, W, I>(dest: &mut W,
