@@ -18,7 +18,7 @@
 
   test(function () {
       assert_not_equals(document.cookie.match(/path_matches=1/), null);
-  }, "'path_matches=1' present in `document.cookie`");
+  }, "'path_matches=1' not present in `document.cookie`");
 
   // TODO: make sure the cookie is sent and echoed from /cookies/path/match-exact-page.sub.html
 </script>

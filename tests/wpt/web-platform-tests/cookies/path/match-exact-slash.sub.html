@@ -20,7 +20,7 @@
 
   test(function () {
       assert_not_equals(document.cookie.match(/path_matches=1/), null);
-  }, "'path_matches=1' present in `document.cookie`");
+  }, "'path_matches=1' not present in `document.cookie`");
 
   promise_test(function (t) {
       t.add_cleanup(clearKnownCookie);
