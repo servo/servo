@@ -65,7 +65,7 @@
           "expansion": "default",
           "source_protocol": "*",
           "target_protocol": "*",
-          "delivery_method": ["http-rp", "meta-referrer", "meta-csp", "attr-referrer"],
+          "delivery_method": ["http-rp", "meta-referrer", "meta-csp", "attr-referrer", "rel-noreferrer"],
           "redirection": "*",
           "origin": "*",
           "subresource": "*",
@@ -316,7 +316,9 @@
       "delivery_method": ["rel-noreferrer"],
       "redirection": "*",
       "origin": "*",
-      "subresource": "*",
+      "subresource": [
+        "iframe-tag"
+      ],
       "referrer_url": "*"
     },
     {
@@ -378,7 +380,9 @@
     ],
 
     "subresource": [
-      "iframe-tag"
+      "iframe-tag",
+      "a-tag",
+      "link-tag"
     ],
 
     "referrer_url": [
@@ -389,6 +393,8 @@
   },
 
   "subresource_path": {
-    "iframe-tag": "/referrer-policy/generic/subresource/document.py"
+    "iframe-tag": "/_mozilla/mozilla/referrer-policy/generic/subresource/document.py",
+    "a-tag": "/_mozilla/mozilla/referrer-policy/generic/subresource/a-tag.html",
+    "link-tag": "/_mozilla/mozilla/referrer-policy/generic/subresource/link.py"
   }
 }
