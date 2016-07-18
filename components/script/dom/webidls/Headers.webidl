@@ -8,15 +8,15 @@
 
 /* [Constructor(optional HeadersInit init),
  * Exposed=(Window,Worker)] */
- 
+
 interface Headers {
   [Throws]
   void append(ByteString name, ByteString value);
-}; 
+};
 
-/* void delete(ByteString name); 
+/* void delete(ByteString name);
  * ByteString? get(ByteString name);
  * boolean has(ByteString name);
  * void set(ByteString name, ByteString value);
- * iterable<ByteString, ByteString>; 
- * }; */ 
+ * iterable<ByteString, ByteString>;
+ * }; */
