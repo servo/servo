@@ -32,6 +32,7 @@ use parser::{ParserContext, ParserContextExtraData, log_css_error};
 use selectors::matching::DeclarationBlock;
 use stylesheets::Origin;
 use values::LocalToCss;
+use values::HasViewportPercentage;
 use values::computed::{self, TContext, ToComputedValue};
 use values::specified::BorderStyle;
 
@@ -821,6 +822,19 @@ impl ToCss for PropertyDeclaration {
             % if any(property.derived_from for property in data.longhands):
                 _ => Err(fmt::Error),
             % endif
+        }
+    }
+}
+
+impl HasViewportPercentage for PropertyDeclaration {
+    fn has_viewport_percentage(&self) -> bool {
+        match *self {
+            % for property in data.longhands:
+                PropertyDeclaration::${property.camel_case}(DeclaredValue::Value(ref val)) => {
+                    val.has_viewport_percentage()
+                },
+            % endfor
+            _ => false
         }
     }
 }

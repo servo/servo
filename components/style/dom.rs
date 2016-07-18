@@ -127,6 +127,19 @@ pub trait TNode : Sized + Copy + Clone {
         }
     }
 
+    fn needs_dirty_on_viewport_size_changed(&self) -> bool;
+
+    unsafe fn set_dirty_on_viewport_size_changed(&self);
+
+    fn set_descendants_dirty_on_viewport_size_changed(&self) {
+        for ref child in self.children() {
+            unsafe {
+                child.set_dirty_on_viewport_size_changed();
+            }
+            child.set_descendants_dirty_on_viewport_size_changed();
+        }
+    }
+
     fn can_be_fragmented(&self) -> bool;
 
     unsafe fn set_can_be_fragmented(&self, value: bool);

@@ -36,7 +36,7 @@ use dom::bindings::js::LayoutJS;
 use dom::characterdata::LayoutCharacterDataHelpers;
 use dom::document::{Document, LayoutDocumentHelpers};
 use dom::element::{Element, LayoutElementHelpers, RawLayoutElementHelpers};
-use dom::node::{CAN_BE_FRAGMENTED, HAS_CHANGED, HAS_DIRTY_DESCENDANTS, IS_DIRTY};
+use dom::node::{CAN_BE_FRAGMENTED, HAS_CHANGED, HAS_DIRTY_DESCENDANTS, IS_DIRTY, DIRTY_ON_VIEWPORT_SIZE_CHANGE};
 use dom::node::{Node, LayoutNodeHelpers};
 use dom::text::Text;
 use gfx_traits::ByteIndex;
@@ -191,6 +191,23 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
 
     unsafe fn set_dirty_descendants(&self, value: bool) {
         self.node.set_flag(HAS_DIRTY_DESCENDANTS, value)
+    }
+
+    fn needs_dirty_on_viewport_size_changed(&self) -> bool {
+        unsafe { self.node.get_flag(DIRTY_ON_VIEWPORT_SIZE_CHANGE) }
+    }
+
+    unsafe fn set_dirty_on_viewport_size_changed(&self) {
+        self.node.set_flag(DIRTY_ON_VIEWPORT_SIZE_CHANGE, true);
+    }
+
+    fn set_descendants_dirty_on_viewport_size_changed(&self) {
+        for ref child in self.children() {
+            unsafe {
+                child.set_dirty_on_viewport_size_changed();
+            }
+            child.set_descendants_dirty_on_viewport_size_changed();
+        }
     }
 
     fn can_be_fragmented(&self) -> bool {
