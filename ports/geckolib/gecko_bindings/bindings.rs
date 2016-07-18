@@ -276,7 +276,7 @@ extern "C" {
     pub fn Servo_StyleSheetHasRules(sheet: *mut RawServoStyleSheet) -> bool;
     pub fn Servo_InitStyleSet() -> *mut RawServoStyleSet;
     pub fn Servo_DropStyleSet(set: *mut RawServoStyleSet);
-    pub fn Servo_ParseStyleAttribute(bytes: *const u8, length: u8,
+    pub fn Servo_ParseStyleAttribute(bytes: *const u8, length: u32,
                                      cache: *mut nsHTMLCSSStyleSheet)
      -> *mut ServoDeclarationBlock;
     pub fn Servo_DropDeclarationBlock(declarations:
