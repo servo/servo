@@ -1,9 +1,16 @@
-use dom::bindings::str::{ByteString, is_token};
-use std::result::Result;
-use dom::bindings::error::Error;
-use hyper;
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 use dom::bindings::cell::DOMRefCell;
-use dom::bindings::reflector::Reflector;
+use dom::bindings::codegen::Bindings::HeadersBinding;
+use dom::bindings::error::Error;
+use dom::bindings::global::GlobalRef;
+use dom::bindings::js::Root;
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::str::{ByteString, is_token};
+use hyper;
+use std::result::Result;
 
 #[dom_struct]
 pub struct Headers {
@@ -14,7 +21,7 @@ pub struct Headers {
 }
 
 #[derive(PartialEq)]
-enum Group {
+enum HeaderGroup {
     CorsSafelistedRequestHeader,
     CorsNonwildcardRequestHeader,
     CorsSafelistedResponseHeader,
@@ -32,7 +39,7 @@ enum Guard {
 }
 
 impl Headers {
-    pub fn new() -> Headers {
+    pub fn new_inherited() -> Headers {
         Headers {
             reflector_: Reflector::new(),
             guard: Guard::None,
@@ -40,32 +47,34 @@ impl Headers {
         }
     }
 
+    pub fn new(global: GlobalRef) -> Root<Headers> {
+        reflect_dom_object(box Headers::new_inherited(), global, HeadersBinding::Wrap)
+    }
+
     // https://fetch.spec.whatwg.org/#concept-headers-append
     pub fn Append(&self, name: ByteString, value: ByteString) -> Result<(), Error> {
-        // 1) Normalize value
+        // Step 1) Normalize value.
         let value = normalize_value(value);
 
-        // 2) If name is not a name or value is not a value, throw a TypeError.
+        // Step 2) If name is not a name or value is not a value, throw a TypeError.
         try!(validate_name_and_value(&name, &value));
 
-        // 3-6) Check if name and value are legal according to guard.
+        // Steps 3-6) Check if name and value are legal according to guard.
         // 3) If guard is "immutable", throw a TypeError.
         // 4) Otherwise, if guard is "request" and name is a forbidden header name, return.
         // 5) Otherwise, if guard is "request-no-cors"
         //    and name/value is not a CORS-safelisted request-header, return.
         // 6) Otherwise, if guard is "response" and
         //    name is a forbidden response-header name, return.
-
         let name_string: String;
         match String::from_utf8(name.into()) {
             Ok(ns) => name_string = ns,
             Err(_) => return Err(Error::Type(String::from("Non-UTF8 header name found"))),
         }
-        let group = try!(find_group(&name_string));
-
-        match check_guard_against_header_group(&self.guard, group) {
+        let header_group = try!(find_header_group(&name_string));
+        match check_guard_against_header_group(&self.guard, header_group) {
             Ok(true) => {
-                // 7) Append name/value to header list.
+                // Step 7) Append name/value to header list.
                 self.header_list.borrow_mut().set_raw(name_string, vec![value.into()]);
                 Ok(())
             }
@@ -77,10 +86,10 @@ impl Headers {
 
 // TODO
 // "Content-Type" once parsed, the value should be
-// `application/x-www-form-urlencoded`, `multipart/form-data`, or
-// `text/plain`
-// "DPR", "Downlink", "Save-Data", "Viewport-Width", "Width": once
-// parsed, the value should not be failure
+// `application/x-www-form-urlencoded`, `multipart/form-data`,
+// or `text/plain`.
+// "DPR", "Downlink", "Save-Data", "Viewport-Width", "Width":
+// once parsed, the value should not be failure.
 fn is_cors_safelisted_request(name: &str) -> bool {
     match name {
         "accept" |
@@ -154,22 +163,45 @@ fn is_forbidden(name: &str) -> bool {
         }
 }
 
-fn find_group(name: &str) -> Result<Group, Error> {
+fn find_header_group(name: &str) -> Result<HeaderGroup, Error> {
     if is_cors_safelisted_request(&name) {
-        Ok(Group::CorsSafelistedRequestHeader)
+        Ok(HeaderGroup::CorsSafelistedRequestHeader)
     } else if is_cors_non_wildcard_request(&name) {
-        Ok(Group::CorsNonwildcardRequestHeader)
+        Ok(HeaderGroup::CorsNonwildcardRequestHeader)
     } else if is_cors_safelisted_response(&name) {
-        Ok(Group::CorsSafelistedResponseHeader)
+        Ok(HeaderGroup::CorsSafelistedResponseHeader)
     } else if is_forbidden_response(&name) {
-        Ok(Group::ForbiddenResponseHeader)
+        Ok(HeaderGroup::ForbiddenResponseHeader)
     } else if is_forbidden(&name) {
-        Ok(Group::Forbidden)
+        Ok(HeaderGroup::Forbidden)
     } else {
         Err(Error::Type(String::from("Name does not have a group")))
     }
 }
 
+// There is some unresolved confusion over the definition of a name and a value.
+// The fetch spec [1] defines a name as "a case-insensitive byte
+// sequence that matches the field-name token production. The token
+// productions are viewable in [2]." A field-name is defined as a
+// token, which is defined in [3].
+// ISSUE 1:
+// It defines a value as "a byte sequence that matches the field-content token production."
+// To note, there is a difference between field-content and
+// field-value (which is made up of fied-content and obs-fold). The
+// current definition does not allow for obs-fold (which are white
+// space and newlines) in values. So perhaps a value should be defined
+// as "a byte sequence that matches the field-value token production."
+// However, this would then allow values made up entirely of white space and newlines.
+// RELATED ISSUE 2:
+// According to a previously filed Errata ID: 4189 in [4], "the
+// specified field-value rule does not allow single field-vchar
+// surrounded by whitespace anywhere". They provided a fix for the
+// field-content production, but ISSUE 1 has still not been resolved.
+// The production definitions likely need to be re-written.
+// [1] https://fetch.spec.whatwg.org/#concept-header-value
+// [2] https://tools.ietf.org/html/rfc7230#section-3.2
+// [3] https://tools.ietf.org/html/rfc7230#section-3.2.6
+// [4] https://www.rfc-editor.org/errata_search.php?rfc=7230
 fn validate_name_and_value(name: &ByteString, value: &ByteString) -> Result<(), Error> {
     if is_field_name(name) && is_field_content(value) {
         Ok(())
@@ -178,20 +210,20 @@ fn validate_name_and_value(name: &ByteString, value: &ByteString) -> Result<(), 
     }
 }
 
-// Checks the guard and the name/value's group to see if the combination is legal
-fn check_guard_against_header_group(guard: &Guard, group: Group) -> Result<bool, Error> {
-    match (guard, group) {
+// Checks the guard and the name/value's header group to see if the combination is legal.
+fn check_guard_against_header_group(guard: &Guard, header_group: HeaderGroup) -> Result<bool, Error> {
+    match (guard, header_group) {
         (&Guard::Immutable, _) =>
             Err(Error::Type(String::from("Guard is immutable"))),
-        (&Guard::Request, Group::Forbidden) => Ok(false),
-        (&Guard::RequestNoCors, ref group)
-            if group != &Group::CorsSafelistedRequestHeader => Ok(false),
-        (&Guard::Response, Group::ForbiddenResponseHeader) => Ok(false),
+        (&Guard::Request, HeaderGroup::Forbidden) => Ok(false),
+        (&Guard::RequestNoCors, ref header_group)
+            if header_group != &HeaderGroup::CorsSafelistedRequestHeader => Ok(false),
+        (&Guard::Response, HeaderGroup::ForbiddenResponseHeader) => Ok(false),
         _ => Ok(true),
     }
 }
 
-/// Removes trailing and leading HTTP whitespace bytes.
+// Removes trailing and leading HTTP whitespace bytes.
 pub fn normalize_value(value: ByteString) -> ByteString {
     let opt_first_index = index_of_first_non_whitespace(&value);
     match opt_first_index {
