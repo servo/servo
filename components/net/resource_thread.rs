@@ -280,7 +280,7 @@ impl ResourceChannelManager {
                 consumer.send(cookie_jar.cookies_for_url(&url, source)).unwrap();
             }
             CoreResourceMsg::NetworkMediator(mediator_chan) => {
-                self.resource_manager.constellation_chan = Some(mediator_chan)
+                self.resource_manager.swmanager_chan = Some(mediator_chan)
             }
             CoreResourceMsg::GetCookiesDataForUrl(url, consumer, source) => {
                 let mut cookie_jar = group.cookie_jar.write().unwrap();
@@ -459,7 +459,7 @@ pub struct CoreResourceManager {
     user_agent: String,
     mime_classifier: Arc<MimeClassifier>,
     devtools_chan: Option<Sender<DevtoolsControlMsg>>,
-    constellation_chan: Option<IpcSender<CustomResponseMediator>>,
+    swmanager_chan: Option<IpcSender<CustomResponseMediator>>,
     profiler_chan: ProfilerChan,
     filemanager_chan: IpcSender<FileManagerThreadMsg>,
     cancel_load_map: HashMap<ResourceId, Sender<()>>,
@@ -475,7 +475,7 @@ impl CoreResourceManager {
             user_agent: user_agent,
             mime_classifier: Arc::new(MimeClassifier::new()),
             devtools_chan: devtools_channel,
-            constellation_chan: None,
+            swmanager_chan: None,
             profiler_chan: profiler_chan,
             filemanager_chan: filemanager_chan,
             cancel_load_map: HashMap::new(),
@@ -547,7 +547,7 @@ impl CoreResourceManager {
                                      http_state,
                                      self.devtools_chan.clone(),
                                      self.profiler_chan.clone(),
-                                     self.constellation_chan.clone(),
+                                     self.swmanager_chan.clone(),
                                      resource_grp.connector.clone())
             },
             "data" => from_factory(data_loader::factory),

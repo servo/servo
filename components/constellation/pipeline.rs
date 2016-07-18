@@ -19,13 +19,13 @@ use layers::geometry::DevicePixel;
 use layout_traits::LayoutThreadFactory;
 use msg::constellation_msg::{FrameId, FrameType, LoadData, PanicMsg, PipelineId};
 use msg::constellation_msg::{PipelineNamespaceId, SubpageId};
-use net_traits::ResourceThreads;
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::ImageCacheThread;
+use net_traits::{ResourceThreads, IpcSend};
 use profile_traits::mem as profile_mem;
 use profile_traits::time;
 use script_traits::{ConstellationControlMsg, InitialScriptState, MozBrowserEvent};
-use script_traits::{LayoutControlMsg, LayoutMsg, NewLayoutInfo, ScriptMsg, SWManagerMsg};
+use script_traits::{LayoutControlMsg, LayoutMsg, NewLayoutInfo, ScriptMsg, SWManagerMsg, SWManagerSenders};
 use script_traits::{ScriptThreadFactory, TimerEventRequest, WindowSizeData};
 use std::collections::HashMap;
 use std::io::Error as IOError;
@@ -551,7 +551,10 @@ impl UnprivilegedPipelineContent {
         self.prefs.clone()
     }
 
-    pub fn swmanager_chan(&self) -> IpcSender<SWManagerMsg> {
-        self.swmanager_thread.clone()
+    pub fn swmanager_senders(&self) -> SWManagerSenders {
+        SWManagerSenders {
+            swmanager_sender: self.swmanager_thread.clone(),
+            resource_sender: self.resource_threads.sender()
+        }
     }
 }

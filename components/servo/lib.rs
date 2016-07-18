@@ -83,7 +83,7 @@ use profile::mem as profile_mem;
 use profile::time as profile_time;
 use profile_traits::mem;
 use profile_traits::time;
-use script_traits::{ConstellationMsg, ScriptMsg, SWManagerMsg};
+use script_traits::{ConstellationMsg, ScriptMsg, SWManagerSenders};
 use std::cmp::max;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
@@ -159,7 +159,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
         // Create the constellation, which maintains the engine
         // pipelines, including the script and layout threads, as well
         // as the navigation context.
-        let (constellation_chan, swmanager_sender) = create_constellation(opts.clone(),
+        let (constellation_chan, sw_senders) = create_constellation(opts.clone(),
                                                                           compositor_proxy.clone_compositor_proxy(),
                                                                           time_profiler_chan.clone(),
                                                                           mem_profiler_chan.clone(),
@@ -168,7 +168,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
                                                                           webrender_api_sender.clone());
 
         // Send the constellation's swmanager sender to service worker manager thread
-        script::init(swmanager_sender);
+        script::init(sw_senders);
 
         if cfg!(feature = "webdriver") {
             if let Some(port) = opts.webdriver_port {
@@ -230,7 +230,7 @@ fn create_constellation(opts: opts::Opts,
                         devtools_chan: Option<Sender<devtools_traits::DevtoolsControlMsg>>,
                         supports_clipboard: bool,
                         webrender_api_sender: Option<webrender_traits::RenderApiSender>)
-                        -> (Sender<ConstellationMsg>, IpcSender<SWManagerMsg>) {
+                        -> (Sender<ConstellationMsg>, SWManagerSenders) {
     let bluetooth_thread: IpcSender<BluetoothMethodMsg> = BluetoothThreadFactory::new();
 
     let (public_resource_threads, private_resource_threads) =
@@ -241,6 +241,8 @@ fn create_constellation(opts: opts::Opts,
                                                     webrender_api_sender.as_ref().map(|wr| wr.create_api()));
     let font_cache_thread = FontCacheThread::new(public_resource_threads.sender(),
                                                  webrender_api_sender.as_ref().map(|wr| wr.create_api()));
+
+    let resource_sender = public_resource_threads.sender();
 
     let initial_state = InitialConstellationState {
         compositor_proxy: compositor_proxy,
@@ -264,7 +266,13 @@ fn create_constellation(opts: opts::Opts,
         constellation_chan.send(ConstellationMsg::InitLoadUrl(url)).unwrap();
     };
 
-    (constellation_chan, from_swmanager_sender)
+    // channels to communicate with Service Worker Manager
+    let sw_senders = SWManagerSenders {
+        swmanager_sender: from_swmanager_sender,
+        resource_sender: resource_sender
+    };
+
+    (constellation_chan, sw_senders)
 }
 
 // A logger that logs to two downstream loggers.
@@ -311,9 +319,9 @@ pub fn run_content_process(token: String) {
        create_sandbox();
     }
 
-    // Send the constellation sender to service worker manager thread
-    let from_swmanager_sender = unprivileged_content.swmanager_chan();
-    script::init(from_swmanager_sender);
+    // send the required channels to the service worker manager
+    let sw_senders = unprivileged_content.swmanager_senders();
+    script::init(sw_senders);
 
     unprivileged_content.start_all::<script_layout_interface::message::Msg,
                                      layout_thread::LayoutThread,

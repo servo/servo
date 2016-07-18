@@ -10,10 +10,12 @@
 use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg};
 use dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use dom::serviceworkerregistration::longest_prefix_match;
-use ipc_channel::ipc::{self, IpcSender, IpcReceiver};
-use script_traits::{ServiceWorkerMsg, ScopeThings, SWManagerMsg};
+use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::router::ROUTER;
+use net_traits::{CustomResponseMediator, CoreResourceMsg};
+use script_traits::{ServiceWorkerMsg, ScopeThings, SWManagerMsg, SWManagerSenders};
 use std::collections::HashMap;
-use std::sync::mpsc::channel;
+use std::sync::mpsc::{channel, Receiver};
 use url::Url;
 use util::thread::spawn_named;
 
@@ -25,25 +27,33 @@ pub struct ServiceWorkerManager {
     // own sender to send messages here
     own_sender: IpcSender<ServiceWorkerMsg>,
     // receiver to receive messages from constellation
-    own_port: IpcReceiver<ServiceWorkerMsg>,
+    own_port: Receiver<ServiceWorkerMsg>,
+    // to receive resource messages
+    resource_receiver: Receiver<CustomResponseMediator>
 }
 
 impl ServiceWorkerManager {
     fn new(own_sender: IpcSender<ServiceWorkerMsg>,
-           from_constellation_receiver: IpcReceiver<ServiceWorkerMsg>) -> ServiceWorkerManager {
+           from_constellation_receiver: Receiver<ServiceWorkerMsg>,
+           resource_port: Receiver<CustomResponseMediator>) -> ServiceWorkerManager {
         ServiceWorkerManager {
             registered_workers: HashMap::new(),
             active_workers: HashMap::new(),
             own_sender: own_sender,
-            own_port: from_constellation_receiver
+            own_port: from_constellation_receiver,
+            resource_receiver: resource_port
         }
     }
 
-    pub fn spawn_manager(from_swmanager_sender: IpcSender<SWManagerMsg>) {
+    pub fn spawn_manager(sw_senders: SWManagerSenders) {
         let (own_sender, from_constellation_receiver) = ipc::channel().unwrap();
-        from_swmanager_sender.send(SWManagerMsg::OwnSender(own_sender.clone())).unwrap();
+        let (resource_chan, resource_port) = ipc::channel().unwrap();
+        let from_constellation = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(from_constellation_receiver);
+        let resource_port = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(resource_port);
+        let _ = sw_senders.resource_sender.send(CoreResourceMsg::NetworkMediator(resource_chan));
+        let _ = sw_senders.swmanager_sender.send(SWManagerMsg::OwnSender(own_sender.clone()));
         spawn_named("ServiceWorkerManager".to_owned(), move || {
-            ServiceWorkerManager::new(own_sender, from_constellation_receiver).start();
+            ServiceWorkerManager::new(own_sender, from_constellation, resource_port).handle_message();
         });
     }
 
@@ -83,7 +93,7 @@ impl ServiceWorkerManager {
                                                                               devtools_receiver,
                                                                               self.own_sender.clone(),
                                                                               scope_url.clone());
-                // store the worker in active_workers map
+                // We store the activated worker
                 self.active_workers.insert(scope_url.clone(), scope_things.clone());
             } else {
                 warn!("Unable to activate service worker");
@@ -91,33 +101,63 @@ impl ServiceWorkerManager {
         }
     }
 
-    fn start(&mut self) {
-        while let Ok(msg) = self.own_port.recv() {
-            match msg {
-                ServiceWorkerMsg::RegisterServiceWorker(scope_things, scope) => {
-                    if self.registered_workers.contains_key(&scope) {
-                        warn!("ScopeThings for {:?} already stored in SW-Manager", scope);
-                    } else {
-                        self.registered_workers.insert(scope, scope_things);
-                    }
-                }
-                ServiceWorkerMsg::Timeout(scope) => {
-                    if self.active_workers.contains_key(&scope) {
-                        let _ = self.active_workers.remove(&scope);
-                    } else {
-                        warn!("ScopeThings for {:?} is not active", scope);
-                    }
-                }
-                ServiceWorkerMsg::ActivateWorker(mediator) => {
-                    self.prepare_activation(&mediator.load_url);
-                    // TODO XXXcreativcoder this net_sender will need to be send to the appropriate service worker
-                    // so that it may do the sending of custom responses.
-                    // For now we just send a None from here itself
-                    let _ = mediator.response_chan.send(None);
+    fn handle_message(&mut self) {
+       while self.receive_message() {
+        // process message
+       }
+    }
 
+    fn handle_message_from_constellation(&mut self, msg: ServiceWorkerMsg) -> bool {
+        match msg {
+            ServiceWorkerMsg::RegisterServiceWorker(scope_things, scope) => {
+                if self.registered_workers.contains_key(&scope) {
+                    warn!("ScopeThings for {:?} already stored in SW-Manager", scope);
+                } else {
+                    self.registered_workers.insert(scope, scope_things);
                 }
-                ServiceWorkerMsg::Exit => break
+                true
             }
+            ServiceWorkerMsg::Timeout(scope) => {
+                if self.active_workers.contains_key(&scope) {
+                    let _ = self.active_workers.remove(&scope);
+                } else {
+                    warn!("ScopeThings for {:?} is not active", scope);
+                }
+                true
+            }
+            ServiceWorkerMsg::Exit => false
+        }
+    }
+
+    #[inline]
+    fn handle_message_from_resource(&mut self, mediator: CustomResponseMediator) -> bool {
+        self.prepare_activation(&mediator.load_url);
+        // TODO XXXcreativcoder This mediator will need to be send to the appropriate service worker
+        // so that it may do the sending of custom responses.
+        // For now we just send a None from here itself
+        let _ = mediator.response_chan.send(None);
+        true
+    }
+
+    #[allow(unsafe_code)]
+    fn receive_message(&mut self) -> bool {
+        enum Message {
+            FromResource(CustomResponseMediator),
+            FromConstellation(ServiceWorkerMsg)
+        }
+        let message = {
+            let msg_from_constellation = &self.own_port;
+            let msg_from_resource = &self.resource_receiver;
+            select! {
+                msg = msg_from_constellation.recv() =>
+                    Message::FromConstellation(msg.expect("Unexpected constellation channel panic in sw-manager")),
+                msg = msg_from_resource.recv() =>
+                    Message::FromResource(msg.expect("Unexpected resource channel panic in sw-manager"))
+            }
+        };
+        match message {
+            Message::FromConstellation(msg) => self.handle_message_from_constellation(msg),
+            Message::FromResource(mediator) => self.handle_message_from_resource(mediator)
         }
     }
 }

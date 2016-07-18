@@ -59,7 +59,7 @@ pub fn factory(user_agent: String,
                http_state: HttpState,
                devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                profiler_chan: ProfilerChan,
-               constellation_chan: Option<IpcSender<CustomResponseMediator>>,
+               swmanager_chan: Option<IpcSender<CustomResponseMediator>>,
                connector: Arc<Pool<Connector>>)
                -> Box<FnBox(LoadData,
                             LoadConsumer,
@@ -79,7 +79,7 @@ pub fn factory(user_agent: String,
                                   connector,
                                   http_state,
                                   devtools_chan,
-                                  constellation_chan,
+                                  swmanager_chan,
                                   cancel_listener,
                                   user_agent)
             })
@@ -133,7 +133,7 @@ fn load_for_consumer(load_data: LoadData,
                      connector: Arc<Pool<Connector>>,
                      http_state: HttpState,
                      devtools_chan: Option<Sender<DevtoolsControlMsg>>,
-                     constellation_chan: Option<IpcSender<CustomResponseMediator>>,
+                     swmanager_chan: Option<IpcSender<CustomResponseMediator>>,
                      cancel_listener: CancellationListener,
                      user_agent: String) {
     let factory = NetworkHttpRequestFactory {
@@ -143,7 +143,7 @@ fn load_for_consumer(load_data: LoadData,
     let ui_provider = TFDProvider;
     match load(&load_data, &ui_provider, &http_state,
                devtools_chan, &factory,
-               user_agent, &cancel_listener, constellation_chan) {
+               user_agent, &cancel_listener, swmanager_chan) {
         Err(error) => {
             match error.error {
                 LoadErrorType::ConnectionAborted { .. } => unreachable!(),
@@ -864,7 +864,7 @@ pub fn load<A, B>(load_data: &LoadData,
                   request_factory: &HttpRequestFactory<R=A>,
                   user_agent: String,
                   cancel_listener: &CancellationListener,
-                  constellation_chan: Option<IpcSender<CustomResponseMediator>>)
+                  swmanager_chan: Option<IpcSender<CustomResponseMediator>>)
                   -> Result<StreamedResponse, LoadError> where A: HttpRequest + 'static, B: UIProvider {
     let max_redirects = PREFS.get("network.http.redirection-limit").as_i64().unwrap() as u32;
     let mut iters = 0;
@@ -886,9 +886,9 @@ pub fn load<A, B>(load_data: &LoadData,
         response_chan: msg_sender,
         load_url: doc_url.clone()
     };
-    if let Some(sender) = constellation_chan {
+    if let Some(sender) = swmanager_chan {
         let _ = sender.send(response_mediator);
-        if let Ok(Some(custom_response)) = msg_receiver.try_recv() {
+        if let Ok(Some(custom_response)) = msg_receiver.recv() {
             let metadata = Metadata::default(doc_url.clone());
             let readable_response = to_readable_response(custom_response);
             return StreamedResponse::from_http_response(box readable_response, metadata);

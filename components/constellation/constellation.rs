@@ -35,7 +35,7 @@ use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::filemanager_thread::FileManagerThreadMsg;
 use net_traits::image_cache_thread::ImageCacheThread;
 use net_traits::storage_thread::StorageThreadMsg;
-use net_traits::{self, ResourceThreads, IpcSend, CustomResponseMediator, CoreResourceMsg};
+use net_traits::{self, ResourceThreads, IpcSend};
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use pipeline::{ChildProcess, InitialPipelineState, Pipeline};
 use profile_traits::mem;
@@ -97,9 +97,6 @@ pub struct Constellation<Message, LTF, STF> {
 
     /// Receives messages from scripts.
     script_receiver: Receiver<FromScriptMsg>,
-
-    /// Receive messages from resource thread
-    resource_receiver: Receiver<CustomResponseMediator>,
 
     /// Receives messages from the compositor
     compositor_receiver: Receiver<FromCompositorMsg>,
@@ -440,13 +437,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             let (ipc_panic_sender, ipc_panic_receiver) = ipc::channel().expect("ipc channel failure");
             let panic_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_panic_receiver);
 
-            let (resource_ipc_sender, resource_ipc_receiver) = ipc::channel().expect("ipc channel failure");
-            let resource_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(resource_ipc_receiver);
-
-            state.public_resource_threads.sender()
-                                         .send(CoreResourceMsg::NetworkMediator(resource_ipc_sender))
-                                         .expect("network sender sending failure");
-
             let swmanager_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(swmanager_receiver);
 
             let mut constellation: Constellation<Message, LTF, STF> = Constellation {
@@ -467,7 +457,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 swmanager_chan: None,
                 swmanager_receiver: swmanager_receiver,
                 swmanager_sender: sw_mgr_clone,
-                resource_receiver: resource_receiver,
                 pipelines: HashMap::new(),
                 frames: HashMap::new(),
                 subpage_map: HashMap::new(),
@@ -638,8 +627,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             Compositor(FromCompositorMsg),
             Layout(FromLayoutMsg),
             Panic(PanicMsg),
-            FromSWManager(SWManagerMsg),
-            FromResource(CustomResponseMediator),
+            FromSWManager(SWManagerMsg)
         }
 
         // Get one incoming request.
@@ -659,7 +647,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             let receiver_from_layout = &self.layout_receiver;
             let receiver_from_panic = &self.panic_receiver;
             let receiver_from_swmanager = &self.swmanager_receiver;
-            let receiver_from_resource = &self.resource_receiver;
             select! {
                 msg = receiver_from_script.recv() =>
                     Request::Script(msg.expect("Unexpected script channel panic in constellation")),
@@ -670,9 +657,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 msg = receiver_from_panic.recv() =>
                     Request::Panic(msg.expect("Unexpected panic channel panic in constellation")),
                 msg = receiver_from_swmanager.recv() =>
-                    Request::FromSWManager(msg.expect("Unexpected panic channel panic in constellation")),
-                msg = receiver_from_resource.recv() =>
-                    Request::FromResource(msg.expect("Unexpected panic channel panic in constellation"))
+                    Request::FromSWManager(msg.expect("Unexpected panic channel panic in constellation"))
             }
         };
 
@@ -692,9 +677,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             Request::FromSWManager(message) => {
                 self.handle_request_from_swmanager(message);
             }
-            Request::FromResource(message) => {
-                self.handle_request_from_resource(message);
-            }
         }
     }
 
@@ -704,14 +686,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 // store service worker manager for communicating with it.
                 self.swmanager_chan = Some(sw_sender);
             }
-        }
-    }
-
-    fn handle_request_from_resource(&self, mediator: CustomResponseMediator) {
-        if let Some(ref mgr) = self.swmanager_chan {
-            let _ = mgr.send(ServiceWorkerMsg::ActivateWorker(mediator));
-        } else {
-            warn!("activation request to service worker manager failed");
         }
     }
 
@@ -985,10 +959,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             FromScriptMsg::GetScrollOffset(pid, lid, send) => {
                 self.compositor_proxy.send(ToCompositorMsg::GetScrollOffset(pid, lid, send));
             }
-            FromScriptMsg::NetworkRequest(mediator) => {
-                debug!("activation request for service worker received");
-                self.handle_activate_worker(mediator);
-            }
             FromScriptMsg::RegisterServiceWorker(scope_things, scope) => {
                 debug!("constellation got store registration scope message");
                 self.handle_register_serviceworker(scope_things, scope);
@@ -1025,14 +995,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             let _ = mgr.send(ServiceWorkerMsg::RegisterServiceWorker(scope_things, scope));
         } else {
             warn!("sending scope info to service worker manager failed");
-        }
-    }
-
-    fn handle_activate_worker(&self, mediator: CustomResponseMediator) {
-        if let Some(ref mgr) = self.swmanager_chan {
-            let _ = mgr.send(ServiceWorkerMsg::ActivateWorker(mediator));
-        } else {
-            warn!("activation request to service worker manager failed");
         }
     }
 

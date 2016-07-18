@@ -18,7 +18,7 @@ use gfx_traits::LayerId;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
 use msg::constellation_msg::{NavigationDirection, PipelineId, SubpageId};
-use net_traits::CustomResponseMediator;
+use net_traits::CoreResourceMsg;
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use style_traits::cursor::Cursor;
 use style_traits::viewport::ViewportConstraints;
@@ -110,8 +110,6 @@ pub enum ScriptMsg {
     ActivateDocument(PipelineId),
     /// Set the document state for a pipeline (used by screenshot / reftests)
     SetDocumentState(PipelineId, DocumentState),
-    /// Message from network to constellation
-    NetworkRequest(CustomResponseMediator),
     /// Update the pipeline Url, which can change after redirections.
     SetFinalUrl(PipelineId, Url),
     /// Check if an alert dialog box should be presented
@@ -160,20 +158,26 @@ pub struct ScopeThings {
     pub worker_id: WorkerId,
 }
 
+/// Channels to allow service worker manager to communicate with constellation and resource thread
+pub struct SWManagerSenders {
+    /// sender for communicating with constellation
+    pub swmanager_sender: IpcSender<SWManagerMsg>,
+    /// sender for communicating with resource thread
+    pub resource_sender: IpcSender<CoreResourceMsg>
+}
+
 /// Messages sent to Service Worker Manager thread
 #[derive(Deserialize, Serialize)]
 pub enum ServiceWorkerMsg {
     /// Message to register the service worker
     RegisterServiceWorker(ScopeThings, Url),
-    /// Message to activate the worker
-    ActivateWorker(CustomResponseMediator),
     /// Timeout message sent by active service workers
     Timeout(Url),
     /// Exit the service worker manager
     Exit,
 }
 
-/// Messages outgoing from the Service Worker Manager thread
+/// Messages outgoing from the Service Worker Manager thread to constellation
 #[derive(Deserialize, Serialize)]
 pub enum SWManagerMsg {
     /// Provide the constellation with a means of communicating with the Service Worker Manager
