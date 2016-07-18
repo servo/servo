@@ -43,10 +43,10 @@ pub trait StyleCoordHelpers {
 impl StyleCoordHelpers for nsStyleCoord {
     #[inline]
     fn copy_from(&mut self, other: &Self) {
-        debug_assert_unit_is_safe_to_copy(self.mUnit);
-        debug_assert_unit_is_safe_to_copy(other.mUnit);
+        unsafe { self.mValue.reset(&mut self.mUnit) };
         self.mUnit = other.mUnit;
         self.mValue = other.mValue;
+        unsafe { self.addref_opt(); }
     }
 
     #[inline]
@@ -263,6 +263,7 @@ impl GeckoStyleCoordConvertible for LengthOrPercentageOrNone {
 
 impl<T: GeckoStyleCoordConvertible> GeckoStyleCoordConvertible for Option<T> {
     fn to_gecko_style_coord(&self, unit: &mut nsStyleUnit, union: &mut nsStyleUnion) {
+        unsafe { union.reset(unit) };
         if let Some(ref me) = *self {
             me.to_gecko_style_coord(unit, union);
         } else {
@@ -280,6 +281,7 @@ impl GeckoStyleCoordConvertible for Angle {
     fn to_gecko_style_coord(&self,
                             unit: &mut nsStyleUnit,
                             union: &mut nsStyleUnion) {
+        unsafe { union.reset(unit) };
         *unit = nsStyleUnit::eStyleUnit_Radian;
         unsafe { *union.mFloat.as_mut() = self.radians() };
     }
@@ -319,8 +321,4 @@ pub fn round_border_to_device_pixels(width: Au, au_per_device_px: Au) -> Au {
     } else {
         max(au_per_device_px, Au(width.0 / au_per_device_px.0 * au_per_device_px.0))
     }
-}
-
-pub fn debug_assert_unit_is_safe_to_copy(unit: nsStyleUnit) {
-    debug_assert!(unit != nsStyleUnit::eStyleUnit_Calc, "stylo: Can't yet handle refcounted Calc");
 }
