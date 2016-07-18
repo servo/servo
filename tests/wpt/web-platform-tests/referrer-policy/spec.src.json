@@ -298,28 +298,6 @@
 
   "excluded_tests":[
     {
-      "name": "cross-origin-workers",
-      "expansion": "*",
-      "source_protocol": "*",
-      "target_protocol": "*",
-      "redirection": "*",
-      "delivery_method": "*",
-      "origin": "cross-origin",
-      "subresource": "worker-request",
-      "referrer_url": "*"
-    },
-    {
-      "name": "upgraded-protocol-workers",
-      "expansion": "*",
-      "source_protocol": "http",
-      "target_protocol": "https",
-      "delivery_method": "*",
-      "redirection": "*",
-      "origin": "*",
-      "subresource": "worker-request",
-      "referrer_url": "*"
-    },
-    {
       "name": "mixed-content-insecure-subresources",
       "expansion": "*",
       "source_protocol": "https",
@@ -374,17 +352,6 @@
       "redirection": "*",
       "origin": "*",
       "subresource": "area-tag",
-      "referrer_url": "*"
-    },
-    {
-      "name": "worker-requests-with-swap-origin-redirect",
-      "expansion": "*",
-      "source_protocol": "*",
-      "target_protocol": "*",
-      "delivery_method": "*",
-      "redirection": "swap-origin-redirect",
-      "origin": "*",
-      "subresource": ["worker-request"],
       "referrer_url": "*"
     },
     {
