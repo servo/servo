@@ -286,3 +286,15 @@ video { object-fit: contain; }
 
 
 textarea { white-space: pre-wrap; }
+
+/**
+ * This is a special pseudo-element whose styles apply to text nodes.
+ */
+*|*::-servo-text {
+  top: auto;
+  right: auto;
+  bottom: auto;
+  left: auto;
+  padding: 0;
+  opacity: 1;
+}

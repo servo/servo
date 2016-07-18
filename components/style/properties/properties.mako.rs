@@ -2138,42 +2138,6 @@ pub fn modify_style_for_outer_inline_block_fragment(style: &mut Arc<ServoCompute
     box_style.position = longhands::position::computed_value::T::static_
 }
 
-/// Adjusts the `position` and `padding` properties as necessary to account for text.
-///
-/// Text is never directly relatively positioned; it's always contained within an element that is
-/// itself relatively positioned.
-#[inline]
-pub fn modify_style_for_text(style: &mut Arc<ServoComputedValues>) {
-    if style.box_.position == longhands::position::computed_value::T::relative {
-        // We leave the `position` property set to `relative` so that we'll still establish a
-        // containing block if needed. But we reset all position offsets to `auto`.
-        let mut style = Arc::make_mut(style);
-        let mut position = Arc::make_mut(&mut style.position);
-        position.top = computed::LengthOrPercentageOrAuto::Auto;
-        position.right = computed::LengthOrPercentageOrAuto::Auto;
-        position.bottom = computed::LengthOrPercentageOrAuto::Auto;
-        position.left = computed::LengthOrPercentageOrAuto::Auto;
-    }
-
-    if style.padding.padding_top != computed::LengthOrPercentage::Length(Au(0)) ||
-            style.padding.padding_right != computed::LengthOrPercentage::Length(Au(0)) ||
-            style.padding.padding_bottom != computed::LengthOrPercentage::Length(Au(0)) ||
-            style.padding.padding_left != computed::LengthOrPercentage::Length(Au(0)) {
-        let mut style = Arc::make_mut(style);
-        let mut padding = Arc::make_mut(&mut style.padding);
-        padding.padding_top = computed::LengthOrPercentage::Length(Au(0));
-        padding.padding_right = computed::LengthOrPercentage::Length(Au(0));
-        padding.padding_bottom = computed::LengthOrPercentage::Length(Au(0));
-        padding.padding_left = computed::LengthOrPercentage::Length(Au(0));
-    }
-
-    if style.effects.opacity != 1.0 {
-        let mut style = Arc::make_mut(style);
-        let mut effects = Arc::make_mut(&mut style.effects);
-        effects.opacity = 1.0;
-    }
-}
-
 /// Adjusts the `margin` property as necessary to account for the text of an `input` element.
 ///
 /// Margins apply to the `input` element itself, so including them in the text will cause them to
