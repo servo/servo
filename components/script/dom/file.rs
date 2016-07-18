@@ -55,7 +55,7 @@ impl File {
         let global = GlobalRef::Window(window);
 
         File::new(global, BlobImpl::new_from_file(selected.id, selected.filename, selected.size),
-                  name, Some(selected.modified as i64), "")
+                  name, Some(selected.modified as i64), &selected.type_string)
     }
 
     // https://w3c.github.io/FileAPI/#file-constructor
@@ -70,10 +70,10 @@ impl File {
         };
 
         let ref blobPropertyBag = filePropertyBag.parent;
-        let typeString = blobPropertyBag.get_typestring();
+        let ref typeString = blobPropertyBag.type_;
 
         let modified = filePropertyBag.lastModified;
-        Ok(File::new(global, BlobImpl::new_from_bytes(bytes), filename, modified, &typeString))
+        Ok(File::new(global, BlobImpl::new_from_bytes(bytes), filename, modified, typeString))
     }
 
     pub fn name(&self) -> &DOMString {
