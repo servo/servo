@@ -17,7 +17,6 @@ use ipc_channel::ipc::{self, IpcSender};
 use num_traits::ToPrimitive;
 use std::borrow::ToOwned;
 use std::mem;
-use util::opts;
 use util::thread::spawn_named;
 use webrender_traits;
 
@@ -78,8 +77,8 @@ struct CanvasPaintState<'a> {
 }
 
 impl<'a> CanvasPaintState<'a> {
-    fn new() -> CanvasPaintState<'a> {
-        let antialias = if opts::get().enable_canvas_antialiasing {
+    fn new(antialias: bool) -> CanvasPaintState<'a> {
+        let antialias = if antialias {
             AntialiasMode::Default
         } else {
             AntialiasMode::None
@@ -101,7 +100,8 @@ impl<'a> CanvasPaintState<'a> {
 
 impl<'a> CanvasPaintThread<'a> {
     fn new(size: Size2D<i32>,
-           webrender_api_sender: Option<webrender_traits::RenderApiSender>) -> CanvasPaintThread<'a> {
+           webrender_api_sender: Option<webrender_traits::RenderApiSender>,
+           antialias: bool) -> CanvasPaintThread<'a> {
         let draw_target = CanvasPaintThread::create(size);
         let path_builder = draw_target.create_path_builder();
         let webrender_api = webrender_api_sender.map(|wr| wr.create_api());
@@ -109,7 +109,7 @@ impl<'a> CanvasPaintThread<'a> {
         CanvasPaintThread {
             drawtarget: draw_target,
             path_builder: path_builder,
-            state: CanvasPaintState::new(),
+            state: CanvasPaintState::new(antialias),
             saved_states: vec![],
             webrender_api: webrender_api,
             webrender_image_key: webrender_image_key,
@@ -119,11 +119,12 @@ impl<'a> CanvasPaintThread<'a> {
     /// Creates a new `CanvasPaintThread` and returns an `IpcSender` to
     /// communicate with it.
     pub fn start(size: Size2D<i32>,
-                 webrender_api_sender: Option<webrender_traits::RenderApiSender>)
+                 webrender_api_sender: Option<webrender_traits::RenderApiSender>,
+                 antialias: bool)
                  -> IpcSender<CanvasMsg> {
         let (sender, receiver) = ipc::channel::<CanvasMsg>().unwrap();
         spawn_named("CanvasThread".to_owned(), move || {
-            let mut painter = CanvasPaintThread::new(size, webrender_api_sender);
+            let mut painter = CanvasPaintThread::new(size, webrender_api_sender, antialias);
             loop {
                 let msg = receiver.recv();
                 match msg.unwrap() {
