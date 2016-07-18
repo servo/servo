@@ -4864,12 +4864,11 @@ fn bindgen_test_layout_nsStyleCoord_CalcValue() {
 #[derive(Debug)]
 pub struct nsStyleCoord_Calc {
     pub _base: nsStyleCoord_CalcValue,
-    pub mRefCnt: nsAutoRefCnt,
-    pub _mOwningThread: nsAutoOwningThread,
+    pub mRefCnt: ThreadSafeAutoRefCnt,
 }
 #[test]
 fn bindgen_test_layout_nsStyleCoord_Calc() {
-    assert_eq!(::std::mem::size_of::<nsStyleCoord_Calc>() , 32usize);
+    assert_eq!(::std::mem::size_of::<nsStyleCoord_Calc>() , 24usize);
     assert_eq!(::std::mem::align_of::<nsStyleCoord_Calc>() , 8usize);
 }
 #[repr(u32)]
