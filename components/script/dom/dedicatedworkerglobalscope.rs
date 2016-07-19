@@ -102,7 +102,8 @@ impl DedicatedWorkerGlobalScope {
                      receiver: Receiver<(TrustedWorkerAddress, WorkerScriptMsg)>,
                      timer_event_chan: IpcSender<TimerEvent>,
                      timer_event_port: Receiver<(TrustedWorkerAddress, TimerEvent)>,
-                     closing: Arc<AtomicBool>)
+                     closing: Arc<AtomicBool>,
+                     worker_closing: Arc<AtomicBool>)
                      -> DedicatedWorkerGlobalScope {
         DedicatedWorkerGlobalScope {
             workerglobalscope: WorkerGlobalScope::new_inherited(init,
@@ -110,7 +111,8 @@ impl DedicatedWorkerGlobalScope {
                                                                 runtime,
                                                                 from_devtools_receiver,
                                                                 timer_event_chan,
-                                                                Some(closing)),
+                                                                Some(closing),
+                                                                Some(worker_closing)),
             id: id,
             receiver: receiver,
             own_sender: own_sender,
@@ -130,7 +132,8 @@ impl DedicatedWorkerGlobalScope {
                receiver: Receiver<(TrustedWorkerAddress, WorkerScriptMsg)>,
                timer_event_chan: IpcSender<TimerEvent>,
                timer_event_port: Receiver<(TrustedWorkerAddress, TimerEvent)>,
-               closing: Arc<AtomicBool>)
+               closing: Arc<AtomicBool>,
+               worker_closing: Arc<AtomicBool>)
                -> Root<DedicatedWorkerGlobalScope> {
         let cx = runtime.cx();
         let scope = box DedicatedWorkerGlobalScope::new_inherited(init,
@@ -143,7 +146,8 @@ impl DedicatedWorkerGlobalScope {
                                                                   receiver,
                                                                   timer_event_chan,
                                                                   timer_event_port,
-                                                                  closing);
+                                                                  closing,
+                                                                  worker_closing);
         DedicatedWorkerGlobalScopeBinding::Wrap(cx, scope)
     }
 
@@ -158,7 +162,8 @@ impl DedicatedWorkerGlobalScope {
                             own_sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
                             receiver: Receiver<(TrustedWorkerAddress, WorkerScriptMsg)>,
                             worker_load_origin: WorkerScriptLoadOrigin,
-                            closing: Arc<AtomicBool>) {
+                            closing: Arc<AtomicBool>,
+                            worker_closing: Arc<AtomicBool>) {
         let serialized_worker_url = worker_url.to_string();
         let name = format!("WebWorker for {}", serialized_worker_url);
         let panic_chan = init.panic_chan.clone();
@@ -197,7 +202,7 @@ impl DedicatedWorkerGlobalScope {
             let global = DedicatedWorkerGlobalScope::new(
                 init, url, id, devtools_mpsc_port, runtime,
                 parent_sender.clone(), own_sender, receiver,
-                timer_ipc_chan, timer_rx, closing);
+                timer_ipc_chan, timer_rx, closing, worker_closing);
             // FIXME(njn): workers currently don't have a unique ID suitable for using in reporter
             // registration (#6631), so we instead use a random number and cross our fingers.
             let scope = global.upcast::<WorkerGlobalScope>();

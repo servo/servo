@@ -79,6 +79,7 @@ impl ServiceWorkerGlobalScope {
                                                                 runtime,
                                                                 from_devtools_receiver,
                                                                 timer_event_chan,
+                                                                None,
                                                                 None),
             id: id,
             receiver: receiver,

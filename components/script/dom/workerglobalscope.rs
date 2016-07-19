@@ -73,6 +73,7 @@ pub struct WorkerGlobalScope {
     worker_id: WorkerId,
     worker_url: Url,
     closing: Option<Arc<AtomicBool>>,
+    worker_closing: Option<Arc<AtomicBool>>,
     #[ignore_heap_size_of = "Defined in js"]
     runtime: Runtime,
     next_worker_id: Cell<WorkerId>,
@@ -121,7 +122,8 @@ impl WorkerGlobalScope {
                          runtime: Runtime,
                          from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
                          timer_event_chan: IpcSender<TimerEvent>,
-                         closing: Option<Arc<AtomicBool>>)
+                         closing: Option<Arc<AtomicBool>>,
+                         worker_closing: Option<Arc<AtomicBool>>)
                          -> WorkerGlobalScope {
         WorkerGlobalScope {
             eventtarget: EventTarget::new_inherited(),
@@ -129,6 +131,7 @@ impl WorkerGlobalScope {
             worker_id: init.worker_id,
             worker_url: worker_url,
             closing: closing,
+            worker_closing: worker_closing,
             runtime: runtime,
             resource_threads: init.resource_threads,
             location: Default::default(),
@@ -196,7 +199,11 @@ impl WorkerGlobalScope {
 
     pub fn is_closing(&self) -> bool {
         if let Some(ref closing) = self.closing {
-            closing.load(Ordering::SeqCst)
+            if let Some(ref worker_closing) = self.worker_closing {
+                closing.load(Ordering::SeqCst) || worker_closing.load(Ordering::SeqCst)
+            } else {
+                closing.load(Ordering::SeqCst)
+            }
         } else {
             false
         }

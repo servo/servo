@@ -42,25 +42,29 @@ pub struct Worker {
     /// this Worker created.
     sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
     closing: Arc<AtomicBool>,
+    worker_closing: Arc<AtomicBool>,
     #[ignore_heap_size_of = "Defined in rust-mozjs"]
     runtime: Arc<Mutex<Option<SharedRt>>>
 }
 
 impl Worker {
     fn new_inherited(sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
-                     closing: Arc<AtomicBool>) -> Worker {
+                     closing: Arc<AtomicBool>,
+                     worker_closing: Arc<AtomicBool>) -> Worker {
         Worker {
             eventtarget: EventTarget::new_inherited(),
             sender: sender,
             closing: closing,
+            worker_closing: worker_closing,
             runtime: Arc::new(Mutex::new(None))
         }
     }
 
     pub fn new(global: GlobalRef,
                sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
-               closing: Arc<AtomicBool>) -> Root<Worker> {
-        reflect_dom_object(box Worker::new_inherited(sender, closing),
+               closing: Arc<AtomicBool>,
+               worker_closing: Arc<AtomicBool>) -> Root<Worker> {
+        reflect_dom_object(box Worker::new_inherited(sender, closing, worker_closing),
                            global,
                            WorkerBinding::Wrap)
     }
@@ -76,7 +80,9 @@ impl Worker {
 
         let (sender, receiver) = channel();
         let closing = Arc::new(AtomicBool::new(false));
-        let worker = Worker::new(global, sender.clone(), closing.clone());
+        let worker_closing = Arc::new(AtomicBool::new(false));
+        let worker = Worker::new(global, sender.clone(),
+                                 closing.clone(), worker_closing.clone());
         let worker_ref = Trusted::new(worker.r());
 
         let worker_load_origin = WorkerScriptLoadOrigin {
@@ -103,7 +109,7 @@ impl Worker {
 
         DedicatedWorkerGlobalScope::run_worker_scope(
             init, worker_url, global.pipeline(), devtools_receiver, worker.runtime.clone(), worker_ref,
-            global.script_chan(), sender, receiver, worker_load_origin, closing);
+            global.script_chan(), sender, receiver, worker_load_origin, closing, worker_closing);
 
         Ok(worker)
     }
