@@ -126,6 +126,9 @@ COMPILATION_TARGETS = {
             "nsMainThreadPtrHolder", "nscolor", "nsFont", "FontFamilyList",
             "FontFamilyType", "nsIAtom",
         ],
+        "void_types": [
+            "nsINode", "nsIDocument", "nsIPrincipal", "nsIURI",
+        ]
     }
 }
 
