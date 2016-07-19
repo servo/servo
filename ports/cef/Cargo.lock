@@ -148,11 +148,6 @@ version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
-name = "block"
-version = "0.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-
-[[package]]
 name = "blurz"
 version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -238,29 +233,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "clipboard"
-version = "0.1.2"
-source = "git+https://github.com/aweinstock314/rust-clipboard#f4c5c1d3c1759f0a167091405d11af1f9584fb1f"
-dependencies = [
- "clipboard-win 1.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "objc 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "objc-foundation 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "objc_id 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "x11 2.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "clipboard-win"
-version = "1.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "kernel32-sys 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "user32-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "winapi 0.2.7 (registry+https://github.com/rust-lang/crates.io-index)",
- "windows-error 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
 name = "cmake"
 version = "0.1.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -319,7 +291,6 @@ dependencies = [
  "backtrace 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "canvas 0.0.1",
  "canvas_traits 0.0.1",
- "clipboard 0.1.2 (git+https://github.com/aweinstock314/rust-clipboard)",
  "compositing 0.0.1",
  "devtools_traits 0.0.1",
  "euclid 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1442,24 +1413,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "objc-foundation"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "block 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "objc 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "objc_id 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "objc_id"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "objc 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
 name = "odds"
 version = "0.2.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2516,15 +2469,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "winapi-build"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-
-[[package]]
-name = "windows-error"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "kernel32-sys 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "winapi 0.2.7 (registry+https://github.com/rust-lang/crates.io-index)",
-]
 
 [[package]]
 name = "ws2_32-sys"
