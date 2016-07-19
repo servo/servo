@@ -1537,14 +1537,29 @@ pub struct nsWritingIterator<CharT> {
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct nsStringComparator;
+pub struct nsStringComparator {
+    pub _vftable: *const _vftable_nsStringComparator,
+}
+#[repr(C)]
+pub struct _vftable_nsStringComparator {
+    pub _bindgen_empty_ctype_warning_fix: u64,
+}
 impl ::std::clone::Clone for nsStringComparator {
     fn clone(&self) -> Self { *self }
+}
+#[test]
+fn bindgen_test_layout_nsStringComparator() {
+    assert_eq!(::std::mem::size_of::<nsStringComparator>() , 8usize);
+    assert_eq!(::std::mem::align_of::<nsStringComparator>() , 8usize);
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
 pub struct nsDefaultStringComparator {
     pub _base: nsStringComparator,
+}
+#[repr(C)]
+pub struct _vftable_nsDefaultStringComparator {
+    pub _base: _vftable_nsStringComparator,
 }
 impl ::std::clone::Clone for nsDefaultStringComparator {
     fn clone(&self) -> Self { *self }
@@ -1575,14 +1590,29 @@ fn bindgen_test_layout_nsAString_internal() {
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct nsCStringComparator;
+pub struct nsCStringComparator {
+    pub _vftable: *const _vftable_nsCStringComparator,
+}
+#[repr(C)]
+pub struct _vftable_nsCStringComparator {
+    pub _bindgen_empty_ctype_warning_fix: u64,
+}
 impl ::std::clone::Clone for nsCStringComparator {
     fn clone(&self) -> Self { *self }
+}
+#[test]
+fn bindgen_test_layout_nsCStringComparator() {
+    assert_eq!(::std::mem::size_of::<nsCStringComparator>() , 8usize);
+    assert_eq!(::std::mem::align_of::<nsCStringComparator>() , 8usize);
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
 pub struct nsDefaultCStringComparator {
     pub _base: nsCStringComparator,
+}
+#[repr(C)]
+pub struct _vftable_nsDefaultCStringComparator {
+    pub _base: _vftable_nsCStringComparator,
 }
 impl ::std::clone::Clone for nsDefaultCStringComparator {
     fn clone(&self) -> Self { *self }
@@ -1619,6 +1649,10 @@ fn bindgen_test_layout_nsACString_internal() {
 #[derive(Debug, Copy)]
 pub struct nsCaseInsensitiveCStringComparator {
     pub _base: nsCStringComparator,
+}
+#[repr(C)]
+pub struct _vftable_nsCaseInsensitiveCStringComparator {
+    pub _base: _vftable_nsCStringComparator,
 }
 impl ::std::clone::Clone for nsCaseInsensitiveCStringComparator {
     fn clone(&self) -> Self { *self }
@@ -2211,9 +2245,20 @@ pub struct nsTArray<T> {
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct nsCOMPtr_helper;
+pub struct nsCOMPtr_helper {
+    pub _vftable: *const _vftable_nsCOMPtr_helper,
+}
+#[repr(C)]
+pub struct _vftable_nsCOMPtr_helper {
+    pub _bindgen_empty_ctype_warning_fix: u64,
+}
 impl ::std::clone::Clone for nsCOMPtr_helper {
     fn clone(&self) -> Self { *self }
+}
+#[test]
+fn bindgen_test_layout_nsCOMPtr_helper() {
+    assert_eq!(::std::mem::size_of::<nsCOMPtr_helper>() , 8usize);
+    assert_eq!(::std::mem::align_of::<nsCOMPtr_helper>() , 8usize);
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
