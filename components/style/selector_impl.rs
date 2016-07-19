@@ -10,6 +10,8 @@ use selectors::parser::SelectorImpl;
 use std::fmt::Debug;
 use stylesheets::Stylesheet;
 
+pub type AttrString = <TheSelectorImpl as SelectorImpl>::AttrString;
+
 #[cfg(feature = "servo")]
 pub use servo_selector_impl::ServoSelectorImpl;
 
@@ -66,7 +68,7 @@ impl PseudoElementCascadeType {
     }
 }
 
-pub trait ElementExt: Element {
+pub trait ElementExt: Element<Impl=TheSelectorImpl, AttrString=<TheSelectorImpl as SelectorImpl>::AttrString> {
     fn is_link(&self) -> bool;
 }
 
@@ -102,7 +104,7 @@ pub trait SelectorImplExt : SelectorImpl + Clone + Debug + Sized + 'static {
 
     fn pseudo_class_state_flag(pc: &Self::NonTSPseudoClass) -> ElementState;
 
-    fn get_user_or_user_agent_stylesheets() -> &'static [Stylesheet<Self>];
+    fn get_user_or_user_agent_stylesheets() -> &'static [Stylesheet];
 
-    fn get_quirks_mode_stylesheet() -> Option<&'static Stylesheet<Self>>;
+    fn get_quirks_mode_stylesheet() -> Option<&'static Stylesheet>;
 }

@@ -5,26 +5,25 @@
 //! Per-node data used in style calculation.
 
 use properties::ComputedValues;
-use selectors::parser::SelectorImpl;
+use selector_impl::PseudoElement;
 use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
 use std::sync::Arc;
 use std::sync::atomic::AtomicIsize;
 
-pub struct PrivateStyleData<Impl: SelectorImpl> {
+pub struct PrivateStyleData {
     /// The results of CSS styling for this node.
     pub style: Option<Arc<ComputedValues>>,
 
     /// The results of CSS styling for each pseudo-element (if any).
-    pub per_pseudo: HashMap<Impl::PseudoElement, Arc<ComputedValues>,
+    pub per_pseudo: HashMap<PseudoElement, Arc<ComputedValues>,
                             BuildHasherDefault<::fnv::FnvHasher>>,
 
     /// Information needed during parallel traversals.
     pub parallel: DomParallelInfo,
 }
 
-impl<Impl> PrivateStyleData<Impl>
-    where Impl: SelectorImpl {
+impl PrivateStyleData {
     pub fn new() -> Self {
         PrivateStyleData {
             style: None,

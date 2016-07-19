@@ -97,7 +97,7 @@ pub mod selector_impl;
 pub mod selector_matching;
 pub mod sequential;
 pub mod servo;
-pub mod servo_selector_impl;
+#[cfg(feature = "servo")] pub mod servo_selector_impl;
 pub mod sink;
 pub mod str;
 pub mod stylesheets;

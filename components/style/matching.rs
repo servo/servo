@@ -13,7 +13,7 @@ use context::{StyleContext, SharedStyleContext};
 use data::PrivateStyleData;
 use dom::{TElement, TNode, TRestyleDamage};
 use properties::{ComputedValues, PropertyDeclaration, cascade};
-use selector_impl::{ElementExt, SelectorImplExt};
+use selector_impl::{ElementExt, SelectorImplExt, TheSelectorImpl, PseudoElement};
 use selector_matching::{DeclarationBlock, Stylist};
 use selectors::Element;
 use selectors::bloom::BloomFilter;
@@ -48,9 +48,9 @@ fn create_common_style_affecting_attributes_from_element<E: TElement>(element: &
     flags
 }
 
-pub struct ApplicableDeclarations<Impl: SelectorImplExt> {
+pub struct ApplicableDeclarations {
     pub normal: SmallVec<[DeclarationBlock; 16]>,
-    pub per_pseudo: HashMap<Impl::PseudoElement,
+    pub per_pseudo: HashMap<PseudoElement,
                             Vec<DeclarationBlock>,
                             BuildHasherDefault<::fnv::FnvHasher>>,
 
@@ -58,15 +58,15 @@ pub struct ApplicableDeclarations<Impl: SelectorImplExt> {
     pub normal_shareable: bool,
 }
 
-impl<Impl: SelectorImplExt> ApplicableDeclarations<Impl> {
-    pub fn new() -> ApplicableDeclarations<Impl> {
+impl ApplicableDeclarations {
+    pub fn new() -> Self {
         let mut applicable_declarations = ApplicableDeclarations {
             normal: SmallVec::new(),
             per_pseudo: HashMap::with_hasher(Default::default()),
             normal_shareable: false,
         };
 
-        Impl::each_eagerly_cascaded_pseudo_element(|pseudo| {
+        TheSelectorImpl::each_eagerly_cascaded_pseudo_element(|pseudo| {
             applicable_declarations.per_pseudo.insert(pseudo, vec![]);
         });
 
@@ -377,7 +377,7 @@ trait PrivateMatchMethods: TNode
                                             shareable: bool,
                                             animate_properties: bool)
                                             -> (Self::ConcreteRestyleDamage, Arc<ComputedValues>)
-    where Ctx: StyleContext<'a, <Self::ConcreteElement as Element>::Impl> {
+    where Ctx: StyleContext<'a> {
         let mut cacheable = true;
         let shared_context = context.shared_context();
         if animate_properties {
@@ -421,7 +421,7 @@ trait PrivateMatchMethods: TNode
             let new_animations_sender = &context.local_context().new_animations_sender;
             let this_opaque = self.opaque();
             // Trigger any present animations if necessary.
-            let mut animations_started = animation::maybe_start_animations::<<Self::ConcreteElement as Element>::Impl>(
+            let mut animations_started = animation::maybe_start_animations(
                 &shared_context,
                 new_animations_sender,
                 this_opaque,
@@ -431,7 +431,7 @@ trait PrivateMatchMethods: TNode
             // to its old value if it did trigger a transition.
             if let Some(ref style) = style {
                 animations_started |=
-                    animation::start_transitions_if_applicable::<<Self::ConcreteElement as Element>::Impl>(
+                    animation::start_transitions_if_applicable(
                         new_animations_sender,
                         this_opaque,
                         &**style,
@@ -455,7 +455,7 @@ trait PrivateMatchMethods: TNode
     }
 
     fn update_animations_for_cascade(&self,
-                                     context: &SharedStyleContext<<Self::ConcreteElement as Element>::Impl>,
+                                     context: &SharedStyleContext,
                                      style: &mut Option<&mut Arc<ComputedValues>>)
                                      -> bool {
         let style = match *style {
@@ -506,8 +506,8 @@ trait PrivateMatchMethods: TNode
                 // See #12171 and the associated PR for an example where this
                 // happened while debugging other release panic.
                 if !running_animation.is_expired() {
-                    animation::update_style_for_animation::<Self::ConcreteRestyleDamage,
-                        <Self::ConcreteElement as Element>::Impl>(context, running_animation, style, None);
+                    animation::update_style_for_animation::<Self::ConcreteRestyleDamage>(
+                        context, running_animation, style, None);
                     running_animation.mark_as_expired();
                 }
             }
@@ -530,7 +530,7 @@ trait PrivateElementMatchMethods: TElement {
             Some(_) | None => return None,
         };
 
-        let parent_data: Option<&PrivateStyleData<_>> = unsafe {
+        let parent_data: Option<&PrivateStyleData> = unsafe {
             parent_node.borrow_data_unchecked().map(|d| &*d)
         };
 
@@ -552,12 +552,11 @@ trait PrivateElementMatchMethods: TElement {
 
 impl<E: TElement> PrivateElementMatchMethods for E {}
 
-pub trait ElementMatchMethods : TElement
-    where Self::Impl: SelectorImplExt {
+pub trait ElementMatchMethods : TElement {
     fn match_element(&self,
-                     stylist: &Stylist<Self::Impl>,
+                     stylist: &Stylist,
                      parent_bf: Option<&BloomFilter>,
-                     applicable_declarations: &mut ApplicableDeclarations<Self::Impl>)
+                     applicable_declarations: &mut ApplicableDeclarations)
                      -> bool {
         let style_attribute = self.style_attribute().as_ref();
 
@@ -567,7 +566,7 @@ pub trait ElementMatchMethods : TElement
                                                  style_attribute,
                                                  None,
                                                  &mut applicable_declarations.normal);
-        Self::Impl::each_eagerly_cascaded_pseudo_element(|pseudo| {
+        TheSelectorImpl::each_eagerly_cascaded_pseudo_element(|pseudo| {
             stylist.push_applicable_declarations(self,
                                                  parent_bf,
                                                  None,
@@ -669,11 +668,8 @@ pub trait MatchMethods : TNode {
     unsafe fn cascade_node<'a, Ctx>(&self,
                                     context: &Ctx,
                                     parent: Option<Self>,
-                                    applicable_declarations:
-                                     &ApplicableDeclarations<<Self::ConcreteElement as Element>::Impl>)
-    where <Self::ConcreteElement as Element>::Impl: SelectorImplExt,
-          Ctx: StyleContext<'a, <Self::ConcreteElement as Element>::Impl>
-    {
+                                    applicable_declarations: &ApplicableDeclarations)
+    where Ctx: StyleContext<'a> {
         // Get our parent's style. This must be unsafe so that we don't touch the parent's
         // borrow flags.
         //
