@@ -460,4 +460,10 @@ impl WorkerGlobalScope {
     pub fn set_devtools_wants_updates(&self, value: bool) {
         self.devtools_wants_updates.set(value);
     }
+
+    pub fn close(&self) {
+        if let Some(ref worker_closing) = self.worker_closing {
+            worker_closing.swap(true, Ordering::SeqCst);
+        }
+    }
 }
