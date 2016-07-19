@@ -2453,7 +2453,7 @@ dependencies = [
 [[package]]
 name = "webrender"
 version = "0.1.0"
-source = "git+https://github.com/servo/webrender#29fcb362a71b0434db186db7e7b9fa8349a0dc3a"
+source = "git+https://github.com/servo/webrender#fd38ab8994be39ba194f56182af8c467b4f9f929"
 dependencies = [
  "app_units 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "bit-set 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
