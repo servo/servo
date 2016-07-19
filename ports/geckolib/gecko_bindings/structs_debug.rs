@@ -188,10 +188,20 @@ pub const NS_ERROR_MODULE_BASE_OFFSET: ::std::os::raw::c_uint = 69;
 pub const MOZ_STRING_WITH_OBSOLETE_API: ::std::os::raw::c_uint = 1;
 pub const NSID_LENGTH: ::std::os::raw::c_uint = 39;
 pub const NS_NUMBER_OF_FLAGS_IN_REFCNT: ::std::os::raw::c_uint = 2;
+pub const _STL_PAIR_H: ::std::os::raw::c_uint = 1;
+pub const _GLIBCXX_UTILITY: ::std::os::raw::c_uint = 1;
+pub const __cpp_lib_tuple_element_t: ::std::os::raw::c_uint = 201402;
+pub const __cpp_lib_tuples_by_type: ::std::os::raw::c_uint = 201304;
+pub const __cpp_lib_exchange_function: ::std::os::raw::c_uint = 201304;
+pub const __cpp_lib_integer_sequence: ::std::os::raw::c_uint = 201304;
+pub const NS_EVENT_STATE_HIGHEST_SERVO_BIT: ::std::os::raw::c_uint = 6;
 pub const DOM_USER_DATA: ::std::os::raw::c_uint = 1;
 pub const SMIL_MAPPED_ATTR_ANIMVAL: ::std::os::raw::c_uint = 2;
 pub const TWIPS_PER_POINT_INT: ::std::os::raw::c_uint = 20;
 pub const POINTS_PER_INCH_INT: ::std::os::raw::c_uint = 72;
+pub const NS_ATTRNAME_NODEINFO_BIT: ::std::os::raw::c_uint = 1;
+pub const NS_ATTRVALUE_MAX_STRINGLENGTH_ATOM: ::std::os::raw::c_uint = 12;
+pub const NS_ATTRVALUE_INTEGERTYPE_BITS: ::std::os::raw::c_uint = 4;
 pub const NS_FONT_VARIANT_NORMAL: ::std::os::raw::c_uint = 0;
 pub const NS_FONT_VARIANT_SMALL_CAPS: ::std::os::raw::c_uint = 1;
 pub const NS_CORNER_TOP_LEFT_X: ::std::os::raw::c_uint = 0;
@@ -2725,6 +2735,12 @@ impl ::std::clone::Clone for nsIExpandedPrincipal {
     fn clone(&self) -> Self { *self }
 }
 #[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct _Make_integer_sequence<_Tp, _ISeq> {
+    pub _phantom0: ::std::marker::PhantomData<_Tp>,
+    pub _phantom1: ::std::marker::PhantomData<_ISeq>,
+}
+#[repr(C)]
 #[derive(Debug, Copy)]
 pub struct nsIURI {
     pub _base: nsISupports,
@@ -2765,6 +2781,26 @@ pub enum nsIRequest_nsIRequest_h_unnamed_7 {
 }
 impl ::std::clone::Clone for nsIRequest {
     fn clone(&self) -> Self { *self }
+}
+/**
+ * EventStates is the class used to represent the event states of nsIContent
+ * instances. These states are calculated by IntrinsicState() and
+ * ContentStatesChanged() has to be called when one of them changes thus
+ * informing the layout/style engine of the change.
+ * Event states are associated with pseudo-classes.
+ */
+#[repr(C)]
+#[derive(Debug, Copy)]
+pub struct EventStates {
+    pub mStates: ::std::os::raw::c_ulong,
+}
+impl ::std::clone::Clone for EventStates {
+    fn clone(&self) -> Self { *self }
+}
+#[test]
+fn bindgen_test_layout_EventStates() {
+    assert_eq!(::std::mem::size_of::<EventStates>() , 8usize);
+    assert_eq!(::std::mem::align_of::<EventStates>() , 8usize);
 }
 /**
  * Enum defining the mode in which a sheet is to be parsed.  This is
@@ -2886,7 +2922,7 @@ fn bindgen_test_layout_nsMutationGuard() {
 extern "C" {
     #[link_name = "_ZN15nsMutationGuard11sGenerationE"]
     pub static mut nsMutationGuard_consts_sGeneration:
-               ::std::os::raw::c_ulonglong;
+               ::std::os::raw::c_ulong;
 }
 pub type Float = f32;
 #[repr(i8)]
@@ -3262,6 +3298,259 @@ pub enum PlaybackDirection {
     EndGuard_ = 4,
 }
 pub type NativeType = AnimationEffectReadOnly;
+#[repr(C)]
+#[derive(Debug)]
+pub struct nsAttrName {
+    pub mBits: usize,
+}
+#[test]
+fn bindgen_test_layout_nsAttrName() {
+    assert_eq!(::std::mem::size_of::<nsAttrName>() , 8usize);
+    assert_eq!(::std::mem::align_of::<nsAttrName>() , 8usize);
+}
+pub type nscolor = u32;
+#[repr(i8)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub enum nsHexColorType { NoAlpha = 0, AllowAlpha = 1, }
+pub enum nsStyledElementNotElementCSSInlineStyle { }
+pub enum MiscContainer { }
+pub enum ServoDeclarationBlock { }
+pub enum Declaration { }
+/**
+ * A class used to construct a nsString from a nsStringBuffer (we might
+ * want to move this to nsString at some point).
+ *
+ * WARNING: Note that nsCheapString doesn't take an explicit length -- it
+ * assumes the string is maximally large, given the nsStringBuffer's storage
+ * size.  This means the given string buffer *must* be sized exactly correctly
+ * for the string it contains (including one byte for a null terminator).  If
+ * it has any unused storage space, then that will result in bogus characters
+ * at the end of our nsCheapString.
+ */
+#[repr(C)]
+#[derive(Debug)]
+pub struct nsCheapString {
+    pub _base: nsString,
+}
+#[test]
+fn bindgen_test_layout_nsCheapString() {
+    assert_eq!(::std::mem::size_of::<nsCheapString>() , 16usize);
+    assert_eq!(::std::mem::align_of::<nsCheapString>() , 8usize);
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct nsAttrValue {
+    pub mBits: usize,
+}
+pub const eSVGTypesBegin: nsAttrValue_ValueType =
+    nsAttrValue_ValueType::eSVGAngle;
+pub const eSVGTypesEnd: nsAttrValue_ValueType =
+    nsAttrValue_ValueType::eSVGViewBox;
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub enum nsAttrValue_ValueType {
+    eString = 0,
+    eAtom = 2,
+    eInteger = 3,
+    eColor = 7,
+    eEnum = 11,
+    ePercent = 15,
+    eGeckoCSSDeclaration = 16,
+    eServoCSSDeclaration = 17,
+    eURL = 18,
+    eImage = 19,
+    eAtomArray = 20,
+    eDoubleValue = 21,
+    eIntMarginValue = 22,
+    eSVGAngle = 23,
+    eSVGIntegerPair = 24,
+    eSVGLength = 25,
+    eSVGLengthList = 26,
+    eSVGNumberList = 27,
+    eSVGNumberPair = 28,
+    eSVGPathData = 29,
+    eSVGPointList = 30,
+    eSVGPreserveAspectRatio = 31,
+    eSVGStringList = 32,
+    eSVGTransformList = 33,
+    eSVGViewBox = 34,
+}
+/**
+   * Structure for a mapping from int (enum) values to strings.  When you use
+   * it you generally create an array of them.
+   * Instantiate like this:
+   * EnumTable myTable[] = {
+   *   { "string1", 1 },
+   *   { "string2", 2 },
+   *   { 0 }
+   * }
+   */
+#[repr(C)]
+#[derive(Debug, Copy)]
+pub struct nsAttrValue_EnumTable {
+    /** The string the value maps to */
+    pub tag: *const ::std::os::raw::c_char,
+    /** The enum value that maps to this string */
+    pub value: i16,
+}
+impl ::std::clone::Clone for nsAttrValue_EnumTable {
+    fn clone(&self) -> Self { *self }
+}
+#[test]
+fn bindgen_test_layout_nsAttrValue_EnumTable() {
+    assert_eq!(::std::mem::size_of::<nsAttrValue_EnumTable>() , 16usize);
+    assert_eq!(::std::mem::align_of::<nsAttrValue_EnumTable>() , 8usize);
+}
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub enum nsAttrValue_ValueBaseType {
+    eStringBase = 0,
+    eOtherBase = 1,
+    eAtomBase = 2,
+    eIntegerBase = 3,
+}
+#[test]
+fn bindgen_test_layout_nsAttrValue() {
+    assert_eq!(::std::mem::size_of::<nsAttrValue>() , 8usize);
+    assert_eq!(::std::mem::align_of::<nsAttrValue>() , 8usize);
+}
+extern "C" {
+    #[link_name = "_ZN11nsAttrValue15sEnumTableArrayE"]
+    pub static mut nsAttrValue_consts_sEnumTableArray:
+               nsTArray<*const nsAttrValue_EnumTable>;
+}
+pub enum nsCSSSelector { }
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub enum nsChangeHint {
+    nsChangeHint_RepaintFrame = 1,
+    nsChangeHint_NeedReflow = 2,
+    nsChangeHint_ClearAncestorIntrinsics = 4,
+    nsChangeHint_ClearDescendantIntrinsics = 8,
+    nsChangeHint_NeedDirtyReflow = 16,
+    nsChangeHint_SyncFrameView = 32,
+    nsChangeHint_UpdateCursor = 64,
+    nsChangeHint_UpdateEffects = 128,
+    nsChangeHint_UpdateOpacityLayer = 256,
+    nsChangeHint_UpdateTransformLayer = 512,
+    nsChangeHint_ReconstructFrame = 1024,
+    nsChangeHint_UpdateOverflow = 2048,
+    nsChangeHint_UpdateSubtreeOverflow = 4096,
+    nsChangeHint_UpdatePostTransformOverflow = 8192,
+    nsChangeHint_UpdateParentOverflow = 16384,
+    nsChangeHint_ChildrenOnlyTransform = 32768,
+    nsChangeHint_RecomputePosition = 65536,
+    nsChangeHint_UpdateContainingBlock = 131072,
+    nsChangeHint_BorderStyleNoneChange = 262144,
+    nsChangeHint_UpdateTextPath = 524288,
+    nsChangeHint_SchedulePaint = 1048576,
+    nsChangeHint_NeutralChange = 2097152,
+    nsChangeHint_InvalidateRenderingObservers = 4194304,
+    nsChangeHint_ReflowChangesSizeOrPosition = 8388608,
+    nsChangeHint_UpdateComputedBSize = 16777216,
+    nsChangeHint_UpdateUsesOpacity = 33554432,
+    nsChangeHint_UpdateBackgroundPosition = 67108864,
+}
+pub type nsChangeHint_size_t = ::std::os::raw::c_int;
+/**
+ * |nsRestyleHint| is a bitfield for the result of
+ * |HasStateDependentStyle| and |HasAttributeDependentStyle|.  When no
+ * restyling is necessary, use |nsRestyleHint(0)|.
+ *
+ * Without eRestyle_Force or eRestyle_ForceDescendants, the restyling process
+ * can stop processing at a frame when it detects no style changes and it is
+ * known that the styles of the subtree beneath it will not change, leaving
+ * the old style context on the frame.  eRestyle_Force can be used to skip this
+ * optimization on a frame, and to force its new style context to be used.
+ *
+ * Similarly, eRestyle_ForceDescendants will cause the frame and all of its
+ * descendants to be traversed and for the new style contexts that are created
+ * to be set on the frames.
+ *
+ * NOTE: When adding new restyle hints, please also add them to
+ * RestyleManager::RestyleHintToString.
+ */
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub enum nsRestyleHint {
+    eRestyle_Self = 1,
+    eRestyle_SomeDescendants = 2,
+    eRestyle_Subtree = 4,
+    eRestyle_LaterSiblings = 8,
+    eRestyle_CSSTransitions = 16,
+    eRestyle_CSSAnimations = 32,
+    eRestyle_SVGAttrAnimations = 64,
+    eRestyle_StyleAttribute = 128,
+    eRestyle_StyleAttribute_Animations = 256,
+    eRestyle_Force = 512,
+    eRestyle_ForceDescendants = 1024,
+    eRestyle_AllHintsWithAnimations = 368,
+}
+pub type nsRestyleHint_size_t = ::std::os::raw::c_int;
+/**
+ * Additional data used in conjunction with an nsRestyleHint to control the
+ * restyle process.
+ */
+#[repr(C)]
+#[derive(Debug)]
+pub struct RestyleHintData {
+    pub mSelectorsForDescendants: nsTArray<*mut nsCSSSelector>,
+}
+#[test]
+fn bindgen_test_layout_RestyleHintData() {
+    assert_eq!(::std::mem::size_of::<RestyleHintData>() , 8usize);
+    assert_eq!(::std::mem::align_of::<RestyleHintData>() , 8usize);
+}
+/**
+ * A structure representing a single attribute name and value.
+ *
+ * This is pretty similar to the private nsAttrAndChildArray::InternalAttr.
+ */
+#[repr(C)]
+#[derive(Debug)]
+pub struct ServoAttrSnapshot {
+    pub mName: nsAttrName,
+    pub mValue: nsAttrValue,
+}
+#[test]
+fn bindgen_test_layout_ServoAttrSnapshot() {
+    assert_eq!(::std::mem::size_of::<ServoAttrSnapshot>() , 16usize);
+    assert_eq!(::std::mem::align_of::<ServoAttrSnapshot>() , 8usize);
+}
+/**
+ * A bitflags enum class used to determine what data does a ServoElementSnapshot
+ * contains.
+ */
+#[repr(i8)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub enum ServoElementSnapshotFlags {
+    State = 1,
+    Attributes = 2,
+    HTMLElementInHTMLDocument = 4,
+    All = 7,
+}
+/**
+ * This class holds all non-tree-structural state of an element that might be
+ * used for selector matching eventually.
+ *
+ * This means the attributes, and the element state, such as :hover, :active,
+ * etc...
+ */
+#[repr(C)]
+#[derive(Debug)]
+pub struct ServoElementSnapshot {
+    pub mContains: ServoElementSnapshotFlags,
+    pub mAttrs: nsTArray<ServoAttrSnapshot>,
+    pub mState: ::std::os::raw::c_uchar,
+    pub mExplicitRestyleHint: nsRestyleHint,
+    pub mExplicitChangeHint: nsChangeHint,
+    pub mIsHTMLElementInHTMLDocument: bool,
+}
+#[test]
+fn bindgen_test_layout_ServoElementSnapshot() {
+    assert_eq!(::std::mem::size_of::<ServoElementSnapshot>() , 32usize);
+    assert_eq!(::std::mem::align_of::<ServoElementSnapshot>() , 8usize);
+}
 pub enum ErrorReporter { }
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
@@ -4136,10 +4425,6 @@ pub enum nsCSSPropertyLogicalGroup {
     eCSSPropertyLogicalGroup_Size = 8,
     eCSSPropertyLogicalGroup_COUNT = 9,
 }
-pub type nscolor = u32;
-#[repr(i8)]
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
-pub enum nsHexColorType { NoAlpha = 0, AllowAlpha = 1, }
 /**
  * Class to safely handle main-thread-only pointers off the main thread.
  *
