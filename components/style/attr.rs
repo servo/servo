@@ -335,6 +335,16 @@ impl ::std::ops::Deref for AttrValue {
     }
 }
 
+#[cfg(feature = "gecko")] // Gecko can't borrow atoms as UTF-8.
+impl ::std::ops::Deref for AttrValue {
+    type Target = str;
+
+    fn deref(&self) -> &str {
+        panic!("AttrValue conversion to &str");
+    }
+}
+
+
 /// https://html.spec.whatwg.org/multipage/#rules-for-parsing-non-zero-dimension-values
 pub fn parse_nonzero_length(value: &str) -> LengthOrPercentageOrAuto {
     match parse_length(value) {
