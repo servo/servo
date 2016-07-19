@@ -559,7 +559,7 @@ impl CoreResourceManager {
                 return
             }
         };
-        debug!("resource_thread: loading url: {}", load_data.url);
+        debug!("loading url: {}", load_data.url);
 
         loader.call_box((load_data,
                          consumer,
@@ -578,7 +578,6 @@ impl CoreResourceManager {
             blocked_content: BLOCKED_CONTENT_RULES.clone(),
         };
         let ua = self.user_agent.clone();
-        let dc = self.devtools_chan.clone();
         spawn_named(format!("fetch thread for {}", init.url), move || {
             let request = Request::from_init(init);
             // XXXManishearth: Check origin against pipeline id (also ensure that the mode is allowed)
@@ -586,8 +585,8 @@ impl CoreResourceManager {
             // todo referrer policy?
             // todo service worker stuff
             let mut target = Some(Box::new(sender) as Box<FetchTaskTarget + Send + 'static>);
-            let context = FetchContext { state: http_state, user_agent: ua };
-            fetch(Rc::new(request), &mut target, context, dc);            //FIXME put a devtools channel here
+            let context = FetchContext { state: http_state, user_agent: ua, devtools_chan: self.devtools_chan.clone() };
+            fetch(Rc::new(request), &mut target, context);
         })
     }
 

@@ -601,7 +601,6 @@ fn prepare_devtools_request(request_id: String,
                             now: Tm,
                             connect_time: u64,
                             send_time: u64) -> ChromeToDevtoolsControlMsg {
-    debug!("preparing!!!");
     let request = DevtoolsHttpRequest {
         url: url,
         method: method,
@@ -628,13 +627,11 @@ pub fn send_response_to_devtools(devtools_chan: Option<Sender<DevtoolsControlMsg
                              headers: Option<Headers>,
                              status: Option<RawStatus>,
                              pipeline_id: PipelineId) {
-    debug!("send the response!");
     if let Some(ref chan) = devtools_chan {
         let response = DevtoolsHttpResponse { headers: headers, status: status, body: None, pipeline_id: pipeline_id };
         let net_event_response = NetworkEvent::HttpResponse(response);
 
         let msg = ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event_response);
-        debug!("Devtools response: ");
         chan.send(DevtoolsControlMsg::FromChrome(msg)).unwrap();
     }
 }
@@ -755,7 +752,6 @@ pub fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
     let connection_url = replace_hosts(&url);
     let mut msg;
 
-    debug!("obtain response");
 
     // loop trying connections in connection pool
     // they may have grown stale (disconnected), in which case we'll get
@@ -810,8 +806,6 @@ pub fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
 
         let send_end = precise_time_ms();
 
-        debug!("connect: {} {} send: {} {}", connect_start, connect_end, send_start, send_end);
-
         msg = if devtools_chan.is_some() {
             debug!("channel is some: {:?}", pipeline_id);
             if let Some(pipeline_id) = *pipeline_id {
@@ -827,7 +821,6 @@ pub fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
         } else {
             None
         };
-        debug!("Message: {}", msg.is_some());
 
         response = match maybe_response {
             Ok(r) => r,
