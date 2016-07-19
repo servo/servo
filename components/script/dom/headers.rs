@@ -102,7 +102,7 @@ fn is_forbidden_response_header(name: &str) -> bool {
 }
 
 // https://fetch.spec.whatwg.org/#forbidden-header-name
-fn is_forbidden_header_name(name: &str) -> bool {
+pub fn is_forbidden_header_name(name: &str) -> bool {
     let disallowed_headers =
         ["accept-charset", "accept-encoding",
          "access-control-request-headers",
