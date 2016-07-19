@@ -8,4 +8,6 @@
   [Throws]
   void postMessage(any message/*, optional sequence<Transferable> transfer*/);
            attribute EventHandler onmessage;
+
+  void close();
 };
