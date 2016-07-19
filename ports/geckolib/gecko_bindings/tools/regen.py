@@ -21,7 +21,7 @@ COMPILATION_TARGETS = {
     # Flags common for all the targets.
     COMMON_BUILD_KEY: {
         "flags": [
-            "-x", "c++", "-std=gnu++0x",
+            "-x", "c++", "-std=c++14",
             "-allow-unknown-types", "-no-bitfield-methods",
             "-no-type-renaming", "-no-namespaced-constants",
             "-DTRACING=1", "-DIMPL_LIBXUL", "-DMOZ_STYLO_BINDINGS=1",
@@ -71,10 +71,11 @@ COMPILATION_TARGETS = {
             "gfxFontFamilyList.h", "gfxFontFeatures.h", "imgRequestProxy.h",
             "nsIRequest.h", "imgIRequest.h", "CounterStyleManager.h",
             "nsStyleConsts.h", "nsCSSValue.h", "SheetType.h", "nsIPrincipal.h",
-            "nsDataHashtable.h", "nsCSSScanner.h", "utility", "nsTArray",
+            "nsDataHashtable.h", "nsCSSScanner.h", "nsTArray",
             "pair", "SheetParsingMode.h", "StaticPtr.h", "nsProxyRelease.h",
             "mozilla/dom/AnimationEffectReadOnlyBinding.h",
             "/Types.h",   # <- Disallow UnionTypes.h
+            "/utility",   # <- Disallow xutility
             "nsINode.h",  # <- For `NodeFlags`.
         ],
         "blacklist": [
@@ -138,11 +139,34 @@ def platform_dependent_defines():
     if os.name == "posix":
         ret.append("-DOS_POSIX=1")
 
-    ret.append({
-        "Linux": "-DOS_LINUX=1",
-        "Darwin": "-DOS_MACOSX=1",
-        # TODO: Windows?
-    }[platform.system()])
+    system = platform.system()
+    if system == "Linux":
+        ret.append("-DOS_LINUX=1")
+    elif system == "Darwin":
+        ret.append("-DOS_MACOSX=1")
+    elif system == "Windows":
+        ret.append("-DOS_WIN=1")
+        ret.append("-DWIN32=1")
+        ret.append("-use-msvc-mangling")
+        msvc_platform = os.environ["PLATFORM"]
+        if msvc_platform == "X86":
+            ret.append("--target=i686-pc-win32")
+        elif msvc_platform == "X64":
+            ret.append("--target=x86_64-pc-win32")
+        else:
+            raise Exception("Only MSVC builds are supported on Windows")
+        # For compatibility with MSVC 2015
+        ret.append("-fms-compatibility-version=19")
+        # To enable the builtin __builtin_offsetof so that CRT wouldn't
+        # use reinterpret_cast in offsetof() which is not allowed inside
+        # static_assert().
+        ret.append("-D_CRT_USE_BUILTIN_OFFSETOF")
+        # Enable hidden attribute (which is not supported by MSVC and
+        # thus not enabled by default with a MSVC-compatibile build)
+        # to exclude hidden symbols from the generated file.
+        ret.append("-DHAVE_VISIBILITY_HIDDEN_ATTRIBUTE=1")
+    else:
+        raise Exception("Unknown platform")
 
     return ret
 
@@ -178,7 +202,13 @@ def build(objdir, target_name, kind_name=None,
             (kind_name in current_target["build_kinds"]))
 
     if bindgen is None:
-        bindgen = "{}/rust-bindgen/target/debug/bindgen".format(TOOLS_DIR)
+        bindgen = os.path.join(TOOLS_DIR, "rust-bindgen")
+
+    if os.path.isdir(bindgen):
+        bindgen = ["cargo", "run", "--manifest-path",
+                   os.path.join(bindgen, "Cargo.toml"), "--"]
+    else:
+        bindgen = [bindgen]
 
     if output_filename is None:
         filename = "{}.rs".format(target_name)
@@ -266,7 +296,7 @@ def build(objdir, target_name, kind_name=None,
     assert len(current_target["files"]) == 1
     flags.append(current_target["files"][0].format(objdir))
 
-    flags.insert(0, bindgen)
+    flags = bindgen + flags
     output = None
     try:
         output = subprocess.check_output(flags, stderr=subprocess.STDOUT)
@@ -284,10 +314,11 @@ def build(objdir, target_name, kind_name=None,
         print("[RUSTC]... ", end='')
         sys.stdout.flush()
 
-        tests_file = tempfile.NamedTemporaryFile()
+        with tempfile.NamedTemporaryFile(delete=False) as f:
+            test_file = f.name
         output = None
         try:
-            rustc_command = ["rustc", output_filename, "--test", "-o", tests_file.name]
+            rustc_command = ["rustc", output_filename, "--test", "-o", test_file]
             output = subprocess.check_output(rustc_command, stderr=subprocess.STDOUT)
             output = output.decode('utf8')
         except subprocess.CalledProcessError as e:
@@ -299,17 +330,17 @@ def build(objdir, target_name, kind_name=None,
         if verbose:
             print(output)
 
-        tests_file.file.close()
         print("[RUSTC_TEST]... ", end='')
         sys.stdout.flush()
 
         try:
-            output = subprocess.check_output([tests_file.name], stderr=subprocess.STDOUT)
+            output = subprocess.check_output([test_file], stderr=subprocess.STDOUT)
             output = output.decode('utf8')
         except subprocess.CalledProcessError as e:
             print("tests failed: ", e.output.decode('utf8'))
             return 1
 
+        os.remove(test_file)
         print("OK")
 
         # TODO: this -3 is hacky as heck
@@ -348,7 +379,7 @@ def builds_for(target_name, kind):
 
 def main():
     parser = argparse.ArgumentParser(description=DESCRIPTION)
-    parser.add_argument('--target',
+    parser.add_argument('--target', default="all",
                         help='The target to build, either "structs" or "bindings"')
     parser.add_argument('--kind',
                         help='Kind of build')
@@ -370,7 +401,7 @@ def main():
         print("\"{}\" doesn't seem to be a directory".format(args.objdir))
         return 1
 
-    if args.target != COMMON_BUILD_KEY and args.target != "all" and args.target not in COMPILATION_TARGETS:
+    if (args.target != "all" and args.target not in COMPILATION_TARGETS) or args.target == COMMON_BUILD_KEY:
         print("{} is not a valid compilation target.".format(args.target))
         print("Valid compilation targets are:")
         for target in COMPILATION_TARGETS.keys():
