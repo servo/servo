@@ -23,6 +23,7 @@ use layout_debug;
 use model::{IntrinsicISizes, MaybeAuto, MinMaxConstraint};
 use script_layout_interface::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW};
 use std::cmp::max;
+use std::ops::Range;
 use std::sync::Arc;
 use style::computed_values::flex_direction;
 use style::logical_geometry::LogicalSize;
@@ -88,6 +89,98 @@ impl FlexItem {
     }
 }
 
+/// A line in a flex container.
+// TODO(stshine): More fields are required to handle collapsed items and baseline alignment.
+#[derive(Debug)]
+struct FlexLine {
+    /// Range of items belong to this line in 'self.items'.
+    pub range: Range<usize>,
+    /// Remainig free space of this line, items will grow or shrink based on it being positive or negative.
+    pub free_space: Au,
+    /// the number of auto margins of items.
+    pub auto_margin_count: i32,
+    /// Line size in the block direction.
+    pub cross_size: Au,
+}
+
+impl FlexLine {
+    pub fn new(range: Range<usize>, free_space: Au, auto_margin_count: i32) -> FlexLine {
+        FlexLine {
+            range: range,
+            auto_margin_count: auto_margin_count,
+            free_space: free_space,
+            cross_size: Au(0)
+        }
+    }
+
+    /// This method implements the flexible lengths resolving algorithm.
+    /// The 'collapse' parameter is used to indicate whether items with 'visibility: hidden'
+    /// is included in length resolving. The result main size is stored in 'item.main_size'.
+    /// https://drafts.csswg.org/css-flexbox/#resolve-flexible-lengths
+    pub fn flex_resolve(&mut self, items: &mut [FlexItem], collapse: bool) {
+        let mut total_grow = 0.0;
+        let mut total_shrink = 0.0;
+        let mut total_scaled = 0.0;
+        let mut active_count = 0;
+        // Iterate through items, collect total factors and freeze those that have already met
+        // their constraints or won't grow/shrink in corresponding scenario.
+        // https://drafts.csswg.org/css-flexbox/#resolve-flexible-lengths
+        for item in items.iter_mut().filter(|i| !(i.is_strut && collapse)) {
+            item.main_size = max(item.min_size, min(item.base_size, item.max_size));
+            if item.main_size != item.base_size
+                || (self.free_space > Au(0) && item.flex_grow == 0.0)
+                || (self.free_space < Au(0) && item.flex_shrink == 0.0) {
+                    item.is_frozen = true;
+                } else {
+                    item.is_frozen = false;
+                    total_grow += item.flex_grow;
+                    total_shrink += item.flex_shrink;
+                    // The scaled factor is used to calculate flex shrink
+                    total_scaled += item.flex_shrink * item.base_size.0 as f32;
+                    active_count += 1;
+                }
+        }
+
+        let initial_free_space = self.free_space;
+        let mut total_variation = Au(1);
+        // If there is no remaining free space or all items are frozen, stop loop.
+        while total_variation != Au(0) && self.free_space != Au(0) && active_count > 0 {
+            self.free_space =
+                // https://drafts.csswg.org/css-flexbox/#remaining-free-space
+                if self.free_space > Au(0) {
+                    min(initial_free_space.scale_by(total_grow), self.free_space)
+                } else {
+                    max(initial_free_space.scale_by(total_shrink), self.free_space)
+                };
+
+            total_variation = Au(0);
+            for item in items.iter_mut().filter(|i| !i.is_frozen).filter(|i| !(i.is_strut && collapse)) {
+                // Use this and the 'abs()' below to make the code work in both grow and shrink scenarios.
+                let (factor, end_size) = if self.free_space > Au(0) {
+                    (item.flex_grow / total_grow, item.max_size)
+                } else {
+                    (item.flex_shrink * item.base_size.0 as f32 / total_scaled, item.min_size)
+                };
+                let variation = self.free_space.scale_by(factor);
+                if variation.0.abs() > (end_size - item.main_size).0.abs() {
+                    // Use constraint as the target main size, and freeze item.
+                    total_variation += end_size - item.main_size;
+                    item.main_size = end_size;
+                    item.is_frozen = true;
+                    active_count -= 1;
+                    total_shrink -= item.flex_shrink;
+                    total_grow -= item.flex_grow;
+                    total_scaled -= item.flex_shrink * item.base_size.0 as f32;
+                } else {
+                    total_variation += variation;
+                    item.main_size += variation;
+                }
+            }
+            self.free_space -= total_variation;
+        }
+    }
+}
+
 /// A block with the CSS `display` property equal to `flex`.
 #[derive(Debug)]
 pub struct FlexFlow {
@@ -100,6 +193,8 @@ pub struct FlexFlow {
     available_main_size: AxisSize,
     /// The available cross axis size
     available_cross_size: AxisSize,
+    /// List of flex lines in the container.
+    lines: Vec<FlexLine>,
     /// List of flex-items that belong to this flex-container
     items: Vec<FlexItem>,
     /// True if the flex-direction is *-reversed
@@ -122,9 +217,46 @@ impl FlexFlow {
             main_mode: main_mode,
             available_main_size: AxisSize::Infinite,
             available_cross_size: AxisSize::Infinite,
+            lines: Vec::new(),
             items: Vec::new(),
             is_reverse: is_reverse
         }
+    }
+
+    /// Returns a line start after the last item that is already in a line.
+    /// Note that when the container main size is infinite(i.e. A column flexbox with auto height),
+    /// we do not need to do flex resolving and it can be considered as a fast-path, so the
+    /// 'container_size' param does not need to be 'None'. A line has to container at least an item;
+    /// (expect this) if the container is multi-line the sum of outer main size of items should be
+    /// less than the container size; a line should be filled by items as much as possible.
+    /// After been collected in a line a item should have its main sizes initialized.
+    fn get_flex_line(&mut self, container_size: Au) -> Option<FlexLine> {
+        let start = if self.lines.len() == 0 {
+            0
+        } else {
+            self.lines[self.lines.len()-1].range.end
+        };
+        if start == self.items.len() {
+            return None;
+        }
+        let mut end = start;
+        let mut total_line_size = Au(0);
+        let mut margin_count = 0;
+
+        let items = &mut self.items[start..];
+        for mut item in items.iter_mut() {
+            item.init_sizes(container_size, self.main_mode);
+            let outer_main_size = item.outer_main_size(self.main_mode);
+            if total_line_size + outer_main_size > container_size && end != start  && self.is_wrappable {
+                break;
+            }
+            margin_count += item.auto_margin_num(self.main_mode);
+            total_line_size += outer_main_size;
+            end += 1;
+        }
+
+        let line = FlexLine::new(start..end, container_size - total_line_size, margin_count);
+        Some(line)
     }
 
     // TODO(zentner): This function should use flex-basis.
