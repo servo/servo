@@ -20,7 +20,6 @@ use gecko_bindings::bindings::{Gecko_GetPrevSibling, Gecko_GetPrevSiblingElement
 use gecko_bindings::bindings::{Gecko_GetServoDeclarationBlock, Gecko_IsHTMLElementInHTMLDocument};
 use gecko_bindings::bindings::{Gecko_IsLink, Gecko_IsRootElement, Gecko_IsTextNode};
 use gecko_bindings::bindings::{Gecko_IsUnvisitedLink, Gecko_IsVisitedLink};
-#[allow(unused_imports)] // Used in commented-out code.
 use gecko_bindings::bindings::{Gecko_LocalName, Gecko_Namespace, Gecko_NodeIsElement, Gecko_SetNodeData};
 use gecko_bindings::bindings::{RawGeckoDocument, RawGeckoElement, RawGeckoNode};
 use gecko_bindings::structs::nsIAtom;
@@ -32,6 +31,7 @@ use selector_impl::{GeckoSelectorImpl, NonTSPseudoClass, PrivateStyleData};
 use selectors::Element;
 use selectors::matching::DeclarationBlock;
 use selectors::parser::{AttrSelector, NamespaceConstraint};
+use snapshot::GeckoElementSnapshot;
 use std::marker::PhantomData;
 use std::ops::BitOr;
 use std::ptr;
@@ -41,18 +41,14 @@ use string_cache::{Atom, BorrowedAtom, BorrowedNamespace, Namespace};
 use style::dom::{OpaqueNode, PresentationalHintsSynthetizer};
 use style::dom::{TDocument, TElement, TNode, TRestyleDamage, UnsafeNode};
 use style::element_state::ElementState;
-#[allow(unused_imports)] // Used in commented-out code.
 use style::error_reporting::StdoutErrorReporter;
-#[allow(unused_imports)] // Used in commented-out code.
 use style::parser::ParserContextExtraData;
-#[allow(unused_imports)] // Used in commented-out code.
 use style::properties::parse_style_attribute;
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use style::refcell::{Ref, RefCell, RefMut};
 use style::restyle_hints::ElementSnapshot;
 use style::selector_impl::ElementExt;
 use style::sink::Push;
-#[allow(unused_imports)] // Used in commented-out code.
 use url::Url;
 
 pub type NonOpaqueStyleData = *mut RefCell<PrivateStyleData>;
@@ -326,7 +322,7 @@ impl<'ld> TDocument for GeckoDocument<'ld> {
         }
     }
 
-    fn drain_modified_elements(&self) -> Vec<(GeckoElement<'ld>, ElementSnapshot)> {
+    fn drain_modified_elements(&self) -> Vec<(GeckoElement<'ld>, GeckoElementSnapshot)> {
         unimplemented!()
         /*
         let elements =  unsafe { self.document.drain_modified_elements() };
@@ -643,6 +639,9 @@ impl<'le> ::selectors::MatchAttr for GeckoElement<'le> {
 }
 
 impl<'le> ElementExt for GeckoElement<'le> {
+    type Snapshot = GeckoElementSnapshot;
+
+    #[inline]
     fn is_link(&self) -> bool {
         self.match_non_ts_pseudo_class(NonTSPseudoClass::AnyLink)
     }
