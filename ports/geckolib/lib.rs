@@ -28,7 +28,6 @@ mod data;
 pub mod glue;
 mod selector_impl;
 mod traversal;
-mod values;
 mod wrapper;
 
 // Generated from the properties.mako.rs template by build.rs
@@ -37,6 +36,8 @@ mod wrapper;
 pub mod properties {
     include!(concat!(env!("OUT_DIR"), "/properties.rs"));
 }
+
+pub use style::gecko_values as values;
 
 // FIXME(bholley): This should probably go away once we harmonize the allocators.
 #[no_mangle]
