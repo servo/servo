@@ -14,7 +14,7 @@ impl From<CalcLengthOrPercentage> for nsStyleCoord_CalcValue {
     fn from(other: CalcLengthOrPercentage) -> nsStyleCoord_CalcValue {
         let has_percentage = other.percentage.is_some();
         nsStyleCoord_CalcValue {
-            mLength: other.length.map(|l| l.0).unwrap_or(0),
+            mLength: other.length.map_or(0, |l| l.0),
             mPercent: other.percentage.unwrap_or(0.0),
             mHasPercent: has_percentage,
         }

@@ -46,7 +46,7 @@ impl StyleCoordHelpers for nsStyleCoord {
         unsafe { self.mValue.reset(&mut self.mUnit) };
         self.mUnit = other.mUnit;
         self.mValue = other.mValue;
-        unsafe { self.addref_opt(); }
+        unsafe { self.addref_if_calc(); }
     }
 
     #[inline]

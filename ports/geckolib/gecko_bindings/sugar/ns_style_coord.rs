@@ -25,7 +25,7 @@ impl nsStyleUnion {
     /// reset() the union before calling this
     pub unsafe fn set_calc_value(&mut self, unit: &mut nsStyleUnit, v: nsStyleCoord_CalcValue) {
         // Calc should have been cleaned up
-        assert!(*unit != nsStyleUnit::eStyleUnit_Calc);
+        debug_assert!(*unit != nsStyleUnit::eStyleUnit_Calc);
         Gecko_SetStyleCoordCalcValue(unit, self, v);
     }
 
@@ -33,22 +33,22 @@ impl nsStyleUnion {
         (*self.as_calc())._base
     }
 
-    pub unsafe fn addref_opt(&mut self, unit: &nsStyleUnit) {
+    pub unsafe fn addref_if_calc(&mut self, unit: &nsStyleUnit) {
         if *unit == nsStyleUnit::eStyleUnit_Calc {
             Gecko_AddRefCalcArbitraryThread(self.as_calc_mut());
         }
     }
 
-    pub unsafe fn as_calc_mut(&mut self) -> &mut nsStyleCoord_Calc {
+    unsafe fn as_calc_mut(&mut self) -> &mut nsStyleCoord_Calc {
         transmute(*self.mPointer.as_mut() as *mut nsStyleCoord_Calc)
     }
-    pub unsafe fn as_calc(&self) -> &nsStyleCoord_Calc {
+    unsafe fn as_calc(&self) -> &nsStyleCoord_Calc {
         transmute(*self.mPointer.as_ref() as *const nsStyleCoord_Calc)
     }
 }
 
 impl nsStyleCoord {
-    pub unsafe fn addref_opt(&mut self) {
-        self.mValue.addref_opt(&self.mUnit);
+    pub unsafe fn addref_if_calc(&mut self) {
+        self.mValue.addref_if_calc(&self.mUnit);
     }
 }
