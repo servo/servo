@@ -113,6 +113,41 @@ pub fn is_token(s: &[u8]) -> bool {
 }
 
 /// A DOMString.
+///
+/// This type corresponds to the [`DOMString`](idl) type in WebIDL.
+///
+/// [idl]: https://heycam.github.io/webidl/#idl-DOMString
+///
+/// Cenceptually, a DOMString has the same value space as a JavaScript String,
+/// i.e., an array of 16-bit *code units* representing UTF-16, potentially with
+/// unpaired surrogates present (also sometimes called WTF-16).
+///
+/// Currently, this type stores a Rust `String`, in order to avoid issues when
+/// integrating with the rest of the Rust ecosystem and even the rest of the
+/// browser itself.
+///
+/// However, Rust `String`s are guaranteed to be valid UTF-8, and as such have
+/// a *smaller value space* than WTF-16 (i.e., some JavaScript String values
+/// can not be represented as a Rust `String`). This introduces the question of
+/// what to do with values being passed from JavaScript to Rust that contain
+/// unpaired surrogates.
+///
+/// The hypothesis is that it does not matter much how exactly those values are
+/// transformed, because passing unpaired surrogates into the DOM is very rare.
+/// In order to test this hypothesis, Servo will panic when encountering any
+/// unpaired surrogates on conversion to `DOMString` by default. (The command
+/// line option `-Z replace-surrogates` instead causes Servo to replace the
+/// unpaired surrogate by a U+FFFD replacement character.)
+///
+/// Currently, the lack of crash reports about this issue provides some
+/// evidence to support the hypothesis. This evidence will hopefully be used to
+/// convince other browser vendors that it would be safe to replace unpaired
+/// surrogates at the boundary between JavaScript and native code. (This would
+/// unify the `DOMString` and `USVString` types, both in the WebIDL standard
+/// and in Servo.)
+///
+/// This type is currently `!Send`, in order to help with an independent
+/// experiment to store `JSString`s rather than Rust `String`s.
 #[derive(Clone, Debug, Eq, Hash, HeapSizeOf, Ord, PartialEq, PartialOrd)]
 pub struct DOMString(String);
 
