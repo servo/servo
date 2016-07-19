@@ -260,10 +260,12 @@ impl InlineFragmentsAccumulator {
             // Control characters are later discarded in transform_text, so they don't affect the
             // is_first/is_last styles above.
             if let Some((start, end)) = bidi_control_chars {
-                let mut style = style_context.stylist
-                                             .precomputed_values_for_pseudo(&PseudoElement::ServoText,
-                                                                            Some(&enclosing_node.style)).unwrap();
-                properties::modify_style_for_replaced_content(&mut style);
+                let style = style_context.stylist
+                                         .precomputed_values_for_pseudo(&PseudoElement::ServoReplacedContent,
+                                                                        Some(&enclosing_node.style)).unwrap();
+                let style = style_context.stylist
+                                         .precomputed_values_for_pseudo(&PseudoElement::ServoText,
+                                                                        Some(&style)).unwrap();
 
                 fragments.fragments.push_front(
                     control_chars_to_fragment(&enclosing_node,
@@ -589,13 +591,12 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
             ConstructionResult::ConstructionItem(ConstructionItem::Whitespace(
                     whitespace_node,
                     whitespace_pseudo,
-                    mut whitespace_style,
+                    whitespace_style,
                     whitespace_damage)) => {
                 // Add whitespace results. They will be stripped out later on when
                 // between block elements, and retained when between inline elements.
                 let fragment_info = SpecificFragmentInfo::UnscannedText(
                     box UnscannedTextFragmentInfo::new(" ".to_owned(), None));
-                properties::modify_style_for_replaced_content(&mut whitespace_style);
                 let style_context = self.style_context();
                 let fragment = Fragment::from_opaque_node_and_style(whitespace_node,
                                                                     whitespace_pseudo,
@@ -877,12 +878,11 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                 ConstructionResult::ConstructionItem(ConstructionItem::Whitespace(
                         whitespace_node,
                         whitespace_pseudo,
-                        mut whitespace_style,
+                        whitespace_style,
                         whitespace_damage)) => {
                     // Instantiate the whitespace fragment.
                     let fragment_info = SpecificFragmentInfo::UnscannedText(
                         box UnscannedTextFragmentInfo::new(" ".to_owned(), None));
-                    properties::modify_style_for_replaced_content(&mut whitespace_style);
                     let fragment =
                         Fragment::from_opaque_node_and_style(whitespace_node,
                                                              whitespace_pseudo,
@@ -904,10 +904,12 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
             // An empty inline box needs at least one fragment to draw its background and borders.
             let info = SpecificFragmentInfo::UnscannedText(
                 box UnscannedTextFragmentInfo::new(String::new(), None));
-            let mut modified_style = self.style_context().stylist
-                                         .precomputed_values_for_pseudo(&PseudoElement::ServoText,
-                                                                        Some(&node_style)).unwrap();
-            properties::modify_style_for_replaced_content(&mut modified_style);
+            let modified_style = self.style_context().stylist
+                                     .precomputed_values_for_pseudo(&PseudoElement::ServoReplacedContent,
+                                                                    Some(&node_style)).unwrap();
+            let modified_style = self.style_context().stylist
+                                     .precomputed_values_for_pseudo(&PseudoElement::ServoText,
+                                                                    Some(&modified_style)).unwrap();
             let fragment = Fragment::from_opaque_node_and_style(node.opaque(),
                                                                 node.get_pseudo_element_type().strip(),
                                                                 modified_style,
@@ -964,10 +966,10 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                 node.restyle_damage()))
         }
 
-        // Modify the style as necessary. (See the comment in
-        // `properties::modify_style_for_replaced_content()`.)
-        let mut style = node.style(self.style_context()).clone();
-        properties::modify_style_for_replaced_content(&mut style);
+        let style = node.style(self.style_context());
+        let style = self.style_context().stylist
+                        .precomputed_values_for_pseudo(&PseudoElement::ServoText,
+                                                       Some(&style)).unwrap();
 
         // If this is generated content, then we need to initialize the accumulator with the
         // fragment corresponding to that content. Otherwise, just initialize with the ordinary
@@ -1409,7 +1411,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
             return false
         }
 
-        let mut style = node.style(self.style_context()).clone();
+        let style = node.style(self.style_context()).clone();
         let mut data = node.mutate_layout_data().unwrap();
         let damage = data.restyle_damage;
         match *node.construction_result_mut(&mut *data) {
@@ -1479,9 +1481,15 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                         }
                         _ => {
                             if node.is_replaced_content() {
-                                properties::modify_style_for_replaced_content(&mut style);
+                                let style =
+                                    self.style_context()
+                                        .stylist
+                                        .precomputed_values_for_pseudo(&PseudoElement::ServoReplacedContent,
+                                                                       Some(&style)).unwrap();
+                                fragment.repair_style(&style);
+                            } else {
+                                fragment.repair_style(&style);
                             }
-                            fragment.repair_style(&style);
                         }
                     }
                 }

@@ -287,6 +287,13 @@ video { object-fit: contain; }
 
 textarea { white-space: pre-wrap; }
 
+*|*::-servo-replaced-content {
+  position: static;
+  display: inline;
+  vertical-align: baseline;
+  margin: 0;
+}
+
 /**
  * This is a special pseudo-element whose styles apply to text nodes.
  */

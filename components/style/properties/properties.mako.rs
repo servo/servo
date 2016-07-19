@@ -2027,43 +2027,6 @@ pub fn modify_style_for_anonymous_flow(style: &mut Arc<ServoComputedValues>,
     outline.outline_width = Au(0);
 }
 
-/// Alters the given style to accommodate replaced content. This is called in flow construction. It
-/// handles cases like `<div style="position: absolute">foo bar baz</div>` (in which `foo`, `bar`,
-/// and `baz` must not be absolutely-positioned) and cases like `<sup>Foo</sup>` (in which the
-/// `vertical-align: top` style of `sup` must not propagate down into `Foo`).
-///
-/// FIXME(#5625, pcwalton): It would probably be cleaner and faster to do this in the cascade.
-#[inline]
-pub fn modify_style_for_replaced_content(style: &mut Arc<ServoComputedValues>) {
-    // Reset `position` to handle cases like `<div style="position: absolute">foo bar baz</div>`.
-    if style.box_.display != longhands::display::computed_value::T::inline {
-        let mut style = Arc::make_mut(style);
-        Arc::make_mut(&mut style.box_).display = longhands::display::computed_value::T::inline;
-        Arc::make_mut(&mut style.box_).position =
-            longhands::position::computed_value::T::static_;
-    }
-
-    // Reset `vertical-align` to handle cases like `<sup>foo</sup>`.
-    if style.box_.vertical_align != longhands::vertical_align::computed_value::T::baseline {
-        let mut style = Arc::make_mut(style);
-        Arc::make_mut(&mut style.box_).vertical_align =
-            longhands::vertical_align::computed_value::T::baseline
-    }
-
-    // Reset margins.
-    if style.margin.margin_top != computed::LengthOrPercentageOrAuto::Length(Au(0)) ||
-            style.margin.margin_left != computed::LengthOrPercentageOrAuto::Length(Au(0)) ||
-            style.margin.margin_bottom != computed::LengthOrPercentageOrAuto::Length(Au(0)) ||
-            style.margin.margin_right != computed::LengthOrPercentageOrAuto::Length(Au(0)) {
-        let mut style = Arc::make_mut(style);
-        let margin = Arc::make_mut(&mut style.margin);
-        margin.margin_top = computed::LengthOrPercentageOrAuto::Length(Au(0));
-        margin.margin_left = computed::LengthOrPercentageOrAuto::Length(Au(0));
-        margin.margin_bottom = computed::LengthOrPercentageOrAuto::Length(Au(0));
-        margin.margin_right = computed::LengthOrPercentageOrAuto::Length(Au(0));
-    }
-}
-
 /// Adjusts borders as appropriate to account for a fragment's status as the first or last fragment
 /// within the range of an element.
 ///

@@ -111,6 +111,7 @@ pub enum PseudoElement {
     DetailsSummary,
     DetailsContent,
     ServoText,
+    ServoReplacedContent,
 }
 
 impl PseudoElement {
@@ -131,6 +132,7 @@ impl PseudoElement {
             PseudoElement::Selection => PseudoElementCascadeType::Eager,
             PseudoElement::DetailsSummary => PseudoElementCascadeType::Lazy,
             PseudoElement::ServoText |
+            PseudoElement::ServoReplacedContent |
             PseudoElement::DetailsContent => PseudoElementCascadeType::Precomputed,
         }
     }
@@ -240,6 +242,12 @@ impl SelectorImpl for ServoSelectorImpl {
                     return Err(())
                 }
                 ServoText
+            },
+            "-servo-replaced-content" => {
+                if !context.in_user_agent_stylesheet {
+                    return Err(())
+                }
+                ServoReplacedContent
             },
             _ => return Err(())
         };
