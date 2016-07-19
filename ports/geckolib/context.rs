@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-use selector_impl::{GeckoSelectorImpl, SharedStyleContext};
+use selector_impl::SharedStyleContext;
 use std::cell::RefCell;
 use std::rc::Rc;
 use style::context::{LocalStyleContext, StyleContext};
@@ -40,7 +40,7 @@ impl<'a> StandaloneStyleContext<'a> {
     }
 }
 
-impl<'a> StyleContext<'a, GeckoSelectorImpl> for StandaloneStyleContext<'a> {
+impl<'a> StyleContext<'a> for StandaloneStyleContext<'a> {
     fn shared_context(&self) -> &'a SharedStyleContext {
         &self.shared
     }

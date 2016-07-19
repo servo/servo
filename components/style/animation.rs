@@ -16,7 +16,6 @@ use properties::longhands::animation_play_state::computed_value::AnimationPlaySt
 use properties::longhands::transition_timing_function::computed_value::StartEnd;
 use properties::longhands::transition_timing_function::computed_value::TransitionTimingFunction;
 use properties::{self, ComputedValues};
-use selector_impl::SelectorImplExt;
 use selectors::matching::DeclarationBlock;
 use std::sync::Arc;
 use std::sync::mpsc::Sender;
@@ -339,11 +338,11 @@ impl PropertyAnimation {
 //
 // TODO(emilio): Take rid of this mutex splitting SharedLayoutContex into a
 // cloneable part and a non-cloneable part..
-pub fn start_transitions_if_applicable<Impl: SelectorImplExt>(new_animations_sender: &Sender<Animation>,
-                                                              node: OpaqueNode,
-                                                              old_style: &ComputedValues,
-                                                              new_style: &mut Arc<ComputedValues>)
-                                                              -> bool {
+pub fn start_transitions_if_applicable(new_animations_sender: &Sender<Animation>,
+                                       node: OpaqueNode,
+                                       old_style: &ComputedValues,
+                                       new_style: &mut Arc<ComputedValues>)
+                                       -> bool {
     let mut had_animations = false;
     for i in 0..new_style.get_box().transition_property_count() {
         // Create any property animations, if applicable.
@@ -372,11 +371,11 @@ pub fn start_transitions_if_applicable<Impl: SelectorImplExt>(new_animations_sen
     had_animations
 }
 
-fn compute_style_for_animation_step<Impl: SelectorImplExt>(context: &SharedStyleContext<Impl>,
-                                                           step: &KeyframesStep,
-                                                           previous_style: &ComputedValues,
-                                                           style_from_cascade: &ComputedValues)
-                                                           -> ComputedValues {
+fn compute_style_for_animation_step(context: &SharedStyleContext,
+                                    step: &KeyframesStep,
+                                    previous_style: &ComputedValues,
+                                    style_from_cascade: &ComputedValues)
+                                    -> ComputedValues {
     match step.value {
         // TODO: avoiding this spurious clone might involve having to create
         // an Arc in the below (more common case).
@@ -398,11 +397,11 @@ fn compute_style_for_animation_step<Impl: SelectorImplExt>(context: &SharedStyle
     }
 }
 
-pub fn maybe_start_animations<Impl: SelectorImplExt>(context: &SharedStyleContext<Impl>,
-                                                     new_animations_sender: &Sender<Animation>,
-                                                     node: OpaqueNode,
-                                                     new_style: &Arc<ComputedValues>) -> bool
-{
+pub fn maybe_start_animations(context: &SharedStyleContext,
+                              new_animations_sender: &Sender<Animation>,
+                              node: OpaqueNode,
+                              new_style: &Arc<ComputedValues>)
+                              -> bool {
     let mut had_animations = false;
 
     let box_style = new_style.get_box();
@@ -488,12 +487,11 @@ pub fn update_style_for_animation_frame(mut new_style: &mut Arc<ComputedValues>,
 }
 /// Updates a single animation and associated style based on the current time.
 /// If `damage` is provided, inserts the appropriate restyle damage.
-pub fn update_style_for_animation<Damage, Impl>(context: &SharedStyleContext<Impl>,
-                                                animation: &Animation,
-                                                style: &mut Arc<ComputedValues>,
-                                                damage: Option<&mut Damage>)
-where Impl: SelectorImplExt,
-      Damage: TRestyleDamage {
+pub fn update_style_for_animation<Damage>(context: &SharedStyleContext,
+                                          animation: &Animation,
+                                          style: &mut Arc<ComputedValues>,
+                                          damage: Option<&mut Damage>)
+where Damage: TRestyleDamage {
     debug!("update_style_for_animation: entering");
     debug_assert!(!animation.is_expired());
     match *animation {

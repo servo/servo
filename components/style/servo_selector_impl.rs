@@ -5,7 +5,7 @@
 use element_state::ElementState;
 use error_reporting::StdoutErrorReporter;
 use parser::ParserContextExtraData;
-use selector_impl::{SelectorImplExt, ElementExt, PseudoElementCascadeType};
+use selector_impl::{SelectorImplExt, ElementExt, PseudoElementCascadeType, TheSelectorImpl};
 use selectors::Element;
 use selectors::parser::{ParserContext, SelectorImpl};
 use std::process;
@@ -179,24 +179,24 @@ impl SelectorImplExt for ServoSelectorImpl {
     }
 
     #[inline]
-    fn get_user_or_user_agent_stylesheets() -> &'static [Stylesheet<Self>] {
+    fn get_user_or_user_agent_stylesheets() -> &'static [Stylesheet] {
         &*USER_OR_USER_AGENT_STYLESHEETS
     }
 
     #[inline]
-    fn get_quirks_mode_stylesheet() -> Option<&'static Stylesheet<Self>> {
+    fn get_quirks_mode_stylesheet() -> Option<&'static Stylesheet> {
         Some(&*QUIRKS_MODE_STYLESHEET)
     }
 }
 
-impl<E: Element<Impl=ServoSelectorImpl, AttrString=String>> ElementExt for E {
+impl<E: Element<Impl=TheSelectorImpl, AttrString=String>> ElementExt for E {
     fn is_link(&self) -> bool {
         self.match_non_ts_pseudo_class(NonTSPseudoClass::AnyLink)
     }
 }
 
 lazy_static! {
-    pub static ref USER_OR_USER_AGENT_STYLESHEETS: Vec<Stylesheet<ServoSelectorImpl>> = {
+    pub static ref USER_OR_USER_AGENT_STYLESHEETS: Vec<Stylesheet> = {
         let mut stylesheets = vec!();
         // FIXME: presentational-hints.css should be at author origin with zero specificity.
         //        (Does it make a difference?)
@@ -229,7 +229,7 @@ lazy_static! {
 }
 
 lazy_static! {
-    pub static ref QUIRKS_MODE_STYLESHEET: Stylesheet<ServoSelectorImpl> = {
+    pub static ref QUIRKS_MODE_STYLESHEET: Stylesheet = {
         match read_resource_file("quirks-mode.css") {
             Ok(res) => {
                 Stylesheet::from_bytes(

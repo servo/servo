@@ -10,7 +10,6 @@ use dom::OpaqueNode;
 use error_reporting::ParseErrorReporter;
 use euclid::Size2D;
 use matching::{ApplicableDeclarationsCache, StyleSharingCandidateCache};
-use selector_impl::SelectorImplExt;
 use selector_matching::Stylist;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -30,7 +29,7 @@ impl LocalStyleContextCreationInfo {
     }
 }
 
-pub struct SharedStyleContext<Impl: SelectorImplExt> {
+pub struct SharedStyleContext {
     /// The current viewport size.
     pub viewport_size: Size2D<Au>,
 
@@ -38,7 +37,7 @@ pub struct SharedStyleContext<Impl: SelectorImplExt> {
     pub screen_size_changed: bool,
 
     /// The CSS selector stylist.
-    pub stylist: Arc<Stylist<Impl>>,
+    pub stylist: Arc<Stylist>,
 
     /// Starts at zero, and increased by one every time a layout completes.
     /// This can be used to easily check for invalid stale data.
@@ -78,8 +77,8 @@ impl LocalStyleContext {
     }
 }
 
-pub trait StyleContext<'a, Impl: SelectorImplExt> {
-    fn shared_context(&self) -> &'a SharedStyleContext<Impl>;
+pub trait StyleContext<'a> {
+    fn shared_context(&self) -> &'a SharedStyleContext;
     fn local_context(&self) -> &LocalStyleContext;
 }
 

@@ -11,11 +11,10 @@ use keyframes::KeyframesAnimation;
 use media_queries::{Device, MediaType};
 use properties::{self, PropertyDeclaration, PropertyDeclarationBlock, ComputedValues};
 use restyle_hints::{ElementSnapshot, RestyleHint, DependencySet};
-use selector_impl::SelectorImplExt;
+use selector_impl::{SelectorImplExt, TheSelectorImpl, PseudoElement, AttrString};
 use selectors::bloom::BloomFilter;
 use selectors::matching::DeclarationBlock as GenericDeclarationBlock;
 use selectors::matching::{Rule, SelectorMap};
-use selectors::parser::SelectorImpl;
 use selectors::{Element, MatchAttrGeneric};
 use sink::Push;
 use smallvec::VecLike;
@@ -47,7 +46,7 @@ pub type DeclarationBlock = GenericDeclarationBlock<Vec<PropertyDeclaration>>;
 /// regular builds, or `GeckoSelectorImpl`, the implementation used in the
 /// geckolib port.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub struct Stylist<Impl: SelectorImplExt> {
+pub struct Stylist {
     /// Device that the stylist is currently evaluating against.
     pub device: Device,
 
@@ -62,12 +61,12 @@ pub struct Stylist<Impl: SelectorImplExt> {
 
     /// The current selector maps, after evaluating media
     /// rules against the current device.
-    element_map: PerPseudoElementSelectorMap<Impl>,
+    element_map: PerPseudoElementSelectorMap,
 
     /// The selector maps corresponding to a given pseudo-element
     /// (depending on the implementation)
-    pseudos_map: HashMap<Impl::PseudoElement,
-                         PerPseudoElementSelectorMap<Impl>,
+    pseudos_map: HashMap<PseudoElement,
+                         PerPseudoElementSelectorMap,
                          BuildHasherDefault<::fnv::FnvHasher>>,
 
     /// A map with all the animations indexed by name.
@@ -76,19 +75,19 @@ pub struct Stylist<Impl: SelectorImplExt> {
     /// Applicable declarations for a given non-eagerly cascaded pseudo-element.
     /// These are eagerly computed once, and then used to resolve the new
     /// computed values on the fly on layout.
-    precomputed_pseudo_element_decls: HashMap<Impl::PseudoElement,
+    precomputed_pseudo_element_decls: HashMap<PseudoElement,
                                               Vec<DeclarationBlock>,
                                               BuildHasherDefault<::fnv::FnvHasher>>,
 
     rules_source_order: usize,
 
     /// Selector dependencies used to compute restyle hints.
-    state_deps: DependencySet<Impl>,
+    state_deps: DependencySet,
 }
 
-impl<Impl: SelectorImplExt> Stylist<Impl> {
+impl Stylist {
     #[inline]
-    pub fn new(device: Device) -> Stylist<Impl> {
+    pub fn new(device: Device) -> Self {
         let mut stylist = Stylist {
             viewport_constraints: None,
             device: device,
@@ -103,7 +102,7 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
             state_deps: DependencySet::new(),
         };
 
-        Impl::each_eagerly_cascaded_pseudo_element(|pseudo| {
+        TheSelectorImpl::each_eagerly_cascaded_pseudo_element(|pseudo| {
             stylist.pseudos_map.insert(pseudo, PerPseudoElementSelectorMap::new());
         });
 
@@ -112,9 +111,7 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
         stylist
     }
 
-    pub fn update(&mut self, doc_stylesheets: &[Arc<Stylesheet<Impl>>],
-                  stylesheets_changed: bool) -> bool
-                  where Impl: 'static {
+    pub fn update(&mut self, doc_stylesheets: &[Arc<Stylesheet>], stylesheets_changed: bool) -> bool {
         if !(self.is_device_dirty || stylesheets_changed) {
             return false;
         }
@@ -122,7 +119,7 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
         self.element_map = PerPseudoElementSelectorMap::new();
         self.pseudos_map = HashMap::with_hasher(Default::default());
         self.animations = HashMap::with_hasher(Default::default());
-        Impl::each_eagerly_cascaded_pseudo_element(|pseudo| {
+        TheSelectorImpl::each_eagerly_cascaded_pseudo_element(|pseudo| {
             self.pseudos_map.insert(pseudo, PerPseudoElementSelectorMap::new());
         });
 
@@ -130,12 +127,12 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
         self.rules_source_order = 0;
         self.state_deps.clear();
 
-        for ref stylesheet in Impl::get_user_or_user_agent_stylesheets().iter() {
+        for ref stylesheet in TheSelectorImpl::get_user_or_user_agent_stylesheets().iter() {
             self.add_stylesheet(&stylesheet);
         }
 
         if self.quirks_mode {
-            if let Some(s) = Impl::get_quirks_mode_stylesheet() {
+            if let Some(s) = TheSelectorImpl::get_quirks_mode_stylesheet() {
                 self.add_stylesheet(s);
             }
         }
@@ -148,7 +145,7 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
         true
     }
 
-    fn add_stylesheet(&mut self, stylesheet: &Stylesheet<Impl>) {
+    fn add_stylesheet(&mut self, stylesheet: &Stylesheet) {
         if !stylesheet.is_effective_for_device(&self.device) {
             return;
         }
@@ -212,7 +209,7 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
             }
         }
 
-        Impl::each_precomputed_pseudo_element(|pseudo| {
+        TheSelectorImpl::each_precomputed_pseudo_element(|pseudo| {
             // TODO: Consider not doing this and just getting the rules on the
             // fly. It should be a bit slower, but we'd take rid of the
             // extra field, and avoid this precomputation entirely.
@@ -230,10 +227,10 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
     /// Computes the style for a given "precomputed" pseudo-element, taking the
     /// universal rules and applying them.
     pub fn precomputed_values_for_pseudo(&self,
-                                         pseudo: &Impl::PseudoElement,
+                                         pseudo: &PseudoElement,
                                          parent: Option<&Arc<ComputedValues>>)
                                          -> Option<Arc<ComputedValues>> {
-        debug_assert!(Impl::pseudo_element_cascade_type(pseudo).is_precomputed());
+        debug_assert!(TheSelectorImpl::pseudo_element_cascade_type(pseudo).is_precomputed());
         if let Some(declarations) = self.precomputed_pseudo_element_decls.get(pseudo) {
             let (computed, _) =
                 properties::cascade(self.device.au_viewport_size(),
@@ -249,12 +246,12 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
 
     pub fn lazily_compute_pseudo_element_style<E>(&self,
                                                   element: &E,
-                                                  pseudo: &Impl::PseudoElement,
+                                                  pseudo: &PseudoElement,
                                                   parent: &Arc<ComputedValues>)
                                                   -> Option<Arc<ComputedValues>>
-                                                  where E: Element<Impl=Impl, AttrString=Impl::AttrString> +
+                                                  where E: Element<Impl=TheSelectorImpl, AttrString=AttrString> +
                                                         PresentationalHintsSynthetizer {
-        debug_assert!(Impl::pseudo_element_cascade_type(pseudo).is_lazy());
+        debug_assert!(TheSelectorImpl::pseudo_element_cascade_type(pseudo).is_lazy());
         if self.pseudos_map.get(pseudo).is_none() {
             return None;
         }
@@ -277,7 +274,7 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
         Some(Arc::new(computed))
     }
 
-    pub fn set_device(&mut self, mut device: Device, stylesheets: &[Arc<Stylesheet<Impl>>]) {
+    pub fn set_device(&mut self, mut device: Device, stylesheets: &[Arc<Stylesheet>]) {
         let cascaded_rule = stylesheets.iter()
             .flat_map(|s| s.effective_rules(&self.device).viewport())
             .cascade();
@@ -315,17 +312,18 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
                                         element: &E,
                                         parent_bf: Option<&BloomFilter>,
                                         style_attribute: Option<&PropertyDeclarationBlock>,
-                                        pseudo_element: Option<&Impl::PseudoElement>,
+                                        pseudo_element: Option<&PseudoElement>,
                                         applicable_declarations: &mut V)
                                         -> bool
-                                        where E: Element<Impl=Impl, AttrString=Impl::AttrString> +
+                                        where E: Element<Impl=TheSelectorImpl, AttrString=AttrString> +
                                                  PresentationalHintsSynthetizer,
                                               V: Push<DeclarationBlock> + VecLike<DeclarationBlock> {
         assert!(!self.is_device_dirty);
         assert!(style_attribute.is_none() || pseudo_element.is_none(),
                 "Style attributes do not apply to pseudo-elements");
         debug_assert!(pseudo_element.is_none() ||
-                      !Impl::pseudo_element_cascade_type(pseudo_element.as_ref().unwrap()).is_precomputed());
+                      !TheSelectorImpl::pseudo_element_cascade_type(pseudo_element.as_ref().unwrap())
+                        .is_precomputed());
 
         let map = match pseudo_element {
             Some(ref pseudo) => self.pseudos_map.get(pseudo).unwrap(),
@@ -402,9 +400,7 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
     pub fn animations(&self) -> &HashMap<Atom, KeyframesAnimation> {
         &self.animations
     }
-}
 
-impl<Impl: SelectorImplExt<AttrString=String>> Stylist<Impl> {
     pub fn compute_restyle_hint<E>(&self, element: &E,
                                    snapshot: &ElementSnapshot,
                                    // NB: We need to pass current_state as an argument because
@@ -413,7 +409,8 @@ impl<Impl: SelectorImplExt<AttrString=String>> Stylist<Impl> {
                                    // more expensive than getting it directly from the caller.
                                    current_state: ElementState)
                                    -> RestyleHint
-                                   where E: Element<Impl=Impl, AttrString=String> + Clone + MatchAttrGeneric {
+                                   where E: Element<Impl=TheSelectorImpl, AttrString=AttrString>
+                                        + Clone + MatchAttrGeneric {
         self.state_deps.compute_hint(element, snapshot, current_state)
     }
 }
@@ -421,18 +418,18 @@ impl<Impl: SelectorImplExt<AttrString=String>> Stylist<Impl> {
 
 /// Map that contains the CSS rules for a given origin.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-struct PerOriginSelectorMap<Impl: SelectorImpl> {
+struct PerOriginSelectorMap {
     /// Rules that contains at least one property declararion with
     /// normal importance.
-    normal: SelectorMap<Vec<PropertyDeclaration>, Impl>,
+    normal: SelectorMap<Vec<PropertyDeclaration>, TheSelectorImpl>,
     /// Rules that contains at least one property declararion with
     /// !important.
-    important: SelectorMap<Vec<PropertyDeclaration>, Impl>,
+    important: SelectorMap<Vec<PropertyDeclaration>, TheSelectorImpl>,
 }
 
-impl<Impl: SelectorImpl> PerOriginSelectorMap<Impl> {
+impl PerOriginSelectorMap {
     #[inline]
-    fn new() -> PerOriginSelectorMap<Impl> {
+    fn new() -> Self {
         PerOriginSelectorMap {
             normal: SelectorMap::new(),
             important: SelectorMap::new(),
@@ -443,18 +440,18 @@ impl<Impl: SelectorImpl> PerOriginSelectorMap<Impl> {
 /// Map that contains the CSS rules for a specific PseudoElement
 /// (or lack of PseudoElement).
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-struct PerPseudoElementSelectorMap<Impl: SelectorImpl> {
+struct PerPseudoElementSelectorMap {
     /// Rules from user agent stylesheets
-    user_agent: PerOriginSelectorMap<Impl>,
+    user_agent: PerOriginSelectorMap,
     /// Rules from author stylesheets
-    author: PerOriginSelectorMap<Impl>,
+    author: PerOriginSelectorMap,
     /// Rules from user stylesheets
-    user: PerOriginSelectorMap<Impl>,
+    user: PerOriginSelectorMap,
 }
 
-impl<Impl: SelectorImpl> PerPseudoElementSelectorMap<Impl> {
+impl PerPseudoElementSelectorMap {
     #[inline]
-    fn new() -> PerPseudoElementSelectorMap<Impl> {
+    fn new() -> Self {
         PerPseudoElementSelectorMap {
             user_agent: PerOriginSelectorMap::new(),
             author: PerOriginSelectorMap::new(),
@@ -463,7 +460,7 @@ impl<Impl: SelectorImpl> PerPseudoElementSelectorMap<Impl> {
     }
 
     #[inline]
-    fn borrow_for_origin(&mut self, origin: &Origin) -> &mut PerOriginSelectorMap<Impl> {
+    fn borrow_for_origin(&mut self, origin: &Origin) -> &mut PerOriginSelectorMap {
         match *origin {
             Origin::UserAgent => &mut self.user_agent,
             Origin::Author => &mut self.author,

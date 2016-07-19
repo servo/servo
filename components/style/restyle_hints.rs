@@ -6,10 +6,11 @@
 
 use attr::{AttrIdentifier, AttrValue};
 use element_state::*;
-use selector_impl::SelectorImplExt;
+use selector_impl::{SelectorImplExt, TheSelectorImpl, AttrString};
 use selectors::matching::matches_compound_selector;
 use selectors::parser::{AttrSelector, Combinator, CompoundSelector, SelectorImpl, SimpleSelector};
 use selectors::{Element, MatchAttrGeneric};
+#[cfg(feature = "gecko")] use selectors::MatchAttr;
 use std::clone::Clone;
 use std::sync::Arc;
 use string_cache::{Atom, BorrowedAtom, BorrowedNamespace, Namespace};
@@ -88,14 +89,14 @@ static EMPTY_SNAPSHOT: ElementSnapshot = ElementSnapshot { state: None, attrs: N
 // geckolib, but in the mean time we can just use the trait parameters to
 // specialize it to the Servo configuration.
 struct ElementWrapper<'a, E>
-    where E: Element<AttrString=String>,
+    where E: Element<AttrString=AttrString>,
           E::Impl: SelectorImplExt {
     element: E,
     snapshot: &'a ElementSnapshot,
 }
 
 impl<'a, E> ElementWrapper<'a, E>
-    where E: Element<AttrString=String>,
+    where E: Element<AttrString=AttrString>,
           E::Impl: SelectorImplExt {
     pub fn new(el: E) -> ElementWrapper<'a, E> {
         ElementWrapper { element: el, snapshot: &EMPTY_SNAPSHOT }
@@ -108,7 +109,7 @@ impl<'a, E> ElementWrapper<'a, E>
 
 #[cfg(not(feature = "gecko"))]
 impl<'a, E> MatchAttrGeneric for ElementWrapper<'a, E>
-    where E: Element<AttrString=String>,
+    where E: Element<AttrString=AttrString>,
           E: MatchAttrGeneric,
           E::Impl: SelectorImplExt {
     fn match_attr<F>(&self, attr: &AttrSelector, test: F) -> bool
@@ -129,18 +130,46 @@ impl<'a, E> MatchAttrGeneric for ElementWrapper<'a, E>
 }
 
 #[cfg(feature = "gecko")]
-impl<'a, E> MatchAttrGeneric for ElementWrapper<'a, E>
-    where E: Element<AttrString=String>,
-          E: MatchAttrGeneric,
+impl<'a, E> MatchAttr for ElementWrapper<'a, E>
+    where E: Element<AttrString=AttrString>,
           E::Impl: SelectorImplExt {
-    fn match_attr<F>(&self, _: &AttrSelector, _: F) -> bool
-                    where F: Fn(&str) -> bool {
+    type AttrString = AttrString;
+
+    fn match_attr_has(&self, _attr: &AttrSelector) -> bool {
+        panic!("Not implemented for Gecko - this system will need to be redesigned");
+    }
+
+    fn match_attr_equals(&self, _attr: &AttrSelector, _value: &Self::AttrString) -> bool {
+        panic!("Not implemented for Gecko - this system will need to be redesigned");
+    }
+
+    fn match_attr_equals_ignore_ascii_case(&self, _attr: &AttrSelector, _value: &Self::AttrString) -> bool {
+        panic!("Not implemented for Gecko - this system will need to be redesigned");
+    }
+
+    fn match_attr_includes(&self, _attr: &AttrSelector, _value: &Self::AttrString) -> bool {
+        panic!("Not implemented for Gecko - this system will need to be redesigned");
+    }
+
+    fn match_attr_dash(&self, _attr: &AttrSelector, _value: &Self::AttrString) -> bool {
+        panic!("Not implemented for Gecko - this system will need to be redesigned");
+    }
+
+    fn match_attr_prefix(&self, _attr: &AttrSelector, _value: &Self::AttrString) -> bool {
+        panic!("Not implemented for Gecko - this system will need to be redesigned");
+    }
+
+    fn match_attr_substring(&self, _attr: &AttrSelector, _value: &Self::AttrString) -> bool {
+        panic!("Not implemented for Gecko - this system will need to be redesigned");
+    }
+
+    fn match_attr_suffix(&self, _attr: &AttrSelector, _value: &Self::AttrString) -> bool {
         panic!("Not implemented for Gecko - this system will need to be redesigned");
     }
 }
 
 impl<'a, E> Element for ElementWrapper<'a, E>
-    where E: Element<AttrString=String>,
+    where E: Element<AttrString=AttrString>,
           E: MatchAttrGeneric,
           E::Impl: SelectorImplExt {
     type Impl = E::Impl;
@@ -213,14 +242,14 @@ impl<'a, E> Element for ElementWrapper<'a, E>
     }
 }
 
-fn selector_to_state<Impl: SelectorImplExt>(sel: &SimpleSelector<Impl>) -> ElementState {
+fn selector_to_state(sel: &SimpleSelector<TheSelectorImpl>) -> ElementState {
     match *sel {
-        SimpleSelector::NonTSPseudoClass(ref pc) => Impl::pseudo_class_state_flag(pc),
+        SimpleSelector::NonTSPseudoClass(ref pc) => TheSelectorImpl::pseudo_class_state_flag(pc),
         _ => ElementState::empty(),
     }
 }
 
-fn is_attr_selector<Impl: SelectorImpl>(sel: &SimpleSelector<Impl>) -> bool {
+fn is_attr_selector(sel: &SimpleSelector<TheSelectorImpl>) -> bool {
     match *sel {
         SimpleSelector::ID(_) |
         SimpleSelector::Class(_) |
@@ -287,24 +316,24 @@ impl Sensitivities {
 // elements in the document.
 #[derive(Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-struct Dependency<Impl: SelectorImplExt> {
-    selector: Arc<CompoundSelector<Impl>>,
+struct Dependency {
+    selector: Arc<CompoundSelector<TheSelectorImpl>>,
     combinator: Option<Combinator>,
     sensitivities: Sensitivities,
 }
 
 #[derive(Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub struct DependencySet<Impl: SelectorImplExt> {
-    deps: Vec<Dependency<Impl>>,
+pub struct DependencySet {
+    deps: Vec<Dependency>,
 }
 
-impl<Impl: SelectorImplExt> DependencySet<Impl> {
-    pub fn new() -> DependencySet<Impl> {
+impl DependencySet {
+    pub fn new() -> Self {
         DependencySet { deps: Vec::new() }
     }
 
-    pub fn note_selector(&mut self, selector: Arc<CompoundSelector<Impl>>) {
+    pub fn note_selector(&mut self, selector: Arc<CompoundSelector<TheSelectorImpl>>) {
         let mut cur = selector;
         let mut combinator: Option<Combinator> = None;
         loop {
@@ -338,10 +367,10 @@ impl<Impl: SelectorImplExt> DependencySet<Impl> {
     }
 }
 
-impl<Impl: SelectorImplExt<AttrString=String>> DependencySet<Impl> {
+impl DependencySet {
     pub fn compute_hint<E>(&self, el: &E, snapshot: &ElementSnapshot, current_state: ElementState)
                           -> RestyleHint
-                          where E: Element<Impl=Impl, AttrString=Impl::AttrString> + Clone + MatchAttrGeneric {
+                          where E: Element<Impl=TheSelectorImpl, AttrString=AttrString> + Clone + MatchAttrGeneric {
         let state_changes = snapshot.state.map_or(ElementState::empty(), |old_state| current_state ^ old_state);
         let attrs_changed = snapshot.attrs.is_some();
         let mut hint = RestyleHint::empty();

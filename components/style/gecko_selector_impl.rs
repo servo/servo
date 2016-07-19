@@ -7,13 +7,13 @@ use selector_impl::{PseudoElementCascadeType, SelectorImplExt};
 use selectors::parser::{ParserContext, SelectorImpl};
 use string_cache::Atom;
 
-pub type Stylist = ::selector_matching::Stylist<GeckoSelectorImpl>;
-pub type Stylesheet = ::stylesheets::Stylesheet<GeckoSelectorImpl>;
-pub type SharedStyleContext = ::context::SharedStyleContext<GeckoSelectorImpl>;
-pub type PrivateStyleData = ::data::PrivateStyleData<GeckoSelectorImpl>;
+pub type Stylist = ::selector_matching::Stylist;
+pub type Stylesheet = ::stylesheets::Stylesheet;
+pub type SharedStyleContext = ::context::SharedStyleContext;
+pub type PrivateStyleData = ::data::PrivateStyleData;
 pub type Animation = ::animation::Animation;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GeckoSelectorImpl;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]

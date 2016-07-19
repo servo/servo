@@ -7,12 +7,11 @@ use animation;
 use context;
 use data;
 use selector_matching;
-use servo_selector_impl::ServoSelectorImpl;
 use stylesheets;
 
-pub type Stylesheet = stylesheets::Stylesheet<ServoSelectorImpl>;
-pub type PrivateStyleData = data::PrivateStyleData<ServoSelectorImpl>;
-pub type Stylist = selector_matching::Stylist<ServoSelectorImpl>;
-pub type SharedStyleContext = context::SharedStyleContext<ServoSelectorImpl>;
+pub type Stylesheet = stylesheets::Stylesheet;
+pub type PrivateStyleData = data::PrivateStyleData;
+pub type Stylist = selector_matching::Stylist;
+pub type SharedStyleContext = context::SharedStyleContext;
 pub type LocalStyleContextCreationInfo = context::LocalStyleContextCreationInfo;
 pub type Animation = animation::Animation;
