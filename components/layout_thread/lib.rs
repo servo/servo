@@ -232,6 +232,10 @@ pub struct LayoutThread {
     /// The timer object to control the timing of the animations. This should
     /// only be a test-mode timer during testing for animations.
     timer: Timer,
+
+    // Number of layout threads. This is copied from `util::opts`, but we'd
+    // rather limit the dependency on that module here.
+    layout_threads: usize,
 }
 
 impl LayoutThreadFactory for LayoutThread {
@@ -251,7 +255,8 @@ impl LayoutThreadFactory for LayoutThread {
               time_profiler_chan: time::ProfilerChan,
               mem_profiler_chan: mem::ProfilerChan,
               content_process_shutdown_chan: IpcSender<()>,
-              webrender_api_sender: Option<webrender_traits::RenderApiSender>) {
+              webrender_api_sender: Option<webrender_traits::RenderApiSender>,
+              layout_threads: usize) {
         thread::spawn_named(format!("LayoutThread {:?}", id),
                       move || {
             thread_state::initialize(thread_state::LAYOUT);
@@ -270,7 +275,8 @@ impl LayoutThreadFactory for LayoutThread {
                                              font_cache_thread,
                                              time_profiler_chan,
                                              mem_profiler_chan.clone(),
-                                             webrender_api_sender);
+                                             webrender_api_sender,
+                                             layout_threads);
 
                 let reporter_name = format!("layout-reporter-{}", id);
                 mem_profiler_chan.run_with_memory_reporting(|| {
@@ -381,14 +387,14 @@ impl LayoutThread {
            font_cache_thread: FontCacheThread,
            time_profiler_chan: time::ProfilerChan,
            mem_profiler_chan: mem::ProfilerChan,
-           webrender_api_sender: Option<webrender_traits::RenderApiSender>)
+           webrender_api_sender: Option<webrender_traits::RenderApiSender>,
+           layout_threads: usize)
            -> LayoutThread {
         let device = Device::new(
             MediaType::Screen,
             opts::get().initial_window_size.as_f32() * ScaleFactor::new(1.0));
-        let parallel_traversal = if opts::get().layout_threads != 1 {
-            Some(WorkQueue::new("LayoutWorker", thread_state::LAYOUT,
-                                opts::get().layout_threads))
+        let parallel_traversal = if layout_threads != 1 {
+            Some(WorkQueue::new("LayoutWorker", thread_state::LAYOUT, layout_threads))
         } else {
             None
         };
@@ -479,6 +485,7 @@ impl LayoutThread {
                 } else {
                     Timer::new()
                 },
+            layout_threads: layout_threads,
         }
     }
 
@@ -754,7 +761,8 @@ impl LayoutThread {
                              self.time_profiler_chan.clone(),
                              self.mem_profiler_chan.clone(),
                              info.content_process_shutdown_chan,
-                             self.webrender_api.as_ref().map(|wr| wr.clone_sender()));
+                             self.webrender_api.as_ref().map(|wr| wr.clone_sender()),
+                             info.layout_threads);
     }
 
     /// Enters a quiescent state in which no new messages will be processed until an `ExitNow` is
@@ -1158,7 +1166,7 @@ impl LayoutThread {
             // TODO(pcwalton): Measure energy usage of text shaping, perhaps?
             let text_shaping_time =
                 (font::get_and_reset_text_shaping_performance_counter() as u64) /
-                (opts::get().layout_threads as u64);
+                (self.layout_threads as u64);
             time::send_profile_data(time::ProfilerCategory::LayoutTextShaping,
                                     self.profiler_metadata(),
                                     self.time_profiler_chan.clone(),

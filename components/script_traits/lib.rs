@@ -146,6 +146,8 @@ pub struct NewLayoutInfo {
     pub layout_to_constellation_chan: IpcSender<LayoutMsg>,
     /// A shutdown channel so that layout can tell the content process to shut down when it's done.
     pub content_process_shutdown_chan: IpcSender<()>,
+    /// Number of threads to use for layout.
+    pub layout_threads: usize,
 }
 
 /// Messages sent from the constellation or layout to the script thread.
