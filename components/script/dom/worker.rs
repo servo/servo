@@ -27,6 +27,7 @@ use js::jsapi::{HandleValue, JSContext, JSAutoCompartment};
 use js::jsval::UndefinedValue;
 use script_thread::Runnable;
 use script_traits::WorkerScriptLoadOrigin;
+use std::cell::Cell;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Sender, channel};
 use std::sync::{Arc, Mutex};
@@ -43,7 +44,8 @@ pub struct Worker {
     sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
     closing: Arc<AtomicBool>,
     #[ignore_heap_size_of = "Defined in rust-mozjs"]
-    runtime: Arc<Mutex<Option<SharedRt>>>
+    runtime: Arc<Mutex<Option<SharedRt>>>,
+    terminated: Cell<bool>,
 }
 
 impl Worker {
@@ -53,7 +55,8 @@ impl Worker {
             eventtarget: EventTarget::new_inherited(),
             sender: sender,
             closing: closing,
-            runtime: Arc::new(Mutex::new(None))
+            runtime: Arc::new(Mutex::new(None)),
+            terminated: Cell::new(false),
         }
     }
 
@@ -112,11 +115,15 @@ impl Worker {
         self.closing.load(Ordering::SeqCst)
     }
 
+    pub fn is_terminated(&self) -> bool {
+        self.terminated.get()
+    }
+
     pub fn handle_message(address: TrustedWorkerAddress,
                           data: StructuredCloneData) {
         let worker = address.root();
 
-        if worker.is_closing() {
+        if worker.is_terminated() {
             return;
         }
 
@@ -137,7 +144,7 @@ impl Worker {
                                 filename: DOMString, lineno: u32, colno: u32) {
         let worker = address.root();
 
-        if worker.is_closing() {
+        if worker.is_terminated() {
             return;
         }
 
@@ -169,7 +176,10 @@ impl WorkerMethods for Worker {
             return;
         }
 
-        // Step 4
+        // Step 2
+        self.terminated.set(true);
+
+        // Step 3
         if let Some(runtime) = *self.runtime.lock().unwrap() {
             runtime.request_interrupt();
         }
