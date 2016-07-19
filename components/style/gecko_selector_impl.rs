@@ -6,12 +6,7 @@ use element_state::ElementState;
 use selector_impl::{PseudoElementCascadeType, SelectorImplExt};
 use selectors::parser::{ParserContext, SelectorImpl};
 use string_cache::Atom;
-
-pub type Stylist = ::selector_matching::Stylist;
-pub type Stylesheet = ::stylesheets::Stylesheet;
-pub type SharedStyleContext = ::context::SharedStyleContext;
-pub type PrivateStyleData = ::data::PrivateStyleData;
-pub type Animation = ::animation::Animation;
+use stylesheets::Stylesheet;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GeckoSelectorImpl;

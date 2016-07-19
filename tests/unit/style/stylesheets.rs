@@ -13,8 +13,7 @@ use style::error_reporting::ParseErrorReporter;
 use style::keyframes::{Keyframe, KeyframeSelector, KeyframePercentage};
 use style::parser::ParserContextExtraData;
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, DeclaredValue, longhands};
-use style::servo::Stylesheet;
-use style::stylesheets::{CSSRule, StyleRule, KeyframesRule, Origin};
+use style::stylesheets::{Stylesheet, CSSRule, StyleRule, KeyframesRule, Origin};
 use style::values::specified::{LengthOrPercentageOrAuto, Percentage};
 use url::Url;
 

@@ -39,9 +39,8 @@ use string_cache::Atom;
 use style::attr::AttrValue;
 use style::media_queries::{MediaQueryList, parse_media_query_list};
 use style::parser::ParserContextExtraData;
-use style::servo::Stylesheet;
 use style::str::HTML_SPACE_CHARACTERS;
-use style::stylesheets::Origin;
+use style::stylesheets::{Stylesheet, Origin};
 use url::Url;
 
 no_jsmanaged_fields!(Stylesheet);

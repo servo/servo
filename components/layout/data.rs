@@ -4,7 +4,7 @@
 
 use construct::ConstructionResult;
 use script_layout_interface::restyle_damage::RestyleDamage;
-use style::servo::PrivateStyleData;
+use style::data::PrivateStyleData;
 
 /// Data that layout associates with a node.
 pub struct PrivateLayoutData {
