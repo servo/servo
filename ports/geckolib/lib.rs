@@ -3,8 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 extern crate app_units;
-#[macro_use]
-extern crate cssparser;
 extern crate env_logger;
 extern crate euclid;
 extern crate gecko_bindings;
@@ -26,11 +24,11 @@ mod context;
 mod data;
 #[allow(non_snake_case)]
 pub mod glue;
-mod selector_impl;
 mod traversal;
 mod wrapper;
 
 pub use style::gecko_properties as properties;
+pub use style::gecko_selector_impl as selector_impl;
 pub use style::gecko_values as values;
 
 // FIXME(bholley): This should probably go away once we harmonize the allocators.
