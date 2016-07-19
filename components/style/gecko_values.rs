@@ -2,12 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#![allow(unsafe_code)]
+
 use app_units::Au;
 use cssparser::RGBA;
 use gecko_bindings::structs::{nsStyleCoord, nsStyleUnion, nsStyleUnit};
 use std::cmp::max;
-use style::values::computed::Angle;
-use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
+use values::computed::Angle;
+use values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 
 pub trait StyleCoordHelpers {
     fn copy_from(&mut self, other: &Self);
