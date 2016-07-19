@@ -17,7 +17,7 @@ import site
 import StringIO
 import subprocess
 import sys
-from licenseck import licenses, licenses_toml
+from licenseck import licenses, licenses_toml, licenses_dep_toml
 
 # License and header checks
 EMACS_HEADER = "/* -*- Mode:"
@@ -642,6 +642,23 @@ def check_wpt_lint_errors(files):
             yield ("WPT Lint Tool", "", "lint error(s) in Web Platform Tests: exit status {0}".format(returncode))
 
 
+def check_dep_license_errors(progress):
+    for root, directories, filenames in os.walk(".cargo"):
+        if progress:
+            filenames = progress_wrapper(filenames)
+        for filename in filenames:
+            if filename == "Cargo.toml":
+                filename = os.path.join(root, filename)
+                with open(filename, "r") as f:
+                    ok_licensed = False
+                    lines = f.read().splitlines(True)
+                    for idx, line in enumerate(lines):
+                        for license in licenses_dep_toml:
+                            ok_licensed |= (license in line)
+                    if not ok_licensed:
+                        yield (filename, 0, "dependency should contain a valid license.")
+
+
 def get_file_list(directory, only_changed_files=False, exclude_dirs=[]):
     if only_changed_files:
         # only check the files that have been changed since the last merge
@@ -675,8 +692,10 @@ def scan(only_changed_files=False, progress=True):
     errors = collect_errors_for_files(files_to_check, checking_functions, line_checking_functions)
     # wpt lint checks
     wpt_lint_errors = check_wpt_lint_errors(get_wpt_files(only_changed_files, progress))
+    # check dependecy licenses
+    dep_license_errors = check_dep_license_errors(progress)
     # collect errors
-    errors = itertools.chain(errors, wpt_lint_errors)
+    errors = itertools.chain(errors, wpt_lint_errors, dep_license_errors)
     error = None
     for error in errors:
         print "\r\033[94m{}\033[0m:\033[93m{}\033[0m: \033[91m{}\033[0m".format(*error)
