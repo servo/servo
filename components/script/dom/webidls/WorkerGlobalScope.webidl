@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#workerglobalscope
-[Abstract, Exposed=(Window,Worker)]
+[Abstract, Exposed=Worker]
 interface WorkerGlobalScope : EventTarget {
   [BinaryName="Self_"] readonly attribute WorkerGlobalScope self;
   readonly attribute WorkerLocation location;
@@ -16,7 +16,7 @@ interface WorkerGlobalScope : EventTarget {
 };
 
 // https://html.spec.whatwg.org/multipage/#WorkerGlobalScope-partial
-[Exposed=(Window,Worker)]
+[Exposed=Worker]
 partial interface WorkerGlobalScope { // not obsolete
   [Throws]
   void importScripts(DOMString... urls);
@@ -26,7 +26,7 @@ WorkerGlobalScope implements WindowTimers;
 WorkerGlobalScope implements WindowBase64;
 
 // Proprietary
-[Exposed=(Window,Worker)]
+[Exposed=Worker]
 partial interface WorkerGlobalScope {
   [Replaceable]
   readonly attribute Console console;
