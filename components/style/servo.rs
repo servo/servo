@@ -7,8 +7,8 @@ use animation;
 use context;
 use data;
 use properties::ServoComputedValues;
-use selector_impl::ServoSelectorImpl;
 use selector_matching;
+use servo_selector_impl::ServoSelectorImpl;
 use stylesheets;
 
 pub type Stylesheet = stylesheets::Stylesheet<ServoSelectorImpl>;

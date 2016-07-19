@@ -139,7 +139,7 @@ that you didn't find it here so it can be added :)
 [stylo]: https://public.etherpad-mozilla.org/p/stylo
 [selector-impl]: http://doc.servo.org/selectors/parser/trait.SelectorImpl.html
 [selector-impl-ext]: http://doc.servo.org/style/selector_impl/trait.SelectorImplExt.html
-[servo-selector-impl]: http://doc.servo.org/style/selector_impl/struct.ServoSelectorImpl.html
+[servo-selector-impl]: http://doc.servo.org/style/servo_selector_impl/struct.ServoSelectorImpl.html
 [tree-structural-pseudo-classes]: https://www.w3.org/TR/selectors4/#structural-pseudos
 [style-dom-traits]: http://doc.servo.org/style/dom/index.html
 [layout-wrapper]: http://doc.servo.org/layout/wrapper/index.html

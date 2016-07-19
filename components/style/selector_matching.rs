@@ -9,10 +9,9 @@ use element_state::*;
 use error_reporting::StdoutErrorReporter;
 use keyframes::KeyframesAnimation;
 use media_queries::{Device, MediaType};
-use parser::ParserContextExtraData;
 use properties::{self, PropertyDeclaration, PropertyDeclarationBlock};
 use restyle_hints::{ElementSnapshot, RestyleHint, DependencySet};
-use selector_impl::{SelectorImplExt, ServoSelectorImpl};
+use selector_impl::SelectorImplExt;
 use selectors::bloom::BloomFilter;
 use selectors::matching::DeclarationBlock as GenericDeclarationBlock;
 use selectors::matching::{Rule, SelectorMap};
@@ -22,72 +21,14 @@ use sink::Push;
 use smallvec::VecLike;
 use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
-use std::process;
 use std::sync::Arc;
 use string_cache::Atom;
 use style_traits::viewport::ViewportConstraints;
 use stylesheets::{CSSRule, CSSRuleIteratorExt, Origin, Stylesheet};
-use url::Url;
-use util::opts;
-use util::resource_files::read_resource_file;
 use viewport::{MaybeNew, ViewportRuleCascade};
 
 
 pub type DeclarationBlock = GenericDeclarationBlock<Vec<PropertyDeclaration>>;
-
-lazy_static! {
-    pub static ref USER_OR_USER_AGENT_STYLESHEETS: Vec<Stylesheet<ServoSelectorImpl>> = {
-        let mut stylesheets = vec!();
-        // FIXME: presentational-hints.css should be at author origin with zero specificity.
-        //        (Does it make a difference?)
-        for &filename in &["user-agent.css", "servo.css", "presentational-hints.css"] {
-            match read_resource_file(filename) {
-                Ok(res) => {
-                    let ua_stylesheet = Stylesheet::from_bytes(
-                        &res,
-                        Url::parse(&format!("chrome://resources/{:?}", filename)).unwrap(),
-                        None,
-                        None,
-                        Origin::UserAgent,
-                        Box::new(StdoutErrorReporter),
-                        ParserContextExtraData::default());
-                    stylesheets.push(ua_stylesheet);
-                }
-                Err(..) => {
-                    error!("Failed to load UA stylesheet {}!", filename);
-                    process::exit(1);
-                }
-            }
-        }
-        for &(ref contents, ref url) in &opts::get().user_stylesheets {
-            stylesheets.push(Stylesheet::from_bytes(
-                &contents, url.clone(), None, None, Origin::User, Box::new(StdoutErrorReporter),
-                ParserContextExtraData::default()));
-        }
-        stylesheets
-    };
-}
-
-lazy_static! {
-    pub static ref QUIRKS_MODE_STYLESHEET: Stylesheet<ServoSelectorImpl> = {
-        match read_resource_file("quirks-mode.css") {
-            Ok(res) => {
-                Stylesheet::from_bytes(
-                    &res,
-                    Url::parse("chrome://resources/quirks-mode.css").unwrap(),
-                    None,
-                    None,
-                    Origin::UserAgent,
-                    Box::new(StdoutErrorReporter),
-                    ParserContextExtraData::default())
-            },
-            Err(..) => {
-                error!("Stylist failed to load 'quirks-mode.css'!");
-                process::exit(1);
-            }
-        }
-    };
-}
 
 /// This structure holds all the selectors and device characteristics
 /// for a given document. The selectors are converted into `Rule`s
