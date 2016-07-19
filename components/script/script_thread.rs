@@ -1142,6 +1142,7 @@ impl ScriptThread {
             pipeline_port,
             layout_to_constellation_chan,
             content_process_shutdown_chan,
+            layout_threads,
         } = new_layout_info;
 
         let layout_pair = channel();
@@ -1158,6 +1159,7 @@ impl ScriptThread {
             script_chan: self.control_chan.clone(),
             image_cache_thread: self.image_cache_thread.clone(),
             content_process_shutdown_chan: content_process_shutdown_chan,
+            layout_threads: layout_threads,
         };
 
         let context = self.root_browsing_context();

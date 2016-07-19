@@ -48,5 +48,6 @@ pub trait LayoutThreadFactory {
               time_profiler_chan: time::ProfilerChan,
               mem_profiler_chan: mem::ProfilerChan,
               content_process_shutdown_chan: IpcSender<()>,
-              webrender_api_sender: Option<webrender_traits::RenderApiSender>);
+              webrender_api_sender: Option<webrender_traits::RenderApiSender>,
+              layout_threads: usize);
 }

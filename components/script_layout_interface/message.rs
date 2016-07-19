@@ -149,4 +149,5 @@ pub struct NewLayoutThreadInfo {
     pub image_cache_thread: ImageCacheThread,
     pub paint_chan: OptionalOpaqueIpcSender,
     pub content_process_shutdown_chan: IpcSender<()>,
+    pub layout_threads: usize,
 }
