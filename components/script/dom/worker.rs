@@ -112,6 +112,10 @@ impl Worker {
         self.closing.load(Ordering::SeqCst)
     }
 
+    pub fn close(&self) {
+        self.closing.swap(true, Ordering::SeqCst);
+    }
+
     pub fn handle_message(address: TrustedWorkerAddress,
                           data: StructuredCloneData) {
         let worker = address.root();
@@ -126,6 +130,11 @@ impl Worker {
         rooted!(in(global.r().get_cx()) let mut message = UndefinedValue());
         data.read(global.r(), message.handle_mut());
         MessageEvent::dispatch_jsval(target, global.r(), message.handle());
+    }
+
+    pub fn handle_close(address: TrustedWorkerAddress) {
+        let worker = address.root();
+        worker.close();
     }
 
     pub fn dispatch_simple_error(address: TrustedWorkerAddress) {
@@ -200,6 +209,25 @@ impl Runnable for WorkerMessageHandler {
     fn handler(self: Box<WorkerMessageHandler>) {
         let this = *self;
         Worker::handle_message(this.addr, this.data);
+    }
+}
+
+pub struct WorkerCloseHandler {
+    addr: TrustedWorkerAddress,
+}
+
+impl WorkerCloseHandler {
+    pub fn new(addr: TrustedWorkerAddress) -> WorkerCloseHandler {
+        WorkerCloseHandler {
+            addr: addr,
+        }
+    }
+}
+
+impl Runnable for WorkerCloseHandler {
+    fn handler(self: Box<WorkerCloseHandler>) {
+        let this = *self;
+        Worker::handle_close(this.addr);
     }
 }
 

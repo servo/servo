@@ -19,7 +19,7 @@ use dom::bindings::reflector::Reflectable;
 use dom::bindings::str::DOMString;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::messageevent::MessageEvent;
-use dom::worker::{TrustedWorkerAddress, WorkerMessageHandler};
+use dom::worker::{TrustedWorkerAddress, WorkerCloseHandler, WorkerMessageHandler};
 use dom::workerglobalscope::WorkerGlobalScope;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
@@ -33,6 +33,7 @@ use rand::random;
 use script_runtime::ScriptThreadEventCategory::WorkerEvent;
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, StackRootTLS, get_reports, new_rt_and_cx};
 use script_traits::{TimerEvent, TimerSource, WorkerScriptLoadOrigin, WorkerGlobalScopeInit};
+use std::cell::Cell;
 use std::mem::replace;
 use std::sync::atomic::AtomicBool;
 use std::sync::mpsc::{Receiver, RecvError, Select, Sender, channel};
@@ -89,6 +90,7 @@ pub struct DedicatedWorkerGlobalScope {
     #[ignore_heap_size_of = "Can't measure trait objects"]
     /// Sender to the parent thread.
     parent_sender: Box<ScriptChan + Send>,
+    post_close_event: Cell<bool>,
 }
 
 impl DedicatedWorkerGlobalScope {
@@ -117,6 +119,7 @@ impl DedicatedWorkerGlobalScope {
             timer_event_port: timer_event_port,
             parent_sender: parent_sender,
             worker: DOMRefCell::new(None),
+            post_close_event: Cell::new(false),
         }
     }
 
@@ -214,6 +217,10 @@ impl DedicatedWorkerGlobalScope {
             {
                 let _ar = AutoWorkerReset::new(global.r(), worker);
                 scope.execute_script(DOMString::from(source));
+
+                if global.post_close_event_if_needed() {
+                    return;
+                }
             }
 
             let reporter_name = format!("worker-reporter-{}", random::<u64>());
@@ -223,6 +230,9 @@ impl DedicatedWorkerGlobalScope {
                         break;
                     }
                     global.handle_event(event);
+                    if global.post_close_event_if_needed() {
+                        break;
+                    }
                 }
             }, reporter_name, parent_sender, CommonScriptMsg::CollectReports);
         }, Some(id.clone()), panic_chan);
@@ -250,6 +260,18 @@ impl DedicatedWorkerGlobalScope {
 
     pub fn process_event(&self, msg: CommonScriptMsg) {
         self.handle_script_event(WorkerScriptMsg::Common(msg));
+    }
+
+    pub fn post_close_event_if_needed(&self) -> bool {
+        if self.post_close_event.get() {
+            let worker = self.worker.borrow().as_ref().unwrap().clone();
+            self.parent_sender
+                .send(CommonScriptMsg::RunnableMsg(WorkerEvent,
+                                                   box WorkerCloseHandler::new(worker)))
+                .unwrap();
+        }
+
+        self.post_close_event.get()
     }
 
     #[allow(unsafe_code)]
@@ -366,6 +388,12 @@ impl DedicatedWorkerGlobalScopeMethods for DedicatedWorkerGlobalScope {
                                                box WorkerMessageHandler::new(worker, data)))
             .unwrap();
         Ok(())
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-close
+    fn Close(&self) {
+        // Step 2
+        self.post_close_event.set(true);
     }
 
     // https://html.spec.whatwg.org/multipage/#handler-dedicatedworkerglobalscope-onmessage
