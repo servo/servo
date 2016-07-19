@@ -20,17 +20,8 @@ pub struct Headers {
     header_list: DOMRefCell<hyper::header::Headers>
 }
 
-// HeaderGroup refers to the header name categories described here:
-// https://fetch.spec.whatwg.org/#concept-header-name
-#[derive(PartialEq)]
-enum HeaderGroup {
-    CorsSafelistedRequestHeader,
-    ForbiddenHeaderName,
-    ForbiddenResponseHeader,
-}
-
 // https://fetch.spec.whatwg.org/#concept-headers-guard
-#[derive(JSTraceable, HeapSizeOf)]
+#[derive(JSTraceable, HeapSizeOf, PartialEq)]
 pub enum Guard {
     Immutable,
     Request,
@@ -59,25 +50,29 @@ impl Headers {
 
         // Step 2
         let (valid_name, valid_value) = try!(validate_name_and_value(name, value));
-        let header_group = try!(find_header_group(&valid_name));
-
-        match (&self.guard, header_group) {
-            // Step 3
-            (&Guard::Immutable, _) =>
-                Err(Error::Type("Guard is immutable".to_string())),
-            // Step 4
-            (&Guard::Request, HeaderGroup::ForbiddenHeaderName) => Ok(()),
-            // Step 5
-            (&Guard::RequestNoCors, ref header_group)
-                if header_group != &HeaderGroup::CorsSafelistedRequestHeader => Ok(()),
-            // Step 6
-            (&Guard::Response, HeaderGroup::ForbiddenResponseHeader) => Ok(()),
-            _ => {
-                // Step 7
-                self.header_list.borrow_mut().set_raw(valid_name, vec![valid_value]);
-                Ok(())
-            }
+        // Step 3
+        if self.guard == Guard::Immutable {
+            return Err(Error::Type("Guard is immutable".to_string()));
         }
+
+        // Step 4
+        if self.guard == Guard::Request && is_forbidden_header_name(&valid_name) {
+            return Ok(());;
+        }
+
+        // Step 5
+        if self.guard == Guard::RequestNoCors && !is_cors_safelisted_request_header(&valid_name) {
+            return Ok(());
+        }
+
+        // Step 6
+        if self.guard == Guard::Response && is_forbidden_response_header(&valid_name) {
+            return Ok(());
+        }
+
+        // Step 7
+        self.header_list.borrow_mut().set_raw(valid_name, vec![valid_value]);
+        return Ok(());
     }
 }
 
@@ -120,24 +115,8 @@ fn is_forbidden_header_name(name: &str) -> bool {
 
     let disallowed_header_prefixes = ["sec-", "proxy-"];
 
-    if disallowed_headers.iter().any(|header| *header == name) ||
-        disallowed_header_prefixes.iter().any(|prefix| name.starts_with(prefix)) {
-            return true;
-        } else {
-            return false;
-        }
-}
-
-fn find_header_group(name: &str) -> Result<HeaderGroup, Error> {
-    if is_cors_safelisted_request_header(&name) {
-        Ok(HeaderGroup::CorsSafelistedRequestHeader)
-    } else if is_forbidden_header_name(&name) {
-        Ok(HeaderGroup::ForbiddenHeaderName)
-    } else if is_forbidden_response_header(&name) {
-        Ok(HeaderGroup::ForbiddenResponseHeader)
-    } else {
-        Err(Error::Type("Name does not have a group".to_string()))
-    }
+    disallowed_headers.iter().any(|header| *header == name) ||
+        disallowed_header_prefixes.iter().any(|prefix| name.starts_with(prefix))
 }
 
 // There is some unresolved confusion over the definition of a name and a value.
@@ -173,7 +152,7 @@ fn validate_name_and_value(name: ByteString, value: ByteString)
     }
     match String::from_utf8(name.into()) {
         Ok(ns) => Ok((ns, value.into())),
-        _ => return Err(Error::Type("Non-UTF8 header name found".to_string())),
+        _ => Err(Error::Type("Non-UTF8 header name found".to_string())),
     }
 }
 
