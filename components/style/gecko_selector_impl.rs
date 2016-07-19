@@ -2,18 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use properties::GeckoComputedValues;
+use element_state::ElementState;
+use gecko_properties::GeckoComputedValues;
+use selector_impl::{PseudoElementCascadeType, SelectorImplExt};
 use selectors::parser::{ParserContext, SelectorImpl};
 use string_cache::Atom;
-use style;
-use style::element_state::ElementState;
-use style::selector_impl::{PseudoElementCascadeType, SelectorImplExt};
 
-pub type Stylist = style::selector_matching::Stylist<GeckoSelectorImpl>;
-pub type Stylesheet = style::stylesheets::Stylesheet<GeckoSelectorImpl>;
-pub type SharedStyleContext = style::context::SharedStyleContext<GeckoSelectorImpl>;
-pub type PrivateStyleData = style::data::PrivateStyleData<GeckoSelectorImpl, GeckoComputedValues>;
-pub type Animation = style::animation::Animation<GeckoSelectorImpl>;
+pub type Stylist = ::selector_matching::Stylist<GeckoSelectorImpl>;
+pub type Stylesheet = ::stylesheets::Stylesheet<GeckoSelectorImpl>;
+pub type SharedStyleContext = ::context::SharedStyleContext<GeckoSelectorImpl>;
+pub type PrivateStyleData = ::data::PrivateStyleData<GeckoSelectorImpl, GeckoComputedValues>;
+pub type Animation = ::animation::Animation<GeckoSelectorImpl>;
 
 #[derive(Debug, Clone)]
 pub struct GeckoSelectorImpl;
@@ -135,8 +134,8 @@ pub enum NonTSPseudoClass {
 
 impl NonTSPseudoClass {
     pub fn state_flag(&self) -> ElementState {
+        use element_state::*;
         use self::NonTSPseudoClass::*;
-        use style::element_state::*;
         match *self {
             Active => IN_ACTIVE_STATE,
             Focus => IN_FOCUS_STATE,
