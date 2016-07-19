@@ -123,6 +123,8 @@ unsafe impl Sync for nsStyleImageLayers {}
 impl HeapSizeOf for nsStyleImageLayers { fn heap_size_of_children(&self) -> usize { 0 } }
 use structs::nsStyleImageLayers_Layer as Layer;
 use structs::nsStyleImageLayers_LayerType as LayerType;
+use structs::nsRestyleHint;
+use structs::ServoElementSnapshot;
 use structs::SheetParsingMode;
 use structs::nsMainThreadPtrHandle;
 use structs::nsMainThreadPtrHolder;
@@ -175,6 +177,8 @@ extern "C" {
     pub fn Gecko_LocalName(element: *mut RawGeckoElement) -> *mut nsIAtom;
     pub fn Gecko_Namespace(element: *mut RawGeckoElement) -> *mut nsIAtom;
     pub fn Gecko_GetElementId(element: *mut RawGeckoElement) -> *mut nsIAtom;
+    pub fn Gecko_AtomAttrValue(element: *mut RawGeckoElement,
+                               attribute: *mut nsIAtom) -> *mut nsIAtom;
     pub fn Gecko_HasAttr(element: *mut RawGeckoElement, ns: *mut nsIAtom,
                          name: *mut nsIAtom) -> bool;
     pub fn Gecko_AttrEquals(element: *mut RawGeckoElement, ns: *mut nsIAtom,
@@ -197,6 +201,36 @@ extern "C" {
     pub fn Gecko_ClassOrClassList(element: *mut RawGeckoElement,
                                   class_: *mut *mut nsIAtom,
                                   classList: *mut *mut *mut nsIAtom) -> u32;
+    pub fn Gecko_SnapshotAtomAttrValue(element: *mut ServoElementSnapshot,
+                                       attribute: *mut nsIAtom)
+     -> *mut nsIAtom;
+    pub fn Gecko_SnapshotHasAttr(element: *mut ServoElementSnapshot,
+                                 ns: *mut nsIAtom, name: *mut nsIAtom)
+     -> bool;
+    pub fn Gecko_SnapshotAttrEquals(element: *mut ServoElementSnapshot,
+                                    ns: *mut nsIAtom, name: *mut nsIAtom,
+                                    str: *mut nsIAtom, ignoreCase: bool)
+     -> bool;
+    pub fn Gecko_SnapshotAttrDashEquals(element: *mut ServoElementSnapshot,
+                                        ns: *mut nsIAtom, name: *mut nsIAtom,
+                                        str: *mut nsIAtom) -> bool;
+    pub fn Gecko_SnapshotAttrIncludes(element: *mut ServoElementSnapshot,
+                                      ns: *mut nsIAtom, name: *mut nsIAtom,
+                                      str: *mut nsIAtom) -> bool;
+    pub fn Gecko_SnapshotAttrHasSubstring(element: *mut ServoElementSnapshot,
+                                          ns: *mut nsIAtom,
+                                          name: *mut nsIAtom,
+                                          str: *mut nsIAtom) -> bool;
+    pub fn Gecko_SnapshotAttrHasPrefix(element: *mut ServoElementSnapshot,
+                                       ns: *mut nsIAtom, name: *mut nsIAtom,
+                                       str: *mut nsIAtom) -> bool;
+    pub fn Gecko_SnapshotAttrHasSuffix(element: *mut ServoElementSnapshot,
+                                       ns: *mut nsIAtom, name: *mut nsIAtom,
+                                       str: *mut nsIAtom) -> bool;
+    pub fn Gecko_SnapshotClassOrClassList(element: *mut ServoElementSnapshot,
+                                          class_: *mut *mut nsIAtom,
+                                          classList: *mut *mut *mut nsIAtom)
+     -> u32;
     pub fn Gecko_GetServoDeclarationBlock(element: *mut RawGeckoElement)
      -> *mut ServoDeclarationBlock;
     pub fn Gecko_GetNodeData(node: *mut RawGeckoNode) -> *mut ServoNodeData;
@@ -288,8 +322,6 @@ extern "C" {
                                                   *mut ServoDeclarationBlock);
     pub fn Servo_ClearDeclarationBlockCachePointer(declarations:
                                                        *mut ServoDeclarationBlock);
-    pub fn Servo_CSSSupports(property: *const u8, property_length: u32,
-                             value: *const u8, value_length: u32) -> bool;
     pub fn Servo_GetComputedValues(node: *mut RawGeckoNode)
      -> *mut ServoComputedValues;
     pub fn Servo_GetComputedValuesForAnonymousBox(parentStyleOrNull:
@@ -314,6 +346,10 @@ extern "C" {
                                  set: *mut RawServoStyleSet);
     pub fn Servo_RestyleSubtree(node: *mut RawGeckoNode,
                                 set: *mut RawServoStyleSet);
+    pub fn Servo_ComputeRestyleHint(element: *mut RawGeckoElement,
+                                    snapshot: *mut ServoElementSnapshot,
+                                    set: *mut RawServoStyleSet)
+     -> nsRestyleHint;
     pub fn Servo_StyleWorkerThreadCount() -> u32;
     pub fn Gecko_Construct_nsStyleFont(ptr: *mut nsStyleFont);
     pub fn Gecko_CopyConstruct_nsStyleFont(ptr: *mut nsStyleFont,
