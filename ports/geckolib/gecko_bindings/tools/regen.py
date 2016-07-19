@@ -74,6 +74,7 @@ COMPILATION_TARGETS = {
             "nsDataHashtable.h", "nsCSSScanner.h", "nsTArray",
             "pair", "SheetParsingMode.h", "StaticPtr.h", "nsProxyRelease.h",
             "mozilla/dom/AnimationEffectReadOnlyBinding.h",
+            "nsChangeHint.h",
             "/Types.h",   # <- Disallow UnionTypes.h
             "/utility",   # <- Disallow xutility
             "nsINode.h",  # <- For `NodeFlags`.
@@ -121,6 +122,7 @@ COMPILATION_TARGETS = {
             "nsStyleEffects", "nsStyleImage", "nsStyleGradient",
             "nsStyleCoord", "nsStyleGradientStop", "nsStyleImageLayers",
             "nsStyleImageLayers::Layer", "nsStyleImageLayers::LayerType",
+            "nsRestyleHint",
 
             "SheetParsingMode", "nsMainThreadPtrHandle",
             "nsMainThreadPtrHolder", "nscolor", "nsFont", "FontFamilyList",
