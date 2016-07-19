@@ -30,13 +30,7 @@ mod selector_impl;
 mod traversal;
 mod wrapper;
 
-// Generated from the properties.mako.rs template by build.rs
-#[macro_use]
-#[allow(unsafe_code)]
-pub mod properties {
-    include!(concat!(env!("OUT_DIR"), "/properties.rs"));
-}
-
+pub use style::gecko_properties as properties;
 pub use style::gecko_values as values;
 
 // FIXME(bholley): This should probably go away once we harmonize the allocators.

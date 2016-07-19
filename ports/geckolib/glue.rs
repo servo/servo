@@ -16,8 +16,7 @@ use gecko_bindings::ptr::{GeckoArcPrincipal, GeckoArcURI};
 use gecko_bindings::structs::{SheetParsingMode, nsIAtom};
 use properties::GeckoComputedValues;
 use selector_impl::{GeckoSelectorImpl, PseudoElement, SharedStyleContext, Stylesheet};
-use std::marker::PhantomData;
-use std::mem::{forget, transmute};
+use std::mem::transmute;
 use std::ptr;
 use std::slice;
 use std::str::from_utf8_unchecked;
@@ -26,6 +25,7 @@ use style::arc_ptr_eq;
 use style::context::{LocalStyleContextCreationInfo, ReflowGoal};
 use style::dom::{TDocument, TElement, TNode};
 use style::error_reporting::StdoutErrorReporter;
+use style::gecko_glue::ArcHelpers;
 use style::parallel;
 use style::parser::ParserContextExtraData;
 use style::properties::{ComputedValues, PropertyDeclarationBlock, parse_one_declaration};
@@ -175,54 +175,6 @@ pub extern "C" fn Servo_StylesheetFromUTF8Bytes(bytes: *const u8,
                                               extra_data));
     unsafe {
         transmute(sheet)
-    }
-}
-
-pub struct ArcHelpers<GeckoType, ServoType> {
-    phantom1: PhantomData<GeckoType>,
-    phantom2: PhantomData<ServoType>,
-}
-
-
-impl<GeckoType, ServoType> ArcHelpers<GeckoType, ServoType> {
-    pub fn with<F, Output>(raw: *mut GeckoType, cb: F) -> Output
-                           where F: FnOnce(&Arc<ServoType>) -> Output {
-        debug_assert!(!raw.is_null());
-
-        let owned = unsafe { Self::into(raw) };
-        let result = cb(&owned);
-        forget(owned);
-        result
-    }
-
-    pub fn maybe_with<F, Output>(maybe_raw: *mut GeckoType, cb: F) -> Output
-                                 where F: FnOnce(Option<&Arc<ServoType>>) -> Output {
-        let owned = if maybe_raw.is_null() {
-            None
-        } else {
-            Some(unsafe { Self::into(maybe_raw) })
-        };
-
-        let result = cb(owned.as_ref());
-        forget(owned);
-
-        result
-    }
-
-    pub unsafe fn into(ptr: *mut GeckoType) -> Arc<ServoType> {
-        transmute(ptr)
-    }
-
-    pub fn from(owned: Arc<ServoType>) -> *mut GeckoType {
-        unsafe { transmute(owned) }
-    }
-
-    pub unsafe fn addref(ptr: *mut GeckoType) {
-        Self::with(ptr, |arc| forget(arc.clone()));
-    }
-
-    pub unsafe fn release(ptr: *mut GeckoType) {
-        let _ = Self::into(ptr);
     }
 }
 
