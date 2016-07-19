@@ -135,11 +135,13 @@ def platform_dependent_defines():
     if os.name == "posix":
         ret.append("-DOS_POSIX=1")
 
-    ret.append({
-        "Linux": "-DOS_LINUX=1",
-        "Darwin": "-DOS_MACOSX=1",
-        # TODO: Windows?
-    }[platform.system()])
+    system = platform.system()
+    if system == "Linux":
+        ret.append("-DOS_LINUX=1")
+    elif system == "Darwin":
+        ret.append("-DOS_MACOSX=1")
+    else:
+        raise Exception("Unknown platform")
 
     return ret
 
