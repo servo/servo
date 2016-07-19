@@ -1,0 +1,99 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset=utf-8>
+  <title>Set-Cookie header with exact path match</title>
+  <meta name=help href="http://tools.ietf.org/html/rfc6265#section-5.1.4">
+
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/cookies/resources/testharness-helpers.js"></script>
+</head>
+<body>
+    <div id=log></div>
+
+    <script>
+     var body = document.getElementsByTagName('body')[0];
+     var createIframe = function createIframe(callback) {
+	 var iframe = document.createElement('iframe');
+	 iframe.src = "echo-cookie.html";
+	 body.appendChild(iframe);
+	 iframe.onload = callback;
+	 return iframe;
+     };
+     var testCookiePath = function testDomPathMatch(testCase, ctx, method) {
+	 var iframe = createIframe(function () {
+	     var cookieSet;
+	     if (method === "dom") {
+		 cookieSet = iframe.contentWindow.canSetCookieFromDOM(testCase.name, testCase.path);
+	     } else {
+		 cookieSet = iframe.contentWindow.canSetCookieFromHeader(testCase.name, testCase.path);
+	     }
+
+	     if (testCase.match === false) {
+		 assert_equals(cookieSet, null);
+	     } else {
+		 assert_not_equals(cookieSet, null);
+	     }
+	     ctx.done();
+	 });
+     };
+
+     var tests = [{
+	 "name": "match-slash",
+	 "path": "/",
+     }, {
+	 "name": "match-page",
+	 "path": "match.html",
+     }, {
+	 "name": "match-prefix",
+	 "path": "cookies",
+     }, {
+	 "name": "match-slash-prefix",
+	 "path": "/cookies",
+     }, {
+	 "name": "match-slash-prefix-slash",
+	 "path": "/cookies/",
+     }, {
+	 "name": "match-exact-page",
+	 "path": "/cookies/path/echo-cookie.html",
+	 /* }, {
+	    "name": "no-match",
+	    "path": "/cook",
+	    "match": false
+	  * }, {
+	    "name": "no-match-subpath",
+	    "path": "/w/",
+	    "match": false*/
+     }];
+
+     executeTestsSerially(
+	 tests.map(function (testCase) {
+	     var testName = "`document.cookie` on /cookies/path/echo-cookie.html sets cookie with path: " + testCase.path;
+	     if (testCase.match === false) {
+		 testName = "`document.cookie` on /cookies/path/echo-cookie.html DOES NOT set cookie for path: " + testCase.path;
+	     }
+	     return [
+		 testName,
+		 function () {
+		     testCookiePath(testCase, this, "dom");
+		 }
+	     ];
+	 }).concat(
+	     tests.map(function (testCase) {
+		 var testName = "Set-Cookie on /cookies/path/echo-cookie.html sets cookie with path: " + testCase.path;
+		 if (testCase.match === false) {
+		     testName = "Set-Cookie on /cookies/path/echo-cookie.html DOES NOT set cookie for path: " + testCase.path;
+		 }
+		 return [
+		     testName,
+		     function () {
+			 testCookiePath(testCase, this, "header");
+		     }
+		 ];
+	     })
+	 )
+     );
+</script>
+</body>
+</html>
