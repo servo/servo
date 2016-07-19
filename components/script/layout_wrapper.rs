@@ -56,7 +56,6 @@ use style::attr::AttrValue;
 use style::computed_values::display;
 use style::dom::{PresentationalHintsSynthetizer, OpaqueNode, TDocument, TElement, TNode, UnsafeNode};
 use style::element_state::*;
-use style::properties::{ComputedValues, ServoComputedValues};
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use style::refcell::{Ref, RefCell, RefMut};
 use style::restyle_hints::ElementSnapshot;
@@ -110,7 +109,6 @@ impl<'ln> ServoLayoutNode<'ln> {
 }
 
 impl<'ln> TNode for ServoLayoutNode<'ln> {
-    type ConcreteComputedValues = ServoComputedValues;
     type ConcreteElement = ServoLayoutElement<'ln>;
     type ConcreteDocument = ServoLayoutDocument<'ln>;
     type ConcreteRestyleDamage = RestyleDamage;

@@ -46,7 +46,7 @@ use std::sync::atomic::Ordering;
 use style::computed_values::content::ContentItem;
 use style::computed_values::position;
 use style::computed_values::{caption_side, display, empty_cells, float, list_style_position};
-use style::properties::{self, ComputedValues, ServoComputedValues};
+use style::properties::{self, ServoComputedValues};
 use style::servo::SharedStyleContext;
 use table::TableFlow;
 use table_caption::TableCaptionFlow;

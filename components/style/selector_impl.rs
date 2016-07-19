@@ -5,7 +5,6 @@
 //! The pseudo-classes and pseudo-elements supported by the style system.
 
 use element_state::ElementState;
-use properties;
 use selectors::Element;
 use selectors::parser::SelectorImpl;
 use std::fmt::Debug;
@@ -74,8 +73,6 @@ pub trait ElementExt: Element {
 // NB: The `Clone` trait is here for convenience due to:
 // https://github.com/rust-lang/rust/issues/26925
 pub trait SelectorImplExt : SelectorImpl + Clone + Debug + Sized + 'static {
-    type ComputedValues: properties::ComputedValues;
-
     fn pseudo_element_cascade_type(pseudo: &Self::PseudoElement) -> PseudoElementCascadeType;
 
     fn each_pseudo_element<F>(mut fun: F)

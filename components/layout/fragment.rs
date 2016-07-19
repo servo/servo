@@ -44,7 +44,7 @@ use style::computed_values::{overflow_wrap, overflow_x, position, text_decoratio
 use style::computed_values::{transform_style, vertical_align, white_space, word_break, z_index};
 use style::dom::TRestyleDamage;
 use style::logical_geometry::{LogicalMargin, LogicalRect, LogicalSize, WritingMode};
-use style::properties::{ComputedValues, ServoComputedValues};
+use style::properties::ServoComputedValues;
 use style::str::char_is_whitespace;
 use style::values::computed::LengthOrPercentageOrNone;
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};

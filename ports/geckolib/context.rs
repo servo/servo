@@ -6,12 +6,10 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use style::context::{LocalStyleContext, StyleContext};
 
-thread_local!(static LOCAL_CONTEXT_KEY:
-                RefCell<Option<Rc<LocalStyleContext<GeckoSelectorImpl>>>> = RefCell::new(None));
+thread_local!(static LOCAL_CONTEXT_KEY: RefCell<Option<Rc<LocalStyleContext>>> = RefCell::new(None));
 
 // Keep this implementation in sync with the one in components/layout/context.rs.
-fn create_or_get_local_context(shared: &SharedStyleContext)
-                               -> Rc<LocalStyleContext<GeckoSelectorImpl>> {
+fn create_or_get_local_context(shared: &SharedStyleContext) -> Rc<LocalStyleContext> {
     LOCAL_CONTEXT_KEY.with(|r| {
         let mut r = r.borrow_mut();
         if let Some(context) = r.clone() {
@@ -29,7 +27,7 @@ fn create_or_get_local_context(shared: &SharedStyleContext)
 
 pub struct StandaloneStyleContext<'a> {
     pub shared: &'a SharedStyleContext,
-    cached_local_context: Rc<LocalStyleContext<GeckoSelectorImpl>>,
+    cached_local_context: Rc<LocalStyleContext>,
 }
 
 impl<'a> StandaloneStyleContext<'a> {
@@ -47,7 +45,7 @@ impl<'a> StyleContext<'a, GeckoSelectorImpl> for StandaloneStyleContext<'a> {
         &self.shared
     }
 
-    fn local_context(&self) -> &LocalStyleContext<GeckoSelectorImpl> {
+    fn local_context(&self) -> &LocalStyleContext {
         &self.cached_local_context
     }
 }

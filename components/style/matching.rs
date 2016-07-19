@@ -12,7 +12,7 @@ use cache::{LRUCache, SimpleHashCache};
 use context::{StyleContext, SharedStyleContext};
 use data::PrivateStyleData;
 use dom::{TElement, TNode, TRestyleDamage};
-use properties::{ComputedValues, PropertyDeclaration, cascade};
+use properties::{ComputedValuesStruct, PropertyDeclaration, cascade};
 use selector_impl::{ElementExt, SelectorImplExt};
 use selector_matching::{DeclarationBlock, Stylist};
 use selectors::Element;
@@ -149,25 +149,25 @@ impl<'a> Hash for ApplicableDeclarationsCacheQuery<'a> {
 
 static APPLICABLE_DECLARATIONS_CACHE_SIZE: usize = 32;
 
-pub struct ApplicableDeclarationsCache<C: ComputedValues> {
-    cache: SimpleHashCache<ApplicableDeclarationsCacheEntry, Arc<C>>,
+pub struct ApplicableDeclarationsCache {
+    cache: SimpleHashCache<ApplicableDeclarationsCacheEntry, Arc<ComputedValuesStruct>>,
 }
 
-impl<C: ComputedValues> ApplicableDeclarationsCache<C> {
+impl ApplicableDeclarationsCache {
     pub fn new() -> Self {
         ApplicableDeclarationsCache {
             cache: SimpleHashCache::new(APPLICABLE_DECLARATIONS_CACHE_SIZE),
         }
     }
 
-    pub fn find(&self, declarations: &[DeclarationBlock]) -> Option<Arc<C>> {
+    pub fn find(&self, declarations: &[DeclarationBlock]) -> Option<Arc<ComputedValuesStruct>> {
         match self.cache.find(&ApplicableDeclarationsCacheQuery::new(declarations)) {
             None => None,
             Some(ref values) => Some((*values).clone()),
         }
     }
 
-    pub fn insert(&mut self, declarations: Vec<DeclarationBlock>, style: Arc<C>) {
+    pub fn insert(&mut self, declarations: Vec<DeclarationBlock>, style: Arc<ComputedValuesStruct>) {
         self.cache.insert(ApplicableDeclarationsCacheEntry::new(declarations), style)
     }
 
@@ -177,14 +177,14 @@ impl<C: ComputedValues> ApplicableDeclarationsCache<C> {
 }
 
 /// An LRU cache of the last few nodes seen, so that we can aggressively try to reuse their styles.
-pub struct StyleSharingCandidateCache<C: ComputedValues> {
-    cache: LRUCache<StyleSharingCandidate<C>, ()>,
+pub struct StyleSharingCandidateCache {
+    cache: LRUCache<StyleSharingCandidate, ()>,
 }
 
 #[derive(Clone)]
-pub struct StyleSharingCandidate<C: ComputedValues> {
-    pub style: Arc<C>,
-    pub parent_style: Arc<C>,
+pub struct StyleSharingCandidate {
+    pub style: Arc<ComputedValuesStruct>,
+    pub parent_style: Arc<ComputedValuesStruct>,
     pub local_name: Atom,
     pub classes: Vec<Atom>,
     pub namespace: Namespace,
@@ -192,7 +192,7 @@ pub struct StyleSharingCandidate<C: ComputedValues> {
     pub link: bool,
 }
 
-impl<C: ComputedValues> PartialEq for StyleSharingCandidate<C> {
+impl PartialEq for StyleSharingCandidate {
     fn eq(&self, other: &Self) -> bool {
         arc_ptr_eq(&self.style, &other.style) &&
             arc_ptr_eq(&self.parent_style, &other.parent_style) &&
@@ -204,12 +204,12 @@ impl<C: ComputedValues> PartialEq for StyleSharingCandidate<C> {
     }
 }
 
-impl<C: ComputedValues> StyleSharingCandidate<C> {
+impl StyleSharingCandidate {
     /// Attempts to create a style sharing candidate from this node. Returns
     /// the style sharing candidate or `None` if this node is ineligible for
     /// style sharing.
     #[allow(unsafe_code)]
-    fn new<N: TNode<ConcreteComputedValues=C>>(element: &N::ConcreteElement) -> Option<Self> {
+    fn new<N: TNode>(element: &N::ConcreteElement) -> Option<Self> {
         let parent_element = match element.parent_element() {
             None => return None,
             Some(parent_element) => parent_element,
@@ -329,18 +329,18 @@ impl<C: ComputedValues> StyleSharingCandidate<C> {
 
 static STYLE_SHARING_CANDIDATE_CACHE_SIZE: usize = 40;
 
-impl<C: ComputedValues> StyleSharingCandidateCache<C> {
+impl StyleSharingCandidateCache {
     pub fn new() -> Self {
         StyleSharingCandidateCache {
             cache: LRUCache::new(STYLE_SHARING_CANDIDATE_CACHE_SIZE),
         }
     }
 
-    pub fn iter(&self) -> Iter<(StyleSharingCandidate<C>, ())> {
+    pub fn iter(&self) -> Iter<(StyleSharingCandidate, ())> {
         self.cache.iter()
     }
 
-    pub fn insert_if_possible<N: TNode<ConcreteComputedValues=C>>(&mut self, element: &N::ConcreteElement) {
+    pub fn insert_if_possible<N: TNode>(&mut self, element: &N::ConcreteElement) {
         match StyleSharingCandidate::new::<N>(element) {
             None => {}
             Some(candidate) => self.cache.insert(candidate, ())
@@ -362,21 +362,21 @@ pub enum StyleSharingResult<ConcreteRestyleDamage: TRestyleDamage> {
 }
 
 trait PrivateMatchMethods: TNode
-    where <Self::ConcreteElement as Element>::Impl: SelectorImplExt<ComputedValues = Self::ConcreteComputedValues> {
+    where <Self::ConcreteElement as Element>::Impl: SelectorImplExt {
     /// Actually cascades style for a node or a pseudo-element of a node.
     ///
     /// Note that animations only apply to nodes or ::before or ::after
     /// pseudo-elements.
     fn cascade_node_pseudo_element<'a, Ctx>(&self,
                                             context: &Ctx,
-                                            parent_style: Option<&Arc<Self::ConcreteComputedValues>>,
+                                            parent_style: Option<&Arc<ComputedValuesStruct>>,
                                             applicable_declarations: &[DeclarationBlock],
-                                            mut style: Option<&mut Arc<Self::ConcreteComputedValues>>,
+                                            mut style: Option<&mut Arc<ComputedValuesStruct>>,
                                             applicable_declarations_cache:
-                                             &mut ApplicableDeclarationsCache<Self::ConcreteComputedValues>,
+                                             &mut ApplicableDeclarationsCache,
                                             shareable: bool,
                                             animate_properties: bool)
-                                            -> (Self::ConcreteRestyleDamage, Arc<Self::ConcreteComputedValues>)
+                                            -> (Self::ConcreteRestyleDamage, Arc<ComputedValuesStruct>)
     where Ctx: StyleContext<'a, <Self::ConcreteElement as Element>::Impl> {
         let mut cacheable = true;
         let shared_context = context.shared_context();
@@ -456,7 +456,7 @@ trait PrivateMatchMethods: TNode
 
     fn update_animations_for_cascade(&self,
                                      context: &SharedStyleContext<<Self::ConcreteElement as Element>::Impl>,
-                                     style: &mut Option<&mut Arc<Self::ConcreteComputedValues>>)
+                                     style: &mut Option<&mut Arc<ComputedValuesStruct>>)
                                      -> bool {
         let style = match *style {
             None => return false,
@@ -518,21 +518,19 @@ trait PrivateMatchMethods: TNode
 }
 
 impl<N: TNode> PrivateMatchMethods for N
-    where <N::ConcreteElement as Element>::Impl:
-                SelectorImplExt<ComputedValues = N::ConcreteComputedValues> {}
+    where <N::ConcreteElement as Element>::Impl: SelectorImplExt {}
 
 trait PrivateElementMatchMethods: TElement {
     fn share_style_with_candidate_if_possible(&self,
                                               parent_node: Option<Self::ConcreteNode>,
-                                              candidate: &StyleSharingCandidate<<Self::ConcreteNode as
-                                                                                 TNode>::ConcreteComputedValues>)
-                                              -> Option<Arc<<Self::ConcreteNode as TNode>::ConcreteComputedValues>> {
+                                              candidate: &StyleSharingCandidate)
+                                              -> Option<Arc<ComputedValuesStruct>> {
         let parent_node = match parent_node {
             Some(ref parent_node) if parent_node.as_element().is_some() => parent_node,
             Some(_) | None => return None,
         };
 
-        let parent_data: Option<&PrivateStyleData<_, _>> = unsafe {
+        let parent_data: Option<&PrivateStyleData<_>> = unsafe {
             parent_node.borrow_data_unchecked().map(|d| &*d)
         };
 
@@ -586,8 +584,7 @@ pub trait ElementMatchMethods : TElement
     /// guarantee that at the type system level yet.
     unsafe fn share_style_if_possible(&self,
                                       style_sharing_candidate_cache:
-                                        &mut StyleSharingCandidateCache<<Self::ConcreteNode as
-                                                                         TNode>::ConcreteComputedValues>,
+                                        &mut StyleSharingCandidateCache,
                                       parent: Option<Self::ConcreteNode>)
                                       -> StyleSharingResult<<Self::ConcreteNode as TNode>::ConcreteRestyleDamage> {
         if opts::get().disable_share_style_cache {
@@ -674,7 +671,7 @@ pub trait MatchMethods : TNode {
                                     parent: Option<Self>,
                                     applicable_declarations:
                                      &ApplicableDeclarations<<Self::ConcreteElement as Element>::Impl>)
-    where <Self::ConcreteElement as Element>::Impl: SelectorImplExt<ComputedValues = Self::ConcreteComputedValues>,
+    where <Self::ConcreteElement as Element>::Impl: SelectorImplExt,
           Ctx: StyleContext<'a, <Self::ConcreteElement as Element>::Impl>
     {
         // Get our parent's style. This must be unsafe so that we don't touch the parent's
@@ -697,7 +694,7 @@ pub trait MatchMethods : TNode {
         if self.is_text_node() {
             let mut data_ref = self.mutate_data().unwrap();
             let mut data = &mut *data_ref;
-            let cloned_parent_style = Self::ConcreteComputedValues::style_for_child_text_node(parent_style.unwrap());
+            let cloned_parent_style = ComputedValuesStruct::style_for_child_text_node(parent_style.unwrap());
             damage = Self::ConcreteRestyleDamage::compute(data.style.as_ref(),
                                                           &*cloned_parent_style);
             data.style = Some(cloned_parent_style);

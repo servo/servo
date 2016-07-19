@@ -105,7 +105,6 @@ use style::error_reporting::ParseErrorReporter;
 use style::logical_geometry::LogicalPoint;
 use style::media_queries::{Device, MediaType};
 use style::parallel::WorkQueueData;
-use style::properties::ComputedValues;
 use style::refcell::RefCell;
 use style::servo::{Animation, LocalStyleContextCreationInfo, SharedStyleContext, Stylesheet, Stylist};
 use style::servo_selector_impl::USER_OR_USER_AGENT_STYLESHEETS;

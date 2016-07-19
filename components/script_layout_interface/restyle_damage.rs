@@ -6,7 +6,7 @@ use std::fmt;
 use std::sync::Arc;
 use style::computed_values::display;
 use style::dom::TRestyleDamage;
-use style::properties::{ComputedValues, ServoComputedValues};
+use style::properties::ServoComputedValues;
 
 bitflags! {
     #[doc = "Individual layout actions that may be necessary after restyling."]
@@ -44,7 +44,6 @@ bitflags! {
 }
 
 impl TRestyleDamage for RestyleDamage {
-    type ConcreteComputedValues = ServoComputedValues;
     fn compute(old: Option<&Arc<ServoComputedValues>>, new: &ServoComputedValues) ->
         RestyleDamage { compute_damage(old, new) }
 

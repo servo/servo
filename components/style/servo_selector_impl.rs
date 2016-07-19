@@ -5,7 +5,6 @@
 use element_state::ElementState;
 use error_reporting::StdoutErrorReporter;
 use parser::ParserContextExtraData;
-use properties::ServoComputedValues;
 use selector_impl::{SelectorImplExt, ElementExt, PseudoElementCascadeType};
 use selectors::Element;
 use selectors::parser::{ParserContext, SelectorImpl};
@@ -154,8 +153,6 @@ impl SelectorImpl for ServoSelectorImpl {
 }
 
 impl SelectorImplExt for ServoSelectorImpl {
-    type ComputedValues = ServoComputedValues;
-
     #[inline]
     fn pseudo_element_cascade_type(pseudo: &PseudoElement) -> PseudoElementCascadeType {
         pseudo.cascade_type()

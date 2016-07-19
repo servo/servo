@@ -9,7 +9,7 @@ use element_state::*;
 use error_reporting::StdoutErrorReporter;
 use keyframes::KeyframesAnimation;
 use media_queries::{Device, MediaType};
-use properties::{self, PropertyDeclaration, PropertyDeclarationBlock};
+use properties::{self, PropertyDeclaration, PropertyDeclarationBlock, ComputedValuesStruct};
 use restyle_hints::{ElementSnapshot, RestyleHint, DependencySet};
 use selector_impl::SelectorImplExt;
 use selectors::bloom::BloomFilter;
@@ -231,8 +231,8 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
     /// universal rules and applying them.
     pub fn precomputed_values_for_pseudo(&self,
                                          pseudo: &Impl::PseudoElement,
-                                         parent: Option<&Arc<Impl::ComputedValues>>)
-                                         -> Option<Arc<Impl::ComputedValues>> {
+                                         parent: Option<&Arc<ComputedValuesStruct>>)
+                                         -> Option<Arc<ComputedValuesStruct>> {
         debug_assert!(Impl::pseudo_element_cascade_type(pseudo).is_precomputed());
         if let Some(declarations) = self.precomputed_pseudo_element_decls.get(pseudo) {
             let (computed, _) =
@@ -250,8 +250,8 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
     pub fn lazily_compute_pseudo_element_style<E>(&self,
                                                   element: &E,
                                                   pseudo: &Impl::PseudoElement,
-                                                  parent: &Arc<Impl::ComputedValues>)
-                                                  -> Option<Arc<Impl::ComputedValues>>
+                                                  parent: &Arc<ComputedValuesStruct>)
+                                                  -> Option<Arc<ComputedValuesStruct>>
                                                   where E: Element<Impl=Impl, AttrString=Impl::AttrString> +
                                                         PresentationalHintsSynthetizer {
         debug_assert!(Impl::pseudo_element_cascade_type(pseudo).is_lazy());
