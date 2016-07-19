@@ -13,9 +13,12 @@ use gecko_bindings::bindings::{RawServoStyleSet, RawServoStyleSheet, ServoComput
 use gecko_bindings::bindings::{ServoDeclarationBlock, ServoNodeData, ThreadSafePrincipalHolder};
 use gecko_bindings::bindings::{ThreadSafeURIHolder, nsHTMLCSSStyleSheet};
 use gecko_bindings::ptr::{GeckoArcPrincipal, GeckoArcURI};
+use gecko_bindings::structs::ServoElementSnapshot;
+use gecko_bindings::structs::nsRestyleHint;
 use gecko_bindings::structs::{SheetParsingMode, nsIAtom};
 use properties::GeckoComputedValues;
 use selector_impl::{GeckoSelectorImpl, PseudoElement, SharedStyleContext, Stylesheet};
+use snapshot::GeckoElementSnapshot;
 use std::marker::PhantomData;
 use std::mem::{forget, transmute};
 use std::ptr;
@@ -485,4 +488,23 @@ pub extern "C" fn Servo_CSSSupports(property: *const u8, property_length: u32,
         Ok(decls) => !decls.is_empty(),
         Err(()) => false,
     }
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_ComputeRestyleHint(element: *mut RawGeckoElement,
+                                           snapshot: *mut ServoElementSnapshot,
+                                           raw_data: *mut RawServoStyleSet) -> nsRestyleHint {
+    let per_doc_data = unsafe { &mut *(raw_data as *mut PerDocumentStyleData) };
+    let snapshot = unsafe { GeckoElementSnapshot::from_raw(snapshot) };
+    let element = unsafe { GeckoElement::from_raw(element) };
+
+    // NB: This involves an FFI call, we can take rid of it easily if needed.
+    let current_state = element.get_state();
+
+    let hint = per_doc_data.stylist
+                           .compute_restyle_hint(&element, &snapshot,
+                                                 current_state);
+
+    // NB: Binaries representation match.
+    unsafe { transmute(hint.bits() as u32) }
 }

@@ -24,6 +24,7 @@ extern crate util;
 
 mod context;
 mod data;
+mod snapshot;
 #[allow(non_snake_case)]
 pub mod glue;
 mod selector_impl;

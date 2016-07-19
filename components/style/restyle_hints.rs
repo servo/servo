@@ -395,7 +395,7 @@ impl<Impl: SelectorImplExt> DependencySet<Impl> {
     where E: Element<Impl = Impl, AttrString = Impl::AttrString> + Clone,
           E: ElementExt
     {
-        let state_changes = snapshot.state().map_or(ElementState::empty(), |old_state| current_state ^ old_state);
+        let state_changes = snapshot.state().map_or_else(ElementState::empty, |old_state| current_state ^ old_state);
         let attrs_changed = snapshot.has_attrs();
         let mut hint = RestyleHint::empty();
         for dep in &self.deps {
