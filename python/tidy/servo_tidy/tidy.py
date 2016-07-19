@@ -642,21 +642,23 @@ def check_wpt_lint_errors(files):
             yield ("WPT Lint Tool", "", "lint error(s) in Web Platform Tests: exit status {0}".format(returncode))
 
 
-def check_dep_license_errors(progress):
-    for root, directories, filenames in os.walk(".cargo"):
-        if progress:
-            filenames = progress_wrapper(filenames)
-        for filename in filenames:
-            if filename == "Cargo.toml":
-                filename = os.path.join(root, filename)
-                with open(filename, "r") as f:
-                    ok_licensed = False
-                    lines = f.read().splitlines(True)
-                    for idx, line in enumerate(lines):
-                        for license in licenses_dep_toml:
-                            ok_licensed |= (license in line)
-                    if not ok_licensed:
-                        yield (filename, 0, "dependency should contain a valid license.")
+def check_dep_license_errors(only_changed_files=False, progress=True):
+    if not only_changed_files:
+        print '\nRunning the dependency licensing lint...'
+        for root, directories, filenames in os.walk(".cargo"):
+            if progress:
+                filenames = progress_wrapper(filenames)
+                for filename in filenames:
+                    if filename == "Cargo.toml":
+                        filename = os.path.join(root, filename)
+                        with open(filename, "r") as f:
+                            ok_licensed = False
+                            lines = f.readlines()
+                            for idx, line in enumerate(lines):
+                                for license_line in licenses_dep_toml:
+                                    ok_licensed |= (license_line in line)
+                            if not ok_licensed:
+                                yield (filename, 0, "dependency should contain a valid license.")
 
 
 def get_file_list(directory, only_changed_files=False, exclude_dirs=[]):
@@ -693,7 +695,7 @@ def scan(only_changed_files=False, progress=True):
     # wpt lint checks
     wpt_lint_errors = check_wpt_lint_errors(get_wpt_files(only_changed_files, progress))
     # check dependecy licenses
-    dep_license_errors = check_dep_license_errors(progress)
+    dep_license_errors = check_dep_license_errors(only_changed_files, progress)
     # collect errors
     errors = itertools.chain(errors, wpt_lint_errors, dep_license_errors)
     error = None
