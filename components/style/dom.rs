@@ -9,7 +9,7 @@
 use context::SharedStyleContext;
 use data::PrivateStyleData;
 use element_state::ElementState;
-use properties::{ComputedValuesStruct, PropertyDeclaration, PropertyDeclarationBlock};
+use properties::{ComputedValues, PropertyDeclaration, PropertyDeclarationBlock};
 use refcell::{Ref, RefMut};
 use restyle_hints::{ElementSnapshot, RESTYLE_DESCENDANTS, RESTYLE_LATER_SIBLINGS, RESTYLE_SELF, RestyleHint};
 use selector_impl::{ElementExt, SelectorImplExt};
@@ -46,7 +46,7 @@ impl OpaqueNode {
 }
 
 pub trait TRestyleDamage : BitOr<Output=Self> + Copy {
-    fn compute(old: Option<&Arc<ComputedValuesStruct>>, new: &ComputedValuesStruct) -> Self;
+    fn compute(old: Option<&Arc<ComputedValues>>, new: &ComputedValues) -> Self;
     fn rebuild_and_reflow() -> Self;
 }
 
@@ -178,7 +178,7 @@ pub trait TNode : Sized + Copy + Clone {
     /// has not yet been performed, fails.
     fn style(&self,
              _context: &SharedStyleContext<<Self::ConcreteElement as Element>::Impl>)
-        -> Ref<Arc<ComputedValuesStruct>>
+        -> Ref<Arc<ComputedValues>>
         where <Self::ConcreteElement as Element>::Impl: SelectorImplExt {
         Ref::map(self.borrow_data().unwrap(), |data| data.style.as_ref().unwrap())
     }

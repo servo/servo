@@ -45,7 +45,7 @@ pub mod style_structs {
 }
 
 #[derive(Clone, Debug)]
-pub struct ComputedValuesStruct {
+pub struct ComputedValues {
     % for style_struct in data.style_structs:
     ${style_struct.ident}: Arc<style_structs::${style_struct.name}>,
     % endfor
@@ -56,9 +56,9 @@ pub struct ComputedValuesStruct {
     pub root_font_size: Au,
 }
 
-impl ComputedValuesStruct {
+impl ComputedValues {
     pub fn inherit_from(parent: &Arc<Self>) -> Arc<Self> {
-        Arc::new(ComputedValuesStruct {
+        Arc::new(ComputedValues {
             custom_properties: parent.custom_properties.clone(),
             shareable: parent.shareable,
             writing_mode: parent.writing_mode,
@@ -81,7 +81,7 @@ impl ComputedValuesStruct {
            ${style_struct.ident}: Arc<style_structs::${style_struct.name}>,
             % endfor
     ) -> Self {
-        ComputedValuesStruct {
+        ComputedValues {
             custom_properties: custom_properties,
             shareable: shareable,
             writing_mode: writing_mode,
@@ -96,7 +96,7 @@ impl ComputedValuesStruct {
         // Gecko expects text nodes to be styled as if they were elements that
         // matched no rules (that is, inherited style structs are inherited and
         // non-inherited style structs are set to their initial values).
-        ComputedValuesStruct::inherit_from(parent)
+        ComputedValues::inherit_from(parent)
     }
 
     pub fn initial_values() -> &'static Self { &*INITIAL_GECKO_VALUES }
@@ -1291,7 +1291,7 @@ fn static_assert() {
 #[allow(non_snake_case, unused_variables)]
 pub extern "C" fn Servo_GetStyle${style_struct.gecko_name}(computed_values: *mut bindings::ServoComputedValues)
   -> *const ${style_struct.gecko_ffi_name} {
-    type Helpers = ArcHelpers<bindings::ServoComputedValues, ComputedValuesStruct>;
+    type Helpers = ArcHelpers<bindings::ServoComputedValues, ComputedValues>;
     Helpers::with(computed_values, |values| values.get_${style_struct.name_lower}().get_gecko()
                                                 as *const ${style_struct.gecko_ffi_name})
 }
@@ -1307,7 +1307,7 @@ ${define_ffi_struct_accessor(style_struct)}
 % endfor
 
 lazy_static! {
-    pub static ref INITIAL_GECKO_VALUES: ComputedValuesStruct = ComputedValuesStruct {
+    pub static ref INITIAL_GECKO_VALUES: ComputedValues = ComputedValues {
         % for style_struct in data.style_structs:
            ${style_struct.ident}: style_structs::${style_struct.name}::initial(),
         % endfor

@@ -15,7 +15,7 @@ use properties::longhands::animation_iteration_count::computed_value::AnimationI
 use properties::longhands::animation_play_state::computed_value::AnimationPlayState;
 use properties::longhands::transition_timing_function::computed_value::StartEnd;
 use properties::longhands::transition_timing_function::computed_value::TransitionTimingFunction;
-use properties::{self, ComputedValuesStruct};
+use properties::{self, ComputedValues};
 use selector_impl::SelectorImplExt;
 use selectors::matching::DeclarationBlock;
 use std::sync::Arc;
@@ -71,7 +71,7 @@ pub struct KeyframesAnimationState {
     pub expired: bool,
     /// The original cascade style, needed to compute the generated keyframes of
     /// the animation.
-    pub cascade_style: Arc<ComputedValuesStruct>,
+    pub cascade_style: Arc<ComputedValues>,
 }
 
 impl KeyframesAnimationState {
@@ -249,8 +249,8 @@ impl PropertyAnimation {
     /// Any number of animations may be returned, from zero (if the property did not animate) to
     /// one (for a single transition property) to arbitrarily many (for `all`).
     pub fn from_transition(transition_index: usize,
-                           old_style: &ComputedValuesStruct,
-                           new_style: &mut ComputedValuesStruct)
+                           old_style: &ComputedValues,
+                           new_style: &mut ComputedValues)
                            -> Vec<PropertyAnimation> {
         let mut result = vec![];
         let box_style = new_style.get_box();
@@ -288,8 +288,8 @@ impl PropertyAnimation {
     fn from_transition_property(transition_property: TransitionProperty,
                                 timing_function: TransitionTimingFunction,
                                 duration: Time,
-                                old_style: &ComputedValuesStruct,
-                                new_style: &ComputedValuesStruct)
+                                old_style: &ComputedValues,
+                                new_style: &ComputedValues)
                                 -> Option<PropertyAnimation> {
         let animated_property = AnimatedProperty::from_transition_property(&transition_property,
                                                                            old_style,
@@ -308,7 +308,7 @@ impl PropertyAnimation {
         }
     }
 
-    pub fn update(&self, style: &mut ComputedValuesStruct, time: f64) {
+    pub fn update(&self, style: &mut ComputedValues, time: f64) {
         let progress = match self.timing_function {
             TransitionTimingFunction::CubicBezier(p1, p2) => {
                 // See `WebCore::AnimationBase::solveEpsilon(double)` in WebKit.
@@ -341,8 +341,8 @@ impl PropertyAnimation {
 // cloneable part and a non-cloneable part..
 pub fn start_transitions_if_applicable<Impl: SelectorImplExt>(new_animations_sender: &Sender<Animation>,
                                                               node: OpaqueNode,
-                                                              old_style: &ComputedValuesStruct,
-                                                              new_style: &mut Arc<ComputedValuesStruct>)
+                                                              old_style: &ComputedValues,
+                                                              new_style: &mut Arc<ComputedValues>)
                                                               -> bool {
     let mut had_animations = false;
     for i in 0..new_style.get_box().transition_property_count() {
@@ -374,9 +374,9 @@ pub fn start_transitions_if_applicable<Impl: SelectorImplExt>(new_animations_sen
 
 fn compute_style_for_animation_step<Impl: SelectorImplExt>(context: &SharedStyleContext<Impl>,
                                                            step: &KeyframesStep,
-                                                           previous_style: &ComputedValuesStruct,
-                                                           style_from_cascade: &ComputedValuesStruct)
-                                                           -> ComputedValuesStruct {
+                                                           previous_style: &ComputedValues,
+                                                           style_from_cascade: &ComputedValues)
+                                                           -> ComputedValues {
     match step.value {
         // TODO: avoiding this spurious clone might involve having to create
         // an Arc in the below (more common case).
@@ -401,7 +401,7 @@ fn compute_style_for_animation_step<Impl: SelectorImplExt>(context: &SharedStyle
 pub fn maybe_start_animations<Impl: SelectorImplExt>(context: &SharedStyleContext<Impl>,
                                                      new_animations_sender: &Sender<Animation>,
                                                      node: OpaqueNode,
-                                                     new_style: &Arc<ComputedValuesStruct>) -> bool
+                                                     new_style: &Arc<ComputedValues>) -> bool
 {
     let mut had_animations = false;
 
@@ -469,7 +469,7 @@ pub fn maybe_start_animations<Impl: SelectorImplExt>(context: &SharedStyleContex
 
 /// Updates a given computed style for a given animation frame. Returns a bool
 /// representing if the style was indeed updated.
-pub fn update_style_for_animation_frame(mut new_style: &mut Arc<ComputedValuesStruct>,
+pub fn update_style_for_animation_frame(mut new_style: &mut Arc<ComputedValues>,
                                         now: f64,
                                         start_time: f64,
                                         frame: &AnimationFrame) -> bool {
@@ -490,7 +490,7 @@ pub fn update_style_for_animation_frame(mut new_style: &mut Arc<ComputedValuesSt
 /// If `damage` is provided, inserts the appropriate restyle damage.
 pub fn update_style_for_animation<Damage, Impl>(context: &SharedStyleContext<Impl>,
                                                 animation: &Animation,
-                                                style: &mut Arc<ComputedValuesStruct>,
+                                                style: &mut Arc<ComputedValues>,
                                                 damage: Option<&mut Damage>)
 where Impl: SelectorImplExt,
       Damage: TRestyleDamage {

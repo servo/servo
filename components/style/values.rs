@@ -1657,7 +1657,7 @@ pub mod specified {
 pub mod computed {
     use app_units::Au;
     use euclid::size::Size2D;
-    use properties::ComputedValuesStruct;
+    use properties::ComputedValues;
     use std::fmt;
     use super::LocalToCss;
     use super::specified::AngleOrCorner;
@@ -1669,19 +1669,19 @@ pub mod computed {
     pub struct Context<'a> {
         pub is_root_element: bool,
         pub viewport_size: Size2D<Au>,
-        pub inherited_style: &'a ComputedValuesStruct,
+        pub inherited_style: &'a ComputedValues,
 
         /// Values access through this need to be in the properties "computed early":
         /// color, text-decoration, font-size, display, position, float, border-*-style, outline-style
-        pub style: ComputedValuesStruct,
+        pub style: ComputedValues,
     }
 
     impl<'a> Context<'a> {
         pub fn is_root_element(&self) -> bool { self.is_root_element }
         pub fn viewport_size(&self) -> Size2D<Au> { self.viewport_size }
-        pub fn inherited_style(&self) -> &ComputedValuesStruct { &self.inherited_style }
-        pub fn style(&self) -> &ComputedValuesStruct { &self.style }
-        pub fn mutate_style(&mut self) -> &mut ComputedValuesStruct { &mut self.style }
+        pub fn inherited_style(&self) -> &ComputedValues { &self.inherited_style }
+        pub fn style(&self) -> &ComputedValues { &self.style }
+        pub fn mutate_style(&mut self) -> &mut ComputedValues { &mut self.style }
     }
 
     pub trait ToComputedValue {

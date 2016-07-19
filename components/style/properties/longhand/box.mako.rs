@@ -77,7 +77,7 @@
 
     % if product == "servo":
         fn cascade_property_custom(_declaration: &PropertyDeclaration,
-                                   _inherited_style: &ComputedValuesStruct,
+                                   _inherited_style: &ComputedValues,
                                    context: &mut computed::Context,
                                    _seen: &mut PropertyBitField,
                                    _cacheable: &mut bool,
