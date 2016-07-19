@@ -10,6 +10,7 @@
 %>
 
 use app_units::Au;
+use custom_properties::ComputedValuesMap;
 % for style_struct in data.style_structs:
 use gecko_bindings::structs::${style_struct.gecko_ffi_name};
 use gecko_bindings::bindings::Gecko_Construct_${style_struct.gecko_ffi_name};
@@ -24,19 +25,18 @@ use gecko_bindings::bindings::{Gecko_CopyImageValueFrom, Gecko_CopyFontFamilyFro
 use gecko_bindings::bindings::{Gecko_FontFamilyList_AppendGeneric, Gecko_FontFamilyList_AppendNamed};
 use gecko_bindings::bindings::{Gecko_FontFamilyList_Clear, Gecko_InitializeImageLayer};
 use gecko_bindings::structs;
-use glue::ArcHelpers;
+use gecko_glue::ArcHelpers;
+use gecko_values::{StyleCoordHelpers, GeckoStyleCoordConvertible, convert_nscolor_to_rgba};
+use gecko_values::{convert_rgba_to_nscolor, debug_assert_unit_is_safe_to_copy};
+use gecko_values::round_border_to_device_pixels;
+use logical_geometry::WritingMode;
+use properties::{CascadePropertyFn, ServoComputedValues, ComputedValues};
+use properties::longhands;
+use properties::style_struct_traits::*;
 use std::fmt::{self, Debug};
 use std::mem::{transmute, uninitialized, zeroed};
 use std::sync::Arc;
 use std::cmp;
-use style::custom_properties::ComputedValuesMap;
-use style::logical_geometry::WritingMode;
-use style::properties::{CascadePropertyFn, ServoComputedValues, ComputedValues};
-use style::properties::longhands;
-use style::properties::style_struct_traits::*;
-use values::{StyleCoordHelpers, GeckoStyleCoordConvertible, convert_nscolor_to_rgba};
-use values::{convert_rgba_to_nscolor, debug_assert_unit_is_safe_to_copy};
-use values::round_border_to_device_pixels;
 
 #[derive(Clone, Debug)]
 pub struct GeckoComputedValues {
@@ -181,7 +181,7 @@ def set_gecko_property(ffi_name, expr):
 
 <%def name="impl_keyword_setter(ident, gecko_ffi_name, keyword)">
     fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
-        use style::properties::longhands::${ident}::computed_value::T as Keyword;
+        use properties::longhands::${ident}::computed_value::T as Keyword;
         // FIXME(bholley): Align binary representations and ditch |match| for cast + static_asserts
         let result = match v {
             % for value in keyword.values_for('gecko'):
@@ -194,7 +194,7 @@ def set_gecko_property(ffi_name, expr):
 
 <%def name="impl_keyword_clone(ident, gecko_ffi_name, keyword)">
     fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
-        use style::properties::longhands::${ident}::computed_value::T as Keyword;
+        use properties::longhands::${ident}::computed_value::T as Keyword;
         // FIXME(bholley): Align binary representations and ditch |match| for cast + static_asserts
         match ${get_gecko_property(gecko_ffi_name)} as u32 {
             % for value in keyword.values_for('gecko'):
@@ -323,7 +323,7 @@ def set_gecko_property(ffi_name, expr):
     }
     % if need_clone:
         fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
-            use style::properties::longhands::${ident}::computed_value::T;
+            use properties::longhands::${ident}::computed_value::T;
             T::from_gecko_style_coord(&self.gecko.${unit_ffi_name},
                                       &self.gecko.${union_ffi_name})
                 .expect("clone for ${ident} failed")
@@ -356,7 +356,7 @@ ${impl_split_style_coord(ident,
     }
     % if need_clone:
         fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
-            use style::properties::longhands::${ident}::computed_value::T;
+            use properties::longhands::${ident}::computed_value::T;
             use euclid::Size2D;
             let width = GeckoStyleCoordConvertible::from_gecko_style_coord(&self.gecko.${x_unit_ffi_name},
                                                                            &self.gecko.${x_union_ffi_name})
@@ -620,7 +620,7 @@ fn static_assert() {
     % endfor
 
     fn set_z_index(&mut self, v: longhands::z_index::computed_value::T) {
-        use style::properties::longhands::z_index::computed_value::T;
+        use properties::longhands::z_index::computed_value::T;
         match v {
             T::Auto => self.gecko.mZIndex.set_auto(),
             T::Number(n) => self.gecko.mZIndex.set_int(n),
@@ -634,7 +634,7 @@ fn static_assert() {
     }
 
     fn clone_z_index(&self) -> longhands::z_index::computed_value::T {
-        use style::properties::longhands::z_index::computed_value::T;
+        use properties::longhands::z_index::computed_value::T;
 
         if self.gecko.mZIndex.is_auto() {
             return T::Auto;
@@ -645,7 +645,7 @@ fn static_assert() {
     }
 
     fn set_box_sizing(&mut self, v: longhands::box_sizing::computed_value::T) {
-        use style::computed_values::box_sizing::T;
+        use computed_values::box_sizing::T;
         use gecko_bindings::structs::StyleBoxSizing;
         // TODO: guess what to do with box-sizing: padding-box
         self.gecko.mBoxSizing = match v {
@@ -689,7 +689,7 @@ fn static_assert() {
     skip_additionals="*">
 
     fn set_font_family(&mut self, v: longhands::font_family::computed_value::T) {
-        use style::properties::longhands::font_family::computed_value::FontFamily;
+        use properties::longhands::font_family::computed_value::FontFamily;
         use gecko_bindings::structs::FontFamilyType;
 
         let list = &mut self.gecko.mFont.fontlist;
@@ -769,7 +769,7 @@ fn static_assert() {
     // We could generalize this if we run into other newtype keywords.
     <% overflow_x = data.longhands_by_name["overflow-x"] %>
     fn set_overflow_y(&mut self, v: longhands::overflow_y::computed_value::T) {
-        use style::properties::longhands::overflow_x::computed_value::T as BaseType;
+        use properties::longhands::overflow_x::computed_value::T as BaseType;
         // FIXME(bholley): Align binary representations and ditch |match| for cast + static_asserts
         self.gecko.mOverflowY = match v.0 {
             % for value in overflow_x.keyword.values_for('gecko'):
@@ -779,8 +779,8 @@ fn static_assert() {
     }
     ${impl_simple_copy('overflow_y', 'mOverflowY')}
     fn clone_overflow_y(&self) -> longhands::overflow_y::computed_value::T {
-        use style::properties::longhands::overflow_x::computed_value::T as BaseType;
-        use style::properties::longhands::overflow_y::computed_value::T as NewType;
+        use properties::longhands::overflow_x::computed_value::T as BaseType;
+        use properties::longhands::overflow_y::computed_value::T as NewType;
         // FIXME(bholley): Align binary representations and ditch |match| for cast + static_asserts
         match self.gecko.mOverflowY as u32 {
             % for value in overflow_x.keyword.values_for('gecko'):
@@ -792,7 +792,7 @@ fn static_assert() {
 
     fn set_vertical_align(&mut self, v: longhands::vertical_align::computed_value::T) {
         <% keyword = data.longhands_by_name["vertical-align"].keyword %>
-        use style::properties::longhands::vertical_align::computed_value::T;
+        use properties::longhands::vertical_align::computed_value::T;
         // FIXME: Align binary representations and ditch |match| for cast + static_asserts
         match v {
             % for value in keyword.values_for('gecko'):
@@ -804,8 +804,8 @@ fn static_assert() {
     }
 
     fn clone_vertical_align(&self) -> longhands::vertical_align::computed_value::T {
-        use style::properties::longhands::vertical_align::computed_value::T;
-        use style::values::computed::LengthOrPercentage;
+        use properties::longhands::vertical_align::computed_value::T;
+        use values::computed::LengthOrPercentage;
 
         if self.gecko.mVerticalAlign.is_enum() {
             match self.gecko.mVerticalAlign.get_enum() as u32 {
@@ -826,7 +826,7 @@ fn static_assert() {
     <%call expr="impl_coord_copy('vertical_align', 'mVerticalAlign')"></%call>
 
     fn set__moz_binding(&mut self, v: longhands::_moz_binding::computed_value::T) {
-        use style::properties::longhands::_moz_binding::SpecifiedValue as BindingValue;
+        use properties::longhands::_moz_binding::SpecifiedValue as BindingValue;
         match v {
             BindingValue::None => debug_assert!(self.gecko.mBinding.mRawPtr.is_null()),
             BindingValue::Url(ref url, ref extra_data) => {
@@ -850,7 +850,7 @@ fn static_assert() {
     // "A conforming user agent may interpret the values 'left' and 'right'
     // as 'always'." - CSS2.1, section 13.3.1
     fn set_page_break_before(&mut self, v: longhands::page_break_before::computed_value::T) {
-        use style::computed_values::page_break_before::T;
+        use computed_values::page_break_before::T;
         let result = match v {
             T::auto   => false,
             T::always => true,
@@ -867,7 +867,7 @@ fn static_assert() {
     // Temp fix for Bugzilla bug 24000.
     // See set_page_break_before for detail.
     fn set_page_break_after(&mut self, v: longhands::page_break_after::computed_value::T) {
-        use style::computed_values::page_break_after::T;
+        use computed_values::page_break_after::T;
         let result = match v {
             T::auto   => false,
             T::always => true,
@@ -902,7 +902,7 @@ fn static_assert() {
     }
 
     fn set_background_repeat(&mut self, v: longhands::background_repeat::computed_value::T) {
-        use style::properties::longhands::background_repeat::computed_value::T;
+        use properties::longhands::background_repeat::computed_value::T;
         use gecko_bindings::structs::{NS_STYLE_IMAGELAYER_REPEAT_REPEAT, NS_STYLE_IMAGELAYER_REPEAT_NO_REPEAT};
         use gecko_bindings::structs::nsStyleImageLayers_Repeat;
         let (repeat_x, repeat_y) = match v {
@@ -930,7 +930,7 @@ fn static_assert() {
     }
 
     fn set_background_clip(&mut self, v: longhands::background_clip::computed_value::T) {
-        use style::properties::longhands::background_clip::computed_value::T;
+        use properties::longhands::background_clip::computed_value::T;
         self.gecko.mImage.mClipCount = 1;
 
         // TODO: Gecko supports background-clip: text, but just on -webkit-
@@ -949,7 +949,7 @@ fn static_assert() {
     }
 
     fn set_background_origin(&mut self, v: longhands::background_origin::computed_value::T) {
-        use style::properties::longhands::background_origin::computed_value::T;
+        use properties::longhands::background_origin::computed_value::T;
 
         self.gecko.mImage.mOriginCount = 1;
         self.gecko.mImage.mLayers.mFirstElement.mOrigin = match v {
@@ -966,7 +966,7 @@ fn static_assert() {
     }
 
     fn set_background_attachment(&mut self, v: longhands::background_attachment::computed_value::T) {
-        use style::properties::longhands::background_attachment::computed_value::T;
+        use properties::longhands::background_attachment::computed_value::T;
 
         self.gecko.mImage.mAttachmentCount = 1;
         self.gecko.mImage.mLayers.mFirstElement.mAttachment = match v {
@@ -987,8 +987,8 @@ fn static_assert() {
         use gecko_bindings::structs::nsStyleImageLayers_LayerType as LayerType;
         use gecko_bindings::structs::{NS_STYLE_GRADIENT_SHAPE_LINEAR, NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER};
         use gecko_bindings::structs::nsStyleCoord;
-        use style::values::computed::Image;
-        use style::values::specified::AngleOrCorner;
+        use values::computed::Image;
+        use values::specified::AngleOrCorner;
         use cssparser::Color as CSSColor;
 
         unsafe {
@@ -1099,7 +1099,7 @@ fn static_assert() {
     ${impl_keyword('text_align', 'mTextAlign', text_align_keyword, need_clone=False)}
 
     fn set_line_height(&mut self, v: longhands::line_height::computed_value::T) {
-        use style::properties::longhands::line_height::computed_value::T;
+        use properties::longhands::line_height::computed_value::T;
         // FIXME: Align binary representations and ditch |match| for cast + static_asserts
         match v {
             T::Normal => self.gecko.mLineHeight.set_normal(),
@@ -1111,7 +1111,7 @@ fn static_assert() {
     }
 
     fn clone_line_height(&self) -> longhands::line_height::computed_value::T {
-        use style::properties::longhands::line_height::computed_value::T;
+        use properties::longhands::line_height::computed_value::T;
         if self.gecko.mLineHeight.is_normal() {
             return T::Normal;
         }
@@ -1199,7 +1199,7 @@ fn static_assert() {
 <%self:impl_trait style_struct_name="Pointing"
                   skip_longhands="cursor">
     fn set_cursor(&mut self, v: longhands::cursor::computed_value::T) {
-        use style::properties::longhands::cursor::computed_value::T;
+        use properties::longhands::cursor::computed_value::T;
         use style_traits::cursor::Cursor;
 
         self.gecko.mCursor = match v {

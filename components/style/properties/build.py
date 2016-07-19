@@ -18,7 +18,7 @@ import data
 
 
 def main():
-    usage = "Usage: %s [ servo | gecko ] [ style-crate | geckolib | html ]" % sys.argv[0]
+    usage = "Usage: %s [ servo | gecko ] [ style-crate | html ]" % sys.argv[0]
     if len(sys.argv) < 3:
         abort(usage)
     product = sys.argv[1]
@@ -30,10 +30,10 @@ def main():
     rust = render(os.path.join(BASE, "properties.mako.rs"), product=product, data=properties)
     if output == "style-crate":
         write(os.environ["OUT_DIR"], "properties.rs", rust)
-    if output == "geckolib":
-        template = os.path.join(BASE, "..", "..", "..", "ports", "geckolib", "properties.mako.rs")
-        rust = render(template, data=properties)
-        write(os.environ["OUT_DIR"], "properties.rs", rust)
+        if product == "gecko":
+            template = os.path.join(BASE, "gecko.mako.rs")
+            rust = render(template, data=properties)
+            write(os.environ["OUT_DIR"], "gecko_properties.rs", rust)
     elif output == "html":
         write_html(properties)
 

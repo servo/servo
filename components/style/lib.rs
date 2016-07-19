@@ -82,6 +82,7 @@ pub mod element_state;
 pub mod error_reporting;
 pub mod font_face;
 #[cfg(feature = "gecko")] pub mod gecko_values;
+#[cfg(feature = "gecko")] pub mod gecko_glue;
 pub mod keyframes;
 pub mod logical_geometry;
 pub mod matching;
@@ -113,6 +114,12 @@ use std::sync::Arc;
 #[allow(unsafe_code)]
 pub mod properties {
     include!(concat!(env!("OUT_DIR"), "/properties.rs"));
+}
+
+#[cfg(feature = "gecko")]
+#[allow(unsafe_code)]
+pub mod gecko_properties {
+    include!(concat!(env!("OUT_DIR"), "/gecko_properties.rs"));
 }
 
 macro_rules! reexport_computed_values {
