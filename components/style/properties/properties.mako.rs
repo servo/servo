@@ -1242,14 +1242,14 @@ pub mod style_structs {
 
 
 #[cfg(feature = "gecko")]
-pub use gecko_properties::ComputedValuesStruct;
+pub use gecko_properties::ComputedValues;
 
 #[cfg(feature = "servo")]
-pub type ServoComputedValues = ComputedValuesStruct;
+pub type ServoComputedValues = ComputedValues;
 
 #[cfg(feature = "servo")]
 #[cfg_attr(feature = "servo", derive(Clone, Debug, HeapSizeOf))]
-pub struct ComputedValuesStruct {
+pub struct ComputedValues {
     % for style_struct in data.active_style_structs():
         ${style_struct.ident}: Arc<style_structs::${style_struct.name}>,
     % endfor
@@ -1260,7 +1260,7 @@ pub struct ComputedValuesStruct {
 }
 
 #[cfg(feature = "servo")]
-impl ComputedValuesStruct {
+impl ComputedValues {
     pub fn new(custom_properties: Option<Arc<::custom_properties::ComputedValuesMap>>,
            shareable: bool,
            writing_mode: WritingMode,
@@ -1269,7 +1269,7 @@ impl ComputedValuesStruct {
            ${style_struct.ident}: Arc<style_structs::${style_struct.name}>,
         % endfor
     ) -> Self {
-        ComputedValuesStruct {
+        ComputedValues {
             custom_properties: custom_properties,
             shareable: shareable,
             writing_mode: writing_mode,
@@ -1562,11 +1562,11 @@ pub use self::lazy_static_module::INITIAL_SERVO_VALUES;
 mod lazy_static_module {
     use logical_geometry::WritingMode;
     use std::sync::Arc;
-    use super::{ComputedValuesStruct, longhands, style_structs};
+    use super::{ComputedValues, longhands, style_structs};
 
     /// The initial values for all style structs as defined by the specification.
     lazy_static! {
-        pub static ref INITIAL_SERVO_VALUES: ComputedValuesStruct = ComputedValuesStruct {
+        pub static ref INITIAL_SERVO_VALUES: ComputedValues = ComputedValues {
             % for style_struct in data.active_style_structs():
                 ${style_struct.ident}: Arc::new(style_structs::${style_struct.name} {
                     % for longhand in style_struct.longhands:
@@ -1591,16 +1591,16 @@ fn cascade_with_cached_declarations(
         viewport_size: Size2D<Au>,
         applicable_declarations: &[DeclarationBlock<Vec<PropertyDeclaration>>],
         shareable: bool,
-        parent_style: &ComputedValuesStruct,
-        cached_style: &ComputedValuesStruct,
+        parent_style: &ComputedValues,
+        cached_style: &ComputedValues,
         custom_properties: Option<Arc<::custom_properties::ComputedValuesMap>>,
         mut error_reporter: StdBox<ParseErrorReporter + Send>)
-        -> ComputedValuesStruct {
+        -> ComputedValues {
     let mut context = computed::Context {
         is_root_element: false,
         viewport_size: viewport_size,
         inherited_style: parent_style,
-        style: ComputedValuesStruct::new(
+        style: ComputedValues::new(
             custom_properties,
             shareable,
             WritingMode::empty(),
@@ -1693,7 +1693,7 @@ fn cascade_with_cached_declarations(
 
 pub type CascadePropertyFn =
     extern "Rust" fn(declaration: &PropertyDeclaration,
-                     inherited_style: &ComputedValuesStruct,
+                     inherited_style: &ComputedValues,
                      context: &mut computed::Context,
                      seen: &mut PropertyBitField,
                      cacheable: &mut bool,
@@ -1727,11 +1727,11 @@ static CASCADE_PROPERTY: [CascadePropertyFn; ${len(data.longhands)}] = [
 pub fn cascade(viewport_size: Size2D<Au>,
                applicable_declarations: &[DeclarationBlock<Vec<PropertyDeclaration>>],
                shareable: bool,
-               parent_style: Option<<&ComputedValuesStruct>,
-               cached_style: Option<<&ComputedValuesStruct>,
+               parent_style: Option<<&ComputedValues>,
+               cached_style: Option<<&ComputedValues>,
                mut error_reporter: StdBox<ParseErrorReporter + Send>)
-               -> (ComputedValuesStruct, bool) {
-    let initial_values = ComputedValuesStruct::initial_values();
+               -> (ComputedValues, bool) {
+    let initial_values = ComputedValues::initial_values();
     let (is_root_element, inherited_style) = match parent_style {
         Some(parent_style) => (false, parent_style),
         None => (true, initial_values),
@@ -1771,7 +1771,7 @@ pub fn cascade(viewport_size: Size2D<Au>,
         is_root_element: is_root_element,
         viewport_size: viewport_size,
         inherited_style: inherited_style,
-        style: ComputedValuesStruct::new(
+        style: ComputedValues::new(
             custom_properties,
             shareable,
             WritingMode::empty(),
@@ -1796,7 +1796,7 @@ pub fn cascade(viewport_size: Size2D<Au>,
     // We could (and used to) use a pattern match here, but that bloats this function to over 100K
     // of compiled code! To improve i-cache behavior, we outline the individual functions and use
     // virtual dispatch instead.
-    ComputedValuesStruct::do_cascade_property(|cascade_property| {
+    ComputedValues::do_cascade_property(|cascade_property| {
         % for category_to_cascade_now in ["early", "other"]:
             for sub_list in applicable_declarations.iter().rev() {
                 // Declarations are already stored in reverse order.
@@ -1941,7 +1941,7 @@ pub fn cascade(viewport_size: Size2D<Au>,
 }
 
 #[cfg(feature = "servo")]
-pub fn modify_style_for_anonymous_flow(style: &mut Arc<ComputedValuesStruct>,
+pub fn modify_style_for_anonymous_flow(style: &mut Arc<ComputedValues>,
                                       new_display_value: longhands::display::computed_value::T) {
     // The 'align-self' property needs some special treatment since
     // its value depends on the 'align-items' value of its parent.
@@ -1990,7 +1990,7 @@ pub fn modify_style_for_anonymous_flow(style: &mut Arc<ComputedValuesStruct>,
 /// FIXME(#5625, pcwalton): It would probably be cleaner and faster to do this in the cascade.
 #[cfg(feature = "servo")]
 #[inline]
-pub fn modify_style_for_replaced_content(style: &mut Arc<ComputedValuesStruct>) {
+pub fn modify_style_for_replaced_content(style: &mut Arc<ComputedValues>) {
     // Reset `position` to handle cases like `<div style="position: absolute">foo bar baz</div>`.
     if style.box_.display != longhands::display::computed_value::T::inline {
         let mut style = Arc::make_mut(style);
@@ -2027,10 +2027,10 @@ pub fn modify_style_for_replaced_content(style: &mut Arc<ComputedValuesStruct>) 
 /// not outermost.
 #[cfg(feature = "servo")]
 #[inline]
-pub fn modify_border_style_for_inline_sides(style: &mut Arc<ComputedValuesStruct>,
+pub fn modify_border_style_for_inline_sides(style: &mut Arc<ComputedValues>,
                                             is_first_fragment_of_element: bool,
                                             is_last_fragment_of_element: bool) {
-    fn modify_side(style: &mut Arc<ComputedValuesStruct>, side: PhysicalSide) {
+    fn modify_side(style: &mut Arc<ComputedValues>, side: PhysicalSide) {
         {
             let border = &style.border;
             let current_style = match side {
@@ -2080,7 +2080,7 @@ pub fn modify_border_style_for_inline_sides(style: &mut Arc<ComputedValuesStruct
 #[cfg(feature = "servo")]
 #[inline]
 pub fn modify_style_for_anonymous_table_object(
-        style: &mut Arc<ComputedValuesStruct>,
+        style: &mut Arc<ComputedValues>,
         new_display_value: longhands::display::computed_value::T) {
     let mut style = Arc::make_mut(style);
     let box_style = Arc::make_mut(&mut style.box_);
@@ -2091,7 +2091,7 @@ pub fn modify_style_for_anonymous_table_object(
 /// Adjusts the `position` property as necessary for the outer fragment wrapper of an inline-block.
 #[cfg(feature = "servo")]
 #[inline]
-pub fn modify_style_for_outer_inline_block_fragment(style: &mut Arc<ComputedValuesStruct>) {
+pub fn modify_style_for_outer_inline_block_fragment(style: &mut Arc<ComputedValues>) {
     let mut style = Arc::make_mut(style);
     let box_style = Arc::make_mut(&mut style.box_);
     box_style.position = longhands::position::computed_value::T::static_
@@ -2103,7 +2103,7 @@ pub fn modify_style_for_outer_inline_block_fragment(style: &mut Arc<ComputedValu
 /// itself relatively positioned.
 #[cfg(feature = "servo")]
 #[inline]
-pub fn modify_style_for_text(style: &mut Arc<ComputedValuesStruct>) {
+pub fn modify_style_for_text(style: &mut Arc<ComputedValues>) {
     if style.box_.position == longhands::position::computed_value::T::relative {
         // We leave the `position` property set to `relative` so that we'll still establish a
         // containing block if needed. But we reset all position offsets to `auto`.
@@ -2139,7 +2139,7 @@ pub fn modify_style_for_text(style: &mut Arc<ComputedValuesStruct>) {
 /// Margins apply to the `input` element itself, so including them in the text will cause them to
 /// be double-counted.
 #[cfg(feature = "servo")]
-pub fn modify_style_for_input_text(style: &mut Arc<ComputedValuesStruct>) {
+pub fn modify_style_for_input_text(style: &mut Arc<ComputedValues>) {
     let mut style = Arc::make_mut(style);
     let margin_style = Arc::make_mut(&mut style.margin);
     margin_style.margin_top = computed::LengthOrPercentageOrAuto::Length(Au(0));
@@ -2155,7 +2155,7 @@ pub fn modify_style_for_input_text(style: &mut Arc<ComputedValuesStruct>) {
 /// Adjusts the `clip` property so that an inline absolute hypothetical fragment doesn't clip its
 /// children.
 #[cfg(feature = "servo")]
-pub fn modify_style_for_inline_absolute_hypothetical_fragment(style: &mut Arc<ComputedValuesStruct>) {
+pub fn modify_style_for_inline_absolute_hypothetical_fragment(style: &mut Arc<ComputedValues>) {
     if style.get_effects().clip.0.is_some() {
         let mut style = Arc::make_mut(style);
         let effects_style = Arc::make_mut(&mut style.effects);

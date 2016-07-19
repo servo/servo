@@ -14,7 +14,7 @@ use gecko_bindings::bindings::{ServoDeclarationBlock, ServoNodeData, ThreadSafeP
 use gecko_bindings::bindings::{ThreadSafeURIHolder, nsHTMLCSSStyleSheet};
 use gecko_bindings::ptr::{GeckoArcPrincipal, GeckoArcURI};
 use gecko_bindings::structs::{SheetParsingMode, nsIAtom};
-use properties::ComputedValuesStruct;
+use properties::ComputedValues;
 use selector_impl::{GeckoSelectorImpl, PseudoElement, SharedStyleContext, Stylesheet};
 use std::mem::transmute;
 use std::ptr;
@@ -87,7 +87,7 @@ fn restyle_subtree(node: GeckoNode, raw_data: *mut RawServoStyleSet) {
     // rid of the HackilyFindSomeDeviceContext stuff that happens during
     // initial_values computation, since that stuff needs to be called further
     // along in startup than the sensible place to call Servo_Initialize.
-    ComputedValuesStruct::initial_values();
+    ComputedValues::initial_values();
 
     let _needs_dirtying = Arc::get_mut(&mut per_doc_data.stylist).unwrap()
                               .update(&per_doc_data.stylesheets,
@@ -259,7 +259,7 @@ pub extern "C" fn Servo_GetComputedValues(node: *mut RawGeckoNode)
             // cases where Gecko wants the style for a node that Servo never
             // traversed. We should remove this as soon as possible.
             error!("stylo: encountered unstyled node, substituting default values.");
-            Arc::new(ComputedValuesStruct::initial_values().clone())
+            Arc::new(ComputedValues::initial_values().clone())
         },
     };
     unsafe { transmute(arc_cv) }
@@ -280,7 +280,7 @@ pub extern "C" fn Servo_GetComputedValuesForAnonymousBox(parent_style_or_null: *
         }
     };
 
-    type Helpers = ArcHelpers<ServoComputedValues, ComputedValuesStruct>;
+    type Helpers = ArcHelpers<ServoComputedValues, ComputedValues>;
 
     Helpers::maybe_with(parent_style_or_null, |maybe_parent| {
         let new_computed = data.stylist.precomputed_values_for_pseudo(&pseudo, maybe_parent);
@@ -319,7 +319,7 @@ pub extern "C" fn Servo_GetComputedValuesForPseudoElement(parent_style: *mut Ser
 
     let element = unsafe { GeckoElement::from_raw(match_element) };
 
-    type Helpers = ArcHelpers<ServoComputedValues, ComputedValuesStruct>;
+    type Helpers = ArcHelpers<ServoComputedValues, ComputedValues>;
 
     match GeckoSelectorImpl::pseudo_element_cascade_type(&pseudo) {
         PseudoElementCascadeType::Eager => {
@@ -347,22 +347,22 @@ pub extern "C" fn Servo_GetComputedValuesForPseudoElement(parent_style: *mut Ser
 #[no_mangle]
 pub extern "C" fn Servo_InheritComputedValues(parent_style: *mut ServoComputedValues)
      -> *mut ServoComputedValues {
-    type Helpers = ArcHelpers<ServoComputedValues, ComputedValuesStruct>;
+    type Helpers = ArcHelpers<ServoComputedValues, ComputedValues>;
     Helpers::with(parent_style, |parent| {
-        let style = ComputedValuesStruct::inherit_from(parent);
+        let style = ComputedValues::inherit_from(parent);
         Helpers::from(style)
     })
 }
 
 #[no_mangle]
 pub extern "C" fn Servo_AddRefComputedValues(ptr: *mut ServoComputedValues) -> () {
-    type Helpers = ArcHelpers<ServoComputedValues, ComputedValuesStruct>;
+    type Helpers = ArcHelpers<ServoComputedValues, ComputedValues>;
     unsafe { Helpers::addref(ptr) };
 }
 
 #[no_mangle]
 pub extern "C" fn Servo_ReleaseComputedValues(ptr: *mut ServoComputedValues) -> () {
-    type Helpers = ArcHelpers<ServoComputedValues, ComputedValuesStruct>;
+    type Helpers = ArcHelpers<ServoComputedValues, ComputedValues>;
     unsafe { Helpers::release(ptr) };
 }
 

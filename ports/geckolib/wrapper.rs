@@ -27,7 +27,7 @@ use gecko_bindings::structs::nsIAtom;
 use gecko_bindings::structs::{NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO, NODE_IS_DIRTY_FOR_SERVO};
 use glue::GeckoDeclarationBlock;
 use libc::uintptr_t;
-use properties::ComputedValuesStruct;
+use properties::ComputedValues;
 use selector_impl::{GeckoSelectorImpl, NonTSPseudoClass, PrivateStyleData};
 use selectors::Element;
 use selectors::matching::DeclarationBlock;
@@ -99,7 +99,7 @@ impl<'ln> GeckoNode<'ln> {
 #[derive(Clone, Copy)]
 pub struct DummyRestyleDamage;
 impl TRestyleDamage for DummyRestyleDamage {
-    fn compute(_: Option<&Arc<ComputedValuesStruct>>, _: &ComputedValuesStruct) -> Self { DummyRestyleDamage }
+    fn compute(_: Option<&Arc<ComputedValues>>, _: &ComputedValues) -> Self { DummyRestyleDamage }
     fn rebuild_and_reflow() -> Self { DummyRestyleDamage }
 }
 impl BitOr for DummyRestyleDamage {

@@ -12,7 +12,7 @@ use cache::{LRUCache, SimpleHashCache};
 use context::{StyleContext, SharedStyleContext};
 use data::PrivateStyleData;
 use dom::{TElement, TNode, TRestyleDamage};
-use properties::{ComputedValuesStruct, PropertyDeclaration, cascade};
+use properties::{ComputedValues, PropertyDeclaration, cascade};
 use selector_impl::{ElementExt, SelectorImplExt};
 use selector_matching::{DeclarationBlock, Stylist};
 use selectors::Element;
@@ -150,7 +150,7 @@ impl<'a> Hash for ApplicableDeclarationsCacheQuery<'a> {
 static APPLICABLE_DECLARATIONS_CACHE_SIZE: usize = 32;
 
 pub struct ApplicableDeclarationsCache {
-    cache: SimpleHashCache<ApplicableDeclarationsCacheEntry, Arc<ComputedValuesStruct>>,
+    cache: SimpleHashCache<ApplicableDeclarationsCacheEntry, Arc<ComputedValues>>,
 }
 
 impl ApplicableDeclarationsCache {
@@ -160,14 +160,14 @@ impl ApplicableDeclarationsCache {
         }
     }
 
-    pub fn find(&self, declarations: &[DeclarationBlock]) -> Option<Arc<ComputedValuesStruct>> {
+    pub fn find(&self, declarations: &[DeclarationBlock]) -> Option<Arc<ComputedValues>> {
         match self.cache.find(&ApplicableDeclarationsCacheQuery::new(declarations)) {
             None => None,
             Some(ref values) => Some((*values).clone()),
         }
     }
 
-    pub fn insert(&mut self, declarations: Vec<DeclarationBlock>, style: Arc<ComputedValuesStruct>) {
+    pub fn insert(&mut self, declarations: Vec<DeclarationBlock>, style: Arc<ComputedValues>) {
         self.cache.insert(ApplicableDeclarationsCacheEntry::new(declarations), style)
     }
 
@@ -183,8 +183,8 @@ pub struct StyleSharingCandidateCache {
 
 #[derive(Clone)]
 pub struct StyleSharingCandidate {
-    pub style: Arc<ComputedValuesStruct>,
-    pub parent_style: Arc<ComputedValuesStruct>,
+    pub style: Arc<ComputedValues>,
+    pub parent_style: Arc<ComputedValues>,
     pub local_name: Atom,
     pub classes: Vec<Atom>,
     pub namespace: Namespace,
@@ -369,14 +369,14 @@ trait PrivateMatchMethods: TNode
     /// pseudo-elements.
     fn cascade_node_pseudo_element<'a, Ctx>(&self,
                                             context: &Ctx,
-                                            parent_style: Option<&Arc<ComputedValuesStruct>>,
+                                            parent_style: Option<&Arc<ComputedValues>>,
                                             applicable_declarations: &[DeclarationBlock],
-                                            mut style: Option<&mut Arc<ComputedValuesStruct>>,
+                                            mut style: Option<&mut Arc<ComputedValues>>,
                                             applicable_declarations_cache:
                                              &mut ApplicableDeclarationsCache,
                                             shareable: bool,
                                             animate_properties: bool)
-                                            -> (Self::ConcreteRestyleDamage, Arc<ComputedValuesStruct>)
+                                            -> (Self::ConcreteRestyleDamage, Arc<ComputedValues>)
     where Ctx: StyleContext<'a, <Self::ConcreteElement as Element>::Impl> {
         let mut cacheable = true;
         let shared_context = context.shared_context();
@@ -456,7 +456,7 @@ trait PrivateMatchMethods: TNode
 
     fn update_animations_for_cascade(&self,
                                      context: &SharedStyleContext<<Self::ConcreteElement as Element>::Impl>,
-                                     style: &mut Option<&mut Arc<ComputedValuesStruct>>)
+                                     style: &mut Option<&mut Arc<ComputedValues>>)
                                      -> bool {
         let style = match *style {
             None => return false,
@@ -524,7 +524,7 @@ trait PrivateElementMatchMethods: TElement {
     fn share_style_with_candidate_if_possible(&self,
                                               parent_node: Option<Self::ConcreteNode>,
                                               candidate: &StyleSharingCandidate)
-                                              -> Option<Arc<ComputedValuesStruct>> {
+                                              -> Option<Arc<ComputedValues>> {
         let parent_node = match parent_node {
             Some(ref parent_node) if parent_node.as_element().is_some() => parent_node,
             Some(_) | None => return None,
@@ -694,7 +694,7 @@ pub trait MatchMethods : TNode {
         if self.is_text_node() {
             let mut data_ref = self.mutate_data().unwrap();
             let mut data = &mut *data_ref;
-            let cloned_parent_style = ComputedValuesStruct::style_for_child_text_node(parent_style.unwrap());
+            let cloned_parent_style = ComputedValues::style_for_child_text_node(parent_style.unwrap());
             damage = Self::ConcreteRestyleDamage::compute(data.style.as_ref(),
                                                           &*cloned_parent_style);
             data.style = Some(cloned_parent_style);

@@ -170,7 +170,7 @@
         use error_reporting::ParseErrorReporter;
         use properties::longhands;
         use properties::property_bit_field::PropertyBitField;
-        use properties::{ComputedValuesStruct, PropertyDeclaration};
+        use properties::{ComputedValues, PropertyDeclaration};
         use properties::style_structs;
         use std::boxed::Box as StdBox;
         use std::collections::HashMap;
@@ -181,7 +181,7 @@
         ${caller.body()}
         #[allow(unused_variables)]
         pub fn cascade_property(declaration: &PropertyDeclaration,
-                                inherited_style: &ComputedValuesStruct,
+                                inherited_style: &ComputedValues,
                                 context: &mut computed::Context,
                                 seen: &mut PropertyBitField,
                                 cacheable: &mut bool,
@@ -210,7 +210,7 @@
                             DeclaredValue::Initial => {
                                 // We assume that it's faster to use copy_*_from rather than
                                 // set_*(get_initial_value());
-                                let initial_struct = ComputedValuesStruct::initial_values()
+                                let initial_struct = ComputedValues::initial_values()
                                                       .get_${data.current_style_struct.name_lower}();
                                 context.mutate_style().mutate_${data.current_style_struct.name_lower}()
                                                       .copy_${property.ident}_from(initial_struct);

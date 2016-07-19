@@ -26,7 +26,7 @@ use properties::longhands::visibility::computed_value::T as Visibility;
 use properties::longhands::z_index::computed_value::T as ZIndex;
 use std::cmp;
 use std::fmt;
-use super::ComputedValuesStruct;
+use super::ComputedValues;
 use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 use values::computed::{BorderRadiusSize, LengthOrNone};
 use values::computed::{CalcLengthOrPercentage, LengthOrPercentage};
@@ -114,7 +114,7 @@ impl AnimatedProperty {
         }
     }
 
-    pub fn update(&self, style: &mut ComputedValuesStruct, progress: f64) {
+    pub fn update(&self, style: &mut ComputedValues, progress: f64) {
         match *self {
             % for prop in data.longhands:
                 % if prop.animatable:
@@ -129,8 +129,8 @@ impl AnimatedProperty {
     }
 
     pub fn from_transition_property(transition_property: &TransitionProperty,
-                                    old_style: &ComputedValuesStruct,
-                                    new_style: &ComputedValuesStruct)
+                                    old_style: &ComputedValues,
+                                    new_style: &ComputedValues)
                                     -> AnimatedProperty {
         match *transition_property {
             TransitionProperty::All => panic!("Can't use TransitionProperty::All here."),

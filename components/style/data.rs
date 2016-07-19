@@ -4,7 +4,7 @@
 
 //! Per-node data used in style calculation.
 
-use properties::ComputedValuesStruct;
+use properties::ComputedValues;
 use selectors::parser::SelectorImpl;
 use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
@@ -13,10 +13,10 @@ use std::sync::atomic::AtomicIsize;
 
 pub struct PrivateStyleData<Impl: SelectorImpl> {
     /// The results of CSS styling for this node.
-    pub style: Option<Arc<ComputedValuesStruct>>,
+    pub style: Option<Arc<ComputedValues>>,
 
     /// The results of CSS styling for each pseudo-element (if any).
-    pub per_pseudo: HashMap<Impl::PseudoElement, Arc<ComputedValuesStruct>,
+    pub per_pseudo: HashMap<Impl::PseudoElement, Arc<ComputedValues>,
                             BuildHasherDefault<::fnv::FnvHasher>>,
 
     /// Information needed during parallel traversals.
