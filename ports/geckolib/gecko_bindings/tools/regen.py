@@ -376,7 +376,7 @@ def builds_for(target_name, kind):
 
 def main():
     parser = argparse.ArgumentParser(description=DESCRIPTION)
-    parser.add_argument('--target',
+    parser.add_argument('--target', default="all",
                         help='The target to build, either "structs" or "bindings"')
     parser.add_argument('--kind',
                         help='Kind of build')
@@ -398,7 +398,7 @@ def main():
         print("\"{}\" doesn't seem to be a directory".format(args.objdir))
         return 1
 
-    if args.target != COMMON_BUILD_KEY and args.target != "all" and args.target not in COMPILATION_TARGETS:
+    if (args.target != "all" and args.target not in COMPILATION_TARGETS) or args.target == COMMON_BUILD_KEY:
         print("{} is not a valid compilation target.".format(args.target))
         print("Valid compilation targets are:")
         for target in COMPILATION_TARGETS.keys():
