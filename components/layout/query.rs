@@ -34,7 +34,7 @@ use style::logical_geometry::{WritingMode, BlockFlowDirection, InlineBaseDirecti
 use style::properties::longhands::{display, position};
 use style::properties::style_structs;
 use style::selector_impl::PseudoElement;
-use style::servo::Stylist;
+use style::selector_matching::Stylist;
 use style::values::LocalToCss;
 use style_traits::cursor::Cursor;
 use wrapper::ThreadSafeLayoutNodeHelpers;

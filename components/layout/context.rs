@@ -24,8 +24,7 @@ use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex, RwLock};
-use style::context::{LocalStyleContext, StyleContext};
-use style::servo::SharedStyleContext;
+use style::context::{LocalStyleContext, StyleContext, SharedStyleContext};
 use url::Url;
 use util::opts;
 

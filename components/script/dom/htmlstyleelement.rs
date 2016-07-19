@@ -19,8 +19,7 @@ use std::sync::Arc;
 use string_cache::Atom;
 use style::media_queries::parse_media_query_list;
 use style::parser::ParserContextExtraData;
-use style::servo::Stylesheet;
-use style::stylesheets::Origin;
+use style::stylesheets::{Stylesheet, Origin};
 
 #[dom_struct]
 pub struct HTMLStyleElement {

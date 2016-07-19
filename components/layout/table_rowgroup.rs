@@ -22,9 +22,9 @@ use std::fmt;
 use std::iter::{IntoIterator, Iterator, Peekable};
 use std::sync::Arc;
 use style::computed_values::{border_collapse, border_spacing};
+use style::context::SharedStyleContext;
 use style::logical_geometry::{LogicalSize, WritingMode};
 use style::properties::ServoComputedValues;
-use style::servo::SharedStyleContext;
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable, TableLikeFlow};
 use table_row;
 

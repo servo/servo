@@ -27,10 +27,6 @@ pub mod glue;
 mod traversal;
 mod wrapper;
 
-pub use style::gecko_properties as properties;
-pub use style::gecko_selector_impl as selector_impl;
-pub use style::gecko_values as values;
-
 // FIXME(bholley): This should probably go away once we harmonize the allocators.
 #[no_mangle]
 pub extern "C" fn je_malloc_usable_size(_: *const ::libc::c_void) -> ::libc::size_t { 0 }
