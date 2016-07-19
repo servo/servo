@@ -24,7 +24,7 @@ use script_layout_interface::restyle_damage::RESOLVE_GENERATED_CONTENT;
 use std::sync::Arc;
 use style::computed_values::{list_style_type, position};
 use style::logical_geometry::LogicalSize;
-use style::properties::{ComputedValues, ServoComputedValues};
+use style::properties::ServoComputedValues;
 use style::servo::SharedStyleContext;
 use text;
 

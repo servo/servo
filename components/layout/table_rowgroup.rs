@@ -23,7 +23,7 @@ use std::iter::{IntoIterator, Iterator, Peekable};
 use std::sync::Arc;
 use style::computed_values::{border_collapse, border_spacing};
 use style::logical_geometry::{LogicalSize, WritingMode};
-use style::properties::{ComputedValues, ServoComputedValues};
+use style::properties::ServoComputedValues;
 use style::servo::SharedStyleContext;
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable, TableLikeFlow};
 use table_row;

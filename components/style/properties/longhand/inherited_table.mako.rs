@@ -76,7 +76,7 @@ ${helpers.single_keyword("caption-side", "top bottom",
         type ComputedValue = computed_value::T;
 
         #[inline]
-        fn to_computed_value<Cx: TContext>(&self, context: &Cx) -> computed_value::T {
+        fn to_computed_value(&self, context: &Context) -> computed_value::T {
             computed_value::T {
                 horizontal: self.horizontal.to_computed_value(context),
                 vertical: self.vertical.to_computed_value(context),

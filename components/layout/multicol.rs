@@ -23,7 +23,7 @@ use std::fmt;
 use std::sync::Arc;
 use style::context::StyleContext;
 use style::logical_geometry::LogicalSize;
-use style::properties::{ComputedValues, ServoComputedValues};
+use style::properties::ServoComputedValues;
 use style::servo::SharedStyleContext;
 use style::values::computed::{LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 

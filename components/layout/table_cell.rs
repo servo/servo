@@ -25,7 +25,7 @@ use std::fmt;
 use std::sync::Arc;
 use style::computed_values::{border_collapse, border_top_style, vertical_align};
 use style::logical_geometry::{LogicalMargin, LogicalRect, LogicalSize, WritingMode};
-use style::properties::{ComputedValues, ServoComputedValues};
+use style::properties::ServoComputedValues;
 use style::servo::SharedStyleContext;
 use table::InternalTable;
 use table_row::{CollapsedBorder, CollapsedBorderProvenance};

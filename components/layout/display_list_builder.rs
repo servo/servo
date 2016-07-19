@@ -50,8 +50,8 @@ use style::computed_values::{background_repeat, background_size, border_style};
 use style::computed_values::{cursor, image_rendering, overflow_x, pointer_events, position};
 use style::computed_values::{transform, transform_style, visibility};
 use style::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMode};
-use style::properties::style_structs::ServoBorder;
-use style::properties::{self, ComputedValues, ServoComputedValues};
+use style::properties::style_structs;
+use style::properties::{self, ServoComputedValues};
 use style::values::RGBA;
 use style::values::computed;
 use style::values::computed::{LengthOrNone, LengthOrPercentage, LengthOrPercentageOrAuto, LinearGradient};
@@ -315,7 +315,7 @@ fn handle_overlapping_radii(size: &Size2D<Au>, radii: &BorderRadii<Au>) -> Borde
     }
 }
 
-fn build_border_radius(abs_bounds: &Rect<Au>, border_style: &ServoBorder) -> BorderRadii<Au> {
+fn build_border_radius(abs_bounds: &Rect<Au>, border_style: &style_structs::Border) -> BorderRadii<Au> {
     // TODO(cgaebel): Support border radii even in the case of multiple border widths.
     // This is an extension of supporting elliptical radii. For now, all percentage
     // radii will be relative to the width.

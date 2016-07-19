@@ -31,7 +31,7 @@ use url::Url;
 use util::opts;
 
 struct LocalLayoutContext {
-    style_context: LocalStyleContext<ServoSelectorImpl>,
+    style_context: LocalStyleContext,
 
     font_context: RefCell<FontContext>,
 }
@@ -108,7 +108,7 @@ impl<'a> StyleContext<'a, ServoSelectorImpl> for LayoutContext<'a> {
         &self.shared.style_context
     }
 
-    fn local_context(&self) -> &LocalStyleContext<ServoSelectorImpl> {
+    fn local_context(&self) -> &LocalStyleContext {
         &self.cached_local_layout_context.style_context
     }
 }

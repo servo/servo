@@ -98,7 +98,7 @@ ${helpers.predefined_type("opacity",
         type ComputedValue = computed_value::T;
 
         #[inline]
-        fn to_computed_value<Cx: TContext>(&self, context: &Cx) -> computed_value::T {
+        fn to_computed_value(&self, context: &Context) -> computed_value::T {
             computed_value::T {
                 offset_x: self.offset_x.to_computed_value(context),
                 offset_y: self.offset_y.to_computed_value(context),
@@ -306,7 +306,7 @@ ${helpers.predefined_type("opacity",
         type ComputedValue = computed_value::T;
 
         #[inline]
-        fn to_computed_value<Cx: TContext>(&self, context: &Cx) -> computed_value::T {
+        fn to_computed_value(&self, context: &Context) -> computed_value::T {
             computed_value::T(self.0.map(|value| computed_value::ClipRect {
                 top: value.top.to_computed_value(context),
                 right: value.right.map(|right| right.to_computed_value(context)),
@@ -598,7 +598,7 @@ ${helpers.predefined_type("opacity",
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
 
-        fn to_computed_value<Cx: TContext>(&self, context: &Cx) -> computed_value::T {
+        fn to_computed_value(&self, context: &Context) -> computed_value::T {
             computed_value::T{ filters: self.0.iter().map(|value| {
                 match *value {
                     SpecifiedFilter::Blur(factor) =>
@@ -1064,7 +1064,7 @@ ${helpers.predefined_type("opacity",
         type ComputedValue = computed_value::T;
 
         #[inline]
-        fn to_computed_value<Cx: TContext>(&self, context: &Cx) -> computed_value::T {
+        fn to_computed_value(&self, context: &Context) -> computed_value::T {
             if self.0.is_empty() {
                 return computed_value::T(None)
             }
@@ -1275,7 +1275,7 @@ ${helpers.single_keyword("transform-style",
         type ComputedValue = computed_value::T;
 
         #[inline]
-        fn to_computed_value<Cx: TContext>(&self, context: &Cx) -> computed_value::T {
+        fn to_computed_value(&self, context: &Context) -> computed_value::T {
             computed_value::T {
                 horizontal: self.horizontal.to_computed_value(context),
                 vertical: self.vertical.to_computed_value(context),
@@ -1361,7 +1361,7 @@ ${helpers.predefined_type("perspective",
         type ComputedValue = computed_value::T;
 
         #[inline]
-        fn to_computed_value<Cx: TContext>(&self, context: &Cx) -> computed_value::T {
+        fn to_computed_value(&self, context: &Context) -> computed_value::T {
             computed_value::T {
                 horizontal: self.horizontal.to_computed_value(context),
                 vertical: self.vertical.to_computed_value(context),

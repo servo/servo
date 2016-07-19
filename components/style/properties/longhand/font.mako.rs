@@ -220,7 +220,7 @@ ${helpers.single_keyword("font-variant",
         type ComputedValue = computed_value::T;
 
         #[inline]
-        fn to_computed_value<Cx: TContext>(&self, context: &Cx) -> computed_value::T {
+        fn to_computed_value(&self, context: &Context) -> computed_value::T {
             match *self {
                 % for weight in range(100, 901, 100):
                     SpecifiedValue::Weight${weight} => computed_value::T::Weight${weight},
@@ -288,7 +288,7 @@ ${helpers.single_keyword("font-variant",
         type ComputedValue = computed_value::T;
 
         #[inline]
-        fn to_computed_value<Cx: TContext>(&self, context: &Cx) -> computed_value::T {
+        fn to_computed_value(&self, context: &Context) -> computed_value::T {
             match self.0 {
                 LengthOrPercentage::Length(Length::FontRelative(value)) => {
                     value.to_computed_value(context.inherited_style().get_font().clone_font_size(),

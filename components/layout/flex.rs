@@ -26,7 +26,7 @@ use std::cmp::max;
 use std::sync::Arc;
 use style::computed_values::flex_direction;
 use style::logical_geometry::LogicalSize;
-use style::properties::{ComputedValues, ServoComputedValues};
+use style::properties::ServoComputedValues;
 use style::servo::SharedStyleContext;
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 

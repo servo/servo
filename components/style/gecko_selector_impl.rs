@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use element_state::ElementState;
-use gecko_properties::GeckoComputedValues;
 use selector_impl::{PseudoElementCascadeType, SelectorImplExt};
 use selectors::parser::{ParserContext, SelectorImpl};
 use string_cache::Atom;
@@ -11,8 +10,8 @@ use string_cache::Atom;
 pub type Stylist = ::selector_matching::Stylist<GeckoSelectorImpl>;
 pub type Stylesheet = ::stylesheets::Stylesheet<GeckoSelectorImpl>;
 pub type SharedStyleContext = ::context::SharedStyleContext<GeckoSelectorImpl>;
-pub type PrivateStyleData = ::data::PrivateStyleData<GeckoSelectorImpl, GeckoComputedValues>;
-pub type Animation = ::animation::Animation<GeckoSelectorImpl>;
+pub type PrivateStyleData = ::data::PrivateStyleData<GeckoSelectorImpl>;
+pub type Animation = ::animation::Animation;
 
 #[derive(Debug, Clone)]
 pub struct GeckoSelectorImpl;
@@ -291,8 +290,6 @@ impl SelectorImpl for GeckoSelectorImpl {
 }
 
 impl SelectorImplExt for GeckoSelectorImpl {
-    type ComputedValues = GeckoComputedValues;
-
     #[inline]
     fn pseudo_element_cascade_type(pseudo: &PseudoElement) -> PseudoElementCascadeType {
         match *pseudo {
