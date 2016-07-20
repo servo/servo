@@ -3,15 +3,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::RequestBinding;
-use dom::bindings::codegen::Bindings::RequestBinding::RequestMethods;
-use dom::bindings::codegen::Bindings::RequestBinding::RequestType;
-use dom::bindings::codegen::Bindings::RequestBinding::RequestDestination;
-// use dom::bindings::codegen::Bindings::RequestBinding::ReferrerPolicy;
-// use msg::constellation_msg::ReferrerPolicy;
-use dom::bindings::codegen::Bindings::RequestBinding::RequestMode;
-use dom::bindings::codegen::Bindings::RequestBinding::RequestCredentials;
 use dom::bindings::codegen::Bindings::RequestBinding::RequestCache;
+use dom::bindings::codegen::Bindings::RequestBinding::RequestCredentials;
+use dom::bindings::codegen::Bindings::RequestBinding::RequestDestination;
+use dom::bindings::codegen::Bindings::RequestBinding::RequestMethods;
+use dom::bindings::codegen::Bindings::RequestBinding::RequestMode;
+use dom::bindings::codegen::Bindings::RequestBinding::ReferrerPolicy;
 use dom::bindings::codegen::Bindings::RequestBinding::RequestRedirect;
+use dom::bindings::codegen::Bindings::RequestBinding::RequestType;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root; 
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
@@ -26,7 +25,7 @@ pub struct Request {
     request_type: RequestType,
     destination: RequestDestination,
     referrer: USVString,
-    // referrer_policy: ReferrerPolicy,
+    referrer_policy: ReferrerPolicy,
     mode: RequestMode,
     credentials: RequestCredentials,
     cache: RequestCache,
@@ -41,7 +40,7 @@ impl Request {
                          request_type: RequestType,
                          destination: RequestDestination,
                          referrer: USVString,
-                         // referrer_policy: ReferrerPolicy,
+                         referrer_policy: ReferrerPolicy,
                          mode: RequestMode,
                          credentials: RequestCredentials,
                          cache: RequestCache,
@@ -56,7 +55,7 @@ impl Request {
             request_type: request_type,
             destination: destination,
             referrer: referrer,
-            // referrer_policy: referrer_policy,
+            referrer_policy: referrer_policy,
             mode: mode,
             credentials: credentials,
             cache: cache,
@@ -72,7 +71,7 @@ impl Request {
                request_type: RequestType,
                destination: RequestDestination,
                referrer: USVString,
-               // referrer_policy: ReferrerPolicy,
+               referrer_policy: ReferrerPolicy,
                mode: RequestMode,
                credentials: RequestCredentials,
                cache: RequestCache,
@@ -85,7 +84,7 @@ impl Request {
                                                       request_type,
                                                       destination,
                                                       referrer,
-                                                      // referrer_policy,
+                                                      referrer_policy,
                                                       mode,
                                                       credentials,
                                                       cache,
@@ -117,9 +116,9 @@ impl RequestMethods for Request {
     }
 
     // throws webidl build error
-    // fn Referrer_Policy(&self) -> ReferrerPolicy {
-    //     self.referrer_policy
-    //}
+    fn ReferrerPolicy(&self) -> ReferrerPolicy {
+        self.referrer_policy
+    }
 
     fn Mode(&self) -> RequestMode {
          self.mode
@@ -138,8 +137,9 @@ impl RequestMethods for Request {
     }
 
     fn Integrity(&self) -> DOMString {
-        let integrity_str = format!("{}", self.integrity);
-        DOMString::from_string(integrity_str)
+        self.integrity.clone()
+        // let integrity_str = format!("{}", self.integrity);
+        // DOMString::from_string(integrity_str)
     }
     
 }
