@@ -421,6 +421,42 @@ impl FlexFlow {
         }
     }
 
+    /// Returns a line start after the last item that is already in a line.
+    /// Note that when the container main size is infinite(i.e. A column flexbox with auto height),
+    /// we do not need to do flex resolving and this can be considered as a fast-path, so the
+    /// 'container_size' param does not need to be 'None'. A line has to contain at least one item;
+    /// (expect this) if the container can be multi-line the sum of outer main size of items should
+    /// be less than the container size; a line should be filled by items as much as possible.
+    /// After been collected in a line a item should have its main sizes initialized.
+    fn get_flex_line(&mut self, container_size: Au) -> Option<FlexLine> {
+        let start = if self.lines.len() == 0 {
+            0
+        } else {
+            self.lines[self.lines.len()-1].range.end
+        };
+        if start == self.items.len() {
+            return None;
+        }
+        let mut end = start;
+        let mut total_line_size = Au(0);
+        let mut margin_count = 0;
+
+        let items = &mut self.items[start..];
+        for mut item in items.iter_mut() {
+            item.init_sizes(container_size, self.main_mode);
+            let outer_main_size = item.outer_main_size(self.main_mode);
+            if total_line_size + outer_main_size > container_size && end != start  && self.is_wrappable {
+                break;
+            }
+            margin_count += item.auto_margin_num(self.main_mode);
+            total_line_size += outer_main_size;
+            end += 1;
+        }
+
+        let line = FlexLine::new(start..end, container_size - total_line_size, margin_count);
+        Some(line)
+    }
+
     // TODO(zentner): This function should use flex-basis.
     // Currently, this is the core of BlockFlow::bubble_inline_sizes() with all float logic
     // stripped out, and max replaced with union_nonbreaking_inline.
