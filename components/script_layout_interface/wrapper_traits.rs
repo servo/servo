@@ -210,12 +210,13 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Sized + PartialEq {
                                 .style_data
                                 .per_pseudo.contains_key(&style_pseudo) {
                             let mut data = self.get_style_data().unwrap().borrow_mut();
+
                             let new_style =
-                                context.stylist
-                                       .precomputed_values_for_pseudo(&style_pseudo,
-                                                                      data.style_data.style.as_ref());
+                                context.stylist.precomputed_values_for_pseudo(&style_pseudo,
+                                                                              data.style_data.style.as_ref()).unwrap();
+
                             data.style_data.per_pseudo
-                                .insert(style_pseudo.clone(), new_style.unwrap());
+                                .insert(style_pseudo.clone(), new_style);
                         }
                     }
                     PseudoElementCascadeType::Lazy => {

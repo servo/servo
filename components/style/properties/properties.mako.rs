@@ -2029,43 +2029,6 @@ pub fn modify_style_for_anonymous_flow(style: &mut Arc<ServoComputedValues>,
     outline.outline_width = Au(0);
 }
 
-/// Alters the given style to accommodate replaced content. This is called in flow construction. It
-/// handles cases like `<div style="position: absolute">foo bar baz</div>` (in which `foo`, `bar`,
-/// and `baz` must not be absolutely-positioned) and cases like `<sup>Foo</sup>` (in which the
-/// `vertical-align: top` style of `sup` must not propagate down into `Foo`).
-///
-/// FIXME(#5625, pcwalton): It would probably be cleaner and faster to do this in the cascade.
-#[inline]
-pub fn modify_style_for_replaced_content(style: &mut Arc<ServoComputedValues>) {
-    // Reset `position` to handle cases like `<div style="position: absolute">foo bar baz</div>`.
-    if style.box_.display != longhands::display::computed_value::T::inline {
-        let mut style = Arc::make_mut(style);
-        Arc::make_mut(&mut style.box_).display = longhands::display::computed_value::T::inline;
-        Arc::make_mut(&mut style.box_).position =
-            longhands::position::computed_value::T::static_;
-    }
-
-    // Reset `vertical-align` to handle cases like `<sup>foo</sup>`.
-    if style.box_.vertical_align != longhands::vertical_align::computed_value::T::baseline {
-        let mut style = Arc::make_mut(style);
-        Arc::make_mut(&mut style.box_).vertical_align =
-            longhands::vertical_align::computed_value::T::baseline
-    }
-
-    // Reset margins.
-    if style.margin.margin_top != computed::LengthOrPercentageOrAuto::Length(Au(0)) ||
-            style.margin.margin_left != computed::LengthOrPercentageOrAuto::Length(Au(0)) ||
-            style.margin.margin_bottom != computed::LengthOrPercentageOrAuto::Length(Au(0)) ||
-            style.margin.margin_right != computed::LengthOrPercentageOrAuto::Length(Au(0)) {
-        let mut style = Arc::make_mut(style);
-        let margin = Arc::make_mut(&mut style.margin);
-        margin.margin_top = computed::LengthOrPercentageOrAuto::Length(Au(0));
-        margin.margin_left = computed::LengthOrPercentageOrAuto::Length(Au(0));
-        margin.margin_bottom = computed::LengthOrPercentageOrAuto::Length(Au(0));
-        margin.margin_right = computed::LengthOrPercentageOrAuto::Length(Au(0));
-    }
-}
-
 /// Adjusts borders as appropriate to account for a fragment's status as the first or last fragment
 /// within the range of an element.
 ///
@@ -2138,42 +2101,6 @@ pub fn modify_style_for_outer_inline_block_fragment(style: &mut Arc<ServoCompute
     let mut style = Arc::make_mut(style);
     let box_style = Arc::make_mut(&mut style.box_);
     box_style.position = longhands::position::computed_value::T::static_
-}
-
-/// Adjusts the `position` and `padding` properties as necessary to account for text.
-///
-/// Text is never directly relatively positioned; it's always contained within an element that is
-/// itself relatively positioned.
-#[inline]
-pub fn modify_style_for_text(style: &mut Arc<ServoComputedValues>) {
-    if style.box_.position == longhands::position::computed_value::T::relative {
-        // We leave the `position` property set to `relative` so that we'll still establish a
-        // containing block if needed. But we reset all position offsets to `auto`.
-        let mut style = Arc::make_mut(style);
-        let mut position = Arc::make_mut(&mut style.position);
-        position.top = computed::LengthOrPercentageOrAuto::Auto;
-        position.right = computed::LengthOrPercentageOrAuto::Auto;
-        position.bottom = computed::LengthOrPercentageOrAuto::Auto;
-        position.left = computed::LengthOrPercentageOrAuto::Auto;
-    }
-
-    if style.padding.padding_top != computed::LengthOrPercentage::Length(Au(0)) ||
-            style.padding.padding_right != computed::LengthOrPercentage::Length(Au(0)) ||
-            style.padding.padding_bottom != computed::LengthOrPercentage::Length(Au(0)) ||
-            style.padding.padding_left != computed::LengthOrPercentage::Length(Au(0)) {
-        let mut style = Arc::make_mut(style);
-        let mut padding = Arc::make_mut(&mut style.padding);
-        padding.padding_top = computed::LengthOrPercentage::Length(Au(0));
-        padding.padding_right = computed::LengthOrPercentage::Length(Au(0));
-        padding.padding_bottom = computed::LengthOrPercentage::Length(Au(0));
-        padding.padding_left = computed::LengthOrPercentage::Length(Au(0));
-    }
-
-    if style.effects.opacity != 1.0 {
-        let mut style = Arc::make_mut(style);
-        let mut effects = Arc::make_mut(&mut style.effects);
-        effects.opacity = 1.0;
-    }
 }
 
 /// Adjusts the `margin` property as necessary to account for the text of an `input` element.

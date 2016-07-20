@@ -110,6 +110,8 @@ pub enum PseudoElement {
     Selection,
     DetailsSummary,
     DetailsContent,
+    ServoText,
+    ServoReplacedContent,
 }
 
 impl PseudoElement {
@@ -129,6 +131,8 @@ impl PseudoElement {
             PseudoElement::After |
             PseudoElement::Selection => PseudoElementCascadeType::Eager,
             PseudoElement::DetailsSummary => PseudoElementCascadeType::Lazy,
+            PseudoElement::ServoText |
+            PseudoElement::ServoReplacedContent |
             PseudoElement::DetailsContent => PseudoElementCascadeType::Precomputed,
         }
     }
@@ -233,6 +237,18 @@ impl SelectorImpl for ServoSelectorImpl {
                 }
                 DetailsContent
             },
+            "-servo-text" => {
+                if !context.in_user_agent_stylesheet {
+                    return Err(())
+                }
+                ServoText
+            },
+            "-servo-replaced-content" => {
+                if !context.in_user_agent_stylesheet {
+                    return Err(())
+                }
+                ServoReplacedContent
+            },
             _ => return Err(())
         };
 
@@ -256,6 +272,7 @@ impl SelectorImplExt for ServoSelectorImpl {
         fun(PseudoElement::DetailsContent);
         fun(PseudoElement::DetailsSummary);
         fun(PseudoElement::Selection);
+        fun(PseudoElement::ServoText);
     }
 
     #[inline]
