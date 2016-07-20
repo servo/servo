@@ -44,6 +44,7 @@ test_interfaces([
   "FocusEvent",
   "FormData",
   "HashChangeEvent",
+  "Headers",  
   "HTMLAnchorElement",
   "HTMLAppletElement",
   "HTMLAreaElement",

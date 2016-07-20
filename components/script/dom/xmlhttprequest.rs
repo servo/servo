@@ -25,6 +25,7 @@ use dom::document::DocumentSource;
 use dom::document::{Document, IsHTMLDocument};
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
+use dom::headers::is_forbidden_header_name;
 use dom::progressevent::ProgressEvent;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 use dom::xmlhttprequestupload::XMLHttpRequestUpload;
@@ -409,21 +410,8 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                 // Step 5
                 // Disallowed headers and header prefixes:
                 // https://fetch.spec.whatwg.org/#forbidden-header-name
-                let disallowedHeaders =
-                    ["accept-charset", "accept-encoding",
-                    "access-control-request-headers",
-                    "access-control-request-method",
-                    "connection", "content-length",
-                    "cookie", "cookie2", "date", "dnt",
-                    "expect", "host", "keep-alive", "origin",
-                    "referer", "te", "trailer", "transfer-encoding",
-                    "upgrade", "via"];
-
-                let disallowedHeaderPrefixes = ["sec-", "proxy-"];
-
-                if disallowedHeaders.iter().any(|header| *header == s) ||
-                   disallowedHeaderPrefixes.iter().any(|prefix| s.starts_with(prefix)) {
-                    return Ok(())
+                if is_forbidden_header_name(s) {
+                    return Ok(());
                 } else {
                     s
                 }

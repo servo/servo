@@ -88,6 +88,7 @@ WEBIDL_STANDARDS = [
     "//drafts.csswg.org/cssom",
     "//drafts.fxtf.org",
     "//encoding.spec.whatwg.org",
+    "//fetch.spec.whatwg.org",
     "//html.spec.whatwg.org",
     "//url.spec.whatwg.org",
     "//xhr.spec.whatwg.org",
