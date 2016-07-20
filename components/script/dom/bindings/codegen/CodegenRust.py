@@ -797,11 +797,11 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
                 { // Scope for our GlobalObject, ErrorResult, JSAutoCompartment,
                   // etc.
 
-                  let globalObj = RootedObject::new(cx, CurrentGlobalOrNull(cx));
+                  rooted!(in(cx) let globalObj = CurrentGlobalOrNull(cx));
                   let _ac = JSAutoCompartment::new(cx, globalObj.handle().get());
                   let promiseGlobal = global_root_from_object_maybe_wrapped(globalObj.handle().get());
 
-                  let mut valueToResolve = RootedValue::new(cx, $${val}.get());
+                  rooted!(in(cx) let mut valueToResolve = $${val}.get());
                   if !JS_WrapValue(cx, valueToResolve.handle_mut()) {
                     $*{exceptionCode}
                   }
@@ -5563,7 +5563,7 @@ class CGBindingRoot(CGThing):
             'js::jsapi::{JS_HasProperty, JS_HasPropertyById, JS_InitializePropertiesFromCompatibleNativeObject}',
             'js::jsapi::{JS_AtomizeAndPinString, JS_NewObject, JS_NewObjectWithGivenProto}',
             'js::jsapi::{JS_NewObjectWithoutMetadata, JS_SetProperty}',
-            'js::jsapi::{JS_SetPrototype, JS_SetReservedSlot, JSAutoCompartment}',
+            'js::jsapi::{JS_SetPrototype, JS_SetReservedSlot, JS_WrapValue, JSAutoCompartment}',
             'js::jsapi::{JSContext, JSClass, JSFreeOp, JSFunctionSpec}',
             'js::jsapi::{JSJitGetterCallArgs, JSJitInfo, JSJitMethodCallArgs, JSJitSetterCallArgs}',
             'js::jsapi::{JSNative, JSObject, JSNativeWrapper, JSPropertySpec}',

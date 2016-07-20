@@ -5,7 +5,10 @@
 // This interface is entirely internal to Servo, and should not be accessible to
 // web pages.
 
-[NoInterfaceObject]
+[TreatNonCallableAsNull]
+callback AnyCallback = any (any value);
+
+[NoInterfaceObject, Exposed=(Window,Worker)]
 // Need to escape "Promise" so it's treated as an identifier.
 interface _Promise {
 };
