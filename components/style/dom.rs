@@ -12,8 +12,7 @@ use element_state::ElementState;
 use properties::{ComputedValues, PropertyDeclaration, PropertyDeclarationBlock};
 use refcell::{Ref, RefMut};
 use restyle_hints::{RESTYLE_DESCENDANTS, RESTYLE_LATER_SIBLINGS, RESTYLE_SELF, RestyleHint};
-use selector_impl::{ElementExt, SelectorImplExt};
-use selectors::Element;
+use selector_impl::ElementExt;
 use selectors::matching::DeclarationBlock;
 use sink::Push;
 use std::ops::BitOr;
@@ -162,8 +161,7 @@ pub trait TNode : Sized + Copy + Clone {
 
     /// Returns the style results for the given node. If CSS selector matching
     /// has not yet been performed, fails.
-    fn style(&self, _context: &SharedStyleContext) -> Ref<Arc<ComputedValues>>
-        where <Self::ConcreteElement as Element>::Impl: SelectorImplExt {
+    fn style(&self, _context: &SharedStyleContext) -> Ref<Arc<ComputedValues>> {
         Ref::map(self.borrow_data().unwrap(), |data| data.style.as_ref().unwrap())
     }
 

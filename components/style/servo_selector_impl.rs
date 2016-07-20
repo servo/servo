@@ -7,7 +7,7 @@ use element_state::ElementState;
 use error_reporting::StdoutErrorReporter;
 use parser::ParserContextExtraData;
 use restyle_hints::ElementSnapshot;
-use selector_impl::{SelectorImplExt, ElementExt, PseudoElementCascadeType, TheSelectorImpl};
+use selector_impl::{ElementExt, PseudoElementCascadeType, TheSelectorImpl};
 use selectors::parser::{AttrSelector, ParserContext, SelectorImpl};
 use selectors::{Element, MatchAttrGeneric};
 use std::process;
@@ -158,14 +158,14 @@ impl SelectorImpl for ServoSelectorImpl {
     }
 }
 
-impl SelectorImplExt for ServoSelectorImpl {
+impl ServoSelectorImpl {
     #[inline]
-    fn pseudo_element_cascade_type(pseudo: &PseudoElement) -> PseudoElementCascadeType {
+    pub fn pseudo_element_cascade_type(pseudo: &PseudoElement) -> PseudoElementCascadeType {
         pseudo.cascade_type()
     }
 
     #[inline]
-    fn each_pseudo_element<F>(mut fun: F)
+    pub fn each_pseudo_element<F>(mut fun: F)
         where F: FnMut(PseudoElement) {
         fun(PseudoElement::Before);
         fun(PseudoElement::After);
@@ -175,22 +175,22 @@ impl SelectorImplExt for ServoSelectorImpl {
     }
 
     #[inline]
-    fn pseudo_class_state_flag(pc: &NonTSPseudoClass) -> ElementState {
+    pub fn pseudo_class_state_flag(pc: &NonTSPseudoClass) -> ElementState {
         pc.state_flag()
     }
 
     #[inline]
-    fn pseudo_is_before_or_after(pseudo: &PseudoElement) -> bool {
+    pub fn pseudo_is_before_or_after(pseudo: &PseudoElement) -> bool {
         pseudo.is_before_or_after()
     }
 
     #[inline]
-    fn get_user_or_user_agent_stylesheets() -> &'static [Stylesheet] {
+    pub fn get_user_or_user_agent_stylesheets() -> &'static [Stylesheet] {
         &*USER_OR_USER_AGENT_STYLESHEETS
     }
 
     #[inline]
-    fn get_quirks_mode_stylesheet() -> Option<&'static Stylesheet> {
+    pub fn get_quirks_mode_stylesheet() -> Option<&'static Stylesheet> {
         Some(&*QUIRKS_MODE_STYLESHEET)
     }
 }

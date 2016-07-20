@@ -4,12 +4,9 @@
 
 //! The pseudo-classes and pseudo-elements supported by the style system.
 
-use element_state::ElementState;
 use restyle_hints;
 use selectors::Element;
 use selectors::parser::SelectorImpl;
-use std::fmt::Debug;
-use stylesheets::Stylesheet;
 
 pub type AttrString = <TheSelectorImpl as SelectorImpl>::AttrString;
 
@@ -78,16 +75,9 @@ pub trait ElementExt: Element<Impl=TheSelectorImpl, AttrString=<TheSelectorImpl 
     fn is_link(&self) -> bool;
 }
 
-// NB: The `Clone` trait is here for convenience due to:
-// https://github.com/rust-lang/rust/issues/26925
-pub trait SelectorImplExt : SelectorImpl + Clone + Debug + Sized + 'static {
-    fn pseudo_element_cascade_type(pseudo: &Self::PseudoElement) -> PseudoElementCascadeType;
-
-    fn each_pseudo_element<F>(mut fun: F)
-        where F: FnMut(Self::PseudoElement);
-
+impl TheSelectorImpl {
     #[inline]
-    fn each_eagerly_cascaded_pseudo_element<F>(mut fun: F)
+    pub fn each_eagerly_cascaded_pseudo_element<F>(mut fun: F)
         where F: FnMut(<Self as SelectorImpl>::PseudoElement) {
         Self::each_pseudo_element(|pseudo| {
             if Self::pseudo_element_cascade_type(&pseudo).is_eager() {
@@ -97,7 +87,7 @@ pub trait SelectorImplExt : SelectorImpl + Clone + Debug + Sized + 'static {
     }
 
     #[inline]
-    fn each_precomputed_pseudo_element<F>(mut fun: F)
+    pub fn each_precomputed_pseudo_element<F>(mut fun: F)
         where F: FnMut(<Self as SelectorImpl>::PseudoElement) {
         Self::each_pseudo_element(|pseudo| {
             if Self::pseudo_element_cascade_type(&pseudo).is_precomputed() {
@@ -105,12 +95,4 @@ pub trait SelectorImplExt : SelectorImpl + Clone + Debug + Sized + 'static {
             }
         })
     }
-
-    fn pseudo_is_before_or_after(pseudo: &Self::PseudoElement) -> bool;
-
-    fn pseudo_class_state_flag(pc: &Self::NonTSPseudoClass) -> ElementState;
-
-    fn get_user_or_user_agent_stylesheets() -> &'static [Stylesheet];
-
-    fn get_quirks_mode_stylesheet() -> Option<&'static Stylesheet>;
 }
