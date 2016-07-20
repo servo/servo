@@ -12,18 +12,19 @@ use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::{ByteString, is_token};
 use hyper::header::Headers as HyperHeaders;
+use std::cell::Cell;
 use std::result::Result;
 
 #[dom_struct]
 pub struct Headers {
     reflector_: Reflector,
-    guard: Guard,
+    guard: Cell<Guard>,
     #[ignore_heap_size_of = "Defined in hyper"]
     header_list: DOMRefCell<HyperHeaders>
 }
 
 // https://fetch.spec.whatwg.org/#concept-headers-guard
-#[derive(JSTraceable, HeapSizeOf, PartialEq)]
+#[derive(Copy, Clone, JSTraceable, HeapSizeOf, PartialEq)]
 pub enum Guard {
     Immutable,
     Request,
@@ -36,76 +37,46 @@ impl Headers {
     pub fn new_inherited() -> Headers {
         Headers {
             reflector_: Reflector::new(),
-            guard: Guard::None,
+            guard: Cell::new(Guard::None),
             header_list: DOMRefCell::new(HyperHeaders::new()),
         }
     }
 
-    // https://fetch.spec.whatwg.org/#concept-headers-fill
-    pub fn new(global: GlobalRef, init: Option<HeadersBinding::HeadersInit>)
-               -> Fallible<Root<Headers>> {
-        let dom_headers_new = reflect_dom_object(box Headers::new_inherited(), global, HeadersBinding::Wrap);
-        match init {
-            // Step 1
-            Some(HeadersOrByteStringSequenceSequence::Headers(h)) => {
-                // header_list_copy has type hyper::header::Headers
-                let header_list_copy = h.header_list.clone();
-                for header in header_list_copy.borrow().iter() {
-                    try!(dom_headers_new.Append(
-                        ByteString::new(Vec::from(header.name())),
-                        ByteString::new(Vec::from(header.value_string().into_bytes()))
-                    ));
-                }
-                Ok(dom_headers_new)
-            },
-            // Step 2
-            Some(HeadersOrByteStringSequenceSequence::ByteStringSequenceSequence(v)) => {
-                for mut seq in v {
-                    if seq.len() == 2 {
-                        let val = seq.pop().unwrap();
-                        let name = seq.pop().unwrap();
-                        try!(dom_headers_new.Append(name, val));
-                    } else {
-                        return Err(Error::Type(
-                            format!("Each header object must be a sequence of length 2 - found one with length {}",
-                                    seq.len())));
-                    }
-                }
-                Ok(dom_headers_new)
-            },
-            // Step 3 TODO constructor for when init is an open-ended dictionary
-            None => Ok(dom_headers_new),
-        }
+    pub fn new(global: GlobalRef) -> Root<Headers> {
+        reflect_dom_object(box Headers::new_inherited(), global, HeadersBinding::Wrap)
     }
 
+    // https://fetch.spec.whatwg.org/#dom-headers
     pub fn Constructor(global: GlobalRef, init: Option<HeadersBinding::HeadersInit>)
                        -> Fallible<Root<Headers>> {
-        Headers::new(global, init)
+        let dom_headers_new = Headers::new(global);
+        try!(dom_headers_new.fill(init));
+        Ok(dom_headers_new)
     }
 }
 
 impl HeadersMethods for Headers {
     // https://fetch.spec.whatwg.org/#concept-headers-append
-    fn Append(&self, name: ByteString, value: ByteString) -> Result<(), Error> {
+    fn Append(&self, name: ByteString, value: ByteString) -> ErrorResult {
         // Step 1
         let value = normalize_value(value);
         // Step 2
         let (mut valid_name, valid_value) = try!(validate_name_and_value(name, value));
         valid_name = valid_name.to_lowercase();
         // Step 3
-        if self.guard == Guard::Immutable {
+        if self.guard.get() == Guard::Immutable {
             return Err(Error::Type("Guard is immutable".to_string()));
         }
         // Step 4
-        if self.guard == Guard::Request && is_forbidden_header_name(&valid_name) {
+        if self.guard.get() == Guard::Request && is_forbidden_header_name(&valid_name) {
             return Ok(());
         }
         // Step 5
-        if self.guard == Guard::RequestNoCors && !is_cors_safelisted_request_header(&valid_name) {
+        if self.guard.get() == Guard::RequestNoCors && !is_cors_safelisted_request_header(&valid_name) {
             return Ok(());
         }
         // Step 6
-        if self.guard == Guard::Response && is_forbidden_response_header(&valid_name) {
+        if self.guard.get() == Guard::Response && is_forbidden_response_header(&valid_name) {
             return Ok(());
         }
         // Step 7
@@ -121,19 +92,19 @@ impl HeadersMethods for Headers {
         // Step 1
         let valid_name = try!(validate_name(name));
         // Step 2
-        if self.guard == Guard::Immutable {
+        if self.guard.get() == Guard::Immutable {
             return Err(Error::Type("Guard is immutable".to_string()));
         }
         // Step 3
-        if self.guard == Guard::Request && is_forbidden_header_name(&valid_name) {
+        if self.guard.get() == Guard::Request && is_forbidden_header_name(&valid_name) {
             return Ok(());
         }
         // Step 4
-        if self.guard == Guard::RequestNoCors && !is_cors_safelisted_request_header(&valid_name) {
+        if self.guard.get() == Guard::RequestNoCors && !is_cors_safelisted_request_header(&valid_name) {
             return Ok(());
         }
         // Step 5
-        if self.guard == Guard::Response && is_forbidden_response_header(&valid_name) {
+        if self.guard.get() == Guard::Response && is_forbidden_response_header(&valid_name) {
             return Ok(());
         }
         // Step 6
@@ -166,25 +137,85 @@ impl HeadersMethods for Headers {
         let (mut valid_name, valid_value) = try!(validate_name_and_value(name, value));
         valid_name = valid_name.to_lowercase();
         // Step 3
-        if self.guard == Guard::Immutable {
+        if self.guard.get() == Guard::Immutable {
             return Err(Error::Type("Guard is immutable".to_string()));
         }
         // Step 4
-        if self.guard == Guard::Request && is_forbidden_header_name(&valid_name) {
+        if self.guard.get() == Guard::Request && is_forbidden_header_name(&valid_name) {
             return Ok(());
         }
         // Step 5
-        if self.guard == Guard::RequestNoCors && !is_cors_safelisted_request_header(&valid_name) {
+        if self.guard.get() == Guard::RequestNoCors && !is_cors_safelisted_request_header(&valid_name) {
             return Ok(());
         }
         // Step 6
-        if self.guard == Guard::Response && is_forbidden_response_header(&valid_name) {
+        if self.guard.get() == Guard::Response && is_forbidden_response_header(&valid_name) {
             return Ok(());
         }
         // Step 7
         // https://fetch.spec.whatwg.org/#concept-header-list-set
         self.header_list.borrow_mut().set_raw(valid_name, vec![valid_value]);
         Ok(())
+    }
+}
+
+impl Headers {
+    // https://fetch.spec.whatwg.org/#concept-headers-fill
+    pub fn fill(&self, filler: Option<HeadersBinding::HeadersInit>) -> ErrorResult {
+        match filler {
+            // Step 1
+            Some(HeadersOrByteStringSequenceSequence::Headers(h)) => {
+                // header_list_copy has type hyper::header::Headers
+                let header_list_copy = h.header_list.clone();
+                for header in h.header_list.borrow().iter() {
+                    try!(self.Append(
+                        ByteString::new(Vec::from(header.name())),
+                        ByteString::new(Vec::from(header.value_string().into_bytes()))
+                    ));
+                }
+                Ok(())
+            },
+            // Step 2
+            Some(HeadersOrByteStringSequenceSequence::ByteStringSequenceSequence(v)) => {
+                for mut seq in v {
+                    if seq.len() == 2 {
+                        let val = seq.pop().unwrap();
+                        let name = seq.pop().unwrap();
+                        try!(self.Append(name, val));
+                    } else {
+                        return Err(Error::Type(
+                            format!("Each header object must be a sequence of length 2 - found one with length {}",
+                                    seq.len())));
+                    }
+                }
+                Ok(())
+            },
+            // Step 3 TODO constructor for when init is an open-ended dictionary
+            None => Ok(()),
+        }
+    }
+
+    pub fn for_request(global: GlobalRef) -> Root<Headers> {
+        let headers_for_request = Headers::new(global);
+        headers_for_request.guard.set(Guard::Request);
+        headers_for_request
+    }
+
+     pub fn set_guard(&self, new_guard: Guard) {
+        self.guard.set(new_guard)
+    }
+
+    pub fn get_guard(&self) -> Guard {
+        self.guard.get()
+    }
+
+    pub fn empty_header_list(&self) {
+        *self.header_list.borrow_mut() = HyperHeaders::new();
+    }
+
+    // https://fetch.spec.whatwg.org/#concept-header-extract-mime-type
+    pub fn extract_mime_type(&self) -> Vec<u8> {
+        self.header_list.borrow().get_raw("content-type").map_or(vec![], |v| v[0].clone())
     }
 }
 

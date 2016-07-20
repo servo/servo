@@ -368,6 +368,7 @@ pub mod processinginstruction;
 pub mod progressevent;
 pub mod radionodelist;
 pub mod range;
+pub mod request;
 pub mod screen;
 pub mod serviceworker;
 pub mod serviceworkercontainer;

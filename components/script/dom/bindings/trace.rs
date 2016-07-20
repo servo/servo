@@ -60,6 +60,7 @@ use msg::constellation_msg::{FrameType, PipelineId, SubpageId, WindowSizeType, R
 use net_traits::filemanager_thread::{SelectedFileId, RelativePos};
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread};
+use net_traits::request::Request;
 use net_traits::response::HttpsState;
 use net_traits::storage_thread::StorageType;
 use net_traits::{Metadata, NetworkError, ResourceThreads};
@@ -325,6 +326,7 @@ no_jsmanaged_fields!(AttrIdentifier);
 no_jsmanaged_fields!(AttrValue);
 no_jsmanaged_fields!(ElementSnapshot);
 no_jsmanaged_fields!(HttpsState);
+no_jsmanaged_fields!(Request);
 no_jsmanaged_fields!(SharedRt);
 no_jsmanaged_fields!(TouchpadPressurePhase);
 no_jsmanaged_fields!(USVString);
