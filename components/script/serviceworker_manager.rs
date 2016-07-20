@@ -15,9 +15,14 @@ use ipc_channel::router::ROUTER;
 use net_traits::{CustomResponseMediator, CoreResourceMsg};
 use script_traits::{ServiceWorkerMsg, ScopeThings, SWManagerMsg, SWManagerSenders};
 use std::collections::HashMap;
-use std::sync::mpsc::{channel, Receiver};
+use std::sync::mpsc::{channel, Receiver, RecvError, Select};
 use url::Url;
 use util::thread::spawn_named;
+
+enum Message {
+    FromResource(CustomResponseMediator),
+    FromConstellation(ServiceWorkerMsg)
+}
 
 pub struct ServiceWorkerManager {
     // map of registered service worker descriptors
@@ -102,62 +107,56 @@ impl ServiceWorkerManager {
     }
 
     fn handle_message(&mut self) {
-       while self.receive_message() {
-        // process message
-       }
-    }
-
-    fn handle_message_from_constellation(&mut self, msg: ServiceWorkerMsg) -> bool {
-        match msg {
-            ServiceWorkerMsg::RegisterServiceWorker(scope_things, scope) => {
-                if self.registered_workers.contains_key(&scope) {
-                    warn!("ScopeThings for {:?} already stored in SW-Manager", scope);
-                } else {
-                    self.registered_workers.insert(scope, scope_things);
+        while let Ok(message) = self.receive_message() {
+            match message {
+                Message::FromConstellation(msg) => {
+                    match msg {
+                        ServiceWorkerMsg::RegisterServiceWorker(scope_things, scope) => {
+                            if self.registered_workers.contains_key(&scope) {
+                                warn!("ScopeThings for {:?} already stored in SW-Manager", scope);
+                            } else {
+                                self.registered_workers.insert(scope, scope_things);
+                            }
+                        }
+                        ServiceWorkerMsg::Timeout(scope) => {
+                            if self.active_workers.contains_key(&scope) {
+                                let _ = self.active_workers.remove(&scope);
+                            } else {
+                                warn!("ScopeThings for {:?} is not active", scope);
+                            }
+                        }
+                        ServiceWorkerMsg::Exit => break
+                    }
                 }
-                true
-            }
-            ServiceWorkerMsg::Timeout(scope) => {
-                if self.active_workers.contains_key(&scope) {
-                    let _ = self.active_workers.remove(&scope);
-                } else {
-                    warn!("ScopeThings for {:?} is not active", scope);
+                Message::FromResource(mediator) => {
+                    self.prepare_activation(&mediator.load_url);
+                    // TODO XXXcreativcoder This mediator will need to be send to the appropriate service worker
+                    // so that it may do the sending of custom responses.
+                    // For now we just send a None from here itself
+                    let _ = mediator.response_chan.send(None);
                 }
-                true
             }
-            ServiceWorkerMsg::Exit => false
         }
-    }
-
-    #[inline]
-    fn handle_message_from_resource(&mut self, mediator: CustomResponseMediator) -> bool {
-        self.prepare_activation(&mediator.load_url);
-        // TODO XXXcreativcoder This mediator will need to be send to the appropriate service worker
-        // so that it may do the sending of custom responses.
-        // For now we just send a None from here itself
-        let _ = mediator.response_chan.send(None);
-        true
     }
 
     #[allow(unsafe_code)]
-    fn receive_message(&mut self) -> bool {
-        enum Message {
-            FromResource(CustomResponseMediator),
-            FromConstellation(ServiceWorkerMsg)
+    fn receive_message(&mut self) -> Result<Message, RecvError> {
+        let sel = Select::new();
+        let cons_port = &self.own_port;
+        let res_port = &self.resource_receiver;
+        let mut own_port_handle = sel.handle(cons_port);
+        let mut resource_recv_handle = sel.handle(res_port);
+        unsafe {
+            own_port_handle.add();
+            resource_recv_handle.add();
         }
-        let message = {
-            let msg_from_constellation = &self.own_port;
-            let msg_from_resource = &self.resource_receiver;
-            select! {
-                msg = msg_from_constellation.recv() =>
-                    Message::FromConstellation(msg.expect("Unexpected constellation channel panic in sw-manager")),
-                msg = msg_from_resource.recv() =>
-                    Message::FromResource(msg.expect("Unexpected resource channel panic in sw-manager"))
-            }
-        };
-        match message {
-            Message::FromConstellation(msg) => self.handle_message_from_constellation(msg),
-            Message::FromResource(mediator) => self.handle_message_from_resource(mediator)
+        let ret = sel.wait();
+        if ret == own_port_handle.id() {
+            Ok(Message::FromConstellation(try!(cons_port.recv())))
+        } else if ret == resource_recv_handle.id() {
+            Ok(Message::FromResource(try!(res_port.recv())))
+        } else {
+            panic!("Unexpected select result");
         }
     }
 }
