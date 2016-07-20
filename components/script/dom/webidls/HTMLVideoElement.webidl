@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmlvideoelement
-[Exposed=(Window,Worker)]
 interface HTMLVideoElement : HTMLMediaElement {
   //         attribute unsigned long width;
   //         attribute unsigned long height;
