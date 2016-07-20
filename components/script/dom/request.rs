@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+// use dom::bindings::codegen::UnionTypes::RequestOrUSVString;
 use dom::bindings::codegen::Bindings::RequestBinding;
 use dom::bindings::codegen::Bindings::RequestBinding::RequestCache;
 use dom::bindings::codegen::Bindings::RequestBinding::RequestCredentials;
@@ -11,6 +12,7 @@ use dom::bindings::codegen::Bindings::RequestBinding::RequestMode;
 use dom::bindings::codegen::Bindings::RequestBinding::ReferrerPolicy;
 use dom::bindings::codegen::Bindings::RequestBinding::RequestRedirect;
 use dom::bindings::codegen::Bindings::RequestBinding::RequestType;
+use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root; 
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
@@ -45,8 +47,8 @@ impl Request {
                          credentials: RequestCredentials,
                          cache: RequestCache,
                          redirect: RequestRedirect,
-                         integrity: DOMString
-    ) -> Request {
+                         integrity: DOMString)
+                         -> Request {
         Request {
             reflector_: Reflector::new(),
             method: method,
@@ -76,8 +78,8 @@ impl Request {
                credentials: RequestCredentials,
                cache: RequestCache,
                redirect: RequestRedirect,
-               integrity: DOMString
-    ) -> Root<Request> {
+               integrity: DOMString)
+               -> Root<Request> {
         reflect_dom_object(box Request::new_inherited(method,
                                                       url,
                                                       // header,
@@ -92,6 +94,35 @@ impl Request {
                                                       integrity),
                            global, RequestBinding::Wrap)
     }
+    pub fn Constructor(global: GlobalRef,
+                        input: RequestBinding::RequestInfo)
+                       -> Fallible<Root<Request>> {
+        unimplemented!();
+    }
+    //     let method = ByteString::from(input.method);
+    //     let url = USVString::from(input.url);
+    //     let request_type = RequestType::from(input.request_type);
+    //     let destination = RequestDestination::from(input.destination);
+    //     let referrer = USVString::from(input.referrer);
+    //     let referrer_policy = ReferrerPolicy::from(input.referrer_policy);
+    //     let mode = RequestMode::from(input.mode);
+    //     let credentials = RequestCredentials::from(input.credentials);
+    //     let cache = RequestCache::from(input.cache);
+    //     let redirect = RequestRedirect::from(input.redirect);
+    //     let integrity = DOMString::from(input.integrity);
+    //         Ok(Request::new(global,
+    //                     method,
+    //                     url,
+    //                     request_type,
+    //                     destination,
+    //                     referrer,
+    //                     referrer_policy,
+    //                     mode,
+    //                     credentials,
+    //                     cache,
+    //                     redirect,
+    //                     integrity))
+    // }
 }
 
 impl RequestMethods for Request {
@@ -115,7 +146,6 @@ impl RequestMethods for Request {
         self.referrer.clone()
     }
 
-    // throws webidl build error
     fn ReferrerPolicy(&self) -> ReferrerPolicy {
         self.referrer_policy
     }
@@ -138,8 +168,5 @@ impl RequestMethods for Request {
 
     fn Integrity(&self) -> DOMString {
         self.integrity.clone()
-        // let integrity_str = format!("{}", self.integrity);
-        // DOMString::from_string(integrity_str)
     }
-    
 }
