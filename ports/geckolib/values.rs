@@ -43,10 +43,10 @@ pub trait StyleCoordHelpers {
 impl StyleCoordHelpers for nsStyleCoord {
     #[inline]
     fn copy_from(&mut self, other: &Self) {
-        debug_assert_unit_is_safe_to_copy(self.mUnit);
-        debug_assert_unit_is_safe_to_copy(other.mUnit);
+        unsafe { self.mValue.reset(&mut self.mUnit) };
         self.mUnit = other.mUnit;
         self.mValue = other.mValue;
+        unsafe { self.addref_if_calc(); }
     }
 
     #[inline]
@@ -56,6 +56,7 @@ impl StyleCoordHelpers for nsStyleCoord {
 
     #[inline]
     fn set_auto(&mut self) {
+        unsafe { self.mValue.reset(&mut self.mUnit) };
         self.mUnit = nsStyleUnit::eStyleUnit_Auto;
         unsafe { *self.mValue.mInt.as_mut() = 0; }
     }
@@ -66,6 +67,7 @@ impl StyleCoordHelpers for nsStyleCoord {
 
     #[inline]
     fn set_normal(&mut self) {
+        unsafe { self.mValue.reset(&mut self.mUnit) };
         self.mUnit = nsStyleUnit::eStyleUnit_Normal;
         unsafe { *self.mValue.mInt.as_mut() = 0; }
     }
@@ -76,6 +78,7 @@ impl StyleCoordHelpers for nsStyleCoord {
 
     #[inline]
     fn set_coord(&mut self, val: Au) {
+        unsafe { self.mValue.reset(&mut self.mUnit) };
         self.mUnit = nsStyleUnit::eStyleUnit_Coord;
         unsafe { *self.mValue.mInt.as_mut() = val.0; }
     }
@@ -91,6 +94,7 @@ impl StyleCoordHelpers for nsStyleCoord {
 
     #[inline]
     fn set_int(&mut self, val: i32) {
+        unsafe { self.mValue.reset(&mut self.mUnit) };
         self.mUnit = nsStyleUnit::eStyleUnit_Integer;
         unsafe { *self.mValue.mInt.as_mut() = val; }
     }
@@ -106,6 +110,7 @@ impl StyleCoordHelpers for nsStyleCoord {
 
     #[inline]
     fn set_enum(&mut self, val: i32) {
+        unsafe { self.mValue.reset(&mut self.mUnit) };
         self.mUnit = nsStyleUnit::eStyleUnit_Enumerated;
         unsafe { *self.mValue.mInt.as_mut() = val; }
     }
@@ -121,6 +126,7 @@ impl StyleCoordHelpers for nsStyleCoord {
 
     #[inline]
     fn set_percent(&mut self, val: f32) {
+        unsafe { self.mValue.reset(&mut self.mUnit) };
         self.mUnit = nsStyleUnit::eStyleUnit_Percent;
         unsafe { *self.mValue.mFloat.as_mut() = val; }
     }
@@ -136,6 +142,7 @@ impl StyleCoordHelpers for nsStyleCoord {
 
     #[inline]
     fn set_factor(&mut self, val: f32) {
+        unsafe { self.mValue.reset(&mut self.mUnit) };
         self.mUnit = nsStyleUnit::eStyleUnit_Factor;
         unsafe { *self.mValue.mFloat.as_mut() = val; }
     }
@@ -157,6 +164,7 @@ pub trait GeckoStyleCoordConvertible : Sized {
 
 impl GeckoStyleCoordConvertible for LengthOrPercentage {
     fn to_gecko_style_coord(&self, unit: &mut nsStyleUnit, union: &mut nsStyleUnion) {
+        unsafe { union.reset(unit) };
         match *self {
             LengthOrPercentage::Length(au) => {
                 *unit = nsStyleUnit::eStyleUnit_Coord;
@@ -166,7 +174,7 @@ impl GeckoStyleCoordConvertible for LengthOrPercentage {
                 *unit = nsStyleUnit::eStyleUnit_Percent;
                 unsafe { *union.mFloat.as_mut() = p; }
             },
-            LengthOrPercentage::Calc(_) => unimplemented!(),
+            LengthOrPercentage::Calc(calc) => unsafe { union.set_calc_value(unit, calc.into()) },
         };
     }
 
@@ -177,7 +185,7 @@ impl GeckoStyleCoordConvertible for LengthOrPercentage {
             nsStyleUnit::eStyleUnit_Percent
                 => Some(LengthOrPercentage::Percentage(unsafe { *union.mFloat.as_ref() })),
             nsStyleUnit::eStyleUnit_Calc
-                => unimplemented!(),
+                => Some(LengthOrPercentage::Calc(unsafe { union.get_calc().into() })),
             _ => None,
         }
     }
@@ -185,6 +193,7 @@ impl GeckoStyleCoordConvertible for LengthOrPercentage {
 
 impl GeckoStyleCoordConvertible for LengthOrPercentageOrAuto {
     fn to_gecko_style_coord(&self, unit: &mut nsStyleUnit, union: &mut nsStyleUnion) {
+        unsafe { union.reset(unit) };
         match *self {
             LengthOrPercentageOrAuto::Length(au) => {
                 *unit = nsStyleUnit::eStyleUnit_Coord;
@@ -198,7 +207,7 @@ impl GeckoStyleCoordConvertible for LengthOrPercentageOrAuto {
                 *unit = nsStyleUnit::eStyleUnit_Auto;
                 unsafe { *union.mInt.as_mut() = 0; }
             },
-            LengthOrPercentageOrAuto::Calc(_) => unimplemented!(),
+            LengthOrPercentageOrAuto::Calc(calc) => unsafe { union.set_calc_value(unit, calc.into()) },
         };
     }
 
@@ -211,7 +220,7 @@ impl GeckoStyleCoordConvertible for LengthOrPercentageOrAuto {
             nsStyleUnit::eStyleUnit_Percent
                 => Some(LengthOrPercentageOrAuto::Percentage(unsafe { *union.mFloat.as_ref() })),
             nsStyleUnit::eStyleUnit_Calc
-                => unimplemented!(),
+                => Some(LengthOrPercentageOrAuto::Calc(unsafe { union.get_calc().into() })),
             _ => None,
         }
     }
@@ -219,6 +228,7 @@ impl GeckoStyleCoordConvertible for LengthOrPercentageOrAuto {
 
 impl GeckoStyleCoordConvertible for LengthOrPercentageOrNone {
     fn to_gecko_style_coord(&self, unit: &mut nsStyleUnit, union: &mut nsStyleUnion) {
+        unsafe { union.reset(unit) };
         match *self {
             LengthOrPercentageOrNone::Length(au) => {
                 *unit = nsStyleUnit::eStyleUnit_Coord;
@@ -232,7 +242,7 @@ impl GeckoStyleCoordConvertible for LengthOrPercentageOrNone {
                 *unit = nsStyleUnit::eStyleUnit_None;
                 unsafe { *union.mInt.as_mut() = 0; }
             },
-            LengthOrPercentageOrNone::Calc(_) => unimplemented!(),
+            LengthOrPercentageOrNone::Calc(calc) => unsafe { union.set_calc_value(unit, calc.into()) },
         };
     }
 
@@ -245,7 +255,7 @@ impl GeckoStyleCoordConvertible for LengthOrPercentageOrNone {
             nsStyleUnit::eStyleUnit_Percent
                 => Some(LengthOrPercentageOrNone::Percentage(unsafe { *union.mFloat.as_ref() })),
             nsStyleUnit::eStyleUnit_Calc
-                => unimplemented!(),
+                => Some(LengthOrPercentageOrNone::Calc(unsafe { union.get_calc().into() })),
             _ => None,
         }
     }
@@ -253,6 +263,7 @@ impl GeckoStyleCoordConvertible for LengthOrPercentageOrNone {
 
 impl<T: GeckoStyleCoordConvertible> GeckoStyleCoordConvertible for Option<T> {
     fn to_gecko_style_coord(&self, unit: &mut nsStyleUnit, union: &mut nsStyleUnion) {
+        unsafe { union.reset(unit) };
         if let Some(ref me) = *self {
             me.to_gecko_style_coord(unit, union);
         } else {
@@ -270,6 +281,7 @@ impl GeckoStyleCoordConvertible for Angle {
     fn to_gecko_style_coord(&self,
                             unit: &mut nsStyleUnit,
                             union: &mut nsStyleUnion) {
+        unsafe { union.reset(unit) };
         *unit = nsStyleUnit::eStyleUnit_Radian;
         unsafe { *union.mFloat.as_mut() = self.radians() };
     }
@@ -309,8 +321,4 @@ pub fn round_border_to_device_pixels(width: Au, au_per_device_px: Au) -> Au {
     } else {
         max(au_per_device_px, Au(width.0 / au_per_device_px.0 * au_per_device_px.0))
     }
-}
-
-pub fn debug_assert_unit_is_safe_to_copy(unit: nsStyleUnit) {
-    debug_assert!(unit != nsStyleUnit::eStyleUnit_Calc, "stylo: Can't yet handle refcounted Calc");
 }
