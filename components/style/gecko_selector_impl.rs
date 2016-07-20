@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use element_state::ElementState;
-use selector_impl::{PseudoElementCascadeType, SelectorImplExt};
+use selector_impl::PseudoElementCascadeType;
 use selectors::parser::{ParserContext, SelectorImpl};
 use string_cache::Atom;
 use stylesheets::Stylesheet;
@@ -286,9 +286,9 @@ impl SelectorImpl for GeckoSelectorImpl {
     }
 }
 
-impl SelectorImplExt for GeckoSelectorImpl {
+impl GeckoSelectorImpl {
     #[inline]
-    fn pseudo_element_cascade_type(pseudo: &PseudoElement) -> PseudoElementCascadeType {
+    pub fn pseudo_element_cascade_type(pseudo: &PseudoElement) -> PseudoElementCascadeType {
         match *pseudo {
             PseudoElement::Before |
             PseudoElement::After => PseudoElementCascadeType::Eager,
@@ -298,7 +298,7 @@ impl SelectorImplExt for GeckoSelectorImpl {
     }
 
     #[inline]
-    fn each_pseudo_element<F>(mut fun: F)
+    pub fn each_pseudo_element<F>(mut fun: F)
         where F: FnMut(PseudoElement) {
         use self::AnonBoxPseudoElement::*;
         use self::PseudoElement::*;
@@ -375,7 +375,7 @@ impl SelectorImplExt for GeckoSelectorImpl {
     }
 
     #[inline]
-    fn pseudo_is_before_or_after(pseudo: &PseudoElement) -> bool {
+    pub fn pseudo_is_before_or_after(pseudo: &PseudoElement) -> bool {
         match *pseudo {
             PseudoElement::Before |
             PseudoElement::After => true,
@@ -384,17 +384,17 @@ impl SelectorImplExt for GeckoSelectorImpl {
     }
 
     #[inline]
-    fn pseudo_class_state_flag(pc: &NonTSPseudoClass) -> ElementState {
+    pub fn pseudo_class_state_flag(pc: &NonTSPseudoClass) -> ElementState {
         pc.state_flag()
     }
 
     #[inline]
-    fn get_user_or_user_agent_stylesheets() -> &'static [Stylesheet] {
+    pub fn get_user_or_user_agent_stylesheets() -> &'static [Stylesheet] {
         &[]
     }
 
     #[inline]
-    fn get_quirks_mode_stylesheet() -> Option<&'static Stylesheet> {
+    pub fn get_quirks_mode_stylesheet() -> Option<&'static Stylesheet> {
         None
     }
 }

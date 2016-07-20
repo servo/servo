@@ -5,9 +5,9 @@
 //! Restyle hints: an optimization to avoid unnecessarily matching selectors.
 
 use element_state::*;
-use selector_impl::{ElementExt, SelectorImplExt, TheSelectorImpl, AttrString};
+use selector_impl::{ElementExt, TheSelectorImpl, AttrString, NonTSPseudoClass};
 use selectors::matching::matches_compound_selector;
-use selectors::parser::{AttrSelector, Combinator, CompoundSelector, SelectorImpl, SimpleSelector};
+use selectors::parser::{AttrSelector, Combinator, CompoundSelector, SimpleSelector};
 use selectors::{Element, MatchAttr};
 use std::clone::Clone;
 use std::sync::Arc;
@@ -177,13 +177,12 @@ impl<'a, E> MatchAttr for ElementWrapper<'a, E>
 }
 
 impl<'a, E> Element for ElementWrapper<'a, E>
-    where E: ElementExt<AttrString=AttrString>,
-          E::Impl: SelectorImplExt<AttrString=AttrString> {
-    type Impl = E::Impl;
+    where E: ElementExt<Impl=TheSelectorImpl, AttrString=AttrString>
+{
+    type Impl = TheSelectorImpl;
 
-    fn match_non_ts_pseudo_class(&self,
-                                 pseudo_class: <Self::Impl as SelectorImpl>::NonTSPseudoClass) -> bool {
-        let flag = Self::Impl::pseudo_class_state_flag(&pseudo_class);
+    fn match_non_ts_pseudo_class(&self, pseudo_class: NonTSPseudoClass) -> bool {
+        let flag = TheSelectorImpl::pseudo_class_state_flag(&pseudo_class);
         if flag == ElementState::empty() {
             self.element.match_non_ts_pseudo_class(pseudo_class)
         } else {

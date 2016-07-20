@@ -13,7 +13,7 @@ use context::{StyleContext, SharedStyleContext};
 use data::PrivateStyleData;
 use dom::{TElement, TNode, TRestyleDamage};
 use properties::{ComputedValues, PropertyDeclaration, cascade};
-use selector_impl::{ElementExt, SelectorImplExt, TheSelectorImpl, PseudoElement};
+use selector_impl::{ElementExt, TheSelectorImpl, PseudoElement};
 use selector_matching::{DeclarationBlock, Stylist};
 use selectors::Element;
 use selectors::bloom::BloomFilter;
@@ -361,8 +361,7 @@ pub enum StyleSharingResult<ConcreteRestyleDamage: TRestyleDamage> {
     StyleWasShared(usize, ConcreteRestyleDamage),
 }
 
-trait PrivateMatchMethods: TNode
-    where <Self::ConcreteElement as Element>::Impl: SelectorImplExt {
+trait PrivateMatchMethods: TNode {
     /// Actually cascades style for a node or a pseudo-element of a node.
     ///
     /// Note that animations only apply to nodes or ::before or ::after
@@ -507,8 +506,7 @@ trait PrivateMatchMethods: TNode
     }
 }
 
-impl<N: TNode> PrivateMatchMethods for N
-    where <N::ConcreteElement as Element>::Impl: SelectorImplExt {}
+impl<N: TNode> PrivateMatchMethods for N {}
 
 trait PrivateElementMatchMethods: TElement {
     fn share_style_with_candidate_if_possible(&self,
@@ -611,8 +609,7 @@ pub trait ElementMatchMethods : TElement {
     }
 }
 
-impl<E: TElement> ElementMatchMethods for E
-    where E::Impl: SelectorImplExt {}
+impl<E: TElement> ElementMatchMethods for E {}
 
 pub trait MatchMethods : TNode {
     // The below two functions are copy+paste because I can't figure out how to

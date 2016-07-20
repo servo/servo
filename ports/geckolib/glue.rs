@@ -31,7 +31,7 @@ use style::gecko_selector_impl::{GeckoSelectorImpl, PseudoElement};
 use style::parallel;
 use style::parser::ParserContextExtraData;
 use style::properties::{ComputedValues, PropertyDeclarationBlock, parse_one_declaration};
-use style::selector_impl::{SelectorImplExt, PseudoElementCascadeType};
+use style::selector_impl::PseudoElementCascadeType;
 use style::sequential;
 use style::stylesheets::{Stylesheet, Origin};
 use style::timer::Timer;

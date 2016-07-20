@@ -8,8 +8,6 @@ use animation;
 use context::{SharedStyleContext, StyleContext};
 use dom::{OpaqueNode, TElement, TNode, TRestyleDamage, UnsafeNode};
 use matching::{ApplicableDeclarations, ElementMatchMethods, MatchMethods, StyleSharingResult};
-use selector_impl::SelectorImplExt;
-use selectors::Element;
 use selectors::bloom::BloomFilter;
 use std::cell::RefCell;
 use tid::tid;
@@ -181,8 +179,7 @@ pub fn recalc_style_at<'a, N, C>(context: &'a C,
                                  root: OpaqueNode,
                                  node: N)
     where N: TNode,
-          C: StyleContext<'a>,
-          <N::ConcreteElement as Element>::Impl: SelectorImplExt + 'a {
+          C: StyleContext<'a> {
     // Get the parent node.
     let parent_opt = match node.parent_node() {
         Some(parent) if parent.is_element() => Some(parent),
