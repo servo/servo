@@ -13,7 +13,6 @@ path = "lib.rs"
 backtrace = "0.2.1"
 canvas = {path = "../canvas"}
 canvas_traits = {path = "../canvas_traits"}
-clipboard = {git = "https://github.com/aweinstock314/rust-clipboard"}
 compositing = {path = "../compositing"}
 devtools_traits = {path = "../devtools_traits"}
 euclid = "0.7.1"
