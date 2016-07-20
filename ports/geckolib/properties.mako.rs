@@ -401,8 +401,7 @@ impl Clone for ${style_struct.gecko_struct_name} {
 }
 
 // FIXME(bholley): Make bindgen generate Debug for all types.
-%if style_struct.gecko_ffi_name in "nsStyleBorder nsStyleDisplay nsStyleList nsStyleBackground "\
-                                    "nsStyleFont nsStyleSVGReset".split():
+%if style_struct.gecko_ffi_name in ("nsStyle" + x for x in "Border Display List Background Font SVGReset".split()):
 impl Debug for ${style_struct.gecko_struct_name} {
     // FIXME(bholley): Generate this.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
