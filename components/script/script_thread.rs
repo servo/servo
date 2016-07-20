@@ -59,9 +59,9 @@ use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::glue::GetWindowProxyClass;
-use js::jsapi::{JSAutoCompartment, JSContext, JS_SetWrapObjectCallbacks};
-use js::jsapi::{JSTracer, SetWindowProxyClass};
-use js::jsval::UndefinedValue;
+use js::jsapi::{JSAutoCompartment, JSContext, JS_SetWrapObjectCallbacks, JS_ReportPendingException};
+use js::jsapi::{JSTracer, SetWindowProxyClass, Call, SetEnqueuePromiseJobCallback, HandleValueArray};
+use js::jsval::{UndefinedValue, ObjectValue};
 use js::rust::Runtime;
 use mem::heap_size_of_self_and_children;
 use msg::constellation_msg::{FrameType, LoadData, PipelineId, PipelineNamespace};
@@ -97,6 +97,7 @@ use std::result::Result;
 use std::sync::atomic::{Ordering, AtomicBool};
 use std::sync::mpsc::{Receiver, Select, Sender, channel};
 use std::sync::{Arc, Mutex};
+use std::os::raw::c_void;
 use style::context::ReflowGoal;
 use style::thread_state;
 use task_source::TaskSource;
@@ -312,6 +313,38 @@ impl OpaqueSender<CommonScriptMsg> for Sender<MainThreadScriptMsg> {
     fn send(&self, msg: CommonScriptMsg) {
         self.send(MainThreadScriptMsg::Common(msg)).unwrap()
     }
+}
+
+// src/shell/js.cpp 629-657
+#[allow(unsafe_code)]
+unsafe extern "C" fn enqueue_job(cx: *mut JSContext,
+                   job: HandleObject,
+                   _allocation_site: HandleObject,
+                   _data: *mut c_void) -> bool {
+    // UndefinedHandleValue
+    rooted!(in(cx) let uval = UndefinedValue());
+
+    // JS::HandleValueArray args(JS::HandleValueArray::empty());
+    /*rooted!(in(cx)*/ let args = &HandleValueArray { // !!! missing someting...
+        length_: 0 as ::libc::size_t,
+        elements_: ptr::null(),
+    };//);
+
+    // RootedValue rval(cx);
+    rooted!(in(cx) let mut rval = UndefinedValue());
+
+    // AutoCompartment ac(cx, job);
+    let _ac = JSAutoCompartment::new(cx, job.get());
+
+    //JS::RootedValue fun(cx, JS::ObjectValue(*funObj));
+    rooted!(in(cx) let fun = ObjectValue(&*job.get()));
+
+    // if (!JS::Call(cx, UndefinedHandleValue, job, args, &rval))
+    if !Call(cx, uval.handle(), fun.handle(), args, rval.handle_mut()) {
+        JS_ReportPendingException(cx);
+        return false;
+    }
+    true
 }
 
 /// Information for an entire page. Pages are top-level browsing contexts and can contain multiple
@@ -540,6 +573,7 @@ impl ScriptThread {
             JS_SetWrapObjectCallbacks(runtime.rt(),
                                       &WRAP_CALLBACKS);
             SetWindowProxyClass(runtime.rt(), GetWindowProxyClass());
+            SetEnqueuePromiseJobCallback(runtime.rt(), Some(enqueue_job), ptr::null_mut());
         }
 
         // Ask the router to proxy IPC messages from the devtools to us.
