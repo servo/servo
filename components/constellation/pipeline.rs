@@ -379,7 +379,7 @@ impl Pipeline {
     }
 
     pub fn trigger_mozbrowser_event(&self,
-                                     subpage_id: SubpageId,
+                                     subpage_id: Option<SubpageId>,
                                      event: MozBrowserEvent) {
         assert!(PREFS.is_mozbrowser_enabled());
 

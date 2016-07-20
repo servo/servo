@@ -28,7 +28,9 @@ use dom::crypto::Crypto;
 use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration};
 use dom::document::Document;
 use dom::element::Element;
+use dom::event::Event;
 use dom::eventtarget::EventTarget;
+use dom::htmliframeelement::build_mozbrowser_custom_event;
 use dom::location::Location;
 use dom::navigator::Navigator;
 use dom::node::{Node, from_untrusted_node_address, window_from_node};
@@ -63,7 +65,7 @@ use script_runtime::{ScriptChan, ScriptPort, maybe_take_panic_result};
 use script_thread::SendableMainThreadScriptChan;
 use script_thread::{MainThreadScriptChan, MainThreadScriptMsg, RunnableWrapper};
 use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
-use script_traits::{ConstellationControlMsg, UntrustedNodeAddress};
+use script_traits::{ConstellationControlMsg, MozBrowserEvent, UntrustedNodeAddress};
 use script_traits::{DocumentState, MsDuration, TimerEvent, TimerEventId};
 use script_traits::{ScriptMsg as ConstellationMsg, TimerEventRequest, TimerSource, WindowSizeData};
 use std::ascii::AsciiExt;
@@ -1587,6 +1589,13 @@ impl Window {
             GlobalRef::Window(window) => window.is_mozbrowser(),
             _ => false,
         }
+    }
+
+    #[allow(unsafe_code)]
+    pub fn dispatch_mozbrowser_event(&self, event: MozBrowserEvent) {
+        assert!(PREFS.is_mozbrowser_enabled());
+        let custom_event = build_mozbrowser_custom_event(&self, event);
+        custom_event.upcast::<Event>().fire(self.upcast());
     }
 }
 

@@ -1281,7 +1281,7 @@ impl Document {
         if PREFS.is_mozbrowser_enabled() {
             if let Some((containing_pipeline_id, subpage_id, _)) = self.window.parent_info() {
                 let event = ConstellationMsg::MozBrowserEvent(containing_pipeline_id,
-                                                              subpage_id,
+                                                              Some(subpage_id),
                                                               event);
                 self.window.constellation_chan().send(event).unwrap();
             }

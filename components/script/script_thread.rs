@@ -1355,17 +1355,17 @@ impl ScriptThread {
     /// https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserloadstart
     fn handle_mozbrowser_event_msg(&self,
                                    parent_pipeline_id: PipelineId,
-                                   subpage_id: SubpageId,
+                                   subpage_id: Option<SubpageId>,
                                    event: MozBrowserEvent) {
-        let borrowed_context = self.root_browsing_context();
-
-        let frame_element = borrowed_context.find(parent_pipeline_id).and_then(|context| {
-            let doc = context.active_document();
-            doc.find_iframe(subpage_id)
-        });
-
-        if let Some(ref frame_element) = frame_element {
-            frame_element.dispatch_mozbrowser_event(event);
+        match self.root_browsing_context().find(parent_pipeline_id) {
+            None => warn!("Mozbrowser event after pipeline {:?} closed.", parent_pipeline_id),
+            Some(context) => match subpage_id {
+                None => context.active_window().dispatch_mozbrowser_event(event),
+                Some(subpage_id) => match context.active_document().find_iframe(subpage_id) {
+                    None => warn!("Mozbrowser event after iframe {:?}/{:?} closed.", parent_pipeline_id, subpage_id),
+                    Some(frame_element) => frame_element.dispatch_mozbrowser_event(event),
+                },
+            },
         }
     }
 

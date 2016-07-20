@@ -88,8 +88,9 @@ pub enum ScriptMsg {
     LoadComplete(PipelineId),
     /// A new load has been requested.
     LoadUrl(PipelineId, LoadData),
-    /// Dispatch a mozbrowser event to a given iframe. Only available in experimental mode.
-    MozBrowserEvent(PipelineId, SubpageId, MozBrowserEvent),
+    /// Dispatch a mozbrowser event to a given iframe,
+    /// or to the window if no subpage id is provided.
+    MozBrowserEvent(PipelineId, Option<SubpageId>, MozBrowserEvent),
     /// HTMLIFrameElement Forward or Back navigation.
     Navigate(Option<(PipelineId, SubpageId)>, NavigationDirection),
     /// Favicon detected
