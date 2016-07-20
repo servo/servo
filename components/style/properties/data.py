@@ -117,11 +117,10 @@ class Method(object):
 
 class StyleStruct(object):
     def __init__(self, name, inherited, gecko_name=None, additional_methods=None):
-        self.servo_struct_name = "Servo" + name
         self.gecko_struct_name = "Gecko" + name
-        self.trait_name = name
-        self.trait_name_lower = name.lower()
-        self.ident = to_rust_ident(self.trait_name_lower)
+        self.name = name
+        self.name_lower = name.lower()
+        self.ident = to_rust_ident(self.name_lower)
         self.longhands = []
         self.inherited = inherited
         self.gecko_name = gecko_name or name

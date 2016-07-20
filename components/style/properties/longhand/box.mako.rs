@@ -26,7 +26,7 @@
         experimental_values = set("flex".split())
     %>
     pub use self::computed_value::T as SpecifiedValue;
-    use values::computed::{Context, ComputedValueAsSpecified};
+    use values::computed::ComputedValueAsSpecified;
 
     use values::NoViewportPercentage;
     impl NoViewportPercentage for SpecifiedValue {}
@@ -76,10 +76,9 @@
     impl ComputedValueAsSpecified for SpecifiedValue {}
 
     % if product == "servo":
-        fn cascade_property_custom<C: ComputedValues>(
-                                   _declaration: &PropertyDeclaration,
-                                   _inherited_style: &C,
-                                   context: &mut computed::Context<C>,
+        fn cascade_property_custom(_declaration: &PropertyDeclaration,
+                                   _inherited_style: &ComputedValues,
+                                   context: &mut computed::Context,
                                    _seen: &mut PropertyBitField,
                                    _cacheable: &mut bool,
                                    _error_reporter: &mut StdBox<ParseErrorReporter + Send>) {
@@ -105,7 +104,7 @@ ${helpers.single_keyword("position", "static absolute relative fixed",
         type ComputedValue = computed_value::T;
 
         #[inline]
-        fn to_computed_value<Cx: TContext>(&self, context: &Cx) -> computed_value::T {
+        fn to_computed_value(&self, context: &Context) -> computed_value::T {
             let positioned = matches!(context.style().get_box().clone_position(),
                 longhands::position::SpecifiedValue::absolute |
                 longhands::position::SpecifiedValue::fixed);
@@ -134,7 +133,7 @@ ${helpers.single_keyword("clear", "none left right both",
     }
 
     #[inline]
-    pub fn derive_from_display<Cx: TContext>(context: &mut Cx) {
+    pub fn derive_from_display(context: &mut Context) {
         let d = context.style().get_box().clone_display();
         context.mutate_style().mutate_box().set__servo_display_for_hypothetical_box(d);
     }
@@ -228,7 +227,7 @@ ${helpers.single_keyword("clear", "none left right both",
       type ComputedValue = computed_value::T;
 
       #[inline]
-      fn to_computed_value<Cx: TContext>(&self, context: &Cx) -> computed_value::T {
+      fn to_computed_value(&self, context: &Context) -> computed_value::T {
           match *self {
               % for keyword in vertical_align_keywords:
                   SpecifiedValue::${to_rust_ident(keyword)} => {
@@ -287,7 +286,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
       type ComputedValue = computed_value::T;
 
       #[inline]
-      fn to_computed_value<Cx: TContext>(&self, context: &Cx) -> computed_value::T {
+      fn to_computed_value(&self, context: &Context) -> computed_value::T {
           computed_value::T(self.0.to_computed_value(context))
       }
   }
@@ -316,7 +315,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     pub mod computed_value {
         use cssparser::ToCss;
         use std::fmt;
-        use values::computed::{TContext, ToComputedValue};
+        use values::computed::{Context, ToComputedValue};
 
         pub use values::computed::Time as SingleComputedValue;
 
@@ -497,7 +496,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
         type ComputedValue = computed_value::T;
 
         #[inline]
-        fn to_computed_value<Cx: TContext>(&self, _: &Cx) -> computed_value::T {
+        fn to_computed_value(&self, _: &Context) -> computed_value::T {
             (*self).clone()
         }
     }
@@ -623,7 +622,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
         type ComputedValue = computed_value::T;
 
         #[inline]
-        fn to_computed_value<Cx: TContext>(&self, _: &Cx) -> computed_value::T {
+        fn to_computed_value(&self, _: &Context) -> computed_value::T {
             (*self).clone()
         }
     }

@@ -23,9 +23,9 @@ use inline::InlineMetrics;
 use script_layout_interface::restyle_damage::RESOLVE_GENERATED_CONTENT;
 use std::sync::Arc;
 use style::computed_values::{list_style_type, position};
+use style::context::SharedStyleContext;
 use style::logical_geometry::LogicalSize;
-use style::properties::{ComputedValues, ServoComputedValues};
-use style::servo::SharedStyleContext;
+use style::properties::ServoComputedValues;
 use text;
 
 /// A block with the CSS `display` property equal to `list-item`.

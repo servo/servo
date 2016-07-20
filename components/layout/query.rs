@@ -31,11 +31,10 @@ use std::sync::{Arc, Mutex};
 use string_cache::Atom;
 use style::computed_values;
 use style::logical_geometry::{WritingMode, BlockFlowDirection, InlineBaseDirection};
-use style::properties::ComputedValues;
 use style::properties::longhands::{display, position};
 use style::properties::style_structs;
 use style::selector_impl::PseudoElement;
-use style::servo::Stylist;
+use style::selector_matching::Stylist;
 use style::values::LocalToCss;
 use style_traits::cursor::Cursor;
 use wrapper::ThreadSafeLayoutNodeHelpers;
@@ -450,7 +449,7 @@ impl ParentOffsetBorderBoxIterator {
 
 impl FragmentBorderBoxIterator for FragmentLocatingFragmentIterator {
     fn process(&mut self, fragment: &Fragment, _: i32, border_box: &Rect<Au>) {
-        let style_structs::ServoBorder {
+        let style_structs::Border {
             border_top_width: top_width,
             border_right_width: right_width,
             border_bottom_width: bottom_width,
@@ -476,7 +475,7 @@ impl FragmentBorderBoxIterator for UnioningFragmentScrollAreaIterator {
         // increase in size. To work around this, we store the original elements padding
         // rectangle as `origin_rect` and the union of all child elements padding and
         // margin rectangles as `union_rect`.
-        let style_structs::ServoBorder {
+        let style_structs::Border {
             border_top_width: top_border,
             border_right_width: right_border,
             border_bottom_width: bottom_border,

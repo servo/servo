@@ -13,12 +13,12 @@ use restyle_damage::RestyleDamage;
 use std::sync::Arc;
 use string_cache::{Atom, BorrowedAtom, BorrowedNamespace, Namespace};
 use style::computed_values::display;
+use style::context::SharedStyleContext;
 use style::dom::OpaqueNode;
 use style::dom::{PresentationalHintsSynthetizer, TNode};
 use style::properties::ServoComputedValues;
 use style::refcell::{Ref, RefCell};
 use style::selector_impl::{PseudoElement, PseudoElementCascadeType, ServoSelectorImpl};
-use style::servo::SharedStyleContext;
 use url::Url;
 
 #[derive(Copy, PartialEq, Clone)]

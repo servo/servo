@@ -54,14 +54,14 @@ use std::mem::{transmute, transmute_copy};
 use string_cache::{Atom, BorrowedAtom, BorrowedNamespace, Namespace};
 use style::attr::AttrValue;
 use style::computed_values::display;
+use style::context::SharedStyleContext;
+use style::data::PrivateStyleData;
 use style::dom::{PresentationalHintsSynthetizer, OpaqueNode, TDocument, TElement, TNode, UnsafeNode};
 use style::element_state::*;
-use style::properties::{ComputedValues, ServoComputedValues};
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use style::refcell::{Ref, RefCell, RefMut};
 use style::restyle_hints::ElementSnapshot;
 use style::selector_impl::{NonTSPseudoClass, ServoSelectorImpl};
-use style::servo::{PrivateStyleData, SharedStyleContext};
 use style::sink::Push;
 use style::str::is_whitespace;
 use url::Url;
@@ -110,7 +110,6 @@ impl<'ln> ServoLayoutNode<'ln> {
 }
 
 impl<'ln> TNode for ServoLayoutNode<'ln> {
-    type ConcreteComputedValues = ServoComputedValues;
     type ConcreteElement = ServoLayoutElement<'ln>;
     type ConcreteDocument = ServoLayoutDocument<'ln>;
     type ConcreteRestyleDamage = RestyleDamage;

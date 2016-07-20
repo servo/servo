@@ -10,6 +10,7 @@
 %>
 
 use app_units::Au;
+use custom_properties::ComputedValuesMap;
 % for style_struct in data.style_structs:
 use gecko_bindings::structs::${style_struct.gecko_ffi_name};
 use gecko_bindings::bindings::Gecko_Construct_${style_struct.gecko_ffi_name};
@@ -23,25 +24,30 @@ use gecko_bindings::bindings::{Gecko_EnsureImageLayersLength, Gecko_CreateGradie
 use gecko_bindings::bindings::{Gecko_CopyImageValueFrom, Gecko_CopyFontFamilyFrom};
 use gecko_bindings::bindings::{Gecko_FontFamilyList_AppendGeneric, Gecko_FontFamilyList_AppendNamed};
 use gecko_bindings::bindings::{Gecko_FontFamilyList_Clear, Gecko_InitializeImageLayer};
+use gecko_bindings::bindings;
 use gecko_bindings::structs;
-use glue::ArcHelpers;
+use gecko_glue::ArcHelpers;
+use gecko_values::{StyleCoordHelpers, GeckoStyleCoordConvertible, convert_nscolor_to_rgba};
+use gecko_values::convert_rgba_to_nscolor;
+use gecko_values::round_border_to_device_pixels;
+use logical_geometry::WritingMode;
+use properties::CascadePropertyFn;
+use properties::longhands;
 use std::fmt::{self, Debug};
 use std::mem::{transmute, uninitialized, zeroed};
 use std::sync::Arc;
 use std::cmp;
-use style::custom_properties::ComputedValuesMap;
-use style::logical_geometry::WritingMode;
-use style::properties::{CascadePropertyFn, ServoComputedValues, ComputedValues};
-use style::properties::longhands;
-use style::properties::style_struct_traits::*;
-use values::{StyleCoordHelpers, GeckoStyleCoordConvertible, convert_nscolor_to_rgba};
-use values::convert_rgba_to_nscolor;
-use values::round_border_to_device_pixels;
+
+pub mod style_structs {
+    % for style_struct in data.style_structs:
+    pub use super::${style_struct.gecko_struct_name} as ${style_struct.name};
+    % endfor
+}
 
 #[derive(Clone, Debug)]
-pub struct GeckoComputedValues {
+pub struct ComputedValues {
     % for style_struct in data.style_structs:
-    ${style_struct.ident}: Arc<${style_struct.gecko_struct_name}>,
+    ${style_struct.ident}: Arc<style_structs::${style_struct.name}>,
     % endfor
 
     custom_properties: Option<Arc<ComputedValuesMap>>,
@@ -50,9 +56,9 @@ pub struct GeckoComputedValues {
     pub root_font_size: Au,
 }
 
-impl GeckoComputedValues {
+impl ComputedValues {
     pub fn inherit_from(parent: &Arc<Self>) -> Arc<Self> {
-        Arc::new(GeckoComputedValues {
+        Arc::new(ComputedValues {
             custom_properties: parent.custom_properties.clone(),
             shareable: parent.shareable,
             writing_mode: parent.writing_mode,
@@ -66,22 +72,16 @@ impl GeckoComputedValues {
             % endfor
         })
     }
-}
 
-impl ComputedValues for GeckoComputedValues {
-% for style_struct in data.style_structs:
-    type Concrete${style_struct.trait_name} = ${style_struct.gecko_struct_name};
-% endfor
-
-    fn new(custom_properties: Option<Arc<ComputedValuesMap>>,
+    pub fn new(custom_properties: Option<Arc<ComputedValuesMap>>,
            shareable: bool,
            writing_mode: WritingMode,
            root_font_size: Au,
             % for style_struct in data.style_structs:
-           ${style_struct.ident}: Arc<${style_struct.gecko_struct_name}>,
+           ${style_struct.ident}: Arc<style_structs::${style_struct.name}>,
             % endfor
     ) -> Self {
-        GeckoComputedValues {
+        ComputedValues {
             custom_properties: custom_properties,
             shareable: shareable,
             writing_mode: writing_mode,
@@ -92,43 +92,46 @@ impl ComputedValues for GeckoComputedValues {
         }
     }
 
-    fn style_for_child_text_node(parent: &Arc<Self>) -> Arc<Self> {
+    pub fn style_for_child_text_node(parent: &Arc<Self>) -> Arc<Self> {
         // Gecko expects text nodes to be styled as if they were elements that
         // matched no rules (that is, inherited style structs are inherited and
         // non-inherited style structs are set to their initial values).
-        GeckoComputedValues::inherit_from(parent)
+        ComputedValues::inherit_from(parent)
     }
 
-    fn initial_values() -> &'static Self { &*INITIAL_GECKO_VALUES }
+    pub fn initial_values() -> &'static Self { &*INITIAL_GECKO_VALUES }
 
     #[inline]
-    fn do_cascade_property<F: FnOnce(&[CascadePropertyFn<Self>])>(f: F) {
+    pub fn do_cascade_property<F: FnOnce(&[CascadePropertyFn])>(f: F) {
         f(&CASCADE_PROPERTY)
     }
 
     % for style_struct in data.style_structs:
     #[inline]
-    fn clone_${style_struct.trait_name_lower}(&self) -> Arc<Self::Concrete${style_struct.trait_name}> {
+    pub fn clone_${style_struct.name_lower}(&self) -> Arc<style_structs::${style_struct.name}> {
         self.${style_struct.ident}.clone()
     }
     #[inline]
-    fn get_${style_struct.trait_name_lower}<'a>(&'a self) -> &'a Self::Concrete${style_struct.trait_name} {
+    pub fn get_${style_struct.name_lower}(&self) -> &style_structs::${style_struct.name} {
         &self.${style_struct.ident}
     }
     #[inline]
-    fn mutate_${style_struct.trait_name_lower}<'a>(&'a mut self) -> &'a mut Self::Concrete${style_struct.trait_name} {
+    pub fn mutate_${style_struct.name_lower}(&mut self) -> &mut style_structs::${style_struct.name} {
         Arc::make_mut(&mut self.${style_struct.ident})
     }
     % endfor
 
-    fn custom_properties(&self) -> Option<Arc<ComputedValuesMap>> { self.custom_properties.as_ref().map(|x| x.clone())}
-    fn root_font_size(&self) -> Au { self.root_font_size }
-    fn set_root_font_size(&mut self, s: Au) { self.root_font_size = s; }
-    fn set_writing_mode(&mut self, mode: WritingMode) { self.writing_mode = mode; }
+    pub fn custom_properties(&self) -> Option<Arc<ComputedValuesMap>> {
+        self.custom_properties.as_ref().map(|x| x.clone())
+    }
+
+    pub fn root_font_size(&self) -> Au { self.root_font_size }
+    pub fn set_root_font_size(&mut self, s: Au) { self.root_font_size = s; }
+    pub fn set_writing_mode(&mut self, mode: WritingMode) { self.writing_mode = mode; }
 
     // FIXME(bholley): Implement this properly.
     #[inline]
-    fn is_multicol(&self) -> bool { false }
+    pub fn is_multicol(&self) -> bool { false }
 }
 
 <%def name="declare_style_struct(style_struct)">
@@ -138,25 +141,29 @@ pub struct ${style_struct.gecko_struct_name} {
 </%def>
 
 <%def name="impl_simple_setter(ident, gecko_ffi_name)">
-    fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
+    #[allow(non_snake_case)]
+    pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
         ${set_gecko_property(gecko_ffi_name, "v")}
     }
 </%def>
 
 <%def name="impl_simple_clone(ident, gecko_ffi_name)">
-    fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
+    #[allow(non_snake_case)]
+    pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
         self.gecko.${gecko_ffi_name}
     }
 </%def>
 
 <%def name="impl_simple_copy(ident, gecko_ffi_name, *kwargs)">
-    fn copy_${ident}_from(&mut self, other: &Self) {
+    #[allow(non_snake_case)]
+    pub fn copy_${ident}_from(&mut self, other: &Self) {
         self.gecko.${gecko_ffi_name} = other.gecko.${gecko_ffi_name};
     }
 </%def>
 
 <%def name="impl_coord_copy(ident, gecko_ffi_name)">
-    fn copy_${ident}_from(&mut self, other: &Self) {
+    #[allow(non_snake_case)]
+    pub fn copy_${ident}_from(&mut self, other: &Self) {
         self.gecko.${gecko_ffi_name}.copy_from(&other.gecko.${gecko_ffi_name});
     }
 </%def>
@@ -180,8 +187,9 @@ def set_gecko_property(ffi_name, expr):
 %>
 
 <%def name="impl_keyword_setter(ident, gecko_ffi_name, keyword)">
-    fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
-        use style::properties::longhands::${ident}::computed_value::T as Keyword;
+    #[allow(non_snake_case)]
+    pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
+        use properties::longhands::${ident}::computed_value::T as Keyword;
         // FIXME(bholley): Align binary representations and ditch |match| for cast + static_asserts
         let result = match v {
             % for value in keyword.values_for('gecko'):
@@ -193,8 +201,9 @@ def set_gecko_property(ffi_name, expr):
 </%def>
 
 <%def name="impl_keyword_clone(ident, gecko_ffi_name, keyword)">
-    fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
-        use style::properties::longhands::${ident}::computed_value::T as Keyword;
+    #[allow(non_snake_case)]
+    pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
+        use properties::longhands::${ident}::computed_value::T as Keyword;
         // FIXME(bholley): Align binary representations and ditch |match| for cast + static_asserts
         match ${get_gecko_property(gecko_ffi_name)} as u32 {
             % for value in keyword.values_for('gecko'):
@@ -232,7 +241,8 @@ def set_gecko_property(ffi_name, expr):
 
 <%def name="impl_color_setter(ident, gecko_ffi_name, color_flags_ffi_name=None)">
     #[allow(unreachable_code)]
-    fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
+    #[allow(non_snake_case)]
+    pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
         use cssparser::Color;
         ${clear_color_flags(color_flags_ffi_name)}
         let result = match v {
@@ -247,7 +257,8 @@ def set_gecko_property(ffi_name, expr):
 </%def>
 
 <%def name="impl_color_copy(ident, gecko_ffi_name, color_flags_ffi_name=None)">
-    fn copy_${ident}_from(&mut self, other: &Self) {
+    #[allow(non_snake_case)]
+    pub fn copy_${ident}_from(&mut self, other: &Self) {
         % if color_flags_ffi_name:
             ${clear_color_flags(color_flags_ffi_name)}
             if ${get_current_color_flag_from("other.gecko." + color_flags_ffi_name)} {
@@ -259,7 +270,8 @@ def set_gecko_property(ffi_name, expr):
 </%def>
 
 <%def name="impl_color_clone(ident, gecko_ffi_name, color_flags_ffi_name=None)">
-    fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
+    #[allow(non_snake_case)]
+    pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
         use cssparser::Color;
         % if color_flags_ffi_name:
             if ${get_current_color_flag_from("self.gecko." + color_flags_ffi_name)} {
@@ -295,7 +307,8 @@ def set_gecko_property(ffi_name, expr):
 </%def>
 
 <%def name="impl_app_units(ident, gecko_ffi_name, need_clone, round_to_pixels=False)">
-    fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
+    #[allow(non_snake_case)]
+    pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
         % if round_to_pixels:
         let au_per_device_px = Au(self.gecko.mTwipsPerPixel);
         self.gecko.${gecko_ffi_name} = round_border_to_device_pixels(v, au_per_device_px).0;
@@ -305,26 +318,30 @@ def set_gecko_property(ffi_name, expr):
     }
 <%call expr="impl_simple_copy(ident, gecko_ffi_name)"></%call>
 %if need_clone:
-    fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
+    #[allow(non_snake_case)]
+    pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
         Au(self.gecko.${gecko_ffi_name})
     }
 % endif
 </%def>
 
 <%def name="impl_split_style_coord(ident, unit_ffi_name, union_ffi_name, need_clone=False)">
-    fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
+    #[allow(non_snake_case)]
+    pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
         v.to_gecko_style_coord(&mut self.gecko.${unit_ffi_name},
                                &mut self.gecko.${union_ffi_name});
     }
-    fn copy_${ident}_from(&mut self, other: &Self) {
+    #[allow(non_snake_case)]
+    pub fn copy_${ident}_from(&mut self, other: &Self) {
         unsafe { self.gecko.${union_ffi_name}.reset(&mut self.gecko.${unit_ffi_name}) };
         self.gecko.${unit_ffi_name} =  other.gecko.${unit_ffi_name};
         self.gecko.${union_ffi_name} = other.gecko.${union_ffi_name};
         unsafe { self.gecko.${union_ffi_name}.addref_if_calc(&self.gecko.${unit_ffi_name}) };
     }
     % if need_clone:
-        fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
-            use style::properties::longhands::${ident}::computed_value::T;
+        #[allow(non_snake_case)]
+        pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
+            use properties::longhands::${ident}::computed_value::T;
             T::from_gecko_style_coord(&self.gecko.${unit_ffi_name},
                                       &self.gecko.${union_ffi_name})
                 .expect("clone for ${ident} failed")
@@ -341,13 +358,15 @@ ${impl_split_style_coord(ident,
 
 <%def name="impl_corner_style_coord(ident, x_unit_ffi_name, x_union_ffi_name, \
                                     y_unit_ffi_name, y_union_ffi_name, need_clone=False)">
-    fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
+    #[allow(non_snake_case)]
+    pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
         v.0.width.to_gecko_style_coord(&mut self.gecko.${x_unit_ffi_name},
                                        &mut self.gecko.${x_union_ffi_name});
         v.0.height.to_gecko_style_coord(&mut self.gecko.${y_unit_ffi_name},
                                         &mut self.gecko.${y_union_ffi_name});
     }
-    fn copy_${ident}_from(&mut self, other: &Self) {
+    #[allow(non_snake_case)]
+    pub fn copy_${ident}_from(&mut self, other: &Self) {
         unsafe { self.gecko.${x_union_ffi_name}.reset(&mut self.gecko.${x_unit_ffi_name}) };
         unsafe { self.gecko.${y_union_ffi_name}.reset(&mut self.gecko.${y_unit_ffi_name}) };
         self.gecko.${x_unit_ffi_name} = other.gecko.${x_unit_ffi_name};
@@ -358,8 +377,9 @@ ${impl_split_style_coord(ident,
         unsafe { self.gecko.${y_union_ffi_name}.addref_if_calc(&self.gecko.${y_unit_ffi_name}) };
     }
     % if need_clone:
-        fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
-            use style::properties::longhands::${ident}::computed_value::T;
+        #[allow(non_snake_case)]
+        pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
+            use properties::longhands::${ident}::computed_value::T;
             use euclid::Size2D;
             let width = GeckoStyleCoordConvertible::from_gecko_style_coord(&self.gecko.${x_unit_ffi_name},
                                                                            &self.gecko.${x_union_ffi_name})
@@ -375,7 +395,7 @@ ${impl_split_style_coord(ident,
 <%def name="impl_style_struct(style_struct)">
 impl ${style_struct.gecko_struct_name} {
     #[allow(dead_code, unused_variables)]
-    fn initial() -> Arc<Self> {
+    pub fn initial() -> Arc<Self> {
         let mut result = Arc::new(${style_struct.gecko_struct_name} { gecko: unsafe { zeroed() } });
         unsafe {
             Gecko_Construct_${style_struct.gecko_ffi_name}(&mut Arc::make_mut(&mut result).gecko);
@@ -455,7 +475,7 @@ impl Debug for ${style_struct.gecko_struct_name} {
                            if x.predefined_type in predefined_types and not x.name in force_stub]
    stub_longhands = [x for x in longhands if x not in keyword_longhands + predefined_longhands]
 %>
-impl ${style_struct.trait_name} for ${style_struct.gecko_struct_name} {
+impl ${style_struct.gecko_struct_name} {
     /*
      * Manually-Implemented Methods.
      */
@@ -476,24 +496,28 @@ impl ${style_struct.trait_name} for ${style_struct.gecko_struct_name} {
      * Stubs.
      */
     % for longhand in stub_longhands:
-    fn set_${longhand.ident}(&mut self, _: longhands::${longhand.ident}::computed_value::T) {
+    #[allow(non_snake_case)]
+    pub fn set_${longhand.ident}(&mut self, _: longhands::${longhand.ident}::computed_value::T) {
         if cfg!(debug_assertions) {
             println!("stylo: Unimplemented property setter: ${longhand.name}");
         }
     }
-    fn copy_${longhand.ident}_from(&mut self, _: &Self) {
+    #[allow(non_snake_case)]
+    pub fn copy_${longhand.ident}_from(&mut self, _: &Self) {
         if cfg!(debug_assertions) {
             println!("stylo: Unimplemented property setter: ${longhand.name}");
         }
     }
     % if longhand.need_clone:
-    fn clone_${longhand.ident}(&self) -> longhands::${longhand.ident}::computed_value::T {
+    #[allow(non_snake_case)]
+    pub fn clone_${longhand.ident}(&self) -> longhands::${longhand.ident}::computed_value::T {
         unimplemented!()
     }
     % endif
     % if longhand.need_index:
-    fn ${longhand.ident}_count(&self) -> usize { 0 }
-    fn ${longhand.ident}_at(&self, _index: usize) -> longhands::${longhand.ident}::computed_value::SingleComputedValue {
+    pub fn ${longhand.ident}_count(&self) -> usize { 0 }
+    pub fn ${longhand.ident}_at(&self, _index: usize)
+                                -> longhands::${longhand.ident}::computed_value::SingleComputedValue {
         unimplemented!()
     }
     % endif
@@ -508,7 +532,7 @@ impl ${style_struct.trait_name} for ${style_struct.gecko_struct_name} {
 
 <% data.manual_style_structs = [] %>
 <%def name="impl_trait(style_struct_name, skip_longhands='', skip_additionals='')">
-<%self:raw_impl_trait style_struct="${next(x for x in data.style_structs if x.trait_name == style_struct_name)}"
+<%self:raw_impl_trait style_struct="${next(x for x in data.style_structs if x.name == style_struct_name)}"
                       skip_longhands="${skip_longhands}" skip_additionals="${skip_additionals}">
 ${caller.body()}
 </%self:raw_impl_trait>
@@ -571,7 +595,7 @@ fn static_assert() {
     <% impl_app_units("border_%s_width" % side.ident, "mComputedBorder.%s" % side.ident, need_clone=True,
                       round_to_pixels=True) %>
 
-    fn border_${side.ident}_has_nonzero_width(&self) -> bool {
+    pub fn border_${side.ident}_has_nonzero_width(&self) -> bool {
         self.gecko.mComputedBorder.${side.ident} != 0
     }
     % endfor
@@ -621,15 +645,15 @@ fn static_assert() {
                               need_clone=True) %>
     % endfor
 
-    fn set_z_index(&mut self, v: longhands::z_index::computed_value::T) {
-        use style::properties::longhands::z_index::computed_value::T;
+    pub fn set_z_index(&mut self, v: longhands::z_index::computed_value::T) {
+        use properties::longhands::z_index::computed_value::T;
         match v {
             T::Auto => self.gecko.mZIndex.set_auto(),
             T::Number(n) => self.gecko.mZIndex.set_int(n),
         }
     }
 
-    fn copy_z_index_from(&mut self, other: &Self) {
+    pub fn copy_z_index_from(&mut self, other: &Self) {
         use gecko_bindings::structs::nsStyleUnit;
         // z-index is never a calc(). If it were, we'd be leaking here, so
         // assert that it isn't.
@@ -638,8 +662,8 @@ fn static_assert() {
         self.gecko.mZIndex.mValue = other.gecko.mZIndex.mValue;
     }
 
-    fn clone_z_index(&self) -> longhands::z_index::computed_value::T {
-        use style::properties::longhands::z_index::computed_value::T;
+    pub fn clone_z_index(&self) -> longhands::z_index::computed_value::T {
+        use properties::longhands::z_index::computed_value::T;
 
         if self.gecko.mZIndex.is_auto() {
             return T::Auto;
@@ -649,8 +673,8 @@ fn static_assert() {
         T::Number(self.gecko.mZIndex.get_int())
     }
 
-    fn set_box_sizing(&mut self, v: longhands::box_sizing::computed_value::T) {
-        use style::computed_values::box_sizing::T;
+    pub fn set_box_sizing(&mut self, v: longhands::box_sizing::computed_value::T) {
+        use computed_values::box_sizing::T;
         use gecko_bindings::structs::StyleBoxSizing;
         // TODO: guess what to do with box-sizing: padding-box
         self.gecko.mBoxSizing = match v {
@@ -684,7 +708,7 @@ fn static_assert() {
                                "mOutlineRadius.mValues[%s]" % corner.y_index) %>
     % endfor
 
-    fn outline_has_nonzero_width(&self) -> bool {
+    pub fn outline_has_nonzero_width(&self) -> bool {
         self.gecko.mActualOutlineWidth != 0
     }
 </%self:impl_trait>
@@ -693,8 +717,8 @@ fn static_assert() {
     skip_longhands="font-family font-style font-size font-weight"
     skip_additionals="*">
 
-    fn set_font_family(&mut self, v: longhands::font_family::computed_value::T) {
-        use style::properties::longhands::font_family::computed_value::FontFamily;
+    pub fn set_font_family(&mut self, v: longhands::font_family::computed_value::T) {
+        use properties::longhands::font_family::computed_value::FontFamily;
         use gecko_bindings::structs::FontFamilyType;
 
         let list = &mut self.gecko.mFont.fontlist;
@@ -719,7 +743,7 @@ fn static_assert() {
         }
     }
 
-    fn copy_font_family_from(&mut self, other: &Self) {
+    pub fn copy_font_family_from(&mut self, other: &Self) {
         unsafe { Gecko_CopyFontFamilyFrom(&mut self.gecko.mFont, &other.gecko.mFont); }
     }
 
@@ -729,24 +753,24 @@ fn static_assert() {
     // FIXME(bholley): Gecko has two different sizes, one of which (mSize) is the
     // actual computed size, and the other of which (mFont.size) is the 'display
     // size' which takes font zooming into account. We don't handle font zooming yet.
-    fn set_font_size(&mut self, v: longhands::font_size::computed_value::T) {
+    pub fn set_font_size(&mut self, v: longhands::font_size::computed_value::T) {
         self.gecko.mFont.size = v.0;
         self.gecko.mSize = v.0;
     }
-    fn copy_font_size_from(&mut self, other: &Self) {
+    pub fn copy_font_size_from(&mut self, other: &Self) {
         self.gecko.mFont.size = other.gecko.mFont.size;
         self.gecko.mSize = other.gecko.mSize;
     }
-    fn clone_font_size(&self) -> longhands::font_size::computed_value::T {
+    pub fn clone_font_size(&self) -> longhands::font_size::computed_value::T {
         Au(self.gecko.mSize)
     }
 
-    fn set_font_weight(&mut self, v: longhands::font_weight::computed_value::T) {
+    pub fn set_font_weight(&mut self, v: longhands::font_weight::computed_value::T) {
         self.gecko.mFont.weight = v as u16;
     }
     ${impl_simple_copy('font_weight', 'mFont.weight')}
 
-    fn clone_font_weight(&self) -> longhands::font_weight::computed_value::T {
+    pub fn clone_font_weight(&self) -> longhands::font_weight::computed_value::T {
         debug_assert!(self.gecko.mFont.weight >= 100);
         debug_assert!(self.gecko.mFont.weight <= 900);
         debug_assert!(self.gecko.mFont.weight % 10 == 0);
@@ -754,7 +778,7 @@ fn static_assert() {
     }
 
     // This is used for PartialEq, which we don't implement for gecko style structs.
-    fn compute_font_hash(&mut self) {}
+    pub fn compute_font_hash(&mut self) {}
 
 </%self:impl_trait>
 
@@ -773,8 +797,8 @@ fn static_assert() {
     // overflow-y is implemented as a newtype of overflow-x, so we need special handling.
     // We could generalize this if we run into other newtype keywords.
     <% overflow_x = data.longhands_by_name["overflow-x"] %>
-    fn set_overflow_y(&mut self, v: longhands::overflow_y::computed_value::T) {
-        use style::properties::longhands::overflow_x::computed_value::T as BaseType;
+    pub fn set_overflow_y(&mut self, v: longhands::overflow_y::computed_value::T) {
+        use properties::longhands::overflow_x::computed_value::T as BaseType;
         // FIXME(bholley): Align binary representations and ditch |match| for cast + static_asserts
         self.gecko.mOverflowY = match v.0 {
             % for value in overflow_x.keyword.values_for('gecko'):
@@ -783,9 +807,9 @@ fn static_assert() {
         };
     }
     ${impl_simple_copy('overflow_y', 'mOverflowY')}
-    fn clone_overflow_y(&self) -> longhands::overflow_y::computed_value::T {
-        use style::properties::longhands::overflow_x::computed_value::T as BaseType;
-        use style::properties::longhands::overflow_y::computed_value::T as NewType;
+    pub fn clone_overflow_y(&self) -> longhands::overflow_y::computed_value::T {
+        use properties::longhands::overflow_x::computed_value::T as BaseType;
+        use properties::longhands::overflow_y::computed_value::T as NewType;
         // FIXME(bholley): Align binary representations and ditch |match| for cast + static_asserts
         match self.gecko.mOverflowY as u32 {
             % for value in overflow_x.keyword.values_for('gecko'):
@@ -795,9 +819,9 @@ fn static_assert() {
         }
     }
 
-    fn set_vertical_align(&mut self, v: longhands::vertical_align::computed_value::T) {
+    pub fn set_vertical_align(&mut self, v: longhands::vertical_align::computed_value::T) {
         <% keyword = data.longhands_by_name["vertical-align"].keyword %>
-        use style::properties::longhands::vertical_align::computed_value::T;
+        use properties::longhands::vertical_align::computed_value::T;
         // FIXME: Align binary representations and ditch |match| for cast + static_asserts
         match v {
             % for value in keyword.values_for('gecko'):
@@ -808,9 +832,9 @@ fn static_assert() {
         }
     }
 
-    fn clone_vertical_align(&self) -> longhands::vertical_align::computed_value::T {
-        use style::properties::longhands::vertical_align::computed_value::T;
-        use style::values::computed::LengthOrPercentage;
+    pub fn clone_vertical_align(&self) -> longhands::vertical_align::computed_value::T {
+        use properties::longhands::vertical_align::computed_value::T;
+        use values::computed::LengthOrPercentage;
 
         if self.gecko.mVerticalAlign.is_enum() {
             match self.gecko.mVerticalAlign.get_enum() as u32 {
@@ -830,8 +854,9 @@ fn static_assert() {
 
     <%call expr="impl_coord_copy('vertical_align', 'mVerticalAlign')"></%call>
 
-    fn set__moz_binding(&mut self, v: longhands::_moz_binding::computed_value::T) {
-        use style::properties::longhands::_moz_binding::SpecifiedValue as BindingValue;
+    #[allow(non_snake_case)]
+    pub fn set__moz_binding(&mut self, v: longhands::_moz_binding::computed_value::T) {
+        use properties::longhands::_moz_binding::SpecifiedValue as BindingValue;
         match v {
             BindingValue::None => debug_assert!(self.gecko.mBinding.mRawPtr.is_null()),
             BindingValue::Url(ref url, ref extra_data) => {
@@ -846,7 +871,8 @@ fn static_assert() {
             }
         }
     }
-    fn copy__moz_binding_from(&mut self, other: &Self) {
+    #[allow(non_snake_case)]
+    pub fn copy__moz_binding_from(&mut self, other: &Self) {
         unsafe { Gecko_CopyMozBindingFrom(&mut self.gecko, &other.gecko); }
     }
 
@@ -854,8 +880,8 @@ fn static_assert() {
     // Map 'auto' and 'avoid' to false, and 'always', 'left', and 'right' to true.
     // "A conforming user agent may interpret the values 'left' and 'right'
     // as 'always'." - CSS2.1, section 13.3.1
-    fn set_page_break_before(&mut self, v: longhands::page_break_before::computed_value::T) {
-        use style::computed_values::page_break_before::T;
+    pub fn set_page_break_before(&mut self, v: longhands::page_break_before::computed_value::T) {
+        use computed_values::page_break_before::T;
         let result = match v {
             T::auto   => false,
             T::always => true,
@@ -871,8 +897,8 @@ fn static_assert() {
 
     // Temp fix for Bugzilla bug 24000.
     // See set_page_break_before for detail.
-    fn set_page_break_after(&mut self, v: longhands::page_break_after::computed_value::T) {
-        use style::computed_values::page_break_after::T;
+    pub fn set_page_break_after(&mut self, v: longhands::page_break_after::computed_value::T) {
+        use computed_values::page_break_after::T;
         let result = match v {
             T::auto   => false,
             T::always => true,
@@ -900,14 +926,14 @@ fn static_assert() {
 
     <% impl_color("background_color", "mBackgroundColor", need_clone=True) %>
 
-    fn copy_background_repeat_from(&mut self, other: &Self) {
+    pub fn copy_background_repeat_from(&mut self, other: &Self) {
         self.gecko.mImage.mRepeatCount = cmp::min(1, other.gecko.mImage.mRepeatCount);
         self.gecko.mImage.mLayers.mFirstElement.mRepeat =
             other.gecko.mImage.mLayers.mFirstElement.mRepeat;
     }
 
-    fn set_background_repeat(&mut self, v: longhands::background_repeat::computed_value::T) {
-        use style::properties::longhands::background_repeat::computed_value::T;
+    pub fn set_background_repeat(&mut self, v: longhands::background_repeat::computed_value::T) {
+        use properties::longhands::background_repeat::computed_value::T;
         use gecko_bindings::structs::{NS_STYLE_IMAGELAYER_REPEAT_REPEAT, NS_STYLE_IMAGELAYER_REPEAT_NO_REPEAT};
         use gecko_bindings::structs::nsStyleImageLayers_Repeat;
         let (repeat_x, repeat_y) = match v {
@@ -928,14 +954,14 @@ fn static_assert() {
         };
     }
 
-    fn copy_background_clip_from(&mut self, other: &Self) {
+    pub fn copy_background_clip_from(&mut self, other: &Self) {
         self.gecko.mImage.mClipCount = cmp::min(1, other.gecko.mImage.mClipCount);
         self.gecko.mImage.mLayers.mFirstElement.mClip =
             other.gecko.mImage.mLayers.mFirstElement.mClip;
     }
 
-    fn set_background_clip(&mut self, v: longhands::background_clip::computed_value::T) {
-        use style::properties::longhands::background_clip::computed_value::T;
+    pub fn set_background_clip(&mut self, v: longhands::background_clip::computed_value::T) {
+        use properties::longhands::background_clip::computed_value::T;
         self.gecko.mImage.mClipCount = 1;
 
         // TODO: Gecko supports background-clip: text, but just on -webkit-
@@ -947,14 +973,14 @@ fn static_assert() {
         };
     }
 
-    fn copy_background_origin_from(&mut self, other: &Self) {
+    pub fn copy_background_origin_from(&mut self, other: &Self) {
         self.gecko.mImage.mOriginCount = cmp::min(1, other.gecko.mImage.mOriginCount);
         self.gecko.mImage.mLayers.mFirstElement.mOrigin =
             other.gecko.mImage.mLayers.mFirstElement.mOrigin;
     }
 
-    fn set_background_origin(&mut self, v: longhands::background_origin::computed_value::T) {
-        use style::properties::longhands::background_origin::computed_value::T;
+    pub fn set_background_origin(&mut self, v: longhands::background_origin::computed_value::T) {
+        use properties::longhands::background_origin::computed_value::T;
 
         self.gecko.mImage.mOriginCount = 1;
         self.gecko.mImage.mLayers.mFirstElement.mOrigin = match v {
@@ -964,14 +990,14 @@ fn static_assert() {
         };
     }
 
-    fn copy_background_attachment_from(&mut self, other: &Self) {
+    pub fn copy_background_attachment_from(&mut self, other: &Self) {
         self.gecko.mImage.mAttachmentCount = cmp::min(1, other.gecko.mImage.mAttachmentCount);
         self.gecko.mImage.mLayers.mFirstElement.mAttachment =
             other.gecko.mImage.mLayers.mFirstElement.mAttachment;
     }
 
-    fn set_background_attachment(&mut self, v: longhands::background_attachment::computed_value::T) {
-        use style::properties::longhands::background_attachment::computed_value::T;
+    pub fn set_background_attachment(&mut self, v: longhands::background_attachment::computed_value::T) {
+        use properties::longhands::background_attachment::computed_value::T;
 
         self.gecko.mImage.mAttachmentCount = 1;
         self.gecko.mImage.mLayers.mFirstElement.mAttachment = match v {
@@ -981,19 +1007,19 @@ fn static_assert() {
         };
     }
 
-    fn copy_background_image_from(&mut self, other: &Self) {
+    pub fn copy_background_image_from(&mut self, other: &Self) {
         unsafe {
             Gecko_CopyImageValueFrom(&mut self.gecko.mImage.mLayers.mFirstElement.mImage,
                                      &other.gecko.mImage.mLayers.mFirstElement.mImage);
         }
     }
 
-    fn set_background_image(&mut self, images: longhands::background_image::computed_value::T) {
+    pub fn set_background_image(&mut self, images: longhands::background_image::computed_value::T) {
         use gecko_bindings::structs::nsStyleImageLayers_LayerType as LayerType;
         use gecko_bindings::structs::{NS_STYLE_GRADIENT_SHAPE_LINEAR, NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER};
         use gecko_bindings::structs::nsStyleCoord;
-        use style::values::computed::Image;
-        use style::values::specified::AngleOrCorner;
+        use values::computed::Image;
+        use values::specified::AngleOrCorner;
         use cssparser::Color as CSSColor;
 
         unsafe {
@@ -1088,7 +1114,7 @@ fn static_assert() {
 
     ${impl_keyword_setter("list_style_type", "__LIST_STYLE_TYPE__",
                            data.longhands_by_name["list-style-type"].keyword)}
-    fn copy_list_style_type_from(&mut self, other: &Self) {
+    pub fn copy_list_style_type_from(&mut self, other: &Self) {
         unsafe {
             Gecko_CopyListStyleTypeFrom(&mut self.gecko, &other.gecko);
         }
@@ -1103,8 +1129,8 @@ fn static_assert() {
                                                   "-moz-right match-parent") %>
     ${impl_keyword('text_align', 'mTextAlign', text_align_keyword, need_clone=False)}
 
-    fn set_line_height(&mut self, v: longhands::line_height::computed_value::T) {
-        use style::properties::longhands::line_height::computed_value::T;
+    pub fn set_line_height(&mut self, v: longhands::line_height::computed_value::T) {
+        use properties::longhands::line_height::computed_value::T;
         // FIXME: Align binary representations and ditch |match| for cast + static_asserts
         match v {
             T::Normal => self.gecko.mLineHeight.set_normal(),
@@ -1115,8 +1141,8 @@ fn static_assert() {
         }
     }
 
-    fn clone_line_height(&self) -> longhands::line_height::computed_value::T {
-        use style::properties::longhands::line_height::computed_value::T;
+    pub fn clone_line_height(&self) -> longhands::line_height::computed_value::T {
+        use properties::longhands::line_height::computed_value::T;
         if self.gecko.mLineHeight.is_normal() {
             return T::Normal;
         }
@@ -1142,7 +1168,7 @@ fn static_assert() {
     ${impl_color("text_decoration_color", "mTextDecorationColor",
                   color_flags_ffi_name="mTextDecorationStyle", need_clone=True)}
 
-    fn set_text_decoration_line(&mut self, v: longhands::text_decoration_line::computed_value::T) {
+    pub fn set_text_decoration_line(&mut self, v: longhands::text_decoration_line::computed_value::T) {
         let mut bits: u8 = 0;
         if v.underline {
             bits |= structs::NS_STYLE_TEXT_DECORATION_LINE_UNDERLINE as u8;
@@ -1159,17 +1185,17 @@ fn static_assert() {
     ${impl_simple_copy('text_decoration_line', 'mTextDecorationLine')}
 
     #[inline]
-    fn has_underline(&self) -> bool {
+    pub fn has_underline(&self) -> bool {
         (self.gecko.mTextDecorationLine & (structs::NS_STYLE_TEXT_DECORATION_LINE_UNDERLINE as u8)) != 0
     }
 
     #[inline]
-    fn has_overline(&self) -> bool {
+    pub fn has_overline(&self) -> bool {
         (self.gecko.mTextDecorationLine & (structs::NS_STYLE_TEXT_DECORATION_LINE_OVERLINE as u8)) != 0
     }
 
     #[inline]
-    fn has_line_through(&self) -> bool {
+    pub fn has_line_through(&self) -> bool {
         (self.gecko.mTextDecorationLine & (structs::NS_STYLE_TEXT_DECORATION_LINE_LINE_THROUGH as u8)) != 0
     }
 </%self:impl_trait>
@@ -1188,14 +1214,14 @@ fn static_assert() {
 
 <%self:impl_trait style_struct_name="Color"
                   skip_longhands="*">
-    fn set_color(&mut self, v: longhands::color::computed_value::T) {
+    pub fn set_color(&mut self, v: longhands::color::computed_value::T) {
         let result = convert_rgba_to_nscolor(&v);
         ${set_gecko_property("mColor", "result")}
     }
 
     <%call expr="impl_simple_copy('color', 'mColor')"></%call>
 
-    fn clone_color(&self) -> longhands::color::computed_value::T {
+    pub fn clone_color(&self) -> longhands::color::computed_value::T {
         let color = ${get_gecko_property("mColor")} as u32;
         convert_nscolor_to_rgba(color)
     }
@@ -1203,8 +1229,8 @@ fn static_assert() {
 
 <%self:impl_trait style_struct_name="Pointing"
                   skip_longhands="cursor">
-    fn set_cursor(&mut self, v: longhands::cursor::computed_value::T) {
-        use style::properties::longhands::cursor::computed_value::T;
+    pub fn set_cursor(&mut self, v: longhands::cursor::computed_value::T) {
+        use properties::longhands::cursor::computed_value::T;
         use style_traits::cursor::Cursor;
 
         self.gecko.mCursor = match v {
@@ -1255,7 +1281,7 @@ fn static_assert() {
 <%self:impl_trait style_struct_name="Column"
                   skip_longhands="column-width">
 
-    fn set_column_width(&mut self, v: longhands::column_width::computed_value::T) {
+    pub fn set_column_width(&mut self, v: longhands::column_width::computed_value::T) {
         match v.0 {
             Some(au) => self.gecko.mColumnWidth.set_coord(au),
             None => self.gecko.mColumnWidth.set_auto(),
@@ -1268,10 +1294,10 @@ fn static_assert() {
 <%def name="define_ffi_struct_accessor(style_struct)">
 #[no_mangle]
 #[allow(non_snake_case, unused_variables)]
-pub extern "C" fn Servo_GetStyle${style_struct.gecko_name}(computed_values: *mut ServoComputedValues)
+pub extern "C" fn Servo_GetStyle${style_struct.gecko_name}(computed_values: *mut bindings::ServoComputedValues)
   -> *const ${style_struct.gecko_ffi_name} {
-    type Helpers = ArcHelpers<ServoComputedValues, GeckoComputedValues>;
-    Helpers::with(computed_values, |values| values.get_${style_struct.trait_name_lower}().get_gecko()
+    type Helpers = ArcHelpers<bindings::ServoComputedValues, ComputedValues>;
+    Helpers::with(computed_values, |values| values.get_${style_struct.name_lower}().get_gecko()
                                                 as *const ${style_struct.gecko_ffi_name})
 }
 </%def>
@@ -1279,16 +1305,16 @@ pub extern "C" fn Servo_GetStyle${style_struct.gecko_name}(computed_values: *mut
 % for style_struct in data.style_structs:
 ${declare_style_struct(style_struct)}
 ${impl_style_struct(style_struct)}
-% if not style_struct.trait_name in data.manual_style_structs:
+% if not style_struct.name in data.manual_style_structs:
 <%self:raw_impl_trait style_struct="${style_struct}"></%self:raw_impl_trait>
 % endif
 ${define_ffi_struct_accessor(style_struct)}
 % endfor
 
 lazy_static! {
-    pub static ref INITIAL_GECKO_VALUES: GeckoComputedValues = GeckoComputedValues {
+    pub static ref INITIAL_GECKO_VALUES: ComputedValues = ComputedValues {
         % for style_struct in data.style_structs:
-           ${style_struct.ident}: ${style_struct.gecko_struct_name}::initial(),
+           ${style_struct.ident}: style_structs::${style_struct.name}::initial(),
         % endfor
         custom_properties: None,
         shareable: true,
@@ -1297,7 +1323,7 @@ lazy_static! {
     };
 }
 
-static CASCADE_PROPERTY: [CascadePropertyFn<GeckoComputedValues>; ${len(data.longhands)}] = [
+static CASCADE_PROPERTY: [CascadePropertyFn; ${len(data.longhands)}] = [
     % for property in data.longhands:
         longhands::${property.ident}::cascade_property,
     % endfor

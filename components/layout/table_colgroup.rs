@@ -18,9 +18,9 @@ use layout_debug;
 use std::cmp::max;
 use std::fmt;
 use std::sync::Arc;
+use style::context::SharedStyleContext;
 use style::logical_geometry::LogicalSize;
 use style::properties::ServoComputedValues;
-use style::servo::SharedStyleContext;
 use style::values::computed::LengthOrPercentageOrAuto;
 
 /// A table formatting context.

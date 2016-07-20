@@ -64,7 +64,7 @@
                 use cssparser::Parser;
                 use parser::{ParserContext, ParserContextExtraData};
                 use properties::{CSSWideKeyword, DeclaredValue, Shorthand};
-                use values::computed::{TContext, ToComputedValue};
+                use values::computed::{Context, ToComputedValue};
                 use values::{computed, specified};
                 ${caller.body()}
             }
@@ -144,7 +144,7 @@
                 type ComputedValue = computed_value::T;
 
                 #[inline]
-                fn to_computed_value<Cx: TContext>(&self, context: &Cx) -> computed_value::T {
+                fn to_computed_value(&self, context: &Context) -> computed_value::T {
                     computed_value::T(self.0.iter().map(|x| x.to_computed_value(context)).collect())
                 }
             }
@@ -170,21 +170,19 @@
         use error_reporting::ParseErrorReporter;
         use properties::longhands;
         use properties::property_bit_field::PropertyBitField;
-        use properties::{ComputedValues, ServoComputedValues, PropertyDeclaration};
-        use properties::style_struct_traits::${data.current_style_struct.trait_name};
+        use properties::{ComputedValues, PropertyDeclaration};
         use properties::style_structs;
         use std::boxed::Box as StdBox;
         use std::collections::HashMap;
         use std::sync::Arc;
-        use values::computed::{TContext, ToComputedValue};
+        use values::computed::{Context, ToComputedValue};
         use values::{computed, specified};
         use string_cache::Atom;
         ${caller.body()}
         #[allow(unused_variables)]
-        pub fn cascade_property<C: ComputedValues>(
-                                declaration: &PropertyDeclaration,
-                                inherited_style: &C,
-                                context: &mut computed::Context<C>,
+        pub fn cascade_property(declaration: &PropertyDeclaration,
+                                inherited_style: &ComputedValues,
+                                context: &mut computed::Context,
                                 seen: &mut PropertyBitField,
                                 cacheable: &mut bool,
                                 error_reporter: &mut StdBox<ParseErrorReporter + Send>) {
@@ -205,16 +203,16 @@
                         declared_value, &custom_props, |value| match *value {
                             DeclaredValue::Value(ref specified_value) => {
                                 let computed = specified_value.to_computed_value(context);
-                                context.mutate_style().mutate_${data.current_style_struct.trait_name_lower}()
+                                context.mutate_style().mutate_${data.current_style_struct.name_lower}()
                                                       .set_${property.ident}(computed);
                             }
                             DeclaredValue::WithVariables { .. } => unreachable!(),
                             DeclaredValue::Initial => {
                                 // We assume that it's faster to use copy_*_from rather than
                                 // set_*(get_initial_value());
-                                let initial_struct = C::initial_values()
-                                                      .get_${data.current_style_struct.trait_name_lower}();
-                                context.mutate_style().mutate_${data.current_style_struct.trait_name_lower}()
+                                let initial_struct = ComputedValues::initial_values()
+                                                      .get_${data.current_style_struct.name_lower}();
+                                context.mutate_style().mutate_${data.current_style_struct.name_lower}()
                                                       .copy_${property.ident}_from(initial_struct);
                             },
                             DeclaredValue::Inherit => {
@@ -224,8 +222,8 @@
                                 // FIXME: is it still?
                                 *cacheable = false;
                                 let inherited_struct =
-                                    inherited_style.get_${data.current_style_struct.trait_name_lower}();
-                                context.mutate_style().mutate_${data.current_style_struct.trait_name_lower}()
+                                    inherited_style.get_${data.current_style_struct.name_lower}();
+                                context.mutate_style().mutate_${data.current_style_struct.name_lower}()
                                        .copy_${property.ident}_from(inherited_struct);
                             }
                         }, error_reporter

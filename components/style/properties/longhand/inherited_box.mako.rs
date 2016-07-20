@@ -92,7 +92,7 @@ ${helpers.single_keyword("color-adjust",
         type ComputedValue = computed_value::T;
 
         #[inline]
-        fn to_computed_value<Cx: TContext>(&self, _: &Cx) -> computed_value::T {
+        fn to_computed_value(&self, _: &Context) -> computed_value::T {
             *self
         }
     }
@@ -131,8 +131,7 @@ ${helpers.single_keyword("color-adjust",
     }
 
     #[inline]
-    pub fn derive_from_display<Cx: TContext>(context: &mut Cx) {
-        use properties::style_struct_traits::Box;
+    pub fn derive_from_display(context: &mut Context) {
         use super::display::computed_value::T as Display;
 
         if context.style().get_box().clone_display() == Display::none {

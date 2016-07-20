@@ -108,10 +108,9 @@ ${helpers.single_keyword("unicode-bidi",
     }
 
     % if product == "servo":
-        fn cascade_property_custom<C: ComputedValues>(
-                                   _declaration: &PropertyDeclaration,
-                                   _inherited_style: &C,
-                                   context: &mut computed::Context<C>,
+        fn cascade_property_custom(_declaration: &PropertyDeclaration,
+                                   _inherited_style: &ComputedValues,
+                                   context: &mut computed::Context,
                                    _seen: &mut PropertyBitField,
                                    _cacheable: &mut bool,
                                    _error_reporter: &mut StdBox<ParseErrorReporter + Send>) {

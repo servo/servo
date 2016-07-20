@@ -2,20 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use properties::GeckoComputedValues;
+use element_state::ElementState;
+use selector_impl::{PseudoElementCascadeType, SelectorImplExt};
 use selectors::parser::{ParserContext, SelectorImpl};
 use string_cache::Atom;
-use style;
-use style::element_state::ElementState;
-use style::selector_impl::{PseudoElementCascadeType, SelectorImplExt};
+use stylesheets::Stylesheet;
 
-pub type Stylist = style::selector_matching::Stylist<GeckoSelectorImpl>;
-pub type Stylesheet = style::stylesheets::Stylesheet<GeckoSelectorImpl>;
-pub type SharedStyleContext = style::context::SharedStyleContext<GeckoSelectorImpl>;
-pub type PrivateStyleData = style::data::PrivateStyleData<GeckoSelectorImpl, GeckoComputedValues>;
-pub type Animation = style::animation::Animation<GeckoSelectorImpl>;
-
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GeckoSelectorImpl;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -135,8 +128,8 @@ pub enum NonTSPseudoClass {
 
 impl NonTSPseudoClass {
     pub fn state_flag(&self) -> ElementState {
+        use element_state::*;
         use self::NonTSPseudoClass::*;
-        use style::element_state::*;
         match *self {
             Active => IN_ACTIVE_STATE,
             Focus => IN_FOCUS_STATE,
@@ -292,8 +285,6 @@ impl SelectorImpl for GeckoSelectorImpl {
 }
 
 impl SelectorImplExt for GeckoSelectorImpl {
-    type ComputedValues = GeckoComputedValues;
-
     #[inline]
     fn pseudo_element_cascade_type(pseudo: &PseudoElement) -> PseudoElementCascadeType {
         match *pseudo {

@@ -24,7 +24,6 @@ use properties::longhands::transform_origin::computed_value::T as TransformOrigi
 use properties::longhands::vertical_align::computed_value::T as VerticalAlign;
 use properties::longhands::visibility::computed_value::T as Visibility;
 use properties::longhands::z_index::computed_value::T as ZIndex;
-use properties::style_struct_traits::*;
 use std::cmp;
 use std::fmt;
 use super::ComputedValues;
@@ -115,7 +114,7 @@ impl AnimatedProperty {
         }
     }
 
-    pub fn update<C: ComputedValues>(&self, style: &mut C, progress: f64) {
+    pub fn update(&self, style: &mut ComputedValues, progress: f64) {
         match *self {
             % for prop in data.longhands:
                 % if prop.animatable:
@@ -129,9 +128,10 @@ impl AnimatedProperty {
         }
     }
 
-    pub fn from_transition_property<C: ComputedValues>(transition_property: &TransitionProperty,
-                                                       old_style: &C,
-                                                       new_style: &C) -> AnimatedProperty {
+    pub fn from_transition_property(transition_property: &TransitionProperty,
+                                    old_style: &ComputedValues,
+                                    new_style: &ComputedValues)
+                                    -> AnimatedProperty {
         match *transition_property {
             TransitionProperty::All => panic!("Can't use TransitionProperty::All here."),
             % for prop in data.longhands:

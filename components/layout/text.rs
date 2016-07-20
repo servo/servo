@@ -25,8 +25,8 @@ use std::sync::Arc;
 use style::computed_values::white_space;
 use style::computed_values::{line_height, text_orientation, text_rendering, text_transform};
 use style::logical_geometry::{LogicalSize, WritingMode};
-use style::properties::style_structs::ServoFont;
-use style::properties::{ComputedValues, ServoComputedValues};
+use style::properties::ServoComputedValues;
+use style::properties::style_structs;
 use unicode_bidi::{is_rtl, process_text};
 use unicode_script::{get_script, Script};
 
@@ -431,11 +431,11 @@ fn bounding_box_for_run_metrics(metrics: &RunMetrics, writing_mode: WritingMode)
 
 }
 
-/// Returns the metrics of the font represented by the given `ServoFont`, respectively.
+/// Returns the metrics of the font represented by the given `style_structs::Font`, respectively.
 ///
 /// `#[inline]` because often the caller only needs a few fields from the font metrics.
 #[inline]
-pub fn font_metrics_for_style(font_context: &mut FontContext, font_style: Arc<ServoFont>)
+pub fn font_metrics_for_style(font_context: &mut FontContext, font_style: Arc<style_structs::Font>)
                               -> FontMetrics {
     let fontgroup = font_context.layout_font_group_for_style(font_style);
     // FIXME(https://github.com/rust-lang/rust/issues/23338)

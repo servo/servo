@@ -14,24 +14,23 @@ use gecko_bindings::bindings::{ServoDeclarationBlock, ServoNodeData, ThreadSafeP
 use gecko_bindings::bindings::{ThreadSafeURIHolder, nsHTMLCSSStyleSheet};
 use gecko_bindings::ptr::{GeckoArcPrincipal, GeckoArcURI};
 use gecko_bindings::structs::{SheetParsingMode, nsIAtom};
-use properties::GeckoComputedValues;
-use selector_impl::{GeckoSelectorImpl, PseudoElement, SharedStyleContext, Stylesheet};
-use std::marker::PhantomData;
-use std::mem::{forget, transmute};
+use std::mem::transmute;
 use std::ptr;
 use std::slice;
 use std::str::from_utf8_unchecked;
 use std::sync::{Arc, Mutex};
 use style::arc_ptr_eq;
-use style::context::{LocalStyleContextCreationInfo, ReflowGoal};
+use style::context::{LocalStyleContextCreationInfo, ReflowGoal, SharedStyleContext};
 use style::dom::{TDocument, TElement, TNode};
 use style::error_reporting::StdoutErrorReporter;
+use style::gecko_glue::ArcHelpers;
+use style::gecko_selector_impl::{GeckoSelectorImpl, PseudoElement};
 use style::parallel;
 use style::parser::ParserContextExtraData;
 use style::properties::{ComputedValues, PropertyDeclarationBlock, parse_one_declaration};
 use style::selector_impl::{SelectorImplExt, PseudoElementCascadeType};
 use style::sequential;
-use style::stylesheets::Origin;
+use style::stylesheets::{Stylesheet, Origin};
 use traversal::RecalcStyleOnly;
 use url::Url;
 use wrapper::{DUMMY_BASE_URL, GeckoDocument, GeckoElement, GeckoNode, NonOpaqueStyleData};
@@ -87,7 +86,7 @@ fn restyle_subtree(node: GeckoNode, raw_data: *mut RawServoStyleSet) {
     // rid of the HackilyFindSomeDeviceContext stuff that happens during
     // initial_values computation, since that stuff needs to be called further
     // along in startup than the sensible place to call Servo_Initialize.
-    GeckoComputedValues::initial_values();
+    ComputedValues::initial_values();
 
     let _needs_dirtying = Arc::get_mut(&mut per_doc_data.stylist).unwrap()
                               .update(&per_doc_data.stylesheets,
@@ -178,54 +177,6 @@ pub extern "C" fn Servo_StylesheetFromUTF8Bytes(bytes: *const u8,
     }
 }
 
-pub struct ArcHelpers<GeckoType, ServoType> {
-    phantom1: PhantomData<GeckoType>,
-    phantom2: PhantomData<ServoType>,
-}
-
-
-impl<GeckoType, ServoType> ArcHelpers<GeckoType, ServoType> {
-    pub fn with<F, Output>(raw: *mut GeckoType, cb: F) -> Output
-                           where F: FnOnce(&Arc<ServoType>) -> Output {
-        debug_assert!(!raw.is_null());
-
-        let owned = unsafe { Self::into(raw) };
-        let result = cb(&owned);
-        forget(owned);
-        result
-    }
-
-    pub fn maybe_with<F, Output>(maybe_raw: *mut GeckoType, cb: F) -> Output
-                                 where F: FnOnce(Option<&Arc<ServoType>>) -> Output {
-        let owned = if maybe_raw.is_null() {
-            None
-        } else {
-            Some(unsafe { Self::into(maybe_raw) })
-        };
-
-        let result = cb(owned.as_ref());
-        forget(owned);
-
-        result
-    }
-
-    pub unsafe fn into(ptr: *mut GeckoType) -> Arc<ServoType> {
-        transmute(ptr)
-    }
-
-    pub fn from(owned: Arc<ServoType>) -> *mut GeckoType {
-        unsafe { transmute(owned) }
-    }
-
-    pub unsafe fn addref(ptr: *mut GeckoType) {
-        Self::with(ptr, |arc| forget(arc.clone()));
-    }
-
-    pub unsafe fn release(ptr: *mut GeckoType) {
-        let _ = Self::into(ptr);
-    }
-}
-
 #[no_mangle]
 pub extern "C" fn Servo_AppendStyleSheet(raw_sheet: *mut RawServoStyleSheet,
                                          raw_data: *mut RawServoStyleSet) {
@@ -307,7 +258,7 @@ pub extern "C" fn Servo_GetComputedValues(node: *mut RawGeckoNode)
             // cases where Gecko wants the style for a node that Servo never
             // traversed. We should remove this as soon as possible.
             error!("stylo: encountered unstyled node, substituting default values.");
-            Arc::new(GeckoComputedValues::initial_values().clone())
+            Arc::new(ComputedValues::initial_values().clone())
         },
     };
     unsafe { transmute(arc_cv) }
@@ -328,7 +279,7 @@ pub extern "C" fn Servo_GetComputedValuesForAnonymousBox(parent_style_or_null: *
         }
     };
 
-    type Helpers = ArcHelpers<ServoComputedValues, GeckoComputedValues>;
+    type Helpers = ArcHelpers<ServoComputedValues, ComputedValues>;
 
     Helpers::maybe_with(parent_style_or_null, |maybe_parent| {
         let new_computed = data.stylist.precomputed_values_for_pseudo(&pseudo, maybe_parent);
@@ -367,7 +318,7 @@ pub extern "C" fn Servo_GetComputedValuesForPseudoElement(parent_style: *mut Ser
 
     let element = unsafe { GeckoElement::from_raw(match_element) };
 
-    type Helpers = ArcHelpers<ServoComputedValues, GeckoComputedValues>;
+    type Helpers = ArcHelpers<ServoComputedValues, ComputedValues>;
 
     match GeckoSelectorImpl::pseudo_element_cascade_type(&pseudo) {
         PseudoElementCascadeType::Eager => {
@@ -395,22 +346,22 @@ pub extern "C" fn Servo_GetComputedValuesForPseudoElement(parent_style: *mut Ser
 #[no_mangle]
 pub extern "C" fn Servo_InheritComputedValues(parent_style: *mut ServoComputedValues)
      -> *mut ServoComputedValues {
-    type Helpers = ArcHelpers<ServoComputedValues, GeckoComputedValues>;
+    type Helpers = ArcHelpers<ServoComputedValues, ComputedValues>;
     Helpers::with(parent_style, |parent| {
-        let style = GeckoComputedValues::inherit_from(parent);
+        let style = ComputedValues::inherit_from(parent);
         Helpers::from(style)
     })
 }
 
 #[no_mangle]
 pub extern "C" fn Servo_AddRefComputedValues(ptr: *mut ServoComputedValues) -> () {
-    type Helpers = ArcHelpers<ServoComputedValues, GeckoComputedValues>;
+    type Helpers = ArcHelpers<ServoComputedValues, ComputedValues>;
     unsafe { Helpers::addref(ptr) };
 }
 
 #[no_mangle]
 pub extern "C" fn Servo_ReleaseComputedValues(ptr: *mut ServoComputedValues) -> () {
-    type Helpers = ArcHelpers<ServoComputedValues, GeckoComputedValues>;
+    type Helpers = ArcHelpers<ServoComputedValues, ComputedValues>;
     unsafe { Helpers::release(ptr) };
 }
 

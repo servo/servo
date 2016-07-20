@@ -25,9 +25,9 @@ use script_layout_interface::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW};
 use std::cmp::max;
 use std::sync::Arc;
 use style::computed_values::flex_direction;
+use style::context::SharedStyleContext;
 use style::logical_geometry::LogicalSize;
-use style::properties::{ComputedValues, ServoComputedValues};
-use style::servo::SharedStyleContext;
+use style::properties::ServoComputedValues;
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 
 /// The size of an axis. May be a specified size, a min/max

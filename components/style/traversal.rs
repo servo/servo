@@ -46,11 +46,11 @@ thread_local!(
 ///
 /// If one does not exist, a new one will be made for you. If it is out of date,
 /// it will be cleared and reused.
-fn take_thread_local_bloom_filter<N, Impl: SelectorImplExt>(parent_node: Option<N>,
-                                                            root: OpaqueNode,
-                                                            context: &SharedStyleContext<Impl>)
-                                                            -> Box<BloomFilter>
-                                                            where N: TNode {
+fn take_thread_local_bloom_filter<N>(parent_node: Option<N>,
+                                     root: OpaqueNode,
+                                     context: &SharedStyleContext)
+                                     -> Box<BloomFilter>
+                                     where N: TNode {
     STYLE_BLOOM.with(|style_bloom| {
         match (parent_node, style_bloom.borrow_mut().take()) {
             // Root node. Needs new bloom filter.
@@ -82,9 +82,8 @@ fn take_thread_local_bloom_filter<N, Impl: SelectorImplExt>(parent_node: Option<
     })
 }
 
-fn put_thread_local_bloom_filter<Impl: SelectorImplExt>(bf: Box<BloomFilter>,
-                                                        unsafe_node: &UnsafeNode,
-                                                        context: &SharedStyleContext<Impl>) {
+fn put_thread_local_bloom_filter(bf: Box<BloomFilter>, unsafe_node: &UnsafeNode,
+                                 context: &SharedStyleContext) {
     STYLE_BLOOM.with(move |style_bloom| {
         assert!(style_bloom.borrow().is_none(),
                 "Putting into a never-taken thread-local bloom filter");
@@ -111,10 +110,9 @@ fn insert_ancestors_into_bloom_filter<N>(bf: &mut Box<BloomFilter>,
     debug!("[{}] Inserted {} ancestors.", tid(), ancestors);
 }
 
-pub fn remove_from_bloom_filter<'a, N, C, Impl>(context: &C, root: OpaqueNode, node: N)
+pub fn remove_from_bloom_filter<'a, N, C>(context: &C, root: OpaqueNode, node: N)
     where N: TNode,
-          Impl: SelectorImplExt + 'a,
-          C: StyleContext<'a, Impl>
+          C: StyleContext<'a>
 {
     let unsafe_layout_node = node.to_unsafe();
 
@@ -158,8 +156,8 @@ pub fn recalc_style_at<'a, N, C>(context: &'a C,
                                  root: OpaqueNode,
                                  node: N)
     where N: TNode,
-          C: StyleContext<'a, <N::ConcreteElement as Element>::Impl>,
-          <N::ConcreteElement as Element>::Impl: SelectorImplExt<ComputedValues=N::ConcreteComputedValues> + 'a {
+          C: StyleContext<'a>,
+          <N::ConcreteElement as Element>::Impl: SelectorImplExt + 'a {
     // Get the parent node.
     let parent_opt = match node.parent_node() {
         Some(parent) if parent.is_element() => Some(parent),

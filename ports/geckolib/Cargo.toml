@@ -4,8 +4,6 @@ version = "0.0.1"
 authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
 
-build = "build.rs"
-
 [lib]
 name = "geckoservo"
 path = "lib.rs"
@@ -13,7 +11,6 @@ crate-type = ["staticlib"]
 
 [dependencies]
 app_units = "0.2.5"
-cssparser = "0.5.4"
 env_logger = "0.3"
 euclid = "0.7.1"
 gecko_bindings = {version = "0.0.1", path = "gecko_bindings"}

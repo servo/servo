@@ -62,7 +62,7 @@
             type ComputedValue = computed_value::T;
 
             #[inline]
-            fn to_computed_value<Cx: TContext>(&self, context: &Cx) -> computed_value::T {
+            fn to_computed_value(&self, context: &Context) -> computed_value::T {
                 self.0.to_computed_value(context)
             }
         }

@@ -18,7 +18,7 @@ use std::sync::mpsc::{Receiver, Sender};
 use string_cache::Atom;
 use style::context::ReflowGoal;
 use style::selector_impl::PseudoElement;
-use style::servo::Stylesheet;
+use style::stylesheets::Stylesheet;
 use url::Url;
 use util::ipc::OptionalOpaqueIpcSender;
 use {OpaqueStyleAndLayoutData, TrustedNodeAddress};

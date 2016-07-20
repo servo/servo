@@ -3,8 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 extern crate app_units;
-#[macro_use]
-extern crate cssparser;
 extern crate env_logger;
 extern crate euclid;
 extern crate gecko_bindings;
@@ -26,17 +24,8 @@ mod context;
 mod data;
 #[allow(non_snake_case)]
 pub mod glue;
-mod selector_impl;
 mod traversal;
-mod values;
 mod wrapper;
-
-// Generated from the properties.mako.rs template by build.rs
-#[macro_use]
-#[allow(unsafe_code)]
-pub mod properties {
-    include!(concat!(env!("OUT_DIR"), "/properties.rs"));
-}
 
 // FIXME(bholley): This should probably go away once we harmonize the allocators.
 #[no_mangle]

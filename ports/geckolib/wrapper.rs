@@ -27,8 +27,6 @@ use gecko_bindings::structs::nsIAtom;
 use gecko_bindings::structs::{NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO, NODE_IS_DIRTY_FOR_SERVO};
 use glue::GeckoDeclarationBlock;
 use libc::uintptr_t;
-use properties::GeckoComputedValues;
-use selector_impl::{GeckoSelectorImpl, NonTSPseudoClass, PrivateStyleData};
 use selectors::Element;
 use selectors::matching::DeclarationBlock;
 use selectors::parser::{AttrSelector, NamespaceConstraint};
@@ -38,15 +36,17 @@ use std::ptr;
 use std::slice;
 use std::sync::Arc;
 use string_cache::{Atom, BorrowedAtom, BorrowedNamespace, Namespace};
+use style::data::PrivateStyleData;
 use style::dom::{OpaqueNode, PresentationalHintsSynthetizer};
 use style::dom::{TDocument, TElement, TNode, TRestyleDamage, UnsafeNode};
 use style::element_state::ElementState;
 #[allow(unused_imports)] // Used in commented-out code.
 use style::error_reporting::StdoutErrorReporter;
+use style::gecko_selector_impl::{GeckoSelectorImpl, NonTSPseudoClass};
 #[allow(unused_imports)] // Used in commented-out code.
 use style::parser::ParserContextExtraData;
 #[allow(unused_imports)] // Used in commented-out code.
-use style::properties::parse_style_attribute;
+use style::properties::{ComputedValues, parse_style_attribute};
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use style::refcell::{Ref, RefCell, RefMut};
 use style::restyle_hints::ElementSnapshot;
@@ -99,8 +99,7 @@ impl<'ln> GeckoNode<'ln> {
 #[derive(Clone, Copy)]
 pub struct DummyRestyleDamage;
 impl TRestyleDamage for DummyRestyleDamage {
-    type ConcreteComputedValues = GeckoComputedValues;
-    fn compute(_: Option<&Arc<GeckoComputedValues>>, _: &GeckoComputedValues) -> Self { DummyRestyleDamage }
+    fn compute(_: Option<&Arc<ComputedValues>>, _: &ComputedValues) -> Self { DummyRestyleDamage }
     fn rebuild_and_reflow() -> Self { DummyRestyleDamage }
 }
 impl BitOr for DummyRestyleDamage {
@@ -114,7 +113,6 @@ impl<'ln> TNode for GeckoNode<'ln> {
     type ConcreteDocument = GeckoDocument<'ln>;
     type ConcreteElement = GeckoElement<'ln>;
     type ConcreteRestyleDamage = DummyRestyleDamage;
-    type ConcreteComputedValues = GeckoComputedValues;
 
     fn to_unsafe(&self) -> UnsafeNode {
         (self.node as usize, 0)

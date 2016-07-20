@@ -75,7 +75,7 @@ ${helpers.single_keyword("list-style-type", """
         type ComputedValue = computed_value::T;
 
         #[inline]
-        fn to_computed_value<Cx: TContext>(&self, _context: &Cx) -> computed_value::T {
+        fn to_computed_value(&self, _context: &Context) -> computed_value::T {
             match *self {
                 SpecifiedValue::None => computed_value::T(None),
                 SpecifiedValue::Url(ref url) => computed_value::T(Some(url.clone())),
