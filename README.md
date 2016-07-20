@@ -178,7 +178,7 @@ URL with servo).
   `INTERVAL` seconds
 - `-s SIZE` sets the tile size for painting; defaults to 512
 - `-z` disables all graphical output; useful for running JS / layout tests
-- `-z help` displays useful output to debug servo
+- `-Z help` displays useful output to debug servo
 
 ### Keyboard Shortcuts
 
