@@ -7,37 +7,31 @@
 use app_units::Au;
 use cssparser::RGBA;
 use gecko_bindings::structs::nsStyleCoord;
-use gecko_bindings::sugar::ns_style_coord::{CoordData, CoordDataValues};
+use gecko_bindings::sugar::ns_style_coord::{CoordDataValues, CoordData, CoordDataMut};
 use std::cmp::max;
 use values::computed::Angle;
 use values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 
 
 pub trait StyleCoordHelpers {
-    fn copy_from(&mut self, other: &Self);
     fn set<T: GeckoStyleCoordConvertible>(&mut self, val: T);
 }
 
 impl StyleCoordHelpers for nsStyleCoord {
     #[inline]
-    fn copy_from(&mut self, other: &Self) {
-        self.data().copy_from(&other.data())
-    }
-
-    #[inline]
     fn set<T: GeckoStyleCoordConvertible>(&mut self, val: T) {
-        val.to_gecko_style_coord(&mut self.data());
+        val.to_gecko_style_coord(self);
     }
 }
 
 
 pub trait GeckoStyleCoordConvertible : Sized {
-    fn to_gecko_style_coord(&self, coord: &mut CoordData);
-    fn from_gecko_style_coord(coord: &CoordData) -> Option<Self>;
+    fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T);
+    fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self>;
 }
 
 impl GeckoStyleCoordConvertible for LengthOrPercentage {
-    fn to_gecko_style_coord(&self, coord: &mut CoordData) {
+    fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
         let value = match *self {
             LengthOrPercentage::Length(au) => CoordDataValues::Coord(au.0),
             LengthOrPercentage::Percentage(p) => CoordDataValues::Percent(p),
@@ -46,7 +40,7 @@ impl GeckoStyleCoordConvertible for LengthOrPercentage {
         coord.set_enum(value);
     }
 
-    fn from_gecko_style_coord(coord: &CoordData) -> Option<Self> {
+    fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
         match coord.as_enum() {
             CoordDataValues::Coord(coord) => Some(LengthOrPercentage::Length(Au(coord))),
             CoordDataValues::Percent(p) => Some(LengthOrPercentage::Percentage(p)),
@@ -57,7 +51,7 @@ impl GeckoStyleCoordConvertible for LengthOrPercentage {
 }
 
 impl GeckoStyleCoordConvertible for LengthOrPercentageOrAuto {
-    fn to_gecko_style_coord(&self, coord: &mut CoordData) {
+    fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
         let value = match *self {
             LengthOrPercentageOrAuto::Length(au) => CoordDataValues::Coord(au.0),
             LengthOrPercentageOrAuto::Percentage(p) => CoordDataValues::Percent(p),
@@ -67,7 +61,7 @@ impl GeckoStyleCoordConvertible for LengthOrPercentageOrAuto {
         coord.set_enum(value);
     }
 
-    fn from_gecko_style_coord(coord: &CoordData) -> Option<Self> {
+    fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
         match coord.as_enum() {
             CoordDataValues::Coord(coord) => Some(LengthOrPercentageOrAuto::Length(Au(coord))),
             CoordDataValues::Percent(p) => Some(LengthOrPercentageOrAuto::Percentage(p)),
@@ -79,7 +73,7 @@ impl GeckoStyleCoordConvertible for LengthOrPercentageOrAuto {
 }
 
 impl GeckoStyleCoordConvertible for LengthOrPercentageOrNone {
-    fn to_gecko_style_coord(&self, coord: &mut CoordData) {
+    fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
         let value = match *self {
             LengthOrPercentageOrNone::Length(au) => CoordDataValues::Coord(au.0),
             LengthOrPercentageOrNone::Percentage(p) => CoordDataValues::Percent(p),
@@ -89,7 +83,7 @@ impl GeckoStyleCoordConvertible for LengthOrPercentageOrNone {
         coord.set_enum(value);
     }
 
-    fn from_gecko_style_coord(coord: &CoordData) -> Option<Self> {
+    fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
         match coord.as_enum() {
             CoordDataValues::Coord(coord) => Some(LengthOrPercentageOrNone::Length(Au(coord))),
             CoordDataValues::Percent(p) => Some(LengthOrPercentageOrNone::Percentage(p)),
@@ -101,7 +95,7 @@ impl GeckoStyleCoordConvertible for LengthOrPercentageOrNone {
 }
 
 impl<T: GeckoStyleCoordConvertible> GeckoStyleCoordConvertible for Option<T> {
-    fn to_gecko_style_coord(&self, coord: &mut CoordData) {
+    fn to_gecko_style_coord<U: CoordDataMut>(&self, coord: &mut U) {
         if let Some(ref me) = *self {
             me.to_gecko_style_coord(coord);
         } else {
@@ -109,17 +103,17 @@ impl<T: GeckoStyleCoordConvertible> GeckoStyleCoordConvertible for Option<T> {
         }
     }
 
-    fn from_gecko_style_coord(coord: &CoordData) -> Option<Self> {
+    fn from_gecko_style_coord<U: CoordData>(coord: &U) -> Option<Self> {
         Some(T::from_gecko_style_coord(coord))
     }
 }
 
 impl GeckoStyleCoordConvertible for Angle {
-    fn to_gecko_style_coord(&self, coord: &mut CoordData) {
+    fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
         coord.set_enum(CoordDataValues::Radian(self.radians()))
     }
 
-    fn from_gecko_style_coord(coord: &CoordData) -> Option<Self> {
+    fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
         if let CoordDataValues::Radian(r) = coord.as_enum() {
             Some(Angle::from_radians(r))
             // XXXManishearth should this handle Degree too?

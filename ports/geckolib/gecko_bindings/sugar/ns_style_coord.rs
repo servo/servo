@@ -4,45 +4,117 @@
 
 use bindings::{Gecko_ResetStyleCoord, Gecko_SetStyleCoordCalcValue, Gecko_AddRefCalcArbitraryThread};
 use std::mem::transmute;
-use std::marker::PhantomData;
 use structs::{nsStyleCoord_Calc, nsStyleUnit, nsStyleUnion, nsStyleCoord, nsStyleSides, nsStyleCorners};
 use structs::{nsStyleCoord_CalcValue, nscoord};
 
-impl nsStyleCoord {
-    #[inline]
-    pub unsafe fn addref_if_calc(&mut self) {
-        self.data().addref_if_calc();
+impl CoordData for nsStyleCoord {
+    fn unit(&self) -> nsStyleUnit {
+        self.mUnit
     }
+    fn union(&self) -> nsStyleUnion {
+        self.mValue
+    }
+}
 
-    #[inline]
-    pub fn data(&self) -> CoordData {
-        CoordData {
-            union: &self.mValue as *const _ as *mut _,
-            unit: &self.mUnit as *const _ as *mut _,
-            _marker: PhantomData,
-        }
+impl CoordDataMut for nsStyleCoord {
+    unsafe fn values_mut(&mut self) -> (&mut nsStyleUnit, &mut nsStyleUnion) {
+        (&mut self.mUnit, &mut self.mValue)
     }
 }
 
 impl nsStyleSides {
     #[inline]
-    pub fn data_at(&self, index: usize) -> CoordData {
-        CoordData {
-            union: &self.mValues[index] as *const _ as *mut _,
-            unit: &self.mUnits[index] as *const _ as *mut _,
-            _marker: PhantomData,
+    pub fn data_at(&self, index: usize) -> SidesData {
+        SidesData {
+            sides: self,
+            index: index,
         }
+    }
+    #[inline]
+    pub fn data_at_mut(&mut self, index: usize) -> SidesDataMut {
+        SidesDataMut {
+            sides: self,
+            index: index,
+        }
+    }
+}
+
+pub struct SidesData<'a> {
+    sides: &'a nsStyleSides,
+    index: usize,
+}
+pub struct SidesDataMut<'a> {
+    sides: &'a mut nsStyleSides,
+    index: usize,
+}
+
+impl<'a> CoordData for SidesData<'a> {
+    fn unit(&self) -> nsStyleUnit {
+        self.sides.mUnits[self.index]
+    }
+    fn union(&self) -> nsStyleUnion {
+        self.sides.mValues[self.index]
+    }
+}
+impl<'a> CoordData for SidesDataMut<'a> {
+    fn unit(&self) -> nsStyleUnit {
+        self.sides.mUnits[self.index]
+    }
+    fn union(&self) -> nsStyleUnion {
+        self.sides.mValues[self.index]
+    }
+}
+impl<'a> CoordDataMut for SidesDataMut<'a> {
+    unsafe fn values_mut(&mut self) -> (&mut nsStyleUnit, &mut nsStyleUnion) {
+        (&mut self.sides.mUnits[self.index], &mut self.sides.mValues[self.index])
     }
 }
 
 impl nsStyleCorners {
     #[inline]
-    pub fn data_at(&self, index: usize) -> CoordData {
-        CoordData {
-            union: &self.mValues[index] as *const _ as *mut _,
-            unit: &self.mUnits[index] as *const _ as *mut _,
-            _marker: PhantomData,
+    pub fn data_at(&self, index: usize) -> CornersData {
+        CornersData {
+            corners: self,
+            index: index,
         }
+    }
+    #[inline]
+    pub fn data_at_mut(&mut self, index: usize) -> CornersDataMut {
+        CornersDataMut {
+            corners: self,
+            index: index,
+        }
+    }
+}
+
+pub struct CornersData<'a> {
+    corners: &'a nsStyleCorners,
+    index: usize,
+}
+pub struct CornersDataMut<'a> {
+    corners: &'a mut nsStyleCorners,
+    index: usize,
+}
+
+impl<'a> CoordData for CornersData<'a> {
+    fn unit(&self) -> nsStyleUnit {
+        self.corners.mUnits[self.index]
+    }
+    fn union(&self) -> nsStyleUnion {
+        self.corners.mValues[self.index]
+    }
+}
+impl<'a> CoordData for CornersDataMut<'a> {
+    fn unit(&self) -> nsStyleUnit {
+        self.corners.mUnits[self.index]
+    }
+    fn union(&self) -> nsStyleUnion {
+        self.corners.mValues[self.index]
+    }
+}
+impl<'a> CoordDataMut for CornersDataMut<'a> {
+    unsafe fn values_mut(&mut self) -> (&mut nsStyleUnit, &mut nsStyleUnion) {
+        (&mut self.corners.mUnits[self.index], &mut self.corners.mValues[self.index])
     }
 }
 
@@ -68,40 +140,136 @@ pub enum CoordDataValues {
     Calc(nsStyleCoord_CalcValue),
 }
 
-/// XXXManishearth should this be using Cell/UnsafeCell?
-pub struct CoordData<'a> {
-    union: *mut nsStyleUnion,
-    unit: *mut nsStyleUnit,
-    _marker: PhantomData<&'a mut ()>,
-}
 
-impl<'a> CoordData<'a> {
+pub trait CoordDataMut : CoordData {
+    // This can't be two methods since we can't mutably borrow twice
+    /// This is unsafe since it's possible to modify
+    /// the unit without changing the union
+    unsafe fn values_mut(&mut self) -> (&mut nsStyleUnit, &mut nsStyleUnion);
+
     /// Clean up any resources used by the union
     /// Currently, this only happens if the nsStyleUnit
     /// is a Calc
     #[inline]
-    pub fn reset(&mut self) {
+    fn reset(&mut self) {
         unsafe {
-            if *self.unit == nsStyleUnit::eStyleUnit_Calc {
-                Gecko_ResetStyleCoord(self.unit, self.union);
+            if self.unit() == nsStyleUnit::eStyleUnit_Calc {
+                let (unit, union) = self.values_mut();
+                Gecko_ResetStyleCoord(unit, union);
             }
         }
     }
 
     #[inline]
-    pub fn copy_from(&mut self, other: &CoordData) {
-        self.reset();
-        self.unit = other.unit;
-        self.union = other.union;
-        self.addref_if_calc();
+    fn copy_from<T: CoordData>(&mut self, other: &T) {
+        unsafe {
+            self.reset();
+            {
+                let (unit, union) = self.values_mut();
+                *unit = other.unit();
+                *union = other.union();
+            }
+            self.addref_if_calc();
+        }
     }
 
     #[inline(always)]
-    pub fn as_enum(&self) -> CoordDataValues {
+    fn set_enum(&mut self, value: CoordDataValues) {
+        use self::CoordDataValues::*;
+        use structs::nsStyleUnit::*;
+        self.reset();
+        unsafe {
+            let (unit, union) = self.values_mut();
+            match value {
+                Null => {
+                    *unit = eStyleUnit_Null;
+                    *union.mInt.as_mut() = 0;
+                }
+                Normal => {
+                    *unit = eStyleUnit_Normal;
+                    *union.mInt.as_mut() = 0;
+                }
+                Auto => {
+                    *unit = eStyleUnit_Auto;
+                    *union.mInt.as_mut() = 0;
+                }
+                None => {
+                    *unit = eStyleUnit_None;
+                    *union.mInt.as_mut() = 0;
+                }
+                Percent(f) => {
+                    *unit = eStyleUnit_Percent;
+                    *union.mFloat.as_mut() = f;
+                }
+                Factor(f) => {
+                    *unit = eStyleUnit_Factor;
+                    *union.mFloat.as_mut() = f;
+                }
+                Degree(f) => {
+                    *unit = eStyleUnit_Degree;
+                    *union.mFloat.as_mut() = f;
+                }
+                Grad(f) => {
+                    *unit = eStyleUnit_Grad;
+                    *union.mFloat.as_mut() = f;
+                }
+                Radian(f) => {
+                    *unit = eStyleUnit_Radian;
+                    *union.mFloat.as_mut() = f;
+                }
+                Turn(f) => {
+                    *unit = eStyleUnit_Turn;
+                    *union.mFloat.as_mut() = f;
+                }
+                FlexFraction(f) => {
+                    *unit = eStyleUnit_FlexFraction;
+                    *union.mFloat.as_mut() = f;
+                }
+                Coord(coord) => {
+                    *unit = eStyleUnit_Coord;
+                    *union.mInt.as_mut() = coord;
+                }
+                Integer(i) => {
+                    *unit = eStyleUnit_Integer;
+                    *union.mInt.as_mut() = i;
+                }
+                Enumerated(i) => {
+                    *unit = eStyleUnit_Enumerated;
+                    *union.mInt.as_mut() = i as i32;
+                }
+                Calc(calc) => {
+                    // Gecko_SetStyleCoordCalcValue changes the unit internally
+                    Gecko_SetStyleCoordCalcValue(unit, union, calc);
+                }
+            }
+        }
+    }
+
+    #[inline]
+    unsafe fn as_calc_mut(&mut self) -> &mut nsStyleCoord_Calc {
+        transmute(*self.union().mPointer.as_mut() as *mut nsStyleCoord_Calc)
+    }
+
+    #[inline]
+    fn addref_if_calc(&mut self) {
+        unsafe {
+            if self.unit() == nsStyleUnit::eStyleUnit_Calc {
+                Gecko_AddRefCalcArbitraryThread(self.as_calc_mut());
+            }
+        }
+    }
+}
+pub trait CoordData {
+    fn unit(&self) -> nsStyleUnit;
+    fn union(&self) -> nsStyleUnion;
+
+
+    #[inline(always)]
+    fn as_enum(&self) -> CoordDataValues {
         use self::CoordDataValues::*;
         use structs::nsStyleUnit::*;
         unsafe {
-            match *self.unit {
+            match self.unit() {
                 eStyleUnit_Null => Null,
                 eStyleUnit_Normal => Normal,
                 eStyleUnit_Auto => Auto,
@@ -121,84 +289,13 @@ impl<'a> CoordData<'a> {
         }
     }
 
-    #[inline(always)]
-    pub fn set_enum(&mut self, value: CoordDataValues) {
-        use self::CoordDataValues::*;
-        use structs::nsStyleUnit::*;
-        self.reset();
-        unsafe {
-            match value {
-                Null => {
-                    *self.unit = eStyleUnit_Null;
-                    *(*self.union).mInt.as_mut() = 0;
-                }
-                Normal => {
-                    *self.unit = eStyleUnit_Normal;
-                    *(*self.union).mInt.as_mut() = 0;
-                }
-                Auto => {
-                    *self.unit = eStyleUnit_Auto;
-                    *(*self.union).mInt.as_mut() = 0;
-                }
-                None => {
-                    *self.unit = eStyleUnit_None;
-                    *(*self.union).mInt.as_mut() = 0;
-                }
-                Percent(f) => {
-                    *self.unit = eStyleUnit_Percent;
-                    *(*self.union).mFloat.as_mut() = f;
-                }
-                Factor(f) => {
-                    *self.unit = eStyleUnit_Factor;
-                    *(*self.union).mFloat.as_mut() = f;
-                }
-                Degree(f) => {
-                    *self.unit = eStyleUnit_Degree;
-                    *(*self.union).mFloat.as_mut() = f;
-                }
-                Grad(f) => {
-                    *self.unit = eStyleUnit_Grad;
-                    *(*self.union).mFloat.as_mut() = f;
-                }
-                Radian(f) => {
-                    *self.unit = eStyleUnit_Radian;
-                    *(*self.union).mFloat.as_mut() = f;
-                }
-                Turn(f) => {
-                    *self.unit = eStyleUnit_Turn;
-                    *(*self.union).mFloat.as_mut() = f;
-                }
-                FlexFraction(f) => {
-                    *self.unit = eStyleUnit_FlexFraction;
-                    *(*self.union).mFloat.as_mut() = f;
-                }
-                Coord(coord) => {
-                    *self.unit = eStyleUnit_Coord;
-                    *(*self.union).mInt.as_mut() = coord;
-                }
-                Integer(i) => {
-                    *self.unit = eStyleUnit_Integer;
-                    *(*self.union).mInt.as_mut() = i;
-                }
-                Enumerated(i) => {
-                    *self.unit = eStyleUnit_Enumerated;
-                    *(*self.union).mInt.as_mut() = i as i32;
-                }
-                Calc(calc) => {
-                    *self.unit = eStyleUnit_Calc;
-                    self.set_calc_value(calc);
-                }
-            }
-        }
-    }
-
     #[inline]
     /// Pretend inner value is a float; obtain it
     /// While this should usually be called with the unit checked,
     /// it is not an intrinsically unsafe operation to call this function
     /// with the wrong unit
-    pub fn get_float(&self) -> f32 {
-        unsafe { *(*self.union).mFloat.as_ref() }
+    fn get_float(&self) -> f32 {
+        unsafe { *self.union().mFloat.as_ref() }
     }
 
     #[inline]
@@ -206,44 +303,20 @@ impl<'a> CoordData<'a> {
     /// While this should usually be called with the unit checked,
     /// it is not an intrinsically unsafe operation to call this function
     /// with the wrong unit
-    pub fn get_integer(&self) -> i32 {
-        unsafe { *(*self.union).mInt.as_ref() }
+    fn get_integer(&self) -> i32 {
+        unsafe { *self.union().mInt.as_ref() }
     }
 
     #[inline]
     /// Pretend inner value is a calc; obtain it
     /// Ensure that the unit is Calc before calling this
-    pub unsafe fn get_calc(&self) -> nsStyleCoord_CalcValue {
+    unsafe fn get_calc(&self) -> nsStyleCoord_CalcValue {
         (*self.as_calc())._base
     }
 
-    /// Set internal value to a calc() value
-    /// reset() the union before calling this
-    #[inline]
-    pub fn set_calc_value(&mut self, v: nsStyleCoord_CalcValue) {
-        unsafe {
-            // Calc should have been cleaned up
-            debug_assert!(*self.unit != nsStyleUnit::eStyleUnit_Calc);
-            Gecko_SetStyleCoordCalcValue(self.unit, self.union, v);
-        }
-    }
-
-    #[inline]
-    pub fn addref_if_calc(&mut self) {
-        unsafe {
-            if *self.unit == nsStyleUnit::eStyleUnit_Calc {
-                Gecko_AddRefCalcArbitraryThread(self.as_calc_mut());
-            }
-        }
-    }
-
-    #[inline]
-    unsafe fn as_calc_mut(&mut self) -> &mut nsStyleCoord_Calc {
-        transmute(*(*self.union).mPointer.as_mut() as *mut nsStyleCoord_Calc)
-    }
 
     #[inline]
     unsafe fn as_calc(&self) -> &nsStyleCoord_Calc {
-        transmute(*(*self.union).mPointer.as_ref() as *const nsStyleCoord_Calc)
+        transmute(*self.union().mPointer.as_ref() as *const nsStyleCoord_Calc)
     }
 }
