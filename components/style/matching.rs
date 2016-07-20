@@ -435,7 +435,8 @@ trait PrivateMatchMethods: TNode
                         new_animations_sender,
                         this_opaque,
                         &**style,
-                        &mut this_style);
+                        &mut this_style,
+                        &shared_context.timer);
             }
 
             cacheable = cacheable && !animations_started

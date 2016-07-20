@@ -886,22 +886,12 @@ impl ScriptThread {
 
     fn handle_msg_from_constellation(&self, msg: ConstellationControlMsg) {
         match msg {
-            ConstellationControlMsg::AttachLayout(_) =>
-                panic!("should have handled AttachLayout already"),
             ConstellationControlMsg::Navigate(pipeline_id, subpage_id, load_data) =>
                 self.handle_navigate(pipeline_id, Some(subpage_id), load_data),
             ConstellationControlMsg::SendEvent(id, event) =>
                 self.handle_event(id, event),
             ConstellationControlMsg::ResizeInactive(id, new_size) =>
                 self.handle_resize_inactive_msg(id, new_size),
-            ConstellationControlMsg::Viewport(..) =>
-                panic!("should have handled Viewport already"),
-            ConstellationControlMsg::SetScrollState(..) =>
-                panic!("should have handled SetScrollState already"),
-            ConstellationControlMsg::Resize(..) =>
-                panic!("should have handled Resize already"),
-            ConstellationControlMsg::ExitPipeline(..) =>
-                panic!("should have handled ExitPipeline already"),
             ConstellationControlMsg::GetTitle(pipeline_id) =>
                 self.handle_get_title_msg(pipeline_id),
             ConstellationControlMsg::Freeze(pipeline_id) =>
@@ -943,6 +933,12 @@ impl ScriptThread {
                 self.handle_css_error_reporting(pipeline_id, filename, line, column, msg),
             ConstellationControlMsg::Reload(pipeline_id) =>
                 self.handle_reload(pipeline_id),
+            msg @ ConstellationControlMsg::AttachLayout(..) |
+            msg @ ConstellationControlMsg::Viewport(..) |
+            msg @ ConstellationControlMsg::SetScrollState(..) |
+            msg @ ConstellationControlMsg::Resize(..) |
+            msg @ ConstellationControlMsg::ExitPipeline(..) =>
+                      panic!("should have handled {:?} already", msg),
         }
     }
 

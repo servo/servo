@@ -101,6 +101,7 @@ pub mod sink;
 pub mod str;
 pub mod stylesheets;
 mod tid;
+pub mod timer;
 pub mod traversal;
 #[macro_use]
 #[allow(non_camel_case_types)]

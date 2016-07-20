@@ -424,6 +424,8 @@ interface TestBinding {
   static void prefControlledStaticMethodDisabled();
   [Pref="dom.testbinding.prefcontrolled.enabled"]
   const unsigned short prefControlledConstDisabled = 0;
+  [Pref="layout.animations.test.enabled"]
+  void advanceClock(long millis);
 
   [Pref="dom.testbinding.prefcontrolled2.enabled"]
   readonly attribute boolean prefControlledAttributeEnabled;

@@ -20,7 +20,7 @@ use selectors::matching::DeclarationBlock;
 use std::sync::Arc;
 use std::sync::mpsc::Sender;
 use string_cache::Atom;
-use time;
+use timer::Timer;
 use values::computed::Time;
 
 /// This structure represents a keyframes animation current iteration state.
@@ -122,7 +122,9 @@ impl KeyframesAnimationState {
     ///
     /// There are some bits of state we can't just replace, over all taking in
     /// account times, so here's that logic.
-    pub fn update_from_other(&mut self, other: &Self) {
+    pub fn update_from_other(&mut self,
+                             other: &Self,
+                             timer: &Timer) {
         use self::KeyframesRunningState::*;
 
         debug!("KeyframesAnimationState::update_from_other({:?}, {:?})", self, other);
@@ -146,11 +148,11 @@ impl KeyframesAnimationState {
         // If we're pausing the animation, compute the progress value.
         match (&mut self.running_state, old_running_state) {
             (&mut Running, Paused(progress))
-                => new_started_at = time::precise_time_s() - (self.duration * progress),
+                => new_started_at = timer.seconds() - (self.duration * progress),
             (&mut Paused(ref mut new), Paused(old))
                 => *new = old,
             (&mut Paused(ref mut progress), Running)
-                => *progress = (time::precise_time_s() - old_started_at) / old_duration,
+                => *progress = (timer.seconds() - old_started_at) / old_duration,
             _ => {},
         }
 
@@ -341,7 +343,8 @@ impl PropertyAnimation {
 pub fn start_transitions_if_applicable(new_animations_sender: &Sender<Animation>,
                                        node: OpaqueNode,
                                        old_style: &ComputedValues,
-                                       new_style: &mut Arc<ComputedValues>)
+                                       new_style: &mut Arc<ComputedValues>,
+                                       timer: &Timer)
                                        -> bool {
     let mut had_animations = false;
     for i in 0..new_style.get_box().transition_property_count() {
@@ -355,7 +358,7 @@ pub fn start_transitions_if_applicable(new_animations_sender: &Sender<Animation>
 
             // Kick off the animation.
             let box_style = new_style.get_box();
-            let now = time::precise_time_s();
+            let now = timer.seconds();
             let start_time =
                 now + (box_style.transition_delay_mod(i).seconds() as f64);
             new_animations_sender
@@ -424,7 +427,7 @@ pub fn maybe_start_animations(context: &SharedStyleContext,
             }
 
             let delay = box_style.animation_delay_mod(i).seconds();
-            let now = time::precise_time_s();
+            let now = context.timer.seconds();
             let animation_start = now + delay as f64;
             let duration = box_style.animation_duration_mod(i).seconds();
             let iteration_state = match box_style.animation_iteration_count_mod(i) {
@@ -497,7 +500,7 @@ where Damage: TRestyleDamage {
     match *animation {
         Animation::Transition(_, start_time, ref frame, _) => {
             debug!("update_style_for_animation: transition found");
-            let now = time::precise_time_s();
+            let now = context.timer.seconds();
             let mut new_style = (*style).clone();
             let updated_style = update_style_for_animation_frame(&mut new_style,
                                                                  now, start_time,
@@ -516,7 +519,7 @@ where Damage: TRestyleDamage {
             let started_at = state.started_at;
 
             let now = match state.running_state {
-                KeyframesRunningState::Running => time::precise_time_s(),
+                KeyframesRunningState::Running => context.timer.seconds(),
                 KeyframesRunningState::Paused(progress) => started_at + duration * progress,
             };
 

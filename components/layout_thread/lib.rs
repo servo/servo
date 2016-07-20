@@ -110,11 +110,13 @@ use style::refcell::RefCell;
 use style::selector_matching::Stylist;
 use style::servo_selector_impl::USER_OR_USER_AGENT_STYLESHEETS;
 use style::stylesheets::{Stylesheet, CSSRuleIteratorExt};
+use style::timer::Timer;
 use style::workqueue::WorkQueue;
 use url::Url;
 use util::geometry::MAX_RECT;
 use util::ipc::OptionalIpcSender;
 use util::opts;
+use util::prefs::PREFS;
 use util::thread;
 use util::thread_state;
 
@@ -226,6 +228,10 @@ pub struct LayoutThread {
 
     // Webrender interface, if enabled.
     webrender_api: Option<webrender_traits::RenderApi>,
+
+    /// The timer object to control the timing of the animations. This should
+    /// only be a test-mode timer during testing for animations.
+    timer: Timer,
 }
 
 impl LayoutThreadFactory for LayoutThread {
@@ -459,13 +465,20 @@ impl LayoutThread {
                     offset_parent_response: OffsetParentResponse::empty(),
                     margin_style_response: MarginStyleResponse::empty(),
                     stacking_context_scroll_offsets: HashMap::new(),
-              })),
-              error_reporter: CSSErrorReporter {
-                  pipelineid: id,
-                  script_chan: Arc::new(Mutex::new(script_chan)),
-              },
-              webrender_image_cache:
-                  Arc::new(RwLock::new(HashMap::with_hasher(Default::default()))),
+                })),
+            error_reporter: CSSErrorReporter {
+                pipelineid: id,
+                script_chan: Arc::new(Mutex::new(script_chan)),
+            },
+            webrender_image_cache:
+                Arc::new(RwLock::new(HashMap::with_hasher(Default::default()))),
+            timer:
+                if PREFS.get("layout.animations.test.enabled")
+                           .as_boolean().unwrap_or(false) {
+                   Timer::test_mode()
+                } else {
+                    Timer::new()
+                },
         }
     }
 
@@ -501,6 +514,7 @@ impl LayoutThread {
                 expired_animations: self.expired_animations.clone(),
                 error_reporter: self.error_reporter.clone(),
                 local_context_creation_data: Mutex::new(local_style_context_creation_data),
+                timer: self.timer.clone(),
             },
             image_cache_thread: self.image_cache_thread.clone(),
             image_cache_sender: Mutex::new(self.image_cache_sender.clone()),
@@ -653,6 +667,9 @@ impl LayoutThread {
                 let _rw_data = possibly_locked_rw_data.lock();
                 sender.send(self.epoch).unwrap();
             },
+            Msg::AdvanceClockMs(how_many) => {
+                self.handle_advance_clock_ms(how_many, possibly_locked_rw_data);
+            }
             Msg::GetWebFontLoadState(sender) => {
                 let _rw_data = possibly_locked_rw_data.lock();
                 let outstanding_web_fonts = self.outstanding_web_fonts.load(Ordering::SeqCst);
@@ -793,6 +810,14 @@ impl LayoutThread {
         }
 
         possibly_locked_rw_data.block(rw_data);
+    }
+
+    /// Advances the animation clock of the document.
+    fn handle_advance_clock_ms<'a, 'b>(&mut self,
+                                       how_many_ms: i32,
+                                       possibly_locked_rw_data: &mut RwData<'a, 'b>) {
+        self.timer.increment(how_many_ms as f64 / 1000.0);
+        self.tick_all_animations(possibly_locked_rw_data);
     }
 
     /// Sets quirks mode for the document, causing the quirks mode stylesheet to be used.
@@ -1350,7 +1375,8 @@ impl LayoutThread {
                                               &mut *self.running_animations.write().unwrap(),
                                               &mut *self.expired_animations.write().unwrap(),
                                               &self.new_animations_receiver,
-                                              self.id);
+                                              self.id,
+                                              &self.timer);
 
             profile(time::ProfilerCategory::LayoutRestyleDamagePropagation,
                     self.profiler_metadata(),
