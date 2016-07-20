@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmltrackelement
-[Exposed=(Window,Worker)]
 interface HTMLTrackElement : HTMLElement {
   //         attribute DOMString kind;
   //         attribute DOMString src;
