@@ -6,8 +6,8 @@
 
 /* typedef (Headers or sequence<sequence<ByteString>>) HeadersInit; */
 
-/* [Constructor(optional HeadersInit init),
- * Exposed=(Window,Worker)] */
+/* [Constructor(optional HeadersInit init),*/
+ [Exposed=(Window,Worker)]
 
 interface Headers {
   [Throws]

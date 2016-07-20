@@ -4,6 +4,7 @@
 
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HeadersBinding;
+use dom::bindings::codegen::Bindings::HeadersBinding::HeadersMethods;
 use dom::bindings::error::Error;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
@@ -42,9 +43,11 @@ impl Headers {
     pub fn new(global: GlobalRef) -> Root<Headers> {
         reflect_dom_object(box Headers::new_inherited(), global, HeadersBinding::Wrap)
     }
+}
 
+impl HeadersMethods for Headers {
     // https://fetch.spec.whatwg.org/#concept-headers-append
-    pub fn Append(&self, name: ByteString, value: ByteString) -> Result<(), Error> {
+    fn Append(&self, name: ByteString, value: ByteString) -> Result<(), Error> {
         // Step 1
         let value = normalize_value(value);
 
