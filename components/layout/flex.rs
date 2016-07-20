@@ -712,19 +712,14 @@ impl Flow for FlexFlow {
         // Flexbox Section 9.0: Generate anonymous flex items:
         // This part was handled in the flow constructor.
 
-        // Flexbox Section 9.1: Re-order the flex items (and any absolutely positioned flex
-        // container children) according to their order.
+        // Flexbox Section 9.1: Re-order flex items according to their order.
+        // FIXME(stshine): This should be done during flow construction.
+        let mut items = self.block_flow.base.children.iter_flow_ref_mut()
+            .filter(|flow| !flow.as_block().base.flags.contains(IS_ABSOLUTELY_POSITIONED))
+            .map(|flow| FlexItem::new(flow.clone()))
+            .collect::<Vec<FlexItem>>();
 
-        let mut items = self.block_flow.base.children.iter_flow_ref_mut().map(|flow| {
-            FlexItem::new(flow.clone())
-        }).collect::<Vec<FlexItem>>();
-
-        items.sort_by(|item1, item2| {
-            item1.flow.as_block().fragment.style.get_position().order.cmp(
-                &item2.flow.as_block().fragment.style.get_position().order
-                )
-        });
-
+        items.sort_by_key(|item| item.order);
         self.items = items;
 
         match self.main_mode {
