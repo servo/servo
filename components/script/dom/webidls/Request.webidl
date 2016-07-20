@@ -4,9 +4,11 @@
 
 // https://fetch.spec.whatwg.org/#request-class
 
-/* typedef (Request or USVString) RequestInfo;
+typedef (Request or USVString) RequestInfo;
 
- * [Constructor(RequestInfo input, optional RequestInit init),
+[Constructor(RequestInfo input)]
+
+/*[Constructor(RequestInfo input, optional RequestInit init),
  * Exposed=(Window,Worker)] */
 
 interface Request {
@@ -29,19 +31,19 @@ interface Request {
 
 Request implements Body;
 
-/* dictionary RequestInit {
- *  ByteString method;
- *  HeadersInit headers;
- *  BodyInit? body;
- *  USVString referrer;
- *  ReferrerPolicy referrerPolicy;
- *  RequestMode mode;
- *  RequestCredentials credentials;
- *  RequestCache cache;
- *  RequestRedirect redirect;
- *  DOMString integrity;
- *  any window; // can only be set to null
- * }; */
+//dictionary RequestInit {
+//  ByteString method;
+//  // HeadersInit headers;
+//  BodyInit? body;
+//  USVString referrer;
+//  ReferrerPolicy referrerPolicy;
+//  RequestMode mode;
+//  RequestCredentials credentials;
+//  RequestCache cache;
+//  RequestRedirect redirect;
+//  DOMString integrity;
+//  any window; // can only be set to null
+//};
 
 enum RequestType {
   "",
