@@ -17,7 +17,7 @@ interface Request {
   readonly attribute RequestType type;
   readonly attribute RequestDestination destination;
   readonly attribute USVString referrer;
-  // readonly attribute ReferrerPolicy referrerPolicy;
+  readonly attribute ReferrerPolicy referrerPolicy;
   readonly attribute RequestMode mode;
   readonly attribute RequestCredentials credentials;
   readonly attribute RequestCache cache;
@@ -27,9 +27,9 @@ interface Request {
   // [NewObject] Request clone();
 };
 
-/* Request implements Body;
+Request implements Body;
 
- * dictionary RequestInit {
+/* dictionary RequestInit {
  *  ByteString method;
  *  HeadersInit headers;
  *  BodyInit? body;
@@ -43,9 +43,68 @@ interface Request {
  *  any window; // can only be set to null
  * }; */
 
-enum RequestType { "", "audio", "font", "image", "script", "style", "track", "video" };
-enum RequestDestination { "", "document", "embed", "font", "image", "manifest", "media", "object", "report", "script", "serviceworker", "sharedworker", "style",  "worker", "xslt" };
-enum RequestMode { "navigate", "same-origin", "no-cors", "cors" };
-enum RequestCredentials { "omit", "same-origin", "include" };
-enum RequestCache { "default", "no-store", "reload", "no-cache", "force-cache", "only-if-cached" };
-enum RequestRedirect { "follow", "error", "manual" };
+enum RequestType {
+  "",
+  "audio",
+  "font", 
+  "image",
+  "script",
+  "style",
+  "track",
+  "video"
+};
+
+enum RequestDestination {
+  "",
+  "document",
+  "embed",
+  "font",
+  "image",
+  "manifest",
+  "media",
+  "object",
+  "report",
+  "script",
+  "serviceworker",
+  "sharedworker",
+  "style",
+  "worker",
+  "xslt"
+};
+
+enum RequestMode {
+  "navigate",
+  "same-origin",
+  "no-cors",
+  "cors"
+};
+
+enum RequestCredentials {
+  "omit",
+  "same-origin",
+  "include"
+};
+
+enum RequestCache {
+  "default",
+  "no-store",
+  "reload",
+  "no-cache",
+  "force-cache",
+  "only-if-cached"
+};
+
+enum RequestRedirect {
+  "follow",
+  "error",
+  "manual"
+};
+
+enum ReferrerPolicy {
+  "",
+  "no-referrer",
+  "no-referrer-when-downgrade",
+  "origin",
+  "origin-when-cross-origin",
+  "unsafe-url"
+};
