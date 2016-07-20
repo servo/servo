@@ -488,6 +488,7 @@ pub enum BlockType {
     FloatNonReplaced,
     InlineBlockReplaced,
     InlineBlockNonReplaced,
+    Flex,
 }
 
 #[derive(Clone, PartialEq)]
@@ -530,7 +531,9 @@ pub struct BlockFlow {
 bitflags! {
     flags BlockFlowFlags: u8 {
         #[doc = "If this is set, then this block flow is the root flow."]
-        const IS_ROOT = 0x01,
+        const IS_ROOT = 0b0000_0001,
+        #[doc = "If this is set, then this block flow is a child of a flex flow."]
+        const IS_FLEX = 0b0000_0010,
     }
 }
 
@@ -579,6 +582,8 @@ impl BlockFlow {
             } else {
                 BlockType::InlineBlockNonReplaced
             }
+        } else if self.is_flex() {
+            BlockType::Flex
         } else {
             if self.is_replaced_content() {
                 BlockType::Replaced
@@ -626,6 +631,12 @@ impl BlockFlow {
             }
             BlockType::InlineBlockNonReplaced => {
                 let inline_size_computer = InlineBlockNonReplaced;
+                inline_size_computer.compute_used_inline_size(self,
+                                                              shared_context,
+                                                              containing_block_inline_size);
+            }
+            BlockType::Flex => {
+                let inline_size_computer = FlexBlock;
                 inline_size_computer.compute_used_inline_size(self,
                                                               shared_context,
                                                               containing_block_inline_size);
@@ -1682,6 +1693,14 @@ impl BlockFlow {
         let padding = self.fragment.style.logical_padding();
         padding.block_start.is_definitely_zero() && padding.block_end.is_definitely_zero()
     }
+
+    pub fn mark_as_flex(&mut self) {
+        self.flags.insert(IS_FLEX)
+    }
+
+    fn is_flex(&self) -> bool {
+        self.flags.contains(IS_FLEX)
+    }
 }
 
 impl Flow for BlockFlow {
@@ -2568,6 +2587,7 @@ pub struct FloatNonReplaced;
 pub struct FloatReplaced;
 pub struct InlineBlockNonReplaced;
 pub struct InlineBlockReplaced;
+pub struct FlexBlock;
 
 impl ISizeAndMarginsComputer for AbsoluteNonReplaced {
     /// Solve the horizontal constraint equation for absolute non-replaced elements.
@@ -3055,6 +3075,23 @@ impl ISizeAndMarginsComputer for InlineBlockReplaced {
         // For replaced block flow, the rest of the constraint solving will
         // take inline-size to be specified as the value computed here.
         MaybeAuto::Specified(fragment.content_inline_size())
+    }
+}
+
+impl ISizeAndMarginsComputer for FlexBlock {
+    /// Compute inline-start and inline-end margins and inline-size.
+    fn solve_inline_size_constraints(&self,
+                                     block: &mut BlockFlow,
+                                     input: &ISizeConstraintInput)
+                                     -> ISizeConstraintSolution {
+        let new_input = ISizeConstraintInput::new(MaybeAuto::Auto,
+               input.inline_start_margin,
+               input.inline_end_margin,
+               input.inline_start,
+               input.inline_end,
+               input.text_align,
+               input.available_inline_size);
+        self.solve_block_inline_size_constraints(block, &new_input)
     }
 }
 

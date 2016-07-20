@@ -28,7 +28,8 @@ use style::computed_values::flex_direction;
 use style::logical_geometry::LogicalSize;
 use style::properties::{ComputedValues, ServoComputedValues};
 use style::servo::SharedStyleContext;
-use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
+use style::values::computed::LengthOrPercentageOrNone;
+use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrAutoOrContent};
 
 /// The size of an axis. May be a specified size, a min/max
 /// constraint, or an unlimited size
@@ -78,12 +79,14 @@ enum Mode {
 #[derive(Debug)]
 struct FlexItem {
     pub flow: FlowRef,
+    pub basis: Au,
 }
 
 impl FlexItem {
     fn new(flow: FlowRef) -> FlexItem {
         FlexItem {
-            flow: flow
+            flow: flow,
+            basis: Au(0)
         }
     }
 }
@@ -226,9 +229,6 @@ impl FlexFlow {
         }
     }
 
-    // TODO(zentner): This function should actually flex elements!
-    // Currently, this is the core of InlineFlow::propagate_assigned_inline_size_to_children() with
-    // fragment logic stripped out.
     fn inline_mode_assign_inline_sizes(&mut self,
                                        _shared_context: &SharedStyleContext,
                                        inline_start_content_edge: Au,
@@ -251,7 +251,22 @@ impl FlexFlow {
             AxisSize::Infinite => content_inline_size,
         };
 
-        let even_content_inline_size = inline_size / child_count;
+        let mut grow_count = 0_f32;
+        let mut shrink_count = 0_f32;
+        let mut grow_space_available = inline_size;
+        for kid in &mut self.items {
+            let kidbase = flow_ref::deref_mut(&mut kid.flow);
+            let base = flow::base(kidbase);
+            let css = kidbase.as_block().fragment.style.get_position();
+            grow_count = grow_count + css.flex_grow;
+            shrink_count = shrink_count + css.flex_shrink;
+            kid.basis = match css.flex_basis {
+                            LengthOrPercentageOrAutoOrContent::Length(length) => length,
+                            LengthOrPercentageOrAutoOrContent::Percentage(percent) => inline_size.scale_by(percent),
+                            _ => base.intrinsic_inline_sizes.preferred_inline_size
+                        };
+            grow_space_available = grow_space_available - kid.basis;
+        }
 
         let container_mode = self.block_flow.base.block_container_writing_mode;
         self.block_flow.base.position.size.inline = inline_size;
@@ -262,18 +277,33 @@ impl FlexFlow {
         } else {
             self.block_flow.fragment.border_box.size.inline
         };
-        for kid in &mut self.items {
-            let base = flow::mut_base(flow_ref::deref_mut(&mut kid.flow));
 
-            base.block_container_inline_size = even_content_inline_size;
+        for kid in &mut self.items {
+            let grow_by = if grow_space_available < Au(0) && shrink_count > 0_f32 {
+                // TODO shrink based on scaled_shrink_factor
+                let percent_shrink = kid.flow.as_block().fragment.style.get_position().flex_shrink / shrink_count;
+                Au::to_f32_px(grow_space_available) * percent_shrink
+            } else if grow_space_available > Au(0) && grow_count > 0_f32 {
+                let percent_grow = kid.flow.as_block().fragment.style.get_position().flex_grow / grow_count;
+                Au::to_f32_px(grow_space_available) * percent_grow
+            } else {
+                0_f32
+            };
+
+            let flowref = flow_ref::deref_mut(&mut kid.flow);
+            if flowref.is_block_like() {
+                flowref.as_mut_block().mark_as_flex();
+            }
+            let base = flow::mut_base(flowref);
+            base.block_container_inline_size = max(kid.basis + Au::from_f32_px(grow_by), Au(0));
             base.block_container_writing_mode = container_mode;
             base.block_container_explicit_block_size = block_container_explicit_block_size;
             if !self.is_reverse {
               base.position.start.i = inline_child_start;
-              inline_child_start = inline_child_start + even_content_inline_size;
+              inline_child_start = inline_child_start + base.block_container_inline_size;
             } else {
-              base.position.start.i = inline_child_start - base.intrinsic_inline_sizes.preferred_inline_size;
-              inline_child_start = inline_child_start - even_content_inline_size;
+              inline_child_start = inline_child_start - base.block_container_inline_size;
+              base.position.start.i = inline_child_start;
             };
         }
     }
