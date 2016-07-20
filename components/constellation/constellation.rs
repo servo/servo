@@ -1750,7 +1750,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             size: &Size2D<i32>,
             response_sender: IpcSender<IpcSender<CanvasMsg>>) {
         let webrender_api = self.webrender_api_sender.clone();
-        let sender = CanvasPaintThread::start(*size, webrender_api);
+        let sender = CanvasPaintThread::start(*size, webrender_api,
+                                              opts::get().enable_canvas_antialiasing);
         if let Err(e) = response_sender.send(sender) {
             warn!("Create canvas paint thread response failed ({})", e);
         }
