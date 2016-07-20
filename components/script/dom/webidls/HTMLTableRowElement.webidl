@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmltablerowelement
-[Exposed=(Window,Worker)]
 interface HTMLTableRowElement : HTMLElement {
   readonly attribute long rowIndex;
   readonly attribute long sectionRowIndex;
