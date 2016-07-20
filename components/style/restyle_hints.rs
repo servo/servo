@@ -6,9 +6,9 @@
 
 use attr::{AttrIdentifier, AttrValue};
 use element_state::*;
-use selector_impl::{SelectorImplExt, TheSelectorImpl, AttrString};
+use selector_impl::{TheSelectorImpl, AttrString, NonTSPseudoClass};
 use selectors::matching::matches_compound_selector;
-use selectors::parser::{AttrSelector, Combinator, CompoundSelector, SelectorImpl, SimpleSelector};
+use selectors::parser::{AttrSelector, Combinator, CompoundSelector, SimpleSelector};
 use selectors::{Element, MatchAttrGeneric};
 #[cfg(feature = "gecko")] use selectors::MatchAttr;
 use std::clone::Clone;
@@ -88,16 +88,12 @@ static EMPTY_SNAPSHOT: ElementSnapshot = ElementSnapshot { state: None, attrs: N
 // We'll need to figure something out when we start using restyle hints with
 // geckolib, but in the mean time we can just use the trait parameters to
 // specialize it to the Servo configuration.
-struct ElementWrapper<'a, E>
-    where E: Element<AttrString=AttrString>,
-          E::Impl: SelectorImplExt {
+struct ElementWrapper<'a, E> where E: Element<AttrString=AttrString> {
     element: E,
     snapshot: &'a ElementSnapshot,
 }
 
-impl<'a, E> ElementWrapper<'a, E>
-    where E: Element<AttrString=AttrString>,
-          E::Impl: SelectorImplExt {
+impl<'a, E> ElementWrapper<'a, E> where E: Element<AttrString=AttrString> {
     pub fn new(el: E) -> ElementWrapper<'a, E> {
         ElementWrapper { element: el, snapshot: &EMPTY_SNAPSHOT }
     }
@@ -109,9 +105,8 @@ impl<'a, E> ElementWrapper<'a, E>
 
 #[cfg(not(feature = "gecko"))]
 impl<'a, E> MatchAttrGeneric for ElementWrapper<'a, E>
-    where E: Element<AttrString=AttrString>,
-          E: MatchAttrGeneric,
-          E::Impl: SelectorImplExt {
+    where E: Element<Impl=TheSelectorImpl, AttrString=AttrString>,
+          E: MatchAttrGeneric {
     fn match_attr<F>(&self, attr: &AttrSelector, test: F) -> bool
                     where F: Fn(&str) -> bool {
         use selectors::parser::NamespaceConstraint;
@@ -130,9 +125,7 @@ impl<'a, E> MatchAttrGeneric for ElementWrapper<'a, E>
 }
 
 #[cfg(feature = "gecko")]
-impl<'a, E> MatchAttr for ElementWrapper<'a, E>
-    where E: Element<AttrString=AttrString>,
-          E::Impl: SelectorImplExt {
+impl<'a, E> MatchAttr for ElementWrapper<'a, E> where E: Element<AttrString=AttrString> {
     type AttrString = AttrString;
 
     fn match_attr_has(&self, _attr: &AttrSelector) -> bool {
@@ -169,14 +162,12 @@ impl<'a, E> MatchAttr for ElementWrapper<'a, E>
 }
 
 impl<'a, E> Element for ElementWrapper<'a, E>
-    where E: Element<AttrString=AttrString>,
-          E: MatchAttrGeneric,
-          E::Impl: SelectorImplExt {
-    type Impl = E::Impl;
+    where E: Element<Impl=TheSelectorImpl, AttrString=AttrString>,
+          E: MatchAttrGeneric {
+    type Impl = TheSelectorImpl;
 
-    fn match_non_ts_pseudo_class(&self,
-                                 pseudo_class: <Self::Impl as SelectorImpl>::NonTSPseudoClass) -> bool {
-        let flag = Self::Impl::pseudo_class_state_flag(&pseudo_class);
+    fn match_non_ts_pseudo_class(&self, pseudo_class: NonTSPseudoClass) -> bool {
+        let flag = TheSelectorImpl::pseudo_class_state_flag(&pseudo_class);
         if flag == ElementState::empty() {
             self.element.match_non_ts_pseudo_class(pseudo_class)
         } else {

@@ -11,7 +11,7 @@ use keyframes::KeyframesAnimation;
 use media_queries::{Device, MediaType};
 use properties::{self, PropertyDeclaration, PropertyDeclarationBlock, ComputedValues};
 use restyle_hints::{ElementSnapshot, RestyleHint, DependencySet};
-use selector_impl::{SelectorImplExt, TheSelectorImpl, PseudoElement, AttrString};
+use selector_impl::{TheSelectorImpl, PseudoElement, AttrString};
 use selectors::bloom::BloomFilter;
 use selectors::matching::DeclarationBlock as GenericDeclarationBlock;
 use selectors::matching::{Rule, SelectorMap};
@@ -38,13 +38,6 @@ pub type DeclarationBlock = GenericDeclarationBlock<Vec<PropertyDeclaration>>;
 ///
 /// This structure is effectively created once per pipeline, in the
 /// LayoutThread corresponding to that pipeline.
-///
-/// The stylist is parameterized on `SelectorImplExt`, a trait that extends
-/// `selectors::parser::SelectorImpl`, and that allows to customise what
-/// pseudo-classes and pseudo-elements are parsed. This is actually either
-/// `ServoSelectorImpl`, the implementation used by Servo's layout system in
-/// regular builds, or `GeckoSelectorImpl`, the implementation used in the
-/// geckolib port.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct Stylist {
     /// Device that the stylist is currently evaluating against.
