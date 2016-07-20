@@ -24,7 +24,7 @@ from mach.decorators import (
     Command,
 )
 
-from servo.command_base import CommandBase, cd, BuildNotFound, is_macosx
+from servo.command_base import CommandBase, cd, BuildNotFound, is_macosx, is_windows
 from servo.post_build_commands import find_dep_path_newest
 
 
@@ -153,6 +153,63 @@ class PackageCommands(CommandBase):
             print("Cleaning up")
             delete(dir_to_dmg)
             print("Packaged Servo into " + dmg_path)
+        elif is_windows():
+            dir_to_package = '/'.join(binary_path.split('/')[:-1])
+            dir_to_root = '/'.join(binary_path.split('/')[:-3])
+            shutil.copytree(dir_to_root + '/resources', dir_to_package + '/resources')
+            browserhtml_path = find_dep_path_newest('browserhtml', binary_path)
+            if browserhtml_path is None:
+                print("Could not find browserhtml package; perhaps you haven't built Servo.")
+                return 1
+            print("Deleting unused files")
+            keep = ['servo.exe', 'resources', 'build']
+            for f in os.listdir(dir_to_package + '/'):
+                if f not in keep:
+                    delete(dir_to_package + '/' + f)
+            for f in os.listdir(dir_to_package + '/build/'):
+                if 'browserhtml' not in f:
+                    delete(dir_to_package + '/build/' + f)
+            redistributed_libraries = [
+                '/mingw64/bin/libstdc++-6.dll',
+                '/mingw64/bin/libwinpthread-1.dll',
+                '/mingw64/bin/libbz2-1.dll',
+                '/mingw64/bin/libgcc_s_seh-1.dll',
+                '/mingw64/bin/libexpat-1.dll',
+                '/mingw64/bin/zlib1.dll',
+                '/mingw64/bin/libpng16-16.dll',
+                '/mingw64/bin/libiconv-2.dll',
+                '/mingw64/bin/libglib-2.0-0.dll',
+                '/mingw64/bin/libgraphite2.dll',
+                '/mingw64/bin/libintl-8.dll',
+                '/mingw64/bin/libpcre-1.dll',
+                '/mingw64/bin/libeay32.dll',
+                '/mingw64/bin/ssleay32.dll',
+                '/mingw64/bin/libharfbuzz-0.dll',
+                '/mingw64/bin/libfreetype-6.dll',
+                '/mingw64/bin/libfontconfig-1.dll',
+                ]
+            for f in redistributed_libraries:
+                shutil.copy(f, dir_to_package + '/')
+
+            print("Writing runservo.cmd")
+            servo_args = ['-w', '-b',
+                          '--pref', 'dom.mozbrowser.enabled',
+                          '--pref', 'dom.forcetouch.enabled',
+                          '--pref', 'shell.builtin-key-shortcuts.enabled=false',
+                          path.join('./build/' + browserhtml_path.split('/')[-1], 'out', 'index.html').replace('/', '\\')]
+
+            runservo = os.open(dir_to_package + '/runservo.cmd', os.O_WRONLY | os.O_CREAT, int("0755", 8))
+            os.write(runservo, "servo.exe " + ' '.join(servo_args))
+            os.close(runservo)
+            print("Creating tarball")
+            tar_path = '/'.join(dir_to_package.split('/')[:-1]) + '/'
+            time = datetime.utcnow().replace(microsecond=0).isoformat()
+            time = time.replace(':', "-")
+            tar_path += time + "-servo-tech-demo.tar.gz"
+            with tarfile.open(tar_path, "w:gz") as tar:
+                # arcname is to add by relative rather than absolute path
+                tar.add(dir_to_package, arcname='servo/')
+            print("Packaged Servo into " + tar_path)
         else:
             dir_to_package = '/'.join(binary_path.split('/')[:-1])
             dir_to_root = '/'.join(binary_path.split('/')[:-3])
