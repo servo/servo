@@ -1338,7 +1338,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 self.handle_load_start_msg(&source_id);
                 // Message the constellation to find the script thread for this iframe
                 // and issue an iframe load through there.
-                let msg = ConstellationControlMsg::Navigate(parent_pipeline_id, source_id, load_data);
+                let msg = ConstellationControlMsg::Navigate(source_id, load_data);
                 let result = match self.pipelines.get(&parent_pipeline_id) {
                     Some(parent_pipeline) => parent_pipeline.script_chan.send(msg),
                     None => {
@@ -1426,14 +1426,14 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     }
 
     fn handle_navigate_msg(&mut self,
-                           pipeline_info: Option<(PipelineId, PipelineId)>,
+                           pipeline_info: Option<PipelineId>,
                            direction: constellation_msg::NavigationDirection) {
         debug!("received message to navigate {:?}", direction);
 
         // Get the frame id associated with the pipeline that sent
         // the navigate message, or use root frame id by default.
         let frame_id = pipeline_info
-            .and_then(|info| self.pipelines.get(&info.1))
+            .and_then(|pipeline_id| self.pipelines.get(&pipeline_id))
             .and_then(|pipeline| pipeline.frame)
             .or(self.root_frame_id);
 
@@ -1510,9 +1510,12 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         // Update the owning iframe to point to the new pipeline id.
         // This makes things like contentDocument work correctly.
-        if let Some((parent_pipeline_id, _)) = pipeline_info {
-            let msg = ConstellationControlMsg::UpdatePipelineId(parent_pipeline_id,
-                                                                prev_pipeline_id,
+        if let Some(pipeline_id) = pipeline_info {
+            let parent_pipeline_id = match self.pipelines.get(&pipeline_id) {
+                None => return warn!("Pipeline {:?} navigated after closure.", pipeline_id),
+                Some(pipeline) => pipeline.parent_info.unwrap().0,
+            };
+            let msg = ConstellationControlMsg::UpdatePipelineId(prev_pipeline_id,
                                                                 next_pipeline_id);
             let result = match self.pipelines.get(&parent_pipeline_id) {
                 None => return warn!("Pipeline {:?} child navigated after closure.", parent_pipeline_id),
@@ -1637,7 +1640,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         // Send a message to the parent of the provided pipeline (if it exists)
         // telling it to mark the iframe element as focused.
-        let msg = ConstellationControlMsg::FocusIFrame(parent_pipeline_id, pipeline_id);
+        let msg = ConstellationControlMsg::FocusIFrame(pipeline_id);
         let result = match self.pipelines.get(&parent_pipeline_id) {
             Some(pipeline) => pipeline.script_chan.send(msg),
             None => return warn!("Pipeline {:?} focus after closure.", parent_pipeline_id),
@@ -1863,8 +1866,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 if let Some(parent_pipeline) = self.pipelines.get(&parent_info.0) {
                     let _ = parent_pipeline.script_chan
                                            .send(ConstellationControlMsg::FramedContentChanged(
-                                               parent_info.0,
-                                               pipeline_id));
+                                                 pipeline_id));
                 }
             }
         }

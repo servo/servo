@@ -93,8 +93,7 @@ pub enum ScriptMsg {
     /// First PipelineId is for the parent, second PipelineId is for the actual pipeline.
     MozBrowserEvent(PipelineId, Option<PipelineId>, MozBrowserEvent),
     /// HTMLIFrameElement Forward or Back navigation.
-    /// First PipelineId is for the window, second PipelineId is for the iframe.
-    Navigate(Option<(PipelineId, PipelineId)>, NavigationDirection),
+    Navigate(Option<PipelineId>, NavigationDirection),
     /// Favicon detected
     NewFavicon(Url),
     /// Status message to be displayed in the chrome, eg. a link URL on mouseover.
