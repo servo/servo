@@ -77,6 +77,18 @@ first adding the following to the system's hosts file:
 and then running `python serve` from `tests/wpt/web-platform-tests`.
 Then navigate Servo to `http://web-platform.test:8000/path/to/test`.
 
+Running the tests in Firefox
+----------------------------
+
+When working with tests, you may want to compare Servo's result with Firefox.
+You can supply `--product firefox` along with the path to a Firefox binary (as
+well as few more odds and ends) to run tests in Firefox from your Servo
+checkout:
+
+    GECKO="$HOME/projects/mozilla/gecko"
+    GECKO_BINS="$GECKO/obj-firefox-release-artifact/dist/Nightly.app/Contents/MacOS"
+    ./mach test-wpt dom --product firefox --binary $GECKO_BINS/firefox --certutil-binary $GECKO_BINS/certutil --prefs-root $GECKO/testing/profiles
+
 Updating test expectations
 ==========================
 
@@ -191,5 +203,4 @@ MANIFEST.json can be regenerated automatically with the mach command `update-man
 
 This is equivalent to running
 
-    ./mach test-wpt --manifest-update SKIP_TESTS 
-
+    ./mach test-wpt --manifest-update SKIP_TESTS

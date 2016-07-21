@@ -135,6 +135,7 @@ def _activate_virtualenv(topdir):
     requirements_paths = [
         os.path.join("python", "requirements.txt"),
         os.path.join("tests", "wpt", "harness", "requirements.txt"),
+        os.path.join("tests", "wpt", "harness", "requirements_firefox.txt"),
         os.path.join("tests", "wpt", "harness", "requirements_servo.txt"),
     ]
     for req_rel_path in requirements_paths:
