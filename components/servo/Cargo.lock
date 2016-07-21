@@ -1031,7 +1031,7 @@ dependencies = [
 [[package]]
 name = "ipc-channel"
 version = "0.4.0"
-source = "git+https://github.com/servo/ipc-channel#f97eb4c4ceaa0463323ddbd00cc9980cb7840950"
+source = "git+https://github.com/servo/ipc-channel#346456b792f0a8e86b4ed077997408a697a06a0f"
 dependencies = [
  "bincode 0.5.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
