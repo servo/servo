@@ -50,11 +50,10 @@ use script_traits::{webdriver_msg, LogEntry, ServiceWorkerMsg};
 use std::borrow::ToOwned;
 use std::collections::{HashMap, VecDeque};
 use std::io::Error as IOError;
-use std::iter::{self, Chain, Once, Peekable, Rev};
+use std::iter::once;
 use std::marker::PhantomData;
 use std::mem::replace;
 use std::process;
-use std::slice::Iter;
 use std::sync::mpsc::{Sender, channel, Receiver};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -287,50 +286,6 @@ impl<'a> Iterator for FrameTreeIterator<'a> {
             };
             self.stack.extend(pipeline.children.iter().map(|&c| c));
             return Some(frame)
-        }
-    }
-}
-
-type BackFrameIterator<'a> = Peekable<Rev<Chain<Iter<'a, (PipelineId, Instant)>, Once<&'a (PipelineId, Instant)>>>>;
-type ForwardFrameIterator<'a> = Peekable<Rev<Iter<'a, (PipelineId, Instant)>>>;
-
-enum HistoryDirection<'a> {
-    Forward(Vec<(FrameId, ForwardFrameIterator<'a>)>),
-    Back(Vec<(FrameId, BackFrameIterator<'a>)>),
-}
-
-/// An iterator over the joint session history of a frame tree in a specific direction.
-/// Navigation entries are lazily interleaved by the time at which each navigation occurred.
-struct HistoryIterator<'a> {
-    stack: HistoryDirection<'a>
-}
-
-impl<'a> Iterator for HistoryIterator<'a> {
-    type Item = FrameId;
-    fn next(&mut self) -> Option<FrameId> {
-        match self.stack {
-            HistoryDirection::Forward(ref mut stack) => {
-                stack.iter_mut()
-                     .filter_map(|&mut (frame_id, ref mut iter)| {
-                         iter.peek().cloned().map(|&(_, instant)| (frame_id, iter, instant))
-                     })
-                     .min_by_key(|&(_, _, instant)| instant)
-                     .map(|(frame_id, iter, _)| {
-                         iter.next();
-                         frame_id
-                     })
-        },
-            HistoryDirection::Back(ref mut stack) => {
-                stack.iter_mut()
-                     .filter_map(|&mut (frame_id, ref mut iter)| {
-                         iter.peek().cloned().map(|&(_, instant)| (frame_id, iter, instant))
-                     })
-                     .max_by_key(|&(_, _, instant)| instant)
-                     .map(|(frame_id, iter, _)| {
-                         iter.next();
-                         frame_id
-                     })
-            }
         }
     }
 }
@@ -625,6 +580,67 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
     }
 
+    fn joint_session_future(&self, frame_id_root: FrameId) -> Vec<(Instant, FrameId, PipelineId)> {
+        let frame = match self.frames.get(&frame_id_root) {
+            Some(frame) => frame,
+            None => {
+                warn!("Tried to get full frame tree after frame {:?} closed.", frame_id_root);
+                return vec!();
+            }
+        };
+
+        let mut future = vec!();
+        future.extend(frame.next.iter().map(|&(pipeline_id, instant)| (instant, frame_id_root, pipeline_id)));
+        for &(pipeline_id, _) in frame.next.iter().chain(once(&frame.current)) {
+            let pipeline = match self.pipelines.get(&pipeline_id) {
+                Some(pipeline) => pipeline,
+                None => {
+                    warn!("Tried to get pipeline {:?} for child lookup after closure.", pipeline_id);
+                    continue;
+                }
+            };
+            for &frame_id in &pipeline.children {
+                future.extend_from_slice(&self.joint_session_future(frame_id));
+            }
+        }
+
+        // reverse sorting
+        future.sort_by(|a, b| b.cmp(a));
+        future
+    }
+
+    fn joint_session_past(&self, frame_id_root: FrameId) -> Vec<(Instant, FrameId, PipelineId)> {
+        let frame = match self.frames.get(&frame_id_root) {
+            Some(frame) => frame,
+            None => {
+                warn!("Tried to get full frame tree after frame {:?} closed.", frame_id_root);
+                return vec!();
+            }
+        };
+
+        let mut prev = vec!();
+        let mut prev_instant = frame.current.1;
+        for &(pipeline_id, instant) in frame.prev.iter().rev() {
+            prev.push((prev_instant, frame_id_root, pipeline_id));
+            prev_instant = instant;
+        }
+        for &(pipeline_id, _) in frame.prev.iter().chain(once(&frame.current)) {
+            let pipeline = match self.pipelines.get(&pipeline_id) {
+                Some(pipeline) => pipeline,
+                None => {
+                    warn!("Tried to get pipeline {:?} for child lookup after closure.", pipeline_id);
+                    continue;
+                }
+            };
+            for frame_id in &pipeline.children {
+                prev.extend_from_slice(&self.joint_session_past(*frame_id));
+            }
+        }
+
+        prev.sort();
+        prev
+    }
+
     // Get a `Vec` of all the frames that are descendants of a root frame. This includes all
     // active and inactive frames.
     fn full_frame_tree(&self, frame_id_root: FrameId) -> Vec<FrameId> {
@@ -661,58 +677,13 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     }
                 };
                 let iter = frame.next.iter().map(|&(pipeline_id, _)| pipeline_id)
-                                     .chain(iter::once(frame.current.0))
+                                     .chain(once(frame.current.0))
                                      .chain(frame.prev.iter().map(|&(pipeline_id, _)| pipeline_id));
                 pipelines.extend(iter);
             }
         }
 
         frames
-    }
-
-    // Get an iterator over the joint session history in a given direction.
-    fn history_iterator(&self,
-                        frame_id_root: FrameId,
-                        direction: TraversalDirection)
-                        -> HistoryIterator {
-        let full_frame_tree = self.full_frame_tree(frame_id_root);
-
-        let stack = match direction {
-            TraversalDirection::Forward(_) => {
-                let stack = full_frame_tree.iter().filter_map(|frame_id| {
-                    let frame = match self.frames.get(frame_id) {
-                        Some(frame) => frame,
-                        None => return None,
-                    };
-                    Some((*frame_id, frame.next.iter().rev().peekable()))
-                }).collect();
-                HistoryDirection::Forward(stack)
-            },
-            TraversalDirection::Back(_) => {
-                let stack = full_frame_tree.iter().filter_map(|frame_id| {
-                    let frame = match self.frames.get(frame_id) {
-                        Some(frame) => frame,
-                        None => return None,
-                    };
-                    // Remove the first item of the iterator if going back. The first entry should not
-                    // be considered when determining traversal order, instead the current entry is added.
-                    // This is due to traversal logic being different between forward and back traversal.
-                    // When navigating forward, the iterator should return the entry that should be traversed
-                    // *to*, while when navigating back, the iterator should return the entry that should
-                    // be traversed *from*.
-                    // See https://github.com/ConnorGBrewster/ServoNavigation for a more in depth analysis
-                    // of browser history.
-                    let mut iter = frame.prev.iter().chain(iter::once(&frame.current));
-                    iter.next();
-                    Some((*frame_id, iter.rev().peekable()))
-                }).collect();
-                HistoryDirection::Back(stack)
-            },
-        };
-
-        HistoryIterator {
-            stack: stack,
-        }
     }
 
     // Create a new frame and update the internal bookkeeping.
@@ -1499,22 +1470,16 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
     fn handle_load_start_msg(&mut self, pipeline_id: PipelineId) {
         if let Some(frame_id) = self.get_top_level_frame_for_pipeline(Some(pipeline_id)) {
-            let mut forward_history_iter = self.history_iterator(frame_id, TraversalDirection::Forward(0));
-            let mut back_history_iter = self.history_iterator(frame_id, TraversalDirection::Back(0));
-
-            let forward = forward_history_iter.next().is_some();
-            let back = back_history_iter.next().is_some();
+            let forward = !self.joint_session_future(frame_id).is_empty();
+            let back = !self.joint_session_past(frame_id).is_empty();
             self.compositor_proxy.send(ToCompositorMsg::LoadStart(back, forward));
         }
     }
 
     fn handle_load_complete_msg(&mut self, pipeline_id: PipelineId) {
         if let Some(frame_id) = self.get_top_level_frame_for_pipeline(Some(pipeline_id)) {
-            let mut forward_history_iter = self.history_iterator(frame_id, TraversalDirection::Forward(0));
-            let mut back_history_iter = self.history_iterator(frame_id, TraversalDirection::Back(0));
-
-            let forward = forward_history_iter.next().is_some();
-            let back = back_history_iter.next().is_some();
+            let forward = !self.joint_session_future(frame_id).is_empty();
+            let back = !self.joint_session_past(frame_id).is_empty();
             let root = self.root_frame_id.is_none() || self.root_frame_id == Some(frame_id);
             self.compositor_proxy.send(ToCompositorMsg::LoadComplete(back, forward, root));
         }
@@ -1546,34 +1511,34 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             None => return warn!("Traverse message received after root's closure."),
         };
 
-        let mut traversal_info: HashMap<FrameId, usize> = HashMap::new();
+        let mut traversal_info = HashMap::new();
 
-        let delta = match direction {
-            TraversalDirection::Forward(delta) => delta,
-            TraversalDirection::Back(delta) => delta,
-        };
-
-        {
-            let mut history_iter = self.history_iterator(frame_id, direction);
-            for _ in 0..delta {
-                match history_iter.next() {
-                    Some(frame_id) => {
-                        let delta = match traversal_info.get(&frame_id) {
-                            Some(info) => info + 1,
-                            None => 1,
-                        };
-                        traversal_info.insert(frame_id, delta);
-                    },
-                    None => return warn!("invalid traversal delta"),
+        match direction {
+            TraversalDirection::Forward(delta) => {
+                let mut future = self.joint_session_future(frame_id);
+                for _ in 0..delta {
+                    match future.pop() {
+                        Some((_, frame_id, pipeline_id)) => {
+                            traversal_info.insert(frame_id, pipeline_id);
+                        },
+                        None => return warn!("invalid traversal delta"),
+                    }
                 }
-            }
-        }
-
-        for (frame_id, delta) in traversal_info {
-            match direction {
-                TraversalDirection::Forward(_) => self.traverse_frame(frame_id, TraversalDirection::Forward(delta)),
-                TraversalDirection::Back(_) => self.traverse_frame(frame_id, TraversalDirection::Back(delta)),
-            }
+            },
+            TraversalDirection::Back(delta) => {
+                let mut past = self.joint_session_past(frame_id);
+                for _ in 0..delta {
+                    match past.pop() {
+                        Some((_, frame_id, pipeline_id)) => {
+                            traversal_info.insert(frame_id, pipeline_id);
+                        },
+                        None => return warn!("invalid traversal delta"),
+                    }
+                }
+            },
+        };
+        for (frame_id, pipeline_id) in traversal_info {
+            self.traverse_frame_to_pipeline(frame_id, pipeline_id);
         }
     }
 
@@ -1833,50 +1798,54 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
     }
 
-    fn traverse_frame(&mut self, frame_id: FrameId, direction: TraversalDirection) {
+    fn traverse_frame_to_pipeline(&mut self, frame_id: FrameId, next_pipeline_id: PipelineId) {
         // Check if the currently focused pipeline is the pipeline being replaced
         // (or a child of it). This has to be done here, before the current
         // frame tree is modified below.
         let update_focus_pipeline = self.focused_pipeline_in_tree(frame_id);
 
-        // Get the ids for the previous and next pipelines.
-        let (prev_pipeline_id, next_pipeline_id) = match self.frames.get_mut(&frame_id) {
+        let prev_pipeline_id = match self.frames.get_mut(&frame_id) {
             Some(frame) => {
                 let prev = frame.current.0;
-                let next = match direction {
-                    TraversalDirection::Forward(delta) => {
-                        if delta > frame.next.len() && delta > 0 {
-                            return warn!("Invalid traversal delta");
+                // Check that this frame contains the pipeline passed in, so that this does not
+                // change Frame's state before realizing `next_pipeline_id` is invalid.
+                let mut contains_pipeline = false;
+
+                if frame.next.iter().find(|&&(pipeline_id, _)| next_pipeline_id == pipeline_id).is_some() {
+                    contains_pipeline = true;
+                    frame.prev.push(frame.current);
+                    while let Some(entry) = frame.next.pop() {
+                        if entry.0 == next_pipeline_id {
+                            frame.current = entry;
+                            break;
+                        } else {
+                            frame.prev.push(entry);
                         }
-                        let new_next_len = frame.next.len() - (delta - 1);
-                        frame.prev.push(frame.current);
-                        frame.prev.extend(frame.next.drain(new_next_len..).rev());
-                        frame.current = match frame.next.pop() {
-                            Some(frame) => frame,
-                            None => return warn!("Could not get next frame for forward traversal"),
-                        };
-                        frame.current.0
                     }
-                    TraversalDirection::Back(delta) => {
-                        if delta > frame.prev.len() && delta > 0 {
-                            return warn!("Invalid traversal delta");
+                }
+
+                if !contains_pipeline &&
+                   frame.prev.iter().find(|&&(pipeline_id, _)| next_pipeline_id == pipeline_id).is_some() {
+                    contains_pipeline = true;
+                    frame.next.push(frame.current);
+                    while let Some(entry) = frame.prev.pop() {
+                        if entry.0 == next_pipeline_id {
+                            frame.current = entry;
+                            break;
+                        } else {
+                            frame.next.push(entry);
                         }
-                        let new_prev_len = frame.prev.len() - (delta - 1);
-                        frame.next.push(frame.current);
-                        frame.next.extend(frame.prev.drain(new_prev_len..).rev());
-                        frame.current = match frame.prev.pop() {
-                            Some(frame) => frame,
-                            None => return warn!("Could not get prev frame for back traversal"),
-                        };
-                        frame.current.0
                     }
-                };
-                (prev, next)
+                }
+
+                if !contains_pipeline {
+                    return warn!("Tried to traverse frame {:?} to pipeline {:?} it does not contain.",
+                        frame_id, next_pipeline_id);
+                }
+
+                prev
             },
-            None => {
-                warn!("no frame to traverse");
-                return;
-            },
+            None => return warn!("no frame to traverse"),
         };
 
         let pipeline_info = self.pipelines.get(&prev_pipeline_id).and_then(|p| p.parent_info);
@@ -2450,13 +2419,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // If this is a mozbrowser iframe, then send the event with new url
         if let Some((containing_pipeline_id, subpage_id)) = self.get_mozbrowser_ancestor_info(pipeline_id) {
             if let Some(parent_pipeline) = self.pipelines.get(&containing_pipeline_id) {
-                if let Some(frame_id) = self.pipelines.get(&pipeline_id).and_then(|pipeline| pipeline.frame) {
-                    if let Some(frame) = self.frames.get(&frame_id) {
-                        let can_go_backward = !frame.prev.is_empty();
-                        let can_go_forward = !frame.next.is_empty();
-                        let event = MozBrowserEvent::LocationChange(url, can_go_backward, can_go_forward);
-                        parent_pipeline.trigger_mozbrowser_event(Some(subpage_id), event);
-                    }
+                if let Some(frame_id) = parent_pipeline.frame {
+                    let can_go_forward = !self.joint_session_future(frame_id).is_empty();
+                    let can_go_back = !self.joint_session_past(frame_id).is_empty();
+                    let event = MozBrowserEvent::LocationChange(url, can_go_back, can_go_forward);
+                    parent_pipeline.trigger_mozbrowser_event(subpage_id, event);
                 }
             }
         }
