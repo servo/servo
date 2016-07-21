@@ -1503,7 +1503,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
     fn handle_traverse_history_msg(&mut self,
                            pipeline_id: Option<PipelineId>,
-                           direction: constellation_msg::TraversalDirection) {
+                           direction: TraversalDirection) {
         debug!("received message to traverse {:?}", direction);
 
         let frame_id = match self.get_top_level_frame_for_pipeline(pipeline_id) {
@@ -2423,7 +2423,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     let can_go_forward = !self.joint_session_future(frame_id).is_empty();
                     let can_go_back = !self.joint_session_past(frame_id).is_empty();
                     let event = MozBrowserEvent::LocationChange(url, can_go_back, can_go_forward);
-                    parent_pipeline.trigger_mozbrowser_event(subpage_id, event);
+                    parent_pipeline.trigger_mozbrowser_event(Some(subpage_id), event);
                 }
             }
         }
@@ -2463,7 +2463,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         if let Some(root_frame_id) = self.root_frame_id {
             if let Some(root_frame) = self.frames.get(&root_frame_id) {
-                if let Some(root_pipeline) = self.pipelines.get(&root_frame.current) {
+                if let Some(root_pipeline) = self.pipelines.get(&root_frame.current.0) {
                     return root_pipeline.trigger_mozbrowser_event(None, event);
                 }
             }
