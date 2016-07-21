@@ -15,9 +15,14 @@ use ipc_channel::router::ROUTER;
 use net_traits::{CustomResponseMediator, CoreResourceMsg};
 use script_traits::{ServiceWorkerMsg, ScopeThings, SWManagerMsg, SWManagerSenders};
 use std::collections::HashMap;
-use std::sync::mpsc::{channel, Receiver};
+use std::sync::mpsc::{channel, Receiver, RecvError};
 use url::Url;
 use util::thread::spawn_named;
+
+enum Message {
+    FromResource(CustomResponseMediator),
+    FromConstellation(ServiceWorkerMsg)
+}
 
 pub struct ServiceWorkerManager {
     // map of registered service worker descriptors
@@ -102,9 +107,19 @@ impl ServiceWorkerManager {
     }
 
     fn handle_message(&mut self) {
-       while self.receive_message() {
-        // process message
-       }
+        while let Ok(message) = self.receive_message() {
+            let should_continue = match message {
+                Message::FromConstellation(msg) => {
+                    self.handle_message_from_constellation(msg)
+                },
+                Message::FromResource(msg) => {
+                    self.handle_message_from_resource(msg)
+                }
+            };
+            if !should_continue {
+                break;
+            }
+        }
     }
 
     fn handle_message_from_constellation(&mut self, msg: ServiceWorkerMsg) -> bool {
@@ -140,24 +155,12 @@ impl ServiceWorkerManager {
     }
 
     #[allow(unsafe_code)]
-    fn receive_message(&mut self) -> bool {
-        enum Message {
-            FromResource(CustomResponseMediator),
-            FromConstellation(ServiceWorkerMsg)
-        }
-        let message = {
-            let msg_from_constellation = &self.own_port;
-            let msg_from_resource = &self.resource_receiver;
-            select! {
-                msg = msg_from_constellation.recv() =>
-                    Message::FromConstellation(msg.expect("Unexpected constellation channel panic in sw-manager")),
-                msg = msg_from_resource.recv() =>
-                    Message::FromResource(msg.expect("Unexpected resource channel panic in sw-manager"))
-            }
-        };
-        match message {
-            Message::FromConstellation(msg) => self.handle_message_from_constellation(msg),
-            Message::FromResource(mediator) => self.handle_message_from_resource(mediator)
+    fn receive_message(&mut self) -> Result<Message, RecvError> {
+        let msg_from_constellation = &self.own_port;
+        let msg_from_resource = &self.resource_receiver;
+        select! {
+            msg = msg_from_constellation.recv() => msg.map(Message::FromConstellation),
+            msg = msg_from_resource.recv() => msg.map(Message::FromResource)
         }
     }
 }
