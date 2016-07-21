@@ -6,7 +6,7 @@ use bluetooth_blacklist::{Blacklist, uuid_is_blacklisted};
 use dom::bindings::codegen::Bindings::BluetoothDeviceBinding::BluetoothDeviceMethods;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
-use dom::bindings::error::Error::{Security, Type};
+use dom::bindings::error::Error::{self, Security};
 use dom::bindings::error::{Fallible, ErrorResult};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutHeap, Root};
@@ -72,7 +72,7 @@ impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
                 Ok(Root::from_ref(self))
             },
             Err(error) => {
-                Err(Type(error))
+                Err(Error::from(error))
             },
         }
     }
@@ -89,7 +89,7 @@ impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
                 Ok(())
             },
             Err(error) => {
-                Err(Type(error))
+                Err(Error::from(error))
             },
         }
     }
@@ -113,7 +113,7 @@ impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
                                                    service.instance_id))
             },
             Err(error) => {
-                Err(Type(error))
+                Err(Error::from(error))
             },
         }
     }
@@ -146,7 +146,7 @@ impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
                               .collect())
             },
             Err(error) => {
-                Err(Type(error))
+                Err(Error::from(error))
             },
         }
     }

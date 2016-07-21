@@ -1,8 +1,18 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 use bluetooth_scanfilter::RequestDeviceoptions;
 use ipc_channel::ipc::IpcSender;
+
+#[derive(Deserialize, Serialize)]
+pub enum BluetoothError {
+    Type(String),
+    Network,
+    NotFound,
+    NotSupported,
+    Security,
+}
 
 #[derive(Deserialize, Serialize)]
 pub struct BluetoothDeviceMsg {
@@ -51,7 +61,7 @@ pub type BluetoothCharacteristicsMsg = Vec<BluetoothCharacteristicMsg>;
 
 pub type BluetoothDescriptorsMsg = Vec<BluetoothDescriptorMsg>;
 
-pub type BluetoothResult<T> = Result<T, String>;
+pub type BluetoothResult<T> = Result<T, BluetoothError>;
 
 #[derive(Deserialize, Serialize)]
 pub enum BluetoothMethodMsg {

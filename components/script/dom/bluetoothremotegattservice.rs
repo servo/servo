@@ -5,7 +5,7 @@
 use bluetooth_blacklist::{Blacklist, uuid_is_blacklisted};
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding::BluetoothRemoteGATTServiceMethods;
-use dom::bindings::error::Error::{Security, Type};
+use dom::bindings::error::Error::{self, Security};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutHeap, Root};
@@ -115,7 +115,7 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
                                                           characteristic.instance_id))
             },
             Err(error) => {
-                Err(Type(error))
+                Err(Error::from(error))
             },
         }
     }
@@ -160,7 +160,7 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
                 Ok(characteristics)
             },
             Err(error) => {
-                Err(Type(error))
+                Err(Error::from(error))
             },
         }
     }
@@ -188,7 +188,7 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
                                                    service.instance_id))
             },
             Err(error) => {
-                Err(Type(error))
+                Err(Error::from(error))
             },
         }
     }
@@ -223,7 +223,7 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
                               .collect())
             },
             Err(error) => {
-                Err(Type(error))
+                Err(Error::from(error))
             },
         }
     }
