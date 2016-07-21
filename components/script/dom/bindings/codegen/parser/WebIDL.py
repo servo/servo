@@ -2531,7 +2531,8 @@ class IDLUnionType(IDLType):
                                        self.flatMemberTypes[i].location])
                 self._dictionaryType = self.flatMemberTypes[i]
             elif self.flatMemberTypes[i].isUnion():
-                self.flatMemberTypes[i:i + 1] = self.flatMemberTypes[i].memberTypes
+                assert self.flatMemberTypes[i].isComplete()
+                self.flatMemberTypes += self.flatMemberTypes.pop(i).flatMemberTypes
                 continue
             i += 1
 
@@ -2691,6 +2692,10 @@ class IDLTypedefType(IDLType):
     def __str__(self):
         return self.name
 
+    @property
+    def flatMemberTypes():
+        return self.inner.flatMemberTypes
+
     def nullable(self):
         return self.inner.nullable()
 
@@ -2750,6 +2755,9 @@ class IDLTypedefType(IDLType):
 
     def isNonCallbackInterface(self):
         return self.inner.isNonCallbackInterface()
+
+    def isUnion(self):
+        return self.inner.isUnion()
 
     def isComplete(self):
         return False
