@@ -60,8 +60,7 @@ use style::dom::{PresentationalHintsSynthetizer, OpaqueNode, TDocument, TElement
 use style::element_state::*;
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use style::refcell::{Ref, RefCell, RefMut};
-use style::restyle_hints::ElementSnapshot;
-use style::selector_impl::{NonTSPseudoClass, ServoSelectorImpl};
+use style::selector_impl::{ElementSnapshot, NonTSPseudoClass, ServoSelectorImpl};
 use style::sink::Push;
 use style::str::is_whitespace;
 use url::Url;

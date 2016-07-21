@@ -11,7 +11,7 @@ use data::PrivateStyleData;
 use element_state::ElementState;
 use properties::{ComputedValues, PropertyDeclaration, PropertyDeclarationBlock};
 use refcell::{Ref, RefMut};
-use restyle_hints::{ElementSnapshot, RESTYLE_DESCENDANTS, RESTYLE_LATER_SIBLINGS, RESTYLE_SELF, RestyleHint};
+use restyle_hints::{RESTYLE_DESCENDANTS, RESTYLE_LATER_SIBLINGS, RESTYLE_SELF, RestyleHint};
 use selector_impl::{ElementExt, SelectorImplExt};
 use selectors::Element;
 use selectors::matching::DeclarationBlock;
@@ -192,7 +192,8 @@ pub trait TDocument : Sized + Copy + Clone {
 
     fn root_node(&self) -> Option<Self::ConcreteNode>;
 
-    fn drain_modified_elements(&self) -> Vec<(Self::ConcreteElement, ElementSnapshot)>;
+    fn drain_modified_elements(&self) -> Vec<(Self::ConcreteElement,
+                                              <Self::ConcreteElement as ElementExt>::Snapshot)>;
 }
 
 pub trait PresentationalHintsSynthetizer {

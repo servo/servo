@@ -10,12 +10,12 @@ use error_reporting::StdoutErrorReporter;
 use keyframes::KeyframesAnimation;
 use media_queries::{Device, MediaType};
 use properties::{self, PropertyDeclaration, PropertyDeclarationBlock, ComputedValues};
-use restyle_hints::{ElementSnapshot, RestyleHint, DependencySet};
-use selector_impl::{SelectorImplExt, TheSelectorImpl, PseudoElement, AttrString};
+use restyle_hints::{RestyleHint, DependencySet};
+use selector_impl::{ElementExt, SelectorImplExt, TheSelectorImpl, PseudoElement, AttrString};
+use selectors::Element;
 use selectors::bloom::BloomFilter;
 use selectors::matching::DeclarationBlock as GenericDeclarationBlock;
 use selectors::matching::{Rule, SelectorMap};
-use selectors::{Element, MatchAttrGeneric};
 use sink::Push;
 use smallvec::VecLike;
 use std::collections::HashMap;
@@ -402,15 +402,15 @@ impl Stylist {
     }
 
     pub fn compute_restyle_hint<E>(&self, element: &E,
-                                   snapshot: &ElementSnapshot,
+                                   snapshot: &E::Snapshot,
                                    // NB: We need to pass current_state as an argument because
                                    // selectors::Element doesn't provide access to ElementState
                                    // directly, and computing it from the ElementState would be
                                    // more expensive than getting it directly from the caller.
                                    current_state: ElementState)
                                    -> RestyleHint
-                                   where E: Element<Impl=TheSelectorImpl, AttrString=AttrString>
-                                        + Clone + MatchAttrGeneric {
+        where E: ElementExt + Clone
+    {
         self.state_deps.compute_hint(element, snapshot, current_state)
     }
 }
