@@ -20,6 +20,7 @@ use net_traits::filemanager_thread::{FileManagerThreadMsg, SelectedFileId, Relat
 use std::cell::Cell;
 use std::ops::Index;
 use std::path::PathBuf;
+use uuid::Uuid;
 
 /// File-based blob
 #[derive(JSTraceable)]
@@ -183,7 +184,7 @@ impl Blob {
 
                 match rx.recv().unwrap() {
                     Ok(_) => f.id.clone(),
-                    Err(_) => SelectedFileId("".to_string()) // Return a dummy id on error
+                    Err(_) => SelectedFileId(Uuid::new_v4().simple().to_string()) // Return a dummy id on error
                 }
             }
             BlobImpl::Memory(ref slice) => {
@@ -194,7 +195,7 @@ impl Blob {
                     BlobImpl::Sliced(_, _) => {
                         debug!("Sliced can't have a sliced parent");
                         // Return dummy id
-                        SelectedFileId("".to_string())
+                        SelectedFileId(Uuid::new_v4().simple().to_string())
                     }
                     BlobImpl::File(ref f) =>
                         self.create_sliced_url_id(&f.id, rel_pos),
@@ -230,7 +231,7 @@ impl Blob {
         match rx.recv().unwrap() {
             Ok(new_id) => SelectedFileId(new_id.0),
             // Dummy id
-            Err(_) => SelectedFileId("".to_string()),
+            Err(_) => SelectedFileId(Uuid::new_v4().simple().to_string()),
         }
     }
 
