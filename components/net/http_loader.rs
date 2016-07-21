@@ -1143,7 +1143,7 @@ fn is_cert_verify_error(error: &OpensslError) -> bool {
     match error {
         &OpensslError::UnknownError { ref library, ref function, ref reason } => {
             library == "SSL routines" &&
-            function == "SSL3_GET_SERVER_CERTIFICATE" &&
+            function.to_uppercase() == "SSL3_GET_SERVER_CERTIFICATE" &&
             reason == "certificate verify failed"
         }
     }
