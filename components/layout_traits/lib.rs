@@ -22,7 +22,7 @@ extern crate webrender_traits;
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::paint_thread::LayoutToPaintMsg;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
-use msg::constellation_msg::{PanicMsg, PipelineId};
+use msg::constellation_msg::PipelineId;
 use net_traits::image_cache_thread::ImageCacheThread;
 use profile_traits::{mem, time};
 use script_traits::LayoutMsg as ConstellationMsg;
@@ -41,7 +41,6 @@ pub trait LayoutThreadFactory {
               chan: (Sender<Self::Message>, Receiver<Self::Message>),
               pipeline_port: IpcReceiver<LayoutControlMsg>,
               constellation_chan: IpcSender<ConstellationMsg>,
-              panic_chan: IpcSender<PanicMsg>,
               script_chan: IpcSender<ConstellationControlMsg>,
               layout_to_paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
               image_cache_thread: ImageCacheThread,

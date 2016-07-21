@@ -2278,7 +2278,6 @@ name = "util"
 version = "0.0.1"
 dependencies = [
  "app_units 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "backtrace 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "getopts 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",

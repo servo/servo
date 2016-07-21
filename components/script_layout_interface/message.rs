@@ -7,7 +7,7 @@ use euclid::point::Point2D;
 use euclid::rect::Rect;
 use gfx_traits::{Epoch, LayerId};
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
-use msg::constellation_msg::{PanicMsg, PipelineId};
+use msg::constellation_msg::PipelineId;
 use net_traits::image_cache_thread::ImageCacheThread;
 use profile_traits::mem::ReportsChan;
 use rpc::LayoutRPC;
@@ -145,7 +145,6 @@ pub struct NewLayoutThreadInfo {
     pub layout_pair: (Sender<Msg>, Receiver<Msg>),
     pub pipeline_port: IpcReceiver<LayoutControlMsg>,
     pub constellation_chan: IpcSender<ConstellationMsg>,
-    pub panic_chan: IpcSender<PanicMsg>,
     pub script_chan: IpcSender<ConstellationControlMsg>,
     pub image_cache_thread: ImageCacheThread,
     pub paint_chan: OptionalOpaqueIpcSender,
