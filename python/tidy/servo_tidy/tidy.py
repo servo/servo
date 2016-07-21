@@ -17,7 +17,7 @@ import site
 import StringIO
 import subprocess
 import sys
-from licenseck import licenses, licenses_toml
+from licenseck import licenses, licenses_toml, licenses_dep_toml
 
 # License and header checks
 EMACS_HEADER = "/* -*- Mode:"
@@ -643,6 +643,28 @@ def check_wpt_lint_errors(files):
             yield ("WPT Lint Tool", "", "lint error(s) in Web Platform Tests: exit status {0}".format(returncode))
 
 
+def get_dep_toml_files(only_changed_files=False):
+    if not only_changed_files:
+        print '\nRunning the dependency licensing lint...'
+        for root, directories, filenames in os.walk(".cargo"):
+            for filename in filenames:
+                if filename == "Cargo.toml":
+                    yield os.path.join(root, filename)
+
+
+def check_dep_license_errors(filenames, progress=True):
+    filenames = progress_wrapper(filenames) if progress else filenames
+    for filename in filenames:
+        with open(filename, "r") as f:
+            ok_licensed = False
+            lines = f.readlines()
+            for idx, line in enumerate(lines):
+                for license_line in licenses_dep_toml:
+                    ok_licensed |= (license_line in line)
+            if not ok_licensed:
+                yield (filename, 0, "dependency should contain a valid license.")
+
+
 def get_file_list(directory, only_changed_files=False, exclude_dirs=[]):
     if only_changed_files:
         # only check the files that have been changed since the last merge
@@ -674,10 +696,12 @@ def scan(only_changed_files=False, progress=True):
     checking_functions = (check_flake8, check_lock, check_webidl_spec, check_json)
     line_checking_functions = (check_license, check_by_line, check_toml, check_rust, check_spec, check_modeline)
     errors = collect_errors_for_files(files_to_check, checking_functions, line_checking_functions)
+    # check dependecy licenses
+    dep_license_errors = check_dep_license_errors(get_dep_toml_files(only_changed_files), progress)
     # wpt lint checks
     wpt_lint_errors = check_wpt_lint_errors(get_wpt_files(only_changed_files, progress))
     # collect errors
-    errors = itertools.chain(errors, wpt_lint_errors)
+    errors = itertools.chain(errors, dep_license_errors, wpt_lint_errors)
     error = None
     for error in errors:
         print "\r\033[94m{}\033[0m:\033[93m{}\033[0m: \033[91m{}\033[0m".format(*error)
