@@ -34,6 +34,8 @@ brew install openssl
 brew link --force openssl
 ```
 
+If you've already partially compiled servo but forgot to do this step, run ./mach clean, link openssl, and recompile.
+
 On Debian-based Linuxes:
 
 ``` sh
@@ -176,6 +178,7 @@ URL with servo).
   `INTERVAL` seconds
 - `-s SIZE` sets the tile size for painting; defaults to 512
 - `-z` disables all graphical output; useful for running JS / layout tests
+- `-Z help` displays useful output to debug servo
 
 ### Keyboard Shortcuts
 
