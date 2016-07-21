@@ -5806,16 +5806,16 @@
             "url": "/_mozilla/css/word_break_a.html"
           }
         ],
-        "mozilla/blob_url_upload.html": [
+        "mozilla/FileAPI/blob_url_upload.html": [
           {
-            "path": "mozilla/blob_url_upload.html",
+            "path": "mozilla/FileAPI/blob_url_upload.html",
             "references": [
               [
-                "/_mozilla/mozilla/blob_url_upload_ref.html",
+                "/_mozilla/mozilla/FileAPI/blob_url_upload_ref.html",
                 "=="
               ]
             ],
-            "url": "/_mozilla/mozilla/blob_url_upload.html"
+            "url": "/_mozilla/mozilla/FileAPI/blob_url_upload.html"
           }
         ],
         "mozilla/canvas/drawimage_html_image_1.html": [
@@ -6234,6 +6234,24 @@
             "url": "/_mozilla/mozilla/Event.html"
           }
         ],
+        "mozilla/FileAPI/blob.html": [
+          {
+            "path": "mozilla/FileAPI/blob.html",
+            "url": "/_mozilla/mozilla/FileAPI/blob.html"
+          }
+        ],
+        "mozilla/FileAPI/file-select.html": [
+          {
+            "path": "mozilla/FileAPI/file-select.html",
+            "url": "/_mozilla/mozilla/FileAPI/file-select.html"
+          }
+        ],
+        "mozilla/FileAPI/file-upload.html": [
+          {
+            "path": "mozilla/FileAPI/file-upload.html",
+            "url": "/_mozilla/mozilla/FileAPI/file-upload.html"
+          }
+        ],
         "mozilla/FocusEvent.html": [
           {
             "path": "mozilla/FocusEvent.html",
@@ -6256,12 +6274,6 @@
           {
             "path": "mozilla/binding_keyword.html",
             "url": "/_mozilla/mozilla/binding_keyword.html"
-          }
-        ],
-        "mozilla/blob.html": [
-          {
-            "path": "mozilla/blob.html",
-            "url": "/_mozilla/mozilla/blob.html"
           }
         ],
         "mozilla/body_listener.html": [
@@ -6538,12 +6550,6 @@
           {
             "path": "mozilla/event_listener.html",
             "url": "/_mozilla/mozilla/event_listener.html"
-          }
-        ],
-        "mozilla/file_upload.html": [
-          {
-            "path": "mozilla/file_upload.html",
-            "url": "/_mozilla/mozilla/file_upload.html"
           }
         ],
         "mozilla/focus_blur.html": [
@@ -14936,16 +14942,16 @@
           "url": "/_mozilla/css/word_break_a.html"
         }
       ],
-      "mozilla/blob_url_upload.html": [
+      "mozilla/FileAPI/blob_url_upload.html": [
         {
-          "path": "mozilla/blob_url_upload.html",
+          "path": "mozilla/FileAPI/blob_url_upload.html",
           "references": [
             [
-              "/_mozilla/mozilla/blob_url_upload_ref.html",
+              "/_mozilla/mozilla/FileAPI/blob_url_upload_ref.html",
               "=="
             ]
           ],
-          "url": "/_mozilla/mozilla/blob_url_upload.html"
+          "url": "/_mozilla/mozilla/FileAPI/blob_url_upload.html"
         }
       ],
       "mozilla/canvas/drawimage_html_image_1.html": [

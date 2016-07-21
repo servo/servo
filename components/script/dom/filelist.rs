@@ -9,6 +9,7 @@ use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::file::File;
 use dom::window::Window;
+use std::slice::Iter;
 
 // https://w3c.github.io/FileAPI/#dfn-filelist
 #[dom_struct]
@@ -31,6 +32,10 @@ impl FileList {
         reflect_dom_object(box FileList::new_inherited(files.iter().map(|r| JS::from_ref(&**r)).collect()),
                            GlobalRef::Window(window),
                            FileListBinding::Wrap)
+    }
+
+    pub fn iter_files(&self) -> Iter<JS<File>> {
+        self.list.iter()
     }
 }
 

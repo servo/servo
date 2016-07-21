@@ -37,11 +37,9 @@ use dom::htmlselectelement::HTMLSelectElement;
 use dom::htmltextareaelement::HTMLTextAreaElement;
 use dom::node::{Node, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
-use dom::window::Window;
 use encoding::EncodingRef;
 use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;
-use encoding::types::DecoderTrap;
 use hyper::header::{Charset, ContentDisposition, ContentType, DispositionParam, DispositionType};
 use hyper::method::Method;
 use msg::constellation_msg::{LoadData, PipelineId};
@@ -54,7 +52,6 @@ use string_cache::Atom;
 use style::attr::AttrValue;
 use style::str::split_html_space_chars;
 use task_source::TaskSource;
-use url::form_urlencoded;
 
 #[derive(JSTraceable, PartialEq, Clone, Copy, HeapSizeOf)]
 pub struct GenerationId(u32);
@@ -280,39 +277,38 @@ impl HTMLFormElement {
 
     // https://html.spec.whatwg.org/multipage/#multipart/form-data-encoding-algorithm
     fn encode_multipart_form_data(&self, form_data: &mut Vec<FormDatum>,
-                                  encoding: Option<EncodingRef>,
-                                  boundary: String) -> String {
+                                  boundary: String, encoding: EncodingRef) -> Vec<u8> {
         // Step 1
-        let mut result = "".to_owned();
+        let mut result = vec![];
 
         // Step 2
-        // (maybe take encoding as input)
-        let encoding = encoding.unwrap_or(self.pick_encoding());
-
-        //  Step 3
         let charset = &*encoding.whatwg_name().unwrap_or("UTF-8");
 
-        // Step 4
+        // Step 3
         for entry in form_data.iter_mut() {
-            // Substep 1
+            // 3.1
             if entry.name == "_charset_" && entry.ty == "hidden" {
                 entry.value = FormDatumValue::String(DOMString::from(charset.clone()));
             }
-            // TODO: Substep 2
+            // TODO: 3.2
 
-            // Step 5
+            // Step 4
             // https://tools.ietf.org/html/rfc7578#section-4
-            result.push_str(&*format!("\r\n--{}\r\n", boundary));
+            // NOTE(izgzhen): The encoding here expected by most servers seems different from
+            // what spec says (that it should start with a '\r\n').
+            let mut boundary_bytes = format!("--{}\r\n", boundary).into_bytes();
+            result.append(&mut boundary_bytes);
             let mut content_disposition = ContentDisposition {
                 disposition: DispositionType::Ext("form-data".to_owned()),
                 parameters: vec![DispositionParam::Ext("name".to_owned(), String::from(entry.name.clone()))]
             };
 
             match entry.value {
-                FormDatumValue::String(ref s) =>
-                    result.push_str(&*format!("Content-Disposition: {}\r\n\r\n{}",
-                        content_disposition,
-                        s)),
+                FormDatumValue::String(ref s) => {
+                    let mut bytes = format!("Content-Disposition: {}\r\n\r\n{}",
+                                            content_disposition, s).into_bytes();
+                    result.append(&mut bytes);
+                }
                 FormDatumValue::File(ref f) => {
                     content_disposition.parameters.push(
                         DispositionParam::Filename(Charset::Ext(String::from(charset.clone())),
@@ -321,20 +317,20 @@ impl HTMLFormElement {
                     // https://tools.ietf.org/html/rfc7578#section-4.4
                     let content_type = ContentType(f.upcast::<Blob>().Type()
                                                     .parse().unwrap_or(mime!(Text / Plain)));
-                    result.push_str(&*format!("Content-Disposition: {}\r\n{}\r\n\r\n",
-                        content_disposition,
-                        content_type));
+                    let mut type_bytes = format!("Content-Disposition: {}\r\n{}\r\n\r\n",
+                                                 content_disposition,
+                                                 content_type).into_bytes();
+                    result.append(&mut type_bytes);
 
-                    let bytes = &f.upcast::<Blob>().get_bytes().unwrap_or(vec![])[..];
+                    let mut bytes = f.upcast::<Blob>().get_bytes().unwrap_or(vec![]);
 
-                    let decoded = encoding.decode(bytes, DecoderTrap::Replace)
-                                          .expect("Invalid encoding in file");
-                    result.push_str(&decoded);
+                    result.append(&mut bytes);
                 }
             }
         }
 
-        result.push_str(&*format!("\r\n--{}--", boundary));
+        let mut boundary_bytes = format!("\r\n--{}--", boundary).into_bytes();
+        result.append(&mut boundary_bytes);
 
         result
     }
@@ -351,18 +347,11 @@ impl HTMLFormElement {
         let charset = &*encoding.whatwg_name().unwrap();
 
         for entry in form_data.iter_mut() {
-            // Step 4
-            if entry.name == "_charset_" && entry.ty == "hidden" {
-                entry.value = FormDatumValue::String(DOMString::from(charset.clone()));
-            }
-
-            // Step 5
-            if entry.ty == "file" {
-                entry.value = FormDatumValue::String(DOMString::from(entry.value_str()));
-            }
+            // Step 4, 5
+            let value = entry.replace_value(charset);
 
             // Step 6
-            result.push_str(&*format!("{}={}\r\n", entry.name, entry.value_str()));
+            result.push_str(&*format!("{}={}\r\n", entry.name, value));
         }
 
         // Step 7
@@ -374,7 +363,7 @@ impl HTMLFormElement {
         // Step 1
         let doc = document_from_node(self);
         let base = doc.url();
-        // TODO: Handle browsing contexts
+        // TODO: Handle browsing contexts (Step 2, 3)
         // Step 4
         if submit_method_flag == SubmittedFrom::NotFromForm &&
            !submitter.no_validate(self)
@@ -397,13 +386,18 @@ impl HTMLFormElement {
         }
         // Step 6
         let mut form_data = self.get_form_dataset(Some(submitter));
+
         // Step 7
-        let mut action = submitter.action();
+        let encoding = self.pick_encoding();
+
         // Step 8
+        let mut action = submitter.action();
+
+        // Step 9
         if action.is_empty() {
             action = DOMString::from(base.as_str());
         }
-        // Step 9-11
+        // Step 10-11
         let action_components = match base.join(&action) {
             Ok(url) => url,
             Err(_) => return
@@ -417,57 +411,87 @@ impl HTMLFormElement {
 
         let mut load_data = LoadData::new(action_components, doc.get_referrer_policy(), Some(doc.url().clone()));
 
-        let parsed_data = match enctype {
-            FormEncType::UrlEncoded => {
-                load_data.headers.set(ContentType::form_url_encoded());
-
-                form_urlencoded::Serializer::new(String::new())
-                    .encoding_override(Some(self.pick_encoding()))
-                    .extend_pairs(form_data.into_iter().map(|field| (field.name.clone(), field.value_str())))
-                    .finish()
-            }
-            FormEncType::FormDataEncoded => {
-                let boundary = self.generate_boundary();
-                let mime = mime!(Multipart / FormData; Boundary =(&boundary));
-                load_data.headers.set(ContentType(mime));
-
-                self.encode_multipart_form_data(&mut form_data, None, boundary)
-            }
-            FormEncType::TextPlainEncoded => {
-                load_data.headers.set(ContentType(mime!(Text / Plain)));
-
-                self.encode_plaintext(&mut form_data)
-            }
-        };
-
         // Step 18
-        let win = window_from_node(self);
         match (&*scheme, method) {
-            // https://html.spec.whatwg.org/multipage/#submit-dialog
-            (_, FormMethod::FormDialog) => return, // Unimplemented
+            (_, FormMethod::FormDialog) => {
+                // TODO: Submit dialog
+                // https://html.spec.whatwg.org/multipage/#submit-dialog
+            }
             // https://html.spec.whatwg.org/multipage/#submit-mutate-action
-            ("http", FormMethod::FormGet) | ("https", FormMethod::FormGet) => {
-                // FIXME(SimonSapin): use url.query_pairs_mut() here.
-                load_data.url.set_query(Some(&*parsed_data));
-                self.plan_to_navigate(load_data, &win);
+            ("http", FormMethod::FormGet) | ("https", FormMethod::FormGet) | ("data", FormMethod::FormGet) => {
+                load_data.headers.set(ContentType::form_url_encoded());
+                self.mutate_action_url(&mut form_data, load_data, encoding);
             }
             // https://html.spec.whatwg.org/multipage/#submit-body
             ("http", FormMethod::FormPost) | ("https", FormMethod::FormPost) => {
                 load_data.method = Method::Post;
-                load_data.data = Some(parsed_data.into_bytes());
-                self.plan_to_navigate(load_data, &win);
+                self.submit_entity_body(&mut form_data, load_data, enctype, encoding);
             }
             // https://html.spec.whatwg.org/multipage/#submit-get-action
-            ("file", _) | ("about", _) | ("data", FormMethod::FormGet) |
+            ("file", _) | ("about", _) | ("data", FormMethod::FormPost) |
             ("ftp", _) | ("javascript", _) => {
-                self.plan_to_navigate(load_data, &win);
+                self.plan_to_navigate(load_data);
             }
-            _ => return // Unimplemented (data and mailto)
+            ("mailto", FormMethod::FormPost) => {
+                // TODO: Mail as body
+                // https://html.spec.whatwg.org/multipage/#submit-mailto-body
+            }
+            ("mailto", FormMethod::FormGet) => {
+                // TODO: Mail with headers
+                // https://html.spec.whatwg.org/multipage/#submit-mailto-headers
+            }
+            _ => return,
         }
     }
 
+    // https://html.spec.whatwg.org/multipage/#submit-mutate-action
+    fn mutate_action_url(&self, form_data: &mut Vec<FormDatum>, mut load_data: LoadData, encoding: EncodingRef) {
+        let charset = &*encoding.whatwg_name().unwrap();
+
+        load_data.url.query_pairs_mut().clear()
+                 .encoding_override(Some(self.pick_encoding()))
+                 .extend_pairs(form_data.into_iter()
+                                        .map(|field| (field.name.clone(), field.replace_value(charset))));
+
+        self.plan_to_navigate(load_data);
+    }
+
+    // https://html.spec.whatwg.org/multipage/#submit-body
+    fn submit_entity_body(&self, form_data: &mut Vec<FormDatum>, mut load_data: LoadData,
+                          enctype: FormEncType, encoding: EncodingRef) {
+        let boundary = self.generate_boundary();
+        let bytes = match enctype {
+            FormEncType::UrlEncoded => {
+                let mut url = load_data.url.clone();
+                let charset = &*encoding.whatwg_name().unwrap();
+                load_data.headers.set(ContentType::form_url_encoded());
+
+                url.query_pairs_mut().clear()
+                   .encoding_override(Some(self.pick_encoding()))
+                   .extend_pairs(form_data.into_iter()
+                                          .map(|field| (field.name.clone(), field.replace_value(charset))));
+
+                url.query().unwrap_or("").to_string().into_bytes()
+            }
+            FormEncType::FormDataEncoded => {
+                let mime = mime!(Multipart / FormData; Boundary =(&boundary));
+                load_data.headers.set(ContentType(mime));
+                self.encode_multipart_form_data(form_data, boundary, encoding)
+            }
+            FormEncType::TextPlainEncoded => {
+                load_data.headers.set(ContentType(mime!(Text / Plain)));
+                self.encode_plaintext(form_data).into_bytes()
+            }
+        };
+
+        load_data.data = Some(bytes);
+        self.plan_to_navigate(load_data);
+    }
+
     /// [Planned navigation](https://html.spec.whatwg.org/multipage/#planned-navigation)
-    fn plan_to_navigate(&self, load_data: LoadData, window: &Window) {
+    fn plan_to_navigate(&self, load_data: LoadData) {
+        let window = window_from_node(self);
+
         // Step 1
         // Each planned navigation runnable is tagged with a generation ID, and
         // before the runnable is handled, it first checks whether the HTMLFormElement's
@@ -485,7 +509,7 @@ impl HTMLFormElement {
         };
 
         // Step 3
-        window.dom_manipulation_task_source().queue(nav, GlobalRef::Window(window)).unwrap();
+        window.dom_manipulation_task_source().queue(nav, GlobalRef::Window(&window)).unwrap();
     }
 
     /// Interactively validate the constraints of form elements
@@ -558,10 +582,8 @@ impl HTMLFormElement {
                 match element {
                     HTMLElementTypeId::HTMLInputElement => {
                         let input = child.downcast::<HTMLInputElement>().unwrap();
-                        // Step 3.2-3.7
-                        if let Some(datum) = input.form_datum(submitter) {
-                            data_set.push(datum);
-                        }
+
+                        data_set.append(&mut input.form_datums(submitter));
                     }
                     HTMLElementTypeId::HTMLButtonElement => {
                         let button = child.downcast::<HTMLButtonElement>().unwrap();
@@ -709,10 +731,14 @@ pub struct FormDatum {
 }
 
 impl FormDatum {
-    pub fn value_str(&self) -> String {
+    pub fn replace_value(&self, charset: &str) -> String {
+        if self.name == "_charset_" && self.ty == "hidden" {
+            return charset.to_string();
+        }
+
         match self.value {
+            FormDatumValue::File(ref f) => String::from(f.name().clone()),
             FormDatumValue::String(ref s) => String::from(s.clone()),
-            FormDatumValue::File(ref f) => String::from(f.name().clone())
         }
     }
 }
