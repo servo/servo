@@ -713,7 +713,8 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         raise TypeError("Can't handle array arguments yet")
 
     if type.isSequence():
-        innerInfo = getJSToNativeConversionInfo(type.unroll(), descriptorProvider)
+        elementType = type.inner.inner if type.nullable() else type.inner
+        innerInfo = getJSToNativeConversionInfo(elementType, descriptorProvider)
         declType = CGWrapper(innerInfo.declType, pre="Vec<", post=">")
         config = getConversionConfigForType(type, isEnforceRange, isClamp, treatNullAs)
 
@@ -1302,7 +1303,7 @@ def getRetvalDeclarationForType(returnType, descriptorProvider):
     if returnType.isObject() or returnType.isSpiderMonkeyInterface():
         return CGGeneric("*mut JSObject")
     if returnType.isSequence():
-        inner = returnType.unroll()
+        inner = returnType.inner.inner if returnType.nullable() else returnType.inner
         result = getRetvalDeclarationForType(inner, descriptorProvider)
         result = CGWrapper(result, pre="Vec<", post=">")
         if returnType.nullable():
@@ -3743,7 +3744,8 @@ def getUnionTypeTemplateVars(type, descriptorProvider):
         typeName = name
     elif type.isSequence():
         name = type.name
-        inner = getUnionTypeTemplateVars(type.unroll(), descriptorProvider)
+        elementType = type.inner.inner if type.nullable() else type.inner
+        inner = getUnionTypeTemplateVars(elementType, descriptorProvider)
         typeName = "Vec<" + inner["typeName"] + ">"
     elif type.isArray():
         name = str(type)
