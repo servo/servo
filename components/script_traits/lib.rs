@@ -176,18 +176,16 @@ pub enum ConstellationControlMsg {
     /// Notifies script thread that frame visibility change is complete
     NotifyVisibilityChange(PipelineId, PipelineId, bool),
     /// Notifies script thread that a url should be loaded in this iframe.
-    /// First PipelineId is for the parent, second PipelineId is for the actual pipeline.
-    Navigate(PipelineId, PipelineId, LoadData),
+    Navigate(PipelineId, LoadData),
     /// Requests the script thread forward a mozbrowser event to an iframe it owns,
     /// or to the window if no child pipeline id is provided.
-    /// First PipelineId is for the parent, second PipelineId is for the actual pipeline.
-    MozBrowserEvent(PipelineId, Option<PipelineId>, MozBrowserEvent),
-    /// Updates the current subpage and pipeline IDs of a given iframe
-    /// First PipelineId is for the parent, second is the old PipelineId for the frame,
-    /// third is the new PipelineId for the frame.
-    UpdatePipelineId(PipelineId, PipelineId, PipelineId),
+    MozBrowserEvent(Option<PipelineId>, MozBrowserEvent),
+    /// Updates the current subpage and pipeline IDs of a given iframe.
+    /// First PipelineId is the old PipelineId for the frame,
+    /// second PipelineId is the new PipelineId for the frame.
+    UpdatePipelineId(PipelineId, PipelineId),
     /// Set an iframe to be focused. Used when an element in an iframe gains focus.
-    FocusIFrame(PipelineId, PipelineId),
+    FocusIFrame(PipelineId),
     /// Passes a webdriver command to the script thread for execution
     WebDriverScriptCommand(PipelineId, WebDriverScriptCommand),
     /// Notifies script thread that all animations are done
@@ -203,7 +201,7 @@ pub enum ConstellationControlMsg {
         parent: PipelineId,
     },
     /// Notifies a parent frame that one of its child frames is now active.
-    FramedContentChanged(PipelineId, PipelineId),
+    FramedContentChanged(PipelineId),
     /// Report an error from a CSS parser for the given pipeline
     ReportCSSError(PipelineId, String, usize, usize, String),
     /// Reload the given page.

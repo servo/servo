@@ -379,8 +379,7 @@ impl Pipeline {
                                      event: MozBrowserEvent) {
         assert!(PREFS.is_mozbrowser_enabled());
 
-        let event = ConstellationControlMsg::MozBrowserEvent(self.id,
-                                                             child_id,
+        let event = ConstellationControlMsg::MozBrowserEvent(child_id,
                                                              event);
         if let Err(e) = self.script_chan.send(event) {
             warn!("Sending mozbrowser event to script failed ({}).", e);
