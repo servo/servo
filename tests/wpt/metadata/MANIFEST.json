@@ -37211,6 +37211,12 @@
     "deleted_reftests": {},
     "items": {
       "testharness": {
+        "FileAPI/file-upload.html": [
+          {
+            "path": "FileAPI/file-upload.html",
+            "url": "/FileAPI/file-upload.html"
+          }
+        ],
         "html/semantics/interactive-elements/the-dialog-element/dialog-open.html": [
           {
             "path": "html/semantics/interactive-elements/the-dialog-element/dialog-open.html",
