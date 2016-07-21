@@ -409,6 +409,10 @@ interface TestBinding {
   void passVariadicAny(any... args);
   void passVariadicObject(object... args);
 
+  void passSequenceSequence(sequence<sequence<long>> seq);
+  sequence<sequence<long>> returnSequenceSequence();
+  void passUnionSequenceSequence((long or sequence<sequence<long>>) seq);
+
   static attribute boolean booleanAttributeStatic;
   static void receiveVoidStatic();
   boolean BooleanMozPreference(DOMString pref_name);

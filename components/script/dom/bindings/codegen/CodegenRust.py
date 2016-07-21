@@ -88,6 +88,11 @@ def stripTrailingWhitespace(text):
     return '\n'.join(lines) + tail
 
 
+def innerSequenceType(type):
+    assert type.isSequence()
+    return type.inner.inner if type.nullable() else type.inner
+
+
 def MakeNativeName(name):
     return name[0].upper() + name[1:]
 
@@ -714,7 +719,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         raise TypeError("Can't handle array arguments yet")
 
     if type.isSequence():
-        innerInfo = getJSToNativeConversionInfo(type.unroll(), descriptorProvider)
+        innerInfo = getJSToNativeConversionInfo(innerSequenceType(type), descriptorProvider)
         declType = CGWrapper(innerInfo.declType, pre="Vec<", post=">")
         config = getConversionConfigForType(type, isEnforceRange, isClamp, treatNullAs)
 
@@ -1303,8 +1308,7 @@ def getRetvalDeclarationForType(returnType, descriptorProvider):
     if returnType.isObject() or returnType.isSpiderMonkeyInterface():
         return CGGeneric("*mut JSObject")
     if returnType.isSequence():
-        inner = returnType.unroll()
-        result = getRetvalDeclarationForType(inner, descriptorProvider)
+        result = getRetvalDeclarationForType(innerSequenceType(returnType), descriptorProvider)
         result = CGWrapper(result, pre="Vec<", post=">")
         if returnType.nullable():
             result = CGWrapper(result, pre="Option<", post=">")
@@ -3744,7 +3748,7 @@ def getUnionTypeTemplateVars(type, descriptorProvider):
         typeName = name
     elif type.isSequence():
         name = type.name
-        inner = getUnionTypeTemplateVars(type.unroll(), descriptorProvider)
+        inner = getUnionTypeTemplateVars(innerSequenceType(type), descriptorProvider)
         typeName = "Vec<" + inner["typeName"] + ">"
     elif type.isArray():
         name = str(type)
