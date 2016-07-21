@@ -17,7 +17,7 @@ pub fn resolve_chrome_url(url: &Url) -> Result<Url, ()> {
     if url.host_str() != Some("resources") {
         return Err(())
     }
-    let resources = canonicalize(resources_dir_path())
+    let resources = canonicalize(resources_dir_path().expect("Error finding resource folder"))
         .expect("Error canonicalizing path to the resources directory");
     let mut path = resources.clone();
     for segment in url.path_segments().unwrap() {

@@ -136,8 +136,6 @@ impl Window {
         // #9996.
         let visible = is_foreground && !opts::get().no_native_titlebar;
 
-        let mut icon_path = resource_files::resources_dir_path();
-        icon_path.push("servo.png");
 
         let mut builder =
             glutin::WindowBuilder::new().with_title("Servo".to_string())
@@ -147,8 +145,13 @@ impl Window {
                                         .with_gl(Window::gl_version())
                                         .with_visibility(visible)
                                         .with_parent(parent)
-                                        .with_multitouch()
-                                        .with_icon(icon_path);
+                                        .with_multitouch();
+
+
+        if let Ok(mut icon_path) = resource_files::resources_dir_path() {
+            icon_path.push("servo.png");
+            builder = builder.with_icon(icon_path);
+        }
 
         if opts::get().enable_vsync {
             builder = builder.with_vsync();

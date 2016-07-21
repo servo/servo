@@ -195,7 +195,7 @@ fn init_user_prefs(path: &mut PathBuf) {
 }
 
 fn read_prefs() -> Result<HashMap<String, Pref>, ()> {
-    let mut path = resources_dir_path();
+    let mut path = try!(resources_dir_path().map_err(|_| ()));
     path.push("prefs.json");
 
     let file = try!(File::open(path).or_else(|e| {

@@ -130,28 +130,31 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
         });
 
         let (webrender, webrender_api_sender) = if opts::get().use_webrender {
-            let mut resource_path = resources_dir_path();
-            resource_path.push("shaders");
+            if let Ok(mut resource_path) = resources_dir_path() {
+                resource_path.push("shaders");
 
-            // TODO(gw): Duplicates device_pixels_per_screen_px from compositor. Tidy up!
-            let scale_factor = window.scale_factor().get();
-            let device_pixel_ratio = match opts.device_pixels_per_px {
-                Some(device_pixels_per_px) => device_pixels_per_px,
-                None => match opts.output_file {
-                    Some(_) => 1.0,
-                    None => scale_factor,
-                }
-            };
+                // TODO(gw): Duplicates device_pixels_per_screen_px from compositor. Tidy up!
+                let scale_factor = window.scale_factor().get();
+                let device_pixel_ratio = match opts.device_pixels_per_px {
+                    Some(device_pixels_per_px) => device_pixels_per_px,
+                    None => match opts.output_file {
+                        Some(_) => 1.0,
+                        None => scale_factor,
+                    }
+                };
 
-            let (webrender, webrender_sender) =
-                webrender::Renderer::new(webrender::RendererOptions {
-                    device_pixel_ratio: device_pixel_ratio,
-                    resource_path: resource_path,
-                    enable_aa: opts.enable_text_antialiasing,
-                    enable_msaa: opts.use_msaa,
-                    enable_profiler: opts.webrender_stats,
-                });
-            (Some(webrender), Some(webrender_sender))
+                let (webrender, webrender_sender) =
+                    webrender::Renderer::new(webrender::RendererOptions {
+                        device_pixel_ratio: device_pixel_ratio,
+                        resource_path: resource_path,
+                        enable_aa: opts.enable_text_antialiasing,
+                        enable_msaa: opts.use_msaa,
+                        enable_profiler: opts.webrender_stats,
+                    });
+                (Some(webrender), Some(webrender_sender))
+            } else {
+                (None, None)
+            }
         } else {
             (None, None)
         };

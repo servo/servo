@@ -11,15 +11,17 @@ use net_traits::ProgressMsg::Done;
 use net_traits::response::HttpsState;
 use net_traits::{LoadConsumer, LoadData, Metadata, NetworkError};
 use resource_thread::{CancellationListener, send_error, start_sending_sniffed_opt};
+use std::io;
 use std::sync::Arc;
 use url::Url;
 use util::resource_files::resources_dir_path;
 
-fn url_from_non_relative_scheme(load_data: &mut LoadData, filename: &str) {
-    let mut path = resources_dir_path();
+fn url_from_non_relative_scheme(load_data: &mut LoadData, filename: &str) -> io::Result<()> {
+    let mut path = try!(resources_dir_path());
     path.push(filename);
     assert!(path.exists());
     load_data.url = Url::from_file_path(&*path).unwrap();
+    Ok(())
 }
 
 pub fn factory(mut load_data: LoadData,
@@ -27,7 +29,7 @@ pub fn factory(mut load_data: LoadData,
                classifier: Arc<MimeClassifier>,
                cancel_listener: CancellationListener) {
     let url = load_data.url.clone();
-    match url.path() {
+    let res = match url.path() {
         "blank" => {
             let metadata = Metadata {
                 final_url: load_data.url,
@@ -56,5 +58,9 @@ pub fn factory(mut load_data: LoadData,
             return
         }
     };
-    file_loader::factory(load_data, start_chan, classifier, cancel_listener)
+    if res.is_ok() {
+        file_loader::factory(load_data, start_chan, classifier, cancel_listener)
+    } else {
+        send_error(load_data.url, NetworkError::Internal("Could not access resource folder".to_owned()), start_chan);
+    }
 }
