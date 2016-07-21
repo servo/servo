@@ -2077,7 +2077,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, config):
         'dom::bindings::conversions::root_from_handlevalue',
         'dom::bindings::error::throw_not_in_union',
         'dom::bindings::js::Root',
-        'dom::bindings::str::{DOMString, USVString}',
+        'dom::bindings::str::{ByteString, DOMString, USVString}',
         'dom::types::*',
         'js::jsapi::JSContext',
         'js::jsapi::{HandleValue, MutableHandleValue}',
@@ -3763,6 +3763,9 @@ def getUnionTypeTemplateVars(type, descriptorProvider):
     elif type.isPrimitive():
         name = type.name
         typeName = builtinNames[type.tag()]
+    elif type.isByteString():
+        name = type.name
+        typeName = "ByteString"
     else:
         name = type.name
         typeName = "/*" + type.name + "*/"
