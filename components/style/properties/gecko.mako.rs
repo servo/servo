@@ -26,6 +26,7 @@ use gecko_bindings::bindings::{Gecko_FontFamilyList_AppendGeneric, Gecko_FontFam
 use gecko_bindings::bindings::{Gecko_FontFamilyList_Clear, Gecko_InitializeImageLayer};
 use gecko_bindings::bindings;
 use gecko_bindings::structs;
+use gecko_bindings::sugar::ns_style_coord::{CoordDataValue, CoordData, CoordDataMut};
 use gecko_glue::ArcHelpers;
 use gecko_values::{StyleCoordHelpers, GeckoStyleCoordConvertible, convert_nscolor_to_rgba};
 use gecko_values::convert_rgba_to_nscolor;
@@ -325,67 +326,67 @@ def set_gecko_property(ffi_name, expr):
 % endif
 </%def>
 
-<%def name="impl_split_style_coord(ident, unit_ffi_name, union_ffi_name, need_clone=False)">
+<%def name="impl_split_style_coord(ident, gecko_ffi_name, index, need_clone=False)">
     #[allow(non_snake_case)]
     pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
-        v.to_gecko_style_coord(&mut self.gecko.${unit_ffi_name},
-                               &mut self.gecko.${union_ffi_name});
+        v.to_gecko_style_coord(&mut self.gecko.${gecko_ffi_name}.data_at_mut(${index}));
     }
     #[allow(non_snake_case)]
     pub fn copy_${ident}_from(&mut self, other: &Self) {
-        unsafe { self.gecko.${union_ffi_name}.reset(&mut self.gecko.${unit_ffi_name}) };
-        self.gecko.${unit_ffi_name} =  other.gecko.${unit_ffi_name};
-        self.gecko.${union_ffi_name} = other.gecko.${union_ffi_name};
-        unsafe { self.gecko.${union_ffi_name}.addref_if_calc(&self.gecko.${unit_ffi_name}) };
+        self.gecko.${gecko_ffi_name}.data_at_mut(${index}).copy_from(&other.gecko.${gecko_ffi_name}.data_at(${index}));
     }
     % if need_clone:
         #[allow(non_snake_case)]
         pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
             use properties::longhands::${ident}::computed_value::T;
-            T::from_gecko_style_coord(&self.gecko.${unit_ffi_name},
-                                      &self.gecko.${union_ffi_name})
+            T::from_gecko_style_coord(&self.gecko.${gecko_ffi_name}.data_at(${index}))
                 .expect("clone for ${ident} failed")
         }
     % endif
 </%def>
 
 <%def name="impl_style_coord(ident, gecko_ffi_name, need_clone=False)">
-${impl_split_style_coord(ident,
-                         "%s.mUnit" % gecko_ffi_name,
-                         "%s.mValue" % gecko_ffi_name,
-                         need_clone=need_clone)}
-</%def>
-
-<%def name="impl_corner_style_coord(ident, x_unit_ffi_name, x_union_ffi_name, \
-                                    y_unit_ffi_name, y_union_ffi_name, need_clone=False)">
     #[allow(non_snake_case)]
     pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
-        v.0.width.to_gecko_style_coord(&mut self.gecko.${x_unit_ffi_name},
-                                       &mut self.gecko.${x_union_ffi_name});
-        v.0.height.to_gecko_style_coord(&mut self.gecko.${y_unit_ffi_name},
-                                        &mut self.gecko.${y_union_ffi_name});
+        v.to_gecko_style_coord(&mut self.gecko.${gecko_ffi_name});
     }
     #[allow(non_snake_case)]
     pub fn copy_${ident}_from(&mut self, other: &Self) {
-        unsafe { self.gecko.${x_union_ffi_name}.reset(&mut self.gecko.${x_unit_ffi_name}) };
-        unsafe { self.gecko.${y_union_ffi_name}.reset(&mut self.gecko.${y_unit_ffi_name}) };
-        self.gecko.${x_unit_ffi_name} = other.gecko.${x_unit_ffi_name};
-        self.gecko.${x_union_ffi_name} = other.gecko.${x_union_ffi_name};
-        self.gecko.${y_unit_ffi_name} = other.gecko.${y_unit_ffi_name};
-        self.gecko.${y_union_ffi_name} = other.gecko.${y_union_ffi_name};
-        unsafe { self.gecko.${x_union_ffi_name}.addref_if_calc(&self.gecko.${x_unit_ffi_name}) };
-        unsafe { self.gecko.${y_union_ffi_name}.addref_if_calc(&self.gecko.${y_unit_ffi_name}) };
+        self.gecko.${gecko_ffi_name}.copy_from(&other.gecko.${gecko_ffi_name});
+    }
+    % if need_clone:
+        #[allow(non_snake_case)]
+        pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
+            use properties::longhands::${ident}::computed_value::T;
+            T::from_gecko_style_coord(&self.gecko.${gecko_ffi_name})
+                .expect("clone for ${ident} failed")
+        }
+    % endif
+</%def>
+
+<%def name="impl_corner_style_coord(ident, gecko_ffi_name, x_index, y_index, need_clone=False)">
+    #[allow(non_snake_case)]
+    pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
+        v.0.width.to_gecko_style_coord(&mut self.gecko.${gecko_ffi_name}.data_at_mut(${x_index}));
+        v.0.height.to_gecko_style_coord(&mut self.gecko.${gecko_ffi_name}.data_at_mut(${y_index}));
+    }
+    #[allow(non_snake_case)]
+    pub fn copy_${ident}_from(&mut self, other: &Self) {
+        self.gecko.${gecko_ffi_name}.data_at_mut(${x_index})
+                  .copy_from(&other.gecko.${gecko_ffi_name}.data_at(${x_index}));
+        self.gecko.${gecko_ffi_name}.data_at_mut(${y_index})
+                  .copy_from(&other.gecko.${gecko_ffi_name}.data_at(${y_index}));
     }
     % if need_clone:
         #[allow(non_snake_case)]
         pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
             use properties::longhands::${ident}::computed_value::T;
             use euclid::Size2D;
-            let width = GeckoStyleCoordConvertible::from_gecko_style_coord(&self.gecko.${x_unit_ffi_name},
-                                                                           &self.gecko.${x_union_ffi_name})
+            let width = GeckoStyleCoordConvertible::from_gecko_style_coord(
+                            &self.gecko.${gecko_ffi_name}.data_at(${x_index}))
                             .expect("Failed to clone ${ident}");
-            let height = GeckoStyleCoordConvertible::from_gecko_style_coord(&self.gecko.${y_unit_ffi_name},
-                                                                            &self.gecko.${y_union_ffi_name})
+            let height = GeckoStyleCoordConvertible::from_gecko_style_coord(
+                            &self.gecko.${gecko_ffi_name}.data_at(${y_index}))
                             .expect("Failed to clone ${ident}");
             T(Size2D::new(width, height))
         }
@@ -602,10 +603,9 @@ fn static_assert() {
 
     % for corner in CORNERS:
     <% impl_corner_style_coord("border_%s_radius" % corner.ident,
-                               "mBorderRadius.mUnits[%s]" % corner.x_index,
-                               "mBorderRadius.mValues[%s]" % corner.x_index,
-                               "mBorderRadius.mUnits[%s]" % corner.y_index,
-                               "mBorderRadius.mValues[%s]" % corner.y_index,
+                               "mBorderRadius",
+                               corner.x_index,
+                               corner.y_index,
                                need_clone=True) %>
     % endfor
 </%self:impl_trait>
@@ -616,8 +616,8 @@ fn static_assert() {
 
     % for side in SIDES:
     <% impl_split_style_coord("margin_%s" % side.ident,
-                              "mMargin.mUnits[%s]" % side.index,
-                              "mMargin.mValues[%s]" % side.index,
+                              "mMargin",
+                              side.index,
                               need_clone=True) %>
     % endfor
 </%self:impl_trait>
@@ -628,8 +628,8 @@ fn static_assert() {
 
     % for side in SIDES:
     <% impl_split_style_coord("padding_%s" % side.ident,
-                              "mPadding.mUnits[%s]" % side.index,
-                              "mPadding.mValues[%s]" % side.index,
+                              "mPadding",
+                              side.index,
                               need_clone=True) %>
     % endfor
 </%self:impl_trait>
@@ -640,16 +640,16 @@ fn static_assert() {
 
     % for side in SIDES:
     <% impl_split_style_coord("%s" % side.ident,
-                              "mOffset.mUnits[%s]" % side.index,
-                              "mOffset.mValues[%s]" % side.index,
+                              "mOffset",
+                              side.index,
                               need_clone=True) %>
     % endfor
 
     pub fn set_z_index(&mut self, v: longhands::z_index::computed_value::T) {
         use properties::longhands::z_index::computed_value::T;
         match v {
-            T::Auto => self.gecko.mZIndex.set_auto(),
-            T::Number(n) => self.gecko.mZIndex.set_int(n),
+            T::Auto => self.gecko.mZIndex.set_value(CoordDataValue::Auto),
+            T::Number(n) => self.gecko.mZIndex.set_value(CoordDataValue::Integer(n)),
         }
     }
 
@@ -664,13 +664,14 @@ fn static_assert() {
 
     pub fn clone_z_index(&self) -> longhands::z_index::computed_value::T {
         use properties::longhands::z_index::computed_value::T;
-
-        if self.gecko.mZIndex.is_auto() {
-            return T::Auto;
+        return match self.gecko.mZIndex.as_value() {
+            CoordDataValue::Auto => T::Auto,
+            CoordDataValue::Integer(n) => T::Number(n),
+            _ => {
+                debug_assert!(false);
+                T::Number(0)
+            }
         }
-
-        debug_assert!(self.gecko.mZIndex.is_int());
-        T::Number(self.gecko.mZIndex.get_int())
     }
 
     pub fn set_box_sizing(&mut self, v: longhands::box_sizing::computed_value::T) {
@@ -702,10 +703,9 @@ fn static_assert() {
 
     % for corner in CORNERS:
     <% impl_corner_style_coord("_moz_outline_radius_%s" % corner.ident.replace("_", ""),
-                               "mOutlineRadius.mUnits[%s]" % corner.x_index,
-                               "mOutlineRadius.mValues[%s]" % corner.x_index,
-                               "mOutlineRadius.mUnits[%s]" % corner.y_index,
-                               "mOutlineRadius.mValues[%s]" % corner.y_index) %>
+                               "mOutlineRadius",
+                               corner.x_index,
+                               corner.y_index) %>
     % endfor
 
     pub fn outline_has_nonzero_width(&self) -> bool {
@@ -826,7 +826,8 @@ fn static_assert() {
         match v {
             % for value in keyword.values_for('gecko'):
                 T::${to_rust_ident(value)} =>
-                    self.gecko.mVerticalAlign.set_enum(structs::${keyword.gecko_constant(value)} as i32),
+                    self.gecko.mVerticalAlign.set_value(
+                            CoordDataValue::Enumerated(structs::${keyword.gecko_constant(value)})),
             % endfor
             T::LengthOrPercentage(v) => self.gecko.mVerticalAlign.set(v),
         }
@@ -836,19 +837,16 @@ fn static_assert() {
         use properties::longhands::vertical_align::computed_value::T;
         use values::computed::LengthOrPercentage;
 
-        if self.gecko.mVerticalAlign.is_enum() {
-            match self.gecko.mVerticalAlign.get_enum() as u32 {
-                % for value in keyword.values_for('gecko'):
-                    structs::${keyword.gecko_constant(value)}
-                        => T::${to_rust_ident(value)},
-                % endfor
-                _ => panic!("Unexpected enum variant for vertical-align"),
-            }
-        } else {
-            let v = LengthOrPercentage::from_gecko_style_coord(&self.gecko.mVerticalAlign.mUnit,
-                                                               &self.gecko.mVerticalAlign.mValue)
-                .expect("Expected length or percentage for vertical-align");
-            T::LengthOrPercentage(v)
+        match self.gecko.mVerticalAlign.as_value() {
+            % for value in keyword.values_for('gecko'):
+                CoordDataValue::Enumerated(structs::${keyword.gecko_constant(value)}) => T::${to_rust_ident(value)},
+            % endfor
+                CoordDataValue::Enumerated(_) => panic!("Unexpected enum variant for vertical-align"),
+                _ => {
+                    let v = LengthOrPercentage::from_gecko_style_coord(&self.gecko.mVerticalAlign)
+                        .expect("Expected length or percentage for vertical-align");
+                    T::LengthOrPercentage(v)
+                }
         }
     }
 
@@ -1132,29 +1130,29 @@ fn static_assert() {
     pub fn set_line_height(&mut self, v: longhands::line_height::computed_value::T) {
         use properties::longhands::line_height::computed_value::T;
         // FIXME: Align binary representations and ditch |match| for cast + static_asserts
-        match v {
-            T::Normal => self.gecko.mLineHeight.set_normal(),
-            T::Length(val) => self.gecko.mLineHeight.set_coord(val),
-            T::Number(val) => self.gecko.mLineHeight.set_factor(val),
+        let en = match v {
+            T::Normal => CoordDataValue::Normal,
+            T::Length(val) => CoordDataValue::Coord(val.0),
+            T::Number(val) => CoordDataValue::Factor(val),
             T::MozBlockHeight =>
-                self.gecko.mLineHeight.set_enum(structs::NS_STYLE_LINE_HEIGHT_BLOCK_HEIGHT as i32),
-        }
+                    CoordDataValue::Enumerated(structs::NS_STYLE_LINE_HEIGHT_BLOCK_HEIGHT),
+        };
+        self.gecko.mLineHeight.set_value(en);
     }
 
     pub fn clone_line_height(&self) -> longhands::line_height::computed_value::T {
         use properties::longhands::line_height::computed_value::T;
-        if self.gecko.mLineHeight.is_normal() {
-            return T::Normal;
+        return match self.gecko.mLineHeight.as_value() {
+            CoordDataValue::Normal => T::Normal,
+            CoordDataValue::Coord(coord) => T::Length(Au(coord)),
+            CoordDataValue::Factor(n) => T::Number(n),
+            CoordDataValue::Enumerated(val) if val == structs::NS_STYLE_LINE_HEIGHT_BLOCK_HEIGHT =>
+                T::MozBlockHeight,
+            _ => {
+                debug_assert!(false);
+                T::MozBlockHeight
+            }
         }
-        if self.gecko.mLineHeight.is_coord() {
-            return T::Length(self.gecko.mLineHeight.get_coord());
-        }
-        if self.gecko.mLineHeight.is_factor() {
-            return T::Number(self.gecko.mLineHeight.get_factor());
-        }
-
-        debug_assert!(self.gecko.mLineHeight.get_enum() == structs::NS_STYLE_LINE_HEIGHT_BLOCK_HEIGHT as i32);
-        T::MozBlockHeight
     }
 
     <%call expr="impl_coord_copy('line_height', 'mLineHeight')"></%call>
@@ -1283,8 +1281,8 @@ fn static_assert() {
 
     pub fn set_column_width(&mut self, v: longhands::column_width::computed_value::T) {
         match v.0 {
-            Some(au) => self.gecko.mColumnWidth.set_coord(au),
-            None => self.gecko.mColumnWidth.set_auto(),
+            Some(au) => self.gecko.mColumnWidth.set_value(CoordDataValue::Coord(au.0)),
+            None => self.gecko.mColumnWidth.set_value(CoordDataValue::Auto),
         }
     }
 

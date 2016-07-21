@@ -6,291 +6,117 @@
 
 use app_units::Au;
 use cssparser::RGBA;
-use gecko_bindings::structs::{nsStyleCoord, nsStyleUnion, nsStyleUnit};
+use gecko_bindings::structs::nsStyleCoord;
+use gecko_bindings::sugar::ns_style_coord::{CoordDataValue, CoordData, CoordDataMut};
 use std::cmp::max;
 use values::computed::Angle;
 use values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 
+
 pub trait StyleCoordHelpers {
-    fn copy_from(&mut self, other: &Self);
     fn set<T: GeckoStyleCoordConvertible>(&mut self, val: T);
-
-    fn set_auto(&mut self);
-    fn is_auto(&self) -> bool;
-
-    fn set_normal(&mut self);
-    fn is_normal(&self) -> bool;
-
-    fn set_coord(&mut self, val: Au);
-    fn is_coord(&self) -> bool;
-    fn get_coord(&self) -> Au;
-
-    fn set_int(&mut self, val: i32);
-    fn is_int(&self) -> bool;
-    fn get_int(&self) -> i32;
-
-    fn set_enum(&mut self, val: i32);
-    fn is_enum(&self) -> bool;
-    fn get_enum(&self) -> i32;
-
-    fn set_percent(&mut self, val: f32);
-    fn is_percent(&self) -> bool;
-    fn get_percent(&self) -> f32;
-
-    fn set_factor(&mut self, val: f32);
-    fn is_factor(&self) -> bool;
-    fn get_factor(&self) -> f32;
 }
 
 impl StyleCoordHelpers for nsStyleCoord {
     #[inline]
-    fn copy_from(&mut self, other: &Self) {
-        unsafe { self.mValue.reset(&mut self.mUnit) };
-        self.mUnit = other.mUnit;
-        self.mValue = other.mValue;
-        unsafe { self.addref_if_calc(); }
-    }
-
-    #[inline]
     fn set<T: GeckoStyleCoordConvertible>(&mut self, val: T) {
-        val.to_gecko_style_coord(&mut self.mUnit, &mut self.mValue);
-    }
-
-    #[inline]
-    fn set_auto(&mut self) {
-        unsafe { self.mValue.reset(&mut self.mUnit) };
-        self.mUnit = nsStyleUnit::eStyleUnit_Auto;
-        unsafe { *self.mValue.mInt.as_mut() = 0; }
-    }
-    #[inline]
-    fn is_auto(&self) -> bool {
-        self.mUnit == nsStyleUnit::eStyleUnit_Auto
-    }
-
-    #[inline]
-    fn set_normal(&mut self) {
-        unsafe { self.mValue.reset(&mut self.mUnit) };
-        self.mUnit = nsStyleUnit::eStyleUnit_Normal;
-        unsafe { *self.mValue.mInt.as_mut() = 0; }
-    }
-    #[inline]
-    fn is_normal(&self) -> bool {
-        self.mUnit == nsStyleUnit::eStyleUnit_Normal
-    }
-
-    #[inline]
-    fn set_coord(&mut self, val: Au) {
-        unsafe { self.mValue.reset(&mut self.mUnit) };
-        self.mUnit = nsStyleUnit::eStyleUnit_Coord;
-        unsafe { *self.mValue.mInt.as_mut() = val.0; }
-    }
-    #[inline]
-    fn is_coord(&self) -> bool {
-        self.mUnit == nsStyleUnit::eStyleUnit_Coord
-    }
-    #[inline]
-    fn get_coord(&self) -> Au {
-        debug_assert!(self.is_coord());
-        Au(unsafe { *self.mValue.mInt.as_ref() })
-    }
-
-    #[inline]
-    fn set_int(&mut self, val: i32) {
-        unsafe { self.mValue.reset(&mut self.mUnit) };
-        self.mUnit = nsStyleUnit::eStyleUnit_Integer;
-        unsafe { *self.mValue.mInt.as_mut() = val; }
-    }
-    #[inline]
-    fn is_int(&self) -> bool {
-        self.mUnit == nsStyleUnit::eStyleUnit_Integer
-    }
-    #[inline]
-    fn get_int(&self) -> i32 {
-        debug_assert!(self.is_int());
-        unsafe { *self.mValue.mInt.as_ref() }
-    }
-
-    #[inline]
-    fn set_enum(&mut self, val: i32) {
-        unsafe { self.mValue.reset(&mut self.mUnit) };
-        self.mUnit = nsStyleUnit::eStyleUnit_Enumerated;
-        unsafe { *self.mValue.mInt.as_mut() = val; }
-    }
-    #[inline]
-    fn is_enum(&self) -> bool {
-        self.mUnit == nsStyleUnit::eStyleUnit_Enumerated
-    }
-    #[inline]
-    fn get_enum(&self) -> i32 {
-        debug_assert!(self.is_enum());
-        unsafe { *self.mValue.mInt.as_ref() }
-    }
-
-    #[inline]
-    fn set_percent(&mut self, val: f32) {
-        unsafe { self.mValue.reset(&mut self.mUnit) };
-        self.mUnit = nsStyleUnit::eStyleUnit_Percent;
-        unsafe { *self.mValue.mFloat.as_mut() = val; }
-    }
-    #[inline]
-    fn is_percent(&self) -> bool {
-        self.mUnit == nsStyleUnit::eStyleUnit_Percent
-    }
-    #[inline]
-    fn get_percent(&self) -> f32 {
-        debug_assert!(self.is_percent());
-        unsafe { *self.mValue.mFloat.as_ref() }
-    }
-
-    #[inline]
-    fn set_factor(&mut self, val: f32) {
-        unsafe { self.mValue.reset(&mut self.mUnit) };
-        self.mUnit = nsStyleUnit::eStyleUnit_Factor;
-        unsafe { *self.mValue.mFloat.as_mut() = val; }
-    }
-    #[inline]
-    fn is_factor(&self) -> bool {
-        self.mUnit == nsStyleUnit::eStyleUnit_Factor
-    }
-    #[inline]
-    fn get_factor(&self) -> f32 {
-        debug_assert!(self.is_factor());
-        unsafe { *self.mValue.mFloat.as_ref() }
+        val.to_gecko_style_coord(self);
     }
 }
 
+
 pub trait GeckoStyleCoordConvertible : Sized {
-    fn to_gecko_style_coord(&self, unit: &mut nsStyleUnit, union: &mut nsStyleUnion);
-    fn from_gecko_style_coord(unit: &nsStyleUnit, union: &nsStyleUnion) -> Option<Self>;
+    fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T);
+    fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self>;
 }
 
 impl GeckoStyleCoordConvertible for LengthOrPercentage {
-    fn to_gecko_style_coord(&self, unit: &mut nsStyleUnit, union: &mut nsStyleUnion) {
-        unsafe { union.reset(unit) };
-        match *self {
-            LengthOrPercentage::Length(au) => {
-                *unit = nsStyleUnit::eStyleUnit_Coord;
-                unsafe { *union.mInt.as_mut() = au.0; }
-            },
-            LengthOrPercentage::Percentage(p) => {
-                *unit = nsStyleUnit::eStyleUnit_Percent;
-                unsafe { *union.mFloat.as_mut() = p; }
-            },
-            LengthOrPercentage::Calc(calc) => unsafe { union.set_calc_value(unit, calc.into()) },
+    fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
+        let value = match *self {
+            LengthOrPercentage::Length(au) => CoordDataValue::Coord(au.0),
+            LengthOrPercentage::Percentage(p) => CoordDataValue::Percent(p),
+            LengthOrPercentage::Calc(calc) => CoordDataValue::Calc(calc.into()),
         };
+        coord.set_value(value);
     }
 
-    fn from_gecko_style_coord(unit: &nsStyleUnit, union: &nsStyleUnion) -> Option<Self> {
-        match *unit {
-            nsStyleUnit::eStyleUnit_Coord
-                => Some(LengthOrPercentage::Length(Au(unsafe { *union.mInt.as_ref() }))),
-            nsStyleUnit::eStyleUnit_Percent
-                => Some(LengthOrPercentage::Percentage(unsafe { *union.mFloat.as_ref() })),
-            nsStyleUnit::eStyleUnit_Calc
-                => Some(LengthOrPercentage::Calc(unsafe { union.get_calc().into() })),
+    fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
+        match coord.as_value() {
+            CoordDataValue::Coord(coord) => Some(LengthOrPercentage::Length(Au(coord))),
+            CoordDataValue::Percent(p) => Some(LengthOrPercentage::Percentage(p)),
+            CoordDataValue::Calc(calc) => Some(LengthOrPercentage::Calc(calc.into())),
             _ => None,
         }
     }
 }
 
 impl GeckoStyleCoordConvertible for LengthOrPercentageOrAuto {
-    fn to_gecko_style_coord(&self, unit: &mut nsStyleUnit, union: &mut nsStyleUnion) {
-        unsafe { union.reset(unit) };
-        match *self {
-            LengthOrPercentageOrAuto::Length(au) => {
-                *unit = nsStyleUnit::eStyleUnit_Coord;
-                unsafe { *union.mInt.as_mut() = au.0; }
-            },
-            LengthOrPercentageOrAuto::Percentage(p) => {
-                *unit = nsStyleUnit::eStyleUnit_Percent;
-                unsafe { *union.mFloat.as_mut() = p; }
-            },
-            LengthOrPercentageOrAuto::Auto => {
-                *unit = nsStyleUnit::eStyleUnit_Auto;
-                unsafe { *union.mInt.as_mut() = 0; }
-            },
-            LengthOrPercentageOrAuto::Calc(calc) => unsafe { union.set_calc_value(unit, calc.into()) },
+    fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
+        let value = match *self {
+            LengthOrPercentageOrAuto::Length(au) => CoordDataValue::Coord(au.0),
+            LengthOrPercentageOrAuto::Percentage(p) => CoordDataValue::Percent(p),
+            LengthOrPercentageOrAuto::Auto => CoordDataValue::Auto,
+            LengthOrPercentageOrAuto::Calc(calc) => CoordDataValue::Calc(calc.into()),
         };
+        coord.set_value(value);
     }
 
-    fn from_gecko_style_coord(unit: &nsStyleUnit, union: &nsStyleUnion) -> Option<Self> {
-        match *unit {
-            nsStyleUnit::eStyleUnit_Auto
-                => Some(LengthOrPercentageOrAuto::Auto),
-            nsStyleUnit::eStyleUnit_Coord
-                => Some(LengthOrPercentageOrAuto::Length(Au(unsafe { *union.mInt.as_ref() }))),
-            nsStyleUnit::eStyleUnit_Percent
-                => Some(LengthOrPercentageOrAuto::Percentage(unsafe { *union.mFloat.as_ref() })),
-            nsStyleUnit::eStyleUnit_Calc
-                => Some(LengthOrPercentageOrAuto::Calc(unsafe { union.get_calc().into() })),
+    fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
+        match coord.as_value() {
+            CoordDataValue::Coord(coord) => Some(LengthOrPercentageOrAuto::Length(Au(coord))),
+            CoordDataValue::Percent(p) => Some(LengthOrPercentageOrAuto::Percentage(p)),
+            CoordDataValue::Auto => Some(LengthOrPercentageOrAuto::Auto),
+            CoordDataValue::Calc(calc) => Some(LengthOrPercentageOrAuto::Calc(calc.into())),
             _ => None,
         }
     }
 }
 
 impl GeckoStyleCoordConvertible for LengthOrPercentageOrNone {
-    fn to_gecko_style_coord(&self, unit: &mut nsStyleUnit, union: &mut nsStyleUnion) {
-        unsafe { union.reset(unit) };
-        match *self {
-            LengthOrPercentageOrNone::Length(au) => {
-                *unit = nsStyleUnit::eStyleUnit_Coord;
-                unsafe { *union.mInt.as_mut() = au.0; }
-            },
-            LengthOrPercentageOrNone::Percentage(p) => {
-                *unit = nsStyleUnit::eStyleUnit_Percent;
-                unsafe { *union.mFloat.as_mut() = p; }
-            },
-            LengthOrPercentageOrNone::None => {
-                *unit = nsStyleUnit::eStyleUnit_None;
-                unsafe { *union.mInt.as_mut() = 0; }
-            },
-            LengthOrPercentageOrNone::Calc(calc) => unsafe { union.set_calc_value(unit, calc.into()) },
+    fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
+        let value = match *self {
+            LengthOrPercentageOrNone::Length(au) => CoordDataValue::Coord(au.0),
+            LengthOrPercentageOrNone::Percentage(p) => CoordDataValue::Percent(p),
+            LengthOrPercentageOrNone::None => CoordDataValue::None,
+            LengthOrPercentageOrNone::Calc(calc) => CoordDataValue::Calc(calc.into()),
         };
+        coord.set_value(value);
     }
 
-    fn from_gecko_style_coord(unit: &nsStyleUnit, union: &nsStyleUnion) -> Option<Self> {
-        match *unit {
-            nsStyleUnit::eStyleUnit_None
-                => Some(LengthOrPercentageOrNone::None),
-            nsStyleUnit::eStyleUnit_Coord
-                => Some(LengthOrPercentageOrNone::Length(Au(unsafe { *union.mInt.as_ref() }))),
-            nsStyleUnit::eStyleUnit_Percent
-                => Some(LengthOrPercentageOrNone::Percentage(unsafe { *union.mFloat.as_ref() })),
-            nsStyleUnit::eStyleUnit_Calc
-                => Some(LengthOrPercentageOrNone::Calc(unsafe { union.get_calc().into() })),
+    fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
+        match coord.as_value() {
+            CoordDataValue::Coord(coord) => Some(LengthOrPercentageOrNone::Length(Au(coord))),
+            CoordDataValue::Percent(p) => Some(LengthOrPercentageOrNone::Percentage(p)),
+            CoordDataValue::None => Some(LengthOrPercentageOrNone::None),
+            CoordDataValue::Calc(calc) => Some(LengthOrPercentageOrNone::Calc(calc.into())),
             _ => None,
         }
     }
 }
 
 impl<T: GeckoStyleCoordConvertible> GeckoStyleCoordConvertible for Option<T> {
-    fn to_gecko_style_coord(&self, unit: &mut nsStyleUnit, union: &mut nsStyleUnion) {
-        unsafe { union.reset(unit) };
+    fn to_gecko_style_coord<U: CoordDataMut>(&self, coord: &mut U) {
         if let Some(ref me) = *self {
-            me.to_gecko_style_coord(unit, union);
+            me.to_gecko_style_coord(coord);
         } else {
-            *unit = nsStyleUnit::eStyleUnit_None;
-            unsafe { *union.mInt.as_mut() = 0; }
+            coord.set_value(CoordDataValue::None);
         }
     }
 
-    fn from_gecko_style_coord(unit: &nsStyleUnit, union: &nsStyleUnion) -> Option<Self> {
-        Some(T::from_gecko_style_coord(unit, union))
+    fn from_gecko_style_coord<U: CoordData>(coord: &U) -> Option<Self> {
+        Some(T::from_gecko_style_coord(coord))
     }
 }
 
 impl GeckoStyleCoordConvertible for Angle {
-    fn to_gecko_style_coord(&self,
-                            unit: &mut nsStyleUnit,
-                            union: &mut nsStyleUnion) {
-        unsafe { union.reset(unit) };
-        *unit = nsStyleUnit::eStyleUnit_Radian;
-        unsafe { *union.mFloat.as_mut() = self.radians() };
+    fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
+        coord.set_value(CoordDataValue::Radian(self.radians()))
     }
 
-    fn from_gecko_style_coord(unit: &nsStyleUnit, union: &nsStyleUnion) -> Option<Self> {
-        if *unit == nsStyleUnit::eStyleUnit_Radian {
-            Some(Angle::from_radians(unsafe { *union.mFloat.as_ref() }))
+    fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
+        if let CoordDataValue::Radian(r) = coord.as_value() {
+            Some(Angle::from_radians(r))
+            // XXXManishearth should this handle Degree too?
         } else {
             None
         }
