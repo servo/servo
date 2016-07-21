@@ -382,7 +382,11 @@ impl DisplayList {
             current_item_index: start,
             last_item_index: end,
         };
-        self.draw_stacking_context(stacking_context, &mut traversal, paint_context, transform);
+        self.draw_stacking_context(stacking_context,
+                                   &mut traversal,
+                                   paint_context,
+                                   transform,
+                                   &Point2D::zero());
     }
 
     fn draw_stacking_context_contents<'a>(&'a self,
@@ -390,6 +394,7 @@ impl DisplayList {
                                           traversal: &mut DisplayListTraversal<'a>,
                                           paint_context: &mut PaintContext,
                                           transform: &Matrix4D<f32>,
+                                          subpixel_offset: &Point2D<Au>,
                                           tile_rect: Option<Rect<Au>>) {
         for child in stacking_context.children.iter() {
             while let Some(item) = traversal.advance(stacking_context) {
@@ -399,7 +404,11 @@ impl DisplayList {
             }
 
             if child.intersects_rect_in_parent_context(tile_rect) {
-                self.draw_stacking_context(child, traversal, paint_context, &transform);
+                self.draw_stacking_context(child,
+                                           traversal,
+                                           paint_context,
+                                           &transform,
+                                           subpixel_offset);
             } else {
                 traversal.skip_past_stacking_context(child);
             }
@@ -417,12 +426,14 @@ impl DisplayList {
                                  stacking_context: &StackingContext,
                                  traversal: &mut DisplayListTraversal<'a>,
                                  paint_context: &mut PaintContext,
-                                 transform: &Matrix4D<f32>) {
+                                 transform: &Matrix4D<f32>,
+                                 subpixel_offset: &Point2D<Au>) {
         if stacking_context.context_type != StackingContextType::Real {
             self.draw_stacking_context_contents(stacking_context,
                                                 traversal,
                                                 paint_context,
                                                 transform,
+                                                subpixel_offset,
                                                 None);
             return;
         }
@@ -431,18 +442,35 @@ impl DisplayList {
             &stacking_context.filters,
             stacking_context.blend_mode);
 
-        // If a layer is being used, the transform for this layer
-        // will be handled by the compositor.
         let old_transform = paint_context.draw_target.get_transform();
-        let transform = match stacking_context.layer_info {
-            Some(..) => *transform,
+        let pixels_per_px = paint_context.screen_pixels_per_px();
+        let (transform, subpixel_offset) = match stacking_context.layer_info {
+            // If this stacking context starts a layer, the offset and transformation are handled
+            // by layer position within the compositor.
+            Some(..) => (*transform, *subpixel_offset),
             None => {
-                let pixels_per_px = paint_context.screen_pixels_per_px();
-                let origin = &stacking_context.bounds.origin;
-                transform.translate(
-                    origin.x.to_nearest_pixel(pixels_per_px.get()) as AzFloat,
-                    origin.y.to_nearest_pixel(pixels_per_px.get()) as AzFloat,
-                    0.0).mul(&stacking_context.transform)
+                let origin = stacking_context.bounds.origin + *subpixel_offset;
+                let pixel_snapped_origin =
+                    Point2D::new(origin.x.to_nearest_pixel(pixels_per_px.get()),
+                                 origin.y.to_nearest_pixel(pixels_per_px.get()));
+
+                let transform = transform.translate(pixel_snapped_origin.x as AzFloat,
+                                                    pixel_snapped_origin.y as AzFloat,
+                                                    0.0).mul(&stacking_context.transform);
+                let inverse_transform = transform.invert();
+
+                // Here we are trying to accumulate any subpixel distances across transformed
+                // stacking contexts. This allows us transform stacking context with a
+                // pixel-snapped transform, but continue to propagate any subpixels from stacking
+                // context origins to children.
+                let subpixel_offset = Point2D::new(origin.x.to_f32_px() - pixel_snapped_origin.x,
+                                                   origin.y.to_f32_px() - pixel_snapped_origin.y);
+                let subpixel_offset = inverse_transform.transform_point(&subpixel_offset) -
+                                      inverse_transform.transform_point(&Point2D::zero());;
+                let subpixel_offset = Point2D::new(Au::from_f32_px(subpixel_offset.x),
+                                                   Au::from_f32_px(subpixel_offset.y));
+
+                (transform, subpixel_offset)
             }
         };
 
@@ -455,6 +483,7 @@ impl DisplayList {
                 clip_rect: Some(stacking_context.overflow),
                 transient_clip: None,
                 layer_kind: paint_context.layer_kind,
+                subpixel_offset: subpixel_offset,
             };
 
             // Set up our clip rect and transform.
@@ -469,6 +498,7 @@ impl DisplayList {
                 traversal,
                 &mut paint_subcontext,
                 &transform,
+                &subpixel_offset,
                 Some(transformed_tile_rect(paint_context.screen_rect, &transform)));
 
             paint_subcontext.remove_transient_clip_if_applicable();

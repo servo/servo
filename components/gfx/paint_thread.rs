@@ -690,6 +690,7 @@ impl WorkerThread {
                 clip_rect: None,
                 transient_clip: None,
                 layer_kind: layer_kind,
+                subpixel_offset: Point2D::zero(),
             };
 
             // Apply the translation to paint the tile we want.

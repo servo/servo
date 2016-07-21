@@ -53,6 +53,10 @@ pub struct PaintContext<'a> {
     pub transient_clip: Option<ClippingRegion>,
     /// A temporary hack to disable clipping optimizations on 3d layers.
     pub layer_kind: LayerKind,
+    /// The current subpixel offset, used to make pixel snapping aware of accumulated subpixels
+    /// from the StackingContext.
+    /// TODO: Eventually this should be added to all points handled by the PaintContext.
+    pub subpixel_offset: Point2D<Au>,
 }
 
 #[derive(Copy, Clone)]
@@ -1338,24 +1342,26 @@ impl<'a> PaintContext<'a> {
     pub fn draw_text(&mut self, text: &TextDisplayItem) {
         let draw_target_transform = self.draw_target.get_transform();
 
+        let origin = text.baseline_origin + self.subpixel_offset;
+
         // Optimization: Don’t set a transform matrix for upright text, and pass a start point to
         // `draw_text_into_context`.
         //
         // For sideways text, it’s easier to do the rotation such that its center (the baseline’s
         // start point) is at (0, 0) coordinates.
         let baseline_origin = match text.orientation {
-            Upright => text.baseline_origin,
+            Upright => origin,
             SidewaysLeft => {
-                let x = text.baseline_origin.x.to_f32_px();
-                let y = text.baseline_origin.y.to_f32_px();
+                let x = origin.x.to_f32_px();
+                let y = origin.y.to_f32_px();
                 self.draw_target.set_transform(&draw_target_transform.mul(&Matrix2D::new(0., -1.,
                                                                                          1., 0.,
                                                                                          x, y)));
                 Point2D::zero()
             }
             SidewaysRight => {
-                let x = text.baseline_origin.x.to_f32_px();
-                let y = text.baseline_origin.y.to_f32_px();
+                let x = origin.x.to_f32_px();
+                let y = origin.y.to_f32_px();
                 self.draw_target.set_transform(&draw_target_transform.mul(&Matrix2D::new(0., 1.,
                                                                                          -1., 0.,
                                                                                          x, y)));
@@ -1382,10 +1388,7 @@ impl<'a> PaintContext<'a> {
         // Blur, if necessary.
         self.blur_if_necessary(temporary_draw_target, text.blur_radius);
 
-        // Undo the transform, only when we did one.
-        if text.orientation != Upright {
-            self.draw_target.set_transform(&draw_target_transform)
-        }
+        self.draw_target.set_transform(&draw_target_transform)
     }
 
     /// Draws a linear gradient in the given boundaries from the given start point to the given end
