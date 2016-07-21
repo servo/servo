@@ -648,7 +648,7 @@ impl HTMLInputElement {
 
     /// https://html.spec.whatwg.org/multipage/#constructing-the-form-data-set
     /// Steps range from 3.1 to 3.7 (specific to HTMLInputElement)
-    pub fn form_datum(&self, submitter: Option<FormSubmitter>) -> Option<FormDatum> {
+    pub fn form_datums(&self, submitter: Option<FormSubmitter>) -> Vec<FormDatum> {
         // 3.1: disabled state check is in get_unclean_dataset
 
         // Step 3.2
@@ -664,26 +664,55 @@ impl HTMLInputElement {
 
         match ty {
             // Step 3.1: it's a button but it is not submitter.
-            atom!("submit") | atom!("button") | atom!("reset") if !is_submitter => return None,
+            atom!("submit") | atom!("button") | atom!("reset") if !is_submitter => return vec![],
             // Step 3.1: it's the "Checkbox" or "Radio Button" and whose checkedness is false.
             atom!("radio") | atom!("checkbox") => if !self.Checked() || name.is_empty() {
-                return None;
+                return vec![];
             },
+            atom!("file") => {
+                let mut datums = vec![];
 
-            atom!("image") | atom!("file") => return None, // Unimplemented
+                // Step 3.2-3.7
+                let name = self.Name();
+                let type_ = self.Type();
+
+                match self.GetFiles() {
+                    Some(fl) => {
+                        for f in fl.iter_files() {
+                            datums.push(FormDatum {
+                                ty: type_.clone(),
+                                name: name.clone(),
+                                value: FormDatumValue::File(Root::from_ref(&f)),
+                            });
+                        }
+                    }
+                    None => {
+                        datums.push(FormDatum {
+                            // XXX(izgzhen): Spec says 'application/octet-stream' as the type,
+                            // but this is _type_ of element rather than content right?
+                            ty: type_.clone(),
+                            name: name.clone(),
+                            value: FormDatumValue::String(DOMString::from("")),
+                        })
+                    }
+                }
+
+                return datums;
+            }
+            atom!("image") => return vec![], // Unimplemented
             // Step 3.1: it's not the "Image Button" and doesn't have a name attribute.
             _ => if name.is_empty() {
-                return None;
+                return vec![];
             }
 
         }
 
         // Step 3.9
-        Some(FormDatum {
+        vec![FormDatum {
             ty: DOMString::from(&*ty), // FIXME(ajeffrey): Convert directly from Atoms to DOMStrings
             name: name,
             value: FormDatumValue::String(self.Value())
-        })
+        }]
     }
 
     // https://html.spec.whatwg.org/multipage/#radio-button-group
