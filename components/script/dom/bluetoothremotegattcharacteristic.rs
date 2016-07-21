@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use bluetooth_blacklist::{Blacklist, uuid_is_blacklisted};
+use bluetooth_utils::{Blacklist, handle_bluetooth_error, uuid_is_blacklisted};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::BluetoothCharacteristicPropertiesBinding::
     BluetoothCharacteristicPropertiesMethods;
@@ -12,7 +12,7 @@ use dom::bindings::codegen::Bindings::BluetoothRemoteGATTCharacteristicBinding::
     BluetoothRemoteGATTCharacteristicMethods;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding::BluetoothRemoteGATTServiceMethods;
-use dom::bindings::error::Error::{InvalidModification, Network, NotSupported, Security, Type};
+use dom::bindings::error::Error::{InvalidModification, Network, NotSupported, Security};
 use dom::bindings::error::{Fallible, ErrorResult};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutHeap, Root};
@@ -115,7 +115,7 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
                                                       descriptor.instance_id))
             },
             Err(error) => {
-                Err(Type(error))
+                Err(handle_bluetooth_error(error))
             },
         }
     }
@@ -147,7 +147,7 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
                                  .collect())
             },
             Err(error) => {
-                Err(Type(error))
+                Err(handle_bluetooth_error(error))
             },
         }
     }
@@ -177,7 +177,7 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
                 ByteString::new(val)
             },
             Err(error) => {
-                return Err(Type(error))
+                return Err(handle_bluetooth_error(error))
             },
         };
         *self.value.borrow_mut() = Some(value.clone());
@@ -202,7 +202,7 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
         match result {
             Ok(_) => Ok(()),
             Err(error) => {
-                Err(Type(error))
+                Err(handle_bluetooth_error(error))
             },
         }
     }

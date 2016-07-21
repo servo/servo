@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use bluetooth_blacklist::{Blacklist, uuid_is_blacklisted};
+use bluetooth_utils::{Blacklist, handle_bluetooth_error, uuid_is_blacklisted};
 use core::clone::Clone;
 use dom::bindings::codegen::Bindings::BluetoothBinding;
 use dom::bindings::codegen::Bindings::BluetoothBinding::RequestDeviceOptions;
@@ -154,7 +154,7 @@ impl BluetoothMethods for Bluetooth {
                                         &ad_data))
             },
             Err(error) => {
-                Err(Type(error))
+                Err(handle_bluetooth_error(error))
             },
         }
     }
