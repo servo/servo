@@ -113,7 +113,6 @@ use style::stylesheets::CSSRuleIteratorExt;
 use style::workqueue::WorkQueue;
 use url::Url;
 use util::geometry::MAX_RECT;
-use util::ipc::OptionalIpcSender;
 use util::opts;
 use util::thread;
 use util::thread_state;
@@ -157,7 +156,7 @@ pub struct LayoutThread {
     script_chan: IpcSender<ConstellationControlMsg>,
 
     /// The channel on which messages can be sent to the painting thread.
-    paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
+    paint_chan: IpcSender<LayoutToPaintMsg>,
 
     /// The channel on which messages can be sent to the time profiler.
     time_profiler_chan: time::ProfilerChan,
@@ -240,7 +239,7 @@ impl LayoutThreadFactory for LayoutThread {
               constellation_chan: IpcSender<ConstellationMsg>,
               panic_chan: IpcSender<PanicMsg>,
               script_chan: IpcSender<ConstellationControlMsg>,
-              paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
+              paint_chan: IpcSender<LayoutToPaintMsg>,
               image_cache_thread: ImageCacheThread,
               font_cache_thread: FontCacheThread,
               time_profiler_chan: time::ProfilerChan,
@@ -370,7 +369,7 @@ impl LayoutThread {
            pipeline_port: IpcReceiver<LayoutControlMsg>,
            constellation_chan: IpcSender<ConstellationMsg>,
            script_chan: IpcSender<ConstellationControlMsg>,
-           paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
+           paint_chan: IpcSender<LayoutToPaintMsg>,
            image_cache_thread: ImageCacheThread,
            font_cache_thread: FontCacheThread,
            time_profiler_chan: time::ProfilerChan,

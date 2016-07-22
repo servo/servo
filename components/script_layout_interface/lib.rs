@@ -39,7 +39,6 @@ extern crate selectors;
 extern crate string_cache;
 extern crate style;
 extern crate url;
-extern crate util;
 
 pub mod message;
 pub mod reporter;

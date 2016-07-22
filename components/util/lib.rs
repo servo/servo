@@ -5,7 +5,6 @@
 #![cfg_attr(feature = "servo", feature(custom_derive))]
 #![cfg_attr(feature = "servo", feature(fnbox))]
 #![cfg_attr(feature = "servo", feature(plugin))]
-#![cfg_attr(feature = "servo", feature(reflect_marker))]
 #![cfg_attr(feature = "servo", plugin(serde_macros))]
 #![cfg_attr(feature = "servo", plugin(plugins))]
 
@@ -29,7 +28,6 @@ extern crate xdg;
 
 pub mod basedir;
 pub mod geometry;
-#[cfg(feature = "servo")] #[allow(unsafe_code)] pub mod ipc;
 #[allow(unsafe_code)] pub mod opts;
 #[cfg(feature = "servo")] pub mod panicking;
 pub mod prefs;
