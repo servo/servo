@@ -76,7 +76,6 @@ def create_resultset_collection(dataset):
     trsc = TreeherderResultSetCollection()
 
     for data in dataset:
-
         trs = trsc.get_resultset()
 
         trs.add_push_timestamp(data['push_timestamp'])
@@ -87,7 +86,6 @@ def create_resultset_collection(dataset):
 
         revisions = []
         for rev in data['revisions']:
-
             tr = trs.get_revision()
 
             tr.add_revision(rev['revision'])
@@ -96,7 +94,6 @@ def create_resultset_collection(dataset):
             tr.add_repository(rev['repository'])
 
             revisions.append(tr)
-
         trs.add_revisions(revisions)
 
         trsc.add(trs)
@@ -111,7 +108,6 @@ def create_job_collection(dataset):
     tjc = TreeherderJobCollection()
 
     for data in dataset:
-
         tj = tjc.get_job()
 
         tj.add_revision(data['revision'])

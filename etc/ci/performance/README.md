@@ -55,7 +55,7 @@ If you want to test the data submission code in `submit_to_perfherder.py`, you c
 * Outside of vm, open `http://local.treeherder.mozilla.org` and login to create an account
 * `vagrant ssh`
   * `./manage.py create_credentials slyu slyu@mozilla.com "description"`, the email has to match your logged in user. Remember to log-in through the Web UI once before you run this.
-  * Open a file called `credential.json`. Copy the client secret to your `credential.json`. You can use `credential.json.example` as a template.
+  * Setup your Treeherder client ID and secret as environment variables `TREEHERDER_CLIENT_ID` and `TREEHERDER_CLIENT_SECRET`
 
 ## For Gecko
 

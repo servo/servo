@@ -35,22 +35,18 @@ def execute_test(url, command, timeout):
     return ""
 
 
-def get_servo_command(url, timeout):
+def get_servo_command(url):
     ua_script_path = "{}/user-agent-js".format(os.getcwd())
-    test_cmd = ["timeout", "{timeout}s".format(timeout),
-                "./servo/servo", url,
+    return [ "./servo/servo", url,
                 " --userscripts", ua_script_path,
                 "-x", "-o", "output.png"]
-    return test_cmd
 
 
-def get_gecko_command(url, timeout):
-    test_cmd = ["timeout", "{timeout}s".format(timeout),
-                "./firefox/firefox/firefox",
+def get_gecko_command(url):
+    return [ "./firefox/firefox/firefox",
                 " --display=:0", "--no-remote"
                 " -profile", "./firefox/servo",
                 url]
-    return test_cmd
 
 
 def parse_log(log, testcase=None):
@@ -241,7 +237,8 @@ def main():
         testcases = load_manifest(args.tp5_manifest)
         results = []
         for testcase in testcases:
-            command = command_factory(testcase, args.timeout)
+            command = ["timeout", "{timeout}s".format(args.timeout)] +
+                          command_factory(testcase)
             for run in range(args.runs):
                 print("Running test {}/{} on {}".format(run + 1,
                                                         args.runs,
