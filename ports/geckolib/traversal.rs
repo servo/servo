@@ -36,11 +36,13 @@ impl<'lc, 'ln> DomTraversalContext<GeckoNode<'ln>> for RecalcStyleOnly<'lc> {
         recalc_style_at(&self.context, self.root, node);
     }
 
+    fn process_postorder(&self, _: GeckoNode<'ln>) {}
+
+    /// In Gecko we use this traversal just for restyling, so we can stop once
+    /// we know there aren't more dirty nodes under ourselves.
     fn should_process(&self, node: GeckoNode<'ln>) -> bool {
         node.is_dirty() || node.has_dirty_descendants()
     }
-
-    fn process_postorder(&self, _: GeckoNode<'ln>) {}
 
     fn pre_process_child_hook(&self, parent: GeckoNode<'ln>, kid: GeckoNode<'ln>) {
         // NOTE: At this point is completely safe to modify either the parent or
