@@ -477,6 +477,10 @@ fn append_shorthand_value<'a, W, I>(dest: &mut W,
         Shorthand::Transition => try!(append_transition_shorthand(dest, declarations)),
         Shorthand::BorderWidth => try!(append_border_width_shorthand(dest, declarations)),
         Shorthand::Font => try!(append_font_shorthand(dest, declarations)),
+        Shorthand::BorderTop => try!(append_border_top_shorthand(dest, declarations)),
+        Shorthand::BorderRight => try!(append_border_right_shorthand(dest, declarations)),
+        Shorthand::BorderBottom => try!(append_border_bottom_shorthand(dest, declarations)),
+        Shorthand::BorderLeft => try!(append_border_left_shorthand(dest, declarations)),
         _ => {}
     };
 
@@ -503,17 +507,16 @@ macro_rules! try_unwrap_longhands {
 macro_rules! try_unwrap_declared_values {
     ( $( $x:ident ),* ) => {
         {
-        match (
-            $( $x, )*
-        ) {
+            match (
+                $( $x, )*
+            ) {
 
-            ( $( &DeclaredValue::Value(ref $x),  )* ) => ( $( $x, )* ),
-               _ => return Err(fmt::Error)
+                ( $( &DeclaredValue::Value(ref $x),  )* ) => ( $( $x, )* ),
+                   _ => return Err(fmt::Error)
             }
         }
     };
 }
-
 
 fn append_margin_shorthand<'a, W, I>(dest: &mut W,
                                     declarations: I)
@@ -622,9 +625,6 @@ fn append_overflow_shorthand<'a, W, I>(dest: &mut W,
                                     declarations: I)
                             -> fmt::Result
                             where W: fmt::Write, I: Iterator<Item=&'a PropertyDeclaration> {
-
-    use properties::longhands::overflow_y::computed_value::T as YContainer;
-
     let mut x_value = None;
     let mut y_value = None;
 
@@ -642,10 +642,7 @@ fn append_overflow_shorthand<'a, W, I>(dest: &mut W,
             },
             &PropertyDeclaration::OverflowY(ref declared_value) => {
                 match declared_value {
-                    &DeclaredValue::Value(container_value) => {
-                        let YContainer(value) = container_value;
-                        y_value = Some(value);
-                    },
+                    &DeclaredValue::Value(container_value) => { y_value = Some(container_value.0); },
                     _ => return Err(fmt::Error)
                 }
             },
@@ -942,39 +939,25 @@ fn append_transition_shorthand<'a, W, I>(dest: &mut W,
 fn append_border_width_shorthand<'a, W, I>(dest: &mut W,
                                          declarations: I) -> fmt::Result
                                          where W: fmt::Write, I: Iterator<Item=&'a PropertyDeclaration> {
-
-    use properties::longhands::border_top_width::SpecifiedValue as TopContainer;
-    use properties::longhands::border_right_width::SpecifiedValue as RightContainer;
-    use properties::longhands::border_bottom_width::SpecifiedValue as BottomContainer;
-    use properties::longhands::border_left_width::SpecifiedValue as LeftContainer;
-
-    let mut top_container = None;
-    let mut right_container = None;
-    let mut bottom_container = None;
-    let mut left_container = None;
+    let mut top = None;
+    let mut right = None;
+    let mut bottom = None;
+    let mut left = None;
 
     for decl in declarations {
         match decl {
-            &PropertyDeclaration::BorderTopWidth(ref value) => { top_container = Some(value); },
-            &PropertyDeclaration::BorderRightWidth(ref value) => { right_container = Some(value); },
-            &PropertyDeclaration::BorderBottomWidth(ref value) => { bottom_container = Some(value); },
-            &PropertyDeclaration::BorderLeftWidth(ref value) => { left_container = Some(value); },
+            &PropertyDeclaration::BorderTopWidth(ref value) => { top = Some(value); },
+            &PropertyDeclaration::BorderRightWidth(ref value) => { right = Some(value); },
+            &PropertyDeclaration::BorderBottomWidth(ref value) => { bottom = Some(value); },
+            &PropertyDeclaration::BorderLeftWidth(ref value) => { left = Some(value); },
             _ => return Err(fmt::Error)
         }
     }
 
-    let (top_container, right_container, bottom_container, left_container) =
-        try_unwrap_longhands!(top_container, right_container, bottom_container, left_container);
+    let (top, right, bottom, left) = try_unwrap_longhands!(top, right, bottom, left);
+    let (top, right, bottom, left) = try_unwrap_declared_values!(top, right, bottom, left);
 
-    let (top_container, right_container, bottom_container, left_container) =
-        try_unwrap_declared_values!(top_container, right_container, bottom_container, left_container);
-
-    let &TopContainer(ref top) = top_container;
-    let &RightContainer(ref right) = right_container;
-    let &BottomContainer(ref bottom) = bottom_container;
-    let &LeftContainer(ref left) = left_container;
-
-    append_positional_shorthand(dest, top, right, bottom, left)
+    append_positional_shorthand(dest, &top.0, &right.0, &bottom.0, &left.0)
 }
 
 fn append_font_shorthand<'a, W, I>(dest: &mut W,
@@ -1034,6 +1017,130 @@ fn append_font_shorthand<'a, W, I>(dest: &mut W,
     try!(write!(dest, " "));
 
     font_family.to_css(dest)
+}
+
+fn append_border_top_shorthand<'a, W, I>(dest: &mut W,
+                                         declarations: I) -> fmt::Result
+                                         where W: fmt::Write, I: Iterator<Item=&'a PropertyDeclaration> {
+
+    let mut width = None;
+    let mut style = None;
+    let mut color = None;
+
+    for decl in declarations {
+        match decl {
+            &PropertyDeclaration::BorderTopWidth(ref value) => { width = Some(value); },
+            &PropertyDeclaration::BorderTopStyle(ref value) => { style = Some(value); },
+            &PropertyDeclaration::BorderTopColor(ref value) => { color = Some(value); },
+            _ => return Err(fmt::Error)
+        }
+    }
+
+    let (width, style, color) = try_unwrap_longhands!(width, style, color);
+
+    append_directional_border_shorthand(dest, width, style, color)
+}
+
+fn append_border_right_shorthand<'a, W, I>(dest: &mut W,
+                                           declarations: I) -> fmt::Result
+                                           where W: fmt::Write, I: Iterator<Item=&'a PropertyDeclaration> {
+
+    let mut width = None;
+    let mut style = None;
+    let mut color = None;
+
+    for decl in declarations {
+        match decl {
+            &PropertyDeclaration::BorderRightWidth(ref value) => { width = Some(value); },
+            &PropertyDeclaration::BorderRightStyle(ref value) => { style = Some(value); },
+            &PropertyDeclaration::BorderRightColor(ref value) => { color = Some(value); },
+            _ => return Err(fmt::Error)
+        }
+    }
+
+    let (width, style, color) = try_unwrap_longhands!(width, style, color);
+
+    append_directional_border_shorthand(dest, width, style, color)
+}
+
+fn append_border_bottom_shorthand<'a, W, I>(dest: &mut W,
+                                            declarations: I) -> fmt::Result
+                                            where W: fmt::Write, I: Iterator<Item=&'a PropertyDeclaration> {
+
+    let mut width = None;
+    let mut style = None;
+    let mut color = None;
+
+    for decl in declarations {
+        match decl {
+            &PropertyDeclaration::BorderBottomWidth(ref value) => { width = Some(value); },
+            &PropertyDeclaration::BorderBottomStyle(ref value) => { style = Some(value); },
+            &PropertyDeclaration::BorderBottomColor(ref value) => { color = Some(value); },
+            _ => return Err(fmt::Error)
+        }
+    }
+
+    let (width, style, color) = try_unwrap_longhands!(width, style, color);
+
+    append_directional_border_shorthand(dest, width, style, color)
+}
+
+fn append_border_left_shorthand<'a, W, I>(dest: &mut W,
+                                          declarations: I) -> fmt::Result
+                                          where W: fmt::Write, I: Iterator<Item=&'a PropertyDeclaration> {
+
+    let mut width = None;
+    let mut style = None;
+    let mut color = None;
+
+    for decl in declarations {
+        match decl {
+            &PropertyDeclaration::BorderLeftWidth(ref value) => { width = Some(value); },
+            &PropertyDeclaration::BorderLeftStyle(ref value) => { style = Some(value); },
+            &PropertyDeclaration::BorderLeftColor(ref value) => { color = Some(value); },
+            _ => return Err(fmt::Error)
+        }
+    }
+
+    let (width, style, color) = try_unwrap_longhands!(width, style, color);
+
+    append_directional_border_shorthand(dest, width, style, color)
+}
+
+use values::specified::CSSColor;
+
+fn append_directional_border_shorthand<W, I>(dest: &mut W,
+                                             width: &DeclaredValue<I>,
+                                             style: &DeclaredValue<BorderStyle>,
+                                             color: &DeclaredValue<CSSColor>)
+                                             -> fmt::Result where W: fmt::Write, I: ToCss {
+    match width {
+        &DeclaredValue::Value(ref width) => {
+            try!(width.to_css(dest));
+        },
+        _ => {
+            try!(write!(dest, "medium"));
+        }
+    };
+
+    try!(write!(dest, " "));
+
+    match style {
+        &DeclaredValue::Value(ref style) => {
+            try!(style.to_css(dest));
+        },
+        _ => {
+            try!(write!(dest, "none"));
+        }
+    };
+
+    match color {
+        &DeclaredValue::Value(ref color) => {
+            try!(write!(dest, " "));
+            color.to_css(dest)
+        },
+        _ => Ok(())
+    }
 }
 
 fn append_serialization<'a, W, I>(dest: &mut W,
