@@ -1159,7 +1159,7 @@ impl BlockFlow {
         }
     }
 
-    fn explicit_block_size(&self, containing_block_size: Option<Au>) -> Option<Au> {
+    pub fn explicit_block_size(&self, containing_block_size: Option<Au>) -> Option<Au> {
         let content_block_size = self.fragment.style().content_block_size();
 
         match (content_block_size, containing_block_size) {
