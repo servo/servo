@@ -4,5 +4,4 @@
 
 // https://html.spec.whatwg.org/multipage/#htmlaudioelement
 //[NamedConstructor=Audio(optional DOMString src)]
-[Exposed=(Window,Worker)]
 interface HTMLAudioElement : HTMLMediaElement {};

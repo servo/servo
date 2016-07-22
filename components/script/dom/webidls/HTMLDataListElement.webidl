@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmldatalistelement
-[Exposed=(Window,Worker)]
 interface HTMLDataListElement : HTMLElement {
   readonly attribute HTMLCollection options;
 };

@@ -11,7 +11,6 @@
  */
 
 // https://html.spec.whatwg.org/multipage/#htmlanchorelement
-[Exposed=(Window,Worker)]
 interface HTMLAnchorElement : HTMLElement {
   attribute DOMString target;
   //         attribute DOMString download;
