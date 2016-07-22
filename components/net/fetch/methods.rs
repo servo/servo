@@ -20,7 +20,7 @@ use hyper::method::Method;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper::status::StatusCode;
 use mime_guess::guess_mime_type;
-use msg::constellation_msg::ReferrerPolicy;
+use msg::constellation_msg::{PipelineId, ReferrerPolicy};
 use net_traits::FetchTaskTarget;
 use net_traits::request::{CacheMode, CredentialsMode};
 use net_traits::request::{RedirectMode, Referer, Request, RequestMode, ResponseTainting};
@@ -38,6 +38,7 @@ use std::sync::mpsc::{channel, Sender, Receiver};
 use unicase::UniCase;
 use url::{Origin as UrlOrigin, Url};
 use util::thread::spawn_named;
+use uuid;
 
 pub type Target = Option<Box<FetchTaskTarget + Send>>;
 
@@ -950,7 +951,7 @@ fn http_network_fetch(request: Rc<Request>,
     let url = request.current_url();
     let cancellation_listener = CancellationListener::new(None);
 
-    let request_id = "";
+    let request_id = uuid::Uuid::new_v4().simple().to_string();
     let wrapped_response = obtain_response(&factory, &url, &request.method.borrow(),
                                            &request.headers.borrow(),
                                            &cancellation_listener, &request.body.borrow(), &request.method.borrow(),
@@ -978,6 +979,19 @@ fn http_network_fetch(request: Rc<Request>,
                 match StreamedResponse::from_http_response(box res, meta) {
                     Ok(mut res) => {
                         *res_body.lock().unwrap() = ResponseBody::Receiving(vec![]);
+                        if let Some(m) = msg {
+                            send_request_to_devtools(m, devtools_sender.as_ref().unwrap());
+                        }
+
+                        // --- Tell devtools that we got a response
+                        // Send an HttpResponse message to devtools with the corresponding request_id
+                        if let Some(pipeline_id) = pipeline_id {
+                            send_response_to_devtools(
+                                devtools_sender, request_id.into(),
+                                metadata.headers.clone(), metadata.status.clone(),
+                                pipeline_id);
+                        }
+
                         loop {
                             match read_block(&mut res) {
                                 Ok(ReadResult::Payload(chunk)) => {
@@ -985,8 +999,7 @@ fn http_network_fetch(request: Rc<Request>,
                                         body.extend_from_slice(&chunk);
                                         if let Some(ref sender) = done_sender {
                                             let _ = sender.send(Data::Payload(chunk));
-
-                                                                                    }
+                                        }
                                     }
                                 },
                                 Ok(ReadResult::EOF) | Err(_) => {
@@ -1006,24 +1019,7 @@ fn http_network_fetch(request: Rc<Request>,
                                     break;
                                 }
                             }
-
                         }
-                        if let Some(m) = msg {
-                            send_request_to_devtools(m, devtools_sender.as_ref().unwrap());
-                        }
-
-
-                        // --- Tell devtools that we got a response
-                        // Send an HttpResponse message to devtools with the corresponding request_id
-                        if let Some(pipeline_id) = pipeline_id {
-                            send_response_to_devtools(
-                            devtools_sender, request_id.into(),
-                            metadata.headers.clone(), metadata.status.clone(),
-                            pipeline_id);
-                        }
-
-
-
                     }
                     Err(_) => {
                         // XXXManishearth we should propagate this error somehow
@@ -1039,7 +1035,6 @@ fn http_network_fetch(request: Rc<Request>,
             response.termination_reason = Some(TerminationReason::Fatal);
         }
     };
-
 
         // TODO these substeps aren't possible yet
         // Substep 1
@@ -1096,7 +1091,8 @@ fn http_network_fetch(request: Rc<Request>,
 fn cors_preflight_fetch(request: Rc<Request>, cache: &mut CORSCache,
                         context: &FetchContext) -> Response {
     // Step 1
-    let mut preflight = Request::new(request.current_url(), Some(request.origin.borrow().clone()), false);
+    let mut preflight = Request::new(request.current_url(), Some(request.origin.borrow().clone()), 
+                                     false, Some(PipelineId::new()));
     *preflight.method.borrow_mut() = Method::Options;
     preflight.initiator = request.initiator.clone();
     preflight.type_ = request.type_.clone();

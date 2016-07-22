@@ -180,7 +180,8 @@ pub struct Request {
 impl Request {
     pub fn new(url: Url,
                origin: Option<Origin>,
-               is_service_worker_global_scope: bool) -> Request {
+               is_service_worker_global_scope: bool,
+               pipeline_id: Option<PipelineId>) -> Request {
         Request {
             method: RefCell::new(Method::Get),
             local_urls_only: false,
@@ -200,7 +201,7 @@ impl Request {
             same_origin_data: Cell::new(false),
             referer: RefCell::new(Referer::Client),
             referrer_policy: Cell::new(None),
-            pipeline_id: Cell::new(None),
+            pipeline_id: Cell::new(pipeline_id),
             synchronous: false,
             mode: RequestMode::NoCORS,
             use_cors_preflight: false,
@@ -219,7 +220,7 @@ impl Request {
     pub fn from_init(init: RequestInit) -> Request {
         let mut req = Request::new(init.url,
                                    Some(Origin::Origin(init.origin.origin())),
-                                   false);
+                                   false, init.pipeline_id);
         *req.method.borrow_mut() = init.method;
         *req.headers.borrow_mut() = init.headers;
         req.unsafe_request = init.unsafe_request;
@@ -245,7 +246,8 @@ impl Request {
     pub fn potential_cors_request(url: Url,
                                   cors_attribute_state: Option<CORSSettings>,
                                   is_service_worker_global_scope: bool,
-                                  same_origin_fallback: bool) -> Request {
+                                  same_origin_fallback: bool,
+                                  pipeline_id: Option<PipelineId>) -> Request {
         Request {
             method: RefCell::new(Method::Get),
             local_urls_only: false,
@@ -285,7 +287,7 @@ impl Request {
             url_list: RefCell::new(vec![url]),
             redirect_count: Cell::new(0),
             response_tainting: Cell::new(ResponseTainting::Basic),
-            pipeline_id: Cell::new(Some(PipelineId::new())),
+            pipeline_id: Cell::new(pipeline_id),
             done: Cell::new(false)
         }
     }
