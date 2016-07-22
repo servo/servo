@@ -50,7 +50,7 @@ class CheckTidiness(unittest.TestCase):
 
     def test_shell(self):
         errors = tidy.collect_errors_for_files(iterFile('shell_tidy.sh'), [], [tidy.check_shell], print_text=False)
-        self.assertEqual('script does not start with "#!/usr/bin/env bash"', errors.next()[2])
+        self.assertEqual('script does not have shebang "#!/usr/bin/env bash"', errors.next()[2])
         self.assertEqual('script is missing options "set -o errexit", "set -o pipefail"', errors.next()[2])
         self.assertNoMoreErrors(errors)
 

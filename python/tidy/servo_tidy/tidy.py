@@ -313,36 +313,27 @@ def check_shell(file_name, lines):
 
     shebang = "#!/usr/bin/env bash"
     required_options = {"set -o errexit", "set -o nounset", "set -o pipefail"}
-    # A flag to indicate whether we've found a "real" statement in the script, e.g. not one of `set -o <option>`
-    found_script_statement = False
 
-    for idx, line in enumerate(lines):
-        if idx == 0:
-            if not line.startswith(shebang):
-                yield (idx + 1, 'script does not start with "{}"'.format(shebang))
+    if lines[0].strip() != shebang:
+        yield (1, 'script does not have shebang "{}"'.format(shebang))
+
+    for idx in range(1, len(lines)):
+        stripped = lines[idx].rstrip()
+
+        # Comments or blank lines are ignored. (Trailing whitespace is caught with a separate linter.)
+        if lines[idx].startswith("#") or stripped == "":
+            continue
+        elif stripped in required_options:
+            required_options.remove(stripped)
         else:
-            if found_script_statement:
+            # The first non-comment, non-whitespace, non-option line is the first "real" line of the script.
+            # The shebang, options, etc. must come before this.
+            if len(required_options) != 0:
+                formatted = ['"{}"'.format(opt) for opt in required_options]
+
+                yield (idx + 1, "script is missing options {}".format(", ".join(formatted)))
+
                 break
-            else:
-                stripped = line.rstrip()
-
-                # Comments or blank lines are ignored. (Trailing whitespace is caught with a separate linter.)
-                if line.startswith("#") or stripped == "":
-                    continue
-                elif stripped in required_options:
-                    required_options.remove(stripped)
-                else:
-                    # The first non-comment, non-whitespace, non-option line is the first "real" line of the script.
-                    # The shebang, options, etc. must come before this.
-                    found_script_statement = True
-
-                    if len(required_options) != 0:
-                        formatted = []
-
-                        for opt in required_options:
-                            formatted.append('"{}"'.format(opt))
-
-                        yield (idx + 1, "script is missing options {}".format(", ".join(formatted)))
 
 
 def check_rust(file_name, lines):

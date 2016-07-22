@@ -10,7 +10,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-# cd into repo root to make sure paths works in any case
+# cd into repo root to make sure paths work in any case
 cd "$(git rev-parse --show-toplevel)"
 
 # files that should not contain "unwrap"
