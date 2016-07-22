@@ -218,7 +218,7 @@ impl DedicatedWorkerGlobalScope {
                 scope.execute_script(DOMString::from(source));
             }
 
-            let reporter_name = format!("worker-reporter-{}", random::<u64>());
+            let reporter_name = format!("dedicated-worker-reporter-{}", random::<u64>());
             scope.mem_profiler_chan().run_with_memory_reporting(|| {
                 while let Ok(event) = global.receive_event() {
                     if scope.is_closing() {
