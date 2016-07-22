@@ -17,6 +17,8 @@ use font_cache_thread::FontCacheThread;
 use font_context::FontContext;
 use gfx_traits::{ChromeToPaintMsg, Epoch, LayerId, LayerKind, LayerProperties};
 use gfx_traits::{PaintListener, PaintRequest, StackingContextId};
+use ipc_channel::ipc::IpcReceiver;
+use ipc_channel::router::ROUTER;
 use layers::layers::{BufferRequest, LayerBuffer, LayerBufferSet};
 use layers::platform::surface::{NativeDisplay, NativeSurface};
 use msg::constellation_msg::PipelineId;
@@ -373,7 +375,7 @@ impl<C> PaintThread<C> where C: PaintListener + Send + 'static {
     pub fn create(id: PipelineId,
                   url: Url,
                   chrome_to_paint_chan: Sender<ChromeToPaintMsg>,
-                  layout_to_paint_port: Receiver<LayoutToPaintMsg>,
+                  layout_to_paint_port: IpcReceiver<LayoutToPaintMsg>,
                   chrome_to_paint_port: Receiver<ChromeToPaintMsg>,
                   mut compositor: C,
                   font_cache_thread: FontCacheThread,
@@ -392,7 +394,8 @@ impl<C> PaintThread<C> where C: PaintListener + Send + 'static {
             let mut paint_thread = PaintThread {
                 id: id,
                 _url: url,
-                layout_to_paint_port: layout_to_paint_port,
+                layout_to_paint_port:
+                    ROUTER.route_ipc_receiver_to_new_mpsc_receiver(layout_to_paint_port),
                 chrome_to_paint_port: chrome_to_paint_port,
                 compositor: compositor,
                 time_profiler_chan: time_profiler_chan,

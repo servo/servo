@@ -1192,7 +1192,6 @@ dependencies = [
  "profile_traits 0.0.1",
  "script_traits 0.0.1",
  "url 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "util 0.0.1",
  "webrender_traits 0.2.0 (git+https://github.com/servo/webrender_traits)",
 ]
 
@@ -1934,7 +1933,6 @@ dependencies = [
  "string_cache 0.2.21 (registry+https://github.com/rust-lang/crates.io-index)",
  "style 0.0.1",
  "url 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "util 0.0.1",
 ]
 
 [[package]]
@@ -1973,7 +1971,6 @@ dependencies = [
  "style_traits 0.0.1",
  "time 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "util 0.0.1",
 ]
 
 [[package]]
@@ -2413,7 +2410,6 @@ dependencies = [
  "euclid 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "getopts 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "ipc-channel 0.4.0 (git+https://github.com/servo/ipc-channel)",
  "lazy_static 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "num_cpus 0.2.13 (registry+https://github.com/rust-lang/crates.io-index)",

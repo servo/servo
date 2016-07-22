@@ -33,8 +33,6 @@ use std::process;
 use std::sync::mpsc::{Sender, channel};
 use style_traits::{PagePx, ViewportPx};
 use url::Url;
-use util;
-use util::ipc::OptionalIpcSender;
 use util::opts::{self, Opts};
 use util::prefs::{PREFS, Pref};
 use webrender_traits;
@@ -138,7 +136,8 @@ impl Pipeline {
     {
         // Note: we allow channel creation to panic, since recovering from this
         // probably requires a general low-memory strategy.
-        let (layout_to_paint_chan, layout_to_paint_port) = util::ipc::optional_ipc_channel();
+        let (layout_to_paint_chan, layout_to_paint_port) = ipc::channel()
+            .expect("Layout to paint chan");
         let (chrome_to_paint_chan, chrome_to_paint_port) = channel();
         let (pipeline_chan, pipeline_port) = ipc::channel()
             .expect("Pipeline main chan");;
@@ -422,7 +421,7 @@ pub struct UnprivilegedPipelineContent {
     script_chan: IpcSender<ConstellationControlMsg>,
     load_data: LoadData,
     script_port: IpcReceiver<ConstellationControlMsg>,
-    layout_to_paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
+    layout_to_paint_chan: IpcSender<LayoutToPaintMsg>,
     opts: Opts,
     prefs: HashMap<String, Pref>,
     pipeline_port: IpcReceiver<LayoutControlMsg>,

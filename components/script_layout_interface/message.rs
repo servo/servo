@@ -6,7 +6,7 @@ use app_units::Au;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
 use gfx_traits::{Epoch, LayerId};
-use ipc_channel::ipc::{IpcReceiver, IpcSender};
+use ipc_channel::ipc::{IpcReceiver, IpcSender, OpaqueIpcSender};
 use msg::constellation_msg::PipelineId;
 use net_traits::image_cache_thread::ImageCacheThread;
 use profile_traits::mem::ReportsChan;
@@ -20,7 +20,6 @@ use style::context::ReflowGoal;
 use style::selector_impl::PseudoElement;
 use style::stylesheets::Stylesheet;
 use url::Url;
-use util::ipc::OptionalOpaqueIpcSender;
 use {OpaqueStyleAndLayoutData, TrustedNodeAddress};
 
 /// Asynchronous messages that script can send to layout.
@@ -147,6 +146,6 @@ pub struct NewLayoutThreadInfo {
     pub constellation_chan: IpcSender<ConstellationMsg>,
     pub script_chan: IpcSender<ConstellationControlMsg>,
     pub image_cache_thread: ImageCacheThread,
-    pub paint_chan: OptionalOpaqueIpcSender,
+    pub paint_chan: OpaqueIpcSender,
     pub content_process_shutdown_chan: IpcSender<()>,
 }

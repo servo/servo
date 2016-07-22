@@ -11,7 +11,6 @@ extern crate net_traits;
 extern crate profile_traits;
 extern crate script_traits;
 extern crate url;
-extern crate util;
 extern crate webrender_traits;
 
 // This module contains traits in layout used generically
@@ -29,7 +28,6 @@ use script_traits::LayoutMsg as ConstellationMsg;
 use script_traits::{LayoutControlMsg, ConstellationControlMsg};
 use std::sync::mpsc::{Sender, Receiver};
 use url::Url;
-use util::ipc::OptionalIpcSender;
 
 // A static method creating a layout thread
 // Here to remove the compositor -> layout dependency
@@ -42,7 +40,7 @@ pub trait LayoutThreadFactory {
               pipeline_port: IpcReceiver<LayoutControlMsg>,
               constellation_chan: IpcSender<ConstellationMsg>,
               script_chan: IpcSender<ConstellationControlMsg>,
-              layout_to_paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
+              layout_to_paint_chan: IpcSender<LayoutToPaintMsg>,
               image_cache_thread: ImageCacheThread,
               font_cache_thread: FontCacheThread,
               time_profiler_chan: time::ProfilerChan,
