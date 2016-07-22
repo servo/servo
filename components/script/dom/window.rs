@@ -30,6 +30,7 @@ use dom::document::Document;
 use dom::element::Element;
 use dom::event::Event;
 use dom::eventtarget::EventTarget;
+use dom::history::History;
 use dom::htmliframeelement::build_mozbrowser_custom_event;
 use dom::location::Location;
 use dom::navigator::Navigator;
@@ -158,6 +159,7 @@ pub struct Window {
     #[ignore_heap_size_of = "channels are hard"]
     image_cache_chan: ImageCacheChan,
     browsing_context: MutNullableHeap<JS<BrowsingContext>>,
+    history: MutNullableHeap<JS<History>>,
     performance: MutNullableHeap<JS<Performance>>,
     navigation_start: u64,
     navigation_start_precise: f64,
@@ -473,6 +475,11 @@ impl WindowMethods for Window {
     // https://html.spec.whatwg.org/multipage/#dom-document-2
     fn Document(&self) -> Root<Document> {
         self.browsing_context().active_document()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-history
+    fn History(&self) -> Root<History> {
+        self.history.or_init(|| History::new(self))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location
@@ -1648,6 +1655,7 @@ impl Window {
             mem_profiler_chan: mem_profiler_chan,
             time_profiler_chan: time_profiler_chan,
             devtools_chan: devtools_chan,
+            history: Default::default(),
             browsing_context: Default::default(),
             performance: Default::default(),
             navigation_start: (current_time.sec * 1000 + current_time.nsec as i64 / 1000000) as u64,
