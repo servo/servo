@@ -63,25 +63,34 @@ fn top_down_dom<N, C>(unsafe_nodes: UnsafeNodeList,
         // Get a real layout node.
         let node = unsafe { N::from_unsafe(&unsafe_node) };
 
+        if !context.should_process(node) {
+            continue;
+        }
+
         // Perform the appropriate traversal.
         context.process_preorder(node);
 
-        let child_count = node.children_count();
+        // Possibly enqueue the children.
+        let mut children_to_process = 0isize;
+        for kid in node.children() {
+            context.pre_process_child_hook(node, kid);
+            if context.should_process(kid) {
+                children_to_process += 1;
+                discovered_child_nodes.push(kid.to_unsafe())
+            }
+        }
 
         // Reset the count of children.
         {
             let data = node.mutate_data().unwrap();
-            data.parallel.children_count.store(child_count as isize,
-                                               Ordering::Relaxed);
+            data.parallel.children_to_process
+                         .store(children_to_process,
+                                Ordering::Relaxed);
         }
 
-        // Possibly enqueue the children.
-        if child_count != 0 {
-            for kid in node.children() {
-                discovered_child_nodes.push(kid.to_unsafe())
-            }
-        } else {
-            // If there were no more children, start walking back up.
+
+        // If there were no more children, start walking back up.
+        if children_to_process == 0 {
             bottom_up_dom::<N, C>(unsafe_nodes.1, unsafe_node, proxy)
         }
     }
@@ -128,7 +137,7 @@ fn bottom_up_dom<N, C>(root: OpaqueNode,
 
         if parent_data
             .parallel
-            .children_count
+            .children_to_process
             .fetch_sub(1, Ordering::Relaxed) != 1 {
             // Get out of here and find another node to work on.
             break
@@ -138,4 +147,3 @@ fn bottom_up_dom<N, C>(root: OpaqueNode,
         node = parent;
     }
 }
-
