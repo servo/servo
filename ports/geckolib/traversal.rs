@@ -6,6 +6,7 @@ use context::StandaloneStyleContext;
 use std::mem;
 use style::context::SharedStyleContext;
 use style::dom::OpaqueNode;
+use style::dom::TNode;
 use style::traversal::{DomTraversalContext, recalc_style_at};
 use wrapper::GeckoNode;
 
@@ -35,5 +36,20 @@ impl<'lc, 'ln> DomTraversalContext<GeckoNode<'ln>> for RecalcStyleOnly<'lc> {
         recalc_style_at(&self.context, self.root, node);
     }
 
+    fn should_process(&self, node: GeckoNode<'ln>) -> bool {
+        node.is_dirty() || node.has_dirty_descendants()
+    }
+
     fn process_postorder(&self, _: GeckoNode<'ln>) {}
+
+    fn pre_process_child_hook(&self, parent: GeckoNode<'ln>, kid: GeckoNode<'ln>) {
+        // NOTE: At this point is completely safe to modify either the parent or
+        // the child, since we have exclusive access to them.
+        if parent.is_dirty() {
+            unsafe {
+                kid.set_dirty(true);
+                parent.set_dirty_descendants(true);
+            }
+        }
+    }
 }
