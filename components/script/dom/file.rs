@@ -73,7 +73,10 @@ impl File {
         let ref typeString = blobPropertyBag.type_;
 
         let modified = filePropertyBag.lastModified;
-        Ok(File::new(global, BlobImpl::new_from_bytes(bytes), filename, modified, typeString))
+        // NOTE: Following behaviour might be removed in future,
+        // see https://github.com/w3c/FileAPI/issues/41
+        let replaced_filename = DOMString::from_string(filename.replace("/", ":"));
+        Ok(File::new(global, BlobImpl::new_from_bytes(bytes), replaced_filename, modified, typeString))
     }
 
     pub fn name(&self) -> &DOMString {
