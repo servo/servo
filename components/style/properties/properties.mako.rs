@@ -481,6 +481,8 @@ fn append_shorthand_value<'a, W, I>(dest: &mut W,
         Shorthand::BorderRight => try!(append_border_right_shorthand(dest, declarations)),
         Shorthand::BorderBottom => try!(append_border_bottom_shorthand(dest, declarations)),
         Shorthand::BorderLeft => try!(append_border_left_shorthand(dest, declarations)),
+        Shorthand::BorderColor => try!(append_border_color_shorthand(dest, declarations)),
+        Shorthand::BorderStyle => try!(append_border_style_shorthand(dest, declarations)),
         _ => {}
     };
 
@@ -1141,6 +1143,54 @@ fn append_directional_border_shorthand<W, I>(dest: &mut W,
         },
         _ => Ok(())
     }
+}
+
+fn append_border_color_shorthand<'a, W, I>(dest: &mut W,
+                                           declarations: I) -> fmt::Result
+                                           where W: fmt::Write, I: Iterator<Item=&'a PropertyDeclaration> {
+
+    let mut top = None;
+    let mut right = None;
+    let mut bottom = None;
+    let mut left = None;
+
+    for decl in declarations {
+        match decl {
+            &PropertyDeclaration::BorderTopColor(ref value) => { top = Some(value); },
+            &PropertyDeclaration::BorderRightColor(ref value) => { right = Some(value); },
+            &PropertyDeclaration::BorderBottomColor(ref value) => { bottom = Some(value); },
+            &PropertyDeclaration::BorderLeftColor(ref value) => { left = Some(value); },
+            _ => return Err(fmt::Error)
+        }
+    }
+
+    let (top, right, bottom, left) = try_unwrap_longhands!(top, right, bottom, left);
+
+    append_positional_shorthand(dest, top, right, bottom, left)
+}
+
+fn append_border_style_shorthand<'a, W, I>(dest: &mut W,
+                                           declarations: I) -> fmt::Result
+                                           where W: fmt::Write, I: Iterator<Item=&'a PropertyDeclaration> {
+
+    let mut top = None;
+    let mut right = None;
+    let mut bottom = None;
+    let mut left = None;
+
+    for decl in declarations {
+        match decl {
+            &PropertyDeclaration::BorderTopStyle(ref value) => { top = Some(value); },
+            &PropertyDeclaration::BorderRightStyle(ref value) => { right = Some(value); },
+            &PropertyDeclaration::BorderBottomStyle(ref value) => { bottom = Some(value); },
+            &PropertyDeclaration::BorderLeftStyle(ref value) => { left = Some(value); },
+            _ => return Err(fmt::Error)
+        }
+    }
+
+    let (top, right, bottom, left) = try_unwrap_longhands!(top, right, bottom, left);
+
+    append_positional_shorthand(dest, top, right, bottom, left)
 }
 
 fn append_serialization<'a, W, I>(dest: &mut W,
