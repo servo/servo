@@ -171,12 +171,23 @@ impl AsyncResponseListener for ParserContext {
             Some(parser) => parser.root(),
             None => return,
         };
-        parser.r().document().finish_load(LoadType::PageSource(self.url.clone()));
 
-        if let Err(err) = status {
-            debug!("Failed to load page URL {}, error: {:?}", self.url, err);
+        if let Err(NetworkError::Internal(ref reason)) = status {
+            // Show an error page for network errors,
+            // certificate errors are handled earlier.
+            self.is_synthesized_document = true;
+            let parser = parser.r();
+            let page_bytes = read_resource_file("neterror.html").unwrap();
+            let page = String::from_utf8(page_bytes).unwrap();
+            let page = page.replace("${reason}", reason);
+            parser.pending_input().borrow_mut().push(page);
+            parser.parse_sync();
+        } else if let Err(err) = status {
             // TODO(Savago): we should send a notification to callers #5463.
+            debug!("Failed to load page URL {}, error: {:?}", self.url, err);
         }
+
+        parser.r().document().finish_load(LoadType::PageSource(self.url.clone()));
 
         parser.r().last_chunk_received().set(true);
         if !parser.r().is_suspended() {

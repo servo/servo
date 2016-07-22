@@ -8,6 +8,7 @@
 
 typedef double DOMHighResTimeStamp;
 
+[Exposed=(Window,Worker)]
 interface Performance {
   readonly attribute PerformanceTiming timing;
   /*  readonly attribute PerformanceNavigation navigation; */

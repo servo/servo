@@ -17,23 +17,23 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layers::geometry::DevicePixel;
 use layout_traits::LayoutThreadFactory;
-use msg::constellation_msg::{FrameId, FrameType, LoadData, PanicMsg, PipelineId};
+use msg::constellation_msg::{FrameId, FrameType, LoadData, PipelineId};
 use msg::constellation_msg::{PipelineNamespaceId, SubpageId};
-use net_traits::ResourceThreads;
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::ImageCacheThread;
+use net_traits::{ResourceThreads, IpcSend};
 use profile_traits::mem as profile_mem;
 use profile_traits::time;
 use script_traits::{ConstellationControlMsg, InitialScriptState, MozBrowserEvent};
-use script_traits::{LayoutControlMsg, LayoutMsg, NewLayoutInfo, ScriptMsg};
+use script_traits::{LayoutControlMsg, LayoutMsg, NewLayoutInfo, ScriptMsg, SWManagerMsg, SWManagerSenders};
 use script_traits::{ScriptThreadFactory, TimerEventRequest, WindowSizeData};
 use std::collections::HashMap;
 use std::io::Error as IOError;
 use std::process;
 use std::sync::mpsc::{Sender, channel};
+use style_traits::{PagePx, ViewportPx};
 use url::Url;
 use util;
-use util::geometry::{PagePx, ViewportPx};
 use util::ipc::OptionalIpcSender;
 use util::opts::{self, Opts};
 use util::prefs::{PREFS, Pref};
@@ -89,8 +89,6 @@ pub struct InitialPipelineState {
     pub constellation_chan: IpcSender<ScriptMsg>,
     /// A channel for the layout thread to send messages to the constellation.
     pub layout_to_constellation_chan: IpcSender<LayoutMsg>,
-    /// A channel to report panics
-    pub panic_chan: IpcSender<PanicMsg>,
     /// A channel to schedule timer events.
     pub scheduler_chan: IpcSender<TimerEventRequest>,
     /// A channel to the compositor.
@@ -99,6 +97,8 @@ pub struct InitialPipelineState {
     pub devtools_chan: Option<Sender<DevtoolsControlMsg>>,
     /// A channel to the bluetooth thread.
     pub bluetooth_thread: IpcSender<BluetoothMethodMsg>,
+    /// A channel to the service worker manager thread
+    pub swmanager_thread: IpcSender<SWManagerMsg>,
     /// A channel to the image cache thread.
     pub image_cache_thread: ImageCacheThread,
     /// A channel to the font cache thread.
@@ -157,7 +157,6 @@ impl Pipeline {
                     frame_type: frame_type,
                     load_data: state.load_data.clone(),
                     paint_chan: layout_to_paint_chan.clone().to_opaque(),
-                    panic_chan: state.panic_chan.clone(),
                     pipeline_port: pipeline_port,
                     layout_to_constellation_chan: state.layout_to_constellation_chan.clone(),
                     content_process_shutdown_chan: layout_content_process_shutdown_chan.clone(),
@@ -180,7 +179,6 @@ impl Pipeline {
                             layout_to_paint_port,
                             chrome_to_paint_port,
                             state.compositor_proxy.clone_compositor_proxy(),
-                            state.panic_chan.clone(),
                             state.font_cache_thread.clone(),
                             state.time_profiler_chan.clone(),
                             state.mem_profiler_chan.clone());
@@ -222,6 +220,7 @@ impl Pipeline {
                 scheduler_chan: state.scheduler_chan,
                 devtools_chan: script_to_devtools_chan,
                 bluetooth_thread: state.bluetooth_thread,
+                swmanager_thread: state.swmanager_thread,
                 image_cache_thread: state.image_cache_thread,
                 font_cache_thread: state.font_cache_thread,
                 resource_threads: state.resource_threads,
@@ -231,7 +230,6 @@ impl Pipeline {
                 layout_to_constellation_chan: state.layout_to_constellation_chan,
                 script_chan: script_chan.clone(),
                 load_data: state.load_data.clone(),
-                panic_chan: state.panic_chan,
                 script_port: script_port,
                 opts: (*opts::get()).clone(),
                 prefs: PREFS.cloned(),
@@ -376,7 +374,7 @@ impl Pipeline {
     }
 
     pub fn trigger_mozbrowser_event(&self,
-                                     subpage_id: SubpageId,
+                                     subpage_id: Option<SubpageId>,
                                      event: MozBrowserEvent) {
         assert!(PREFS.is_mozbrowser_enabled());
 
@@ -414,6 +412,7 @@ pub struct UnprivilegedPipelineContent {
     scheduler_chan: IpcSender<TimerEventRequest>,
     devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     bluetooth_thread: IpcSender<BluetoothMethodMsg>,
+    swmanager_thread: IpcSender<SWManagerMsg>,
     image_cache_thread: ImageCacheThread,
     font_cache_thread: FontCacheThread,
     resource_threads: ResourceThreads,
@@ -422,7 +421,6 @@ pub struct UnprivilegedPipelineContent {
     window_size: Option<WindowSizeData>,
     script_chan: IpcSender<ConstellationControlMsg>,
     load_data: LoadData,
-    panic_chan: IpcSender<PanicMsg>,
     script_port: IpcReceiver<ConstellationControlMsg>,
     layout_to_paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
     opts: Opts,
@@ -448,7 +446,6 @@ impl UnprivilegedPipelineContent {
             control_port: self.script_port,
             constellation_chan: self.constellation_chan,
             scheduler_chan: self.scheduler_chan,
-            panic_chan: self.panic_chan.clone(),
             bluetooth_thread: self.bluetooth_thread,
             resource_threads: self.resource_threads,
             image_cache_thread: self.image_cache_thread.clone(),
@@ -466,7 +463,6 @@ impl UnprivilegedPipelineContent {
                     layout_pair,
                     self.pipeline_port,
                     self.layout_to_constellation_chan,
-                    self.panic_chan,
                     self.script_chan,
                     self.layout_to_paint_chan,
                     self.image_cache_thread,
@@ -535,11 +531,22 @@ impl UnprivilegedPipelineContent {
         process::exit(1);
     }
 
+    pub fn constellation_chan(&self) -> IpcSender<ScriptMsg> {
+        self.constellation_chan.clone()
+    }
+
     pub fn opts(&self) -> Opts {
         self.opts.clone()
     }
 
     pub fn prefs(&self) -> HashMap<String, Pref> {
         self.prefs.clone()
+    }
+
+    pub fn swmanager_senders(&self) -> SWManagerSenders {
+        SWManagerSenders {
+            swmanager_sender: self.swmanager_thread.clone(),
+            resource_sender: self.resource_threads.sender()
+        }
     }
 }

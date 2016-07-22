@@ -76,7 +76,7 @@ pub enum WindowEvent {
     /// Sent when the user quits the application
     Quit,
     /// Sent when a key input state changes
-    KeyEvent(Key, KeyState, KeyModifiers),
+    KeyEvent(Option<char>, Key, KeyState, KeyModifiers),
     /// Sent when Ctr+R/Apple+R is called to reload the current page.
     Reload,
 }
@@ -159,7 +159,7 @@ pub trait WindowMethods {
     fn set_cursor(&self, cursor: Cursor);
 
     /// Process a key event.
-    fn handle_key(&self, key: Key, mods: KeyModifiers);
+    fn handle_key(&self, ch: Option<char>, key: Key, mods: KeyModifiers);
 
     /// Does this window support a clipboard
     fn supports_clipboard(&self) -> bool;

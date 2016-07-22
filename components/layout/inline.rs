@@ -32,16 +32,15 @@ use std::cmp::max;
 use std::collections::VecDeque;
 use std::sync::Arc;
 use std::{fmt, i32, isize, mem};
+use style::arc_ptr_eq;
 use style::computed_values::{display, overflow_x, position, text_align, text_justify};
 use style::computed_values::{text_overflow, vertical_align, white_space};
-use style::context::StyleContext;
+use style::context::{SharedStyleContext, StyleContext};
 use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
-use style::properties::{ComputedValues, ServoComputedValues};
-use style::servo::SharedStyleContext;
+use style::properties::ServoComputedValues;
 use style::values::computed::LengthOrPercentage;
 use text;
 use unicode_bidi;
-use util;
 
 // From gfxFontConstants.h in Firefox
 static FONT_SUBSCRIPT_OFFSET_RATIO: f32 = 0.20;
@@ -360,7 +359,7 @@ impl LineBreaker {
                 (&mut SpecificFragmentInfo::ScannedText(ref mut result_info),
                  &SpecificFragmentInfo::ScannedText(ref candidate_info)) => {
                     result_info.selected() == candidate_info.selected() &&
-                    util::arc_ptr_eq(&result_info.run, &candidate_info.run) &&
+                    arc_ptr_eq(&result_info.run, &candidate_info.run) &&
                         inline_contexts_are_equal(&result.inline_context,
                                                   &candidate.inline_context)
                 }
@@ -459,10 +458,12 @@ impl LineBreaker {
             kind: FloatKind::Left,
         });
 
+        let fragment_margin_box_inline_size = first_fragment.margin_box_inline_size();
+
         // Simple case: if the fragment fits, then we can stop here.
-        if line_bounds.size.inline > first_fragment.margin_box_inline_size() {
+        if line_bounds.size.inline > fragment_margin_box_inline_size {
             debug!("LineBreaker: fragment fits on line {}", self.lines.len());
-            return (line_bounds, first_fragment.margin_box_inline_size());
+            return (line_bounds, fragment_margin_box_inline_size);
         }
 
         // If not, but we can't split the fragment, then we'll place the line here and it will
@@ -471,7 +472,7 @@ impl LineBreaker {
             debug!("LineBreaker: line doesn't fit, but is unsplittable");
         }
 
-        (line_bounds, first_fragment.margin_box_inline_size())
+        (line_bounds, fragment_margin_box_inline_size)
     }
 
     /// Performs float collision avoidance. This is called when adding a fragment is going to
@@ -1778,7 +1779,7 @@ impl InlineFragmentContext {
             return false
         }
         for (this_node, other_node) in self.nodes.iter().zip(&other.nodes) {
-            if !util::arc_ptr_eq(&this_node.style, &other_node.style) {
+            if !arc_ptr_eq(&this_node.style, &other_node.style) {
                 return false
             }
         }

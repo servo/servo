@@ -3,8 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://slightlyoff.github.io/ServiceWorker/spec/service_worker/#service-worker-container
-// [Exposed=(Window,Worker)]
-[Pref="dom.serviceworker.enabled"]
+[Pref="dom.serviceworker.enabled", Exposed=(Window,Worker)]
 interface ServiceWorkerContainer : EventTarget {
   [Unforgeable] readonly attribute ServiceWorker? controller;
   //[SameObject] readonly attribute Promise<ServiceWorkerRegistration> ready;

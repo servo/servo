@@ -52,8 +52,9 @@ impl HTMLOptionElement {
     pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLOptionElement> {
-        let element = HTMLOptionElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLOptionElementBinding::Wrap)
+        Node::reflect_node(box HTMLOptionElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLOptionElementBinding::Wrap)
     }
 
     pub fn set_selectedness(&self, selected: bool) {

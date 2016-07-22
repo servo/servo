@@ -41,8 +41,9 @@ impl DocumentType {
                system_id: Option<DOMString>,
                document: &Document)
                -> Root<DocumentType> {
-        let documenttype = DocumentType::new_inherited(name, public_id, system_id, document);
-        Node::reflect_node(box documenttype, document, DocumentTypeBinding::Wrap)
+        Node::reflect_node(box DocumentType::new_inherited(name, public_id, system_id, document),
+                           document,
+                           DocumentTypeBinding::Wrap)
     }
 
     #[inline]

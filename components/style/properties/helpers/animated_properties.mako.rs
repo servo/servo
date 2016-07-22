@@ -16,7 +16,7 @@ use properties::longhands::line_height::computed_value::T as LineHeight;
 use properties::longhands::text_shadow::computed_value::T as TextShadowList;
 use properties::longhands::text_shadow::computed_value::TextShadow;
 use properties::longhands::box_shadow::computed_value::T as BoxShadowList;
-use properties::longhands::box_shadow::computed_value::BoxShadow;
+use properties::longhands::box_shadow::single_value::computed_value::T as BoxShadow;
 use properties::longhands::transform::computed_value::ComputedMatrix;
 use properties::longhands::transform::computed_value::ComputedOperation as TransformOperation;
 use properties::longhands::transform::computed_value::T as TransformList;
@@ -24,7 +24,6 @@ use properties::longhands::transform_origin::computed_value::T as TransformOrigi
 use properties::longhands::vertical_align::computed_value::T as VerticalAlign;
 use properties::longhands::visibility::computed_value::T as Visibility;
 use properties::longhands::z_index::computed_value::T as ZIndex;
-use properties::style_struct_traits::*;
 use std::cmp;
 use std::fmt;
 use super::ComputedValues;
@@ -34,7 +33,8 @@ use values::computed::{CalcLengthOrPercentage, LengthOrPercentage};
 
 // NB: This needs to be here because it needs all the longhands generated
 // beforehand.
-#[derive(Copy, Clone, Debug, PartialEq, HeapSizeOf)]
+#[derive(Copy, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum TransitionProperty {
     All,
     % for prop in data.longhands:
@@ -92,7 +92,8 @@ impl ToCss for TransitionProperty {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, HeapSizeOf)]
+#[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum AnimatedProperty {
     % for prop in data.longhands:
         % if prop.animatable:
@@ -113,7 +114,7 @@ impl AnimatedProperty {
         }
     }
 
-    pub fn update<C: ComputedValues>(&self, style: &mut C, progress: f64) {
+    pub fn update(&self, style: &mut ComputedValues, progress: f64) {
         match *self {
             % for prop in data.longhands:
                 % if prop.animatable:
@@ -127,9 +128,10 @@ impl AnimatedProperty {
         }
     }
 
-    pub fn from_transition_property<C: ComputedValues>(transition_property: &TransitionProperty,
-                                                       old_style: &C,
-                                                       new_style: &C) -> AnimatedProperty {
+    pub fn from_transition_property(transition_property: &TransitionProperty,
+                                    old_style: &ComputedValues,
+                                    new_style: &ComputedValues)
+                                    -> AnimatedProperty {
         match *transition_property {
             TransitionProperty::All => panic!("Can't use TransitionProperty::All here."),
             % for prop in data.longhands:
@@ -604,9 +606,18 @@ fn interpolate_transform_list(from_list: &[TransformOperation],
                     result.push(TransformOperation::Scale(ix, iy, iz));
                 }
                 (&TransformOperation::Rotate(fx, fy, fz, fa),
-                 &TransformOperation::Rotate(_tx, _ty, _tz, _ta)) => {
-                    // TODO(gw): Implement matrix decomposition and interpolation
-                    result.push(TransformOperation::Rotate(fx, fy, fz, fa));
+                 &TransformOperation::Rotate(tx, ty, tz, ta)) => {
+                    let norm_f = ((fx * fx) + (fy * fy) + (fz * fz)).sqrt();
+                    let norm_t = ((tx * tx) + (ty * ty) + (tz * tz)).sqrt();
+                    let (fx, fy, fz) = (fx / norm_f, fy / norm_f, fz / norm_f);
+                    let (tx, ty, tz) = (tx / norm_t, ty / norm_t, tz / norm_t);
+                    if fx == tx && fy == ty && fz == tz {
+                        let ia = fa.interpolate(&ta, time).unwrap();
+                        result.push(TransformOperation::Rotate(fx, fy, fz, ia));
+                    } else {
+                        // TODO(gw): Implement matrix decomposition and interpolation
+                        result.push(TransformOperation::Rotate(fx, fy, fz, fa));
+                    }
                 }
                 (&TransformOperation::Perspective(fd),
                  &TransformOperation::Perspective(_td)) => {

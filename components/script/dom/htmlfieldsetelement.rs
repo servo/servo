@@ -40,8 +40,9 @@ impl HTMLFieldSetElement {
     pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLFieldSetElement> {
-        let element = HTMLFieldSetElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLFieldSetElementBinding::Wrap)
+        Node::reflect_node(box HTMLFieldSetElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLFieldSetElementBinding::Wrap)
     }
 }
 

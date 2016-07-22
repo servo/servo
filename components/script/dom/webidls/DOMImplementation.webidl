@@ -10,7 +10,7 @@
  * related or neighboring rights to this work.
  */
 
-// [Exposed=Window]
+[Exposed=(Window,Worker)]
 interface DOMImplementation {
   [NewObject, Throws]
   DocumentType createDocumentType(DOMString qualifiedName, DOMString publicId,

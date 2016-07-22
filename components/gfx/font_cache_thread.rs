@@ -6,7 +6,7 @@ use font_template::{FontTemplate, FontTemplateDescriptor};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use mime::{TopLevel, SubLevel};
-use net_traits::{AsyncResponseTarget, LoadContext, PendingAsyncLoad, CoreResourceThread, ResponseAction, RequestSource};
+use net_traits::{AsyncResponseTarget, LoadContext, PendingAsyncLoad, CoreResourceThread, ResponseAction};
 use platform::font_context::FontContextHandle;
 use platform::font_list::SANS_SERIF_FONT_FAMILY;
 use platform::font_list::for_each_available_family;
@@ -211,8 +211,7 @@ impl FontCache {
                                                  url.clone(),
                                                  None,
                                                  None,
-                                                 None,
-                                                 RequestSource::None);
+                                                 None);
                 let (data_sender, data_receiver) = ipc::channel().unwrap();
                 let data_target = AsyncResponseTarget {
                     sender: data_sender,
@@ -268,10 +267,17 @@ impl FontCache {
             Source::Local(ref font) => {
                 let font_face_name = LowercaseString::new(font.name());
                 let templates = &mut self.web_families.get_mut(&family_name).unwrap();
+                let mut found = false;
                 for_each_variation(&font_face_name, |path| {
+                    found = true;
                     templates.add_template(Atom::from(&*path), None);
                 });
-                sender.send(()).unwrap();
+                if found {
+                    sender.send(()).unwrap();
+                } else {
+                    let msg = Command::AddWebFont(family_name, sources, sender);
+                    self.channel_to_self.send(msg).unwrap();
+                }
             }
         }
     }

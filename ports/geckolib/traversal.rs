@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use context::StandaloneStyleContext;
-use selector_impl::SharedStyleContext;
 use std::mem;
+use style::context::SharedStyleContext;
 use style::dom::OpaqueNode;
 use style::traversal::{DomTraversalContext, recalc_style_at};
 use wrapper::GeckoNode;

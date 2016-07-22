@@ -8,8 +8,7 @@
 use dom::bindings::js::JS;
 use dom::document::Document;
 use msg::constellation_msg::PipelineId;
-use net_traits::{PendingAsyncLoad, LoadContext};
-use net_traits::{RequestSource, AsyncResponseTarget};
+use net_traits::{PendingAsyncLoad, AsyncResponseTarget, LoadContext};
 use net_traits::{ResourceThreads, IpcSend};
 use std::thread;
 use url::Url;
@@ -130,14 +129,12 @@ impl DocumentLoader {
         let context = load.to_load_context();
         let url = load.url().clone();
         self.add_blocking_load(load);
-        let client_chan = referrer.window().custom_message_chan();
         PendingAsyncLoad::new(context,
                               self.resource_threads.sender(),
                               url,
                               self.pipeline,
                               referrer.get_referrer_policy(),
-                              Some(referrer.url().clone()),
-                              RequestSource::Window(client_chan))
+                              Some(referrer.url().clone()))
     }
 
     /// Create and initiate a new network request.

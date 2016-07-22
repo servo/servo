@@ -24,7 +24,7 @@ use hyper::method::Method;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper::net::Fresh;
 use hyper::status::{StatusClass, StatusCode};
-use ipc_channel::ipc;
+use ipc_channel::ipc::{self, IpcSender};
 use log;
 use mime_classifier::MimeClassifier;
 use msg::constellation_msg::{PipelineId, ReferrerPolicy};
@@ -32,7 +32,7 @@ use net_traits::ProgressMsg::{Done, Payload};
 use net_traits::hosts::replace_hosts;
 use net_traits::response::HttpsState;
 use net_traits::{CookieSource, IncludeSubdomains, LoadConsumer, LoadContext, LoadData};
-use net_traits::{Metadata, NetworkError, RequestSource, CustomResponse};
+use net_traits::{Metadata, NetworkError, CustomResponse, CustomResponseMediator};
 use openssl;
 use openssl::ssl::error::{SslError, OpensslError};
 use profile_traits::time::{ProfilerCategory, profile, ProfilerChan, TimerMetadata};
@@ -59,6 +59,7 @@ pub fn factory(user_agent: String,
                http_state: HttpState,
                devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                profiler_chan: ProfilerChan,
+               swmanager_chan: Option<IpcSender<CustomResponseMediator>>,
                connector: Arc<Pool<Connector>>)
                -> Box<FnBox(LoadData,
                             LoadConsumer,
@@ -78,6 +79,7 @@ pub fn factory(user_agent: String,
                                   connector,
                                   http_state,
                                   devtools_chan,
+                                  swmanager_chan,
                                   cancel_listener,
                                   user_agent)
             })
@@ -131,6 +133,7 @@ fn load_for_consumer(load_data: LoadData,
                      connector: Arc<Pool<Connector>>,
                      http_state: HttpState,
                      devtools_chan: Option<Sender<DevtoolsControlMsg>>,
+                     swmanager_chan: Option<IpcSender<CustomResponseMediator>>,
                      cancel_listener: CancellationListener,
                      user_agent: String) {
     let factory = NetworkHttpRequestFactory {
@@ -140,7 +143,7 @@ fn load_for_consumer(load_data: LoadData,
     let ui_provider = TFDProvider;
     match load(&load_data, &ui_provider, &http_state,
                devtools_chan, &factory,
-               user_agent, &cancel_listener) {
+               user_agent, &cancel_listener, swmanager_chan) {
         Err(error) => {
             match error.error {
                 LoadErrorType::ConnectionAborted { .. } => unreachable!(),
@@ -425,7 +428,7 @@ fn set_default_accept_language(headers: &mut Headers) {
 }
 
 /// https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-state-no-referrer-when-downgrade
-fn no_ref_when_downgrade_header(referrer_url: Url, url: Url) -> Option<Url> {
+fn no_referrer_when_downgrade_header(referrer_url: Url, url: Url) -> Option<Url> {
     if referrer_url.scheme() == "https" && url.scheme() != "https" {
         return None;
     }
@@ -458,10 +461,12 @@ pub fn determine_request_referrer(headers: &mut Headers,
         let cross_origin = ref_url.origin() != url.origin();
         return match referrer_policy {
             Some(ReferrerPolicy::NoReferrer) => None,
-            Some(ReferrerPolicy::OriginOnly) => strip_url(ref_url, true),
+            Some(ReferrerPolicy::Origin) => strip_url(ref_url, true),
+            Some(ReferrerPolicy::SameOrigin) => if cross_origin { None } else { strip_url(ref_url, false) },
             Some(ReferrerPolicy::UnsafeUrl) => strip_url(ref_url, false),
             Some(ReferrerPolicy::OriginWhenCrossOrigin) => strip_url(ref_url, cross_origin),
-            Some(ReferrerPolicy::NoRefWhenDowngrade) | None => no_ref_when_downgrade_header(ref_url, url),
+            Some(ReferrerPolicy::NoReferrerWhenDowngrade) | None =>
+                no_referrer_when_downgrade_header(ref_url, url),
         };
     }
     return None;
@@ -858,7 +863,8 @@ pub fn load<A, B>(load_data: &LoadData,
                   devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                   request_factory: &HttpRequestFactory<R=A>,
                   user_agent: String,
-                  cancel_listener: &CancellationListener)
+                  cancel_listener: &CancellationListener,
+                  swmanager_chan: Option<IpcSender<CustomResponseMediator>>)
                   -> Result<StreamedResponse, LoadError> where A: HttpRequest + 'static, B: UIProvider {
     let max_redirects = PREFS.get("network.http.redirection-limit").as_i64().unwrap() as u32;
     let mut iters = 0;
@@ -876,17 +882,19 @@ pub fn load<A, B>(load_data: &LoadData,
     }
 
     let (msg_sender, msg_receiver) = ipc::channel().unwrap();
-    match load_data.source {
-        RequestSource::Window(ref sender) | RequestSource::Worker(ref sender) => {
-            sender.send(msg_sender.clone()).unwrap();
-            let received_msg = msg_receiver.recv().unwrap();
-            if let Some(custom_response) = received_msg {
-                let metadata = Metadata::default(doc_url.clone());
-                let readable_response = to_readable_response(custom_response);
-                return StreamedResponse::from_http_response(box readable_response, metadata);
-            }
+    let response_mediator = CustomResponseMediator {
+        response_chan: msg_sender,
+        load_url: doc_url.clone()
+    };
+    if let Some(sender) = swmanager_chan {
+        let _ = sender.send(response_mediator);
+        if let Ok(Some(custom_response)) = msg_receiver.recv() {
+            let metadata = Metadata::default(doc_url.clone());
+            let readable_response = to_readable_response(custom_response);
+            return StreamedResponse::from_http_response(box readable_response, metadata);
         }
-        RequestSource::None => {}
+    } else {
+        debug!("Did not receive a custom response");
     }
 
     // If the URL is a view-source scheme then the scheme data contains the
@@ -1070,6 +1078,7 @@ pub fn load<A, B>(load_data: &LoadData,
         } else {
             HttpsState::None
         };
+        metadata.referrer = referrer_url;
 
         // Only notify the devtools about the final request that received a response.
         if let Some(msg) = msg {
@@ -1134,7 +1143,7 @@ fn is_cert_verify_error(error: &OpensslError) -> bool {
     match error {
         &OpensslError::UnknownError { ref library, ref function, ref reason } => {
             library == "SSL routines" &&
-            function == "SSL3_GET_SERVER_CERTIFICATE" &&
+            function.to_uppercase() == "SSL3_GET_SERVER_CERTIFICATE" &&
             reason == "certificate verify failed"
         }
     }

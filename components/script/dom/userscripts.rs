@@ -24,9 +24,12 @@ pub fn load_script(head: &HTMLHeadElement) {
         let doc = doc.r();
 
         let path = if &**path_str == "" {
-            let mut p = resources_dir_path();
-            p.push("user-agent-js");
-            p
+            if let Ok(mut p) = resources_dir_path() {
+                p.push("user-agent-js");
+                p
+            } else {
+                return
+            }
         } else {
             PathBuf::from(path_str)
         };

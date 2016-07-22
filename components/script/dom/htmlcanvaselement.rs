@@ -67,8 +67,9 @@ impl HTMLCanvasElement {
     pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLCanvasElement> {
-        let element = HTMLCanvasElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLCanvasElementBinding::Wrap)
+        Node::reflect_node(box HTMLCanvasElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLCanvasElementBinding::Wrap)
     }
 
     fn recreate_contexts(&self) {

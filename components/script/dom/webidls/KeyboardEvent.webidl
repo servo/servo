@@ -7,7 +7,7 @@
  *
  */
 
-[Constructor(DOMString typeArg, optional KeyboardEventInit keyboardEventInitDict)]
+[Constructor(DOMString typeArg, optional KeyboardEventInit keyboardEventInitDict), Exposed=(Window,Worker)]
 interface KeyboardEvent : UIEvent {
     // KeyLocationCode
     const unsigned long DOM_KEY_LOCATION_STANDARD = 0x00;
@@ -43,7 +43,7 @@ partial interface KeyboardEvent {
 };
 
 // https://w3c.github.io/uievents/#dictdef-keyboardeventinit
-dictionary KeyboardEventInit : SharedKeyboardAndMouseEventInit {
+dictionary KeyboardEventInit : EventModifierInit {
     DOMString     key = "";
     DOMString     code = "";
     unsigned long location = 0;

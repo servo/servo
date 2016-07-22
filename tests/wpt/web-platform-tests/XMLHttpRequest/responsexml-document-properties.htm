@@ -10,6 +10,7 @@
   <body>
     <div id="log"></div>
     <script>
+      var timePreXHR = Math.floor(new Date().getTime() / 1000);
       var client = new XMLHttpRequest()
       client.open("GET", "resources/well-formed.xml", false)
       client.send(null)
@@ -43,8 +44,18 @@
       }
 
       test(function() {
-        assert_true((new Date(client.getResponseHeader('Last-Modified'))).getTime() == (new Date(client.responseXML.lastModified)).getTime(), 'responseXML.lastModified time should be equal to time in response Last-Modified header')
-      }, 'lastModified set according to HTTP header')
+        var lastModified = Math.floor(new Date(client.responseXML.lastModified).getTime() / 1000);
+        var now = Math.floor(new Date().getTime() / 1000);
+        assert_greater_than_equal(lastModified, timePreXHR);
+        assert_less_than_equal(lastModified, now);
+      }, 'lastModified set to time of response if no HTTP header provided')
+
+      test(function() {
+        var client2 = new XMLHttpRequest()
+        client2.open("GET", "resources/last-modified.py", false)
+        client2.send(null)
+        assert_equals((new Date(client2.getResponseHeader('Last-Modified'))).getTime(), (new Date(client2.responseXML.lastModified)).getTime())
+      }, 'lastModified set to related HTTP header if provided')
 
       test(function() {
         client.responseXML.cookie = "thisshouldbeignored"

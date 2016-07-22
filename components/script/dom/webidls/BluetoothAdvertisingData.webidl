@@ -12,7 +12,7 @@ interface BluetoothServiceDataMap {
   readonly maplike<UUID, DataView>;
 };*/
 
-[Pref="dom.bluetooth.enabled"]
+[Pref="dom.bluetooth.enabled", Exposed=(Window,Worker)]
 interface BluetoothAdvertisingData {
   readonly attribute unsigned short? appearance;
   readonly attribute byte? txPower;

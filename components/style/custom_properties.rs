@@ -194,7 +194,7 @@ fn parse_declaration_value_block(input: &mut Parser,
                 let token_slice = input.slice_from(token_start);
                 if !token_slice.ends_with("*/") {
                     missing_closing_characters.push_str(
-                        if token_slice.ends_with("*") { "/" } else { "*/" })
+                        if token_slice.ends_with('*') { "/" } else { "*/" })
                 }
                 token.serialization_type()
             }

@@ -25,6 +25,7 @@ use dom::document::DocumentSource;
 use dom::document::{Document, IsHTMLDocument};
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
+use dom::headers::is_forbidden_header_name;
 use dom::progressevent::ProgressEvent;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 use dom::xmlhttprequestupload::XMLHttpRequestUpload;
@@ -47,7 +48,7 @@ use net_traits::CoreResourceMsg::Fetch;
 use net_traits::request::{CredentialsMode, Destination, RequestInit, RequestMode};
 use net_traits::trim_http_whitespace;
 use net_traits::{CoreResourceThread, LoadOrigin};
-use net_traits::{FetchResponseListener, Metadata, NetworkError, RequestSource};
+use net_traits::{FetchResponseListener, Metadata, NetworkError};
 use network_listener::{NetworkListener, PreInvoke};
 use parse::html::{ParseContext, parse_html};
 use parse::xml::{self, parse_xml};
@@ -258,6 +259,7 @@ impl XMLHttpRequest {
         let listener = NetworkListener {
             context: context,
             script_chan: script_chan,
+            wrapper: None,
         };
         ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
             listener.notify_fetch(message.to().unwrap());
@@ -272,13 +274,6 @@ impl LoadOrigin for XMLHttpRequest {
     }
     fn referrer_policy(&self) -> Option<ReferrerPolicy> {
         return self.referrer_policy;
-    }
-    fn request_source(&self) -> RequestSource {
-        if self.sync.get() {
-            RequestSource::None
-        } else {
-            self.global().r().request_source()
-        }
     }
     fn pipeline_id(&self) -> Option<PipelineId> {
         let global = self.global();
@@ -367,6 +362,12 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                 // Step 11 - abort existing requests
                 self.terminate_ongoing_fetch();
 
+                // TODO(izgzhen): In the WPT test: FileAPI/blob/Blob-XHR-revoke.html,
+                // the xhr.open(url) is expected to hold a reference to the URL,
+                // thus renders following revocations invalid. Though we won't
+                // implement this for now, if ever needed, we should check blob
+                // scheme and trigger corresponding actions here.
+
                 // Step 12
                 *self.request_method.borrow_mut() = parsed_method;
                 *self.request_url.borrow_mut() = Some(parsed_url);
@@ -409,21 +410,8 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                 // Step 5
                 // Disallowed headers and header prefixes:
                 // https://fetch.spec.whatwg.org/#forbidden-header-name
-                let disallowedHeaders =
-                    ["accept-charset", "accept-encoding",
-                    "access-control-request-headers",
-                    "access-control-request-method",
-                    "connection", "content-length",
-                    "cookie", "cookie2", "date", "dnt",
-                    "expect", "host", "keep-alive", "origin",
-                    "referer", "te", "trailer", "transfer-encoding",
-                    "upgrade", "via"];
-
-                let disallowedHeaderPrefixes = ["sec-", "proxy-"];
-
-                if disallowedHeaders.iter().any(|header| *header == s) ||
-                   disallowedHeaderPrefixes.iter().any(|prefix| s.starts_with(prefix)) {
-                    return Ok(())
+                if is_forbidden_header_name(s) {
+                    return Ok(());
                 } else {
                     s
                 }
@@ -1233,7 +1221,10 @@ impl XMLHttpRequest {
                       is_html_document,
                       content_type,
                       None,
-                      DocumentSource::FromParser, docloader)
+                      DocumentSource::FromParser,
+                      docloader,
+                      None,
+                      None)
     }
 
     fn filter_response_headers(&self) -> Headers {

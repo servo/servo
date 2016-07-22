@@ -11,6 +11,16 @@
     use std::fmt;
     use values::LocalToCss;
     use values::CSSFloat;
+    use values::HasViewportPercentage;
+
+    impl HasViewportPercentage for SpecifiedValue {
+        fn has_viewport_percentage(&self) -> bool {
+            match *self {
+                SpecifiedValue::LengthOrPercentage(length) => length.has_viewport_percentage(),
+                _ => false
+            }
+        }
+    }
 
     #[derive(Debug, Clone, PartialEq, Copy)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -92,7 +102,7 @@
         type ComputedValue = computed_value::T;
 
         #[inline]
-        fn to_computed_value<Cx: TContext>(&self, context: &Cx) -> computed_value::T {
+        fn to_computed_value(&self, context: &Context) -> computed_value::T {
             match *self {
                 SpecifiedValue::Normal => computed_value::T::Normal,
                 % if product == "gecko":
@@ -123,7 +133,9 @@
 <%helpers:longhand name="text-align" animatable="False">
     pub use self::computed_value::T as SpecifiedValue;
     use values::computed::ComputedValueAsSpecified;
+    use values::NoViewportPercentage;
     impl ComputedValueAsSpecified for SpecifiedValue {}
+    impl NoViewportPercentage for SpecifiedValue {}
     pub mod computed_value {
         macro_rules! define_text_align {
             ( $( $name: ident ( $string: expr ) => $discriminant: expr, )+ ) => {
@@ -184,6 +196,16 @@
     use cssparser::ToCss;
     use std::fmt;
     use values::LocalToCss;
+    use values::HasViewportPercentage;
+
+    impl HasViewportPercentage for SpecifiedValue {
+        fn has_viewport_percentage(&self) -> bool {
+            match *self {
+                SpecifiedValue::Specified(length) => length.has_viewport_percentage(),
+                _ => false
+            }
+        }
+    }
 
     #[derive(Debug, Clone, Copy, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -226,7 +248,7 @@
         type ComputedValue = computed_value::T;
 
         #[inline]
-        fn to_computed_value<Cx: TContext>(&self, context: &Cx) -> computed_value::T {
+        fn to_computed_value(&self, context: &Context) -> computed_value::T {
             match *self {
                 SpecifiedValue::Normal => computed_value::T(None),
                 SpecifiedValue::Specified(l) =>
@@ -248,6 +270,16 @@
     use cssparser::ToCss;
     use std::fmt;
     use values::LocalToCss;
+    use values::HasViewportPercentage;
+
+    impl HasViewportPercentage for SpecifiedValue {
+        fn has_viewport_percentage(&self) -> bool {
+            match *self {
+                SpecifiedValue::Specified(length) => length.has_viewport_percentage(),
+                _ => false
+            }
+        }
+    }
 
     #[derive(Debug, Clone, Copy, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -290,7 +322,7 @@
         type ComputedValue = computed_value::T;
 
         #[inline]
-        fn to_computed_value<Cx: TContext>(&self, context: &Cx) -> computed_value::T {
+        fn to_computed_value(&self, context: &Context) -> computed_value::T {
             match *self {
                 SpecifiedValue::Normal => computed_value::T(None),
                 SpecifiedValue::Specified(l) =>
@@ -340,10 +372,11 @@ ${helpers.single_keyword("text-justify",
     use cssparser::{RGBA, ToCss};
     use std::fmt;
 
+    use values:: NoViewportPercentage;
     use values::computed::ComputedValueAsSpecified;
-    use properties::style_struct_traits::{Box, Color, Text};
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
+    impl NoViewportPercentage for SpecifiedValue {}
 
     #[derive(Clone, PartialEq, Copy, Debug)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -373,7 +406,7 @@ ${helpers.single_keyword("text-justify",
         }
     }
 
-    fn maybe<Cx: TContext>(flag: bool, context: &Cx) -> Option<RGBA> {
+    fn maybe(flag: bool, context: &Context) -> Option<RGBA> {
         if flag {
             Some(context.style().get_color().clone_color())
         } else {
@@ -381,7 +414,7 @@ ${helpers.single_keyword("text-justify",
         }
     }
 
-    fn derive<Cx: TContext>(context: &Cx) -> computed_value::T {
+    fn derive(context: &Context) -> computed_value::T {
         // Start with no declarations if this is an atomic inline-level box; otherwise, start with the
         // declarations in effect and add in the text decorations that this block specifies.
         let mut result = match context.style().get_box().clone_display() {
@@ -405,13 +438,13 @@ ${helpers.single_keyword("text-justify",
     }
 
     #[inline]
-    pub fn derive_from_text_decoration<Cx: TContext>(context: &mut Cx) {
+    pub fn derive_from_text_decoration(context: &mut Context) {
         let derived = derive(context);
         context.mutate_style().mutate_inheritedtext().set__servo_text_decorations_in_effect(derived);
     }
 
     #[inline]
-    pub fn derive_from_display<Cx: TContext>(context: &mut Cx) {
+    pub fn derive_from_display(context: &mut Context) {
         let derived = derive(context);
         context.mutate_style().mutate_inheritedtext().set__servo_text_decorations_in_effect(derived);
     }
@@ -422,7 +455,9 @@ ${helpers.single_keyword("text-justify",
                                   gecko_constant_prefix="NS_STYLE_WHITESPACE"
                                   animatable="False">
     use values::computed::ComputedValueAsSpecified;
+    use values::NoViewportPercentage;
     impl ComputedValueAsSpecified for SpecifiedValue {}
+    impl NoViewportPercentage for SpecifiedValue {}
 
     impl SpecifiedValue {
         pub fn allow_wrap(&self) -> bool {
@@ -461,10 +496,26 @@ ${helpers.single_keyword("text-justify",
     use cssparser::{self, ToCss};
     use std::fmt;
     use values::LocalToCss;
+    use values::HasViewportPercentage;
+
+    impl HasViewportPercentage for SpecifiedValue {
+        fn has_viewport_percentage(&self) -> bool {
+            let &SpecifiedValue(ref vec) = self;
+            vec.iter().any(|ref x| x .has_viewport_percentage())
+        }
+    }
 
     #[derive(Clone, PartialEq, Debug)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue(Vec<SpecifiedTextShadow>);
+
+    impl HasViewportPercentage for SpecifiedTextShadow {
+        fn has_viewport_percentage(&self) -> bool {
+            self.offset_x.has_viewport_percentage() ||
+            self.offset_y.has_viewport_percentage() ||
+            self.blur_radius.has_viewport_percentage()
+        }
+    }
 
     #[derive(Clone, PartialEq, Debug)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -623,7 +674,7 @@ ${helpers.single_keyword("text-justify",
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
 
-        fn to_computed_value<Cx: TContext>(&self, context: &Cx) -> computed_value::T {
+        fn to_computed_value(&self, context: &Context) -> computed_value::T {
             computed_value::T(self.0.iter().map(|value| {
                 computed_value::TextShadow {
                     offset_x: value.offset_x.to_computed_value(context),

@@ -13,8 +13,9 @@ use dom::bindings::str::{DOMString, USVString};
 use dom::blob::Blob;
 use dom::urlhelper::UrlHelper;
 use dom::urlsearchparams::URLSearchParams;
+use ipc_channel::ipc;
 use net_traits::IpcSend;
-use net_traits::blob_url_store::parse_blob_url;
+use net_traits::blob_url_store::{get_blob_origin, parse_blob_url};
 use net_traits::filemanager_thread::{SelectedFileId, FileManagerThreadMsg};
 use std::borrow::ToOwned;
 use std::default::Default;
@@ -116,7 +117,7 @@ impl URL {
     pub fn CreateObjectURL(global: GlobalRef, blob: &Blob) -> DOMString {
         /// XXX: Second field is an unicode-serialized Origin, it is a temporary workaround
         ///      and should not be trusted. See issue https://github.com/servo/servo/issues/11722
-        let origin = URL::get_blob_origin(&global.get_url());
+        let origin = get_blob_origin(&global.get_url());
 
         if blob.IsClosed() {
             // Generate a dummy id
@@ -124,7 +125,7 @@ impl URL {
             return DOMString::from(URL::unicode_serialization_blob_url(&origin, &id));
         }
 
-        let id = blob.get_id();
+        let id = blob.get_blob_url_id();
 
         DOMString::from(URL::unicode_serialization_blob_url(&origin, &id.0))
     }
@@ -140,19 +141,18 @@ impl URL {
 
             NOTE: The first step is unnecessary, since closed blobs do not exist in the store
         */
-        let origin = global.get_url().origin().unicode_serialization();
+        let origin = get_blob_origin(&global.get_url());
 
-        match Url::parse(&url) {
-            Ok(url) => match parse_blob_url(&url) {
-                Some((id, _)) => {
-                    let filemanager = global.resource_threads().sender();
-                    let id = SelectedFileId(id.simple().to_string());
-                    let msg = FileManagerThreadMsg::DecRef(id, origin);
-                    let _ = filemanager.send(msg);
-                }
-                None => {}
-            },
-            Err(_) => {}
+        if let Ok(url) = Url::parse(&url) {
+             if let Ok((id, _, _)) = parse_blob_url(&url) {
+                let filemanager = global.resource_threads().sender();
+                let id = SelectedFileId(id.simple().to_string());
+                let (tx, rx) = ipc::channel().unwrap();
+                let msg = FileManagerThreadMsg::RevokeBlobURL(id, origin, tx);
+                let _ = filemanager.send(msg);
+
+                let _ = rx.recv().unwrap();
+            }
         }
     }
 
@@ -171,19 +171,6 @@ impl URL {
         result.push_str(id);
 
         result
-    }
-
-    // XXX: change String to FileOrigin
-    /* NOTE(izgzhen): WebKit will return things like blob:file:///XXX
-       while Chrome will return blob:null/XXX
-       This is not well-specified, and I prefer the WebKit way here
-    */
-    fn get_blob_origin(url: &Url) -> String {
-        if url.scheme() == "file" {
-            "file://".to_string()
-        } else {
-            url.origin().unicode_serialization()
-        }
     }
 }
 

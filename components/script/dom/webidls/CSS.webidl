@@ -6,7 +6,7 @@
  * http://dev.w3.org/csswg/cssom/#the-css-interface
  */
 
-[Abstract]
+[Abstract, Exposed=(Window,Worker)]
 interface CSS {
   [Throws]
   static DOMString escape(DOMString ident);

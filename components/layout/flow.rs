@@ -50,10 +50,10 @@ use std::sync::Arc;
 use std::sync::atomic::Ordering;
 use std::{fmt, mem, raw};
 use style::computed_values::{clear, display, empty_cells, float, position, overflow_x, text_align};
+use style::context::SharedStyleContext;
 use style::dom::TRestyleDamage;
 use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
-use style::properties::{self, ComputedValues, ServoComputedValues};
-use style::servo::SharedStyleContext;
+use style::properties::{self, ServoComputedValues};
 use style::values::computed::LengthOrPercentageOrAuto;
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, TableFlow};
 use table_caption::TableCaptionFlow;
@@ -588,7 +588,7 @@ impl FlowClass {
         match self {
             FlowClass::Block | FlowClass::ListItem | FlowClass::Table | FlowClass::TableRowGroup |
             FlowClass::TableRow | FlowClass::TableCaption | FlowClass::TableCell |
-            FlowClass::TableWrapper => true,
+            FlowClass::TableWrapper | FlowClass::Flex => true,
             _ => false,
         }
     }
@@ -1304,6 +1304,9 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
                 Arc::new(TableCellFlow::from_node_fragment_and_visibility_flag(node, fragment, !hide))
             },
             FlowClass::Flex => {
+                properties::modify_style_for_anonymous_flow(
+                    &mut style,
+                    display::T::block);
                 let fragment =
                     Fragment::from_opaque_node_and_style(node.opaque(),
                                                          PseudoElementType::Normal,

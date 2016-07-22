@@ -9,10 +9,10 @@
 //! navigation context, each `Pipeline` encompassing a `ScriptThread`,
 //! `LayoutThread`, and `PaintThread`.
 
+use backtrace::Backtrace;
 use canvas::canvas_paint_thread::CanvasPaintThread;
 use canvas::webgl_paint_thread::WebGLPaintThread;
 use canvas_traits::CanvasMsg;
-use clipboard::ClipboardContext;
 use compositing::SendableFrameTree;
 use compositing::compositor_thread::CompositorProxy;
 use compositing::compositor_thread::Msg as ToCompositorMsg;
@@ -24,11 +24,11 @@ use gfx_traits::Epoch;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout_traits::LayoutThreadFactory;
+use log::{Log, LogLevel, LogLevelFilter, LogMetadata, LogRecord};
 use msg::constellation_msg::{FrameId, FrameType, PipelineId};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
 use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId, NavigationDirection};
 use msg::constellation_msg::{SubpageId, WindowSizeType};
-use msg::constellation_msg::{self, PanicMsg};
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::filemanager_thread::FileManagerThreadMsg;
 use net_traits::image_cache_thread::ImageCacheThread;
@@ -39,25 +39,28 @@ use pipeline::{ChildProcess, InitialPipelineState, Pipeline};
 use profile_traits::mem;
 use profile_traits::time;
 use rand::{random, Rng, SeedableRng, StdRng};
-use script_traits::webdriver_msg;
 use script_traits::{AnimationState, AnimationTickType, CompositorEvent};
 use script_traits::{ConstellationControlMsg, ConstellationMsg as FromCompositorMsg};
 use script_traits::{DocumentState, LayoutControlMsg};
 use script_traits::{IFrameLoadInfo, IFrameSandboxState, TimerEventRequest};
 use script_traits::{LayoutMsg as FromLayoutMsg, ScriptMsg as FromScriptMsg, ScriptThreadFactory};
 use script_traits::{MozBrowserEvent, MozBrowserErrorType, WebDriverCommandMsg, WindowSizeData};
+use script_traits::{ScopeThings, SWManagerMsg};
+use script_traits::{webdriver_msg, LogEntry, ServiceWorkerMsg};
 use std::borrow::ToOwned;
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::io::Error as IOError;
 use std::marker::PhantomData;
 use std::mem::replace;
 use std::process;
 use std::sync::mpsc::{Sender, channel, Receiver};
+use std::sync::{Arc, Mutex};
+use std::thread;
+use style_traits::PagePx;
 use style_traits::cursor::Cursor;
 use style_traits::viewport::ViewportConstraints;
 use timer_scheduler::TimerScheduler;
 use url::Url;
-use util::geometry::PagePx;
 use util::opts;
 use util::prefs::PREFS;
 use util::thread::spawn_named;
@@ -87,9 +90,6 @@ pub struct Constellation<Message, LTF, STF> {
     /// A channel through which layout thread messages can be sent to this object.
     layout_sender: IpcSender<FromLayoutMsg>,
 
-    /// A channel through which panic messages can be sent to this object.
-    panic_sender: IpcSender<PanicMsg>,
-
     /// Receives messages from scripts.
     script_receiver: Receiver<FromScriptMsg>,
 
@@ -98,9 +98,6 @@ pub struct Constellation<Message, LTF, STF> {
 
     /// Receives messages from the layout thread
     layout_receiver: Receiver<FromLayoutMsg>,
-
-    /// Receives panic messages.
-    panic_receiver: Receiver<PanicMsg>,
 
     /// A channel (the implementation of which is port-specific) through which messages can be sent
     /// to the compositor.
@@ -120,6 +117,15 @@ pub struct Constellation<Message, LTF, STF> {
 
     /// A channel through which messages can be sent to the bluetooth thread.
     bluetooth_thread: IpcSender<BluetoothMethodMsg>,
+
+    /// Sender to Service Worker Manager thread
+    swmanager_chan: Option<IpcSender<ServiceWorkerMsg>>,
+
+    /// to send messages to this object
+    swmanager_sender: IpcSender<SWManagerMsg>,
+
+    /// to receive sw manager message
+    swmanager_receiver: Receiver<SWManagerMsg>,
 
     /// A list of all the pipelines. (See the `pipeline` module for more details.)
     pipelines: HashMap<PipelineId, Pipeline>,
@@ -158,9 +164,6 @@ pub struct Constellation<Message, LTF, STF> {
 
     window_size: WindowSizeData,
 
-    /// Means of accessing the clipboard
-    clipboard_ctx: Option<ClipboardContext>,
-
     /// Bits of state used to interact with the webdriver implementation
     webdriver: WebDriverData,
 
@@ -179,8 +182,9 @@ pub struct Constellation<Message, LTF, STF> {
     /// Are we shutting down?
     shutting_down: bool,
 
-    /// Have we seen any panics? Hopefully always false!
-    handled_panic: bool,
+    /// Have we seen any warnings? Hopefully always empty!
+    /// The buffer contains `(thread_name, reason)` entries.
+    handled_warnings: VecDeque<(Option<String>, String)>,
 
     /// The random number generator and probability for closing pipelines.
     /// This is for testing the hardening of the constellation.
@@ -304,12 +308,112 @@ enum ExitPipelineMode {
     Force,
 }
 
+/// A logger directed at the constellation from content processes
+#[derive(Clone)]
+pub struct FromScriptLogger {
+    /// A channel to the constellation
+    pub constellation_chan: Arc<Mutex<IpcSender<FromScriptMsg>>>,
+}
+
+impl FromScriptLogger {
+    /// Create a new constellation logger.
+    pub fn new(constellation_chan: IpcSender<FromScriptMsg>) -> FromScriptLogger {
+        FromScriptLogger {
+            constellation_chan: Arc::new(Mutex::new(constellation_chan))
+        }
+    }
+
+    /// The maximum log level the constellation logger is interested in.
+    pub fn filter(&self) -> LogLevelFilter {
+        LogLevelFilter::Warn
+    }
+}
+
+impl Log for FromScriptLogger {
+    fn enabled(&self, metadata: &LogMetadata) -> bool {
+        metadata.level() <= LogLevel::Warn
+    }
+
+    fn log(&self, record: &LogRecord) {
+        if let Some(entry) = log_entry(record) {
+            debug!("Sending log entry {:?}.", entry);
+            let pipeline_id = PipelineId::installed();
+            let thread_name = thread::current().name().map(ToOwned::to_owned);
+            let msg = FromScriptMsg::LogEntry(pipeline_id, thread_name, entry);
+            if let Ok(chan) = self.constellation_chan.lock() {
+                let _ = chan.send(msg);
+            }
+        }
+    }
+}
+
+/// A logger directed at the constellation from the compositor
+#[derive(Clone)]
+pub struct FromCompositorLogger {
+    /// A channel to the constellation
+    pub constellation_chan: Arc<Mutex<Sender<FromCompositorMsg>>>,
+}
+
+impl FromCompositorLogger {
+    /// Create a new constellation logger.
+    pub fn new(constellation_chan: Sender<FromCompositorMsg>) -> FromCompositorLogger {
+        FromCompositorLogger {
+            constellation_chan: Arc::new(Mutex::new(constellation_chan))
+        }
+    }
+
+    /// The maximum log level the constellation logger is interested in.
+    pub fn filter(&self) -> LogLevelFilter {
+        LogLevelFilter::Warn
+    }
+}
+
+impl Log for FromCompositorLogger {
+    fn enabled(&self, metadata: &LogMetadata) -> bool {
+        metadata.level() <= LogLevel::Warn
+    }
+
+    fn log(&self, record: &LogRecord) {
+        if let Some(entry) = log_entry(record) {
+            debug!("Sending log entry {:?}.", entry);
+            let pipeline_id = PipelineId::installed();
+            let thread_name = thread::current().name().map(ToOwned::to_owned);
+            let msg = FromCompositorMsg::LogEntry(pipeline_id, thread_name, entry);
+            if let Ok(chan) = self.constellation_chan.lock() {
+                let _ = chan.send(msg);
+            }
+        }
+    }
+}
+
+fn log_entry(record: &LogRecord) -> Option<LogEntry> {
+    match record.level() {
+        LogLevel::Error if thread::panicking() => Some(LogEntry::Panic(
+            format!("{}", record.args()),
+            format!("{:?}", Backtrace::new())
+        )),
+        LogLevel::Error => Some(LogEntry::Error(
+            format!("{}", record.args())
+        )),
+        LogLevel::Warn => Some(LogEntry::Warn(
+            format!("{}", record.args())
+        )),
+        _ => None,
+    }
+}
+
+const WARNINGS_BUFFER_SIZE: usize = 32;
+
 impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     where LTF: LayoutThreadFactory<Message=Message>,
           STF: ScriptThreadFactory<Message=Message>
 {
-    pub fn start(state: InitialConstellationState) -> Sender<FromCompositorMsg> {
+    pub fn start(state: InitialConstellationState) -> (Sender<FromCompositorMsg>, IpcSender<SWManagerMsg>) {
         let (compositor_sender, compositor_receiver) = channel();
+
+        // service worker manager to communicate with constellation
+        let (swmanager_sender, swmanager_receiver) = ipc::channel().expect("ipc channel failure");
+        let sw_mgr_clone = swmanager_sender.clone();
 
         spawn_named("Constellation".to_owned(), move || {
             let (ipc_script_sender, ipc_script_receiver) = ipc::channel().expect("ipc channel failure");
@@ -318,17 +422,14 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             let (ipc_layout_sender, ipc_layout_receiver) = ipc::channel().expect("ipc channel failure");
             let layout_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_layout_receiver);
 
-            let (ipc_panic_sender, ipc_panic_receiver) = ipc::channel().expect("ipc channel failure");
-            let panic_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_panic_receiver);
+            let swmanager_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(swmanager_receiver);
 
             let mut constellation: Constellation<Message, LTF, STF> = Constellation {
                 script_sender: ipc_script_sender,
                 layout_sender: ipc_layout_sender,
                 script_receiver: script_receiver,
-                panic_sender: ipc_panic_sender,
                 compositor_receiver: compositor_receiver,
                 layout_receiver: layout_receiver,
-                panic_receiver: panic_receiver,
                 compositor_proxy: state.compositor_proxy,
                 devtools_chan: state.devtools_chan,
                 bluetooth_thread: state.bluetooth_thread,
@@ -336,6 +437,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 private_resource_threads: state.private_resource_threads,
                 image_cache_thread: state.image_cache_thread,
                 font_cache_thread: state.font_cache_thread,
+                swmanager_chan: None,
+                swmanager_receiver: swmanager_receiver,
+                swmanager_sender: sw_mgr_clone,
                 pipelines: HashMap::new(),
                 frames: HashMap::new(),
                 subpage_map: HashMap::new(),
@@ -355,18 +459,13 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                         ScaleFactor::new(opts::get().device_pixels_per_px.unwrap_or(1.0)),
                 },
                 phantom: PhantomData,
-                clipboard_ctx: if state.supports_clipboard {
-                    ClipboardContext::new().ok()
-                } else {
-                    None
-                },
                 webdriver: WebDriverData::new(),
                 scheduler_chan: TimerScheduler::start(),
                 child_processes: Vec::new(),
                 document_states: HashMap::new(),
                 webrender_api_sender: state.webrender_api_sender,
                 shutting_down: false,
-                handled_panic: false,
+                handled_warnings: VecDeque::new(),
                 random_pipeline_closure: opts::get().random_pipeline_closure_probability.map(|prob| {
                     let seed = opts::get().random_pipeline_closure_seed.unwrap_or_else(random);
                     let rng = StdRng::from_seed(&[seed]);
@@ -379,7 +478,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             PipelineNamespace::install(namespace_id);
             constellation.run();
         });
-        compositor_sender
+        (compositor_sender, swmanager_sender)
     }
 
     fn run(&mut self) {
@@ -426,11 +525,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             parent_info: parent_info,
             constellation_chan: self.script_sender.clone(),
             layout_to_constellation_chan: self.layout_sender.clone(),
-            panic_chan: self.panic_sender.clone(),
             scheduler_chan: self.scheduler_chan.clone(),
             compositor_proxy: self.compositor_proxy.clone_compositor_proxy(),
             devtools_chan: self.devtools_chan.clone(),
             bluetooth_thread: self.bluetooth_thread.clone(),
+            swmanager_thread: self.swmanager_sender.clone(),
             image_cache_thread: self.image_cache_thread.clone(),
             font_cache_thread: self.font_cache_thread.clone(),
             resource_threads: resource_threads,
@@ -503,7 +602,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             Script(FromScriptMsg),
             Compositor(FromCompositorMsg),
             Layout(FromLayoutMsg),
-            Panic(PanicMsg),
+            FromSWManager(SWManagerMsg),
         }
 
         // Get one incoming request.
@@ -521,7 +620,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             let receiver_from_script = &self.script_receiver;
             let receiver_from_compositor = &self.compositor_receiver;
             let receiver_from_layout = &self.layout_receiver;
-            let receiver_from_panic = &self.panic_receiver;
+            let receiver_from_swmanager = &self.swmanager_receiver;
             select! {
                 msg = receiver_from_script.recv() =>
                     Request::Script(msg.expect("Unexpected script channel panic in constellation")),
@@ -529,8 +628,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     Request::Compositor(msg.expect("Unexpected compositor channel panic in constellation")),
                 msg = receiver_from_layout.recv() =>
                     Request::Layout(msg.expect("Unexpected layout channel panic in constellation")),
-                msg = receiver_from_panic.recv() =>
-                    Request::Panic(msg.expect("Unexpected panic channel panic in constellation"))
+                msg = receiver_from_swmanager.recv() =>
+                    Request::FromSWManager(msg.expect("Unexpected panic channel panic in constellation"))
             }
         };
 
@@ -544,9 +643,18 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             Request::Layout(message) => {
                 self.handle_request_from_layout(message);
             },
-            Request::Panic(message) => {
-                self.handle_request_from_panic(message);
-            },
+            Request::FromSWManager(message) => {
+                self.handle_request_from_swmanager(message);
+            }
+        }
+    }
+
+    fn handle_request_from_swmanager(&mut self, message: SWManagerMsg) {
+        match message {
+            SWManagerMsg::OwnSender(sw_sender) => {
+                // store service worker manager for communicating with it.
+                self.swmanager_chan = Some(sw_sender);
+            }
         }
     }
 
@@ -574,9 +682,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 debug!("constellation got get-pipeline-title message");
                 self.handle_get_pipeline_title_msg(pipeline_id);
             }
-            FromCompositorMsg::KeyEvent(key, state, modifiers) => {
+            FromCompositorMsg::KeyEvent(ch, key, state, modifiers) => {
                 debug!("constellation got key event message");
-                self.handle_key_msg(key, state, modifiers);
+                self.handle_key_msg(ch, key, state, modifiers);
             }
             // Load a new page from a typed url
             // If there is already a pending page (self.pending_frames), it will not be overridden;
@@ -620,6 +728,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             FromCompositorMsg::Reload => {
                 debug!("constellation got reload message");
                 self.handle_reload_msg();
+            }
+            FromCompositorMsg::LogEntry(pipeline_id, thread_name, entry) => {
+                self.handle_log_entry(pipeline_id, thread_name, entry);
             }
         }
     }
@@ -709,26 +820,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 }
             }
             FromScriptMsg::GetClipboardContents(sender) => {
-                let result = match self.clipboard_ctx {
-                    Some(ref ctx) => match ctx.get_contents() {
-                        Ok(result) => result,
-                        Err(e) => {
-                            warn!("Error getting clipboard contents ({}), defaulting to empty string", e);
-                            "".to_owned()
-                        },
-                    },
-                    None => "".to_owned()
-                };
-                if let Err(e) = sender.send(result) {
+                if let Err(e) = sender.send("".to_owned()) {
                     warn!("Failed to send clipboard ({})", e);
                 }
             }
-            FromScriptMsg::SetClipboardContents(s) => {
-                if let Some(ref mut ctx) = self.clipboard_ctx {
-                    if let Err(e) = ctx.set_contents(s) {
-                        warn!("Error setting clipboard contents ({})", e);
-                    }
-                }
+            FromScriptMsg::SetClipboardContents(_) => {
             }
             FromScriptMsg::SetVisible(pipeline_id, visible) => {
                 debug!("constellation got set visible messsage");
@@ -798,13 +894,16 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             FromScriptMsg::Exit => {
                 self.compositor_proxy.send(ToCompositorMsg::Exit);
             }
+            FromScriptMsg::LogEntry(pipeline_id, thread_name, entry) => {
+                self.handle_log_entry(pipeline_id, thread_name, entry);
+            }
 
             FromScriptMsg::SetTitle(pipeline_id, title) => {
                 self.compositor_proxy.send(ToCompositorMsg::ChangePageTitle(pipeline_id, title))
             }
 
-            FromScriptMsg::SendKeyEvent(key, key_state, key_modifiers) => {
-                self.compositor_proxy.send(ToCompositorMsg::KeyEvent(key, key_state, key_modifiers))
+            FromScriptMsg::SendKeyEvent(ch, key, key_state, key_modifiers) => {
+                self.compositor_proxy.send(ToCompositorMsg::KeyEvent(ch, key, key_state, key_modifiers))
             }
 
             FromScriptMsg::TouchEventProcessed(result) => {
@@ -813,6 +912,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
             FromScriptMsg::GetScrollOffset(pid, lid, send) => {
                 self.compositor_proxy.send(ToCompositorMsg::GetScrollOffset(pid, lid, send));
+            }
+            FromScriptMsg::RegisterServiceWorker(scope_things, scope) => {
+                debug!("constellation got store registration scope message");
+                self.handle_register_serviceworker(scope_things, scope);
             }
         }
     }
@@ -832,12 +935,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
     }
 
-    fn handle_request_from_panic(&mut self, message: PanicMsg) {
-        match message {
-            (pipeline_id, panic_reason, backtrace) => {
-                debug!("handling panic message ({:?})", pipeline_id);
-                self.handle_panic(pipeline_id, panic_reason, backtrace);
-            }
+    fn handle_register_serviceworker(&self, scope_things: ScopeThings, scope: Url) {
+        if let Some(ref mgr) = self.swmanager_chan {
+            let _ = mgr.send(ServiceWorkerMsg::RegisterServiceWorker(scope_things, scope));
+        } else {
+            warn!("sending scope info to service worker manager failed");
         }
     }
 
@@ -890,6 +992,13 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             warn!("Exit bluetooth thread failed ({})", e);
         }
 
+        debug!("Exiting service worker manager thread.");
+        if let Some(mgr) = self.swmanager_chan.as_ref() {
+            if let Err(e) = mgr.send(ServiceWorkerMsg::Exit) {
+                warn!("Exit service worker manager failed ({})", e);
+            }
+        }
+
         debug!("Exiting font cache thread.");
         self.font_cache_thread.exit();
 
@@ -913,34 +1022,26 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     fn handle_send_error(&mut self, pipeline_id: PipelineId, err: IOError) {
         // Treat send error the same as receiving a panic message
         debug!("Pipeline {:?} send error ({}).", pipeline_id, err);
-        self.handle_panic(Some(pipeline_id), format!("Send failed ({})", err), String::from("<none>"));
+        self.handle_panic(Some(pipeline_id), format!("Send failed ({})", err), None);
     }
 
-    fn handle_panic(&mut self, pipeline_id: Option<PipelineId>, reason: String, backtrace: String) {
-        error!("Panic: {}", reason);
-        if !self.handled_panic || opts::get().full_backtraces {
-            // For the first panic, we print the full backtrace
-            error!("Backtrace:\n{}", backtrace);
-        } else {
-            error!("Backtrace skipped (run with -Z full-backtraces to see every backtrace).");
-        }
-
+    fn handle_panic(&mut self, pipeline_id: Option<PipelineId>, reason: String, backtrace: Option<String>) {
         if opts::get().hard_fail {
             // It's quite difficult to make Servo exit cleanly if some threads have failed.
             // Hard fail exists for test runners so we crash and that's good enough.
-            error!("Pipeline failed in hard-fail mode.  Crashing!");
+            println!("Pipeline failed in hard-fail mode.  Crashing!\n{}\n{}", reason, backtrace.unwrap_or_default());
             process::exit(1);
         }
 
         debug!("Panic handler for pipeline {:?}: {}.", pipeline_id, reason);
 
+        // Notify the browser chrome that the pipeline has failed
+        self.trigger_mozbrowsererror(pipeline_id, reason, backtrace);
+
         if let Some(pipeline_id) = pipeline_id {
             let pipeline_url = self.pipelines.get(&pipeline_id).map(|pipeline| pipeline.url.clone());
             let parent_info = self.pipelines.get(&pipeline_id).and_then(|pipeline| pipeline.parent_info);
             let window_size = self.pipelines.get(&pipeline_id).and_then(|pipeline| pipeline.size);
-
-            // Notify the browser chrome that the pipeline has failed
-            self.trigger_mozbrowsererror(pipeline_id, reason, backtrace);
 
             self.close_pipeline(pipeline_id, ExitPipelineMode::Force);
             self.pipelines.remove(&pipeline_id);
@@ -969,8 +1070,20 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             self.push_pending_frame(new_pipeline_id, Some(pipeline_id));
 
         }
+    }
 
-        self.handled_panic = true;
+    fn handle_log_entry(&mut self, pipeline_id: Option<PipelineId>, thread_name: Option<String>, entry: LogEntry) {
+        debug!("Received log entry {:?}.", entry);
+        match entry {
+            LogEntry::Panic(reason, backtrace) => self.handle_panic(pipeline_id, reason, Some(backtrace)),
+            LogEntry::Error(reason) | LogEntry::Warn(reason) => {
+                // VecDeque::truncate is unstable
+                if WARNINGS_BUFFER_SIZE <= self.handled_warnings.len() {
+                    self.handled_warnings.pop_front();
+                }
+                self.handled_warnings.push_back((thread_name, reason));
+            },
+        }
     }
 
     fn handle_init_load(&mut self, url: Url) {
@@ -1160,7 +1273,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                                 // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowsershowmodalprompt
                                 let event = MozBrowserEvent::ShowModalPrompt("alert".to_owned(), "Alert".to_owned(),
                                                                              String::from(message), "".to_owned());
-                                root_pipeline.trigger_mozbrowser_event(subpage_id, event);
+                                root_pipeline.trigger_mozbrowser_event(Some(subpage_id), event);
                             }
                             None => return warn!("Alert sent to Pipeline {:?} after closure.", root_pipeline_id),
                         }
@@ -1286,7 +1399,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
     fn handle_navigate_msg(&mut self,
                            pipeline_info: Option<(PipelineId, SubpageId)>,
-                           direction: constellation_msg::NavigationDirection) {
+                           direction: NavigationDirection) {
         debug!("received message to navigate {:?}", direction);
 
         // Get the frame id associated with the pipeline that sent
@@ -1396,7 +1509,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
     }
 
-    fn handle_key_msg(&mut self, key: Key, state: KeyState, mods: KeyModifiers) {
+    fn handle_key_msg(&mut self, ch: Option<char>, key: Key, state: KeyState, mods: KeyModifiers) {
         // Send to the explicitly focused pipeline (if it exists), or the root
         // frame's current pipeline. If neither exist, fall back to sending to
         // the compositor below.
@@ -1407,7 +1520,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         match pipeline_id {
             Some(pipeline_id) => {
-                let event = CompositorEvent::KeyEvent(key, state, mods);
+                let event = CompositorEvent::KeyEvent(ch, key, state, mods);
                 let msg = ConstellationControlMsg::SendEvent(pipeline_id, event);
                 let result = match self.pipelines.get(&pipeline_id) {
                     Some(pipeline) => pipeline.script_chan.send(msg),
@@ -1418,7 +1531,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 }
             },
             None => {
-                let event = ToCompositorMsg::KeyEvent(key, state, mods);
+                let event = ToCompositorMsg::KeyEvent(ch, key, state, mods);
                 self.compositor_proxy.clone_compositor_proxy().send(event);
             }
         }
@@ -1454,7 +1567,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
     fn handle_mozbrowser_event_msg(&mut self,
                                    containing_pipeline_id: PipelineId,
-                                   subpage_id: SubpageId,
+                                   subpage_id: Option<SubpageId>,
                                    event: MozBrowserEvent) {
         assert!(PREFS.is_mozbrowser_enabled());
 
@@ -1573,7 +1686,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             size: &Size2D<i32>,
             response_sender: IpcSender<IpcSender<CanvasMsg>>) {
         let webrender_api = self.webrender_api_sender.clone();
-        let sender = CanvasPaintThread::start(*size, webrender_api);
+        let sender = CanvasPaintThread::start(*size, webrender_api,
+                                              opts::get().enable_canvas_antialiasing);
         if let Err(e) = response_sender.send(sender) {
             warn!("Create canvas paint thread response failed ({})", e);
         }
@@ -1629,7 +1743,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     None => return warn!("Pipeline {:?} SendKeys after closure.", pipeline_id),
                 };
                 for (key, mods, state) in cmd {
-                    let event = CompositorEvent::KeyEvent(key, state, mods);
+                    let event = CompositorEvent::KeyEvent(None, key, state, mods);
                     let control_msg = ConstellationControlMsg::SendEvent(pipeline_id, event);
                     if let Err(e) = script_channel.send(control_msg) {
                         return self.handle_send_error(pipeline_id, e);
@@ -2050,7 +2164,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     } else {
                         // Note that we deliberately do not do any of the tidying up
                         // associated with closing a pipeline. The constellation should cope!
-                        info!("Randomly closing pipeline {}.", pipeline_id);
+                        warn!("Randomly closing pipeline {}.", pipeline_id);
                         pipeline.force_exit();
                     }
                 }
@@ -2147,7 +2261,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                         let can_go_backward = !frame.prev.is_empty();
                         let can_go_forward = !frame.next.is_empty();
                         let event = MozBrowserEvent::LocationChange(url, can_go_backward, can_go_forward);
-                        parent_pipeline.trigger_mozbrowser_event(subpage_id, event);
+                        parent_pipeline.trigger_mozbrowser_event(Some(subpage_id), event);
                     }
                 }
             }
@@ -2156,20 +2270,45 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
     // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowsererror
     // Note that this does not require the pipeline to be an immediate child of the root
-    fn trigger_mozbrowsererror(&self, pipeline_id: PipelineId, reason: String, backtrace: String) {
+    fn trigger_mozbrowsererror(&mut self, pipeline_id: Option<PipelineId>, reason: String, backtrace: Option<String>) {
         if !PREFS.is_mozbrowser_enabled() { return; }
 
-        let ancestor_info = self.get_mozbrowser_ancestor_info(pipeline_id);
+        let mut report = String::new();
+        for (thread_name, warning) in self.handled_warnings.drain(..) {
+            report.push_str("\nWARNING: ");
+            if let Some(thread_name) = thread_name {
+                report.push_str("<");
+                report.push_str(&*thread_name);
+                report.push_str(">: ");
+            }
+            report.push_str(&*warning);
+        }
+        report.push_str("\nERROR: ");
+        report.push_str(&*reason);
+        if let Some(backtrace) = backtrace {
+            report.push_str("\n\n");
+            report.push_str(&*backtrace);
+        }
 
-        if let Some(ancestor_info) = ancestor_info {
-            match self.pipelines.get(&ancestor_info.0) {
-                Some(ancestor) => {
-                    let event = MozBrowserEvent::Error(MozBrowserErrorType::Fatal, Some(reason), Some(backtrace));
-                    ancestor.trigger_mozbrowser_event(ancestor_info.1, event);
-                },
-                None => return warn!("Mozbrowsererror via closed pipeline {:?}.", ancestor_info.0),
+        let event = MozBrowserEvent::Error(MozBrowserErrorType::Fatal, reason, report);
+
+        if let Some(pipeline_id) = pipeline_id {
+            if let Some((ancestor_id, subpage_id)) = self.get_mozbrowser_ancestor_info(pipeline_id) {
+                if let Some(ancestor) = self.pipelines.get(&ancestor_id) {
+                    return ancestor.trigger_mozbrowser_event(Some(subpage_id), event);
+                }
             }
         }
+
+        if let Some(root_frame_id) = self.root_frame_id {
+            if let Some(root_frame) = self.frames.get(&root_frame_id) {
+                if let Some(root_pipeline) = self.pipelines.get(&root_frame.current) {
+                    return root_pipeline.trigger_mozbrowser_event(None, event);
+                }
+            }
+        }
+
+        warn!("Mozbrowser error after root pipeline closed.");
     }
 
     fn focused_pipeline_in_tree(&self, frame_id: FrameId) -> bool {

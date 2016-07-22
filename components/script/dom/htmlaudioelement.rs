@@ -29,7 +29,8 @@ impl HTMLAudioElement {
     pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLAudioElement> {
-        let element = HTMLAudioElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLAudioElementBinding::Wrap)
+        Node::reflect_node(box HTMLAudioElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLAudioElementBinding::Wrap)
     }
 }

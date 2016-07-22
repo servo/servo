@@ -151,7 +151,7 @@ pub enum Msg {
     /// Composite.
     Recomposite(CompositingReason),
     /// Sends an unconsumed key event back to the compositor.
-    KeyEvent(Key, KeyState, KeyModifiers),
+    KeyEvent(Option<char>, Key, KeyState, KeyModifiers),
     /// Script has handled a touch event, and either prevented or allowed default actions.
     TouchEventProcessed(EventResult),
     /// Changes the cursor.

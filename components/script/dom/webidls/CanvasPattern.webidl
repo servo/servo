@@ -4,6 +4,7 @@
 
 // https://html.spec.whatwg.org/multipage/#canvaspattern
 
+[Exposed=(Window,Worker)]
 interface CanvasPattern {
   //void setTransform(SVGMatrix matrix);
 };

@@ -9,7 +9,7 @@ use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::TestBindingBinding;
 use dom::bindings::codegen::Bindings::TestBindingBinding::{TestBindingMethods, TestDictionary};
 use dom::bindings::codegen::Bindings::TestBindingBinding::{TestDictionaryDefaults, TestEnum};
-use dom::bindings::codegen::UnionTypes::{BlobOrBoolean, BlobOrBlobSequence};
+use dom::bindings::codegen::UnionTypes::{BlobOrBoolean, BlobOrBlobSequence, LongOrLongSequenceSequence};
 use dom::bindings::codegen::UnionTypes::{BlobOrString, BlobOrUnsignedLong, EventOrString};
 use dom::bindings::codegen::UnionTypes::{EventOrUSVString, HTMLElementOrLong};
 use dom::bindings::codegen::UnionTypes::{HTMLElementOrUnsignedLongOrStringOrBoolean, LongSequenceOrBoolean};
@@ -572,6 +572,17 @@ impl TestBindingMethods for TestBinding {
     fn FuncControlledMethodDisabled(&self) {}
     fn FuncControlledMethodEnabled(&self) {}
 
+    fn PassSequenceSequence(&self, _seq: Vec<Vec<i32>>) {}
+    fn ReturnSequenceSequence(&self) -> Vec<Vec<i32>> { vec![] }
+    fn PassUnionSequenceSequence(&self, seq: LongOrLongSequenceSequence) {
+        match seq {
+            LongOrLongSequenceSequence::Long(_) => (),
+            LongOrLongSequenceSequence::LongSequenceSequence(seq) => {
+                let _seq: Vec<Vec<i32>> = seq;
+            }
+        }
+    }
+
     #[allow(unsafe_code)]
     fn CrashHard(&self) {
         static READ_ONLY_VALUE: i32 = 0;
@@ -579,6 +590,10 @@ impl TestBindingMethods for TestBinding {
             let p: *mut u32 = &READ_ONLY_VALUE as *const _ as *mut _;
             ptr::write_volatile(p, 0xbaadc0de);
         }
+    }
+
+    fn AdvanceClock(&self, ms: i32) {
+        self.global().r().as_window().advance_animation_clock(ms);
     }
 
     fn Panic(&self) { panic!("explicit panic from script") }

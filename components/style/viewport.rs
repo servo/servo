@@ -13,14 +13,14 @@ use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser, 
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::{Size2D, TypedSize2D};
 use parser::{ParserContext, log_css_error};
-use properties::{ComputedValues, ServoComputedValues};
+use properties::ComputedValues;
 use std::ascii::AsciiExt;
 use std::fmt;
 use std::iter::Enumerate;
 use std::str::Chars;
+use style_traits::ViewportPx;
 use style_traits::viewport::{Orientation, UserZoom, ViewportConstraints, Zoom};
 use stylesheets::Origin;
-use util::geometry::ViewportPx;
 use values::computed::{Context, ToComputedValue};
 use values::specified::{Length, LengthOrPercentageOrAuto, ViewportPercentageLength};
 
@@ -646,8 +646,8 @@ impl MaybeNew for ViewportConstraints {
         let context = Context {
             is_root_element: false,
             viewport_size: initial_viewport,
-            inherited_style: ServoComputedValues::initial_values(),
-            style: ServoComputedValues::initial_values().clone(),
+            inherited_style: ComputedValues::initial_values(),
+            style: ComputedValues::initial_values().clone(),
         };
 
         // DEVICE-ADAPT § 9.3 Resolving 'extend-to-zoom'

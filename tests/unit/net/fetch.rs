@@ -157,7 +157,7 @@ fn test_fetch_data() {
 
 #[test]
 fn test_fetch_file() {
-    let mut path = resources_dir_path();
+    let mut path = resources_dir_path().expect("Cannot find resource dir");
     path.push("servo.css");
 
     let url = Url::from_file_path(path.clone()).unwrap();

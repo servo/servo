@@ -19,8 +19,7 @@ use std::sync::Arc;
 use string_cache::Atom;
 use style::media_queries::parse_media_query_list;
 use style::parser::ParserContextExtraData;
-use style::servo::Stylesheet;
-use style::stylesheets::Origin;
+use style::stylesheets::{Stylesheet, Origin};
 
 #[dom_struct]
 pub struct HTMLStyleElement {
@@ -42,8 +41,9 @@ impl HTMLStyleElement {
     pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLStyleElement> {
-        let element = HTMLStyleElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLStyleElementBinding::Wrap)
+        Node::reflect_node(box HTMLStyleElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLStyleElementBinding::Wrap)
     }
 
     pub fn parse_own_css(&self) {

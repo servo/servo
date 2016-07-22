@@ -1,0 +1,18 @@
+Things still to be developed:
+
+Script to run .jsonld files in tools/tests against .test files
+
+Script to batch run submitted .jsonld files from an implementation against .test
+files
+
+Websocket communication to runner tests with a corresponding listener that an
+implementation could use to auto-submit jsonld into the "manual" tests
+
+Change JSONtest logic so that it loads all of the required external files during
+initialization so that it can populate the list of assertions for the HTML in a
+manual test.  Use Promises and Promise.all() to achieve this.
+
+Add a Skip option to tools/runner
+
+Add a tuple mode for evaluating RDF declaratively as well.
+

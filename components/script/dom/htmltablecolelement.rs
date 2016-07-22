@@ -29,7 +29,8 @@ impl HTMLTableColElement {
     pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLTableColElement> {
-        let element = HTMLTableColElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLTableColElementBinding::Wrap)
+        Node::reflect_node(box HTMLTableColElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLTableColElementBinding::Wrap)
     }
 }

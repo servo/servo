@@ -2,6 +2,7 @@
 name = "plugin_compiletest"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
 
 [lib]
 name = "plugin_compiletest"

@@ -28,7 +28,8 @@ impl HTMLOListElement {
     pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLOListElement> {
-        let element = HTMLOListElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLOListElementBinding::Wrap)
+        Node::reflect_node(box HTMLOListElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLOListElementBinding::Wrap)
     }
 }

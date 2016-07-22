@@ -41,7 +41,9 @@ impl XMLDocument {
                                               content_type,
                                               last_modified,
                                               source,
-                                              doc_loader),
+                                              doc_loader,
+                                              None,
+                                              None),
         }
     }
 

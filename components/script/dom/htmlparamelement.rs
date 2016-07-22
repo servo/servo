@@ -29,7 +29,8 @@ impl HTMLParamElement {
     pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLParamElement> {
-        let element = HTMLParamElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLParamElementBinding::Wrap)
+        Node::reflect_node(box HTMLParamElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLParamElementBinding::Wrap)
     }
 }

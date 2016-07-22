@@ -76,7 +76,7 @@ function ReferrerPolicyTestCase(scenario, testDescription, sanityChecker) {
       // Depending on the delivery method, extend the subresource element with
       // these attributes.
       var elementAttributesForDeliveryMethod = {
-        "attr-referrer":  {referrerpolicy: t._scenario.referrer_policy},
+        "attr-referrer":  {referrerPolicy: t._scenario.referrer_policy},
         "rel-noreferrer": {rel: "noreferrer"}
       };
 
@@ -105,11 +105,10 @@ function ReferrerPolicyTestCase(scenario, testDescription, sanityChecker) {
 
         // Check the reported URL.
         test.step(function() {
-          // TODO - can uncomment when Document::Referrer is implemented
-          // assert_equals(result.referrer,
-          //               t._expectedReferrerUrl,
-          //               "Reported Referrer URL is '" +
-          //               t._scenario.referrer_url + "'.");
+          assert_equals(result.referrer,
+                        t._expectedReferrerUrl,
+                        "Reported Referrer URL is '" +
+                        t._scenario.referrer_url + "'.");
           assert_equals(result.headers.referer,
                         t._expectedReferrerUrl,
                         "Reported Referrer URL from HTTP header is '" +

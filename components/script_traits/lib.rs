@@ -36,7 +36,7 @@ mod script_msg;
 pub mod webdriver_msg;
 
 use app_units::Au;
-use devtools_traits::ScriptToDevtoolsControlMsg;
+use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
 use euclid::Size2D;
 use euclid::length::Length;
 use euclid::point::Point2D;
@@ -51,22 +51,25 @@ use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use layers::geometry::DevicePixel;
 use libc::c_void;
 use msg::constellation_msg::{FrameId, FrameType, Image, Key, KeyModifiers, KeyState, LoadData};
-use msg::constellation_msg::{NavigationDirection, PanicMsg, PipelineId};
+use msg::constellation_msg::{NavigationDirection, PipelineId, ReferrerPolicy};
 use msg::constellation_msg::{PipelineNamespaceId, SubpageId, WindowSizeType};
-use net_traits::ResourceThreads;
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::ImageCacheThread;
 use net_traits::response::HttpsState;
+use net_traits::{LoadOrigin, ResourceThreads};
 use profile_traits::mem;
+use profile_traits::time as profile_time;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
+use std::fmt;
 use std::sync::mpsc::{Sender, Receiver};
+use style_traits::{PagePx, ViewportPx};
 use url::Url;
-use util::geometry::{PagePx, ViewportPx};
 use util::ipc::OptionalOpaqueIpcSender;
 use webdriver_msg::{LoadStatus, WebDriverScriptCommand};
 
-pub use script_msg::{LayoutMsg, ScriptMsg, EventResult};
+pub use script_msg::{LayoutMsg, ScriptMsg, EventResult, LogEntry};
+pub use script_msg::{ServiceWorkerMsg, ScopeThings, SWManagerMsg, SWManagerSenders};
 
 /// The address of a node. Layout sends these back. They must be validated via
 /// `from_untrusted_node_address` before they can be used, because we do not trust layout.
@@ -139,8 +142,6 @@ pub struct NewLayoutInfo {
     pub paint_chan: OptionalOpaqueIpcSender,
     /// A port on which layout can receive messages from the pipeline.
     pub pipeline_port: IpcReceiver<LayoutControlMsg>,
-    /// A channel for sending panics on
-    pub panic_chan: IpcSender<PanicMsg>,
     /// A sender for the layout thread to communicate to the constellation.
     pub layout_to_constellation_chan: IpcSender<LayoutMsg>,
     /// A shutdown channel so that layout can tell the content process to shut down when it's done.
@@ -176,8 +177,9 @@ pub enum ConstellationControlMsg {
     NotifyVisibilityChange(PipelineId, PipelineId, bool),
     /// Notifies script thread that a url should be loaded in this iframe.
     Navigate(PipelineId, SubpageId, LoadData),
-    /// Requests the script thread forward a mozbrowser event to an iframe it owns
-    MozBrowserEvent(PipelineId, SubpageId, MozBrowserEvent),
+    /// Requests the script thread forward a mozbrowser event to an iframe it owns,
+    /// or to the window if no subpage id is provided.
+    MozBrowserEvent(PipelineId, Option<SubpageId>, MozBrowserEvent),
     /// Updates the current subpage and pipeline IDs of a given iframe
     UpdateSubpageId(PipelineId, SubpageId, SubpageId, PipelineId),
     /// Set an iframe to be focused. Used when an element in an iframe gains focus.
@@ -202,6 +204,37 @@ pub enum ConstellationControlMsg {
     ReportCSSError(PipelineId, String, usize, usize, String),
     /// Reload the given page.
     Reload(PipelineId),
+}
+
+impl fmt::Debug for ConstellationControlMsg {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        use self::ConstellationControlMsg::*;
+        write!(formatter, "ConstellationMsg::{}", match *self {
+            AttachLayout(..) => "AttachLayout",
+            Resize(..) => "Resize",
+            ResizeInactive(..) => "ResizeInactive",
+            ExitPipeline(..) => "ExitPipeline",
+            SendEvent(..) => "SendEvent",
+            Viewport(..) => "Viewport",
+            SetScrollState(..) => "SetScrollState",
+            GetTitle(..) => "GetTitle",
+            Freeze(..) => "Freeze",
+            Thaw(..) => "Thaw",
+            ChangeFrameVisibilityStatus(..) => "ChangeFrameVisibilityStatus",
+            NotifyVisibilityChange(..) => "NotifyVisibilityChange",
+            Navigate(..) => "Navigate",
+            MozBrowserEvent(..) => "MozBrowserEvent",
+            UpdateSubpageId(..) => "UpdateSubpageId",
+            FocusIFrame(..) => "FocusIFrame",
+            WebDriverScriptCommand(..) => "WebDriverScriptCommand",
+            TickAllAnimations(..) => "TickAllAnimations",
+            WebFontLoaded(..) => "WebFontLoaded",
+            DispatchFrameLoadEvent { .. } => "DispatchFrameLoadEvent",
+            FramedContentChanged(..) => "FramedContentChanged",
+            ReportCSSError(..) => "ReportCSSError",
+            Reload(..) => "Reload",
+        })
+    }
 }
 
 /// Used to determine if a script has any pending asynchronous activity.
@@ -282,7 +315,7 @@ pub enum CompositorEvent {
     /// Touchpad pressure event
     TouchpadPressureEvent(Point2D<f32>, f32, TouchpadPressurePhase),
     /// A key was pressed.
-    KeyEvent(Key, KeyState, KeyModifiers),
+    KeyEvent(Option<char>, Key, KeyState, KeyModifiers),
 }
 
 /// Touchpad pressure phase for TouchpadPressureEvent.
@@ -359,8 +392,6 @@ pub struct InitialScriptState {
     pub control_port: IpcReceiver<ConstellationControlMsg>,
     /// A channel on which messages can be sent to the constellation from script.
     pub constellation_chan: IpcSender<ScriptMsg>,
-    /// A channel for sending panics to the constellation.
-    pub panic_chan: IpcSender<PanicMsg>,
     /// A channel to schedule timer events.
     pub scheduler_chan: IpcSender<TimerEventRequest>,
     /// A channel to the resource manager thread.
@@ -436,7 +467,8 @@ pub enum MozBrowserEvent {
     /// handling `<menuitem>` element available within the browser `<iframe>`'s content.
     ContextMenu,
     /// Sent when an error occurred while trying to load content within a browser `<iframe>`.
-    Error(MozBrowserErrorType, Option<String>, Option<String>),
+    /// Includes a human-readable description, and a machine-readable report.
+    Error(MozBrowserErrorType, String, String),
     /// Sent when the favicon of a browser `<iframe>` changes.
     IconChange(String, String, String),
     /// Sent when the browser `<iframe>` has reached the server.
@@ -586,7 +618,7 @@ pub enum ConstellationMsg {
     /// Query the constellation to see if the current compositor output is stable
     IsReadyToSaveImage(HashMap<PipelineId, Epoch>),
     /// Inform the constellation of a key event.
-    KeyEvent(Key, KeyState, KeyModifiers),
+    KeyEvent(Option<char>, Key, KeyState, KeyModifiers),
     /// Request to load a page.
     LoadUrl(PipelineId, LoadData),
     /// Request to navigate a frame.
@@ -599,4 +631,50 @@ pub enum ConstellationMsg {
     WebDriverCommand(WebDriverCommandMsg),
     /// Reload the current page.
     Reload,
+    /// A log entry, with the pipeline id and thread name
+    LogEntry(Option<PipelineId>, Option<String>, LogEntry),
+}
+
+/// Resources required by workerglobalscopes
+#[derive(Serialize, Deserialize, Clone)]
+pub struct WorkerGlobalScopeInit {
+    /// Chan to a resource thread
+    pub resource_threads: ResourceThreads,
+    /// Chan to the memory profiler
+    pub mem_profiler_chan: mem::ProfilerChan,
+    /// Chan to the time profiler
+    pub time_profiler_chan: profile_time::ProfilerChan,
+    /// To devtools sender
+    pub to_devtools_sender: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
+    /// From devtools sender
+    pub from_devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>,
+    /// Messages to send to constellation
+    pub constellation_chan: IpcSender<ScriptMsg>,
+    /// Message to send to the scheduler
+    pub scheduler_chan: IpcSender<TimerEventRequest>,
+    /// The worker id
+    pub worker_id: WorkerId,
+}
+
+/// Common entities representing a network load origin
+#[derive(Deserialize, Serialize, Clone)]
+pub struct WorkerScriptLoadOrigin {
+    /// referrer url
+    pub referrer_url: Option<Url>,
+    /// the referrer policy which is used
+    pub referrer_policy: Option<ReferrerPolicy>,
+    /// the pipeline id of the entity requesting the load
+    pub pipeline_id: Option<PipelineId>
+}
+
+impl LoadOrigin for WorkerScriptLoadOrigin {
+    fn referrer_url(&self) -> Option<Url> {
+        self.referrer_url.clone()
+    }
+    fn referrer_policy(&self) -> Option<ReferrerPolicy> {
+        self.referrer_policy.clone()
+    }
+    fn pipeline_id(&self) -> Option<PipelineId> {
+        self.pipeline_id.clone()
+    }
 }

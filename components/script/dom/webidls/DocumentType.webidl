@@ -9,6 +9,7 @@
  * liability, trademark and document use rules apply.
  */
 
+[Exposed=(Window,Worker)]
 interface DocumentType : Node {
   [Constant]
   readonly attribute DOMString name;

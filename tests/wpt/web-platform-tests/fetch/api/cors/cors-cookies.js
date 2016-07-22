@@ -48,11 +48,11 @@ var local = "{{host}}";
 var remote = "www.{{host}}";
 var remote1 = "www1.{{host}}";
 
+corsCookies("Omit mode: no cookie sent", local, local, "omit", ["g=7"]);
 corsCookies("Include mode: 1 cookie", remote, remote, "include", ["a=1"]);
 corsCookies("Include mode: local cookies are not sent with remote request", local, remote, "include", ["c=3"]);
 corsCookies("Include mode: remote cookies are not sent with local request", remote, local, "include", ["d=4"]);
 corsCookies("Include mode: remote cookies are not sent with other remote request", remote, remote1, "include", ["e=5"]);
 corsCookies("Same-origin mode: cookies are discarded in cors request", remote, remote, "same-origin", ["f=6"]);
-corsCookies("Omit mode: no cookie sent", local, local, "omit", ["g=7"]);
 
 done();

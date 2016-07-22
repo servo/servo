@@ -26,7 +26,8 @@ impl HTMLEmbedElement {
     pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLEmbedElement> {
-        let element = HTMLEmbedElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLEmbedElementBinding::Wrap)
+        Node::reflect_node(box HTMLEmbedElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLEmbedElementBinding::Wrap)
     }
 }

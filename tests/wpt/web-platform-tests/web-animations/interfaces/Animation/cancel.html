@@ -13,7 +13,7 @@
 
 promise_test(function(t) {
   var div = createDiv(t);
-  var animation = div.animate({transform: ['none', 'translate(100px)']},
+  var animation = div.animate({transform: ['translate(100px)', 'translate(100px)']},
                               100 * MS_PER_SEC);
   return animation.ready.then(function() {
     assert_not_equals(getComputedStyle(div).transform, 'none',
@@ -26,7 +26,7 @@ promise_test(function(t) {
 
 test(function(t) {
   var div = createDiv(t);
-  var animation = div.animate({marginLeft: ['0px', '100px']},
+  var animation = div.animate({marginLeft: ['100px', '200px']},
                               100 * MS_PER_SEC);
   animation.effect.timing.easing = 'linear';
   animation.cancel();
@@ -34,7 +34,7 @@ test(function(t) {
                 'margin-left style is not animated after cancelling');
 
   animation.currentTime = 50 * MS_PER_SEC;
-  assert_equals(getComputedStyle(div).marginLeft, '50px',
+  assert_equals(getComputedStyle(div).marginLeft, '150px',
                 'margin-left style is updated when cancelled animation is'
                 + ' seeked');
 }, 'After cancelling an animation, it can still be seeked');

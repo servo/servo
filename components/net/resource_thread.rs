@@ -4,6 +4,7 @@
 
 //! A thread that takes a URL and streams back the binary data.
 use about_loader;
+use blob_loader;
 use chrome_loader;
 use connector::{Connector, create_http_connector};
 use content_blocker::BLOCKED_CONTENT_RULES;
@@ -29,7 +30,7 @@ use net_traits::request::{Request, RequestInit};
 use net_traits::storage_thread::StorageThreadMsg;
 use net_traits::{AsyncResponseTarget, Metadata, ProgressMsg, ResponseAction, CoreResourceThread};
 use net_traits::{CoreResourceMsg, CookieSource, FetchResponseMsg, FetchTaskTarget, LoadConsumer};
-use net_traits::{LoadData, LoadResponse, NetworkError, ResourceId};
+use net_traits::{LoadData, LoadResponse, NetworkError, ResourceId, CustomResponseMediator};
 use net_traits::{WebSocketCommunicate, WebSocketConnectData, ResourceThreads};
 use profile_traits::time::ProfilerChan;
 use rustc_serialize::json;
@@ -91,14 +92,6 @@ pub fn send_error(url: Url, err: NetworkError, start_chan: LoadConsumer) {
     if let Ok(p) = start_sending_opt(start_chan, metadata, Some(err.clone())) {
         p.send(Done(Err(err))).unwrap();
     }
-}
-
-/// For use by loaders in responding to a Load message that allows content sniffing.
-pub fn start_sending_sniffed(start_chan: LoadConsumer, metadata: Metadata,
-                             classifier: Arc<MimeClassifier>, partial_body: &[u8],
-                             context: LoadContext)
-                             -> ProgressSender {
-    start_sending_sniffed_opt(start_chan, metadata, classifier, partial_body, context).ok().unwrap()
 }
 
 /// For use by loaders in responding to a Load message that allows content sniffing.
@@ -173,18 +166,20 @@ fn start_sending_opt(start_chan: LoadConsumer, metadata: Metadata,
 pub fn new_resource_threads(user_agent: String,
                             devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                             profiler_chan: ProfilerChan) -> (ResourceThreads, ResourceThreads) {
-    let (public_core, private_core) = new_core_resource_thread(user_agent, devtools_chan, profiler_chan);
+    let filemanager_chan: IpcSender<FileManagerThreadMsg> = FileManagerThreadFactory::new(TFD_PROVIDER);
+    let (public_core, private_core) = new_core_resource_thread(user_agent, devtools_chan,
+                                                               profiler_chan, filemanager_chan.clone());
     let storage: IpcSender<StorageThreadMsg> = StorageThreadFactory::new();
-    let filemanager: IpcSender<FileManagerThreadMsg> = FileManagerThreadFactory::new(TFD_PROVIDER);
-    (ResourceThreads::new(public_core, storage.clone(), filemanager.clone()),
-     ResourceThreads::new(private_core, storage, filemanager))
+    (ResourceThreads::new(public_core, storage.clone(), filemanager_chan.clone()),
+     ResourceThreads::new(private_core, storage, filemanager_chan))
 }
 
 
 /// Create a CoreResourceThread
 pub fn new_core_resource_thread(user_agent: String,
                                 devtools_chan: Option<Sender<DevtoolsControlMsg>>,
-                                profiler_chan: ProfilerChan)
+                                profiler_chan: ProfilerChan,
+                                filemanager_chan: IpcSender<FileManagerThreadMsg>)
                                 -> (CoreResourceThread, CoreResourceThread) {
     let (public_setup_chan, public_setup_port) = ipc::channel().unwrap();
     let (private_setup_chan, private_setup_port) = ipc::channel().unwrap();
@@ -192,7 +187,7 @@ pub fn new_core_resource_thread(user_agent: String,
     let private_setup_chan_clone = private_setup_chan.clone();
     spawn_named("ResourceManager".to_owned(), move || {
         let resource_manager = CoreResourceManager::new(
-            user_agent, devtools_chan, profiler_chan
+            user_agent, devtools_chan, profiler_chan, filemanager_chan
         );
 
         let mut channel_manager = ResourceChannelManager {
@@ -207,7 +202,7 @@ pub fn new_core_resource_thread(user_agent: String,
 }
 
 struct ResourceChannelManager {
-    resource_manager: CoreResourceManager,
+    resource_manager: CoreResourceManager
 }
 
 fn create_resource_groups() -> (ResourceGroup, ResourceGroup) {
@@ -283,6 +278,9 @@ impl ResourceChannelManager {
             CoreResourceMsg::GetCookiesForUrl(url, consumer, source) => {
                 let mut cookie_jar = group.cookie_jar.write().unwrap();
                 consumer.send(cookie_jar.cookies_for_url(&url, source)).unwrap();
+            }
+            CoreResourceMsg::NetworkMediator(mediator_chan) => {
+                self.resource_manager.swmanager_chan = Some(mediator_chan)
             }
             CoreResourceMsg::GetCookiesDataForUrl(url, consumer, source) => {
                 let mut cookie_jar = group.cookie_jar.write().unwrap();
@@ -461,7 +459,9 @@ pub struct CoreResourceManager {
     user_agent: String,
     mime_classifier: Arc<MimeClassifier>,
     devtools_chan: Option<Sender<DevtoolsControlMsg>>,
+    swmanager_chan: Option<IpcSender<CustomResponseMediator>>,
     profiler_chan: ProfilerChan,
+    filemanager_chan: IpcSender<FileManagerThreadMsg>,
     cancel_load_map: HashMap<ResourceId, Sender<()>>,
     next_resource_id: ResourceId,
 }
@@ -469,12 +469,15 @@ pub struct CoreResourceManager {
 impl CoreResourceManager {
     pub fn new(user_agent: String,
                devtools_channel: Option<Sender<DevtoolsControlMsg>>,
-               profiler_chan: ProfilerChan) -> CoreResourceManager {
+               profiler_chan: ProfilerChan,
+               filemanager_chan: IpcSender<FileManagerThreadMsg>) -> CoreResourceManager {
         CoreResourceManager {
             user_agent: user_agent,
             mime_classifier: Arc::new(MimeClassifier::new()),
             devtools_chan: devtools_channel,
+            swmanager_chan: None,
             profiler_chan: profiler_chan,
+            filemanager_chan: filemanager_chan,
             cancel_load_map: HashMap::new(),
             next_resource_id: ResourceId(0),
         }
@@ -544,10 +547,12 @@ impl CoreResourceManager {
                                      http_state,
                                      self.devtools_chan.clone(),
                                      self.profiler_chan.clone(),
+                                     self.swmanager_chan.clone(),
                                      resource_grp.connector.clone())
             },
             "data" => from_factory(data_loader::factory),
             "about" => from_factory(about_loader::factory),
+            "blob" => blob_loader::factory(self.filemanager_chan.clone()),
             _ => {
                 debug!("resource_thread: no loader for scheme {}", load_data.url.scheme());
                 send_error(load_data.url, NetworkError::Internal("no loader for scheme".to_owned()), consumer);

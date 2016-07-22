@@ -109,6 +109,10 @@ CONSOLE:service-workers/service-worker/resources/navigation-redirect-other-origi
 CONSOLE:service-workers/service-worker/navigation-redirect.https.html
 CONSOLE:service-workers/service-worker/resources/clients-get-other-origin.html
 
+# use of console in a public library - annotation-model ensures
+# it is not actually used
+CONSOLE:annotation-model/scripts/ajv.min.js
+
 # Lint doesn't know about sub.svg I guess
 PARSE-FAILED:content-security-policy/svg/including.sub.svg
 

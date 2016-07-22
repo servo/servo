@@ -4,7 +4,7 @@
 
 // https://dom.spec.whatwg.org/#nonelementparentnode
 [NoInterfaceObject,
- Exposed=Window]
+ Exposed=(Window,Worker)]
 interface NonElementParentNode {
   [Pure]
   Element? getElementById(DOMString elementId);

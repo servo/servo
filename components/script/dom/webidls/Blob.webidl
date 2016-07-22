@@ -6,7 +6,7 @@
 
 [Constructor(optional sequence<BlobPart> blobParts,
   optional BlobPropertyBag options),
- Exposed=Window/*,Worker*/]
+ Exposed=(Window,Worker)]
 interface Blob {
 
   readonly attribute unsigned long long size;

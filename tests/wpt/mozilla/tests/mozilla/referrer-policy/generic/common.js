@@ -22,7 +22,7 @@ function parseUrlQueryString(queryString) {
 function appendIframeToBody(url, attributes) {
   var iframe = document.createElement("iframe");
   iframe.src = url;
-  // Extend element with attributes. (E.g. "referrer_policy" or "rel")
+  // Extend element with attributes. (E.g. "referrerPolicy" or "rel")
   if (attributes) {
     for (var attr in attributes) {
       iframe[attr] = attributes[attr];
@@ -40,7 +40,7 @@ function loadImage(src, callback, attributes) {
     callback(image);
   }
   image.src = src;
-  // Extend element with attributes. (E.g. "referrer_policy" or "rel")
+  // Extend element with attributes. (E.g. "referrerPolicy" or "rel")
   if (attributes) {
     for (var attr in attributes) {
       image[attr] = attributes[attr];

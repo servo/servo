@@ -12,7 +12,8 @@ pub fn content_process_sandbox_profile() -> Profile {
     use gaol::platform;
     Profile::new(vec![
         Operation::FileReadAll(PathPattern::Literal(PathBuf::from("/dev/urandom"))),
-        Operation::FileReadAll(PathPattern::Subpath(resource_files::resources_dir_path())),
+        Operation::FileReadAll(PathPattern::Subpath(resource_files::resources_dir_path()
+                                                    .expect("Cannot find resource dir"))),
         Operation::FileReadAll(PathPattern::Subpath(PathBuf::from("/Library/Fonts"))),
         Operation::FileReadAll(PathPattern::Subpath(PathBuf::from("/System/Library/Fonts"))),
         Operation::FileReadAll(PathPattern::Subpath(PathBuf::from(
@@ -34,7 +35,8 @@ pub fn content_process_sandbox_profile() -> Profile {
 pub fn content_process_sandbox_profile() -> Profile {
     Profile::new(vec![
         Operation::FileReadAll(PathPattern::Literal(PathBuf::from("/dev/urandom"))),
-        Operation::FileReadAll(PathPattern::Subpath(resource_files::resources_dir_path())),
+        Operation::FileReadAll(PathPattern::Subpath(resource_files::resources_dir_path()
+                                                    .expect("Cannot find resource dir"))),
     ]).expect("Failed to create sandbox profile!")
 }
 

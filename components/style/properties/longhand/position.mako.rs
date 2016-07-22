@@ -13,9 +13,11 @@
 % endfor
 
 <%helpers:longhand name="z-index" animatable="True">
+    use values::NoViewportPercentage;
     use values::computed::ComputedValueAsSpecified;
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
+    impl NoViewportPercentage for SpecifiedValue {}
     pub type SpecifiedValue = computed_value::T;
     pub mod computed_value {
         use cssparser::ToCss;
@@ -77,11 +79,14 @@ ${helpers.single_keyword("justify-content", "flex-start flex-end center space-be
                          products="servo",
                          animatable=False)}
 
+// FIXME(heycam): Disable align-items in geckolib since we don't support the Gecko initial value
+// 'normal' yet.
 ${helpers.single_keyword("align-items", "stretch flex-start flex-end center baseline",
                          experimental=True,
                          need_clone=True,
                          gecko_constant_prefix="NS_STYLE_ALIGN",
-                         animatable=False)}
+                         animatable=False,
+                         products="servo")}
 
 ${helpers.single_keyword("align-content", "stretch flex-start flex-end center space-between space-around",
                          experimental=True,

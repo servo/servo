@@ -5,6 +5,7 @@
 use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLDetailsElementBinding;
 use dom::bindings::codegen::Bindings::HTMLDetailsElementBinding::HTMLDetailsElementMethods;
+use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::refcounted::Trusted;
@@ -19,7 +20,6 @@ use script_thread::Runnable;
 use std::cell::Cell;
 use string_cache::Atom;
 use task_source::TaskSource;
-use task_source::dom_manipulation::DOMManipulationTask;
 
 #[dom_struct]
 pub struct HTMLDetailsElement {
@@ -42,8 +42,9 @@ impl HTMLDetailsElement {
     pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLDetailsElement> {
-        let element = HTMLDetailsElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLDetailsElementBinding::Wrap)
+        Node::reflect_node(box HTMLDetailsElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLDetailsElementBinding::Wrap)
     }
 
     pub fn check_toggle_count(&self, number: u32) -> bool {
@@ -72,14 +73,13 @@ impl VirtualMethods for HTMLDetailsElement {
             self.toggle_counter.set(counter);
 
             let window = window_from_node(self);
-            let window = window.r();
             let task_source = window.dom_manipulation_task_source();
             let details = Trusted::new(self);
             let runnable = box DetailsNotificationRunnable {
                 element: details,
                 toggle_number: counter
             };
-            let _ = task_source.queue(DOMManipulationTask::FireToggleEvent(runnable));
+            let _ = task_source.queue(runnable, GlobalRef::Window(&window));
         }
     }
 }
@@ -90,6 +90,8 @@ pub struct DetailsNotificationRunnable {
 }
 
 impl Runnable for DetailsNotificationRunnable {
+    fn name(&self) -> &'static str { "DetailsNotificationRunnable" }
+
     fn handler(self: Box<DetailsNotificationRunnable>) {
         let target = self.element.root();
         if target.check_toggle_count(self.toggle_number) {

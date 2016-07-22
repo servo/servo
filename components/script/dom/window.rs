@@ -28,7 +28,9 @@ use dom::crypto::Crypto;
 use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration};
 use dom::document::Document;
 use dom::element::Element;
+use dom::event::Event;
 use dom::eventtarget::EventTarget;
+use dom::htmliframeelement::build_mozbrowser_custom_event;
 use dom::location::Location;
 use dom::navigator::Navigator;
 use dom::node::{Node, from_untrusted_node_address, window_from_node};
@@ -43,11 +45,11 @@ use js::jsapi::{JS_GetRuntime, JS_GC, MutableHandleValue, SetWindowProxy};
 use js::rust::CompileOptionsWrapper;
 use js::rust::Runtime;
 use libc;
-use msg::constellation_msg::{FrameType, LoadData, PanicMsg, PipelineId, SubpageId, WindowSizeType};
+use msg::constellation_msg::{FrameType, LoadData, PipelineId, SubpageId, WindowSizeType};
+use net_traits::ResourceThreads;
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread};
 use net_traits::storage_thread::StorageType;
-use net_traits::{ResourceThreads, CustomResponseSender};
 use num_traits::ToPrimitive;
 use open;
 use profile_traits::mem;
@@ -63,7 +65,7 @@ use script_runtime::{ScriptChan, ScriptPort, maybe_take_panic_result};
 use script_thread::SendableMainThreadScriptChan;
 use script_thread::{MainThreadScriptChan, MainThreadScriptMsg, RunnableWrapper};
 use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
-use script_traits::{ConstellationControlMsg, UntrustedNodeAddress};
+use script_traits::{ConstellationControlMsg, MozBrowserEvent, UntrustedNodeAddress};
 use script_traits::{DocumentState, MsDuration, TimerEvent, TimerEventId};
 use script_traits::{ScriptMsg as ConstellationMsg, TimerEventRequest, TimerSource, WindowSizeData};
 use std::ascii::AsciiExt;
@@ -96,8 +98,8 @@ use timers::{IsInterval, OneshotTimerCallback, OneshotTimerHandle, OneshotTimers
 use tinyfiledialogs::{self, MessageBoxIcon};
 use url::Url;
 use util::geometry::{self, MAX_RECT};
+use util::opts;
 use util::prefs::PREFS;
-use util::{breakpoint, opts};
 use webdriver_handlers::jsval_to_webdriver;
 
 /// Current state of the window object
@@ -128,6 +130,7 @@ pub enum ReflowReason {
     FramedContentChanged,
     IFrameLoadEvent,
     MissingExplicitReflow,
+    ElementStateChanged,
 }
 
 pub type ScrollPoint = Point2D<Au>;
@@ -154,8 +157,6 @@ pub struct Window {
     image_cache_thread: ImageCacheThread,
     #[ignore_heap_size_of = "channels are hard"]
     image_cache_chan: ImageCacheChan,
-    #[ignore_heap_size_of = "channels are hard"]
-    custom_message_chan: IpcSender<CustomResponseSender>,
     browsing_context: MutNullableHeap<JS<BrowsingContext>>,
     performance: MutNullableHeap<JS<Performance>>,
     navigation_start: u64,
@@ -265,9 +266,6 @@ pub struct Window {
 
     /// A list of scroll offsets for each scrollable element.
     scroll_offsets: DOMRefCell<HashMap<UntrustedNodeAddress, Point2D<f32>>>,
-
-    #[ignore_heap_size_of = "Defined in ipc-channel"]
-    panic_chan: IpcSender<PanicMsg>,
 }
 
 impl Window {
@@ -301,7 +299,7 @@ impl Window {
         self.history_traversal_task_source.clone()
     }
 
-    pub fn file_reading_task_source(&self) -> Box<ScriptChan + Send> {
+    pub fn file_reading_task_source(&self) -> FileReadingTaskSource {
         self.file_reading_task_source.clone()
     }
 
@@ -311,10 +309,6 @@ impl Window {
 
     pub fn image_cache_chan(&self) -> ImageCacheChan {
         self.image_cache_chan.clone()
-    }
-
-    pub fn custom_message_chan(&self) -> IpcSender<CustomResponseSender> {
-        self.custom_message_chan.clone()
     }
 
     pub fn get_next_worker_id(&self) -> WorkerId {
@@ -669,8 +663,9 @@ impl WindowMethods for Window {
         }
     }
 
+    #[allow(unsafe_code)]
     fn Trap(&self) {
-        breakpoint();
+        unsafe { ::std::intrinsics::breakpoint() }
     }
 
     #[allow(unsafe_code)]
@@ -947,7 +942,7 @@ impl Window {
         self.current_state.set(WindowState::Zombie);
         *self.js_runtime.borrow_mut() = None;
         self.browsing_context.set(None);
-        self.ignore_further_async_events.store(true, Ordering::Relaxed);
+        self.ignore_further_async_events.store(true, Ordering::SeqCst);
     }
 
     /// https://drafts.csswg.org/cssom-view/#dom-window-scroll
@@ -1030,6 +1025,12 @@ impl Window {
         let (send, recv) = ipc::channel::<(Size2D<u32>, Point2D<i32>)>().unwrap();
         self.constellation_chan.send(ConstellationMsg::GetClientWindow(send)).unwrap();
         recv.recv().unwrap_or((Size2D::zero(), Point2D::zero()))
+    }
+
+    /// Advances the layout animation clock by `delta` milliseconds, and then
+    /// forces a reflow.
+    pub fn advance_animation_clock(&self, delta: i32) {
+        self.layout_chan.send(Msg::AdvanceClockMs(delta)).unwrap();
     }
 
     /// Reflows the page unconditionally if possible and not suppressed. This
@@ -1420,10 +1421,6 @@ impl Window {
         &self.scheduler_chan
     }
 
-    pub fn panic_chan(&self) -> &IpcSender<PanicMsg> {
-        &self.panic_chan
-    }
-
     pub fn schedule_callback(&self, callback: OneshotTimerCallback, duration: MsDuration) -> OneshotTimerHandle {
         self.timers.schedule_callback(callback,
                                       duration,
@@ -1592,6 +1589,13 @@ impl Window {
             _ => false,
         }
     }
+
+    #[allow(unsafe_code)]
+    pub fn dispatch_mozbrowser_event(&self, event: MozBrowserEvent) {
+        assert!(PREFS.is_mozbrowser_enabled());
+        let custom_event = build_mozbrowser_custom_event(&self, event);
+        custom_event.upcast::<Event>().fire(self.upcast());
+    }
 }
 
 impl Window {
@@ -1603,7 +1607,6 @@ impl Window {
                history_task_source: HistoryTraversalTaskSource,
                file_task_source: FileReadingTaskSource,
                image_cache_chan: ImageCacheChan,
-               custom_message_chan: IpcSender<CustomResponseSender>,
                image_cache_thread: ImageCacheThread,
                resource_threads: ResourceThreads,
                bluetooth_thread: IpcSender<BluetoothMethodMsg>,
@@ -1613,7 +1616,6 @@ impl Window {
                constellation_chan: IpcSender<ConstellationMsg>,
                control_chan: IpcSender<ConstellationControlMsg>,
                scheduler_chan: IpcSender<TimerEventRequest>,
-               panic_chan: IpcSender<PanicMsg>,
                timer_event_chan: IpcSender<TimerEvent>,
                layout_chan: Sender<Msg>,
                id: PipelineId,
@@ -1639,7 +1641,6 @@ impl Window {
             history_traversal_task_source: history_task_source,
             file_reading_task_source: file_task_source,
             image_cache_chan: image_cache_chan,
-            custom_message_chan: custom_message_chan,
             console: Default::default(),
             crypto: Default::default(),
             navigator: Default::default(),
@@ -1684,7 +1685,6 @@ impl Window {
             ignore_further_async_events: Arc::new(AtomicBool::new(false)),
             error_reporter: error_reporter,
             scroll_offsets: DOMRefCell::new(HashMap::new()),
-            panic_chan: panic_chan,
         };
 
         WindowBinding::Wrap(runtime.cx(), win)
@@ -1752,6 +1752,7 @@ fn debug_reflow_events(id: PipelineId, goal: &ReflowGoal, query_type: &ReflowQue
         ReflowReason::FramedContentChanged => "\tFramedContentChanged",
         ReflowReason::IFrameLoadEvent => "\tIFrameLoadEvent",
         ReflowReason::MissingExplicitReflow => "\tMissingExplicitReflow",
+        ReflowReason::ElementStateChanged => "\tElementStateChanged",
     });
 
     println!("{}", debug_msg);

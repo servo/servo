@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::abstractworker::WorkerScriptMsg;
 use dom::abstractworker::{SimpleWorkerErrorHandler, WorkerErrorHandler};
-use dom::abstractworker::{WorkerScriptMsg, WorkerScriptLoadOrigin, SharedRt};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::ServiceWorkerBinding::{ServiceWorkerMethods, ServiceWorkerState, Wrap};
@@ -13,19 +13,13 @@ use dom::bindings::js::Root;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::str::{DOMString, USVString};
-use dom::client::Client;
 use dom::errorevent::ErrorEvent;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
-use dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
-use dom::workerglobalscope::prepare_workerscope_init;
-use ipc_channel::ipc;
 use js::jsval::UndefinedValue;
 use script_thread::Runnable;
 use std::cell::Cell;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::mpsc::{Sender, channel};
-use std::sync::{Arc, Mutex};
+use std::sync::mpsc::Sender;
 use url::Url;
 
 pub type TrustedServiceWorkerAddress = Trusted<ServiceWorker>;
@@ -35,36 +29,27 @@ pub struct ServiceWorker {
     eventtarget: EventTarget,
     script_url: DOMRefCell<String>,
     state: Cell<ServiceWorkerState>,
-    closing: Arc<AtomicBool>,
     #[ignore_heap_size_of = "Defined in std"]
-    sender: Sender<(TrustedServiceWorkerAddress, WorkerScriptMsg)>,
-    #[ignore_heap_size_of = "Defined in rust-mozjs"]
-    runtime: Arc<Mutex<Option<SharedRt>>>,
+    sender: Option<Sender<(TrustedServiceWorkerAddress, WorkerScriptMsg)>>,
     skip_waiting: Cell<bool>
 }
 
 impl ServiceWorker {
-    fn new_inherited(sender: Sender<(TrustedServiceWorkerAddress, WorkerScriptMsg)>,
-                     closing: Arc<AtomicBool>,
-                     script_url: &str,
+    fn new_inherited(script_url: &str,
                      skip_waiting: bool) -> ServiceWorker {
         ServiceWorker {
             eventtarget: EventTarget::new_inherited(),
-            closing: closing,
-            sender: sender,
+            sender: None,
             script_url: DOMRefCell::new(String::from(script_url)),
             state: Cell::new(ServiceWorkerState::Installing),
-            runtime: Arc::new(Mutex::new(None)),
             skip_waiting: Cell::new(skip_waiting)
         }
     }
 
     pub fn new(global: GlobalRef,
-                closing: Arc<AtomicBool>,
-                sender: Sender<(TrustedServiceWorkerAddress, WorkerScriptMsg)>,
                 script_url: &str,
                 skip_waiting: bool) -> Root<ServiceWorker> {
-        reflect_dom_object(box ServiceWorker::new_inherited(sender, closing, script_url, skip_waiting), global, Wrap)
+        reflect_dom_object(box ServiceWorker::new_inherited(script_url, skip_waiting), global, Wrap)
     }
 
     pub fn dispatch_simple_error(address: TrustedServiceWorkerAddress) {
@@ -72,22 +57,18 @@ impl ServiceWorker {
         service_worker.upcast().fire_simple_event("error");
     }
 
-    pub fn is_closing(&self) -> bool {
-        self.closing.load(Ordering::SeqCst)
-    }
-
     pub fn set_transition_state(&self, state: ServiceWorkerState) {
         self.state.set(state);
         self.upcast::<EventTarget>().fire_simple_event("statechange");
     }
 
+    pub fn get_script_url(&self) -> Url {
+        Url::parse(&self.script_url.borrow().clone()).unwrap()
+    }
+
     pub fn handle_error_message(address: TrustedServiceWorkerAddress, message: DOMString,
                                 filename: DOMString, lineno: u32, colno: u32) {
         let worker = address.root();
-
-        if worker.is_closing() {
-            return;
-        }
 
         let global = worker.r().global();
         rooted!(in(global.r().get_cx()) let error = UndefinedValue());
@@ -97,42 +78,12 @@ impl ServiceWorker {
         errorevent.upcast::<Event>().fire(worker.upcast());
     }
 
-    #[allow(unsafe_code)]
-    pub fn init_service_worker(global: GlobalRef,
-                               script_url: Url,
-                               skip_waiting: bool) -> Root<ServiceWorker> {
-        let (sender, receiver) = channel();
-        let closing = Arc::new(AtomicBool::new(false));
-        let worker = ServiceWorker::new(global,
-                                        closing.clone(),
-                                        sender.clone(),
-                                        script_url.as_str(),
-                                        skip_waiting);
-        let worker_ref = Trusted::new(worker.r());
-
-        let worker_load_origin = WorkerScriptLoadOrigin {
-            referrer_url: None,
-            referrer_policy: None,
-            request_source: global.request_source(),
-            pipeline_id: Some(global.pipeline())
-        };
-
-        let (devtools_sender, devtools_receiver) = ipc::channel().unwrap();
-        let init = prepare_workerscope_init(global,
-            "Service Worker".to_owned(),
-            script_url.clone(),
-            devtools_sender.clone(),
-            closing);
-
-        // represents a service worker client
-        let sw_client = Client::new(global.as_window());
-        let trusted_client = Trusted::new(&*sw_client);
-
-        ServiceWorkerGlobalScope::run_serviceworker_scope(
-            init, script_url, global.pipeline(), devtools_receiver, worker.runtime.clone(), worker_ref,
-            global.script_chan(), sender, receiver, trusted_client, worker_load_origin);
-
-        worker
+    pub fn install_serviceworker(global: GlobalRef,
+                                 script_url: Url,
+                                 skip_waiting: bool) -> Root<ServiceWorker> {
+        ServiceWorker::new(global,
+                           script_url.as_str(),
+                           skip_waiting)
     }
 }
 

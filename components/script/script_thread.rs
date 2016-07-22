@@ -51,8 +51,8 @@ use dom::worker::TrustedWorkerAddress;
 use euclid::Rect;
 use euclid::point::Point2D;
 use gfx_traits::LayerId;
-use hyper::header::{ContentType, HttpDate};
-use hyper::header::{Headers, LastModified};
+use hyper::header::{ContentType, Headers, HttpDate, LastModified};
+use hyper::header::{ReferrerPolicy as ReferrerPolicyHeader};
 use hyper::method::Method;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use ipc_channel::ipc::{self, IpcSender};
@@ -64,13 +64,12 @@ use js::jsapi::{JSTracer, SetWindowProxyClass};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use mem::heap_size_of_self_and_children;
-use msg::constellation_msg::{FrameType, LoadData, PanicMsg, PipelineId, PipelineNamespace};
-use msg::constellation_msg::{SubpageId, WindowSizeType};
-use net_traits::LoadData as NetLoadData;
+use msg::constellation_msg::{FrameType, LoadData, PipelineId, PipelineNamespace};
+use msg::constellation_msg::{SubpageId, WindowSizeType, ReferrerPolicy};
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheResult, ImageCacheThread};
 use net_traits::{AsyncResponseTarget, CoreResourceMsg, LoadConsumer, LoadContext, Metadata, ResourceThreads};
-use net_traits::{RequestSource, CustomResponse, CustomResponseSender, IpcSend};
+use net_traits::{IpcSend, LoadData as NetLoadData};
 use network_listener::NetworkListener;
 use parse::ParserRoot;
 use parse::html::{ParseContext, parse_html};
@@ -174,10 +173,10 @@ pub struct RunnableWrapper {
 }
 
 impl RunnableWrapper {
-    pub fn wrap_runnable<T: Runnable + Send + 'static>(&self, runnable: T) -> Box<Runnable + Send> {
+    pub fn wrap_runnable<T: Runnable + Send + 'static>(&self, runnable: Box<T>) -> Box<Runnable + Send> {
         box CancellableRunnable {
             cancelled: self.cancelled.clone(),
-            inner: box runnable,
+            inner: runnable,
         }
     }
 }
@@ -189,8 +188,14 @@ pub struct CancellableRunnable<T: Runnable + Send> {
 }
 
 impl<T: Runnable + Send> Runnable for CancellableRunnable<T> {
+    fn name(&self) -> &'static str { self.inner.name() }
+
     fn is_cancelled(&self) -> bool {
-        self.cancelled.load(Ordering::Relaxed)
+        self.cancelled.load(Ordering::SeqCst)
+    }
+
+    fn main_thread_handler(self: Box<CancellableRunnable<T>>, script_thread: &ScriptThread) {
+        self.inner.main_thread_handler(script_thread);
     }
 
     fn handler(self: Box<CancellableRunnable<T>>) {
@@ -200,11 +205,9 @@ impl<T: Runnable + Send> Runnable for CancellableRunnable<T> {
 
 pub trait Runnable {
     fn is_cancelled(&self) -> bool { false }
-    fn handler(self: Box<Self>);
-}
-
-pub trait MainThreadRunnable {
-    fn handler(self: Box<Self>, script_thread: &ScriptThread);
+    fn name(&self) -> &'static str { "generic runnable" }
+    fn handler(self: Box<Self>) {}
+    fn main_thread_handler(self: Box<Self>, _script_thread: &ScriptThread) { self.handler(); }
 }
 
 enum MixedMessage {
@@ -212,8 +215,7 @@ enum MixedMessage {
     FromScript(MainThreadScriptMsg),
     FromDevtools(DevtoolScriptControlMsg),
     FromImageCache(ImageCacheResult),
-    FromScheduler(TimerEvent),
-    FromNetwork(IpcSender<Option<CustomResponse>>),
+    FromScheduler(TimerEvent)
 }
 
 /// Messages used to control the script event loop
@@ -338,12 +340,6 @@ pub struct ScriptThread {
     /// events in the event queue.
     chan: MainThreadScriptChan,
 
-    /// A handle to network event messages
-    custom_message_chan: IpcSender<CustomResponseSender>,
-
-    /// The port which receives a sender from the network
-    custom_message_port: Receiver<CustomResponseSender>,
-
     dom_manipulation_task_source: DOMManipulationTaskSource,
 
     user_interaction_task_source: UserInteractionTaskSource,
@@ -397,8 +393,6 @@ pub struct ScriptThread {
     timer_event_port: Receiver<TimerEvent>,
 
     content_process_shutdown_chan: IpcSender<()>,
-
-    panic_chan: IpcSender<PanicMsg>,
 }
 
 /// In the event of thread panic, all data on the stack runs its destructor. However, there
@@ -445,15 +439,15 @@ impl ScriptThreadFactory for ScriptThread {
     fn create(state: InitialScriptState,
               load_data: LoadData)
               -> (Sender<message::Msg>, Receiver<message::Msg>) {
-        let panic_chan = state.panic_chan.clone();
         let (script_chan, script_port) = channel();
 
         let (sender, receiver) = channel();
         let layout_chan = sender.clone();
         let pipeline_id = state.id;
-        thread::spawn_named_with_send_on_panic(format!("ScriptThread {:?}", state.id),
-                                               thread_state::SCRIPT,
-                                               move || {
+        thread::spawn_named(format!("ScriptThread {:?}", state.id),
+                            move || {
+            thread_state::initialize(thread_state::SCRIPT);
+            PipelineId::install(pipeline_id);
             PipelineNamespace::install(state.pipeline_namespace_id);
             let roots = RootCollection::new();
             let _stack_roots_tls = StackRootTLS::new(&roots);
@@ -483,7 +477,7 @@ impl ScriptThreadFactory for ScriptThread {
 
             // This must always be the very last operation performed before the thread completes
             failsafe.neuter();
-        }, Some(pipeline_id), panic_chan);
+        });
 
         (sender, receiver)
     }
@@ -505,10 +499,10 @@ impl ScriptThread {
     }
 
     // stores a service worker registration
-    pub fn set_registration(scope_url: Url, registration:&ServiceWorkerRegistration) {
+    pub fn set_registration(scope_url: Url, registration:&ServiceWorkerRegistration, pipeline_id: PipelineId) {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
-            script_thread.handle_serviceworker_registration(scope_url, registration);
+            script_thread.handle_serviceworker_registration(scope_url, registration, pipeline_id);
         });
     }
 
@@ -558,9 +552,6 @@ impl ScriptThread {
         let (ipc_devtools_sender, ipc_devtools_receiver) = ipc::channel().unwrap();
         let devtools_port = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_devtools_receiver);
 
-        let (ipc_custom_resp_chan, ipc_custom_resp_port) = ipc::channel().unwrap();
-        let custom_msg_port = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_custom_resp_port);
-
         // Ask the router to proxy IPC messages from the image cache thread to us.
         let (ipc_image_cache_channel, ipc_image_cache_port) = ipc::channel().unwrap();
         let image_cache_port =
@@ -570,6 +561,8 @@ impl ScriptThread {
 
         // Ask the router to proxy IPC messages from the control port to us.
         let control_port = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(state.control_port);
+
+        let boxed_script_sender = MainThreadScriptChan(chan.clone()).clone();
 
         ScriptThread {
             browsing_context: MutNullableHeap::new(None),
@@ -584,22 +577,19 @@ impl ScriptThread {
             bluetooth_thread: state.bluetooth_thread,
 
             port: port,
-            custom_message_chan: ipc_custom_resp_chan,
-            custom_message_port: custom_msg_port,
 
             chan: MainThreadScriptChan(chan.clone()),
             dom_manipulation_task_source: DOMManipulationTaskSource(chan.clone()),
             user_interaction_task_source: UserInteractionTaskSource(chan.clone()),
             networking_task_source: NetworkingTaskSource(chan.clone()),
-            history_traversal_task_source: HistoryTraversalTaskSource(chan.clone()),
-            file_reading_task_source: FileReadingTaskSource(chan),
+            history_traversal_task_source: HistoryTraversalTaskSource(chan),
+            file_reading_task_source: FileReadingTaskSource(boxed_script_sender),
 
             control_chan: state.control_chan,
             control_port: control_port,
             constellation_chan: state.constellation_chan,
             time_profiler_chan: state.time_profiler_chan,
             mem_profiler_chan: state.mem_profiler_chan,
-            panic_chan: state.panic_chan,
 
             devtools_chan: state.devtools_chan,
             devtools_port: devtools_port,
@@ -647,7 +637,7 @@ impl ScriptThread {
     /// Handle incoming control messages.
     fn handle_msgs(&self) -> bool {
         use self::MixedMessage::{FromConstellation, FromDevtools, FromImageCache};
-        use self::MixedMessage::{FromScheduler, FromScript, FromNetwork};
+        use self::MixedMessage::{FromScheduler, FromScript};
 
         // Handle pending resize events.
         // Gather them first to avoid a double mut borrow on self.
@@ -681,7 +671,6 @@ impl ScriptThread {
             let mut timer_event_port = sel.handle(&self.timer_event_port);
             let mut devtools_port = sel.handle(&self.devtools_port);
             let mut image_cache_port = sel.handle(&self.image_cache_port);
-            let mut custom_message_port = sel.handle(&self.custom_message_port);
             unsafe {
                 script_port.add();
                 control_port.add();
@@ -690,7 +679,6 @@ impl ScriptThread {
                     devtools_port.add();
                 }
                 image_cache_port.add();
-                custom_message_port.add();
             }
             let ret = sel.wait();
             if ret == script_port.id() {
@@ -703,8 +691,6 @@ impl ScriptThread {
                 FromDevtools(self.devtools_port.recv().unwrap())
             } else if ret == image_cache_port.id() {
                 FromImageCache(self.image_cache_port.recv().unwrap())
-            } else if ret == custom_message_port.id() {
-                FromNetwork(self.custom_message_port.recv().unwrap())
             } else {
                 panic!("unexpected select result")
             }
@@ -772,10 +758,7 @@ impl ScriptThread {
                     Err(_) => match self.timer_event_port.try_recv() {
                         Err(_) => match self.devtools_port.try_recv() {
                             Err(_) => match self.image_cache_port.try_recv() {
-                                Err(_) => match self.custom_message_port.try_recv() {
-                                    Err(_) => break,
-                                    Ok(ev) => event = FromNetwork(ev)
-                                },
+                                Err(_) => break,
                                 Ok(ev) => event = FromImageCache(ev),
                             },
                             Ok(ev) => event = FromDevtools(ev),
@@ -801,7 +784,6 @@ impl ScriptThread {
                     },
                     FromConstellation(inner_msg) => self.handle_msg_from_constellation(inner_msg),
                     FromScript(inner_msg) => self.handle_msg_from_script(inner_msg),
-                    FromNetwork(inner_msg) => self.handle_msg_from_network(inner_msg),
                     FromScheduler(inner_msg) => self.handle_timer_event(inner_msg),
                     FromDevtools(inner_msg) => self.handle_msg_from_devtools(inner_msg),
                     FromImageCache(inner_msg) => self.handle_msg_from_image_cache(inner_msg),
@@ -860,8 +842,7 @@ impl ScriptThread {
                     _ => ScriptThreadEventCategory::ScriptEvent
                 }
             },
-            MixedMessage::FromScheduler(_) => ScriptThreadEventCategory::TimerEvent,
-            MixedMessage::FromNetwork(_) => ScriptThreadEventCategory::NetworkEvent
+            MixedMessage::FromScheduler(_) => ScriptThreadEventCategory::TimerEvent
         }
     }
 
@@ -902,22 +883,12 @@ impl ScriptThread {
 
     fn handle_msg_from_constellation(&self, msg: ConstellationControlMsg) {
         match msg {
-            ConstellationControlMsg::AttachLayout(_) =>
-                panic!("should have handled AttachLayout already"),
             ConstellationControlMsg::Navigate(pipeline_id, subpage_id, load_data) =>
                 self.handle_navigate(pipeline_id, Some(subpage_id), load_data),
             ConstellationControlMsg::SendEvent(id, event) =>
                 self.handle_event(id, event),
             ConstellationControlMsg::ResizeInactive(id, new_size) =>
                 self.handle_resize_inactive_msg(id, new_size),
-            ConstellationControlMsg::Viewport(..) =>
-                panic!("should have handled Viewport already"),
-            ConstellationControlMsg::SetScrollState(..) =>
-                panic!("should have handled SetScrollState already"),
-            ConstellationControlMsg::Resize(..) =>
-                panic!("should have handled Resize already"),
-            ConstellationControlMsg::ExitPipeline(..) =>
-                panic!("should have handled ExitPipeline already"),
             ConstellationControlMsg::GetTitle(pipeline_id) =>
                 self.handle_get_title_msg(pipeline_id),
             ConstellationControlMsg::Freeze(pipeline_id) =>
@@ -959,6 +930,12 @@ impl ScriptThread {
                 self.handle_css_error_reporting(pipeline_id, filename, line, column, msg),
             ConstellationControlMsg::Reload(pipeline_id) =>
                 self.handle_reload(pipeline_id),
+            msg @ ConstellationControlMsg::AttachLayout(..) |
+            msg @ ConstellationControlMsg::Viewport(..) |
+            msg @ ConstellationControlMsg::SetScrollState(..) |
+            msg @ ConstellationControlMsg::Resize(..) |
+            msg @ ConstellationControlMsg::ExitPipeline(..) =>
+                      panic!("should have handled {:?} already", msg),
         }
     }
 
@@ -984,7 +961,7 @@ impl ScriptThread {
             MainThreadScriptMsg::DOMManipulation(task) =>
                 task.handle_task(self),
             MainThreadScriptMsg::UserInteraction(task) =>
-                task.handle_task(),
+                task.handle_task(self),
         }
     }
 
@@ -1048,12 +1025,6 @@ impl ScriptThread {
 
     fn handle_msg_from_image_cache(&self, msg: ImageCacheResult) {
         msg.responder.unwrap().respond(msg.image_response);
-    }
-
-    fn handle_msg_from_network(&self, msg: IpcSender<Option<CustomResponse>>) {
-        // We may detect controlling service workers here
-        // We send None as default
-        let _ = msg.send(None);
     }
 
     fn handle_webdriver_msg(&self, pipeline_id: PipelineId, msg: WebDriverScriptCommand) {
@@ -1168,7 +1139,6 @@ impl ScriptThread {
             frame_type,
             load_data,
             paint_chan,
-            panic_chan,
             pipeline_port,
             layout_to_constellation_chan,
             content_process_shutdown_chan,
@@ -1184,7 +1154,6 @@ impl ScriptThread {
             layout_pair: layout_pair,
             pipeline_port: pipeline_port,
             constellation_chan: layout_to_constellation_chan,
-            panic_chan: panic_chan,
             paint_chan: paint_chan,
             script_chan: self.control_chan.clone(),
             image_cache_thread: self.image_cache_thread.clone(),
@@ -1223,7 +1192,7 @@ impl ScriptThread {
 
         // https://html.spec.whatwg.org/multipage/#the-end step 7
         let handler = box DocumentProgressHandler::new(Trusted::new(doc));
-        self.dom_manipulation_task_source.queue(DOMManipulationTask::DocumentProgress(handler)).unwrap();
+        self.dom_manipulation_task_source.queue(handler, GlobalRef::Window(doc.window())).unwrap();
 
         self.constellation_chan.send(ConstellationMsg::LoadComplete(pipeline)).unwrap();
     }
@@ -1377,17 +1346,17 @@ impl ScriptThread {
     /// https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserloadstart
     fn handle_mozbrowser_event_msg(&self,
                                    parent_pipeline_id: PipelineId,
-                                   subpage_id: SubpageId,
+                                   subpage_id: Option<SubpageId>,
                                    event: MozBrowserEvent) {
-        let borrowed_context = self.root_browsing_context();
-
-        let frame_element = borrowed_context.find(parent_pipeline_id).and_then(|context| {
-            let doc = context.active_document();
-            doc.find_iframe(subpage_id)
-        });
-
-        if let Some(ref frame_element) = frame_element {
-            frame_element.dispatch_mozbrowser_event(event);
+        match self.root_browsing_context().find(parent_pipeline_id) {
+            None => warn!("Mozbrowser event after pipeline {:?} closed.", parent_pipeline_id),
+            Some(context) => match subpage_id {
+                None => context.active_window().dispatch_mozbrowser_event(event),
+                Some(subpage_id) => match context.active_document().find_iframe(subpage_id) {
+                    None => warn!("Mozbrowser event after iframe {:?}/{:?} closed.", parent_pipeline_id, subpage_id),
+                    Some(frame_element) => frame_element.dispatch_mozbrowser_event(event),
+                },
+            },
         }
     }
 
@@ -1451,8 +1420,33 @@ impl ScriptThread {
         }
     }
 
-    fn handle_serviceworker_registration(&self, scope: Url, registration: &ServiceWorkerRegistration) {
-        self.registration_map.borrow_mut().insert(scope, JS::from_ref(registration));
+    fn handle_serviceworker_registration(&self,
+                                         scope: Url,
+                                         registration: &ServiceWorkerRegistration,
+                                         pipeline_id: PipelineId) {
+        {
+            let ref mut reg_ref = *self.registration_map.borrow_mut();
+            // according to spec we should replace if an older registration exists for
+            // same scope otherwise just insert the new one
+            let _ = reg_ref.remove(&scope);
+            reg_ref.insert(scope.clone(), JS::from_ref(registration));
+        }
+
+        // send ScopeThings to sw-manager
+        let ref maybe_registration_ref = *self.registration_map.borrow();
+        let maybe_registration = match maybe_registration_ref.get(&scope) {
+            Some(r) => r,
+            None => return
+        };
+        if let Some(context) = self.root_browsing_context().find(pipeline_id) {
+            let window = context.active_window();
+            let global_ref = GlobalRef::Window(window.r());
+            let script_url = maybe_registration.get_installed().get_script_url();
+            let scope_things = ServiceWorkerRegistration::create_scope_things(global_ref, script_url);
+            let _ = self.constellation_chan.send(ConstellationMsg::RegisterServiceWorker(scope_things, scope));
+        } else {
+            warn!("Registration failed for {}", pipeline_id);
+        }
     }
 
     /// Handles a request for the window title.
@@ -1581,7 +1575,6 @@ impl ScriptThread {
         let UserInteractionTaskSource(ref user_sender) = self.user_interaction_task_source;
         let NetworkingTaskSource(ref network_sender) = self.networking_task_source;
         let HistoryTraversalTaskSource(ref history_sender) = self.history_traversal_task_source;
-        let FileReadingTaskSource(ref file_sender) = self.file_reading_task_source;
 
         let (ipc_timer_event_chan, ipc_timer_event_port) = ipc::channel().unwrap();
         ROUTER.route_ipc_receiver_to_mpsc_sender(ipc_timer_event_port,
@@ -1594,9 +1587,8 @@ impl ScriptThread {
                                  UserInteractionTaskSource(user_sender.clone()),
                                  NetworkingTaskSource(network_sender.clone()),
                                  HistoryTraversalTaskSource(history_sender.clone()),
-                                 FileReadingTaskSource(file_sender.clone()),
+                                 self.file_reading_task_source.clone(),
                                  self.image_cache_channel.clone(),
-                                 self.custom_message_chan.clone(),
                                  self.image_cache_thread.clone(),
                                  self.resource_threads.clone(),
                                  self.bluetooth_thread.clone(),
@@ -1606,7 +1598,6 @@ impl ScriptThread {
                                  self.constellation_chan.clone(),
                                  self.control_chan.clone(),
                                  self.scheduler_chan.clone(),
-                                 self.panic_chan.clone(),
                                  ipc_timer_event_chan,
                                  incomplete.layout_chan,
                                  incomplete.pipeline_id,
@@ -1706,6 +1697,30 @@ impl ScriptThread {
             _ => IsHTMLDocument::HTMLDocument,
         };
 
+        let referrer = match metadata.referrer {
+            Some(ref referrer) => Some(referrer.clone().into_string()),
+            None => None,
+        };
+
+        let referrer_policy = if let Some(headers) = metadata.headers {
+            headers.get::<ReferrerPolicyHeader>().map(|h| match *h {
+                ReferrerPolicyHeader::NoReferrer =>
+                    ReferrerPolicy::NoReferrer,
+                ReferrerPolicyHeader::NoReferrerWhenDowngrade =>
+                    ReferrerPolicy::NoReferrerWhenDowngrade,
+                ReferrerPolicyHeader::SameOrigin =>
+                    ReferrerPolicy::SameOrigin,
+                ReferrerPolicyHeader::Origin =>
+                    ReferrerPolicy::Origin,
+                ReferrerPolicyHeader::OriginWhenCrossOrigin =>
+                    ReferrerPolicy::OriginWhenCrossOrigin,
+                ReferrerPolicyHeader::UnsafeUrl =>
+                    ReferrerPolicy::UnsafeUrl,
+            })
+        } else {
+            None
+        };
+
         let document = Document::new(window.r(),
                                      Some(&browsing_context),
                                      Some(final_url.clone()),
@@ -1713,7 +1728,9 @@ impl ScriptThread {
                                      content_type,
                                      last_modified,
                                      DocumentSource::FromParser,
-                                     loader);
+                                     loader,
+                                     referrer,
+                                     referrer_policy);
         if using_new_context {
             browsing_context.init(&document);
         } else {
@@ -1937,12 +1954,12 @@ impl ScriptThread {
                 document.r().handle_touchpad_pressure_event(self.js_runtime.rt(), point, pressure, phase);
             }
 
-            KeyEvent(key, state, modifiers) => {
+            KeyEvent(ch, key, state, modifiers) => {
                 let document = match self.root_browsing_context().find(pipeline_id) {
                     Some(browsing_context) => browsing_context.active_document(),
                     None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
                 };
-                document.dispatch_key_event(key, state, modifiers, &self.constellation_chan);
+                document.dispatch_key_event(ch, key, state, modifiers, &self.constellation_chan);
             }
         }
     }
@@ -2057,6 +2074,7 @@ impl ScriptThread {
         let listener = NetworkListener {
             context: context,
             script_chan: self.chan.clone(),
+            wrapper: None,
         };
         ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
             listener.notify_action(message.to().unwrap());
@@ -2080,8 +2098,7 @@ impl ScriptThread {
             pipeline_id: Some(id),
             credentials_flag: true,
             referrer_policy: load_data.referrer_policy,
-            referrer_url: load_data.referrer_url,
-            source: RequestSource::Window(self.custom_message_chan.clone())
+            referrer_url: load_data.referrer_url
         }, LoadConsumer::Listener(response_target), None)).unwrap();
 
         self.incomplete_loads.borrow_mut().push(incomplete);

@@ -26,7 +26,8 @@ impl HTMLBRElement {
     pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLBRElement> {
-        let element = HTMLBRElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLBRElementBinding::Wrap)
+        Node::reflect_node(box HTMLBRElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLBRElementBinding::Wrap)
     }
 }

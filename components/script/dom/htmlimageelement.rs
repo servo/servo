@@ -32,7 +32,6 @@ use std::sync::Arc;
 use string_cache::Atom;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use task_source::TaskSource;
-use task_source::dom_manipulation::DOMManipulationTask;
 use url::Url;
 
 #[derive(JSTraceable, HeapSizeOf)]
@@ -81,6 +80,8 @@ impl ImageResponseHandlerRunnable {
 }
 
 impl Runnable for ImageResponseHandlerRunnable {
+    fn name(&self) -> &'static str { "ImageResponseHandlerRunnable" }
+
     fn handler(self: Box<Self>) {
         // Update the image field
         let element = self.element.root();
@@ -139,7 +140,7 @@ impl HTMLImageElement {
                         // Return the image via a message to the script thread, which marks the element
                         // as dirty and triggers a reflow.
                         let image_response = message.to().unwrap();
-                        let runnable = ImageResponseHandlerRunnable::new(
+                        let runnable = box ImageResponseHandlerRunnable::new(
                             trusted_node.clone(), image_response);
                         let runnable = wrapper.wrap_runnable(runnable);
                         let _ = script_chan.send(CommonScriptMsg::RunnableMsg(
@@ -178,12 +179,12 @@ impl HTMLImageElement {
                         }
                     }
 
-                    let runnable = Box::new(ImgParseErrorRunnable {
+                    let runnable = box ImgParseErrorRunnable {
                         img: Trusted::new(self),
                         src: src.into(),
-                    });
+                    };
                     let task = window.dom_manipulation_task_source();
-                    let _ = task.queue(DOMManipulationTask::Miscellaneous(runnable));
+                    let _ = task.queue(runnable, GlobalRef::Window(window));
                 }
             }
         }
@@ -212,8 +213,9 @@ impl HTMLImageElement {
     pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLImageElement> {
-        let element = HTMLImageElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLImageElementBinding::Wrap)
+        Node::reflect_node(box HTMLImageElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLImageElementBinding::Wrap)
     }
 
     pub fn Image(global: GlobalRef,

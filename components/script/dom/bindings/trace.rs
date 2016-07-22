@@ -79,6 +79,7 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use std::hash::{BuildHasher, Hash};
 use std::mem;
 use std::ops::{Deref, DerefMut};
+use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicUsize};
@@ -88,8 +89,7 @@ use string_cache::{Atom, Namespace, QualName};
 use style::attr::{AttrIdentifier, AttrValue, LengthOrPercentageOrAuto};
 use style::element_state::*;
 use style::properties::PropertyDeclarationBlock;
-use style::restyle_hints::ElementSnapshot;
-use style::selector_impl::PseudoElement;
+use style::selector_impl::{PseudoElement, ElementSnapshot};
 use style::values::specified::Length;
 use url::Origin as UrlOrigin;
 use url::Url;
@@ -276,7 +276,7 @@ impl<A: JSTraceable, B: JSTraceable, C: JSTraceable> JSTraceable for (A, B, C) {
     }
 }
 
-no_jsmanaged_fields!(bool, f32, f64, String, Url, AtomicBool, AtomicUsize, UrlOrigin, Uuid);
+no_jsmanaged_fields!(bool, f32, f64, String, Url, AtomicBool, AtomicUsize, UrlOrigin, Uuid, char);
 no_jsmanaged_fields!(usize, u8, u16, u32, u64);
 no_jsmanaged_fields!(isize, i8, i16, i32, i64);
 no_jsmanaged_fields!(Sender<T>);
@@ -331,6 +331,7 @@ no_jsmanaged_fields!(SystemTime);
 no_jsmanaged_fields!(SelectedFileId);
 no_jsmanaged_fields!(RelativePos);
 no_jsmanaged_fields!(OpaqueStyleAndLayoutData);
+no_jsmanaged_fields!(PathBuf);
 no_jsmanaged_fields!(CSSErrorReporter);
 no_jsmanaged_fields!(WebGLBufferId);
 no_jsmanaged_fields!(WebGLFramebufferId);

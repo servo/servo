@@ -2,6 +2,7 @@
 name = "constellation"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
 publish = false
 
 [lib]
@@ -9,9 +10,9 @@ name = "constellation"
 path = "lib.rs"
 
 [dependencies]
+backtrace = "0.2.1"
 canvas = {path = "../canvas"}
 canvas_traits = {path = "../canvas_traits"}
-clipboard = {git = "https://github.com/aweinstock314/rust-clipboard"}
 compositing = {path = "../compositing"}
 devtools_traits = {path = "../devtools_traits"}
 euclid = "0.7.1"

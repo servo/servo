@@ -9,7 +9,6 @@ import platform
 import subprocess
 import sys
 from distutils.spawn import find_executable
-from pipes import quote
 
 SEARCH_PATHS = [
     os.path.join("python", "tidy"),
@@ -121,7 +120,11 @@ def _activate_virtualenv(topdir):
             sys.exit("Python virtualenv failed to execute properly: {}"
                      .format(process.communicate()[1]))
 
-    execfile(activate_path, dict(__file__=quote(activate_path)))
+    execfile(activate_path, dict(__file__=activate_path))
+
+    python = find_executable("python")
+    if python is None or not python.startswith(virtualenv_path):
+        sys.exit("Python virtualenv failed to activate.")
 
     # TODO: Right now, we iteratively install all the requirements by invoking
     # `pip install` each time. If it were the case that there were conflicting

@@ -1,4 +1,4 @@
 html5lib >= 0.99
 mozinfo >= 0.7
-mozlog >= 3.0
+mozlog >= 3.3
 mozdebug >= 0.1

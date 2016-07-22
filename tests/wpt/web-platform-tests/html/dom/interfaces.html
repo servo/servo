@@ -499,7 +499,7 @@ interface MouseEvent : UIEvent {
     boolean getModifierState (DOMString keyArg);
 };
 
-dictionary MouseEventInit : SharedKeyboardAndMouseEventInit {
+dictionary MouseEventInit : EventModifierInit {
     long           screenX = 0;
     long           screenY = 0;
     long           clientX = 0;
@@ -509,7 +509,7 @@ dictionary MouseEventInit : SharedKeyboardAndMouseEventInit {
     EventTarget?   relatedTarget = null;
 };
 
-dictionary SharedKeyboardAndMouseEventInit : UIEventInit {
+dictionary EventModifierInit : UIEventInit {
     boolean ctrlKey = false;
     boolean shiftKey = false;
     boolean altKey = false;
@@ -2353,7 +2353,7 @@ interface BeforeUnloadEvent : Event {
            attribute DOMString returnValue;
 };
 
-[Exposed=Window,SharedWorker]
+[Exposed=(Window,SharedWorker)]
 interface ApplicationCache : EventTarget {
 
   // update status
@@ -2762,13 +2762,13 @@ interface WorkerGlobalScope : EventTarget {
   // also has additional members in a partial interface
 };
 
-[Global=Worker,DedicatedWorker]
+[Global=(Worker,DedicatedWorker),Exposed=DedicatedWorker]
 /*sealed*/ interface DedicatedWorkerGlobalScope : WorkerGlobalScope {
   void postMessage(any message, optional sequence<Transferable> transfer);
            attribute EventHandler onmessage;
 };
 
-[Global=Worker,SharedWorker]
+[Global=(Worker,SharedWorker),Exposed=SharedWorker]
 /*sealed*/ interface SharedWorkerGlobalScope : WorkerGlobalScope {
   readonly attribute DOMString name;
   readonly attribute ApplicationCache applicationCache;
@@ -2795,7 +2795,6 @@ interface SharedWorker : EventTarget {
 };
 SharedWorker implements AbstractWorker;
 
-[Exposed=Worker]
 partial interface WorkerGlobalScope { // not obsolete
   void importScripts(DOMString... urls);
   readonly attribute WorkerNavigator navigator;
@@ -3246,7 +3245,7 @@ window.onload = function() {
     TextTrackCue: [],
     DataCue: [],
     TimeRanges: ['document.createElement("video").buffered'],
-    TrackEvent: ['new TrackEvent("addtrack"; {track:document.createElement("track").track})'],
+    TrackEvent: ['new TrackEvent("addtrack", {track:document.createElement("track").track})'],
     HTMLTemplateElement: ['document.createElement("template")'],
     HTMLSlotElement: ['document.createElement("slot")'],
     HTMLCanvasElement: ['document.createElement("canvas")'],

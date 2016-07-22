@@ -32,6 +32,8 @@ def main():
     o = OptionParser(usage=usageString)
     o.add_option("--cachedir", dest='cachedir', default=None,
                  help="Directory in which to cache lex/parse tables.")
+    o.add_option("--only-html", dest='only_html', action="store_true",
+                 help="Only generate HTML from WebIDL inputs")
     (options, args) = o.parse_args()
 
     if len(args) < 2:
@@ -51,23 +53,29 @@ def main():
         parser.parse(''.join(lines), fullPath)
     parserResults = parser.finish()
 
-    # Write the parser results out to a pickle.
-    resultsPath = os.path.join(outputdir, 'ParserResults.pkl')
-    with open(resultsPath, 'wb') as resultsFile:
-        cPickle.dump(parserResults, resultsFile, -1)
+    if not options.only_html:
+        # Write the parser results out to a pickle.
+        resultsPath = os.path.join(outputdir, 'ParserResults.pkl')
+        with open(resultsPath, 'wb') as resultsFile:
+            cPickle.dump(parserResults, resultsFile, -1)
 
     # Load the configuration.
     config = Configuration(configFile, parserResults)
 
     to_generate = [
-        ('PrototypeList', 'PrototypeList.rs'),
-        ('RegisterBindings', 'RegisterBindings.rs'),
-        ('InterfaceObjectMap', 'InterfaceObjectMap.rs'),
-        ('InterfaceTypes', 'InterfaceTypes.rs'),
-        ('InheritTypes', 'InheritTypes.rs'),
-        ('Bindings', os.path.join('Bindings', 'mod.rs')),
-        ('UnionTypes', 'UnionTypes.rs'),
+        ('SupportedDomApis', 'apis.html'),
     ]
+
+    if not options.only_html:
+        to_generate = [
+            ('PrototypeList', 'PrototypeList.rs'),
+            ('RegisterBindings', 'RegisterBindings.rs'),
+            ('InterfaceObjectMap', 'InterfaceObjectMap.rs'),
+            ('InterfaceTypes', 'InterfaceTypes.rs'),
+            ('InheritTypes', 'InheritTypes.rs'),
+            ('Bindings', os.path.join('Bindings', 'mod.rs')),
+            ('UnionTypes', 'UnionTypes.rs'),
+        ]
 
     for name, filename in to_generate:
         generate_file(config, name, os.path.join(outputdir, filename))

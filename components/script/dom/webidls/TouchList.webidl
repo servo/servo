@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // http://w3c.github.io/touch-events/#idl-def-TouchList
-
+[Exposed=(Window,Worker)]
 interface TouchList {
     readonly    attribute unsigned long length;
     getter Touch? item (unsigned long index);

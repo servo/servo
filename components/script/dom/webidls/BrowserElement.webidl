@@ -19,7 +19,7 @@ callback BrowserElementNextPaintEventCallback = void ();
 //  DOMString? origin;
 //};
 
-[NoInterfaceObject]
+[NoInterfaceObject, Exposed=(Window,Worker)]
 interface BrowserElement {
 };
 
@@ -104,44 +104,37 @@ dictionary BrowserElementVisibilityChangeEventDetail {
 BrowserElement implements BrowserElementCommon;
 BrowserElement implements BrowserElementPrivileged;
 
-[NoInterfaceObject]
+[NoInterfaceObject, Exposed=(Window,Worker)]
 interface BrowserElementCommon {
   [Throws,
-   Pref="dom.mozbrowser.enabled",
-   CheckAnyPermissions="browser embed-widgets"]
+   Pref="dom.mozbrowser.enabled"]
   void setVisible(boolean visible);
 
   [Throws,
-   Pref="dom.mozbrowser.enabled",
-   CheckAnyPermissions="browser embed-widgets"]
+   Pref="dom.mozbrowser.enabled"]
   boolean getVisible();
 
   //[Throws,
-  // Pref="dom.mozBrowserFramesEnabled",
-  // CheckAnyPermissions="browser embed-widgets"]
+  // Pref="dom.mozBrowserFramesEnabled"]
   //void setActive(boolean active);
 
   //[Throws,
-  // Pref="dom.mozBrowserFramesEnabled",
-  // CheckAnyPermissions="browser embed-widgets"]
+  // Pref="dom.mozBrowserFramesEnabled"]
   //boolean getActive();
 
   //[Throws,
-  // Pref="dom.mozBrowserFramesEnabled",
-  // CheckAnyPermissions="browser embed-widgets"]
+  // Pref="dom.mozBrowserFramesEnabled"]
   //void addNextPaintListener(BrowserElementNextPaintEventCallback listener);
 
   //[Throws,
-  // Pref="dom.mozBrowserFramesEnabled",
-  // CheckAnyPermissions="browser embed-widgets"]
+  // Pref="dom.mozBrowserFramesEnabled"]
   //void removeNextPaintListener(BrowserElementNextPaintEventCallback listener);
 };
 
-[NoInterfaceObject]
+[NoInterfaceObject, Exposed=(Window,Worker)]
 interface BrowserElementPrivileged {
   //[Throws,
-  // Pref="dom.mozBrowserFramesEnabled",
-  // CheckAnyPermissions="browser"]
+  // Pref="dom.mozBrowserFramesEnabled"]
   //void sendMouseEvent(DOMString type,
   //                    unsigned long x,
   //                    unsigned long y,
@@ -151,8 +144,7 @@ interface BrowserElementPrivileged {
 
   //[Throws,
   // Pref="dom.mozBrowserFramesEnabled",
-  // Func="TouchEvent::PrefEnabled",
-  // CheckAnyPermissions="browser"]
+  // Func="TouchEvent::PrefEnabled"]
   //void sendTouchEvent(DOMString type,
   //                    sequence<unsigned long> identifiers,
   //                    sequence<long> x,
@@ -177,71 +169,58 @@ interface BrowserElementPrivileged {
   void stop();
 
   //[Throws,
-  // Pref="dom.mozBrowserFramesEnabled",
-  // CheckAnyPermissions="browser"]
+  // Pref="dom.mozBrowserFramesEnabled"]
   //DOMRequest download(DOMString url,
   //                    optional BrowserElementDownloadOptions options);
 
   //[Throws,
-  // Pref="dom.mozBrowserFramesEnabled",
-  // CheckAnyPermissions="browser"]
+  // Pref="dom.mozBrowserFramesEnabled"]
   //DOMRequest purgeHistory();
 
   //[Throws,
-  // Pref="dom.mozBrowserFramesEnabled",
-  // CheckAnyPermissions="browser"]
+  // Pref="dom.mozBrowserFramesEnabled"]
   //DOMRequest getScreenshot([EnforceRange] unsigned long width,
   //                         [EnforceRange] unsigned long height,
   //                         optional DOMString mimeType="");
 
   //[Throws,
-  // Pref="dom.mozBrowserFramesEnabled",
-  // CheckAnyPermissions="browser"]
+  // Pref="dom.mozBrowserFramesEnabled"]
   //void zoom(float zoom);
 
   //[Throws,
-  // Pref="dom.mozBrowserFramesEnabled",
-  // CheckAnyPermissions="browser"]
+  // Pref="dom.mozBrowserFramesEnabled"]
   //DOMRequest getCanGoBack();
 
   //[Throws,
-  // Pref="dom.mozBrowserFramesEnabled",
-  // CheckAnyPermissions="browser"]
+  // Pref="dom.mozBrowserFramesEnabled"]
   //DOMRequest getCanGoForward();
 
   //[Throws,
-  // Pref="dom.mozBrowserFramesEnabled",
-  // CheckAnyPermissions="browser"]
+  // Pref="dom.mozBrowserFramesEnabled"]
   //DOMRequest getContentDimensions();
 
   //[Throws,
-  // Pref="dom.mozBrowserFramesEnabled",
-  // CheckAllPermissions="browser input-manage"]
+  // Pref="dom.mozBrowserFramesEnabled"]
   //DOMRequest setInputMethodActive(boolean isActive);
 
   //[Throws,
-  // Pref="dom.mozBrowserFramesEnabled",
-  // CheckAllPermissions="browser nfc-manager"]
+  // Pref="dom.mozBrowserFramesEnabled"]
   //void setNFCFocus(boolean isFocus);
 
   //[Throws,
-  // Pref="dom.mozBrowserFramesEnabled",
-  // CheckAnyPermissions="browser"]
+  // Pref="dom.mozBrowserFramesEnabled"]
   //void findAll(DOMString searchString, BrowserFindCaseSensitivity caseSensitivity);
 
   //[Throws,
-  // Pref="dom.mozBrowserFramesEnabled",
-  // CheckAnyPermissions="browser"]
+  // Pref="dom.mozBrowserFramesEnabled"]
   //void findNext(BrowserFindDirection direction);
 
   //[Throws,
-  // Pref="dom.mozBrowserFramesEnabled",
-  // CheckAnyPermissions="browser"]
+  // Pref="dom.mozBrowserFramesEnabled"]
   //void clearMatch();
 
   //[Throws,
-  // Pref="dom.mozBrowserFramesEnabled",
-  // CheckAllPermissions="browser browser:universalxss"]
+  // Pref="dom.mozBrowserFramesEnabled"]
   //DOMRequest executeScript(DOMString script,
   //                         optional BrowserElementExecuteScriptOptions options);
 

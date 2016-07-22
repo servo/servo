@@ -3,12 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 extern crate app_units;
-#[macro_use]
-extern crate cssparser;
 extern crate env_logger;
 extern crate euclid;
 extern crate gecko_bindings;
-#[cfg(feature = "servo_features")] #[macro_use] extern crate heapsize;
 #[macro_use]
 extern crate lazy_static;
 extern crate libc;
@@ -16,7 +13,6 @@ extern crate libc;
 extern crate log;
 extern crate num_cpus;
 extern crate selectors;
-extern crate smallvec;
 #[macro_use(atom, ns)]
 extern crate string_cache;
 extern crate style;
@@ -26,16 +22,13 @@ extern crate util;
 
 mod context;
 mod data;
+mod snapshot;
+mod snapshot_helpers;
 #[allow(non_snake_case)]
 pub mod glue;
-mod selector_impl;
 mod traversal;
-mod values;
 mod wrapper;
 
-// Generated from the properties.mako.rs template by build.rs
-#[macro_use]
-#[allow(unsafe_code)]
-pub mod properties {
-    include!(concat!(env!("OUT_DIR"), "/properties.rs"));
-}
+// FIXME(bholley): This should probably go away once we harmonize the allocators.
+#[no_mangle]
+pub extern "C" fn je_malloc_usable_size(_: *const ::libc::c_void) -> ::libc::size_t { 0 }

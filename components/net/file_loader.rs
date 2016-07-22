@@ -7,7 +7,7 @@ use mime_classifier::MimeClassifier;
 use mime_guess::guess_mime_type;
 use msg::constellation_msg::{PipelineId, ReferrerPolicy};
 use net_traits::ProgressMsg::{Done, Payload};
-use net_traits::{LoadConsumer, LoadData, Metadata, NetworkError, LoadOrigin, RequestSource};
+use net_traits::{LoadConsumer, LoadData, Metadata, NetworkError, LoadOrigin};
 use resource_thread::{CancellationListener, ProgressSender};
 use resource_thread::{send_error, start_sending_sniffed_opt};
 use std::borrow::ToOwned;
@@ -38,9 +38,6 @@ impl LoadOrigin for FileLoadOrigin {
     }
     fn referrer_policy(&self) -> Option<ReferrerPolicy> {
         None
-    }
-    fn request_source(&self) -> RequestSource {
-        RequestSource::None
     }
     fn pipeline_id(&self) -> Option<PipelineId> {
         None

@@ -45,11 +45,12 @@ use std::mem as std_mem;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
 use style_traits::viewport::ViewportConstraints;
+use style_traits::{PagePx, ViewportPx};
 use surface_map::SurfaceMap;
 use time::{precise_time_ns, precise_time_s};
 use touch::{TouchHandler, TouchAction};
 use url::Url;
-use util::geometry::{PagePx, ScreenPx, ViewportPx};
+use util::geometry::ScreenPx;
 use util::opts;
 use util::prefs::PREFS;
 use webrender;
@@ -701,9 +702,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.composition_request = CompositionRequest::CompositeNow(reason)
             }
 
-            (Msg::KeyEvent(key, state, modified), ShutdownState::NotShuttingDown) => {
+            (Msg::KeyEvent(ch, key, state, modified), ShutdownState::NotShuttingDown) => {
                 if state == KeyState::Pressed {
-                    self.window.handle_key(key, modified);
+                    self.window.handle_key(ch, key, modified);
                 }
             }
 
@@ -1348,8 +1349,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.on_touchpad_pressure_event(cursor, pressure, stage);
             }
 
-            WindowEvent::KeyEvent(key, state, modifiers) => {
-                self.on_key_event(key, state, modifiers);
+            WindowEvent::KeyEvent(ch, key, state, modifiers) => {
+                self.on_key_event(ch, key, state, modifiers);
             }
 
             WindowEvent::Quit => {
@@ -1402,7 +1403,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                     warn!("Sending load url to constellation failed ({}).", e);
                 }
             },
-            Err(e) => error!("Parsing URL {} failed ({}).", url_string, e),
+            Err(e) => warn!("Parsing URL {} failed ({}).", url_string, e),
         }
     }
 
@@ -1880,8 +1881,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    fn on_key_event(&self, key: Key, state: KeyState, modifiers: KeyModifiers) {
-        let msg = ConstellationMsg::KeyEvent(key, state, modifiers);
+    fn on_key_event(&self, ch: Option<char>, key: Key, state: KeyState, modifiers: KeyModifiers) {
+        let msg = ConstellationMsg::KeyEvent(ch, key, state, modifiers);
         if let Err(e) = self.constellation_chan.send(msg) {
             warn!("Sending key event to constellation failed ({}).", e);
         }

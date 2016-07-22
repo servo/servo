@@ -12,6 +12,7 @@ use smallvec::SmallVec;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::rc::Rc;
 use std::str;
 use std::sync::Arc;
@@ -22,7 +23,6 @@ use text::glyph::{ByteIndex, GlyphData, GlyphId, GlyphStore};
 use text::shaping::ShaperMethods;
 use time;
 use unicode_script::Script;
-use util::cache::HashCache;
 use webrender_traits;
 
 macro_rules! ot_tag {
@@ -109,8 +109,8 @@ pub struct Font {
     pub requested_pt_size: Au,
     pub actual_pt_size: Au,
     shaper: Option<Shaper>,
-    shape_cache: RefCell<HashCache<ShapeCacheEntry, Arc<GlyphStore>>>,
-    glyph_advance_cache: RefCell<HashCache<u32, FractionalPixel>>,
+    shape_cache: RefCell<HashMap<ShapeCacheEntry, Arc<GlyphStore>>>,
+    glyph_advance_cache: RefCell<HashMap<u32, FractionalPixel>>,
     pub font_key: Option<webrender_traits::FontKey>,
 }
 
@@ -130,8 +130,8 @@ impl Font {
             requested_pt_size: requested_pt_size,
             actual_pt_size: actual_pt_size,
             metrics: metrics,
-            shape_cache: RefCell::new(HashCache::new()),
-            glyph_advance_cache: RefCell::new(HashCache::new()),
+            shape_cache: RefCell::new(HashMap::new()),
+            glyph_advance_cache: RefCell::new(HashMap::new()),
             font_key: font_key,
         }
     }
@@ -180,7 +180,7 @@ impl Font {
             text: text.to_owned(),
             options: *options,
         };
-        let result = self.shape_cache.borrow_mut().find_or_create(lookup_key, || {
+        let result = self.shape_cache.borrow_mut().entry(lookup_key).or_insert_with(|| {
             let start_time = time::precise_time_ns();
             let mut glyphs = GlyphStore::new(text.len(),
                                              options.flags.contains(IS_WHITESPACE_SHAPING_FLAG),
@@ -201,7 +201,7 @@ impl Font {
             TEXT_SHAPING_PERFORMANCE_COUNTER.fetch_add((end_time - start_time) as usize,
                                                        Ordering::Relaxed);
             Arc::new(glyphs)
-        });
+        }).clone();
         self.shaper = shaper;
         result
     }
@@ -269,7 +269,7 @@ impl Font {
     }
 
     pub fn glyph_h_advance(&self, glyph: GlyphId) -> FractionalPixel {
-        self.glyph_advance_cache.borrow_mut().find_or_create(glyph, || {
+        *self.glyph_advance_cache.borrow_mut().entry(glyph).or_insert_with(|| {
             match self.handle.glyph_h_advance(glyph) {
                 Some(adv) => adv,
                 None => 10f64 as FractionalPixel // FIXME: Need fallback strategy

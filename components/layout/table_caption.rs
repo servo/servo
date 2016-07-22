@@ -18,9 +18,9 @@ use gfx_traits::StackingContextId;
 use gfx_traits::print_tree::PrintTree;
 use std::fmt;
 use std::sync::Arc;
+use style::context::SharedStyleContext;
 use style::logical_geometry::LogicalSize;
 use style::properties::ServoComputedValues;
-use style::servo::SharedStyleContext;
 
 /// A table formatting context.
 pub struct TableCaptionFlow {

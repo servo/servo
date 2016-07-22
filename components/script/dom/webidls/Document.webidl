@@ -8,7 +8,7 @@
  */
 
 // https://dom.spec.whatwg.org/#interface-document
-[Constructor]
+[Constructor, Exposed=(Window,Worker)]
 interface Document : Node {
   [SameObject]
   readonly attribute DOMImplementation implementation;
@@ -82,7 +82,7 @@ partial /*sealed*/ interface Document {
   [/*PutForwards=href, */Unforgeable]
   readonly attribute Location? location;
   readonly attribute DOMString domain;
-  // readonly attribute DOMString referrer;
+  readonly attribute DOMString referrer;
   [Throws]
   attribute DOMString cookie;
   readonly attribute DOMString lastModified;

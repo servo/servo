@@ -1,4 +1,12 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+set -o errexit
+set -o nounset
+set -o pipefail
 
 # Run in the tools directory.
 cd "$(dirname $0)"
@@ -12,7 +20,8 @@ fi
 
 # Make sure we have llvm38.
 if [ ! -x "$(command -v clang-3.8)" ]; then
-    echo "llmv38 must be installed. Mac users should |brew install llvm38|, Linux varies by distro."
+    echo "llmv38 must be installed." \
+         "Mac users should |brew install llvm38|, Linux varies by distro."
     exit 1
 fi
 

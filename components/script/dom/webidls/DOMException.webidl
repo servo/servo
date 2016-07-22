@@ -7,7 +7,7 @@
  * https://heycam.github.io/webidl/#es-DOMException-constructor-object
  */
 
-[ExceptionClass]
+[ExceptionClass, Exposed=(Window,Worker)]
 interface DOMException {
   const unsigned short INDEX_SIZE_ERR = 1;
   const unsigned short DOMSTRING_SIZE_ERR = 2; // historical

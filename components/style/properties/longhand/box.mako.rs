@@ -26,7 +26,10 @@
         experimental_values = set("flex".split())
     %>
     pub use self::computed_value::T as SpecifiedValue;
-    use values::computed::{Context, ComputedValueAsSpecified};
+    use values::computed::ComputedValueAsSpecified;
+
+    use values::NoViewportPercentage;
+    impl NoViewportPercentage for SpecifiedValue {}
 
     pub mod computed_value {
         #[allow(non_camel_case_types)]
@@ -73,10 +76,9 @@
     impl ComputedValueAsSpecified for SpecifiedValue {}
 
     % if product == "servo":
-        fn cascade_property_custom<C: ComputedValues>(
-                                   _declaration: &PropertyDeclaration,
-                                   _inherited_style: &C,
-                                   context: &mut computed::Context<C>,
+        fn cascade_property_custom(_declaration: &PropertyDeclaration,
+                                   _inherited_style: &ComputedValues,
+                                   context: &mut computed::Context,
                                    _seen: &mut PropertyBitField,
                                    _cacheable: &mut bool,
                                    _error_reporter: &mut StdBox<ParseErrorReporter + Send>) {
@@ -95,12 +97,14 @@ ${helpers.single_keyword("position", "static absolute relative fixed",
                                   values="none left right"
                                   animatable="False"
                                   need_clone="True"
-                                  gecko_ffi_name="mFloats">
+                                  gecko_ffi_name="mFloat">
+    use values::NoViewportPercentage;
+    impl NoViewportPercentage for SpecifiedValue {}
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
 
         #[inline]
-        fn to_computed_value<Cx: TContext>(&self, context: &Cx) -> computed_value::T {
+        fn to_computed_value(&self, context: &Context) -> computed_value::T {
             let positioned = matches!(context.style().get_box().clone_position(),
                 longhands::position::SpecifiedValue::absolute |
                 longhands::position::SpecifiedValue::fixed);
@@ -129,7 +133,7 @@ ${helpers.single_keyword("clear", "none left right both",
     }
 
     #[inline]
-    pub fn derive_from_display<Cx: TContext>(context: &mut Cx) {
+    pub fn derive_from_display(context: &mut Context) {
         let d = context.style().get_box().clone_display();
         context.mutate_style().mutate_box().set__servo_display_for_hypothetical_box(d);
     }
@@ -146,6 +150,16 @@ ${helpers.single_keyword("clear", "none left right both",
                                       "baseline sub super top text-top middle bottom text-bottom",
                                       extra_gecko_values="middle-with-baseline") %>
   <% vertical_align_keywords = vertical_align.keyword.values_for(product) %>
+
+  use values::HasViewportPercentage;
+  impl HasViewportPercentage for SpecifiedValue {
+      fn has_viewport_percentage(&self) -> bool {
+          match *self {
+              SpecifiedValue::LengthOrPercentage(length) => length.has_viewport_percentage(),
+              _ => false
+          }
+      }
+  }
 
   #[allow(non_camel_case_types)]
   #[derive(Debug, Clone, PartialEq, Copy)]
@@ -213,7 +227,7 @@ ${helpers.single_keyword("clear", "none left right both",
       type ComputedValue = computed_value::T;
 
       #[inline]
-      fn to_computed_value<Cx: TContext>(&self, context: &Cx) -> computed_value::T {
+      fn to_computed_value(&self, context: &Context) -> computed_value::T {
           match *self {
               % for keyword in vertical_align_keywords:
                   SpecifiedValue::${to_rust_ident(keyword)} => {
@@ -253,6 +267,9 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 
   pub use self::computed_value::T as SpecifiedValue;
 
+  use values::NoViewportPercentage;
+  impl NoViewportPercentage for SpecifiedValue {}
+
   impl ToCss for SpecifiedValue {
       fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
           self.0.to_css(dest)
@@ -269,7 +286,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
       type ComputedValue = computed_value::T;
 
       #[inline]
-      fn to_computed_value<Cx: TContext>(&self, context: &Cx) -> computed_value::T {
+      fn to_computed_value(&self, context: &Context) -> computed_value::T {
           computed_value::T(self.0.to_computed_value(context))
       }
   }
@@ -292,11 +309,13 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 
     pub use self::computed_value::T as SpecifiedValue;
     pub use values::specified::Time as SingleSpecifiedValue;
+    use values::NoViewportPercentage;
+    impl NoViewportPercentage for SpecifiedValue {}
 
     pub mod computed_value {
         use cssparser::ToCss;
         use std::fmt;
-        use values::computed::{TContext, ToComputedValue};
+        use values::computed::{Context, ToComputedValue};
 
         pub use values::computed::Time as SingleComputedValue;
 
@@ -470,11 +489,14 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
         }
     }
 
+    use values::NoViewportPercentage;
+    impl NoViewportPercentage for SpecifiedValue {}
+
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
 
         #[inline]
-        fn to_computed_value<Cx: TContext>(&self, _: &Cx) -> computed_value::T {
+        fn to_computed_value(&self, _: &Context) -> computed_value::T {
             (*self).clone()
         }
     }
@@ -491,8 +513,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 
     pub fn parse_one(input: &mut Parser) -> Result<SingleSpecifiedValue,()> {
         if let Ok(function_name) = input.try(|input| input.expect_function()) {
-            return match_ignore_ascii_case! {
-                function_name,
+            return match_ignore_ascii_case! { function_name,
                 "cubic-bezier" => {
                     let (mut p1x, mut p1y, mut p2x, mut p2y) = (0.0, 0.0, 0.0, 0.0);
                     try!(input.parse_nested_block(|input| {
@@ -509,16 +530,17 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                     Ok(TransitionTimingFunction::CubicBezier(p1, p2))
                 },
                 "steps" => {
-                    let (mut step_count, mut start_end) = (0, computed_value::StartEnd::Start);
+                    let (mut step_count, mut start_end) = (0, computed_value::StartEnd::End);
                     try!(input.parse_nested_block(|input| {
                         step_count = try!(specified::parse_integer(input));
-                        try!(input.expect_comma());
-                        start_end = try!(match_ignore_ascii_case! {
-                            try!(input.expect_ident()),
-                            "start" => Ok(computed_value::StartEnd::Start),
-                            "end" => Ok(computed_value::StartEnd::End),
-                            _ => Err(())
-                        });
+                        if input.try(|input| input.expect_comma()).is_ok() {
+                            start_end = try!(match_ignore_ascii_case! {
+                                try!(input.expect_ident()),
+                                "start" => Ok(computed_value::StartEnd::Start),
+                                "end" => Ok(computed_value::StartEnd::End),
+                                _ => Err(())
+                            });
+                        }
                         Ok(())
                     }));
                     Ok(TransitionTimingFunction::Steps(step_count as u32, start_end))
@@ -583,15 +605,24 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
         computed_value::T(Vec::new())
     }
 
+
+    #[inline]
+    pub fn parse_one(input: &mut Parser) -> Result<SingleSpecifiedValue, ()> {
+        SingleSpecifiedValue::parse(input)
+    }
+
     pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
         Ok(SpecifiedValue(try!(input.parse_comma_separated(SingleSpecifiedValue::parse))))
     }
+
+    use values::NoViewportPercentage;
+    impl NoViewportPercentage for SpecifiedValue {}
 
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
 
         #[inline]
-        fn to_computed_value<Cx: TContext>(&self, _: &Cx) -> computed_value::T {
+        fn to_computed_value(&self, _: &Context) -> computed_value::T {
             (*self).clone()
         }
     }
@@ -610,6 +641,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                    need_index="True"
                    animatable="False">
     use values::computed::ComputedValueAsSpecified;
+    use values::NoViewportPercentage;
 
     pub mod computed_value {
         use cssparser::ToCss;
@@ -618,7 +650,8 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 
         pub use string_cache::Atom as SingleComputedValue;
 
-        #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
+        #[derive(Debug, Clone, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T(pub Vec<Atom>);
 
         impl ToCss for T {
@@ -640,6 +673,19 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     }
 
     pub use self::computed_value::T as SpecifiedValue;
+    impl NoViewportPercentage for SpecifiedValue {}
+    pub use string_cache::Atom as SingleSpecifiedValue;
+
+    #[inline]
+    pub fn parse_one(input: &mut Parser) -> Result<SingleSpecifiedValue, ()> {
+        use cssparser::Token;
+
+        Ok(match input.next() {
+            Ok(Token::Ident(ref value)) if value != "none" => Atom::from(&**value),
+            Ok(Token::QuotedString(value)) => Atom::from(&*value),
+            _ => return Err(()),
+        })
+    }
 
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
@@ -648,9 +694,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 
     pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
         use std::borrow::Cow;
-        Ok(SpecifiedValue(try!(input.parse_comma_separated(|input| {
-            input.expect_ident().map(Atom::from)
-        }))))
+        Ok(SpecifiedValue(try!(input.parse_comma_separated(parse_one))))
     }
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
@@ -660,22 +704,27 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                    need_index="True"
                    animatable="False">
     pub use super::transition_duration::computed_value;
-    pub use super::transition_duration::{parse, get_initial_value};
+    pub use super::transition_duration::{get_initial_value, get_initial_single_value};
+    pub use super::transition_duration::{parse, parse_one};
     pub use super::transition_duration::SpecifiedValue;
+    pub use super::transition_duration::SingleSpecifiedValue;
 </%helpers:longhand>
 
 <%helpers:longhand name="animation-timing-function"
                    need_index="True"
                    animatable="False">
     pub use super::transition_timing_function::computed_value;
-    pub use super::transition_timing_function::{parse, get_initial_value};
+    pub use super::transition_timing_function::{get_initial_value, get_initial_single_value};
+    pub use super::transition_timing_function::{parse, parse_one};
     pub use super::transition_timing_function::SpecifiedValue;
+    pub use super::transition_timing_function::SingleSpecifiedValue;
 </%helpers:longhand>
 
 <%helpers:longhand name="animation-iteration-count"
                    need_index="True"
                    animatable="False">
     use values::computed::ComputedValueAsSpecified;
+    use values::NoViewportPercentage;
 
     pub mod computed_value {
         use cssparser::ToCss;
@@ -683,7 +732,8 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 
         pub use self::AnimationIterationCount as SingleComputedValue;
 
-        #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
+        #[derive(Debug, Clone, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub enum AnimationIterationCount {
             Number(u32),
             Infinite,
@@ -698,7 +748,8 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
             }
         }
 
-        #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
+        #[derive(Debug, Clone, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T(pub Vec<AnimationIterationCount>);
 
         impl ToCss for T {
@@ -718,7 +769,14 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     }
 
     pub use self::computed_value::AnimationIterationCount;
+    pub use self::computed_value::AnimationIterationCount as SingleSpecifiedValue;
     pub use self::computed_value::T as SpecifiedValue;
+    impl NoViewportPercentage for SpecifiedValue {}
+
+    #[inline]
+    pub fn get_initial_single_value() -> AnimationIterationCount {
+        AnimationIterationCount::Number(1)
+    }
 
     pub fn parse_one(input: &mut Parser) -> Result<AnimationIterationCount, ()> {
         if input.try(|input| input.expect_ident_matching("infinite")).is_ok() {
@@ -738,8 +796,9 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
         Ok(SpecifiedValue(try!(input.parse_comma_separated(parse_one))))
     }
 
+    #[inline]
     pub fn get_initial_value() -> computed_value::T {
-        computed_value::T(vec![AnimationIterationCount::Number(1)])
+        computed_value::T(vec![get_initial_single_value()])
     }
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
@@ -765,8 +824,10 @@ ${helpers.keyword_list("animation-fill-mode",
                    need_index="True"
                    animatable="False">
     pub use super::transition_duration::computed_value;
-    pub use super::transition_duration::{parse, get_initial_value};
+    pub use super::transition_duration::{get_initial_value, get_initial_single_value};
+    pub use super::transition_duration::{parse, parse_one};
     pub use super::transition_duration::SpecifiedValue;
+    pub use super::transition_duration::SingleSpecifiedValue;
 </%helpers:longhand>
 
 // CSSOM View Module
@@ -854,6 +915,7 @@ ${helpers.single_keyword("-moz-appearance",
     use std::fmt::{self, Write};
     use url::Url;
     use values::computed::ComputedValueAsSpecified;
+    use values::NoViewportPercentage;
 
     #[derive(PartialEq, Clone, Debug)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -871,6 +933,7 @@ ${helpers.single_keyword("-moz-appearance",
     }
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
+    impl NoViewportPercentage for SpecifiedValue {}
 
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {

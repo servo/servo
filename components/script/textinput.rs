@@ -6,7 +6,7 @@
 
 use clipboard_provider::ClipboardProvider;
 use dom::bindings::str::DOMString;
-use dom::keyboardevent::{KeyboardEvent, key_value};
+use dom::keyboardevent::KeyboardEvent;
 use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
 use msg::constellation_msg::{Key, KeyModifiers};
 use std::borrow::ToOwned;
@@ -118,28 +118,6 @@ fn is_control_key(mods: KeyModifiers) -> bool {
 #[cfg(not(target_os = "macos"))]
 fn is_control_key(mods: KeyModifiers) -> bool {
     mods.contains(CONTROL) && !mods.contains(SUPER | ALT)
-}
-
-fn is_printable_key(key: Key) -> bool {
-    match key {
-        Key::Space | Key::Apostrophe | Key::Comma | Key::Minus |
-        Key::Period | Key::Slash | Key::GraveAccent | Key::Num0 |
-        Key::Num1 | Key::Num2 | Key::Num3 | Key::Num4 | Key::Num5 |
-        Key::Num6 | Key::Num7 | Key::Num8 | Key::Num9 | Key::Semicolon |
-        Key::Equal | Key::A | Key::B | Key::C | Key::D | Key::E | Key::F |
-        Key::G | Key::H | Key::I | Key::J | Key::K | Key::L | Key::M | Key::N |
-        Key::O | Key::P | Key::Q | Key::R | Key::S | Key::T | Key::U | Key::V |
-        Key::W | Key::X | Key::Y | Key::Z | Key::LeftBracket | Key::Backslash |
-        Key::RightBracket | Key::Kp0 | Key::Kp1 | Key::Kp2 | Key::Kp3 |
-        Key::Kp4 | Key::Kp5 | Key::Kp6 | Key::Kp7 | Key::Kp8 | Key::Kp9 |
-        Key::KpDecimal | Key::KpDivide | Key::KpMultiply | Key::KpSubtract |
-        Key::KpAdd | Key::KpEqual => true,
-        _ => false,
-    }
-}
-
-fn maybe_select(mods: KeyModifiers) -> Selection {
-    if mods.contains(SHIFT) { Selection::Selected } else { Selection::NotSelected }
 }
 
 /// The length in bytes of the first n characters in a UTF-8 string.
@@ -632,194 +610,120 @@ impl<T: ClipboardProvider> TextInput<T> {
     /// Process a given `KeyboardEvent` and return an action for the caller to execute.
     pub fn handle_keydown(&mut self, event: &KeyboardEvent) -> KeyReaction {
         if let Some(key) = event.get_key() {
-            self.handle_keydown_aux(key, event.get_key_modifiers())
+            self.handle_keydown_aux(event.printable(), key, event.get_key_modifiers())
         } else {
             KeyReaction::Nothing
         }
     }
 
-    fn handle_printable(&mut self, key: Key, mods: KeyModifiers) -> KeyReaction {
-        self.insert_string(key_value(key, mods));
-        KeyReaction::DispatchInput
-    }
-
-    /// On all platforms, (CTRL | CMD) + A will select all text in the input.
-    fn handle_a_cross_platform(&mut self, mods: KeyModifiers) -> KeyReaction {
-        if is_control_key(mods) {
-            self.select_all();
-            KeyReaction::RedrawSelection
-        } else {
-            self.handle_printable(Key::A, mods)
-        }
-    }
-
-    /// On macOS, CTRL + A jumps to the end of the current line.
-    #[cfg(target_os = "macos")]
-    fn handle_a(&mut self, mods: KeyModifiers) -> KeyReaction {
-        if mods.contains(CONTROL) && !mods.contains(SUPER | ALT) {
-            self.adjust_horizontal_to_end(Direction::Backward, maybe_select(mods));
-            KeyReaction::RedrawSelection
-        } else {
-            self.handle_a_cross_platform(mods)
-        }
-    }
-
-    #[cfg(not(target_os = "macos"))]
-    fn handle_a(&mut self, mods: KeyModifiers) -> KeyReaction {
-        self.handle_a_cross_platform(mods)
-    }
-
-    /// On macOS, CTRL + ALT + B jumps to the start of the previous/current word.
-    #[cfg(target_os = "macos")]
-    fn handle_b(&mut self, mods: KeyModifiers) -> KeyReaction {
-        if mods.contains(CONTROL | ALT) && !mods.contains(SUPER) {
-            self.adjust_horizontal_by_word(Direction::Backward, maybe_select(mods));
-            KeyReaction::RedrawSelection
-        } else {
-            self.handle_printable(Key::B, mods)
-        }
-    }
-
-    #[cfg(not(target_os = "macos"))]
-    fn handle_b(&mut self, mods: KeyModifiers) -> KeyReaction {
-        self.handle_printable(Key::B, mods)
-    }
-
-    /// On macOS, CTRL + E jumps to the end of the current line.
-    #[cfg(target_os = "macos")]
-    fn handle_e(&mut self, mods: KeyModifiers) -> KeyReaction {
-        if mods.contains(CONTROL) && !mods.contains(SUPER | ALT) {
-            self.adjust_horizontal_to_end(Direction::Forward, maybe_select(mods));
-            KeyReaction::RedrawSelection
-        } else {
-            self.handle_printable(Key::E, mods)
-        }
-    }
-
-    #[cfg(not(target_os = "macos"))]
-    fn handle_e(&mut self, mods: KeyModifiers) -> KeyReaction {
-        self.handle_printable(Key::E, mods)
-    }
-
-    /// On macOS, CTRL + ALT + F jumps to the end of the next/current word.
-    #[cfg(target_os = "macos")]
-    fn handle_f(&mut self, mods: KeyModifiers) -> KeyReaction {
-        if mods.contains(CONTROL | ALT) && !mods.contains(SUPER) {
-            self.adjust_horizontal_by_word(Direction::Forward, maybe_select(mods));
-            KeyReaction::RedrawSelection
-        } else {
-            self.handle_printable(Key::F, mods)
-        }
-    }
-
-    #[cfg(not(target_os = "macos"))]
-    fn handle_f(&mut self, mods: KeyModifiers) -> KeyReaction {
-        self.handle_printable(Key::F, mods)
-    }
-
-    /// On macOS, ALT + LEFT jumps to the start of the previous/current word.  CMD + LEFT jumps to
-    /// the start of the current line.
-    #[cfg(target_os = "macos")]
-    fn handle_left(&mut self, mods: KeyModifiers) -> KeyReaction {
-        if mods.contains(ALT) && !mods.contains(CONTROL | SUPER) {
-            self.adjust_horizontal_by_word(Direction::Backward, maybe_select(mods));
-            KeyReaction::RedrawSelection
-        } else if is_control_key(mods) {
-            self.adjust_horizontal_to_end(Direction::Backward, maybe_select(mods));
-            KeyReaction::RedrawSelection
-        } else {
-            self.adjust_horizontal_by_one(Direction::Backward, maybe_select(mods));
-            KeyReaction::RedrawSelection
-        }
-    }
-
-    #[cfg(not(target_os = "macos"))]
-    fn handle_left(&mut self, mods: KeyModifiers) -> KeyReaction {
-        self.adjust_horizontal_by_one(Direction::Backward, maybe_select(mods));
-        KeyReaction::RedrawSelection
-    }
-
-    /// On macOS, ALT + RIGHT jumps to the end of the next/current word.  CMD + RIGHT jumps to the
-    /// end of the current line.
-    #[cfg(target_os = "macos")]
-    fn handle_right(&mut self, mods: KeyModifiers) -> KeyReaction {
-        if mods.contains(ALT) && !mods.contains(CONTROL | SUPER) {
-            self.adjust_horizontal_by_word(Direction::Forward, maybe_select(mods));
-            KeyReaction::RedrawSelection
-        } else if is_control_key(mods) {
-            self.adjust_horizontal_to_end(Direction::Forward, maybe_select(mods));
-            KeyReaction::RedrawSelection
-        } else {
-            self.adjust_horizontal_by_one(Direction::Forward, maybe_select(mods));
-            KeyReaction::RedrawSelection
-        }
-    }
-
-    #[cfg(not(target_os = "macos"))]
-    fn handle_right(&mut self, mods: KeyModifiers) -> KeyReaction {
-        self.adjust_horizontal_by_one(Direction::Forward, maybe_select(mods));
-        KeyReaction::RedrawSelection
-    }
-
-    pub fn handle_keydown_aux(&mut self, key: Key, mods: KeyModifiers) -> KeyReaction {
-        match key {
-            Key::A => self.handle_a(mods),
-            Key::B => self.handle_b(mods),
-            Key::C if is_control_key(mods) => {
+    pub fn handle_keydown_aux(&mut self,
+                              printable: Option<char>,
+                              key: Key,
+                              mods: KeyModifiers) -> KeyReaction {
+        let maybe_select = if mods.contains(SHIFT) { Selection::Selected } else { Selection::NotSelected };
+        match (printable, key) {
+            #[cfg(target_os = "macos")]
+            (Some('a'), _) if (mods == CONTROL) || (mods == CONTROL | SHIFT) => {
+                self.adjust_horizontal_to_end(Direction::Backward, maybe_select);
+                KeyReaction::RedrawSelection
+            },
+            (Some('a'), _) if is_control_key(mods) => {
+                self.select_all();
+                KeyReaction::RedrawSelection
+            },
+            #[cfg(target_os = "macos")]
+            (Some('b'), _) if (mods == CONTROL | ALT) || (mods == CONTROL | ALT | SHIFT) => {
+                self.adjust_horizontal_by_word(Direction::Backward, maybe_select);
+                KeyReaction::RedrawSelection
+            },
+            (Some('c'), _) if is_control_key(mods) => {
                 if let Some(text) = self.get_selection_text() {
                     self.clipboard_provider.set_clipboard_contents(text);
                 }
                 KeyReaction::DispatchInput
             },
-            Key::E => self.handle_e(mods),
-            Key::F => self.handle_f(mods),
-            Key::V if is_control_key(mods) => {
+            #[cfg(target_os = "macos")]
+            (Some('e'), _) if (mods == CONTROL) || (mods == CONTROL | SHIFT) => {
+                self.adjust_horizontal_to_end(Direction::Forward, maybe_select);
+                KeyReaction::RedrawSelection
+            },
+            #[cfg(target_os = "macos")]
+            (Some('f'), _) if (mods == CONTROL | ALT) || (mods == CONTROL | ALT | SHIFT) => {
+                self.adjust_horizontal_by_word(Direction::Forward, maybe_select);
+                KeyReaction::RedrawSelection
+            },
+            (Some('v'), _) if is_control_key(mods) => {
                 let contents = self.clipboard_provider.clipboard_contents();
                 self.insert_string(contents);
                 KeyReaction::DispatchInput
             },
-            _ if is_printable_key(key) => self.handle_printable(key, mods),
-            Key::Space => {
-                self.insert_char(' ');
+            (Some(c), _) => {
+                self.insert_char(c);
                 KeyReaction::DispatchInput
             }
-            Key::Delete => {
+            (None, Key::Delete) => {
                 self.delete_char(Direction::Forward);
                 KeyReaction::DispatchInput
             }
-            Key::Backspace => {
+            (None, Key::Backspace) => {
                 self.delete_char(Direction::Backward);
                 KeyReaction::DispatchInput
             }
-            Key::Left => self.handle_left(mods),
-            Key::Right => self.handle_right(mods),
-            Key::Up => {
-                self.adjust_vertical(-1, maybe_select(mods));
+            #[cfg(target_os = "macos")]
+            (None, Key::Left) if (mods == ALT) || (mods == ALT | SHIFT) => {
+                self.adjust_horizontal_by_word(Direction::Backward, maybe_select);
+                KeyReaction::RedrawSelection
+            },
+            #[cfg(target_os = "macos")]
+            (None, Key::Left) if is_control_key(mods) => {
+                self.adjust_horizontal_to_end(Direction::Backward, maybe_select);
+                KeyReaction::RedrawSelection
+            },
+            (None, Key::Left) => {
+                self.adjust_horizontal_by_one(Direction::Backward, maybe_select);
+                KeyReaction::RedrawSelection
+            },
+            #[cfg(target_os = "macos")]
+            (None, Key::Right) if (mods == ALT) || (mods == ALT | SHIFT) => {
+                self.adjust_horizontal_by_word(Direction::Forward, maybe_select);
+                KeyReaction::RedrawSelection
+            },
+            #[cfg(target_os = "macos")]
+            (None, Key::Right) if is_control_key(mods) => {
+                self.adjust_horizontal_to_end(Direction::Forward, maybe_select);
+                KeyReaction::RedrawSelection
+            },
+            (None, Key::Right) => {
+                self.adjust_horizontal_by_one(Direction::Forward, maybe_select);
+                KeyReaction::RedrawSelection
+            },
+            (None, Key::Up) => {
+                self.adjust_vertical(-1, maybe_select);
                 KeyReaction::RedrawSelection
             }
-            Key::Down => {
-                self.adjust_vertical(1, maybe_select(mods));
+            (None, Key::Down) => {
+                self.adjust_vertical(1, maybe_select);
                 KeyReaction::RedrawSelection
             }
-            Key::Enter | Key::KpEnter => self.handle_return(),
-            Key::Home => {
+            (None, Key::Enter) | (None, Key::KpEnter) => self.handle_return(),
+            (None, Key::Home) => {
                 self.edit_point.index = 0;
                 KeyReaction::RedrawSelection
             }
-            Key::End => {
+            (None, Key::End) => {
                 self.edit_point.index = self.current_line_length();
                 self.assert_ok_selection();
                 KeyReaction::RedrawSelection
             }
-            Key::PageUp => {
-                self.adjust_vertical(-28, maybe_select(mods));
+            (None, Key::PageUp) => {
+                self.adjust_vertical(-28, maybe_select);
                 KeyReaction::RedrawSelection
             }
-            Key::PageDown => {
-                self.adjust_vertical(28, maybe_select(mods));
+            (None, Key::PageDown) => {
+                self.adjust_vertical(28, maybe_select);
                 KeyReaction::RedrawSelection
             }
-            Key::Tab => KeyReaction::TriggerDefaultAction,
+            (None, Key::Tab) => KeyReaction::TriggerDefaultAction,
             _ => KeyReaction::Nothing,
         }
     }
@@ -929,8 +833,17 @@ impl<T: ClipboardProvider> TextInput<T> {
             start = end;
         }
 
-        self.selection_begin = Some(self.get_text_point_for_absolute_point(start));
-        self.edit_point = self.get_text_point_for_absolute_point(end);
+        match self.selection_direction {
+            SelectionDirection::None |
+            SelectionDirection::Forward => {
+                self.selection_begin = Some(self.get_text_point_for_absolute_point(start));
+                self.edit_point = self.get_text_point_for_absolute_point(end);
+            },
+            SelectionDirection::Backward => {
+                self.selection_begin = Some(self.get_text_point_for_absolute_point(end));
+                self.edit_point = self.get_text_point_for_absolute_point(start);
+            }
+        }
         self.assert_ok_selection();
     }
 

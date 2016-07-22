@@ -6,7 +6,7 @@
  * https://dom.spec.whatwg.org/#interface-parentnode
  */
 
-[NoInterfaceObject]
+[NoInterfaceObject, Exposed=(Window,Worker)]
 interface ParentNode {
   [SameObject]
   readonly attribute HTMLCollection children;

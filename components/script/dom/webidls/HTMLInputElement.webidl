@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmlinputelement
+[Exposed=(Window,Worker)]
 interface HTMLInputElement : HTMLElement {
            attribute DOMString accept;
            attribute DOMString alt;
@@ -70,6 +71,11 @@ interface HTMLInputElement : HTMLElement {
   void setSelectionRange(unsigned long start, unsigned long end, optional DOMString direction);
 
   // also has obsolete members
+
+  // Select with file-system paths for testing purpose
+  [Pref="dom.testing.htmlinputelement.select_files.enabled"]
+  void selectFiles(sequence<DOMString> path);
+
 };
 
 // https://html.spec.whatwg.org/multipage/#HTMLInputElement-partial

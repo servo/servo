@@ -1,0 +1,17 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id" : "specificResource.json",
+  "type": "object",
+  "properties":
+  {
+    "source":
+    {
+      "type": ["string", "object" ],
+      "oneOf": [
+      { "$ref": "stringUri.json#" },
+      { "$ref": "externalWebResource.json#"}
+      ]
+    }
+  },
+  "required": ["source"]
+}

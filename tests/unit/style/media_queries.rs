@@ -9,8 +9,7 @@ use std::borrow::ToOwned;
 use style::error_reporting::ParseErrorReporter;
 use style::media_queries::*;
 use style::parser::ParserContextExtraData;
-use style::servo::Stylesheet;
-use style::stylesheets::{Origin, CSSRuleIteratorExt};
+use style::stylesheets::{Stylesheet, Origin, CSSRuleIteratorExt};
 use style::values::specified;
 use url::Url;
 

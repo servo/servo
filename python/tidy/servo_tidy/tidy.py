@@ -17,7 +17,7 @@ import site
 import StringIO
 import subprocess
 import sys
-from licenseck import licenses
+from licenseck import licenses, licenses_toml, licenses_dep_toml
 
 # License and header checks
 EMACS_HEADER = "/* -*- Mode:"
@@ -70,8 +70,6 @@ IGNORED_DIRS = [
     # Generated and upstream code combined with our own. Could use cleanup
     os.path.join(".", "target"),
     os.path.join(".", "ports", "cef"),
-    # Tooling, generated locally from external repos.
-    os.path.join(".", "ports", "geckolib", "gecko_bindings", "tools"),
     # Hidden directories
     os.path.join(".", "."),
 ]
@@ -90,6 +88,7 @@ WEBIDL_STANDARDS = [
     "//drafts.csswg.org/cssom",
     "//drafts.fxtf.org",
     "//encoding.spec.whatwg.org",
+    "//fetch.spec.whatwg.org",
     "//html.spec.whatwg.org",
     "//url.spec.whatwg.org",
     "//xhr.spec.whatwg.org",
@@ -297,9 +296,14 @@ duplicate versions for package "{package}"
 def check_toml(file_name, lines):
     if not file_name.endswith(".toml"):
         raise StopIteration
+    ok_licensed = False
     for idx, line in enumerate(lines):
         if line.find("*") != -1:
             yield (idx + 1, "found asterisk instead of minimum version number")
+        for license in licenses_toml:
+            ok_licensed |= (license in line)
+    if not ok_licensed:
+        yield (0, ".toml file should contain a valid license.")
 
 
 def check_rust(file_name, lines):
@@ -526,16 +530,28 @@ def check_webidl_spec(file_name, contents):
     yield (0, "No specification link found.")
 
 
+def check_for_possible_duplicate_json_keys(key_value_pairs):
+    keys = [x[0] for x in key_value_pairs]
+    seen_keys = set()
+    for key in keys:
+        if key in seen_keys:
+            raise KeyError(key)
+
+        seen_keys.add(key)
+
+
 def check_json(filename, contents):
     if not filename.endswith(".json"):
         raise StopIteration
 
     try:
-        json.loads(contents)
+        json.loads(contents, object_pairs_hook=check_for_possible_duplicate_json_keys)
     except ValueError as e:
         match = re.search(r"line (\d+) ", e.message)
         line_no = match and match.group(1)
         yield (line_no, e.message)
+    except KeyError as e:
+        yield (None, "Duplicated Key (%s)" % e.message)
 
 
 def check_spec(file_name, lines):
@@ -627,6 +643,28 @@ def check_wpt_lint_errors(files):
             yield ("WPT Lint Tool", "", "lint error(s) in Web Platform Tests: exit status {0}".format(returncode))
 
 
+def get_dep_toml_files(only_changed_files=False):
+    if not only_changed_files:
+        print '\nRunning the dependency licensing lint...'
+        for root, directories, filenames in os.walk(".cargo"):
+            for filename in filenames:
+                if filename == "Cargo.toml":
+                    yield os.path.join(root, filename)
+
+
+def check_dep_license_errors(filenames, progress=True):
+    filenames = progress_wrapper(filenames) if progress else filenames
+    for filename in filenames:
+        with open(filename, "r") as f:
+            ok_licensed = False
+            lines = f.readlines()
+            for idx, line in enumerate(lines):
+                for license_line in licenses_dep_toml:
+                    ok_licensed |= (license_line in line)
+            if not ok_licensed:
+                yield (filename, 0, "dependency should contain a valid license.")
+
+
 def get_file_list(directory, only_changed_files=False, exclude_dirs=[]):
     if only_changed_files:
         # only check the files that have been changed since the last merge
@@ -638,7 +676,7 @@ def get_file_list(directory, only_changed_files=False, exclude_dirs=[]):
         args = ["git", "ls-files", "--others", "--exclude-standard", directory]
         file_list += subprocess.check_output(args)
         for f in file_list.splitlines():
-            if os.path.join('.', os.path.dirname(f)) not in exclude_dirs:
+            if not any(os.path.join('.', os.path.dirname(f)).startswith(path) for path in exclude_dirs):
                 yield os.path.join('.', f)
     elif exclude_dirs:
         for root, dirs, files in os.walk(directory, topdown=True):
@@ -658,10 +696,12 @@ def scan(only_changed_files=False, progress=True):
     checking_functions = (check_flake8, check_lock, check_webidl_spec, check_json)
     line_checking_functions = (check_license, check_by_line, check_toml, check_rust, check_spec, check_modeline)
     errors = collect_errors_for_files(files_to_check, checking_functions, line_checking_functions)
+    # check dependecy licenses
+    dep_license_errors = check_dep_license_errors(get_dep_toml_files(only_changed_files), progress)
     # wpt lint checks
     wpt_lint_errors = check_wpt_lint_errors(get_wpt_files(only_changed_files, progress))
     # collect errors
-    errors = itertools.chain(errors, wpt_lint_errors)
+    errors = itertools.chain(errors, dep_license_errors, wpt_lint_errors)
     error = None
     for error in errors:
         print "\r\033[94m{}\033[0m:\033[93m{}\033[0m: \033[91m{}\033[0m".format(*error)

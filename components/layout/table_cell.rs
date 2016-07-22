@@ -24,9 +24,9 @@ use script_layout_interface::wrapper_traits::ThreadSafeLayoutNode;
 use std::fmt;
 use std::sync::Arc;
 use style::computed_values::{border_collapse, border_top_style, vertical_align};
+use style::context::SharedStyleContext;
 use style::logical_geometry::{LogicalMargin, LogicalRect, LogicalSize, WritingMode};
-use style::properties::{ComputedValues, ServoComputedValues};
-use style::servo::SharedStyleContext;
+use style::properties::ServoComputedValues;
 use table::InternalTable;
 use table_row::{CollapsedBorder, CollapsedBorderProvenance};
 
@@ -80,8 +80,12 @@ impl TableCellFlow {
         if !flow::base(self).restyle_damage.contains(REFLOW) {
             return;
         }
+        // Note to the reader: this code has been tested with negative margins.
+        // We end up with a "end" that's before the "start," but the math still works out.
         let first_start = flow::base(self).children.front().map(|kid| {
+            let kid_base = flow::base(kid);
             flow::base(kid).position.start.b
+                - kid_base.collapsible_margins.block_start_margin_for_noncollapsible_context()
         });
         if let Some(mut first_start) = first_start {
             let mut last_end = first_start;
