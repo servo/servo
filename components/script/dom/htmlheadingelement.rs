@@ -43,7 +43,8 @@ impl HTMLHeadingElement {
                prefix: Option<DOMString>,
                document: &Document,
                level: HeadingLevel) -> Root<HTMLHeadingElement> {
-        let element = HTMLHeadingElement::new_inherited(localName, prefix, document, level);
-        Node::reflect_node(box element, document, HTMLHeadingElementBinding::Wrap)
+        Node::reflect_node(box HTMLHeadingElement::new_inherited(localName, prefix, document, level),
+                           document,
+                           HTMLHeadingElementBinding::Wrap)
     }
 }

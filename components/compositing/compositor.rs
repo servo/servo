@@ -14,6 +14,7 @@ use euclid::rect::TypedRect;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
 use euclid::{Matrix4D, Point2D, Rect, Size2D};
+use gfx_traits::print_tree::PrintTree;
 use gfx_traits::{ChromeToPaintMsg, PaintRequest, ScrollPolicy, StackingContextId};
 use gfx_traits::{color, Epoch, FrameTreeId, FragmentType, LayerId, LayerKind, LayerProperties};
 use gleam::gl;
@@ -27,16 +28,16 @@ use layers::platform::surface::NativeDisplay;
 use layers::rendergl;
 use layers::rendergl::RenderContext;
 use layers::scene::Scene;
-use msg::constellation_msg::{Image, PixelFormat};
-use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
-use msg::constellation_msg::{NavigationDirection, PipelineId, PipelineIndex, PipelineNamespaceId};
-use msg::constellation_msg::{WindowSizeData, WindowSizeType};
+use msg::constellation_msg::{Image, PixelFormat, Key, KeyModifiers, KeyState};
+use msg::constellation_msg::{LoadData, NavigationDirection, PipelineId};
+use msg::constellation_msg::{PipelineIndex, PipelineNamespaceId, WindowSizeType};
 use profile_traits::mem::{self, ReportKind, Reporter, ReporterRequest};
 use profile_traits::time::{self, ProfilerCategory, profile};
 use script_traits::CompositorEvent::{MouseMoveEvent, MouseButtonEvent, TouchEvent};
 use script_traits::{AnimationState, AnimationTickType, ConstellationControlMsg};
 use script_traits::{ConstellationMsg, LayoutControlMsg, MouseButton, MouseEventType};
-use script_traits::{StackingContextScrollState, TouchpadPressurePhase, TouchEventType, TouchId};
+use script_traits::{StackingContextScrollState, TouchpadPressurePhase, TouchEventType};
+use script_traits::{TouchId, WindowSizeData};
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
@@ -44,13 +45,14 @@ use std::mem as std_mem;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
 use style_traits::viewport::ViewportConstraints;
+use style_traits::{PagePx, ViewportPx};
 use surface_map::SurfaceMap;
 use time::{precise_time_ns, precise_time_s};
 use touch::{TouchHandler, TouchAction};
 use url::Url;
-use util::geometry::{PagePx, ScreenPx, ViewportPx};
-use util::print_tree::PrintTree;
-use util::{opts, prefs};
+use util::geometry::ScreenPx;
+use util::opts;
+use util::prefs::PREFS;
 use webrender;
 use webrender_traits::{self, ScrollEventPhase};
 use windowing::{self, MouseWindowEvent, WindowEvent, WindowMethods, WindowNavigateMsg};
@@ -700,9 +702,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.composition_request = CompositionRequest::CompositeNow(reason)
             }
 
-            (Msg::KeyEvent(key, state, modified), ShutdownState::NotShuttingDown) => {
+            (Msg::KeyEvent(ch, key, state, modified), ShutdownState::NotShuttingDown) => {
                 if state == KeyState::Pressed {
-                    self.window.handle_key(key, modified);
+                    self.window.handle_key(ch, key, modified);
                 }
             }
 
@@ -1347,8 +1349,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.on_touchpad_pressure_event(cursor, pressure, stage);
             }
 
-            WindowEvent::KeyEvent(key, state, modifiers) => {
-                self.on_key_event(key, state, modifiers);
+            WindowEvent::KeyEvent(ch, key, state, modifiers) => {
+                self.on_key_event(ch, key, state, modifiers);
             }
 
             WindowEvent::Quit => {
@@ -1401,7 +1403,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                     warn!("Sending load url to constellation failed ({}).", e);
                 }
             },
-            Err(e) => error!("Parsing URL {} failed ({}).", url_string, e),
+            Err(e) => warn!("Parsing URL {} failed ({}).", url_string, e),
         }
     }
 
@@ -1871,7 +1873,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn on_touchpad_pressure_event(&self, cursor: TypedPoint2D<DevicePixel, f32>, pressure: f32,
                                   phase: TouchpadPressurePhase) {
-        if let Some(true) = prefs::get_pref("dom.forcetouch.enabled").as_boolean() {
+        if let Some(true) = PREFS.get("dom.forcetouch.enabled").as_boolean() {
             match self.find_topmost_layer_at_point(cursor / self.scene.scale) {
                 Some(result) => result.layer.send_touchpad_pressure_event(self, result.point, pressure, phase),
                 None => {},
@@ -1879,8 +1881,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    fn on_key_event(&self, key: Key, state: KeyState, modifiers: KeyModifiers) {
-        let msg = ConstellationMsg::KeyEvent(key, state, modifiers);
+    fn on_key_event(&self, ch: Option<char>, key: Key, state: KeyState, modifiers: KeyModifiers) {
+        let msg = ConstellationMsg::KeyEvent(ch, key, state, modifiers);
         if let Err(e) = self.constellation_chan.send(msg) {
             warn!("Sending key event to constellation failed ({}).", e);
         }
@@ -2260,8 +2262,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                             rendergl::render_scene(layer.clone(), context, &self.scene);
                             gl::disable(gl::SCISSOR_TEST);
 
-                        }
-                        else {
+                        } else {
                             rendergl::render_scene(layer.clone(), context, &self.scene);
                         }
                     }

@@ -11,12 +11,12 @@ use net_traits::image_cache_thread::ImageResponder;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheCommand, ImageCacheThread, ImageState};
 use net_traits::image_cache_thread::{ImageCacheResult, ImageOrMetadataAvailable, ImageResponse, UsePlaceholder};
 use net_traits::{AsyncResponseTarget, CoreResourceMsg, LoadConsumer, LoadData, CoreResourceThread, LoadOrigin};
-use net_traits::{ResponseAction, LoadContext, NetworkError, RequestSource};
+use net_traits::{ResponseAction, LoadContext, NetworkError};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::fs::File;
-use std::io::Read;
+use std::io::{self, Read};
 use std::mem;
 use std::sync::Arc;
 use std::sync::mpsc::{Sender, Receiver, channel};
@@ -313,37 +313,32 @@ impl LoadOrigin for ImageCacheOrigin {
     fn referrer_policy(&self) -> Option<ReferrerPolicy> {
         None
     }
-    fn request_source(&self) -> RequestSource {
-        RequestSource::None
-    }
     fn pipeline_id(&self) -> Option<PipelineId> {
         None
     }
 }
 
-
+fn get_placeholder_image(webrender_api: &Option<webrender_traits::RenderApi>) -> io::Result<Arc<Image>> {
+    let mut placeholder_path = try!(resources_dir_path());
+    placeholder_path.push("rippy.png");
+    let mut file = try!(File::open(&placeholder_path));
+    let mut image_data = vec![];
+    try!(file.read_to_end(&mut image_data));
+    let mut image = load_from_memory(&image_data).unwrap();
+    if let Some(ref webrender_api) = *webrender_api {
+        let format = convert_format(image.format);
+        let mut bytes = Vec::new();
+        bytes.extend_from_slice(&*image.bytes);
+        image.id = Some(webrender_api.add_image(image.width, image.height, format, bytes));
+    }
+    Ok(Arc::new(image))
+}
 impl ImageCache {
     fn run(core_resource_thread: CoreResourceThread,
            webrender_api: Option<webrender_traits::RenderApi>,
            ipc_command_receiver: IpcReceiver<ImageCacheCommand>) {
         // Preload the placeholder image, used when images fail to load.
-        let mut placeholder_path = resources_dir_path();
-        placeholder_path.push("rippy.png");
-
-        let mut image_data = vec![];
-        let result = File::open(&placeholder_path).and_then(|mut file| {
-            file.read_to_end(&mut image_data)
-        });
-        let placeholder_image = result.ok().map(|_| {
-            let mut image = load_from_memory(&image_data).unwrap();
-            if let Some(ref webrender_api) = webrender_api {
-                let format = convert_format(image.format);
-                let mut bytes = Vec::new();
-                bytes.extend_from_slice(&*image.bytes);
-                image.id = Some(webrender_api.add_image(image.width, image.height, format, bytes));
-            }
-            Arc::new(image)
-        });
+        let placeholder_image = get_placeholder_image(&webrender_api).ok();
 
         // Ask the router to proxy messages received over IPC to us.
         let cmd_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_command_receiver);
@@ -406,11 +401,11 @@ impl ImageCache {
             }
             ImageCacheCommand::GetImageIfAvailable(url, use_placeholder, consumer) => {
                 let result = self.get_image_if_available(url, use_placeholder);
-                consumer.send(result).unwrap();
+                let _ = consumer.send(result);
             }
             ImageCacheCommand::GetImageOrMetadataIfAvailable(url, use_placeholder, consumer) => {
                 let result = self.get_image_or_meta_if_available(url, use_placeholder);
-                consumer.send(result).unwrap();
+                let _ = consumer.send(result);
             }
             ImageCacheCommand::StoreDecodeImage(url, image_vector) => {
                 self.store_decode_image(url, image_vector);

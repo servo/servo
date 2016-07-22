@@ -28,8 +28,9 @@ impl HTMLDivElement {
     pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLDivElement> {
-        let element = HTMLDivElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLDivElementBinding::Wrap)
+        Node::reflect_node(box HTMLDivElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLDivElementBinding::Wrap)
     }
 }
 

@@ -19,6 +19,7 @@
 #![feature(slice_patterns)]
 #![feature(stmt_expr_attributes)]
 #![feature(question_mark)]
+#![feature(try_from)]
 
 #![deny(unsafe_code)]
 #![allow(non_snake_case)]
@@ -50,6 +51,7 @@ extern crate html5ever;
 extern crate hyper;
 extern crate image;
 extern crate ipc_channel;
+#[macro_use]
 extern crate js;
 extern crate libc;
 #[macro_use]
@@ -104,6 +106,7 @@ pub mod parse;
 pub mod script_runtime;
 #[allow(unsafe_code)]
 pub mod script_thread;
+mod serviceworker_manager;
 mod task_source;
 pub mod textinput;
 mod timers;
@@ -112,6 +115,8 @@ mod webdriver_handlers;
 
 use dom::bindings::codegen::RegisterBindings;
 use js::jsapi::{Handle, JSContext, JSObject, SetDOMProxyInformation};
+use script_traits::SWManagerSenders;
+use serviceworker_manager::ServiceWorkerManager;
 use std::ptr;
 use util::opts;
 
@@ -157,10 +162,13 @@ fn perform_platform_specific_initialization() {
 fn perform_platform_specific_initialization() {}
 
 #[allow(unsafe_code)]
-pub fn init() {
+pub fn init(sw_senders: SWManagerSenders) {
     unsafe {
         SetDOMProxyInformation(ptr::null(), 0, Some(script_thread::shadow_check_callback));
     }
+
+    // Spawn the service worker manager passing the constellation sender
+    ServiceWorkerManager::spawn_manager(sw_senders);
 
     // Create the global vtables used by the (generated) DOM
     // bindings to implement JS proxies.

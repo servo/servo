@@ -44,6 +44,7 @@ use flow_ref::FlowRef;
 use fragment::SpecificFragmentInfo;
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, HAS_LAYER, Overflow};
 use gfx::display_list::{ClippingRegion, StackingContext};
+use gfx_traits::print_tree::PrintTree;
 use gfx_traits::{LayerId, StackingContextId};
 use layout_debug;
 use model::{CollapsibleMargins, MaybeAuto, specified, specified_or_none};
@@ -55,14 +56,12 @@ use std::fmt;
 use std::sync::Arc;
 use style::computed_values::{border_collapse, box_sizing, display, float, overflow_x, overflow_y};
 use style::computed_values::{position, text_align, transform, transform_style};
-use style::context::StyleContext;
+use style::context::{SharedStyleContext, StyleContext};
 use style::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMode};
-use style::properties::{ComputedValues, ServoComputedValues};
-use style::servo::SharedStyleContext;
+use style::properties::ServoComputedValues;
 use style::values::computed::{LengthOrNone, LengthOrPercentageOrNone};
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use util::geometry::MAX_RECT;
-use util::print_tree::PrintTree;
 
 /// The number of screens of data we're allowed to generate display lists for in each direction.
 const DISPLAY_PORT_SIZE_FACTOR: i32 = 8;

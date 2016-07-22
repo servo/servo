@@ -23,7 +23,6 @@
   "js.throw_on_debuggee_would_run.enabled": false,
   "js.dump_stack_on_debuggee_would_run.enabled": false,
   "js.werror.enabled": false,
-  "js.strict.enabled": false,
   "js.shared_memory.enabled": true,
   "js.mem.high_water_mark": 128,
   "js.mem.max": -1,

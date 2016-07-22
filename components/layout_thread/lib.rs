@@ -76,7 +76,7 @@ use layout::traversal::RecalcStyleAndConstructFlows;
 use layout::webrender_helpers::{WebRenderDisplayListConverter, WebRenderFrameBuilder};
 use layout::wrapper::{LayoutNodeLayoutData, NonOpaqueStyleAndLayoutData};
 use layout_traits::LayoutThreadFactory;
-use msg::constellation_msg::{PanicMsg, PipelineId};
+use msg::constellation_msg::PipelineId;
 use net_traits::image_cache_thread::UsePlaceholder;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheResult, ImageCacheThread};
 use profile_traits::mem::{self, Report, ReportKind, ReportsChan};
@@ -98,25 +98,27 @@ use std::ops::{Deref, DerefMut};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{channel, Sender, Receiver};
 use std::sync::{Arc, Mutex, MutexGuard, RwLock};
+use style::animation::Animation;
 use style::computed_values::{filter, mix_blend_mode};
-use style::context::ReflowGoal;
+use style::context::{ReflowGoal, LocalStyleContextCreationInfo, SharedStyleContext};
 use style::dom::{TDocument, TElement, TNode};
 use style::error_reporting::ParseErrorReporter;
 use style::logical_geometry::LogicalPoint;
 use style::media_queries::{Device, MediaType};
 use style::parallel::WorkQueueData;
-use style::properties::ComputedValues;
 use style::refcell::RefCell;
-use style::selector_matching::USER_OR_USER_AGENT_STYLESHEETS;
-use style::servo::{Animation, LocalStyleContextCreationInfo, SharedStyleContext, Stylesheet, Stylist};
-use style::stylesheets::CSSRuleIteratorExt;
+use style::selector_matching::Stylist;
+use style::servo_selector_impl::USER_OR_USER_AGENT_STYLESHEETS;
+use style::stylesheets::{Stylesheet, CSSRuleIteratorExt};
+use style::timer::Timer;
+use style::workqueue::WorkQueue;
 use url::Url;
 use util::geometry::MAX_RECT;
 use util::ipc::OptionalIpcSender;
 use util::opts;
+use util::prefs::PREFS;
 use util::thread;
 use util::thread_state;
-use util::workqueue::WorkQueue;
 
 /// The number of screens we have to traverse before we decide to generate new display lists.
 const DISPLAY_PORT_THRESHOLD_SIZE_FACTOR: i32 = 4;
@@ -226,6 +228,10 @@ pub struct LayoutThread {
 
     // Webrender interface, if enabled.
     webrender_api: Option<webrender_traits::RenderApi>,
+
+    /// The timer object to control the timing of the animations. This should
+    /// only be a test-mode timer during testing for animations.
+    timer: Timer,
 }
 
 impl LayoutThreadFactory for LayoutThread {
@@ -238,7 +244,6 @@ impl LayoutThreadFactory for LayoutThread {
               chan: (Sender<Msg>, Receiver<Msg>),
               pipeline_port: IpcReceiver<LayoutControlMsg>,
               constellation_chan: IpcSender<ConstellationMsg>,
-              panic_chan: IpcSender<PanicMsg>,
               script_chan: IpcSender<ConstellationControlMsg>,
               paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
               image_cache_thread: ImageCacheThread,
@@ -247,9 +252,10 @@ impl LayoutThreadFactory for LayoutThread {
               mem_profiler_chan: mem::ProfilerChan,
               content_process_shutdown_chan: IpcSender<()>,
               webrender_api_sender: Option<webrender_traits::RenderApiSender>) {
-        thread::spawn_named_with_send_on_panic(format!("LayoutThread {:?}", id),
-                                               thread_state::LAYOUT,
-                                               move || {
+        thread::spawn_named(format!("LayoutThread {:?}", id),
+                      move || {
+            thread_state::initialize(thread_state::LAYOUT);
+            PipelineId::install(id);
             { // Ensures layout thread is destroyed before we send shutdown message
                 let sender = chan.0;
                 let layout = LayoutThread::new(id,
@@ -272,7 +278,7 @@ impl LayoutThreadFactory for LayoutThread {
                 }, reporter_name, sender, Msg::CollectReports);
             }
             let _ = content_process_shutdown_chan.send(());
-        }, Some(id), panic_chan);
+        });
     }
 }
 
@@ -459,13 +465,20 @@ impl LayoutThread {
                     offset_parent_response: OffsetParentResponse::empty(),
                     margin_style_response: MarginStyleResponse::empty(),
                     stacking_context_scroll_offsets: HashMap::new(),
-              })),
-              error_reporter: CSSErrorReporter {
-                  pipelineid: id,
-                  script_chan: Arc::new(Mutex::new(script_chan)),
-              },
-              webrender_image_cache:
-                  Arc::new(RwLock::new(HashMap::with_hasher(Default::default()))),
+                })),
+            error_reporter: CSSErrorReporter {
+                pipelineid: id,
+                script_chan: Arc::new(Mutex::new(script_chan)),
+            },
+            webrender_image_cache:
+                Arc::new(RwLock::new(HashMap::with_hasher(Default::default()))),
+            timer:
+                if PREFS.get("layout.animations.test.enabled")
+                           .as_boolean().unwrap_or(false) {
+                   Timer::test_mode()
+                } else {
+                    Timer::new()
+                },
         }
     }
 
@@ -501,6 +514,7 @@ impl LayoutThread {
                 expired_animations: self.expired_animations.clone(),
                 error_reporter: self.error_reporter.clone(),
                 local_context_creation_data: Mutex::new(local_style_context_creation_data),
+                timer: self.timer.clone(),
             },
             image_cache_thread: self.image_cache_thread.clone(),
             image_cache_sender: Mutex::new(self.image_cache_sender.clone()),
@@ -653,6 +667,9 @@ impl LayoutThread {
                 let _rw_data = possibly_locked_rw_data.lock();
                 sender.send(self.epoch).unwrap();
             },
+            Msg::AdvanceClockMs(how_many) => {
+                self.handle_advance_clock_ms(how_many, possibly_locked_rw_data);
+            }
             Msg::GetWebFontLoadState(sender) => {
                 let _rw_data = possibly_locked_rw_data.lock();
                 let outstanding_web_fonts = self.outstanding_web_fonts.load(Ordering::SeqCst);
@@ -730,7 +747,6 @@ impl LayoutThread {
                              info.layout_pair,
                              info.pipeline_port,
                              info.constellation_chan,
-                             info.panic_chan,
                              info.script_chan.clone(),
                              info.paint_chan.to::<LayoutToPaintMsg>(),
                              self.image_cache_thread.clone(),
@@ -793,6 +809,14 @@ impl LayoutThread {
         }
 
         possibly_locked_rw_data.block(rw_data);
+    }
+
+    /// Advances the animation clock of the document.
+    fn handle_advance_clock_ms<'a, 'b>(&mut self,
+                                       how_many_ms: i32,
+                                       possibly_locked_rw_data: &mut RwData<'a, 'b>) {
+        self.timer.increment(how_many_ms as f64 / 1000.0);
+        self.tick_all_animations(possibly_locked_rw_data);
     }
 
     /// Sets quirks mode for the document, causing the quirks mode stylesheet to be used.
@@ -1072,9 +1096,15 @@ impl LayoutThread {
                        .send(ConstellationMsg::ViewportConstrained(self.id, constraints))
                        .unwrap();
             }
-            // FIXME (#10104): Only dirty nodes affected by vh/vw/vmin/vmax styles.
             if data.document_stylesheets.iter().any(|sheet| sheet.dirty_on_viewport_size_change) {
-                needs_dirtying = true;
+                for node in node.traverse_preorder() {
+                    if node.needs_dirty_on_viewport_size_changed() {
+                        node.dirty_self();
+                        node.dirty_descendants();
+                        // TODO(shinglyu): We can skip the traversal if the descendants were already
+                        // dirtied
+                    }
+                }
             }
         }
 
@@ -1344,7 +1374,8 @@ impl LayoutThread {
                                               &mut *self.running_animations.write().unwrap(),
                                               &mut *self.expired_animations.write().unwrap(),
                                               &self.new_animations_receiver,
-                                              self.id);
+                                              self.id,
+                                              &self.timer);
 
             profile(time::ProfilerCategory::LayoutRestyleDamagePropagation,
                     self.profiler_metadata(),

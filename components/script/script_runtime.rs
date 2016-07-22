@@ -27,7 +27,7 @@ use std::os;
 use std::ptr;
 use time::{Tm, now};
 use util::opts;
-use util::prefs::get_pref;
+use util::prefs::PREFS;
 use util::thread_state;
 
 /// Common messages used to control the event loops in both the script and the worker
@@ -124,30 +124,30 @@ pub unsafe fn new_rt_and_cx() -> Runtime {
 
     // Enable or disable the JITs.
     let rt_opts = &mut *RuntimeOptionsRef(runtime.rt());
-    if let Some(val) = get_pref("js.baseline.enabled").as_boolean() {
+    if let Some(val) = PREFS.get("js.baseline.enabled").as_boolean() {
         rt_opts.set_baseline_(val);
     }
-    if let Some(val) = get_pref("js.ion.enabled").as_boolean() {
+    if let Some(val) = PREFS.get("js.ion.enabled").as_boolean() {
         rt_opts.set_ion_(val);
     }
-    if let Some(val) = get_pref("js.asmjs.enabled").as_boolean() {
+    if let Some(val) = PREFS.get("js.asmjs.enabled").as_boolean() {
         rt_opts.set_asmJS_(val);
     }
-    if let Some(val) = get_pref("js.strict.enabled").as_boolean() {
+    if let Some(val) = PREFS.get("js.strict.enabled").as_boolean() {
         rt_opts.set_extraWarnings_(val);
     }
     // TODO: handle js.strict.debug.enabled
     // TODO: handle js.throw_on_asmjs_validation_failure (needs new Spidermonkey)
-    if let Some(val) = get_pref("js.native_regexp.enabled").as_boolean() {
+    if let Some(val) = PREFS.get("js.native_regexp.enabled").as_boolean() {
         rt_opts.set_nativeRegExp_(val);
     }
-    if let Some(val) = get_pref("js.parallel_parsing.enabled").as_boolean() {
+    if let Some(val) = PREFS.get("js.parallel_parsing.enabled").as_boolean() {
         JS_SetParallelParsingEnabled(runtime.rt(), val);
     }
-    if let Some(val) = get_pref("js.offthread_compilation_enabled").as_boolean() {
+    if let Some(val) = PREFS.get("js.offthread_compilation_enabled").as_boolean() {
         JS_SetOffthreadIonCompilationEnabled(runtime.rt(), val);
     }
-    if let Some(val) = get_pref("js.baseline.unsafe_eager_compilation.enabled").as_boolean() {
+    if let Some(val) = PREFS.get("js.baseline.unsafe_eager_compilation.enabled").as_boolean() {
         let trigger: i32 = if val {
             0
         } else {
@@ -157,7 +157,7 @@ pub unsafe fn new_rt_and_cx() -> Runtime {
                                       JSJitCompilerOption::JSJITCOMPILER_BASELINE_WARMUP_TRIGGER,
                                       trigger as u32);
     }
-    if let Some(val) = get_pref("js.ion.unsafe_eager_compilation.enabled").as_boolean() {
+    if let Some(val) = PREFS.get("js.ion.unsafe_eager_compilation.enabled").as_boolean() {
         let trigger: i64 = if val {
             0
         } else {
@@ -171,14 +171,14 @@ pub unsafe fn new_rt_and_cx() -> Runtime {
     // TODO: handle js.asyncstack.enabled (needs new Spidermonkey)
     // TODO: handle js.throw_on_debugee_would_run (needs new Spidermonkey)
     // TODO: handle js.dump_stack_on_debugee_would_run (needs new Spidermonkey)
-    if let Some(val) = get_pref("js.werror.enabled").as_boolean() {
+    if let Some(val) = PREFS.get("js.werror.enabled").as_boolean() {
         rt_opts.set_werror_(val);
     }
     // TODO: handle js.shared_memory.enabled
-    if let Some(val) = get_pref("js.mem.high_water_mark").as_i64() {
+    if let Some(val) = PREFS.get("js.mem.high_water_mark").as_i64() {
         JS_SetGCParameter(runtime.rt(), JSGCParamKey::JSGC_MAX_MALLOC_BYTES, val as u32 * 1024 * 1024);
     }
-    if let Some(val) = get_pref("js.mem.max").as_i64() {
+    if let Some(val) = PREFS.get("js.mem.max").as_i64() {
         let max = if val <= 0 || val >= 0x1000 {
             -1
         } else {
@@ -187,8 +187,8 @@ pub unsafe fn new_rt_and_cx() -> Runtime {
         JS_SetGCParameter(runtime.rt(), JSGCParamKey::JSGC_MAX_BYTES, max as u32);
     }
     // NOTE: This is disabled above, so enabling it here will do nothing for now.
-    if let Some(val) = get_pref("js.mem.gc.incremental.enabled").as_boolean() {
-        let compartment = if let Some(val) = get_pref("js.mem.gc.per_compartment.enabled").as_boolean() {
+    if let Some(val) = PREFS.get("js.mem.gc.incremental.enabled").as_boolean() {
+        let compartment = if let Some(val) = PREFS.get("js.mem.gc.per_compartment.enabled").as_boolean() {
             val
         } else {
             false
@@ -202,67 +202,67 @@ pub unsafe fn new_rt_and_cx() -> Runtime {
         };
         JS_SetGCParameter(runtime.rt(), JSGCParamKey::JSGC_MODE, mode as u32);
     }
-    if let Some(val) = get_pref("js.mem.gc.incremental.slice_ms").as_i64() {
+    if let Some(val) = PREFS.get("js.mem.gc.incremental.slice_ms").as_i64() {
         if val >= 0 && val < 100000 {
             JS_SetGCParameter(runtime.rt(), JSGCParamKey::JSGC_SLICE_TIME_BUDGET, val as u32);
         }
     }
-    if let Some(val) = get_pref("js.mem.gc.compacting.enabled").as_boolean() {
+    if let Some(val) = PREFS.get("js.mem.gc.compacting.enabled").as_boolean() {
         JS_SetGCParameter(runtime.rt(), JSGCParamKey::JSGC_COMPACTING_ENABLED, val as u32);
     }
-    if let Some(val) = get_pref("js.mem.gc.high_frequency_time_limit_ms").as_i64() {
+    if let Some(val) = PREFS.get("js.mem.gc.high_frequency_time_limit_ms").as_i64() {
         if val >= 0 && val < 10000 {
             JS_SetGCParameter(runtime.rt(), JSGCParamKey::JSGC_HIGH_FREQUENCY_TIME_LIMIT, val as u32);
         }
     }
-    if let Some(val) = get_pref("js.mem.gc.dynamic_mark_slice.enabled").as_boolean() {
+    if let Some(val) = PREFS.get("js.mem.gc.dynamic_mark_slice.enabled").as_boolean() {
         JS_SetGCParameter(runtime.rt(), JSGCParamKey::JSGC_DYNAMIC_MARK_SLICE, val as u32);
     }
     // TODO: handle js.mem.gc.refresh_frame_slices.enabled
-    if let Some(val) = get_pref("js.mem.gc.dynamic_heap_growth.enabled").as_boolean() {
+    if let Some(val) = PREFS.get("js.mem.gc.dynamic_heap_growth.enabled").as_boolean() {
         JS_SetGCParameter(runtime.rt(), JSGCParamKey::JSGC_DYNAMIC_HEAP_GROWTH, val as u32);
     }
-    if let Some(val) = get_pref("js.mem.gc.low_frequency_heap_growth").as_i64() {
+    if let Some(val) = PREFS.get("js.mem.gc.low_frequency_heap_growth").as_i64() {
         if val >= 0 && val < 10000 {
             JS_SetGCParameter(runtime.rt(), JSGCParamKey::JSGC_LOW_FREQUENCY_HEAP_GROWTH, val as u32);
         }
     }
-    if let Some(val) = get_pref("js.mem.gc.high_frequency_heap_growth_min").as_i64() {
+    if let Some(val) = PREFS.get("js.mem.gc.high_frequency_heap_growth_min").as_i64() {
         if val >= 0 && val < 10000 {
             JS_SetGCParameter(runtime.rt(), JSGCParamKey::JSGC_HIGH_FREQUENCY_HEAP_GROWTH_MIN, val as u32);
         }
     }
-    if let Some(val) = get_pref("js.mem.gc.high_frequency_heap_growth_max").as_i64() {
+    if let Some(val) = PREFS.get("js.mem.gc.high_frequency_heap_growth_max").as_i64() {
         if val >= 0 && val < 10000 {
             JS_SetGCParameter(runtime.rt(), JSGCParamKey::JSGC_HIGH_FREQUENCY_HEAP_GROWTH_MAX, val as u32);
         }
     }
-    if let Some(val) = get_pref("js.mem.gc.high_frequency_low_limit_mb").as_i64() {
+    if let Some(val) = PREFS.get("js.mem.gc.high_frequency_low_limit_mb").as_i64() {
         if val >= 0 && val < 10000 {
             JS_SetGCParameter(runtime.rt(), JSGCParamKey::JSGC_HIGH_FREQUENCY_LOW_LIMIT, val as u32);
         }
     }
-    if let Some(val) = get_pref("js.mem.gc.high_frequency_high_limit_mb").as_i64() {
+    if let Some(val) = PREFS.get("js.mem.gc.high_frequency_high_limit_mb").as_i64() {
         if val >= 0 && val < 10000 {
             JS_SetGCParameter(runtime.rt(), JSGCParamKey::JSGC_HIGH_FREQUENCY_HIGH_LIMIT, val as u32);
         }
     }
-    if let Some(val) = get_pref("js.mem.gc.allocation_threshold_mb").as_i64() {
+    if let Some(val) = PREFS.get("js.mem.gc.allocation_threshold_mb").as_i64() {
         if val >= 0 && val < 10000 {
             JS_SetGCParameter(runtime.rt(), JSGCParamKey::JSGC_ALLOCATION_THRESHOLD, val as u32);
         }
     }
-    if let Some(val) = get_pref("js.mem.gc.decommit_threshold_mb").as_i64() {
+    if let Some(val) = PREFS.get("js.mem.gc.decommit_threshold_mb").as_i64() {
         if val >= 0 && val < 10000 {
             JS_SetGCParameter(runtime.rt(), JSGCParamKey::JSGC_DECOMMIT_THRESHOLD, val as u32);
         }
     }
-    if let Some(val) = get_pref("js.mem.gc.empty_chunk_count_min").as_i64() {
+    if let Some(val) = PREFS.get("js.mem.gc.empty_chunk_count_min").as_i64() {
         if val >= 0 && val < 10000 {
             JS_SetGCParameter(runtime.rt(), JSGCParamKey::JSGC_MIN_EMPTY_CHUNK_COUNT, val as u32);
         }
     }
-    if let Some(val) = get_pref("js.mem.gc.empty_chunk_count_max").as_i64() {
+    if let Some(val) = PREFS.get("js.mem.gc.empty_chunk_count_max").as_i64() {
         if val >= 0 && val < 10000 {
             JS_SetGCParameter(runtime.rt(), JSGCParamKey::JSGC_MAX_EMPTY_CHUNK_COUNT, val as u32);
         }
@@ -403,11 +403,11 @@ unsafe extern fn trace_rust_roots(tr: *mut JSTracer, _data: *mut os::raw::c_void
 unsafe fn set_gc_zeal_options(cx: *mut JSContext) {
     use js::jsapi::{JS_DEFAULT_ZEAL_FREQ, JS_SetGCZeal};
 
-    let level = match get_pref("js.mem.gc.zeal.level").as_i64() {
+    let level = match PREFS.get("js.mem.gc.zeal.level").as_i64() {
         Some(level @ 0...14) => level as u8,
         _ => return,
     };
-    let frequency = match get_pref("js.mem.gc.zeal.frequency").as_i64() {
+    let frequency = match PREFS.get("js.mem.gc.zeal.frequency").as_i64() {
         Some(frequency) if frequency >= 0 => frequency as u32,
         _ => JS_DEFAULT_ZEAL_FREQ,
     };

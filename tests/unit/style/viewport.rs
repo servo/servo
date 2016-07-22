@@ -9,8 +9,7 @@ use media_queries::CSSErrorReporterTest;
 use style::error_reporting::ParseErrorReporter;
 use style::media_queries::{Device, MediaType};
 use style::parser::{ParserContext, ParserContextExtraData};
-use style::servo::Stylesheet;
-use style::stylesheets::{Origin, CSSRuleIteratorExt};
+use style::stylesheets::{Stylesheet, Origin, CSSRuleIteratorExt};
 use style::values::specified::Length::{self, ViewportPercentage};
 use style::values::specified::LengthOrPercentageOrAuto::{self, Auto};
 use style::values::specified::ViewportPercentageLength::Vw;
@@ -30,8 +29,8 @@ fn test_viewport_rule<F>(css: &str,
                          callback: F)
     where F: Fn(&Vec<ViewportDescriptorDeclaration>, &str)
 {
-    ::util::prefs::set_pref("layout.viewport.enabled",
-                            ::util::prefs::PrefValue::Boolean(true));
+    ::util::prefs::PREFS.set("layout.viewport.enabled",
+                             ::util::prefs::PrefValue::Boolean(true));
     let stylesheet = stylesheet!(css, Author, Box::new(CSSErrorReporterTest));
     let mut rule_count = 0;
     for rule in stylesheet.effective_rules(&device).viewport() {
@@ -245,8 +244,8 @@ fn cascading_within_viewport_rule() {
 
 #[test]
 fn multiple_stylesheets_cascading() {
-    ::util::prefs::set_pref("layout.viewport.enabled",
-                            ::util::prefs::PrefValue::Boolean(true));
+    ::util::prefs::PREFS.set("layout.viewport.enabled",
+                             ::util::prefs::PrefValue::Boolean(true));
     let device = Device::new(MediaType::Screen, Size2D::typed(800., 600.));
     let error_reporter = CSSErrorReporterTest;
     let stylesheets = vec![

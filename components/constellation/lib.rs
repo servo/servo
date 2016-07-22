@@ -12,9 +12,9 @@
 #![deny(unsafe_code)]
 #![plugin(serde_macros)]
 
+extern crate backtrace;
 extern crate canvas;
 extern crate canvas_traits;
-extern crate clipboard;
 extern crate compositing;
 extern crate devtools_traits;
 extern crate euclid;
@@ -47,7 +47,7 @@ mod pipeline;
 mod sandboxing;
 mod timer_scheduler;
 
-pub use constellation::{Constellation, InitialConstellationState};
+pub use constellation::{Constellation, FromCompositorLogger, FromScriptLogger, InitialConstellationState};
 pub use pipeline::UnprivilegedPipelineContent;
 #[cfg(not(target_os = "windows"))]
 pub use sandboxing::content_process_sandbox_profile;

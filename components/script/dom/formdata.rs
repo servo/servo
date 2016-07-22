@@ -126,8 +126,9 @@ impl FormData {
             Some(fname) => {
                 let global = self.global();
                 let name = DOMString::from(fname.0);
-                let slice = blob.get_slice_or_empty();
-                Root::upcast(File::new(global.r(), BlobImpl::new_from_slice(slice), name, None, ""))
+                let bytes = blob.get_bytes().unwrap_or(vec![]);
+
+                Root::upcast(File::new(global.r(), BlobImpl::new_from_bytes(bytes), name, None, ""))
             }
             None => Root::from_ref(blob)
         }

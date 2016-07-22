@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#validitystate
+[Exposed=(Window,Worker)]
 interface ValidityState {
   readonly attribute boolean valueMissing;
   readonly attribute boolean typeMismatch;

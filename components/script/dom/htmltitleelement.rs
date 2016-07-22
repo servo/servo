@@ -32,8 +32,9 @@ impl HTMLTitleElement {
     pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLTitleElement> {
-        let element = HTMLTitleElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLTitleElementBinding::Wrap)
+        Node::reflect_node(box HTMLTitleElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLTitleElementBinding::Wrap)
     }
 }
 

@@ -58,16 +58,17 @@ enum BinaryType {
 };
 
 interface PresentationConnection : EventTarget {
-    readonly attribute DOMString? id;
+    readonly attribute DOMString?                  id;
     readonly attribute PresentationConnectionState state;
     void close();
     void terminate();
-    attribute EventHandler onconnect;
-    attribute EventHandler onclose;
-    attribute EventHandler onterminate;
+    attribute EventHandler                onconnect;
+    attribute EventHandler                onclose;
+    attribute EventHandler                onterminate;
+
     // Communication
-    attribute BinaryType binaryType;
-    attribute EventHandler onmessage;
+    attribute BinaryType                  binaryType;
+    attribute EventHandler                onmessage;
     void send(DOMString message);
     void send(Blob data);
     void send(ArrayBuffer data);
@@ -83,12 +84,12 @@ enum PresentationConnectionClosedReason {
 [Constructor(DOMString type, PresentationConnectionClosedEventInit eventInitDict)]
 interface PresentationConnectionClosedEvent : Event {
     readonly attribute PresentationConnectionClosedReason reason;
-    readonly attribute DOMString message;
+    readonly attribute DOMString                          message;
 };
 
 dictionary PresentationConnectionClosedEventInit : EventInit {
     required PresentationConnectionClosedReason reason;
-    DOMString message;
+    		 DOMString                          message = "";
 };
 
 interface PresentationReceiver {
@@ -98,7 +99,7 @@ interface PresentationReceiver {
 
 interface PresentationConnectionList : EventTarget {
     readonly attribute FrozenArray<PresentationConnection> connections;
-    attribute EventHandler onconnectionavailable;
+             attribute EventHandler                        onconnectionavailable;
 };
 </script>
 

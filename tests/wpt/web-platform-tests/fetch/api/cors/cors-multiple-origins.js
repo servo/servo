@@ -5,7 +5,7 @@ if (this.document === undefined) {
 
 function corsMultipleOrigins(desc, originList, shouldPass) {
   var urlParameters = "?origin=" + encodeURIComponent(originList.join(", "));
-  var url = "http://www1.{{host}}:{{ports[http][0]}}" + dirname(location.pathname) + RESOURCES_DIR + "preflight.py";
+  var url = "http://{{host}}:{{ports[http][1]}}" + dirname(location.pathname) + RESOURCES_DIR + "preflight.py";
 
   if (shouldPass) {
     promise_test(function(test) {

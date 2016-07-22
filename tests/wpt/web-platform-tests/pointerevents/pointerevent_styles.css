@@ -31,6 +31,17 @@ overflow-y: auto;
 overflow-x: auto;
 }
 
+.touchActionNone {
+touch-action: none;
+}
+
+#innerframe {
+width: 90%;
+margin: 10px;
+margin-left: 10%;
+height: 200px;
+}
+
 .scroller {
 width: 700px;
 height: 430px;
@@ -63,6 +74,10 @@ display: none;
 }
 
 #pointertype-log {
+font-weight: bold;
+}
+
+#event-log {
 font-weight: bold;
 }
 

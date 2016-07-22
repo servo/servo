@@ -2,86 +2,95 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use filemanager_thread::BlobURLStore;
 use hyper::header::{DispositionType, ContentDisposition, DispositionParam};
 use hyper::header::{Headers, ContentType, ContentLength, Charset};
 use hyper::http::RawStatus;
+use ipc_channel::ipc::{self, IpcSender};
 use mime::{Mime, Attr};
-use mime_classifier::MIMEClassifier;
-use net_traits::ProgressMsg::Done;
-use net_traits::blob_url_store::{parse_blob_url, BlobURLStoreEntry, BlobURLStoreError};
+use mime_classifier::MimeClassifier;
+use net_traits::ProgressMsg::{Payload, Done};
+use net_traits::blob_url_store::parse_blob_url;
+use net_traits::filemanager_thread::{FileManagerThreadMsg, SelectedFileId};
 use net_traits::response::HttpsState;
 use net_traits::{LoadConsumer, LoadData, Metadata, NetworkError};
-use resource_thread::{send_error, start_sending_sniffed_opt};
-use std::str;
-use std::sync::{Arc, RwLock};
-
+use resource_thread::CancellationListener;
+use resource_thread::{start_sending_sniffed_opt, send_error};
+use std::boxed::FnBox;
+use std::sync::Arc;
+use util::thread::spawn_named;
 
 // TODO: Check on GET
 // https://w3c.github.io/FileAPI/#requestResponseModel
 
-pub fn load(load_data: LoadData, consumer: LoadConsumer,
-            blob_url_store: Arc<RwLock<BlobURLStore>>,
-            classifier: Arc<MIMEClassifier>) { // XXX: Move it into net process later
-
-    match parse_blob_url(&load_data.url) {
-        None => {
-            let format_err = NetworkError::Internal(format!("Invalid blob URL format {:?}", load_data.url));
-            send_error(load_data.url.clone(), format_err, consumer);
-        }
-        Some((uuid, _fragment)) => {
-            match blob_url_store.read().unwrap().request(uuid, &load_data.url.origin()) {
-                Ok(entry) => load_blob(&load_data, consumer, classifier, entry),
-                Err(e) => {
-                    let err = match e {
-                        BlobURLStoreError::InvalidKey =>
-                            format!("Invalid blob URL key {:?}", uuid.simple().to_string()),
-                        BlobURLStoreError::InvalidOrigin =>
-                            format!("Invalid blob URL origin {:?}", load_data.url.origin()),
-                    };
-                    send_error(load_data.url.clone(), NetworkError::Internal(err), consumer);
-                }
-            }
-        }
+pub fn factory(filemanager_chan: IpcSender<FileManagerThreadMsg>)
+               -> Box<FnBox(LoadData,
+                            LoadConsumer,
+                            Arc<MimeClassifier>,
+                            CancellationListener) + Send> {
+    box move |load_data: LoadData, start_chan, classifier, _cancel_listener| {
+        spawn_named(format!("blob loader for {}", load_data.url), move || {
+            load_blob(load_data, start_chan, classifier, filemanager_chan);
+        })
     }
 }
 
-fn load_blob(load_data: &LoadData,
-             start_chan: LoadConsumer,
-             classifier: Arc<MIMEClassifier>,
-             entry: &BlobURLStoreEntry) {
-    let content_type: Mime = entry.type_string.parse().unwrap_or(mime!(Text / Plain));
-    let charset = content_type.get_param(Attr::Charset);
+fn load_blob(load_data: LoadData, start_chan: LoadConsumer,
+             classifier: Arc<MimeClassifier>,
+             filemanager_chan: IpcSender<FileManagerThreadMsg>) {
+    let (chan, recv) = ipc::channel().unwrap();
+    if let Ok((id, origin, _fragment)) = parse_blob_url(&load_data.url.clone()) {
+        let id = SelectedFileId(id.simple().to_string());
+        let check_url_validity = true;
+        let msg = FileManagerThreadMsg::ReadFile(chan, id, check_url_validity, origin);
+        let _ = filemanager_chan.send(msg);
 
-    let mut headers = Headers::new();
+        match recv.recv().unwrap() {
+            Ok(blob_buf) => {
+                let content_type: Mime = blob_buf.type_string.parse().unwrap_or(mime!(Text / Plain));
+                let charset = content_type.get_param(Attr::Charset);
 
-    if let Some(ref name) = entry.filename {
-        let charset = charset.and_then(|c| c.as_str().parse().ok());
-        headers.set(ContentDisposition {
-            disposition: DispositionType::Inline,
-            parameters: vec![
-                DispositionParam::Filename(charset.unwrap_or(Charset::Us_Ascii),
-                                           None, name.as_bytes().to_vec())
-            ]
-        });
-    }
+                let mut headers = Headers::new();
 
-    headers.set(ContentType(content_type.clone()));
-    headers.set(ContentLength(entry.size));
+                if let Some(name) = blob_buf.filename {
+                    let charset = charset.and_then(|c| c.as_str().parse().ok());
+                    headers.set(ContentDisposition {
+                        disposition: DispositionType::Inline,
+                        parameters: vec![
+                            DispositionParam::Filename(charset.unwrap_or(Charset::Us_Ascii),
+                                                       None, name.as_bytes().to_vec())
+                        ]
+                    });
+                }
 
-    let metadata = Metadata {
-        final_url: load_data.url.clone(),
-        content_type: Some(ContentType(content_type.clone())),
-        charset: charset.map(|c| c.as_str().to_string()),
-        headers: Some(headers),
-        // https://w3c.github.io/FileAPI/#TwoHundredOK
-        status: Some(RawStatus(200, "OK".into())),
-        https_state: HttpsState::None,
-    };
+                headers.set(ContentType(content_type.clone()));
+                headers.set(ContentLength(blob_buf.size as u64));
 
-    if let Ok(chan) =
-        start_sending_sniffed_opt(start_chan, metadata, classifier,
-                                  &entry.bytes, load_data.context.clone()) {
-        let _ = chan.send(Done(Ok(())));
+                let metadata = Metadata {
+                    final_url: load_data.url.clone(),
+                    content_type: Some(ContentType(content_type.clone())),
+                    charset: charset.map(|c| c.as_str().to_string()),
+                    headers: Some(headers),
+                    // https://w3c.github.io/FileAPI/#TwoHundredOK
+                    status: Some(RawStatus(200, "OK".into())),
+                    https_state: HttpsState::None,
+                    referrer: None,
+                };
+
+                if let Ok(chan) =
+                    start_sending_sniffed_opt(start_chan, metadata, classifier,
+                                              &blob_buf.bytes, load_data.context.clone()) {
+                    let _ = chan.send(Payload(blob_buf.bytes));
+                    let _ = chan.send(Done(Ok(())));
+                }
+            }
+            Err(e) => {
+                let err = NetworkError::Internal(format!("{:?}", e));
+                send_error(load_data.url, err, start_chan);
+            }
+        }
+    } else {
+        let e = format!("Invalid blob URL format {:?}", load_data.url);
+        let format_err = NetworkError::Internal(e);
+        send_error(load_data.url.clone(), format_err, start_chan);
     }
 }

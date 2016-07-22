@@ -27,6 +27,7 @@
 #![cfg_attr(feature = "servo", feature(custom_derive))]
 #![cfg_attr(feature = "servo", feature(plugin))]
 #![cfg_attr(feature = "servo", plugin(heapsize_plugin))]
+#![cfg_attr(feature = "servo", plugin(plugins))]
 #![cfg_attr(feature = "servo", plugin(serde_macros))]
 
 #![deny(unsafe_code)]
@@ -40,6 +41,7 @@ extern crate bitflags;
 extern crate core;
 #[macro_use]
 extern crate cssparser;
+extern crate deque;
 extern crate encoding;
 extern crate euclid;
 extern crate fnv;
@@ -49,12 +51,14 @@ extern crate gecko_bindings;
 #[allow(unused_extern_crates)]
 #[macro_use]
 extern crate lazy_static;
+extern crate libc;
 #[macro_use]
 extern crate log;
 #[allow(unused_extern_crates)]
 #[macro_use]
 extern crate matches;
 extern crate num_traits;
+extern crate rand;
 extern crate rustc_serialize;
 extern crate selectors;
 #[cfg(feature = "servo")] extern crate serde;
@@ -69,6 +73,7 @@ extern crate util;
 pub mod animation;
 pub mod attr;
 pub mod bezier;
+pub mod cache;
 pub mod context;
 pub mod custom_properties;
 pub mod data;
@@ -76,6 +81,10 @@ pub mod dom;
 pub mod element_state;
 pub mod error_reporting;
 pub mod font_face;
+#[cfg(feature = "gecko")] pub mod gecko_conversions;
+#[cfg(feature = "gecko")] pub mod gecko_glue;
+#[cfg(feature = "gecko")] pub mod gecko_selector_impl;
+#[cfg(feature = "gecko")] pub mod gecko_values;
 pub mod keyframes;
 pub mod logical_geometry;
 pub mod matching;
@@ -87,13 +96,20 @@ pub mod restyle_hints;
 pub mod selector_impl;
 pub mod selector_matching;
 pub mod sequential;
-pub mod servo;
+#[cfg(feature = "servo")] pub mod servo_selector_impl;
+pub mod sink;
+pub mod str;
 pub mod stylesheets;
+mod tid;
+pub mod timer;
 pub mod traversal;
 #[macro_use]
 #[allow(non_camel_case_types)]
 pub mod values;
 pub mod viewport;
+pub mod workqueue;
+
+use std::sync::Arc;
 
 /// The CSS properties supported by the style system.
 // Generated from the properties.mako.rs template by build.rs
@@ -101,6 +117,12 @@ pub mod viewport;
 #[allow(unsafe_code)]
 pub mod properties {
     include!(concat!(env!("OUT_DIR"), "/properties.rs"));
+}
+
+#[cfg(feature = "gecko")]
+#[allow(unsafe_code)]
+pub mod gecko_properties {
+    include!(concat!(env!("OUT_DIR"), "/gecko_properties.rs"));
 }
 
 macro_rules! reexport_computed_values {
@@ -118,3 +140,11 @@ macro_rules! reexport_computed_values {
     }
 }
 longhand_properties_idents!(reexport_computed_values);
+
+/// Returns whether the two arguments point to the same value.
+#[inline]
+pub fn arc_ptr_eq<T: 'static>(a: &Arc<T>, b: &Arc<T>) -> bool {
+    let a: &T = &**a;
+    let b: &T = &**b;
+    (a as *const T) == (b as *const T)
+}

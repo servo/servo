@@ -114,8 +114,9 @@ impl HTMLTextAreaElement {
     pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLTextAreaElement> {
-        let element = HTMLTextAreaElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLTextAreaElementBinding::Wrap)
+        Node::reflect_node(box HTMLTextAreaElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLTextAreaElementBinding::Wrap)
     }
 }
 
@@ -260,7 +261,8 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
             &self.upcast(),
             atom!("select"),
             EventBubbles::Bubbles,
-            EventCancelable::NotCancelable);
+            EventCancelable::NotCancelable,
+            window.r());
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 }
@@ -383,7 +385,8 @@ impl VirtualMethods for HTMLTextAreaElement {
                                 &self.upcast(),
                                 atom!("input"),
                                 EventBubbles::Bubbles,
-                                EventCancelable::NotCancelable);
+                                EventCancelable::NotCancelable,
+                                window.r());
                         }
 
                         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);

@@ -4,16 +4,19 @@
 
 use ipc_channel::ipc;
 use msg::constellation_msg::{PipelineId, ReferrerPolicy};
+use net::filemanager_thread::{FileManagerThreadFactory, TFDProvider};
 use net::resource_thread::new_core_resource_thread;
 use net_traits::hosts::{parse_hostsfile, host_replacement};
 use net_traits::{CoreResourceMsg, LoadData, LoadConsumer, LoadContext};
-use net_traits::{NetworkError, ProgressMsg, LoadOrigin, RequestSource};
+use net_traits::{NetworkError, ProgressMsg, LoadOrigin};
 use profile_traits::time::ProfilerChan;
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::net::IpAddr;
 use std::sync::mpsc::channel;
 use url::Url;
+
+const TFD_PROVIDER: &'static TFDProvider = &TFDProvider;
 
 fn ip(s: &str) -> IpAddr {
     s.parse().unwrap()
@@ -28,9 +31,6 @@ impl LoadOrigin for ResourceTest {
     fn referrer_policy(&self) -> Option<ReferrerPolicy> {
         None
     }
-    fn request_source(&self) -> RequestSource {
-        RequestSource::None
-    }
     fn pipeline_id(&self) -> Option<PipelineId> {
         None
     }
@@ -40,7 +40,8 @@ impl LoadOrigin for ResourceTest {
 fn test_exit() {
     let (tx, _rx) = ipc::channel().unwrap();
     let (sender, receiver) = ipc::channel().unwrap();
-    let (resource_thread, _) = new_core_resource_thread("".to_owned(), None, ProfilerChan(tx));
+    let filemanager_chan = FileManagerThreadFactory::new(TFD_PROVIDER);
+    let (resource_thread, _) = new_core_resource_thread("".to_owned(), None, ProfilerChan(tx), filemanager_chan);
     resource_thread.send(CoreResourceMsg::Exit(sender)).unwrap();
     receiver.recv().unwrap();
 }
@@ -49,7 +50,8 @@ fn test_exit() {
 fn test_bad_scheme() {
     let (tx, _rx) = ipc::channel().unwrap();
     let (sender, receiver) = ipc::channel().unwrap();
-    let (resource_thread, _) = new_core_resource_thread("".to_owned(), None, ProfilerChan(tx));
+    let filemanager_chan = FileManagerThreadFactory::new(TFD_PROVIDER);
+    let (resource_thread, _) = new_core_resource_thread("".to_owned(), None, ProfilerChan(tx), filemanager_chan);
     let (start_chan, start) = ipc::channel().unwrap();
     let url = Url::parse("bogus://whatever").unwrap();
     resource_thread.send(CoreResourceMsg::Load(LoadData::new(LoadContext::Browsing, url, &ResourceTest),
@@ -228,7 +230,8 @@ fn test_cancelled_listener() {
 
     let (tx, _rx) = ipc::channel().unwrap();
     let (exit_sender, exit_receiver) = ipc::channel().unwrap();
-    let (resource_thread, _) = new_core_resource_thread("".to_owned(), None, ProfilerChan(tx));
+    let filemanager_chan = FileManagerThreadFactory::new(TFD_PROVIDER);
+    let (resource_thread, _) = new_core_resource_thread("".to_owned(), None, ProfilerChan(tx), filemanager_chan);
     let (sender, receiver) = ipc::channel().unwrap();
     let (id_sender, id_receiver) = ipc::channel().unwrap();
     let (sync_sender, sync_receiver) = ipc::channel().unwrap();

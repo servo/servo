@@ -23,6 +23,7 @@ use euclid::rect::TypedRect;
 use euclid::side_offsets::SideOffsets2D;
 use euclid::{Matrix2D, Matrix4D, Point2D, Rect, Size2D};
 use fnv::FnvHasher;
+use gfx_traits::print_tree::PrintTree;
 use gfx_traits::{LayerId, ScrollPolicy, StackingContextId};
 use ipc_channel::ipc::IpcSharedMemory;
 use msg::constellation_msg::PipelineId;
@@ -45,7 +46,6 @@ use style_traits::cursor::Cursor;
 use text::TextRun;
 use text::glyph::ByteIndex;
 use util::geometry::{self, MAX_RECT, ScreenPx};
-use util::print_tree::PrintTree;
 use webrender_traits::{self, WebGLContextId};
 
 pub use style::dom::OpaqueNode;

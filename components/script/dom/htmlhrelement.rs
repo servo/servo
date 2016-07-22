@@ -31,8 +31,9 @@ impl HTMLHRElement {
     pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLHRElement> {
-        let element = HTMLHRElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLHRElementBinding::Wrap)
+        Node::reflect_node(box HTMLHRElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLHRElementBinding::Wrap)
     }
 }
 

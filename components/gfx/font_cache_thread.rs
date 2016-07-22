@@ -6,7 +6,7 @@ use font_template::{FontTemplate, FontTemplateDescriptor};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use mime::{TopLevel, SubLevel};
-use net_traits::{AsyncResponseTarget, LoadContext, PendingAsyncLoad, CoreResourceThread, ResponseAction, RequestSource};
+use net_traits::{AsyncResponseTarget, LoadContext, PendingAsyncLoad, CoreResourceThread, ResponseAction};
 use platform::font_context::FontContextHandle;
 use platform::font_list::SANS_SERIF_FONT_FAMILY;
 use platform::font_list::for_each_available_family;
@@ -24,7 +24,7 @@ use string_cache::Atom;
 use style::font_face::{EffectiveSources, Source};
 use style::properties::longhands::font_family::computed_value::FontFamily;
 use url::Url;
-use util::prefs;
+use util::prefs::PREFS;
 use util::thread::spawn_named;
 use webrender_traits;
 
@@ -165,11 +165,11 @@ impl FontCache {
             match msg {
                 Command::GetFontTemplate(family, descriptor, result) => {
                     let maybe_font_template = self.find_font_template(&family, &descriptor);
-                    result.send(Reply::GetFontTemplateReply(maybe_font_template)).unwrap();
+                    let _ = result.send(Reply::GetFontTemplateReply(maybe_font_template));
                 }
                 Command::GetLastResortFontTemplate(descriptor, result) => {
                     let font_template = self.last_resort_font_template(&descriptor);
-                    result.send(Reply::GetFontTemplateReply(Some(font_template))).unwrap();
+                    let _ = result.send(Reply::GetFontTemplateReply(Some(font_template)));
                 }
                 Command::AddWebFont(family_name, sources, result) => {
                     self.handle_add_web_font(family_name, sources, result);
@@ -180,7 +180,7 @@ impl FontCache {
                     drop(result.send(()));
                 }
                 Command::Exit(result) => {
-                    result.send(()).unwrap();
+                    let _ = result.send(());
                     break;
                 }
             }
@@ -211,8 +211,7 @@ impl FontCache {
                                                  url.clone(),
                                                  None,
                                                  None,
-                                                 None,
-                                                 RequestSource::None);
+                                                 None);
                 let (data_sender, data_receiver) = ipc::channel().unwrap();
                 let data_target = AsyncResponseTarget {
                     sender: data_sender,
@@ -268,10 +267,17 @@ impl FontCache {
             Source::Local(ref font) => {
                 let font_face_name = LowercaseString::new(font.name());
                 let templates = &mut self.web_families.get_mut(&family_name).unwrap();
+                let mut found = false;
                 for_each_variation(&font_face_name, |path| {
+                    found = true;
                     templates.add_template(Atom::from(&*path), None);
                 });
-                sender.send(()).unwrap();
+                if found {
+                    sender.send(()).unwrap();
+                } else {
+                    let msg = Command::AddWebFont(family_name, sources, sender);
+                    self.channel_to_self.send(msg).unwrap();
+                }
             }
         }
     }
@@ -456,7 +462,7 @@ impl FontCacheThread {
 
 // derived from http://stackoverflow.com/a/10864297/3830
 fn is_supported_font_type(toplevel: &TopLevel, sublevel: &SubLevel) -> bool {
-    if !prefs::get_pref("network.mime.sniff").as_boolean().unwrap_or(false) {
+    if !PREFS.get("network.mime.sniff").as_boolean().unwrap_or(false) {
         return true;
     }
 

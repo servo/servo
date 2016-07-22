@@ -12,7 +12,7 @@
  * http://www.openwebfoundation.org/legal/the-owf-1-0-agreements/owfa-1-0.
  */
 
-[Abstract/*, Exposed=(Window,Worker)*/]
+[Abstract, Exposed=(Window,Worker)]
 interface XMLHttpRequestEventTarget : EventTarget {
   // event handlers
   attribute EventHandler onloadstart;

@@ -4,6 +4,7 @@
 
 // https://w3c.github.io/FileAPI/#dfn-filelist
 
+[Exposed=(Window,Worker)]
 interface FileList {
   getter File? item(unsigned long index);
   readonly attribute unsigned long length;

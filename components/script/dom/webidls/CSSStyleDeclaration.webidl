@@ -8,6 +8,7 @@
  * Copyright © 2013 W3C® (MIT, ERCIM, Keio, Beihang), All Rights Reserved.
  */
 
+[Exposed=(Window,Worker)]
 interface CSSStyleDeclaration {
   [SetterThrows]
            attribute DOMString cssText;
@@ -308,6 +309,9 @@ partial interface CSSStyleDeclaration {
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString transitionDelay;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString transition-delay;
 
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString flex;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString flexFlow;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString flex-flow;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString flexDirection;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString flex-direction;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString flexWrap;
@@ -328,6 +332,7 @@ partial interface CSSStyleDeclaration {
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString alignSelf;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString align-self;
 
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString animation;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString animation-name;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString animationName;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString animation-duration;

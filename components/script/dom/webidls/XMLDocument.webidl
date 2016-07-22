@@ -8,4 +8,5 @@
  */
 
 // https://dom.spec.whatwg.org/#interface-document
+[Exposed=(Window,Worker)]
 interface XMLDocument : Document {};

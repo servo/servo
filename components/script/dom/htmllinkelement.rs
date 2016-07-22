@@ -39,10 +39,9 @@ use string_cache::Atom;
 use style::attr::AttrValue;
 use style::media_queries::{MediaQueryList, parse_media_query_list};
 use style::parser::ParserContextExtraData;
-use style::servo::Stylesheet;
-use style::stylesheets::Origin;
+use style::str::HTML_SPACE_CHARACTERS;
+use style::stylesheets::{Stylesheet, Origin};
 use url::Url;
-use util::str::HTML_SPACE_CHARACTERS;
 
 no_jsmanaged_fields!(Stylesheet);
 
@@ -72,8 +71,9 @@ impl HTMLLinkElement {
                prefix: Option<DOMString>,
                document: &Document,
                creator: ElementCreator) -> Root<HTMLLinkElement> {
-        let element = HTMLLinkElement::new_inherited(localName, prefix, document, creator);
-        Node::reflect_node(box element, document, HTMLLinkElementBinding::Wrap)
+        Node::reflect_node(box HTMLLinkElement::new_inherited(localName, prefix, document, creator),
+                           document,
+                           HTMLLinkElementBinding::Wrap)
     }
 
     pub fn get_stylesheet(&self) -> Option<Arc<Stylesheet>> {
@@ -194,6 +194,10 @@ impl VirtualMethods for HTMLLinkElement {
 impl HTMLLinkElement {
     fn handle_stylesheet_url(&self, href: &str) {
         let document = document_from_node(self);
+        if document.browsing_context().is_none() {
+            return;
+        }
+
         match document.base_url().join(href) {
             Ok(url) => {
                 let element = self.upcast::<Element>();
@@ -222,6 +226,7 @@ impl HTMLLinkElement {
                 let listener = NetworkListener {
                     context: context,
                     script_chan: document.window().networking_task_source(),
+                    wrapper: Some(document.window().get_runnable_wrapper()),
                 };
                 let response_target = AsyncResponseTarget {
                     sender: action_sender,

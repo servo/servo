@@ -35,6 +35,7 @@ use flow_list::{FlowList, FlowListIterator, MutFlowListIterator};
 use flow_ref::{self, FlowRef, WeakFlowRef};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow, SpecificFragmentInfo};
 use gfx::display_list::{ClippingRegion, StackingContext};
+use gfx_traits::print_tree::PrintTree;
 use gfx_traits::{LayerId, LayerType, StackingContextId};
 use inline::InlineFlow;
 use model::{CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo};
@@ -49,10 +50,10 @@ use std::sync::Arc;
 use std::sync::atomic::Ordering;
 use std::{fmt, mem, raw};
 use style::computed_values::{clear, display, empty_cells, float, position, overflow_x, text_align};
+use style::context::SharedStyleContext;
 use style::dom::TRestyleDamage;
 use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
-use style::properties::{self, ComputedValues, ServoComputedValues};
-use style::servo::SharedStyleContext;
+use style::properties::{self, ServoComputedValues};
 use style::values::computed::LengthOrPercentageOrAuto;
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, TableFlow};
 use table_caption::TableCaptionFlow;
@@ -61,7 +62,6 @@ use table_colgroup::TableColGroupFlow;
 use table_row::TableRowFlow;
 use table_rowgroup::TableRowGroupFlow;
 use table_wrapper::TableWrapperFlow;
-use util::print_tree::PrintTree;
 
 /// Virtual methods that make up a float context.
 ///
@@ -588,7 +588,7 @@ impl FlowClass {
         match self {
             FlowClass::Block | FlowClass::ListItem | FlowClass::Table | FlowClass::TableRowGroup |
             FlowClass::TableRow | FlowClass::TableCaption | FlowClass::TableCell |
-            FlowClass::TableWrapper => true,
+            FlowClass::TableWrapper | FlowClass::Flex => true,
             _ => false,
         }
     }
@@ -1304,6 +1304,9 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
                 Arc::new(TableCellFlow::from_node_fragment_and_visibility_flag(node, fragment, !hide))
             },
             FlowClass::Flex => {
+                properties::modify_style_for_anonymous_flow(
+                    &mut style,
+                    display::T::block);
                 let fragment =
                     Fragment::from_opaque_node_and_style(node.opaque(),
                                                          PseudoElementType::Normal,

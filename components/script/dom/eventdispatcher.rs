@@ -9,7 +9,6 @@ use dom::bindings::global::GlobalRoot;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root, RootedReference};
 use dom::bindings::reflector::Reflectable;
-use dom::bindings::trace::RootedVec;
 use dom::document::Document;
 use dom::event::{Event, EventPhase};
 use dom::eventtarget::{CompiledEventListener, EventTarget, ListenerPhase};
@@ -128,12 +127,12 @@ pub fn dispatch_event(target: &EventTarget,
 
     // Step 3. The "invoke" algorithm is only used on `target` separately,
     // so we don't put it in the path.
-    let mut event_path: RootedVec<JS<EventTarget>> = RootedVec::new();
+    rooted_vec!(let mut event_path);
 
     // Step 4.
     if let Some(target_node) = target.downcast::<Node>() {
         for ancestor in target_node.ancestors() {
-            event_path.push(JS::from_ref(ancestor.upcast()));
+            event_path.push(JS::from_ref(ancestor.upcast::<EventTarget>()));
         }
         let top_most_ancestor_or_target =
             Root::from_ref(event_path.r().last().cloned().unwrap_or(target));

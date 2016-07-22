@@ -4,6 +4,7 @@
 
 // https://html.spec.whatwg.org/multipage/#mediaerror
 
+[Exposed=(Window,Worker)]
 interface MediaError {
   const unsigned short MEDIA_ERR_ABORTED = 1;
   const unsigned short MEDIA_ERR_NETWORK = 2;

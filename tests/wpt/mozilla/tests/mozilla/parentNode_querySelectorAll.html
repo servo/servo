@@ -33,7 +33,7 @@
                 assert_equals(nodelist.length, 3);
 
                 nodelist = div.querySelectorAll("div:nth-of-type(1)");
-                assert_equals(nodelist.item(0), div);
+                assert_equals(nodelist.item(0), div.firstElementChild);
             }, "Element");
 
             test(function() {

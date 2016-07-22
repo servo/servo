@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmlscriptelement
+[Exposed=(Window,Worker)]
 interface HTMLScriptElement : HTMLElement {
            attribute DOMString src;
            attribute DOMString type;

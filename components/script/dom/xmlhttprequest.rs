@@ -20,11 +20,12 @@ use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::str::{ByteString, DOMString, USVString, is_token};
-use dom::blob::{Blob, DataSlice, BlobImpl};
+use dom::blob::{Blob, BlobImpl};
 use dom::document::DocumentSource;
 use dom::document::{Document, IsHTMLDocument};
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
+use dom::headers::is_forbidden_header_name;
 use dom::progressevent::ProgressEvent;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 use dom::xmlhttprequestupload::XMLHttpRequestUpload;
@@ -40,14 +41,14 @@ use hyper::mime::{self, Mime, Attr as MimeAttr, Value as MimeValue};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsapi::JS_ClearPendingException;
-use js::jsapi::{JSContext, JS_ParseJSON, RootedValue};
+use js::jsapi::{JSContext, JS_ParseJSON};
 use js::jsval::{JSVal, NullValue, UndefinedValue};
 use msg::constellation_msg::{PipelineId, ReferrerPolicy};
 use net_traits::CoreResourceMsg::Fetch;
 use net_traits::request::{CredentialsMode, Destination, RequestInit, RequestMode};
 use net_traits::trim_http_whitespace;
 use net_traits::{CoreResourceThread, LoadOrigin};
-use net_traits::{FetchResponseListener, Metadata, NetworkError, RequestSource};
+use net_traits::{FetchResponseListener, Metadata, NetworkError};
 use network_listener::{NetworkListener, PreInvoke};
 use parse::html::{ParseContext, parse_html};
 use parse::xml::{self, parse_xml};
@@ -62,7 +63,7 @@ use string_cache::Atom;
 use time;
 use timers::{OneshotTimerCallback, OneshotTimerHandle};
 use url::{Url, Position};
-use util::prefs::mozbrowser_enabled;
+use util::prefs::PREFS;
 
 #[derive(JSTraceable, PartialEq, Copy, Clone, HeapSizeOf)]
 enum XMLHttpRequestState {
@@ -258,6 +259,7 @@ impl XMLHttpRequest {
         let listener = NetworkListener {
             context: context,
             script_chan: script_chan,
+            wrapper: None,
         };
         ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
             listener.notify_fetch(message.to().unwrap());
@@ -272,13 +274,6 @@ impl LoadOrigin for XMLHttpRequest {
     }
     fn referrer_policy(&self) -> Option<ReferrerPolicy> {
         return self.referrer_policy;
-    }
-    fn request_source(&self) -> RequestSource {
-        if self.sync.get() {
-            RequestSource::None
-        } else {
-            self.global().r().request_source()
-        }
     }
     fn pipeline_id(&self) -> Option<PipelineId> {
         let global = self.global();
@@ -367,6 +362,12 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                 // Step 11 - abort existing requests
                 self.terminate_ongoing_fetch();
 
+                // TODO(izgzhen): In the WPT test: FileAPI/blob/Blob-XHR-revoke.html,
+                // the xhr.open(url) is expected to hold a reference to the URL,
+                // thus renders following revocations invalid. Though we won't
+                // implement this for now, if ever needed, we should check blob
+                // scheme and trigger corresponding actions here.
+
                 // Step 12
                 *self.request_method.borrow_mut() = parsed_method;
                 *self.request_url.borrow_mut() = Some(parsed_url);
@@ -409,21 +410,8 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                 // Step 5
                 // Disallowed headers and header prefixes:
                 // https://fetch.spec.whatwg.org/#forbidden-header-name
-                let disallowedHeaders =
-                    ["accept-charset", "accept-encoding",
-                    "access-control-request-headers",
-                    "access-control-request-method",
-                    "connection", "content-length",
-                    "cookie", "cookie2", "date", "dnt",
-                    "expect", "host", "keep-alive", "origin",
-                    "referer", "te", "trailer", "transfer-encoding",
-                    "upgrade", "via"];
-
-                let disallowedHeaderPrefixes = ["sec-", "proxy-"];
-
-                if disallowedHeaders.iter().any(|header| *header == s) ||
-                   disallowedHeaderPrefixes.iter().any(|prefix| s.starts_with(prefix)) {
-                    return Ok(())
+                if is_forbidden_header_name(s) {
+                    return Ok(());
                 } else {
                     s
                 }
@@ -581,8 +569,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             // story. See https://github.com/servo/servo/issues/9582
             if let GlobalRoot::Window(win) = self.global() {
                 let is_root_pipeline = win.parent_info().is_none();
-                let is_mozbrowser_enabled = mozbrowser_enabled();
-                is_root_pipeline && is_mozbrowser_enabled
+                is_root_pipeline && PREFS.is_mozbrowser_enabled()
             } else {
                 false
             }
@@ -772,7 +759,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     // https://xhr.spec.whatwg.org/#the-response-attribute
     fn Response(&self, cx: *mut JSContext) -> JSVal {
         unsafe {
-            let mut rval = RootedValue::new(cx, UndefinedValue());
+            rooted!(in(cx) let mut rval = UndefinedValue());
             match self.response_type.get() {
                 XMLHttpRequestResponseType::_empty | XMLHttpRequestResponseType::Text => {
                     let ready_state = self.ready_state.get();
@@ -809,7 +796,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                     self.response.borrow().to_jsval(cx, rval.handle_mut());
                 }
             }
-            rval.ptr
+            rval.get()
         }
     }
 
@@ -1106,8 +1093,8 @@ impl XMLHttpRequest {
         let mime = self.final_mime_type().as_ref().map(Mime::to_string).unwrap_or("".to_owned());
 
         // Step 3, 4
-        let slice = DataSlice::from_bytes(self.response.borrow().to_vec());
-        let blob = Blob::new(self.global().r(), BlobImpl::new_from_slice(slice), mime);
+        let bytes = self.response.borrow().to_vec();
+        let blob = Blob::new(self.global().r(), BlobImpl::new_from_bytes(bytes), mime);
         self.response_blob.set(Some(blob.r()));
         blob
     }
@@ -1129,9 +1116,8 @@ impl XMLHttpRequest {
                 // Step 5
                 if self.response_type.get() == XMLHttpRequestResponseType::_empty {
                     return None;
-                }
-                // Step 6
-                else {
+                } else {
+                    // Step 6
                     temp_doc = self.document_text_html();
                 }
             },
@@ -1144,8 +1130,7 @@ impl XMLHttpRequest {
             Some(Mime(_, mime::SubLevel::Ext(sub), _)) => {
                 if sub.ends_with("+xml") {
                     temp_doc = self.handle_xml();
-                }
-                else {
+                } else {
                     return None;
                 }
             },
@@ -1177,7 +1162,7 @@ impl XMLHttpRequest {
         let json_text = UTF_8.decode(&bytes, DecoderTrap::Replace).unwrap();
         let json_text: Vec<u16> = json_text.encode_utf16().collect();
         // Step 5
-        let mut rval = RootedValue::new(cx, UndefinedValue());
+        rooted!(in(cx) let mut rval = UndefinedValue());
         unsafe {
             if !JS_ParseJSON(cx,
                              json_text.as_ptr(),
@@ -1188,7 +1173,7 @@ impl XMLHttpRequest {
             }
         }
         // Step 6
-        self.response_json.set(rval.ptr);
+        self.response_json.set(rval.get());
         self.response_json.get()
     }
 
@@ -1236,7 +1221,10 @@ impl XMLHttpRequest {
                       is_html_document,
                       content_type,
                       None,
-                      DocumentSource::FromParser, docloader)
+                      DocumentSource::FromParser,
+                      docloader,
+                      None,
+                      None)
     }
 
     fn filter_response_headers(&self) -> Headers {
@@ -1378,7 +1366,8 @@ impl Extractable for BodyInit {
                 } else {
                     Some(b.Type())
                 };
-                (b.get_slice_or_empty().get_bytes().to_vec(), content_type)
+                let bytes = b.get_bytes().unwrap_or(vec![]);
+                (bytes, content_type)
             },
         }
     }

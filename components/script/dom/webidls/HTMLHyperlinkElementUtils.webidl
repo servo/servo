@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmlhyperlinkelementutils
-[NoInterfaceObject/*, Exposed=Window*/]
+[NoInterfaceObject, Exposed=(Window,Worker)]
 interface HTMLHyperlinkElementUtils {
 //  stringifier attribute USVString href;
              attribute USVString href;

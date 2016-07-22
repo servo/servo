@@ -27,6 +27,21 @@ async_test(function(t) {
 
 async_test(function(t) {
   var obj = document.createElement("object");
+  obj.onerror = t.step_func_done(function(e){
+    assert_equals(e.target, obj,
+                  "The error event should be fired on our element");
+  });
+  obj.onload = t.step_func_done(function(e){
+    assert_unreached("The load event should not be fired.");
+  });
+
+  obj.data = "http://test:test";
+  document.body.appendChild(obj);
+}, "error event");
+
+
+async_test(function(t) {
+  var obj = document.createElement("object");
   obj.onload = t.step_func_done(function(e){
     assert_equals(Object.getPrototypeOf(e).constructor, Event, "The load event should use the Event interface.");
     assert_true(e.isTrusted, "The load event should be a trusted event.");

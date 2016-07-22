@@ -34,6 +34,8 @@ brew install openssl
 brew link --force openssl
 ```
 
+If you've already partially compiled servo but forgot to do this step, run ./mach clean, link openssl, and recompile.
+
 On Debian-based Linuxes:
 
 ``` sh
@@ -151,7 +153,7 @@ export ANDROID_TOOLCHAIN="/path/to/toolchain"
 export PATH="$PATH:/path/to/toolchain/bin"
 
 ./mach build --release --android
-./mach package --release
+./mach package --release --android
 ```
 
 Rather than setting the `ANDROID_*` environment variables every time, you can
@@ -176,6 +178,7 @@ URL with servo).
   `INTERVAL` seconds
 - `-s SIZE` sets the tile size for painting; defaults to 512
 - `-z` disables all graphical output; useful for running JS / layout tests
+- `-Z help` displays useful output to debug servo
 
 ### Keyboard Shortcuts
 

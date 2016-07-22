@@ -401,7 +401,7 @@ fn test_clipboard_paste() {
                                        SelectionDirection::None);
     assert_eq!(textinput.get_content(), "defg");
     assert_eq!(textinput.edit_point.index, 0);
-    textinput.handle_keydown_aux(Key::V, MODIFIERS);
+    textinput.handle_keydown_aux(Some('v'), Key::V, MODIFIERS);
     assert_eq!(textinput.get_content(), "abcdefg");
 }
 
@@ -457,4 +457,27 @@ fn test_textinput_cursor_position_correct_after_clearing_selection() {
     textinput.adjust_horizontal_by_one(Direction::Backward, Selection::NotSelected);
     assert_eq!(textinput.edit_point.index, 0);
     assert_eq!(textinput.edit_point.line, 0);
+}
+
+
+#[test]
+fn test_textinput_set_selection_with_direction() {
+    let mut textinput = text_input(Lines::Single, "abcdef");
+    textinput.selection_direction = SelectionDirection::Forward;
+    textinput.set_selection_range(2, 6);
+    assert_eq!(textinput.edit_point.line, 0);
+    assert_eq!(textinput.edit_point.index, 6);
+
+    assert!(textinput.selection_begin.is_some());
+    assert_eq!(textinput.selection_begin.unwrap().line, 0);
+    assert_eq!(textinput.selection_begin.unwrap().index, 2);
+
+    textinput.selection_direction = SelectionDirection::Backward;
+    textinput.set_selection_range(2, 6);
+    assert_eq!(textinput.edit_point.line, 0);
+    assert_eq!(textinput.edit_point.index, 2);
+
+    assert!(textinput.selection_begin.is_some());
+    assert_eq!(textinput.selection_begin.unwrap().line, 0);
+    assert_eq!(textinput.selection_begin.unwrap().index, 6);
 }

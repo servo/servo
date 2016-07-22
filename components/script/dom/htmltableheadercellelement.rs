@@ -29,7 +29,8 @@ impl HTMLTableHeaderCellElement {
     pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLTableHeaderCellElement> {
-        let element = HTMLTableHeaderCellElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLTableHeaderCellElementBinding::Wrap)
+        Node::reflect_node(box HTMLTableHeaderCellElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLTableHeaderCellElementBinding::Wrap)
     }
 }

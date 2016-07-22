@@ -12,18 +12,15 @@ ${helpers.predefined_type("opacity",
                           "1.0",
                           animatable=True)}
 
-<%helpers:longhand name="box-shadow" animatable="True">
+<%helpers:vector_longhand name="box-shadow" allow_empty="True" animatable="True">
     use cssparser::{self, ToCss};
     use std::fmt;
     use values::LocalToCss;
+    use values::HasViewportPercentage;
 
     #[derive(Debug, Clone, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub struct SpecifiedValue(Vec<SpecifiedBoxShadow>);
-
-    #[derive(Debug, Clone, PartialEq)]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub struct SpecifiedBoxShadow {
+    pub struct SpecifiedValue {
         pub offset_x: specified::Length,
         pub offset_y: specified::Length,
         pub blur_radius: specified::Length,
@@ -32,24 +29,16 @@ ${helpers.predefined_type("opacity",
         pub inset: bool,
     }
 
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            let mut iter = self.0.iter();
-            if let Some(shadow) = iter.next() {
-                try!(shadow.to_css(dest));
-            } else {
-                try!(dest.write_str("none"));
-                return Ok(())
-            }
-            for shadow in iter {
-                try!(dest.write_str(", "));
-                try!(shadow.to_css(dest));
-            }
-            Ok(())
+    impl HasViewportPercentage for SpecifiedValue {
+        fn has_viewport_percentage(&self) -> bool {
+            self.offset_x.has_viewport_percentage() ||
+            self.offset_y.has_viewport_percentage() ||
+            self.blur_radius.has_viewport_percentage() ||
+            self.spread_radius.has_viewport_percentage()
         }
     }
 
-    impl ToCss for SpecifiedBoxShadow {
+    impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             if self.inset {
                 try!(dest.write_str("inset "));
@@ -75,13 +64,9 @@ ${helpers.predefined_type("opacity",
         use std::fmt;
         use values::computed;
 
-        #[derive(Clone, PartialEq, Debug)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct T(pub Vec<BoxShadow>);
-
         #[derive(Clone, PartialEq, Copy, Debug)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct BoxShadow {
+        pub struct T {
             pub offset_x: Au,
             pub offset_y: Au,
             pub blur_radius: Au,
@@ -92,23 +77,6 @@ ${helpers.predefined_type("opacity",
     }
 
     impl ToCss for computed_value::T {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            let mut iter = self.0.iter();
-            if let Some(shadow) = iter.next() {
-                try!(shadow.to_css(dest));
-            } else {
-                try!(dest.write_str("none"));
-                return Ok(())
-            }
-            for shadow in iter {
-                try!(dest.write_str(", "));
-                try!(shadow.to_css(dest));
-            }
-            Ok(())
-        }
-    }
-
-    impl ToCss for computed_value::BoxShadow {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             if self.inset {
                 try!(dest.write_str("inset "));
@@ -126,44 +94,26 @@ ${helpers.predefined_type("opacity",
         }
     }
 
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T(Vec::new())
-    }
-
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        if input.try(|input| input.expect_ident_matching("none")).is_ok() {
-            Ok(SpecifiedValue(Vec::new()))
-        } else {
-            input.parse_comma_separated(parse_one_box_shadow).map(SpecifiedValue)
-        }
-    }
-
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
 
         #[inline]
-        fn to_computed_value<Cx: TContext>(&self, context: &Cx) -> computed_value::T {
-            computed_value::T(self.0.iter().map(|value| compute_one_box_shadow(value, context)).collect())
+        fn to_computed_value(&self, context: &Context) -> computed_value::T {
+            computed_value::T {
+                offset_x: self.offset_x.to_computed_value(context),
+                offset_y: self.offset_y.to_computed_value(context),
+                blur_radius: self.blur_radius.to_computed_value(context),
+                spread_radius: self.spread_radius.to_computed_value(context),
+                color: self.color
+                            .as_ref()
+                            .map(|color| color.parsed)
+                            .unwrap_or(cssparser::Color::CurrentColor),
+                inset: self.inset,
+            }
         }
     }
 
-    pub fn compute_one_box_shadow<Cx: TContext>(value: &SpecifiedBoxShadow, context: &Cx)
-                                  -> computed_value::BoxShadow {
-        computed_value::BoxShadow {
-            offset_x: value.offset_x.to_computed_value(context),
-            offset_y: value.offset_y.to_computed_value(context),
-            blur_radius: value.blur_radius.to_computed_value(context),
-            spread_radius: value.spread_radius.to_computed_value(context),
-            color: value.color
-                        .as_ref()
-                        .map(|color| color.parsed)
-                        .unwrap_or(cssparser::Color::CurrentColor),
-            inset: value.inset,
-        }
-    }
-
-    pub fn parse_one_box_shadow(input: &mut Parser) -> Result<SpecifiedBoxShadow, ()> {
+    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
         use app_units::Au;
         let mut lengths = [specified::Length::Absolute(Au(0)); 4];
         let mut lengths_parsed = false;
@@ -213,7 +163,7 @@ ${helpers.predefined_type("opacity",
             return Err(())
         }
 
-        Ok(SpecifiedBoxShadow {
+        Ok(SpecifiedValue {
             offset_x: lengths[0],
             offset_y: lengths[1],
             blur_radius: lengths[2],
@@ -222,13 +172,14 @@ ${helpers.predefined_type("opacity",
             inset: inset,
         })
     }
-</%helpers:longhand>
+</%helpers:vector_longhand>
 
 // FIXME: This prop should be animatable
 <%helpers:longhand name="clip" animatable="False">
     use cssparser::ToCss;
     use std::fmt;
     use values::LocalToCss;
+    use values::HasViewportPercentage;
 
     // NB: `top` and `left` are 0 if `auto` per CSS 2.1 11.1.2.
 
@@ -279,6 +230,15 @@ ${helpers.predefined_type("opacity",
         }
     }
 
+    impl HasViewportPercentage for SpecifiedClipRect {
+        fn has_viewport_percentage(&self) -> bool {
+            self.top.has_viewport_percentage() ||
+            self.right.map_or(false, |x| x.has_viewport_percentage()) ||
+            self.bottom.map_or(false, |x| x.has_viewport_percentage()) ||
+            self.left.has_viewport_percentage()
+        }
+    }
+
     #[derive(Clone, Debug, PartialEq, Copy)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedClipRect {
@@ -286,6 +246,13 @@ ${helpers.predefined_type("opacity",
         pub right: Option<specified::Length>,
         pub bottom: Option<specified::Length>,
         pub left: specified::Length,
+    }
+
+    impl HasViewportPercentage for SpecifiedValue {
+        fn has_viewport_percentage(&self) -> bool {
+            let &SpecifiedValue(clip) = self;
+            clip.map_or(false, |x| x.has_viewport_percentage())
+        }
     }
 
     #[derive(Clone, Debug, PartialEq, Copy)]
@@ -339,7 +306,7 @@ ${helpers.predefined_type("opacity",
         type ComputedValue = computed_value::T;
 
         #[inline]
-        fn to_computed_value<Cx: TContext>(&self, context: &Cx) -> computed_value::T {
+        fn to_computed_value(&self, context: &Context) -> computed_value::T {
             computed_value::T(self.0.map(|value| computed_value::ClipRect {
                 top: value.top.to_computed_value(context),
                 right: value.right.map(|right| right.to_computed_value(context)),
@@ -403,11 +370,28 @@ ${helpers.predefined_type("opacity",
     use std::fmt;
     use values::LocalToCss;
     use values::CSSFloat;
+    use values::HasViewportPercentage;
     use values::specified::{Angle, Length};
+
+    impl HasViewportPercentage for SpecifiedValue {
+        fn has_viewport_percentage(&self) -> bool {
+            let &SpecifiedValue(ref vec) = self;
+            vec.iter().any(|ref x| x.has_viewport_percentage())
+        }
+    }
 
     #[derive(Debug, Clone, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue(Vec<SpecifiedFilter>);
+
+    impl HasViewportPercentage for SpecifiedFilter {
+        fn has_viewport_percentage(&self) -> bool {
+            match *self {
+                SpecifiedFilter::Blur(length) => length.has_viewport_percentage(),
+                _ => false
+            }
+        }
+    }
 
     // TODO(pcwalton): `drop-shadow`
     #[derive(Clone, PartialEq, Debug)]
@@ -614,7 +598,7 @@ ${helpers.predefined_type("opacity",
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
 
-        fn to_computed_value<Cx: TContext>(&self, context: &Cx) -> computed_value::T {
+        fn to_computed_value(&self, context: &Context) -> computed_value::T {
             computed_value::T{ filters: self.0.iter().map(|value| {
                 match *value {
                     SpecifiedFilter::Blur(factor) =>
@@ -636,6 +620,7 @@ ${helpers.predefined_type("opacity",
 <%helpers:longhand name="transform" animatable="True">
     use app_units::Au;
     use values::CSSFloat;
+    use values::HasViewportPercentage;
 
     use cssparser::ToCss;
     use std::fmt;
@@ -744,6 +729,20 @@ ${helpers.predefined_type("opacity",
         }
     }
 
+    impl HasViewportPercentage for SpecifiedOperation {
+        fn has_viewport_percentage(&self) -> bool {
+            match *self {
+                SpecifiedOperation::Translate(_, l1, l2, l3) => {
+                    l1.has_viewport_percentage() ||
+                    l2.has_viewport_percentage() ||
+                    l3.has_viewport_percentage()
+                },
+                SpecifiedOperation::Perspective(length) => length.has_viewport_percentage(),
+                _ => false
+            }
+        }
+    }
+
     impl ToCss for SpecifiedOperation {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             match *self {
@@ -800,6 +799,13 @@ ${helpers.predefined_type("opacity",
                     Ok(())
                 }
             }
+        }
+    }
+
+    impl HasViewportPercentage for SpecifiedValue {
+        fn has_viewport_percentage(&self) -> bool {
+            let &SpecifiedValue(ref specified_ops) = self;
+            specified_ops.iter().any(|ref x| x.has_viewport_percentage())
         }
     }
 
@@ -1058,7 +1064,7 @@ ${helpers.predefined_type("opacity",
         type ComputedValue = computed_value::T;
 
         #[inline]
-        fn to_computed_value<Cx: TContext>(&self, context: &Cx) -> computed_value::T {
+        fn to_computed_value(&self, context: &Context) -> computed_value::T {
             if self.0.is_empty() {
                 return computed_value::T(None)
             }
@@ -1193,6 +1199,7 @@ ${helpers.single_keyword("transform-style",
 <%helpers:longhand name="transform-origin" animatable="True">
     use app_units::Au;
     use values::LocalToCss;
+    use values::HasViewportPercentage;
     use values::specified::{Length, LengthOrPercentage, Percentage};
 
     use cssparser::ToCss;
@@ -1207,6 +1214,14 @@ ${helpers.single_keyword("transform-style",
             pub horizontal: LengthOrPercentage,
             pub vertical: LengthOrPercentage,
             pub depth: Length,
+        }
+    }
+
+    impl HasViewportPercentage for SpecifiedValue {
+        fn has_viewport_percentage(&self) -> bool {
+            self.horizontal.has_viewport_percentage() ||
+            self.vertical.has_viewport_percentage() ||
+            self.depth.has_viewport_percentage()
         }
     }
 
@@ -1260,7 +1275,7 @@ ${helpers.single_keyword("transform-style",
         type ComputedValue = computed_value::T;
 
         #[inline]
-        fn to_computed_value<Cx: TContext>(&self, context: &Cx) -> computed_value::T {
+        fn to_computed_value(&self, context: &Context) -> computed_value::T {
             computed_value::T {
                 horizontal: self.horizontal.to_computed_value(context),
                 vertical: self.vertical.to_computed_value(context),
@@ -1277,6 +1292,7 @@ ${helpers.predefined_type("perspective",
 
 // FIXME: This prop should be animatable
 <%helpers:longhand name="perspective-origin" animatable="False">
+    use values::HasViewportPercentage;
     use values::specified::{LengthOrPercentage, Percentage};
 
     use cssparser::ToCss;
@@ -1298,6 +1314,12 @@ ${helpers.predefined_type("perspective",
             try!(self.horizontal.to_css(dest));
             try!(dest.write_str(" "));
             self.vertical.to_css(dest)
+        }
+    }
+
+    impl HasViewportPercentage for SpecifiedValue {
+        fn has_viewport_percentage(&self) -> bool {
+            self.horizontal.has_viewport_percentage() || self.vertical.has_viewport_percentage()
         }
     }
 
@@ -1339,7 +1361,7 @@ ${helpers.predefined_type("perspective",
         type ComputedValue = computed_value::T;
 
         #[inline]
-        fn to_computed_value<Cx: TContext>(&self, context: &Cx) -> computed_value::T {
+        fn to_computed_value(&self, context: &Context) -> computed_value::T {
             computed_value::T {
                 horizontal: self.horizontal.to_computed_value(context),
                 vertical: self.vertical.to_computed_value(context),

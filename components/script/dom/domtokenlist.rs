@@ -13,7 +13,7 @@ use dom::bindings::str::DOMString;
 use dom::element::Element;
 use dom::node::window_from_node;
 use string_cache::Atom;
-use util::str::HTML_SPACE_CHARACTERS;
+use style::str::HTML_SPACE_CHARACTERS;
 
 #[dom_struct]
 pub struct DOMTokenList {

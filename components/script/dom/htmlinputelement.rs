@@ -33,7 +33,9 @@ use dom::validation::Validatable;
 use dom::virtualmethods::VirtualMethods;
 use ipc_channel::ipc::{self, IpcSender};
 use mime_guess;
+use msg::constellation_msg::Key;
 use net_traits::IpcSend;
+use net_traits::blob_url_store::get_blob_origin;
 use net_traits::filemanager_thread::{FileManagerThreadMsg, FilterPattern};
 use script_traits::ScriptMsg as ConstellationMsg;
 use std::borrow::ToOwned;
@@ -42,10 +44,10 @@ use std::ops::Range;
 use string_cache::Atom;
 use style::attr::AttrValue;
 use style::element_state::*;
+use style::str::split_commas;
 use textinput::KeyReaction::{DispatchInput, Nothing, RedrawSelection, TriggerDefaultAction};
 use textinput::Lines::Single;
 use textinput::{TextInput, SelectionDirection};
-use util::str::split_commas;
 
 const DEFAULT_SUBMIT_VALUE: &'static str = "Submit";
 const DEFAULT_RESET_VALUE: &'static str = "Reset";
@@ -146,8 +148,9 @@ impl HTMLInputElement {
     pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLInputElement> {
-        let element = HTMLInputElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLInputElementBinding::Wrap)
+        Node::reflect_node(box HTMLInputElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLInputElementBinding::Wrap)
     }
 
     pub fn type_(&self) -> Atom {
@@ -576,8 +579,19 @@ impl HTMLInputElementMethods for HTMLInputElement {
             &self.upcast(),
             atom!("select"),
             EventBubbles::Bubbles,
-            EventCancelable::NotCancelable);
+            EventCancelable::NotCancelable,
+            window.r());
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+    }
+
+    // Select the files based on filepaths passed in,
+    // enabled by dom.htmlinputelement.select_files.enabled,
+    // used for test purpose.
+    // check-tidy: no specs after this line
+    fn SelectFiles(&self, paths: Vec<DOMString>) {
+        if self.input_type.get() == InputType::InputFile {
+            self.select_files(Some(paths));
+        }
     }
 }
 
@@ -730,6 +744,73 @@ impl HTMLInputElement {
         let has_value = !self.textinput.borrow().is_empty();
         let el = self.upcast::<Element>();
         el.set_placeholder_shown_state(has_placeholder && !has_value);
+    }
+
+    // https://html.spec.whatwg.org/multipage/#file-upload-state-(type=file)
+    // Select files by invoking UI or by passed in argument
+    fn select_files(&self, opt_test_paths: Option<Vec<DOMString>>) {
+        let window = window_from_node(self);
+        let origin = get_blob_origin(&window.get_url());
+        let filemanager = window.resource_threads().sender();
+
+        let mut files: Vec<Root<File>> = vec![];
+        let mut error = None;
+
+        let filter = filter_from_accept(&self.Accept());
+        let target = self.upcast::<EventTarget>();
+
+        if self.Multiple() {
+            let opt_test_paths = opt_test_paths.map(|paths| paths.iter().map(|p| p.to_string()).collect());
+
+            let (chan, recv) = ipc::channel().expect("Error initializing channel");
+            let msg = FileManagerThreadMsg::SelectFiles(filter, chan, origin, opt_test_paths);
+            let _ = filemanager.send(msg).unwrap();
+
+            match recv.recv().expect("IpcSender side error") {
+                Ok(selected_files) => {
+                    for selected in selected_files {
+                        files.push(File::new_from_selected(window.r(), selected));
+                    }
+                },
+                Err(err) => error = Some(err),
+            };
+        } else {
+            let opt_test_path = match opt_test_paths {
+                Some(paths) => {
+                    if paths.len() == 0 {
+                        return;
+                    } else {
+                        Some(paths[0].to_string()) // neglect other paths
+                    }
+                }
+                None => None,
+            };
+
+            let (chan, recv) = ipc::channel().expect("Error initializing channel");
+            let msg = FileManagerThreadMsg::SelectFile(filter, chan, origin, opt_test_path);
+            let _ = filemanager.send(msg).unwrap();
+
+            match recv.recv().expect("IpcSender side error") {
+                Ok(selected) => {
+                    files.push(File::new_from_selected(window.r(), selected));
+                },
+                Err(err) => error = Some(err),
+            };
+        }
+
+        if let Some(err) = error {
+            debug!("Input file select error: {:?}", err);
+        } else {
+            let filelist = FileList::new(window.r(), files);
+            self.filelist.set(Some(&filelist));
+
+            target.fire_event("input",
+                              EventBubbles::Bubbles,
+                              EventCancelable::NotCancelable);
+            target.fire_event("change",
+                              EventBubbles::Bubbles,
+                              EventCancelable::NotCancelable);
+        }
     }
 }
 
@@ -962,10 +1043,18 @@ impl VirtualMethods for HTMLInputElement {
                     let action = self.textinput.borrow_mut().handle_keydown(keyevent);
                     match action {
                         TriggerDefaultAction => {
-                            self.implicit_submission(keyevent.CtrlKey(),
-                                                     keyevent.ShiftKey(),
-                                                     keyevent.AltKey(),
-                                                     keyevent.MetaKey());
+                            if let Some(key) = keyevent.get_key() {
+                                match key {
+                                    Key::Enter | Key::KpEnter =>
+                                        self.implicit_submission(keyevent.CtrlKey(),
+                                                                 keyevent.ShiftKey(),
+                                                                 keyevent.AltKey(),
+                                                                 keyevent.MetaKey()),
+                                    // Issue #12071: Tab should not submit forms
+                                    // TODO(3982): Implement form keyboard navigation
+                                    _ => (),
+                                }
+                            };
                         },
                         DispatchInput => {
                             self.value_changed.set(true);
@@ -977,7 +1066,8 @@ impl VirtualMethods for HTMLInputElement {
                                     &self.upcast(),
                                     atom!("input"),
                                     EventBubbles::Bubbles,
-                                    EventCancelable::NotCancelable);
+                                    EventCancelable::NotCancelable,
+                                    window.r());
                             }
 
                             self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
@@ -1149,46 +1239,7 @@ impl Activatable for HTMLInputElement {
                                   EventBubbles::Bubbles,
                                   EventCancelable::NotCancelable);
             },
-            InputType::InputFile => {
-                let window = window_from_node(self);
-                let filemanager = window.resource_threads().sender();
-
-                let mut files: Vec<Root<File>> = vec![];
-                let mut error = None;
-
-                let filter = filter_from_accept(&self.Accept());
-
-                if self.Multiple() {
-                    let (chan, recv) = ipc::channel().expect("Error initializing channel");
-                    let msg = FileManagerThreadMsg::SelectFiles(filter, chan);
-                    let _ = filemanager.send(msg).unwrap();
-
-                    match recv.recv().expect("IpcSender side error") {
-                        Ok(selected_files) => {
-                            for selected in selected_files {
-                                files.push(File::new_from_selected(window.r(), selected));
-                            }
-                        },
-                        Err(err) => error = Some(err),
-                    };
-                } else {
-                    let (chan, recv) = ipc::channel().expect("Error initializing channel");
-                    let msg = FileManagerThreadMsg::SelectFile(filter, chan);
-                    let _ = filemanager.send(msg).unwrap();
-
-                    match recv.recv().expect("IpcSender side error") {
-                        Ok(selected) => files.push(File::new_from_selected(window.r(), selected)),
-                        Err(err) => error = Some(err),
-                    };
-                }
-
-                if let Some(err) = error {
-                    debug!("Input file select error: {:?}", err);
-                } else {
-                    let filelist = FileList::new(window.r(), files);
-                    self.filelist.set(Some(&filelist));
-                }
-            }
+            InputType::InputFile => self.select_files(None),
             _ => ()
         }
     }

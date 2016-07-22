@@ -80,7 +80,9 @@ dictionary TestDictionaryDefaults {
 [Constructor,
  Constructor(sequence<unrestricted double> numberSequence),
  Constructor(unrestricted double num),
- Pref="dom.testbinding.enabled"]
+ Pref="dom.testbinding.enabled",
+ Exposed=(Window,Worker)
+]
 interface TestBinding {
            attribute boolean booleanAttribute;
            attribute byte byteAttribute;
@@ -407,6 +409,10 @@ interface TestBinding {
   void passVariadicAny(any... args);
   void passVariadicObject(object... args);
 
+  void passSequenceSequence(sequence<sequence<long>> seq);
+  sequence<sequence<long>> returnSequenceSequence();
+  void passUnionSequenceSequence((long or sequence<sequence<long>>) seq);
+
   static attribute boolean booleanAttributeStatic;
   static void receiveVoidStatic();
   boolean BooleanMozPreference(DOMString pref_name);
@@ -422,6 +428,8 @@ interface TestBinding {
   static void prefControlledStaticMethodDisabled();
   [Pref="dom.testbinding.prefcontrolled.enabled"]
   const unsigned short prefControlledConstDisabled = 0;
+  [Pref="layout.animations.test.enabled"]
+  void advanceClock(long millis);
 
   [Pref="dom.testbinding.prefcontrolled2.enabled"]
   readonly attribute boolean prefControlledAttributeEnabled;

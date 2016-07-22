@@ -25,7 +25,7 @@ function fetchNoCors(url, isOpaqueFiltered) {
 fetchNoCors(RESOURCES_DIR + "top.txt", false);
 fetchNoCors("http://{{host}}:{{ports[http][0]}}/fetch/api/resources/top.txt", false);
 fetchNoCors("https://{{host}}:{{ports[https][0]}}/fetch/api/resources/top.txt", true);
-fetchNoCors("http://{{domains[www]}}:{{ports[http][0]}}/fetch/api/resources/top.txt", true);
+fetchNoCors("http://{{host}}:{{ports[http][1]}}/fetch/api/resources/top.txt", true);
 
 done();
 

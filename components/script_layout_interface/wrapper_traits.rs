@@ -13,12 +13,12 @@ use restyle_damage::RestyleDamage;
 use std::sync::Arc;
 use string_cache::{Atom, BorrowedAtom, BorrowedNamespace, Namespace};
 use style::computed_values::display;
+use style::context::SharedStyleContext;
 use style::dom::OpaqueNode;
 use style::dom::{PresentationalHintsSynthetizer, TNode};
 use style::properties::ServoComputedValues;
 use style::refcell::{Ref, RefCell};
 use style::selector_impl::{PseudoElement, PseudoElementCascadeType, ServoSelectorImpl};
-use style::servo::SharedStyleContext;
 use url::Url;
 
 #[derive(Copy, PartialEq, Clone)]
@@ -86,7 +86,7 @@ pub trait LayoutNode: TNode {
 pub trait ThreadSafeLayoutNode: Clone + Copy + Sized + PartialEq {
     type ConcreteThreadSafeLayoutElement:
         ThreadSafeLayoutElement<ConcreteThreadSafeLayoutNode = Self>
-        + ::selectors::Element<Impl=ServoSelectorImpl>;
+        + ::selectors::Element<Impl=ServoSelectorImpl, AttrString=String>;
     type ChildrenIterator: Iterator<Item = Self> + Sized;
 
     /// Creates a new `ThreadSafeLayoutNode` for the same `LayoutNode`
@@ -351,7 +351,7 @@ pub trait DangerousThreadSafeLayoutNode: ThreadSafeLayoutNode {
 }
 
 pub trait ThreadSafeLayoutElement: Clone + Copy + Sized +
-                                   ::selectors::Element<Impl=ServoSelectorImpl> +
+                                   ::selectors::Element<Impl=ServoSelectorImpl, AttrString=String> +
                                    PresentationalHintsSynthetizer {
     type ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<ConcreteThreadSafeLayoutElement = Self>;
 

@@ -33,8 +33,9 @@ impl HTMLBaseElement {
     pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLBaseElement> {
-        let element = HTMLBaseElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLBaseElementBinding::Wrap)
+        Node::reflect_node(box HTMLBaseElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLBaseElementBinding::Wrap)
     }
 
     /// https://html.spec.whatwg.org/multipage/#frozen-base-url

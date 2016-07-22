@@ -33,6 +33,11 @@ const CHARACTERISTIC_ERROR: &'static str = "No characteristic found";
 const DESCRIPTOR_ERROR: &'static str = "No descriptor found";
 const VALUE_ERROR: &'static str = "No characteristic or descriptor found with that id";
 const SECURITY_ERROR: &'static str = "The operation is insecure";
+const NETWORK_ERROR: &'static str = "A network error occurred";
+// A transaction not completed within 30 seconds shall time out. Such a transaction shall be considered to have failed.
+// https://www.bluetooth.org/DocMan/handlers/DownloadDoc.ashx?doc_id=286439 (Vol. 3, page 480)
+const MAXIMUM_TRANSACTION_TIME: u8 = 30;
+const CONNECTION_TIMEOUT_MS: u64 = 1000;
 // The discovery session needs some time to find any nearby devices
 const DISCOVERY_TIMEOUT_MS: u64 = 1500;
 #[cfg(target_os = "linux")]
@@ -472,35 +477,43 @@ impl BluetoothManager {
     fn gatt_server_connect(&mut self, device_id: String, sender: IpcSender<BluetoothResult<bool>>) {
         let mut adapter = get_adapter_or_return_error!(self, sender);
 
-        let connected = match self.get_device(&mut adapter, &device_id) {
+        match self.get_device(&mut adapter, &device_id) {
             Some(d) => {
                 if d.is_connected().unwrap_or(false) {
-                    true
-                } else {
-                    d.connect().is_ok()
+                    return drop(sender.send(Ok(true)));
                 }
+                let _ = d.connect();
+                for _ in 0..MAXIMUM_TRANSACTION_TIME {
+                    match d.is_connected().unwrap_or(false) {
+                        true => return drop(sender.send(Ok(true))),
+                        false => thread::sleep(Duration::from_millis(CONNECTION_TIMEOUT_MS)),
+                    }
+                }
+                return drop(sender.send(Err(String::from(NETWORK_ERROR))));
             },
             None => return drop(sender.send(Err(String::from(DEVICE_ERROR)))),
-        };
-
-        let _ = sender.send(Ok(connected));
+        }
     }
 
     fn gatt_server_disconnect(&mut self, device_id: String, sender: IpcSender<BluetoothResult<bool>>) {
         let mut adapter = get_adapter_or_return_error!(self, sender);
 
-        let connected = match self.get_device(&mut adapter, &device_id) {
+        match self.get_device(&mut adapter, &device_id) {
             Some(d) => {
-                if d.is_connected().unwrap_or(false) {
-                    d.disconnect().is_ok()
-                } else {
-                    false
+                if !d.is_connected().unwrap_or(true) {
+                    return drop(sender.send(Ok(false)));
                 }
+                let _ = d.disconnect();
+                for _ in 0..MAXIMUM_TRANSACTION_TIME {
+                    match d.is_connected().unwrap_or(true) {
+                        true => thread::sleep(Duration::from_millis(CONNECTION_TIMEOUT_MS)),
+                        false => return drop(sender.send(Ok(false))),
+                    }
+                }
+                return drop(sender.send(Err(String::from(NETWORK_ERROR))));
             },
             None => return drop(sender.send(Err(String::from(DEVICE_ERROR)))),
-        };
-
-        let _ = sender.send(Ok(connected));
+        }
     }
 
     fn get_primary_service(&mut self,

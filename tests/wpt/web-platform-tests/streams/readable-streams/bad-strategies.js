@@ -114,7 +114,7 @@ test(() => {
 
 test(() => {
 
-  for (const highWaterMark of [-1, -Infinity]) {
+  for (const highWaterMark of [-1, -Infinity, NaN, 'foo', {}]) {
     assert_throws(new RangeError(), () => {
       new ReadableStream({}, {
         size() {
@@ -123,17 +123,6 @@ test(() => {
         highWaterMark
       });
     }, 'construction should throw a RangeError for ' + highWaterMark);
-  }
-
-  for (const highWaterMark of [NaN, 'foo', {}]) {
-    assert_throws(new TypeError(), () => {
-      new ReadableStream({}, {
-        size() {
-          return 1;
-        },
-        highWaterMark
-      });
-    }, 'construction should throw a TypeError for ' + highWaterMark);
   }
 
 }, 'Readable stream: invalid strategy.highWaterMark');

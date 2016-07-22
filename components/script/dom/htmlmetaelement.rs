@@ -20,10 +20,9 @@ use std::ascii::AsciiExt;
 use std::sync::Arc;
 use string_cache::Atom;
 use style::attr::AttrValue;
-use style::servo::Stylesheet;
-use style::stylesheets::{CSSRule, Origin};
+use style::str::HTML_SPACE_CHARACTERS;
+use style::stylesheets::{Stylesheet, CSSRule, Origin};
 use style::viewport::ViewportRule;
-use util::str::HTML_SPACE_CHARACTERS;
 
 #[dom_struct]
 pub struct HTMLMetaElement {
@@ -45,8 +44,9 @@ impl HTMLMetaElement {
     pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLMetaElement> {
-        let element = HTMLMetaElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLMetaElementBinding::Wrap)
+        Node::reflect_node(box HTMLMetaElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLMetaElementBinding::Wrap)
     }
 
     pub fn get_stylesheet(&self) -> Option<Arc<Stylesheet>> {
@@ -70,7 +70,7 @@ impl HTMLMetaElement {
     }
 
     fn apply_viewport(&self) {
-        if !::util::prefs::get_pref("layout.viewport.enabled").as_boolean().unwrap_or(false) {
+        if !::util::prefs::PREFS.get("layout.viewport.enabled").as_boolean().unwrap_or(false) {
             return;
         }
         let element = self.upcast::<Element>();

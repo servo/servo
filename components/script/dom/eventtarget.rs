@@ -29,7 +29,7 @@ use dom::virtualmethods::VirtualMethods;
 use dom::window::Window;
 use fnv::FnvHasher;
 use heapsize::HeapSizeOf;
-use js::jsapi::{CompileFunction, JS_GetFunctionObject, RootedValue, RootedFunction, JSAutoCompartment};
+use js::jsapi::{CompileFunction, JS_GetFunctionObject, JSAutoCompartment};
 use js::rust::{AutoObjectVectorWrapper, CompileOptionsWrapper};
 use libc::{c_char, size_t};
 use std::collections::HashMap;
@@ -156,7 +156,7 @@ impl CompiledEventListener {
                         if let Some(event) = event.downcast::<ErrorEvent>() {
                             let global = object.global();
                             let cx = global.r().get_cx();
-                            let error = RootedValue::new(cx, event.Error(cx));
+                            rooted!(in(cx) let error = event.Error(cx));
                             let return_value = handler.Call_(object,
                                                              EventOrString::String(event.Message()),
                                                              Some(event.Filename()),
@@ -166,7 +166,7 @@ impl CompiledEventListener {
                                                              exception_handle);
                             // Step 4
                             if let Ok(return_value) = return_value {
-                                let return_value = RootedValue::new(cx, return_value);
+                                rooted!(in(cx) let return_value = return_value);
                                 if return_value.handle().is_boolean() && return_value.handle().to_boolean() == true {
                                     event.upcast::<Event>().PreventDefault();
                                 }
@@ -203,7 +203,7 @@ impl CompiledEventListener {
                         if let Ok(value) = handler.Call_(object, event, exception_handle) {
                             let global = object.global();
                             let cx = global.r().get_cx();
-                            let value = RootedValue::new(cx, value);
+                            rooted!(in(cx) let value = value);
                             let value = value.handle();
 
                             //Step 4
@@ -411,7 +411,7 @@ impl EventTarget {
         let scopechain = AutoObjectVectorWrapper::new(cx);
 
         let _ac = JSAutoCompartment::new(cx, window.reflector().get_jsobject().get());
-        let mut handler = RootedFunction::new(cx, ptr::null_mut());
+        rooted!(in(cx) let mut handler = ptr::null_mut());
         let rv = unsafe {
             CompileFunction(cx,
                             scopechain.ptr,
@@ -423,7 +423,7 @@ impl EventTarget {
                             body.len() as size_t,
                             handler.handle_mut())
         };
-        if !rv || handler.ptr.is_null() {
+        if !rv || handler.get().is_null() {
             // Step 1.8.2
             unsafe {
                 report_pending_exception(cx, self.reflector().get_jsobject().get());
@@ -433,7 +433,7 @@ impl EventTarget {
         }
 
         // TODO step 1.11-13
-        let funobj = unsafe { JS_GetFunctionObject(handler.ptr) };
+        let funobj = unsafe { JS_GetFunctionObject(handler.get()) };
         assert!(!funobj.is_null());
         // Step 1.14
         if is_error {

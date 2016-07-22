@@ -1,8 +1,8 @@
 mac-rel-wpt:
   - ./mach build --release
   - ./mach test-wpt-failure
-  - ./mach test-wpt --release --processes 4 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log
-  - ./mach test-wpt --release --binary-arg=--multiprocess --processes 4 --log-raw test-wpt-mp.log --log-errorsummary wpt-mp-errorsummary.log eventsource
+  - ./mach test-wpt --release --processes 8 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log
+  - ./mach test-wpt --release --binary-arg=--multiprocess --processes 8 --log-raw test-wpt-mp.log --log-errorsummary wpt-mp-errorsummary.log eventsource
   - ./mach build-cef --release
   - bash ./etc/ci/lockfile_changed.sh
   - bash ./etc/ci/manifest_changed.sh
@@ -22,7 +22,24 @@ mac-rel-css:
   - bash ./etc/ci/lockfile_changed.sh
   - bash ./etc/ci/manifest_changed.sh
 
+mac-nightly:
+  - ./mach build --release
+  - ./mach package --release
+  - ./etc/ci/upload_nightly.sh mac
+
 linux-dev:
+  - ./mach test-tidy --no-progress --all
+  - ./mach test-tidy --no-progress --self-test
+  - ./mach build --dev
+  - ./mach test-compiletest
+  - ./mach test-unit
+  - ./mach build-cef
+  - ./mach build-geckolib
+  - bash ./etc/ci/lockfile_changed.sh
+  - bash ./etc/ci/manifest_changed.sh
+  - bash ./etc/ci/check_no_unwrap.sh
+
+linux-dev-yaml:
   - ./mach test-tidy --no-progress --all
   - ./mach test-tidy --no-progress --self-test
   - ./mach build --dev
@@ -45,16 +62,22 @@ linux-rel:
   - bash ./etc/ci/lockfile_changed.sh
   - bash ./etc/ci/manifest_changed.sh
 
+linux-nightly:
+  - ./mach build --release
+  - ./mach package --release
+  - ./etc/ci/upload_nightly.sh linux
+
 android:
   - ./mach build --android --dev
+  - ./mach package --android --dev
   - bash ./etc/ci/lockfile_changed.sh
   - bash ./etc/ci/manifest_changed.sh
   - python ./etc/ci/check_dynamic_symbols.py
 
 android-nightly:
   - ./mach build --android --release
-  - ./mach package -r
-  - s3cmd put target/arm-linux-androideabi/release/servo.apk s3://servo-rust/nightly/servo.apk
+  - ./mach package --android --release
+  - ./etc/ci/upload_nightly.sh android
 
 arm32:
   - ./mach build --rel --target=arm-unknown-linux-gnueabihf

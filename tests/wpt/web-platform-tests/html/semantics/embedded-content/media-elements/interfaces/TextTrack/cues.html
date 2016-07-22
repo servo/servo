@@ -79,7 +79,7 @@ async_test(function(){
     var video = document.createElement('video');
     var t1 = video.addTextTrack('subtitles');
     var t1_cues = t1.cues;
-    t1.mode = 'showing';
+    t1.mode = 'hidden';
     var track = document.createElement('track');
     track['default'] = true;
     video.appendChild(track); // queues a task to "honor user preferences...", media element event task source

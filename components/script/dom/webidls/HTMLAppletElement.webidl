@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmlappletelement
+[Exposed=(Window,Worker)]
 interface HTMLAppletElement : HTMLElement {
   //         attribute DOMString align;
   //         attribute DOMString alt;

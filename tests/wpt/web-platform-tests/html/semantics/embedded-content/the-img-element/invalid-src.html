@@ -1,0 +1,21 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Loading a non-parsing URL as an image should silently fail; triggering appropriate events</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<img id=myimg />
+<script>
+async_test(function(t) {
+    var img = document.getElementById("myimg");
+    img.src = "http://also a broken url";
+    var errorevent = false;
+
+    // The errors should be queued in the event loop, so they should only trigger
+    // after this block of code finishes, not during the img.src setter itself
+    img.addEventListener('error', t.step_func(function(){errorevent = true;}));
+    img.addEventListener('loadend', t.step_func_done(function() {
+        assert_true(errorevent, "error event fired");
+    }));
+});
+
+</script>

@@ -3,8 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use canvas_traits::{Canvas2dMsg, CanvasCommonMsg, CanvasMsg};
-use canvas_traits::{CompositionOrBlending, LineCapStyle, LineJoinStyle};
-use canvas_traits::{FillOrStrokeStyle, FillRule, LinearGradientStyle, RadialGradientStyle, RepetitionStyle};
+use canvas_traits::{CompositionOrBlending, FillOrStrokeStyle, FillRule};
+use canvas_traits::{LineCapStyle, LineJoinStyle, LinearGradientStyle};
+use canvas_traits::{RadialGradientStyle, RepetitionStyle, byte_swap};
 use cssparser::Color as CSSColor;
 use cssparser::{Parser, RGBA};
 use dom::bindings::cell::DOMRefCell;
@@ -46,7 +47,6 @@ use std::str::FromStr;
 use std::{cmp, fmt};
 use unpremultiplytable::UNPREMULTIPLY_TABLE;
 use url::Url;
-use util::vec::byte_swap;
 
 #[must_root]
 #[derive(JSTraceable, Clone, HeapSizeOf)]

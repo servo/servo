@@ -75,10 +75,10 @@ use selectors::matching::{DeclarationBlock, ElementFlags, matches};
 use selectors::matching::{HAS_SLOW_SELECTOR, HAS_EDGE_CHILD_SELECTOR, HAS_SLOW_SELECTOR_LATER_SIBLINGS};
 use selectors::matching::{common_style_affecting_attributes, rare_style_affecting_attributes};
 use selectors::parser::{AttrSelector, NamespaceConstraint, parse_author_origin_selector_list_from_str};
-use smallvec::VecLike;
 use std::ascii::AsciiExt;
 use std::borrow::Cow;
 use std::cell::{Cell, Ref};
+use std::convert::TryFrom;
 use std::default::Default;
 use std::mem;
 use std::sync::Arc;
@@ -91,6 +91,7 @@ use style::properties::DeclaredValue;
 use style::properties::longhands::{self, background_image, border_spacing, font_family, overflow_x, font_size};
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, parse_style_attribute};
 use style::selector_impl::{NonTSPseudoClass, ServoSelectorImpl};
+use style::sink::Push;
 use style::values::CSSFloat;
 use style::values::specified::{self, CSSColor, CSSRGBA, LengthOrPercentage};
 
@@ -126,8 +127,10 @@ pub enum AdjacentPosition {
     BeforeEnd,
 }
 
-impl AdjacentPosition {
-    pub fn parse(position: &str) -> Fallible<AdjacentPosition> {
+impl<'a> TryFrom<&'a str> for AdjacentPosition {
+    type Err = Error;
+
+    fn try_from(position: &'a str) -> Result<AdjacentPosition, Self::Err> {
         match_ignore_ascii_case! { &*position,
             "beforebegin" => Ok(AdjacentPosition::BeforeBegin),
             "afterbegin"  => Ok(AdjacentPosition::AfterBegin),
@@ -275,7 +278,7 @@ pub trait LayoutElementHelpers {
 
     #[allow(unsafe_code)]
     unsafe fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, &mut V)
-        where V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>;
+        where V: Push<DeclarationBlock<Vec<PropertyDeclaration>>>;
     #[allow(unsafe_code)]
     unsafe fn get_colspan(self) -> u32;
     #[allow(unsafe_code)]
@@ -308,7 +311,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
 
     #[allow(unsafe_code)]
     unsafe fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, hints: &mut V)
-        where V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>
+        where V: Push<DeclarationBlock<Vec<PropertyDeclaration>>>
     {
         #[inline]
         fn from_declaration(rule: PropertyDeclaration) -> DeclarationBlock<Vec<PropertyDeclaration>> {
@@ -2028,7 +2031,7 @@ impl ElementMethods for Element {
     // https://dom.spec.whatwg.org/#dom-element-insertadjacentelement
     fn InsertAdjacentElement(&self, where_: DOMString, element: &Element)
                              -> Fallible<Option<Root<Element>>> {
-        let where_ = try!(AdjacentPosition::parse(&*where_));
+        let where_ = try!(AdjacentPosition::try_from(&*where_));
         let inserted_node = try!(self.insert_adjacent(where_, element.upcast()));
         Ok(inserted_node.map(|node| Root::downcast(node).unwrap()))
     }
@@ -2040,7 +2043,7 @@ impl ElementMethods for Element {
         let text = Text::new(data, &document_from_node(self));
 
         // Step 2.
-        let where_ = try!(AdjacentPosition::parse(&*where_));
+        let where_ = try!(AdjacentPosition::try_from(&*where_));
         self.insert_adjacent(where_, text.upcast()).map(|_| ())
     }
 
@@ -2048,7 +2051,7 @@ impl ElementMethods for Element {
     fn InsertAdjacentHTML(&self, position: DOMString, text: DOMString)
                           -> ErrorResult {
         // Step 1.
-        let position = try!(AdjacentPosition::parse(&*position));
+        let position = try!(AdjacentPosition::try_from(&*position));
 
         let context = match position {
             AdjacentPosition::BeforeBegin | AdjacentPosition::AfterEnd => {
@@ -2217,6 +2220,34 @@ impl VirtualMethods for Element {
     }
 }
 
+impl<'a> ::selectors::MatchAttrGeneric for Root<Element> {
+    fn match_attr<F>(&self, attr: &AttrSelector, test: F) -> bool
+        where F: Fn(&str) -> bool
+    {
+        use ::selectors::Element;
+        let local_name = {
+            if self.is_html_element_in_html_document() {
+                &attr.lower_name
+            } else {
+                &attr.name
+            }
+        };
+        match attr.namespace {
+            NamespaceConstraint::Specific(ref ns) => {
+                self.get_attribute(ns, local_name)
+                    .map_or(false, |attr| {
+                        test(&attr.value())
+                    })
+            },
+            NamespaceConstraint::Any => {
+                self.attrs.borrow().iter().any(|attr| {
+                    attr.local_name() == local_name && test(&attr.value())
+                })
+            }
+        }
+    }
+}
+
 impl<'a> ::selectors::Element for Root<Element> {
     type Impl = ServoSelectorImpl;
 
@@ -2313,31 +2344,6 @@ impl<'a> ::selectors::Element for Root<Element> {
             let tokens = tokens.as_tokens();
             for token in tokens {
                 callback(token);
-            }
-        }
-    }
-
-    fn match_attr<F>(&self, attr: &AttrSelector, test: F) -> bool
-        where F: Fn(&str) -> bool
-    {
-        let local_name = {
-            if self.is_html_element_in_html_document() {
-                &attr.lower_name
-            } else {
-                &attr.name
-            }
-        };
-        match attr.namespace {
-            NamespaceConstraint::Specific(ref ns) => {
-                self.get_attribute(ns, local_name)
-                    .map_or(false, |attr| {
-                        test(&attr.value())
-                    })
-            },
-            NamespaceConstraint::Any => {
-                self.attrs.borrow().iter().any(|attr| {
-                    attr.local_name() == local_name && test(&attr.value())
-                })
             }
         }
     }
@@ -2519,8 +2525,13 @@ impl Element {
         self.state.get().contains(IN_ACTIVE_STATE)
     }
 
+    /// https://html.spec.whatwg.org/multipage/#concept-selector-active
     pub fn set_active_state(&self, value: bool) {
-        self.set_state(IN_ACTIVE_STATE, value)
+        self.set_state(IN_ACTIVE_STATE, value);
+
+        if let Some(parent) = self.upcast::<Node>().GetParentElement() {
+            parent.set_active_state(value);
+        }
     }
 
     pub fn focus_state(&self) -> bool {

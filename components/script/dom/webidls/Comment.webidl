@@ -9,6 +9,6 @@
  * liability, trademark and document use rules apply.
  */
 
-[Constructor(optional DOMString data = "")]
+[Constructor(optional DOMString data = ""), Exposed=(Window,Worker)]
 interface Comment : CharacterData {
 };

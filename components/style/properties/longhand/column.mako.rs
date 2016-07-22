@@ -11,6 +11,16 @@
     use cssparser::ToCss;
     use std::fmt;
     use values::LocalToCss;
+    use values::HasViewportPercentage;
+
+    impl HasViewportPercentage for SpecifiedValue {
+        fn has_viewport_percentage(&self) -> bool {
+            match *self {
+                SpecifiedValue::Specified(length) => length.has_viewport_percentage(),
+                _ => false
+            }
+        }
+    }
 
     #[derive(Debug, Clone, Copy, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -53,7 +63,7 @@
         type ComputedValue = computed_value::T;
 
         #[inline]
-        fn to_computed_value<Cx: TContext>(&self, context: &Cx) -> computed_value::T {
+        fn to_computed_value(&self, context: &Context) -> computed_value::T {
             match *self {
                 SpecifiedValue::Auto => computed_value::T(None),
                 SpecifiedValue::Specified(l) =>
@@ -75,6 +85,9 @@
 <%helpers:longhand name="column-count" experimental="True" animatable="False">
     use cssparser::ToCss;
     use std::fmt;
+    use values::NoViewportPercentage;
+
+    impl NoViewportPercentage for SpecifiedValue {}
 
     #[derive(Debug, Clone, Copy, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -116,7 +129,7 @@
         type ComputedValue = computed_value::T;
 
         #[inline]
-        fn to_computed_value<Cx: TContext>(&self, _context: &Cx) -> computed_value::T {
+        fn to_computed_value(&self, _context: &Context) -> computed_value::T {
             match *self {
                 SpecifiedValue::Auto => computed_value::T(None),
                 SpecifiedValue::Specified(count) =>
@@ -144,6 +157,16 @@
     use cssparser::ToCss;
     use std::fmt;
     use values::LocalToCss;
+    use values::HasViewportPercentage;
+
+    impl HasViewportPercentage for SpecifiedValue {
+        fn has_viewport_percentage(&self) -> bool {
+            match *self {
+                SpecifiedValue::Specified(length) => length.has_viewport_percentage(),
+                _ => false
+            }
+        }
+    }
 
     #[derive(Debug, Clone, Copy, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -186,7 +209,7 @@
         type ComputedValue = computed_value::T;
 
         #[inline]
-        fn to_computed_value<Cx: TContext>(&self, context: &Cx) -> computed_value::T {
+        fn to_computed_value(&self, context: &Context) -> computed_value::T {
             match *self {
                 SpecifiedValue::Normal => computed_value::T(None),
                 SpecifiedValue::Specified(l) =>

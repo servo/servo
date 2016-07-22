@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<link rel='match' href='transition_calc_implicit_ref.html'>
+<style>
+#inner {
+    transition: transform 0.01s;
+    height: 100px;
+    width: 100px;
+    transform: translate(1%, 1%);
+}
+.active {
+    transform: translate(0px, 1px) !important;
+}
+</style>
+<div id=inner></div>
+<script>
+requestAnimationFrame(function() {
+    var inner = document.getElementById('inner');
+    inner.className = 'active';
+    requestAnimationFrame(function() {});
+});
+</script>

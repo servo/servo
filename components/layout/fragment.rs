@@ -37,19 +37,20 @@ use std::cmp::{max, min};
 use std::collections::LinkedList;
 use std::fmt;
 use std::sync::{Arc, Mutex};
+use style::arc_ptr_eq;
 use style::computed_values::content::ContentItem;
 use style::computed_values::{border_collapse, clear, color, display, mix_blend_mode};
 use style::computed_values::{overflow_wrap, overflow_x, position, text_decoration};
 use style::computed_values::{transform_style, vertical_align, white_space, word_break, z_index};
 use style::dom::TRestyleDamage;
 use style::logical_geometry::{LogicalMargin, LogicalRect, LogicalSize, WritingMode};
-use style::properties::{ComputedValues, ServoComputedValues};
+use style::properties::ServoComputedValues;
+use style::str::char_is_whitespace;
 use style::values::computed::LengthOrPercentageOrNone;
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use text;
 use text::TextRunScanner;
 use url::Url;
-use util;
 
 /// Fragments (`struct Fragment`) are the leaves of the layout tree. They cannot position
 /// themselves. In general, fragments do not have a simple correspondence with CSS fragments in the
@@ -1540,12 +1541,11 @@ impl Fragment {
     /// information are both optional due to the possibility of them being whitespace.
     pub fn calculate_split_position(&self, max_inline_size: Au, starts_line: bool)
                                     -> Option<SplitResult> {
-        let text_fragment_info =
-            if let SpecificFragmentInfo::ScannedText(ref text_fragment_info) = self.specific {
-                text_fragment_info
-            } else {
-                return None
-            };
+        let text_fragment_info = match self.specific {
+            SpecificFragmentInfo::ScannedText(ref text_fragment_info)
+                => text_fragment_info,
+            _   => return None,
+        };
 
         let mut flags = SplitOptions::empty();
         if starts_line {
@@ -1617,12 +1617,11 @@ impl Fragment {
             flags: SplitOptions)
             -> Option<SplitResult>
             where I: Iterator<Item=TextRunSlice<'a>> {
-        let text_fragment_info =
-            if let SpecificFragmentInfo::ScannedText(ref text_fragment_info) = self.specific {
-                text_fragment_info
-            } else {
-                return None
-            };
+        let text_fragment_info = match self.specific {
+            SpecificFragmentInfo::ScannedText(ref text_fragment_info)
+                => text_fragment_info,
+            _   => return None,
+        };
 
         let mut remaining_inline_size = max_inline_size;
         let mut inline_start_range = Range::new(text_fragment_info.range.begin(), ByteIndex(0));
@@ -1660,7 +1659,8 @@ impl Fragment {
             // see if we're going to overflow the line. If so, perform a best-effort split.
             let mut remaining_range = slice.text_run_range();
             let split_is_empty = inline_start_range.is_empty() &&
-                    !self.requires_line_break_afterward_if_wrapping_on_newlines();
+                    !(self.requires_line_break_afterward_if_wrapping_on_newlines() &&
+                      !self.white_space().allow_wrap());
             if split_is_empty {
                 // We're going to overflow the line.
                 overflowing = true;
@@ -1732,7 +1732,7 @@ impl Fragment {
         match (&mut self.specific, &next_fragment.specific) {
             (&mut SpecificFragmentInfo::ScannedText(ref mut this_info),
              &SpecificFragmentInfo::ScannedText(ref other_info)) => {
-                debug_assert!(util::arc_ptr_eq(&this_info.run, &other_info.run));
+                debug_assert!(arc_ptr_eq(&this_info.run, &other_info.run));
                 this_info.range_end_including_stripped_whitespace =
                     other_info.range_end_including_stripped_whitespace;
                 if other_info.requires_line_break_afterward_if_wrapping_on_newlines() {
@@ -2358,7 +2358,7 @@ impl Fragment {
         match self.specific {
             SpecificFragmentInfo::ScannedText(ref mut scanned_text_fragment_info) => {
                 let leading_whitespace_byte_count = scanned_text_fragment_info.text()
-                    .find(|c| !util::str::char_is_whitespace(c))
+                    .find(|c| !char_is_whitespace(c))
                     .unwrap_or(scanned_text_fragment_info.text().len());
 
                 let whitespace_len = ByteIndex(leading_whitespace_byte_count as isize);
@@ -2382,7 +2382,7 @@ impl Fragment {
                         new_text_string.push(character);
                         continue
                     }
-                    if util::str::char_is_whitespace(character) {
+                    if char_is_whitespace(character) {
                         modified = true;
                         continue
                     }
@@ -2413,7 +2413,7 @@ impl Fragment {
             SpecificFragmentInfo::ScannedText(ref mut scanned_text_fragment_info) => {
                 let mut trailing_whitespace_start_byte = 0;
                 for (i, c) in scanned_text_fragment_info.text().char_indices().rev() {
-                    if !util::str::char_is_whitespace(c) {
+                    if !char_is_whitespace(c) {
                         trailing_whitespace_start_byte = i + c.len_utf8();
                         break;
                     }
@@ -2440,7 +2440,7 @@ impl Fragment {
                         trailing_bidi_control_characters_to_retain.push(character);
                         continue
                     }
-                    if util::str::char_is_whitespace(character) {
+                    if char_is_whitespace(character) {
                         modified = true;
                         continue
                     }

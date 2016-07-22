@@ -22,7 +22,7 @@ use dom::virtualmethods::VirtualMethods;
 use std::cell::Cell;
 use string_cache::Atom;
 use style::element_state::*;
-use util::str::{split_html_space_chars, str_join};
+use style::str::{split_html_space_chars, str_join};
 
 #[dom_struct]
 pub struct HTMLOptionElement {
@@ -52,8 +52,9 @@ impl HTMLOptionElement {
     pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLOptionElement> {
-        let element = HTMLOptionElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLOptionElementBinding::Wrap)
+        Node::reflect_node(box HTMLOptionElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLOptionElementBinding::Wrap)
     }
 
     pub fn set_selectedness(&self, selected: bool) {

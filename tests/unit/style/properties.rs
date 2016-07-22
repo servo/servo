@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use app_units::Au;
 use cssparser::ToCss;
 use rustc_serialize::json::Json;
 use std::env;
@@ -10,8 +11,10 @@ use std::path::Path;
 use std::process::Command;
 use std::sync::Arc;
 use style::computed_values::display::T::inline_block;
-use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, DeclaredValue};
-use style::values::specified::{Length, LengthOrPercentageOrAuto, LengthOrPercentage};
+use style::properties::longhands::border_top_width;
+use style::properties::{DeclaredValue, PropertyDeclaration, PropertyDeclarationBlock};
+use style::values::HasViewportPercentage;
+use style::values::specified::{Length, LengthOrPercentageOrAuto, LengthOrPercentage, ViewportPercentageLength};
 
 #[test]
 fn properties_list_json() {
@@ -90,4 +93,22 @@ fn property_declaration_block_should_serialize_correctly() {
         css_string,
         "width: 70px; min-height: 20px; display: inline-block; height: 20px !important;"
     );
+}
+
+#[test]
+fn has_viewport_percentage_for_specified_value() {
+    //TODO: test all specified value with a HasViewportPercentage impl
+    let pvw = PropertyDeclaration::BorderTopWidth(
+                  DeclaredValue::Value(border_top_width::SpecifiedValue(
+                      Length::ViewportPercentage(ViewportPercentageLength::Vw(100.))
+                  ))
+              );
+    assert!(pvw.has_viewport_percentage());
+
+    let pabs = PropertyDeclaration::BorderTopWidth(
+                   DeclaredValue::Value(border_top_width::SpecifiedValue(
+                       Length::Absolute(Au(100))
+                   ))
+               );
+    assert!(!pabs.has_viewport_percentage());
 }

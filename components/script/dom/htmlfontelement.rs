@@ -15,8 +15,8 @@ use dom::node::Node;
 use dom::virtualmethods::VirtualMethods;
 use string_cache::Atom;
 use style::attr::AttrValue;
+use style::str::{HTML_SPACE_CHARACTERS, read_numbers};
 use style::values::specified;
-use util::str::{HTML_SPACE_CHARACTERS, read_numbers};
 
 #[dom_struct]
 pub struct HTMLFontElement {
@@ -35,8 +35,9 @@ impl HTMLFontElement {
     pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLFontElement> {
-        let element = HTMLFontElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLFontElementBinding::Wrap)
+        Node::reflect_node(box HTMLFontElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLFontElementBinding::Wrap)
     }
 }
 

@@ -3,11 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use about_loader;
-use mime_classifier::MIMEClassifier;
+use mime_classifier::MimeClassifier;
 use mime_guess::guess_mime_type;
 use msg::constellation_msg::{PipelineId, ReferrerPolicy};
 use net_traits::ProgressMsg::{Done, Payload};
-use net_traits::{LoadConsumer, LoadData, Metadata, NetworkError, LoadOrigin, RequestSource};
+use net_traits::{LoadConsumer, LoadData, Metadata, NetworkError, LoadOrigin};
 use resource_thread::{CancellationListener, ProgressSender};
 use resource_thread::{send_error, start_sending_sniffed_opt};
 use std::borrow::ToOwned;
@@ -39,9 +39,6 @@ impl LoadOrigin for FileLoadOrigin {
     fn referrer_policy(&self) -> Option<ReferrerPolicy> {
         None
     }
-    fn request_source(&self) -> RequestSource {
-        RequestSource::None
-    }
     fn pipeline_id(&self) -> Option<PipelineId> {
         None
     }
@@ -72,7 +69,7 @@ fn read_all(reader: &mut File, progress_chan: &ProgressSender, cancel_listener: 
 }
 
 fn get_progress_chan(load_data: LoadData, file_path: PathBuf,
-                     senders: LoadConsumer, classifier: Arc<MIMEClassifier>, buf: &[u8])
+                     senders: LoadConsumer, classifier: Arc<MimeClassifier>, buf: &[u8])
                      -> Result<ProgressSender, ()> {
     let mut metadata = Metadata::default(load_data.url);
     let mime_type = guess_mime_type(file_path.as_path());
@@ -82,7 +79,7 @@ fn get_progress_chan(load_data: LoadData, file_path: PathBuf,
 
 pub fn factory(load_data: LoadData,
                senders: LoadConsumer,
-               classifier: Arc<MIMEClassifier>,
+               classifier: Arc<MimeClassifier>,
                cancel_listener: CancellationListener) {
     assert!(load_data.url.scheme() == "file");
     spawn_named("file_loader".to_owned(), move || {

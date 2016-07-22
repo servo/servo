@@ -1,6 +1,6 @@
 Directory for Pointer Events Tests
 
-Latest Editor's Draft: https://dvcs.w3.org/hg/pointerevents/raw-file/tip/pointerEvents.html
+Latest Editor's Draft: https://w3c.github.io/pointerevents/
 
 Latest W3C Technical Report: http://www.w3.org/TR/pointerevents/
 

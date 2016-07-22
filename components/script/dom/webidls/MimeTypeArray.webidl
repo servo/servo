@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#mimetypearray
-[LegacyUnenumerableNamedProperties]
+[LegacyUnenumerableNamedProperties, Exposed=(Window,Worker)]
 interface MimeTypeArray {
   readonly attribute unsigned long length;
   getter MimeType? item(unsigned long index);

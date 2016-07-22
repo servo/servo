@@ -1,0 +1,37 @@
+<!doctype html>
+<html>
+    <!--
+Test cases for Pointer Events v1 spec
+This document references Test Assertions (abbrev TA below) written by Cathy Chan
+http://www.w3.org/wiki/PointerEvents/TestAssertions
+-->
+    <head>
+        <title>Pointer Events pointerdown tests</title>
+        <meta name="viewport" content="width=device-width">
+        <link rel="stylesheet" type="text/css" href="../pointerevent_styles.css">
+        <script>
+            function run() {
+                var target1 = document.getElementById("target1");
+                var pointerover_event;
+                var ponterId = null;
+
+                var eventList = ['pointerenter', 'pointerover', 'pointermove', 'pointerout', 'pointerleave'];
+
+                eventList.forEach(function(eventName) {
+                    target1.addEventListener(eventName, function (event) {
+                        var pass_data = {
+                            'pointerId' : event.pointerId,
+                            'type' : event.type,
+                            'pointerType' : event.pointerType
+                        };
+                        top.postMessage(JSON.stringify(pass_data), "*");
+                    });
+               });
+            }
+        </script>
+    </head>
+    <body onload="run()">
+        <div id="target1" class="touchActionNone">
+        </div>
+    </body>
+</html>

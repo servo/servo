@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // http://dev.w3.org/fxtf/geometry/#DOMRectList
-[NoInterfaceObject/*,
- ArrayClass*/]
+[NoInterfaceObject, Exposed=(Window,Worker)]
+//[ArrayClass]
 interface DOMRectList {
   readonly attribute unsigned long length;
   getter DOMRect? item(unsigned long index);

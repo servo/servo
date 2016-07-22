@@ -15,18 +15,18 @@ use flow::{Flow, FlowClass, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx::display_list::StackingContext;
 use gfx_traits::StackingContextId;
+use gfx_traits::print_tree::PrintTree;
 use layout_debug;
 use rustc_serialize::{Encodable, Encoder};
 use std::fmt;
 use std::iter::{IntoIterator, Iterator, Peekable};
 use std::sync::Arc;
 use style::computed_values::{border_collapse, border_spacing};
+use style::context::SharedStyleContext;
 use style::logical_geometry::{LogicalSize, WritingMode};
-use style::properties::{ComputedValues, ServoComputedValues};
-use style::servo::SharedStyleContext;
+use style::properties::ServoComputedValues;
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable, TableLikeFlow};
 use table_row;
-use util::print_tree::PrintTree;
 
 /// A table formatting context.
 pub struct TableRowGroupFlow {

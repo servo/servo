@@ -93,13 +93,13 @@ def generate_selection(selection, spec, subresource_path,
             selection['meta_delivery_method'] = \
                 '<meta http-equiv="Content-Security-Policy" ' + \
                 'content="referrer %(referrer_policy)s">' % spec
-        elif selection['delivery_method'] == 'http-csp':
+        elif selection['delivery_method'] == 'http-rp':
             selection['meta_delivery_method'] = \
-                "<!-- No meta: CSP delivered via HTTP headers. -->"
+                "<!-- No meta: Referrer policy delivered via HTTP headers. -->"
             test_headers_filename = test_filename + ".headers"
             with open(test_headers_filename, "w") as f:
-                f.write('Content-Security-Policy: ' + \
-                        'referrer %(referrer_policy)s\n' % spec)
+                f.write('Referrer-Policy: ' + \
+                        '%(referrer_policy)s\n' % spec)
                 # TODO(kristijanburnik): Limit to WPT origins.
                 f.write('Access-Control-Allow-Origin: *\n')
         elif selection['delivery_method'] == 'attr-referrer':

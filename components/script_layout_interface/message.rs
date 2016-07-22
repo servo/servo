@@ -7,18 +7,18 @@ use euclid::point::Point2D;
 use euclid::rect::Rect;
 use gfx_traits::{Epoch, LayerId};
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
-use msg::constellation_msg::{PanicMsg, PipelineId, WindowSizeData};
+use msg::constellation_msg::PipelineId;
 use net_traits::image_cache_thread::ImageCacheThread;
 use profile_traits::mem::ReportsChan;
 use rpc::LayoutRPC;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg};
-use script_traits::{LayoutMsg as ConstellationMsg, StackingContextScrollState};
+use script_traits::{LayoutMsg as ConstellationMsg, StackingContextScrollState, WindowSizeData};
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender};
 use string_cache::Atom;
 use style::context::ReflowGoal;
 use style::selector_impl::PseudoElement;
-use style::servo::Stylesheet;
+use style::stylesheets::Stylesheet;
 use url::Url;
 use util::ipc::OptionalOpaqueIpcSender;
 use {OpaqueStyleAndLayoutData, TrustedNodeAddress};
@@ -39,6 +39,11 @@ pub enum Msg {
 
     /// Requests that the layout thread render the next frame of all animations.
     TickAnimations,
+
+    /// Updates layout's timer for animation testing from script.
+    ///
+    /// The inner field is the number of *milliseconds* to advance.
+    AdvanceClockMs(i32),
 
     /// Requests that the layout thread reflow with a newly-loaded Web font.
     ReflowWithNewlyLoadedWebFont,
@@ -140,7 +145,6 @@ pub struct NewLayoutThreadInfo {
     pub layout_pair: (Sender<Msg>, Receiver<Msg>),
     pub pipeline_port: IpcReceiver<LayoutControlMsg>,
     pub constellation_chan: IpcSender<ConstellationMsg>,
-    pub panic_chan: IpcSender<PanicMsg>,
     pub script_chan: IpcSender<ConstellationControlMsg>,
     pub image_cache_thread: ImageCacheThread,
     pub paint_chan: OptionalOpaqueIpcSender,

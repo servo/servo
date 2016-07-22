@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use net::mime_classifier::as_string_option;
-use net::mime_classifier::{Mp4Matcher, MIMEClassifier, ApacheBugFlag, NoSniffFlag};
+use net::mime_classifier::{Mp4Matcher, MimeClassifier, ApacheBugFlag, NoSniffFlag};
 use net_traits::LoadContext;
 use std::env;
 use std::fs::File;
@@ -52,7 +52,7 @@ fn test_sniff_mp4_matcher_long() {
 
 #[test]
 fn test_validate_classifier() {
-    let classifier = MIMEClassifier::new();
+    let classifier = MimeClassifier::new();
     classifier.validate().expect("Validation error")
 }
 
@@ -69,7 +69,7 @@ fn test_sniff_with_flags(filename_orig: &path::Path,
     let mut filename = PathBuf::from("parsable_mime/");
     filename.push(filename_orig);
 
-    let classifier = MIMEClassifier::new();
+    let classifier = MimeClassifier::new();
 
     let read_result = read_file(&filename);
 

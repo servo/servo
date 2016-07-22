@@ -18,20 +18,7 @@ request.onload = function() {
     idl_array.add_untested_idls("[TreatNonCallableAsNull] callback EventHandlerNonNull = any (Event event);");
     idl_array.add_untested_idls("typedef EventHandlerNonNull? EventHandler;");
 
-
-    var worker_idls =
-            '[Constructor, Exposed=Worker]\n' +
-            'interface FileReaderSync {\n' +
-            '\n' +
-            '  // Synchronously return strings\n' +
-            '\n' +
-            '  ArrayBuffer readAsArrayBuffer(Blob blob);\n' +
-            '  DOMString readAsText(Blob blob, optional DOMString label);\n' +
-            '  DOMString readAsDataURL(Blob blob);\n' +
-            '};';
-
     idl_array.add_idls(idls);
-    idl_array.add_idls(worker_idls);
 
     idl_array.add_objects({
         Blob: ['new Blob(["TEST"])'],

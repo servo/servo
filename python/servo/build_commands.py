@@ -319,6 +319,7 @@ class MachCommands(CommandBase):
                      action='store_true',
                      help='Build in release mode')
     def build_geckolib(self, jobs=None, verbose=False, release=False):
+        self.set_use_stable_rust()
         self.ensure_bootstrapped()
 
         ret = None
@@ -330,10 +331,12 @@ class MachCommands(CommandBase):
         if release:
             opts += ["--release"]
 
+        env = self.build_env()
+        env["CARGO_TARGET_DIR"] = path.join(self.context.topdir, "target", "geckolib").encode("UTF-8")
+
         build_start = time()
         with cd(path.join("ports", "geckolib")):
-            ret = call(["cargo", "build"] + opts,
-                       env=self.build_env(), verbose=verbose)
+            ret = call(["cargo", "build"] + opts, env=env, verbose=verbose)
         elapsed = time() - build_start
 
         # Generate Desktop Notification if elapsed-time > some threshold value

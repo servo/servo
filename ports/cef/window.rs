@@ -479,7 +479,7 @@ impl WindowMethods for Window {
         }
     }
 
-    fn handle_key(&self, _: Key, _: KeyModifiers) {
+    fn handle_key(&self, _: Option<char>, _: Key, _: KeyModifiers) {
         // TODO(negge)
     }
 
@@ -504,7 +504,7 @@ impl WindowMethods for Window {
     }
 
     fn supports_clipboard(&self) -> bool {
-        true
+        false
     }
 }
 

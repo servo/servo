@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>DocumentTimeline constructor tests</title>
+<link rel="help" href="https://w3c.github.io/web-animations/#the-documenttimeline-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<body>
+<div id="log"></div>
+<script>
+"use strict";
+
+test(function(t) {
+  var timeline = new DocumentTimeline(0);
+
+  assert_times_equal(timeline.currentTime, document.timeline.currentTime);
+}, 'zero origin time');
+
+test(function(t) {
+  var timeline = new DocumentTimeline(10 * MS_PER_SEC);
+
+  assert_times_equal(timeline.currentTime,
+                     (document.timeline.currentTime - 10 * MS_PER_SEC));
+}, 'positive origin time');
+
+test(function(t) {
+  var timeline = new DocumentTimeline(-10 * MS_PER_SEC);
+
+  assert_times_equal(timeline.currentTime,
+                (document.timeline.currentTime + 10 * MS_PER_SEC));
+}, 'negative origin time');
+
+</script>
+</body>

@@ -21,7 +21,7 @@ use std::sync::Arc;
 use style::computed_values::content::ContentItem;
 use style::computed_values::{display, list_style_type};
 use style::dom::TRestyleDamage;
-use style::properties::{ComputedValues, ServoComputedValues};
+use style::properties::ServoComputedValues;
 use text::TextRunScanner;
 
 // Decimal styles per CSS-COUNTER-STYLES § 6.1:

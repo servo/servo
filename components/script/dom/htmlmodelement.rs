@@ -29,7 +29,8 @@ impl HTMLModElement {
     pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLModElement> {
-        let element = HTMLModElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLModElementBinding::Wrap)
+        Node::reflect_node(box HTMLModElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLModElementBinding::Wrap)
     }
 }

@@ -32,8 +32,9 @@ impl HTMLFrameSetElement {
     pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLFrameSetElement> {
-        let element = HTMLFrameSetElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLFrameSetElementBinding::Wrap)
+        Node::reflect_node(box HTMLFrameSetElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLFrameSetElementBinding::Wrap)
     }
 }
 

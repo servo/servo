@@ -40,7 +40,7 @@ function corsExposeFilter(corsUrl, headerName, headerValue, isForbidden) {
   }, "CORS filter on " + headerName + " header, header is exposed");
 }
 
-var url = "http://www1.{{host}}:{{ports[http][1]}}" + dirname(location.pathname) + RESOURCES_DIR + "top.txt";
+var url = "http://{{host}}:{{ports[http][1]}}" + dirname(location.pathname) + RESOURCES_DIR + "top.txt";
 
 corsFilter(url, "Cache-Control", "no-cache", false);
 corsFilter(url, "Content-Language", "fr", false);

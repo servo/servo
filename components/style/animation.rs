@@ -15,14 +15,12 @@ use properties::longhands::animation_iteration_count::computed_value::AnimationI
 use properties::longhands::animation_play_state::computed_value::AnimationPlayState;
 use properties::longhands::transition_timing_function::computed_value::StartEnd;
 use properties::longhands::transition_timing_function::computed_value::TransitionTimingFunction;
-use properties::style_struct_traits::Box;
 use properties::{self, ComputedValues};
-use selector_impl::SelectorImplExt;
 use selectors::matching::DeclarationBlock;
 use std::sync::Arc;
 use std::sync::mpsc::Sender;
 use string_cache::Atom;
-use time;
+use timer::Timer;
 use values::computed::Time;
 
 /// This structure represents a keyframes animation current iteration state.
@@ -53,7 +51,7 @@ pub enum KeyframesRunningState {
 /// playing or paused).
 // TODO: unify the use of f32/f64 in this file.
 #[derive(Debug, Clone)]
-pub struct KeyframesAnimationState<Impl: SelectorImplExt> {
+pub struct KeyframesAnimationState {
     /// The time this animation started at.
     pub started_at: f64,
     /// The duration of this animation.
@@ -72,10 +70,10 @@ pub struct KeyframesAnimationState<Impl: SelectorImplExt> {
     pub expired: bool,
     /// The original cascade style, needed to compute the generated keyframes of
     /// the animation.
-    pub cascade_style: Arc<Impl::ComputedValues>,
+    pub cascade_style: Arc<ComputedValues>,
 }
 
-impl<Impl: SelectorImplExt> KeyframesAnimationState<Impl> {
+impl KeyframesAnimationState {
     /// Performs a tick in the animation state, i.e., increments the counter of
     /// the current iteration count, updates times and then toggles the
     /// direction if appropriate.
@@ -83,6 +81,7 @@ impl<Impl: SelectorImplExt> KeyframesAnimationState<Impl> {
     /// Returns true if the animation should keep running.
     pub fn tick(&mut self) -> bool {
         debug!("KeyframesAnimationState::tick");
+        debug_assert!(!self.expired);
 
         self.started_at += self.duration + self.delay;
         match self.running_state {
@@ -123,7 +122,9 @@ impl<Impl: SelectorImplExt> KeyframesAnimationState<Impl> {
     ///
     /// There are some bits of state we can't just replace, over all taking in
     /// account times, so here's that logic.
-    pub fn update_from_other(&mut self, other: &Self) {
+    pub fn update_from_other(&mut self,
+                             other: &Self,
+                             timer: &Timer) {
         use self::KeyframesRunningState::*;
 
         debug!("KeyframesAnimationState::update_from_other({:?}, {:?})", self, other);
@@ -147,11 +148,11 @@ impl<Impl: SelectorImplExt> KeyframesAnimationState<Impl> {
         // If we're pausing the animation, compute the progress value.
         match (&mut self.running_state, old_running_state) {
             (&mut Running, Paused(progress))
-                => new_started_at = time::precise_time_s() - (self.duration * progress),
+                => new_started_at = timer.seconds() - (self.duration * progress),
             (&mut Paused(ref mut new), Paused(old))
                 => *new = old,
             (&mut Paused(ref mut progress), Running)
-                => *progress = (time::precise_time_s() - old_started_at) / old_duration,
+                => *progress = (timer.seconds() - old_started_at) / old_duration,
             _ => {},
         }
 
@@ -179,7 +180,7 @@ impl<Impl: SelectorImplExt> KeyframesAnimationState<Impl> {
 
 /// State relating to an animation.
 #[derive(Clone, Debug)]
-pub enum Animation<Impl: SelectorImplExt> {
+pub enum Animation {
     /// A transition is just a single frame triggered at a time, with a reflow.
     ///
     /// the f64 field is the start time as returned by `time::precise_time_s()`.
@@ -188,10 +189,10 @@ pub enum Animation<Impl: SelectorImplExt> {
     Transition(OpaqueNode, f64, AnimationFrame, bool),
     /// A keyframes animation is identified by a name, and can have a
     /// node-dependent state (i.e. iteration count, etc.).
-    Keyframes(OpaqueNode, Atom, KeyframesAnimationState<Impl>),
+    Keyframes(OpaqueNode, Atom, KeyframesAnimationState),
 }
 
-impl<Impl: SelectorImplExt> Animation<Impl> {
+impl Animation {
     #[inline]
     pub fn mark_as_expired(&mut self) {
         debug_assert!(!self.is_expired());
@@ -248,15 +249,15 @@ impl PropertyAnimation {
     /// Creates a new property animation for the given transition index and old and new styles.
     /// Any number of animations may be returned, from zero (if the property did not animate) to
     /// one (for a single transition property) to arbitrarily many (for `all`).
-    pub fn from_transition<C: ComputedValues>(transition_index: usize,
-                                              old_style: &C,
-                                              new_style: &mut C)
-                                              -> Vec<PropertyAnimation> {
+    pub fn from_transition(transition_index: usize,
+                           old_style: &ComputedValues,
+                           new_style: &mut ComputedValues)
+                           -> Vec<PropertyAnimation> {
         let mut result = vec![];
-        let box_style = new_style.as_servo().get_box();
-        let transition_property = box_style.transition_property.0[transition_index];
-        let timing_function = *box_style.transition_timing_function.0.get_mod(transition_index);
-        let duration = *box_style.transition_duration.0.get_mod(transition_index);
+        let box_style = new_style.get_box();
+        let transition_property = box_style.transition_property_at(transition_index);
+        let timing_function = box_style.transition_timing_function_mod(transition_index);
+        let duration = box_style.transition_duration_mod(transition_index);
 
 
         if transition_property != TransitionProperty::All {
@@ -285,12 +286,12 @@ impl PropertyAnimation {
         result
     }
 
-    fn from_transition_property<C: ComputedValues>(transition_property: TransitionProperty,
-                                                   timing_function: TransitionTimingFunction,
-                                                   duration: Time,
-                                                   old_style: &C,
-                                                   new_style: &C)
-                                                   -> Option<PropertyAnimation> {
+    fn from_transition_property(transition_property: TransitionProperty,
+                                timing_function: TransitionTimingFunction,
+                                duration: Time,
+                                old_style: &ComputedValues,
+                                new_style: &ComputedValues)
+                                -> Option<PropertyAnimation> {
         let animated_property = AnimatedProperty::from_transition_property(&transition_property,
                                                                            old_style,
                                                                            new_style);
@@ -308,7 +309,7 @@ impl PropertyAnimation {
         }
     }
 
-    pub fn update<C: ComputedValues>(&self, style: &mut C, time: f64) {
+    pub fn update(&self, style: &mut ComputedValues, time: f64) {
         let progress = match self.timing_function {
             TransitionTimingFunction::CubicBezier(p1, p2) => {
                 // See `WebCore::AnimationBase::solveEpsilon(double)` in WebKit.
@@ -333,36 +334,20 @@ impl PropertyAnimation {
     }
 }
 
-/// Accesses an element of an array, "wrapping around" using modular arithmetic. This is needed
-/// to handle [repeatable lists][lists] of differing lengths.
-///
-/// [lists]: https://drafts.csswg.org/css-transitions/#animtype-repeatable-list
-pub trait GetMod {
-    type Item;
-    fn get_mod(&self, i: usize) -> &Self::Item;
-}
-
-impl<T> GetMod for Vec<T> {
-    type Item = T;
-    #[inline]
-    fn get_mod(&self, i: usize) -> &T {
-        &(*self)[i % self.len()]
-    }
-}
-
 /// Inserts transitions into the queue of running animations as applicable for
 /// the given style difference. This is called from the layout worker threads.
 /// Returns true if any animations were kicked off and false otherwise.
 //
 // TODO(emilio): Take rid of this mutex splitting SharedLayoutContex into a
 // cloneable part and a non-cloneable part..
-pub fn start_transitions_if_applicable<Impl: SelectorImplExt>(new_animations_sender: &Sender<Animation<Impl>>,
-                                                              node: OpaqueNode,
-                                                              old_style: &Impl::ComputedValues,
-                                                              new_style: &mut Arc<Impl::ComputedValues>)
-                                                              -> bool {
+pub fn start_transitions_if_applicable(new_animations_sender: &Sender<Animation>,
+                                       node: OpaqueNode,
+                                       old_style: &ComputedValues,
+                                       new_style: &mut Arc<ComputedValues>,
+                                       timer: &Timer)
+                                       -> bool {
     let mut had_animations = false;
-    for i in 0..new_style.get_box().transition_count() {
+    for i in 0..new_style.get_box().transition_property_count() {
         // Create any property animations, if applicable.
         let property_animations = PropertyAnimation::from_transition(i, old_style, Arc::make_mut(new_style));
         for property_animation in property_animations {
@@ -372,13 +357,13 @@ pub fn start_transitions_if_applicable<Impl: SelectorImplExt>(new_animations_sen
             property_animation.update(Arc::get_mut(new_style).unwrap(), 0.0);
 
             // Kick off the animation.
-            let now = time::precise_time_s();
-            let box_style = new_style.as_servo().get_box();
+            let box_style = new_style.get_box();
+            let now = timer.seconds();
             let start_time =
-                now + (box_style.transition_delay.0.get_mod(i).seconds() as f64);
+                now + (box_style.transition_delay_mod(i).seconds() as f64);
             new_animations_sender
                 .send(Animation::Transition(node, start_time, AnimationFrame {
-                    duration: box_style.transition_duration.0.get_mod(i).seconds() as f64,
+                    duration: box_style.transition_duration_mod(i).seconds() as f64,
                     property_animation: property_animation,
                 }, /* is_expired = */ false)).unwrap();
 
@@ -389,11 +374,11 @@ pub fn start_transitions_if_applicable<Impl: SelectorImplExt>(new_animations_sen
     had_animations
 }
 
-fn compute_style_for_animation_step<Impl: SelectorImplExt>(context: &SharedStyleContext<Impl>,
-                                                           step: &KeyframesStep,
-                                                           previous_style: &Impl::ComputedValues,
-                                                           style_from_cascade: &Impl::ComputedValues)
-                                                           -> Impl::ComputedValues {
+fn compute_style_for_animation_step(context: &SharedStyleContext,
+                                    step: &KeyframesStep,
+                                    previous_style: &ComputedValues,
+                                    style_from_cascade: &ComputedValues)
+                                    -> ComputedValues {
     match step.value {
         // TODO: avoiding this spurious clone might involve having to create
         // an Arc in the below (more common case).
@@ -415,17 +400,17 @@ fn compute_style_for_animation_step<Impl: SelectorImplExt>(context: &SharedStyle
     }
 }
 
-pub fn maybe_start_animations<Impl: SelectorImplExt>(context: &SharedStyleContext<Impl>,
-                                                     new_animations_sender: &Sender<Animation<Impl>>,
-                                                     node: OpaqueNode,
-                                                     new_style: &Arc<Impl::ComputedValues>) -> bool
-{
+pub fn maybe_start_animations(context: &SharedStyleContext,
+                              new_animations_sender: &Sender<Animation>,
+                              node: OpaqueNode,
+                              new_style: &Arc<ComputedValues>)
+                              -> bool {
     let mut had_animations = false;
 
-    let box_style = new_style.as_servo().get_box();
-    for (i, name) in box_style.animation_name.0.iter().enumerate() {
+    let box_style = new_style.get_box();
+    for (i, name) in box_style.animation_name_iter().enumerate() {
         debug!("maybe_start_animations: name={}", name);
-        let total_duration = box_style.animation_duration.0.get_mod(i).seconds();
+        let total_duration = box_style.animation_duration_mod(i).seconds();
         if total_duration == 0. {
             continue
         }
@@ -441,16 +426,16 @@ pub fn maybe_start_animations<Impl: SelectorImplExt>(context: &SharedStyleContex
                 continue;
             }
 
-            let delay = box_style.animation_delay.0.get_mod(i).seconds();
-            let now = time::precise_time_s();
+            let delay = box_style.animation_delay_mod(i).seconds();
+            let now = context.timer.seconds();
             let animation_start = now + delay as f64;
-            let duration = box_style.animation_duration.0.get_mod(i).seconds();
-            let iteration_state = match *box_style.animation_iteration_count.0.get_mod(i) {
+            let duration = box_style.animation_duration_mod(i).seconds();
+            let iteration_state = match box_style.animation_iteration_count_mod(i) {
                 AnimationIterationCount::Infinite => KeyframesIterationState::Infinite,
                 AnimationIterationCount::Number(n) => KeyframesIterationState::Finite(0, n),
             };
 
-            let animation_direction = *box_style.animation_direction.0.get_mod(i);
+            let animation_direction = box_style.animation_direction_mod(i);
 
             let initial_direction = match animation_direction {
                 AnimationDirection::normal |
@@ -459,7 +444,7 @@ pub fn maybe_start_animations<Impl: SelectorImplExt>(context: &SharedStyleContex
                 AnimationDirection::alternate_reverse => AnimationDirection::reverse,
             };
 
-            let running_state = match *box_style.animation_play_state.0.get_mod(i) {
+            let running_state = match box_style.animation_play_state_mod(i) {
                 AnimationPlayState::paused => KeyframesRunningState::Paused(0.),
                 AnimationPlayState::running => KeyframesRunningState::Running,
             };
@@ -486,10 +471,10 @@ pub fn maybe_start_animations<Impl: SelectorImplExt>(context: &SharedStyleContex
 
 /// Updates a given computed style for a given animation frame. Returns a bool
 /// representing if the style was indeed updated.
-pub fn update_style_for_animation_frame<C: ComputedValues>(mut new_style: &mut Arc<C>,
-                                                           now: f64,
-                                                           start_time: f64,
-                                                           frame: &AnimationFrame) -> bool {
+pub fn update_style_for_animation_frame(mut new_style: &mut Arc<ComputedValues>,
+                                        now: f64,
+                                        start_time: f64,
+                                        frame: &AnimationFrame) -> bool {
     let mut progress = (now - start_time) / frame.duration;
     if progress > 1.0 {
         progress = 1.0
@@ -505,18 +490,17 @@ pub fn update_style_for_animation_frame<C: ComputedValues>(mut new_style: &mut A
 }
 /// Updates a single animation and associated style based on the current time.
 /// If `damage` is provided, inserts the appropriate restyle damage.
-pub fn update_style_for_animation<Damage, Impl>(context: &SharedStyleContext<Impl>,
-                                                animation: &Animation<Impl>,
-                                                style: &mut Arc<Damage::ConcreteComputedValues>,
-                                                damage: Option<&mut Damage>)
-where Impl: SelectorImplExt,
-      Damage: TRestyleDamage<ConcreteComputedValues = Impl::ComputedValues> {
+pub fn update_style_for_animation<Damage>(context: &SharedStyleContext,
+                                          animation: &Animation,
+                                          style: &mut Arc<ComputedValues>,
+                                          damage: Option<&mut Damage>)
+where Damage: TRestyleDamage {
     debug!("update_style_for_animation: entering");
+    debug_assert!(!animation.is_expired());
     match *animation {
-        Animation::Transition(_, start_time, ref frame, expired) => {
-            debug_assert!(!expired);
+        Animation::Transition(_, start_time, ref frame, _) => {
             debug!("update_style_for_animation: transition found");
-            let now = time::precise_time_s();
+            let now = context.timer.seconds();
             let mut new_style = (*style).clone();
             let updated_style = update_style_for_animation_frame(&mut new_style,
                                                                  now, start_time,
@@ -530,13 +514,12 @@ where Impl: SelectorImplExt,
             }
         }
         Animation::Keyframes(_, ref name, ref state) => {
-            debug_assert!(!state.expired);
             debug!("update_style_for_animation: animation found: \"{}\", {:?}", name, state);
             let duration = state.duration;
             let started_at = state.started_at;
 
             let now = match state.running_state {
-                KeyframesRunningState::Running => time::precise_time_s(),
+                KeyframesRunningState::Running => context.timer.seconds(),
                 KeyframesRunningState::Paused(progress) => started_at + duration * progress,
             };
 
@@ -550,9 +533,9 @@ where Impl: SelectorImplExt,
 
             debug_assert!(!animation.steps.is_empty());
 
-            let maybe_index = style.as_servo()
-                                   .get_box().animation_name.0.iter()
-                                   .position(|animation_name| name == animation_name);
+            let maybe_index = style.get_box()
+                                   .animation_name_iter()
+                                   .position(|animation_name| *name == animation_name);
 
             let index = match maybe_index {
                 Some(index) => index,
@@ -562,7 +545,7 @@ where Impl: SelectorImplExt,
                 }
             };
 
-            let total_duration = style.as_servo().get_box().animation_duration.0.get_mod(index).seconds() as f64;
+            let total_duration = style.get_box().animation_duration_mod(index).seconds() as f64;
             if total_duration == 0. {
                 debug!("update_style_for_animation: zero duration for animation {:?}", name);
                 return;
@@ -642,9 +625,11 @@ where Impl: SelectorImplExt,
 
             // NB: The spec says that the timing function can be overwritten
             // from the keyframe style.
-            let mut timing_function = *style.as_servo().get_box().animation_timing_function.0.get_mod(index);
-            if !from_style.as_servo().get_box().animation_timing_function.0.is_empty() {
-                timing_function = from_style.as_servo().get_box().animation_timing_function.0[0];
+            let mut timing_function = style.get_box().animation_timing_function_mod(index);
+            if last_keyframe.declared_timing_function {
+                // NB: animation_timing_function can never be empty, always has
+                // at least the default value (`ease`).
+                timing_function = from_style.get_box().animation_timing_function_at(0);
             }
 
             let target_style = compute_style_for_animation_step(context,

@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use file_loader;
-use mime_classifier::MIMEClassifier;
+use mime_classifier::MimeClassifier;
 use net_traits::{LoadConsumer, LoadData, NetworkError};
 use resource_thread::{CancellationListener, send_error};
 use std::fs::canonicalize;
@@ -17,7 +17,7 @@ pub fn resolve_chrome_url(url: &Url) -> Result<Url, ()> {
     if url.host_str() != Some("resources") {
         return Err(())
     }
-    let resources = canonicalize(resources_dir_path())
+    let resources = canonicalize(resources_dir_path().expect("Error finding resource folder"))
         .expect("Error canonicalizing path to the resources directory");
     let mut path = resources.clone();
     for segment in url.path_segments().unwrap() {
@@ -37,7 +37,7 @@ pub fn resolve_chrome_url(url: &Url) -> Result<Url, ()> {
 
 pub fn factory(mut load_data: LoadData,
                start_chan: LoadConsumer,
-               classifier: Arc<MIMEClassifier>,
+               classifier: Arc<MimeClassifier>,
                cancel_listener: CancellationListener) {
     let file_url = match resolve_chrome_url(&load_data.url) {
         Ok(url) => url,

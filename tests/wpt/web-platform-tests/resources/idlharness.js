@@ -307,6 +307,28 @@ IdlArray.prototype.recursively_get_implements = function(interface_name)
     return ret;
 };
 
+function exposed_in(globals) {
+    if ('document' in self) {
+        return globals.indexOf("Window") >= 0;
+    }
+    if ('DedicatedWorkerGlobalScope' in self &&
+        self instanceof DedicatedWorkerGlobalScope) {
+        return globals.indexOf("Worker") >= 0 ||
+               globals.indexOf("DedicatedWorker") >= 0;
+    }
+    if ('SharedWorkerGlobalScope' in self &&
+        self instanceof SharedWorkerGlobalScope) {
+        return globals.indexOf("Worker") >= 0 ||
+               globals.indexOf("SharedWorker") >= 0;
+    }
+    if ('ServiceWorkerGlobalScope' in self &&
+        self instanceof ServiceWorkerGlobalScope) {
+        return globals.indexOf("Worker") >= 0 ||
+               globals.indexOf("ServiceWorker") >= 0;
+    }
+    throw "Unexpected global object";
+}
+
 //@}
 IdlArray.prototype.test = function()
 //@{
@@ -352,6 +374,23 @@ IdlArray.prototype.test = function()
         }.bind(this));
     }
     this["implements"] = {};
+
+    Object.getOwnPropertyNames(this.members).forEach(function(memberName) {
+        var member = this.members[memberName];
+        if (!(member instanceof IdlInterface)) {
+            return;
+        }
+
+        var exposed = member.extAttrs.filter(function(a) { return a.name == "Exposed" });
+        if (exposed.length > 1) {
+            throw "Unexpected Exposed extended attributes on " + memberName + ": " + exposed;
+        }
+
+        var globals = exposed.length === 1
+                    ? exposed[0].rhs.value
+                    : ["Window"];
+        member.exposed = exposed_in(globals);
+    }.bind(this));
 
     // Now run test() on every member, and test_object() for every object.
     for (var name in this.members)
@@ -678,6 +717,13 @@ IdlInterface.prototype.test = function()
         return;
     }
 
+    if (!this.exposed) {
+        test(function() {
+            assert_false(this.name in self);
+        }.bind(this), this.name + " interface: existence and properties of interface object");
+        return;
+    }
+
     if (!this.untested)
     {
         // First test things to do with the exception/interface object and
@@ -701,7 +747,6 @@ IdlInterface.prototype.test_self = function()
     test(function()
     {
         // This function tests WebIDL as of 2015-01-13.
-        // TODO: Consider [Exposed].
 
         // "For every interface that is exposed in a given ECMAScript global
         // environment and:

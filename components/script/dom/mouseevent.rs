@@ -17,7 +17,7 @@ use dom::uievent::UIEvent;
 use dom::window::Window;
 use std::cell::Cell;
 use std::default::Default;
-use util::prefs;
+use util::prefs::PREFS;
 
 #[dom_struct]
 pub struct MouseEvent {
@@ -157,7 +157,7 @@ impl MouseEventMethods for MouseEvent {
     // This returns the same result as current gecko.
     // https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/which
     fn Which(&self) -> i32 {
-        if prefs::get_pref("dom.mouseevent.which.enabled").as_boolean().unwrap_or(false) {
+        if PREFS.get("dom.mouseevent.which.enabled").as_boolean().unwrap_or(false) {
             (self.button.get() + 1) as i32
         } else {
             0

@@ -11,11 +11,11 @@ use data::PrivateStyleData;
 use element_state::ElementState;
 use properties::{ComputedValues, PropertyDeclaration, PropertyDeclarationBlock};
 use refcell::{Ref, RefMut};
-use restyle_hints::{ElementSnapshot, RESTYLE_DESCENDANTS, RESTYLE_LATER_SIBLINGS, RESTYLE_SELF, RestyleHint};
+use restyle_hints::{RESTYLE_DESCENDANTS, RESTYLE_LATER_SIBLINGS, RESTYLE_SELF, RestyleHint};
 use selector_impl::{ElementExt, SelectorImplExt};
 use selectors::Element;
 use selectors::matching::DeclarationBlock;
-use smallvec::VecLike;
+use sink::Push;
 use std::ops::BitOr;
 use std::sync::Arc;
 use string_cache::{Atom, Namespace};
@@ -46,16 +46,14 @@ impl OpaqueNode {
 }
 
 pub trait TRestyleDamage : BitOr<Output=Self> + Copy {
-    type ConcreteComputedValues: ComputedValues;
-    fn compute(old: Option<&Arc<Self::ConcreteComputedValues>>, new: &Self::ConcreteComputedValues) -> Self;
+    fn compute(old: Option<&Arc<ComputedValues>>, new: &ComputedValues) -> Self;
     fn rebuild_and_reflow() -> Self;
 }
 
 pub trait TNode : Sized + Copy + Clone {
     type ConcreteElement: TElement<ConcreteNode = Self, ConcreteDocument = Self::ConcreteDocument>;
     type ConcreteDocument: TDocument<ConcreteNode = Self, ConcreteElement = Self::ConcreteElement>;
-    type ConcreteRestyleDamage: TRestyleDamage<ConcreteComputedValues = Self::ConcreteComputedValues>;
-    type ConcreteComputedValues: ComputedValues;
+    type ConcreteRestyleDamage: TRestyleDamage;
 
     fn to_unsafe(&self) -> UnsafeNode;
     unsafe fn from_unsafe(n: &UnsafeNode) -> Self;
@@ -127,27 +125,34 @@ pub trait TNode : Sized + Copy + Clone {
         }
     }
 
+    fn needs_dirty_on_viewport_size_changed(&self) -> bool;
+
+    unsafe fn set_dirty_on_viewport_size_changed(&self);
+
+    fn set_descendants_dirty_on_viewport_size_changed(&self) {
+        for ref child in self.children() {
+            unsafe {
+                child.set_dirty_on_viewport_size_changed();
+            }
+            child.set_descendants_dirty_on_viewport_size_changed();
+        }
+    }
+
     fn can_be_fragmented(&self) -> bool;
 
     unsafe fn set_can_be_fragmented(&self, value: bool);
 
     /// Borrows the PrivateStyleData without checks.
     #[inline(always)]
-    unsafe fn borrow_data_unchecked(&self)
-        -> Option<*const PrivateStyleData<<Self::ConcreteElement as Element>::Impl,
-                                           Self::ConcreteComputedValues>>;
+    unsafe fn borrow_data_unchecked(&self) -> Option<*const PrivateStyleData>;
 
     /// Borrows the PrivateStyleData immutably. Fails on a conflicting borrow.
     #[inline(always)]
-    fn borrow_data(&self)
-        -> Option<Ref<PrivateStyleData<<Self::ConcreteElement as Element>::Impl,
-                                           Self::ConcreteComputedValues>>>;
+    fn borrow_data(&self) -> Option<Ref<PrivateStyleData>>;
 
     /// Borrows the PrivateStyleData mutably. Fails on a conflicting borrow.
     #[inline(always)]
-    fn mutate_data(&self)
-        -> Option<RefMut<PrivateStyleData<<Self::ConcreteElement as Element>::Impl,
-                                           Self::ConcreteComputedValues>>>;
+    fn mutate_data(&self) -> Option<RefMut<PrivateStyleData>>;
 
     /// Get the description of how to account for recent style changes.
     fn restyle_damage(self) -> Self::ConcreteRestyleDamage;
@@ -168,10 +173,8 @@ pub trait TNode : Sized + Copy + Clone {
 
     /// Returns the style results for the given node. If CSS selector matching
     /// has not yet been performed, fails.
-    fn style(&self,
-             _context: &SharedStyleContext<<Self::ConcreteElement as Element>::Impl>)
-        -> Ref<Arc<Self::ConcreteComputedValues>>
-        where <Self::ConcreteElement as Element>::Impl: SelectorImplExt<ComputedValues=Self::ConcreteComputedValues> {
+    fn style(&self, _context: &SharedStyleContext) -> Ref<Arc<ComputedValues>>
+        where <Self::ConcreteElement as Element>::Impl: SelectorImplExt {
         Ref::map(self.borrow_data().unwrap(), |data| data.style.as_ref().unwrap())
     }
 
@@ -189,12 +192,13 @@ pub trait TDocument : Sized + Copy + Clone {
 
     fn root_node(&self) -> Option<Self::ConcreteNode>;
 
-    fn drain_modified_elements(&self) -> Vec<(Self::ConcreteElement, ElementSnapshot)>;
+    fn drain_modified_elements(&self) -> Vec<(Self::ConcreteElement,
+                                              <Self::ConcreteElement as ElementExt>::Snapshot)>;
 }
 
 pub trait PresentationalHintsSynthetizer {
     fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, hints: &mut V)
-        where V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>;
+        where V: Push<DeclarationBlock<Vec<PropertyDeclaration>>>;
 }
 
 pub trait TElement : Sized + Copy + Clone + ElementExt + PresentationalHintsSynthetizer {
@@ -207,8 +211,8 @@ pub trait TElement : Sized + Copy + Clone + ElementExt + PresentationalHintsSynt
 
     fn get_state(&self) -> ElementState;
 
-    fn get_attr<'a>(&'a self, namespace: &Namespace, attr: &Atom) -> Option<&'a str>;
-    fn get_attrs<'a>(&'a self, attr: &Atom) -> Vec<&'a str>;
+    fn has_attr(&self, namespace: &Namespace, attr: &Atom) -> bool;
+    fn attr_equals(&self, namespace: &Namespace, attr: &Atom, value: &Atom) -> bool;
 
     /// Properly marks nodes as dirty in response to restyle hints.
     fn note_restyle_hint(&self, mut hint: RestyleHint) {

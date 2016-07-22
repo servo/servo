@@ -17,6 +17,7 @@ use libc::{c_double, c_int};
 use msg::constellation_msg::{self, KeyModifiers, KeyState};
 use script_traits::{MouseButton, TouchEventType};
 use std::cell::{Cell, RefCell};
+use std::char;
 
 pub struct ServoCefBrowserHost {
     /// A reference to the browser.
@@ -424,7 +425,8 @@ full_cef_class_impl! {
             if (*event).modifiers & EVENTFLAG_ALT_DOWN as u32 != 0 {
                key_modifiers = key_modifiers | constellation_msg::ALT;
             }
-            this.downcast().send_window_event(WindowEvent::KeyEvent(key, key_state, key_modifiers))
+            let ch = char::from_u32((*event).character as u32);
+            this.downcast().send_window_event(WindowEvent::KeyEvent(ch, key, key_state, key_modifiers))
         }}
 
         fn send_mouse_click_event(&this,

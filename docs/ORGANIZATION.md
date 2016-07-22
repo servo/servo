@@ -1,96 +1,100 @@
 # Servo's directory structure:
 * components
-	* canvas
-		* Implementation of painting threads for 2d and WebGL canvases.
-	* canvas_traits
-		* APIs to the canvas crate for crates that don't want to depend on the canvas crate for build speed reasons.
-	* compositing
-		* Integration with OS windowing/rendering and event loop, as well as management of resources for a top-level browsing context (ie. tab).
-	* devtools
-		* in-process server to allow manipulating browser instances via a remote Firefox developer tools client.
-	* devtools_traits
-		* APIs to the devtools crate for crates that don't want to depend on the devtools crate for build speed reasons.
-	* etc
-		* Useful tools and scripts for developers.
-	* gfx
-		* Draws the result of laying out a page, and sends the result to the compositor.
-	* gfx_traits
-		* APIs to the gfx crate for crates that don't want to depend on the gfx crate for build speed reasons.
-	* layout
-		* Converts page content into positioned, styled boxes and passes the result to the renderer.
-	* layout_traits
-		* APIs to the layout crate for crates that don't want to depend on the layout crate for build speed reasons.
-	* msg
-		* Shared APIs for communicating between specific threads and crates.
-	* net
-		* Network protocol implementations, and state and resource management (caching, cookies, etc.).
-	* net_traits
-		* APIs to the net crate for crates that don't want to depend on the net crate for build speed reasons.
-	* plugins
-		* Syntax extensions, custom attributes, and lints.
-	* profile
-		* Memory and time profilers.
-	* profile_traits
-  		* APIs to the profile crate for crates that don't want to depend on the profile crate for build speed reasons.
-	* script
-		* Implementation of the DOM (native Rust code and bindings to SpiderMonkey).
-	* script_traits
-		* APIs to the script crate for crates that don't want to depend on the script crate for build speed reasons.
-	* servo
-		* Entry points for the servo application and libservo embedding library.
-	* style
-		* APIs for parsing CSS and interacting with stylesheets and styled elements.
-	* style_traits
-		* APIs to the style crate for crates that don't want to depend on the style crate for build speed reasons.
-	* util
-		* assorted utility methods and types that are commonly used throughout the project.
-	* webdriver_server
-		* In-process server to allow manipulating browser instances via a WebDriver client.
-	* webdriver_traits
-		* APIs to the webdriver crate for crates that don't want to depend on the webdriver crate for build speed reasons.
+  * canvas
+    * Implementation of painting threads for 2d and WebGL canvases.
+  * canvas_traits
+    * APIs to the canvas crate for crates that don't want to depend on the canvas crate for build speed reasons.
+  * compositing
+    * Integration with OS windowing/rendering and event loop.
+  * constellation
+    * Management of resources for a top-level browsing context (ie. tab).
+  * devtools
+    * in-process server to allow manipulating browser instances via a remote Firefox developer tools client.
+  * devtools_traits
+    * APIs to the devtools crate for crates that don't want to depend on the devtools crate for build speed reasons.
+  * gfx
+    * Draws the result of laying out a page, and sends the result to the compositor.
+  * gfx_traits
+    * APIs to the gfx crate for crates that don't want to depend on the gfx crate for build speed reasons.
+  * layout
+    * Converts page content into positioned, styled boxes and passes the result to the renderer.
+  * layout_thread
+    * Runs the threads for layout, communicates with the script thread, and calls into the layout crate to do the layout.
+  * layout_traits
+    * APIs to the layout crate for crates that don't want to depend on the layout crate for build speed reasons.
+  * msg
+    * Shared APIs for communicating between specific threads and crates.
+  * net
+    * Network protocol implementations, and state and resource management (caching, cookies, etc.).
+  * net_traits
+    * APIs to the net crate for crates that don't want to depend on the net crate for build speed reasons.
+  * plugins
+    * Syntax extensions, custom attributes, and lints.
+  * profile
+    * Memory and time profilers.
+  * profile_traits
+    * APIs to the profile crate for crates that don't want to depend on the profile crate for build speed reasons.
+  * script
+    * Implementation of the DOM (native Rust code and bindings to SpiderMonkey).
+  * script_layout_interface
+    * The API the script crate provides for the layout crate.
+  * script_traits
+    * APIs to the script crate for crates that don't want to depend on the script crate for build speed reasons.
+  * servo
+    * Entry points for the servo application and libservo embedding library.
+  * style
+    * APIs for parsing CSS and interacting with stylesheets and styled elements.
+  * style_traits
+    * APIs to the style crate for crates that don't want to depend on the style crate for build speed reasons.
+  * util
+    * assorted utility methods and types that are commonly used throughout the project.
+  * webdriver_server
+    * In-process server to allow manipulating browser instances via a WebDriver client.
+* etc
+  * Useful tools and scripts for developers.
 * mach
-	* A command-line tool to help with developer tasks.
+  * A command-line tool to help with developer tasks.
 * ports
-	* cef
-		* Embedding implementation for the Chrome Embedding Framework (CEF) API.
-	* glutin
-		* Embedding implementation for the `glutin` windowing library.
+  * cef
+    * Embedding implementation for the Chrome Embedding Framework (CEF) API.
+  * geckolib
+    * A static library to be linked into Gecko for the Stylo project.
+  * glutin
+    * Embedding implementation for the `glutin` windowing library.
 * python
-	* servo
-		* Implementations of servo-specific mach commands.
-	* mach
-		* Implementation of `mach` command-line tool.
-	* tidy
-		* Python package of code lints that are automatically run before merging changes.
+  * servo
+    * Implementations of servo-specific mach commands.
+  * tidy
+    * Python package of code lints that are automatically run before merging changes.
 * resources
-	* Files used at run time. Need to be included somehow when distributing binary builds.
+  * Files used at run time. Need to be included somehow when distributing binary builds.
 * support
-	* android
-		* Libraries that require special handling for building for Android platforms
-	* rust-task_info
-		* Library for obtaining information about memory usage for a process
+  * android
+    * Libraries that require special handling for building for Android platforms
+  * rust-task_info
+    * Library for obtaining information about memory usage for a process
 * target
-	* debug
-		* Build artifacts generated by `./mach build --debug`.
-	* doc
-		* Documentation is generated here by the `rustdoc` tool when running `./mach doc`
-	* release
-		* Build artifacts generated by `./mach build --release`.
+  * debug
+    * Build artifacts generated by `./mach build --debug`.
+  * doc
+    * Documentation is generated here by the `rustdoc` tool when running `./mach doc`
+  * release
+    * Build artifacts generated by `./mach build --release`.
 * tests
-	* dromaeo
-		* Harness for automatically running the Dromaeo testsuite.
-	* heartbeats
-		* Tools for periodic measurement of energy consumption.
-	* html
-		* Manual tests and experiments.
-	* jquery
-		* Harness for automatically running the jQuery testsuite.
-	* power
-		* Tools for measurement of power consumption.
-	* unit
-		* Unit tests using rustc’s built-in test harness.
-	* wpt
-		* W3C web-platform-tests and csswg-tests along with tools to run them and expected failures.
+  * dromaeo
+    * Harness for automatically running the Dromaeo testsuite.
+  * heartbeats
+    * Tools for periodic measurement of energy consumption.
+  * html
+    * Manual tests and experiments.
+  * jquery
+    * Harness for automatically running the jQuery testsuite.
+  * power
+    * Tools for measurement of power consumption.
+  * unit
+    * Unit tests using rustc’s built-in test harness.
+  * wpt
+    * W3C web-platform-tests and csswg-tests along with tools to run them and expected failures.
 
 # Major dependencies
 * <https://github.com/servo/rust-mozjs/>, <https://github.com/servo/mozjs/>: bindings to SpiderMonkey
@@ -104,3 +108,4 @@
 * <https://github.com/servo/rust-selectors/>: a CSS selector matching library
 * <https://github.com/cyderize/rust-websocket/>: a WebSocket protocol implementation
 * <https://github.com/servo/rust-url/>: an implementation of the URL specification
+* <https://github.com/servo/webrender/> and <https://github.com/servo/webrender_traits/>: a GPU renderer

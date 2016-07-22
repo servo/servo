@@ -28,7 +28,8 @@ impl HTMLMapElement {
     pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLMapElement> {
-        let element = HTMLMapElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLMapElementBinding::Wrap)
+        Node::reflect_node(box HTMLMapElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLMapElementBinding::Wrap)
     }
 }

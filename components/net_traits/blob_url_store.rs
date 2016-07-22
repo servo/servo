@@ -2,37 +2,30 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use ipc_channel::ipc::IpcSender;
+use filemanager_thread::FileOrigin;
 use std::str::FromStr;
 use url::Url;
 use uuid::Uuid;
 
-/// Errors returns to BlobURLStoreMsg::Request
-#[derive(Clone, Serialize, Deserialize)]
+/// Errors returned to Blob URL Store request
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum BlobURLStoreError {
-    /// Invalid UUID key
-    InvalidKey,
+    /// Invalid File UUID
+    InvalidFileID,
     /// Invalid URL origin
     InvalidOrigin,
+    /// Invalid entry content
+    InvalidEntry,
+    /// External error, from like file system, I/O etc.
+    External(String),
 }
 
-#[derive(Serialize, Deserialize)]
-pub enum BlobURLStoreMsg {
-    /// Add an entry and send back the associated uuid
-    /// XXX: Second field is an unicode-serialized Origin, it is a temporary workaround
-    ///      and should not be trusted. See issue https://github.com/servo/servo/issues/11722
-    AddEntry(BlobURLStoreEntry, String, IpcSender<Result<String, BlobURLStoreError>>),
-    /// Delete an entry by uuid
-    DeleteEntry(String),
-}
-
-/// Blob URL store entry, a packaged form of Blob DOM object
-#[derive(Clone, Serialize, Deserialize)]
-pub struct BlobURLStoreEntry {
+/// Standalone blob buffer object
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct BlobBuf {
+    pub filename: Option<String>,
     /// MIME type string
     pub type_string: String,
-    /// Some filename if the backend of Blob is a file
-    pub filename: Option<String>,
     /// Size of content in bytes
     pub size: u64,
     /// Content of blob
@@ -41,13 +34,25 @@ pub struct BlobURLStoreEntry {
 
 /// Parse URL as Blob URL scheme's definition
 /// https://w3c.github.io/FileAPI/#DefinitionOfScheme
-pub fn parse_blob_url(url: &Url) -> Option<(Uuid, Option<&str>)> {
-    url.path_segments().and_then(|mut segments| {
-        let id_str = match (segments.next(), segments.next()) {
-            (Some(s), None) => s,
-            _ => return None,
-        };
+pub fn parse_blob_url(url: &Url) -> Result<(Uuid, FileOrigin, Option<String>), ()> {
+    let url_inner = try!(Url::parse(url.path()).map_err(|_| ()));
+    let fragment = url_inner.fragment().map(|s| s.to_string());
+    let mut segs = try!(url_inner.path_segments().ok_or(()));
+    let id = try!(segs.nth(0).ok_or(()));
+    let id = try!(Uuid::from_str(id).map_err(|_| ()));
+    Ok((id, get_blob_origin(&url_inner), fragment))
+}
 
-        Uuid::from_str(id_str).map(|id| (id, url.fragment())).ok()
-    })
+/// Given an URL, returning the Origin that a Blob created under this
+/// URL should have.
+/// HACK(izgzhen): Not well-specified on spec, and it is a bit a hack
+/// both due to ambiguity of spec and that we have to serialization the
+/// Origin here.
+pub fn get_blob_origin(url: &Url) -> FileOrigin {
+    if url.scheme() == "file" {
+        // NOTE: by default this is "null" (Opaque), which is not ideal
+        "file://".to_string()
+    } else {
+        url.origin().unicode_serialization()
+    }
 }

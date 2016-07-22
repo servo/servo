@@ -17,6 +17,7 @@ use dom::uievent::UIEvent;
 use dom::window::Window;
 use msg::constellation_msg;
 use msg::constellation_msg::{Key, KeyModifiers};
+use std::borrow::Cow;
 use std::cell::Cell;
 
 no_jsmanaged_fields!(Key);
@@ -36,6 +37,7 @@ pub struct KeyboardEvent {
     is_composing: Cell<bool>,
     char_code: Cell<Option<u32>>,
     key_code: Cell<u32>,
+    printable: Cell<Option<char>>,
 }
 
 impl KeyboardEvent {
@@ -54,6 +56,7 @@ impl KeyboardEvent {
             is_composing: Cell::new(false),
             char_code: Cell::new(None),
             key_code: Cell::new(0),
+            printable: Cell::new(None),
         }
     }
 
@@ -69,6 +72,7 @@ impl KeyboardEvent {
                cancelable: bool,
                view: Option<&Window>,
                _detail: i32,
+               ch: Option<char>,
                key: Option<Key>,
                key_string: DOMString,
                code: DOMString,
@@ -91,6 +95,7 @@ impl KeyboardEvent {
         ev.shift.set(shiftKey);
         ev.meta.set(metaKey);
         ev.char_code.set(char_code);
+        ev.printable.set(ch);
         ev.key_code.set(key_code);
         ev.is_composing.set(isComposing);
         ev
@@ -103,7 +108,9 @@ impl KeyboardEvent {
                                        init.parent.parent.parent.bubbles,
                                        init.parent.parent.parent.cancelable,
                                        init.parent.parent.view.r(),
-                                       init.parent.parent.detail, key_from_string(&init.key, init.location),
+                                       init.parent.parent.detail,
+                                       None,
+                                       key_from_string(&init.key, init.location),
                                        init.key.clone(), init.code.clone(), init.location,
                                        init.repeat, init.isComposing, init.parent.ctrlKey,
                                        init.parent.altKey, init.parent.shiftKey, init.parent.metaKey,
@@ -111,13 +118,13 @@ impl KeyboardEvent {
         Ok(event)
     }
 
-    pub fn key_properties(key: Key, mods: KeyModifiers)
+    pub fn key_properties(ch: Option<char>, key: Key, mods: KeyModifiers)
         -> KeyEventProperties {
             KeyEventProperties {
-                key_string: key_value(key, mods),
+                key_string: key_value(ch, key, mods),
                 code: code_value(key),
                 location: key_location(key),
-                char_code: key_charcode(key, mods),
+                char_code: ch.map(|ch| ch as u32),
                 key_code: key_keycode(key),
             }
     }
@@ -125,6 +132,10 @@ impl KeyboardEvent {
 
 
 impl KeyboardEvent {
+    pub fn printable(&self) -> Option<char> {
+        self.printable.get()
+    }
+
     pub fn get_key(&self) -> Option<Key> {
         self.key.get().clone()
     }
@@ -147,11 +158,14 @@ impl KeyboardEvent {
     }
 }
 
-
 // https://w3c.github.io/uievents-key/#key-value-tables
-pub fn key_value(key: Key, mods: KeyModifiers) -> &'static str {
+pub fn key_value(ch: Option<char>, key: Key, mods: KeyModifiers) -> Cow<'static, str> {
+    if let Some(ch) = ch {
+        return Cow::from(format!("{}", ch));
+    }
+
     let shift = mods.contains(constellation_msg::SHIFT);
-    match key {
+    Cow::from(match key {
         Key::Space => " ",
         Key::Apostrophe if shift => "\"",
         Key::Apostrophe => "'",
@@ -321,7 +335,7 @@ pub fn key_value(key: Key, mods: KeyModifiers) -> &'static str {
         Key::Menu => "ContextMenu",
         Key::NavigateForward => "BrowserForward",
         Key::NavigateBackward => "BrowserBack",
-    }
+    })
 }
 
 fn key_from_string(key_string: &str, location: u32) -> Option<Key> {
@@ -647,16 +661,6 @@ fn key_location(key: Key) -> u32 {
     }
 }
 
-// https://w3c.github.io/uievents/#dom-keyboardevent-charcode
-fn key_charcode(key: Key, mods: KeyModifiers) -> Option<u32> {
-    let key_string = key_value(key, mods);
-    if key_string.len() == 1 {
-        Some(key_string.chars().next().unwrap() as u32)
-    } else {
-        None
-    }
-}
-
 // https://w3c.github.io/uievents/#legacy-key-models
 fn key_keycode(key: Key) -> u32 {
     match key {
@@ -739,7 +743,7 @@ fn key_keycode(key: Key) -> u32 {
 
 #[derive(HeapSizeOf)]
 pub struct KeyEventProperties {
-    pub key_string: &'static str,
+    pub key_string: Cow<'static, str>,
     pub code: &'static str,
     pub location: u32,
     pub char_code: Option<u32>,

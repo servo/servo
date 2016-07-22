@@ -13,7 +13,7 @@ use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
 use dom::event::Event;
 use dom::eventtarget::EventTarget;
-use js::jsapi::{RootedValue, HandleValue, Heap, JSContext};
+use js::jsapi::{HandleValue, Heap, JSContext};
 use js::jsval::JSVal;
 use std::default::Default;
 use string_cache::Atom;
@@ -66,7 +66,7 @@ impl MessageEvent {
                        -> Fallible<Root<MessageEvent>> {
         // Dictionaries need to be rooted
         // https://github.com/servo/servo/issues/6381
-        let data = RootedValue::new(global.get_cx(), init.data);
+        rooted!(in(global.get_cx()) let data = init.data);
         let ev = MessageEvent::new(global, Atom::from(type_), init.parent.bubbles, init.parent.cancelable,
                                    data.handle(),
                                    init.origin.clone(), init.lastEventId.clone());

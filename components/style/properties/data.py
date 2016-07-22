@@ -47,7 +47,7 @@ class Keyword(object):
 class Longhand(object):
     def __init__(self, style_struct, name, animatable=None, derived_from=None, keyword=None,
                  predefined_type=None, custom_cascade=False, experimental=False, internal=False,
-                 need_clone=False, gecko_ffi_name=None):
+                 need_clone=False, need_index=False, gecko_ffi_name=None, depend_on_viewport_size=False):
         self.name = name
         self.keyword = keyword
         self.predefined_type = predefined_type
@@ -57,8 +57,9 @@ class Longhand(object):
         self.experimental = ("layout.%s.enabled" % name) if experimental else None
         self.custom_cascade = custom_cascade
         self.internal = internal
-        self.need_clone = need_clone
+        self.need_index = need_index
         self.gecko_ffi_name = gecko_ffi_name or "m" + self.camel_case
+        self.depend_on_viewport_size = depend_on_viewport_size
         self.derived_from = (derived_from or "").split()
 
         # This is done like this since just a plain bool argument seemed like
@@ -70,6 +71,12 @@ class Longhand(object):
         else:
             assert animatable == "True" or animatable == "False"
             self.animatable = animatable == "True"
+
+        # NB: Animatable implies clone because a property animation requires a
+        # copy of the computed value.
+        #
+        # See components/style/helpers/animated_properties.mako.rs.
+        self.need_clone = need_clone or self.animatable
 
 
 class Shorthand(object):
@@ -110,11 +117,10 @@ class Method(object):
 
 class StyleStruct(object):
     def __init__(self, name, inherited, gecko_name=None, additional_methods=None):
-        self.servo_struct_name = "Servo" + name
         self.gecko_struct_name = "Gecko" + name
-        self.trait_name = name
-        self.trait_name_lower = name.lower()
-        self.ident = to_rust_ident(self.trait_name_lower)
+        self.name = name
+        self.name_lower = name.lower()
+        self.ident = to_rust_ident(self.name_lower)
         self.longhands = []
         self.inherited = inherited
         self.gecko_name = gecko_name or name

@@ -22,7 +22,7 @@ use dom::element::Element;
 use dom::node::Node;
 use dom::window::Window;
 use ipc_channel::ipc::IpcSender;
-use js::jsapi::{JSAutoCompartment, ObjectClassName, RootedObject, RootedValue};
+use js::jsapi::{JSAutoCompartment, ObjectClassName};
 use js::jsval::UndefinedValue;
 use msg::constellation_msg::PipelineId;
 use script_thread::get_browsing_context;
@@ -38,24 +38,24 @@ pub fn handle_evaluate_js(global: &GlobalRef, eval: String, reply: IpcSender<Eva
         let cx = global.get_cx();
         let globalhandle = global.reflector().get_jsobject();
         let _ac = JSAutoCompartment::new(cx, globalhandle.get());
-        let mut rval = RootedValue::new(cx, UndefinedValue());
+        rooted!(in(cx) let mut rval = UndefinedValue());
         global.evaluate_js_on_global_with_result(&eval, rval.handle_mut());
 
-        if rval.ptr.is_undefined() {
+        if rval.is_undefined() {
             EvaluateJSReply::VoidValue
-        } else if rval.ptr.is_boolean() {
-            EvaluateJSReply::BooleanValue(rval.ptr.to_boolean())
-        } else if rval.ptr.is_double() || rval.ptr.is_int32() {
+        } else if rval.is_boolean() {
+            EvaluateJSReply::BooleanValue(rval.to_boolean())
+        } else if rval.is_double() || rval.is_int32() {
             EvaluateJSReply::NumberValue(FromJSValConvertible::from_jsval(cx, rval.handle(), ())
                                              .unwrap())
-        } else if rval.ptr.is_string() {
-            EvaluateJSReply::StringValue(String::from(jsstring_to_str(cx, rval.ptr.to_string())))
-        } else if rval.ptr.is_null() {
+        } else if rval.is_string() {
+            EvaluateJSReply::StringValue(String::from(jsstring_to_str(cx, rval.to_string())))
+        } else if rval.is_null() {
             EvaluateJSReply::NullValue
         } else {
-            assert!(rval.ptr.is_object());
+            assert!(rval.is_object());
 
-            let obj = RootedObject::new(cx, rval.ptr.to_object());
+            rooted!(in(cx) let obj = rval.to_object());
             let class_name = CStr::from_ptr(ObjectClassName(cx, obj.handle()));
             let class_name = str::from_utf8(class_name.to_bytes()).unwrap();
 

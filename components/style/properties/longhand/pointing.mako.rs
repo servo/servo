@@ -8,9 +8,11 @@
 
 <%helpers:longhand name="cursor" animatable="False">
     pub use self::computed_value::T as SpecifiedValue;
+    use values::NoViewportPercentage;
     use values::computed::ComputedValueAsSpecified;
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
+    impl NoViewportPercentage for SpecifiedValue {}
 
     pub mod computed_value {
         use cssparser::ToCss;

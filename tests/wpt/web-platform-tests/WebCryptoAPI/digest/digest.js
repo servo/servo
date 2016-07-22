@@ -108,7 +108,7 @@ function run_test() {
                 .then(function(result) {
                     assert_unreached("digest() should not have worked for " + alg + ":" + size);
                 }, function(err) {
-                    assert_equals(err.message, "OperationError", "Bad algorithm name should cause OperationError")
+                    assert_equals(err.name, "NotSupportedError", "Bad algorithm name should cause NotSupportedError")
                 });
 
                 return promise;

@@ -28,7 +28,6 @@ use dom::bindings::js::RootedReference;
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap};
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::str::{DOMString, USVString};
-use dom::bindings::trace::RootedVec;
 use dom::bindings::xmlname::namespace_from_domstring;
 use dom::characterdata::{CharacterData, LayoutCharacterDataHelpers};
 use dom::document::{Document, DocumentSource, IsHTMLDocument};
@@ -160,7 +159,9 @@ bitflags! {
         const SEQUENTIALLY_FOCUSABLE = 0x20,
 
         /// Whether any ancestor is a fragmentation container
-        const CAN_BE_FRAGMENTED = 0x40
+        const CAN_BE_FRAGMENTED = 0x40,
+        #[doc = "Specifies whether this node needs to be dirted when viewport size changed."]
+        const DIRTY_ON_VIEWPORT_SIZE_CHANGE = 0x80
     }
 }
 
@@ -740,7 +741,10 @@ impl Node {
             Err(()) => Err(Error::Syntax),
             // Step 3.
             Ok(selectors) => {
-                Ok(QuerySelectorIterator::new(self.traverse_preorder(), selectors))
+                let mut descendants = self.traverse_preorder();
+                // Skip the root of the tree.
+                assert!(&*descendants.next().unwrap() == self);
+                Ok(QuerySelectorIterator::new(descendants, selectors))
             }
         }
     }
@@ -1559,7 +1563,7 @@ impl Node {
                 parent.ranges.increase_above(parent, index, count);
             }
         }
-        let mut new_nodes = RootedVec::new();
+        rooted_vec!(let mut new_nodes);
         let new_nodes = if let NodeTypeId::DocumentFragment = node.type_id() {
             // Step 3.
             new_nodes.extend(node.children().map(|kid| JS::from_ref(&*kid)));
@@ -1603,9 +1607,9 @@ impl Node {
             Node::adopt(node, &*parent.owner_doc());
         }
         // Step 2.
-        let removed_nodes = parent.children().collect::<RootedVec<_>>();
+        rooted_vec!(let removed_nodes <- parent.children());
         // Step 3.
-        let mut added_nodes = RootedVec::new();
+        rooted_vec!(let mut added_nodes);
         let added_nodes = if let Some(node) = node.as_ref() {
             if let NodeTypeId::DocumentFragment = node.type_id() {
                 added_nodes.extend(node.children().map(|child| JS::from_ref(&*child)));
@@ -1719,7 +1723,8 @@ impl Node {
                 let document = Document::new(window, None,
                                              Some((*document.url()).clone()),
                                              is_html_doc, None,
-                                             None, DocumentSource::NotFromParser, loader);
+                                             None, DocumentSource::NotFromParser, loader,
+                                             None, None);
                 Root::upcast::<Node>(document)
             },
             NodeTypeId::Element(..) => {
@@ -2149,7 +2154,7 @@ impl NodeMethods for Node {
         };
 
         // Step 12.
-        let mut nodes = RootedVec::new();
+        rooted_vec!(let mut nodes);
         let nodes = if node.type_id() == NodeTypeId::DocumentFragment {
             nodes.extend(node.children().map(|node| JS::from_ref(&*node)));
             nodes.r()

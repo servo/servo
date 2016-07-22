@@ -18,14 +18,15 @@ use ipc_channel::ipc::IpcSender;
 use js::jsapi::{CurrentGlobalOrNull, GetGlobalForObjectCrossCompartment};
 use js::jsapi::{JSContext, JSObject, JS_GetClass, MutableHandleValue};
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
-use msg::constellation_msg::{PipelineId, PanicMsg};
+use msg::constellation_msg::PipelineId;
 use net_traits::filemanager_thread::FileManagerThreadMsg;
-use net_traits::{ResourceThreads, CoreResourceThread, RequestSource, IpcSend};
+use net_traits::{ResourceThreads, CoreResourceThread, IpcSend};
 use profile_traits::{mem, time};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
-use script_thread::{MainThreadScriptChan, ScriptThread};
+use script_thread::{MainThreadScriptChan, ScriptThread, RunnableWrapper};
 use script_traits::{MsDuration, ScriptMsg as ConstellationMsg, TimerEventRequest};
 use task_source::dom_manipulation::DOMManipulationTaskSource;
+use task_source::file_reading::FileReadingTaskSource;
 use timers::{OneshotTimerCallback, OneshotTimerHandle};
 use url::Url;
 
@@ -62,14 +63,6 @@ impl<'a> GlobalRef<'a> {
         match *self {
             GlobalRef::Window(window) => window,
             GlobalRef::Worker(_) => panic!("expected a Window scope"),
-        }
-    }
-
-    /// gets the custom message channel associated with global object
-    pub fn request_source(&self) -> RequestSource {
-        match *self {
-            GlobalRef::Window(ref window) => RequestSource::Window(window.custom_message_chan()),
-            GlobalRef::Worker(ref worker) => RequestSource::Worker(worker.custom_message_chan()),
         }
     }
 
@@ -219,10 +212,10 @@ impl<'a> GlobalRef<'a> {
 
     /// `ScriptChan` used to send messages to the event loop of this global's
     /// thread.
-    pub fn file_reading_task_source(&self) -> Box<ScriptChan + Send> {
+    pub fn file_reading_task_source(&self) -> FileReadingTaskSource {
         match *self {
             GlobalRef::Window(ref window) => window.file_reading_task_source(),
-            GlobalRef::Worker(ref worker) => worker.script_chan(),
+            GlobalRef::Worker(ref worker) => worker.file_reading_task_source(),
         }
     }
 
@@ -290,11 +283,12 @@ impl<'a> GlobalRef<'a> {
         }
     }
 
-    /// Returns an `IpcSender` to report panics on.
-    pub fn panic_chan(&self) -> &IpcSender<PanicMsg> {
+    /// Returns a wrapper for runnables to ensure they are cancelled if the global
+    /// is being destroyed.
+    pub fn get_runnable_wrapper(&self) -> RunnableWrapper {
         match *self {
-            GlobalRef::Window(ref window) => window.panic_chan(),
-            GlobalRef::Worker(ref worker) => worker.panic_chan(),
+            GlobalRef::Window(ref window) => window.get_runnable_wrapper(),
+            GlobalRef::Worker(ref worker) => worker.get_runnable_wrapper(),
         }
     }
 }

@@ -12,6 +12,7 @@ use dom::bindings::codegen::Bindings::HTMLFormElementBinding::HTMLFormElementMet
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
 use dom::bindings::conversions::DerivedFrom;
+use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::refcounted::Trusted;
@@ -51,10 +52,9 @@ use std::cell::Cell;
 use std::sync::mpsc::Sender;
 use string_cache::Atom;
 use style::attr::AttrValue;
+use style::str::split_html_space_chars;
 use task_source::TaskSource;
-use task_source::dom_manipulation::DOMManipulationTask;
 use url::form_urlencoded;
-use util::str::split_html_space_chars;
 
 #[derive(JSTraceable, PartialEq, Clone, Copy, HeapSizeOf)]
 pub struct GenerationId(u32);
@@ -83,8 +83,9 @@ impl HTMLFormElement {
     pub fn new(localName: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLFormElement> {
-        let element = HTMLFormElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLFormElementBinding::Wrap)
+        Node::reflect_node(box HTMLFormElement::new_inherited(localName, prefix, document),
+                           document,
+                           HTMLFormElementBinding::Wrap)
     }
 
     pub fn generation_id(&self) -> GenerationId {
@@ -324,9 +325,9 @@ impl HTMLFormElement {
                         content_disposition,
                         content_type));
 
-                    let slice = f.upcast::<Blob>().get_slice_or_empty();
+                    let bytes = &f.upcast::<Blob>().get_bytes().unwrap_or(vec![])[..];
 
-                    let decoded = encoding.decode(&slice.get_bytes(), DecoderTrap::Replace)
+                    let decoded = encoding.decode(bytes, DecoderTrap::Replace)
                                           .expect("Invalid encoding in file");
                     result.push_str(&decoded);
                 }
@@ -484,8 +485,7 @@ impl HTMLFormElement {
         };
 
         // Step 3
-        window.dom_manipulation_task_source().queue(
-            DOMManipulationTask::PlannedNavigation(nav)).unwrap();
+        window.dom_manipulation_task_source().queue(nav, GlobalRef::Window(window)).unwrap();
     }
 
     /// Interactively validate the constraints of form elements
@@ -937,6 +937,8 @@ struct PlannedNavigation {
 }
 
 impl Runnable for PlannedNavigation {
+    fn name(&self) -> &'static str { "PlannedNavigation" }
+
     fn handler(self: Box<PlannedNavigation>) {
         if self.generation_id == self.form.root().generation_id.get() {
             let script_chan = self.script_chan.clone();

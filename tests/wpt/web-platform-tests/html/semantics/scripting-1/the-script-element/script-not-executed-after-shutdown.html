@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Script is not executed after script thread is shutdown</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id="testiframe" src="script-not-executed-after-shutdown-child.html"></iframe>
+<script>
+async_test(function(t) {
+  window.script_executed = t.unreached_func("script executed in removed iframe");
+  let iframe = document.getElementById("testiframe");
+  iframe.onload = function() {
+    iframe.parentNode.removeChild(iframe);
+  };
+  setTimeout(function() {
+    t.done();
+  }, 5000);
+});
+</script>

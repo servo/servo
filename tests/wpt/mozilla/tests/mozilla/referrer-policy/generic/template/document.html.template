@@ -16,7 +16,7 @@
              return(false);
       }
 
-      var referrer = 'referrer' in document ? document.referrer : undefined;
+      var referrer = document.referrer.length > 0 ? document.referrer : undefined;
 
       var result = {
         location: document.location.toString(),

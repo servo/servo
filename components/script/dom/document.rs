@@ -28,7 +28,6 @@ use dom::bindings::num::Finite;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::str::{DOMString, USVString};
-use dom::bindings::trace::RootedVec;
 use dom::bindings::xmlname::XMLName::InvalidXMLName;
 use dom::bindings::xmlname::{validate_and_extract, namespace_from_domstring, xml_name_type};
 use dom::browsingcontext::BrowsingContext;
@@ -115,6 +114,7 @@ use std::cell::{Cell, Ref, RefMut};
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::default::Default;
+use std::iter::once;
 use std::mem;
 use std::ptr;
 use std::rc::Rc;
@@ -122,13 +122,13 @@ use std::sync::Arc;
 use string_cache::{Atom, QualName};
 use style::attr::AttrValue;
 use style::context::ReflowGoal;
-use style::restyle_hints::ElementSnapshot;
-use style::servo::Stylesheet;
+use style::selector_impl::ElementSnapshot;
+use style::str::{split_html_space_chars, str_join};
+use style::stylesheets::Stylesheet;
 use time;
 use url::Url;
 use url::percent_encoding::percent_decode;
-use util::prefs::mozbrowser_enabled;
-use util::str::{split_html_space_chars, str_join};
+use util::prefs::PREFS;
 
 #[derive(JSTraceable, PartialEq, HeapSizeOf)]
 pub enum IsHTMLDocument {
@@ -239,6 +239,8 @@ pub struct Document {
     origin: Origin,
     ///  https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-states
     referrer_policy: Cell<Option<ReferrerPolicy>>,
+    /// https://html.spec.whatwg.org/multipage/#dom-document-referrer
+    referrer: Option<String>,
 }
 
 #[derive(JSTraceable, HeapSizeOf)]
@@ -735,9 +737,22 @@ impl Document {
         // https://w3c.github.io/uievents/#trusted-events
         event.set_trusted(true);
         // https://html.spec.whatwg.org/multipage/#run-authentic-click-activation-steps
+        let activatable = el.as_maybe_activatable();
         match mouse_event_type {
             MouseEventType::Click => el.authentic_click_activation(event),
-            _ => {
+            MouseEventType::MouseDown => {
+                if let Some(a) = activatable {
+                    a.enter_formal_activation_state();
+                }
+
+                let target = node.upcast();
+                event.fire(target);
+            },
+            MouseEventType::MouseUp => {
+                if let Some(a) = activatable {
+                    a.exit_formal_activation_state();
+                }
+
                 let target = node.upcast();
                 event.fire(target);
             },
@@ -904,6 +919,7 @@ impl Document {
                                          .inclusive_ancestors()
                                          .filter_map(Root::downcast::<Element>) {
                     element.set_hover_state(false);
+                    element.set_active_state(false);
                 }
             }
 
@@ -1009,18 +1025,15 @@ impl Document {
             }
         }
 
-        let mut touches = RootedVec::new();
+        rooted_vec!(let mut touches);
         touches.extend(self.active_touch_points.borrow().iter().cloned());
-
-        let mut changed_touches = RootedVec::new();
-        changed_touches.push(JS::from_ref(&*touch));
-
-        let mut target_touches = RootedVec::new();
+        rooted_vec!(let mut target_touches);
         target_touches.extend(self.active_touch_points
                                   .borrow()
                                   .iter()
                                   .filter(|t| t.Target() == target)
                                   .cloned());
+        rooted_vec!(let changed_touches <- once(touch));
 
         let event = TouchEvent::new(window,
                                     DOMString::from(event_name),
@@ -1047,6 +1060,7 @@ impl Document {
 
     /// The entry point for all key processing for web content
     pub fn dispatch_key_event(&self,
+                              ch: Option<char>,
                               key: Key,
                               state: KeyState,
                               modifiers: KeyModifiers,
@@ -1073,7 +1087,7 @@ impl Document {
                                       }
                                       .to_owned());
 
-        let props = KeyboardEvent::key_properties(key, modifiers);
+        let props = KeyboardEvent::key_properties(ch, key, modifiers);
 
         let keyevent = KeyboardEvent::new(&self.window,
                                           ev_type,
@@ -1081,8 +1095,9 @@ impl Document {
                                           true,
                                           Some(&self.window),
                                           0,
+                                          ch,
                                           Some(key),
-                                          DOMString::from(props.key_string),
+                                          DOMString::from(props.key_string.clone()),
                                           DOMString::from(props.code),
                                           props.location,
                                           is_repeating,
@@ -1106,6 +1121,7 @@ impl Document {
                                            true,
                                            Some(&self.window),
                                            0,
+                                           ch,
                                            Some(key),
                                            DOMString::from(props.key_string),
                                            DOMString::from(props.code),
@@ -1125,7 +1141,7 @@ impl Document {
         }
 
         if !prevented {
-            constellation.send(ConstellationMsg::SendKeyEvent(key, state, modifiers)).unwrap();
+            constellation.send(ConstellationMsg::SendKeyEvent(ch, key, state, modifiers)).unwrap();
         }
 
         // This behavior is unspecced
@@ -1262,10 +1278,10 @@ impl Document {
     }
 
     pub fn trigger_mozbrowser_event(&self, event: MozBrowserEvent) {
-        if mozbrowser_enabled() {
+        if PREFS.is_mozbrowser_enabled() {
             if let Some((containing_pipeline_id, subpage_id, _)) = self.window.parent_info() {
                 let event = ConstellationMsg::MozBrowserEvent(containing_pipeline_id,
-                                                              subpage_id,
+                                                              Some(subpage_id),
                                                               event);
                 self.window.constellation_chan().send(event).unwrap();
             }
@@ -1474,11 +1490,12 @@ impl Document {
 
         update_with_current_time_ms(&self.dom_content_loaded_event_start);
 
-        self.window().dom_manipulation_task_source().queue_event(self.upcast(), atom!("DOMContentLoaded"),
-            EventBubbles::Bubbles, EventCancelable::NotCancelable);
-        self.window().reflow(ReflowGoal::ForDisplay,
-                             ReflowQueryType::NoQuery,
-                             ReflowReason::DOMContentLoaded);
+        let window = self.window();
+        window.dom_manipulation_task_source().queue_event(self.upcast(), atom!("DOMContentLoaded"),
+            EventBubbles::Bubbles, EventCancelable::NotCancelable, window);
+        window.reflow(ReflowGoal::ForDisplay,
+                      ReflowQueryType::NoQuery,
+                      ReflowReason::DOMContentLoaded);
 
         update_with_current_time_ms(&self.dom_content_loaded_event_end);
     }
@@ -1615,7 +1632,9 @@ impl Document {
                          content_type: Option<DOMString>,
                          last_modified: Option<String>,
                          source: DocumentSource,
-                         doc_loader: DocumentLoader)
+                         doc_loader: DocumentLoader,
+                         referrer: Option<String>,
+                         referrer_policy: Option<ReferrerPolicy>)
                          -> Document {
         let url = url.unwrap_or_else(|| Url::parse("about:blank").unwrap());
 
@@ -1633,6 +1652,17 @@ impl Document {
             // Default to DOM standard behaviour
             Origin::opaque_identifier()
         };
+
+        // TODO: we currently default to Some(NoReferrer) instead of None (i.e. unset)
+        // for an important reason. Many of the methods by which a referrer policy is communicated
+        // are currently unimplemented, and so in such cases we may be ignoring the desired policy.
+        // If the default were left unset, then in Step 7 of the Fetch algorithm we adopt
+        // no-referrer-when-downgrade. However, since we are potentially ignoring a stricter
+        // referrer policy, this might be passing too much info. Hence, we default to the
+        // strictest policy, which is no-referrer.
+        // Once other delivery methods are implemented, make the unset case really
+        // unset (i.e. None).
+        let referrer_policy = referrer_policy.or(Some(ReferrerPolicy::NoReferrer));
 
         Document {
             node: Node::new_document_node(),
@@ -1700,8 +1730,8 @@ impl Document {
             https_state: Cell::new(HttpsState::None),
             touchpad_pressure_phase: Cell::new(TouchpadPressurePhase::BeforeClick),
             origin: origin,
-            //TODO - setting this for now so no Referer header set
-            referrer_policy: Cell::new(Some(ReferrerPolicy::NoReferrer)),
+            referrer: referrer,
+            referrer_policy: Cell::new(referrer_policy),
         }
     }
 
@@ -1718,7 +1748,9 @@ impl Document {
                          None,
                          None,
                          DocumentSource::NotFromParser,
-                         docloader))
+                         docloader,
+                         None,
+                         None))
     }
 
     pub fn new(window: &Window,
@@ -1728,7 +1760,9 @@ impl Document {
                content_type: Option<DOMString>,
                last_modified: Option<String>,
                source: DocumentSource,
-               doc_loader: DocumentLoader)
+               doc_loader: DocumentLoader,
+               referrer: Option<String>,
+               referrer_policy: Option<ReferrerPolicy>)
                -> Root<Document> {
         let document = reflect_dom_object(box Document::new_inherited(window,
                                                                       browsing_context,
@@ -1737,7 +1771,9 @@ impl Document {
                                                                       content_type,
                                                                       last_modified,
                                                                       source,
-                                                                      doc_loader),
+                                                                      doc_loader,
+                                                                      referrer,
+                                                                      referrer_policy),
                                           GlobalRef::Window(window),
                                           DocumentBinding::Wrap);
         {
@@ -1801,7 +1837,9 @@ impl Document {
                                         None,
                                         None,
                                         DocumentSource::NotFromParser,
-                                        DocumentLoader::new(&self.loader()));
+                                        DocumentLoader::new(&self.loader()),
+                                        None,
+                                        None);
             new_doc.appropriate_template_contents_owner_document.set(Some(&new_doc));
             new_doc
         })
@@ -1813,7 +1851,10 @@ impl Document {
 
     pub fn element_state_will_change(&self, el: &Element) {
         let mut map = self.modified_elements.borrow_mut();
-        let snapshot = map.entry(JS::from_ref(el)).or_insert(ElementSnapshot::new());
+        let snapshot = map.entry(JS::from_ref(el))
+                          .or_insert_with(|| {
+                              ElementSnapshot::new(el.html_element_in_html_document())
+                          });
         if snapshot.state.is_none() {
             snapshot.state = Some(el.state());
         }
@@ -1821,7 +1862,10 @@ impl Document {
 
     pub fn element_attr_will_change(&self, el: &Element) {
         let mut map = self.modified_elements.borrow_mut();
-        let mut snapshot = map.entry(JS::from_ref(el)).or_insert(ElementSnapshot::new());
+        let mut snapshot = map.entry(JS::from_ref(el))
+                              .or_insert_with(|| {
+                                  ElementSnapshot::new(el.html_element_in_html_document())
+                              });
         if snapshot.attrs.is_none() {
             let attrs = el.attrs()
                           .iter()
@@ -1917,6 +1961,14 @@ impl DocumentMethods for Document {
         } else {
             // Step 3.
             DOMString::new()
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-document-referrer
+    fn Referrer(&self) -> DOMString {
+        match self.referrer {
+            Some(ref referrer) => DOMString::from(referrer.to_string()),
+            None => DOMString::new()
         }
     }
 
@@ -2817,8 +2869,9 @@ pub fn determine_policy_for_token(token: &str) -> Option<ReferrerPolicy> {
     let lower = token.to_lowercase();
     return match lower.as_ref() {
         "never" | "no-referrer" => Some(ReferrerPolicy::NoReferrer),
-        "default" | "no-referrer-when-downgrade" => Some(ReferrerPolicy::NoRefWhenDowngrade),
-        "origin" => Some(ReferrerPolicy::OriginOnly),
+        "default" | "no-referrer-when-downgrade" => Some(ReferrerPolicy::NoReferrerWhenDowngrade),
+        "origin" => Some(ReferrerPolicy::Origin),
+        "same-origin" => Some(ReferrerPolicy::SameOrigin),
         "origin-when-cross-origin" => Some(ReferrerPolicy::OriginWhenCrossOrigin),
         "always" | "unsafe-url" => Some(ReferrerPolicy::UnsafeUrl),
         "" => Some(ReferrerPolicy::NoReferrer),
@@ -2869,6 +2922,8 @@ impl DocumentProgressHandler {
 }
 
 impl Runnable for DocumentProgressHandler {
+    fn name(&self) -> &'static str { "DocumentProgressHandler" }
+
     fn handler(self: Box<DocumentProgressHandler>) {
         let document = self.addr.root();
         let window = document.window();
