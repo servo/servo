@@ -37,13 +37,13 @@ impl PrivateStyleData {
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct DomParallelInfo {
     /// The number of children that still need work done.
-    pub children_count: AtomicIsize,
+    pub children_to_process: AtomicIsize,
 }
 
 impl DomParallelInfo {
     pub fn new() -> DomParallelInfo {
         DomParallelInfo {
-            children_count: AtomicIsize::new(0),
+            children_to_process: AtomicIsize::new(0),
         }
     }
 }
