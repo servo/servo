@@ -148,7 +148,11 @@ pub trait DomTraversalContext<N: TNode>  {
     /// Process `node` on the way up, after its children have been processed.
     fn process_postorder(&self, node: N);
 
-    /// Returns if the node should be processed by the preorder traversal.
+    /// Returns if the node should be processed by the preorder traversal (and
+    /// then by the post-order one).
+    ///
+    /// Note that this is true unconditionally for servo, since it requires to
+    /// bubble the widths bottom-up for all the DOM.
     fn should_process(&self, _node: N) -> bool { true }
 
     /// Do an action over the child before pushing him to the work queue.
