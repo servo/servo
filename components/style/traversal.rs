@@ -147,6 +147,12 @@ pub trait DomTraversalContext<N: TNode>  {
     fn process_preorder(&self, node: N);
     /// Process `node` on the way up, after its children have been processed.
     fn process_postorder(&self, node: N);
+
+    /// Returns if the node should be processed by the preorder traversal.
+    fn should_process(&self, _node: N) -> bool { true }
+
+    /// Do an action over the child before pushing him to the work queue.
+    fn pre_process_child_hook(&self, _parent: N, _kid: N) {}
 }
 
 /// Calculates the style for a single node.
@@ -245,21 +251,15 @@ pub fn recalc_style_at<'a, N, C>(context: &'a C,
     put_thread_local_bloom_filter(bf, &unsafe_layout_node, context.shared_context());
 
     // Mark the node as DIRTY_ON_VIEWPORT_SIZE_CHANGE is it uses viewport percentage units.
-    match node.as_element() {
-        Some(element) => {
-            match *element.style_attribute() {
-                Some(ref property_declaration_block) => {
-                    if property_declaration_block.declarations().any(|d| d.0.has_viewport_percentage()) {
-                        unsafe {
-                            node.set_dirty_on_viewport_size_changed();
-                        }
-                        node.set_descendants_dirty_on_viewport_size_changed();
-                    }
-                },
-                None => {}
+    if let Some(element) = node.as_element() {
+        if let Some(ref property_declaration_block) = *element.style_attribute() {
+            if property_declaration_block.declarations().any(|d| d.0.has_viewport_percentage()) {
+                unsafe {
+                    node.set_dirty_on_viewport_size_changed();
+                }
+                node.set_descendants_dirty_on_viewport_size_changed();
             }
-        },
-        None => {}
+        }
     }
 }
 
