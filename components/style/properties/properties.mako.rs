@@ -490,7 +490,7 @@ fn append_shorthand_value<'a, W, I>(dest: &mut W,
     match shorthand {
         Shorthand::Margin => try!(append_margin_shorthand(dest, declarations)),
         Shorthand::Padding => try!(append_padding_shorthand(dest, declarations)),
-        Shorthand::Overflow => try!(append_overflow_shorthand(dest, declarations)),
+        Shorthand::Overflow => { /* This behaves differently than normal shorthands */ },
         Shorthand::ListStyle => try!(append_list_style_shorthand(dest, declarations)),
         Shorthand::Outline => try!(append_outline_shorthand(dest, declarations)),
         // word-wrap name outdated -> https://developer.mozilla.org/en-US/docs/Web/CSS/overflow-wrap
@@ -651,12 +651,17 @@ fn append_positional_shorthand<W, I>(dest: &mut W,
       Ok(())
 }
 
-// FIXME: when x/y are different, it is rendering like overflow: auto hidden instead of separating
-// them out into overflow-x and overflow-y values.
 fn append_overflow_shorthand<'a, W, I>(dest: &mut W,
-                                    declarations: I)
-                            -> fmt::Result
+                                       appendable_value: AppendableValue<'a, I>,
+                                       is_first_serialization: &mut bool)
+                                       -> fmt::Result
                             where W: fmt::Write, I: Iterator<Item=&'a PropertyDeclaration> {
+
+    let declarations = match appendable_value {
+        AppendableValue::DeclarationsForShorthand(_, declarations) => declarations,
+        _ => return Err(fmt::Error)
+    };
+
     let mut x_value = None;
     let mut y_value = None;
 
@@ -686,15 +691,21 @@ fn append_overflow_shorthand<'a, W, I>(dest: &mut W,
     let (x_value, y_value) = try_unwrap_longhands!(x_value, y_value);
 
     if x_value == y_value {
+        try!(append_property_name(dest, "overflow", is_first_serialization));
+        try!(write!(dest, ": "));
         try!(x_value.to_css(dest));
     }
     else {
+        try!(append_property_name(dest, "overflow-x", is_first_serialization));
+        try!(write!(dest, ": "));
         try!(x_value.to_css(dest));
-        try!(write!(dest, " "));
+        try!(write!(dest, "; "));
+
+        try!(write!(dest, "overflow-y: "));
         try!(y_value.to_css(dest));
     }
 
-    Ok(())
+    write!(dest, ";")
 }
 
 fn append_list_style_shorthand<'a, W, I>(dest: &mut W,
@@ -1284,15 +1295,12 @@ fn append_border_shorthand<'a, W, I>(dest: &mut W,
             &PropertyDeclaration::BorderTopColor(ref value) => { top_color = Some(value); },
             &PropertyDeclaration::BorderTopStyle(ref value) => { top_style = Some(value); },
             &PropertyDeclaration::BorderTopWidth(ref value) => { top_width  = Some(value); },
-
             &PropertyDeclaration::BorderRightColor(ref value) => { right_color = Some(value); },
             &PropertyDeclaration::BorderRightStyle(ref value) => { right_style = Some(value); },
             &PropertyDeclaration::BorderRightWidth(ref value) => { right_width  = Some(value); },
-            
             &PropertyDeclaration::BorderBottomColor(ref value) => { bottom_color = Some(value); },
             &PropertyDeclaration::BorderBottomStyle(ref value) => { bottom_style = Some(value); },
             &PropertyDeclaration::BorderBottomWidth(ref value) => { bottom_width  = Some(value); },
-            
             &PropertyDeclaration::BorderLeftColor(ref value) => { left_color = Some(value); },
             &PropertyDeclaration::BorderLeftStyle(ref value) => { left_style = Some(value); },
             &PropertyDeclaration::BorderLeftWidth(ref value) => { left_width  = Some(value); },
@@ -1412,6 +1420,17 @@ fn append_background_shorthand<'a, W, I>(dest: &mut W,
     Ok(())
 }
 
+fn is_overflow_shorthand<'a, I>(appendable_value: &AppendableValue<'a, I>) -> bool
+                                where I: Iterator<Item=&'a PropertyDeclaration> {
+    if let &AppendableValue::DeclarationsForShorthand(shorthand, _) = appendable_value {
+        if let Shorthand::Overflow = shorthand {
+            return true;
+        }
+    }
+
+    false
+}
+
 fn append_serialization<'a, W, I>(dest: &mut W,
                                   property_name: &str,
                                   appendable_value: AppendableValue<'a, I>,
@@ -1419,6 +1438,13 @@ fn append_serialization<'a, W, I>(dest: &mut W,
                                   is_first_serialization: &mut bool)
                                   -> fmt::Result
                                   where W: fmt::Write, I: Iterator<Item=&'a PropertyDeclaration> {
+
+    // Overflow does not behave like a normal shorthand. When overflow-x and overflow-y are not of equal
+    // values, they no longer use the shared property name "overflow" and must be handled differently
+    let is_overflow_shorthand = is_overflow_shorthand(&appendable_value);
+    if is_overflow_shorthand {
+        return append_overflow_shorthand(dest, appendable_value, is_first_serialization);
+    }
 
     try!(append_property_name(dest, property_name, is_first_serialization));
     try!(write!(dest, ":"));
