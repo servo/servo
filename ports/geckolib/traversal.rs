@@ -27,12 +27,6 @@ impl<'lc, 'ln> DomTraversalContext<GeckoNode<'ln>> for RecalcStyleOnly<'lc> {
         }
     }
 
-    /// In Gecko we use this traversal just for restyling, so we can stop once
-    /// we know there aren't more dirty nodes under ourselves.
-    fn should_process(&self, node: N) -> bool {
-        node.is_dirty() || node.has_dirty_descendants()
-    }
-
     fn process_preorder(&self, node: GeckoNode<'ln>) {
         // FIXME(pcwalton): Stop allocating here. Ideally this should just be done by the HTML
         // parser.
@@ -42,10 +36,4 @@ impl<'lc, 'ln> DomTraversalContext<GeckoNode<'ln>> for RecalcStyleOnly<'lc> {
     }
 
     fn process_postorder(&self, _: GeckoNode<'ln>) {}
-
-    /// In Gecko we use this traversal just for restyling, so we can stop once
-    /// we know there aren't more dirty nodes under ourselves.
-    fn should_process(&self, node: GeckoNode<'ln>) -> bool {
-        node.is_dirty() || node.has_dirty_descendants()
-    }
 }
