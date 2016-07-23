@@ -27,7 +27,7 @@ MAX_LICENSE_LINESPAN = max(len(license.splitlines()) for license in licenses)
 # File patterns to include in the non-WPT tidy check.
 FILE_PATTERNS_TO_CHECK = ["*.rs", "*.rc", "*.cpp", "*.c",
                           "*.h", "Cargo.lock", "*.py",
-                          "*.toml", "*.webidl", "*.json"]
+                          "*.toml", "*.webidl", "*.json", "*.html"]
 
 # File patterns that are ignored for all tidy and lint checks.
 FILE_PATTERNS_TO_IGNORE = ["*.#*", "*.pyc"]
@@ -43,6 +43,11 @@ IGNORED_FILES = [
     os.path.join(".", "tests", "wpt", "metadata", "MANIFEST.json"),
     os.path.join(".", "tests", "wpt", "metadata-css", "MANIFEST.json"),
     os.path.join(".", "components", "script", "dom", "webidls", "ForceTouchEvent.webidl"),
+    # Ignore those files since the issues reported are on purpose
+    os.path.join(".", "tests", "html", "bad-line-ends.html"),
+    os.path.join(".", "tests", "unit", "net", "parsable_mime", "text"),
+    os.path.join(".", "tests", "wpt", "mozilla", "tests", "css", "fonts"),
+    os.path.join(".", "tests", "wpt", "mozilla", "tests", "css", "pre_with_tab.html"),
     # FIXME(pcwalton, #11679): This is a workaround for a tidy error on the quoted string
     # `"__TEXT,_info_plist"` inside an attribute.
     os.path.join(".", "components", "servo", "platform", "macos", "mod.rs"),
@@ -147,7 +152,7 @@ def filter_files(start_dir, only_changed_files, progress):
 
 
 def check_license(file_name, lines):
-    if any(file_name.endswith(ext) for ext in (".toml", ".lock", ".json")):
+    if any(file_name.endswith(ext) for ext in (".toml", ".lock", ".json", ".html")):
         raise StopIteration
     while lines and (lines[0].startswith(EMACS_HEADER) or lines[0].startswith(VIM_HEADER)):
         lines = lines[1:]
@@ -167,7 +172,7 @@ def check_modeline(file_name, lines):
 
 
 def check_length(file_name, idx, line):
-    if file_name.endswith(".lock") or file_name.endswith(".json"):
+    if file_name.endswith(".lock") or file_name.endswith(".json") or file_name.endswith(".html"):
         raise StopIteration
     max_length = 120
     if len(line.rstrip('\n')) > max_length:
@@ -620,7 +625,7 @@ def collect_errors_for_files(files_to_check, checking_functions, line_checking_f
 
 
 def get_wpt_files(only_changed_files, progress):
-    wpt_dir = os.path.join(".", "tests", "wpt", "web-platform-tests" + os.sep)
+    wpt_dir = os.path.join(".", "tests", "wpt" + os.sep)
     file_iter = get_file_list(os.path.join(wpt_dir), only_changed_files)
     (has_element, file_iter) = is_iter_empty(file_iter)
     if not has_element:
