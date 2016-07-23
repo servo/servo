@@ -504,14 +504,16 @@ fn append_shorthand_value<'a, W, I>(dest: &mut W,
         Shorthand::Animation => try!(append_animation_shorthand(dest, declarations)),
         Shorthand::Transition => try!(append_transition_shorthand(dest, declarations)),
         Shorthand::BorderWidth => try!(append_border_width_shorthand(dest, declarations)),
-        Shorthand::Font => try!(append_font_shorthand(dest, declarations)),
+        Shorthand::Font => try!(append_font_shorthand(dest, declarations)), // TODO: May need changes
         Shorthand::BorderTop => try!(append_border_top_shorthand(dest, declarations)),
         Shorthand::BorderRight => try!(append_border_right_shorthand(dest, declarations)),
         Shorthand::BorderBottom => try!(append_border_bottom_shorthand(dest, declarations)),
         Shorthand::BorderLeft => try!(append_border_left_shorthand(dest, declarations)),
         Shorthand::BorderColor => try!(append_border_color_shorthand(dest, declarations)),
         Shorthand::BorderStyle => try!(append_border_style_shorthand(dest, declarations)),
-        _ => {}
+        Shorthand::BorderRadius => try!(append_border_radius_shorthand(dest, declarations)), // TODO: Implement for real
+        Shorthand::Border => try!(append_border_shorthand(dest, declarations)),
+        Shorthand::Background => try!(append_background_shorthand(dest, declarations)) // TODO: May need changes
     };
 
     Ok(())
@@ -1219,6 +1221,195 @@ fn append_border_style_shorthand<'a, W, I>(dest: &mut W,
     let (top, right, bottom, left) = try_unwrap_longhands!(top, right, bottom, left);
 
     append_positional_shorthand(dest, top, right, bottom, left)
+}
+
+fn append_border_radius_shorthand<'a, W, I>(dest: &mut W,
+                                            declarations: I) -> fmt::Result
+                                            where W: fmt::Write, I: Iterator<Item=&'a PropertyDeclaration> {
+
+    let mut top_left = None;
+    let mut top_right = None;
+    let mut bottom_right = None;
+    let mut bottom_left = None;
+
+    for decl in declarations {
+        match decl {
+            &PropertyDeclaration::BorderTopLeftRadius(ref value) => { top_left = Some(value); },
+            &PropertyDeclaration::BorderTopRightRadius(ref value) => { top_right = Some(value); },
+            &PropertyDeclaration::BorderBottomRightRadius(ref value) => { bottom_right  = Some(value); },
+            &PropertyDeclaration::BorderBottomLeftRadius(ref value) => { bottom_left = Some(value); },
+            _ => return Err(fmt::Error)
+        }
+    }
+
+    let (top_left, top_right, bottom_right, bottom_left) =
+        try_unwrap_longhands!(top_left, top_right, bottom_right, bottom_left);
+
+
+    // TODO: I do not understand how border radius works with respect to the slashes /, so skipping it for now
+    // https://developer.mozilla.org/en-US/docs/Web/CSS/border-radius
+    try!(top_left.to_css(dest));
+    try!(write!(dest, ""));
+
+    try!(top_right.to_css(dest));
+    try!(write!(dest, ""));
+
+    try!(bottom_right.to_css(dest));
+    try!(write!(dest, ""));
+
+    bottom_left.to_css(dest)
+}
+
+fn append_border_shorthand<'a, W, I>(dest: &mut W,
+                                            declarations: I) -> fmt::Result
+                                            where W: fmt::Write, I: Iterator<Item=&'a PropertyDeclaration> {
+    let mut top_color = None;
+    let mut top_style = None;
+    let mut top_width = None;
+
+    let mut right_color = None;
+    let mut right_style = None;
+    let mut right_width = None;
+
+    let mut bottom_color = None;
+    let mut bottom_style = None;
+    let mut bottom_width = None;
+
+    let mut left_color = None;
+    let mut left_style = None;
+    let mut left_width = None;
+
+    for decl in declarations {
+        match decl {
+            &PropertyDeclaration::BorderTopColor(ref value) => { top_color = Some(value); },
+            &PropertyDeclaration::BorderTopStyle(ref value) => { top_style = Some(value); },
+            &PropertyDeclaration::BorderTopWidth(ref value) => { top_width  = Some(value); },
+
+            &PropertyDeclaration::BorderRightColor(ref value) => { right_color = Some(value); },
+            &PropertyDeclaration::BorderRightStyle(ref value) => { right_style = Some(value); },
+            &PropertyDeclaration::BorderRightWidth(ref value) => { right_width  = Some(value); },
+            
+            &PropertyDeclaration::BorderBottomColor(ref value) => { bottom_color = Some(value); },
+            &PropertyDeclaration::BorderBottomStyle(ref value) => { bottom_style = Some(value); },
+            &PropertyDeclaration::BorderBottomWidth(ref value) => { bottom_width  = Some(value); },
+            
+            &PropertyDeclaration::BorderLeftColor(ref value) => { left_color = Some(value); },
+            &PropertyDeclaration::BorderLeftStyle(ref value) => { left_style = Some(value); },
+            &PropertyDeclaration::BorderLeftWidth(ref value) => { left_width  = Some(value); },
+
+            _ => return Err(fmt::Error)
+        }
+    }
+
+    // Check that the longhands are all present, but once the check is done
+    // they should all be the same, we can just one set of color/style/width
+    let (
+        top_color, top_style, top_width,
+        _, _, _,
+        _, _, _,
+        _, _, _
+    ) =
+    try_unwrap_longhands!(
+        top_color, top_style, top_width,
+        right_color, right_style, right_width,
+        bottom_color, bottom_style, bottom_width,
+        left_color, left_style, left_width
+    );
+
+    append_directional_border_shorthand(dest, top_width, top_style, top_color)
+}
+
+fn append_background_shorthand<'a, W, I>(dest: &mut W,
+                                     declarations: I) -> fmt::Result
+                                     where W: fmt::Write, I: Iterator<Item=&'a PropertyDeclaration> {
+    let mut color = None;
+    let mut position = None;
+    let mut repeat = None;
+    let mut attachment = None;
+    let mut image = None;
+    let mut size = None;
+    let mut origin = None;
+    let mut clip = None;
+
+    for decl in declarations {
+        match decl {
+            &PropertyDeclaration::BackgroundColor(ref value) => { color = Some(value); },
+            &PropertyDeclaration::BackgroundPosition(ref value) => { position = Some(value); },
+            &PropertyDeclaration::BackgroundRepeat(ref value) => { repeat  = Some(value); },
+            &PropertyDeclaration::BackgroundAttachment(ref value) => { attachment = Some(value); },
+            &PropertyDeclaration::BackgroundImage(ref value) => { image = Some(value); },
+            &PropertyDeclaration::BackgroundSize(ref value) => { size = Some(value); },
+            &PropertyDeclaration::BackgroundOrigin(ref value) => { origin = Some(value); },
+            &PropertyDeclaration::BackgroundClip(ref value) => { clip = Some(value); },
+        _ => return Err(fmt::Error)
+        }
+    }
+
+    let (
+        color, position, repeat, attachment,
+        image, size, origin, clip
+    ) =
+    try_unwrap_longhands!(
+        color, position, repeat, attachment,
+        image, size, origin, clip
+    );
+
+
+    match color {
+        &DeclaredValue::Value(ref color) => {
+            try!(color.to_css(dest));
+        },
+        _ => {
+            try!(write!(dest, "transparent"));
+        }
+    };
+
+    try!(write!(dest, " "));
+
+    match image {
+        &DeclaredValue::Value(ref image) => {
+            try!(image.to_css(dest));
+        },
+        _ => {
+            try!(write!(dest, "none"));
+        }
+    };
+
+    try!(write!(dest, " "));
+
+    try!(repeat.to_css(dest));
+
+    try!(write!(dest, " "));
+
+    match attachment {
+        &DeclaredValue::Value(ref attachment) => {
+            try!(attachment.to_css(dest));
+        },
+        _ => {
+            try!(write!(dest, "scroll"));
+        }
+    };
+
+    try!(write!(dest, " "));
+
+    try!(position.to_css(dest));
+
+    if let &DeclaredValue::Value(ref size) = size {
+        try!(write!(dest, " / "));
+        try!(size.to_css(dest));
+    }
+
+    if let &DeclaredValue::Value(ref origin) = origin {
+        try!(write!(dest, " "));
+        try!(origin.to_css(dest));
+    }
+
+    if let &DeclaredValue::Value(ref clip) = clip {
+        try!(write!(dest, " "));
+        try!(clip.to_css(dest));
+    }
+
+    Ok(())
 }
 
 fn append_serialization<'a, W, I>(dest: &mut W,
