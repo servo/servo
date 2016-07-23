@@ -93,6 +93,7 @@ class CheckTidiness(unittest.TestCase):
     def test_toml(self):
         errors = tidy.collect_errors_for_files(iterFile('test.toml'), [tidy.check_toml], [], print_text=False)
         self.assertEqual('found asterisk instead of minimum version number', errors.next()[2])
+        self.assertEqual('.toml file should contain a valid license.', errors.next()[2])
         self.assertNoMoreErrors(errors)
 
     def test_modeline(self):
@@ -130,11 +131,11 @@ class CheckTidiness(unittest.TestCase):
         file_list = tidy.get_file_list(base_path, only_changed_files=False,
                                        exclude_dirs=[])
         lst = list(file_list)
-        self.assertEqual([os.path.join(base_path, 'whee', 'test.rs')], lst)
+        self.assertEqual([os.path.join(base_path, 'whee', 'test.rs'), os.path.join(base_path, 'whee', 'foo', 'bar.rs')], lst)
         file_list = tidy.get_file_list(base_path, only_changed_files=False,
-                                       exclude_dirs=[os.path.join(base_path,'whee')])
+                                       exclude_dirs=[os.path.join(base_path, 'whee', 'foo')])
         lst = list(file_list)
-        self.assertEqual([], lst)
+        self.assertEqual([os.path.join(base_path, 'whee', 'test.rs')], lst)
 
 def do_tests():
     suite = unittest.TestLoader().loadTestsFromTestCase(CheckTidiness)
