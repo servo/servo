@@ -162,6 +162,9 @@ impl TableRowFlow {
             // Assign the child's block size.
             child_table_cell.block_flow.base.position.size.block = block_size;
 
+            // Now we know the cell height, vertical align the cell's children.
+            child_table_cell.valign_children();
+
             // Write in the size of the relative containing block for children. (This information
             // is also needed to handle RTL.)
             child_table_cell.block_flow.base.early_absolute_position_info =

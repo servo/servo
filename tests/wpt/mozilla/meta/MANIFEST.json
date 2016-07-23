@@ -6022,6 +6022,18 @@
             "url": "/_mozilla/mozilla/table_valign_middle.html"
           }
         ],
+        "mozilla/table_valign_uneven_height.html": [
+          {
+            "path": "mozilla/table_valign_uneven_height.html",
+            "references": [
+              [
+                "/_mozilla/mozilla/table_valign_uneven_height_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/mozilla/table_valign_uneven_height.html"
+          }
+        ],
         "mozilla/webgl/clearcolor.html": [
           {
             "path": "mozilla/webgl/clearcolor.html",
@@ -15108,6 +15120,18 @@
             ]
           ],
           "url": "/_mozilla/mozilla/table_valign_middle.html"
+        }
+      ],
+      "mozilla/table_valign_uneven_height.html": [
+        {
+          "path": "mozilla/table_valign_uneven_height.html",
+          "references": [
+            [
+              "/_mozilla/mozilla/table_valign_uneven_height_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/mozilla/table_valign_uneven_height.html"
         }
       ],
       "mozilla/webgl/clearcolor.html": [

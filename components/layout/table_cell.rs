@@ -80,6 +80,10 @@ impl TableCellFlow {
         if !flow::base(self).restyle_damage.contains(REFLOW) {
             return;
         }
+    }
+
+    /// Position this cell's children according to vertical-align.
+    pub fn valign_children(&mut self) {
         // Note to the reader: this code has been tested with negative margins.
         // We end up with a "end" that's before the "start," but the math still works out.
         let first_start = flow::base(self).children.front().map(|kid| {
@@ -106,6 +110,9 @@ impl TableCellFlow {
             let self_size = flow::base(self).position.size.block -
                 self.block_flow.fragment.border_padding.block_start_end();
             let kids_self_gap = self_size - kids_size;
+
+            // This offset should also account for vertical_align::T::baseline.
+            // Need max cell ascent from the first row of this cell.
             let offset = match self.block_flow.fragment.style().get_box().vertical_align {
                 vertical_align::T::middle => kids_self_gap / 2,
                 vertical_align::T::bottom => kids_self_gap,
