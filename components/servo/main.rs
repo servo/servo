@@ -93,19 +93,21 @@ fn main() {
         None
     };
 
-    // TODO: once log-panics is released, this can be replaced by
-    // log_panics::init();
-    panic::set_hook(Box::new(|info| {
-        warn!("Panic hook called.");
-        let msg = match info.payload().downcast_ref::<&'static str>() {
-            Some(s) => *s,
-            None => match info.payload().downcast_ref::<String>() {
-                Some(s) => &**s,
-                None => "Box<Any>",
-            },
-        };
-        error!("{}", msg);
-    }));
+    if opts::get().panic_hook {
+        // TODO: once log-panics is released, this can be replaced by
+        // log_panics::init();
+        panic::set_hook(Box::new(|info| {
+            warn!("Panic hook called.");
+            let msg = match info.payload().downcast_ref::<&'static str>() {
+                Some(s) => *s,
+                None => match info.payload().downcast_ref::<String>() {
+                    Some(s) => &**s,
+                    None => "Box<Any>",
+                },
+            };
+            error!("{}", msg);
+        }));
+    }
 
     setup_logging();
 

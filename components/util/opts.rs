@@ -83,6 +83,10 @@ pub struct Opts {
     pub headless: bool,
     pub hard_fail: bool,
 
+    /// Whether to install a custom panic hook or not. Default is true, turn to
+    /// false for easier debugging.
+    pub panic_hook: bool,
+
     /// True if we should bubble intrinsic widths sequentially (`-b`). If this is true, then
     /// intrinsic widths are computed as a separate pass instead of during flow construction. You
     /// may wish to turn this flag on in order to benchmark style recalculation against other
@@ -475,6 +479,7 @@ pub fn default_opts() -> Opts {
         load_webfonts_synchronously: false,
         headless: true,
         hard_fail: true,
+        panic_hook: true,
         bubble_inline_sizes_separately: false,
         show_debug_borders: false,
         show_debug_fragment_borders: false,
@@ -540,6 +545,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
                   "A user stylesheet to be added to every document", "file.css");
     opts.optflag("z", "headless", "Headless mode");
     opts.optflag("f", "hard-fail", "Exit on thread failure instead of displaying about:failure");
+    opts.optflag("", "no-panic-hook", "Don't install a panic hook");
     opts.optflag("F", "soft-fail", "Display about:failure on thread failure instead of exiting");
     opts.optflagopt("", "devtools", "Start remote devtools server on port", "6000");
     opts.optflagopt("", "webdriver", "Start remote WebDriver server on port", "7000");
@@ -779,6 +785,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         load_webfonts_synchronously: debug_options.load_webfonts_synchronously,
         headless: opt_match.opt_present("z"),
         hard_fail: opt_match.opt_present("f") && !opt_match.opt_present("F"),
+        panic_hook: !opt_match.opt_present("no-panic-hook"),
         bubble_inline_sizes_separately: bubble_inline_sizes_separately,
         profile_script_events: debug_options.profile_script_events,
         profile_heartbeats: debug_options.profile_heartbeats,
