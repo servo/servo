@@ -185,8 +185,9 @@ pub fn recalc_style_at<'a, N, C>(context: &'a C,
     // Get the style bloom filter.
     let mut bf = take_thread_local_bloom_filter(parent_opt, root, context.shared_context());
 
-    let nonincremental_layout = opts::get().nonincremental_layout;
-    if nonincremental_layout || node.is_dirty() {
+    // let nonincremental_layout = opts::get().nonincremental_layout;
+    // if nonincremental_layout || node.is_dirty() {
+    if node.is_dirty() {
         // Remove existing CSS styles from nodes whose content has changed (e.g. text changed),
         // to force non-incremental reflow.
         if node.has_changed() {

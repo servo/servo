@@ -97,16 +97,11 @@ fn construct_flows_at<'a, N: LayoutNode>(context: &'a LayoutContext<'a>, root: O
         let tnode = node.to_threadsafe();
 
         // Always reconstruct if incremental layout is turned off.
-        let nonincremental_layout = opts::get().nonincremental_layout;
-        if nonincremental_layout || node.has_dirty_descendants() {
-            let mut flow_constructor = FlowConstructor::new(context);
-            if nonincremental_layout || !flow_constructor.repair_if_possible(&tnode) {
-                flow_constructor.process(&tnode);
-                debug!("Constructed flow for {:x}: {:x}",
-                       tnode.debug_id(),
-                       tnode.flow_debug_id());
-            }
-        }
+        let mut flow_constructor = FlowConstructor::new(context);
+            flow_constructor.process(&tnode);
+            debug!("Constructed flow for {:x}: {:x}",
+                   tnode.debug_id(),
+                   tnode.flow_debug_id());
 
         // Reset the layout damage in this node. It's been propagated to the
         // flow by the flow constructor.

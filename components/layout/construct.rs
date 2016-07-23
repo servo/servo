@@ -80,13 +80,7 @@ pub enum ConstructionResult {
 
 impl ConstructionResult {
     pub fn swap_out(&mut self) -> ConstructionResult {
-        if opts::get().nonincremental_layout {
-            return mem::replace(self, ConstructionResult::None)
-        }
-
-        // FIXME(pcwalton): Stop doing this with inline fragments. Cloning fragments is very
-        // inefficient!
-        (*self).clone()
+        mem::replace(self, ConstructionResult::None)
     }
 
     pub fn debug_id(&self) -> usize {
