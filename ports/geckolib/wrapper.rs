@@ -26,7 +26,7 @@ use gecko_bindings::bindings::{Gecko_LocalName, Gecko_Namespace, Gecko_NodeIsEle
 use gecko_bindings::bindings::{RawGeckoDocument, RawGeckoElement, RawGeckoNode};
 use gecko_bindings::structs::{NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO, NODE_IS_DIRTY_FOR_SERVO};
 use gecko_bindings::structs::{nsIAtom, nsChangeHint, nsStyleContext};
-use gecko_string_cache::{Atom, Namespace, WeakAtom};
+use gecko_string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
 use glue::GeckoDeclarationBlock;
 use libc::uintptr_t;
 use selectors::Element;
@@ -433,7 +433,7 @@ impl<'le> TElement for GeckoElement<'le> {
     fn has_attr(&self, namespace: &Namespace, attr: &Atom) -> bool {
         unsafe {
             bindings::Gecko_HasAttr(self.element,
-                                    namespace.as_ptr(),
+                                    namespace.0.as_ptr(),
                                     attr.as_ptr())
         }
     }
@@ -442,7 +442,7 @@ impl<'le> TElement for GeckoElement<'le> {
     fn attr_equals(&self, namespace: &Namespace, attr: &Atom, val: &Atom) -> bool {
         unsafe {
             bindings::Gecko_AttrEquals(self.element,
-                                       namespace.as_ptr(),
+                                       namespace.0.as_ptr(),
                                        attr.as_ptr(),
                                        val.as_ptr(),
                                        /* ignoreCase = */ false)
@@ -506,9 +506,9 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
         }
     }
 
-    fn get_namespace(&self) -> &WeakAtom {
+    fn get_namespace(&self) -> &WeakNamespace {
         unsafe {
-            WeakAtom::new(Gecko_Namespace(self.element))
+            WeakNamespace::new(Gecko_Namespace(self.element))
         }
     }
 
@@ -577,7 +577,7 @@ impl AttrSelectorHelpers for AttrSelector<GeckoSelectorImpl> {
     fn ns_or_null(&self) -> *mut nsIAtom {
         match self.namespace {
             NamespaceConstraint::Any => ptr::null_mut(),
-            NamespaceConstraint::Specific(ref ns) => ns.as_ptr(),
+            NamespaceConstraint::Specific(ref ns) => ns.0.as_ptr(),
         }
     }
 
