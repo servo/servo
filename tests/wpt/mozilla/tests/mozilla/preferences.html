@@ -5,18 +5,18 @@
 <script src="/resources/testharnessreport.js"></script>
 <script>
 test(function() {
-	var testBinding = new TestBinding();
-	assert_equals(typeof testBinding.BooleanMozPreference, "function");
-	assert_equals(testBinding.BooleanMozPreference("dom.testbinding.preference_value.falsy"), false);
-	assert_equals(testBinding.BooleanMozPreference("dom.testbinding.preference_value.truthy"), true);
-	assert_equals(testBinding.BooleanMozPreference("dom.testbinding.preference_value.string_test"), false);
-	assert_equals(testBinding.BooleanMozPreference("dom.testbinding.preference_value.string_empty"), false);
-	assert_equals(typeof testBinding.StringMozPreference, "function");
-	assert_equals(testBinding.StringMozPreference("dom.testbinding.preference_value.string_test"), "test");
-	assert_equals(testBinding.StringMozPreference("dom.testbinding.preference_value.string_empty"), "");
-	assert_equals(testBinding.StringMozPreference("dom.testbinding.preference_value.falsy"), "");
-	assert_equals(testBinding.StringMozPreference("dom.testbinding.preference_value.truthy"), "");
-	assert_equals(testBinding.StringMozPreference("dom.testbinding.preference_value.space_string_test"), "test1 test2");
-	assert_equals(testBinding.StringMozPreference("dom.testbinding.preference_value.space_string_test"), "test1 test2");
+    var testBinding = new TestBinding();
+    assert_equals(typeof testBinding.BooleanMozPreference, "function");
+    assert_equals(testBinding.BooleanMozPreference("dom.testbinding.preference_value.falsy"), false);
+    assert_equals(testBinding.BooleanMozPreference("dom.testbinding.preference_value.truthy"), true);
+    assert_equals(testBinding.BooleanMozPreference("dom.testbinding.preference_value.string_test"), false);
+    assert_equals(testBinding.BooleanMozPreference("dom.testbinding.preference_value.string_empty"), false);
+    assert_equals(typeof testBinding.StringMozPreference, "function");
+    assert_equals(testBinding.StringMozPreference("dom.testbinding.preference_value.string_test"), "test");
+    assert_equals(testBinding.StringMozPreference("dom.testbinding.preference_value.string_empty"), "");
+    assert_equals(testBinding.StringMozPreference("dom.testbinding.preference_value.falsy"), "");
+    assert_equals(testBinding.StringMozPreference("dom.testbinding.preference_value.truthy"), "");
+    assert_equals(testBinding.StringMozPreference("dom.testbinding.preference_value.space_string_test"), "test1 test2");
+    assert_equals(testBinding.StringMozPreference("dom.testbinding.preference_value.space_string_test"), "test1 test2");
 }, "prefs");
 </script>

@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html>
-	<head>
-		<script src="/resources/testharness.js"></script>
-		<script src="/resources/testharnessreport.js"></script>
+    <head>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
         <style type="text/css">
             #outer {
                 position: absolute;
@@ -25,16 +25,16 @@
                 background-color: blue;
             }
         </style>
-	</head>
-	<body>
+    </head>
+    <body>
         <div id="outer">
             <div id="inner">
                 <div id="div"></div>
             </div>
         </div>
 
-		<script>
-  			test(function() {
+        <script>
+              test(function() {
                 var div = document.getElementById("div");
                 var outer = document.getElementById("outer");
 
@@ -45,7 +45,7 @@
                 assert_equals(div.offsetTop, 25);
                 assert_equals(div.offsetWidth, 80);
                 assert_equals(div.offsetHeight, 130);
-  			});
-		</script>
-	</body>
+              });
+        </script>
+    </body>
 </html>
