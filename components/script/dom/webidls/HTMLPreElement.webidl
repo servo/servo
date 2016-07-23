@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmlpreelement
-[Exposed=(Window,Worker)]
 interface HTMLPreElement : HTMLElement {
   // also has obsolete members
 };
