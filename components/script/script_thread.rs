@@ -2020,7 +2020,7 @@ impl ScriptThread {
                 let url = document.url();
                 if &url[..Position::AfterQuery] == &nurl[..Position::AfterQuery] &&
                     load_data.method == Method::Get {
-                    self.check_and_scroll_fragment(fragment, pipeline_id, document);
+                    self.check_and_scroll_fragment(fragment, pipeline_id, document.r());
                     return;
                 }
             }
