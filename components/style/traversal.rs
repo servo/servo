@@ -156,7 +156,19 @@ pub trait DomTraversalContext<N: TNode>  {
     fn should_process(&self, _node: N) -> bool { true }
 
     /// Do an action over the child before pushing him to the work queue.
-    fn pre_process_child_hook(&self, _parent: N, _kid: N) {}
+    ///
+    /// By default, propagate the IS_DIRTY flag down the tree.
+    #[allow(unsafe_code)]
+    fn pre_process_child_hook(&self, parent: N, kid: N) {
+        // NOTE: At this point is completely safe to modify either the parent or
+        // the child, since we have exclusive access to both of them.
+        if parent.is_dirty() {
+            unsafe {
+                kid.set_dirty(true);
+                parent.set_dirty_descendants(true);
+            }
+        }
+    }
 }
 
 /// Calculates the style for a single node.

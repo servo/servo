@@ -77,7 +77,9 @@ impl<'lc, N> DomTraversalContext<N> for RecalcStyleAndConstructFlows<'lc>
         recalc_style_at(&self.context, self.root, node);
     }
 
-    fn process_postorder(&self, node: N) { construct_flows_at(&self.context, self.root, node); }
+    fn process_postorder(&self, node: N) {
+        construct_flows_at(&self.context, self.root, node);
+    }
 }
 
 /// A bottom-up, parallelizable traversal.

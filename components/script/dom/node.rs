@@ -479,19 +479,7 @@ impl Node {
             return
         }
 
-        // 2. Dirty descendants.
-        fn dirty_subtree(node: &Node) {
-            // Stop if this subtree is already dirty.
-            if node.is_dirty() { return }
-
-            node.set_flag(IS_DIRTY | HAS_DIRTY_DESCENDANTS, true);
-
-            for kid in node.children() {
-                dirty_subtree(kid.r());
-            }
-        }
-
-        dirty_subtree(self);
+        self.set_flag(IS_DIRTY, true);
 
         // 4. Dirty ancestors.
         for ancestor in self.ancestors() {
