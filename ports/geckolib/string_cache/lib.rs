@@ -30,19 +30,9 @@ use std::slice;
 
 #[macro_use]
 pub mod atom_macro;
+pub mod namespace;
 
-#[macro_export]
-macro_rules! ns {
-    () => { atom!("") }
-}
-
-pub type Namespace = Atom;
-
-#[allow(non_snake_case)]
-#[inline]
-pub fn Namespace(atom: Atom) -> Atom {
-    atom
-}
+pub use namespace::{Namespace, WeakNamespace};
 
 /// A strong reference to a Gecko atom.
 #[derive(PartialEq, Eq)]
