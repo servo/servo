@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmltablecaptionelement
-[Exposed=(Window,Worker)]
 interface HTMLTableCaptionElement : HTMLElement {
   // also has obsolete members
 };
