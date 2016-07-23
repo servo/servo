@@ -484,6 +484,23 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
     fn Stringifier(&self) -> DOMString {
         DOMString::from(self.Href().0)
     }
+
+    // check-tidy: no specs after this line
+    fn Enter_formal_activation_state(&self) {
+        if let Some(a) = self.as_element().as_maybe_activatable() {
+            if a.testing_activation_pref_enabled() {
+                a.enter_formal_activation_state();
+            }
+        }
+    }
+
+    fn Exit_formal_activation_state(&self) {
+        if let Some(a) = self.as_element().as_maybe_activatable() {
+            if a.testing_activation_pref_enabled() {
+                a.enter_formal_activation_state();
+            }
+        }
+    }
 }
 
 impl Activatable for HTMLAnchorElement {

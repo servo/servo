@@ -24,8 +24,10 @@ interface HTMLAnchorElement : HTMLElement {
            attribute DOMString text;
 
   // also has obsolete members
+
 };
 HTMLAnchorElement implements HTMLHyperlinkElementUtils;
+HTMLAnchorElement implements ActivatableElement;
 
 // https://html.spec.whatwg.org/multipage/#HTMLAnchorElement-partial
 partial interface HTMLAnchorElement {

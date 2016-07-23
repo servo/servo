@@ -76,6 +76,7 @@ interface HTMLInputElement : HTMLElement {
   void selectFiles(sequence<DOMString> path);
 
 };
+HTMLInputElement implements ActivatableElement;
 
 // https://html.spec.whatwg.org/multipage/#HTMLInputElement-partial
 partial interface HTMLInputElement {

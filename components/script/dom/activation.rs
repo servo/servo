@@ -13,6 +13,7 @@ use dom::node::window_from_node;
 use dom::window::ReflowReason;
 use script_layout_interface::message::ReflowQueryType;
 use style::context::ReflowGoal;
+use util::prefs::PREFS;
 
 /// Trait for elements with defined activation behavior
 pub trait Activatable {
@@ -50,6 +51,11 @@ pub trait Activatable {
         win.reflow(ReflowGoal::ForDisplay,
                    ReflowQueryType::NoQuery,
                    ReflowReason::ElementStateChanged);
+    }
+
+    fn testing_activation_pref_enabled(&self) -> bool {
+        PREFS.get("dom.testing.element.activation.enabled")
+            .as_boolean().unwrap_or(false)
     }
 }
 

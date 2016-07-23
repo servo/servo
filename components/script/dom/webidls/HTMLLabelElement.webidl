@@ -8,3 +8,4 @@ interface HTMLLabelElement : HTMLElement {
   attribute DOMString htmlFor;
   readonly attribute HTMLElement? control;
 };
+HTMLLabelElement implements ActivatableElement;

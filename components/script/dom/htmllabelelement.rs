@@ -114,6 +114,23 @@ impl HTMLLabelElementMethods for HTMLLabelElement {
                                 .filter(|e| e.is_labelable_element())
                                 .next()
     }
+
+    // check-tidy: no specs after this line
+    fn Enter_formal_activation_state(&self) {
+        if let Some(a) = self.as_element().as_maybe_activatable() {
+            if a.testing_activation_pref_enabled() {
+                a.enter_formal_activation_state();
+            }
+        }
+    }
+
+    fn Exit_formal_activation_state(&self) {
+        if let Some(a) = self.as_element().as_maybe_activatable() {
+            if a.testing_activation_pref_enabled() {
+                a.enter_formal_activation_state();
+            }
+        }
+    }
 }
 
 impl VirtualMethods for HTMLLabelElement {

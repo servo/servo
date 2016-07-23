@@ -137,6 +137,23 @@ impl HTMLButtonElementMethods for HTMLButtonElement {
     fn Labels(&self) -> Root<NodeList> {
         self.upcast::<HTMLElement>().labels()
     }
+
+    // check-tidy: no specs after this line
+    fn Enter_formal_activation_state(&self) {
+        if let Some(a) = self.as_element().as_maybe_activatable() {
+            if a.testing_activation_pref_enabled() {
+                a.enter_formal_activation_state();
+            }
+        }
+    }
+
+    fn Exit_formal_activation_state(&self) {
+        if let Some(a) = self.as_element().as_maybe_activatable() {
+            if a.testing_activation_pref_enabled() {
+                a.enter_formal_activation_state();
+            }
+        }
+    }
 }
 
 impl HTMLButtonElement {

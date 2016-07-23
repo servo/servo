@@ -1,0 +1,46 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf=8">
+    <title>Test of activation state</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <a id="anchor" href="#foo">anchor</a>
+    <button id="button">button</button>
+    <label id="label">Label</label>
+    <input type="submit" id="input" />
+
+    <span id="foo">foo</span>
+  </body>
+
+  <script>
+    function test_activation_state(element, selector) {
+        return function() {
+            element.enter_formal_activation_state();
+            var active = document.querySelector(selector);
+            assert_true(active.id == element.id, selector + " was active");
+            element.exit_formal_activation_state();
+            this.done();
+        }
+    }
+
+    async_test(
+      test_activation_state(document.getElementById("anchor"), "a:active"),
+      "Activate anchor");
+
+    async_test(
+      test_activation_state(document.getElementById("button"), "button:active"),
+      "Activate button");
+
+    async_test(
+      test_activation_state(document.getElementById("label"), "label:active"),
+      "Activate label");
+
+    async_test(
+      test_activation_state(document.getElementById("input"), "input:active"),
+      "Activate input");
+  </script>
+</html>
+

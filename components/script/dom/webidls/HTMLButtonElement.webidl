@@ -26,3 +26,4 @@ interface HTMLButtonElement : HTMLElement {
 
   readonly attribute NodeList labels;
 };
+HTMLButtonElement implements ActivatableElement;
