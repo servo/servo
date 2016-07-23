@@ -1,8 +1,17 @@
 use gecko_bindings::structs::nsIAtom;
 
 use Atom;
+use WeakAtom;
 
-pub fn unsafe_atom_from_static(ptr: *mut nsIAtom) -> Atom { unsafe { Atom::from_static(ptr) } }
+// Static atoms have a dummy AddRef/Release, so we don't bother calling
+// AddRef() here. This would cause memory corruption with non-static atoms
+// both because (a) we wouldn't hold the atom alive, and (b) we can't avoid
+// calling Release() when the Atom is dropped, since we can't tell the
+// difference between static and non-static atoms without bloating the
+// size of Atom beyond word-size.
+pub fn unsafe_atom_from_static(ptr: *mut nsIAtom) -> Atom {
+    Atom(ptr as *mut WeakAtom)
+}
 
 cfg_if! {
     if #[cfg(not(target_env = "msvc"))] {
