@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmltitleelement
-[Exposed=(Window,Worker)]
 interface HTMLTitleElement : HTMLElement {
     [Pure]
            attribute DOMString text;
