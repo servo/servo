@@ -6,7 +6,7 @@ use element_state::ElementState;
 use selector_impl::PseudoElementCascadeType;
 use selector_impl::{attr_exists_selector_is_shareable, attr_equals_selector_is_shareable};
 use selectors::parser::{ParserContext, SelectorImpl, AttrSelector};
-use string_cache::{Atom, WeakAtom};
+use string_cache::{Atom, WeakAtom, Namespace, WeakNamespace};
 use stylesheets::Stylesheet;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -154,8 +154,8 @@ impl SelectorImpl for GeckoSelectorImpl {
     type Identifier = Atom;
     type ClassName = Atom;
     type LocalName = Atom;
-    type Namespace = Atom;
-    type BorrowedNamespace = WeakAtom;
+    type Namespace = Namespace;
+    type BorrowedNamespace = WeakNamespace;
     type BorrowedLocalName = WeakAtom;
 
     type PseudoElement = PseudoElement;
