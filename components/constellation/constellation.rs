@@ -1323,10 +1323,13 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
     }
 
-    fn handle_alert(&mut self, pipeline_id: PipelineId, message: String, sender: IpcSender<bool>) {
+    fn handle_alert(&mut self,
+                    pipeline_id: PipelineId,
+                    message: String,
+                    sender: IpcSender<bool>) {
         let display_alert_dialog = if PREFS.is_mozbrowser_enabled() {
             let parent_pipeline_info = self.pipelines.get(&pipeline_id).and_then(|source| source.parent_info);
-            if let Some(_) = parent_pipeline_info {
+            if parent_pipeline_info.is_some() {
                 let root_pipeline_id = self.root_frame_id
                     .and_then(|root_frame_id| self.frames.get(&root_frame_id))
                     .map(|root_frame| root_frame.current.0);
