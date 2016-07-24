@@ -1444,6 +1444,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             let root = self.root_frame_id.is_none() || self.root_frame_id == Some(frame_id);
             self.compositor_proxy.send(ToCompositorMsg::LoadComplete(back, forward, root));
         }
+        self.handle_subframe_loaded(pipeline_id);
     }
 
     fn handle_dom_load(&mut self, pipeline_id: PipelineId) {
@@ -1458,8 +1459,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         if webdriver_reset {
             self.webdriver.load_channel = None;
         }
-
-        self.handle_subframe_loaded(pipeline_id);
     }
 
     fn handle_traverse_history_msg(&mut self,
