@@ -2915,6 +2915,7 @@ impl DocumentProgressHandler {
         // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-loadEventStart
         update_with_current_time_ms(&document.load_event_start);
 
+        debug!("About to dispatch load for {:?}", document.url());
         let _ = wintarget.dispatch_event_with_target(document.upcast(), &event);
 
         // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-loadEventEnd

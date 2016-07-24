@@ -379,8 +379,7 @@ impl<C> PaintThread<C> where C: PaintListener + Send + 'static {
                   font_cache_thread: FontCacheThread,
                   time_profiler_chan: time::ProfilerChan,
                   mem_profiler_chan: mem::ProfilerChan) {
-        thread::spawn_named(format!("PaintThread {:?}", id),
-                            move || {
+        thread::spawn_named(format!("PaintThread {:?}", id), move || {
             thread_state::initialize(thread_state::PAINT);
             PipelineId::install(id);
 
