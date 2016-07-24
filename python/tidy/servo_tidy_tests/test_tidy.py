@@ -139,4 +139,4 @@ class CheckTidiness(unittest.TestCase):
 
 def do_tests():
     suite = unittest.TestLoader().loadTestsFromTestCase(CheckTidiness)
-    unittest.TextTestRunner(verbosity=2).run(suite)
+    return 0 if unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful() else 1
