@@ -425,9 +425,9 @@ impl<C> PaintThread<C> where C: PaintListener + Send + 'static {
                 let chrome_to_paint = &self.chrome_to_paint_port;
                 select! {
                     msg = layout_to_paint.recv() =>
-                        Msg::FromLayout(msg.unwrap()),
+                        Msg::FromLayout(msg.expect("expected message from layout")),
                     msg = chrome_to_paint.recv() =>
-                        Msg::FromChrome(msg.unwrap())
+                        Msg::FromChrome(msg.expect("expected message from chrome"))
                 }
             };
 
