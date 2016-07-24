@@ -2936,8 +2936,8 @@ impl Runnable for DocumentProgressHandler {
         let document = self.addr.root();
         let window = document.window();
         if window.is_alive() {
-            self.dispatch_load();
             self.set_ready_state_complete();
+            self.dispatch_load();
         }
     }
 }
