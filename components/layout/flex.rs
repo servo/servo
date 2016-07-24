@@ -20,7 +20,7 @@ use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx::display_list::StackingContext;
 use gfx_traits::StackingContextId;
 use layout_debug;
-use model::{IntrinsicISizes, MaybeAuto, MinMaxConstraint};
+use model::{Direction, IntrinsicISizes, MaybeAuto, MinMaxConstraint};
 use model::{specified, specified_or_none};
 use script_layout_interface::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW};
 use std::cmp::{max, min};
@@ -67,16 +67,6 @@ impl AxisSize {
             }
         }
     }
-}
-
-// A mode describes which logical axis a flex axis is parallel with.
-// The logical axises are inline and block, the flex axises are main and cross.
-// When the flex container has flex-direction: column or flex-direction: column-reverse, the main axis
-// should be block. Otherwise, it should be inline.
-#[derive(Debug, Clone, Copy)]
-enum Mode {
-    Inline,
-    Block
 }
 
 /// This function accepts the flex-basis and the size property in main direction from style,
@@ -166,13 +156,13 @@ impl FlexItem {
     /// Initialize the used flex base size, minimal main size and maximal main size.
     /// For block mode container this method should be called in assign_block_size()
     /// pass so that the item has already been layouted.
-    pub fn init_sizes(&mut self, containing_length: Au, mode: Mode) {
+    pub fn init_sizes(&mut self, containing_length: Au, direction: Direction) {
         let block = flow_ref::deref_mut(&mut self.flow).as_mut_block();
-        match mode {
+        match direction {
             // TODO(stshine): the definition of min-{width, height} in style component
             // should change to LengthOrPercentageOrAuto for automatic implied minimal size.
             // https://drafts.csswg.org/css-flexbox-1/#min-size-auto
-            Mode::Inline => {
+            Direction::Inline => {
                 let basis = from_flex_basis(self.style.get_position().flex_basis,
                                             self.style.content_inline_size(),
                                             Some(containing_length));
@@ -194,8 +184,8 @@ impl FlexItem {
                 self.max_size = specified_or_none(self.style.max_inline_size(), containing_length)
                     .unwrap_or(MAX_AU);
                 self.min_size = specified(self.style.min_inline_size(), containing_length);
-            },
-            Mode::Block => {
+            }
+            Direction::Block => {
                 let basis = from_flex_basis(self.style.get_position().flex_basis,
                                             self.style.content_block_size(),
                                             Some(containing_length));
@@ -214,18 +204,18 @@ impl FlexItem {
 
     /// Return the outer main size of the item, including paddings and margins,
     /// clamped by max and min size.
-    pub fn outer_main_size(&self, mode: Mode) -> Au {
+    pub fn outer_main_size(&self, direction: Direction) -> Au {
         let ref fragment = self.flow.as_block().fragment;
-        let adjustment = match mode {
-            Mode::Inline => {
+        let adjustment = match direction {
+            Direction::Inline => {
                 match self.style.get_position().box_sizing {
                     box_sizing::T::content_box =>
                         fragment.border_padding.inline_start_end() + fragment.margin.inline_start_end(),
                     box_sizing::T::border_box =>
                         fragment.margin.inline_start_end()
                 }
-            },
-            Mode::Block => {
+            }
+            Direction::Block => {
                 match self.style.get_position().box_sizing {
                     box_sizing::T::content_box =>
                         fragment.border_padding.block_start_end() + fragment.margin.block_start_end(),
@@ -237,11 +227,11 @@ impl FlexItem {
         max(self.min_size, min(self.base_size, self.max_size)) + adjustment
     }
 
-    pub fn auto_margin_num(&self, mode: Mode) -> i32 {
+    pub fn auto_margin_num(&self, direction: Direction) -> i32 {
         let margin = self.style.logical_margin();
         let mut margin_count = 0;
-        match mode {
-            Mode::Inline => {
+        match direction {
+            Direction::Inline => {
                 if margin.inline_start == LengthOrPercentageOrAuto::Auto {
                     margin_count += 1;
                 }
@@ -249,7 +239,7 @@ impl FlexItem {
                     margin_count += 1;
                 }
             }
-            Mode::Block => {
+            Direction::Block => {
                 if margin.block_start == LengthOrPercentageOrAuto::Auto {
                     margin_count += 1;
                 }
@@ -361,7 +351,7 @@ pub struct FlexFlow {
     block_flow: BlockFlow,
     /// The logical axis which the main axis will be parallel with.
     /// The cross axis will be parallel with the opposite logical axis.
-    main_mode: Mode,
+    main_mode: Direction,
     /// The available main axis size
     available_main_size: AxisSize,
     /// The available cross axis size
@@ -389,10 +379,10 @@ impl FlexFlow {
         {
             let style = fragment.style();
             let (mode, reverse) = match style.get_position().flex_direction {
-                flex_direction::T::row            => (Mode::Inline, false),
-                flex_direction::T::row_reverse    => (Mode::Inline, true),
-                flex_direction::T::column         => (Mode::Block, false),
-                flex_direction::T::column_reverse => (Mode::Block, true),
+                flex_direction::T::row            => (Direction::Inline, false),
+                flex_direction::T::row_reverse    => (Direction::Inline, true),
+                flex_direction::T::column         => (Direction::Block, false),
+                flex_direction::T::column_reverse => (Direction::Block, true),
             };
             main_mode = mode;
             main_reverse =
@@ -767,7 +757,7 @@ impl FlexFlow {
 
         for line in &self.lines {
             for mut item in self.items[line.range.clone()].iter_mut() {
-                let auto_margin_count = item.auto_margin_num(Mode::Block);
+                let auto_margin_count = item.auto_margin_num(Direction::Block);
                 let mut block = flow_ref::deref_mut(&mut item.flow).as_mut_block();
                 let margin = block.fragment.style().logical_margin();
 
@@ -869,8 +859,8 @@ impl Flow for FlexFlow {
         self.items = items;
 
         match self.main_mode {
-            Mode::Inline => self.inline_mode_bubble_inline_sizes(),
-            Mode::Block  => self.block_mode_bubble_inline_sizes()
+            Direction::Inline => self.inline_mode_bubble_inline_sizes(),
+            Direction::Block  => self.block_mode_bubble_inline_sizes()
         }
     }
 
@@ -929,7 +919,7 @@ impl Flow for FlexFlow {
         let content_inline_size = self.block_flow.fragment.border_box.size.inline - padding_and_borders;
 
         match self.main_mode {
-            Mode::Inline => {
+            Direction::Inline => {
                 self.available_main_size = available_inline_size;
                 self.available_cross_size = available_block_size;
                 self.inline_mode_assign_inline_sizes(shared_context,
@@ -937,7 +927,7 @@ impl Flow for FlexFlow {
                                                      inline_end_content_edge,
                                                      content_inline_size)
             },
-            Mode::Block  => {
+            Direction::Block  => {
                 self.available_main_size = available_block_size;
                 self.available_cross_size = available_inline_size;
                 self.block_mode_assign_inline_sizes(shared_context,
@@ -951,9 +941,9 @@ impl Flow for FlexFlow {
     fn assign_block_size<'a>(&mut self, layout_context: &'a LayoutContext<'a>) {
         self.block_flow.assign_block_size(layout_context);
         match self.main_mode {
-            Mode::Inline =>
+            Direction::Inline =>
                 self.inline_mode_assign_block_size(layout_context),
-            Mode::Block  =>
+            Direction::Block  =>
                 self.block_mode_assign_block_size(layout_context)
         }
     }
