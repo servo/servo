@@ -127,9 +127,8 @@ pub enum FileManagerThreadMsg {
     /// Select multiple files, return a vector of triples
     SelectFiles(Vec<FilterPattern>, IpcSender<FileManagerResult<Vec<SelectedFile>>>, FileOrigin, Option<Vec<String>>),
 
-    /// Read file by FileID, optionally check URL validity based on
-    /// third flag, return the blob buffer object
-    ReadFile(IpcSender<FileManagerResult<BlobBuf>>, SelectedFileId, bool, FileOrigin),
+    /// Read file in chunks by FileID, optionally check URL validity based on fourth flag
+    ReadFile(IpcSender<FileManagerResult<ReadFileProgress>>, SelectedFileId, bool, FileOrigin),
 
     /// Add an entry as promoted memory-based blob and send back the associated FileID
     /// as part of a valid/invalid Blob URL depending on the second bool flag
@@ -153,6 +152,13 @@ pub enum FileManagerThreadMsg {
 
     /// Shut down this thread
     Exit,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub enum ReadFileProgress {
+    Meta(BlobBuf),
+    Partial(Vec<u8>),
+    EOF
 }
 
 pub type FileManagerResult<T> = Result<T, FileManagerThreadError>;
