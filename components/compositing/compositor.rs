@@ -2114,7 +2114,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 }
 
                 // Check if there are any pending frames. If so, the image is not stable yet.
-                if self.pending_subpages.len() > 0 {
+                if !self.pending_subpages.is_empty() {
                     return Err(NotReadyToPaint::PendingSubpages(self.pending_subpages.len()));
                 }
 

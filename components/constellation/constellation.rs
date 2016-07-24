@@ -2073,7 +2073,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
 
         // If there are pending loads, wait for those to complete.
-        if self.pending_frames.len() > 0 {
+        if !self.pending_frames.is_empty() {
             return ReadyToSave::PendingFrames;
         }
 
@@ -2089,7 +2089,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             let pipeline_id = frame.current.0;
 
             let pipeline = match self.pipelines.get(&pipeline_id) {
-                None => { warn!("Pipeline {:?} screenshot while closing.", pipeline_id); continue; },
+                None => {
+                    warn!("Pipeline {:?} screenshot while closing.", pipeline_id);
+                    continue;
+                },
                 Some(pipeline) => pipeline,
             };
 
