@@ -6,7 +6,8 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use mime_guess::guess_mime_type_opt;
 use net_traits::blob_url_store::{BlobBuf, BlobURLStoreError};
 use net_traits::filemanager_thread::{FileManagerThreadMsg, FileManagerResult, FilterPattern, FileOrigin};
-use net_traits::filemanager_thread::{SelectedFile, RelativePos, FileManagerThreadError, SelectedFileId};
+use net_traits::filemanager_thread::{SelectedFile, RelativePos, FileManagerThreadError};
+use net_traits::filemanager_thread::{SelectedFileId, ReadFileProgress};
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{Read, Seek, SeekFrom};
@@ -156,11 +157,8 @@ impl<UI: 'static + UIProvider> FileManager<UI> {
                 }
                 FileManagerThreadMsg::ReadFile(sender, id, check_url_validity, origin) => {
                     spawn_named("read file".to_owned(), move || {
-                        match store.try_read_file(id, check_url_validity, origin) {
-                            Ok(buffer) => { let _ = sender.send(Ok(buffer)); }
-                            Err(e) => {
-                                let _ = sender.send(Err(FileManagerThreadError::BlobURLStoreError(e)));
-                            }
+                        if let Err(e) = store.try_read_file(sender.clone(), id, check_url_validity, origin) {
+                            let _ = sender.send(Err(FileManagerThreadError::BlobURLStoreError(e)));
                         }
                     })
                 }
@@ -410,18 +408,24 @@ impl <UI: 'static + UIProvider> FileManagerStore<UI> {
         })
     }
 
-    fn get_blob_buf(&self, id: &Uuid, origin_in: &FileOrigin, rel_pos: RelativePos,
-                    check_url_validity: bool) -> Result<BlobBuf, BlobURLStoreError> {
+    fn get_blob_buf(&self, sender: IpcSender<FileManagerResult<ReadFileProgress>>,
+                    id: &Uuid, origin_in: &FileOrigin, rel_pos: RelativePos,
+                    check_url_validity: bool) -> Result<(), BlobURLStoreError> {
         let file_impl = try!(self.get_impl(id, origin_in, check_url_validity));
         match file_impl {
             FileImpl::Memory(buf) => {
                 let range = rel_pos.to_abs_range(buf.size as usize);
-                Ok(BlobBuf {
+                let buf = BlobBuf {
                     filename: None,
                     type_string: buf.type_string,
                     size: range.len() as u64,
                     bytes: buf.bytes.index(range).to_vec(),
-                })
+                };
+
+                let _ = sender.send(Ok(ReadFileProgress::Meta(buf)));
+                let _ = sender.send(Ok(ReadFileProgress::EOF));
+
+                Ok(())
             }
             FileImpl::MetaDataOnly(metadata) => {
                 /* XXX: Snapshot state check (optional) https://w3c.github.io/FileAPI/#snapshot-state.
@@ -443,19 +447,13 @@ impl <UI: 'static + UIProvider> FileManagerStore<UI> {
                                        .map_err(|e| BlobURLStoreError::External(e.to_string())));
 
                 if seeked_start == (range.start as u64) {
-                    let mut bytes = vec![0; range.len()];
-                    try!(handler.read_exact(&mut bytes)
-                        .map_err(|e| BlobURLStoreError::External(e.to_string())));
+                    let type_string = match mime {
+                        Some(x) => format!("{}", x),
+                        None    => "".to_string(),
+                    };
 
-                    Ok(BlobBuf {
-                        filename: opt_filename,
-                        type_string: match mime {
-                            Some(x) => format!("{}", x),
-                            None    => "".to_string(),
-                        },
-                        size: range.len() as u64,
-                        bytes: bytes,
-                    })
+                    chunked_read(sender, &mut handler, range.len(), opt_filename, type_string);
+                    Ok(())
                 } else {
                     Err(BlobURLStoreError::InvalidEntry)
                 }
@@ -463,16 +461,17 @@ impl <UI: 'static + UIProvider> FileManagerStore<UI> {
             FileImpl::Sliced(parent_id, inner_rel_pos) => {
                 // Next time we don't need to check validity since
                 // we have already done that for requesting URL if necessary
-                self.get_blob_buf(&parent_id, origin_in, rel_pos.slice_inner(&inner_rel_pos), false)
+                self.get_blob_buf(sender, &parent_id, origin_in, rel_pos.slice_inner(&inner_rel_pos), false)
             }
         }
     }
 
     // Convenient wrapper over get_blob_buf
-    fn try_read_file(&self, id: SelectedFileId, check_url_validity: bool,
-                     origin_in: FileOrigin) -> Result<BlobBuf, BlobURLStoreError> {
+    fn try_read_file(&self, sender: IpcSender<FileManagerResult<ReadFileProgress>>,
+                     id: SelectedFileId, check_url_validity: bool,
+                     origin_in: FileOrigin) -> Result<(), BlobURLStoreError> {
         let id = try!(Uuid::parse_str(&id.0).map_err(|_| BlobURLStoreError::InvalidFileID));
-        self.get_blob_buf(&id, &origin_in, RelativePos::full_range(), check_url_validity)
+        self.get_blob_buf(sender, &id, &origin_in, RelativePos::full_range(), check_url_validity)
     }
 
     fn dec_ref(&self, id: &Uuid, origin_in: &FileOrigin,
@@ -562,4 +561,47 @@ impl <UI: 'static + UIProvider> FileManagerStore<UI> {
 fn select_files_pref_enabled() -> bool {
     PREFS.get("dom.testing.htmlinputelement.select_files.enabled")
          .as_boolean().unwrap_or(false)
+}
+
+const CHUNK_SIZE: usize = 8192;
+
+fn chunked_read(sender: IpcSender<FileManagerResult<ReadFileProgress>>,
+                handler: &mut File, size: usize, opt_filename: Option<String>, type_string: String) {
+    // First chunk
+    let mut buf = vec![0; CHUNK_SIZE];
+    match handler.read(&mut buf) {
+        Ok(n) => {
+            buf.truncate(n);
+            let blob_buf = BlobBuf {
+                filename: opt_filename,
+                type_string: type_string,
+                size: size as u64,
+                bytes: buf,
+            };
+            let _ = sender.send(Ok(ReadFileProgress::Meta(blob_buf)));
+        }
+        Err(e) => {
+            let _ = sender.send(Err(FileManagerThreadError::FileSystemError(e.to_string())));
+            return;
+        }
+    }
+
+    // Send the rest chunks
+    loop {
+        let mut buf = vec![0; CHUNK_SIZE];
+        match handler.read(&mut buf) {
+            Ok(0) => {
+                let _ = sender.send(Ok(ReadFileProgress::EOF));
+                return;
+            }
+            Ok(n) => {
+                buf.truncate(n);
+                let _ = sender.send(Ok(ReadFileProgress::Partial(buf)));
+            }
+            Err(e) => {
+                let _ = sender.send(Err(FileManagerThreadError::FileSystemError(e.to_string())));
+                return;
+            }
+        }
+    }
 }
