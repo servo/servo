@@ -113,17 +113,19 @@ impl HTMLIFrameElement {
 
         let document = document_from_node(self);
 
+
         let mut load_blocker = self.load_blocker.borrow_mut();
-        // Any oustanding load is finished from the point of view of the blocked
-        // document; the new navigation will continue blocking it.
-        LoadBlocker::terminate(&mut load_blocker);
 
         //TODO(#9592): Deal with the case where an iframe is being reloaded so url is None.
         //      The iframe should always have access to the nested context's active
         //      document URL through the browsing context.
-        if let Some(ref load_data) = load_data {
-            *load_blocker = Some(LoadBlocker::new(&*document, LoadType::Subframe(load_data.url.clone())));
-        }
+        let new_load = load_data.as_ref().map(|load_data| {
+            LoadType::Subframe(load_data.url.clone())
+        });
+
+        // Any oustanding load is finished from the point of view of the blocked
+        // document; the new navigation will continue blocking it.
+        LoadBlocker::swap(&mut load_blocker, &*document, new_load);
 
         let window = window_from_node(self);
         let (new_subpage_id, old_subpage_id) = self.generate_new_subpage_id();

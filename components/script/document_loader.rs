@@ -80,6 +80,44 @@ impl LoadBlocker {
     pub fn url(&self) -> Option<&Url> {
         self.load.as_ref().map(LoadType::url)
     }
+
+    /// Swaps a load blocker with another load event. The terminate steps for
+    /// the first load still run.
+    ///
+    /// There will always be a load blocker in blocker after this function runs
+    /// if new_load is present.
+    pub fn swap(blocker: &mut Option<LoadBlocker>,
+                document: &Document,
+                new_load: Option<LoadType>) {
+        // If there's a blocker, dispatch the steps possibly adding the new_load
+        // as a blocking load to the document.
+        //
+        // XXX(emilio): This is unfortunate.
+        if blocker.is_some() {
+            let has_new_load = new_load.is_some();
+            {
+                let blocker = blocker.as_mut().unwrap();
+                assert!(*document == *blocker.doc);
+                if let Some(ref new_load) = new_load {
+                    blocker.doc.add_blocking_load(new_load.clone());
+                }
+                blocker.doc.finish_load(blocker.load.take().unwrap());
+
+                // If there was a load, just reuse the same blocker, otherwise
+                // delete it (a few lines below).
+                if has_new_load {
+                    blocker.load = new_load;
+                }
+            }
+
+            if !has_new_load {
+                *blocker = None;
+            }
+        // No blocker, but load, in this case we need to create a new one.
+        } else if let Some(new_load) = new_load {
+            *blocker = Some(LoadBlocker::new(document, new_load));
+        }
+    }
 }
 
 impl Drop for LoadBlocker {
