@@ -80,7 +80,9 @@ Download Python for Windows [here](https://www.python.org/downloads/release/pyth
 required for the SpiderMonkey build on Windows.
 
 Install MSYS2 from [here](https://msys2.github.io/). After you have done so, open an MSYS shell
-window and update the core libraries and install new packages:
+window and update the core libraries and install new packages. The extra step at the end is to
+downgrate GCC to 5.4, as the GCC6 versions in mingw currently fail to compile some of our
+dependencies. We are upgrading to a gcc-free build on Windows as soon as possible:
 
 ```sh
 pacman -Su
@@ -88,6 +90,11 @@ pacman -Sy git mingw-w64-x86_64-toolchain mingw-w64-x86_64-freetype \
     mingw-w64-x86_64-icu mingw-w64-x86_64-nspr mingw-w64-x86_64-ca-certificates \
     mingw-w64-x86_64-expat mingw-w64-x86_64-cmake tar diffutils patch \
     patchutils make python2-setuptools
+export GCC_URL=http://repo.msys2.org/mingw/x86_64/mingw-w64-x86_64-gcc
+export GCC_EXT=5.4.0-1-any.pkg.tar.xz
+pacman -U --noconfirm $GCC_URL-$GCC_EXT $GCC_URL-ada-$GCC_EXT \
+    $GCC_URL-fortran-$GCC_EXT $GCC_URL-libgfortran-$GCC_EXT $GCC_URL-libs-$GCC_EXT \
+    $GCC_URL-objc-$GCC_EXT
 easy_install-2.7 pip virtualenv
 ```
 
