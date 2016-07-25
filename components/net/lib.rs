@@ -38,7 +38,7 @@ extern crate rand;
 extern crate rustc_serialize;
 extern crate threadpool;
 extern crate time;
-#[cfg(any(target_os = "macos", target_os = "linux"))]
+#[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
 extern crate tinyfiledialogs;
 extern crate unicase;
 extern crate url;

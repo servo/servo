@@ -14,7 +14,7 @@ path = "lib.rs"
 [features]
 debugmozjs = ['js/debugmozjs']
 
-[target.'cfg(any(target_os = "macos", target_os = "linux"))'.dependencies]
+[target.'cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))'.dependencies]
 tinyfiledialogs = {git = "https://github.com/jdm/tinyfiledialogs"}
 
 [dependencies]

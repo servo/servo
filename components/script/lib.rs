@@ -82,7 +82,7 @@ extern crate smallvec;
 #[macro_use]
 extern crate style;
 extern crate time;
-#[cfg(any(target_os = "macos", target_os = "linux"))]
+#[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
 extern crate tinyfiledialogs;
 extern crate url;
 #[macro_use]
@@ -186,4 +186,3 @@ pub fn init(sw_senders: SWManagerSenders) {
 pub unsafe fn script_can_initiate_scroll(_: *mut JSContext, _: Handle<*mut JSObject>) -> bool {
     !opts::get().use_webrender
 }
-

@@ -95,7 +95,7 @@ use task_source::networking::NetworkingTaskSource;
 use task_source::user_interaction::UserInteractionTaskSource;
 use time;
 use timers::{IsInterval, OneshotTimerCallback, OneshotTimerHandle, OneshotTimers, TimerCallback};
-#[cfg(any(target_os = "macos", target_os = "linux"))]
+#[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
 use tinyfiledialogs::{self, MessageBoxIcon};
 use url::Url;
 use util::geometry::{self, MAX_RECT};
@@ -361,14 +361,14 @@ impl Window {
     }
 }
 
-#[cfg(any(target_os = "macos", target_os = "linux"))]
+#[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
 fn display_alert_dialog(message: &str) {
     tinyfiledialogs::message_box_ok("Alert!", message, MessageBoxIcon::Warning);
 }
 
-#[cfg(not(any(target_os = "macos", target_os = "linux")))]
+#[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
 fn display_alert_dialog(_message: &str) {
-    // tinyfiledialogs not supported on Windows
+    // tinyfiledialogs not supported on Android
 }
 
 // https://html.spec.whatwg.org/multipage/#atob
