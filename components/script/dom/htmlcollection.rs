@@ -248,7 +248,7 @@ impl<'a> Iterator for HTMLCollectionElementsIter<'a> {
                       .filter_map(Root::downcast)
                       .filter(|element| filter.filter(&element, root))
                       .next()
-   }
+    }
 }
 
 impl HTMLCollectionMethods for HTMLCollection {
