@@ -307,7 +307,7 @@ impl DedicatedWorkerGlobalScope {
                 let path_seg = format!("url({})", scope.get_url());
                 let reports = get_reports(cx, path_seg);
                 reports_chan.send(reports);
-            },
+            }
         }
     }
 

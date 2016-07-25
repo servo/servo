@@ -15,7 +15,7 @@ pub enum WorkerScriptMsg {
     /// Common variants associated with the script messages
     Common(CommonScriptMsg),
     /// Message sent through Worker.postMessage
-    DOMMessage(StructuredCloneData),
+    DOMMessage(StructuredCloneData)
 }
 
 pub struct SimpleWorkerErrorHandler<T: Reflectable> {
