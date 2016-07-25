@@ -41,8 +41,8 @@ main() {
         extension=dmg
         package=target/*."${extension}"
     elif [[ "${platform}" == "windows" ]]; then
-        extension=tar.gz
-        package=target/*."${extension}"
+        extension=msi
+        package=target/msi/*.msi
     else
         usage >&2
         return 1
