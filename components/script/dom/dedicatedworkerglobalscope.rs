@@ -308,6 +308,7 @@ impl DedicatedWorkerGlobalScope {
                 let reports = get_reports(cx, path_seg);
                 reports_chan.send(reports);
             },
+            WorkerScriptMsg::Response(_) => panic!("unexpected custom response event in worker")
         }
     }
 

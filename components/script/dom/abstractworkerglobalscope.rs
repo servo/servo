@@ -59,6 +59,7 @@ impl<T: Reflectable> ScriptPort for Receiver<(Trusted<T>, WorkerScriptMsg)> {
         match self.recv().map(|(_, msg)| msg) {
             Ok(WorkerScriptMsg::Common(script_msg)) => Ok(script_msg),
             Ok(WorkerScriptMsg::DOMMessage(_)) => panic!("unexpected worker event message!"),
+            Ok(WorkerScriptMsg::Response(_)) => panic!("unexpected custom response event for worker!"),
             Err(_) => Err(()),
         }
     }
