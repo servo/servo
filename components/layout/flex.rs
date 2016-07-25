@@ -26,8 +26,8 @@ use script_layout_interface::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW};
 use std::cmp::{max, min};
 use std::ops::Range;
 use std::sync::Arc;
+use style::computed_values::border_collapse;
 use style::computed_values::{align_content, align_self, flex_direction, flex_wrap, justify_content};
-use style::computed_values::{box_sizing, border_collapse};
 use style::context::{SharedStyleContext, StyleContext};
 use style::logical_geometry::LogicalSize;
 use style::properties::ServoComputedValues;
@@ -173,13 +173,9 @@ impl FlexItem {
                 block.fragment.compute_inline_direction_margins(containing_length);
                 block.fragment.compute_block_direction_margins(containing_length);
 
-                let adjustment = match self.style.get_position().box_sizing {
-                    box_sizing::T::content_box => Au(0),
-                    box_sizing::T::border_box =>
-                        block.fragment.border_padding.inline_start_end()
-                };
                 let content_size = block.base.intrinsic_inline_sizes.preferred_inline_size
-                    - block.fragment.surrounding_intrinsic_inline_size() + adjustment;
+                    - block.fragment.surrounding_intrinsic_inline_size()
+                    + block.fragment.box_sizing_boundary(direction);
                 self.base_size = basis.specified_or_default(content_size);
                 self.max_size = specified_or_none(self.style.max_inline_size(), containing_length)
                     .unwrap_or(MAX_AU);
@@ -189,11 +185,9 @@ impl FlexItem {
                 let basis = from_flex_basis(self.style.get_position().flex_basis,
                                             self.style.content_block_size(),
                                             Some(containing_length));
-                let content_size = match self.style.get_position().box_sizing {
-                    box_sizing::T::border_box => block.fragment.border_box.size.block,
-                    box_sizing::T::content_box => block.fragment.border_box.size.block
-                        - block.fragment.border_padding.block_start_end(),
-                };
+                let content_size = block.fragment.border_box.size.block
+                    - block.fragment.border_padding.block_start_end()
+                    + block.fragment.box_sizing_boundary(direction);
                 self.base_size = basis.specified_or_default(content_size);
                 self.max_size = specified_or_none(self.style.max_block_size(), containing_length)
                     .unwrap_or(MAX_AU);
@@ -206,25 +200,16 @@ impl FlexItem {
     /// clamped by max and min size.
     pub fn outer_main_size(&self, direction: Direction) -> Au {
         let ref fragment = self.flow.as_block().fragment;
-        let adjustment = match direction {
+        let outer_width = match direction {
             Direction::Inline => {
-                match self.style.get_position().box_sizing {
-                    box_sizing::T::content_box =>
-                        fragment.border_padding.inline_start_end() + fragment.margin.inline_start_end(),
-                    box_sizing::T::border_box =>
-                        fragment.margin.inline_start_end()
-                }
+                fragment.border_padding.inline_start_end() + fragment.margin.inline_start_end()
             }
             Direction::Block => {
-                match self.style.get_position().box_sizing {
-                    box_sizing::T::content_box =>
-                        fragment.border_padding.block_start_end() + fragment.margin.block_start_end(),
-                    box_sizing::T::border_box =>
-                        fragment.margin.block_start_end()
-                }
+                fragment.border_padding.block_start_end() + fragment.margin.block_start_end()
             }
         };
-        max(self.min_size, min(self.base_size, self.max_size)) + adjustment
+        max(self.min_size, min(self.base_size, self.max_size))
+            - fragment.box_sizing_boundary(direction) + outer_width
     }
 
     pub fn auto_margin_num(&self, direction: Direction) -> i32 {
@@ -571,10 +556,8 @@ impl FlexFlow {
         self.block_flow.base.position.size.inline = inline_size;
 
         // Calculate non-auto block size to pass to children.
-        let box_border = match self.block_flow.fragment.style().get_position().box_sizing {
-            box_sizing::T::border_box => self.block_flow.fragment.border_padding.block_start_end(),
-            box_sizing::T::content_box => Au(0),
-        };
+        let box_border = self.block_flow.fragment.box_sizing_boundary(Direction::Block);
+
         let parent_container_size = self.block_flow.explicit_block_containing_size(_shared_context);
         // https://drafts.csswg.org/css-ui-3/#box-sizing
         let explicit_content_size = self
@@ -645,23 +628,19 @@ impl FlexFlow {
                     .specified_or_default(auto_len);
                 let margin_inline_end = MaybeAuto::from_style(margin.inline_end, inline_size)
                     .specified_or_default(auto_len);
-                let item_inline_size = item.main_size +
-                    match block.fragment.style().get_position().box_sizing {
-                        box_sizing::T::border_box => Au(0),
-                        box_sizing::T::content_box => block.fragment.border_padding.inline_start_end(),
-                    };
+                let item_inline_size = item.main_size
+                    - block.fragment.box_sizing_boundary(self.main_mode)
+                    + block.fragment.border_padding.inline_start_end();
                 let item_outer_size = item_inline_size + block.fragment.margin.inline_start_end();
 
                 block.fragment.margin.inline_start = margin_inline_start;
                 block.fragment.margin.inline_end = margin_inline_end;
                 block.fragment.border_box.start.i = margin_inline_start;
                 block.fragment.border_box.size.inline = item_inline_size;
-                if !self.main_reverse {
-                    block.base.position.start.i = cur_i;
+                block.base.position.start.i = if !self.main_reverse {
+                    cur_i
                 } else {
-                    block.base.position.start.i =
-                        inline_start_content_edge *2 + content_inline_size
-                        - cur_i  - item_outer_size;
+                    inline_start_content_edge * 2 + content_inline_size - cur_i  - item_outer_size
                 };
                 block.base.position.size.inline = item_outer_size;
                 cur_i += item_outer_size + item_interval;
@@ -708,17 +687,14 @@ impl FlexFlow {
             total_cross_size += line.cross_size;
         }
 
-        let box_border = match self.block_flow.fragment.style().get_position().box_sizing {
-            box_sizing::T::border_box => self.block_flow.fragment.border_padding.block_start_end(),
-            box_sizing::T::content_box => Au(0),
-        };
+        let box_border = self.block_flow.fragment.box_sizing_boundary(Direction::Block);
         let parent_container_size =
             self.block_flow.explicit_block_containing_size(layout_context.shared_context());
         // https://drafts.csswg.org/css-ui-3/#box-sizing
         let explicit_content_size = self
                                     .block_flow
                                     .explicit_block_size(parent_container_size)
-                                    .map(|x| if x < box_border { Au(0) } else { x - box_border });
+                                    .map(|x| max(x - box_border, Au(0)));
 
         if let Some(container_block_size) = explicit_content_size {
             let free_space = container_block_size - total_cross_size;
