@@ -15222,6 +15222,10 @@
         "url": "/dom/nodes/insert-adjacent.html"
       },
       {
+        "path": "dom/nodes/remove-row.html",
+        "url": "/dom/nodes/remove-row.html"
+      },
+      {
         "path": "dom/nodes/prepend-on-Document.html",
         "url": "/dom/nodes/prepend-on-Document.html"
       },
