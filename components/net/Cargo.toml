@@ -46,5 +46,5 @@ git = "https://github.com/servo/webrender_traits"
 default_features = false
 features = ["serde_macros"]
 
-[target.'cfg(any(target_os = "macos", target_os = "linux"))'.dependencies]
+[target.'cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))'.dependencies]
 tinyfiledialogs = {git = "https://github.com/jdm/tinyfiledialogs"}
