@@ -3089,7 +3089,7 @@ impl ISizeAndMarginsComputer for FlexItem {
                                                                 container_block_size);
     }
 
-    // Literally do nothing.
+    // The used inline size and margins are set by parent flex flow, do nothing here.
     fn solve_inline_size_constraints(&self,
                                      block: &mut BlockFlow,
                                      _: &ISizeConstraintInput)
