@@ -19,7 +19,7 @@ interface HTMLTableElement : HTMLElement {
   HTMLTableSectionElement createTBody();
   readonly attribute HTMLCollection rows;
   [Throws] HTMLTableRowElement insertRow(optional long index = -1);
-  //void deleteRow(long index);
+  [Throws] void deleteRow(long index);
 
   // also has obsolete members
 };

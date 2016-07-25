@@ -34,6 +34,26 @@ pub struct HTMLTableElement {
     tbodies: MutNullableHeap<JS<HTMLCollection>>,
 }
 
+#[allow(unrooted_must_root)]
+#[derive(JSTraceable, HeapSizeOf)]
+struct TableRowFilter {
+    sections: Vec<JS<Node>>,
+}
+
+impl TableRowFilter {
+    fn len(&self) -> usize {
+        self.sections.len()
+    }
+}
+
+impl CollectionFilter for TableRowFilter {
+    fn filter(&self, elem: &Element, root: &Node) -> bool {
+        elem.is::<HTMLTableRowElement>() &&
+            (root.is_parent_of(elem.upcast())
+                || self.sections.iter().any(|ref section| section.is_parent_of(elem.upcast())))
+    }
+}
+
 impl HTMLTableElement {
     fn new_inherited(localName: Atom, prefix: Option<DOMString>, document: &Document)
                      -> HTMLTableElement {
@@ -120,32 +140,22 @@ impl HTMLTableElement {
             thead.upcast::<Node>().remove_self();
         }
     }
-}
 
-impl HTMLTableElementMethods for HTMLTableElement {
-    // https://html.spec.whatwg.org/multipage/#dom-table-rows
-    fn Rows(&self) -> Root<HTMLCollection> {
-        #[allow(unrooted_must_root)]
-        #[derive(JSTraceable, HeapSizeOf)]
-        struct TableRowFilter {
-            sections: Vec<JS<Node>>
-        }
-
-        impl CollectionFilter for TableRowFilter {
-            fn filter(&self, elem: &Element, root: &Node) -> bool {
-                elem.is::<HTMLTableRowElement>() &&
-                    (root.is_parent_of(elem.upcast())
-                        || self.sections.iter().any(|ref section| section.is_parent_of(elem.upcast())))
-            }
-        }
-
-        let filter = TableRowFilter {
+    fn get_rows(&self) -> TableRowFilter {
+        TableRowFilter {
             sections: self.upcast::<Node>()
                           .children()
                           .filter_map(|ref node|
                                 node.downcast::<HTMLTableSectionElement>().map(|_| JS::from_ref(&**node)))
                           .collect()
-        };
+        }
+    }
+}
+
+impl HTMLTableElementMethods for HTMLTableElement {
+    // https://html.spec.whatwg.org/multipage/#dom-table-rows
+    fn Rows(&self) -> Root<HTMLCollection> {
+        let filter = self.get_rows();
         HTMLCollection::new(window_from_node(self).r(), self.upcast(), box filter)
     }
 
@@ -336,6 +346,22 @@ impl HTMLTableElementMethods for HTMLTableElement {
         }
 
         Ok(new_row)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-table-deleterow
+    fn DeleteRow(&self, mut index: i32) -> Fallible<()> {
+        let mut rows = self.get_rows();
+        // Step 1.
+        if index == -1 {
+            index = rows.len() as i32 - 1;
+        }
+        // Step 2.
+        if index < 0 || index as usize >= rows.len() {
+            return Err(Error::IndexSize);
+        }
+        // Step 3.
+        rows.sections.remove(index as usize);
+        Ok(())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-table-bgcolor
