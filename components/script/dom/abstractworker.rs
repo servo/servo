@@ -8,6 +8,7 @@ use dom::bindings::str::DOMString;
 use dom::bindings::structuredclone::StructuredCloneData;
 use js::jsapi::{JSRuntime, JS_RequestInterruptCallback};
 use js::rust::Runtime;
+use net_traits::CustomResponseMediator;
 use script_runtime::CommonScriptMsg;
 
 /// Messages used to control the worker event loops
@@ -16,6 +17,8 @@ pub enum WorkerScriptMsg {
     Common(CommonScriptMsg),
     /// Message sent through Worker.postMessage
     DOMMessage(StructuredCloneData),
+    // Message to request a custom response by the service worker
+    Response(CustomResponseMediator)
 }
 
 pub struct SimpleWorkerErrorHandler<T: Reflectable> {

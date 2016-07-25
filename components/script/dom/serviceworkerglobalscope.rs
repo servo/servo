@@ -37,7 +37,7 @@ use util::thread_state;
 use util::thread_state::{IN_WORKER, SCRIPT};
 
 pub enum MixedMessage {
-    FromServiceWorker((TrustedServiceWorkerAddress, WorkerScriptMsg)),
+    FromServiceWorker(WorkerScriptMsg),
     FromDevtools(DevtoolScriptControlMsg),
     FromTimeoutThread(()),
 }
@@ -47,9 +47,9 @@ pub struct ServiceWorkerGlobalScope {
     workerglobalscope: WorkerGlobalScope,
     id: PipelineId,
     #[ignore_heap_size_of = "Defined in std"]
-    receiver: Receiver<(TrustedServiceWorkerAddress, WorkerScriptMsg)>,
+    receiver: Receiver<WorkerScriptMsg>,
     #[ignore_heap_size_of = "Defined in std"]
-    own_sender: Sender<(TrustedServiceWorkerAddress, WorkerScriptMsg)>,
+    own_sender: Sender<WorkerScriptMsg>,
     #[ignore_heap_size_of = "Defined in std"]
     timer_event_port: Receiver<()>,
     #[ignore_heap_size_of = "Trusted<T> has unclear ownership like JS<T>"]
@@ -66,8 +66,8 @@ impl ServiceWorkerGlobalScope {
                      id: PipelineId,
                      from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
                      runtime: Runtime,
-                     own_sender: Sender<(TrustedServiceWorkerAddress, WorkerScriptMsg)>,
-                     receiver: Receiver<(TrustedServiceWorkerAddress, WorkerScriptMsg)>,
+                     own_sender: Sender<WorkerScriptMsg>,
+                     receiver: Receiver<WorkerScriptMsg>,
                      timer_event_chan: IpcSender<TimerEvent>,
                      timer_event_port: Receiver<()>,
                      swmanager_sender: IpcSender<ServiceWorkerMsg>,
@@ -95,8 +95,8 @@ impl ServiceWorkerGlobalScope {
                id: PipelineId,
                from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
                runtime: Runtime,
-               own_sender: Sender<(TrustedServiceWorkerAddress, WorkerScriptMsg)>,
-               receiver: Receiver<(TrustedServiceWorkerAddress, WorkerScriptMsg)>,
+               own_sender: Sender<WorkerScriptMsg>,
+               receiver: Receiver<WorkerScriptMsg>,
                timer_event_chan: IpcSender<TimerEvent>,
                timer_event_port: Receiver<()>,
                swmanager_sender: IpcSender<ServiceWorkerMsg>,
@@ -119,8 +119,8 @@ impl ServiceWorkerGlobalScope {
 
     #[allow(unsafe_code)]
     pub fn run_serviceworker_scope(scope_things: ScopeThings,
-                            own_sender: Sender<(TrustedServiceWorkerAddress, WorkerScriptMsg)>,
-                            receiver: Receiver<(TrustedServiceWorkerAddress, WorkerScriptMsg)>,
+                            own_sender: Sender<WorkerScriptMsg>,
+                            receiver: Receiver<WorkerScriptMsg>,
                             devtools_receiver: IpcReceiver<DevtoolScriptControlMsg>,
                             swmanager_sender: IpcSender<ServiceWorkerMsg>,
                             scope_url: Url) {
@@ -201,7 +201,7 @@ impl ServiceWorkerGlobalScope {
                 }
                 true
             }
-            MixedMessage::FromServiceWorker((_, msg)) => {
+            MixedMessage::FromServiceWorker(msg) => {
                 self.handle_script_event(msg);
                 true
             }
@@ -236,6 +236,9 @@ impl ServiceWorkerGlobalScope {
                 let reports = get_reports(cx, path_seg);
                 reports_chan.send(reports);
             },
+            WorkerScriptMsg::Response(mediator) => {
+                let _ = mediator.response_chan.send(None);
+            }
         }
     }
 
