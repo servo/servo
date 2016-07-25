@@ -24,7 +24,7 @@ use js::jsapi::{JS_SetInterruptCallback, JSAutoCompartment, JSContext};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use msg::constellation_msg::PipelineId;
-use net_traits::{LoadContext, load_whole_resource, IpcSend};
+use net_traits::{LoadContext, load_whole_resource, IpcSend, CustomResponseMediator};
 use script_runtime::{CommonScriptMsg, StackRootTLS, get_reports, new_rt_and_cx};
 use script_traits::{TimerEvent, WorkerGlobalScopeInit, ScopeThings, ServiceWorkerMsg};
 use std::sync::mpsc::{Receiver, RecvError, Select, Sender, channel};
@@ -36,8 +36,16 @@ use util::thread::spawn_named;
 use util::thread_state;
 use util::thread_state::{IN_WORKER, SCRIPT};
 
+/// Messages used to control service worker event loop
+pub enum ServiceWorkerScriptMsg {
+    /// Message common to all workers
+    CommonWorker(WorkerScriptMsg),
+    // Message to request a custom response by the service worker
+    Response(CustomResponseMediator)
+}
+
 pub enum MixedMessage {
-    FromServiceWorker((TrustedServiceWorkerAddress, WorkerScriptMsg)),
+    FromServiceWorker(ServiceWorkerScriptMsg),
     FromDevtools(DevtoolScriptControlMsg),
     FromTimeoutThread(()),
 }
@@ -47,9 +55,9 @@ pub struct ServiceWorkerGlobalScope {
     workerglobalscope: WorkerGlobalScope,
     id: PipelineId,
     #[ignore_heap_size_of = "Defined in std"]
-    receiver: Receiver<(TrustedServiceWorkerAddress, WorkerScriptMsg)>,
+    receiver: Receiver<ServiceWorkerScriptMsg>,
     #[ignore_heap_size_of = "Defined in std"]
-    own_sender: Sender<(TrustedServiceWorkerAddress, WorkerScriptMsg)>,
+    own_sender: Sender<ServiceWorkerScriptMsg>,
     #[ignore_heap_size_of = "Defined in std"]
     timer_event_port: Receiver<()>,
     #[ignore_heap_size_of = "Trusted<T> has unclear ownership like JS<T>"]
@@ -66,8 +74,8 @@ impl ServiceWorkerGlobalScope {
                      id: PipelineId,
                      from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
                      runtime: Runtime,
-                     own_sender: Sender<(TrustedServiceWorkerAddress, WorkerScriptMsg)>,
-                     receiver: Receiver<(TrustedServiceWorkerAddress, WorkerScriptMsg)>,
+                     own_sender: Sender<ServiceWorkerScriptMsg>,
+                     receiver: Receiver<ServiceWorkerScriptMsg>,
                      timer_event_chan: IpcSender<TimerEvent>,
                      timer_event_port: Receiver<()>,
                      swmanager_sender: IpcSender<ServiceWorkerMsg>,
@@ -95,8 +103,8 @@ impl ServiceWorkerGlobalScope {
                id: PipelineId,
                from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
                runtime: Runtime,
-               own_sender: Sender<(TrustedServiceWorkerAddress, WorkerScriptMsg)>,
-               receiver: Receiver<(TrustedServiceWorkerAddress, WorkerScriptMsg)>,
+               own_sender: Sender<ServiceWorkerScriptMsg>,
+               receiver: Receiver<ServiceWorkerScriptMsg>,
                timer_event_chan: IpcSender<TimerEvent>,
                timer_event_port: Receiver<()>,
                swmanager_sender: IpcSender<ServiceWorkerMsg>,
@@ -119,8 +127,8 @@ impl ServiceWorkerGlobalScope {
 
     #[allow(unsafe_code)]
     pub fn run_serviceworker_scope(scope_things: ScopeThings,
-                            own_sender: Sender<(TrustedServiceWorkerAddress, WorkerScriptMsg)>,
-                            receiver: Receiver<(TrustedServiceWorkerAddress, WorkerScriptMsg)>,
+                            own_sender: Sender<ServiceWorkerScriptMsg>,
+                            receiver: Receiver<ServiceWorkerScriptMsg>,
                             devtools_receiver: IpcReceiver<DevtoolScriptControlMsg>,
                             swmanager_sender: IpcSender<ServiceWorkerMsg>,
                             scope_url: Url) {
@@ -201,7 +209,7 @@ impl ServiceWorkerGlobalScope {
                 }
                 true
             }
-            MixedMessage::FromServiceWorker((_, msg)) => {
+            MixedMessage::FromServiceWorker(msg) => {
                 self.handle_script_event(msg);
                 true
             }
@@ -212,9 +220,11 @@ impl ServiceWorkerGlobalScope {
         }
     }
 
-    fn handle_script_event(&self, msg: WorkerScriptMsg) {
+    fn handle_script_event(&self, msg: ServiceWorkerScriptMsg) {
+        use self::ServiceWorkerScriptMsg::*;
+
         match msg {
-            WorkerScriptMsg::DOMMessage(data) => {
+            CommonWorker(WorkerScriptMsg::DOMMessage(data)) => {
                 let scope = self.upcast::<WorkerGlobalScope>();
                 let target = self.upcast();
                 let _ac = JSAutoCompartment::new(scope.get_cx(),
@@ -223,19 +233,22 @@ impl ServiceWorkerGlobalScope {
                 data.read(GlobalRef::Worker(scope), message.handle_mut());
                 MessageEvent::dispatch_jsval(target, GlobalRef::Worker(scope), message.handle());
             },
-            WorkerScriptMsg::Common(CommonScriptMsg::RunnableMsg(_, runnable)) => {
+            CommonWorker(WorkerScriptMsg::Common(CommonScriptMsg::RunnableMsg(_, runnable))) => {
                 runnable.handler()
             },
-            WorkerScriptMsg::Common(CommonScriptMsg::RefcountCleanup(addr)) => {
+            CommonWorker(WorkerScriptMsg::Common(CommonScriptMsg::RefcountCleanup(addr))) => {
                 LiveDOMReferences::cleanup(addr);
             },
-            WorkerScriptMsg::Common(CommonScriptMsg::CollectReports(reports_chan)) => {
+            CommonWorker(WorkerScriptMsg::Common(CommonScriptMsg::CollectReports(reports_chan))) => {
                 let scope = self.upcast::<WorkerGlobalScope>();
                 let cx = scope.get_cx();
                 let path_seg = format!("url({})", scope.get_url());
                 let reports = get_reports(cx, path_seg);
                 reports_chan.send(reports);
             },
+            Response(mediator) => {
+                let _ = mediator.response_chan.send(None);
+            }
         }
     }
 
@@ -275,7 +288,7 @@ impl ServiceWorkerGlobalScope {
     }
 
     pub fn process_event(&self, msg: CommonScriptMsg) {
-        self.handle_script_event(WorkerScriptMsg::Common(msg));
+        self.handle_script_event(ServiceWorkerScriptMsg::CommonWorker(WorkerScriptMsg::Common(msg)));
     }
 }
 
