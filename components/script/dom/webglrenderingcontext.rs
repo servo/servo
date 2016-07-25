@@ -1761,6 +1761,63 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         }
     }
 
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn UniformMatrix2fv(&self,
+                  _cx: *mut JSContext,
+                  uniform: Option<&WebGLUniformLocation>,
+                  transpose: bool,
+                  data: Option<*mut JSObject>) {
+        if transpose {
+            return self.webgl_error(InvalidValue);
+        }
+        let data_vec = data.and_then(|d| array_buffer_view_to_vec::<f32>(d));
+        if self.validate_uniform_parameters(uniform, UniformSetterType::FloatMat2,
+                                            data_vec.as_ref().map(Vec::as_slice)) {
+            self.ipc_renderer
+                .send(CanvasMsg::WebGL(WebGLCommand::UniformMatrix2fv(uniform.unwrap().id(),
+                      false, data_vec.unwrap())))
+                .unwrap()
+        }
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn UniformMatrix3fv(&self,
+                  _cx: *mut JSContext,
+                  uniform: Option<&WebGLUniformLocation>,
+                  transpose: bool,
+                  data: Option<*mut JSObject>) {
+        if transpose {
+            return self.webgl_error(InvalidValue);
+        }
+        let data_vec = data.and_then(|d| array_buffer_view_to_vec::<f32>(d));
+        if self.validate_uniform_parameters(uniform, UniformSetterType::FloatMat3,
+                                            data_vec.as_ref().map(Vec::as_slice)) {
+            self.ipc_renderer
+                .send(CanvasMsg::WebGL(WebGLCommand::UniformMatrix3fv(uniform.unwrap().id(),
+                      false, data_vec.unwrap())))
+                .unwrap()
+        }
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn UniformMatrix4fv(&self,
+                  _cx: *mut JSContext,
+                  uniform: Option<&WebGLUniformLocation>,
+                  transpose: bool,
+                  data: Option<*mut JSObject>) {
+        if transpose {
+            return self.webgl_error(InvalidValue);
+        }
+        let data_vec = data.and_then(|d| array_buffer_view_to_vec::<f32>(d));
+        if self.validate_uniform_parameters(uniform, UniformSetterType::FloatMat4,
+                                            data_vec.as_ref().map(Vec::as_slice)) {
+            self.ipc_renderer
+                .send(CanvasMsg::WebGL(WebGLCommand::UniformMatrix4fv(uniform.unwrap().id(),
+                      false, data_vec.unwrap())))
+                .unwrap()
+        }
+    }
+
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn UseProgram(&self, program: Option<&WebGLProgram>) {
         if let Some(program) = program {
@@ -2081,6 +2138,9 @@ pub enum UniformSetterType {
     FloatVec2,
     FloatVec3,
     FloatVec4,
+    FloatMat2,
+    FloatMat3,
+    FloatMat4,
 }
 
 impl UniformSetterType {
@@ -2094,6 +2154,9 @@ impl UniformSetterType {
             UniformSetterType::FloatVec2 => 2,
             UniformSetterType::FloatVec3 => 3,
             UniformSetterType::FloatVec4 => 4,
+            UniformSetterType::FloatMat2 => 4,
+            UniformSetterType::FloatMat3 => 9,
+            UniformSetterType::FloatMat4 => 16,
         }
     }
 
@@ -2126,6 +2189,9 @@ impl UniformSetterType {
             UniformSetterType::FloatVec2 => constants::FLOAT_VEC2,
             UniformSetterType::FloatVec3 => constants::FLOAT_VEC3,
             UniformSetterType::FloatVec4 => constants::FLOAT_VEC4,
+            UniformSetterType::FloatMat2 => constants::FLOAT_MAT2,
+            UniformSetterType::FloatMat3 => constants::FLOAT_MAT3,
+            UniformSetterType::FloatMat4 => constants::FLOAT_MAT4,
         }
     }
 }
