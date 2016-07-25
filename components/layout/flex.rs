@@ -55,13 +55,13 @@ impl AxisSize {
                     Some(size) => AxisSize::Definite(size.scale_by(percent)),
                     None => AxisSize::Infinite
                 }
-            },
+            }
             LengthOrPercentageOrAuto::Calc(calc) => {
                 match content_size {
                     Some(size) => AxisSize::Definite(size.scale_by(calc.percentage())),
                     None => AxisSize::Infinite
                 }
-            },
+            }
             LengthOrPercentageOrAuto::Auto => {
                 AxisSize::MinMax(MinMaxConstraint::new(content_size, min, max))
             }
@@ -136,7 +136,7 @@ impl FlexItem {
         let flex_grow = style.get_position().flex_grow;
         let flex_shrink = style.get_position().flex_shrink;
         let order = style.get_position().order;
-        // TODO(stshine): for item with visibility:collapse, set is_strut to true.
+        // TODO(stshine): for item with 'visibility:collapse', set is_strut to true.
 
         FlexItem {
             main_size: Au(0),
@@ -196,7 +196,7 @@ impl FlexItem {
         }
     }
 
-    /// Return the outer main size of the item, including paddings and margins,
+    /// Returns the outer main size of the item, including paddings and margins,
     /// clamped by max and min size.
     pub fn outer_main_size(&self, direction: Direction) -> Au {
         let ref fragment = self.flow.as_block().fragment;
@@ -212,7 +212,8 @@ impl FlexItem {
             - fragment.box_sizing_boundary(direction) + outer_width
     }
 
-    pub fn auto_margin_num(&self, direction: Direction) -> i32 {
+    /// Returns the number of auto margins in given direction.
+    pub fn auto_margin_count(&self, direction: Direction) -> i32 {
         let margin = self.style.logical_margin();
         let mut margin_count = 0;
         match direction {
@@ -243,9 +244,9 @@ impl FlexItem {
 struct FlexLine {
     /// Range of items belong to this line in 'self.items'.
     pub range: Range<usize>,
-    /// Remainig free space of this line, items will grow or shrink based on it being positive or negative.
+    /// Remaining free space of this line, items will grow or shrink based on it being positive or negative.
     pub free_space: Au,
-    /// the number of auto margins of items.
+    /// The number of auto margins of items.
     pub auto_margin_count: i32,
     /// Line size in the block direction.
     pub cross_size: Au,
@@ -262,7 +263,7 @@ impl FlexLine {
     }
 
     /// This method implements the flexible lengths resolving algorithm.
-    /// The 'collapse' parameter is used to indicate whether items with 'visibility: hidden'
+    /// The 'collapse' parameter is used to indicate whether items with 'visibility: collapse'
     /// is included in length resolving. The result main size is stored in 'item.main_size'.
     /// https://drafts.csswg.org/css-flexbox/#resolve-flexible-lengths
     pub fn flex_resolve(&mut self, items: &mut [FlexItem], collapse: bool) {
@@ -399,15 +400,11 @@ impl FlexFlow {
     /// Note that when the container main size is infinite(i.e. A column flexbox with auto height),
     /// we do not need to do flex resolving and this can be considered as a fast-path, so the
     /// 'container_size' param does not need to be 'None'. A line has to contain at least one item;
-    /// (expect this) if the container can be multi-line the sum of outer main size of items should
+    /// (except this) if the container can be multi-line the sum of outer main size of items should
     /// be less than the container size; a line should be filled by items as much as possible.
     /// After been collected in a line a item should have its main sizes initialized.
     fn get_flex_line(&mut self, container_size: Au) -> Option<FlexLine> {
-        let start = if self.lines.len() == 0 {
-            0
-        } else {
-            self.lines[self.lines.len()-1].range.end
-        };
+        let start = self.lines.last().map(|line| line.range.end).unwrap_or(0);
         if start == self.items.len() {
             return None;
         }
@@ -416,13 +413,13 @@ impl FlexFlow {
         let mut margin_count = 0;
 
         let items = &mut self.items[start..];
-        for mut item in items.iter_mut() {
+        for mut item in items {
             item.init_sizes(container_size, self.main_mode);
             let outer_main_size = item.outer_main_size(self.main_mode);
-            if total_line_size + outer_main_size > container_size && end != start  && self.is_wrappable {
+            if total_line_size + outer_main_size > container_size && end != start && self.is_wrappable {
                 break;
             }
-            margin_count += item.auto_margin_num(self.main_mode);
+            margin_count += item.auto_margin_count(self.main_mode);
             total_line_size += outer_main_size;
             end += 1;
         }
@@ -563,7 +560,7 @@ impl FlexFlow {
         let explicit_content_size = self
                                     .block_flow
                                     .explicit_block_size(parent_container_size)
-                                    .map(|x| if x < box_border { Au(0) } else { x - box_border });
+                                    .map(|x| max(x - box_border, Au(0)));
         let containing_block_text_align =
             self.block_flow.fragment.style().get_inheritedtext().text_align;
 
@@ -571,7 +568,7 @@ impl FlexFlow {
             let items = &mut self.items[line.range.clone()];
             line.flex_resolve(items, false);
             // TODO(stshine): if this flex line contain children that have
-            // property visibility:hidden, exclude them and resolve again.
+            // property visibility:collapse, exclude them and resolve again.
 
             let item_count = items.len() as i32;
             let mut cur_i = inline_start_content_edge;
@@ -583,10 +580,10 @@ impl FlexFlow {
                         } else {
                             line.free_space / (item_count - 1)
                         }
-                    },
+                    }
                     justify_content::T::space_around => {
                         line.free_space / item_count
-                    },
+                    }
                     _ => Au(0),
                 }
             } else {
@@ -594,7 +591,7 @@ impl FlexFlow {
             };
 
             match self.block_flow.fragment.style().get_position().justify_content {
-                // Overflow equally in both end.
+                // Overflow equally in both ends of line.
                 justify_content::T::center | justify_content::T::space_around => {
                     cur_i += (line.free_space - item_interval * (item_count - 1)) / 2;
                 }
@@ -711,12 +708,12 @@ impl FlexFlow {
                     if line_count == 1 {
                         Au(0)
                     } else {
-                        free_space /(line_count - 1)
+                        free_space / (line_count - 1)
                     }
-                },
+                }
                 align_content::T::space_around => {
                     free_space / line_count
-                },
+                }
                 _ => Au(0),
             };
 
@@ -733,7 +730,7 @@ impl FlexFlow {
 
         for line in &self.lines {
             for mut item in self.items[line.range.clone()].iter_mut() {
-                let auto_margin_count = item.auto_margin_num(Direction::Block);
+                let auto_margin_count = item.auto_margin_count(Direction::Block);
                 let mut block = flow_ref::deref_mut(&mut item.flow).as_mut_block();
                 let margin = block.fragment.style().logical_margin();
 
@@ -773,7 +770,7 @@ impl FlexFlow {
                     if !self.cross_reverse {
                         cur_b
                     } else {
-                        self.block_flow.fragment.border_padding.block_start *2
+                        self.block_flow.fragment.border_padding.block_start * 2
                             + total_cross_size - cur_b - line.cross_size
                     };
                 // TODO(stshine): support baseline alignment.
@@ -902,7 +899,7 @@ impl Flow for FlexFlow {
                                                      inline_start_content_edge,
                                                      inline_end_content_edge,
                                                      content_inline_size)
-            },
+            }
             Direction::Block  => {
                 self.available_main_size = available_block_size;
                 self.available_cross_size = available_inline_size;

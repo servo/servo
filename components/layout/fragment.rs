@@ -1102,6 +1102,8 @@ impl Fragment {
         }
     }
 
+    /// Returns the border width in given direction if this fragment has property
+    /// 'box-sizing: border-box'. The `border_padding` field should have been initialized.
     pub fn box_sizing_boundary(&self, direction: Direction) -> Au {
         match (self.style().get_position().box_sizing, direction) {
             (box_sizing::T::border_box, Direction::Inline) => {
