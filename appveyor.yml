@@ -27,6 +27,14 @@ install:
   - set GCC_URL=http://repo.msys2.org/mingw/x86_64/mingw-w64-x86_64-gcc
   - set GCC_EXT=5.4.0-1-any.pkg.tar.xz
   - bash -lc "pacman -U --noconfirm $GCC_URL-$GCC_EXT $GCC_URL-ada-$GCC_EXT $GCC_URL-fortran-$GCC_EXT $GCC_URL-libgfortran-$GCC_EXT $GCC_URL-libs-$GCC_EXT $GCC_URL-objc-$GCC_EXT"
+  # ffmpeg install
+  - SET PACKAGE_URL=http://www.guillaume-gomez.fr/packages/win64.zip
+  - ps: Start-FileDownload $Env:PACKAGE_URL -FileName win.zip
+  - 7z x win.zip -o"C:\Program Files (x86)\ffmpeg" -y
+  - SET PATH=%PATH%;C:\Program Files (x86)\ffmpeg\win64\libs
+  - SET LIB=%LIB%;C:\Program Files (x86)\ffmpeg\win64\libs
+  - SET INCLUDE=%INCLUDE%;C:\Program Files (x86)\ffmpeg\win64\include
+  - CALL "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\amd64\vcvars64.bat"
 
 # Uncomment these lines to expose RDP access information to the build machine in the build log.
 #init:
