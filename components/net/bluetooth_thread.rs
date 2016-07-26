@@ -483,7 +483,7 @@ impl BluetoothManager {
                 }
                 return drop(sender.send(Err(BluetoothError::Network)));
             },
-            None => return drop(sender.send(Err(BluetoothError::Network))),
+            None => return drop(sender.send(Err(BluetoothError::NotFound))),
         }
     }
 
@@ -504,7 +504,7 @@ impl BluetoothManager {
                 }
                 return drop(sender.send(Err(BluetoothError::Network)));
             },
-            None => return drop(sender.send(Err(BluetoothError::Network))),
+            None => return drop(sender.send(Err(BluetoothError::NotFound))),
         }
     }
 
