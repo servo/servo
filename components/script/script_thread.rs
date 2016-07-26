@@ -1073,7 +1073,10 @@ impl ScriptThread {
 
     fn handle_resize(&self, id: PipelineId, size: WindowSizeData, size_type: WindowSizeType) {
         if let Some(ref context) = self.find_child_context(id) {
-            let window = context.active_window();
+            let window = match context.find(id) {
+                Some(browsing_context) => browsing_context.active_window(),
+                None => return warn!("Message sent to closed pipeline {}.", id),
+            };
             window.set_resize_event(size, size_type);
             return;
         }
@@ -2209,15 +2212,6 @@ fn shut_down_layout(context_tree: &BrowsingContext) {
     for chan in channels {
         chan.send(message::Msg::ExitNow).ok();
     }
-}
-
-// TODO: remove this function, as it's a source of panic.
-pub fn get_browsing_context(context: &BrowsingContext,
-                            pipeline_id: PipelineId)
-                            -> Root<BrowsingContext> {
-    context.find(pipeline_id).expect("ScriptThread: received an event \
-            message for a layout channel that is not associated with this script thread.\
-            This is a bug.")
 }
 
 fn dom_last_modified(tm: &Tm) -> String {
