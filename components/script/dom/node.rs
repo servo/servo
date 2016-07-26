@@ -1287,6 +1287,31 @@ impl TreeIterator {
             depth: 0,
         }
     }
+
+    pub fn next_skipping_children(&mut self) -> Option<Root<Node>> {
+        let current = match self.current.take() {
+            None => return None,
+            Some(current) => current,
+        };
+
+        self.next_skipping_children_impl(current)
+    }
+
+    fn next_skipping_children_impl(&mut self, current: Root<Node>) -> Option<Root<Node>> {
+        for ancestor in current.inclusive_ancestors() {
+            if self.depth == 0 {
+                break;
+            }
+            if let Some(next_sibling) = ancestor.GetNextSibling() {
+                self.current = Some(next_sibling);
+                return Some(current);
+            }
+            self.depth -= 1;
+        }
+        debug_assert!(self.depth == 0);
+        self.current = None;
+        Some(current)
+    }
 }
 
 impl Iterator for TreeIterator {
@@ -1303,19 +1328,8 @@ impl Iterator for TreeIterator {
             self.depth += 1;
             return Some(current);
         };
-        for ancestor in current.inclusive_ancestors() {
-            if self.depth == 0 {
-                break;
-            }
-            if let Some(next_sibling) = ancestor.GetNextSibling() {
-                self.current = Some(next_sibling);
-                return Some(current);
-            }
-            self.depth -= 1;
-        }
-        debug_assert!(self.depth == 0);
-        self.current = None;
-        Some(current)
+
+        self.next_skipping_children_impl(current)
     }
 }
 
