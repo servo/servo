@@ -98,7 +98,6 @@ COMPILATION_TARGETS = {
             "ImageValue", "URLValue", "URLValueData", "nsIPrincipal",
             "nsDataHashtable", "imgIRequest"
         ],
-        "unsafe_field_types": ["nsStyleUnion", "nsStyleUnit"],
     },
     # Generation of the ffi bindings.
     "bindings": {
@@ -256,11 +255,6 @@ def build(objdir, target_name, kind_name=None,
         for header in current_target["match_headers"]:
             flags.append("-match")
             flags.append(header.format(objdir))
-
-    if "unsafe_field_types" in current_target:
-        for ty in current_target["unsafe_field_types"]:
-            flags.append("-unsafe-field-type")
-            flags.append(ty.format(objdir))
 
     if "blacklist" in current_target:
         for ty in current_target["blacklist"]:
