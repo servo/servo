@@ -242,6 +242,7 @@ class MachCommands(CommandBase):
         elapsed = time() - build_start
 
         if sys.platform == "win32" or sys.platform == "msys":
+            os.environ["RUSTFLAGS"] = "-C link-args=-Wl,--subsystem,windows"
             shutil.copy(path.join(self.get_top_dir(), "components", "servo", "servo.exe.manifest"),
                         path.join(base_path, "debug" if dev else "release"))
 
