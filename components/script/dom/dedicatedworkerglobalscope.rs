@@ -370,6 +370,12 @@ impl DedicatedWorkerGlobalScopeMethods for DedicatedWorkerGlobalScope {
         Ok(())
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-close
+    fn Close(&self) {
+        // Step 2
+        self.upcast::<WorkerGlobalScope>().close();
+    }
+
     // https://html.spec.whatwg.org/multipage/#handler-dedicatedworkerglobalscope-onmessage
     event_handler!(message, GetOnmessage, SetOnmessage);
 }
