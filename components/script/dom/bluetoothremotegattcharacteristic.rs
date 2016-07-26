@@ -195,6 +195,12 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
         if !self.Service().Device().Gatt().Connected() {
             return Err(Network)
         }
+
+        if !(self.Properties().Write() ||
+             self.Properties().WriteWithoutResponse() ||
+             self.Properties().AuthenticatedSignedWrites()) {
+            return Err(NotSupported)
+        }
         let (sender, receiver) = ipc::channel().unwrap();
         self.get_bluetooth_thread().send(
             BluetoothMethodMsg::WriteValue(self.get_instance_id(), value, sender)).unwrap();
