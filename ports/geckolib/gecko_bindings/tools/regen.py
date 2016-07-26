@@ -211,7 +211,7 @@ def build(objdir, target_name, kind_name=None,
 
     if os.path.isdir(bindgen):
         bindgen = ["cargo", "run", "--manifest-path",
-                   os.path.join(bindgen, "Cargo.toml"), "--"]
+                   os.path.join(bindgen, "Cargo.toml"), "--features", "llvm_stable", "--"]
     else:
         bindgen = [bindgen]
 
