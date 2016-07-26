@@ -30,7 +30,7 @@ script = {path = "../script"}
 script_layout_interface = {path = "../script_layout_interface"}
 script_traits = {path = "../script_traits"}
 serde_json = "0.7"
-serde_macros = "0.7"
+serde_macros = "0.7.15"
 style = {path = "../style"}
 url = {version = "1.0.0", features = ["heap_size"]}
 util = {path = "../util"}

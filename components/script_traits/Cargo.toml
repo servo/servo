@@ -27,8 +27,8 @@ offscreen_gl_context = "0.1.2"
 plugins = {path = "../plugins"}
 profile_traits = {path = "../profile_traits"}
 rustc-serialize = "0.3.4"
-serde = "0.7.11"
-serde_macros = "0.7.11"
+serde = "0.7.15"
+serde_macros = "0.7.15"
 style_traits = {path = "../style_traits", features = ["servo"]}
 time = "0.1.12"
 url = {version = "1.0.0", features = ["heap_size"]}
