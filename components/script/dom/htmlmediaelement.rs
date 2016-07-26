@@ -76,6 +76,7 @@ impl AsyncResponseListener for HTMLMediaElementContext {
         }
     }
 
+    #[cfg(not(target_os = "android"))]
     fn data_available(&mut self, payload: Vec<u8>) {
         if self.ignore_response {
             return;
@@ -107,6 +108,35 @@ impl AsyncResponseListener for HTMLMediaElementContext {
                 }
                 _ => {}
             }
+        } else {
+            elem.change_ready_state(HAVE_CURRENT_DATA);
+        }
+
+        // https://html.spec.whatwg.org/multipage/#concept-media-load-resource step 4,
+        // => "If mode is remote" step 2
+        if time::get_time() > self.next_progress_event {
+            elem.queue_fire_simple_event("progress");
+            self.next_progress_event = time::get_time() + Duration::milliseconds(350);
+        }
+    }
+
+    #[cfg(target_os = "android")]
+    fn data_available(&mut self, payload: Vec<u8>) {
+        if self.ignore_response {
+            return;
+        }
+
+        let mut payload = payload;
+        self.data.append(&mut payload);
+
+        let elem = self.elem.root();
+
+        // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
+        // => "Once enough of the media data has been fetched to determine the duration..."
+        if !self.have_metadata {
+            // Step 6.
+            elem.change_ready_state(HAVE_METADATA);
+            self.have_metadata = true;
         } else {
             elem.change_ready_state(HAVE_CURRENT_DATA);
         }
