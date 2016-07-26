@@ -5,7 +5,7 @@
 use ipc_channel::ipc::{self, IpcSender};
 use net::filemanager_thread::{FileManagerThreadFactory, UIProvider};
 use net_traits::blob_url_store::BlobURLStoreError;
-use net_traits::filemanager_thread::{FilterPattern, FileManagerThreadMsg, FileManagerThreadError};
+use net_traits::filemanager_thread::{FilterPattern, FileManagerThreadMsg, FileManagerThreadError, ReadFileProgress};
 use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
@@ -16,11 +16,11 @@ struct TestProvider;
 
 impl UIProvider for TestProvider {
     fn open_file_dialog(&self, _path: &str, _patterns: Vec<FilterPattern>) -> Option<String> {
-        Some("test.txt".to_string())
+        Some("test.jpeg".to_string())
     }
 
     fn open_file_dialog_multi(&self, _path: &str, _patterns: Vec<FilterPattern>) -> Option<Vec<String>> {
-        Some(vec!["test.txt".to_string()])
+        Some(vec!["test.jpeg".to_string()])
     }
 }
 
@@ -28,26 +28,26 @@ impl UIProvider for TestProvider {
 fn test_filemanager() {
     let chan: IpcSender<FileManagerThreadMsg> = FileManagerThreadFactory::new(TEST_PROVIDER);
 
-    // Try to open a dummy file "tests/unit/net/test.txt" in tree
-    let mut handler = File::open("test.txt").expect("test.txt is stolen");
+    // Try to open a dummy file "tests/unit/net/test.jpeg" in tree
+    let mut handler = File::open("test.jpeg").expect("test.jpeg is stolen");
     let mut test_file_content = vec![];
 
     handler.read_to_end(&mut test_file_content)
-           .expect("Read tests/unit/net/test.txt error");
+           .expect("Read tests/unit/net/test.jpeg error");
 
     let patterns = vec![FilterPattern(".txt".to_string())];
     let origin = "test.com".to_string();
 
     {
-        // Try to select a dummy file "tests/unit/net/test.txt"
+        // Try to select a dummy file "tests/unit/net/test.jpeg"
         let (tx, rx) = ipc::channel().unwrap();
         chan.send(FileManagerThreadMsg::SelectFile(patterns.clone(), tx, origin.clone(), None)).unwrap();
         let selected = rx.recv().expect("Broken channel")
-                                .expect("The file manager failed to find test.txt");
+                                .expect("The file manager failed to find test.jpeg");
 
         // Expecting attributes conforming the spec
-        assert!(selected.filename == PathBuf::from("test.txt"));
-        assert!(selected.type_string == "text/plain".to_string());
+        assert_eq!(selected.filename, PathBuf::from("test.jpeg"));
+        assert_eq!(selected.type_string, "image/jpeg".to_string());
 
         // Test by reading, expecting same content
         {
@@ -56,8 +56,27 @@ fn test_filemanager() {
 
             let msg = rx2.recv().expect("Broken channel");
 
-            let blob_buf = msg.expect("File manager reading failure is unexpected");
-            assert_eq!(test_file_content, blob_buf.bytes, "Read content differs");
+            if let ReadFileProgress::Meta(blob_buf) = msg.expect("File manager reading failure is unexpected") {
+                let mut bytes = blob_buf.bytes;
+
+                loop {
+                    match rx2.recv().expect("Broken channel").expect("File manager reading failure is unexpected") {
+                        ReadFileProgress::Meta(_) => {
+                            panic!("Invalid FileManager reply");
+                        }
+                        ReadFileProgress::Partial(mut bytes_in) => {
+                            bytes.append(&mut bytes_in);
+                        }
+                        ReadFileProgress::EOF => {
+                            break;
+                        }
+                    }
+                }
+
+                assert_eq!(test_file_content, bytes, "Read content differs");
+            } else {
+                panic!("Invalid FileManager reply");
+            }
         }
 
         // Delete the id

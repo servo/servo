@@ -16,7 +16,7 @@ use encoding::types::{EncoderTrap, Encoding};
 use ipc_channel::ipc;
 use net_traits::IpcSend;
 use net_traits::blob_url_store::{BlobBuf, get_blob_origin};
-use net_traits::filemanager_thread::{FileManagerThreadMsg, SelectedFileId, RelativePos};
+use net_traits::filemanager_thread::{FileManagerThreadMsg, SelectedFileId, RelativePos, ReadFileProgress};
 use std::cell::Cell;
 use std::ops::Index;
 use std::path::PathBuf;
@@ -286,9 +286,21 @@ fn read_file(global: GlobalRef, id: SelectedFileId) -> Result<Vec<u8>, ()> {
     let msg = FileManagerThreadMsg::ReadFile(chan, id, check_url_validity, origin);
     let _ = file_manager.send(msg);
 
-    match recv.recv().unwrap() {
-        Ok(blob_buf) => Ok(blob_buf.bytes),
-        Err(_) => Err(()),
+    let mut bytes = vec![];
+
+    loop {
+        match recv.recv().unwrap() {
+            Ok(ReadFileProgress::Meta(mut blob_buf)) => {
+                bytes.append(&mut blob_buf.bytes);
+            }
+            Ok(ReadFileProgress::Partial(mut bytes_in)) => {
+                bytes.append(&mut bytes_in);
+            }
+            Ok(ReadFileProgress::EOF) => {
+                return Ok(bytes);
+            }
+            Err(_) => return Err(()),
+        }
     }
 }
 

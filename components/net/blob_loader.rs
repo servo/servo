@@ -10,7 +10,7 @@ use mime::{Mime, Attr};
 use mime_classifier::MimeClassifier;
 use net_traits::ProgressMsg::{Payload, Done};
 use net_traits::blob_url_store::parse_blob_url;
-use net_traits::filemanager_thread::{FileManagerThreadMsg, SelectedFileId};
+use net_traits::filemanager_thread::{FileManagerThreadMsg, SelectedFileId, ReadFileProgress};
 use net_traits::response::HttpsState;
 use net_traits::{LoadConsumer, LoadData, Metadata, NetworkError};
 use resource_thread::CancellationListener;
@@ -27,16 +27,18 @@ pub fn factory(filemanager_chan: IpcSender<FileManagerThreadMsg>)
                             LoadConsumer,
                             Arc<MimeClassifier>,
                             CancellationListener) + Send> {
-    box move |load_data: LoadData, start_chan, classifier, _cancel_listener| {
+    box move |load_data: LoadData, start_chan, classifier, cancel_listener| {
         spawn_named(format!("blob loader for {}", load_data.url), move || {
-            load_blob(load_data, start_chan, classifier, filemanager_chan);
+            load_blob(load_data, start_chan, classifier, filemanager_chan, cancel_listener);
         })
     }
 }
 
 fn load_blob(load_data: LoadData, start_chan: LoadConsumer,
              classifier: Arc<MimeClassifier>,
-             filemanager_chan: IpcSender<FileManagerThreadMsg>) {
+             filemanager_chan: IpcSender<FileManagerThreadMsg>,
+             // XXX(izgzhen): we should utilize cancel_listener, filed in #12589
+             _cancel_listener: CancellationListener) {
     let (chan, recv) = ipc::channel().unwrap();
     if let Ok((id, origin, _fragment)) = parse_blob_url(&load_data.url.clone()) {
         let id = SelectedFileId(id.simple().to_string());
@@ -44,8 +46,9 @@ fn load_blob(load_data: LoadData, start_chan: LoadConsumer,
         let msg = FileManagerThreadMsg::ReadFile(chan, id, check_url_validity, origin);
         let _ = filemanager_chan.send(msg);
 
+        // Receive first chunk
         match recv.recv().unwrap() {
-            Ok(blob_buf) => {
+            Ok(ReadFileProgress::Meta(blob_buf)) => {
                 let content_type: Mime = blob_buf.type_string.parse().unwrap_or(mime!(Text / Plain));
                 let charset = content_type.get_param(Attr::Charset);
 
@@ -80,8 +83,33 @@ fn load_blob(load_data: LoadData, start_chan: LoadConsumer,
                     start_sending_sniffed_opt(start_chan, metadata, classifier,
                                               &blob_buf.bytes, load_data.context.clone()) {
                     let _ = chan.send(Payload(blob_buf.bytes));
-                    let _ = chan.send(Done(Ok(())));
+
+                    loop {
+                        match recv.recv().unwrap() {
+                            Ok(ReadFileProgress::Partial(bytes)) => {
+                                let _ = chan.send(Payload(bytes));
+                            }
+                            Ok(ReadFileProgress::EOF) => {
+                                let _ = chan.send(Done(Ok(())));
+                                return;
+                            }
+                            Ok(_) => {
+                                let err = NetworkError::Internal("Invalid filemanager reply".to_string());
+                                let _ = chan.send(Done(Err(err)));
+                                return;
+                            }
+                            Err(e) => {
+                                let err = NetworkError::Internal(format!("{:?}", e));
+                                let _ = chan.send(Done(Err(err)));
+                                return;
+                            }
+                        }
+                    }
                 }
+            }
+            Ok(_) => {
+                let err = NetworkError::Internal("Invalid filemanager reply".to_string());
+                send_error(load_data.url, err, start_chan);
             }
             Err(e) => {
                 let err = NetworkError::Internal(format!("{:?}", e));
