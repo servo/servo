@@ -42,7 +42,7 @@ main() {
         package=target/*."${extension}"
     elif [[ "${platform}" == "windows" ]]; then
         extension=msi
-        package=target/msi/*.msi
+        package=target/release/msi/*.msi
     else
         usage >&2
         return 1
