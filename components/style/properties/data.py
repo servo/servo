@@ -18,11 +18,14 @@ def to_camel_case(ident):
 
 class Keyword(object):
     def __init__(self, name, values, gecko_constant_prefix=None,
+                 gecko_enum_prefix=None, enum_replace=None,
                  extra_gecko_values=None, extra_servo_values=None):
         self.name = name
         self.values = values.split()
         self.gecko_constant_prefix = gecko_constant_prefix or \
             "NS_STYLE_" + self.name.upper().replace("-", "_")
+        self.gecko_enum_prefix = gecko_enum_prefix
+        self.enum_replace = enum_replace
         self.extra_gecko_values = (extra_gecko_values or "").split()
         self.extra_servo_values = (extra_servo_values or "").split()
 
@@ -41,7 +44,18 @@ class Keyword(object):
             raise Exception("Bad product: " + product)
 
     def gecko_constant(self, value):
-        return self.gecko_constant_prefix + "_" + value.replace("-moz-", "").replace("-", "_").upper()
+        if self.gecko_enum_prefix:
+            if self.enum_replace and value in self.enum_replace:
+                return self.gecko_enum_prefix + "::" + self.enum_replace[value]
+            else:
+                parts = value.replace("-moz-", "").split("-")
+                parts = [p.title() for p in parts]
+                return self.gecko_enum_prefix + "::" + "".join(parts)
+        else:
+            return self.gecko_constant_prefix + "_" + value.replace("-moz-", "").replace("-", "_").upper()
+
+    def cast(self):
+        return self.gecko_enum_prefix is None
 
 
 class Longhand(object):

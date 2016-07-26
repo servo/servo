@@ -289,7 +289,9 @@
 <%def name="single_keyword_computed(name, values, **kwargs)">
     <%
         keyword_kwargs = {a: kwargs.pop(a, None) for a in [
-            'gecko_constant_prefix', 'extra_gecko_values', 'extra_servo_values'
+            'gecko_constant_prefix', 'gecko_enum_prefix',
+            'extra_gecko_values', 'extra_servo_values',
+            'enum_replace',
         ]}
     %>
     <%call expr="longhand(name, keyword=Keyword(name, values, **keyword_kwargs), **kwargs)">
@@ -317,7 +319,9 @@
 <%def name="keyword_list(name, values, **kwargs)">
     <%
         keyword_kwargs = {a: kwargs.pop(a, None) for a in [
-            'gecko_constant_prefix', 'extra_gecko_values', 'extra_servo_values'
+            'gecko_constant_prefix', 'gecko_enum_prefix',
+            'extra_gecko_values', 'extra_servo_values',
+            'enum_replace',
         ]}
     %>
     <%call expr="longhand(name, keyword=Keyword(name, values, **keyword_kwargs), **kwargs)">
