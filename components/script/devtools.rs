@@ -25,7 +25,6 @@ use ipc_channel::ipc::IpcSender;
 use js::jsapi::{JSAutoCompartment, ObjectClassName};
 use js::jsval::UndefinedValue;
 use msg::constellation_msg::PipelineId;
-use script_thread::get_browsing_context;
 use std::ffi::CStr;
 use std::str;
 use style::properties::longhands::{margin_top, margin_right, margin_bottom, margin_left};
@@ -68,58 +67,72 @@ pub fn handle_evaluate_js(global: &GlobalRef, eval: String, reply: IpcSender<Eva
     reply.send(result).unwrap();
 }
 
-pub fn handle_get_root_node(context: &BrowsingContext, pipeline: PipelineId, reply: IpcSender<NodeInfo>) {
-    let context = get_browsing_context(context, pipeline);
+pub fn handle_get_root_node(context: &BrowsingContext, pipeline: PipelineId, reply: IpcSender<Option<NodeInfo>>) {
+    let context = match context.find(pipeline) {
+        Some(found_context) => found_context,
+        None => return reply.send(None).unwrap()
+    };
+
     let document = context.active_document();
 
     let node = document.upcast::<Node>();
-    reply.send(node.summarize()).unwrap();
+    reply.send(Some(node.summarize())).unwrap();
 }
 
 pub fn handle_get_document_element(context: &BrowsingContext,
                                    pipeline: PipelineId,
-                                   reply: IpcSender<NodeInfo>) {
-    let context = get_browsing_context(context, pipeline);
+                                   reply: IpcSender<Option<NodeInfo>>) {
+    let context = match context.find(pipeline) {
+        Some(found_context) => found_context,
+        None => return reply.send(None).unwrap()
+    };
+
     let document = context.active_document();
     let document_element = document.GetDocumentElement().unwrap();
 
     let node = document_element.upcast::<Node>();
-    reply.send(node.summarize()).unwrap();
+    reply.send(Some(node.summarize())).unwrap();
 }
 
 fn find_node_by_unique_id(context: &BrowsingContext,
                           pipeline: PipelineId,
-                          node_id: String)
-                          -> Root<Node> {
-    let context = get_browsing_context(context, pipeline);
+                          node_id: &str)
+                          -> Option<Root<Node>> {
+    let context = match context.find(pipeline) {
+        Some(found_context) => found_context,
+        None => return None
+    };
+
     let document = context.active_document();
     let node = document.upcast::<Node>();
 
-    for candidate in node.traverse_preorder() {
-        if candidate.unique_id() == node_id {
-            return candidate;
-        }
-    }
-
-    panic!("couldn't find node with unique id {}", node_id)
+    node.traverse_preorder().find(|candidate| candidate.unique_id() == node_id)
 }
 
 pub fn handle_get_children(context: &BrowsingContext,
                            pipeline: PipelineId,
                            node_id: String,
-                           reply: IpcSender<Vec<NodeInfo>>) {
-    let parent = find_node_by_unique_id(context, pipeline, node_id);
-    let children = parent.children()
-                         .map(|child| child.summarize())
-                         .collect();
-    reply.send(children).unwrap();
+                           reply: IpcSender<Option<Vec<NodeInfo>>>) {
+    match find_node_by_unique_id(context, pipeline, &*node_id) {
+        None => return reply.send(None).unwrap(),
+        Some(parent) => {
+            let children = parent.children()
+                                 .map(|child| child.summarize())
+                                 .collect();
+
+            reply.send(Some(children)).unwrap();
+        }
+    };
 }
 
 pub fn handle_get_layout(context: &BrowsingContext,
                          pipeline: PipelineId,
                          node_id: String,
-                         reply: IpcSender<ComputedNodeLayout>) {
-    let node = find_node_by_unique_id(context, pipeline, node_id);
+                         reply: IpcSender<Option<ComputedNodeLayout>>) {
+    let node = match find_node_by_unique_id(context, pipeline, &*node_id) {
+        None => return reply.send(None).unwrap(),
+        Some(found_node) => found_node
+    };
 
     let elem = node.downcast::<Element>().expect("should be getting layout of element");
     let rect = elem.GetBoundingClientRect();
@@ -130,7 +143,7 @@ pub fn handle_get_layout(context: &BrowsingContext,
     let elem = node.downcast::<Element>().expect("should be getting layout of element");
     let computed_style = window.r().GetComputedStyle(elem, None);
 
-    reply.send(ComputedNodeLayout {
+    reply.send(Some(ComputedNodeLayout {
         display: String::from(computed_style.Display()),
         position: String::from(computed_style.Position()),
         zIndex: String::from(computed_style.ZIndex()),
@@ -150,7 +163,7 @@ pub fn handle_get_layout(context: &BrowsingContext,
         paddingLeft: String::from(computed_style.PaddingLeft()),
         width: width,
         height: height,
-    }).unwrap();
+    })).unwrap();
 }
 
 fn determine_auto_margins(window: &Window, node: &Node) -> AutoMargins {
@@ -209,7 +222,11 @@ pub fn handle_modify_attribute(context: &BrowsingContext,
                                pipeline: PipelineId,
                                node_id: String,
                                modifications: Vec<Modification>) {
-    let node = find_node_by_unique_id(context, pipeline, node_id);
+    let node = match find_node_by_unique_id(context, pipeline, &*node_id) {
+        None => return warn!("node id {} for pipeline id {} is not found", &node_id, &pipeline),
+        Some(found_node) => found_node
+    };
+
     let elem = node.downcast::<Element>().expect("should be getting layout of element");
 
     for modification in modifications {
@@ -243,7 +260,11 @@ pub fn handle_drop_timeline_markers(context: &BrowsingContext,
 pub fn handle_request_animation_frame(context: &BrowsingContext,
                                       id: PipelineId,
                                       actor_name: String) {
-    let context = context.find(id).expect("There is no such context");
+    let context = match context.find(id) {
+        None => return warn!("context for pipeline id {} is not found", id),
+        Some(found_node) => found_node
+    };
+
     let doc = context.active_document();
     let devtools_sender = context.active_window().devtools_chan().unwrap();
     doc.request_animation_frame(box move |time| {
@@ -254,7 +275,11 @@ pub fn handle_request_animation_frame(context: &BrowsingContext,
 
 pub fn handle_reload(context: &BrowsingContext,
                      id: PipelineId) {
-    let context = context.find(id).expect("There is no such context");
+    let context = match context.find(id) {
+        None => return warn!("context for pipeline id {} is not found", id),
+        Some(found_node) => found_node
+    };
+
     let win = context.active_window();
     let location = win.Location();
     location.Reload();
