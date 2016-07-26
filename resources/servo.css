@@ -9,7 +9,7 @@ input {
   color: black;
   font-family: sans-serif;
   font-size: 0.8333em;
-  white-space: nowrap;
+  white-space: pre;
   text-align: left;
   line-height: 1.8;
 }
@@ -24,7 +24,7 @@ textarea {
   color: black;
   font-family: sans-serif;
   font-size: 0.8333em;
-  white-space: pre;
+  white-space: pre-wrap;
 }
 
 input::selection,
