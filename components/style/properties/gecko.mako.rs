@@ -194,7 +194,11 @@ def set_gecko_property(ffi_name, expr):
         // FIXME(bholley): Align binary representations and ditch |match| for cast + static_asserts
         let result = match v {
             % for value in keyword.values_for('gecko'):
-                Keyword::${to_rust_ident(value)} => structs::${keyword.gecko_constant(value)} as u8,
+                % if keyword.needs_cast():
+                    Keyword::${to_rust_ident(value)} => structs::${keyword.gecko_constant(value)} as u8,
+                % else:
+                    Keyword::${to_rust_ident(value)} => structs::${keyword.gecko_constant(value)},
+                % endif
             % endfor
         };
         ${set_gecko_property(gecko_ffi_name, "result")}

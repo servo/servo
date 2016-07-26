@@ -71,5 +71,5 @@ ${helpers.single_keyword("-moz-user-modify", "read-only read-write write-only",
 ${helpers.single_keyword("-moz-user-focus",
                          "ignore normal select-after select-before select-menu select-same select-all none",
                          products="gecko", gecko_ffi_name="mUserFocus",
-                         gecko_constant_prefix="NS_STYLE_USER_FOCUS",
+                         gecko_enum_prefix="StyleUserFocus",
                          animatable=False)}

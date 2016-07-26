@@ -18,11 +18,15 @@ def to_camel_case(ident):
 
 class Keyword(object):
     def __init__(self, name, values, gecko_constant_prefix=None,
+                 gecko_enum_prefix=None,
                  extra_gecko_values=None, extra_servo_values=None):
         self.name = name
         self.values = values.split()
+        if gecko_constant_prefix and gecko_enum_prefix:
+            raise TypeError("Only one of gecko_constant_prefix and gecko_enum_prefix can be specified")
         self.gecko_constant_prefix = gecko_constant_prefix or \
             "NS_STYLE_" + self.name.upper().replace("-", "_")
+        self.gecko_enum_prefix = gecko_enum_prefix
         self.extra_gecko_values = (extra_gecko_values or "").split()
         self.extra_servo_values = (extra_servo_values or "").split()
 
@@ -41,7 +45,18 @@ class Keyword(object):
             raise Exception("Bad product: " + product)
 
     def gecko_constant(self, value):
-        return self.gecko_constant_prefix + "_" + value.replace("-moz-", "").replace("-", "_").upper()
+        if self.gecko_enum_prefix:
+            if value == "none":
+                return self.gecko_enum_prefix + "::None_"
+            else:
+                parts = value.replace("-moz-", "").split("-")
+                parts = [p.title() for p in parts]
+                return self.gecko_enum_prefix + "::" + "".join(parts)
+        else:
+            return self.gecko_constant_prefix + "_" + value.replace("-moz-", "").replace("-", "_").upper()
+
+    def needs_cast(self):
+        return self.gecko_enum_prefix is None
 
 
 class Longhand(object):

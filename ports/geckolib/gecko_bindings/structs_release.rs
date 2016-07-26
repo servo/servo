@@ -188,12 +188,6 @@ pub const NS_ERROR_MODULE_BASE_OFFSET: ::std::os::raw::c_uint = 69;
 pub const MOZ_STRING_WITH_OBSOLETE_API: ::std::os::raw::c_uint = 1;
 pub const NSID_LENGTH: ::std::os::raw::c_uint = 39;
 pub const NS_NUMBER_OF_FLAGS_IN_REFCNT: ::std::os::raw::c_uint = 2;
-pub const _STL_PAIR_H: ::std::os::raw::c_uint = 1;
-pub const _GLIBCXX_UTILITY: ::std::os::raw::c_uint = 1;
-pub const __cpp_lib_tuple_element_t: ::std::os::raw::c_uint = 201402;
-pub const __cpp_lib_tuples_by_type: ::std::os::raw::c_uint = 201304;
-pub const __cpp_lib_exchange_function: ::std::os::raw::c_uint = 201304;
-pub const __cpp_lib_integer_sequence: ::std::os::raw::c_uint = 201304;
 pub const NS_EVENT_STATE_HIGHEST_SERVO_BIT: ::std::os::raw::c_uint = 6;
 pub const DOM_USER_DATA: ::std::os::raw::c_uint = 1;
 pub const SMIL_MAPPED_ATTR_ANIMVAL: ::std::os::raw::c_uint = 2;
@@ -212,29 +206,6 @@ pub const NS_CORNER_BOTTOM_RIGHT_X: ::std::os::raw::c_uint = 4;
 pub const NS_CORNER_BOTTOM_RIGHT_Y: ::std::os::raw::c_uint = 5;
 pub const NS_CORNER_BOTTOM_LEFT_X: ::std::os::raw::c_uint = 6;
 pub const NS_CORNER_BOTTOM_LEFT_Y: ::std::os::raw::c_uint = 7;
-pub const NS_STYLE_CLIP_SHAPE_SIZING_NOBOX: ::std::os::raw::c_uint = 0;
-pub const NS_STYLE_CLIP_SHAPE_SIZING_CONTENT: ::std::os::raw::c_uint = 1;
-pub const NS_STYLE_CLIP_SHAPE_SIZING_PADDING: ::std::os::raw::c_uint = 2;
-pub const NS_STYLE_CLIP_SHAPE_SIZING_BORDER: ::std::os::raw::c_uint = 3;
-pub const NS_STYLE_CLIP_SHAPE_SIZING_MARGIN: ::std::os::raw::c_uint = 4;
-pub const NS_STYLE_CLIP_SHAPE_SIZING_FILL: ::std::os::raw::c_uint = 5;
-pub const NS_STYLE_CLIP_SHAPE_SIZING_STROKE: ::std::os::raw::c_uint = 6;
-pub const NS_STYLE_CLIP_SHAPE_SIZING_VIEW: ::std::os::raw::c_uint = 7;
-pub const NS_STYLE_BASIC_SHAPE_POLYGON: ::std::os::raw::c_uint = 0;
-pub const NS_STYLE_BASIC_SHAPE_CIRCLE: ::std::os::raw::c_uint = 1;
-pub const NS_STYLE_BASIC_SHAPE_ELLIPSE: ::std::os::raw::c_uint = 2;
-pub const NS_STYLE_BASIC_SHAPE_INSET: ::std::os::raw::c_uint = 3;
-pub const NS_STYLE_BOX_SHADOW_INSET: ::std::os::raw::c_uint = 0;
-pub const NS_STYLE_FLOAT_EDGE_CONTENT_BOX: ::std::os::raw::c_uint = 0;
-pub const NS_STYLE_FLOAT_EDGE_MARGIN_BOX: ::std::os::raw::c_uint = 1;
-pub const NS_STYLE_USER_FOCUS_NONE: ::std::os::raw::c_uint = 0;
-pub const NS_STYLE_USER_FOCUS_IGNORE: ::std::os::raw::c_uint = 1;
-pub const NS_STYLE_USER_FOCUS_NORMAL: ::std::os::raw::c_uint = 2;
-pub const NS_STYLE_USER_FOCUS_SELECT_ALL: ::std::os::raw::c_uint = 3;
-pub const NS_STYLE_USER_FOCUS_SELECT_BEFORE: ::std::os::raw::c_uint = 4;
-pub const NS_STYLE_USER_FOCUS_SELECT_AFTER: ::std::os::raw::c_uint = 5;
-pub const NS_STYLE_USER_FOCUS_SELECT_SAME: ::std::os::raw::c_uint = 6;
-pub const NS_STYLE_USER_FOCUS_SELECT_MENU: ::std::os::raw::c_uint = 7;
 pub const NS_STYLE_USER_SELECT_NONE: ::std::os::raw::c_uint = 0;
 pub const NS_STYLE_USER_SELECT_TEXT: ::std::os::raw::c_uint = 1;
 pub const NS_STYLE_USER_SELECT_ELEMENT: ::std::os::raw::c_uint = 2;
@@ -511,10 +482,6 @@ pub const NS_STYLE_FLOAT_LEFT: ::std::os::raw::c_uint = 1;
 pub const NS_STYLE_FLOAT_RIGHT: ::std::os::raw::c_uint = 2;
 pub const NS_STYLE_FLOAT_INLINE_START: ::std::os::raw::c_uint = 3;
 pub const NS_STYLE_FLOAT_INLINE_END: ::std::os::raw::c_uint = 4;
-pub const NS_STYLE_CLIP_PATH_NONE: ::std::os::raw::c_uint = 0;
-pub const NS_STYLE_CLIP_PATH_URL: ::std::os::raw::c_uint = 1;
-pub const NS_STYLE_CLIP_PATH_SHAPE: ::std::os::raw::c_uint = 2;
-pub const NS_STYLE_CLIP_PATH_BOX: ::std::os::raw::c_uint = 3;
 pub const NS_STYLE_FILTER_NONE: ::std::os::raw::c_uint = 0;
 pub const NS_STYLE_FILTER_URL: ::std::os::raw::c_uint = 1;
 pub const NS_STYLE_FILTER_BLUR: ::std::os::raw::c_uint = 2;
@@ -2714,12 +2681,6 @@ impl ::std::clone::Clone for nsIExpandedPrincipal {
     fn clone(&self) -> Self { *self }
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct _Make_integer_sequence<_Tp, _ISeq> {
-    pub _phantom0: ::std::marker::PhantomData<_Tp>,
-    pub _phantom1: ::std::marker::PhantomData<_ISeq>,
-}
-#[repr(C)]
 #[derive(Debug, Copy)]
 pub struct nsIURI {
     pub _base: nsISupports,
@@ -2771,7 +2732,7 @@ impl ::std::clone::Clone for nsIRequest {
 #[repr(C)]
 #[derive(Debug, Copy)]
 pub struct EventStates {
-    pub mStates: ::std::os::raw::c_ulong,
+    pub mStates: ::std::os::raw::c_ulonglong,
 }
 impl ::std::clone::Clone for EventStates {
     fn clone(&self) -> Self { *self }
@@ -2901,7 +2862,7 @@ fn bindgen_test_layout_nsMutationGuard() {
 extern "C" {
     #[link_name = "_ZN15nsMutationGuard11sGenerationE"]
     pub static mut nsMutationGuard_consts_sGeneration:
-               ::std::os::raw::c_ulong;
+               ::std::os::raw::c_ulonglong;
 }
 pub type Float = f32;
 #[repr(i8)]
@@ -3001,6 +2962,7 @@ pub enum FontType {
     SKIA = 3,
     CAIRO = 4,
     COREGRAPHICS = 5,
+    FONTCONFIG = 6,
 }
 #[repr(i8)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
@@ -3897,7 +3859,43 @@ fn bindgen_test_layout_nsFont() {
 }
 #[repr(i8)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub enum StyleBasicShape { Polygon = 0, Circle = 1, Ellipse = 2, Inset = 3, }
+#[repr(i8)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum StyleBoxSizing { Content = 0, Border = 1, }
+#[repr(i8)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub enum StyleBoxShadowType { Inset = 0, }
+#[repr(i8)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub enum StyleClipPathType { None_ = 0, URL = 1, Shape = 2, Box = 3, }
+#[repr(i8)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub enum StyleClipShapeSizing {
+    NoBox = 0,
+    Content = 1,
+    Padding = 2,
+    Border = 3,
+    Margin = 4,
+    Fill = 5,
+    Stroke = 6,
+    View = 7,
+}
+#[repr(i8)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub enum StyleFloatEdge { ContentBox = 0, MarginBox = 1, }
+#[repr(i8)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub enum StyleUserFocus {
+    None_ = 0,
+    Ignore = 1,
+    Normal = 2,
+    SelectAll = 3,
+    SelectBefore = 4,
+    SelectAfter = 5,
+    SelectSame = 6,
+    SelectMenu = 7,
+}
 pub const eCSSProperty_COUNT_DUMMY: nsCSSProperty =
     nsCSSProperty::eCSSProperty_z_index;
 pub const eCSSProperty_all: nsCSSProperty =
@@ -5576,7 +5574,7 @@ pub struct nsStyleBorder {
     pub mBorderImageFill: u8,
     pub mBorderImageRepeatH: u8,
     pub mBorderImageRepeatV: u8,
-    pub mFloatEdge: u8,
+    pub mFloatEdge: StyleFloatEdge,
     pub mBoxDecorationBreak: u8,
     pub mComputedBorder: nsMargin,
     pub mBorder: nsMargin,
@@ -6148,7 +6146,7 @@ fn bindgen_test_layout_nsCursorImage() {
 pub struct nsStyleUserInterface {
     pub mUserInput: u8,
     pub mUserModify: u8,
-    pub mUserFocus: u8,
+    pub mUserFocus: StyleUserFocus,
     pub mPointerEvents: u8,
     pub mCursor: u8,
     pub mCursorArrayLength: u32,
@@ -6311,9 +6309,9 @@ fn bindgen_test_layout_nsStyleBasicShape() {
 #[repr(C)]
 #[derive(Debug)]
 pub struct nsStyleClipPath {
-    pub mType: i32,
     pub nsStyleClipPath_nsStyleStruct_h_unnamed_29: nsStyleClipPath_nsStyleStruct_h_unnamed_29,
-    pub mSizingBox: u8,
+    pub mType: StyleClipPathType,
+    pub mSizingBox: StyleClipShapeSizing,
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
@@ -6335,7 +6333,7 @@ fn bindgen_test_layout_nsStyleClipPath_nsStyleStruct_h_unnamed_29() {
 }
 #[test]
 fn bindgen_test_layout_nsStyleClipPath() {
-    assert_eq!(::std::mem::size_of::<nsStyleClipPath>() , 24usize);
+    assert_eq!(::std::mem::size_of::<nsStyleClipPath>() , 16usize);
     assert_eq!(::std::mem::align_of::<nsStyleClipPath>() , 8usize);
 }
 #[repr(C)]
@@ -6383,7 +6381,7 @@ pub struct nsStyleSVGReset {
 }
 #[test]
 fn bindgen_test_layout_nsStyleSVGReset() {
-    assert_eq!(::std::mem::size_of::<nsStyleSVGReset>() , 208usize);
+    assert_eq!(::std::mem::size_of::<nsStyleSVGReset>() , 200usize);
     assert_eq!(::std::mem::align_of::<nsStyleSVGReset>() , 8usize);
 }
 #[repr(C)]
