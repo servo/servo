@@ -194,13 +194,13 @@ pub enum DevtoolScriptControlMsg {
     /// Evaluate a JS snippet in the context of the global for the given pipeline.
     EvaluateJS(PipelineId, String, IpcSender<EvaluateJSReply>),
     /// Retrieve the details of the root node (ie. the document) for the given pipeline.
-    GetRootNode(PipelineId, IpcSender<NodeInfo>),
+    GetRootNode(PipelineId, IpcSender<Option<NodeInfo>>),
     /// Retrieve the details of the document element for the given pipeline.
-    GetDocumentElement(PipelineId, IpcSender<NodeInfo>),
+    GetDocumentElement(PipelineId, IpcSender<Option<NodeInfo>>),
     /// Retrieve the details of the child nodes of the given node in the given pipeline.
-    GetChildren(PipelineId, String, IpcSender<Vec<NodeInfo>>),
+    GetChildren(PipelineId, String, IpcSender<Option<Vec<NodeInfo>>>),
     /// Retrieve the computed layout properties of the given node in the given pipeline.
-    GetLayout(PipelineId, String, IpcSender<ComputedNodeLayout>),
+    GetLayout(PipelineId, String, IpcSender<Option<ComputedNodeLayout>>),
     /// Retrieve all stored console messages for the given pipeline.
     GetCachedMessages(PipelineId, CachedConsoleMessageTypes, IpcSender<Vec<CachedConsoleMessage>>),
     /// Update a given node's attributes with a list of modifications.

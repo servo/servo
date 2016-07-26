@@ -53,7 +53,10 @@ pub enum WebDriverJSValue {
 #[derive(Deserialize, Serialize)]
 pub enum WebDriverJSError {
     Timeout,
-    UnknownType
+    UnknownType,
+    /// Occurs when handler received an event message for a layout channel that is not
+    /// associated with the current script thread
+    BrowsingContextNotFound
 }
 
 pub type WebDriverJSResult = Result<WebDriverJSValue, WebDriverJSError>;

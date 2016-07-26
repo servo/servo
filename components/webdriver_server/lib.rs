@@ -738,7 +738,9 @@ impl Handler {
             Ok(value) => Ok(WebDriverResponse::Generic(ValueResponse::new(value.to_json()))),
             Err(WebDriverJSError::Timeout) => Err(WebDriverError::new(ErrorStatus::Timeout, "")),
             Err(WebDriverJSError::UnknownType) => Err(WebDriverError::new(
-                ErrorStatus::UnsupportedOperation, "Unsupported return type"))
+                ErrorStatus::UnsupportedOperation, "Unsupported return type")),
+            Err(WebDriverJSError::BrowsingContextNotFound) => Err(WebDriverError::new(
+                ErrorStatus::JavascriptError, "Pipeline id not found in browsing context"))
         }
     }
 
