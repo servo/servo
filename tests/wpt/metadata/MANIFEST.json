@@ -37205,6 +37205,12 @@
     "deleted_reftests": {},
     "items": {
       "testharness": {
+        "html/semantics/interactive-elements/the-dialog-element/dialog-open.html": [
+          {
+            "path": "html/semantics/interactive-elements/the-dialog-element/dialog-open.html",
+            "url": "/html/semantics/interactive-elements/the-dialog-element/dialog-open.html"
+          }
+        ],
         "html/semantics/scripting-1/the-script-element/script-charset-03.html": [
           {
             "path": "html/semantics/scripting-1/the-script-element/script-charset-03.html",
