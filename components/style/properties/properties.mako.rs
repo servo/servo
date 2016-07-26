@@ -2146,10 +2146,6 @@ pub fn modify_style_for_input_text(style: &mut Arc<ComputedValues>) {
     margin_style.margin_right = computed::LengthOrPercentageOrAuto::Length(Au(0));
     margin_style.margin_bottom = computed::LengthOrPercentageOrAuto::Length(Au(0));
     margin_style.margin_left = computed::LengthOrPercentageOrAuto::Length(Au(0));
-
-    // whitespace inside text input should not be collapsed
-    let inherited_text = Arc::make_mut(&mut style.inheritedtext);
-    inherited_text.white_space = longhands::white_space::computed_value::T::pre;
 }
 
 /// Adjusts the `clip` property so that an inline absolute hypothetical fragment doesn't clip its
