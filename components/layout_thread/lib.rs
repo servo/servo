@@ -1097,12 +1097,16 @@ impl LayoutThread {
                        .unwrap();
             }
             if data.document_stylesheets.iter().any(|sheet| sheet.dirty_on_viewport_size_change) {
-                for node in node.traverse_preorder() {
+                let mut iter = node.traverse_preorder();
+
+                let mut next = iter.next();
+                while let Some(node) = next {
                     if node.needs_dirty_on_viewport_size_changed() {
-                        node.dirty_self();
-                        node.dirty_descendants();
-                        // TODO(shinglyu): We can skip the traversal if the descendants were already
-                        // dirtied
+                        // NB: The dirty bit is propagated down the tree.
+                        unsafe { node.set_dirty(true); }
+                        next = iter.next_skipping_children();
+                    } else {
+                        next = iter.next();
                     }
                 }
             }
@@ -1114,7 +1118,9 @@ impl LayoutThread {
         let needs_reflow = viewport_size_changed && !needs_dirtying;
         unsafe {
             if needs_dirtying {
-                LayoutThread::dirty_all_nodes(node);
+                // NB: The dirty flag is propagated down during the restyle
+                // process.
+                node.set_dirty(true);
             }
         }
         if needs_reflow {
