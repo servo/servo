@@ -199,15 +199,6 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
         self.node.set_flag(DIRTY_ON_VIEWPORT_SIZE_CHANGE, true);
     }
 
-    fn set_descendants_dirty_on_viewport_size_changed(&self) {
-        for ref child in self.children() {
-            unsafe {
-                child.set_dirty_on_viewport_size_changed();
-            }
-            child.set_descendants_dirty_on_viewport_size_changed();
-        }
-    }
-
     fn can_be_fragmented(&self) -> bool {
         unsafe { self.node.get_flag(CAN_BE_FRAGMENTED) }
     }

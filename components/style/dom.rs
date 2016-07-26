@@ -111,32 +111,9 @@ pub trait TNode : Sized + Copy + Clone {
 
     unsafe fn set_dirty_descendants(&self, value: bool);
 
-    fn dirty_self(&self) {
-        unsafe {
-            self.set_dirty(true);
-            self.set_dirty_descendants(true);
-        }
-    }
-
-    fn dirty_descendants(&self) {
-        for ref child in self.children() {
-            child.dirty_self();
-            child.dirty_descendants();
-        }
-    }
-
     fn needs_dirty_on_viewport_size_changed(&self) -> bool;
 
     unsafe fn set_dirty_on_viewport_size_changed(&self);
-
-    fn set_descendants_dirty_on_viewport_size_changed(&self) {
-        for ref child in self.children() {
-            unsafe {
-                child.set_dirty_on_viewport_size_changed();
-            }
-            child.set_descendants_dirty_on_viewport_size_changed();
-        }
-    }
 
     fn can_be_fragmented(&self) -> bool;
 
@@ -215,7 +192,7 @@ pub trait TElement : Sized + Copy + Clone + ElementExt + PresentationalHintsSynt
     fn attr_equals(&self, namespace: &Namespace, attr: &Atom, value: &Atom) -> bool;
 
     /// Properly marks nodes as dirty in response to restyle hints.
-    fn note_restyle_hint(&self, mut hint: RestyleHint) {
+    fn note_restyle_hint(&self, hint: RestyleHint) {
         // Bail early if there's no restyling to do.
         if hint.is_empty() {
             return;
@@ -233,23 +210,21 @@ pub trait TElement : Sized + Copy + Clone + ElementExt + PresentationalHintsSynt
 
         // Process hints.
         if hint.contains(RESTYLE_SELF) {
-            node.dirty_self();
+            unsafe { node.set_dirty(true); }
+        // XXX(emilio): For now, dirty implies dirty descendants if found.
+        } else if hint.contains(RESTYLE_DESCENDANTS) {
+            let mut current = node.first_child();
+            while let Some(node) = current {
+                unsafe { node.set_dirty(true); }
+                current = node.next_sibling();
+            }
+        }
 
-            // FIXME(bholley, #8438): We currently need to RESTYLE_DESCENDANTS in the
-            // RESTYLE_SELF case in order to make sure "inherit" style structs propagate
-            // properly. See the explanation in the github issue.
-            hint.insert(RESTYLE_DESCENDANTS);
-        }
-        if hint.contains(RESTYLE_DESCENDANTS) {
-            unsafe { node.set_dirty_descendants(true); }
-            node.dirty_descendants();
-        }
         if hint.contains(RESTYLE_LATER_SIBLINGS) {
             let mut next = ::selectors::Element::next_sibling_element(self);
             while let Some(sib) = next {
                 let sib_node = sib.as_node();
-                sib_node.dirty_self();
-                sib_node.dirty_descendants();
+                unsafe { sib_node.set_dirty(true) };
                 next = ::selectors::Element::next_sibling_element(&sib);
             }
         }
@@ -262,11 +237,15 @@ pub struct TreeIterator<ConcreteNode> where ConcreteNode: TNode {
 
 impl<ConcreteNode> TreeIterator<ConcreteNode> where ConcreteNode: TNode {
     fn new(root: ConcreteNode) -> TreeIterator<ConcreteNode> {
-        let mut stack = vec!();
+        let mut stack = vec![];
         stack.push(root);
         TreeIterator {
             stack: stack,
         }
+    }
+
+    pub fn next_skipping_children(&mut self) -> Option<ConcreteNode> {
+        self.stack.pop()
     }
 }
 
