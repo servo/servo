@@ -17,6 +17,9 @@ debugmozjs = ['js/debugmozjs']
 [target.'cfg(any(target_os = "macos", target_os = "linux"))'.dependencies]
 tinyfiledialogs = {git = "https://github.com/jdm/tinyfiledialogs"}
 
+[target.'cfg(not(target_os = "android"))'.dependencies]
+video-metadata = {git = "https://github.com/GuillaumeGomez/video-metadata-rs"}
+
 [dependencies]
 angle = {git = "https://github.com/servo/angle", branch = "servo"}
 app_units = "0.2.5"
@@ -67,7 +70,6 @@ time = "0.1.12"
 url = {version = "1.0.0", features = ["heap_size", "query_encoding"]}
 util = {path = "../util"}
 uuid = {version = "0.2", features = ["v4"]}
-video-metadata = {git = "https://github.com/GuillaumeGomez/video-metadata-rs"}
 websocket = "0.17"
 xml5ever = {version = "0.1.2", features = ["unstable"]}
 

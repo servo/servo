@@ -89,24 +89,7 @@ impl AsyncResponseListener for HTMLMediaElementContext {
         // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
         // => "Once enough of the media data has been fetched to determine the duration..."
         if !self.have_metadata {
-            match video_metadata::get_format_from_slice(&self.data) {
-                Ok(meta) => {
-                    let dur = meta.duration.unwrap_or(::std::time::Duration::new(0, 0));
-                    *elem.video.borrow_mut() = Some(VideoMedia {
-                        format: format!("{:?}", meta.format),
-                        duration: Duration::seconds(dur.as_secs() as i64) +
-                                  Duration::nanoseconds(dur.subsec_nanos() as i64),
-                        width: meta.size.width,
-                        height: meta.size.height,
-                        video: meta.video,
-                        audio: meta.audio,
-                    });
-                    // Step 6
-                    elem.change_ready_state(HAVE_METADATA);
-                    self.have_metadata = true;
-                }
-                _ => {}
-            }
+            self.check_metadata(&elem);
         } else {
             elem.change_ready_state(HAVE_CURRENT_DATA);
         }
@@ -175,6 +158,35 @@ impl HTMLMediaElementContext {
             have_metadata: false,
             ignore_response: false,
         }
+    }
+
+    #[cfg(not(target_os = "android"))]
+    fn check_metadata(&mut self, elem: &HTMLMediaElement) {
+        match video_metadata::get_format_from_slice(&self.data) {
+            Ok(meta) => {
+                let dur = meta.duration.unwrap_or(::std::time::Duration::new(0, 0));
+                *elem.video.borrow_mut() = Some(VideoMedia {
+                    format: format!("{:?}", meta.format),
+                    duration: Duration::seconds(dur.as_secs() as i64) +
+                              Duration::nanoseconds(dur.subsec_nanos() as i64),
+                    width: meta.size.width,
+                    height: meta.size.height,
+                    video: meta.video,
+                    audio: meta.audio,
+                });
+                // Step 6
+                elem.change_ready_state(HAVE_METADATA);
+                self.have_metadata = true;
+            }
+            _ => {}
+        }
+    }
+
+    #[cfg(target_os = "android")]
+    fn check_metadata(&mut self, _elem: &HTMLMediaElement) {
+        // Step 6.
+        elem.change_ready_state(HAVE_METADATA);
+        self.have_metadata = true;
     }
 }
 
