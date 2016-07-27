@@ -6138,6 +6138,12 @@
             "url": "/_mozilla/css/animations/basic-linear-width.html"
           }
         ],
+        "css/animations/basic-transition.html": [
+          {
+            "path": "css/animations/basic-transition.html",
+            "url": "/_mozilla/css/animations/basic-transition.html"
+          }
+        ],
         "css/empty-keyframes.html": [
           {
             "path": "css/empty-keyframes.html",
