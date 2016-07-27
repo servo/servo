@@ -30,5 +30,8 @@ serde_macros = {version = "0.7.11", optional = true}
 url = "1.0.0"
 plugins = {path = "../plugins", optional = true}
 
+[dev-dependencies]
+env_logger = "0.3"
+
 [target.'cfg(all(unix, not(target_os = "macos"), not(target_os = "ios"), not(target_os = "android")))'.dependencies]
 xdg = "2.0"

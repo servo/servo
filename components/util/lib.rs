@@ -4,6 +4,7 @@
 
 #![cfg_attr(feature = "servo", feature(custom_derive))]
 #![cfg_attr(feature = "servo", feature(plugin))]
+#![cfg_attr(feature = "servo", feature(nonzero))]
 #![cfg_attr(feature = "servo", feature(reflect_marker))]
 #![cfg_attr(feature = "servo", plugin(serde_macros))]
 #![cfg_attr(feature = "servo", plugin(plugins))]
@@ -12,6 +13,7 @@
 
 extern crate app_units;
 #[allow(unused_extern_crates)] #[macro_use] extern crate bitflags;
+extern crate core;
 extern crate euclid;
 extern crate getopts;
 #[macro_use] extern crate heapsize;
@@ -30,6 +32,7 @@ pub mod geometry;
 #[cfg(feature = "servo")] #[allow(unsafe_code)] pub mod ipc;
 #[allow(unsafe_code)] pub mod opts;
 pub mod prefs;
+#[cfg(feature = "servo")] pub mod remutex;
 pub mod resource_files;
 pub mod thread;
 pub mod thread_state;

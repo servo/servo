@@ -8,4 +8,5 @@ extern crate util;
 
 mod opts;
 mod prefs;
+mod remutex;
 mod thread;
