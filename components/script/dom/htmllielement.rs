@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::HTMLLIElementBinding;
+use dom::bindings::codegen::Bindings::HTMLLIElementBinding::HTMLLIElementMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::str::DOMString;
@@ -33,6 +34,14 @@ impl HTMLLIElement {
                            document,
                            HTMLLIElementBinding::Wrap)
     }
+}
+
+impl HTMLLIElementMethods for HTMLLIElement {
+    // https://html.spec.whatwg.org/multipage/#dom-li-value
+    make_int_getter!(Value, "value");
+
+    // https://html.spec.whatwg.org/multipage/#dom-li-value
+    make_int_setter!(SetValue, "value");
 }
 
 impl VirtualMethods for HTMLLIElement {
