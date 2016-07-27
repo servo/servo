@@ -828,11 +828,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 debug!("constellation got load complete message");
                 self.handle_load_complete_msg(pipeline_id)
             }
-            // The DOM load event fired on a document
-            FromScriptMsg::DOMLoad(pipeline_id) => {
-                debug!("constellation got dom load message");
-                self.handle_dom_load(pipeline_id)
-            }
             // Handle a forward or back request
             FromScriptMsg::TraverseHistory(pipeline_id, direction) => {
                 debug!("constellation got traverse history message from script");
@@ -1438,16 +1433,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     }
 
     fn handle_load_complete_msg(&mut self, pipeline_id: PipelineId) {
-        if let Some(frame_id) = self.get_top_level_frame_for_pipeline(Some(pipeline_id)) {
-            let forward = !self.joint_session_future(frame_id).is_empty();
-            let back = !self.joint_session_past(frame_id).is_empty();
-            let root = self.root_frame_id.is_none() || self.root_frame_id == Some(frame_id);
-            self.compositor_proxy.send(ToCompositorMsg::LoadComplete(back, forward, root));
-        }
-        self.handle_subframe_loaded(pipeline_id);
-    }
-
-    fn handle_dom_load(&mut self, pipeline_id: PipelineId) {
         let mut webdriver_reset = false;
         if let Some((expected_pipeline_id, ref reply_chan)) = self.webdriver.load_channel {
             debug!("Sending load to WebDriver");
@@ -1459,6 +1444,13 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         if webdriver_reset {
             self.webdriver.load_channel = None;
         }
+        if let Some(frame_id) = self.get_top_level_frame_for_pipeline(Some(pipeline_id)) {
+            let forward = !self.joint_session_future(frame_id).is_empty();
+            let back = !self.joint_session_past(frame_id).is_empty();
+            let root = self.root_frame_id.is_none() || self.root_frame_id == Some(frame_id);
+            self.compositor_proxy.send(ToCompositorMsg::LoadComplete(back, forward, root));
+        }
+        self.handle_subframe_loaded(pipeline_id);
     }
 
     fn handle_traverse_history_msg(&mut self,
