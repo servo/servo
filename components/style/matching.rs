@@ -473,8 +473,7 @@ trait PrivateMatchMethods: TNode
             had_animations_to_expire = animations_to_expire.is_some();
             if let Some(ref animations) = animations_to_expire {
                 for animation in *animations {
-                    // NB: Expiring a keyframes animation is the same as not
-                    // applying the keyframes style to it, so we're safe.
+                    // TODO: support animation-fill-mode
                     if let Animation::Transition(_, _, ref frame, _) = *animation {
                         frame.property_animation.update(Arc::make_mut(style), 1.0);
                     }
