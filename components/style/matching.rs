@@ -466,25 +466,8 @@ trait PrivateMatchMethods: TNode
 
         // Finish any expired transitions.
         let this_opaque = self.opaque();
-        let had_animations_to_expire;
-        {
-            let all_expired_animations = context.expired_animations.read().unwrap();
-            let animations_to_expire = all_expired_animations.get(&this_opaque);
-            had_animations_to_expire = animations_to_expire.is_some();
-            if let Some(ref animations) = animations_to_expire {
-                for animation in *animations {
-                    // NB: Expiring a keyframes animation is the same as not
-                    // applying the keyframes style to it, so we're safe.
-                    if let Animation::Transition(_, _, ref frame, _) = *animation {
-                        frame.property_animation.update(Arc::make_mut(style), 1.0);
-                    }
-                }
-            }
-        }
-
-        if had_animations_to_expire {
-            context.expired_animations.write().unwrap().remove(&this_opaque);
-        }
+        let had_animations_to_expire =
+            animation::complete_expired_transitions(this_opaque, style, context);
 
         // Merge any running transitions into the current style, and cancel them.
         let had_running_animations = context.running_animations
