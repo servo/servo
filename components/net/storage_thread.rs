@@ -8,22 +8,22 @@ use resource_thread;
 use std::borrow::ToOwned;
 use std::collections::BTreeMap;
 use std::collections::HashMap;
+use std::path::PathBuf;
 use url::Url;
-use util::opts;
 use util::thread::spawn_named;
 
 const QUOTA_SIZE_LIMIT: usize = 5 * 1024 * 1024;
 
 pub trait StorageThreadFactory {
-    fn new() -> Self;
+    fn new(config_dir: Option<PathBuf>) -> Self;
 }
 
 impl StorageThreadFactory for IpcSender<StorageThreadMsg> {
     /// Create a storage thread
-    fn new() -> IpcSender<StorageThreadMsg> {
+    fn new(config_dir: Option<PathBuf>) -> IpcSender<StorageThreadMsg> {
         let (chan, port) = ipc::channel().unwrap();
         spawn_named("StorageManager".to_owned(), move || {
-            StorageManager::new(port).start();
+            StorageManager::new(port, config_dir).start();
         });
         chan
     }
@@ -33,18 +33,22 @@ struct StorageManager {
     port: IpcReceiver<StorageThreadMsg>,
     session_data: HashMap<String, (usize, BTreeMap<String, String>)>,
     local_data: HashMap<String, (usize, BTreeMap<String, String>)>,
+    config_dir: Option<PathBuf>,
 }
 
 impl StorageManager {
-    fn new(port: IpcReceiver<StorageThreadMsg>) -> StorageManager {
+    fn new(port: IpcReceiver<StorageThreadMsg>,
+           config_dir: Option<PathBuf>)
+           -> StorageManager {
         let mut local_data = HashMap::new();
-        if let Some(ref config_dir) = opts::get().config_dir {
+        if let Some(ref config_dir) = config_dir {
             resource_thread::read_json_from_file(&mut local_data, config_dir, "local_data.json");
         }
         StorageManager {
             port: port,
             session_data: HashMap::new(),
             local_data: local_data,
+            config_dir: config_dir,
         }
     }
 }
@@ -75,7 +79,7 @@ impl StorageManager {
                     self.clear(sender, url, storage_type)
                 }
                 StorageThreadMsg::Exit(sender) => {
-                    if let Some(ref config_dir) = opts::get().config_dir {
+                    if let Some(ref config_dir) = self.config_dir {
                         resource_thread::write_json_to_file(&self.local_data, config_dir, "local_data.json");
                     }
                     let _ = sender.send(());

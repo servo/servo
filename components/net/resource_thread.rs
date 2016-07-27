@@ -42,13 +42,13 @@ use std::collections::HashMap;
 use std::error::Error;
 use std::fs::File;
 use std::io::prelude::*;
-use std::path::Path;
+use std::ops::Deref;
+use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::sync::{Arc, RwLock};
 use storage_thread::StorageThreadFactory;
 use url::Url;
-use util::opts;
 use util::prefs::PREFS;
 use util::thread::spawn_named;
 use websocket_loader;
@@ -165,11 +165,17 @@ fn start_sending_opt(start_chan: LoadConsumer, metadata: Metadata,
 /// Returns a tuple of (public, private) senders to the new threads.
 pub fn new_resource_threads(user_agent: String,
                             devtools_chan: Option<Sender<DevtoolsControlMsg>>,
-                            profiler_chan: ProfilerChan) -> (ResourceThreads, ResourceThreads) {
+                            profiler_chan: ProfilerChan,
+                            config_dir: Option<PathBuf>)
+                            -> (ResourceThreads, ResourceThreads) {
     let filemanager_chan: IpcSender<FileManagerThreadMsg> = FileManagerThreadFactory::new(TFD_PROVIDER);
-    let (public_core, private_core) = new_core_resource_thread(user_agent, devtools_chan,
-                                                               profiler_chan, filemanager_chan.clone());
-    let storage: IpcSender<StorageThreadMsg> = StorageThreadFactory::new();
+    let (public_core, private_core) = new_core_resource_thread(
+        user_agent,
+        devtools_chan,
+        profiler_chan,
+        filemanager_chan.clone(),
+        config_dir.clone());
+    let storage: IpcSender<StorageThreadMsg> = StorageThreadFactory::new(config_dir);
     (ResourceThreads::new(public_core, storage.clone(), filemanager_chan.clone()),
      ResourceThreads::new(private_core, storage, filemanager_chan))
 }
@@ -179,7 +185,8 @@ pub fn new_resource_threads(user_agent: String,
 pub fn new_core_resource_thread(user_agent: String,
                                 devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                                 profiler_chan: ProfilerChan,
-                                filemanager_chan: IpcSender<FileManagerThreadMsg>)
+                                filemanager_chan: IpcSender<FileManagerThreadMsg>,
+                                config_dir: Option<PathBuf>)
                                 -> (CoreResourceThread, CoreResourceThread) {
     let (public_setup_chan, public_setup_port) = ipc::channel().unwrap();
     let (private_setup_chan, private_setup_port) = ipc::channel().unwrap();
@@ -192,6 +199,7 @@ pub fn new_core_resource_thread(user_agent: String,
 
         let mut channel_manager = ResourceChannelManager {
             resource_manager: resource_manager,
+            config_dir: config_dir,
         };
         channel_manager.start(public_setup_chan_clone,
                               private_setup_chan_clone,
@@ -202,14 +210,16 @@ pub fn new_core_resource_thread(user_agent: String,
 }
 
 struct ResourceChannelManager {
-    resource_manager: CoreResourceManager
+    resource_manager: CoreResourceManager,
+    config_dir: Option<PathBuf>,
 }
 
-fn create_resource_groups() -> (ResourceGroup, ResourceGroup) {
+fn create_resource_groups(config_dir: Option<&Path>)
+                          -> (ResourceGroup, ResourceGroup) {
     let mut hsts_list = HstsList::from_servo_preload();
     let mut auth_cache = AuthCache::new();
     let mut cookie_jar = CookieStorage::new();
-    if let Some(ref config_dir) = opts::get().config_dir {
+    if let Some(config_dir) = config_dir {
         read_json_from_file(&mut auth_cache, config_dir, "auth_cache.json");
         read_json_from_file(&mut hsts_list, config_dir, "hsts_list.json");
         read_json_from_file(&mut cookie_jar, config_dir, "cookie_jar.json");
@@ -236,7 +246,8 @@ impl ResourceChannelManager {
              private_control_sender: CoreResourceThread,
              public_receiver: IpcReceiver<CoreResourceMsg>,
              private_receiver: IpcReceiver<CoreResourceMsg>) {
-        let (public_resource_group, private_resource_group) = create_resource_groups();
+        let (public_resource_group, private_resource_group) =
+            create_resource_groups(self.config_dir.as_ref().map(Deref::deref));
 
         let mut rx_set = IpcReceiverSet::new().unwrap();
         let private_id = rx_set.add(private_receiver).unwrap();
@@ -297,7 +308,7 @@ impl ResourceChannelManager {
                 let _ = sender.send(());
             }
             CoreResourceMsg::Exit(sender) => {
-                if let Some(ref config_dir) = opts::get().config_dir {
+                if let Some(ref config_dir) = self.config_dir {
                     match group.auth_cache.read() {
                         Ok(auth_cache) => write_json_to_file(&*auth_cache, config_dir, "auth_cache.json"),
                         Err(_) => warn!("Error writing auth cache to disk"),
@@ -319,8 +330,10 @@ impl ResourceChannelManager {
     }
 }
 
-pub fn read_json_from_file<T: Decodable>(data: &mut T, config_dir: &str, filename: &str) {
-    let path = Path::new(config_dir).join(filename);
+pub fn read_json_from_file<T>(data: &mut T, config_dir: &Path, filename: &str)
+    where T: Decodable
+{
+    let path = config_dir.join(filename);
     let display = path.display();
 
     let mut file = match File::open(&path) {
@@ -346,13 +359,15 @@ pub fn read_json_from_file<T: Decodable>(data: &mut T, config_dir: &str, filenam
     }
 }
 
-pub fn write_json_to_file<T: Encodable>(data: &T, config_dir: &str, filename: &str) {
+pub fn write_json_to_file<T>(data: &T, config_dir: &Path, filename: &str)
+    where T: Encodable
+{
     let json_encoded: String;
     match json::encode(&data) {
         Ok(d) => json_encoded = d,
         Err(_) => return,
     }
-    let path = Path::new(config_dir).join(filename);
+    let path = config_dir.join(filename);
     let display = path.display();
 
     let mut file = match File::create(&path) {
