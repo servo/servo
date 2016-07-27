@@ -4,15 +4,14 @@
 
 // https://fetch.spec.whatwg.org/#body
 
-
 [NoInterfaceObject]
 
 /* [NoInterfaceObject,
   Exposed=(Window,Worker)] */
 
 interface Body {
-  // readonly attribute boolean bodyUsed;
-  
+  readonly attribute boolean bodyUsed;
+
   // Servo does not support Promise at this moment.
   // [NewObject] Promise<ArrayBuffer> arrayBuffer();
   // [NewObject] Promise<Blob> blob();
