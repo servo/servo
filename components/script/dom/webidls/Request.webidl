@@ -6,16 +6,14 @@
 
 typedef (Request or USVString) RequestInfo;
 
-[Constructor(RequestInfo input)]
-
-/*[Constructor(RequestInfo input, optional RequestInit init),
- * Exposed=(Window,Worker)] */
+[Constructor(RequestInfo input, optional RequestInit init)]
+// /*[Constructor(RequestInfo input, optional RequestInit init),
+//  * Exposed=(Window,Worker)] */
 
 interface Request {
   readonly attribute ByteString method;
   readonly attribute USVString url;
-  // [SameObject] readonly attribute Headers headers;
-
+  [SameObject] readonly attribute Headers headers;
   readonly attribute RequestType type;
   readonly attribute RequestDestination destination;
   readonly attribute USVString referrer;
@@ -25,30 +23,29 @@ interface Request {
   readonly attribute RequestCache cache;
   readonly attribute RequestRedirect redirect;
   readonly attribute DOMString integrity;
-
-  // [NewObject] Request clone();
+  [NewObject, Throws] Request clone();
 };
 
 Request implements Body;
 
-//dictionary RequestInit {
-//  ByteString method;
-//  // HeadersInit headers;
-//  BodyInit? body;
-//  USVString referrer;
-//  ReferrerPolicy referrerPolicy;
-//  RequestMode mode;
-//  RequestCredentials credentials;
-//  RequestCache cache;
-//  RequestRedirect redirect;
-//  DOMString integrity;
-//  any window; // can only be set to null
-//};
+dictionary RequestInit {
+  ByteString method;
+  // HeadersInit headers;
+  BodyInit? body;
+  USVString referrer;
+  ReferrerPolicy referrerPolicy;
+  RequestMode mode;
+  RequestCredentials credentials;
+  RequestCache cache;
+  RequestRedirect redirect;
+  DOMString integrity;
+  any window; // can only be set to null
+};
 
 enum RequestType {
   "",
   "audio",
-  "font", 
+  "font",
   "image",
   "script",
   "style",
