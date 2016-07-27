@@ -8,15 +8,16 @@
 //! active_workers map
 
 use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg};
-use dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
+use dom::serviceworkerglobalscope::{ServiceWorkerGlobalScope, ServiceWorkerScriptMsg};
 use dom::serviceworkerregistration::longest_prefix_match;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use net_traits::{CustomResponseMediator, CoreResourceMsg};
 use script_traits::{ServiceWorkerMsg, ScopeThings, SWManagerMsg, SWManagerSenders};
 use std::collections::HashMap;
-use std::sync::mpsc::{channel, Receiver, RecvError};
+use std::sync::mpsc::{channel, Sender, Receiver, RecvError};
 use url::Url;
+use util::prefs::PREFS;
 use util::thread::spawn_named;
 
 enum Message {
@@ -62,7 +63,7 @@ impl ServiceWorkerManager {
         });
     }
 
-    pub fn prepare_activation(&mut self, load_url: &Url) {
+    pub fn prepare_activation(&mut self, load_url: &Url) -> Option<Sender<ServiceWorkerScriptMsg>> {
         let mut scope_url = None;
         for scope in self.registered_workers.keys() {
             if longest_prefix_match(&scope, load_url) {
@@ -75,7 +76,7 @@ impl ServiceWorkerManager {
             if self.active_workers.contains_key(&scope_url) {
                 // do not run the same worker if already active.
                 warn!("Service worker for {:?} already active", scope_url);
-                return;
+                return None;
             }
             let scope_things = self.registered_workers.get(&scope_url);
             if let Some(scope_things) = scope_things {
@@ -93,17 +94,19 @@ impl ServiceWorkerManager {
                                                                              page_info));
                 };
                 ServiceWorkerGlobalScope::run_serviceworker_scope(scope_things.clone(),
-                                                                              sender,
+                                                                              sender.clone(),
                                                                               receiver,
                                                                               devtools_receiver,
                                                                               self.own_sender.clone(),
                                                                               scope_url.clone());
                 // We store the activated worker
                 self.active_workers.insert(scope_url.clone(), scope_things.clone());
+                return Some(sender);
             } else {
                 warn!("Unable to activate service worker");
             }
         }
+        None
     }
 
     fn handle_message(&mut self) {
@@ -146,11 +149,14 @@ impl ServiceWorkerManager {
 
     #[inline]
     fn handle_message_from_resource(&mut self, mediator: CustomResponseMediator) -> bool {
-        self.prepare_activation(&mediator.load_url);
-        // TODO XXXcreativcoder This mediator will need to be send to the appropriate service worker
-        // so that it may do the sending of custom responses.
-        // For now we just send a None from here itself
-        let _ = mediator.response_chan.send(None);
+        if serviceworker_enabled() {
+            let worker_sender = self.prepare_activation(&mediator.load_url);
+            if let Some(ref sender) = worker_sender {
+                let _ = sender.send(ServiceWorkerScriptMsg::Response(mediator));
+            }
+        } else {
+            let _ = mediator.response_chan.send(None);
+        }
         true
     }
 
@@ -163,4 +169,8 @@ impl ServiceWorkerManager {
             msg = msg_from_resource.recv() => msg.map(Message::FromResource)
         }
     }
+}
+
+pub fn serviceworker_enabled() -> bool {
+    PREFS.get("dom.serviceworker.enabled").as_boolean().unwrap_or(false)
 }
