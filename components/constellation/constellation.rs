@@ -828,11 +828,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 debug!("constellation got load complete message");
                 self.handle_load_complete_msg(pipeline_id)
             }
-            // The DOM load event fired on a document
-            FromScriptMsg::DOMLoad(pipeline_id) => {
-                debug!("constellation got dom load message");
-                self.handle_dom_load(pipeline_id)
-            }
             // Handle a forward or back request
             FromScriptMsg::TraverseHistory(pipeline_id, direction) => {
                 debug!("constellation got traverse history message from script");
@@ -1323,10 +1318,13 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
     }
 
-    fn handle_alert(&mut self, pipeline_id: PipelineId, message: String, sender: IpcSender<bool>) {
+    fn handle_alert(&mut self,
+                    pipeline_id: PipelineId,
+                    message: String,
+                    sender: IpcSender<bool>) {
         let display_alert_dialog = if PREFS.is_mozbrowser_enabled() {
             let parent_pipeline_info = self.pipelines.get(&pipeline_id).and_then(|source| source.parent_info);
-            if let Some(_) = parent_pipeline_info {
+            if parent_pipeline_info.is_some() {
                 let root_pipeline_id = self.root_frame_id
                     .and_then(|root_frame_id| self.frames.get(&root_frame_id))
                     .map(|root_frame| root_frame.current.0);
@@ -1435,15 +1433,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     }
 
     fn handle_load_complete_msg(&mut self, pipeline_id: PipelineId) {
-        if let Some(frame_id) = self.get_top_level_frame_for_pipeline(Some(pipeline_id)) {
-            let forward = !self.joint_session_future(frame_id).is_empty();
-            let back = !self.joint_session_past(frame_id).is_empty();
-            let root = self.root_frame_id.is_none() || self.root_frame_id == Some(frame_id);
-            self.compositor_proxy.send(ToCompositorMsg::LoadComplete(back, forward, root));
-        }
-    }
-
-    fn handle_dom_load(&mut self, pipeline_id: PipelineId) {
         let mut webdriver_reset = false;
         if let Some((expected_pipeline_id, ref reply_chan)) = self.webdriver.load_channel {
             debug!("Sending load to WebDriver");
@@ -1455,7 +1444,12 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         if webdriver_reset {
             self.webdriver.load_channel = None;
         }
-
+        if let Some(frame_id) = self.get_top_level_frame_for_pipeline(Some(pipeline_id)) {
+            let forward = !self.joint_session_future(frame_id).is_empty();
+            let back = !self.joint_session_past(frame_id).is_empty();
+            let root = self.root_frame_id.is_none() || self.root_frame_id == Some(frame_id);
+            self.compositor_proxy.send(ToCompositorMsg::LoadComplete(back, forward, root));
+        }
         self.handle_subframe_loaded(pipeline_id);
     }
 
@@ -2073,7 +2067,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
 
         // If there are pending loads, wait for those to complete.
-        if self.pending_frames.len() > 0 {
+        if !self.pending_frames.is_empty() {
             return ReadyToSave::PendingFrames;
         }
 
@@ -2089,7 +2083,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             let pipeline_id = frame.current.0;
 
             let pipeline = match self.pipelines.get(&pipeline_id) {
-                None => { warn!("Pipeline {:?} screenshot while closing.", pipeline_id); continue; },
+                None => {
+                    warn!("Pipeline {:?} screenshot while closing.", pipeline_id);
+                    continue;
+                },
                 Some(pipeline) => pipeline,
             };
 

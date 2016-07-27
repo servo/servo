@@ -147,6 +147,30 @@ pub trait DomTraversalContext<N: TNode>  {
     fn process_preorder(&self, node: N);
     /// Process `node` on the way up, after its children have been processed.
     fn process_postorder(&self, node: N);
+
+    /// Returns if the node should be processed by the preorder traversal (and
+    /// then by the post-order one).
+    ///
+    /// Note that this is true unconditionally for servo, since it requires to
+    /// bubble the widths bottom-up for all the DOM.
+    fn should_process(&self, node: N) -> bool {
+        node.is_dirty() || node.has_dirty_descendants()
+    }
+
+    /// Do an action over the child before pushing him to the work queue.
+    ///
+    /// By default, propagate the IS_DIRTY flag down the tree.
+    #[allow(unsafe_code)]
+    fn pre_process_child_hook(&self, parent: N, kid: N) {
+        // NOTE: At this point is completely safe to modify either the parent or
+        // the child, since we have exclusive access to both of them.
+        if parent.is_dirty() {
+            unsafe {
+                kid.set_dirty(true);
+                parent.set_dirty_descendants(true);
+            }
+        }
+    }
 }
 
 /// Calculates the style for a single node.
@@ -244,22 +268,17 @@ pub fn recalc_style_at<'a, N, C>(context: &'a C,
     // NB: flow construction updates the bloom filter on the way up.
     put_thread_local_bloom_filter(bf, &unsafe_layout_node, context.shared_context());
 
-    // Mark the node as DIRTY_ON_VIEWPORT_SIZE_CHANGE is it uses viewport percentage units.
-    match node.as_element() {
-        Some(element) => {
-            match *element.style_attribute() {
-                Some(ref property_declaration_block) => {
-                    if property_declaration_block.declarations().any(|d| d.0.has_viewport_percentage()) {
-                        unsafe {
-                            node.set_dirty_on_viewport_size_changed();
-                        }
-                        node.set_descendants_dirty_on_viewport_size_changed();
+    // Mark the node as DIRTY_ON_VIEWPORT_SIZE_CHANGE is it uses viewport
+    // percentage units.
+    if !node.needs_dirty_on_viewport_size_changed() {
+        if let Some(element) = node.as_element() {
+            if let Some(ref property_declaration_block) = *element.style_attribute() {
+                if property_declaration_block.declarations().any(|d| d.0.has_viewport_percentage()) {
+                    unsafe {
+                        node.set_dirty_on_viewport_size_changed();
                     }
-                },
-                None => {}
+                }
             }
-        },
-        None => {}
+        }
     }
 }
-

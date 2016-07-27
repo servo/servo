@@ -376,6 +376,7 @@ impl Document {
         // that workable.
         match self.GetDocumentElement() {
             Some(root) => {
+                root.upcast::<Node>().is_dirty() ||
                 root.upcast::<Node>().has_dirty_descendants() ||
                 !self.modified_elements.borrow().is_empty()
             }
@@ -1371,6 +1372,7 @@ impl Document {
     }
 
     pub fn finish_load(&self, load: LoadType) {
+        debug!("Document got finish_load: {:?}", load);
         // The parser might need the loader, so restrict the lifetime of the borrow.
         {
             let mut loader = self.loader.borrow_mut();
@@ -1396,9 +1398,9 @@ impl Document {
             // If we don't have a parser, and the reflow timer has been reset, explicitly
             // trigger a reflow.
             if let LoadType::Stylesheet(_) = load {
-                self.window().reflow(ReflowGoal::ForDisplay,
-                                     ReflowQueryType::NoQuery,
-                                     ReflowReason::StylesheetLoaded);
+                self.window.reflow(ReflowGoal::ForDisplay,
+                                   ReflowQueryType::NoQuery,
+                                   ReflowReason::StylesheetLoaded);
             }
         }
 
@@ -1487,24 +1489,25 @@ impl Document {
             return;
         }
         self.domcontentloaded_dispatched.set(true);
+        assert!(self.ReadyState() != DocumentReadyState::Complete,
+                "Complete before DOMContentLoaded?");
 
         update_with_current_time_ms(&self.dom_content_loaded_event_start);
 
         let window = self.window();
         window.dom_manipulation_task_source().queue_event(self.upcast(), atom!("DOMContentLoaded"),
             EventBubbles::Bubbles, EventCancelable::NotCancelable, window);
+
         window.reflow(ReflowGoal::ForDisplay,
                       ReflowQueryType::NoQuery,
                       ReflowReason::DOMContentLoaded);
-
         update_with_current_time_ms(&self.dom_content_loaded_event_end);
     }
 
     pub fn notify_constellation_load(&self) {
         let pipeline_id = self.window.pipeline();
-        let event = ConstellationMsg::DOMLoad(pipeline_id);
-        self.window.constellation_chan().send(event).unwrap();
-
+        let load_event = ConstellationMsg::LoadComplete(pipeline_id);
+        self.window.constellation_chan().send(load_event).unwrap();
     }
 
     pub fn set_current_parser(&self, script: Option<ParserRef>) {
@@ -2908,16 +2911,18 @@ impl DocumentProgressHandler {
         // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-loadEventStart
         update_with_current_time_ms(&document.load_event_start);
 
+        debug!("About to dispatch load for {:?}", document.url());
         let _ = wintarget.dispatch_event_with_target(document.upcast(), &event);
 
         // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-loadEventEnd
         update_with_current_time_ms(&document.load_event_end);
 
-        document.notify_constellation_load();
 
         window.reflow(ReflowGoal::ForDisplay,
                       ReflowQueryType::NoQuery,
                       ReflowReason::DocumentLoaded);
+
+        document.notify_constellation_load();
     }
 }
 

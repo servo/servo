@@ -71,10 +71,6 @@ pub enum ScriptMsg {
     CreateWebGLPaintThread(Size2D<i32>,
                            GLContextAttributes,
                            IpcSender<Result<(IpcSender<CanvasMsg>, GLLimits), String>>),
-    /// Dispatched after the DOM load event has fired on a document
-    /// Causes a `load` event to be dispatched to any enclosing frame context element
-    /// for the given pipeline.
-    DOMLoad(PipelineId),
     /// Notifies the constellation that this frame has received focus.
     Focus(PipelineId),
     /// Re-send a mouse button event that was sent to the parent window.
@@ -85,7 +81,8 @@ pub enum ScriptMsg {
     GetClipboardContents(IpcSender<String>),
     /// <head> tag finished parsing
     HeadParsed,
-    /// All pending loads are complete.
+    /// All pending loads are complete, and the `load` event for this pipeline
+    /// has been dispatched.
     LoadComplete(PipelineId),
     /// A new load has been requested.
     LoadUrl(PipelineId, LoadData),

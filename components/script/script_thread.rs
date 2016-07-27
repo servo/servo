@@ -1198,8 +1198,6 @@ impl ScriptThread {
         // https://html.spec.whatwg.org/multipage/#the-end step 7
         let handler = box DocumentProgressHandler::new(Trusted::new(doc));
         self.dom_manipulation_task_source.queue(handler, GlobalRef::Window(doc.window())).unwrap();
-
-        self.constellation_chan.send(ConstellationMsg::LoadComplete(pipeline)).unwrap();
     }
 
     fn collect_reports(&self, reports_chan: ReportsChan) {

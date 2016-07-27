@@ -503,6 +503,10 @@ impl UnprivilegedPipelineContent {
                 command.env("RUST_BACKTRACE", value);
             }
 
+            if let Ok(value) = env::var("RUST_LOG") {
+                command.env("RUST_LOG", value);
+            }
+
             let profile = content_process_sandbox_profile();
             ChildProcess::Sandboxed(Sandbox::new(profile).start(&mut command)
                                     .expect("Failed to start sandboxed child process!"))
@@ -515,6 +519,10 @@ impl UnprivilegedPipelineContent {
 
             if let Ok(value) = env::var("RUST_BACKTRACE") {
                 child_process.env("RUST_BACKTRACE", value);
+            }
+
+            if let Ok(value) = env::var("RUST_LOG") {
+                child_process.env("RUST_LOG", value);
             }
 
             ChildProcess::Unsandboxed(child_process.spawn()

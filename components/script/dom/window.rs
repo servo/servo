@@ -450,13 +450,15 @@ impl WindowMethods for Window {
         // Right now, just print to the console
         // Ensure that stderr doesn't trample through the alert() we use to
         // communicate test results (see executorservo.py in wptrunner).
-        let stderr = stderr();
-        let mut stderr = stderr.lock();
-        let stdout = stdout();
-        let mut stdout = stdout.lock();
-        writeln!(&mut stdout, "ALERT: {}", s).unwrap();
-        stdout.flush().unwrap();
-        stderr.flush().unwrap();
+        {
+            let stderr = stderr();
+            let mut stderr = stderr.lock();
+            let stdout = stdout();
+            let mut stdout = stdout.lock();
+            writeln!(&mut stdout, "ALERT: {}", s).unwrap();
+            stdout.flush().unwrap();
+            stderr.flush().unwrap();
+        }
 
         let (sender, receiver) = ipc::channel().unwrap();
         self.constellation_chan().send(ConstellationMsg::Alert(self.pipeline(), s.to_string(), sender)).unwrap();
