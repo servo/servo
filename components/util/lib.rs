@@ -9,9 +9,11 @@
 #![cfg_attr(feature = "servo", plugin(plugins))]
 
 #![deny(unsafe_code)]
+#![feature(nonzero)]
 
 extern crate app_units;
 #[allow(unused_extern_crates)] #[macro_use] extern crate bitflags;
+extern crate core;
 extern crate euclid;
 extern crate getopts;
 #[macro_use] extern crate heapsize;
@@ -30,6 +32,7 @@ pub mod geometry;
 #[cfg(feature = "servo")] #[allow(unsafe_code)] pub mod ipc;
 #[allow(unsafe_code)] pub mod opts;
 pub mod prefs;
+pub mod remutex;
 pub mod resource_files;
 pub mod thread;
 pub mod thread_state;
