@@ -4,7 +4,7 @@
 
 // https://html.spec.whatwg.org/multipage/#htmllielement
 interface HTMLLIElement : HTMLElement {
-  //         attribute long value;
+  attribute long value;
 
   // also has obsolete members
 };
