@@ -35070,10 +35070,6 @@
         "url": "/workers/constructors/Worker/terminate.html"
       },
       {
-        "path": "workers/constructors/Worker/unexpected-self-properties.html",
-        "url": "/workers/constructors/Worker/unexpected-self-properties.html"
-      },
-      {
         "path": "workers/constructors/Worker/unresolvable-url.html",
         "url": "/workers/constructors/Worker/unresolvable-url.html"
       },
