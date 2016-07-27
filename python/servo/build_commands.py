@@ -236,6 +236,9 @@ class MachCommands(CommandBase):
 
         cargo_binary = "cargo" + BIN_SUFFIX
 
+        if sys.platform == "win32" or sys.platform == "msys":
+            env["RUSTFLAGS"] = "-C link-args=-Wl,--subsystem,windows"
+
         status = call(
             [cargo_binary, "build"] + opts,
             env=env, cwd=self.servo_crate(), verbose=verbose)
