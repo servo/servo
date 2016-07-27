@@ -126,8 +126,7 @@ COMPILATION_TARGETS = {
             "nsStyleImageLayers::Layer", "nsStyleImageLayers::LayerType",
             "nsStyleUnit", "nsStyleUnion", "nsStyleCoord::CalcValue",
             "nsStyleCoord::Calc", "nsRestyleHint", "ServoElementSnapshot",
-
-            "SheetParsingMode", "nsMainThreadPtrHandle",
+            "nsChangeHint", "SheetParsingMode", "nsMainThreadPtrHandle",
             "nsMainThreadPtrHolder", "nscolor", "nsFont", "FontFamilyList",
             "FontFamilyType", "nsIAtom",
         ],
@@ -211,7 +210,7 @@ def build(objdir, target_name, kind_name=None,
 
     if os.path.isdir(bindgen):
         bindgen = ["cargo", "run", "--manifest-path",
-                   os.path.join(bindgen, "Cargo.toml"), "--"]
+                   os.path.join(bindgen, "Cargo.toml"), "--features", "llvm_stable", "--"]
     else:
         bindgen = [bindgen]
 

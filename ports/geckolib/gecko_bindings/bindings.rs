@@ -135,6 +135,7 @@ use structs::nsStyleCoord_CalcValue as CalcValue;
 use structs::nsStyleCoord_Calc as Calc;
 use structs::nsRestyleHint;
 use structs::ServoElementSnapshot;
+use structs::nsChangeHint;
 use structs::SheetParsingMode;
 use structs::nsMainThreadPtrHandle;
 use structs::nsMainThreadPtrHolder;
@@ -293,6 +294,10 @@ extern "C" {
     pub fn Gecko_GetNodeFlags(node: *mut RawGeckoNode) -> u32;
     pub fn Gecko_SetNodeFlags(node: *mut RawGeckoNode, flags: u32);
     pub fn Gecko_UnsetNodeFlags(node: *mut RawGeckoNode, flags: u32);
+    pub fn Gecko_CalcAndStoreStyleDifference(element: *mut RawGeckoElement,
+                                             newstyle:
+                                                 *mut ServoComputedValues)
+     -> nsChangeHint;
     pub fn Gecko_EnsureTArrayCapacity(array: *mut ::std::os::raw::c_void,
                                       capacity: usize, elem_size: usize);
     pub fn Gecko_EnsureImageLayersLength(layers: *mut nsStyleImageLayers,

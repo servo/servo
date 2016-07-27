@@ -44,7 +44,8 @@ pub enum PseudoElement {
 // https://mxr.mozilla.org/mozilla-central/source/layout/style/nsCSSAnonBoxList.h
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum AnonBoxPseudoElement {
-    MozNonElement,
+    MozText,
+    MozOtherNonElement,
     MozAnonymousBlock,
     MozAnonymousPositionedBlock,
     MozMathMLAnonymousBlock,
@@ -67,7 +68,7 @@ pub enum AnonBoxPseudoElement {
     MozTableCell,
     MozTableColumnGroup,
     MozTableColumn,
-    MozTableOuter,
+    MozTableWrapper,
     MozTableRowGroup,
     MozTableRow,
 
@@ -214,7 +215,8 @@ impl SelectorImpl for GeckoSelectorImpl {
         }
 
         Ok(AnonBox(match_ignore_ascii_case! { name,
-            "-moz-non-element" => MozNonElement,
+            "-moz-text" => MozText,
+            "-moz-other-non-element" => MozOtherNonElement,
 
             "-moz-anonymous-block" => MozAnonymousBlock,
             "-moz-anonymous-positioned-block" => MozAnonymousPositionedBlock,
@@ -240,7 +242,7 @@ impl SelectorImpl for GeckoSelectorImpl {
             "-moz-table-cell" => MozTableCell,
             "-moz-table-column-group" => MozTableColumnGroup,
             "-moz-table-column" => MozTableColumn,
-            "-moz-table-outer" => MozTableOuter,
+            "-moz-table-wrapper" => MozTableWrapper,
             "-moz-table-row-group" => MozTableRowGroup,
             "-moz-table-row" => MozTableRow,
 
@@ -305,7 +307,8 @@ impl SelectorImplExt for GeckoSelectorImpl {
         fun(After);
         fun(FirstLine);
 
-        fun(AnonBox(MozNonElement));
+        fun(AnonBox(MozText));
+        fun(AnonBox(MozOtherNonElement));
         fun(AnonBox(MozAnonymousBlock));
         fun(AnonBox(MozAnonymousPositionedBlock));
         fun(AnonBox(MozMathMLAnonymousBlock));
@@ -328,7 +331,7 @@ impl SelectorImplExt for GeckoSelectorImpl {
         fun(AnonBox(MozTableCell));
         fun(AnonBox(MozTableColumnGroup));
         fun(AnonBox(MozTableColumn));
-        fun(AnonBox(MozTableOuter));
+        fun(AnonBox(MozTableWrapper));
         fun(AnonBox(MozTableRowGroup));
         fun(AnonBox(MozTableRow));
 
