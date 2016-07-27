@@ -174,8 +174,8 @@ pub fn new_resource_threads(user_agent: String,
         devtools_chan,
         profiler_chan,
         filemanager_chan.clone(),
-        config_dir);
-    let storage: IpcSender<StorageThreadMsg> = StorageThreadFactory::new();
+        config_dir.clone());
+    let storage: IpcSender<StorageThreadMsg> = StorageThreadFactory::new(config_dir);
     (ResourceThreads::new(public_core, storage.clone(), filemanager_chan.clone()),
      ResourceThreads::new(private_core, storage, filemanager_chan))
 }
