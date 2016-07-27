@@ -8,6 +8,7 @@ use resource_thread;
 use std::borrow::ToOwned;
 use std::collections::BTreeMap;
 use std::collections::HashMap;
+use std::path::Path;
 use url::Url;
 use util::opts;
 use util::thread::spawn_named;
@@ -39,7 +40,8 @@ impl StorageManager {
     fn new(port: IpcReceiver<StorageThreadMsg>) -> StorageManager {
         let mut local_data = HashMap::new();
         if let Some(ref config_dir) = opts::get().config_dir {
-            resource_thread::read_json_from_file(&mut local_data, config_dir, "local_data.json");
+            resource_thread::read_json_from_file(
+                &mut local_data, Path::new(config_dir), "local_data.json");
         }
         StorageManager {
             port: port,
@@ -76,7 +78,8 @@ impl StorageManager {
                 }
                 StorageThreadMsg::Exit(sender) => {
                     if let Some(ref config_dir) = opts::get().config_dir {
-                        resource_thread::write_json_to_file(&self.local_data, config_dir, "local_data.json");
+                        resource_thread::write_json_to_file(
+                            &self.local_data, Path::new(config_dir), "local_data.json");
                     }
                     let _ = sender.send(());
                     break
