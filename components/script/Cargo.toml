@@ -17,7 +17,7 @@ debugmozjs = ['js/debugmozjs']
 [target.'cfg(any(target_os = "macos", target_os = "linux"))'.dependencies]
 tinyfiledialogs = {git = "https://github.com/jdm/tinyfiledialogs"}
 
-[target.'cfg(not(target_os = "android"))'.dependencies]
+[target.'cfg(not(any(target_os = "android", target_arch = "arm")))'.dependencies]
 video-metadata = {git = "https://github.com/GuillaumeGomez/video-metadata-rs"}
 
 [dependencies]
