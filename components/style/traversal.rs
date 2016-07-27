@@ -4,6 +4,7 @@
 
 //! Traversing the DOM tree; the bloom filter.
 
+use animation::Animation;
 use context::{SharedStyleContext, StyleContext};
 use dom::{OpaqueNode, TElement, TNode, TRestyleDamage, UnsafeNode};
 use matching::{ApplicableDeclarations, ElementMatchMethods, MatchMethods, StyleSharingResult};
@@ -11,6 +12,7 @@ use selector_impl::SelectorImplExt;
 use selectors::Element;
 use selectors::bloom::BloomFilter;
 use std::cell::RefCell;
+use std::sync::Arc;
 use tid::tid;
 use util::opts;
 use values::HasViewportPercentage;
@@ -231,6 +233,32 @@ pub fn recalc_style_at<'a, N, C>(context: &'a C,
                 style_sharing_candidate_cache.touch(index);
                 node.set_restyle_damage(damage);
             }
+        }
+    } else {
+        // Finish any expired transitions, without performing the cascade.
+        let node_opaque = node.opaque();
+        let context = context.shared_context();
+
+        let had_animations_to_expire;
+        {
+            let mut data = node.mutate_data().unwrap();
+            let mut style = data.style.as_mut().unwrap();
+            let all_expired_animations = context.expired_animations.read().unwrap();
+            let animations_to_expire = all_expired_animations.get(&node_opaque);
+            had_animations_to_expire = animations_to_expire.is_some();
+            if let Some(ref animations) = animations_to_expire {
+                for animation in *animations {
+                    // NB: Expiring a keyframes animation is the same as not
+                    // applying the keyframes style to it, so we're safe.
+                    if let Animation::Transition(_, _, ref frame, _) = *animation {
+                        frame.property_animation.update(Arc::make_mut(style), 1.0);
+                    }
+                }
+            }
+        }
+
+        if had_animations_to_expire {
+            context.expired_animations.write().unwrap().remove(&node_opaque);
         }
     }
 
