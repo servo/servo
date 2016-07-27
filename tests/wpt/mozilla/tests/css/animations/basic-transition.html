@@ -1,0 +1,34 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Transition test</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#check-me, #check-me-2 {
+  background-color: #F00;
+  width: 10px;
+  height: 10px;
+  transition: background-color 1s linear;
+}
+#check-me-2 {
+  background-color: #000;
+}
+</style>
+<div id=check-me><span>a</span></div>
+<script>
+var div = document.getElementById('check-me');
+var span = div.childNodes[0];
+async_test(function(t) {
+  window.addEventListener('load', function() {
+    assert_equals(getComputedStyle(div).getPropertyValue('background-color'), 'rgb(255, 0, 0)');
+    div.id = "check-me-2";
+    requestAnimationFrame(function() {
+      var test = new window.TestBinding();
+      test.advanceClock(2000);
+      span.innerHTML = "a";
+      assert_equals(getComputedStyle(div).getPropertyValue('background-color'), 'rgb(0, 0, 0)');
+      t.done();
+    });
+  })
+})
+</script>
