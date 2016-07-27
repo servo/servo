@@ -586,6 +586,52 @@ fn test_request_and_response_message_from_devtool_without_pipeline_id() {
     assert!(devtools_port.try_recv().is_err());
 }
 
+#[test]
+fn test_redirected_request_to_devtools() {
+    struct Factory;
+
+    impl HttpRequestFactory for Factory {
+        type R = MockRequest;
+
+        fn create(&self, url: Url, method: Method, _: Headers) -> Result<MockRequest, LoadError> {
+            if url.domain().unwrap() == "mozilla.com" {
+                assert_eq!(Method::Post, method);
+                Ok(MockRequest::new(ResponseType::Redirect("http://mozilla.org".to_owned())))
+            } else {
+                assert_eq!(Method::Get, method);
+                Ok(MockRequest::new(ResponseType::Text(<[_]>::to_vec("Yay!".as_bytes()))))
+            }
+        }
+    }
+
+    let url = Url::parse("http://mozilla.com").unwrap();
+    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
+
+    load_data.method = Method::Post;
+
+    let http_state = HttpState::new();
+    let ui_provider = TestProvider::new();
+    let (devtools_chan, devtools_port) = mpsc::channel::<DevtoolsControlMsg>();
+
+    let _ = load(&load_data, &ui_provider, &http_state, Some(devtools_chan), &Factory,
+                 DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None), None);
+
+    let devhttprequest = expect_devtools_http_request(&devtools_port);
+    let devhttpresponse = expect_devtools_http_response(&devtools_port);
+
+    assert!(devhttprequest.method == Method::Post);
+    assert!(devhttprequest.url == url);
+    assert!(devhttpresponse.status == Some(RawStatus(301, Cow::Borrowed("Moved Permanently"))));
+
+    let devhttprequest = expect_devtools_http_request(&devtools_port);
+    let devhttpresponse = expect_devtools_http_response(&devtools_port);
+    let url = Url::parse("http://mozilla.org").unwrap();
+
+    assert!(devhttprequest.method == Method::Get);
+    assert!(devhttprequest.url == url);
+    assert!(devhttpresponse.status == Some(RawStatus(200, Cow::Borrowed("Ok"))));
+}
+
 
 
 #[test]

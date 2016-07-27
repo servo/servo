@@ -622,18 +622,16 @@ fn send_request_to_devtools(msg: ChromeToDevtoolsControlMsg,
     devtools_chan.send(DevtoolsControlMsg::FromChrome(msg)).unwrap();
 }
 
-fn send_response_to_devtools(devtools_chan: Option<Sender<DevtoolsControlMsg>>,
+fn send_response_to_devtools(devtools_chan: &Sender<DevtoolsControlMsg>,
                              request_id: String,
                              headers: Option<Headers>,
                              status: Option<RawStatus>,
                              pipeline_id: PipelineId) {
-    if let Some(ref chan) = devtools_chan {
-        let response = DevtoolsHttpResponse { headers: headers, status: status, body: None, pipeline_id: pipeline_id };
-        let net_event_response = NetworkEvent::HttpResponse(response);
+    let response = DevtoolsHttpResponse { headers: headers, status: status, body: None, pipeline_id: pipeline_id };
+    let net_event_response = NetworkEvent::HttpResponse(response);
 
-        let msg = ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event_response);
-        chan.send(DevtoolsControlMsg::FromChrome(msg)).unwrap();
-    }
+    let msg = ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event_response);
+    let _ = devtools_chan.send(DevtoolsControlMsg::FromChrome(msg));
 }
 
 fn request_must_be_secured(url: &Url, hsts_list: &Arc<RwLock<HstsList>>) -> bool {
@@ -1056,10 +1054,13 @@ pub fn load<A, B>(load_data: &LoadData,
                 doc_url = new_doc_url;
 
                 redirected_to.insert(doc_url.clone());
-                continue;
             }
         }
 
+        // Only notify the devtools about the final request that received a response.
+        if let Some(m) = msg {
+            send_request_to_devtools(m, devtools_chan.as_ref().unwrap());
+        }
         let mut adjusted_headers = response.headers().clone();
 
         if viewing_source {
@@ -1078,23 +1079,24 @@ pub fn load<A, B>(load_data: &LoadData,
         } else {
             HttpsState::None
         };
-        metadata.referrer = referrer_url;
-
-        // Only notify the devtools about the final request that received a response.
-        if let Some(msg) = msg {
-            send_request_to_devtools(msg, devtools_chan.as_ref().unwrap());
-        }
+        metadata.referrer = referrer_url.clone();
 
         // --- Tell devtools that we got a response
         // Send an HttpResponse message to devtools with the corresponding request_id
         // TODO: Send this message even when the load fails?
         if let Some(pipeline_id) = load_data.pipeline_id {
+            if let Some(ref chan) = devtools_chan {
                 send_response_to_devtools(
-                    devtools_chan, request_id,
+                    chan, request_id,
                     metadata.headers.clone(), metadata.status.clone(),
                     pipeline_id);
-         }
-        return StreamedResponse::from_http_response(box response, metadata)
+            }
+        }
+        if response.status().class() == StatusClass::Redirection {
+            continue;
+        } else {
+            return StreamedResponse::from_http_response(box response, metadata);
+        }
     }
 }
 
