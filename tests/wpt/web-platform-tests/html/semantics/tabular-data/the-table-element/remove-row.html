@@ -1,0 +1,50 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Delete Row tests</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<table id="element">
+  <thead>
+    <th>First column</th>
+    <th>Second column</th>
+  </thead>
+  <tbody>
+    <tr>
+      <td>1.1</td>
+      <td>1.2</td>
+    </tr>
+    <tr>
+      <td>2.1</td>
+      <td>2.2</td>
+    </tr>
+  </tbody>
+</table>
+
+<script>
+var el = document.getElementById('element');
+
+test(function() {
+  assert_throws("IndexSizeError", function() {
+    el.deleteRow(-2)
+  })
+}, 'deleteRow function invalid argument');
+test(function() {
+  assert_throws("IndexSizeError", function() {
+    el.deleteRow(el.rows.length)
+  })
+}, 'deleteRow function invalid argument bis');
+
+test(function() {
+  var old_length = el.rows.length;
+  el.insertRow(-1);
+  el.deleteRow(-1);
+  assert_equals(old_length, el.rows.length);
+}, "check normal deleteRow");
+test(function() {
+  while (el.rows.length > 1) {
+    el.deleteRow(-1);
+  }
+  assert_equals(1, el.rows.length);
+}, "check normal deleteRow bis");
+</script>

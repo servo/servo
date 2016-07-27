@@ -15226,6 +15226,10 @@
         "url": "/dom/nodes/prepend-on-Document.html"
       },
       {
+        "path": "dom/nodes/remove-row.html",
+        "url": "/dom/nodes/remove-row.html"
+      },
+      {
         "path": "dom/nodes/remove-unscopable.html",
         "url": "/dom/nodes/remove-unscopable.html"
       },
@@ -37201,7 +37205,9 @@
     ]
   },
   "local_changes": {
-    "deleted": [],
+    "deleted": [
+      "dom/nodes/remove-row.html"
+    ],
     "deleted_reftests": {},
     "items": {
       "testharness": {
@@ -37215,6 +37221,12 @@
           {
             "path": "html/semantics/scripting-1/the-script-element/script-charset-03.html",
             "url": "/html/semantics/scripting-1/the-script-element/script-charset-03.html"
+          }
+        ],
+        "html/semantics/tabular-data/the-table-element/remove-row.html": [
+          {
+            "path": "html/semantics/tabular-data/the-table-element/remove-row.html",
+            "url": "/html/semantics/tabular-data/the-table-element/remove-row.html"
           }
         ]
       }
