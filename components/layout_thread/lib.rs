@@ -1474,16 +1474,6 @@ impl LayoutThread {
         }
     }
 
-    unsafe fn dirty_all_nodes<N: LayoutNode>(node: N) {
-        for node in node.traverse_preorder() {
-            // TODO(cgaebel): mark nodes which are sensitive to media queries as
-            // "changed":
-            // > node.set_changed(true);
-            node.set_dirty(true);
-            node.set_dirty_descendants(true);
-        }
-    }
-
     fn reflow_all_nodes(flow: &mut Flow) {
         debug!("reflowing all nodes!");
         flow::mut_base(flow).restyle_damage.insert(REPAINT | STORE_OVERFLOW | REFLOW);
