@@ -35,6 +35,7 @@ use string_cache::Atom;
 use task_source::TaskSource;
 use time::{self, Timespec, Duration};
 use url::Url;
+#[cfg(not(any(target_os = "android", target_arch = "arm")))]
 use video_metadata;
 
 struct HTMLMediaElementContext {
@@ -160,7 +161,7 @@ impl HTMLMediaElementContext {
         }
     }
 
-    #[cfg(not(target_os = "android"))]
+    #[cfg(not(any(target_os = "android", target_arch = "arm")))]
     fn check_metadata(&mut self, elem: &HTMLMediaElement) {
         match video_metadata::get_format_from_slice(&self.data) {
             Ok(meta) => {
@@ -182,7 +183,7 @@ impl HTMLMediaElementContext {
         }
     }
 
-    #[cfg(target_os = "android")]
+    #[cfg(any(target_os = "android", target_arch = "arm"))]
     fn check_metadata(&mut self, _elem: &HTMLMediaElement) {
         // Step 6.
         elem.change_ready_state(HAVE_METADATA);
