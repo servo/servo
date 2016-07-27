@@ -70,7 +70,10 @@ fn install_crash_handler() {
         }
     }
 
-    signal!(Sig::SEGV, handler);
+    signal!(Sig::SEGV, handler); // handle segfaults
+    signal!(Sig::ILL, handler); // handle stack overflow and unsupported CPUs
+    signal!(Sig::IOT, handler); // handle double panics
+    signal!(Sig::BUS, handler); // handle invalid memory access
 }
 
 #[cfg(target_os = "android")]
