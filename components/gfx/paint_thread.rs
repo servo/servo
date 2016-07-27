@@ -684,7 +684,7 @@ impl WorkerThread {
             let mut paint_context = PaintContext {
                 draw_target: draw_target.clone(),
                 font_context: &mut self.font_context,
-                page_rect: Rect::from_untyped(&tile.page_rect),
+                page_rect: Rect::from_untyped(&tile.page_rect.translate(&paint_layer.display_list_origin)),
                 screen_rect: Rect::from_untyped(&tile.screen_rect),
                 clip_rect: None,
                 transient_clip: None,
