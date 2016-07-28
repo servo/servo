@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<title>GetDescriptor Test Cases</title>
+<body>
+    <div id="buttons"></div>
+    <pre id="log"></pre>
+    <script src="bluetooth_functions.js"></script>
+    <script>
+    var testCases = [];
+    //Test 1
+    testCases.push('not_a_descriptor_name');
+    //Test 2
+    testCases.push('gatt.client_characteristic_configuration');
+    //Test 3
+    testCases.push('1234567891000-1000-8000-00805f9b34fb');
+    //Test 4
+    testCases.push('11');
+    //Test 5
+    testCases.push('12345678-1234-1234-1234-123456789abc');
+    //Test 6
+    testCases.push('00000000-0000-0000-0000-000000000000');
+    //Test 7
+    testCases.push(0x0000);
+    //Test 8
+    testCases.push(0x00000000);
+    //Test 9
+    testCases.push(0x2902);
+    //Test 10
+    testCases.push('00002902-0000-1000-8000-00805f9b34fb');
+    //Test 11
+    testCases.push(0x12345678);
+    //Test 12
+    testCases.push(0x00002902);
+
+    function onButtonClick(testNumber) {
+        clear();
+        try {
+            log('Requesting Bluetooth Device...');
+            var device = window.navigator.bluetooth.requestDevice({filters: [{services: ['heart_rate']}]});
+
+            log('Connecting to GATTserver on device...');
+            var server = device.gatt.connect();
+
+            log('Getting Primary Service "heart_rate"...');
+            var primaryService = server.getPrimaryService('heart_rate');
+
+            log('Getting Characteristic "heart_rate_measurement"...');
+            var characteristic = primaryService.getCharacteristic('heart_rate_measurement');
+
+            log('Getting Descriptor "' + testCases[testNumber] + '"...');
+            var descriptor = characteristic.getDescriptor(testCases[testNumber]);
+
+            log('Descriptor found!');
+            log('> Descriptor characteristic: ' + descriptor.characteristic.uuid);
+            log('> Descriptor UUID:           ' + descriptor.uuid);
+            descriptor.readValue();
+            log('> Descriptor value:          ' + asciiToDecimal(descriptor.value));
+        } catch(err) {
+            log(err);
+        }
+    }
+
+    populate(testCases);
+    </script>
+</body>
+</html>
