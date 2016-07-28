@@ -89,6 +89,8 @@ class Configuration:
                 getter = lambda x: x.isGlobal()
             elif key == 'isExposedConditionally':
                 getter = lambda x: x.interface.isExposedConditionally()
+            elif key == 'isIteratorInterface':
+                getter = lambda x: x.interface.isIteratorInterface()
             else:
                 getter = lambda x: getattr(x, key)
             curr = filter(lambda x: getter(x) == val, curr)
@@ -177,7 +179,19 @@ class Descriptor(DescriptorProvider):
 
         # Read the desc, and fill in the relevant defaults.
         ifaceName = self.interface.identifier.name
-        typeName = desc.get('nativeType', ifaceName)
+        nativeTypeDefault = ifaceName
+
+        # For generated iterator interfaces for other iterable interfaces, we
+        # just use IterableIterator as the native type, templated on the
+        # nativeType of the iterable interface. That way we can have a
+        # templated implementation for all the duplicated iterator
+        # functionality.
+        if self.interface.isIteratorInterface():
+            itrName = self.interface.iterableInterface.identifier.name
+            itrDesc = self.getDescriptor(itrName)
+            nativeTypeDefault = iteratorNativeType(itrDesc)
+
+        typeName = desc.get('nativeType', nativeTypeDefault)
 
         # Callback types do not use JS smart pointers, so we should not use the
         # built-in rooting mechanisms for them.
@@ -193,7 +207,10 @@ class Descriptor(DescriptorProvider):
             self.returnType = "Root<%s>" % typeName
             self.argumentType = "&%s" % typeName
             self.nativeType = "*const %s" % typeName
-            pathDefault = 'dom::types::%s' % typeName
+            if self.interface.isIteratorInterface():
+                pathDefault = 'dom::bindings::iterable::IterableIterator'
+            else:
+                pathDefault = 'dom::types::%s' % typeName
 
         self.concreteType = typeName
         self.register = desc.get('register', True)
@@ -427,3 +444,10 @@ def getTypesFromCallback(callback):
     types = [sig[0]]  # Return type
     types.extend(arg.type for arg in sig[1])  # Arguments
     return types
+
+
+def iteratorNativeType(descriptor, infer=False):
+    assert descriptor.interface.isIterable()
+    iterableDecl = descriptor.interface.maplikeOrSetlikeOrIterable
+    assert iterableDecl.isPairIterator()
+    return "IterableIterator%s" % ("" if infer else '<%s>' % descriptor.interface.identifier.name)
