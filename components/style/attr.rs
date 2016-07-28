@@ -92,17 +92,17 @@ pub fn parse_double(string: &str) -> Result<f64, ()> {
     let trimmed = string.trim_matches(HTML_SPACE_CHARACTERS);
     let mut input = trimmed.chars().peekable();
 
-    let (value, divisor) = match input.peek() {
+    let (value, divisor, chars_skipped) = match input.peek() {
         None => return Err(()),
         Some(&'-') => {
             input.next();
-            (-1f64, -1f64)
+            (-1f64, -1f64, 1)
         }
         Some(&'+') => {
             input.next();
-            (1f64, 1f64)
+            (1f64, 1f64, 1)
         }
-        _ => (1f64, 1f64)
+        _ => (1f64, 1f64, 0)
     };
 
     let (value, value_digits) = if let Some(&'.') = input.peek() {
@@ -112,11 +112,11 @@ pub fn parse_double(string: &str) -> Result<f64, ()> {
         (value * read_val.and_then(|result| result.to_f64()).unwrap_or(1f64), read_digits)
     };
 
-    let input = trimmed.chars().skip(value_digits).peekable();
+    let input = trimmed.chars().skip(value_digits + chars_skipped).peekable();
 
     let (mut value, fraction_digits) = read_fraction(input, divisor, value);
 
-    let input = trimmed.chars().skip(value_digits + fraction_digits).peekable();
+    let input = trimmed.chars().skip(value_digits + chars_skipped + fraction_digits).peekable();
 
     if let Some(exp) = read_exponent(input) {
         value *= 10f64.powi(exp)
