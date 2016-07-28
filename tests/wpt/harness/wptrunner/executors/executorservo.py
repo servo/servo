@@ -205,7 +205,7 @@ class ServoRefTestExecutor(ProcessTestExecutor):
                 self.binary,
                 [render_arg(self.browser.render_backend), "--hard-fail", "--exit",
                  "-u", "Servo/wptrunner", "-Z", "disable-text-aa,load-webfonts-synchronously,replace-surrogates",
-                 "--output=%s" % output_path, full_url],
+                 "--output=%s" % output_path, full_url] + self.browser.binary_args,
                 self.debug_info)
 
             for stylesheet in self.browser.user_stylesheets:
