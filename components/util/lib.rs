@@ -32,7 +32,7 @@ pub mod geometry;
 #[cfg(feature = "servo")] #[allow(unsafe_code)] pub mod ipc;
 #[allow(unsafe_code)] pub mod opts;
 pub mod prefs;
-pub mod remutex;
+#[cfg(feature = "servo")] pub mod remutex;
 pub mod resource_files;
 pub mod thread;
 pub mod thread_state;
