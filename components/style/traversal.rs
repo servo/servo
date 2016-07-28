@@ -4,6 +4,7 @@
 
 //! Traversing the DOM tree; the bloom filter.
 
+use animation;
 use context::{SharedStyleContext, StyleContext};
 use dom::{OpaqueNode, TElement, TNode, TRestyleDamage, UnsafeNode};
 use matching::{ApplicableDeclarations, ElementMatchMethods, MatchMethods, StyleSharingResult};
@@ -11,6 +12,7 @@ use selector_impl::SelectorImplExt;
 use selectors::Element;
 use selectors::bloom::BloomFilter;
 use std::cell::RefCell;
+use std::sync::Arc;
 use tid::tid;
 use util::opts;
 use values::HasViewportPercentage;
@@ -256,6 +258,13 @@ pub fn recalc_style_at<'a, N, C>(context: &'a C,
                 node.set_restyle_damage(damage);
             }
         }
+    } else {
+        // Finish any expired transitions.
+        animation::complete_expired_transitions(
+            node.opaque(),
+            node.mutate_data().unwrap().style.as_mut().unwrap(),
+            context.shared_context()
+        );
     }
 
     let unsafe_layout_node = node.to_unsafe();

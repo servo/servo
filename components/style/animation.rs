@@ -668,3 +668,29 @@ where Damage: TRestyleDamage {
         }
     }
 }
+
+/// Update the style in the node when it finishes.
+pub fn complete_expired_transitions(node: OpaqueNode, style: &mut Arc<ComputedValues>,
+                                    context: &SharedStyleContext) -> bool {
+    let had_animations_to_expire;
+    {
+        let all_expired_animations = context.expired_animations.read().unwrap();
+        let animations_to_expire = all_expired_animations.get(&node);
+        had_animations_to_expire = animations_to_expire.is_some();
+        if let Some(ref animations) = animations_to_expire {
+            for animation in *animations {
+                // TODO: support animation-fill-mode
+                if let Animation::Transition(_, _, ref frame, _) = *animation {
+                    frame.property_animation.update(Arc::make_mut(style), 1.0);
+                }
+            }
+        }
+    }
+
+    if had_animations_to_expire {
+        context.expired_animations.write().unwrap().remove(&node);
+    }
+
+    had_animations_to_expire
+}
+
