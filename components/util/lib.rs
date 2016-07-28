@@ -4,12 +4,12 @@
 
 #![cfg_attr(feature = "servo", feature(custom_derive))]
 #![cfg_attr(feature = "servo", feature(plugin))]
+#![cfg_attr(feature = "servo", feature(nonzero))]
 #![cfg_attr(feature = "servo", feature(reflect_marker))]
 #![cfg_attr(feature = "servo", plugin(serde_macros))]
 #![cfg_attr(feature = "servo", plugin(plugins))]
 
 #![deny(unsafe_code)]
-#![feature(nonzero)]
 
 extern crate app_units;
 #[allow(unused_extern_crates)] #[macro_use] extern crate bitflags;
