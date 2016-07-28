@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use bindings::{Gecko_ResetStyleCoord, Gecko_SetStyleCoordCalcValue, Gecko_AddRefCalcArbitraryThread};
-use std::mem::transmute;
 use structs::{nsStyleCoord_Calc, nsStyleUnit, nsStyleUnion, nsStyleCoord, nsStyleSides, nsStyleCorners};
 use structs::{nsStyleCoord_CalcValue, nscoord};
 
@@ -254,7 +253,7 @@ pub trait CoordDataMut : CoordData {
     #[inline]
     unsafe fn as_calc_mut(&mut self) -> &mut nsStyleCoord_Calc {
         debug_assert!(self.unit() == nsStyleUnit::eStyleUnit_Calc);
-        transmute(*self.union().mPointer.as_mut() as *mut nsStyleCoord_Calc)
+        &mut *(*self.union().mPointer.as_mut() as *mut nsStyleCoord_Calc)
     }
 
     #[inline]
@@ -328,6 +327,6 @@ pub trait CoordData {
     #[inline]
     unsafe fn as_calc(&self) -> &nsStyleCoord_Calc {
         debug_assert!(self.unit() == nsStyleUnit::eStyleUnit_Calc);
-        transmute(*self.union().mPointer.as_ref() as *const nsStyleCoord_Calc)
+        &*(*self.union().mPointer.as_ref() as *const nsStyleCoord_Calc)
     }
 }
