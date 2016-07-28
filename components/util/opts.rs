@@ -167,6 +167,9 @@ pub struct Opts {
     /// Dumps the layer tree when it changes.
     pub dump_layer_tree: bool,
 
+    ///Record display lists sent to webrender.
+    pub enable_recording: bool,
+
     /// Emits notifications when there is a relayout.
     pub relayout_event: bool,
 
@@ -243,6 +246,9 @@ pub struct DebugOptions {
     /// Print the layer tree whenever it changes.
     pub dump_layer_tree: bool,
 
+    ///Record display lists sent to webrender.
+    pub enable_recording: bool,
+
     /// Print notifications when there is a relayout.
     pub relayout_event: bool,
 
@@ -318,7 +324,8 @@ impl DebugOptions {
                 "dump-display-list" => debug_options.dump_display_list = true,
                 "dump-display-list-json" => debug_options.dump_display_list_json = true,
                 "dump-layer-tree" => debug_options.dump_layer_tree = true,
-                "relayout-event" => debug_options.relayout_event = true,
+                "record" => debug_options.enable_recording = true,
+		"relayout-event" => debug_options.relayout_event = true,
                 "profile-script-events" => debug_options.profile_script_events = true,
                 "profile-heartbeats" => debug_options.profile_heartbeats = true,
                 "show-compositor-borders" => debug_options.show_compositor_borders = true,
@@ -361,6 +368,7 @@ pub fn print_debug_usage(app: &str) -> ! {
     print_option("dump-display-list", "Print the display list after each layout.");
     print_option("dump-display-list-json", "Print the display list in JSON form.");
     print_option("dump-layer-tree", "Print the layer tree whenever it changes.");
+    print_option("record", "Write webrender display lists out to disk.");
     print_option("relayout-event", "Print notifications when there is a relayout.");
     print_option("profile-script-events", "Enable profiling of script-related events.");
     print_option("profile-heartbeats", "Enable heartbeats for all thread categories.");
@@ -504,7 +512,8 @@ pub fn default_opts() -> Opts {
         dump_display_list: false,
         dump_display_list_json: false,
         dump_layer_tree: false,
-        relayout_event: false,
+        enable_recording: false,
+	relayout_event: false,
         profile_script_events: false,
         profile_heartbeats: false,
         disable_share_style_cache: false,
@@ -811,7 +820,8 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         dump_display_list: debug_options.dump_display_list,
         dump_display_list_json: debug_options.dump_display_list_json,
         dump_layer_tree: debug_options.dump_layer_tree,
-        relayout_event: debug_options.relayout_event,
+        enable_recording: debug_options.enable_recording,
+	relayout_event: debug_options.relayout_event,
         disable_share_style_cache: debug_options.disable_share_style_cache,
         convert_mouse_to_touch: debug_options.convert_mouse_to_touch,
         exit_after_load: opt_match.opt_present("x"),
