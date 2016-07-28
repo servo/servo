@@ -25,7 +25,7 @@ COMPILATION_TARGETS = {
             "-allow-unknown-types", "-no-bitfield-methods",
             "-no-type-renaming", "-no-namespaced-constants",
             "-DTRACING=1", "-DIMPL_LIBXUL", "-DMOZ_STYLO_BINDINGS=1",
-            "-DMOZILLA_INTERNAL_API",
+            "-DMOZILLA_INTERNAL_API", "-DRUST_BINDGEN",
         ],
         "search_dirs": [
             "{}/dist/include",
@@ -210,7 +210,7 @@ def build(objdir, target_name, kind_name=None,
 
     if os.path.isdir(bindgen):
         bindgen = ["cargo", "run", "--manifest-path",
-                   os.path.join(bindgen, "Cargo.toml"), "--features", "llvm_stable", "--"]
+                   os.path.join(bindgen, "Cargo.toml"), "--"]
     else:
         bindgen = [bindgen]
 

@@ -661,9 +661,10 @@ fn static_assert() {
         use gecko_bindings::structs::nsStyleUnit;
         // z-index is never a calc(). If it were, we'd be leaking here, so
         // assert that it isn't.
-        debug_assert!(self.gecko.mZIndex.mUnit != nsStyleUnit::eStyleUnit_Calc);
-        self.gecko.mZIndex.mUnit = other.gecko.mZIndex.mUnit;
-        self.gecko.mZIndex.mValue = other.gecko.mZIndex.mValue;
+        debug_assert!(self.gecko.mZIndex.unit() != nsStyleUnit::eStyleUnit_Calc);
+        unsafe {
+            self.gecko.mZIndex.copy_from_unchecked(&other.gecko.mZIndex);
+        }
     }
 
     pub fn clone_z_index(&self) -> longhands::z_index::computed_value::T {
