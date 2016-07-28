@@ -342,9 +342,8 @@ impl Log for FromScriptLogger {
             let pipeline_id = PipelineId::installed();
             let thread_name = thread::current().name().map(ToOwned::to_owned);
             let msg = FromScriptMsg::LogEntry(pipeline_id, thread_name, entry);
-            if let Ok(chan) = self.constellation_chan.lock() {
-                let _ = chan.send(msg);
-            }
+            let chan = self.constellation_chan.lock().unwrap_or_else(|err| err.into_inner());
+            let _ = chan.send(msg);
         }
     }
 }
@@ -381,9 +380,8 @@ impl Log for FromCompositorLogger {
             let pipeline_id = PipelineId::installed();
             let thread_name = thread::current().name().map(ToOwned::to_owned);
             let msg = FromCompositorMsg::LogEntry(pipeline_id, thread_name, entry);
-            if let Ok(chan) = self.constellation_chan.lock() {
-                let _ = chan.send(msg);
-            }
+            let chan = self.constellation_chan.lock().unwrap_or_else(|err| err.into_inner());
+            let _ = chan.send(msg);
         }
     }
 }
