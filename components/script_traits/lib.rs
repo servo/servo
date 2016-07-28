@@ -70,7 +70,7 @@ use util::ipc::OptionalOpaqueIpcSender;
 use webdriver_msg::{LoadStatus, WebDriverScriptCommand};
 
 pub use script_msg::{LayoutMsg, ScriptMsg, EventResult, LogEntry};
-pub use script_msg::{ServiceWorkerMsg, ScopeThings, SWManagerMsg, SWManagerSenders};
+pub use script_msg::{ServiceWorkerMsg, ScopeThings, SWManagerMsg, SWManagerSenders, DOMMessage};
 
 /// The address of a node. Layout sends these back. They must be validated via
 /// `from_untrusted_node_address` before they can be used, because we do not trust layout.
@@ -207,6 +207,8 @@ pub enum ConstellationControlMsg {
     ReportCSSError(PipelineId, String, usize, usize, String),
     /// Reload the given page.
     Reload(PipelineId),
+    /// Requests the script thread to connect service worker object to its scope
+    ConnectServiceWorker(Url, IpcSender<DOMMessage>)
 }
 
 impl fmt::Debug for ConstellationControlMsg {
@@ -236,6 +238,7 @@ impl fmt::Debug for ConstellationControlMsg {
             FramedContentChanged(..) => "FramedContentChanged",
             ReportCSSError(..) => "ReportCSSError",
             Reload(..) => "Reload",
+            ConnectServiceWorker(..) => "ConnectServiceWorker"
         })
     }
 }

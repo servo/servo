@@ -158,6 +158,10 @@ pub struct ScopeThings {
     pub worker_id: WorkerId,
 }
 
+/// Message that gets passed to service worker scope on postMessage
+#[derive(Deserialize, Serialize, Debug)]
+pub struct DOMMessage(pub Vec<u64>);
+
 /// Channels to allow service worker manager to communicate with constellation and resource thread
 pub struct SWManagerSenders {
     /// sender for communicating with constellation
@@ -182,4 +186,7 @@ pub enum ServiceWorkerMsg {
 pub enum SWManagerMsg {
     /// Provide the constellation with a means of communicating with the Service Worker Manager
     OwnSender(IpcSender<ServiceWorkerMsg>),
+    /// Message to ask to get a Trusted<ServiceWorker> to constellation
+    ConnectServiceWorker(Url, PipelineId, IpcSender<DOMMessage>)
+
 }

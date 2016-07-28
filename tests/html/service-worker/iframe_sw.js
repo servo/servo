@@ -5,3 +5,7 @@ self.addEventListener('activate', function(e) {
 self.addEventListener('fetch', function(e) {
 	console.log("A fetch event detected by /iframe service worker");
 });
+
+self.addEventListener('message', function(e) {
+	console.log('Post message payload ' + e.data.msg);
+})
