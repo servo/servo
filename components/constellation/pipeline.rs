@@ -28,6 +28,8 @@ use script_traits::{ConstellationControlMsg, InitialScriptState, MozBrowserEvent
 use script_traits::{LayoutControlMsg, LayoutMsg, NewLayoutInfo, ScriptMsg, SWManagerMsg, SWManagerSenders};
 use script_traits::{ScriptThreadFactory, TimerEventRequest, WindowSizeData};
 use std::collections::HashMap;
+use std::env;
+use std::ffi::OsStr;
 use std::io::Error as IOError;
 use std::process;
 use std::sync::mpsc::{Sender, channel};
@@ -485,7 +487,18 @@ impl UnprivilegedPipelineContent {
         use gaol::sandbox::{self, Sandbox, SandboxMethods};
         use ipc_channel::ipc::IpcOneShotServer;
         use sandboxing::content_process_sandbox_profile;
-        use std::env;
+
+        impl CommandMethods for sandbox::Command {
+            fn arg<T>(&mut self, arg: T)
+                where T: AsRef<OsStr> {
+                self.arg(arg);
+            }
+
+            fn env<T, U>(&mut self, key: T, val: U)
+                where T: AsRef<OsStr>, U: AsRef<OsStr> {
+                self.env(key, val);
+            }
+        }
 
         // Note that this function can panic, due to process creation,
         // avoiding this panic would require a mechanism for dealing
@@ -497,15 +510,7 @@ impl UnprivilegedPipelineContent {
         // If there is a sandbox, use the `gaol` API to create the child process.
         let child_process = if opts::get().sandbox {
             let mut command = sandbox::Command::me().expect("Failed to get current sandbox.");
-            command.arg("--content-process").arg(token);
-
-            if let Ok(value) = env::var("RUST_BACKTRACE") {
-                command.env("RUST_BACKTRACE", value);
-            }
-
-            if let Ok(value) = env::var("RUST_LOG") {
-                command.env("RUST_LOG", value);
-            }
+            self.setup_common(&mut command, token);
 
             let profile = content_process_sandbox_profile();
             ChildProcess::Sandboxed(Sandbox::new(profile).start(&mut command)
@@ -514,16 +519,7 @@ impl UnprivilegedPipelineContent {
             let path_to_self = env::current_exe()
                 .expect("Failed to get current executor.");
             let mut child_process = process::Command::new(path_to_self);
-            child_process.arg("--content-process");
-            child_process.arg(token);
-
-            if let Ok(value) = env::var("RUST_BACKTRACE") {
-                child_process.env("RUST_BACKTRACE", value);
-            }
-
-            if let Ok(value) = env::var("RUST_LOG") {
-                child_process.env("RUST_LOG", value);
-            }
+            self.setup_common(&mut child_process, token);
 
             ChildProcess::Unsandboxed(child_process.spawn()
                                       .expect("Failed to start unsandboxed child process!"))
@@ -539,6 +535,19 @@ impl UnprivilegedPipelineContent {
     pub fn spawn_multiprocess(self) -> Result<ChildProcess, IOError> {
         error!("Multiprocess is not supported on Windows.");
         process::exit(1);
+    }
+
+    fn setup_common<C: CommandMethods>(&self, command: &mut C, token: String) {
+        C::arg(command, "--content-process");
+        C::arg(command, token);
+
+        if let Ok(value) = env::var("RUST_BACKTRACE") {
+            C::env(command, "RUST_BACKTRACE", value);
+        }
+
+        if let Ok(value) = env::var("RUST_LOG") {
+            C::env(command, "RUST_LOG", value);
+        }
     }
 
     pub fn constellation_chan(&self) -> IpcSender<ScriptMsg> {
@@ -558,5 +567,25 @@ impl UnprivilegedPipelineContent {
             swmanager_sender: self.swmanager_thread.clone(),
             resource_sender: self.resource_threads.sender()
         }
+    }
+}
+
+trait CommandMethods {
+    fn arg<T>(&mut self, arg: T)
+        where T: AsRef<OsStr>;
+
+    fn env<T, U>(&mut self, key: T, val: U)
+        where T: AsRef<OsStr>, U: AsRef<OsStr>;
+}
+
+impl CommandMethods for process::Command {
+    fn arg<T>(&mut self, arg: T)
+        where T: AsRef<OsStr> {
+        self.arg(arg);
+    }
+
+    fn env<T, U>(&mut self, key: T, val: U)
+        where T: AsRef<OsStr>, U: AsRef<OsStr> {
+        self.env(key, val);
     }
 }
