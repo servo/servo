@@ -2005,9 +2005,10 @@ impl Fragment {
                 // See CSS 2.1 § 10.8.1.
                 let flow = &info.flow_ref;
                 let block_flow = flow.as_block();
+                let is_auto = self.style.get_position().height == LengthOrPercentageOrAuto::Auto;
                 let baseline_offset = match flow.baseline_offset_of_last_line_box_in_flow() {
-                    Some(baseline_offset) => baseline_offset,
-                    None => block_flow.fragment.border_box.size.block,
+                    Some(baseline_offset) if is_auto => baseline_offset,
+                    _ => block_flow.fragment.border_box.size.block,
                 };
                 let start_margin = block_flow.fragment.margin.block_start;
                 let end_margin = block_flow.fragment.margin.block_end;
