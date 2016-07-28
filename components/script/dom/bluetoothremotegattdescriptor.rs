@@ -11,7 +11,7 @@ use dom::bindings::codegen::Bindings::BluetoothRemoteGATTDescriptorBinding;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTDescriptorBinding::BluetoothRemoteGATTDescriptorMethods;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding::BluetoothRemoteGATTServiceMethods;
-use dom::bindings::error::Error::{InvalidModification, Network, Security, Type};
+use dom::bindings::error::Error::{self, InvalidModification, Network, Security};
 use dom::bindings::error::{Fallible, ErrorResult};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutHeap, Root};
@@ -101,7 +101,7 @@ impl BluetoothRemoteGATTDescriptorMethods for BluetoothRemoteGATTDescriptor {
                 ByteString::new(val)
             },
             Err(error) => {
-                return Err(Type(error))
+                return Err(Error::from(error))
             },
         };
         *self.value.borrow_mut() = Some(value.clone());
@@ -126,7 +126,7 @@ impl BluetoothRemoteGATTDescriptorMethods for BluetoothRemoteGATTDescriptor {
         match result {
             Ok(_) => Ok(()),
             Err(error) => {
-                Err(Type(error))
+                Err(Error::from(error))
             },
         }
     }

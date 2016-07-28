@@ -7,7 +7,7 @@ use core::clone::Clone;
 use dom::bindings::codegen::Bindings::BluetoothBinding;
 use dom::bindings::codegen::Bindings::BluetoothBinding::RequestDeviceOptions;
 use dom::bindings::codegen::Bindings::BluetoothBinding::{BluetoothScanFilter, BluetoothMethods};
-use dom::bindings::error::Error::{Security, Type};
+use dom::bindings::error::Error::{self, Security, Type};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
@@ -19,7 +19,7 @@ use dom::bluetoothuuid::BluetoothUUID;
 use ipc_channel::ipc::{self, IpcSender};
 use net_traits::bluetooth_scanfilter::{BluetoothScanfilter, BluetoothScanfilterSequence};
 use net_traits::bluetooth_scanfilter::{RequestDeviceoptions, ServiceUUIDSequence};
-use net_traits::bluetooth_thread::BluetoothMethodMsg;
+use net_traits::bluetooth_thread::{BluetoothError, BluetoothMethodMsg};
 
 const FILTER_EMPTY_ERROR: &'static str = "'filters' member must be non - empty to find any devices.";
 const FILTER_ERROR: &'static str = "A filter must restrict the devices in some way.";
@@ -135,6 +135,18 @@ fn convert_request_device_options(options: &RequestDeviceOptions,
                                  ServiceUUIDSequence::new(optional_services)))
 }
 
+impl From<BluetoothError> for Error {
+    fn from(error: BluetoothError) -> Self {
+        match error {
+            BluetoothError::Type(message) => Error::Type(message),
+            BluetoothError::Network => Error::Network,
+            BluetoothError::NotFound => Error::NotFound,
+            BluetoothError::NotSupported => Error::NotSupported,
+            BluetoothError::Security => Error::Security,
+        }
+    }
+}
+
 impl BluetoothMethods for Bluetooth {
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-requestdevice
     fn RequestDevice(&self, option: &RequestDeviceOptions) -> Fallible<Root<BluetoothDevice>> {
@@ -154,7 +166,7 @@ impl BluetoothMethods for Bluetooth {
                                         &ad_data))
             },
             Err(error) => {
-                Err(Type(error))
+                Err(Error::from(error))
             },
         }
     }
