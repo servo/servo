@@ -12,7 +12,9 @@ use js::glue::GetProxyExtra;
 use js::glue::InvokeGetOwnPropertyDescriptor;
 use js::glue::{GetProxyHandler, SetProxyExtra};
 use js::jsapi::GetObjectProto;
+use js::jsapi::GetStaticPrototype;
 use js::jsapi::JS_GetPropertyDescriptorById;
+use js::jsapi::MutableHandleObject;
 use js::jsapi::{Handle, HandleId, HandleObject, MutableHandle, ObjectOpResult};
 use js::jsapi::{JSContext, JSObject, JSPROP_GETTER, PropertyDescriptor};
 use js::jsapi::{JSErrNum, JS_StrictPropertyStub};
@@ -100,6 +102,25 @@ pub unsafe extern "C" fn is_extensible(_cx: *mut JSContext,
                                        succeeded: *mut bool)
                                        -> bool {
     *succeeded = true;
+    true
+}
+
+/// If `proxy` (underneath any functionally-transparent wrapper proxies) has as
+/// its `[[GetPrototypeOf]]` trap the ordinary `[[GetPrototypeOf]]` behavior
+/// defined for ordinary objects, set `*is_ordinary` to true and store `obj`'s
+/// prototype in `proto`.  Otherwise set `*isOrdinary` to false. In case of
+/// error, both outparams have unspecified value.
+///
+/// This implementation always handles the case of the ordinary
+/// `[[GetPrototypeOf]]` behavior. An alternative implementation will be
+/// necessary for the Location object.
+pub unsafe extern "C" fn get_prototype_if_ordinary(_: *mut JSContext,
+                                                   proxy: HandleObject,
+                                                   is_ordinary: *mut bool,
+                                                   proto: MutableHandleObject)
+                                                   -> bool {
+    *is_ordinary = true;
+    proto.set(GetStaticPrototype(proxy.get()));
     true
 }
 
