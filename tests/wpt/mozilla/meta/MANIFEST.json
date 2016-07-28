@@ -6858,6 +6858,12 @@
             "url": "/_mozilla/mozilla/interfaces.worker"
           }
         ],
+        "mozilla/iterable.html": [
+          {
+            "path": "mozilla/iterable.html",
+            "url": "/_mozilla/mozilla/iterable.html"
+          }
+        ],
         "mozilla/lenient_this.html": [
           {
             "path": "mozilla/lenient_this.html",

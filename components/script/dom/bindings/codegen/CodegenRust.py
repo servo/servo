@@ -1519,6 +1519,46 @@ class MethodDefiner(PropertyDefiner):
                                  "length": 0,
                                  "condition": "Condition::Satisfied"})
 
+        # Generate the keys/values/entries aliases for value iterables.
+        maplikeOrSetlikeOrIterable = descriptor.interface.maplikeOrSetlikeOrIterable
+        if (not static and not unforgeable and
+            (maplikeOrSetlikeOrIterable and
+             maplikeOrSetlikeOrIterable.isIterable() and
+             maplikeOrSetlikeOrIterable.isValueIterator())):
+            # Add our keys/values/entries/forEach
+            self.regular.append({
+                "name": "keys",
+                "methodInfo": False,
+                "selfHostedName": "ArrayKeys",
+                "length": 0,
+                "condition": PropertyDefiner.getControllingCondition(m,
+                                                                     descriptor)
+            })
+            self.regular.append({
+                "name": "values",
+                "methodInfo": False,
+                "selfHostedName": "ArrayValues",
+                "length": 0,
+                "condition": PropertyDefiner.getControllingCondition(m,
+                                                                     descriptor)
+            })
+            self.regular.append({
+                "name": "entries",
+                "methodInfo": False,
+                "selfHostedName": "ArrayEntries",
+                "length": 0,
+                "condition": PropertyDefiner.getControllingCondition(m,
+                                                                     descriptor)
+            })
+            self.regular.append({
+                "name": "forEach",
+                "methodInfo": False,
+                "selfHostedName": "ArrayForEach",
+                "length": 0,
+                "condition": PropertyDefiner.getControllingCondition(m,
+                                                                     descriptor)
+            })
+
         isUnforgeableInterface = bool(descriptor.interface.getExtendedAttribute("Unforgeable"))
         if not static and unforgeable == isUnforgeableInterface:
             stringifier = descriptor.operations['Stringifier']

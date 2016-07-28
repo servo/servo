@@ -384,6 +384,7 @@ pub mod storageevent;
 pub mod stylesheet;
 pub mod stylesheetlist;
 pub mod testbinding;
+pub mod testbindingiterable;
 pub mod testbindingproxy;
 pub mod text;
 pub mod textdecoder;
