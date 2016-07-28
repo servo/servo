@@ -2,20 +2,24 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::abstractworker::{SimpleWorkerErrorHandler, WorkerScriptMsg};
+use dom::abstractworker::SimpleWorkerErrorHandler;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::ServiceWorkerBinding::{ServiceWorkerMethods, ServiceWorkerState, Wrap};
+use dom::bindings::error::ErrorResult;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::USVString;
+use dom::bindings::structuredclone::StructuredCloneData;
 use dom::eventtarget::EventTarget;
+use ipc_channel::ipc::IpcSender;
+use js::jsapi::{HandleValue, JSContext};
 use script_thread::Runnable;
+use script_traits::DOMMessage;
 use std::cell::Cell;
-use std::sync::mpsc::Sender;
 use url::Url;
 
 pub type TrustedServiceWorkerAddress = Trusted<ServiceWorker>;
@@ -26,7 +30,7 @@ pub struct ServiceWorker {
     script_url: DOMRefCell<String>,
     state: Cell<ServiceWorkerState>,
     #[ignore_heap_size_of = "Defined in std"]
-    sender: Option<Sender<(TrustedServiceWorkerAddress, WorkerScriptMsg)>>,
+    msg_sender: DOMRefCell<Option<IpcSender<DOMMessage>>>,
     skip_waiting: Cell<bool>
 }
 
@@ -35,10 +39,10 @@ impl ServiceWorker {
                      skip_waiting: bool) -> ServiceWorker {
         ServiceWorker {
             eventtarget: EventTarget::new_inherited(),
-            sender: None,
             script_url: DOMRefCell::new(String::from(script_url)),
             state: Cell::new(ServiceWorkerState::Installing),
-            skip_waiting: Cell::new(skip_waiting)
+            skip_waiting: Cell::new(skip_waiting),
+            msg_sender: DOMRefCell::new(None)
         }
     }
 
@@ -69,6 +73,13 @@ impl ServiceWorker {
                            script_url.as_str(),
                            skip_waiting)
     }
+
+    pub fn store_sender(trusted_worker: TrustedServiceWorkerAddress, sender: IpcSender<DOMMessage>) {
+        let worker = trusted_worker.root();
+        // This channel is used for sending message from the ServiceWorker object to its
+        // corresponding ServiceWorkerGlobalScope
+        *worker.msg_sender.borrow_mut() = Some(sender);
+    }
 }
 
 impl ServiceWorkerMethods for ServiceWorker {
@@ -80,6 +91,18 @@ impl ServiceWorkerMethods for ServiceWorker {
     // https://slightlyoff.github.io/ServiceWorker/spec/service_worker/#service-worker-url-attribute
     fn ScriptURL(&self) -> USVString {
         USVString(self.script_url.borrow().clone())
+    }
+
+    // https://slightlyoff.github.io/ServiceWorker/spec/service_worker/#service-worker-postmessage
+    fn PostMessage(&self, cx: *mut JSContext, message: HandleValue) -> ErrorResult {
+        let data = try!(StructuredCloneData::write(cx, message));
+        let msg_vec = DOMMessage(data.move_to_arraybuffer());
+        if let Some(ref sender) = *self.msg_sender.borrow() {
+            let _ = sender.send(msg_vec);
+        } else {
+            warn!("Could not communicate message to ServiceWorkerGlobalScope");
+        }
+        Ok(())
     }
 
     // https://slightlyoff.github.io/ServiceWorker/spec/service_worker/#service-worker-container-onerror-attribute

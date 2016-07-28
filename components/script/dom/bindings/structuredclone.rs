@@ -12,6 +12,7 @@ use js::jsapi::{JSContext, JS_ReadStructuredClone, JS_STRUCTURED_CLONE_VERSION};
 use js::jsapi::{JS_ClearPendingException, JS_WriteStructuredClone};
 use libc::size_t;
 use std::ptr;
+use std::slice;
 
 /// A buffer for a structured clone.
 pub struct StructuredCloneData {
@@ -43,6 +44,21 @@ impl StructuredCloneData {
             data: data,
             nbytes: nbytes,
         })
+    }
+
+    /// Converts a StructuredCloneData to Vec<u64>
+    pub fn move_to_arraybuffer(self) -> Vec<u64> {
+        unsafe {
+            slice::from_raw_parts(self.data, self.nbytes).to_vec()
+        }
+    }
+
+    /// Converts back to StructuredCloneData using a pointer and no of bytes
+    pub fn make_structured_clone(data: *mut u64, nbytes: size_t) -> StructuredCloneData {
+        StructuredCloneData {
+            data: data,
+            nbytes: nbytes
+        }
     }
 
     /// Reads a structured clone.
