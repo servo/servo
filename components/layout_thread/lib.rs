@@ -969,7 +969,7 @@ impl LayoutThread {
 
                 self.epoch.next();
 
-                if opts::get().use_webrender {
+                if let Some(ref mut webrender_api) = self.webrender_api {
                     // TODO: Avoid the temporary conversion and build webrender sc/dl directly!
                     let Epoch(epoch_number) = self.epoch;
                     let epoch = webrender_traits::Epoch(epoch_number);
@@ -979,7 +979,7 @@ impl LayoutThread {
                     let mut frame_builder = WebRenderFrameBuilder::new(pipeline_id);
                     let root_scroll_layer_id = frame_builder.next_scroll_layer_id();
                     let sc_id = rw_data.display_list.as_ref().unwrap().convert_to_webrender(
-                        &mut self.webrender_api.as_mut().unwrap(),
+                        webrender_api,
                         pipeline_id,
                         epoch,
                         Some(root_scroll_layer_id),
@@ -995,16 +995,15 @@ impl LayoutThread {
                     let viewport_size = Size2D::new(self.viewport_size.width.to_f32_px(),
                                                     self.viewport_size.height.to_f32_px());
 
-                    let api = self.webrender_api.as_ref().unwrap();
-                    api.set_root_stacking_context(sc_id,
-                                                  root_background_color,
-                                                  epoch,
-                                                  pipeline_id,
-                                                  viewport_size,
-                                                  frame_builder.stacking_contexts,
-                                                  frame_builder.display_lists,
-                                                  frame_builder.auxiliary_lists_builder
-                                                               .finalize());
+                    webrender_api.set_root_stacking_context(
+                        sc_id,
+                        root_background_color,
+                        epoch,
+                        pipeline_id,
+                        viewport_size,
+                        frame_builder.stacking_contexts,
+                        frame_builder.display_lists,
+                        frame_builder.auxiliary_lists_builder.finalize());
                 } else {
                     self.paint_chan
                         .send(LayoutToPaintMsg::PaintInit(self.epoch, display_list))
