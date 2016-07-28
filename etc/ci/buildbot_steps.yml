@@ -27,6 +27,14 @@ mac-nightly:
   - ./mach package --release
   - ./etc/ci/upload_nightly.sh mac
 
+linux-rel-intermittent:
+  - ./mach build --release
+  - ./etc/ci/check_intermittents.sh
+
+mac-rel-intermittent:
+  - ./mach build --release
+  - ./etc/ci/check_intermittents.sh
+
 linux-dev:
   - ./mach test-tidy --no-progress --all
   - ./mach test-tidy --no-progress --self-test
