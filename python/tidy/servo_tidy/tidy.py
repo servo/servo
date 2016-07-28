@@ -42,8 +42,6 @@ IGNORED_FILES = [
     os.path.join(".", "resources", "hsts_preload.json"),
     os.path.join(".", "tests", "wpt", "metadata", "MANIFEST.json"),
     os.path.join(".", "tests", "wpt", "metadata-css", "MANIFEST.json"),
-    # The remutex unit tests are Apache-2.0/MIT licensed, not MPL
-    os.path.join(".", "tests", "unit", "util", "remutex.rs"),
     os.path.join(".", "components", "script", "dom", "webidls", "ForceTouchEvent.webidl"),
     # FIXME(pcwalton, #11679): This is a workaround for a tidy error on the quoted string
     # `"__TEXT,_info_plist"` inside an attribute.
