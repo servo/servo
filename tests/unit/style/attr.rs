@@ -15,6 +15,24 @@ fn test_parse_double() {
 }
 
 #[test]
+fn test_parse_double_negative_prefix() {
+    let value = String::from("-5.6");
+    match AttrValue::from_double(value, 0.0) {
+        AttrValue::Double(_, num) => assert_eq!(num, -5.6f64),
+        _ => panic!("expected a double value")
+    }
+}
+
+#[test]
+fn test_parse_double_positive_prefix() {
+    let value = String::from("+5.6");
+    match AttrValue::from_double(value, 0.0) {
+        AttrValue::Double(_, num) => assert_eq!(num, 5.6f64),
+        _ => panic!("expected a double value")
+    }
+}
+
+#[test]
 fn test_from_limited_i32_should_be_default_when_less_than_0() {
     let value = String::from("-1");
     match AttrValue::from_limited_i32(value, 0) {
