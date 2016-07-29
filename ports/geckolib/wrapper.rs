@@ -8,6 +8,7 @@ use gecko_bindings::bindings;
 use gecko_bindings::bindings::Gecko_ChildrenCount;
 use gecko_bindings::bindings::Gecko_ClassOrClassList;
 use gecko_bindings::bindings::Gecko_GetNodeData;
+use gecko_bindings::bindings::Gecko_GetStyleContext;
 use gecko_bindings::bindings::ServoComputedValues;
 use gecko_bindings::bindings::ServoNodeData;
 use gecko_bindings::bindings::{Gecko_CalcStyleDifference, Gecko_StoreStyleDifference};
@@ -24,7 +25,7 @@ use gecko_bindings::bindings::{Gecko_IsUnvisitedLink, Gecko_IsVisitedLink};
 use gecko_bindings::bindings::{Gecko_LocalName, Gecko_Namespace, Gecko_NodeIsElement, Gecko_SetNodeData};
 use gecko_bindings::bindings::{RawGeckoDocument, RawGeckoElement, RawGeckoNode};
 use gecko_bindings::structs::{NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO, NODE_IS_DIRTY_FOR_SERVO};
-use gecko_bindings::structs::{nsIAtom, nsChangeHint};
+use gecko_bindings::structs::{nsIAtom, nsChangeHint, nsStyleContext};
 use glue::GeckoDeclarationBlock;
 use libc::uintptr_t;
 use selectors::Element;
@@ -97,19 +98,19 @@ impl<'ln> GeckoNode<'ln> {
 pub struct GeckoRestyleDamage(nsChangeHint);
 
 impl TRestyleDamage for GeckoRestyleDamage {
-    fn compute(previous_style: Option<&Arc<ComputedValues>>,
-               current_style: &Arc<ComputedValues>) -> Self {
+    type PreExistingComputedValues = nsStyleContext;
+    fn compute(source: Option<&nsStyleContext>,
+               new_style: &Arc<ComputedValues>) -> Self {
         type Helpers = ArcHelpers<ServoComputedValues, ComputedValues>;
-        let previous_style = match previous_style {
-            Some(previous) => previous,
+        let context = match source {
+            Some(ctx) => ctx as *const nsStyleContext as *mut nsStyleContext,
             None => return Self::rebuild_and_reflow(),
         };
 
-        let previous = unsafe { Helpers::borrow(previous_style) };
-        let current = unsafe { Helpers::borrow(current_style) };
-        let hint = unsafe { Gecko_CalcStyleDifference(*previous, *current) };
-
-        GeckoRestyleDamage(hint)
+        Helpers::borrow(new_style, |new_style| {
+            let hint = unsafe { Gecko_CalcStyleDifference(context, new_style) };
+            GeckoRestyleDamage(hint)
+        })
     }
 
     fn rebuild_and_reflow() -> Self {
@@ -304,6 +305,20 @@ impl<'ln> TNode for GeckoNode<'ln> {
     fn next_sibling(&self) -> Option<GeckoNode<'ln>> {
         unsafe {
             Gecko_GetNextSibling(self.node).as_ref().map(|n| GeckoNode::from_ref(n))
+        }
+    }
+
+    fn existing_style_for_restyle_damage<'a>(&'a self,
+                                             current_cv: Option<&'a Arc<ComputedValues>>)
+                                             -> Option<&'a nsStyleContext> {
+        if current_cv.is_none() {
+            // Don't bother in doing an ffi call to get null back.
+            return None;
+        }
+
+        unsafe {
+            let context_ptr = Gecko_GetStyleContext(self.node);
+            context_ptr.as_ref()
         }
     }
 

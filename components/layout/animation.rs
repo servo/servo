@@ -14,6 +14,7 @@ use script_traits::{AnimationState, LayoutMsg as ConstellationMsg};
 use std::collections::HashMap;
 use std::sync::mpsc::Receiver;
 use style::animation::{Animation, update_style_for_animation};
+use style::dom::TRestyleDamage;
 use style::timer::Timer;
 
 /// Processes any new animations that were discovered after style recalculation.
@@ -130,10 +131,11 @@ pub fn recalc_style_for_animations(context: &SharedLayoutContext,
     flow.mutate_fragments(&mut |fragment| {
         if let Some(ref animations) = animations.get(&fragment.node) {
             for animation in animations.iter() {
+                let old_style = fragment.style.clone();
                 update_style_for_animation(&context.style_context,
                                            animation,
-                                           &mut fragment.style,
-                                           Some(&mut damage));
+                                           &mut fragment.style);
+                damage |= RestyleDamage::compute(Some(&old_style), &fragment.style);
             }
         }
     });

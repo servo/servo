@@ -144,6 +144,10 @@ use structs::nsFont;
 use structs::FontFamilyList;
 use structs::FontFamilyType;
 use structs::nsIAtom;
+use structs::nsStyleContext;
+unsafe impl Send for nsStyleContext {}
+unsafe impl Sync for nsStyleContext {}
+impl HeapSizeOf for nsStyleContext { fn heap_size_of_children(&self) -> usize { 0 } }
 
 pub type RawGeckoNode = nsINode;
 pub enum Element { }
@@ -294,7 +298,9 @@ extern "C" {
     pub fn Gecko_GetNodeFlags(node: *mut RawGeckoNode) -> u32;
     pub fn Gecko_SetNodeFlags(node: *mut RawGeckoNode, flags: u32);
     pub fn Gecko_UnsetNodeFlags(node: *mut RawGeckoNode, flags: u32);
-    pub fn Gecko_CalcStyleDifference(oldstyle: *mut ServoComputedValues,
+    pub fn Gecko_GetStyleContext(node: *mut RawGeckoNode)
+     -> *mut nsStyleContext;
+    pub fn Gecko_CalcStyleDifference(oldstyle: *mut nsStyleContext,
                                      newstyle: *mut ServoComputedValues)
      -> nsChangeHint;
     pub fn Gecko_StoreStyleDifference(node: *mut RawGeckoNode,
