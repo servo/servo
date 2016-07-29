@@ -257,7 +257,7 @@ function queryCssLink(url, callback, referrer_policy) {
     link.href = url + "&id=" + id;
     link.relList.add("stylesheet");
 
-    // XXX Should be removed after "onload" event can be fired
+    // XXX Should be removed after link-tag's "onload" event can be fired
     var timeout_func = setTimeout(function timeout() {
       var xhr = new XMLHttpRequest();
       xhr.open('GET', '/_mozilla/mozilla/referrer-policy/generic/subresource/stash.py?id=' + id, false);
