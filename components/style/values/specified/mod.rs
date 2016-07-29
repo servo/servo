@@ -18,6 +18,8 @@ use super::computed::{Context, ToComputedValue};
 use super::{CSSFloat, FONT_MEDIUM_PX, HasViewportPercentage, LocalToCss, NoViewportPercentage};
 use url::Url;
 
+pub mod basic_shape;
+
 impl NoViewportPercentage for i32 {}  // For PropertyDeclaration::Order
 
 #[derive(Clone, PartialEq, Debug)]
