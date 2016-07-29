@@ -600,7 +600,8 @@ fn prepare_devtools_request(request_id: String,
                             pipeline_id: PipelineId,
                             now: Tm,
                             connect_time: u64,
-                            send_time: u64) -> ChromeToDevtoolsControlMsg {
+                            send_time: u64,
+                            is_xhr: bool) -> ChromeToDevtoolsControlMsg {
     let request = DevtoolsHttpRequest {
         url: url,
         method: method,
@@ -611,18 +612,19 @@ fn prepare_devtools_request(request_id: String,
         timeStamp: now.to_timespec().sec,
         connect_time: connect_time,
         send_time: send_time,
+        is_xhr: is_xhr,
     };
     let net_event = NetworkEvent::HttpRequest(request);
 
     ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event)
 }
 
-fn send_request_to_devtools(msg: ChromeToDevtoolsControlMsg,
+pub fn send_request_to_devtools(msg: ChromeToDevtoolsControlMsg,
                             devtools_chan: &Sender<DevtoolsControlMsg>) {
     devtools_chan.send(DevtoolsControlMsg::FromChrome(msg)).unwrap();
 }
 
-fn send_response_to_devtools(devtools_chan: &Sender<DevtoolsControlMsg>,
+pub fn send_response_to_devtools(devtools_chan: &Sender<DevtoolsControlMsg>,
                              request_id: String,
                              headers: Option<Headers>,
                              status: Option<RawStatus>,
@@ -742,13 +744,15 @@ pub fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
                           pipeline_id: &Option<PipelineId>,
                           iters: u32,
                           devtools_chan: &Option<Sender<DevtoolsControlMsg>>,
-                          request_id: &str)
+                          request_id: &str,
+                          is_xhr: bool)
                           -> Result<(A::R, Option<ChromeToDevtoolsControlMsg>), LoadError>
                           where A: HttpRequest + 'static  {
     let null_data = None;
     let response;
     let connection_url = replace_hosts(&url);
     let mut msg;
+
 
     // loop trying connections in connection pool
     // they may have grown stale (disconnected), in which case we'll get
@@ -809,7 +813,7 @@ pub fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
                     request_id.clone().into(),
                     url.clone(), method.clone(), headers,
                     request_body.clone(), pipeline_id, time::now(),
-                    connect_end - connect_start, send_end - send_start))
+                    connect_end - connect_start, send_end - send_start, is_xhr))
             } else {
                 None
             }
@@ -987,7 +991,7 @@ pub fn load<A, B>(load_data: &LoadData,
         let (response, msg) =
             try!(obtain_response(request_factory, &doc_url, &method, &request_headers,
                                  &cancel_listener, &load_data.data, &load_data.method,
-                                 &load_data.pipeline_id, iters, &devtools_chan, &request_id));
+                                 &load_data.pipeline_id, iters, &devtools_chan, &request_id, false));
 
         process_response_headers(&response, &doc_url, &http_state.cookie_jar, &http_state.hsts_list, &load_data);
 
@@ -1087,7 +1091,7 @@ pub fn load<A, B>(load_data: &LoadData,
         if let Some(pipeline_id) = load_data.pipeline_id {
             if let Some(ref chan) = devtools_chan {
                 send_response_to_devtools(
-                    chan, request_id,
+                    &chan, request_id,
                     metadata.headers.clone(), metadata.status.clone(),
                     pipeline_id);
             }

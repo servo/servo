@@ -4,10 +4,12 @@
 
 use connector::create_http_connector;
 use data_loader::decode;
+use devtools_traits::DevtoolsControlMsg;
 use fetch::cors_cache::CORSCache;
 use http_loader::{HttpState, set_default_accept_encoding, set_request_cookies};
 use http_loader::{NetworkHttpRequestFactory, ReadResult, StreamedResponse, obtain_response, read_block};
 use http_loader::{auth_from_cache, determine_request_referrer};
+use http_loader::{send_response_to_devtools, send_request_to_devtools};
 use hyper::header::{Accept, AcceptLanguage, Authorization, AccessControlAllowCredentials};
 use hyper::header::{AccessControlAllowOrigin, AccessControlAllowHeaders, AccessControlAllowMethods};
 use hyper::header::{AccessControlRequestHeaders, AccessControlMaxAge, AccessControlRequestMethod, Basic};
@@ -20,7 +22,7 @@ use hyper::status::StatusCode;
 use mime_guess::guess_mime_type;
 use msg::constellation_msg::ReferrerPolicy;
 use net_traits::FetchTaskTarget;
-use net_traits::request::{CacheMode, CredentialsMode};
+use net_traits::request::{CacheMode, CredentialsMode, Destination};
 use net_traits::request::{RedirectMode, Referer, Request, RequestMode, ResponseTainting};
 use net_traits::request::{Type, Origin, Window};
 use net_traits::response::{HttpsState, TerminationReason};
@@ -36,6 +38,7 @@ use std::sync::mpsc::{channel, Sender, Receiver};
 use unicase::UniCase;
 use url::{Origin as UrlOrigin, Url};
 use util::thread::spawn_named;
+use uuid;
 
 pub type Target = Option<Box<FetchTaskTarget + Send>>;
 
@@ -47,6 +50,7 @@ enum Data {
 pub struct FetchContext {
     pub state: HttpState,
     pub user_agent: String,
+    pub devtools_chan: Option<Sender<DevtoolsControlMsg>>,
 }
 
 type DoneChannel = Option<(Sender<Data>, Receiver<Data>)>;
@@ -210,7 +214,8 @@ fn main_fetch(request: Rc<Request>, cache: &mut CORSCache, cors_flag: bool,
                   request.headers.borrow().iter().any(|h| !is_simple_header(&h)))) {
                 request.response_tainting.set(ResponseTainting::CORSTainting);
                 request.redirect_mode.set(RedirectMode::Error);
-                let response = http_fetch(request.clone(), cache, true, true, false, target, done_chan, context);
+                let response = http_fetch(request.clone(), cache, true, true, false,
+                                          target, done_chan, context);
                 if response.is_network_error() {
                     // TODO clear cache entries using request
                 }
@@ -888,7 +893,8 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
 
     // Step 18
     if response.is_none() {
-        response = Some(http_network_fetch(http_request.clone(), credentials_flag, done_chan));
+        response = Some(http_network_fetch(http_request.clone(), credentials_flag,
+                                           done_chan, context.devtools_chan.clone()));
     }
     let response = response.unwrap();
 
@@ -924,7 +930,8 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
 /// [HTTP network fetch](https://fetch.spec.whatwg.org/#http-network-fetch)
 fn http_network_fetch(request: Rc<Request>,
                       _credentials_flag: bool,
-                      done_chan: &mut DoneChannel) -> Response {
+                      done_chan: &mut DoneChannel,
+                      devtools_chan: Option<Sender<DevtoolsControlMsg>>) -> Response {
     // TODO: Implement HTTP network fetch spec
 
     // Step 1
@@ -944,14 +951,22 @@ fn http_network_fetch(request: Rc<Request>,
     let url = request.current_url();
     let cancellation_listener = CancellationListener::new(None);
 
+    let request_id = uuid::Uuid::new_v4().simple().to_string();
+
+    // XHR uses the default destination; other kinds of fetches (which haven't been implemented yet)
+    // do not. Once we support other kinds of fetches we'll need to be more fine grained here
+    // since things like image fetches are classified differently by devtools
+    let is_xhr = request.destination == Destination::None;
     let wrapped_response = obtain_response(&factory, &url, &request.method.borrow(),
                                            &request.headers.borrow(),
                                            &cancellation_listener, &request.body.borrow(), &request.method.borrow(),
-                                           &None, request.redirect_count.get() + 1, &None, "");
+                                           &request.pipeline_id.get(), request.redirect_count.get() + 1,
+                                           &devtools_chan, &request_id, is_xhr);
 
+    let pipeline_id = request.pipeline_id.get();
     let mut response = Response::new();
     match wrapped_response {
-        Ok((res, _)) => {
+        Ok((res, msg)) => {
             response.url = Some(url.clone());
             response.status = Some(res.response.status);
             response.raw_status = Some(res.response.status_raw().clone());
@@ -963,10 +978,29 @@ fn http_network_fetch(request: Rc<Request>,
             *done_chan = Some(channel());
             let meta = response.metadata().expect("Response metadata should exist at this stage");
             let done_sender = done_chan.as_ref().map(|ch| ch.0.clone());
+            let devtools_sender = devtools_chan.clone();
+            let meta_status = meta.status.clone();
+            let meta_headers = meta.headers.clone();
             spawn_named(format!("fetch worker thread"), move || {
                 match StreamedResponse::from_http_response(box res, meta) {
                     Ok(mut res) => {
                         *res_body.lock().unwrap() = ResponseBody::Receiving(vec![]);
+
+                        if let Some(ref sender) = devtools_sender {
+                            if let Some(m) = msg {
+                                send_request_to_devtools(m, &sender);
+                            }
+
+                            // --- Tell devtools that we got a response
+                            // Send an HttpResponse message to devtools with the corresponding request_id
+                            if let Some(pipeline_id) = pipeline_id {
+                                send_response_to_devtools(
+                                    &sender, request_id.into(),
+                                    meta_headers, meta_status,
+                                    pipeline_id);
+                            }
+                        }
+
                         loop {
                             match read_block(&mut res) {
                                 Ok(ReadResult::Payload(chunk)) => {
@@ -994,7 +1028,6 @@ fn http_network_fetch(request: Rc<Request>,
                                     break;
                                 }
                             }
-
                         }
                     }
                     Err(_) => {
@@ -1064,9 +1097,11 @@ fn http_network_fetch(request: Rc<Request>,
 }
 
 /// [CORS preflight fetch](https://fetch.spec.whatwg.org#cors-preflight-fetch)
-fn cors_preflight_fetch(request: Rc<Request>, cache: &mut CORSCache, context: &FetchContext) -> Response {
+fn cors_preflight_fetch(request: Rc<Request>, cache: &mut CORSCache,
+                        context: &FetchContext) -> Response {
     // Step 1
-    let mut preflight = Request::new(request.current_url(), Some(request.origin.borrow().clone()), false);
+    let mut preflight = Request::new(request.current_url(), Some(request.origin.borrow().clone()),
+                                     false, request.pipeline_id.get());
     *preflight.method.borrow_mut() = Method::Options;
     preflight.initiator = request.initiator.clone();
     preflight.type_ = request.type_.clone();
