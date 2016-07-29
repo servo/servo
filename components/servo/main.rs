@@ -34,10 +34,12 @@ extern crate servo;
 #[macro_use]
 extern crate sig;
 
+use backtrace::Backtrace;
 use servo::Browser;
 use servo::compositing::windowing::WindowEvent;
 use servo::util::opts::{self, ArgumentParsingResult};
 use servo::util::servo_version;
+use std::env;
 use std::panic;
 use std::process;
 use std::rc::Rc;
@@ -97,8 +99,8 @@ fn main() {
         None
     };
 
-    // TODO: once log-panics is released, this can be replaced by
-    // log_panics::init();
+    // TODO: once log-panics is released, can this be replaced by
+    // log_panics::init()?
     panic::set_hook(Box::new(|info| {
         warn!("Panic hook called.");
         let msg = match info.payload().downcast_ref::<&'static str>() {
@@ -111,10 +113,15 @@ fn main() {
         let current_thread = thread::current();
         let name = current_thread.name().unwrap_or("<unnamed>");
         if let Some(location) = info.location() {
-            error!("{} (thread {}, at {}:{})", msg, name, location.file(), location.line());
+            println!("{} (thread {}, at {}:{})", msg, name, location.file(), location.line());
         } else {
-            error!("{} (thread {})", msg, name);
+            println!("{} (thread {})", msg, name);
         }
+        if env::var("RUST_BACKTRACE").is_ok() {
+            println!("{:?}", Backtrace::new());
+        }
+
+        error!("{}", msg);
     }));
 
     setup_logging();
