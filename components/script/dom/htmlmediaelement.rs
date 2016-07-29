@@ -77,12 +77,11 @@ impl AsyncResponseListener for HTMLMediaElementContext {
         }
     }
 
-    fn data_available(&mut self, payload: Vec<u8>) {
+    fn data_available(&mut self, mut payload: Vec<u8>) {
         if self.ignore_response {
             return;
         }
 
-        let mut payload = payload;
         self.data.append(&mut payload);
 
         let elem = self.elem.root();
