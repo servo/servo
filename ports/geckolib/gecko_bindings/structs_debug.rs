@@ -5150,11 +5150,24 @@ pub type nsStyleUnion = nsStyleCoord_h_unnamed_18;
  * the unit is a must before asking for the value in any particular
  * form.
  */
+ /** <div rustbindgen private accessor="unsafe"></div> */
 #[repr(C)]
 #[derive(Debug)]
 pub struct nsStyleCoord {
-    pub mUnit: nsStyleUnit,
-    pub mValue: nsStyleUnion,
+    mUnit: nsStyleUnit,
+    mValue: nsStyleUnion,
+}
+impl nsStyleCoord {
+    #[inline]
+    pub unsafe fn get_mUnit(&self) -> &nsStyleUnit { &self.mUnit }
+    pub unsafe fn get_mUnit_mut(&mut self) -> &mut nsStyleUnit {
+        &mut self.mUnit
+    }
+    #[inline]
+    pub unsafe fn get_mValue(&self) -> &nsStyleUnion { &self.mValue }
+    pub unsafe fn get_mValue_mut(&mut self) -> &mut nsStyleUnion {
+        &mut self.mValue
+    }
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
@@ -5195,11 +5208,26 @@ fn bindgen_test_layout_nsStyleCoord() {
  * This is commonly used to hold the widths of the borders, margins,
  * or paddings of a box.
  */
+ /** <div rustbindgen private accessor="unsafe"></div> */
 #[repr(C)]
 #[derive(Debug)]
 pub struct nsStyleSides {
-    pub mUnits: [nsStyleUnit; 4usize],
-    pub mValues: [nsStyleUnion; 4usize],
+    mUnits: [nsStyleUnit; 4usize],
+    mValues: [nsStyleUnion; 4usize],
+}
+impl nsStyleSides {
+    #[inline]
+    pub unsafe fn get_mUnits(&self) -> &[nsStyleUnit; 4usize] { &self.mUnits }
+    pub unsafe fn get_mUnits_mut(&mut self) -> &mut [nsStyleUnit; 4usize] {
+        &mut self.mUnits
+    }
+    #[inline]
+    pub unsafe fn get_mValues(&self) -> &[nsStyleUnion; 4usize] {
+        &self.mValues
+    }
+    pub unsafe fn get_mValues_mut(&mut self) -> &mut [nsStyleUnion; 4usize] {
+        &mut self.mValues
+    }
 }
 #[test]
 fn bindgen_test_layout_nsStyleSides() {
@@ -5211,11 +5239,26 @@ fn bindgen_test_layout_nsStyleSides() {
  * nsStyleCoord pairs.  This is used to hold the dimensions of the
  * corners of a box (for, e.g., border-radius and outline-radius).
  */
+ /** <div rustbindgen private accessor="unsafe"></div> */
 #[repr(C)]
 #[derive(Debug)]
 pub struct nsStyleCorners {
-    pub mUnits: [nsStyleUnit; 8usize],
-    pub mValues: [nsStyleUnion; 8usize],
+    mUnits: [nsStyleUnit; 8usize],
+    mValues: [nsStyleUnion; 8usize],
+}
+impl nsStyleCorners {
+    #[inline]
+    pub unsafe fn get_mUnits(&self) -> &[nsStyleUnit; 8usize] { &self.mUnits }
+    pub unsafe fn get_mUnits_mut(&mut self) -> &mut [nsStyleUnit; 8usize] {
+        &mut self.mUnits
+    }
+    #[inline]
+    pub unsafe fn get_mValues(&self) -> &[nsStyleUnion; 8usize] {
+        &self.mValues
+    }
+    pub unsafe fn get_mValues_mut(&mut self) -> &mut [nsStyleUnion; 8usize] {
+        &mut self.mValues
+    }
 }
 #[test]
 fn bindgen_test_layout_nsStyleCorners() {

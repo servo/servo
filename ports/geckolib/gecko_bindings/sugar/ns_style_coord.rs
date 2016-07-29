@@ -3,24 +3,29 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use bindings::{Gecko_ResetStyleCoord, Gecko_SetStyleCoordCalcValue, Gecko_AddRefCalcArbitraryThread};
-use std::mem::transmute;
 use structs::{nsStyleCoord_Calc, nsStyleUnit, nsStyleUnion, nsStyleCoord, nsStyleSides, nsStyleCorners};
 use structs::{nsStyleCoord_CalcValue, nscoord};
 
 impl CoordData for nsStyleCoord {
     #[inline]
     fn unit(&self) -> nsStyleUnit {
-        self.mUnit
+        unsafe {
+            *self.get_mUnit()
+        }
     }
     #[inline]
     fn union(&self) -> nsStyleUnion {
-        self.mValue
+        unsafe {
+            *self.get_mValue()
+        }
     }
 }
 
 impl CoordDataMut for nsStyleCoord {
     unsafe fn values_mut(&mut self) -> (&mut nsStyleUnit, &mut nsStyleUnion) {
-        (&mut self.mUnit, &mut self.mValue)
+        let unit = self.get_mUnit_mut() as *mut _;
+        let value = self.get_mValue_mut() as *mut _;
+        (&mut *unit, &mut *value)
     }
 }
 
@@ -53,26 +58,36 @@ pub struct SidesDataMut<'a> {
 impl<'a> CoordData for SidesData<'a> {
     #[inline]
     fn unit(&self) -> nsStyleUnit {
-        self.sides.mUnits[self.index]
+        unsafe {
+            self.sides.get_mUnits()[self.index]
+        }
     }
     #[inline]
     fn union(&self) -> nsStyleUnion {
-        self.sides.mValues[self.index]
+        unsafe {
+            self.sides.get_mValues()[self.index]
+        }
     }
 }
 impl<'a> CoordData for SidesDataMut<'a> {
     #[inline]
     fn unit(&self) -> nsStyleUnit {
-        self.sides.mUnits[self.index]
+        unsafe {
+            self.sides.get_mUnits()[self.index]
+        }
     }
     #[inline]
     fn union(&self) -> nsStyleUnion {
-        self.sides.mValues[self.index]
+        unsafe {
+            self.sides.get_mValues()[self.index]
+        }
     }
 }
 impl<'a> CoordDataMut for SidesDataMut<'a> {
     unsafe fn values_mut(&mut self) -> (&mut nsStyleUnit, &mut nsStyleUnion) {
-        (&mut self.sides.mUnits[self.index], &mut self.sides.mValues[self.index])
+        let unit = &mut self.sides.get_mUnits_mut()[self.index] as *mut _;
+        let value = &mut self.sides.get_mValues_mut()[self.index] as *mut _;
+        (&mut *unit, &mut *value)
     }
 }
 
@@ -104,23 +119,33 @@ pub struct CornersDataMut<'a> {
 
 impl<'a> CoordData for CornersData<'a> {
     fn unit(&self) -> nsStyleUnit {
-        self.corners.mUnits[self.index]
+        unsafe {
+            self.corners.get_mUnits()[self.index]
+        }
     }
     fn union(&self) -> nsStyleUnion {
-        self.corners.mValues[self.index]
+        unsafe {
+            self.corners.get_mValues()[self.index]
+        }
     }
 }
 impl<'a> CoordData for CornersDataMut<'a> {
     fn unit(&self) -> nsStyleUnit {
-        self.corners.mUnits[self.index]
+        unsafe {
+            self.corners.get_mUnits()[self.index]
+        }
     }
     fn union(&self) -> nsStyleUnion {
-        self.corners.mValues[self.index]
+        unsafe {
+            self.corners.get_mValues()[self.index]
+        }
     }
 }
 impl<'a> CoordDataMut for CornersDataMut<'a> {
     unsafe fn values_mut(&mut self) -> (&mut nsStyleUnit, &mut nsStyleUnion) {
-        (&mut self.corners.mUnits[self.index], &mut self.corners.mValues[self.index])
+        let unit = &mut self.corners.get_mUnits_mut()[self.index] as *mut _;
+        let value = &mut self.corners.get_mValues_mut()[self.index] as *mut _;
+        (&mut *unit, &mut *value)
     }
 }
 
@@ -177,6 +202,13 @@ pub trait CoordDataMut : CoordData {
             }
             self.addref_if_calc();
         }
+    }
+
+    #[inline]
+    unsafe fn copy_from_unchecked<T: CoordData>(&mut self, other: &T) {
+            let (unit, union) = self.values_mut();
+            *unit = other.unit();
+            *union = other.union();
     }
 
     #[inline(always)]
@@ -254,7 +286,7 @@ pub trait CoordDataMut : CoordData {
     #[inline]
     unsafe fn as_calc_mut(&mut self) -> &mut nsStyleCoord_Calc {
         debug_assert!(self.unit() == nsStyleUnit::eStyleUnit_Calc);
-        transmute(*self.union().mPointer.as_mut() as *mut nsStyleCoord_Calc)
+        &mut *(*self.union().mPointer.as_mut() as *mut nsStyleCoord_Calc)
     }
 
     #[inline]
@@ -328,6 +360,6 @@ pub trait CoordData {
     #[inline]
     unsafe fn as_calc(&self) -> &nsStyleCoord_Calc {
         debug_assert!(self.unit() == nsStyleUnit::eStyleUnit_Calc);
-        transmute(*self.union().mPointer.as_ref() as *const nsStyleCoord_Calc)
+        &*(*self.union().mPointer.as_ref() as *const nsStyleCoord_Calc)
     }
 }
