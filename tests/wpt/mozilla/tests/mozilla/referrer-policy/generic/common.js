@@ -273,7 +273,7 @@ function queryCssLink(url, callback, referrer_policy) {
       xhr.send();
 
       clearTimeout(timeout_func);
-    }, 1000);
+    }, 2000);
 
     document.body.appendChild(link);
   }
