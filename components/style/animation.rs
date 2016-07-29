@@ -507,7 +507,8 @@ where Damage: TRestyleDamage {
                                                                  frame);
             if updated_style {
                 if let Some(damage) = damage {
-                    *damage = *damage | Damage::compute(Some(style), &new_style);
+                    *damage =
+                        *damage | Damage::compute_for_layout(Some(style), &new_style);
                 }
 
                 *style = new_style
@@ -661,7 +662,8 @@ where Damage: TRestyleDamage {
 
             debug!("update_style_for_animation: got style change in animation \"{}\"", name);
             if let Some(damage) = damage {
-                *damage = *damage | Damage::compute(Some(style), &new_style);
+                *damage =
+                    *damage | Damage::compute_for_layout(Some(style), &new_style);
             }
 
             *style = new_style;

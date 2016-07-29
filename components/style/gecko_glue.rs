@@ -46,8 +46,13 @@ impl<GeckoType, ServoType> ArcHelpers<GeckoType, ServoType> {
         unsafe { transmute(owned) }
     }
 
-    pub unsafe fn borrow(borrowed: &Arc<ServoType>) -> *const &mut GeckoType {
-        transmute(borrowed)
+    pub fn borrow<F, Output>(borrowed: &Arc<ServoType>, cb: F) -> Output
+        where F: FnOnce(&mut GeckoType) -> Output
+    {
+        let borrowed_gecko_type: *const &mut GeckoType =
+            unsafe { transmute(borrowed) };
+
+        unsafe { cb(*borrowed_gecko_type) }
     }
 
     pub unsafe fn addref(ptr: *mut GeckoType) {

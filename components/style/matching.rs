@@ -442,8 +442,12 @@ trait PrivateMatchMethods: TNode
             cacheable = cacheable && !animations_started
         }
 
+
+        let style_source = self.style_source(style.map(|s| &*s));
+
         // Calculate style difference.
-        let damage = Self::ConcreteRestyleDamage::compute(style.map(|s| &*s), &this_style);
+        let damage =
+            Self::ConcreteRestyleDamage::compute_for_cascade(style_source, &this_style);
 
         // Cache the resolved style if it was cacheable.
         if cacheable {
@@ -585,9 +589,16 @@ pub trait ElementMatchMethods : TElement {
             if let Some(shared_style) = self.share_style_with_candidate_if_possible(parent.clone(), candidate) {
                 // Yay, cache hit. Share the style.
                 let node = self.as_node();
+
                 let style = &mut node.mutate_data().unwrap().style;
-                let damage = <<Self as TElement>::ConcreteNode as TNode>
-                                 ::ConcreteRestyleDamage::compute((*style).as_ref(), &shared_style);
+
+                let damage = {
+                    let source = node.style_source((*style).as_ref());
+                    let damage = <<Self as TElement>::ConcreteNode as TNode>
+                                     ::ConcreteRestyleDamage::compute_for_cascade(source, &shared_style);
+                    damage
+                };
+
                 *style = Some(shared_style);
                 return StyleSharingResult::StyleWasShared(i, damage)
             }
@@ -675,8 +686,9 @@ pub trait MatchMethods : TNode {
             let mut data_ref = self.mutate_data().unwrap();
             let mut data = &mut *data_ref;
             let cloned_parent_style = ComputedValues::style_for_child_text_node(parent_style.unwrap());
-            damage = Self::ConcreteRestyleDamage::compute(data.style.as_ref(),
-                                                          &cloned_parent_style);
+
+            damage = Self::ConcreteRestyleDamage::compute_for_cascade(self.style_source(data.style.as_ref()),
+                                                                      &cloned_parent_style);
             data.style = Some(cloned_parent_style);
         } else {
             damage = {
@@ -696,7 +708,6 @@ pub trait MatchMethods : TNode {
                 <Self::ConcreteElement as Element>::Impl::each_eagerly_cascaded_pseudo_element(|pseudo| {
                     let applicable_declarations_for_this_pseudo =
                         applicable_declarations.per_pseudo.get(&pseudo).unwrap();
-
 
                     if !applicable_declarations_for_this_pseudo.is_empty() {
                         // NB: Transitions and animations should only work for

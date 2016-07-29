@@ -46,7 +46,23 @@ impl OpaqueNode {
 }
 
 pub trait TRestyleDamage : BitOr<Output=Self> + Copy {
-    fn compute(old: Option<&Arc<ComputedValues>>, new: &Arc<ComputedValues>) -> Self;
+    /// The source for our current computed values in the cascade. This is a
+    /// ComputedValues in Servo and a StyleContext in Gecko.
+    ///
+    /// This must be obtained via the node.
+    type CascadeStyleSource;
+
+    /// Computes the damage for the style cascade.
+    fn compute_for_cascade(old: Option<&Self::CascadeStyleSource>,
+                           new: &Arc<ComputedValues>) -> Self;
+
+    /// Computes the raw difference between two computed values. This should
+    /// never be called directly from style, but from Servo's layout system,
+    /// which can't access the node's style source when updating off-main-thread
+    /// animations.
+    fn compute_for_layout(old: Option<&Arc<ComputedValues>>,
+                          new: &Arc<ComputedValues>) -> Self;
+
     fn rebuild_and_reflow() -> Self;
 }
 
@@ -159,6 +175,13 @@ pub trait TNode : Sized + Copy + Clone {
     fn unstyle(self) {
         self.mutate_data().unwrap().style = None;
     }
+
+    /// XXX: It's a bit unfortunate we need to pass the current computed values
+    /// as an argument here, but otherwise Servo would crash due to double
+    /// borrows to return it.
+    fn style_source<'a>(&'a self,
+                        current_computed_values: Option<&'a Arc<ComputedValues>>)
+        -> Option<&'a <Self::ConcreteRestyleDamage as TRestyleDamage>::CascadeStyleSource>;
 }
 
 pub trait TDocument : Sized + Copy + Clone {
