@@ -81,8 +81,6 @@ pub extern "C" fn Servo_Initialize() -> () {
 fn restyle_subtree(node: GeckoNode, raw_data: *mut RawServoStyleSet) {
     debug_assert!(node.is_element() || node.is_text_node());
 
-    let per_doc_data = unsafe { &mut *(raw_data as *mut PerDocumentStyleData) };
-
     // Force the creation of our lazily-constructed initial computed values on
     // the main thread, since it's not safe to call elsewhere.
     //
@@ -92,10 +90,9 @@ fn restyle_subtree(node: GeckoNode, raw_data: *mut RawServoStyleSet) {
     // along in startup than the sensible place to call Servo_Initialize.
     ComputedValues::initial_values();
 
-    let _needs_dirtying = Arc::get_mut(&mut per_doc_data.stylist).unwrap()
-                              .update(&per_doc_data.stylesheets,
-                                      per_doc_data.stylesheets_changed);
-    per_doc_data.stylesheets_changed = false;
+    // The stylist consumes stylesheets lazily.
+    let per_doc_data = unsafe { &mut *(raw_data as *mut PerDocumentStyleData) };
+    per_doc_data.flush_stylesheets();
 
     let local_context_data =
         LocalStyleContextCreationInfo::new(per_doc_data.new_animations_sender.clone());
@@ -274,7 +271,9 @@ pub extern "C" fn Servo_GetComputedValuesForAnonymousBox(parent_style_or_null: *
                                                          pseudo_tag: *mut nsIAtom,
                                                          raw_data: *mut RawServoStyleSet)
      -> *mut ServoComputedValues {
+    // The stylist consumes stylesheets lazily.
     let data = PerDocumentStyleData::borrow_mut_from_raw(raw_data);
+    data.flush_stylesheets();
 
     let pseudo = match pseudo_element_from_atom(pseudo_tag, /* ua_stylesheet = */ true) {
         Ok(pseudo) => pseudo,
@@ -319,7 +318,9 @@ pub extern "C" fn Servo_GetComputedValuesForPseudoElement(parent_style: *mut Ser
     };
 
 
+    // The stylist consumes stylesheets lazily.
     let data = PerDocumentStyleData::borrow_mut_from_raw(raw_data);
+    data.flush_stylesheets();
 
     let element = unsafe { GeckoElement::from_raw(match_element) };
 
