@@ -1097,7 +1097,7 @@ fn static_assert() {
                             Gecko_SetGradientImageValue(&mut geckoimage.mImage, gecko_gradient);
                         }
                     },
-                    Image::Url(_) => {
+                    Image::Url(..) => {
                         // let utf8_bytes = url.as_bytes();
                         // Gecko_SetUrlImageValue(&mut self.gecko.mImage.mLayers.mFirstElement,
                         //                        utf8_bytes.as_ptr() as *const _,

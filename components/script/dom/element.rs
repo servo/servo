@@ -347,7 +347,8 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         if let Some(url) = background {
             hints.push(from_declaration(
                 PropertyDeclaration::BackgroundImage(DeclaredValue::Value(
-                    background_image::SpecifiedValue(Some(specified::Image::Url(url)))))));
+                    background_image::SpecifiedValue(Some(
+                        specified::Image::Url(url, specified::UrlExtraData { })))))));
         }
 
         let color = if let Some(this) = self.downcast::<HTMLFontElement>() {
