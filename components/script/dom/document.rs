@@ -1662,17 +1662,6 @@ impl Document {
             Origin::opaque_identifier()
         };
 
-        // TODO: we currently default to Some(NoReferrer) instead of None (i.e. unset)
-        // for an important reason. Many of the methods by which a referrer policy is communicated
-        // are currently unimplemented, and so in such cases we may be ignoring the desired policy.
-        // If the default were left unset, then in Step 7 of the Fetch algorithm we adopt
-        // no-referrer-when-downgrade. However, since we are potentially ignoring a stricter
-        // referrer policy, this might be passing too much info. Hence, we default to the
-        // strictest policy, which is no-referrer.
-        // Once other delivery methods are implemented, make the unset case really
-        // unset (i.e. None).
-        let referrer_policy = referrer_policy.or(None);
-
         Document {
             node: Node::new_document_node(),
             window: JS::from_ref(window),
