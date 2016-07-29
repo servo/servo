@@ -77,12 +77,11 @@ impl AsyncResponseListener for HTMLMediaElementContext {
         }
     }
 
-    fn data_available(&mut self, payload: Vec<u8>) {
+    fn data_available(&mut self, mut payload: Vec<u8>) {
         if self.ignore_response {
             return;
         }
 
-        let mut payload = payload;
         self.data.append(&mut payload);
 
         let elem = self.elem.root();
@@ -107,6 +106,11 @@ impl AsyncResponseListener for HTMLMediaElementContext {
     fn response_complete(&mut self, status: Result<(), NetworkError>) {
         let elem = self.elem.root();
 
+        // To avoid the timeout issues.
+        if !self.have_metadata {
+            elem.change_ready_state(HAVE_NOTHING);
+            self.have_metadata = true;
+        }
         // => "Once the entire media resource has been fetched..."
         if status.is_ok() {
             elem.change_ready_state(HAVE_ENOUGH_DATA);
