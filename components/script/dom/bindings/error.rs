@@ -178,7 +178,7 @@ impl ErrorInfo {
         })
     }
 
-    fn from_dom_exception(cx: *mut JSContext, object: HandleObject) -> Option<ErrorInfo> {
+    fn from_dom_exception(object: HandleObject) -> Option<ErrorInfo> {
         let exception = match root_from_object::<DOMException>(object.get()) {
             Ok(exception) => exception,
             Err(_) => return None,
@@ -215,7 +215,7 @@ pub unsafe fn report_pending_exception(cx: *mut JSContext, obj: *mut JSObject) {
 
         rooted!(in(cx) let object = value.to_object());
         let error_info = ErrorInfo::from_native_error(cx, object.handle())
-            .or_else(|| ErrorInfo::from_dom_exception(cx, object.handle()));
+            .or_else(|| ErrorInfo::from_dom_exception(object.handle()));
         let error_info = match error_info {
             Some(error_info) => error_info,
             None => {
