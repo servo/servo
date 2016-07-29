@@ -6,7 +6,7 @@
 
 use bezier::Bezier;
 use context::SharedStyleContext;
-use dom::{OpaqueNode, TRestyleDamage};
+use dom::OpaqueNode;
 use euclid::point::Point2D;
 use keyframes::{KeyframesStep, KeyframesStepValue};
 use properties::animated_properties::{AnimatedProperty, TransitionProperty};
@@ -490,13 +490,12 @@ pub fn update_style_for_animation_frame(mut new_style: &mut Arc<ComputedValues>,
 }
 /// Updates a single animation and associated style based on the current time.
 /// If `damage` is provided, inserts the appropriate restyle damage.
-pub fn update_style_for_animation<Damage>(context: &SharedStyleContext,
-                                          animation: &Animation,
-                                          style: &mut Arc<ComputedValues>,
-                                          damage: Option<&mut Damage>)
-where Damage: TRestyleDamage {
+pub fn update_style_for_animation(context: &SharedStyleContext,
+                                  animation: &Animation,
+                                  style: &mut Arc<ComputedValues>) {
     debug!("update_style_for_animation: entering");
     debug_assert!(!animation.is_expired());
+
     match *animation {
         Animation::Transition(_, start_time, ref frame, _) => {
             debug!("update_style_for_animation: transition found");
@@ -506,10 +505,6 @@ where Damage: TRestyleDamage {
                                                                  now, start_time,
                                                                  frame);
             if updated_style {
-                if let Some(damage) = damage {
-                    *damage = *damage | Damage::compute(Some(style), &new_style);
-                }
-
                 *style = new_style
             }
         }
@@ -660,10 +655,6 @@ where Damage: TRestyleDamage {
             }
 
             debug!("update_style_for_animation: got style change in animation \"{}\"", name);
-            if let Some(damage) = damage {
-                *damage = *damage | Damage::compute(Some(style), &new_style);
-            }
-
             *style = new_style;
         }
     }

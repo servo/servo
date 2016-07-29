@@ -128,7 +128,7 @@ COMPILATION_TARGETS = {
             "nsStyleCoord::Calc", "nsRestyleHint", "ServoElementSnapshot",
             "nsChangeHint", "SheetParsingMode", "nsMainThreadPtrHandle",
             "nsMainThreadPtrHolder", "nscolor", "nsFont", "FontFamilyList",
-            "FontFamilyType", "nsIAtom",
+            "FontFamilyType", "nsIAtom", "nsStyleContext"
         ],
         "void_types": [
             "nsINode", "nsIDocument", "nsIPrincipal", "nsIURI",
