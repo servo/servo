@@ -77,6 +77,17 @@ impl PerDocumentStyleData {
     pub fn borrow_mut_from_raw<'a>(data: *mut RawServoStyleSet) -> &'a mut Self {
         unsafe { &mut *(data as *mut PerDocumentStyleData) }
     }
+
+    pub fn flush_stylesheets(&mut self) {
+        // The stylist wants to be flushed if either the stylesheets change or the
+        // device dimensions change. When we add support for media queries, we'll
+        // need to detect the latter case and trigger a flush as well.
+        if self.stylesheets_changed {
+            let _ = Arc::get_mut(&mut self.stylist).unwrap()
+                                                   .update(&self.stylesheets, true);
+            self.stylesheets_changed = false;
+        }
+    }
 }
 
 impl Drop for PerDocumentStyleData {

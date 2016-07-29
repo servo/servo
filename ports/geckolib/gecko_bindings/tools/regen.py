@@ -25,7 +25,7 @@ COMPILATION_TARGETS = {
             "-allow-unknown-types", "-no-bitfield-methods",
             "-no-type-renaming", "-no-namespaced-constants",
             "-DTRACING=1", "-DIMPL_LIBXUL", "-DMOZ_STYLO_BINDINGS=1",
-            "-DMOZILLA_INTERNAL_API",
+            "-DMOZILLA_INTERNAL_API", "-DRUST_BINDGEN",
         ],
         "search_dirs": [
             "{}/dist/include",
