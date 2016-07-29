@@ -398,7 +398,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                                        gradient,
                                                                        style);
             }
-            Some(computed::Image::Url(ref image_url)) => {
+            Some(computed::Image::Url(ref image_url, ref _extra_data)) => {
                 self.build_display_list_for_background_image(state,
                                                              style,
                                                              display_list_section,

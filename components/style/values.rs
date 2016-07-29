@@ -98,7 +98,9 @@ pub mod specified {
     use app_units::Au;
     use cssparser::{self, Parser, ToCss, Token};
     use euclid::size::Size2D;
-    use parser::ParserContext;
+    #[cfg(feature = "gecko")]
+    use gecko_bindings::ptr::{GeckoArcPrincipal, GeckoArcURI};
+    use parser::{ParserContext, ParserContextExtraData};
     use std::ascii::AsciiExt;
     use std::cmp;
     use std::f32::consts::PI;
@@ -1317,11 +1319,47 @@ pub mod specified {
         }
     }
 
+    #[derive(PartialEq, Clone, Debug)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub struct UrlExtraData {
+        #[cfg(feature = "gecko")]
+        pub base: GeckoArcURI,
+        #[cfg(feature = "gecko")]
+        pub referrer: GeckoArcURI,
+        #[cfg(feature = "gecko")]
+        pub principal: GeckoArcPrincipal,
+    }
+
+    impl UrlExtraData {
+        #[cfg(feature = "servo")]
+        pub fn make_from(content: &ParserContext) -> Option<UrlExtraData> {
+            Some(UrlExtraData { })
+        }
+
+        #[cfg(feature = "gecko")]
+        pub fn make_from(context: &ParserContext) -> Option<UrlExtraData> {
+            match context.extra_data {
+                ParserContextExtraData {
+                    base: Some(ref base),
+                    referrer: Some(ref referrer),
+                    principal: Some(ref principal),
+                } => {
+                    Some(UrlExtraData {
+                        base: base.clone(),
+                        referrer: referrer.clone(),
+                        principal: principal.clone(),
+                    })
+                },
+                _ => None,
+            }
+        }
+    }
+
     /// Specified values for an image according to CSS-IMAGES.
     #[derive(Clone, PartialEq, Debug)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum Image {
-        Url(Url),
+        Url(Url, UrlExtraData),
         LinearGradient(LinearGradient),
     }
 
@@ -1329,7 +1367,7 @@ pub mod specified {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             use values::LocalToCss;
             match *self {
-                Image::Url(ref url) => {
+                Image::Url(ref url, ref _extra_data) => {
                     url.to_css(dest)
                 }
                 Image::LinearGradient(ref gradient) => gradient.to_css(dest)
@@ -1340,7 +1378,17 @@ pub mod specified {
     impl Image {
         pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<Image, ()> {
             if let Ok(url) = input.try(|input| input.expect_url()) {
-                Ok(Image::Url(context.parse_url(&url)))
+                match UrlExtraData::make_from(context) {
+                    Some(extra_data) => {
+                        Ok(Image::Url(context.parse_url(&url), extra_data))
+                    },
+                    None => {
+                        // FIXME(heycam) should ensure we always have a principal, etc., when
+                        // parsing style attributes and re-parsing due to CSS Variables.
+                        println!("stylo: skipping declaration without ParserContextExtraData");
+                        Err(())
+                    },
+                }
             } else {
                 match_ignore_ascii_case! { try!(input.expect_function()),
                     "linear-gradient" => {
@@ -1664,7 +1712,7 @@ pub mod computed {
     use super::{CSSFloat, specified};
     use url::Url;
     pub use cssparser::Color as CSSColor;
-    pub use super::specified::{Angle, BorderStyle, Time};
+    pub use super::specified::{Angle, BorderStyle, Time, UrlExtraData};
 
     pub struct Context<'a> {
         pub is_root_element: bool,
@@ -2164,7 +2212,9 @@ pub mod computed {
         #[inline]
         fn to_computed_value(&self, context: &Context) -> Image {
             match *self {
-                specified::Image::Url(ref url) => Image::Url(url.clone()),
+                specified::Image::Url(ref url, ref extra_data) => {
+                    Image::Url(url.clone(), extra_data.clone())
+                },
                 specified::Image::LinearGradient(ref linear_gradient) => {
                     Image::LinearGradient(linear_gradient.to_computed_value(context))
                 }
@@ -2177,14 +2227,14 @@ pub mod computed {
     #[derive(Clone, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum Image {
-        Url(Url),
+        Url(Url, UrlExtraData),
         LinearGradient(LinearGradient),
     }
 
     impl fmt::Debug for Image {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             match *self {
-                Image::Url(ref url) => write!(f, "url(\"{}\")", url),
+                Image::Url(ref url, ref _extra_data) => write!(f, "url(\"{}\")", url),
                 Image::LinearGradient(ref grad) => write!(f, "linear-gradient({:?})", grad),
             }
         }
