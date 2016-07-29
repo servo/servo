@@ -188,6 +188,12 @@ pub const NS_ERROR_MODULE_BASE_OFFSET: ::std::os::raw::c_uint = 69;
 pub const MOZ_STRING_WITH_OBSOLETE_API: ::std::os::raw::c_uint = 1;
 pub const NSID_LENGTH: ::std::os::raw::c_uint = 39;
 pub const NS_NUMBER_OF_FLAGS_IN_REFCNT: ::std::os::raw::c_uint = 2;
+pub const _STL_PAIR_H: ::std::os::raw::c_uint = 1;
+pub const _GLIBCXX_UTILITY: ::std::os::raw::c_uint = 1;
+pub const __cpp_lib_tuple_element_t: ::std::os::raw::c_uint = 201402;
+pub const __cpp_lib_tuples_by_type: ::std::os::raw::c_uint = 201304;
+pub const __cpp_lib_exchange_function: ::std::os::raw::c_uint = 201304;
+pub const __cpp_lib_integer_sequence: ::std::os::raw::c_uint = 201304;
 pub const NS_EVENT_STATE_HIGHEST_SERVO_BIT: ::std::os::raw::c_uint = 6;
 pub const DOM_USER_DATA: ::std::os::raw::c_uint = 1;
 pub const SMIL_MAPPED_ATTR_ANIMVAL: ::std::os::raw::c_uint = 2;
@@ -1484,6 +1490,53 @@ pub enum nsresult {
     NS_OK_NO_NAME_CLAUSE_HANDLED = 7864354,
 }
 pub type nsrefcnt = MozRefCountType;
+#[repr(C)]
+#[derive(Debug, Copy)]
+pub struct HasPointerTypeHelper;
+impl ::std::clone::Clone for HasPointerTypeHelper {
+    fn clone(&self) -> Self { *self }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct PointerType<T, D> {
+    pub _phantom0: ::std::marker::PhantomData<T>,
+    pub _phantom1: ::std::marker::PhantomData<D>,
+}
+/**
+ * <div rustbindgen="true" replaces="UniquePtr">
+ *
+ * TODO(Emilio): This is a workaround and we should be able to get rid of this
+ * one.
+ */
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct UniquePtr<T, Deleter> {
+    pub mPtr: *mut T,
+    pub _phantom0: ::std::marker::PhantomData<Deleter>,
+}
+/**
+ * A default deletion policy using plain old operator delete.
+ *
+ * Note that this type can be specialized, but authors should beware of the risk
+ * that the specialization may at some point cease to match (either because it
+ * gets moved to a different compilation unit or the signature changes). If the
+ * non-specialized (|delete|-based) version compiles for that type but does the
+ * wrong thing, bad things could happen.
+ *
+ * This is a non-issue for types which are always incomplete (i.e. opaque handle
+ * types), since |delete|-ing such a type will always trigger a compilation
+ * error.
+ */
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct DefaultDelete<T> {
+    pub _phantom0: ::std::marker::PhantomData<T>,
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct UniqueSelector<T> {
+    pub _phantom0: ::std::marker::PhantomData<T>,
+}
 /**
  * typedefs for backwards compatibility
  */
@@ -2682,6 +2735,12 @@ impl ::std::clone::Clone for nsIExpandedPrincipal {
     fn clone(&self) -> Self { *self }
 }
 #[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct _Make_integer_sequence<_Tp, _ISeq> {
+    pub _phantom0: ::std::marker::PhantomData<_Tp>,
+    pub _phantom1: ::std::marker::PhantomData<_ISeq>,
+}
+#[repr(C)]
 #[derive(Debug, Copy)]
 pub struct nsIURI {
     pub _base: nsISupports,
@@ -2733,7 +2792,7 @@ impl ::std::clone::Clone for nsIRequest {
 #[repr(C)]
 #[derive(Debug, Copy)]
 pub struct EventStates {
-    pub mStates: ::std::os::raw::c_ulonglong,
+    pub mStates: ::std::os::raw::c_ulong,
 }
 impl ::std::clone::Clone for EventStates {
     fn clone(&self) -> Self { *self }
@@ -2797,11 +2856,6 @@ pub enum nsNodeSupportsWeakRefTearoff { }
 pub enum nsNodeWeakReference { }
 pub enum nsDOMMutationObserver { }
 pub enum ServoNodeData { }
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct DefaultDelete<> {
-    pub _phantom0: ::std::marker::PhantomData<ServoNodeData>,
-}
 pub enum EventListenerManager { }
 pub enum BoxQuadOptions { }
 pub enum ConvertCoordinateOptions { }
@@ -2868,7 +2922,7 @@ fn bindgen_test_layout_nsMutationGuard() {
 extern "C" {
     #[link_name = "_ZN15nsMutationGuard11sGenerationE"]
     pub static mut nsMutationGuard_consts_sGeneration:
-               ::std::os::raw::c_ulonglong;
+               ::std::os::raw::c_ulong;
 }
 pub type Float = f32;
 #[repr(i8)]
@@ -3259,7 +3313,7 @@ pub type nscolor = u32;
 #[repr(i8)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum nsHexColorType { NoAlpha = 0, AllowAlpha = 1, }
-pub enum nsStyledElementNotElementCSSInlineStyle { }
+pub enum nsStyledElement { }
 pub enum MiscContainer { }
 pub enum ServoDeclarationBlock { }
 pub enum Declaration { }
@@ -3470,12 +3524,7 @@ fn bindgen_test_layout_ServoAttrSnapshot() {
  */
 #[repr(i8)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
-pub enum ServoElementSnapshotFlags {
-    State = 1,
-    Attributes = 2,
-    HTMLElementInHTMLDocument = 4,
-    All = 7,
-}
+pub enum ServoElementSnapshotFlags { State = 1, Attributes = 2, All = 3, }
 /**
  * This class holds all non-tree-structural state of an element that might be
  * used for selector matching eventually.
@@ -3492,6 +3541,7 @@ pub struct ServoElementSnapshot {
     pub mExplicitRestyleHint: nsRestyleHint,
     pub mExplicitChangeHint: nsChangeHint,
     pub mIsHTMLElementInHTMLDocument: bool,
+    pub mIsInChromeDocument: bool,
 }
 #[test]
 fn bindgen_test_layout_ServoElementSnapshot() {
@@ -5341,6 +5391,16 @@ pub enum nsStyleImageType {
     eStyleImageType_Gradient = 2,
     eStyleImageType_Element = 3,
 }
+#[repr(C)]
+pub struct CachedBorderImageData {
+    pub mCachedSVGViewportSize: [u64; 2usize],
+    pub mSubImages: u64,
+}
+#[test]
+fn bindgen_test_layout_CachedBorderImageData() {
+    assert_eq!(::std::mem::size_of::<CachedBorderImageData>() , 24usize);
+    assert_eq!(::std::mem::align_of::<CachedBorderImageData>() , 8usize);
+}
 /**
  * Represents a paintable image of one of the following types.
  * (1) A real image loaded from an external source.
@@ -5353,10 +5413,11 @@ pub enum nsStyleImageType {
  */
 #[repr(C)]
 pub struct nsStyleImage {
-    pub mSubImages: u64,
+    pub mCachedBIData: UniquePtr<CachedBorderImageData,
+                                 DefaultDelete<CachedBorderImageData>>,
     pub mType: nsStyleImageType,
     pub nsStyleImage_nsStyleStruct_h_unnamed_21: nsStyleImage_nsStyleStruct_h_unnamed_21,
-    pub mCropRect: nsAutoPtr<nsStyleSides>,
+    pub mCropRect: UniquePtr<nsStyleSides, DefaultDelete<nsStyleSides>>,
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
@@ -6238,6 +6299,17 @@ extern "C" {
     #[link_name = "_ZN13nsStyleColumn15kMaxColumnCountE"]
     pub static nsStyleColumn_consts_kMaxColumnCount: ::std::os::raw::c_uint;
 }
+#[repr(C)]
+#[derive(Debug)]
+pub struct FragmentOrURL {
+    pub mURL: nsCOMPtr<nsIURI>,
+    pub mIsLocalRef: bool,
+}
+#[test]
+fn bindgen_test_layout_FragmentOrURL() {
+    assert_eq!(::std::mem::size_of::<FragmentOrURL>() , 16usize);
+    assert_eq!(::std::mem::align_of::<FragmentOrURL>() , 8usize);
+}
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum nsStyleSVGPaintType {
@@ -6265,7 +6337,7 @@ pub struct nsStyleSVGPaint {
 #[derive(Debug, Copy)]
 pub struct nsStyleSVGPaint_nsStyleStruct_h_unnamed_27 {
     pub mColor: __BindgenUnionField<nscolor>,
-    pub mPaintServer: __BindgenUnionField<*mut nsIURI>,
+    pub mPaintServer: __BindgenUnionField<*mut FragmentOrURL>,
     pub _bindgen_data_: u64,
 }
 impl nsStyleSVGPaint_nsStyleStruct_h_unnamed_27 { }
@@ -6289,9 +6361,9 @@ fn bindgen_test_layout_nsStyleSVGPaint() {
 pub struct nsStyleSVG {
     pub mFill: nsStyleSVGPaint,
     pub mStroke: nsStyleSVGPaint,
-    pub mMarkerEnd: nsCOMPtr<nsIURI>,
-    pub mMarkerMid: nsCOMPtr<nsIURI>,
-    pub mMarkerStart: nsCOMPtr<nsIURI>,
+    pub mMarkerEnd: FragmentOrURL,
+    pub mMarkerMid: FragmentOrURL,
+    pub mMarkerStart: FragmentOrURL,
     pub mStrokeDasharray: nsTArray<nsStyleCoord>,
     pub mStrokeDashoffset: nsStyleCoord,
     pub mStrokeWidth: nsStyleCoord,
@@ -6322,7 +6394,7 @@ pub enum nsStyleSVG_nsStyleStruct_h_unnamed_28 {
 }
 #[test]
 fn bindgen_test_layout_nsStyleSVG() {
-    assert_eq!(::std::mem::size_of::<nsStyleSVG>() , 120usize);
+    assert_eq!(::std::mem::size_of::<nsStyleSVG>() , 144usize);
     assert_eq!(::std::mem::align_of::<nsStyleSVG>() , 8usize);
 }
 #[repr(C)]
@@ -6360,7 +6432,7 @@ pub struct nsStyleClipPath {
 #[derive(Debug, Copy)]
 pub struct nsStyleClipPath_nsStyleStruct_h_unnamed_29 {
     pub mBasicShape: __BindgenUnionField<*mut nsStyleBasicShape>,
-    pub mURL: __BindgenUnionField<*mut nsIURI>,
+    pub mURL: __BindgenUnionField<*mut FragmentOrURL>,
     pub _bindgen_data_: u64,
 }
 impl nsStyleClipPath_nsStyleStruct_h_unnamed_29 { }
@@ -6389,7 +6461,7 @@ pub struct nsStyleFilter {
 #[repr(C)]
 #[derive(Debug, Copy)]
 pub struct nsStyleFilter_nsStyleStruct_h_unnamed_30 {
-    pub mURL: __BindgenUnionField<*mut nsIURI>,
+    pub mURL: __BindgenUnionField<*mut FragmentOrURL>,
     pub mDropShadow: __BindgenUnionField<*mut nsCSSShadowArray>,
     pub _bindgen_data_: u64,
 }
@@ -6450,4 +6522,21 @@ pub struct nsStyleEffects {
 fn bindgen_test_layout_nsStyleEffects() {
     assert_eq!(::std::mem::size_of::<nsStyleEffects>() , 40usize);
     assert_eq!(::std::mem::align_of::<nsStyleEffects>() , 8usize);
+}
+/**
+ * <div rustbindgen="true" replaces="nsSize">
+ */
+#[repr(C)]
+#[derive(Debug, Copy)]
+pub struct nsSize {
+    pub width: nscoord,
+    pub height: nscoord,
+}
+impl ::std::clone::Clone for nsSize {
+    fn clone(&self) -> Self { *self }
+}
+#[test]
+fn bindgen_test_layout_nsSize() {
+    assert_eq!(::std::mem::size_of::<nsSize>() , 8usize);
+    assert_eq!(::std::mem::align_of::<nsSize>() , 4usize);
 }
