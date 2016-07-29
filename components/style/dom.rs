@@ -46,7 +46,7 @@ impl OpaqueNode {
 }
 
 pub trait TRestyleDamage : BitOr<Output=Self> + Copy {
-    fn compute(old: Option<&Arc<ComputedValues>>, new: &ComputedValues) -> Self;
+    fn compute(old: Option<&Arc<ComputedValues>>, new: &Arc<ComputedValues>) -> Self;
     fn rebuild_and_reflow() -> Self;
 }
 

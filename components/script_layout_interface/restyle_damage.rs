@@ -44,7 +44,7 @@ bitflags! {
 }
 
 impl TRestyleDamage for RestyleDamage {
-    fn compute(old: Option<&Arc<ServoComputedValues>>, new: &ServoComputedValues) ->
+    fn compute(old: Option<&Arc<ServoComputedValues>>, new: &Arc<ServoComputedValues>) ->
         RestyleDamage { compute_damage(old, new) }
 
     /// Returns a bitmask that represents a flow that needs to be rebuilt and reflowed.
@@ -143,7 +143,8 @@ macro_rules! add_if_not_equal(
     })
 );
 
-fn compute_damage(old: Option<&Arc<ServoComputedValues>>, new: &ServoComputedValues) -> RestyleDamage {
+fn compute_damage(old: Option<&Arc<ServoComputedValues>>, new: &Arc<ServoComputedValues>) -> RestyleDamage {
+    let new = &**new;
     let old: &ServoComputedValues = match old {
         None => return RestyleDamage::rebuild_and_reflow(),
         Some(cv) => &**cv,

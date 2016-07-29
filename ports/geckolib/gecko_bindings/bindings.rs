@@ -294,10 +294,11 @@ extern "C" {
     pub fn Gecko_GetNodeFlags(node: *mut RawGeckoNode) -> u32;
     pub fn Gecko_SetNodeFlags(node: *mut RawGeckoNode, flags: u32);
     pub fn Gecko_UnsetNodeFlags(node: *mut RawGeckoNode, flags: u32);
-    pub fn Gecko_CalcAndStoreStyleDifference(element: *mut RawGeckoElement,
-                                             newstyle:
-                                                 *mut ServoComputedValues)
+    pub fn Gecko_CalcStyleDifference(oldstyle: *mut ServoComputedValues,
+                                     newstyle: *mut ServoComputedValues)
      -> nsChangeHint;
+    pub fn Gecko_StoreStyleDifference(node: *mut RawGeckoNode,
+                                      change: nsChangeHint);
     pub fn Gecko_EnsureTArrayCapacity(array: *mut ::std::os::raw::c_void,
                                       capacity: usize, elem_size: usize);
     pub fn Gecko_EnsureImageLayersLength(layers: *mut nsStyleImageLayers,

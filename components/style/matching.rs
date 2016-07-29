@@ -443,7 +443,7 @@ trait PrivateMatchMethods: TNode
         }
 
         // Calculate style difference.
-        let damage = Self::ConcreteRestyleDamage::compute(style.map(|s| &*s), &*this_style);
+        let damage = Self::ConcreteRestyleDamage::compute(style.map(|s| &*s), &this_style);
 
         // Cache the resolved style if it was cacheable.
         if cacheable {
@@ -587,7 +587,7 @@ pub trait ElementMatchMethods : TElement {
                 let node = self.as_node();
                 let style = &mut node.mutate_data().unwrap().style;
                 let damage = <<Self as TElement>::ConcreteNode as TNode>
-                                 ::ConcreteRestyleDamage::compute((*style).as_ref(), &*shared_style);
+                                 ::ConcreteRestyleDamage::compute((*style).as_ref(), &shared_style);
                 *style = Some(shared_style);
                 return StyleSharingResult::StyleWasShared(i, damage)
             }
@@ -676,7 +676,7 @@ pub trait MatchMethods : TNode {
             let mut data = &mut *data_ref;
             let cloned_parent_style = ComputedValues::style_for_child_text_node(parent_style.unwrap());
             damage = Self::ConcreteRestyleDamage::compute(data.style.as_ref(),
-                                                          &*cloned_parent_style);
+                                                          &cloned_parent_style);
             data.style = Some(cloned_parent_style);
         } else {
             damage = {
