@@ -263,7 +263,6 @@ function queryCssLink(url, callback, referrer_policy) {
       xhr.open('GET', '/_mozilla/mozilla/referrer-policy/generic/subresource/stash.py?id=' + id, false);
       xhr.onload = function(e) {
         var server_data = JSON.parse(this.responseText);
-        // FIXME But why??
         server_data.headers = JSON.parse(server_data.headers);
         if (server_data.headers.referer == undefined) {
           server_data.headers.referer = undefined;
