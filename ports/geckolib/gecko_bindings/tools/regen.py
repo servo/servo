@@ -80,6 +80,7 @@ COMPILATION_TARGETS = {
             "/Types.h",   # <- Disallow UnionTypes.h
             "/utility",   # <- Disallow xutility
             "nsINode.h",  # <- For `NodeFlags`.
+            "UniquePtr.h"
         ],
         "blacklist": [
             "IsDestructibleFallbackImpl", "IsDestructibleFallback",
@@ -90,13 +91,17 @@ COMPILATION_TARGETS = {
             "FastAnimationEffectTimingProperties", "ComputedTimingProperties",
             "FastComputedTimingProperties",
             "nsINode",
+            "HasPointerType"
         ],
         "opaque_types": [
             "nsIntMargin", "nsIntPoint", "nsIntRect", "nsCOMArray",
             "nsDependentString", "EntryStore", "gfxFontFeatureValueSet",
             "imgRequestProxy", "imgRequestProxyStatic", "CounterStyleManager",
             "ImageValue", "URLValue", "URLValueData", "nsIPrincipal",
-            "nsDataHashtable", "imgIRequest"
+            "nsDataHashtable", "imgIRequest",
+            "Maybe",  # <- AlignedStorage, which means templated union, which
+                      # means impossible to represent in stable rust as of
+                      # right now.
         ],
     },
     # Generation of the ffi bindings.
