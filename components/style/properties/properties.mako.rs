@@ -77,7 +77,7 @@ pub mod shorthands {
     use parser::ParserContext;
     use values::specified;
 
-    fn parse_four_sides<F, T>(input: &mut Parser, parse_one: F) -> Result<(T, T, T, T), ()>
+    pub fn parse_four_sides<F, T>(input: &mut Parser, parse_one: F) -> Result<(T, T, T, T), ()>
     where F: Fn(&mut Parser) -> Result<T, ()>, F: Copy, T: Clone {
         // zero or more than four values is invalid.
         // one value sets them all
