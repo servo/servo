@@ -112,11 +112,9 @@ function queryIframe(url, callback, referrer_policy) {
     iframe.addEventListener("load", function listener() {
       var xhr = new XMLHttpRequest();
       xhr.open('GET', '/_mozilla/mozilla/referrer-policy/generic/subresource/stash.py?id=' + id, false);
-      xhr.onreadystatechange = function(e) {
-        if (this.readyState == 4 && this.status == 200) {
-          var server_data = JSON.parse(this.responseText);
-          callback(server_data);
-        }
+      xhr.onload = function(e) {
+        var server_data = JSON.parse(this.responseText);
+        callback(server_data);
       };
       xhr.send();
       iframe.removeEventListener("load", listener);
@@ -133,11 +131,9 @@ function queryImage(url, callback, referrer_policy) {
 function queryXhr(url, callback) {
   var xhr = new XMLHttpRequest();
   xhr.open('GET', url, true);
-  xhr.onreadystatechange = function(e) {
-    if (this.readyState == 4 && this.status == 200) {
-      var server_data = JSON.parse(this.responseText);
-      callback(wrapResult(url, server_data), url);
-    }
+  xhr.onload = function(e) {
+    var server_data = JSON.parse(this.responseText);
+    callback(wrapResult(url, server_data), url);
   };
   xhr.send();
 }
@@ -270,17 +266,15 @@ function queryCssLink(url, callback, referrer_policy) {
     var timeout_func = setTimeout(function timeout() {
       var xhr = new XMLHttpRequest();
       xhr.open('GET', '/_mozilla/mozilla/referrer-policy/generic/subresource/stash.py?id=' + id, false);
-      xhr.onreadystatechange = function(e) {
-        if (this.readyState == 4 && this.status == 200) {
-          var server_data = JSON.parse(this.responseText);
-          // FIXME But why??
-          server_data.headers = JSON.parse(server_data.headers);
-          if (server_data.headers.referer == undefined) {
-            server_data.headers.referer = undefined;
-          }
-
-          callback(wrapResult(url, server_data));
+      xhr.onload = function(e) {
+        var server_data = JSON.parse(this.responseText);
+        // FIXME But why??
+        server_data.headers = JSON.parse(server_data.headers);
+        if (server_data.headers.referer == undefined) {
+          server_data.headers.referer = undefined;
         }
+
+        callback(wrapResult(url, server_data));
       };
       xhr.send();
 
