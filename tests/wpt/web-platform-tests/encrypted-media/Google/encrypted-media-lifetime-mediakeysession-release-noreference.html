@@ -4,8 +4,8 @@
     <head>
         <title>Test MediaKeySession lifetime after release() without references</title>
         <script src="encrypted-media-utils.js"></script>
-        <script src="../../resources/testharness.js"></script>
-        <script src="../../resources/testharnessreport.js"></script>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
     </head>
     <body>
         <div id="log"></div>
@@ -31,11 +31,10 @@
                 var mediaKeys;
                 var mediaKeySession1;
                 var mediaKeySession2;
-                getSupportedInitDataType().then(function(type) {
-                    initDataType = type;
+
+                navigator.requestMediaKeySystemAccess('org.w3.clearkey', getSimpleConfiguration()).then(function(access) {
+                    initDataType = access.getConfiguration().initDataTypes[0];
                     initData = getInitData(initDataType);
-                    return navigator.requestMediaKeySystemAccess('org.w3.clearkey', [{}]);
-                }).then(function(access) {
                     return access.createMediaKeys();
                 }).then(function(result) {
                     mediaKeys = result;

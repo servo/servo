@@ -2571,7 +2571,7 @@ interface NavigatorStorageUtils {
 interface NavigatorPlugins {
   readonly attribute PluginArray plugins;
   readonly attribute MimeTypeArray mimeTypes;
-  readonly attribute boolean javaEnabled;
+  boolean javaEnabled();
 };
 
 interface PluginArray {

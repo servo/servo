@@ -24,7 +24,8 @@ function JSONtest(params) {
   this.Assertions = [];     // object that will contain the assertions to process
   this.AssertionText = "";  // string that holds the titles of all the assertions in use
   this.DescriptionText = "";
-  this.Base = null;         // URI "base" for the tests being run
+  this.Base = null;         // URI "base" for the test suite being run
+  this.TestDir = null;      // URI "base" for the test case being run
   this.Params = null;       // paramaters passed in
   this.Properties = null;   // testharness_properties from the opening window
   this.Test = null;         // test being run
@@ -52,6 +53,7 @@ function JSONtest(params) {
 
   var l = document.location;
   var p = l.pathname;
+  this.TestDir = p.substr(0, 1+p.lastIndexOf('/'));
   this.Base = p.substr(0, 1+p.indexOf('/', 1));
 
   // if we are under runner, then there are props in the parent window
@@ -365,7 +367,7 @@ JSONtest.prototype = {
               } else {
                 assert_true(result, err) ;
               }
-            }.bind(this), assert.title);
+            }.bind(this), "" + level + ":" + (num+1) + " " + assert.title);
             // we are going to return out of this
             return;
           }
@@ -383,6 +385,18 @@ JSONtest.prototype = {
         }
 
         var schemaName = "inline " + level + ":" + (num+1);
+
+        if (typeof assert === "string") {
+          // the assertion passed in is a file name; find it in the cache
+          if (this._assertionCache[assert]) {
+            assert = this._assertionCache[assert];
+          } else {
+            test( function() {
+              assert_true(false, "Reference to assertion " + assert + " at level " + level + ":" + (num+1) + " unresolved") ;
+            }, "Processing " + assert);
+            return ;
+          }
+        }
 
         if (assert.assertionFile) {
           schemaName = "external file " + assert.assertionFile + " " + level + ":" + (num+1);
@@ -432,7 +446,7 @@ JSONtest.prototype = {
             } else {
               assert_true(result, err) ;
             }
-          }.bind(this), assert.title);
+          }.bind(this), "" + level + ":" + (num+1) + " " + assert.title);
         }
       }.bind(this));
     }
@@ -497,6 +511,7 @@ JSONtest.prototype = {
         this._loadFile("GET", theFile, true)
           .then(function(data) {
             data.assertionFile = afile;
+            this._assertionCache[afile] = data;
             resolve(data);
           }.bind(this))
           .catch(function(err) {
@@ -581,7 +596,7 @@ JSONtest.prototype = {
     if (theURI.indexOf('/') === -1) {
       // no slash - it's relative to where we are
       // so just use it
-      return theURI;
+      return this.TestDir + theURI;
     } else if (theURI.indexOf('/') === 0 || theURI.indexOf('http:') === 0 || theURI.indexOf('https:') === 0) {
       // it is an absolute URI so just use it
       return theURI;
@@ -619,7 +634,8 @@ JSONtest.prototype = {
         } else if (typeof assert === "object") {
           ret.push(assert) ;
           if (assert.hasOwnProperty("assertions")) {
-            ret.push(this._assertionRefs(assert.assertions));
+            // there are embedded assertions; get those too
+            ret.concat(this._assertionRefs(assert.assertions));
           }
         } else {
           // it is a file name

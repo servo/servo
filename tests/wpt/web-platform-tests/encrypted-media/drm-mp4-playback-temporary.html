@@ -1,0 +1,53 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <meta name="timeout" content="long">
+    <title>Encrypted Media Extensions: Successful Playback, Temporary session with DRM, mp4</title>
+    <link rel="help" href="https://w3c.github.io/encrypted-media/">
+
+    <!-- Web Platform Test Harness scripts -->
+    <script src=/resources/testharness.js></script>
+    <script src=/resources/testharnessreport.js></script>
+
+    <!-- Helper scripts for Encrypted Media Extensions tests  -->
+    <script src=/encrypted-media/util/utils.js></script>
+    <script src=/encrypted-media/util/utf8.js></script>
+    <script src=/encrypted-media/util/fetch.js></script>
+    <script src=/encrypted-media/util/testmediasource.js></script>
+
+    <!-- Message handler for DRM servers -->
+    <script src=/encrypted-media/util/drmtoday-messagehandler.js></script>
+
+    <!-- The script for this specific test -->
+    <script src=/encrypted-media/scripts/playback-temporary.js></script>
+
+  </head>
+  <body>
+    <h1 class="instructions">Description</h1>
+    <p class="instructions">
+      This test verifies successful playback for a temporary session with DRM and mp4/cenc content.
+    </p>
+
+    <div id='log'></div>
+
+    <div id='video'>
+      <video id="videoelement" width="300px"></video>
+    </div>
+
+    <script>
+        var config = {  video:              document.getElementById('videoelement'),
+                        keysystem:          getSupportedKeySystem(),
+                        messagehandler:     messagehandler,
+                        audioType:          'audio/mp4;codecs="mp4a.40.2"',
+                        videoType:          'video/mp4;codecs="avc1.4d401e"',
+                        audioPath:          '/encrypted-media/content/audio_aac-lc_128k_dashinit.mp4',
+                        videoPath:          '/encrypted-media/content/video_512x288_h264-360k_dashinit.mp4',
+                        initDataType:       'cenc',
+                        duration:           5 };
+
+        runTest(config);
+
+    </script>
+  </body>
+</html>

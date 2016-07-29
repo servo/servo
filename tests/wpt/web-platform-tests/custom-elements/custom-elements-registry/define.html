@@ -56,7 +56,26 @@
     }, `If constructor is ${t[0]}, should throw a TypeError`);
   });
 
-  // 2. If name is not a valid custom element name,
+  // 2. If constructor is an interface object or named constructor whose corresponding
+  // interface either is HTMLElement or has HTMLElement in its set of inherited interfaces,
+  // throw a TypeError and abort these steps.
+  [
+    [ 'HTMLElement', HTMLElement ],
+    [ 'HTMLButtonElement', HTMLButtonElement ],
+    [ 'HTMLImageElement', HTMLImageElement ],
+    [ 'HTMLMediaElement', HTMLMediaElement ],
+    [ 'Image' , Image ],
+    [ 'Audio' , Audio ],
+    [ 'Option', Option ],
+  ].forEach(t => {
+    test(() => {
+      assert_throws(expectTypeError, () => {
+        customElements.define(`test-define-constructor-${t[0]}`, t[1]);
+      });
+    }, `If constructor is ${t[0]}, should throw a TypeError`);
+  });
+
+  // 3. If name is not a valid custom element name,
   // then throw a SyntaxError and abort these steps.
   let validCustomElementNames = [
     // [a-z] (PCENChar)* '-' (PCENChar)*
@@ -110,7 +129,7 @@
     }, `Element names: defining an element named ${name} should throw a SyntaxError`);
   });
 
-  // 3. If this CustomElementsRegistry contains an entry with name name,
+  // 4. If this CustomElementsRegistry contains an entry with name name,
   // then throw a NotSupportedError and abort these steps.
   test(() =>  {
     customElements.define('test-define-dup-name', class {});
@@ -119,7 +138,7 @@
     });
   }, 'If the name is already defined, should throw a NotSupportedError');
 
-  // 4. If this CustomElementsRegistry contains an entry with constructor constructor,
+  // 6. If this CustomElementsRegistry contains an entry with constructor constructor,
   // then throw a NotSupportedError and abort these steps.
   test(() =>  {
     class TestDupConstructor {};
@@ -129,7 +148,7 @@
     });
   }, 'If the constructor is already defined, should throw a NotSupportedError');
 
-  // 7.1. If extends is a valid custom element name,
+  // 10.1. If extends is a valid custom element name,
   // then throw a NotSupportedError.
   validCustomElementNames.forEach(name =>  {
     test(() =>  {
@@ -139,7 +158,7 @@
     }, `If extends is ${name}, should throw a NotSupportedError`);
   });
 
-  // 7.2. If the element interface for extends and the HTML namespace is HTMLUnknownElement
+  // 10.2. If the element interface for extends and the HTML namespace is HTMLUnknownElement
   // (e.g., if extends does not indicate an element definition in this specification),
   // then throw a NotSupportedError.
   [
@@ -159,19 +178,7 @@
     }, `If extends is ${name}, should throw a NotSupportedError`);
   });
 
-  // 8. Let observedAttributesIterable be Get(constructor, "observedAttributes").
-  // Rethrow any exceptions.
-  test(() => {
-    class C {
-      static get observedAttributes() { throw_rethrown_error(); }
-      attributeChangedCallback() {}
-    }
-    assert_rethrown(() => {
-      customElements.define('test-define-observedattributes-rethrow', C);
-    });
-  }, 'If constructor.observedAttributes throws, should rethrow');
-
-  // 10. Let prototype be Get(constructor, "prototype"). Rethrow any exceptions.
+  // 13.1. Let prototype be Get(constructor, "prototype"). Rethrow any exceptions.
   function assert_rethrown(func, description) {
     assert_throws({ name: 'rethrown' }, func, description);
   }
@@ -190,7 +197,8 @@
       customElements.define('test-define-constructor-prototype-rethrow', BadConstructor);
     });
   }, 'If constructor.prototype throws, should rethrow');
-  // 11. If Type(prototype) is not Object,
+
+  // 13.2. If Type(prototype) is not Object,
   // then throw a TypeError exception.
   test(() =>  {
     const c = (function () { }).bind({}); // prototype is undefined.
@@ -206,15 +214,21 @@
     });
   }, 'If Type(constructor.prototype) is string, should throw a TypeError');
 
-  // 12. Let connectedCallback be Get(prototype, "connectedCallback"). Rethrow any exceptions.
-  // 13. If connectedCallback is not undefined, and IsCallable(connectedCallback) is false,
-  // then throw a TypeError exception.
-  // 14. Let disconnectedCallback be Get(prototype, "disconnectedCallback"). Rethrow any exceptions.
-  // 15. If disconnectedCallback is not undefined, and IsCallable(disconnectedCallback) is false,
-  // then throw a TypeError exception.
-  // 16. Let attributeChangedCallback be Get(prototype, "attributeChangedCallback"). Rethrow any exceptions.
-  // 17. If attributeChangedCallback is not undefined, and IsCallable(attributeChangedCallback) is false,
-  // then throw a TypeError exception.
+  // 13.4. Let connectedCallbackValue be Get(prototype, "connectedCallback").
+  // Rethrow any exceptions.
+  // 13.5. If connectedCallbackValue is not undefined, then set connectedCallback
+  // to the result of converting connectedCallbackValue to the Web IDL Function callback type.
+  // Rethrow any exceptions.
+  // 13.6. Let disconnectedCallbackValue be Get(prototype, "disconnectedCallback").
+  // Rethrow any exceptions.
+  // 13.7. If disconnectedCallbackValue is not undefined, then set disconnectedCallback
+  // to the result of converting disconnectedCallbackValue to the Web IDL Function callback type.
+  // Rethrow any exceptions.
+  // 13.8. Let attributeChangedCallbackValue be Get(prototype, "attributeChangedCallback").
+  // Rethrow any exceptions.
+  // 13.9. If attributeChangedCallbackValue is not undefined, then set attributeChangedCallback
+  // to the result of converting attributeChangedCallbackValue to the Web IDL Function callback type.
+  // Rethrow any exceptions.
   [
     'connectedCallback',
     'disconnectedCallback',

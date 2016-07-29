@@ -4,8 +4,8 @@
     <head>
         <title>Clear Key Playback</title>
         <script src="encrypted-media-utils.js"></script>
-        <script src="../../resources/testharness.js"></script>
-        <script src="../../resources/testharnessreport.js"></script>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
     </head>
     <body>
         <video id="testVideo"></video>
@@ -14,6 +14,7 @@
             async_test(function(test)
             {
                 var video = document.getElementById('testVideo');
+                var content = 'webm/test-encrypted.webm';
                 var isUpdatePromiseResolved = false;
                 var encryptedEventCount = 0;
 
@@ -72,14 +73,14 @@
                     test.done();
                 }
 
-                navigator.requestMediaKeySystemAccess('org.w3.clearkey', [{}]).then(function(access) {
+                navigator.requestMediaKeySystemAccess('org.w3.clearkey', getConfigurationForFile(content)).then(function(access) {
                     return access.createMediaKeys();
                 }).then(function(mediaKeys) {
 
                     waitForEventAndRunStep('encrypted', video, onEncrypted, test);
                     waitForEventAndRunStep('playing', video, onPlaying, test);
 
-                    video.src = '../content/test-encrypted.webm';
+                    video.src = content;
                     return video.setMediaKeys(mediaKeys);
                 }).then(function(result) {
                     video.play();

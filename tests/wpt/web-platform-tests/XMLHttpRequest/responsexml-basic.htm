@@ -19,7 +19,7 @@
         assert_equals(client.responseXML.documentElement.localName, "html", 'localName is html')
         assert_equals(client.responseXML.documentElement.childNodes.length, 5, 'childNodes is 5')
         assert_equals(client.responseXML.getElementById("n1").localName, client.responseXML.documentElement.childNodes[1].localName)
-        assert_equals(client.responseXML.getElementById("n2"), null, 'getElementById("n2")')
+        assert_equals(client.responseXML.getElementById("n2"), client.responseXML.documentElement.childrenNodes[3], 'getElementById("n2")')
         assert_equals(client.responseXML.getElementsByTagName("p")[1].namespaceURI, "namespacesarejuststrings", 'namespaceURI')
       })
       test(function() {

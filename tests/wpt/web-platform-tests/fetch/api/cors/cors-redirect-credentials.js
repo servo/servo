@@ -1,6 +1,7 @@
 if (this.document === undefined) {
   importScripts("/resources/testharness.js");
   importScripts("../resources/utils.js");
+  importScripts("../resources/get-host-info.sub.js")
 }
 
 function corsRedirectCredentials(desc, redirectUrl, redirectLocation, redirectStatus, locationCredentials) {
@@ -19,12 +20,14 @@ function corsRedirectCredentials(desc, redirectUrl, redirectLocation, redirectSt
 var redirPath = dirname(location.pathname) + RESOURCES_DIR + "redirect.py";
 var preflightPath = dirname(location.pathname) + RESOURCES_DIR + "preflight.py";
 
-var localRedirect = "http://{{host}}:{{ports[http][0]}}" + redirPath;
-var remoteRedirect = "http://{{host}}:{{ports[http][1]}}" + redirPath;
+var host_info = get_host_info();
 
-var localLocation = "http://{{host}}:{{ports[http][0]}}" + preflightPath;
-var remoteLocation = "http://{{host}}:{{ports[http][1]}}" + preflightPath;
-var remoteLocation2 = "http://www.{{host}}:{{ports[http][0]}}" + preflightPath;
+var localRedirect = host_info.HTTP_ORIGIN + redirPath;
+var remoteRedirect = host_info.HTTP_ORIGIN_WITH_DIFFERENT_PORT + redirPath;
+
+var localLocation = host_info.HTTP_ORIGIN + preflightPath;
+var remoteLocation = host_info.HTTP_ORIGIN_WITH_DIFFERENT_PORT + preflightPath;
+var remoteLocation2 = host_info.HTTP_REMOTE_ORIGIN + preflightPath;
 
 for (var code of [301, 302, 303, 307, 308]) {
   corsRedirectCredentials("Redirect " + code + " from same origin to remote with user and password", localRedirect, remoteLocation, code, "user:password");

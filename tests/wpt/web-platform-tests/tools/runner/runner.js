@@ -461,22 +461,35 @@ ManualUI.prototype = {
 function TestControl(elem, runner) {
     this.elem = elem;
     this.path_input = this.elem.querySelector(".path");
+    this.path_input.addEventListener("change", function() {
+        this.set_counts();
+    }.bind(this), false);
     this.use_regex_input = this.elem.querySelector("#use_regex");
+    this.use_regex_input.addEventListener("change", function() {
+        this.set_counts();
+    }.bind(this), false);
     this.pause_button = this.elem.querySelector("button.togglePause");
     this.start_button = this.elem.querySelector("button.toggleStart");
     this.type_checkboxes = Array.prototype.slice.call(
         this.elem.querySelectorAll("input[type=checkbox].test-type"));
     this.type_checkboxes.forEach(function(elem) {
+        elem.addEventListener("change", function() {
+            this.set_counts();
+        }.bind(this),
+        false);
         elem.addEventListener("click", function() {
             this.start_button.disabled = this.get_test_types().length < 1;
         }.bind(this),
         false);
     }.bind(this));
+
     this.timeout_input = this.elem.querySelector(".timeout_multiplier");
     this.render_checkbox = this.elem.querySelector(".render");
+    this.testcount_area = this.elem.querySelector("#testcount");
     this.runner = runner;
     this.runner.done_callbacks.push(this.on_done.bind(this));
     this.set_start();
+    this.set_counts();
 }
 
 TestControl.prototype = {
@@ -528,6 +541,21 @@ TestControl.prototype = {
             this.set_pause();
         }.bind(this);
 
+    },
+
+    set_counts: function() {
+        if (this.runner.manifest_loading) {
+            setTimeout(function() {
+                this.set_counts();
+            }.bind(this), 1000);
+            return;
+        }
+        var path = this.get_path();
+        var test_types = this.get_test_types();
+        var use_regex = this.get_use_regex();
+        var iterator = new ManifestIterator(this.runner.manifest, path, test_types, use_regex);
+        var count = iterator.count();
+        this.testcount_area.textContent = count;
     },
 
     get_path: function() {
@@ -622,6 +650,7 @@ function Runner(manifest_path) {
     this.results = new Results(this);
 
     this.start_after_manifest_load = false;
+    this.manifest_loading = true;
     this.manifest.load(this.manifest_loaded.bind(this));
 }
 
@@ -637,6 +666,7 @@ Runner.prototype = {
     },
 
     manifest_loaded: function() {
+        this.manifest_loading = false;
         if (this.start_after_manifest_load) {
             this.do_start();
         }

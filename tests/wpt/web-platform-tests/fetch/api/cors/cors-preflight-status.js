@@ -2,6 +2,7 @@ if (this.document === undefined) {
   importScripts("/resources/testharness.js");
   importScripts("../resources/utils.js");
   importScripts("/common/utils.js");
+  importScripts("../resources/get-host-info.sub.js");
 }
 
 /* Check preflight is ok if status is ok status (200  to 299)*/
@@ -31,7 +32,7 @@ function corsPreflightStatus(desc, corsUrl, preflightStatus) {
   }, desc);
 }
 
-var corsUrl = "http://www1.{{host}}:{{ports[http][0]}}" + dirname(location.pathname) + RESOURCES_DIR + "preflight.py";
+var corsUrl = get_host_info().HTTP_REMOTE_ORIGIN + dirname(location.pathname) + RESOURCES_DIR + "preflight.py";
 for (status of [200, 201, 202, 203, 204, 205, 206,
                 300, 301, 302, 303, 304, 305, 306, 307, 308,
                 400, 401, 402, 403, 404, 405,

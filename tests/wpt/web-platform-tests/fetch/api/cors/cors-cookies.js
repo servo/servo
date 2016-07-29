@@ -1,11 +1,12 @@
 if (this.document === undefined) {
   importScripts("/resources/testharness.js");
   importScripts("../resources/utils.js");
+  importScripts("../resources/get-host-info.sub.js")
 }
 
-function corsCookies(desc, domain1, domain2, credentialsMode, cookies) {
-  var urlSetCookie = "http://" + domain1 + ":{{ports[http][0]}}" + dirname(location.pathname) + RESOURCES_DIR + "top.txt";
-  var urlCheckCookies = "http://" + domain2 + ":{{ports[http][0]}}" + dirname(location.pathname) + RESOURCES_DIR + "inspect-headers.py?cors&headers=cookie";
+function corsCookies(desc, baseURL1, baseURL2, credentialsMode, cookies) {
+  var urlSetCookie = baseURL1 + dirname(location.pathname) + RESOURCES_DIR + "top.txt";
+  var urlCheckCookies = baseURL2 + dirname(location.pathname) + RESOURCES_DIR + "inspect-headers.py?cors&headers=cookie";
   //enable cors with credentials
   var urlParameters = "?pipe=header(Access-Control-Allow-Origin," + location.origin + ")";
   urlParameters += "|header(Access-Control-Allow-Credentials,true)";
@@ -29,7 +30,7 @@ function corsCookies(desc, domain1, domain2, credentialsMode, cookies) {
     }).then(function(resp) {
       assert_equals(resp.status, 200, "HTTP status is 200");
       assert_false(resp.headers.has("Cookie") , "Cookie header is not exposed in response");
-      if (credentialsMode === "include" && domain1 === domain2) {
+      if (credentialsMode === "include" && baseURL1 === baseURL2) {
         assert_equals(resp.headers.get("x-request-cookie") , cookies.join("; "), "Request includes cookie(s)");
       }
       else {
@@ -44,15 +45,16 @@ function corsCookies(desc, domain1, domain2, credentialsMode, cookies) {
   }, desc);
 }
 
-var local = "{{host}}";
-var remote = "www.{{host}}";
-var remote1 = "www1.{{host}}";
+var local = get_host_info().HTTP_ORIGIN;
+var remote = get_host_info().HTTP_REMOTE_ORIGIN;
+// FIXME: otherRemote might not be accessible on some test environments.
+var otherRemote = "www." + local;
 
 corsCookies("Omit mode: no cookie sent", local, local, "omit", ["g=7"]);
 corsCookies("Include mode: 1 cookie", remote, remote, "include", ["a=1"]);
 corsCookies("Include mode: local cookies are not sent with remote request", local, remote, "include", ["c=3"]);
 corsCookies("Include mode: remote cookies are not sent with local request", remote, local, "include", ["d=4"]);
-corsCookies("Include mode: remote cookies are not sent with other remote request", remote, remote1, "include", ["e=5"]);
 corsCookies("Same-origin mode: cookies are discarded in cors request", remote, remote, "same-origin", ["f=6"]);
+corsCookies("Include mode: remote cookies are not sent with other remote request", remote, otherRemote, "include", ["e=5"]);
 
 done();

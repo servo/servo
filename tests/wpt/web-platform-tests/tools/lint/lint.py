@@ -1,6 +1,8 @@
 from __future__ import print_function, unicode_literals
 
+import abc
 import argparse
+import ast
 import fnmatch
 import json
 import os
@@ -238,6 +240,42 @@ def check_parsed(repo_root, path, f):
 
     return errors
 
+class ASTCheck(object):
+    __metaclass__ = abc.ABCMeta
+    error = None
+    description = None
+
+    @abc.abstractmethod
+    def check(self, root):
+        pass
+
+class OpenModeCheck(ASTCheck):
+    error = "OPEN-NO-MODE"
+    description = "File opened without providing an explicit mode (note: binary files must be read with 'b' in the mode flags)"
+
+    def check(self, root):
+        errors = []
+        for node in ast.walk(root):
+            if isinstance(node, ast.Call):
+                if hasattr(node.func, "id") and node.func.id in ("open", "file"):
+                    if (len(node.args) < 2 and
+                        all(item.arg != "mode" for item in node.keywords)):
+                        errors.append(node.lineno)
+        return errors
+
+ast_checkers = [item() for item in [OpenModeCheck]]
+
+def check_python_ast(repo_root, path, f):
+    if not path.endswith(".py"):
+        return []
+
+    errors = []
+    root = ast.parse(f.read())
+    for checker in ast_checkers:
+        for lineno in checker.check(root):
+            errors.append((checker.error, checker.description, path, lineno))
+    return errors
+
 def output_errors_text(errors):
     for error_type, description, path, line_number in errors:
         pos_string = path
@@ -316,7 +354,7 @@ def lint(repo_root, paths, output_json):
     return sum(error_count.itervalues())
 
 path_lints = [check_path_length]
-file_lints = [check_regexp_line, check_parsed]
+file_lints = [check_regexp_line, check_parsed, check_python_ast]
 
 if __name__ == "__main__":
     error_count = main()
