@@ -32,4 +32,3 @@ serde_macros = "0.7.15"
 style_traits = {path = "../style_traits", features = ["servo"]}
 time = "0.1.12"
 url = {version = "1.0.0", features = ["heap_size"]}
-util = {path = "../util"}

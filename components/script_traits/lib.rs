@@ -30,7 +30,6 @@ extern crate serde;
 extern crate style_traits;
 extern crate time;
 extern crate url;
-extern crate util;
 
 mod script_msg;
 pub mod webdriver_msg;
@@ -47,7 +46,7 @@ use gfx_traits::Epoch;
 use gfx_traits::LayerId;
 use gfx_traits::StackingContextId;
 use heapsize::HeapSizeOf;
-use ipc_channel::ipc::{IpcReceiver, IpcSender};
+use ipc_channel::ipc::{IpcReceiver, IpcSender, OpaqueIpcSender};
 use layers::geometry::DevicePixel;
 use libc::c_void;
 use msg::constellation_msg::{FrameId, FrameType, Image, Key, KeyModifiers, KeyState, LoadData};
@@ -65,7 +64,6 @@ use std::fmt;
 use std::sync::mpsc::{Sender, Receiver};
 use style_traits::{PagePx, ViewportPx};
 use url::Url;
-use util::ipc::OptionalOpaqueIpcSender;
 use webdriver_msg::{LoadStatus, WebDriverScriptCommand};
 
 pub use script_msg::{LayoutMsg, ScriptMsg, EventResult, LogEntry};
@@ -139,7 +137,7 @@ pub struct NewLayoutInfo {
     pub load_data: LoadData,
     /// The paint channel, cast to `OptionalOpaqueIpcSender`. This is really an
     /// `Sender<LayoutToPaintMsg>`.
-    pub paint_chan: OptionalOpaqueIpcSender,
+    pub paint_chan: OpaqueIpcSender,
     /// A port on which layout can receive messages from the pipeline.
     pub pipeline_port: IpcReceiver<LayoutControlMsg>,
     /// A sender for the layout thread to communicate to the constellation.

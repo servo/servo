@@ -31,4 +31,3 @@ selectors = {version = "0.7", features = ["heap_size"]}
 string_cache = {version = "0.2.20", features = ["heap_size"]}
 style = {path = "../style"}
 url = {version = "1.0.0", features = ["heap_size"]}
-util = {path = "../util"}
