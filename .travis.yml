@@ -36,6 +36,9 @@ matrix:
             - xorg-dev
             - ccache
             - libdbus-glib-1-dev
+            - libavformat-dev
+            - libavcodec-dev
+            - libavutil-dev
 
 branches:
   only:

@@ -1758,6 +1758,7 @@ dependencies = [
  "url 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
  "uuid 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "video-metadata 0.1.2 (git+https://github.com/GuillaumeGomez/video-metadata-rs)",
  "webrender_traits 0.2.0 (git+https://github.com/servo/webrender_traits)",
  "websocket 0.17.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "xml5ever 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2302,6 +2303,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "rand 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.7.15 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "video-metadata"
+version = "0.1.2"
+source = "git+https://github.com/GuillaumeGomez/video-metadata-rs#bc7f45023765b0ff7a7235e02bac3bfe9f24acd7"
+dependencies = [
+ "gcc 0.3.28 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lazy_static 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.2.13 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]

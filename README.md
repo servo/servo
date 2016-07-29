@@ -43,7 +43,8 @@ sudo apt-get install git curl freeglut3-dev autoconf \
     libfreetype6-dev libgl1-mesa-dri libglib2.0-dev xorg-dev \
     gperf g++ build-essential cmake virtualenv python-pip \
     libssl-dev libbz2-dev libosmesa6-dev libxmu6 libxmu-dev \
-    libglu1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev libdbus-1-dev
+    libglu1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev libdbus-1-dev \
+    libavformat-dev
 ```
 If you are on **Ubuntu 14.04** and encountered errors on installing these dependencies involving `libcheese`, see [#6158](https://github.com/servo/servo/issues/6158) for a workaround.
 
@@ -56,7 +57,7 @@ sudo dnf install curl freeglut-devel libtool gcc-c++ libXi-devel \
     freetype-devel mesa-libGL-devel mesa-libEGL-devel glib2-devel libX11-devel libXrandr-devel gperf \
     fontconfig-devel cabextract ttmkfdir python python-virtualenv python-pip expat-devel \
     rpm-build openssl-devel cmake bzip2-devel libXcursor-devel libXmu-devel mesa-libOSMesa-devel \
-    dbus-devel
+    dbus-devel ffmpeg-devel
 ```
 
 On Arch Linux:
@@ -89,7 +90,7 @@ pacman -Su
 pacman -Sy git mingw-w64-x86_64-toolchain mingw-w64-x86_64-freetype \
     mingw-w64-x86_64-icu mingw-w64-x86_64-nspr mingw-w64-x86_64-ca-certificates \
     mingw-w64-x86_64-expat mingw-w64-x86_64-cmake tar diffutils patch \
-    patchutils make python2-setuptools
+    patchutils make python2-setuptools mingw-w64-x86_64-ffmpeg
 export GCC_URL=http://repo.msys2.org/mingw/x86_64/mingw-w64-x86_64-gcc
 export GCC_EXT=5.4.0-1-any.pkg.tar.xz
 pacman -U --noconfirm $GCC_URL-$GCC_EXT $GCC_URL-ada-$GCC_EXT \
