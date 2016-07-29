@@ -209,6 +209,9 @@ class MachCommands(CommandBase):
         env = self.build_env()
         env["RUST_BACKTRACE"] = "1"
 
+        if sys.platform == "win32" or sys.platform == "msys":
+            env["RUSTFLAGS"] = "-C link-args=-Wl,--subsystem,windows"
+
         result = call(args, env=env, cwd=self.servo_crate())
         if result != 0:
             return result
