@@ -201,21 +201,21 @@ function queryLink(url, callback, referrer_policy) {
     iframe.addEventListener("load", function listener() {
       if ((iframe.contentWindow !== null) &&
           (iframe.contentWindow.location.toString() === url_with_params)) {
-      } else {
-        var xhr = new XMLHttpRequest();
-        xhr.open('GET', '/_mozilla/mozilla/referrer-policy/generic/subresource/stash.py?id=' + id, false);
-        xhr.onreadystatechange = function(e) {
-          if (this.readyState == 4 && this.status == 200) {
-            var server_data = JSON.parse(this.responseText);
-            server_data.referrer = unescape(server_data.referrer);
-            server_data.headers.referer = unescape(server_data.headers.referer);
-
-            callback(server_data, url_with_params);
-          }
-        };
-        xhr.send();
-        iframe.removeEventListener("load", listener);
+        return;
       }
+
+      var xhr = new XMLHttpRequest();
+      xhr.open('GET', '/_mozilla/mozilla/referrer-policy/generic/subresource/stash.py?id=' + id, false);
+      xhr.onload = function(e) {
+        var server_data = JSON.parse(this.responseText);
+        server_data.referrer = unescape(server_data.referrer);
+        server_data.headers.referer = unescape(server_data.headers.referer);
+
+        callback(server_data, url_with_params);
+      };
+      xhr.send();
+
+      iframe.removeEventListener("load", listener);
     });
   }
 }
