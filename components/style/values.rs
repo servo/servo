@@ -98,6 +98,8 @@ pub mod specified {
     use app_units::Au;
     use cssparser::{self, Parser, ToCss, Token};
     use euclid::size::Size2D;
+    #[cfg(feature = "gecko")]
+    use gecko_bindings::ptr::{GeckoArcPrincipal, GeckoArcURI};
     use parser::ParserContext;
     use std::ascii::AsciiExt;
     use std::cmp;
@@ -1315,6 +1317,17 @@ pub mod specified {
                  _ => Err(())
             }
         }
+    }
+
+    #[derive(PartialEq, Clone, Debug)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub struct UrlExtraData {
+        #[cfg(feature = "gecko")]
+        pub base: GeckoArcURI,
+        #[cfg(feature = "gecko")]
+        pub referrer: GeckoArcURI,
+        #[cfg(feature = "gecko")]
+        pub principal: GeckoArcPrincipal,
     }
 
     /// Specified values for an image according to CSS-IMAGES.

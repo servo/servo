@@ -914,16 +914,9 @@ ${helpers.single_keyword("-moz-appearance",
     use gecko_bindings::ptr::{GeckoArcPrincipal, GeckoArcURI};
     use std::fmt::{self, Write};
     use url::Url;
+    use values::specified::UrlExtraData;
     use values::computed::ComputedValueAsSpecified;
     use values::NoViewportPercentage;
-
-    #[derive(PartialEq, Clone, Debug)]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub struct UrlExtraData {
-        pub base: GeckoArcURI,
-        pub referrer: GeckoArcURI,
-        pub principal: GeckoArcPrincipal,
-    }
 
     #[derive(PartialEq, Clone, Debug)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
