@@ -12,7 +12,6 @@ use selector_impl::SelectorImplExt;
 use selectors::Element;
 use selectors::bloom::BloomFilter;
 use std::cell::RefCell;
-use std::sync::Arc;
 use tid::tid;
 use util::opts;
 use values::HasViewportPercentage;

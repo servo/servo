@@ -13,7 +13,6 @@ pub struct ArcHelpers<GeckoType, ServoType> {
     phantom2: PhantomData<ServoType>,
 }
 
-
 impl<GeckoType, ServoType> ArcHelpers<GeckoType, ServoType> {
     pub fn with<F, Output>(raw: *mut GeckoType, cb: F) -> Output
                            where F: FnOnce(&Arc<ServoType>) -> Output {
@@ -45,6 +44,10 @@ impl<GeckoType, ServoType> ArcHelpers<GeckoType, ServoType> {
 
     pub fn from(owned: Arc<ServoType>) -> *mut GeckoType {
         unsafe { transmute(owned) }
+    }
+
+    pub unsafe fn borrow(borrowed: &Arc<ServoType>) -> *const &mut GeckoType {
+        transmute(borrowed)
     }
 
     pub unsafe fn addref(ptr: *mut GeckoType) {
