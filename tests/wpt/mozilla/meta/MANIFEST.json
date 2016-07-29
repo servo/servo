@@ -5272,6 +5272,18 @@
             "url": "/_mozilla/css/text_transform_uppercase_a.html"
           }
         ],
+        "css/textarea_space_calculation.html": [
+          {
+            "path": "css/textarea_space_calculation.html",
+            "references": [
+              [
+                "/_mozilla/css/textarea_space_calculation-ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/textarea_space_calculation.html"
+          }
+        ],
         "css/transform_3d.html": [
           {
             "path": "css/transform_3d.html",
@@ -14388,6 +14400,18 @@
             ]
           ],
           "url": "/_mozilla/css/text_transform_uppercase_a.html"
+        }
+      ],
+      "css/textarea_space_calculation.html": [
+        {
+          "path": "css/textarea_space_calculation.html",
+          "references": [
+            [
+              "/_mozilla/css/textarea_space_calculation-ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/textarea_space_calculation.html"
         }
       ],
       "css/transform_3d.html": [
