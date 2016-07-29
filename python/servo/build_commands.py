@@ -42,26 +42,31 @@ def notify_linux(title, text):
 
 
 def notify_win(title, text):
-    from ctypes import Structure, windll, POINTER, sizeof
-    from ctypes.wintypes import DWORD, HANDLE, WINFUNCTYPE, BOOL, UINT
+    try:
+        from servo.win32_toast import WindowsToast
+        w = WindowsToast()
+        w.balloon_tip(title, text)
+    except:
+        from ctypes import Structure, windll, POINTER, sizeof
+        from ctypes.wintypes import DWORD, HANDLE, WINFUNCTYPE, BOOL, UINT
 
-    class FLASHWINDOW(Structure):
-        _fields_ = [("cbSize", UINT),
-                    ("hwnd", HANDLE),
-                    ("dwFlags", DWORD),
-                    ("uCount", UINT),
-                    ("dwTimeout", DWORD)]
+        class FLASHWINDOW(Structure):
+            _fields_ = [("cbSize", UINT),
+                        ("hwnd", HANDLE),
+                        ("dwFlags", DWORD),
+                        ("uCount", UINT),
+                        ("dwTimeout", DWORD)]
 
-    FlashWindowExProto = WINFUNCTYPE(BOOL, POINTER(FLASHWINDOW))
-    FlashWindowEx = FlashWindowExProto(("FlashWindowEx", windll.user32))
-    FLASHW_CAPTION = 0x01
-    FLASHW_TRAY = 0x02
-    FLASHW_TIMERNOFG = 0x0C
+        FlashWindowExProto = WINFUNCTYPE(BOOL, POINTER(FLASHWINDOW))
+        FlashWindowEx = FlashWindowExProto(("FlashWindowEx", windll.user32))
+        FLASHW_CAPTION = 0x01
+        FLASHW_TRAY = 0x02
+        FLASHW_TIMERNOFG = 0x0C
 
-    params = FLASHWINDOW(sizeof(FLASHWINDOW),
-                         windll.kernel32.GetConsoleWindow(),
-                         FLASHW_CAPTION | FLASHW_TRAY | FLASHW_TIMERNOFG, 3, 0)
-    FlashWindowEx(params)
+        params = FLASHWINDOW(sizeof(FLASHWINDOW),
+                             windll.kernel32.GetConsoleWindow(),
+                             FLASHW_CAPTION | FLASHW_TRAY | FLASHW_TIMERNOFG, 3, 0)
+        FlashWindowEx(params)
 
 
 def notify_darwin(title, text):
@@ -100,7 +105,7 @@ def notify(title, text):
     platforms = {
         "linux": notify_linux,
         "linux2": notify_linux,
-        "win": notify_win,
+        "win32": notify_win,
         "darwin": notify_darwin
     }
     func = platforms.get(sys.platform)
@@ -256,7 +261,7 @@ class MachCommands(CommandBase):
                 if "msvc" in host_triple():
                     call(["editbin", "/nologo", "/subsystem:windows", path.join(servo_exe_dir, "servo.exe")],
                          verbose=verbose)
-    
+
                 elif sys.platform == "darwin":
                     # On the Mac, set a lovely icon. This makes it easier to pick out the Servo binary in tools
                     # like Instruments.app.
