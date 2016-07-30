@@ -22,8 +22,9 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::{ByteString, USVString, DOMString};
+use hyper;
 use msg;
-use net_traits;
+use net_traits::request as NetTraitsRequest;
 use std::cell::{Cell, Ref, RefCell};
 use url;
 
@@ -31,40 +32,20 @@ use url;
 pub struct Request {
     reflector_: Reflector,
     #[ignore_heap_size_of = "net_traits is missing HeapSizeOf implementation"]
-    request: DOMRefCell<net_traits::request::Request>,
+    request: DOMRefCell<NetTraitsRequest::Request>,
     body_used: DOMRefCell<bool>,
     headers_reflector: MutNullableHeap<JS<Headers>>,
 }
 
 impl Request {
-    // https://fetch.spec.whatwg.org/#concept-request-url
-    fn get_associated_url(req: &net_traits::request::Request) -> Option<Ref<url::Url>> {
-        let url_list = req.url_list.borrow();
-        if url_list.len() > 0 {
-            Some(Ref::map(url_list, |urls| urls.first().unwrap()))
-        } else {
-            None
-        }
-    }
-
-    // https://fetch.spec.whatwg.org/#concept-request-current-url
-    fn get_current_url(req: &net_traits::request::Request) -> Option<Ref<url::Url>> {
-        let url_list = req.url_list.borrow();
-        if url_list.len() > 0 {
-            Some(Ref::map(url_list, |urls| urls.last().unwrap()))
-        } else {
-            None
-        }
-    }
-    
     pub fn new_inherited(url: url::Url,
-                         origin: Option<net_traits::request::Origin>,
+                         origin: Option<NetTraitsRequest::Origin>,
                          is_service_worker_global_scope: bool,
                          body_used: bool) -> Request {
         Request {
             reflector_: Reflector::new(),
             request: DOMRefCell::new(
-                net_traits::request::Request::new(url,
+                NetTraitsRequest::Request::new(url,
                                                   origin,
                                                   is_service_worker_global_scope)),
             body_used: DOMRefCell::new(body_used),
@@ -74,7 +55,7 @@ impl Request {
 
     pub fn new(global: GlobalRef,
                url: url::Url,
-               origin: Option<net_traits::request::Origin>,
+               origin: Option<NetTraitsRequest::Origin>,
                is_service_worker_global_scope: bool,
                body_used: bool) -> Root<Request> {
         reflect_dom_object(box Request::new_inherited(url,
@@ -90,11 +71,10 @@ impl Request {
                        init: &RequestInit)
                       -> Fallible<Root<Request>> {
 
-        let mut new_request = Request::new(global,
-                                           url::Url::parse("").unwrap(),
-                                           None,
-                                           false,
-                                           false);
+        let mut request =
+            NetTraitsRequest::Request::new(url::Url::parse("").unwrap(),
+                                              None,
+                                              false);
 
         // Step 1
         if is_request(&input) &&
@@ -103,12 +83,12 @@ impl Request {
             }
 
         // Step 2
-        let mut new_request_request =
-            net_traits::request::Request::new(url::Url::parse("").unwrap(),
+        let mut temporary_request =
+            NetTraitsRequest::Request::new(url::Url::parse("").unwrap(),
                                               None,
                                               false);
         if let &RequestOrUSVString::Request(ref req) = &input {
-            new_request_request = req.request.borrow().clone();
+            temporary_request = req.request.borrow().clone();
         }
 
         // TODO
@@ -117,13 +97,13 @@ impl Request {
         // let origin = "entry settings object origin";
 
         // Step 4
-        let mut window = Cell::new(net_traits::request::Window::Client);
+        let mut window = Cell::new(NetTraitsRequest::Window::Client);
 
         // TODO
         // Step 5
-        // if new_request_request.window == "environment settings object"
-        //     && new_request_request.origin == origin {
-        //         window = new_request.request.borrow_mut().window;
+        // if temporary_request.window == "environment settings object"
+        //     && temporary_request.origin == origin {
+        //         window = request.window;
         // }
 
         // Step 6
@@ -133,56 +113,46 @@ impl Request {
 
         // Step 7
         if !init.window.is_undefined() {
-            window.set(net_traits::request::Window::NoWindow);
+            window.set(NetTraitsRequest::Window::NoWindow);
         }
 
         // Step 8
-        if let Some(url) = Request::get_current_url(&new_request_request) {
-            new_request.request.borrow_mut().url_list = RefCell::new(vec![url.clone()]);
+        if let Some(url) = Request::get_current_url(&temporary_request) {
+            request.url_list = RefCell::new(vec![url.clone()]);
         }
-        new_request.request.borrow_mut().method =
-            new_request_request.method;
-        new_request.request.borrow_mut().headers =
-            new_request_request.headers.clone();
-        new_request.request.borrow_mut().unsafe_request = true;
-        new_request.request.borrow_mut().window =
-            window;
+        request.method = temporary_request.method;
+        request.headers = temporary_request.headers.clone();
+        request.unsafe_request = true;
+        request.window = window;
         // TODO: client
-        // client is entry settings object
-        new_request.request.borrow_mut().origin =
-            RefCell::new(net_traits::request::Origin::Client);
-        new_request.request.borrow_mut().omit_origin_header =
-            new_request_request.omit_origin_header;
-        new_request.request.borrow_mut().same_origin_data =
-            Cell::new(true);
-        new_request.request.borrow_mut().referer =
-            new_request_request.referer;
-        new_request.request.borrow_mut().referrer_policy =
-            new_request_request.referrer_policy;
-        new_request.request.borrow_mut().mode =
-            new_request_request.mode;
-        new_request.request.borrow_mut().credentials_mode =
-            new_request_request.credentials_mode;
-        new_request.request.borrow_mut().cache_mode =
-            new_request_request.cache_mode;
-        new_request.request.borrow_mut().redirect_mode =
-            new_request_request.redirect_mode;
-        new_request.request.borrow_mut().integrity_metadata =
-            new_request_request.integrity_metadata;
+        // new_request's client = entry settings object
+        request.origin = RefCell::new(NetTraitsRequest::Origin::Client);
+        request.omit_origin_header = temporary_request.omit_origin_header;
+        request.same_origin_data = Cell::new(true);
+        request.referer = temporary_request.referer;
+        request.referrer_policy = temporary_request.referrer_policy;
+        request.mode = temporary_request.mode;
+        request.credentials_mode = temporary_request.credentials_mode;
+        request.cache_mode = temporary_request.cache_mode;
+        request.redirect_mode = temporary_request.redirect_mode;
+        request.integrity_metadata = temporary_request.integrity_metadata;
 
         // Step 9
-        let mut fallback_mode: net_traits::request::RequestMode;
+        let mut fallback_mode: Option<NetTraitsRequest::RequestMode>;
+        fallback_mode = None;
 
         // Step 10
-        let mut fallback_credentials: net_traits::request::CredentialsMode;
-
+        let mut fallback_credentials: Option<NetTraitsRequest::CredentialsMode>;
+        fallback_credentials = None;
+        
         // TODO
         // Step 11
-        // let base_url = "somebaseurl";
+        // let base_url = entry settings object's API base URL
 
         // Step 12
         if let &RequestOrUSVString::USVString(USVString(ref usv_string)) = &input {
             // Step 12.1
+            // TODO: will have to use url::Url::join with base_url as base_url.
             let parsed_url = url::Url::parse(&usv_string);
             // Step 12.2
             if let &Err(_) = &parsed_url {
@@ -194,19 +164,172 @@ impl Request {
             }
             // Step 12.4
             if let Ok(url) = parsed_url {
-                new_request.request.borrow_mut().url_list = RefCell::new(vec![url]);
+                request.url_list = RefCell::new(vec![url]);
             }
             // Step 12.5
-            fallback_mode = net_traits::request::RequestMode::CORSMode;
+            fallback_mode = Some(NetTraitsRequest::RequestMode::CORSMode);
             // Step 12.6
-            fallback_credentials = net_traits::request::CredentialsMode::Omit;
-                    //let mut new_request_request = req.request.borrow().clone();
-        //*new_request.request.borrow_mut() = req.request.borrow().clone();
+            fallback_credentials = Some(NetTraitsRequest::CredentialsMode::Omit);
         }
+
+        // Step 13
+        if init.body.is_some() ||
+            init.cache.is_some() ||
+            init.credentials.is_some() ||
+            init.integrity.is_some() ||
+            init.method.is_some() ||
+            init.mode.is_some() ||
+            init.redirect.is_some() ||
+            init.referrer.is_some() ||
+            init.referrerPolicy.is_some() ||
+            !init.window.is_undefined() {
+                // Step 13.1
+                if let NetTraitsRequest::RequestMode::Navigate
+                    = request.mode {
+                        return Err(Error::Type(
+                            "Init is present and request mode is 'navigate'".to_string()));
+                    }
+                // Step 13.2
+                request.omit_origin_header = Cell::new(false);
+                // Step 13.3
+                request.referer = RefCell::new(NetTraitsRequest::Referer::Client);
+                // Step 13.4
+                request.referrer_policy = Cell::new(None);
+            }
+
+        // Step 14
+        if let Some(init_referrer) = init.referrer.as_ref() {
+            let parsed_referrer: url::Url;
+            // Step 14.1
+            let referrer: String = init_referrer.0.clone();
+            // Step 14.2
+            if referrer.is_empty() {
+                request.referer = RefCell::new(NetTraitsRequest::Referer::NoReferer);
+            } else {
+                // Step 14.3
+                // TODO: should use url::Url::join with baseURL
+                let parsed_referrer = url::Url::parse(&referrer);
+                // Step 14.4
+                if let Err(_) = parsed_referrer {
+                    return Err(Error::Type(
+                        "Failed to parse referrer url".to_string()));
+                }
+                // Step 14.5
+                // TODO: check if parsed_referrer Non-relative flag is set
+                if let Ok(parsed_referrer) = parsed_referrer {
+                    if parsed_referrer.scheme() == "about" &&
+                        parsed_referrer.path() == "client" {
+                            request.referer =
+                                RefCell::new(NetTraitsRequest::Referer::Client);
+                        } else {
+                            // Step 14.6
+                            // TODO
+                            // if parsed_referrer.origin() != origin {
+                            //     return Err(Error::Type(
+                            //         "Parsed referrer url's origin is not the same as origin".to_string()));
+                            // } else {
+                            // Step 14.7
+                            request.referer =
+                                RefCell::new(NetTraitsRequest::Referer::RefererUrl(parsed_referrer));
+                        }
+                }
+            }
+        }
+
+        // Step 15
+        if let Some(init_referrerpolicy) = init.referrerPolicy.as_ref() {
+            let init_referrer_policy = init_referrerpolicy.clone().into();
+            request.referrer_policy = Cell::new(Some(init_referrer_policy));
+        }
+
+        // -------------------does not compile -----------------------
+       
+
+        // Step 16
+        let mut mode: Option<NetTraitsRequest::RequestMode>;
+        mode = None;
+        match init.mode.as_ref() {
+            Some(init_mode) =>  mode = Some(init_mode.clone().into()),
+            None => mode = Some(fallback_mode.unwrap()),
+        }
+
+        // Step 17
+        if let Some(NetTraitsRequest::RequestMode::Navigate) = mode {
+            return Err(Error::Type("Request mode is Navigate".to_string()));
+        }
+
+        // Step 18
+        if mode.is_some() {
+            request.mode = mode.unwrap();
+        }
+
+        // Step 19
+        let mut credentials: Option<NetTraitsRequest::CredentialsMode>;
+        match init.credentials.as_ref() {
+            Some(init_credentials) =>  credentials = Some(init_credentials.clone().into()),
+            None => credentials = Some(fallback_credentials.unwrap()),
+        }
+
+        // Step 20
+        if credentials.is_some() {
+            request.credentials_mode = credentials.unwrap();
+        }
+
+        // Step 21
+        if let Some(init_cache) = init.cache.as_ref() {
+            let cache = init_cache.clone().into();
+            request.cache_mode = Cell::new(cache);
+        }
+
+        // Step 22
+        if let NetTraitsRequest::CacheMode::OnlyIfCached = request.cache_mode.get() {
+            match request.mode {
+                NetTraitsRequest::RequestMode::SameOrigin => {},
+                _ => return Err(Error::Type("Cache is 'only-if-cached' and mode is not 'same-origin'".to_string())),
+            }
+        }
+
+        // Step 23
+        if let Some(init_redirect) = init.redirect.as_ref() {
+            let redirect = init_redirect.clone().into();
+            request.redirect_mode = Cell::new(redirect);
+        }
+
+        // Step 24
+        if let Some(init_integrity) = init.integrity.as_ref() {
+            let integrity = init_integrity.clone().to_string();
+            request.integrity_metadata = RefCell::new(integrity);
+        }
+
+        // Step 25
+        if let Some(init_method) = init.method.as_ref() {
+            let method: ByteString = init_method.clone();
+            // Step 25.1
+            
+        }
+
         unimplemented!();
     }
 
-    
+    // https://fetch.spec.whatwg.org/#concept-request-url
+    fn get_associated_url(req: &NetTraitsRequest::Request) -> Option<Ref<url::Url>> {
+        let url_list = req.url_list.borrow();
+        if url_list.len() > 0 {
+            Some(Ref::map(url_list, |urls| urls.first().unwrap()))
+        } else {
+            None
+        }
+    }
+
+    // https://fetch.spec.whatwg.org/#concept-request-current-url
+    fn get_current_url(req: &NetTraitsRequest::Request) -> Option<Ref<url::Url>> {
+        let url_list = req.url_list.borrow();
+        if url_list.len() > 0 {
+            Some(Ref::map(url_list, |urls| urls.last().unwrap()))
+        } else {
+            None
+        }
+    }
 }
 
 fn includes_credentials(input: &Result<url::Url, url::ParseError>) -> bool {
@@ -288,9 +411,9 @@ impl RequestMethods for Request {
         let r = self.request.borrow().clone();
         let referrer = r.referer.into_inner();
         match referrer {
-            net_traits::request::Referer::NoReferer => USVString(String::from("no-referrer")),
-            net_traits::request::Referer::Client => USVString(String::from("client")),
-            net_traits::request::Referer::RefererUrl(u) => USVString(u.into_string()),
+            NetTraitsRequest::Referer::NoReferer => USVString(String::from("no-referrer")),
+            NetTraitsRequest::Referer::Client => USVString(String::from("client")),
+            NetTraitsRequest::Referer::RefererUrl(u) => USVString(u.into_string()),
         }
     }
 
@@ -362,144 +485,144 @@ impl RequestMethods for Request {
     }
 }
 
-impl Into<net_traits::request::CacheMode> for RequestCache {
-    fn into(self) -> net_traits::request::CacheMode {
+impl Into<NetTraitsRequest::CacheMode> for RequestCache {
+    fn into(self) -> NetTraitsRequest::CacheMode {
         match self {
-            RequestCache::Default => net_traits::request::CacheMode::Default,
-            RequestCache::No_store => net_traits::request::CacheMode::NoStore,
-            RequestCache::Reload => net_traits::request::CacheMode::Reload,
-            RequestCache::No_cache => net_traits::request::CacheMode::NoCache,
-            RequestCache::Force_cache => net_traits::request::CacheMode::ForceCache,
-            RequestCache::Only_if_cached => net_traits::request::CacheMode::OnlyIfCached,
+            RequestCache::Default => NetTraitsRequest::CacheMode::Default,
+            RequestCache::No_store => NetTraitsRequest::CacheMode::NoStore,
+            RequestCache::Reload => NetTraitsRequest::CacheMode::Reload,
+            RequestCache::No_cache => NetTraitsRequest::CacheMode::NoCache,
+            RequestCache::Force_cache => NetTraitsRequest::CacheMode::ForceCache,
+            RequestCache::Only_if_cached => NetTraitsRequest::CacheMode::OnlyIfCached,
         }
     }
 }
 
-impl Into<RequestCache> for net_traits::request::CacheMode {
+impl Into<RequestCache> for NetTraitsRequest::CacheMode {
     fn into(self) -> RequestCache {
         match self {
-            net_traits::request::CacheMode::Default => RequestCache::Default,
-            net_traits::request::CacheMode::NoStore => RequestCache::No_store,
-            net_traits::request::CacheMode::Reload => RequestCache::Reload,
-            net_traits::request::CacheMode::NoCache => RequestCache::No_cache,
-            net_traits::request::CacheMode::ForceCache => RequestCache::Force_cache,
-            net_traits::request::CacheMode::OnlyIfCached => RequestCache::Only_if_cached,
+            NetTraitsRequest::CacheMode::Default => RequestCache::Default,
+            NetTraitsRequest::CacheMode::NoStore => RequestCache::No_store,
+            NetTraitsRequest::CacheMode::Reload => RequestCache::Reload,
+            NetTraitsRequest::CacheMode::NoCache => RequestCache::No_cache,
+            NetTraitsRequest::CacheMode::ForceCache => RequestCache::Force_cache,
+            NetTraitsRequest::CacheMode::OnlyIfCached => RequestCache::Only_if_cached,
         }
     }
 }
 
-impl Into<net_traits::request::CredentialsMode> for RequestCredentials {
-    fn into(self) -> net_traits::request::CredentialsMode {
+impl Into<NetTraitsRequest::CredentialsMode> for RequestCredentials {
+    fn into(self) -> NetTraitsRequest::CredentialsMode {
         match self {
-            RequestCredentials::Omit => net_traits::request::CredentialsMode::Omit,
-            RequestCredentials::Same_origin => net_traits::request::CredentialsMode::CredentialsSameOrigin,
-            RequestCredentials::Include => net_traits::request::CredentialsMode::Include,
+            RequestCredentials::Omit => NetTraitsRequest::CredentialsMode::Omit,
+            RequestCredentials::Same_origin => NetTraitsRequest::CredentialsMode::CredentialsSameOrigin,
+            RequestCredentials::Include => NetTraitsRequest::CredentialsMode::Include,
         }
     }
 }
 
-impl Into<RequestCredentials> for net_traits::request::CredentialsMode {
+impl Into<RequestCredentials> for NetTraitsRequest::CredentialsMode {
     fn into(self) -> RequestCredentials {
         match self {
-            net_traits::request::CredentialsMode::Omit => RequestCredentials::Omit,
-            net_traits::request::CredentialsMode::CredentialsSameOrigin => RequestCredentials::Same_origin,
-            net_traits::request::CredentialsMode::Include => RequestCredentials::Include,
+            NetTraitsRequest::CredentialsMode::Omit => RequestCredentials::Omit,
+            NetTraitsRequest::CredentialsMode::CredentialsSameOrigin => RequestCredentials::Same_origin,
+            NetTraitsRequest::CredentialsMode::Include => RequestCredentials::Include,
         }
     }
 }
 
-impl Into<net_traits::request::Destination> for RequestDestination {
-    fn into(self) -> net_traits::request::Destination {
+impl Into<NetTraitsRequest::Destination> for RequestDestination {
+    fn into(self) -> NetTraitsRequest::Destination {
         match self {
-            RequestDestination::_empty => net_traits::request::Destination::None,
-            RequestDestination::Document => net_traits::request::Destination::Document,
-            RequestDestination::Embed => net_traits::request::Destination::Embed,
-            RequestDestination::Font => net_traits::request::Destination::Font,
-            RequestDestination::Image => net_traits::request::Destination::Image,
-            RequestDestination::Manifest => net_traits::request::Destination::Manifest,
-            RequestDestination::Media => net_traits::request::Destination::Media,
-            RequestDestination::Object => net_traits::request::Destination::Object,
-            RequestDestination::Report => net_traits::request::Destination::Report,
-            RequestDestination::Script => net_traits::request::Destination::Script,
-            RequestDestination::Serviceworker => net_traits::request::Destination::ServiceWorker,
-            RequestDestination::Sharedworker => net_traits::request::Destination::SharedWorker,
-            RequestDestination::Style => net_traits::request::Destination::Style,
-            RequestDestination::Worker => net_traits::request::Destination::Worker,
-            RequestDestination::Xslt => net_traits::request::Destination::XSLT,
+            RequestDestination::_empty => NetTraitsRequest::Destination::None,
+            RequestDestination::Document => NetTraitsRequest::Destination::Document,
+            RequestDestination::Embed => NetTraitsRequest::Destination::Embed,
+            RequestDestination::Font => NetTraitsRequest::Destination::Font,
+            RequestDestination::Image => NetTraitsRequest::Destination::Image,
+            RequestDestination::Manifest => NetTraitsRequest::Destination::Manifest,
+            RequestDestination::Media => NetTraitsRequest::Destination::Media,
+            RequestDestination::Object => NetTraitsRequest::Destination::Object,
+            RequestDestination::Report => NetTraitsRequest::Destination::Report,
+            RequestDestination::Script => NetTraitsRequest::Destination::Script,
+            RequestDestination::Serviceworker => NetTraitsRequest::Destination::ServiceWorker,
+            RequestDestination::Sharedworker => NetTraitsRequest::Destination::SharedWorker,
+            RequestDestination::Style => NetTraitsRequest::Destination::Style,
+            RequestDestination::Worker => NetTraitsRequest::Destination::Worker,
+            RequestDestination::Xslt => NetTraitsRequest::Destination::XSLT,
         }
     }
 }
 
-impl Into<RequestDestination> for net_traits::request::Destination {
+impl Into<RequestDestination> for NetTraitsRequest::Destination {
     fn into(self) -> RequestDestination {
         match self {
-            net_traits::request::Destination::None => RequestDestination::_empty,
-            net_traits::request::Destination::Document => RequestDestination::Document,
-            net_traits::request::Destination::Embed => RequestDestination::Embed,
-            net_traits::request::Destination::Font => RequestDestination::Font,
-            net_traits::request::Destination::Image => RequestDestination::Image,
-            net_traits::request::Destination::Manifest => RequestDestination::Manifest,
-            net_traits::request::Destination::Media => RequestDestination::Media,
-            net_traits::request::Destination::Object => RequestDestination::Object,
-            net_traits::request::Destination::Report => RequestDestination::Report,
-            net_traits::request::Destination::Script => RequestDestination::Script,          
-            net_traits::request::Destination::ServiceWorker => RequestDestination::Serviceworker,
-            net_traits::request::Destination::SharedWorker => RequestDestination::Sharedworker,
-            net_traits::request::Destination::Style => RequestDestination::Style,
-            net_traits::request::Destination::Worker => RequestDestination::Worker,
-            net_traits::request::Destination::XSLT => RequestDestination::Xslt,
+            NetTraitsRequest::Destination::None => RequestDestination::_empty,
+            NetTraitsRequest::Destination::Document => RequestDestination::Document,
+            NetTraitsRequest::Destination::Embed => RequestDestination::Embed,
+            NetTraitsRequest::Destination::Font => RequestDestination::Font,
+            NetTraitsRequest::Destination::Image => RequestDestination::Image,
+            NetTraitsRequest::Destination::Manifest => RequestDestination::Manifest,
+            NetTraitsRequest::Destination::Media => RequestDestination::Media,
+            NetTraitsRequest::Destination::Object => RequestDestination::Object,
+            NetTraitsRequest::Destination::Report => RequestDestination::Report,
+            NetTraitsRequest::Destination::Script => RequestDestination::Script,          
+            NetTraitsRequest::Destination::ServiceWorker => RequestDestination::Serviceworker,
+            NetTraitsRequest::Destination::SharedWorker => RequestDestination::Sharedworker,
+            NetTraitsRequest::Destination::Style => RequestDestination::Style,
+            NetTraitsRequest::Destination::Worker => RequestDestination::Worker,
+            NetTraitsRequest::Destination::XSLT => RequestDestination::Xslt,
         }
     }
 }
 
-impl Into<net_traits::request::Type> for RequestType {
-    fn into(self) -> net_traits::request::Type {
+impl Into<NetTraitsRequest::Type> for RequestType {
+    fn into(self) -> NetTraitsRequest::Type {
         match self {
-            RequestType::_empty => net_traits::request::Type::None,
-            RequestType::Audio => net_traits::request::Type::Audio,
-            RequestType::Font => net_traits::request::Type::Font,
-            RequestType::Image => net_traits::request::Type::Image,
-            RequestType::Script => net_traits::request::Type::Script,
-            RequestType::Style => net_traits::request::Type::Style,
-            RequestType::Track => net_traits::request::Type::Track,
-            RequestType::Video => net_traits::request::Type::Video,
+            RequestType::_empty => NetTraitsRequest::Type::None,
+            RequestType::Audio => NetTraitsRequest::Type::Audio,
+            RequestType::Font => NetTraitsRequest::Type::Font,
+            RequestType::Image => NetTraitsRequest::Type::Image,
+            RequestType::Script => NetTraitsRequest::Type::Script,
+            RequestType::Style => NetTraitsRequest::Type::Style,
+            RequestType::Track => NetTraitsRequest::Type::Track,
+            RequestType::Video => NetTraitsRequest::Type::Video,
         }
     }
 }
 
-impl Into<RequestType> for net_traits::request::Type {
+impl Into<RequestType> for NetTraitsRequest::Type {
     fn into(self) -> RequestType {
         match self {
-            net_traits::request::Type::None => RequestType::_empty,
-            net_traits::request::Type::Audio => RequestType::Audio,
-            net_traits::request::Type::Font => RequestType::Font,
-            net_traits::request::Type::Image => RequestType::Image,
-            net_traits::request::Type::Script => RequestType::Script,
-            net_traits::request::Type::Style => RequestType::Style,
-            net_traits::request::Type::Track => RequestType::Track,
-            net_traits::request::Type::Video => RequestType::Video,
+            NetTraitsRequest::Type::None => RequestType::_empty,
+            NetTraitsRequest::Type::Audio => RequestType::Audio,
+            NetTraitsRequest::Type::Font => RequestType::Font,
+            NetTraitsRequest::Type::Image => RequestType::Image,
+            NetTraitsRequest::Type::Script => RequestType::Script,
+            NetTraitsRequest::Type::Style => RequestType::Style,
+            NetTraitsRequest::Type::Track => RequestType::Track,
+            NetTraitsRequest::Type::Video => RequestType::Video,
         }
     }
 }
 
-impl Into<net_traits::request::RequestMode> for RequestMode {
-    fn into(self) -> net_traits::request::RequestMode {
+impl Into<NetTraitsRequest::RequestMode> for RequestMode {
+    fn into(self) -> NetTraitsRequest::RequestMode {
         match self {
-            RequestMode::Navigate => net_traits::request::RequestMode::Navigate,
-            RequestMode::Same_origin => net_traits::request::RequestMode::SameOrigin,
-            RequestMode::No_cors => net_traits::request::RequestMode::NoCORS,
-            RequestMode::Cors => net_traits::request::RequestMode::CORSMode,
+            RequestMode::Navigate => NetTraitsRequest::RequestMode::Navigate,
+            RequestMode::Same_origin => NetTraitsRequest::RequestMode::SameOrigin,
+            RequestMode::No_cors => NetTraitsRequest::RequestMode::NoCORS,
+            RequestMode::Cors => NetTraitsRequest::RequestMode::CORSMode,
         }
     }
 }
 
-impl Into<RequestMode> for net_traits::request::RequestMode {
+impl Into<RequestMode> for NetTraitsRequest::RequestMode {
     fn into(self) -> RequestMode {
         match self {
-            net_traits::request::RequestMode::Navigate => RequestMode::Navigate,
-            net_traits::request::RequestMode::SameOrigin => RequestMode::Same_origin,
-            net_traits::request::RequestMode::NoCORS => RequestMode::No_cors,
-            net_traits::request::RequestMode::CORSMode => RequestMode::Cors,
+            NetTraitsRequest::RequestMode::Navigate => RequestMode::Navigate,
+            NetTraitsRequest::RequestMode::SameOrigin => RequestMode::Same_origin,
+            NetTraitsRequest::RequestMode::NoCORS => RequestMode::No_cors,
+            NetTraitsRequest::RequestMode::CORSMode => RequestMode::Cors,
         }
     }
 }
@@ -536,22 +659,22 @@ impl Into<ReferrerPolicy> for msg::constellation_msg::ReferrerPolicy {
     }
 }
 
-impl Into<net_traits::request::RedirectMode> for RequestRedirect {
-    fn into(self) -> net_traits::request::RedirectMode {
+impl Into<NetTraitsRequest::RedirectMode> for RequestRedirect {
+    fn into(self) -> NetTraitsRequest::RedirectMode {
         match self {
-            RequestRedirect::Follow => net_traits::request::RedirectMode::Follow,
-            RequestRedirect::Error => net_traits::request::RedirectMode::Error,
-            RequestRedirect::Manual => net_traits::request::RedirectMode::Manual,
+            RequestRedirect::Follow => NetTraitsRequest::RedirectMode::Follow,
+            RequestRedirect::Error => NetTraitsRequest::RedirectMode::Error,
+            RequestRedirect::Manual => NetTraitsRequest::RedirectMode::Manual,
         }
     }
 }
 
-impl Into<RequestRedirect> for net_traits::request::RedirectMode {
+impl Into<RequestRedirect> for NetTraitsRequest::RedirectMode {
     fn into(self) -> RequestRedirect {
         match self {
-            net_traits::request::RedirectMode::Follow => RequestRedirect::Follow,
-            net_traits::request::RedirectMode::Error => RequestRedirect::Error,
-            net_traits::request::RedirectMode::Manual => RequestRedirect::Manual,
+            NetTraitsRequest::RedirectMode::Follow => RequestRedirect::Follow,
+            NetTraitsRequest::RedirectMode::Error => RequestRedirect::Error,
+            NetTraitsRequest::RedirectMode::Manual => RequestRedirect::Manual,
         }
     }
 }
