@@ -91,7 +91,7 @@ impl Request {
             temporary_request = req.request.borrow().clone();
         }
 
-        // TODO
+        // TODO: entry settings object origin is not implemented yet.
         // Step 3
         // if you need an origin at some point, you can try using `global.url().origin()`
         // let origin = "entry settings object origin";
@@ -99,7 +99,7 @@ impl Request {
         // Step 4
         let mut window = Cell::new(NetTraitsRequest::Window::Client);
 
-        // TODO
+        // TODO: environment settings object is not implemented in Servo yet.
         // Step 5
         // if temporary_request.window == "environment settings object"
         //     && temporary_request.origin == origin {
@@ -124,7 +124,7 @@ impl Request {
         request.headers = temporary_request.headers.clone();
         request.unsafe_request = true;
         request.window = window;
-        // TODO: client
+        // TODO: client is not implemented in Servo yet.
         // new_request's client = entry settings object
         request.origin = RefCell::new(NetTraitsRequest::Origin::Client);
         request.omit_origin_header = temporary_request.omit_origin_header;
@@ -145,7 +145,7 @@ impl Request {
         let mut fallback_credentials: Option<NetTraitsRequest::CredentialsMode>;
         fallback_credentials = None;
         
-        // TODO
+        // TODO: entry settings object is not implemented in Servo yet.
         // Step 11
         // let base_url = entry settings object's API base URL
 
@@ -215,7 +215,7 @@ impl Request {
                         "Failed to parse referrer url".to_string()));
                 }
                 // Step 14.5
-                // TODO: check if parsed_referrer Non-relative flag is set
+                // TODO: check if parsed_referrer Non-relative flag is set.
                 if let Ok(parsed_referrer) = parsed_referrer {
                     if parsed_referrer.scheme() == "about" &&
                         parsed_referrer.path() == "client" {
@@ -223,7 +223,7 @@ impl Request {
                                 RefCell::new(NetTraitsRequest::Referer::Client);
                         } else {
                             // Step 14.6
-                            // TODO
+                            // TODO: origin is defined in Step 3.
                             // if parsed_referrer.origin() != origin {
                             //     return Err(Error::Type(
                             //         "Parsed referrer url's origin is not the same as origin".to_string()));
@@ -241,9 +241,6 @@ impl Request {
             let init_referrer_policy = init_referrerpolicy.clone().into();
             request.referrer_policy = Cell::new(Some(init_referrer_policy));
         }
-
-        // -------------------does not compile -----------------------
-       
 
         // Step 16
         let mut mode: Option<NetTraitsRequest::RequestMode>;
@@ -305,10 +302,72 @@ impl Request {
         if let Some(init_method) = init.method.as_ref() {
             let method: ByteString = init_method.clone();
             // Step 25.1
-            
+            if !Request::is_method(&method) {
+                return Err(Error::Type("Method is not a method".to_string()));
+            }
+            if Request::is_forbidden_method(&method) {
+                return Err(Error::Type("Method is forbidden".to_string()));
+            }
+            // TODO: normalized_method
+            // Step 25.2
+            let normalized_method = method.as_str().unwrap();
+            // Step 25.3
+            let hyper_method = Request::from_normalized_method_to_method_enum(normalized_method);
+            request.method = RefCell::new(hyper_method);
         }
 
+        // Step 26
+        let mut r = Request::new(global,
+                                 url::Url::parse("").unwrap(),
+                                 None,
+                                 // expects NetTraitsRequest::Origin
+                                 // global.get_url().origin() returns url::Origin
+                                 false,
+                                 false);
+        *r.request.borrow_mut() = request;
         unimplemented!();
+        // TODO: new Headers object whose guard is "request"
+
+        // Step 27
+        // Let headers be a copy of r's Headers object.
+
+        // Step 28
+        // If init's headers member is present, set headers to init's headers member.
+
+        // Step 29
+        // Empty r's request's header list.
+
+    }
+
+    // TODO
+    fn from_normalized_method_to_method_enum(m: &str) -> hyper::method::Method {
+        match m {
+            "DELETE" => hyper::method::Method::Delete,
+            "GET" => hyper::method::Method::Get,
+            "HEAD" => hyper::method::Method::Head,
+            "OPTIONS" => hyper::method::Method::Options,
+            "POST" => hyper::method::Method::Post,
+            "PUT" => hyper::method::Method::Put,
+            a => hyper::method::Method::Extension(a.to_string())
+        }
+    }
+
+    // TODO
+    // https://fetch.spec.whatwg.org/#concept-method-normalize
+    fn normalize_method(m: &ByteString) -> String {
+        unimplemented!()
+    }
+
+    // TODO
+    // https://tools.ietf.org/html/rfc7230#section-3.1.1
+    fn is_method(m: &ByteString) -> bool {
+        return true;
+    }
+
+    // TODO
+    // https://fetch.spec.whatwg.org/#forbidden-method
+    fn is_forbidden_method(m: &ByteString) -> bool {
+        return false;
     }
 
     // https://fetch.spec.whatwg.org/#concept-request-url
