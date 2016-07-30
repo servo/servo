@@ -38,7 +38,7 @@ num-traits = "0.1.32"
 ordered-float = "0.2.2"
 rand = "0.3"
 rustc-serialize = "0.3"
-selectors = "0.8.2"
+selectors = "0.9"
 serde = {version = "0.8", optional = true}
 serde_macros = {version = "0.8", optional = true}
 smallvec = "0.1"

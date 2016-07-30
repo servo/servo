@@ -35,5 +35,6 @@ pub fn traverse_dom<N, C>(root: N,
     if context.should_process(root) {
         doit::<N, C>(&context, root);
     }
+    // Clear the local LRU cache since we store stateful elements inside.
+    context.local_context().style_sharing_candidate_cache.borrow_mut().clear();
 }
-

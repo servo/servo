@@ -7,6 +7,7 @@
 use animation::Animation;
 use app_units::Au;
 use dom::OpaqueNode;
+use dom::TElement;
 use error_reporting::ParseErrorReporter;
 use euclid::Size2D;
 use matching::{ApplicableDeclarationsCache, StyleSharingCandidateCache};

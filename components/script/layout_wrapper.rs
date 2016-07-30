@@ -444,6 +444,11 @@ impl<'le> TElement for ServoLayoutElement<'le> {
     }
 }
 
+impl<'le> PartialEq for ServoLayoutElement<'le> {
+    fn eq(&self, other: &Self) -> bool {
+        self.as_node() == other.as_node()
+    }
+}
 
 impl<'le> ServoLayoutElement<'le> {
     fn from_layout_js(el: LayoutJS<Element>) -> ServoLayoutElement<'le> {
