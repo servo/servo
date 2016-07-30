@@ -5,12 +5,13 @@
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HeadersBinding;
 use dom::bindings::codegen::Bindings::HeadersBinding::HeadersMethods;
-use dom::bindings::error::Error;
+use dom::bindings::codegen::UnionTypes::HeadersOrByteStringSequenceSequence;
+use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::{ByteString, is_token};
-use hyper;
+use hyper::header::Headers as HyperHeaders;
 use std::result::Result;
 
 #[dom_struct]
@@ -18,7 +19,7 @@ pub struct Headers {
     reflector_: Reflector,
     guard: Guard,
     #[ignore_heap_size_of = "Defined in hyper"]
-    header_list: DOMRefCell<hyper::header::Headers>
+    header_list: DOMRefCell<HyperHeaders>
 }
 
 // https://fetch.spec.whatwg.org/#concept-headers-guard
@@ -36,12 +37,50 @@ impl Headers {
         Headers {
             reflector_: Reflector::new(),
             guard: Guard::None,
-            header_list: DOMRefCell::new(hyper::header::Headers::new()),
+            header_list: DOMRefCell::new(HyperHeaders::new()),
         }
     }
 
-    pub fn new(global: GlobalRef) -> Root<Headers> {
-        reflect_dom_object(box Headers::new_inherited(), global, HeadersBinding::Wrap)
+    // https://fetch.spec.whatwg.org/#concept-headers-fill
+    pub fn new(global: GlobalRef, init: Option<HeadersBinding::HeadersInit>)
+               -> Fallible<Root<Headers>> {
+        let dom_headers_new = reflect_dom_object(box Headers::new_inherited(), global, HeadersBinding::Wrap);
+        match init {
+            // Step 1
+            Some(HeadersOrByteStringSequenceSequence::Headers(h)) => {
+                // header_list_copy has type hyper::header::Headers
+                let header_list_copy = h.header_list.clone();
+                for header in header_list_copy.borrow().iter() {
+                    try!(dom_headers_new.Append(
+                        ByteString::new(Vec::from(header.name())),
+                        ByteString::new(Vec::from(header.value_string().into_bytes()))
+                    ));
+                }
+                Ok(dom_headers_new)
+            },
+            // Step 2
+            Some(HeadersOrByteStringSequenceSequence::ByteStringSequenceSequence(v)) => {
+                for mut seq in v {
+                    if seq.len() == 2 {
+                        let val = seq.pop().unwrap();
+                        let name = seq.pop().unwrap();
+                        try!(dom_headers_new.Append(name, val));
+                    } else {
+                        return Err(Error::Type(
+                            format!("Each header object must be a sequence of length 2 - found one with length {}",
+                                    seq.len())));
+                    }
+                }
+                Ok(dom_headers_new)
+            },
+            // Step 3 TODO constructor for when init is an open-ended dictionary
+            None => Ok(dom_headers_new),
+        }
+    }
+
+    pub fn Constructor(global: GlobalRef, init: Option<HeadersBinding::HeadersInit>)
+                       -> Fallible<Root<Headers>> {
+        Headers::new(global, init)
     }
 }
 
@@ -50,32 +89,102 @@ impl HeadersMethods for Headers {
     fn Append(&self, name: ByteString, value: ByteString) -> Result<(), Error> {
         // Step 1
         let value = normalize_value(value);
-
         // Step 2
-        let (valid_name, valid_value) = try!(validate_name_and_value(name, value));
+        let (mut valid_name, valid_value) = try!(validate_name_and_value(name, value));
+        valid_name = valid_name.to_lowercase();
         // Step 3
         if self.guard == Guard::Immutable {
             return Err(Error::Type("Guard is immutable".to_string()));
         }
-
         // Step 4
         if self.guard == Guard::Request && is_forbidden_header_name(&valid_name) {
             return Ok(());
         }
-
         // Step 5
         if self.guard == Guard::RequestNoCors && !is_cors_safelisted_request_header(&valid_name) {
             return Ok(());
         }
-
         // Step 6
         if self.guard == Guard::Response && is_forbidden_response_header(&valid_name) {
             return Ok(());
         }
-
         // Step 7
+        let mut combined_value = self.header_list.borrow_mut().get_raw(&valid_name).unwrap()[0].clone();
+        combined_value.push(b","[0]);
+        combined_value.extend(valid_value.iter().cloned());
+        self.header_list.borrow_mut().set_raw(valid_name, vec![combined_value]);
+        Ok(())
+    }
+
+    // https://fetch.spec.whatwg.org/#dom-headers-delete
+    fn Delete(&self, name: ByteString) -> ErrorResult {
+        // Step 1
+        let valid_name = try!(validate_name(name));
+        // Step 2
+        if self.guard == Guard::Immutable {
+            return Err(Error::Type("Guard is immutable".to_string()));
+        }
+        // Step 3
+        if self.guard == Guard::Request && is_forbidden_header_name(&valid_name) {
+            return Ok(());
+        }
+        // Step 4
+        if self.guard == Guard::RequestNoCors && !is_cors_safelisted_request_header(&valid_name) {
+            return Ok(());
+        }
+        // Step 5
+        if self.guard == Guard::Response && is_forbidden_response_header(&valid_name) {
+            return Ok(());
+        }
+        // Step 6
+        self.header_list.borrow_mut().remove_raw(&valid_name);
+        Ok(())
+    }
+
+    // https://fetch.spec.whatwg.org/#dom-headers-get
+    fn Get(&self, name: ByteString) -> Fallible<Option<ByteString>> {
+        // Step 1
+        let valid_name = &try!(validate_name(name));
+        Ok(self.header_list.borrow().get_raw(&valid_name).map(|v| {
+            ByteString::new(v[0].clone())
+        }))
+    }
+
+    // https://fetch.spec.whatwg.org/#dom-headers-has
+    fn Has(&self, name: ByteString) -> Fallible<bool> {
+        // Step 1
+        let valid_name = try!(validate_name(name));
+        // Step 2
+        Ok(self.header_list.borrow_mut().get_raw(&valid_name).is_some())
+    }
+
+    // https://fetch.spec.whatwg.org/#dom-headers-set
+    fn Set(&self, name: ByteString, value: ByteString) -> Fallible<()> {
+        // Step 1
+        let value = normalize_value(value);
+        // Step 2
+        let (mut valid_name, valid_value) = try!(validate_name_and_value(name, value));
+        valid_name = valid_name.to_lowercase();
+        // Step 3
+        if self.guard == Guard::Immutable {
+            return Err(Error::Type("Guard is immutable".to_string()));
+        }
+        // Step 4
+        if self.guard == Guard::Request && is_forbidden_header_name(&valid_name) {
+            return Ok(());
+        }
+        // Step 5
+        if self.guard == Guard::RequestNoCors && !is_cors_safelisted_request_header(&valid_name) {
+            return Ok(());
+        }
+        // Step 6
+        if self.guard == Guard::Response && is_forbidden_response_header(&valid_name) {
+            return Ok(());
+        }
+        // Step 7
+        // https://fetch.spec.whatwg.org/#concept-header-list-set
         self.header_list.borrow_mut().set_raw(valid_name, vec![valid_value]);
-        return Ok(());
+        Ok(())
     }
 }
 
@@ -130,7 +239,7 @@ pub fn is_forbidden_header_name(name: &str) -> bool {
 // ISSUE 1:
 // It defines a value as "a byte sequence that matches the field-content token production."
 // To note, there is a difference between field-content and
-// field-value (which is made up of fied-content and obs-fold). The
+// field-value (which is made up of field-content and obs-fold). The
 // current definition does not allow for obs-fold (which are white
 // space and newlines) in values. So perhaps a value should be defined
 // as "a byte sequence that matches the field-value token production."
@@ -147,14 +256,19 @@ pub fn is_forbidden_header_name(name: &str) -> bool {
 // [4] https://www.rfc-editor.org/errata_search.php?rfc=7230
 fn validate_name_and_value(name: ByteString, value: ByteString)
                            -> Result<(String, Vec<u8>), Error> {
-    if !is_field_name(&name) {
-        return Err(Error::Type("Name is not valid".to_string()));
-    }
+    let valid_name = try!(validate_name(name));
     if !is_field_content(&value) {
         return Err(Error::Type("Value is not valid".to_string()));
     }
+    Ok((valid_name, value.into()))
+}
+
+fn validate_name(name: ByteString) -> Result<String, Error> {
+    if !is_field_name(&name) {
+        return Err(Error::Type("Name is not valid".to_string()));
+    }
     match String::from_utf8(name.into()) {
-        Ok(ns) => Ok((ns, value.into())),
+        Ok(ns) => Ok(ns),
         _ => Err(Error::Type("Non-UTF8 header name found".to_string())),
     }
 }

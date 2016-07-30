@@ -4,19 +4,21 @@
 
 // https://fetch.spec.whatwg.org/#headers-class
 
-/* typedef (Headers or sequence<sequence<ByteString>>) HeadersInit; */
+// TODO support OpenEndedDictionary<ByteString>
+typedef (Headers or sequence<sequence<ByteString>>) HeadersInit;
 
-/* [Constructor(optional HeadersInit init),*/
- [Exposed=(Window,Worker)]
-
+[Constructor(optional HeadersInit init),
+ Exposed=(Window,Worker)]
 interface Headers {
   [Throws]
   void append(ByteString name, ByteString value);
+  [Throws]
+  void delete(ByteString name);
+  [Throws]
+  ByteString? get(ByteString name);
+  [Throws]
+  boolean has(ByteString name);
+  [Throws]
+  void set(ByteString name, ByteString value);
+  // iterable<ByteString, ByteString>; // TODO see issue #12628
 };
-
-/* void delete(ByteString name);
- * ByteString? get(ByteString name);
- * boolean has(ByteString name);
- * void set(ByteString name, ByteString value);
- * iterable<ByteString, ByteString>;
- * }; */
