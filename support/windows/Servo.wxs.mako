@@ -113,6 +113,14 @@
                     Name="libfontconfig-1.dll"
                     Source="C:\msys64\mingw64\bin\libfontconfig-1.dll"
                     DiskId="1"/>
+              <File Id="AVUtil"
+                    Name="avutil-55.dll"
+                    Source="C:\msys64\mingw64\bin\avutil-55.dll"
+                    DiskId="1"/>
+              <File Id="AVFormat"
+                    Name="avformat-57.dll"
+                    Source="C:\msys64\mingw64\bin\avformat-57.dll"
+                    DiskId="1"/>
             </Component>
 
             <Directory Id="EtcDir" Name="etc">
