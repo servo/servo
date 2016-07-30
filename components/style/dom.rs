@@ -178,7 +178,7 @@ pub trait PresentationalHintsSynthetizer {
         where V: Push<DeclarationBlock<Vec<PropertyDeclaration>>>;
 }
 
-pub trait TElement : Sized + Copy + Clone + ElementExt + PresentationalHintsSynthetizer {
+pub trait TElement : PartialEq + Sized + Copy + Clone + ElementExt + PresentationalHintsSynthetizer {
     type ConcreteNode: TNode<ConcreteElement = Self, ConcreteDocument = Self::ConcreteDocument>;
     type ConcreteDocument: TDocument<ConcreteNode = Self::ConcreteNode, ConcreteElement = Self>;
 

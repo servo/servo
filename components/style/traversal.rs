@@ -5,14 +5,16 @@
 //! Traversing the DOM tree; the bloom filter.
 
 use animation;
-use context::{SharedStyleContext, StyleContext};
+use context::{LocalStyleContext, SharedStyleContext, StyleContext};
 use dom::{OpaqueNode, TElement, TNode, TRestyleDamage, UnsafeNode};
 use matching::{ApplicableDeclarations, ElementMatchMethods, MatchMethods, StyleSharingResult};
 use selector_impl::SelectorImplExt;
 use selectors::Element;
 use selectors::bloom::BloomFilter;
+use selectors::matching::StyleRelations;
 use std::cell::RefCell;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, ATOMIC_USIZE_INIT, Ordering};
 use tid::tid;
 use util::opts;
 use values::HasViewportPercentage;
@@ -20,6 +22,11 @@ use values::HasViewportPercentage;
 /// Every time we do another layout, the old bloom filters are invalid. This is
 /// detected by ticking a generation number every layout.
 pub type Generation = u32;
+
+/// Style sharing candidate cache stats. These are only used when
+/// `-Z style-sharing-stats` is given.
+pub static STYLE_SHARING_CACHE_HITS: AtomicUsize = ATOMIC_USIZE_INIT;
+pub static STYLE_SHARING_CACHE_MISSES: AtomicUsize = ATOMIC_USIZE_INIT;
 
 /// A pair of the bloom filter used for css selector matching, and the node to
 /// which it applies. This is used to efficiently do `Descendant` selector
@@ -142,11 +149,14 @@ pub fn remove_from_bloom_filter<'a, N, C>(context: &C, root: OpaqueNode, node: N
     };
 }
 
-pub trait DomTraversalContext<N: TNode>  {
+pub trait DomTraversalContext<N: TNode> {
     type SharedContext: Sync + 'static;
+
     fn new<'a>(&'a Self::SharedContext, OpaqueNode) -> Self;
+
     /// Process `node` on the way down, before its children have been processed.
     fn process_preorder(&self, node: N);
+
     /// Process `node` on the way up, after its children have been processed.
     fn process_postorder(&self, node: N);
 
@@ -173,6 +183,19 @@ pub trait DomTraversalContext<N: TNode>  {
             }
         }
     }
+
+    fn local_context(&self) -> &LocalStyleContext;
+}
+
+/// Determines the amount of relations where we're going to share style.
+#[inline]
+pub fn relations_are_shareable(relations: &StyleRelations) -> bool {
+    use selectors::matching::*;
+    !relations.intersects(AFFECTED_BY_UNIQUE_SELECTOR |
+                          AFFECTED_BY_PSEUDO_ELEMENTS | AFFECTED_BY_STATE |
+                          AFFECTED_BY_NON_COMMON_STYLE_AFFECTING_ATTRIBUTE_SELECTOR |
+                          AFFECTED_BY_STYLE_ATTRIBUTE |
+                          AFFECTED_BY_PRESENTATIONAL_HINTS)
 }
 
 /// Calculates the style for a single node.
@@ -209,6 +232,7 @@ pub fn recalc_style_at<'a, N, C>(context: &'a C,
             Some(element) => {
                 unsafe {
                     element.share_style_if_possible(style_sharing_candidate_cache,
+                                                    context.shared_context(),
                                                     parent_opt.clone())
                 }
             },
@@ -218,22 +242,36 @@ pub fn recalc_style_at<'a, N, C>(context: &'a C,
         // Otherwise, match and cascade selectors.
         match sharing_result {
             StyleSharingResult::CannotShare => {
+                debug!("traversal: Cache miss, el: {:?}, [hidden]: {}",
+                       node.as_element().map(|e| e.get_local_name().to_string()),
+                       node.as_element().map(|e| e.has_attr(&ns!(), &atom!("hidden"))).unwrap_or(false));
                 let mut applicable_declarations = ApplicableDeclarations::new();
 
+                let relations;
                 let shareable_element = match node.as_element() {
                     Some(element) => {
+                        if opts::get().style_sharing_stats {
+                            STYLE_SHARING_CACHE_MISSES.fetch_add(1, Ordering::Relaxed);
+                        }
+
+
                         // Perform the CSS selector matching.
                         let stylist = &context.shared_context().stylist;
 
-                        if element.match_element(&**stylist,
-                                                 Some(&*bf),
-                                                 &mut applicable_declarations) {
+                        relations = element.match_element(&**stylist,
+                                                          Some(&*bf),
+                                                          &mut applicable_declarations);
+
+                        debug!("Result of selector matching: {:?}", relations);
+
+                        if relations_are_shareable(&relations) {
                             Some(element)
                         } else {
                             None
                         }
                     },
                     None => {
+                        relations = StyleRelations::empty();
                         if node.has_changed() {
                             node.set_restyle_damage(N::ConcreteRestyleDamage::rebuild_and_reflow())
                         }
@@ -250,10 +288,17 @@ pub fn recalc_style_at<'a, N, C>(context: &'a C,
 
                 // Add ourselves to the LRU cache.
                 if let Some(element) = shareable_element {
-                    style_sharing_candidate_cache.insert_if_possible::<'ln, N>(&element);
+                    debug!("Inserting element to the cache");
+                    style_sharing_candidate_cache.insert_if_possible(&element, relations);
                 }
             }
             StyleSharingResult::StyleWasShared(index, damage) => {
+                if opts::get().style_sharing_stats {
+                    STYLE_SHARING_CACHE_HITS.fetch_add(1, Ordering::Relaxed);
+                }
+                debug!("traversal: Cache hit, el: {:?}, [hidden]: {}",
+                       node.as_element().map(|e| e.get_local_name().to_string()),
+                       node.as_element().map(|e| e.has_attr(&ns!(), &atom!("hidden"))).unwrap_or(false));
                 style_sharing_candidate_cache.touch(index);
                 node.set_restyle_damage(damage);
             }
