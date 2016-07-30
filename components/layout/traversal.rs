@@ -13,7 +13,7 @@ use gfx::display_list::OpaqueNode;
 use script_layout_interface::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, RestyleDamage};
 use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
 use std::mem;
-use style::context::SharedStyleContext;
+use style::context::{LocalStyleContext, SharedStyleContext, StyleContext};
 use style::dom::TNode;
 use style::selector_impl::ServoSelectorImpl;
 use style::traversal::RestyleResult;
@@ -80,6 +80,10 @@ impl<'lc, N> DomTraversalContext<N> for RecalcStyleAndConstructFlows<'lc>
 
     fn process_postorder(&self, node: N) {
         construct_flows_at(&self.context, self.root, node);
+    }
+
+    fn local_context(&self) -> &LocalStyleContext {
+        self.context.local_context()
     }
 }
 

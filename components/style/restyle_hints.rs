@@ -6,6 +6,7 @@
 
 use element_state::*;
 use selector_impl::{ElementExt, TheSelectorImpl, NonTSPseudoClass, AttrValue};
+use selectors::matching::StyleRelations;
 use selectors::matching::matches_compound_selector;
 use selectors::parser::{AttrSelector, Combinator, CompoundSelector, SimpleSelector, SelectorImpl};
 use selectors::{Element, MatchAttr};
@@ -348,7 +349,11 @@ impl DependencySet {
         DependencySet { deps: Vec::new() }
     }
 
-    pub fn note_selector(&mut self, selector: Arc<CompoundSelector<TheSelectorImpl>>) {
+    pub fn len(&self) -> usize {
+        self.deps.len()
+    }
+
+    pub fn note_selector(&mut self, selector: &Arc<CompoundSelector<TheSelectorImpl>>) {
         let mut cur = selector;
         let mut combinator: Option<Combinator> = None;
         loop {
@@ -370,7 +375,7 @@ impl DependencySet {
             cur = match cur.next {
                 Some((ref sel, comb)) => {
                     combinator = Some(comb);
-                    sel.clone()
+                    sel
                 }
                 None => break,
             }
@@ -389,14 +394,19 @@ impl DependencySet {
                            -> RestyleHint
     where E: ElementExt + Clone
     {
+        debug!("About to calculate restyle hint for element. Deps: {}",
+               self.deps.len());
+
         let state_changes = snapshot.state().map_or_else(ElementState::empty, |old_state| current_state ^ old_state);
         let attrs_changed = snapshot.has_attrs();
         let mut hint = RestyleHint::empty();
         for dep in &self.deps {
             if state_changes.intersects(dep.sensitivities.states) || (attrs_changed && dep.sensitivities.attrs) {
                 let old_el: ElementWrapper<E> = ElementWrapper::new_with_snapshot(el.clone(), snapshot);
-                let matched_then = matches_compound_selector(&*dep.selector, &old_el, None, &mut false);
-                let matches_now = matches_compound_selector(&*dep.selector, el, None, &mut false);
+                let matched_then =
+                    matches_compound_selector(&*dep.selector, &old_el, None, &mut StyleRelations::empty());
+                let matches_now =
+                    matches_compound_selector(&*dep.selector, el, None, &mut StyleRelations::empty());
                 if matched_then != matches_now {
                     hint.insert(combinator_to_restyle_hint(dep.combinator));
                     if hint.is_all() {

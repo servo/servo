@@ -12,6 +12,8 @@ use dom::{OpaqueNode, TNode, UnsafeNode};
 use std::mem;
 use std::sync::atomic::Ordering;
 use traversal::{RestyleResult, DomTraversalContext};
+use traversal::{STYLE_SHARING_CACHE_HITS, STYLE_SHARING_CACHE_MISSES};
+use util::opts;
 use workqueue::{WorkQueue, WorkUnit, WorkerProxy};
 
 #[allow(dead_code)]
@@ -42,13 +44,28 @@ pub fn run_queue_with_custom_work_data_type<To, F, SharedContext: Sync>(
 pub fn traverse_dom<N, C>(root: N,
                           queue_data: &C::SharedContext,
                           queue: &mut WorkQueue<C::SharedContext, WorkQueueData>)
-                          where N: TNode, C: DomTraversalContext<N> {
+    where N: TNode,
+          C: DomTraversalContext<N>
+{
+    if opts::get().style_sharing_stats {
+        STYLE_SHARING_CACHE_HITS.store(0, Ordering::SeqCst);
+        STYLE_SHARING_CACHE_MISSES.store(0, Ordering::SeqCst);
+    }
     run_queue_with_custom_work_data_type(queue, |queue| {
         queue.push(WorkUnit {
             fun: top_down_dom::<N, C>,
             data: (Box::new(vec![root.to_unsafe()]), root.opaque()),
         });
     }, queue_data);
+
+    if opts::get().style_sharing_stats {
+        let hits = STYLE_SHARING_CACHE_HITS.load(Ordering::SeqCst);
+        let misses = STYLE_SHARING_CACHE_MISSES.load(Ordering::SeqCst);
+
+        println!("Style sharing stats:");
+        println!(" * Hits: {}", hits);
+        println!(" * Misses: {}", misses);
+    }
 }
 
 /// A parallel top-down DOM traversal.
@@ -101,6 +118,10 @@ fn top_down_dom<N, C>(unsafe_nodes: UnsafeNodeList,
             }
         }
     }
+
+    // NB: In parallel traversal mode we have to purge the LRU cache in order to
+    // be able to access it without races.
+    context.local_context().style_sharing_candidate_cache.borrow_mut().clear();
 
     for chunk in discovered_child_nodes.chunks(CHUNK_SIZE) {
         proxy.push(WorkUnit {
