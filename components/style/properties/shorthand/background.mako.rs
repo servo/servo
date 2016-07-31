@@ -178,15 +178,41 @@
             try!(size.to_css(dest));
         }
 
-        if let DeclaredValue::Value(ref origin) = *origin {
-            try!(write!(dest, " "));
-            try!(origin.to_css(dest));
-        }
+        match (origin, clip) {
+            (&DeclaredValue::Value(ref origin), &DeclaredValue::Value(ref clip)) => {
+                use properties::longhands::background_origin::computed_value::T as Origin;
+                use properties::longhands::background_clip::computed_value::T as Clip;
 
-        if let DeclaredValue::Value(ref clip) = *clip {
-            try!(write!(dest, " "));
-            try!(clip.to_css(dest));
-        }
+                try!(write!(dest, " "));
+
+                match (origin, clip) {
+                    (&Origin::padding_box, &Clip::padding_box) => {
+                        try!(origin.to_css(dest));
+                    },
+                    (&Origin::border_box, &Clip::border_box) => {
+                        try!(origin.to_css(dest));
+                    },
+                    (&Origin::content_box, &Clip::content_box) => {
+                        try!(origin.to_css(dest));
+                    },
+                    _ => {
+                        try!(origin.to_css(dest));
+                        try!(write!(dest, " "));
+                        try!(clip.to_css(dest));
+                    }
+                }
+            },
+            (&DeclaredValue::Value(ref origin), _) => {
+                try!(write!(dest, " "));
+                try!(origin.to_css(dest));
+            },
+            (_, &DeclaredValue::Value(ref clip)) => {
+                try!(write!(dest, " "));
+                try!(clip.to_css(dest));
+            },
+            _ => {}
+        };
+
 
         Ok(())
     }
