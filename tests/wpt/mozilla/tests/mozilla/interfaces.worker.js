@@ -41,6 +41,7 @@ test_interfaces([
   "File",
   "FileList",
   "FileReader",
+  "FileReaderSync",
   "FocusEvent",
   "FormData",
   "HashChangeEvent",
