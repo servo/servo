@@ -1407,10 +1407,24 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 // Being here means either there are no pending frames, or none of the pending
                 // changes would be overridden by changing the subframe associated with source_id.
 
+                let (window_size, script_chan) = if let Some(source) = self.pipelines.get(&source_id) {
+                    // FIXME(#10968): this should probably match the origin check in
+                    //                HTMLIFrameElement::contentDocument.
+                    let script_chan = if source.url.host() == load_data.url.host() &&
+                                         source.url.port() == load_data.url.port() {
+                        Some(source.script_chan.clone())
+                    } else {
+                        None
+                    };
+
+                    (source.size, script_chan)
+                } else {
+                    (None, None)
+                };
+
                 // Create the new pipeline
-                let window_size = self.pipelines.get(&source_id).and_then(|source| source.size);
                 let new_pipeline_id = PipelineId::new();
-                self.new_pipeline(new_pipeline_id, None, window_size, None, load_data, false);
+                self.new_pipeline(new_pipeline_id, None, window_size, script_chan, load_data, false);
                 self.push_pending_frame(new_pipeline_id, Some(source_id));
 
                 // Send message to ScriptThread that will suspend all timers
