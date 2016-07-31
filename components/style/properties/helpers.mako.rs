@@ -395,9 +395,11 @@
 %>
     % if shorthand:
     pub mod ${shorthand.ident} {
-        use cssparser::Parser;
+        #[allow(unused_imports)]
+        use cssparser::{Parser, ToCss};
         use parser::ParserContext;
         use properties::{longhands, PropertyDeclaration, DeclaredValue, Shorthand};
+        use std::fmt;
 
         pub struct Longhands {
             % for sub_property in shorthand.sub_properties:
@@ -446,10 +448,7 @@
             }
         }
 
-        #[allow(unused_variables)]
-        pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
-            ${caller.body()}
-        }
+        ${caller.body()}
     }
     % endif
 </%def>
@@ -460,12 +459,40 @@
                      for side in ['top', 'right', 'bottom', 'left'])}">
         use super::parse_four_sides;
         use values::specified;
-        let _unused = context;
-        let (top, right, bottom, left) = try!(parse_four_sides(input, ${parser_function}));
-        Ok(Longhands {
-            % for side in ["top", "right", "bottom", "left"]:
-                ${to_rust_ident(sub_property_pattern % side)}: Some(${side}),
-            % endfor
-        })
+
+        pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+            let _unused = context;
+            let (top, right, bottom, left) = try!(parse_four_sides(input, ${parser_function}));
+            Ok(Longhands {
+                % for side in ["top", "right", "bottom", "left"]:
+                    ${to_rust_ident(sub_property_pattern % side)}: Some(${side}),
+                % endfor
+            })
+        }
+
+        pub fn serialize<'a, W, I>(dest: &mut W, declarations: I) -> fmt::Result
+            where W: fmt::Write, I: Iterator<Item=&'a PropertyDeclaration> {
+
+            let mut top = None;
+            let mut right = None;
+            let mut bottom = None;
+            let mut left = None;
+
+            for decl in declarations {
+                match *decl {
+                    % for side in ["top", "right", "bottom", "left"]:
+                        PropertyDeclaration::${to_camel_case(sub_property_pattern % side)}(ref value)
+                            => { ${side} = Some(value) },
+                    % endfor
+                    _ => return Err(fmt::Error)
+                }
+            }
+
+            let (top, right, bottom, left) = try_unwrap_longhands!(top, right, bottom, left);
+            let (top, right, bottom, left) = try_unwrap_declared_values!(top, right, bottom, left);
+
+            super::serialize_four_sides_shorthand(dest, top, right, bottom, left)
+        }
+
     </%self:shorthand>
 </%def>
