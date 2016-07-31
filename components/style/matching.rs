@@ -555,6 +555,8 @@ pub trait ElementMatchMethods : TElement {
                                                  None,
                                                  &mut applicable_declarations.normal);
 
+        applicable_declarations.normal_shareable = relations_are_shareable(&relations);
+
         TheSelectorImpl::each_eagerly_cascaded_pseudo_element(|pseudo| {
             stylist.push_applicable_declarations(self,
                                                  parent_bf,
@@ -562,10 +564,6 @@ pub trait ElementMatchMethods : TElement {
                                                  Some(&pseudo.clone()),
                                                  applicable_declarations.per_pseudo.entry(pseudo).or_insert(vec![]));
         });
-
-        debug!("match_element: normal_shareable: {}, pseudos: {}",
-               applicable_declarations.normal_shareable,
-               applicable_declarations.per_pseudo.values().all(|v| v.is_empty()));
 
         let has_pseudos =
             applicable_declarations.per_pseudo.values().any(|v| !v.is_empty());
