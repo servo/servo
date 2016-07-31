@@ -1824,7 +1824,7 @@ dependencies = [
 [[package]]
 name = "selectors"
 version = "0.7.0"
-source = "git+https://github.com/emilio/rust-selectors.git?branch=style-sharing#b9474b14c554777906980968daffa351a45c0754"
+source = "git+https://github.com/emilio/rust-selectors.git?branch=style-sharing#4c43337a3eebd079eed48ba0e564060ddc236eb1"
 dependencies = [
  "bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "cssparser 0.5.6 (registry+https://github.com/rust-lang/crates.io-index)",
