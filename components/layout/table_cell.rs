@@ -77,9 +77,6 @@ impl TableCellFlow {
             None,
             MarginsMayCollapseFlag::MarginsMayNotCollapse);
         debug_assert!(remaining.is_none());
-        if !flow::base(self).restyle_damage.contains(REFLOW) {
-            return;
-        }
     }
 
     /// Position this cell's children according to vertical-align.
