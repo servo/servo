@@ -37,7 +37,7 @@ matches = "0.1"
 num-traits = "0.1.32"
 rand = "0.3"
 rustc-serialize = "0.3"
-selectors = "0.7"
+selectors = { git = "https://github.com/emilio/rust-selectors.git", branch = "style-sharing" }
 serde = {version = "0.7.15", optional = true}
 serde_macros = {version = "0.7.15", optional = true}
 smallvec = "0.1"
