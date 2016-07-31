@@ -546,6 +546,7 @@ pub trait ElementMatchMethods : TElement {
                      parent_bf: Option<&BloomFilter>,
                      applicable_declarations: &mut ApplicableDeclarations)
                      -> StyleRelations {
+        use traversal::relations_are_shareable;
         let style_attribute = self.style_attribute().as_ref();
 
         let mut relations =
