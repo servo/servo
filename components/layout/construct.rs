@@ -714,7 +714,11 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         }
 
         let mut style = (*style).clone();
-        properties::modify_style_for_text(&mut style);
+        match node.get_pseudo_element_type() {
+            PseudoElementType::Before(_) |
+            PseudoElementType::After(_) => {}
+            _ => properties::modify_style_for_text(&mut style)
+        }
 
         let selected_style = node.selected_style(self.style_context());
 
@@ -950,7 +954,11 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         // Modify the style as necessary. (See the comment in
         // `properties::modify_style_for_replaced_content()`.)
         let mut style = node.style(self.style_context()).clone();
-        properties::modify_style_for_replaced_content(&mut style);
+        match node.get_pseudo_element_type() {
+            PseudoElementType::Before(_) |
+            PseudoElementType::After(_) => {}
+            _ => properties::modify_style_for_replaced_content(&mut style)
+        }
 
         // If this is generated content, then we need to initialize the accumulator with the
         // fragment corresponding to that content. Otherwise, just initialize with the ordinary
