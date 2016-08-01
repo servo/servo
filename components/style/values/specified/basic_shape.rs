@@ -16,6 +16,7 @@ use url::Url;
 use properties::shorthands::parse_four_sides;
 use values::specified::{Length, LengthOrPercentage};
 use values::specified::BorderRadiusSize;
+use values::specified::position::{Position, PositionComponent};
 use values::computed::{Context, ToComputedValue};
 use values::computed::basic_shape as computed_basic_shape;
 
@@ -23,7 +24,7 @@ use values::computed::basic_shape as computed_basic_shape;
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum BasicShape {
     Inset(InsetRect),
-    // Circle(Circle),
+    Circle(Circle),
     // Ellipse(Ellipse),
     // Polygon(Polygon),
 }
@@ -32,6 +33,8 @@ impl BasicShape {
     pub fn parse(input: &mut Parser) -> Result<BasicShape, ()> {
         if let Ok(result) = input.try(InsetRect::parse) {
             Ok(BasicShape::Inset(result))
+        } else if let Ok(result) = input.try(Circle::parse) {
+            Ok(BasicShape::Circle(result))
         } else {
             Err(())
         }
@@ -42,6 +45,7 @@ impl ToCss for BasicShape {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
             BasicShape::Inset(rect) => rect.to_css(dest),
+            BasicShape::Circle(circle) => circle.to_css(dest),
         }
     }
 }
@@ -53,6 +57,7 @@ impl ToComputedValue for BasicShape {
     fn to_computed_value(&self, cx: &Context) -> Self::ComputedValue {
         match *self {
             BasicShape::Inset(rect) => computed_basic_shape::BasicShape::Inset(rect.to_computed_value(cx)),
+            BasicShape::Circle(circle) => computed_basic_shape::BasicShape::Circle(circle.to_computed_value(cx)),
         }
     }
 }
@@ -85,7 +90,7 @@ impl InsetRect {
             left: l,
             round: None,
         };
-        if let Ok(_) = input.expect_ident_matching("round") {
+        if let Ok(_) = input.try(|input| input.expect_ident_matching("round")) {
             rect.round = Some(try!(BorderRadius::parse(input)));
         }
         Ok(rect)
@@ -122,6 +127,60 @@ impl ToComputedValue for InsetRect {
             bottom: self.bottom.to_computed_value(cx),
             left: self.left.to_computed_value(cx),
             round: self.round.map(|r| r.to_computed_value(cx)),
+        }
+    }
+}
+
+#[derive(Clone, PartialEq, Copy, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub struct Circle {
+    pub radius: ShapeRadius,
+    pub position: Position,
+}
+
+impl Circle {
+    pub fn parse(input: &mut Parser) -> Result<Circle, ()> {
+        match_ignore_ascii_case! { try!(input.expect_function()),
+            "circle" => {
+                Ok(try!(input.parse_nested_block(Circle::parse_function)))
+            },
+            _ => Err(())
+        }
+    }
+    pub fn parse_function(input: &mut Parser) -> Result<Circle, ()> {
+        let radius = input.try(ShapeRadius::parse).ok().unwrap_or_else(Default::default);
+        let position = if let Ok(_) = input.try(|input| input.expect_ident_matching("at")) {
+            try!(Position::parse(input))
+        } else {
+            // Defaults to origin
+            try!(Position::new(PositionComponent::Center, PositionComponent::Center))
+        };
+        Ok(Circle {
+            radius: radius,
+            position: position,
+        })
+    }
+}
+
+impl ToCss for Circle {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        if ShapeRadius::ClosestSide != self.radius {
+            try!(self.radius.to_css(dest));
+            try!(dest.write_str(" "));
+        }
+        try!(dest.write_str("at "));
+        self.position.to_css(dest)
+    }
+}
+
+impl ToComputedValue for Circle {
+    type ComputedValue = computed_basic_shape::Circle;
+
+    #[inline]
+    fn to_computed_value(&self, cx: &Context) -> Self::ComputedValue {
+        computed_basic_shape::Circle {
+            radius: self.radius.to_computed_value(cx),
+            position: self.position.to_computed_value(cx),
         }
     }
 }

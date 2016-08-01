@@ -49,7 +49,7 @@ pub enum PositionComponent {
 }
 
 impl Position {
-    fn new(first: PositionComponent, second: PositionComponent)
+    pub fn new(first: PositionComponent, second: PositionComponent)
             -> Result<Position, ()> {
         let (horiz, vert) = match (category(first), category(second)) {
             // Don't allow two vertical keywords or two horizontal keywords.
