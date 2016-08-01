@@ -14,9 +14,9 @@ use dom::blob::Blob;
 use dom::urlhelper::UrlHelper;
 use dom::urlsearchparams::URLSearchParams;
 use ipc_channel::ipc;
-use net_traits::IpcSend;
 use net_traits::blob_url_store::{get_blob_origin, parse_blob_url};
 use net_traits::filemanager_thread::{SelectedFileId, FileManagerThreadMsg};
+use net_traits::{IpcSend, CoreResourceMsg};
 use std::borrow::ToOwned;
 use std::default::Default;
 use url::quirks::domain_to_unicode;
@@ -145,11 +145,11 @@ impl URL {
 
         if let Ok(url) = Url::parse(&url) {
              if let Ok((id, _, _)) = parse_blob_url(&url) {
-                let filemanager = global.resource_threads().sender();
+                let resource_threads = global.resource_threads();
                 let id = SelectedFileId(id.simple().to_string());
                 let (tx, rx) = ipc::channel().unwrap();
                 let msg = FileManagerThreadMsg::RevokeBlobURL(id, origin, tx);
-                let _ = filemanager.send(msg);
+                let _ = resource_threads.send(CoreResourceMsg::ToFileManager(msg));
 
                 let _ = rx.recv().unwrap();
             }

@@ -146,9 +146,6 @@ pub enum FileManagerThreadMsg {
 
     /// Revoke Blob URL and send back the acknowledgement
     RevokeBlobURL(SelectedFileId, FileOrigin, IpcSender<Result<(), BlobURLStoreError>>),
-
-    /// Shut down this thread
-    Exit,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
