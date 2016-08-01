@@ -45,4 +45,44 @@
             text_decoration_style: style.or(Some(text_decoration_style::computed_value::T::solid)),
         })
     }
+
+    pub fn serialize<'a, W, I>(dest: &mut W, declarations: I) -> fmt::Result
+        where W: fmt::Write, I: Iterator<Item=&'a PropertyDeclaration> {
+
+        let mut line = None;
+        let mut style = None;
+        let mut color = None;
+
+        for decl in declarations {
+            match *decl {
+                PropertyDeclaration::TextDecorationLine(ref value) => { line = Some(value); },
+                PropertyDeclaration::TextDecorationStyle(ref value) => { style = Some(value); },
+                PropertyDeclaration::TextDecorationColor(ref value) => { color = Some(value); },
+                _ => return Err(fmt::Error)
+            }
+        }
+
+        let (line, style, color) = try_unwrap_longhands!(line, style, color);
+
+        match *line {
+            DeclaredValue::Value(ref line) => {
+                try!(line.to_css(dest));
+            },
+            _ => {
+                try!(write!(dest, "none"));
+            }
+        };
+
+        if let DeclaredValue::Value(ref style) = *style {
+            try!(write!(dest, " "));
+            try!(style.to_css(dest));
+        }
+
+        if let DeclaredValue::Value(ref color) = *color {
+            try!(write!(dest, " "));
+            try!(color.to_css(dest));
+        }
+
+        Ok(())
+    }
 </%helpers:shorthand>

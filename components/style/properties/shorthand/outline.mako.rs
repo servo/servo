@@ -114,10 +114,10 @@
 
         for decl in declarations {
             match *decl {
-                PropertyDeclaration::MozOutlineTopLeftRadius(ref value) => { top_left = Some(value); },
-                PropertyDeclaration::MozOutlineTopRightRadius(ref value) => { top_right = Some(value); },
-                PropertyDeclaration::MozOutlineBottomRightRadius(ref value) => { bottom_right  = Some(value); },
-                PropertyDeclaration::MozOutlineBottomLeftRadius(ref value) => { bottom_left = Some(value); },
+                PropertyDeclaration::MozOutlineRadiusTopleft(ref value) => { top_left = Some(value); },
+                PropertyDeclaration::MozOutlineRadiusTopright(ref value) => { top_right = Some(value); },
+                PropertyDeclaration::MozOutlineRadiusBottomright(ref value) => { bottom_right  = Some(value); },
+                PropertyDeclaration::MozOutlineRadiusBottomleft(ref value) => { bottom_left = Some(value); },
                 _ => return Err(fmt::Error)
             }
         }
