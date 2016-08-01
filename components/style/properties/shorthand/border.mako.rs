@@ -97,8 +97,6 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
     'border-%s-radius' % (corner)
      for corner in ['top-left', 'top-right', 'bottom-right', 'bottom-left']
 )}">
-    use app_units::Au;
-    use values::specified::{Length, LengthOrPercentage};
     use values::specified::basic_shape::BorderRadius;
 
     let _ignored = context;

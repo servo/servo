@@ -7,8 +7,8 @@
 //!
 //! [position]: https://drafts.csswg.org/css-backgrounds-3/#position
 
-use cssparser::{Parser, ToCss, Token};
-use values::computed::{Length, LengthOrPercentage};
+use cssparser::ToCss;
+use values::computed::LengthOrPercentage;
 use std::fmt;
 
 #[derive(Debug, Clone, PartialEq, Copy)]
