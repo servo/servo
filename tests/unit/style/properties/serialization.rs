@@ -10,6 +10,8 @@ pub use style::values::specified::{BorderStyle, CSSColor, Length};
 pub use style::values::specified::{LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrAutoOrContent};
 pub use style::properties::longhands::outline_color::computed_value::T as ComputedColor;
 pub use style::values::RGBA;
+pub use style::values::specified::UrlExtraData;
+pub use url::Url;
 
 #[test]
 fn property_declaration_block_should_serialize_correctly() {
@@ -409,7 +411,6 @@ mod shorthand_serialization {
         use style::properties::longhands::list_style_position::computed_value::T as ListStylePosition;
         use style::properties::longhands::list_style_type::computed_value::T as ListStyleType;
         use super::*;
-        use url::Url;
 
         #[test]
         fn list_style_should_show_all_properties_when_values_are_set() {
@@ -683,8 +684,6 @@ mod shorthand_serialization {
         use style::properties::longhands::background_size::SpecifiedValue as Size;
         use style::values::specified::Image;
         use super::*;
-        use url::Url;
-
 
         #[test]
         fn background_should_serialize_all_available_properties_when_specified() {
@@ -706,7 +705,7 @@ mod shorthand_serialization {
             let attachment = DeclaredValue::Value(Attachment::scroll);
 
             let image = DeclaredValue::Value(ImageContainer(
-                Some(Image::Url(Url::parse("http://servo/test.png").unwrap()))
+                Some(Image::Url(Url::parse("http://servo/test.png").unwrap(), UrlExtraData {}))
             ));
 
             let size = DeclaredValue::Value(
@@ -757,7 +756,7 @@ mod shorthand_serialization {
             let attachment = DeclaredValue::Value(Attachment::scroll);
 
             let image = DeclaredValue::Value(ImageContainer(
-                Some(Image::Url(Url::parse("http://servo/test.png").unwrap()))
+                Some(Image::Url(Url::parse("http://servo/test.png").unwrap(), UrlExtraData {}))
             ));
 
             let size = DeclaredValue::Value(
