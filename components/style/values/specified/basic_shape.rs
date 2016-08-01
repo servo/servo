@@ -7,26 +7,22 @@
 //!
 //! [basic-shape]: https://drafts.csswg.org/css-shapes/#typedef-basic-shape
 
-use std::fmt;
 use app_units::Au;
-use euclid::size::Size2D;
-use cssparser::{self, Parser, ToCss, Token};
-use parser::{ParserContext, ParserContextExtraData};
-use url::Url;
+use std::fmt;
+use cssparser::{Parser, ToCss};
 use properties::shorthands::parse_four_sides;
-use values::specified::{Length, LengthOrPercentage};
-use values::specified::BorderRadiusSize;
+use values::specified::{BorderRadiusSize, Length, LengthOrPercentage};
 use values::specified::position::{Position, PositionComponent};
-use values::computed::{Context, ToComputedValue};
+use values::computed::{Context, ToComputedValue, ComputedValueAsSpecified};
 use values::computed::basic_shape as computed_basic_shape;
 
-#[derive(Clone, PartialEq, Copy, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum BasicShape {
     Inset(InsetRect),
     Circle(Circle),
     Ellipse(Ellipse),
-    // Polygon(Polygon),
+    Polygon(Polygon),
 }
 
 impl BasicShape {
@@ -37,6 +33,8 @@ impl BasicShape {
             Ok(BasicShape::Circle(result))
         } else if let Ok(result) = input.try(Ellipse::parse) {
             Ok(BasicShape::Ellipse(result))
+        } else if let Ok(result) = input.try(Polygon::parse) {
+            Ok(BasicShape::Polygon(result))
         } else {
             Err(())
         }
@@ -49,6 +47,7 @@ impl ToCss for BasicShape {
             BasicShape::Inset(rect) => rect.to_css(dest),
             BasicShape::Circle(circle) => circle.to_css(dest),
             BasicShape::Ellipse(e) => e.to_css(dest),
+            BasicShape::Polygon(ref poly) => poly.to_css(dest),
         }
     }
 }
@@ -62,12 +61,14 @@ impl ToComputedValue for BasicShape {
             BasicShape::Inset(rect) => computed_basic_shape::BasicShape::Inset(rect.to_computed_value(cx)),
             BasicShape::Circle(circle) => computed_basic_shape::BasicShape::Circle(circle.to_computed_value(cx)),
             BasicShape::Ellipse(e) => computed_basic_shape::BasicShape::Ellipse(e.to_computed_value(cx)),
+            BasicShape::Polygon(ref poly) => computed_basic_shape::BasicShape::Polygon(poly.to_computed_value(cx)),
         }
     }
 }
 
 #[derive(Clone, PartialEq, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+/// https://drafts.csswg.org/css-shapes/#funcdef-inset
 pub struct InsetRect {
     pub top: LengthOrPercentage,
     pub right: LengthOrPercentage,
@@ -137,6 +138,7 @@ impl ToComputedValue for InsetRect {
 
 #[derive(Clone, PartialEq, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+/// https://drafts.csswg.org/css-shapes/#funcdef-circle
 pub struct Circle {
     pub radius: ShapeRadius,
     pub position: Position,
@@ -191,6 +193,7 @@ impl ToComputedValue for Circle {
 
 #[derive(Clone, PartialEq, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+/// https://drafts.csswg.org/css-shapes/#funcdef-ellipse
 pub struct Ellipse {
     pub semiaxis_a: ShapeRadius,
     pub semiaxis_b: ShapeRadius,
@@ -248,6 +251,82 @@ impl ToComputedValue for Ellipse {
             semiaxis_a: self.semiaxis_a.to_computed_value(cx),
             semiaxis_b: self.semiaxis_b.to_computed_value(cx),
             position: self.position.to_computed_value(cx),
+        }
+    }
+}
+
+
+#[derive(Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+/// https://drafts.csswg.org/css-shapes/#funcdef-polygon
+pub struct Polygon {
+    pub fill: FillRule,
+    pub coordinates: Vec<(LengthOrPercentage, LengthOrPercentage)>,
+}
+
+impl Polygon {
+    pub fn parse(input: &mut Parser) -> Result<Polygon, ()> {
+        match_ignore_ascii_case! { try!(input.expect_function()),
+            "polygon" => {
+                Ok(try!(input.parse_nested_block(Polygon::parse_function)))
+            },
+            _ => Err(())
+        }
+    }
+    pub fn parse_function(input: &mut Parser) -> Result<Polygon, ()> {
+        let fill = input.try(|input| {
+            let fill = FillRule::parse(input);
+            // only eat the comma if there is something before it
+            try!(input.expect_comma());
+            fill
+        }).ok().unwrap_or_else(Default::default);
+        let first = (try!(LengthOrPercentage::parse(input)),
+                     try!(LengthOrPercentage::parse(input)));
+        let mut buf = vec![first];
+        while !input.is_exhausted() {
+            buf.push((try!(LengthOrPercentage::parse(input)),
+                      try!(LengthOrPercentage::parse(input))));
+        }
+        Ok(Polygon {
+            fill: fill,
+            coordinates: buf,
+        })
+    }
+}
+
+impl ToCss for Polygon {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        let mut need_space = false;
+        if self.fill != Default::default() {
+            try!(self.fill.to_css(dest));
+            try!(dest.write_str(", "));
+        }
+        for coord in &self.coordinates {
+            if need_space {
+                try!(dest.write_str(" "));
+            }
+            try!(coord.0.to_css(dest));
+            try!(dest.write_str(" "));
+            try!(coord.1.to_css(dest));
+            need_space = true;
+        }
+        Ok(())
+    }
+}
+
+impl ToComputedValue for Polygon {
+    type ComputedValue = computed_basic_shape::Polygon;
+
+    #[inline]
+    fn to_computed_value(&self, cx: &Context) -> Self::ComputedValue {
+        computed_basic_shape::Polygon {
+            fill: self.fill.to_computed_value(cx),
+            coordinates: self.coordinates.iter()
+                                         .map(|c| {
+                                            (c.0.to_computed_value(cx),
+                                             c.1.to_computed_value(cx))
+                                         })
+                                         .collect(),
         }
     }
 }
@@ -392,6 +471,44 @@ impl ToComputedValue for BorderRadius {
             top_right: self.top_right.to_computed_value(cx),
             bottom_left: self.bottom_left.to_computed_value(cx),
             bottom_right: self.bottom_right.to_computed_value(cx),
+        }
+    }
+}
+
+/// https://drafts.csswg.org/css-shapes/#typedef-fill-rule
+#[derive(Clone, PartialEq, Copy, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub enum FillRule {
+    NonZero,
+    EvenOdd,
+    // basic-shapes spec says that these are the only two values, however
+    // https://www.w3.org/TR/SVG/painting.html#FillRuleProperty
+    // says that it can also be `inherit`
+}
+
+impl ComputedValueAsSpecified for FillRule {}
+
+impl FillRule {
+    pub fn parse(input: &mut Parser) -> Result<FillRule, ()> {
+        match_ignore_ascii_case! { try!(input.expect_ident()),
+            "nonzero" => Ok(FillRule::NonZero),
+            "evenodd" => Ok(FillRule::EvenOdd),
+            _ => Err(())
+        }
+    }
+}
+
+impl Default for FillRule {
+    fn default() -> Self {
+        FillRule::NonZero
+    }
+}
+
+impl ToCss for FillRule {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            FillRule::NonZero => dest.write_str("nonzero"),
+            FillRule::EvenOdd => dest.write_str("evenodd"),
         }
     }
 }

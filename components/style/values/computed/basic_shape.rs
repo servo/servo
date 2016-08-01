@@ -7,19 +7,18 @@
 //!
 //! [basic-shape]: https://drafts.csswg.org/css-shapes/#typedef-basic-shape
 
-use values::computed::{Length, LengthOrPercentage};
-use values::computed::BorderRadiusSize;
+use values::computed::{BorderRadiusSize, LengthOrPercentage};
 use values::computed::position::Position;
 use std::fmt;
-use cssparser::{self, Parser, ToCss, Token};
+use cssparser::ToCss;
 
-#[derive(Clone, PartialEq, Copy, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum BasicShape {
     Inset(InsetRect),
     Circle(Circle),
     Ellipse(Ellipse),
-    // Polygon(Polygon),
+    Polygon(Polygon),
 }
 
 impl ToCss for BasicShape {
@@ -28,6 +27,7 @@ impl ToCss for BasicShape {
             BasicShape::Inset(rect) => rect.to_css(dest),
             BasicShape::Circle(circle) => circle.to_css(dest),
             BasicShape::Ellipse(e) => e.to_css(dest),
+            BasicShape::Polygon(ref poly) => poly.to_css(dest),
         }
     }
 }
@@ -98,6 +98,34 @@ impl ToCss for Ellipse {
     }
 }
 
+#[derive(Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+/// https://drafts.csswg.org/css-shapes/#funcdef-polygon
+pub struct Polygon {
+    pub fill: FillRule,
+    pub coordinates: Vec<(LengthOrPercentage, LengthOrPercentage)>,
+}
+
+impl ToCss for Polygon {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        let mut need_space = false;
+        if self.fill != Default::default() {
+            try!(self.fill.to_css(dest));
+            try!(dest.write_str(", "));
+        }
+        for coord in &self.coordinates {
+            if need_space {
+                try!(dest.write_str(" "));
+            }
+            try!(coord.0.to_css(dest));
+            try!(dest.write_str(" "));
+            try!(coord.1.to_css(dest));
+            need_space = true;
+        }
+        Ok(())
+    }
+}
+
 /// https://drafts.csswg.org/css-shapes/#typedef-shape-radius
 #[derive(Clone, PartialEq, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -159,3 +187,6 @@ impl ToCss for BorderRadius {
         dest.write_str(" ")
     }
 }
+
+pub use values::specified::basic_shape::FillRule;
+

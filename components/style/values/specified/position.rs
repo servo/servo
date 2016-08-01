@@ -8,7 +8,6 @@
 //! [position]: https://drafts.csswg.org/css-backgrounds-3/#position
 
 use std::fmt;
-use app_units::Au;
 use cssparser::{Parser, ToCss, Token};
 use values::HasViewportPercentage;
 use values::specified::{LengthOrPercentage, Percentage};
