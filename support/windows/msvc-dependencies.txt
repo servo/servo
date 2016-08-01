@@ -1,0 +1,5 @@
+cmake=3.6.1
+ninja=1.7.1
+openssl=1.0.1t
+moztools=0.0.1-5
+#ffmpeg=0.0.1
