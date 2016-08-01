@@ -30,7 +30,7 @@ Request implements Body;
 
 dictionary RequestInit {
   ByteString method;
-  // HeadersInit headers;
+  HeadersInit headers;
   BodyInit? body;
   USVString referrer;
   ReferrerPolicy referrerPolicy;
