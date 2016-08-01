@@ -126,6 +126,60 @@ impl ToComputedValue for InsetRect {
     }
 }
 
+/// https://drafts.csswg.org/css-shapes/#typedef-shape-radius
+#[derive(Clone, PartialEq, Copy, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub enum ShapeRadius {
+    Length(LengthOrPercentage),
+    ClosestSide,
+    FarthestSide,
+}
+
+impl Default for ShapeRadius {
+    fn default() -> Self {
+        ShapeRadius::ClosestSide
+    }
+}
+
+impl ShapeRadius {
+    pub fn parse(input: &mut Parser) -> Result<ShapeRadius, ()> {
+        input.try(LengthOrPercentage::parse).map(ShapeRadius::Length)
+                                            .or_else(|_| {
+            match_ignore_ascii_case! { try!(input.expect_ident()),
+                "closest-side" => Ok(ShapeRadius::ClosestSide),
+                "farthest-side" => Ok(ShapeRadius::FarthestSide),
+                _ => Err(())
+            }
+        })
+    }
+}
+
+impl ToCss for ShapeRadius {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            ShapeRadius::Length(lop) => lop.to_css(dest),
+            ShapeRadius::ClosestSide => dest.write_str("closest-side"),
+            ShapeRadius::FarthestSide => dest.write_str("farthest-side"),
+        }
+    }
+}
+
+
+impl ToComputedValue for ShapeRadius {
+    type ComputedValue = computed_basic_shape::ShapeRadius;
+
+    #[inline]
+    fn to_computed_value(&self, cx: &Context) -> Self::ComputedValue {
+        match *self {
+            ShapeRadius::Length(lop) => {
+                computed_basic_shape::ShapeRadius::Length(lop.to_computed_value(cx))
+            }
+            ShapeRadius::ClosestSide => computed_basic_shape::ShapeRadius::ClosestSide,
+            ShapeRadius::FarthestSide => computed_basic_shape::ShapeRadius::FarthestSide,
+        }
+    }
+}
+
 /// https://drafts.csswg.org/css-backgrounds-3/#border-radius
 #[derive(Clone, PartialEq, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
