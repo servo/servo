@@ -19,6 +19,7 @@ import shutil
 import sys
 import StringIO
 import tarfile
+import zipfile
 import urllib2
 
 from mach.decorators import (
@@ -101,7 +102,10 @@ def download_bytes(desc, src):
 
 
 def extract(src, dst, movedir=None):
-    tarfile.open(src).extractall(dst)
+    if src.endswith(".zip"):
+        zipfile.ZipFile(src).extractall(dst)
+    else:
+        tarfile.open(src).extractall(dst)
 
     if movedir:
         for f in os.listdir(movedir):
@@ -125,6 +129,24 @@ class MachCommands(CommandBase):
             print("export DYLD_LIBRARY_PATH=%s" % env["DYLD_LIBRARY_PATH"])
         else:
             print("export LD_LIBRARY_PATH=%s" % env["LD_LIBRARY_PATH"])
+
+    @Command('bootstrap',
+             description='Install required packages for building.',
+             category='bootstrap')
+    @CommandArgument('--interactive', "-i",
+                     action='store_true',
+                     help='Need to answer any (Y/n) interactive prompts.')
+    @CommandArgument('--android',
+                     action='store_true',
+                     help='Install required packages for Android')
+    @CommandArgument('--force', '-f',
+                     action='store_true',
+                     help='Force reinstall packages')
+    def bootstrap(self, android=False, interactive=False, force=False):
+        from servo.bootstrapper.bootstrap import Bootstrapper
+
+        bootstrapper = Bootstrapper()
+        bootstrapper.bootstrap(android=android, interactive=interactive, force=force)
 
     @Command('bootstrap-rust',
              description='Download the Rust compiler',
