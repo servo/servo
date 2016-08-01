@@ -10,6 +10,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::window::Window;
+use ipc_channel::ipc;
 use msg::constellation_msg::TraversalDirection;
 use script_traits::ScriptMsg as ConstellationMsg;
 
@@ -44,6 +45,15 @@ impl History {
 }
 
 impl HistoryMethods for History {
+    // https://html.spec.whatwg.org/multipage/#dom-history-length
+    fn Length(&self) -> u32 {
+        let pipeline = self.window.pipeline();
+        let (sender, recv) = ipc::channel().expect("Failed to create channel to send jsh length.");
+        let msg = ConstellationMsg::JointSessionHistoryLength(pipeline, sender);
+        let _ = self.window.constellation_chan().send(msg);
+        recv.recv().unwrap()
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-history-go
     fn Go(&self, delta: i32) {
         let direction = if delta > 0 {

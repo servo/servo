@@ -7,7 +7,7 @@
 // https://html.spec.whatwg.org/multipage/#the-history-interface
 [Exposed=(Window,Worker)]
 interface History {
-  // readonly attribute unsigned long length;
+  readonly attribute unsigned long length;
   // attribute ScrollRestoration scrollRestoration;
   // readonly attribute any state;
   void go(optional long delta = 0);

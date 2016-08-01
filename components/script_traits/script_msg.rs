@@ -91,6 +91,8 @@ pub enum ScriptMsg {
     MozBrowserEvent(PipelineId, Option<SubpageId>, MozBrowserEvent),
     /// HTMLIFrameElement Forward or Back traversal.
     TraverseHistory(Option<PipelineId>, TraversalDirection),
+    /// Gets the length of the joint session history from the constellation.
+    JointSessionHistoryLength(PipelineId, IpcSender<u32>),
     /// Favicon detected
     NewFavicon(Url),
     /// Status message to be displayed in the chrome, eg. a link URL on mouseover.
