@@ -520,9 +520,9 @@ impl FragmentDisplayListBuilding for Fragment {
             };
 
             // Use `background-position` to get the offset.
-            let horizontal_position = model::specified(background.background_position.horizontal,
+            let horizontal_position = model::specified(background.background_position.0.horizontal,
                                                        bounds.size.width - image_size.width);
-            let vertical_position = model::specified(background.background_position.vertical,
+            let vertical_position = model::specified(background.background_position.0.vertical,
                                                      bounds.size.height - image_size.height);
 
             let abs_x = border.left + virtual_origin_x + horizontal_position + origin_x;

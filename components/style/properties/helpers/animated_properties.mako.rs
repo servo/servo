@@ -30,6 +30,7 @@ use super::ComputedValues;
 use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 use values::computed::{BorderRadiusSize, LengthOrNone};
 use values::computed::{CalcLengthOrPercentage, LengthOrPercentage};
+use values::computed::position::Position;
 
 // NB: This needs to be here because it needs all the longhands generated
 // beforehand.
@@ -469,13 +470,20 @@ impl Interpolate for ClipRect {
 }
 
 /// https://drafts.csswg.org/css-transitions/#animtype-simple-list
-impl Interpolate for BackgroundPosition {
+impl Interpolate for Position {
     #[inline]
     fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
-        Ok(BackgroundPosition {
+        Ok(Position {
             horizontal: try!(self.horizontal.interpolate(&other.horizontal, time)),
             vertical: try!(self.vertical.interpolate(&other.vertical, time)),
         })
+    }
+}
+
+impl Interpolate for BackgroundPosition {
+    #[inline]
+    fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
+        Ok(BackgroundPosition(try!(self.0.interpolate(&other.0, time))))
     }
 }
 
