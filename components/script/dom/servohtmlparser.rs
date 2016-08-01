@@ -7,13 +7,18 @@
 
 use document_loader::LoadType;
 use dom::bindings::cell::DOMRefCell;
+use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
+use dom::bindings::codegen::Bindings::HTMLImageElementBinding::HTMLImageElementMethods;
+use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::ServoHTMLParserBinding;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::str::DOMString;
 use dom::bindings::trace::JSTraceable;
 use dom::document::Document;
+use dom::htmlimageelement::HTMLImageElement;
 use dom::node::Node;
 use dom::window::Window;
 use encoding::all::UTF_8;
@@ -112,13 +117,20 @@ impl AsyncResponseListener for ParserContext {
         match content_type {
             Some(ContentType(Mime(TopLevel::Image, _, _))) => {
                 self.is_synthesized_document = true;
-                let page = format!("<html><body><img src='{}' /></body></html>", self.url);
+                let page = "<html><body></body></html>".into();
                 parser.pending_input().borrow_mut().push(page);
                 parser.parse_sync();
+
+                let doc = parser.document();
+                let doc_body = Root::upcast::<Node>(doc.GetBody().unwrap());
+                let img = HTMLImageElement::new(atom!("img"), None, doc);
+                img.SetSrc(DOMString::from(self.url.to_string()));
+                doc_body.AppendChild(&Root::upcast::<Node>(img)).expect("Appending failed");
+
             },
             Some(ContentType(Mime(TopLevel::Text, SubLevel::Plain, _))) => {
                 // https://html.spec.whatwg.org/multipage/#read-text
-                let page = format!("<pre>\n");
+                let page = "<pre>\n".into();
                 parser.pending_input().borrow_mut().push(page);
                 parser.parse_sync();
                 parser.set_plaintext_state();
