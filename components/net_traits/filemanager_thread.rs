@@ -149,9 +149,6 @@ pub enum FileManagerThreadMsg {
 
     /// Activate an internal FileID so it becomes valid as part of a Blob URL
     ActivateBlobURL(SelectedFileId, IpcSender<Result<(), BlobURLStoreError>>, FileOrigin),
-
-    /// Shut down this thread
-    Exit,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

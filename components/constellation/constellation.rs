@@ -30,7 +30,6 @@ use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
 use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId, TraversalDirection};
 use msg::constellation_msg::{SubpageId, WindowSizeType};
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
-use net_traits::filemanager_thread::FileManagerThreadMsg;
 use net_traits::image_cache_thread::ImageCacheThread;
 use net_traits::storage_thread::StorageThreadMsg;
 use net_traits::{self, ResourceThreads, IpcSend};
@@ -1039,11 +1038,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         debug!("Exiting storage resource threads.");
         if let Err(e) = self.public_resource_threads.send(StorageThreadMsg::Exit(storage_sender)) {
-            warn!("Exit storage thread failed ({})", e);
-        }
-
-        debug!("Exiting file manager resource threads.");
-        if let Err(e) = self.public_resource_threads.send(FileManagerThreadMsg::Exit) {
             warn!("Exit storage thread failed ({})", e);
         }
 

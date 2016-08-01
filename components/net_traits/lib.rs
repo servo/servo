@@ -321,17 +321,14 @@ pub trait IpcSend<T> where T: serde::Serialize + serde::Deserialize {
 pub struct ResourceThreads {
     core_thread: CoreResourceThread,
     storage_thread: IpcSender<StorageThreadMsg>,
-    filemanager_thread: IpcSender<FileManagerThreadMsg>,
 }
 
 impl ResourceThreads {
     pub fn new(c: CoreResourceThread,
-               s: IpcSender<StorageThreadMsg>,
-               f: IpcSender<FileManagerThreadMsg>) -> ResourceThreads {
+               s: IpcSender<StorageThreadMsg>) -> ResourceThreads {
         ResourceThreads {
             core_thread: c,
             storage_thread: s,
-            filemanager_thread: f,
         }
     }
 }
@@ -353,16 +350,6 @@ impl IpcSend<StorageThreadMsg> for ResourceThreads {
 
     fn sender(&self) -> IpcSender<StorageThreadMsg> {
         self.storage_thread.clone()
-    }
-}
-
-impl IpcSend<FileManagerThreadMsg> for ResourceThreads {
-    fn send(&self, msg: FileManagerThreadMsg) -> IpcSendResult {
-        self.filemanager_thread.send(msg)
-    }
-
-    fn sender(&self) -> IpcSender<FileManagerThreadMsg> {
-        self.filemanager_thread.clone()
     }
 }
 
@@ -431,6 +418,8 @@ pub enum CoreResourceMsg {
     Synchronize(IpcSender<()>),
     /// Send the network sender in constellation to CoreResourceThread
     NetworkMediator(IpcSender<CustomResponseMediator>),
+    /// Message forwarded to file manager's handler
+    ToFileManager(FileManagerThreadMsg),
     /// Break the load handler loop, send a reply when done cleaning up local resources
     //  and exit
     Exit(IpcSender<()>),

@@ -14,9 +14,9 @@ use dom::bindings::str::DOMString;
 use encoding::all::UTF_8;
 use encoding::types::{EncoderTrap, Encoding};
 use ipc_channel::ipc;
-use net_traits::IpcSend;
 use net_traits::blob_url_store::{BlobBuf, get_blob_origin};
 use net_traits::filemanager_thread::{FileManagerThreadMsg, SelectedFileId, RelativePos, ReadFileProgress};
+use net_traits::{CoreResourceMsg, IpcSend};
 use std::cell::Cell;
 use std::ops::Index;
 use std::path::PathBuf;
@@ -177,10 +177,9 @@ impl Blob {
             BlobImpl::File(ref f) => {
                 let global = self.global();
                 let origin = get_blob_origin(&global.r().get_url());
-                let filemanager = global.r().resource_threads().sender();
                 let (tx, rx) = ipc::channel().unwrap();
-
-                let _ = filemanager.send(FileManagerThreadMsg::ActivateBlobURL(f.id.clone(), tx, origin.clone()));
+                let msg = FileManagerThreadMsg::ActivateBlobURL(f.id.clone(), tx, origin.clone());
+                self.send_to_file_manager(msg);
 
                 match rx.recv().unwrap() {
                     Ok(_) => f.id.clone(),
@@ -216,7 +215,6 @@ impl Blob {
     fn promote(&self, bytes: &[u8], set_valid: bool) -> SelectedFileId {
         let global = self.global();
         let origin = get_blob_origin(&global.r().get_url());
-        let filemanager = global.r().resource_threads().sender();
 
         let blob_buf = BlobBuf {
             filename: None,
@@ -226,7 +224,8 @@ impl Blob {
         };
 
         let (tx, rx) = ipc::channel().unwrap();
-        let _ = filemanager.send(FileManagerThreadMsg::PromoteMemory(blob_buf, set_valid, tx, origin.clone()));
+        let msg = FileManagerThreadMsg::PromoteMemory(blob_buf, set_valid, tx, origin.clone());
+        self.send_to_file_manager(msg);
 
         match rx.recv().unwrap() {
             Ok(new_id) => SelectedFileId(new_id.0),
@@ -239,15 +238,13 @@ impl Blob {
     fn create_sliced_url_id(&self, parent_id: &SelectedFileId,
                             rel_pos: &RelativePos) -> SelectedFileId {
         let global = self.global();
-
         let origin = get_blob_origin(&global.r().get_url());
 
-        let filemanager = global.r().resource_threads().sender();
         let (tx, rx) = ipc::channel().unwrap();
         let msg = FileManagerThreadMsg::AddSlicedURLEntry(parent_id.clone(),
                                                           rel_pos.clone(),
                                                           tx, origin.clone());
-        let _ = filemanager.send(msg);
+        self.send_to_file_manager(msg);
         let new_id = rx.recv().unwrap().unwrap();
 
         // Return the indirect id reference
@@ -260,13 +257,18 @@ impl Blob {
             let global = self.global();
             let origin = get_blob_origin(&global.r().get_url());
 
-            let filemanager = global.r().resource_threads().sender();
             let (tx, rx) = ipc::channel().unwrap();
-
             let msg = FileManagerThreadMsg::DecRef(f.id.clone(), origin, tx);
-            let _ = filemanager.send(msg);
+
+            self.send_to_file_manager(msg);
             let _ = rx.recv().unwrap();
         }
+    }
+
+    fn send_to_file_manager(&self, msg: FileManagerThreadMsg) {
+        let global = self.global();
+        let resource_threads = global.r().resource_threads();
+        let _ = resource_threads.send(CoreResourceMsg::ToFileManager(msg));
     }
 }
 
@@ -279,12 +281,11 @@ impl Drop for Blob {
 }
 
 fn read_file(global: GlobalRef, id: SelectedFileId) -> Result<Vec<u8>, ()> {
-    let file_manager = global.filemanager_thread();
     let (chan, recv) = ipc::channel().map_err(|_|())?;
     let origin = get_blob_origin(&global.get_url());
     let check_url_validity = false;
     let msg = FileManagerThreadMsg::ReadFile(chan, id, check_url_validity, origin);
-    let _ = file_manager.send(msg);
+    let _ = global.resource_threads().send(CoreResourceMsg::ToFileManager(msg));
 
     let mut bytes = vec![];
 
@@ -395,8 +396,8 @@ fn is_ascii_printable(string: &str) -> bool {
 
 /// Bump the reference counter in file manager thread
 fn inc_ref_id(global: GlobalRef, id: SelectedFileId) {
-    let file_manager = global.filemanager_thread();
+    let resource_threads = global.resource_threads();
     let origin = get_blob_origin(&global.get_url());
     let msg = FileManagerThreadMsg::IncRef(id, origin);
-    let _ = file_manager.send(msg);
+    let _ = resource_threads.send(CoreResourceMsg::ToFileManager(msg));
 }
