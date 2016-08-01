@@ -9,6 +9,7 @@
 
 use values::computed::{Length, LengthOrPercentage};
 use values::computed::BorderRadiusSize;
+use values::computed::position::Position;
 use std::fmt;
 use cssparser::{self, Parser, ToCss, Token};
 
@@ -16,9 +17,18 @@ use cssparser::{self, Parser, ToCss, Token};
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum BasicShape {
     Inset(InsetRect),
-    // Circle(Circle),
+    Circle(Circle),
     // Ellipse(Ellipse),
     // Polygon(Polygon),
+}
+
+impl ToCss for BasicShape {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            BasicShape::Inset(rect) => rect.to_css(dest),
+            BasicShape::Circle(circle) => circle.to_css(dest),
+        }
+    }
 }
 
 #[derive(Clone, PartialEq, Copy, Debug)]
@@ -47,6 +57,21 @@ impl ToCss for InsetRect {
             try!(radius.to_css(dest));
         }
         dest.write_str(")")
+    }
+}
+
+#[derive(Clone, PartialEq, Copy, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub struct Circle {
+    pub radius: ShapeRadius,
+    pub position: Position,
+}
+
+impl ToCss for Circle {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        try!(self.radius.to_css(dest));
+        try!(dest.write_str(" at "));
+        self.position.to_css(dest)
     }
 }
 
