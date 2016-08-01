@@ -28,7 +28,7 @@ void main(void) {
             lColorTexCoord.x <= 1.0 &&
             lColorTexCoord.y >= 0.0 &&
             lColorTexCoord.y <= 1.0 ?
-            Texture(sDiffuse, lColorTexCoord * sourceTextureUvSize + sourceTextureUvOrigin) :
+            texture(sDiffuse, lColorTexCoord * sourceTextureUvSize + sourceTextureUvOrigin) :
             vec4(0.0);
 
         // Alpha must be premultiplied in order to properly blur the alpha channel.
