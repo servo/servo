@@ -18,7 +18,7 @@ use cssparser::{self, Parser, ToCss, Token};
 pub enum BasicShape {
     Inset(InsetRect),
     Circle(Circle),
-    // Ellipse(Ellipse),
+    Ellipse(Ellipse),
     // Polygon(Polygon),
 }
 
@@ -27,6 +27,7 @@ impl ToCss for BasicShape {
         match *self {
             BasicShape::Inset(rect) => rect.to_css(dest),
             BasicShape::Circle(circle) => circle.to_css(dest),
+            BasicShape::Ellipse(e) => e.to_css(dest),
         }
     }
 }
@@ -71,6 +72,28 @@ impl ToCss for Circle {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         try!(self.radius.to_css(dest));
         try!(dest.write_str(" at "));
+        self.position.to_css(dest)
+    }
+}
+
+#[derive(Clone, PartialEq, Copy, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub struct Ellipse {
+    pub semiaxis_a: ShapeRadius,
+    pub semiaxis_b: ShapeRadius,
+    pub position: Position,
+}
+
+impl ToCss for Ellipse {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        if ShapeRadius::ClosestSide != self.semiaxis_a
+            && ShapeRadius::ClosestSide != self.semiaxis_b {
+            try!(self.semiaxis_a.to_css(dest));
+            try!(dest.write_str(" "));
+            try!(self.semiaxis_b.to_css(dest));
+            try!(dest.write_str(" "));
+        }
+        try!(dest.write_str("at "));
         self.position.to_css(dest)
     }
 }

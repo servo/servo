@@ -25,7 +25,7 @@ use values::computed::basic_shape as computed_basic_shape;
 pub enum BasicShape {
     Inset(InsetRect),
     Circle(Circle),
-    // Ellipse(Ellipse),
+    Ellipse(Ellipse),
     // Polygon(Polygon),
 }
 
@@ -35,6 +35,8 @@ impl BasicShape {
             Ok(BasicShape::Inset(result))
         } else if let Ok(result) = input.try(Circle::parse) {
             Ok(BasicShape::Circle(result))
+        } else if let Ok(result) = input.try(Ellipse::parse) {
+            Ok(BasicShape::Ellipse(result))
         } else {
             Err(())
         }
@@ -46,6 +48,7 @@ impl ToCss for BasicShape {
         match *self {
             BasicShape::Inset(rect) => rect.to_css(dest),
             BasicShape::Circle(circle) => circle.to_css(dest),
+            BasicShape::Ellipse(e) => e.to_css(dest),
         }
     }
 }
@@ -58,6 +61,7 @@ impl ToComputedValue for BasicShape {
         match *self {
             BasicShape::Inset(rect) => computed_basic_shape::BasicShape::Inset(rect.to_computed_value(cx)),
             BasicShape::Circle(circle) => computed_basic_shape::BasicShape::Circle(circle.to_computed_value(cx)),
+            BasicShape::Ellipse(e) => computed_basic_shape::BasicShape::Ellipse(e.to_computed_value(cx)),
         }
     }
 }
@@ -180,6 +184,69 @@ impl ToComputedValue for Circle {
     fn to_computed_value(&self, cx: &Context) -> Self::ComputedValue {
         computed_basic_shape::Circle {
             radius: self.radius.to_computed_value(cx),
+            position: self.position.to_computed_value(cx),
+        }
+    }
+}
+
+#[derive(Clone, PartialEq, Copy, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub struct Ellipse {
+    pub semiaxis_a: ShapeRadius,
+    pub semiaxis_b: ShapeRadius,
+    pub position: Position,
+}
+
+
+impl Ellipse {
+    pub fn parse(input: &mut Parser) -> Result<Ellipse, ()> {
+        match_ignore_ascii_case! { try!(input.expect_function()),
+            "ellipse" => {
+                Ok(try!(input.parse_nested_block(Ellipse::parse_function)))
+            },
+            _ => Err(())
+        }
+    }
+    pub fn parse_function(input: &mut Parser) -> Result<Ellipse, ()> {
+        let (a, b) = input.try(|input| -> Result<_, ()> {
+            Ok((try!(ShapeRadius::parse(input)), try!(ShapeRadius::parse(input))))
+        }).unwrap_or((Default::default(), Default::default()));
+        let position = if let Ok(_) = input.try(|input| input.expect_ident_matching("at")) {
+            try!(Position::parse(input))
+        } else {
+            // Defaults to origin
+            try!(Position::new(PositionComponent::Center, PositionComponent::Center))
+        };
+        Ok(Ellipse {
+            semiaxis_a: a,
+            semiaxis_b: b,
+            position: position,
+        })
+    }
+}
+
+impl ToCss for Ellipse {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        if ShapeRadius::ClosestSide != self.semiaxis_a
+            && ShapeRadius::ClosestSide != self.semiaxis_b {
+            try!(self.semiaxis_a.to_css(dest));
+            try!(dest.write_str(" "));
+            try!(self.semiaxis_b.to_css(dest));
+            try!(dest.write_str(" "));
+        }
+        try!(dest.write_str("at "));
+        self.position.to_css(dest)
+    }
+}
+
+impl ToComputedValue for Ellipse {
+    type ComputedValue = computed_basic_shape::Ellipse;
+
+    #[inline]
+    fn to_computed_value(&self, cx: &Context) -> Self::ComputedValue {
+        computed_basic_shape::Ellipse {
+            semiaxis_a: self.semiaxis_a.to_computed_value(cx),
+            semiaxis_b: self.semiaxis_b.to_computed_value(cx),
             position: self.position.to_computed_value(cx),
         }
     }
