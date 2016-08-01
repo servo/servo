@@ -2,6 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 // See http://asciimath.org to render the equations here.
 
 // The Gaussian function used for blurring:
@@ -136,13 +140,12 @@ float color(vec2 pos, vec2 p0Rect, vec2 p1Rect, vec2 radii, float sigma) {
 }
 
 void main(void) {
-    vec2 pos = vPosition.xy;
-    vec2 p0Rect = vBorderPosition.xy, p1Rect = vBorderPosition.zw;
+    vec2 pos = vPos.xy;
+    vec2 p0Rect = vBoxShadowRect.xy, p1Rect = vBoxShadowRect.zw;
     vec2 radii = vBorderRadii.xy;
     float sigma = vBlurRadius / 2.0;
     float value = color(pos, p0Rect, p1Rect, radii, sigma);
 
     value = max(value, 0.0);
-    SetFragColor(vec4(vColor.rgb, vColor.a == 0.0 ? 1.0 - value : value));
+    oFragColor = vec4(vColor.rgb, vInverted == 1.0 ? 1.0 - value : value);
 }
-
