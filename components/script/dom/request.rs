@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::headers::Headers;
+use dom::headers::{Headers, Guard};
 use dom::bindings::reflector::Reflectable;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::UnionTypes::RequestOrUSVString;
@@ -325,6 +325,10 @@ impl Request {
                                  false,
                                  false);
         *r.request.borrow_mut() = request;
+        // dom::bindings::js::MutNullableHeap<dom::bindings::js::JS<dom::headers::Headers>>
+        r.headers_reflector.or_init(|| Headers::new(r.global().r()));
+        //r.headers_reflector.get().unwrap().guard = Guard::Request;
+        
         unimplemented!();
         // TODO: new Headers object whose guard is "request"
 
