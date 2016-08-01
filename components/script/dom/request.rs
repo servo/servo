@@ -5,7 +5,7 @@
 use dom::headers::{Headers, Guard};
 use dom::bindings::reflector::Reflectable;
 use dom::bindings::cell::DOMRefCell;
-use dom::bindings::codegen::UnionTypes::RequestOrUSVString;
+use dom::bindings::codegen::UnionTypes::{HeadersOrByteStringSequenceSequence, RequestOrUSVString};
 use dom::bindings::codegen::Bindings::RequestBinding;
 use dom::bindings::codegen::Bindings::RequestBinding::RequestCache;
 use dom::bindings::codegen::Bindings::RequestBinding::RequestCredentials;
@@ -41,13 +41,15 @@ impl Request {
     pub fn new_inherited(url: url::Url,
                          origin: Option<NetTraitsRequest::Origin>,
                          is_service_worker_global_scope: bool,
+                         pipeline_id: Option<msg::constellation_msg::PipelineId>,
                          body_used: bool) -> Request {
         Request {
             reflector_: Reflector::new(),
             request: DOMRefCell::new(
                 NetTraitsRequest::Request::new(url,
-                                                  origin,
-                                                  is_service_worker_global_scope)),
+                                               origin,
+                                               is_service_worker_global_scope,
+                                               pipeline_id)),
             body_used: DOMRefCell::new(body_used),
             headers_reflector: Default::default(),
         }
@@ -57,10 +59,12 @@ impl Request {
                url: url::Url,
                origin: Option<NetTraitsRequest::Origin>,
                is_service_worker_global_scope: bool,
+               pipeline_id: Option<msg::constellation_msg::PipelineId>,
                body_used: bool) -> Root<Request> {
         reflect_dom_object(box Request::new_inherited(url,
                                                       origin,
                                                       is_service_worker_global_scope,
+                                                      pipeline_id,
                                                       body_used),
                            global, RequestBinding::Wrap)
     }
@@ -73,8 +77,9 @@ impl Request {
 
         let mut request =
             NetTraitsRequest::Request::new(url::Url::parse("").unwrap(),
-                                              None,
-                                              false);
+                                           None,
+                                           false,
+                                           None);
 
         // Step 1
         if is_request(&input) &&
@@ -85,8 +90,9 @@ impl Request {
         // Step 2
         let mut temporary_request =
             NetTraitsRequest::Request::new(url::Url::parse("").unwrap(),
-                                              None,
-                                              false);
+                                           None,
+                                           false,
+                                           None);
         if let &RequestOrUSVString::Request(ref req) = &input {
             temporary_request = req.request.borrow().clone();
         }
@@ -117,7 +123,7 @@ impl Request {
         }
 
         // Step 8
-        if let Some(url) = Request::get_current_url(&temporary_request) {
+        if let Some(url) = get_current_url(&temporary_request) {
             request.url_list = RefCell::new(vec![url.clone()]);
         }
         request.method = temporary_request.method;
@@ -302,17 +308,18 @@ impl Request {
         if let Some(init_method) = init.method.as_ref() {
             let method: ByteString = init_method.clone();
             // Step 25.1
-            if !Request::is_method(&method) {
+            if !is_method(&method) {
                 return Err(Error::Type("Method is not a method".to_string()));
             }
-            if Request::is_forbidden_method(&method) {
+            if is_forbidden_method(&method) {
                 return Err(Error::Type("Method is forbidden".to_string()));
             }
             // TODO: normalized_method
             // Step 25.2
             let normalized_method = method.as_str().unwrap();
+            // let normalized_method = normalize_method(method);
             // Step 25.3
-            let hyper_method = Request::from_normalized_method_to_method_enum(normalized_method);
+            let hyper_method = from_normalized_method_to_method_enum(normalized_method);
             request.method = RefCell::new(hyper_method);
         }
 
@@ -323,76 +330,135 @@ impl Request {
                                  // expects NetTraitsRequest::Origin
                                  // global.get_url().origin() returns url::Origin
                                  false,
+                                 None,
                                  false);
         *r.request.borrow_mut() = request;
-        // dom::bindings::js::MutNullableHeap<dom::bindings::js::JS<dom::headers::Headers>>
-        r.headers_reflector.or_init(|| Headers::new(r.global().r()));
-        //r.headers_reflector.get().unwrap().guard = Guard::Request;
-        
-        unimplemented!();
-        // TODO: new Headers object whose guard is "request"
+        r.headers_reflector.or_init(|| Headers::new(r.global().r(), None).unwrap());
+        r.headers_reflector.get().unwrap().set_guard(Guard::Request);
 
         // Step 27
-        // Let headers be a copy of r's Headers object.
+        let mut headers = r.headers_reflector.get().clone();
 
         // Step 28
-        // If init's headers member is present, set headers to init's headers member.
+        // TODO: temp fix -> adding [#derive(Clone)] to generated code
+        let mut headers_init: Option<HeadersOrByteStringSequenceSequence>;
+        headers_init = None;
+        if let Some(init_headers) = init.headers.as_ref() {
+            // init_headers is &HeadersOrByteStringSequenceSequence
+            // ... and &T is Clone for all types T
+            // ... therefore init_headers can be cloned
+            // ... but HeadersOrByteStringSequenceSequence is not Clone
+            // ... so it cannot be cloned
+            // ... so rust chooses to clone the &HeadersOrByteStringSequenceSequence reference
+            // ... rather than doing the equivalent of std::clone::Clone(*init_heades)
+            // ... and so headers is another &HeadersOrByteStringSequenceSequence now
+            let headers = init_headers.clone();
+            // ... and this is going to complain becuase headers_init is supposed to be Option<T> not Option<&T>
+            // ... where T = HeadersOrByteStringSequenceSequence
+            headers_init = Some(headers);
+        }
 
         // Step 29
-        // Empty r's request's header list.
+        r.headers_reflector.get().unwrap().empty_header_list();
 
-    }
-
-    // TODO
-    fn from_normalized_method_to_method_enum(m: &str) -> hyper::method::Method {
-        match m {
-            "DELETE" => hyper::method::Method::Delete,
-            "GET" => hyper::method::Method::Get,
-            "HEAD" => hyper::method::Method::Head,
-            "OPTIONS" => hyper::method::Method::Options,
-            "POST" => hyper::method::Method::Post,
-            "PUT" => hyper::method::Method::Put,
-            a => hyper::method::Method::Extension(a.to_string())
+        // Step 30
+        if let NetTraitsRequest::RequestMode::NoCORS = r.request.borrow().mode {
+            let method = r.request.borrow().method.clone();
+            if !is_cors_safelisted_method(method.into_inner()) {
+                return Err(Error::Type("The mode is 'no-cors' but the method is not a cors-safelisted method".to_string()));
+            }
+            let integrity_metadata = r.request.borrow().integrity_metadata.clone();
+            if !integrity_metadata.into_inner().is_empty() {
+                return Err(Error::Type("Integrity metadata is not an empty string".to_string()));
+            }
+            r.headers_reflector.get().unwrap().set_guard(Guard::RequestNoCors);
         }
-    }
 
-    // TODO
-    // https://fetch.spec.whatwg.org/#concept-method-normalize
-    fn normalize_method(m: &ByteString) -> String {
-        unimplemented!()
-    }
+        // Step 31
+        if headers_init.is_some() {
+            r.headers_reflector.set(Some(Headers::new(global, headers_init).unwrap().r()));
+        }
 
-    // TODO
-    // https://tools.ietf.org/html/rfc7230#section-3.1.1
-    fn is_method(m: &ByteString) -> bool {
-        return true;
-    }
+        // Step 32
+        let mut input_body: Option<Vec<u8>>;
+        input_body = None;
+        if let RequestInfo::Request(input_request) = input {
+            let request_body = input_request.request.borrow().clone().body.into_inner();
+            if request_body.is_some() {
+                input_body = Some(request_body.unwrap());
+            }
+        }
 
-    // TODO
+        // Step 33
+        unimplemented!();
+    }
+}
+
+// TODO
+fn from_normalized_method_to_method_enum(m: &str) -> hyper::method::Method {
+    match m {
+        "DELETE" => hyper::method::Method::Delete,
+        "GET" => hyper::method::Method::Get,
+        "HEAD" => hyper::method::Method::Head,
+        "OPTIONS" => hyper::method::Method::Options,
+        "POST" => hyper::method::Method::Post,
+        "PUT" => hyper::method::Method::Put,
+        a => hyper::method::Method::Extension(a.to_string())
+    }
+}
+
+// TODO
+// make it return all caps
+// https://fetch.spec.whatwg.org/#concept-method-normalize
+fn normalize_method(m: &ByteString) -> String {
+    match m.to_lower().as_str() {
+        Some("delete") => "DELETE".to_string(),
+        Some("get") => "GET".to_string(),
+        Some("head") => "HEAD".to_string(),
+        Some("options") => "OPTIONS".to_string(),
+        Some("post") => "POST".to_string(),
+        Some("put") => "PUT".to_string(),
+        Some(a) => a.to_string(),
+        None => "NONE".to_string(),
+    }
+}
+
+// TODO
+// https://tools.ietf.org/html/rfc7230#section-3.1.1
+fn is_method(m: &ByteString) -> bool {
+    return true;
+}
+
+// TODO
     // https://fetch.spec.whatwg.org/#forbidden-method
-    fn is_forbidden_method(m: &ByteString) -> bool {
-        return false;
-    }
+fn is_forbidden_method(m: &ByteString) -> bool {
+    return false;
+}
 
-    // https://fetch.spec.whatwg.org/#concept-request-url
-    fn get_associated_url(req: &NetTraitsRequest::Request) -> Option<Ref<url::Url>> {
-        let url_list = req.url_list.borrow();
-        if url_list.len() > 0 {
-            Some(Ref::map(url_list, |urls| urls.first().unwrap()))
+// https://fetch.spec.whatwg.org/#concept-request-url
+fn get_associated_url(req: &NetTraitsRequest::Request) -> Option<Ref<url::Url>> {
+    let url_list = req.url_list.borrow();
+    if url_list.len() > 0 {
+        Some(Ref::map(url_list, |urls| urls.first().unwrap()))
         } else {
-            None
-        }
+        None
     }
+}
 
-    // https://fetch.spec.whatwg.org/#concept-request-current-url
-    fn get_current_url(req: &NetTraitsRequest::Request) -> Option<Ref<url::Url>> {
-        let url_list = req.url_list.borrow();
-        if url_list.len() > 0 {
-            Some(Ref::map(url_list, |urls| urls.last().unwrap()))
+// https://fetch.spec.whatwg.org/#concept-request-current-url
+fn get_current_url(req: &NetTraitsRequest::Request) -> Option<Ref<url::Url>> {
+    let url_list = req.url_list.borrow();
+    if url_list.len() > 0 {
+        Some(Ref::map(url_list, |urls| urls.last().unwrap()))
         } else {
-            None
-        }
+        None
     }
+}
+
+fn is_cors_safelisted_method(m: hyper::method::Method) -> bool {
+    m == hyper::method::Method::Get ||
+        m == hyper::method::Method::Head ||
+        m == hyper::method::Method::Post
 }
 
 fn includes_credentials(input: &Result<url::Url, url::ParseError>) -> bool {
@@ -454,7 +520,7 @@ impl RequestMethods for Request {
 
     // https://fetch.spec.whatwg.org/#dom-request-headers
     fn Headers(&self) -> Root<Headers> {
-        self.headers_reflector.or_init(|| Headers::new(self.global().r()))
+        self.headers_reflector.or_init(|| Headers::new(self.global().r(), None).unwrap())
     }
 
     // https://fetch.spec.whatwg.org/#dom-request-type
@@ -537,14 +603,18 @@ impl RequestMethods for Request {
         }
 
         // Step 2
+        // TODO: Headers object whose guard is context object's Headers' guard. 
         let url = self.request.borrow().clone().url_list.into_inner()[0].clone();
         let origin = self.request.borrow().clone().origin.into_inner();
         let is_service_worker_global_scope = self.request.borrow().clone().is_service_worker_global_scope;
+        let pipeline_id = self.request.borrow().clone().pipeline_id.get();
+        let body_used = self.body_used.borrow().clone();
         Ok(Request::new(self.global().r(),
                         url,
                         Some(origin),
                         is_service_worker_global_scope,
-                        false))
+                        pipeline_id,
+                        body_used))
     }
 }
 
