@@ -144,9 +144,9 @@ impl Request {
         // Step 10
         let mut fallback_credentials: Option<NetTraitsRequest::CredentialsMode>;
         fallback_credentials = None;
-        
-        // TODO: entry settings object is not implemented in Servo yet.
+
         // Step 11
+        // TODO: entry settings object is not implemented in Servo yet.
         // let base_url = entry settings object's API base URL
 
         // Step 12
