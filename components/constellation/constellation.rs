@@ -832,6 +832,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 debug!("constellation got traverse history message from script");
                 self.handle_traverse_history_msg(pipeline_id, direction);
             }
+            // Handle a joint session history length request.
+            FromScriptMsg::JointSessionHistoryLength(pipeline_id, sender) => {
+                debug!("constellation got joint session history length message from script");
+                self.handle_joint_session_history_length(pipeline_id, sender);
+            }
             // Notification that the new document is ready to become active
             FromScriptMsg::ActivateDocument(pipeline_id) => {
                 debug!("constellation got activate document message");
@@ -1489,6 +1494,46 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         for (frame_id, pipeline_id) in traversal_info {
             self.traverse_frame_to_pipeline(frame_id, pipeline_id);
         }
+    }
+
+    fn handle_joint_session_history_length(&self, pipeline_id: PipelineId, sender: IpcSender<u32>) {
+        let frame_id = match self.get_top_level_frame_for_pipeline(Some(pipeline_id)) {
+            Some(frame_id) => frame_id,
+            None => {
+                warn!("Jsh length message received after root's closure.");
+                let _ = sender.send(0);
+                return;
+            },
+        };
+
+        // Set to 1 to count for the current active entry
+        let mut length = 1;
+
+        let mut frames_to_check = vec!(frame_id);
+        while let Some(frame_id) = frames_to_check.pop() {
+            let frame = match self.frames.get(&frame_id) {
+                Some(frame) => frame,
+                None => {
+                    warn!("Calculated jsh length after frame {:?} closure.", frame_id);
+                    let _ = sender.send(0);
+                    continue;
+                }
+            };
+            length += frame.next.len();
+            length += frame.prev.len();
+            for &(pipeline_id, _) in frame.next.iter().chain(frame.prev.iter()).chain(once(&frame.current)) {
+                let pipeline = match self.pipelines.get(&pipeline_id) {
+                    Some(pipeline) => pipeline,
+                    None => {
+                        warn!("Calculated jsh length after pipeline {:?} closure.", pipeline_id);
+                        let _ = sender.send(0);
+                        continue;
+                    }
+                };
+                frames_to_check.extend_from_slice(&pipeline.children);
+            }
+        }
+        let _ = sender.send(length as u32);
     }
 
     fn handle_key_msg(&mut self, ch: Option<char>, key: Key, state: KeyState, mods: KeyModifiers) {
