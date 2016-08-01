@@ -18,7 +18,7 @@ use app_units::Au;
 use azure::azure::AzFloat;
 use azure::azure_hl::Color;
 use euclid::approxeq::ApproxEq;
-use euclid::num::Zero;
+use euclid::num::{One, Zero};
 use euclid::rect::TypedRect;
 use euclid::side_offsets::SideOffsets2D;
 use euclid::{Matrix2D, Matrix4D, Point2D, Rect, Size2D};
@@ -457,20 +457,18 @@ impl DisplayList {
                 let transform = transform.translate(pixel_snapped_origin.x as AzFloat,
                                                     pixel_snapped_origin.y as AzFloat,
                                                     0.0).mul(&stacking_context.transform);
-                let inverse_transform = transform.invert();
 
-                // Here we are trying to accumulate any subpixel distances across transformed
-                // stacking contexts. This allows us transform stacking context with a
-                // pixel-snapped transform, but continue to propagate any subpixels from stacking
-                // context origins to children.
-                let subpixel_offset = Point2D::new(origin.x.to_f32_px() - pixel_snapped_origin.x,
-                                                   origin.y.to_f32_px() - pixel_snapped_origin.y);
-                let subpixel_offset = inverse_transform.transform_point(&subpixel_offset) -
-                                      inverse_transform.transform_point(&Point2D::zero());;
-                let subpixel_offset = Point2D::new(Au::from_f32_px(subpixel_offset.x),
-                                                   Au::from_f32_px(subpixel_offset.y));
-
-                (transform, subpixel_offset)
+                if transform.is_identity_or_simple_translation() {
+                    let pixel_snapped_origin = Point2D::new(Au::from_f32_px(pixel_snapped_origin.x),
+                                                            Au::from_f32_px(pixel_snapped_origin.y));
+                    (transform, origin - pixel_snapped_origin)
+                } else {
+                    // In the case of a more complicated transformation, don't attempt to
+                    // preserve subpixel offsets. This causes problems with reference tests
+                    // that do scaling and rotation and it's unclear if we even want to be doing
+                    // this.
+                    (transform, Point2D::zero())
+                }
             }
         };
 
@@ -1462,3 +1460,18 @@ impl WebRenderImageInfo {
 /// The type of the scroll offset list. This is only populated if WebRender is in use.
 pub type ScrollOffsetMap = HashMap<StackingContextId, Point2D<f32>>;
 
+
+pub trait SimpleMatrixDetection {
+    fn is_identity_or_simple_translation(&self) -> bool;
+}
+
+impl SimpleMatrixDetection for Matrix4D<f32> {
+    #[inline]
+    fn is_identity_or_simple_translation(&self) -> bool {
+        let (_0, _1) = (Zero::zero(), One::one());
+        self.m11 == _1 && self.m12 == _0 && self.m13 == _0 && self.m14 == _0 &&
+        self.m21 == _0 && self.m22 == _1 && self.m23 == _0 && self.m24 == _0 &&
+        self.m31 == _0 && self.m32 == _0 && self.m33 == _1 && self.m34 == _0 &&
+        self.m44 == _1
+    }
+}
