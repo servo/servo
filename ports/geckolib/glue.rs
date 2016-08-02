@@ -153,6 +153,8 @@ pub extern "C" fn Servo_DropNodeData(data: *mut ServoNodeData) -> () {
 pub extern "C" fn Servo_StylesheetFromUTF8Bytes(bytes: *const u8,
                                                 length: u32,
                                                 mode: SheetParsingMode,
+                                                base_bytes: *const u8,
+                                                base_length: u32,
                                                 base: *mut ThreadSafeURIHolder,
                                                 referrer: *mut ThreadSafeURIHolder,
                                                 principal: *mut ThreadSafePrincipalHolder)
@@ -165,8 +167,8 @@ pub extern "C" fn Servo_StylesheetFromUTF8Bytes(bytes: *const u8,
         SheetParsingMode::eAgentSheetFeatures => Origin::UserAgent,
     };
 
-    // FIXME(heycam): Pass in the real base URL.
-    let url = Url::parse("about:none").unwrap();
+    let base_str = unsafe { from_utf8_unchecked(slice::from_raw_parts(base_bytes, base_length as usize)) };
+    let url = Url::parse(base_str).unwrap();
     let extra_data = ParserContextExtraData {
         base: Some(GeckoArcURI::new(base)),
         referrer: Some(GeckoArcURI::new(referrer)),

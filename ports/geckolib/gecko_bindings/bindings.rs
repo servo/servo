@@ -313,6 +313,8 @@ extern "C" {
     pub fn Gecko_ReleaseCalcArbitraryThread(aPtr: *mut Calc);
     pub fn Servo_StylesheetFromUTF8Bytes(bytes: *const u8, length: u32,
                                          parsing_mode: SheetParsingMode,
+                                         base_bytes: *const u8,
+                                         base_length: u32,
                                          base: *mut ThreadSafeURIHolder,
                                          referrer: *mut ThreadSafeURIHolder,
                                          principal:
