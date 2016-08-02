@@ -2,11 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::headers::{Headers, Guard};
-use dom::bindings::reflector::Reflectable;
+
 use dom::bindings::cell::DOMRefCell;
-use dom::bindings::codegen::UnionTypes::{HeadersOrByteStringSequenceSequence, RequestOrUSVString};
 use dom::bindings::codegen::Bindings::RequestBinding;
+use dom::bindings::codegen::Bindings::RequestBinding::ReferrerPolicy;
 use dom::bindings::codegen::Bindings::RequestBinding::RequestCache;
 use dom::bindings::codegen::Bindings::RequestBinding::RequestCredentials;
 use dom::bindings::codegen::Bindings::RequestBinding::RequestDestination;
@@ -14,14 +13,15 @@ use dom::bindings::codegen::Bindings::RequestBinding::RequestInfo;
 use dom::bindings::codegen::Bindings::RequestBinding::RequestInit;
 use dom::bindings::codegen::Bindings::RequestBinding::RequestMethods;
 use dom::bindings::codegen::Bindings::RequestBinding::RequestMode;
-use dom::bindings::codegen::Bindings::RequestBinding::ReferrerPolicy;
 use dom::bindings::codegen::Bindings::RequestBinding::RequestRedirect;
 use dom::bindings::codegen::Bindings::RequestBinding::RequestType;
+use dom::bindings::codegen::UnionTypes::{HeadersOrByteStringSequenceSequence, RequestOrUSVString};
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
-use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::{ByteString, USVString, DOMString};
+use dom::headers::{Headers, Guard};
 use hyper;
 use msg;
 use net_traits::request as NetTraitsRequest;
@@ -74,7 +74,6 @@ impl Request {
                        input: RequestInfo,
                        init: &RequestInit)
                       -> Fallible<Root<Request>> {
-
         let mut request =
             NetTraitsRequest::Request::new(url::Url::parse("").unwrap(),
                                            None,
@@ -252,7 +251,7 @@ impl Request {
         let mut mode: Option<NetTraitsRequest::RequestMode>;
         mode = None;
         match init.mode.as_ref() {
-            Some(init_mode) =>  mode = Some(init_mode.clone().into()),
+            Some(init_mode) => mode = Some(init_mode.clone().into()),
             None => mode = Some(fallback_mode.unwrap()),
         }
 
@@ -269,7 +268,7 @@ impl Request {
         // Step 19
         let mut credentials: Option<NetTraitsRequest::CredentialsMode>;
         match init.credentials.as_ref() {
-            Some(init_credentials) =>  credentials = Some(init_credentials.clone().into()),
+            Some(init_credentials) => credentials = Some(init_credentials.clone().into()),
             None => credentials = Some(fallback_credentials.unwrap()),
         }
 
@@ -365,7 +364,8 @@ impl Request {
         if let NetTraitsRequest::RequestMode::NoCORS = r.request.borrow().mode {
             let method = r.request.borrow().method.clone();
             if !is_cors_safelisted_method(method.into_inner()) {
-                return Err(Error::Type("The mode is 'no-cors' but the method is not a cors-safelisted method".to_string()));
+                return Err(Error::Type(
+                    "The mode is 'no-cors' but the method is not a cors-safelisted method".to_string()));
             }
             let integrity_metadata = r.request.borrow().integrity_metadata.clone();
             if !integrity_metadata.into_inner().is_empty() {
@@ -603,7 +603,7 @@ impl RequestMethods for Request {
         }
 
         // Step 2
-        // TODO: Headers object whose guard is context object's Headers' guard. 
+        // TODO: Headers object whose guard is context object's Headers' guard.
         let url = self.request.borrow().clone().url_list.into_inner()[0].clone();
         let origin = self.request.borrow().clone().origin.into_inner();
         let is_service_worker_global_scope = self.request.borrow().clone().is_service_worker_global_scope;
@@ -698,7 +698,7 @@ impl Into<RequestDestination> for NetTraitsRequest::Destination {
             NetTraitsRequest::Destination::Media => RequestDestination::Media,
             NetTraitsRequest::Destination::Object => RequestDestination::Object,
             NetTraitsRequest::Destination::Report => RequestDestination::Report,
-            NetTraitsRequest::Destination::Script => RequestDestination::Script,          
+            NetTraitsRequest::Destination::Script => RequestDestination::Script,
             NetTraitsRequest::Destination::ServiceWorker => RequestDestination::Serviceworker,
             NetTraitsRequest::Destination::SharedWorker => RequestDestination::Sharedworker,
             NetTraitsRequest::Destination::Style => RequestDestination::Style,
@@ -771,7 +771,8 @@ impl Into<msg::constellation_msg::ReferrerPolicy> for ReferrerPolicy {
         match self {
             ReferrerPolicy::_empty => msg::constellation_msg::ReferrerPolicy::NoReferrer,
             ReferrerPolicy::No_referrer => msg::constellation_msg::ReferrerPolicy::NoReferrer,
-            ReferrerPolicy::No_referrer_when_downgrade => msg::constellation_msg::ReferrerPolicy::NoReferrerWhenDowngrade,
+            ReferrerPolicy::No_referrer_when_downgrade =>
+                msg::constellation_msg::ReferrerPolicy::NoReferrerWhenDowngrade,
             ReferrerPolicy::Origin => msg::constellation_msg::ReferrerPolicy::Origin,
             ReferrerPolicy::Origin_when_cross_origin => msg::constellation_msg::ReferrerPolicy::OriginWhenCrossOrigin,
             ReferrerPolicy::Unsafe_url => msg::constellation_msg::ReferrerPolicy::UnsafeUrl,
@@ -783,7 +784,8 @@ impl Into<ReferrerPolicy> for msg::constellation_msg::ReferrerPolicy {
     fn into(self) -> ReferrerPolicy {
         match self {
             msg::constellation_msg::ReferrerPolicy::NoReferrer => ReferrerPolicy::No_referrer,
-            msg::constellation_msg::ReferrerPolicy::NoReferrerWhenDowngrade => ReferrerPolicy::No_referrer_when_downgrade,
+            msg::constellation_msg::ReferrerPolicy::NoReferrerWhenDowngrade =>
+                ReferrerPolicy::No_referrer_when_downgrade,
             msg::constellation_msg::ReferrerPolicy::Origin => ReferrerPolicy::Origin,
             msg::constellation_msg::ReferrerPolicy::SameOrigin => ReferrerPolicy::Origin,
             msg::constellation_msg::ReferrerPolicy::OriginWhenCrossOrigin => ReferrerPolicy::Origin_when_cross_origin,
