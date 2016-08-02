@@ -2,10 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use filemanager_thread::{FileManager, UIProvider};
 use hyper::header::{DispositionType, ContentDisposition, DispositionParam};
 use hyper::header::{Headers, ContentType, ContentLength, Charset};
 use hyper::http::RawStatus;
-use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::ipc;
 use mime::{Mime, Attr};
 use mime_classifier::MimeClassifier;
 use net_traits::ProgressMsg::{Payload, Done};
@@ -22,29 +23,26 @@ use util::thread::spawn_named;
 // TODO: Check on GET
 // https://w3c.github.io/FileAPI/#requestResponseModel
 
-pub fn factory(filemanager_chan: IpcSender<FileManagerThreadMsg>)
-               -> Box<FnBox(LoadData,
-                            LoadConsumer,
-                            Arc<MimeClassifier>,
-                            CancellationListener) + Send> {
+pub fn factory<UI: 'static + UIProvider>(filemanager: Arc<FileManager<UI>>)
+              -> Box<FnBox(LoadData, LoadConsumer, Arc<MimeClassifier>, CancellationListener) + Send> {
     box move |load_data: LoadData, start_chan, classifier, cancel_listener| {
         spawn_named(format!("blob loader for {}", load_data.url), move || {
-            load_blob(load_data, start_chan, classifier, filemanager_chan, cancel_listener);
+            load_blob(load_data, start_chan, classifier, filemanager, cancel_listener);
         })
     }
 }
 
-fn load_blob(load_data: LoadData, start_chan: LoadConsumer,
+fn load_blob<UI: 'static + UIProvider>
+            (load_data: LoadData, start_chan: LoadConsumer,
              classifier: Arc<MimeClassifier>,
-             filemanager_chan: IpcSender<FileManagerThreadMsg>,
-             // XXX(izgzhen): we should utilize cancel_listener, filed in #12589
-             _cancel_listener: CancellationListener) {
+             filemanager: Arc<FileManager<UI>>,
+             cancel_listener: CancellationListener) {
     let (chan, recv) = ipc::channel().unwrap();
     if let Ok((id, origin, _fragment)) = parse_blob_url(&load_data.url.clone()) {
         let id = SelectedFileId(id.simple().to_string());
         let check_url_validity = true;
         let msg = FileManagerThreadMsg::ReadFile(chan, id, check_url_validity, origin);
-        let _ = filemanager_chan.send(msg);
+        let _ = filemanager.handle(msg, Some(cancel_listener));
 
         // Receive first chunk
         match recv.recv().unwrap() {

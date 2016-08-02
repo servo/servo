@@ -34,9 +34,9 @@ use dom::virtualmethods::VirtualMethods;
 use ipc_channel::ipc::{self, IpcSender};
 use mime_guess;
 use msg::constellation_msg::Key;
-use net_traits::IpcSend;
 use net_traits::blob_url_store::get_blob_origin;
 use net_traits::filemanager_thread::{FileManagerThreadMsg, FilterPattern};
+use net_traits::{IpcSend, CoreResourceMsg};
 use script_traits::ScriptMsg as ConstellationMsg;
 use std::borrow::ToOwned;
 use std::cell::Cell;
@@ -780,7 +780,7 @@ impl HTMLInputElement {
     fn select_files(&self, opt_test_paths: Option<Vec<DOMString>>) {
         let window = window_from_node(self);
         let origin = get_blob_origin(&window.get_url());
-        let filemanager = window.resource_threads().sender();
+        let resource_threads = window.resource_threads();
 
         let mut files: Vec<Root<File>> = vec![];
         let mut error = None;
@@ -793,7 +793,7 @@ impl HTMLInputElement {
 
             let (chan, recv) = ipc::channel().expect("Error initializing channel");
             let msg = FileManagerThreadMsg::SelectFiles(filter, chan, origin, opt_test_paths);
-            let _ = filemanager.send(msg).unwrap();
+            let _ = resource_threads.send(CoreResourceMsg::ToFileManager(msg)).unwrap();
 
             match recv.recv().expect("IpcSender side error") {
                 Ok(selected_files) => {
@@ -817,7 +817,7 @@ impl HTMLInputElement {
 
             let (chan, recv) = ipc::channel().expect("Error initializing channel");
             let msg = FileManagerThreadMsg::SelectFile(filter, chan, origin, opt_test_path);
-            let _ = filemanager.send(msg).unwrap();
+            let _ = resource_threads.send(CoreResourceMsg::ToFileManager(msg)).unwrap();
 
             match recv.recv().expect("IpcSender side error") {
                 Ok(selected) => {

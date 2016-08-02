@@ -15,7 +15,7 @@ use data_loader;
 use devtools_traits::DevtoolsControlMsg;
 use fetch::methods::{fetch, FetchContext};
 use file_loader;
-use filemanager_thread::{FileManagerThreadFactory, TFDProvider};
+use filemanager_thread::{FileManager, TFDProvider};
 use hsts::HstsList;
 use http_loader::{self, HttpState};
 use hyper::client::pool::Pool;
@@ -25,7 +25,6 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender, IpcReceiverSet};
 use mime_classifier::{ApacheBugFlag, MimeClassifier, NoSniffFlag};
 use net_traits::LoadContext;
 use net_traits::ProgressMsg::Done;
-use net_traits::filemanager_thread::FileManagerThreadMsg;
 use net_traits::request::{Request, RequestInit};
 use net_traits::storage_thread::StorageThreadMsg;
 use net_traits::{AsyncResponseTarget, Metadata, ProgressMsg, ResponseAction, CoreResourceThread};
@@ -168,16 +167,14 @@ pub fn new_resource_threads(user_agent: String,
                             profiler_chan: ProfilerChan,
                             config_dir: Option<PathBuf>)
                             -> (ResourceThreads, ResourceThreads) {
-    let filemanager_chan: IpcSender<FileManagerThreadMsg> = FileManagerThreadFactory::new(TFD_PROVIDER);
     let (public_core, private_core) = new_core_resource_thread(
         user_agent,
         devtools_chan,
         profiler_chan,
-        filemanager_chan.clone(),
         config_dir.clone());
     let storage: IpcSender<StorageThreadMsg> = StorageThreadFactory::new(config_dir);
-    (ResourceThreads::new(public_core, storage.clone(), filemanager_chan.clone()),
-     ResourceThreads::new(private_core, storage, filemanager_chan))
+    (ResourceThreads::new(public_core, storage.clone()),
+     ResourceThreads::new(private_core, storage))
 }
 
 
@@ -185,7 +182,6 @@ pub fn new_resource_threads(user_agent: String,
 pub fn new_core_resource_thread(user_agent: String,
                                 devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                                 profiler_chan: ProfilerChan,
-                                filemanager_chan: IpcSender<FileManagerThreadMsg>,
                                 config_dir: Option<PathBuf>)
                                 -> (CoreResourceThread, CoreResourceThread) {
     let (public_setup_chan, public_setup_port) = ipc::channel().unwrap();
@@ -194,7 +190,7 @@ pub fn new_core_resource_thread(user_agent: String,
     let private_setup_chan_clone = private_setup_chan.clone();
     spawn_named("ResourceManager".to_owned(), move || {
         let resource_manager = CoreResourceManager::new(
-            user_agent, devtools_chan, profiler_chan, filemanager_chan
+            user_agent, devtools_chan, profiler_chan
         );
 
         let mut channel_manager = ResourceChannelManager {
@@ -307,6 +303,7 @@ impl ResourceChannelManager {
             CoreResourceMsg::Synchronize(sender) => {
                 let _ = sender.send(());
             }
+            CoreResourceMsg::ToFileManager(msg) => self.resource_manager.filemanager.handle(msg, None),
             CoreResourceMsg::Exit(sender) => {
                 if let Some(ref config_dir) = self.config_dir {
                     match group.auth_cache.read() {
@@ -476,7 +473,7 @@ pub struct CoreResourceManager {
     devtools_chan: Option<Sender<DevtoolsControlMsg>>,
     swmanager_chan: Option<IpcSender<CustomResponseMediator>>,
     profiler_chan: ProfilerChan,
-    filemanager_chan: IpcSender<FileManagerThreadMsg>,
+    filemanager: Arc<FileManager<TFDProvider>>,
     cancel_load_map: HashMap<ResourceId, Sender<()>>,
     next_resource_id: ResourceId,
 }
@@ -484,15 +481,14 @@ pub struct CoreResourceManager {
 impl CoreResourceManager {
     pub fn new(user_agent: String,
                devtools_channel: Option<Sender<DevtoolsControlMsg>>,
-               profiler_chan: ProfilerChan,
-               filemanager_chan: IpcSender<FileManagerThreadMsg>) -> CoreResourceManager {
+               profiler_chan: ProfilerChan) -> CoreResourceManager {
         CoreResourceManager {
             user_agent: user_agent,
             mime_classifier: Arc::new(MimeClassifier::new()),
             devtools_chan: devtools_channel,
             swmanager_chan: None,
             profiler_chan: profiler_chan,
-            filemanager_chan: filemanager_chan,
+            filemanager: Arc::new(FileManager::new(TFD_PROVIDER)),
             cancel_load_map: HashMap::new(),
             next_resource_id: ResourceId(0),
         }
@@ -567,7 +563,7 @@ impl CoreResourceManager {
             },
             "data" => from_factory(data_loader::factory),
             "about" => from_factory(about_loader::factory),
-            "blob" => blob_loader::factory(self.filemanager_chan.clone()),
+            "blob" => blob_loader::factory(self.filemanager.clone()),
             _ => {
                 debug!("resource_thread: no loader for scheme {}", load_data.url.scheme());
                 send_error(load_data.url, NetworkError::Internal("no loader for scheme".to_owned()), consumer);
