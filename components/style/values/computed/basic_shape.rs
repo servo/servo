@@ -7,10 +7,10 @@
 //!
 //! [basic-shape]: https://drafts.csswg.org/css-shapes/#typedef-basic-shape
 
-use values::computed::{BorderRadiusSize, LengthOrPercentage};
-use values::computed::position::Position;
-use std::fmt;
 use cssparser::ToCss;
+use std::fmt;
+use values::computed::position::Position;
+use values::computed::{BorderRadiusSize, LengthOrPercentage};
 
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -86,8 +86,8 @@ pub struct Ellipse {
 
 impl ToCss for Ellipse {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        if ShapeRadius::ClosestSide != self.semiaxis_a
-            && ShapeRadius::ClosestSide != self.semiaxis_b {
+        if ShapeRadius::ClosestSide != self.semiaxis_a &&
+           ShapeRadius::ClosestSide != self.semiaxis_b {
             try!(self.semiaxis_a.to_css(dest));
             try!(dest.write_str(" "));
             try!(self.semiaxis_b.to_css(dest));

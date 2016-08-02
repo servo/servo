@@ -7,13 +7,12 @@
 //!
 //! [position]: https://drafts.csswg.org/css-backgrounds-3/#position
 
-use std::fmt;
 use cssparser::{Parser, ToCss, Token};
+use std::fmt;
 use values::HasViewportPercentage;
-use values::specified::{LengthOrPercentage, Percentage};
-use values::computed::{Context, ToComputedValue};
-
 use values::computed::position as computed_position;
+use values::computed::{Context, ToComputedValue};
+use values::specified::{LengthOrPercentage, Percentage};
 
 #[derive(Debug, Clone, PartialEq, Copy)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]

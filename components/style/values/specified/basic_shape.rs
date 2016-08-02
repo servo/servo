@@ -8,13 +8,13 @@
 //! [basic-shape]: https://drafts.csswg.org/css-shapes/#typedef-basic-shape
 
 use app_units::Au;
-use std::fmt;
 use cssparser::{Parser, ToCss};
 use properties::shorthands::parse_four_sides;
-use values::specified::{BorderRadiusSize, Length, LengthOrPercentage};
-use values::specified::position::{Position, PositionComponent};
-use values::computed::{Context, ToComputedValue, ComputedValueAsSpecified};
+use std::fmt;
 use values::computed::basic_shape as computed_basic_shape;
+use values::computed::{Context, ToComputedValue, ComputedValueAsSpecified};
+use values::specified::position::{Position, PositionComponent};
+use values::specified::{BorderRadiusSize, Length, LengthOrPercentage};
 
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -87,7 +87,7 @@ impl InsetRect {
         }
     }
     pub fn parse_function(input: &mut Parser) -> Result<InsetRect, ()> {
-        let (t,r,b,l) = try!(parse_four_sides(input, LengthOrPercentage::parse));
+        let (t, r, b, l) = try!(parse_four_sides(input, LengthOrPercentage::parse));
         let mut rect = InsetRect {
             top: t,
             right: r,
@@ -230,8 +230,8 @@ impl Ellipse {
 
 impl ToCss for Ellipse {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        if ShapeRadius::ClosestSide != self.semiaxis_a
-            && ShapeRadius::ClosestSide != self.semiaxis_b {
+        if ShapeRadius::ClosestSide != self.semiaxis_a &&
+           ShapeRadius::ClosestSide != self.semiaxis_b {
             try!(self.semiaxis_a.to_css(dest));
             try!(dest.write_str(" "));
             try!(self.semiaxis_b.to_css(dest));
