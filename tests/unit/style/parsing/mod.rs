@@ -4,11 +4,17 @@
 
 //! Tests for parsing and serialization of values/properties
 
-use cssparser::Parser;
+use cssparser::{Parser, ToCss};
 
 fn parse<T, F: Fn(&mut Parser) -> Result<T, ()>>(f: F, s: &str) -> Result<T, ()> {
     let mut parser = Parser::new(s);
     f(&mut parser)
+}
+
+fn to_string<T: ToCss>(x: T) -> String {
+    let mut serialized = String::new();
+    x.to_css(&mut serialized).expect("Failed to serialize");
+    serialized
 }
 
 // This is a macro so that the file/line information
@@ -17,9 +23,7 @@ macro_rules! assert_roundtrip {
     ($fun:expr, $input:expr, $output:expr) => {
         let parsed = $crate::parsing::parse($fun, $input)
                         .expect(&format!("Failed to parse {}", $input));
-        let mut serialized = String::new();
-        ::cssparser::ToCss::to_css(&parsed, &mut serialized)
-                        .expect("Failed to serialize");
+        let serialized = $crate::parsing::to_string(parsed);
         assert_eq!(serialized, $output);
     }
 }
