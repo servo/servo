@@ -25,6 +25,7 @@ use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use msg::constellation_msg::PipelineId;
 use net_traits::{LoadContext, load_whole_resource, IpcSend, CustomResponseMediator};
+use rand::random;
 use script_runtime::{CommonScriptMsg, StackRootTLS, get_reports, new_rt_and_cx};
 use script_traits::{TimerEvent, WorkerGlobalScopeInit, ScopeThings, ServiceWorkerMsg};
 use std::sync::mpsc::{Receiver, RecvError, Select, Sender, channel};
@@ -185,12 +186,14 @@ impl ServiceWorkerGlobalScope {
                 let _ = timer_chan.send(());
             });
 
-            // TODO XXXcreativcoder bring back run_with_memory_reporting when things are more concrete here.
-            while let Ok(event) = global.receive_event() {
-                if !global.handle_event(event) {
-                    break;
+            let reporter_name = format!("service-worker-reporter-{}", random::<u64>());
+            scope.mem_profiler_chan().run_with_memory_reporting(|| {
+                while let Ok(event) = global.receive_event() {
+                    if !global.handle_event(event) {
+                        break;
+                    }
                 }
-            }
+            }, reporter_name, scope.script_chan(), CommonScriptMsg::CollectReports);
         });
     }
 
