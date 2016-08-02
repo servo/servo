@@ -922,7 +922,8 @@ fn static_assert() {
 // add support for parsing these lists in servo and pushing to nsTArray's.
 <% skip_background_longhands = """background-color background-repeat
                                   background-image background-clip
-                                  background-origin background-attachment""" %>
+                                  background-origin background-attachment
+                                  background-position""" %>
 <%self:impl_trait style_struct_name="Background"
                   skip_longhands="${skip_background_longhands}"
                   skip_additionals="*">
@@ -1008,6 +1009,29 @@ fn static_assert() {
             T::fixed => structs::NS_STYLE_IMAGELAYER_ATTACHMENT_FIXED as u8,
             T::local => structs::NS_STYLE_IMAGELAYER_ATTACHMENT_LOCAL as u8,
         };
+    }
+
+    pub fn copy_background_position_from(&mut self, other: &Self) {
+        self.gecko.mImage.mPositionXCount = cmp::min(1, other.gecko.mImage.mPositionXCount);
+        self.gecko.mImage.mPositionYCount = cmp::min(1, other.gecko.mImage.mPositionYCount);
+        self.gecko.mImage.mLayers.mFirstElement.mPosition =
+            other.gecko.mImage.mLayers.mFirstElement.mPosition;
+    }
+
+    pub fn clone_background_position(&self) -> longhands::background_position::computed_value::T {
+        let position = &self.gecko.mImage.mLayers.mFirstElement.mPosition;
+        longhands::background_position::computed_value::T {
+            horizontal: position.mXPosition.into(),
+            vertical: position.mYPosition.into(),
+        }
+    }
+
+    pub fn set_background_position(&mut self, v: longhands::background_position::computed_value::T) {
+        let position = &mut self.gecko.mImage.mLayers.mFirstElement.mPosition;
+        position.mXPosition = v.horizontal.into();
+        position.mYPosition = v.vertical.into();
+        self.gecko.mImage.mPositionXCount = 1;
+        self.gecko.mImage.mPositionYCount = 1;
     }
 
     pub fn copy_background_image_from(&mut self, other: &Self) {
