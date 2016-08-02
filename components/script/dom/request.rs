@@ -317,7 +317,7 @@ impl Request {
         }
 
         // Step 26
-        let mut r = Request::new(global,
+        let r = Request::new(global,
                                  url::Url::parse("").unwrap(),
                                  None,
                                  // COMMENT:
@@ -331,7 +331,7 @@ impl Request {
         r.headers_reflector.get().unwrap().set_guard(Guard::Request);
 
         // Step 27
-        let mut headers = r.headers_reflector.get().clone();
+        let headers = r.headers_reflector.get().clone();
 
         // Step 28
         let mut headers_init: Option<HeadersOrByteStringSequenceSequence>;
@@ -402,7 +402,7 @@ impl Request {
         if let Some(init_body_option) = init.body.as_ref() {
             if let Some(_) = init_body_option.as_ref() {
                 // Step 34.1
-                let mut content_type: Option<Vec<u8>>;
+                let content_type: Option<Vec<u8>>;
                 content_type = None;
                 // Step 34.2
                 // TODO: `ReadableStream` object is not implemented in Servo yet.
@@ -424,6 +424,16 @@ impl Request {
 
         // Step 38
         Ok(r)
+    }
+}
+
+// https://fetch.spec.whatwg.org/#concept-request-current-url
+fn get_current_url(req: &NetTraitsRequest::Request) -> Option<Ref<url::Url>> {
+    let url_list = req.url_list.borrow();
+    if url_list.len() > 0 {
+        Some(Ref::map(url_list, |urls| urls.last().unwrap()))
+    } else {
+        None
     }
 }
 
@@ -477,26 +487,6 @@ fn is_forbidden_method(m: &ByteString) -> bool {
     }
 }
 
-// https://fetch.spec.whatwg.org/#concept-request-url
-fn get_associated_url(req: &NetTraitsRequest::Request) -> Option<Ref<url::Url>> {
-    let url_list = req.url_list.borrow();
-    if url_list.len() > 0 {
-        Some(Ref::map(url_list, |urls| urls.first().unwrap()))
-        } else {
-        None
-    }
-}
-
-// https://fetch.spec.whatwg.org/#concept-request-current-url
-fn get_current_url(req: &NetTraitsRequest::Request) -> Option<Ref<url::Url>> {
-    let url_list = req.url_list.borrow();
-    if url_list.len() > 0 {
-        Some(Ref::map(url_list, |urls| urls.last().unwrap()))
-        } else {
-        None
-    }
-}
-
 // https://fetch.spec.whatwg.org/#cors-safelisted-method
 fn is_cors_safelisted_method(m: hyper::method::Method) -> bool {
     m == hyper::method::Method::Get ||
@@ -512,13 +502,6 @@ fn includes_credentials(input: &url::Url) -> bool {
 fn is_request(input: &RequestInfo) -> bool {
     match input {
         &RequestInfo::Request(_) => true,
-        _ => false,
-    }
-}
-
-fn is_usv_string(input: &RequestInfo) -> bool {
-    match input {
-        &RequestInfo::USVString(_) => true,
         _ => false,
     }
 }
