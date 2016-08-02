@@ -170,12 +170,14 @@ impl Circle {
 
 impl ToCss for Circle {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        try!(dest.write_str("circle("));
         if ShapeRadius::ClosestSide != self.radius {
             try!(self.radius.to_css(dest));
             try!(dest.write_str(" "));
         }
         try!(dest.write_str("at "));
-        self.position.to_css(dest)
+        try!(self.position.to_css(dest));
+        dest.write_str(")")
     }
 }
 
@@ -230,7 +232,8 @@ impl Ellipse {
 
 impl ToCss for Ellipse {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        if ShapeRadius::ClosestSide != self.semiaxis_a &&
+        try!(dest.write_str("ellipse("));
+        if ShapeRadius::ClosestSide != self.semiaxis_a ||
            ShapeRadius::ClosestSide != self.semiaxis_b {
             try!(self.semiaxis_a.to_css(dest));
             try!(dest.write_str(" "));
@@ -238,7 +241,8 @@ impl ToCss for Ellipse {
             try!(dest.write_str(" "));
         }
         try!(dest.write_str("at "));
-        self.position.to_css(dest)
+        try!(self.position.to_css(dest));
+        dest.write_str(")")
     }
 }
 
@@ -296,6 +300,7 @@ impl Polygon {
 
 impl ToCss for Polygon {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        try!(dest.write_str("polygon("));
         let mut need_space = false;
         if self.fill != Default::default() {
             try!(self.fill.to_css(dest));
@@ -310,7 +315,7 @@ impl ToCss for Polygon {
             try!(coord.1.to_css(dest));
             need_space = true;
         }
-        Ok(())
+        dest.write_str(")")
     }
 }
 
@@ -417,8 +422,7 @@ impl ToCss for BorderRadius {
         try!(dest.write_str(" "));
         try!(self.bottom_left.0.height.to_css(dest));
         try!(dest.write_str(" "));
-        try!(self.bottom_right.0.height.to_css(dest));
-        dest.write_str(" ")
+        self.bottom_right.0.height.to_css(dest)
     }
 }
 
@@ -430,10 +434,10 @@ impl BorderRadius {
             heights = try!(parse_one_set_of_border_values(input));
         }
         Ok(BorderRadius {
-            top_left: BorderRadiusSize::new(widths[1], heights[1]),
-            top_right: BorderRadiusSize::new(widths[2], heights[2]),
-            bottom_left: BorderRadiusSize::new(widths[3], heights[3]),
-            bottom_right: BorderRadiusSize::new(widths[4], heights[4]),
+            top_left: BorderRadiusSize::new(widths[0], heights[0]),
+            top_right: BorderRadiusSize::new(widths[1], heights[1]),
+            bottom_left: BorderRadiusSize::new(widths[2], heights[2]),
+            bottom_right: BorderRadiusSize::new(widths[3], heights[3]),
         })
     }
 }
