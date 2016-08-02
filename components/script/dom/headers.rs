@@ -24,7 +24,7 @@ pub struct Headers {
 }
 
 // https://fetch.spec.whatwg.org/#concept-headers-guard
-#[derive(JSTraceable, HeapSizeOf, PartialEq)]
+#[derive(Clone, JSTraceable, HeapSizeOf, PartialEq)]
 pub enum Guard {
     Immutable,
     Request,
@@ -195,9 +195,29 @@ impl Headers {
         replace(&mut *borrowed_guard, new_guard);
     }
 
+    pub fn get_guard(&self) -> Guard {
+        let borrowed_guard = self.guard.borrow();
+        return borrowed_guard.clone();
+    }
+
     pub fn empty_header_list(&self) {
         let mut borrowed_header_list = self.header_list.borrow_mut();
         replace(&mut *borrowed_header_list, HyperHeaders::new());
+    }
+
+    // https://fetch.spec.whatwg.org/#concept-header-extract-mime-type
+    pub fn extract_mime_type(&self) -> Vec<u8> {
+        let content_type = ByteString::new("Content-Type".to_string().into_bytes());
+        let mime_type_result = self.Get(content_type);
+        match mime_type_result {
+            Ok(mime_type_option) => {
+                match mime_type_option {
+                    None => "".to_string().into_bytes(),
+                    Some(mime_type) => mime_type.into(),
+                }
+            }
+            Err(_) => "".to_string().into_bytes(),
+        }
     }
 }
 
