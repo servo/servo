@@ -51,14 +51,16 @@ impl Position {
             -> Result<Position, ()> {
         let (horiz, vert) = match (category(first), category(second)) {
             // Don't allow two vertical keywords or two horizontal keywords.
+            // also don't allow length/percentage values in the wrong position
             (PositionCategory::HorizontalKeyword, PositionCategory::HorizontalKeyword) |
-            (PositionCategory::VerticalKeyword, PositionCategory::VerticalKeyword) => return Err(()),
+            (PositionCategory::VerticalKeyword, PositionCategory::VerticalKeyword) |
+            (PositionCategory::LengthOrPercentage, PositionCategory::HorizontalKeyword) |
+            (PositionCategory::VerticalKeyword, PositionCategory::LengthOrPercentage) => return Err(()),
 
             // Swap if both are keywords and vertical precedes horizontal.
             (PositionCategory::VerticalKeyword, PositionCategory::HorizontalKeyword) |
             (PositionCategory::VerticalKeyword, PositionCategory::OtherKeyword) |
             (PositionCategory::OtherKeyword, PositionCategory::HorizontalKeyword) => (second, first),
-
             // By default, horizontal is first.
             _ => (first, second),
         };
