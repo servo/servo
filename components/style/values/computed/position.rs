@@ -8,8 +8,8 @@
 //! [position]: https://drafts.csswg.org/css-backgrounds-3/#position
 
 use cssparser::ToCss;
-use values::computed::LengthOrPercentage;
 use std::fmt;
+use values::computed::LengthOrPercentage;
 
 #[derive(Debug, Clone, PartialEq, Copy)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
