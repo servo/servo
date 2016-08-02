@@ -25,6 +25,10 @@ fn test_position() {
     assert_roundtrip!(Position::parse, "center 10%", "50% 10%");
     assert_roundtrip!(Position::parse, "right 10%", "100% 10%");
 
+    // Only keywords can be reordered
+    assert!(parse(Position::parse, "top 40%").is_err());
+    assert!(parse(Position::parse, "40% left").is_err());
+
     // we don't yet handle 4-valued positions
     // https://github.com/servo/servo/issues/12690
 }

@@ -9,7 +9,7 @@
 
 use app_units::Au;
 use cssparser::{Parser, ToCss};
-use properties::shorthands::parse_four_sides;
+use properties::shorthands::{parse_four_sides, serialize_four_sides};
 use std::fmt;
 use values::computed::basic_shape as computed_basic_shape;
 use values::computed::{Context, ToComputedValue, ComputedValueAsSpecified};
@@ -408,21 +408,28 @@ impl ToCss for BorderRadius {
     // a helper function somewhere, for all the parse_four_sides-like
     // values
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        try!(self.top_left.0.width.to_css(dest));
-        try!(dest.write_str(" "));
-        try!(self.top_right.0.width.to_css(dest));
-        try!(dest.write_str(" "));
-        try!(self.bottom_left.0.width.to_css(dest));
-        try!(dest.write_str(" "));
-        try!(self.bottom_right.0.width.to_css(dest));
-        try!(dest.write_str(" / "));
-        try!(self.top_left.0.height.to_css(dest));
-        try!(dest.write_str(" "));
-        try!(self.top_right.0.height.to_css(dest));
-        try!(dest.write_str(" "));
-        try!(self.bottom_left.0.height.to_css(dest));
-        try!(dest.write_str(" "));
-        self.bottom_right.0.height.to_css(dest)
+        if self.top_left.0.width == self.top_left.0.height &&
+           self.top_right.0.width == self.top_right.0.height &&
+           self.bottom_left.0.width == self.bottom_left.0.height &&
+           self.bottom_right.0.width == self.bottom_right.0.height {
+            serialize_four_sides((&self.top_left.0.width,
+                                  &self.top_right.0.width,
+                                  &self.bottom_left.0.width,
+                                  &self.bottom_right.0.width),
+                                  dest)
+        } else {
+            try!(serialize_four_sides((&self.top_left.0.width,
+                                       &self.top_right.0.width,
+                                       &self.bottom_left.0.width,
+                                       &self.bottom_right.0.width),
+                                       dest));
+            try!(dest.write_str(" / "));
+            serialize_four_sides((&self.top_left.0.height,
+                                  &self.top_right.0.height,
+                                  &self.bottom_left.0.height,
+                                  &self.bottom_right.0.height),
+                                  dest)
+        }
     }
 }
 
