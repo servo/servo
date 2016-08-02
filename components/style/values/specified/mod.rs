@@ -1239,7 +1239,7 @@ pub struct UrlExtraData {
 
 impl UrlExtraData {
     #[cfg(feature = "servo")]
-    pub fn make_from(content: &ParserContext) -> Option<UrlExtraData> {
+    pub fn make_from(_context: &ParserContext) -> Option<UrlExtraData> {
         Some(UrlExtraData { })
     }
 
