@@ -65,6 +65,46 @@ def install_name_tool(old, new, binary):
         print("install_name_tool exited with return value %d" % e.returncode)
 
 
+def is_system_library(lib):
+    return lib.startswith("/System/Library") or lib.startswith("/usr/lib")
+
+
+def change_non_system_libraries_path(libraries, relative_path, binary):
+    for lib in libraries:
+        if is_system_library(lib):
+            continue
+        new_path = path.join(relative_path, path.basename(lib))
+        install_name_tool(lib, new_path, binary)
+
+
+def copy_dependencies(binary_path, lib_path):
+
+    relative_path = path.relpath(lib_path, path.dirname(binary_path)) + "/"
+
+    # Update binary libraries
+    binary_dependencies = set(otool(binary_path))
+    change_non_system_libraries_path(binary_dependencies, relative_path, binary_path)
+
+    # Update dependencies libraries
+    need_checked = binary_dependencies
+    checked = set()
+    while need_checked:
+        checking = set(need_checked)
+        need_checked = set()
+        for f in checking:
+            # No need to check these for their dylibs
+            if is_system_library(f):
+                continue
+            need_relinked = set(otool(f))
+            new_path = path.join(lib_path, path.basename(f))
+            if not path.exists(new_path):
+                shutil.copyfile(f, new_path)
+            change_non_system_libraries_path(need_relinked, relative_path, new_path)
+            need_checked.update(need_relinked)
+        checked.update(checking)
+        need_checked.difference_update(checked)
+
+
 @CommandProvider
 class PackageCommands(CommandBase):
     @Command('package',
@@ -102,11 +142,15 @@ class PackageCommands(CommandBase):
                 print("Packaging Android exited with return value %d" % e.returncode)
                 return e.returncode
         elif is_macosx():
+
             dir_to_build = '/'.join(binary_path.split('/')[:-1])
+            dir_to_root = '/'.join(binary_path.split('/')[:-3])
+            now = datetime.utcnow()
+
+            print("Creating Servo.app")
             dir_to_dmg = '/'.join(binary_path.split('/')[:-2]) + '/dmg'
             dir_to_app = dir_to_dmg + '/Servo.app'
             dir_to_resources = dir_to_app + '/Contents/Resources/'
-            dir_to_root = '/'.join(binary_path.split('/')[:-3])
             if path.exists(dir_to_dmg):
                 print("Cleaning up from previous packaging")
                 delete(dir_to_dmg)
@@ -128,26 +172,7 @@ class PackageCommands(CommandBase):
             delete(dir_to_resources + '/package-prefs.json')
 
             print("Finding dylibs and relinking")
-            need_checked = set([dir_to_app + '/Contents/MacOS/servo'])
-            checked = set()
-            while need_checked:
-                checking = set(need_checked)
-                need_checked = set()
-                for f in checking:
-                    # No need to check these for their dylibs
-                    if '/System/Library' in f or '/usr/lib' in f:
-                        continue
-                    need_relinked = set(otool(f))
-                    new_path = dir_to_app + '/Contents/MacOS/' + f.split('/')[-1]
-                    if not path.exists(new_path):
-                        shutil.copyfile(f, new_path)
-                    for dylib in need_relinked:
-                        if '/System/Library' in dylib or '/usr/lib' in dylib or 'servo' in dylib:
-                            continue
-                        install_name_tool(dylib, dylib.split('/')[-1], new_path)
-                    need_checked.update(need_relinked)
-                checked.update(checking)
-                need_checked.difference_update(checked)
+            copy_dependencies(dir_to_app + '/Contents/MacOS/servo', dir_to_app + '/Contents/MacOS/')
 
             print("Writing run-servo")
             bhtml_path = path.join('${0%/*}/../Resources', browserhtml_path.split('/')[-1], 'out', 'index.html')
@@ -158,7 +183,7 @@ class PackageCommands(CommandBase):
             print("Creating dmg")
             os.symlink('/Applications', dir_to_dmg + '/Applications')
             dmg_path = '/'.join(dir_to_build.split('/')[:-1]) + '/'
-            time = datetime.utcnow().replace(microsecond=0).isoformat()
+            time = now.replace(microsecond=0).isoformat()
             time = time.replace(':', '-')
             dmg_path += time + "-servo-tech-demo.dmg"
             try:
@@ -169,6 +194,30 @@ class PackageCommands(CommandBase):
             print("Cleaning up")
             delete(dir_to_dmg)
             print("Packaged Servo into " + dmg_path)
+
+            print("Creating brew package")
+            dir_to_brew = '/'.join(binary_path.split('/')[:-2]) + '/brew_tmp/'
+            dir_to_tar = '/'.join(dir_to_build.split('/')[:-1]) + '/brew/'
+            if not path.exists(dir_to_tar):
+                os.makedirs(dir_to_tar)
+            tar_path = dir_to_tar + now.strftime("servo-%Y-%m-%d.tar.gz")
+            if path.exists(dir_to_brew):
+                print("Cleaning up from previous packaging")
+                delete(dir_to_brew)
+            if path.exists(tar_path):
+                print("Deleting existing package")
+                os.remove(tar_path)
+            shutil.copytree(dir_to_root + '/resources', dir_to_brew + "/resources/")
+            os.makedirs(dir_to_brew + '/bin/')
+            shutil.copy2(dir_to_build + '/servo', dir_to_brew + '/bin/servo')
+            # Note that in the context of Homebrew, libexec is reserved for private use by the formula
+            # and therefore is not symlinked into HOMEBREW_PREFIX.
+            os.makedirs(dir_to_brew + '/libexec/')
+            copy_dependencies(dir_to_brew + '/bin/servo', dir_to_brew + '/libexec/')
+            archive_deterministically(dir_to_brew, tar_path, prepend_path='servo/')
+            delete(dir_to_brew)
+            print("Packaged Servo into " + tar_path)
+
         elif is_windows():
             dir_to_package = path.dirname(binary_path)
             dir_to_root = self.get_top_dir()
