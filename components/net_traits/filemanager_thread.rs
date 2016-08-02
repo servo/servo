@@ -138,17 +138,14 @@ pub enum FileManagerThreadMsg {
     /// as part of a valid Blob URL
     AddSlicedURLEntry(SelectedFileId, RelativePos, IpcSender<Result<SelectedFileId, BlobURLStoreError>>, FileOrigin),
 
-    /// Revoke Blob URL and send back the acknowledgement
-    RevokeBlobURL(SelectedFileId, FileOrigin, IpcSender<Result<(), BlobURLStoreError>>),
-
     /// Decrease reference count and send back the acknowledgement
     DecRef(SelectedFileId, FileOrigin, IpcSender<Result<(), BlobURLStoreError>>),
 
-    /// Increase reference count
-    IncRef(SelectedFileId, FileOrigin),
-
     /// Activate an internal FileID so it becomes valid as part of a Blob URL
     ActivateBlobURL(SelectedFileId, IpcSender<Result<(), BlobURLStoreError>>, FileOrigin),
+
+    /// Revoke Blob URL and send back the acknowledgement
+    RevokeBlobURL(SelectedFileId, FileOrigin, IpcSender<Result<(), BlobURLStoreError>>),
 
     /// Shut down this thread
     Exit,

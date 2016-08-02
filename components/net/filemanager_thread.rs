@@ -176,7 +176,7 @@ impl<UI: 'static + UIProvider> FileManager<UI> {
                     if let Ok(id) = Uuid::parse_str(&id.0) {
                         spawn_named("revoke blob url".to_owned(), move || {
                             // Since it is revocation, unset_url_validity is true
-                            let _ = sender.send(store.dec_ref(&id, &origin, true));
+                            let _ = sender.send(store.set_blob_url_validity(false, &id, &origin));
                         })
                     } else {
                         let _ = sender.send(Err(BlobURLStoreError::InvalidFileID));
@@ -187,23 +187,16 @@ impl<UI: 'static + UIProvider> FileManager<UI> {
                         spawn_named("dec ref".to_owned(), move || {
                             // Since it is simple DecRef (possibly caused by close/drop),
                             // unset_url_validity is false
-                            let _ = sender.send(store.dec_ref(&id, &origin, false));
+                            let _ = sender.send(store.dec_ref(&id, &origin));
                         })
                     } else {
                         let _ = sender.send(Err(BlobURLStoreError::InvalidFileID));
                     }
                 }
-                FileManagerThreadMsg::IncRef(id, origin) => {
-                    if let Ok(id) = Uuid::parse_str(&id.0) {
-                        spawn_named("inc ref".to_owned(), move || {
-                            let _ = store.inc_ref(&id, &origin);
-                        })
-                    }
-                }
                 FileManagerThreadMsg::ActivateBlobURL(id, sender, origin) => {
                     if let Ok(id) = Uuid::parse_str(&id.0) {
                         spawn_named("activate blob url".to_owned(), move || {
-                            let _ = sender.send(store.activate_blob_url(&id, &origin));
+                            let _ = sender.send(store.set_blob_url_validity(true, &id, &origin));
                         });
                     } else {
                         let _ = sender.send(Err(BlobURLStoreError::InvalidFileID));
@@ -285,9 +278,11 @@ impl <UI: 'static + UIProvider> FileManagerStore<UI> {
                         file_impl: FileImpl::Sliced(parent_id, rel_pos),
                         refs: AtomicUsize::new(1),
                         // Valid here since AddSlicedURLEntry implies URL creation
+                        // from a BlobImpl::Sliced
                         is_valid_url: AtomicBool::new(true),
                     });
 
+                    // We assume that the returned id will be held by BlobImpl::File
                     let _ = sender.send(Ok(SelectedFileId(new_id.simple().to_string())));
                 }
                 Err(e) => {
@@ -474,16 +469,11 @@ impl <UI: 'static + UIProvider> FileManagerStore<UI> {
         self.get_blob_buf(sender, &id, &origin_in, RelativePos::full_range(), check_url_validity)
     }
 
-    fn dec_ref(&self, id: &Uuid, origin_in: &FileOrigin,
-               unset_url_validity: bool) -> Result<(), BlobURLStoreError> {
+    fn dec_ref(&self, id: &Uuid, origin_in: &FileOrigin) -> Result<(), BlobURLStoreError> {
         let (do_remove, opt_parent_id) = match self.entries.read().unwrap().get(id) {
             Some(entry) => {
                 if *entry.origin == *origin_in {
                     let old_refs = entry.refs.fetch_sub(1, Ordering::Release);
-
-                    if unset_url_validity {
-                        entry.is_valid_url.store(false, Ordering::Release);
-                    }
 
                     if old_refs > 1 {
                         // not the last reference, no need to touch parent
@@ -514,7 +504,7 @@ impl <UI: 'static + UIProvider> FileManagerStore<UI> {
             if let Some(parent_id) = opt_parent_id {
                 // unset_url_validity for parent is false since we only need
                 // to unset the initial requesting URL
-                return self.dec_ref(&parent_id, origin_in, false);
+                return self.dec_ref(&parent_id, origin_in);
             }
         }
 
@@ -542,21 +532,45 @@ impl <UI: 'static + UIProvider> FileManagerStore<UI> {
         }
     }
 
-    fn activate_blob_url(&self, id: &Uuid, origin_in: &FileOrigin) -> Result<(), BlobURLStoreError> {
-        match self.entries.read().unwrap().get(id) {
+    fn set_blob_url_validity(&self, validity: bool, id: &Uuid,
+                             origin_in: &FileOrigin) -> Result<(), BlobURLStoreError> {
+        let (do_remove, opt_parent_id, res) = match self.entries.read().unwrap().get(id) {
             Some(entry) => {
                 if *entry.origin == *origin_in {
-                    entry.is_valid_url.store(true, Ordering::Release);
-                    Ok(())
+                    entry.is_valid_url.store(validity, Ordering::Release);
+
+                    if !validity {
+                        // Check if it is the last possible reference
+                        // since refs only accounts for blob id holders
+                        // and store entry id holders
+                        let zero_refs =  entry.refs.load(Ordering::Acquire) == 0;
+
+                        if let FileImpl::Sliced(ref parent_id, _) = entry.file_impl {
+                            (zero_refs, Some(parent_id.clone()), Ok(()))
+                        } else {
+                            (zero_refs, None, Ok(()))
+                        }
+                    } else {
+                        (false, None, Ok(()))
+                    }
                 } else {
-                    Err(BlobURLStoreError::InvalidOrigin)
+                    (false, None, Err(BlobURLStoreError::InvalidOrigin))
                 }
             }
-            None => Err(BlobURLStoreError::InvalidFileID)
+            None => (false, None, Err(BlobURLStoreError::InvalidFileID))
+        };
+
+        if do_remove {
+            atomic::fence(Ordering::Acquire);
+            self.remove(id);
+
+            if let Some(parent_id) = opt_parent_id {
+                return self.dec_ref(&parent_id, origin_in);
+            }
         }
+        res
     }
 }
-
 
 fn select_files_pref_enabled() -> bool {
     PREFS.get("dom.testing.htmlinputelement.select_files.enabled")
