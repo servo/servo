@@ -4,5 +4,5 @@
 
 void main(void)
 {
-    SetFragColor(vColor);
+    oFragColor = vColor;
 }
