@@ -28,7 +28,7 @@ bitflags! {
         // of a good reason for that.
         const RESTYLE_DESCENDANTS = 0x02,
         #[doc = "Rerun selector matching on all later siblings of the element and all of their descendants."]
-        const RESTYLE_LATER_SIBLINGS = 0x04,
+        const RESTYLE_LATER_SIBLINGS = 0x08,
     }
 }
 
