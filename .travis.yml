@@ -12,7 +12,7 @@ matrix:
       dist: trusty
       script:
          - ./mach build -d --verbose
-         - ./mach build-geckolib
+         - ./mach build-geckolib --verbose
          - ./mach test-unit
          - ./mach test-compiletest
          - bash etc/ci/check_no_unwrap.sh
