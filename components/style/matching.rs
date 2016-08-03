@@ -6,7 +6,7 @@
 
 #![allow(unsafe_code)]
 
-use animation::{self, Animation};
+use animation;
 use arc_ptr_eq;
 use cache::{LRUCache, SimpleHashCache};
 use context::{StyleContext, SharedStyleContext};

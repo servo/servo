@@ -19,7 +19,6 @@ use gfx_traits::StackingContextId;
 use gfx_traits::print_tree::PrintTree;
 use layout_debug;
 use model::MaybeAuto;
-use script_layout_interface::restyle_damage::REFLOW;
 use script_layout_interface::wrapper_traits::ThreadSafeLayoutNode;
 use std::fmt;
 use std::sync::Arc;
