@@ -12,4 +12,4 @@ doctest = false
 [dependencies]
 profile = {path = "../../../components/profile"}
 profile_traits = {path = "../../../components/profile_traits"}
-ipc-channel = {git = "https://github.com/servo/ipc-channel"}
+ipc-channel = "0.4.0"

@@ -16,7 +16,7 @@ msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
 profile_traits = {path = "../profile_traits"}
 util = {path = "../util"}
-ipc-channel = {git = "https://github.com/servo/ipc-channel"}
+ipc-channel = "0.4.0"
 url = {version = "1.0.0", features = ["heap_size"]}
 
 [dependencies.webrender_traits]

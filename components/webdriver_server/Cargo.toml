@@ -13,7 +13,7 @@ path = "lib.rs"
 euclid = "0.7.1"
 hyper = "0.9.9"
 image = "0.10"
-ipc-channel = {git = "https://github.com/servo/ipc-channel"}
+ipc-channel = "0.4.0"
 log = "0.3.5"
 msg = {path = "../msg"}
 plugins = {path = "../plugins"}

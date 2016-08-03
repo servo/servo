@@ -56,7 +56,7 @@ euclid = "0.7.1"
 gfx = {path = "../gfx"}
 gleam = "0.2"
 glutin_app = {path = "../../ports/glutin"}
-ipc-channel = {git = "https://github.com/servo/ipc-channel"}
+ipc-channel = "0.4.0"
 layout = {path = "../layout"}
 layout_thread = {path = "../layout_thread"}
 libc = "0.2"

@@ -141,6 +141,8 @@ void main(void) {
     vec2 radii = vBorderRadii.xy;
     float sigma = vBlurRadius / 2.0;
     float value = color(pos, p0Rect, p1Rect, radii, sigma);
-    SetFragColor(vec4(vColor.rgb, max(value, 0.0)));
+
+    value = max(value, 0.0);
+    SetFragColor(vec4(vColor.rgb, vColor.a == 0.0 ? 1.0 - value : value));
 }
 
