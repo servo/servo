@@ -15,7 +15,7 @@ cookie = "0.2"
 devtools_traits = {path = "../../../components/devtools_traits"}
 flate2 = "0.2.0"
 hyper = "0.9.9"
-ipc-channel = {git = "https://github.com/servo/ipc-channel"}
+ipc-channel = "0.4.0"
 msg = {path = "../../../components/msg"}
 net = {path = "../../../components/net"}
 net_traits = {path = "../../../components/net_traits"}

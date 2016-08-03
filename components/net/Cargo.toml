@@ -19,7 +19,7 @@ devtools_traits = {path = "../devtools_traits"}
 flate2 = "0.2.0"
 hyper = {version = "0.9.9", features = ["serde-serialization"]}
 immeta = "0.3.1"
-ipc-channel = {git = "https://github.com/servo/ipc-channel"}
+ipc-channel = "0.4.0"
 lazy_static = "0.2"
 log = "0.3.5"
 matches = "0.1"

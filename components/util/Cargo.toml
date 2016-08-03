@@ -20,7 +20,7 @@ bitflags = "0.7"
 euclid = "0.7.1"
 getopts = "0.2.11"
 heapsize = "0.3.0"
-ipc-channel = {git = "https://github.com/servo/ipc-channel", optional = true}
+ipc-channel = {version = "0.4.0", optional = true}
 lazy_static = "0.2"
 log = "0.3.5"
 num_cpus = "0.2.2"
