@@ -11,5 +11,5 @@ doctest = false
 
 [dependencies]
 gfx = {path = "../../../components/gfx"}
-ipc-channel = {git = "https://github.com/servo/ipc-channel"}
+ipc-channel = {git = "https://github.com/servo/ipc-channel", rev="346456b"}
 style = {path = "../../../components/style"}
