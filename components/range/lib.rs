@@ -5,7 +5,6 @@
 #![feature(custom_derive)]
 #![feature(plugin)]
 #![feature(step_trait)]
-#![feature(zero_one)]
 
 #![plugin(heapsize_plugin)]
 #![plugin(serde_macros)]
@@ -21,7 +20,6 @@ use std::cmp::{self, max, min};
 use std::fmt;
 use std::iter;
 use std::marker::PhantomData;
-use std::num;
 use std::ops;
 
 pub trait Int:
@@ -173,7 +171,7 @@ pub fn each_index<T: Int, I: RangeIndex<Index=T>>(start: I, stop: I) -> EachInde
 }
 
 impl<T: Int, I: RangeIndex<Index=T>> Iterator for EachIndex<T, I>
-where T: Int + num::One + iter::Step, for<'a> &'a T: ops::Add<&'a T, Output = T> {
+where T: Int + iter::Step, for<'a> &'a T: ops::Add<&'a T, Output = T> {
     type Item = I;
 
     #[inline]

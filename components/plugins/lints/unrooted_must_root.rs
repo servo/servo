@@ -211,9 +211,9 @@ impl<'a, 'b: 'a, 'tcx: 'a+'b> visit::Visitor<'a> for FnDefVisitor<'a, 'b, 'tcx> 
     }
 
     fn visit_fn(&mut self, kind: visit::FnKind<'a>, decl: &'a hir::FnDecl,
-                block: &'a hir::Block, span: codemap::Span, _id: ast::NodeId) {
+                block: &'a hir::Block, span: codemap::Span, id: ast::NodeId) {
         if let visit::FnKind::Closure(_) = kind {
-            visit::walk_fn(self, kind, decl, block, span);
+            visit::walk_fn(self, kind, decl, block, span, id);
         }
     }
 
