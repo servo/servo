@@ -222,14 +222,16 @@ pub struct InitialConstellationState {
 
 /// Stores the navigation context for a single frame in the frame tree.
 struct Frame {
+    id: FrameId,
     prev: Vec<(PipelineId, Instant)>,
     current: (PipelineId, Instant),
     next: Vec<(PipelineId, Instant)>,
 }
 
 impl Frame {
-    fn new(pipeline_id: PipelineId) -> Frame {
+    fn new(id: FrameId, pipeline_id: PipelineId) -> Frame {
         Frame {
+            id: id,
             prev: vec!(),
             current: (pipeline_id, Instant::now()),
             next: vec!(),
@@ -286,6 +288,37 @@ impl<'a> Iterator for FrameTreeIterator<'a> {
                 },
             };
             self.stack.extend(pipeline.children.iter().map(|&c| c));
+            return Some(frame)
+        }
+    }
+}
+
+struct FullFrameTreeIterator<'a> {
+    stack: Vec<FrameId>,
+    frames: &'a HashMap<FrameId, Frame>,
+    pipelines: &'a HashMap<PipelineId, Pipeline>,
+}
+
+impl<'a> Iterator for FullFrameTreeIterator<'a> {
+    type Item = &'a Frame;
+    fn next(&mut self) -> Option<&'a Frame> {
+        loop {
+            let frame_id = match self.stack.pop() {
+                Some(frame_id) => frame_id,
+                None => return None,
+            };
+            let frame = match self.frames.get(&frame_id) {
+                Some(frame) => frame,
+                None => {
+                    warn!("Frame {:?} iterated after closure.", frame_id);
+                    continue;
+                },
+            };
+            for &(pipeline_id, _) in frame.prev.iter().chain(frame.next.iter()).chain(once(&frame.current)) {
+                if let Some(pipeline) = self.pipelines.get(&pipeline_id) {
+                    self.stack.extend(pipeline.children.iter().map(|&c| c));
+                }
+            }
             return Some(frame)
         }
     }
@@ -579,68 +612,37 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
     }
 
+    fn full_frame_tree_iter(&self, frame_id_root: FrameId) -> FullFrameTreeIterator {
+        FullFrameTreeIterator {
+            stack: vec!(frame_id_root),
+            pipelines: &self.pipelines,
+            frames: &self.frames,
+        }
+    }
+
     fn joint_session_future(&self, frame_id_root: FrameId) -> Vec<(Instant, FrameId, PipelineId)> {
         let mut future = vec!();
-        self.get_future_entries(frame_id_root, &mut future);
+        for frame in self.full_frame_tree_iter(frame_id_root) {
+            future.extend(frame.next.iter().map(|&(pipeline_id, instant)| (instant, frame.id, pipeline_id)));
+        }
 
         // reverse sorting
         future.sort_by(|a, b| b.cmp(a));
         future
     }
 
-    fn get_future_entries(&self, frame_id_root: FrameId, mut future: &mut Vec<(Instant, FrameId, PipelineId)>) {
-        let frame = match self.frames.get(&frame_id_root) {
-            Some(frame) => frame,
-            None => return warn!("Tried to get frame future after frame {:?} closed.", frame_id_root),
-        };
-
-        future.extend(frame.next.iter().map(|&(pipeline_id, instant)| (instant, frame_id_root, pipeline_id)));
-
-        for &(pipeline_id, _) in frame.next.iter().chain(once(&frame.current)) {
-            let pipeline = match self.pipelines.get(&pipeline_id) {
-                Some(pipeline) => pipeline,
-                None => {
-                    warn!("Tried to get pipeline {:?} for child lookup after closure.", pipeline_id);
-                    continue;
-                }
-            };
-            for &frame_id in &pipeline.children {
-                self.get_future_entries(frame_id, &mut future);
-            }
-        }
-    }
-
     fn joint_session_past(&self, frame_id_root: FrameId) -> Vec<(Instant, FrameId, PipelineId)> {
         let mut past = vec!();
-        self.get_past_entries(frame_id_root, &mut past);
+        for frame in self.full_frame_tree_iter(frame_id_root) {
+            let mut prev_instant = frame.current.1;
+            for &(pipeline_id, instant) in frame.prev.iter().rev() {
+                past.push((prev_instant, frame.id, pipeline_id));
+                prev_instant = instant;
+            }
+        }
 
         past.sort();
         past
-    }
-
-    fn get_past_entries(&self, frame_id_root: FrameId, mut past: &mut Vec<(Instant, FrameId, PipelineId)>) {
-        let frame = match self.frames.get(&frame_id_root) {
-            Some(frame) => frame,
-            None => return warn!("Tried to get frame past after frame {:?} closed.", frame_id_root),
-        };
-
-        let mut prev_instant = frame.current.1;
-        for &(pipeline_id, instant) in frame.prev.iter().rev() {
-            past.push((prev_instant, frame_id_root, pipeline_id));
-            prev_instant = instant;
-        }
-        for &(pipeline_id, _) in frame.prev.iter().chain(once(&frame.current)) {
-            let pipeline = match self.pipelines.get(&pipeline_id) {
-                Some(pipeline) => pipeline,
-                None => {
-                    warn!("Tried to get pipeline {:?} for child lookup after closure.", pipeline_id);
-                    continue;
-                }
-            };
-            for frame_id in &pipeline.children {
-                self.get_past_entries(*frame_id, &mut past);
-            }
-        }
     }
 
     // Create a new frame and update the internal bookkeeping.
@@ -649,7 +651,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         let FrameId(ref mut i) = self.next_frame_id;
         *i += 1;
 
-        let frame = Frame::new(pipeline_id);
+        let frame = Frame::new(id, pipeline_id);
 
         assert!(self.pipelines.get(&pipeline_id).and_then(|pipeline| pipeline.frame).is_none());
         assert!(!self.frames.contains_key(&id));
@@ -1506,32 +1508,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             },
         };
 
-        // Set to 1 to count for the current active entry
+        // Initialize length at 1 to count for the current active entry
         let mut length = 1;
-
-        let mut frames_to_check = vec!(frame_id);
-        while let Some(frame_id) = frames_to_check.pop() {
-            let frame = match self.frames.get(&frame_id) {
-                Some(frame) => frame,
-                None => {
-                    warn!("Calculated jsh length after frame {:?} closure.", frame_id);
-                    let _ = sender.send(0);
-                    continue;
-                }
-            };
+        for frame in self.full_frame_tree_iter(frame_id) {
             length += frame.next.len();
             length += frame.prev.len();
-            for &(pipeline_id, _) in frame.next.iter().chain(frame.prev.iter()).chain(once(&frame.current)) {
-                let pipeline = match self.pipelines.get(&pipeline_id) {
-                    Some(pipeline) => pipeline,
-                    None => {
-                        warn!("Calculated jsh length after pipeline {:?} closure.", pipeline_id);
-                        let _ = sender.send(0);
-                        continue;
-                    }
-                };
-                frames_to_check.extend_from_slice(&pipeline.children);
-            }
         }
         let _ = sender.send(length as u32);
     }
