@@ -19,13 +19,13 @@ use std::result::Result;
 #[dom_struct]
 pub struct Headers {
     reflector_: Reflector,
-    guard: DOMRefCell<Guard>,
+    guard: Cell<Guard>,
     #[ignore_heap_size_of = "Defined in hyper"]
     header_list: DOMRefCell<HyperHeaders>
 }
 
 // https://fetch.spec.whatwg.org/#concept-headers-guard
-#[derive(Clone, JSTraceable, HeapSizeOf, PartialEq)]
+#[derive(Copy, Clone, JSTraceable, HeapSizeOf, PartialEq)]
 pub enum Guard {
     Immutable,
     Request,
@@ -38,7 +38,7 @@ impl Headers {
     pub fn new_inherited() -> Headers {
         Headers {
             reflector_: Reflector::new(),
-            guard: DOMRefCell::new(Guard::None),
+            guard: Cell::new(Guard::None),
             header_list: DOMRefCell::new(HyperHeaders::new()),
         }
     }
@@ -66,19 +66,19 @@ impl HeadersMethods for Headers {
         let (mut valid_name, valid_value) = try!(validate_name_and_value(name, value));
         valid_name = valid_name.to_lowercase();
         // Step 3
-        if *self.guard.borrow() == Guard::Immutable {
+        if self.guard.get() == Guard::Immutable {
             return Err(Error::Type("Guard is immutable".to_string()));
         }
         // Step 4
-        if *self.guard.borrow() == Guard::Request && is_forbidden_header_name(&valid_name) {
+        if self.guard.get() == Guard::Request && is_forbidden_header_name(&valid_name) {
             return Ok(());
         }
         // Step 5
-        if *self.guard.borrow() == Guard::RequestNoCors && !is_cors_safelisted_request_header(&valid_name) {
+        if self.guard.get() == Guard::RequestNoCors && !is_cors_safelisted_request_header(&valid_name) {
             return Ok(());
         }
         // Step 6
-        if *self.guard.borrow() == Guard::Response && is_forbidden_response_header(&valid_name) {
+        if self.guard.get() == Guard::Response && is_forbidden_response_header(&valid_name) {
             return Ok(());
         }
         // Step 7
@@ -94,19 +94,19 @@ impl HeadersMethods for Headers {
         // Step 1
         let valid_name = try!(validate_name(name));
         // Step 2
-        if *self.guard.borrow() == Guard::Immutable {
+        if self.guard.get() == Guard::Immutable {
             return Err(Error::Type("Guard is immutable".to_string()));
         }
         // Step 3
-        if *self.guard.borrow() == Guard::Request && is_forbidden_header_name(&valid_name) {
+        if self.guard.get() == Guard::Request && is_forbidden_header_name(&valid_name) {
             return Ok(());
         }
         // Step 4
-        if *self.guard.borrow() == Guard::RequestNoCors && !is_cors_safelisted_request_header(&valid_name) {
+        if self.guard.get() == Guard::RequestNoCors && !is_cors_safelisted_request_header(&valid_name) {
             return Ok(());
         }
         // Step 5
-        if *self.guard.borrow() == Guard::Response && is_forbidden_response_header(&valid_name) {
+        if self.guard.get() == Guard::Response && is_forbidden_response_header(&valid_name) {
             return Ok(());
         }
         // Step 6
@@ -139,19 +139,19 @@ impl HeadersMethods for Headers {
         let (mut valid_name, valid_value) = try!(validate_name_and_value(name, value));
         valid_name = valid_name.to_lowercase();
         // Step 3
-        if *self.guard.borrow() == Guard::Immutable {
+        if self.guard.get() == Guard::Immutable {
             return Err(Error::Type("Guard is immutable".to_string()));
         }
         // Step 4
-        if *self.guard.borrow() == Guard::Request && is_forbidden_header_name(&valid_name) {
+        if self.guard.get() == Guard::Request && is_forbidden_header_name(&valid_name) {
             return Ok(());
         }
         // Step 5
-        if *self.guard.borrow() == Guard::RequestNoCors && !is_cors_safelisted_request_header(&valid_name) {
+        if self.guard.get() == Guard::RequestNoCors && !is_cors_safelisted_request_header(&valid_name) {
             return Ok(());
         }
         // Step 6
-        if *self.guard.borrow() == Guard::Response && is_forbidden_response_header(&valid_name) {
+        if self.guard.get() == Guard::Response && is_forbidden_response_header(&valid_name) {
             return Ok(());
         }
         // Step 7
@@ -198,11 +198,11 @@ impl Headers {
     }
 
     pub fn set_guard(&self, new_guard: Guard) {
-        *self.guard.borrow_mut() = new_guard;
+        self.guard.set(new_guard)
     }
 
-    pub fn get_guard(&self) -> &Guard {
-        return self.guard.borrow();
+    pub fn get_guard(&self) -> Guard {
+        self.guard.get()
     }
 
     pub fn empty_header_list(&self) {
@@ -211,17 +211,7 @@ impl Headers {
 
     // https://fetch.spec.whatwg.org/#concept-header-extract-mime-type
     pub fn extract_mime_type(&self) -> Vec<u8> {
-        let content_type = ByteString::new("Content-Type".to_string().into_bytes());
-        let mime_type_result = self.Get(content_type);
-        match mime_type_result {
-            Ok(mime_type_option) => {
-                match mime_type_option {
-                    None => "".to_string().into_bytes(),
-                    Some(mime_type) => mime_type.into(),
-                }
-            }
-            Err(_) => "".to_string().into_bytes(),
-        }
+        self.header_list.borrow().get_raw("content-type").map_or(vec![], |v| v[0].clone())
     }
 }
 

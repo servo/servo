@@ -41,13 +41,13 @@ pub struct Request {
     reflector_: Reflector,
     #[ignore_heap_size_of = "net_traits is missing HeapSizeOf implementation"]
     request: DOMRefCell<NetTraitsRequest>,
-    body_used: DOMRefCell<bool>,
-    headers_reflector: MutNullableHeap<JS<Headers>>,
+    body_used: Cell<bool>,
+    headers: MutNullableHeap<JS<Headers>>,
     mime_type: DOMRefCell<Vec<u8>>,
 }
 
 impl Request {
-    pub fn new_inherited(url: Url,
+    fn new_inherited(url: Url,
                          origin: Option<Origin>,
                          is_service_worker_global_scope: bool,
                          pipeline_id: Option<PipelineId>) -> Request {
@@ -58,8 +58,8 @@ impl Request {
                                                origin,
                                                is_service_worker_global_scope,
                                                pipeline_id)),
-            body_used: DOMRefCell::new(false),
-            headers_reflector: Default::default(),
+            body_used: Cell::new(false),
+            headers: Default::default(),
             mime_type: DOMRefCell::new("".to_string().into_bytes()),
         }
     }
@@ -72,7 +72,7 @@ impl Request {
         reflect_dom_object(box Request::new_inherited(url,
                                                       origin,
                                                       is_service_worker_global_scope,
-                                                      pipeline_id),
+                                                      global.pipeline()),
                            global, RequestBinding::Wrap)
     }
 
@@ -335,11 +335,11 @@ impl Request {
                                  false,
                                  None);
         *r.request.borrow_mut() = request;
-        r.headers_reflector.or_init(|| Headers::new(r.global().r()));
-        r.headers_reflector.get().unwrap().set_guard(Guard::Request);
+        r.headers.or_init(|| Headers::new(r.global().r(), None).unwrap());
+        r.headers.get().unwrap().set_guard(Guard::Request);
 
         // Step 27
-        let headers = r.headers_reflector.get().clone();
+        let headers = r.headers.get().clone();
 
         // Step 28
         let mut headers_init: Option<HeadersOrByteStringSequenceSequence>;
@@ -350,7 +350,7 @@ impl Request {
         }
 
         // Step 29
-        r.headers_reflector.get().unwrap().empty_header_list();
+        r.headers.get().unwrap().empty_header_list();
 
         // Step 30
         if let NetTraitsRequestMode::NoCORS = r.request.borrow().mode {
@@ -363,12 +363,16 @@ impl Request {
             if !integrity_metadata.into_inner().is_empty() {
                 return Err(Error::Type("Integrity metadata is not an empty string".to_string()));
             }
-            r.headers_reflector.get().unwrap().set_guard(Guard::RequestNoCors);
+            r.headers.get().unwrap().set_guard(Guard::RequestNoCors);
         }
 
         // Step 31
         if headers_init.is_some() {
+<<<<<<< 4766958f9579b8c0201d8d9f868a54841246598d
             r.headers_reflector.get().unwrap().fill(headers_init);
+=======
+            r.headers.set(Some(Headers::new(global, headers_init).unwrap().r()));
+>>>>>>> Address one third of jdm's comments
         }
 
         // Step 32
@@ -424,7 +428,7 @@ impl Request {
         r.request.borrow_mut().body = RefCell::new(input_body);
 
         // Step 36
-        let extracted_mime_type = r.headers_reflector.get().unwrap().extract_mime_type();
+        let extracted_mime_type = r.headers.get().unwrap().extract_mime_type();
         *r.mime_type.borrow_mut() = extracted_mime_type;
 
         // Step 37
@@ -555,7 +559,11 @@ impl RequestMethods for Request {
 
     // https://fetch.spec.whatwg.org/#dom-request-headers
     fn Headers(&self) -> Root<Headers> {
+<<<<<<< 4766958f9579b8c0201d8d9f868a54841246598d
         self.headers_reflector.or_init(|| Headers::new(self.global().r()))
+=======
+        self.headers.or_init(|| Headers::new(self.global().r(), None).unwrap())
+>>>>>>> Address one third of jdm's comments
     }
 
     // https://fetch.spec.whatwg.org/#dom-request-type
@@ -624,7 +632,7 @@ impl RequestMethods for Request {
 
     // https://fetch.spec.whatwg.org/#dom-body-bodyused
     fn BodyUsed(&self) -> bool {
-        self.body_used.borrow().clone()
+        self.body_used.get()
     }
 
     // https://fetch.spec.whatwg.org/#dom-request-clone
@@ -642,17 +650,17 @@ impl RequestMethods for Request {
         let origin = self.request.borrow().clone().origin.into_inner();
         let is_service_worker_global_scope = self.request.borrow().clone().is_service_worker_global_scope;
         let pipeline_id = self.request.borrow().clone().pipeline_id.get();
-        let body_used = self.body_used.borrow().clone();
+        let body_used = self.body_used.get();
         let mime_type = self.mime_type.borrow().clone();
-        let headers_guard = self.headers_reflector.get().unwrap().get_guard();
+        let headers_guard = self.headers.get().unwrap().get_guard();
         let r = Request::new(self.global().r(),
                              url,
                              Some(origin),
                              is_service_worker_global_scope,
                              pipeline_id);
         *r.mime_type.borrow_mut() = mime_type;
-        *r.body_used.borrow_mut() = body_used;
-        r.headers_reflector.get().unwrap().set_guard(headers_guard);
+        r.body_used.set(body_used);
+        r.headers.get().unwrap().set_guard(headers_guard);
         Ok(r)
     }
 }
