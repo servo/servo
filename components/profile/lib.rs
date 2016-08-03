@@ -4,7 +4,6 @@
 
 #![cfg_attr(not(target_os = "windows"), feature(alloc_jemalloc))]
 #![feature(box_syntax)]
-#![feature(iter_arith)]
 #![feature(plugin)]
 #![plugin(plugins)]
 #![feature(custom_derive)]

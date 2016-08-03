@@ -7,7 +7,9 @@ use cssparser::{self, Parser, ToCss, Token};
 use euclid::size::Size2D;
 #[cfg(feature = "gecko")]
 use gecko_bindings::ptr::{GeckoArcPrincipal, GeckoArcURI};
-use parser::{ParserContext, ParserContextExtraData};
+use parser::ParserContext;
+#[cfg(feature = "gecko")]
+use parser::ParserContextExtraData;
 use std::ascii::AsciiExt;
 use std::cmp;
 use std::f32::consts::PI;
