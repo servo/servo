@@ -12,6 +12,7 @@ use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::{ByteString, is_token};
 use hyper::header::Headers as HyperHeaders;
+use std::cell::Cell;
 use std::mem::replace;
 use std::result::Result;
 
@@ -197,18 +198,15 @@ impl Headers {
     }
 
     pub fn set_guard(&self, new_guard: Guard) {
-        let mut borrowed_guard = self.guard.borrow_mut();
-        replace(&mut *borrowed_guard, new_guard);
+        *self.guard.borrow_mut() = new_guard;
     }
 
-    pub fn get_guard(&self) -> Guard {
-        let borrowed_guard = self.guard.borrow();
-        return borrowed_guard.clone();
+    pub fn get_guard(&self) -> &Guard {
+        return self.guard.borrow();
     }
 
     pub fn empty_header_list(&self) {
-        let mut borrowed_header_list = self.header_list.borrow_mut();
-        replace(&mut *borrowed_header_list, HyperHeaders::new());
+        *self.header_list.borrow_mut() = HyperHeaders::new();
     }
 
     // https://fetch.spec.whatwg.org/#concept-header-extract-mime-type
