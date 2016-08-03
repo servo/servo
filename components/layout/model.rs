@@ -502,6 +502,13 @@ impl ToGfxMatrix for ComputedMatrix {
     }
 }
 
+// Used to specify the logical direction.
+#[derive(Debug, Clone, Copy)]
+pub enum Direction {
+    Inline,
+    Block
+}
+
 // https://drafts.csswg.org/css2/visudet.html#min-max-widths
 // https://drafts.csswg.org/css2/visudet.html#min-max-heights
 /// A min or max constraint

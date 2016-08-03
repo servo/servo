@@ -6,7 +6,7 @@
 
 #![deny(unsafe_code)]
 
-use app_units::Au;
+use app_units::{Au, MAX_AU};
 use block::BlockFlow;
 use context::LayoutContext;
 use display_list_builder::{DisplayListBuildState, FlexFlowDisplayListBuilding};
@@ -20,15 +20,19 @@ use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx::display_list::StackingContext;
 use gfx_traits::StackingContextId;
 use layout_debug;
-use model::{IntrinsicISizes, MaybeAuto, MinMaxConstraint};
+use model::{Direction, IntrinsicISizes, MaybeAuto, MinMaxConstraint};
+use model::{specified, specified_or_none};
 use script_layout_interface::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW};
-use std::cmp::max;
+use std::cmp::{max, min};
+use std::ops::Range;
 use std::sync::Arc;
-use style::computed_values::flex_direction;
-use style::context::SharedStyleContext;
+use style::computed_values::border_collapse;
+use style::computed_values::{align_content, align_self, flex_direction, flex_wrap, justify_content};
+use style::context::{SharedStyleContext, StyleContext};
 use style::logical_geometry::LogicalSize;
 use style::properties::ServoComputedValues;
-use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
+use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
+use style::values::computed::{LengthOrPercentageOrAutoOrContent, LengthOrPercentageOrNone};
 
 /// The size of an axis. May be a specified size, a min/max
 /// constraint, or an unlimited size
@@ -51,13 +55,13 @@ impl AxisSize {
                     Some(size) => AxisSize::Definite(size.scale_by(percent)),
                     None => AxisSize::Infinite
                 }
-            },
+            }
             LengthOrPercentageOrAuto::Calc(calc) => {
                 match content_size {
                     Some(size) => AxisSize::Definite(size.scale_by(calc.percentage())),
                     None => AxisSize::Infinite
                 }
-            },
+            }
             LengthOrPercentageOrAuto::Auto => {
                 AxisSize::MinMax(MinMaxConstraint::new(content_size, min, max))
             }
@@ -65,25 +69,263 @@ impl AxisSize {
     }
 }
 
-// A mode describes which logical axis a flex axis is parallel with.
-// The logical axises are inline and block, the flex axises are main and cross.
-// When the flex container has flex-direction: column or flex-direction: column-reverse, the main axis
-// should be block. Otherwise, it should be inline.
-#[derive(Debug)]
-enum Mode {
-    Inline,
-    Block
+/// This function accepts the flex-basis and the size property in main direction from style,
+/// and the container size, then return the used value of flex basis. it can be used to help
+/// determining the flex base size and to indicate whether the main size of the item
+/// is definite after flex size resolving.
+fn from_flex_basis(flex_basis: LengthOrPercentageOrAutoOrContent,
+                   main_length: LengthOrPercentageOrAuto,
+                   containing_length: Option<Au>) -> MaybeAuto {
+    match (flex_basis, containing_length) {
+        (LengthOrPercentageOrAutoOrContent::Length(length), _) =>
+            MaybeAuto::Specified(length),
+        (LengthOrPercentageOrAutoOrContent::Percentage(percent), Some(size)) =>
+            MaybeAuto::Specified(size.scale_by(percent)),
+        (LengthOrPercentageOrAutoOrContent::Percentage(_), None) =>
+            MaybeAuto::Auto,
+        (LengthOrPercentageOrAutoOrContent::Calc(calc), Some(size)) =>
+            MaybeAuto::Specified(calc.length() + size.scale_by(calc.percentage())),
+        (LengthOrPercentageOrAutoOrContent::Calc(_), None) =>
+            MaybeAuto::Auto,
+        (LengthOrPercentageOrAutoOrContent::Content, _) =>
+            MaybeAuto::Auto,
+        (LengthOrPercentageOrAutoOrContent::Auto, Some(size)) =>
+            MaybeAuto::from_style(main_length, size),
+        (LengthOrPercentageOrAutoOrContent::Auto, None) => {
+            if let LengthOrPercentageOrAuto::Length(length) = main_length {
+                MaybeAuto::Specified(length)
+            } else {
+                MaybeAuto::Auto
+            }
+        }
+    }
 }
 
+/// Represents a child in a flex container. Most fields here are used in
+/// flex size resolving, and items are sorted by the 'order' property.
 #[derive(Debug)]
 struct FlexItem {
+    /// Main size of a flex item, used to store results of flexible length calcuation.
+    pub main_size: Au,
+    /// Used flex base size.
+    pub base_size: Au,
+    /// The minimal size in main direction.
+    pub min_size: Au,
+    /// The maximal main size. If this property is not actually set by style
+    /// It will be the largest size available for code reuse.
+    pub max_size: Au,
+    /// Reference to the actual flow.
     pub flow: FlowRef,
+    /// Style of the child flow, stored here to reduce overhead.
+    pub style: Arc<ServoComputedValues>,
+    /// The 'flex-grow' property of this item.
+    pub flex_grow: f32,
+    /// The 'flex-shrink' property of this item.
+    pub flex_shrink: f32,
+    /// The 'order' property of this item.
+    pub order: i32,
+    /// Whether the main size has met its constraint.
+    pub is_frozen: bool,
+    /// True if this flow has property 'visibility::collapse'.
+    pub is_strut: bool
 }
 
 impl FlexItem {
-    fn new(flow: FlowRef) -> FlexItem {
+    pub fn new(flow: FlowRef) -> FlexItem {
+        let style = flow.as_block().fragment.style.clone();
+        let flex_grow = style.get_position().flex_grow;
+        let flex_shrink = style.get_position().flex_shrink;
+        let order = style.get_position().order;
+        // TODO(stshine): for item with 'visibility:collapse', set is_strut to true.
+
         FlexItem {
-            flow: flow
+            main_size: Au(0),
+            base_size: Au(0),
+            min_size: Au(0),
+            max_size: MAX_AU,
+            flow: flow,
+            style: style,
+            flex_grow: flex_grow,
+            flex_shrink: flex_shrink,
+            order: order,
+            is_frozen: false,
+            is_strut: false
+        }
+    }
+
+    /// Initialize the used flex base size, minimal main size and maximal main size.
+    /// For block mode container this method should be called in assign_block_size()
+    /// pass so that the item has already been layouted.
+    pub fn init_sizes(&mut self, containing_length: Au, direction: Direction) {
+        let block = flow_ref::deref_mut(&mut self.flow).as_mut_block();
+        match direction {
+            // TODO(stshine): the definition of min-{width, height} in style component
+            // should change to LengthOrPercentageOrAuto for automatic implied minimal size.
+            // https://drafts.csswg.org/css-flexbox-1/#min-size-auto
+            Direction::Inline => {
+                let basis = from_flex_basis(self.style.get_position().flex_basis,
+                                            self.style.content_inline_size(),
+                                            Some(containing_length));
+
+                // These methods compute auto margins to zero length, which is exactly what we want.
+                block.fragment.compute_border_and_padding(containing_length,
+                                                          border_collapse::T::separate);
+                block.fragment.compute_inline_direction_margins(containing_length);
+                block.fragment.compute_block_direction_margins(containing_length);
+
+                let content_size = block.base.intrinsic_inline_sizes.preferred_inline_size
+                    - block.fragment.surrounding_intrinsic_inline_size()
+                    + block.fragment.box_sizing_boundary(direction);
+                self.base_size = basis.specified_or_default(content_size);
+                self.max_size = specified_or_none(self.style.max_inline_size(), containing_length)
+                    .unwrap_or(MAX_AU);
+                self.min_size = specified(self.style.min_inline_size(), containing_length);
+            }
+            Direction::Block => {
+                let basis = from_flex_basis(self.style.get_position().flex_basis,
+                                            self.style.content_block_size(),
+                                            Some(containing_length));
+                let content_size = block.fragment.border_box.size.block
+                    - block.fragment.border_padding.block_start_end()
+                    + block.fragment.box_sizing_boundary(direction);
+                self.base_size = basis.specified_or_default(content_size);
+                self.max_size = specified_or_none(self.style.max_block_size(), containing_length)
+                    .unwrap_or(MAX_AU);
+                self.min_size = specified(self.style.min_block_size(), containing_length);
+            }
+        }
+    }
+
+    /// Returns the outer main size of the item, including paddings and margins,
+    /// clamped by max and min size.
+    pub fn outer_main_size(&self, direction: Direction) -> Au {
+        let ref fragment = self.flow.as_block().fragment;
+        let outer_width = match direction {
+            Direction::Inline => {
+                fragment.border_padding.inline_start_end() + fragment.margin.inline_start_end()
+            }
+            Direction::Block => {
+                fragment.border_padding.block_start_end() + fragment.margin.block_start_end()
+            }
+        };
+        max(self.min_size, min(self.base_size, self.max_size))
+            - fragment.box_sizing_boundary(direction) + outer_width
+    }
+
+    /// Returns the number of auto margins in given direction.
+    pub fn auto_margin_count(&self, direction: Direction) -> i32 {
+        let margin = self.style.logical_margin();
+        let mut margin_count = 0;
+        match direction {
+            Direction::Inline => {
+                if margin.inline_start == LengthOrPercentageOrAuto::Auto {
+                    margin_count += 1;
+                }
+                if margin.inline_end == LengthOrPercentageOrAuto::Auto {
+                    margin_count += 1;
+                }
+            }
+            Direction::Block => {
+                if margin.block_start == LengthOrPercentageOrAuto::Auto {
+                    margin_count += 1;
+                }
+                if margin.block_end == LengthOrPercentageOrAuto::Auto {
+                    margin_count += 1;
+                }
+            }
+        }
+        margin_count
+    }
+}
+
+/// A line in a flex container.
+// TODO(stshine): More fields are required to handle collapsed items and baseline alignment.
+#[derive(Debug)]
+struct FlexLine {
+    /// Range of items belong to this line in 'self.items'.
+    pub range: Range<usize>,
+    /// Remaining free space of this line, items will grow or shrink based on it being positive or negative.
+    pub free_space: Au,
+    /// The number of auto margins of items.
+    pub auto_margin_count: i32,
+    /// Line size in the block direction.
+    pub cross_size: Au,
+}
+
+impl FlexLine {
+    pub fn new(range: Range<usize>, free_space: Au, auto_margin_count: i32) -> FlexLine {
+        FlexLine {
+            range: range,
+            auto_margin_count: auto_margin_count,
+            free_space: free_space,
+            cross_size: Au(0)
+        }
+    }
+
+    /// This method implements the flexible lengths resolving algorithm.
+    /// The 'collapse' parameter is used to indicate whether items with 'visibility: collapse'
+    /// is included in length resolving. The result main size is stored in 'item.main_size'.
+    /// https://drafts.csswg.org/css-flexbox/#resolve-flexible-lengths
+    pub fn flex_resolve(&mut self, items: &mut [FlexItem], collapse: bool) {
+        let mut total_grow = 0.0;
+        let mut total_shrink = 0.0;
+        let mut total_scaled = 0.0;
+        let mut active_count = 0;
+        // Iterate through items, collect total factors and freeze those that have already met
+        // their constraints or won't grow/shrink in corresponding scenario.
+        // https://drafts.csswg.org/css-flexbox/#resolve-flexible-lengths
+        for item in items.iter_mut().filter(|i| !(i.is_strut && collapse)) {
+            item.main_size = max(item.min_size, min(item.base_size, item.max_size));
+            if item.main_size != item.base_size
+                || (self.free_space > Au(0) && item.flex_grow == 0.0)
+                || (self.free_space < Au(0) && item.flex_shrink == 0.0) {
+                    item.is_frozen = true;
+                } else {
+                    item.is_frozen = false;
+                    total_grow += item.flex_grow;
+                    total_shrink += item.flex_shrink;
+                    // The scaled factor is used to calculate flex shrink
+                    total_scaled += item.flex_shrink * item.base_size.0 as f32;
+                    active_count += 1;
+                }
+        }
+
+        let initial_free_space = self.free_space;
+        let mut total_variation = Au(1);
+        // If there is no remaining free space or all items are frozen, stop loop.
+        while total_variation != Au(0) && self.free_space != Au(0) && active_count > 0 {
+            self.free_space =
+                // https://drafts.csswg.org/css-flexbox/#remaining-free-space
+                if self.free_space > Au(0) {
+                    min(initial_free_space.scale_by(total_grow), self.free_space)
+                } else {
+                    max(initial_free_space.scale_by(total_shrink), self.free_space)
+                };
+
+            total_variation = Au(0);
+            for item in items.iter_mut().filter(|i| !i.is_frozen).filter(|i| !(i.is_strut && collapse)) {
+                // Use this and the 'abs()' below to make the code work in both grow and shrink scenarios.
+                let (factor, end_size) = if self.free_space > Au(0) {
+                    (item.flex_grow / total_grow, item.max_size)
+                } else {
+                    (item.flex_shrink * item.base_size.0 as f32 / total_scaled, item.min_size)
+                };
+                let variation = self.free_space.scale_by(factor);
+                if variation.0.abs() > (end_size - item.main_size).0.abs() {
+                    // Use constraint as the target main size, and freeze item.
+                    total_variation += end_size - item.main_size;
+                    item.main_size = end_size;
+                    item.is_frozen = true;
+                    active_count -= 1;
+                    total_shrink -= item.flex_shrink;
+                    total_grow -= item.flex_grow;
+                    total_scaled -= item.flex_shrink * item.base_size.0 as f32;
+                } else {
+                    total_variation += variation;
+                    item.main_size += variation;
+                }
+            }
+            self.free_space -= total_variation;
         }
     }
 }
@@ -95,36 +337,95 @@ pub struct FlexFlow {
     block_flow: BlockFlow,
     /// The logical axis which the main axis will be parallel with.
     /// The cross axis will be parallel with the opposite logical axis.
-    main_mode: Mode,
+    main_mode: Direction,
     /// The available main axis size
     available_main_size: AxisSize,
     /// The available cross axis size
     available_cross_size: AxisSize,
+    /// List of flex lines in the container.
+    lines: Vec<FlexLine>,
     /// List of flex-items that belong to this flex-container
     items: Vec<FlexItem>,
     /// True if the flex-direction is *-reversed
-    is_reverse: bool
+    main_reverse: bool,
+    /// True if this flex container can be multiline.
+    is_wrappable: bool,
+    /// True if the cross direction is reversed.
+    cross_reverse: bool
 }
 
 impl FlexFlow {
     pub fn from_fragment(fragment: Fragment,
                          flotation: Option<FloatKind>)
                          -> FlexFlow {
-        let (main_mode, is_reverse) = match fragment.style.get_position().flex_direction {
-            flex_direction::T::row            => (Mode::Inline, false),
-            flex_direction::T::row_reverse    => (Mode::Inline, true),
-            flex_direction::T::column         => (Mode::Block, false),
-            flex_direction::T::column_reverse => (Mode::Block, true),
-        };
+        let main_mode;
+        let main_reverse;
+        let is_wrappable;
+        let cross_reverse;
+        {
+            let style = fragment.style();
+            let (mode, reverse) = match style.get_position().flex_direction {
+                flex_direction::T::row            => (Direction::Inline, false),
+                flex_direction::T::row_reverse    => (Direction::Inline, true),
+                flex_direction::T::column         => (Direction::Block, false),
+                flex_direction::T::column_reverse => (Direction::Block, true),
+            };
+            main_mode = mode;
+            main_reverse =
+                reverse == style.writing_mode.is_bidi_ltr();
+            let (wrappable, reverse) = match fragment.style.get_position().flex_wrap {
+                flex_wrap::T::nowrap              => (false, false),
+                flex_wrap::T::wrap                => (true, false),
+                flex_wrap::T::wrap_reverse        => (true, true),
+            };
+            is_wrappable = wrappable;
+            // TODO(stshine): Handle vertical writing mode.
+            cross_reverse = reverse;
+        }
 
         FlexFlow {
             block_flow: BlockFlow::from_fragment(fragment, flotation),
             main_mode: main_mode,
             available_main_size: AxisSize::Infinite,
             available_cross_size: AxisSize::Infinite,
+            lines: Vec::new(),
             items: Vec::new(),
-            is_reverse: is_reverse
+            main_reverse: main_reverse,
+            is_wrappable: is_wrappable,
+            cross_reverse: cross_reverse
         }
+    }
+
+    /// Returns a line start after the last item that is already in a line.
+    /// Note that when the container main size is infinite(i.e. A column flexbox with auto height),
+    /// we do not need to do flex resolving and this can be considered as a fast-path, so the
+    /// 'container_size' param does not need to be 'None'. A line has to contain at least one item;
+    /// (except this) if the container can be multi-line the sum of outer main size of items should
+    /// be less than the container size; a line should be filled by items as much as possible.
+    /// After been collected in a line a item should have its main sizes initialized.
+    fn get_flex_line(&mut self, container_size: Au) -> Option<FlexLine> {
+        let start = self.lines.last().map(|line| line.range.end).unwrap_or(0);
+        if start == self.items.len() {
+            return None;
+        }
+        let mut end = start;
+        let mut total_line_size = Au(0);
+        let mut margin_count = 0;
+
+        let items = &mut self.items[start..];
+        for mut item in items {
+            item.init_sizes(container_size, self.main_mode);
+            let outer_main_size = item.outer_main_size(self.main_mode);
+            if total_line_size + outer_main_size > container_size && end != start && self.is_wrappable {
+                break;
+            }
+            margin_count += item.auto_margin_count(self.main_mode);
+            total_line_size += outer_main_size;
+            end += 1;
+        }
+
+        let line = FlexLine::new(start..end, container_size - total_line_size, margin_count);
+        Some(line)
     }
 
     // TODO(zentner): This function should use flex-basis.
@@ -226,9 +527,6 @@ impl FlexFlow {
         }
     }
 
-    // TODO(zentner): This function should actually flex elements!
-    // Currently, this is the core of InlineFlow::propagate_assigned_inline_size_to_children() with
-    // fragment logic stripped out.
     fn inline_mode_assign_inline_sizes(&mut self,
                                        _shared_context: &SharedStyleContext,
                                        inline_start_content_edge: Au,
@@ -251,43 +549,113 @@ impl FlexFlow {
             AxisSize::Infinite => content_inline_size,
         };
 
-        let even_content_inline_size = inline_size / child_count;
-
         let container_mode = self.block_flow.base.block_container_writing_mode;
         self.block_flow.base.position.size.inline = inline_size;
 
-        let block_container_explicit_block_size = self.block_flow.base.block_container_explicit_block_size;
-        let mut inline_child_start = if !self.is_reverse {
-            inline_start_content_edge
-        } else {
-            self.block_flow.fragment.border_box.size.inline
-        };
-        for kid in &mut self.items {
-            let base = flow::mut_base(flow_ref::deref_mut(&mut kid.flow));
+        // Calculate non-auto block size to pass to children.
+        let box_border = self.block_flow.fragment.box_sizing_boundary(Direction::Block);
 
-            base.block_container_inline_size = even_content_inline_size;
-            base.block_container_writing_mode = container_mode;
-            base.block_container_explicit_block_size = block_container_explicit_block_size;
-            if !self.is_reverse {
-              base.position.start.i = inline_child_start;
-              inline_child_start = inline_child_start + even_content_inline_size;
+        let parent_container_size = self.block_flow.explicit_block_containing_size(_shared_context);
+        // https://drafts.csswg.org/css-ui-3/#box-sizing
+        let explicit_content_size = self
+                                    .block_flow
+                                    .explicit_block_size(parent_container_size)
+                                    .map(|x| max(x - box_border, Au(0)));
+        let containing_block_text_align =
+            self.block_flow.fragment.style().get_inheritedtext().text_align;
+
+        while let Some(mut line) = self.get_flex_line(inline_size) {
+            let items = &mut self.items[line.range.clone()];
+            line.flex_resolve(items, false);
+            // TODO(stshine): if this flex line contain children that have
+            // property visibility:collapse, exclude them and resolve again.
+
+            let item_count = items.len() as i32;
+            let mut cur_i = inline_start_content_edge;
+            let item_interval = if line.free_space >= Au(0) && line.auto_margin_count == 0 {
+                match self.block_flow.fragment.style().get_position().justify_content {
+                    justify_content::T::space_between => {
+                        if item_count == 1 {
+                            Au(0)
+                        } else {
+                            line.free_space / (item_count - 1)
+                        }
+                    }
+                    justify_content::T::space_around => {
+                        line.free_space / item_count
+                    }
+                    _ => Au(0),
+                }
             } else {
-              base.position.start.i = inline_child_start - base.intrinsic_inline_sizes.preferred_inline_size;
-              inline_child_start = inline_child_start - even_content_inline_size;
+                Au(0)
             };
+
+            match self.block_flow.fragment.style().get_position().justify_content {
+                // Overflow equally in both ends of line.
+                justify_content::T::center | justify_content::T::space_around => {
+                    cur_i += (line.free_space - item_interval * (item_count - 1)) / 2;
+                }
+                justify_content::T::flex_end => {
+                    cur_i += line.free_space;
+                }
+                _ => {}
+            }
+
+            for item in items.iter_mut() {
+                let mut block = flow_ref::deref_mut(&mut item.flow).as_mut_block();
+
+                block.base.block_container_writing_mode = container_mode;
+                block.base.block_container_inline_size = inline_size;
+                block.base.block_container_explicit_block_size = explicit_content_size;
+                // Per CSS 2.1 § 16.3.1, text alignment propagates to all children in flow.
+                //
+                // TODO(#2265, pcwalton): Do this in the cascade instead.
+                block.base.flags.set_text_align(containing_block_text_align);
+                // FIXME(stshine): should this be done during construction?
+                block.mark_as_flex();
+
+                let margin = block.fragment.style().logical_margin();
+                let auto_len =
+                    if line.auto_margin_count == 0 || line.free_space <= Au(0) {
+                        Au(0)
+                    } else {
+                        line.free_space / line.auto_margin_count
+                    };
+                let margin_inline_start = MaybeAuto::from_style(margin.inline_start, inline_size)
+                    .specified_or_default(auto_len);
+                let margin_inline_end = MaybeAuto::from_style(margin.inline_end, inline_size)
+                    .specified_or_default(auto_len);
+                let item_inline_size = item.main_size
+                    - block.fragment.box_sizing_boundary(self.main_mode)
+                    + block.fragment.border_padding.inline_start_end();
+                let item_outer_size = item_inline_size + block.fragment.margin.inline_start_end();
+
+                block.fragment.margin.inline_start = margin_inline_start;
+                block.fragment.margin.inline_end = margin_inline_end;
+                block.fragment.border_box.start.i = margin_inline_start;
+                block.fragment.border_box.size.inline = item_inline_size;
+                block.base.position.start.i = if !self.main_reverse {
+                    cur_i
+                } else {
+                    inline_start_content_edge * 2 + content_inline_size - cur_i  - item_outer_size
+                };
+                block.base.position.size.inline = item_outer_size;
+                cur_i += item_outer_size + item_interval;
+            }
+            self.lines.push(line);
         }
     }
 
     // TODO(zentner): This function should actually flex elements!
     fn block_mode_assign_block_size<'a>(&mut self, layout_context: &'a LayoutContext<'a>) {
-        let mut cur_b = if !self.is_reverse {
+        let mut cur_b = if !self.main_reverse {
             self.block_flow.fragment.border_padding.block_start
         } else {
             self.block_flow.fragment.border_box.size.block
         };
         for kid in &mut self.items {
             let base = flow::mut_base(flow_ref::deref_mut(&mut kid.flow));
-            if !self.is_reverse {
+            if !self.main_reverse {
                 base.position.start.b = cur_b;
                 cur_b = cur_b + base.position.size.block;
             } else {
@@ -298,63 +666,134 @@ impl FlexFlow {
         self.block_flow.assign_block_size(layout_context)
     }
 
-    // TODO(zentner): This function should actually flex elements!
-    // Currently, this is the core of TableRowFlow::assign_block_size() with
-    // float related logic stripped out.
     fn inline_mode_assign_block_size<'a>(&mut self, layout_context: &'a LayoutContext<'a>) {
         let _scope = layout_debug_scope!("flex::inline_mode_assign_block_size");
 
-        let mut max_block_size = Au(0);
-        let thread_id = self.block_flow.base.thread_id;
-        for kid in self.block_flow.base.child_iter_mut() {
-            kid.assign_block_size_for_inorder_child_if_necessary(layout_context, thread_id);
+        let line_count = self.lines.len() as i32;
+        let line_align = self.block_flow.fragment.style().get_position().align_content;
+        let mut cur_b = self.block_flow.fragment.border_padding.block_start;
+        let mut total_cross_size = Au(0);
+        let mut line_interval = Au(0);
 
-            {
-                let child_fragment = &mut kid.as_mut_block().fragment;
-                // TODO: Percentage block-size
-                let child_specified_block_size =
-                    MaybeAuto::from_style(child_fragment.style().content_block_size(),
-                                          Au(0)).specified_or_zero();
-                max_block_size =
-                    max(max_block_size,
-                        child_specified_block_size +
-                        child_fragment.border_padding.block_start_end());
+        for line in self.lines.iter_mut() {
+            for item in &self.items[line.range.clone()] {
+                let ref fragment = item.flow.as_block().fragment;
+                line.cross_size = max(line.cross_size,
+                                      fragment.border_box.size.block + fragment.margin.block_start_end());
             }
-            let child_node = flow::mut_base(kid);
-            child_node.position.start.b = Au(0);
-            max_block_size = max(max_block_size, child_node.position.size.block);
+            total_cross_size += line.cross_size;
         }
 
-        let mut block_size = max_block_size;
-        // TODO: Percentage block-size
+        let box_border = self.block_flow.fragment.box_sizing_boundary(Direction::Block);
+        let parent_container_size =
+            self.block_flow.explicit_block_containing_size(layout_context.shared_context());
+        // https://drafts.csswg.org/css-ui-3/#box-sizing
+        let explicit_content_size = self
+                                    .block_flow
+                                    .explicit_block_size(parent_container_size)
+                                    .map(|x| max(x - box_border, Au(0)));
 
-        block_size = match MaybeAuto::from_style(self.block_flow
-                                                     .fragment
-                                                     .style()
-                                                     .content_block_size(),
-                                                 Au(0)) {
-            MaybeAuto::Auto => block_size,
-            MaybeAuto::Specified(value) => max(value, block_size),
-        };
+        if let Some(container_block_size) = explicit_content_size {
+            let free_space = container_block_size - total_cross_size;
+            total_cross_size = container_block_size;
 
-        // Assign the block-size of own fragment
-        let mut position = self.block_flow.fragment.border_box;
-        position.size.block = block_size;
-        self.block_flow.fragment.border_box = position;
-        self.block_flow.base.position.size.block = block_size;
-
-        // Assign the block-size of kid fragments, which is the same value as own block-size.
-        for kid in self.block_flow.base.child_iter_mut() {
-            {
-                let kid_fragment = &mut kid.as_mut_block().fragment;
-                let mut position = kid_fragment.border_box;
-                position.size.block = block_size;
-                kid_fragment.border_box = position;
+            if line_align == align_content::T::stretch && free_space > Au(0) {
+                for line in self.lines.iter_mut() {
+                    line.cross_size += free_space / line_count;
+                }
             }
 
-            // Assign the child's block size.
-            flow::mut_base(kid).position.size.block = block_size
+            line_interval = match line_align {
+                align_content::T::space_between => {
+                    if line_count == 1 {
+                        Au(0)
+                    } else {
+                        free_space / (line_count - 1)
+                    }
+                }
+                align_content::T::space_around => {
+                    free_space / line_count
+                }
+                _ => Au(0),
+            };
+
+            match line_align {
+                align_content::T::center | align_content::T::space_around => {
+                    cur_b += (free_space - line_interval * (line_count - 1)) / 2;
+                }
+                align_content::T::flex_end => {
+                    cur_b += free_space;
+                }
+                _ => {}
+            }
         }
+
+        for line in &self.lines {
+            for mut item in self.items[line.range.clone()].iter_mut() {
+                let auto_margin_count = item.auto_margin_count(Direction::Block);
+                let mut block = flow_ref::deref_mut(&mut item.flow).as_mut_block();
+                let margin = block.fragment.style().logical_margin();
+
+                let mut margin_block_start = block.fragment.margin.block_start;
+                let mut margin_block_end = block.fragment.margin.block_end;
+                let mut free_space = line.cross_size - block.base.position.size.block
+                    - block.fragment.margin.block_start_end();
+
+                // The spec is a little vague here, but if I understand it correctly, the outer
+                // cross size of item should equal to the line size if any auto margin exists.
+                // https://drafts.csswg.org/css-flexbox/#algo-cross-margins
+                if auto_margin_count > 0 {
+                    if margin.block_start == LengthOrPercentageOrAuto::Auto {
+                        margin_block_start = if free_space < Au(0) {
+                            Au(0)
+                        } else {
+                            free_space / auto_margin_count
+                        };
+                    }
+                    margin_block_end = line.cross_size - margin_block_start - block.base.position.size.block;
+                    free_space = Au(0);
+                }
+
+                let self_align = block.fragment.style().get_position().align_self;
+                if self_align == align_self::T::stretch &&
+                    block.fragment.style().content_block_size() == LengthOrPercentageOrAuto::Auto {
+                        free_space = Au(0);
+                        block.base.block_container_explicit_block_size = Some(line.cross_size);
+                        block.base.position.size.block =
+                            line.cross_size - margin_block_start - margin_block_end;
+                        block.fragment.border_box.size.block = block.base.position.size.block;
+                        // FIXME(stshine): item with 'align-self: stretch' and auto cross size should act
+                        // as if it has a fixed cross size, all child blocks should resolve against it.
+                        // block.assign_block_size(layout_context);
+                    }
+                block.base.position.start.b = margin_block_start +
+                    if !self.cross_reverse {
+                        cur_b
+                    } else {
+                        self.block_flow.fragment.border_padding.block_start * 2
+                            + total_cross_size - cur_b - line.cross_size
+                    };
+                // TODO(stshine): support baseline alignment.
+                if free_space != Au(0) {
+                    let flex_cross = match self_align {
+                        align_self::T::flex_end => free_space,
+                        align_self::T::center => free_space / 2,
+                        _ => Au(0),
+                    };
+                    block.base.position.start.b +=
+                        if !self.cross_reverse {
+                            flex_cross
+                        } else {
+                            free_space - flex_cross
+                        };
+                }
+            }
+            cur_b += line_interval + line.cross_size;
+        }
+        let total_block_size = total_cross_size + self.block_flow.fragment.border_padding.block_start_end();
+        self.block_flow.fragment.border_box.size.block = total_block_size;
+        self.block_flow.base.position.size.block = total_block_size;
+
     }
 }
 
@@ -382,24 +821,19 @@ impl Flow for FlexFlow {
         // Flexbox Section 9.0: Generate anonymous flex items:
         // This part was handled in the flow constructor.
 
-        // Flexbox Section 9.1: Re-order the flex items (and any absolutely positioned flex
-        // container children) according to their order.
+        // Flexbox Section 9.1: Re-order flex items according to their order.
+        // FIXME(stshine): This should be done during flow construction.
+        let mut items = self.block_flow.base.children.iter_flow_ref_mut()
+            .filter(|flow| !flow.as_block().base.flags.contains(IS_ABSOLUTELY_POSITIONED))
+            .map(|flow| FlexItem::new(flow.clone()))
+            .collect::<Vec<FlexItem>>();
 
-        let mut items = self.block_flow.base.children.iter_flow_ref_mut().map(|flow| {
-            FlexItem::new(flow.clone())
-        }).collect::<Vec<FlexItem>>();
-
-        items.sort_by(|item1, item2| {
-            item1.flow.as_block().fragment.style.get_position().order.cmp(
-                &item2.flow.as_block().fragment.style.get_position().order
-                )
-        });
-
+        items.sort_by_key(|item| item.order);
         self.items = items;
 
         match self.main_mode {
-            Mode::Inline => self.inline_mode_bubble_inline_sizes(),
-            Mode::Block  => self.block_mode_bubble_inline_sizes()
+            Direction::Inline => self.inline_mode_bubble_inline_sizes(),
+            Direction::Block  => self.block_mode_bubble_inline_sizes()
         }
     }
 
@@ -458,15 +892,15 @@ impl Flow for FlexFlow {
         let content_inline_size = self.block_flow.fragment.border_box.size.inline - padding_and_borders;
 
         match self.main_mode {
-            Mode::Inline => {
+            Direction::Inline => {
                 self.available_main_size = available_inline_size;
                 self.available_cross_size = available_block_size;
                 self.inline_mode_assign_inline_sizes(shared_context,
                                                      inline_start_content_edge,
                                                      inline_end_content_edge,
                                                      content_inline_size)
-            },
-            Mode::Block  => {
+            }
+            Direction::Block  => {
                 self.available_main_size = available_block_size;
                 self.available_cross_size = available_inline_size;
                 self.block_mode_assign_inline_sizes(shared_context,
@@ -480,9 +914,9 @@ impl Flow for FlexFlow {
     fn assign_block_size<'a>(&mut self, layout_context: &'a LayoutContext<'a>) {
         self.block_flow.assign_block_size(layout_context);
         match self.main_mode {
-            Mode::Inline =>
+            Direction::Inline =>
                 self.inline_mode_assign_block_size(layout_context),
-            Mode::Block  =>
+            Direction::Block  =>
                 self.block_mode_assign_block_size(layout_context)
         }
     }

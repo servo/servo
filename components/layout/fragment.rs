@@ -23,7 +23,7 @@ use inline::{InlineMetrics, LAST_FRAGMENT_OF_ELEMENT};
 use ipc_channel::ipc::IpcSender;
 #[cfg(debug_assertions)]
 use layout_debug;
-use model::{self, IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto, specified};
+use model::{self, Direction, IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto, specified};
 use msg::constellation_msg::PipelineId;
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache_thread::{ImageOrMetadataAvailable, UsePlaceholder};
@@ -39,7 +39,7 @@ use std::fmt;
 use std::sync::{Arc, Mutex};
 use style::arc_ptr_eq;
 use style::computed_values::content::ContentItem;
-use style::computed_values::{border_collapse, clear, color, display, mix_blend_mode};
+use style::computed_values::{border_collapse, box_sizing, clear, color, display, mix_blend_mode};
 use style::computed_values::{overflow_wrap, overflow_x, position, text_decoration};
 use style::computed_values::{transform_style, vertical_align, white_space, word_break, z_index};
 use style::dom::TRestyleDamage;
@@ -1106,6 +1106,20 @@ impl Fragment {
                     accumulator + this_border_width
                 })
             }
+        }
+    }
+
+    /// Returns the border width in given direction if this fragment has property
+    /// 'box-sizing: border-box'. The `border_padding` field should have been initialized.
+    pub fn box_sizing_boundary(&self, direction: Direction) -> Au {
+        match (self.style().get_position().box_sizing, direction) {
+            (box_sizing::T::border_box, Direction::Inline) => {
+                self.border_padding.inline_start_end()
+            }
+            (box_sizing::T::border_box, Direction::Block) => {
+                self.border_padding.block_start_end()
+            }
+            _ => Au(0)
         }
     }
 

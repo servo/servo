@@ -487,6 +487,7 @@ pub enum BlockType {
     FloatNonReplaced,
     InlineBlockReplaced,
     InlineBlockNonReplaced,
+    FlexItem,
 }
 
 #[derive(Clone, PartialEq)]
@@ -521,7 +522,9 @@ pub struct BlockFlow {
 bitflags! {
     flags BlockFlowFlags: u8 {
         #[doc = "If this is set, then this block flow is the root flow."]
-        const IS_ROOT = 0x01,
+        const IS_ROOT = 0b0000_0001,
+        #[doc = "Whether this block flow is a child of a flex container."]
+        const IS_FLEX = 0b0001_0000,
     }
 }
 
@@ -556,6 +559,8 @@ impl BlockFlow {
             } else {
                 BlockType::AbsoluteNonReplaced
             }
+        } else if self.is_flex() {
+            BlockType::FlexItem
         } else if self.base.flags.is_float() {
             if self.is_replaced_content() {
                 BlockType::FloatReplaced
@@ -627,6 +632,12 @@ impl BlockFlow {
             }
             BlockType::NonReplaced => {
                 let inline_size_computer = BlockNonReplaced;
+                inline_size_computer.compute_used_inline_size(self,
+                                                              shared_context,
+                                                              containing_block_inline_size);
+            }
+            BlockType::FlexItem => {
+                let inline_size_computer = FlexItem;
                 inline_size_computer.compute_used_inline_size(self,
                                                               shared_context,
                                                               containing_block_inline_size);
@@ -1138,7 +1149,7 @@ impl BlockFlow {
         }
     }
 
-    fn explicit_block_size(&self, containing_block_size: Option<Au>) -> Option<Au> {
+    pub fn explicit_block_size(&self, containing_block_size: Option<Au>) -> Option<Au> {
         let content_block_size = self.fragment.style().content_block_size();
 
         match (content_block_size, containing_block_size) {
@@ -1670,6 +1681,14 @@ impl BlockFlow {
         }
         let padding = self.fragment.style.logical_padding();
         padding.block_start.is_definitely_zero() && padding.block_end.is_definitely_zero()
+    }
+
+    pub fn mark_as_flex(&mut self) {
+        self.flags.insert(IS_FLEX)
+    }
+
+    pub fn is_flex(&self) -> bool {
+        self.flags.contains(IS_FLEX)
     }
 }
 
@@ -2557,6 +2576,7 @@ pub struct FloatNonReplaced;
 pub struct FloatReplaced;
 pub struct InlineBlockNonReplaced;
 pub struct InlineBlockReplaced;
+pub struct FlexItem;
 
 impl ISizeAndMarginsComputer for AbsoluteNonReplaced {
     /// Solve the horizontal constraint equation for absolute non-replaced elements.
@@ -3044,6 +3064,30 @@ impl ISizeAndMarginsComputer for InlineBlockReplaced {
         // For replaced block flow, the rest of the constraint solving will
         // take inline-size to be specified as the value computed here.
         MaybeAuto::Specified(fragment.content_inline_size())
+    }
+}
+
+impl ISizeAndMarginsComputer for FlexItem {
+    // Replace the default method directly to prevent recalculating and setting margins again
+    // which has already been set by its parent.
+    fn compute_used_inline_size(&self,
+                                block: &mut BlockFlow,
+                                shared_context: &SharedStyleContext,
+                                parent_flow_inline_size: Au) {
+        let container_block_size = block.explicit_block_containing_size(shared_context);
+        block.fragment.assign_replaced_inline_size_if_necessary(parent_flow_inline_size,
+                                                                container_block_size);
+    }
+
+    // The used inline size and margins are set by parent flex flow, do nothing here.
+    fn solve_inline_size_constraints(&self,
+                                     block: &mut BlockFlow,
+                                     _: &ISizeConstraintInput)
+                                     -> ISizeConstraintSolution {
+        let fragment = block.fragment();
+        ISizeConstraintSolution::new(fragment.border_box.size.inline,
+                                     fragment.margin.inline_start,
+                                     fragment.margin.inline_end)
     }
 }
 
