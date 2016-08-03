@@ -355,10 +355,11 @@ pub extern "C" fn Servo_GetComputedValuesForPseudoElement(parent_style: *mut Ser
 pub extern "C" fn Servo_InheritComputedValues(parent_style: *mut ServoComputedValues)
      -> *mut ServoComputedValues {
     type Helpers = ArcHelpers<ServoComputedValues, ComputedValues>;
-    Helpers::with(parent_style, |parent| {
-        let style = ComputedValues::inherit_from(parent);
-        Helpers::from(style)
-    })
+    let style = match parent_style {
+        p if p.is_null() => Arc::new(ComputedValues::initial_values().clone()),
+        p => Helpers::with(p, |parent| { ComputedValues::inherit_from(parent) }),
+    };
+    Helpers::from(style)
 }
 
 #[no_mangle]
