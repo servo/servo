@@ -2324,7 +2324,8 @@ impl<'a> ::selectors::Element for Root<Element> {
             NonTSPseudoClass::Checked |
             NonTSPseudoClass::Indeterminate |
             NonTSPseudoClass::ReadWrite |
-            NonTSPseudoClass::PlaceholderShown =>
+            NonTSPseudoClass::PlaceholderShown |
+            NonTSPseudoClass::Target =>
                 Element::state(self).contains(pseudo_class.state_flag()),
         }
     }
@@ -2585,6 +2586,14 @@ impl Element {
             self.set_state(IN_PLACEHOLDER_SHOWN_STATE, value);
             self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
         }
+    }
+
+    pub fn target_state(&self) -> bool {
+        self.state.get().contains(IN_TARGET_STATE)
+    }
+
+    pub fn set_target_state(&self, value: bool) {
+       self.set_state(IN_TARGET_STATE, value)
     }
 }
 

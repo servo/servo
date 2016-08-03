@@ -1198,6 +1198,22 @@ impl ScriptThread {
         // https://html.spec.whatwg.org/multipage/#the-end step 7
         let handler = box DocumentProgressHandler::new(Trusted::new(doc));
         self.dom_manipulation_task_source.queue(handler, GlobalRef::Window(doc.window())).unwrap();
+
+        if let Some(fragment) = doc.url().fragment() {
+            self.check_and_scroll_fragment(fragment, pipeline, doc);
+        }
+    }
+
+    fn check_and_scroll_fragment(&self, fragment: &str, pipeline_id: PipelineId, doc: &Document) {
+        match doc.find_fragment_node(fragment) {
+            Some(ref node) => {
+                doc.set_target_element(Some(node.r()));
+                self.scroll_fragment_point(pipeline_id, node.r());
+            }
+            None => {
+                doc.set_target_element(None);
+            }
+        }
     }
 
     fn collect_reports(&self, reports_chan: ReportsChan) {
@@ -1996,7 +2012,7 @@ impl ScriptThread {
     /// The entry point for content to notify that a new load has been requested
     /// for the given pipeline (specifically the "navigate" algorithm).
     fn handle_navigate(&self, pipeline_id: PipelineId, subpage_id: Option<SubpageId>, load_data: LoadData) {
-        // Step 8.
+        // Step 7.
         {
             let nurl = &load_data.url;
             if let Some(fragment) = nurl.fragment() {
@@ -2007,12 +2023,7 @@ impl ScriptThread {
                 let url = document.url();
                 if &url[..Position::AfterQuery] == &nurl[..Position::AfterQuery] &&
                     load_data.method == Method::Get {
-                    match document.find_fragment_node(fragment) {
-                        Some(ref node) => {
-                            self.scroll_fragment_point(pipeline_id, node.r());
-                        }
-                        None => {}
-                    }
+                    self.check_and_scroll_fragment(fragment, pipeline_id, document.r());
                     return;
                 }
             }
