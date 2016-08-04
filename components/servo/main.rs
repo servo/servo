@@ -41,6 +41,7 @@ use servo::util::servo_version;
 use std::panic;
 use std::process;
 use std::rc::Rc;
+use std::thread;
 
 pub mod platform {
     #[cfg(target_os = "macos")]
@@ -107,7 +108,13 @@ fn main() {
                 None => "Box<Any>",
             },
         };
-        error!("{}", msg);
+        let current_thread = thread::current();
+        let name = current_thread.name().unwrap_or("<unnamed>");
+        if let Some(location) = info.location() {
+            error!("{} (thread {}, at {}:{})", msg, name, location.file(), location.line());
+        } else {
+            error!("{} (thread {})", msg, name);
+        }
     }));
 
     setup_logging();
