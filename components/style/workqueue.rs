@@ -11,10 +11,10 @@
 
 #[cfg(windows)]
 extern crate kernel32;
+#[cfg(not(windows))]
+extern crate libc;
 
 use deque::{self, Abort, Data, Empty, Stealer, Worker};
-#[cfg(not(windows))]
-use libc::usleep;
 use rand::{Rng, XorShiftRng, weak_rng};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{Receiver, Sender, channel};
@@ -90,7 +90,7 @@ const BACKOFFS_UNTIL_CONTROL_CHECK: u32 = 6;
 #[cfg(not(windows))]
 fn sleep_microseconds(usec: u32) {
     unsafe {
-        usleep(usec);
+        libc::usleep(usec);
     }
 }
 
