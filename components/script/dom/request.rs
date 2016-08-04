@@ -48,16 +48,16 @@ pub struct Request {
 
 impl Request {
     fn new_inherited(url: Url,
-                         origin: Option<Origin>,
-                         is_service_worker_global_scope: bool,
-                         pipeline_id: Option<PipelineId>) -> Request {
+                     origin: Option<Origin>,
+                     is_service_worker_global_scope: bool,
+                     pipeline_id: Option<PipelineId>) -> Request {
         Request {
             reflector_: Reflector::new(),
             request: DOMRefCell::new(
                 NetTraitsRequest::new(url,
-                                               origin,
-                                               is_service_worker_global_scope,
-                                               pipeline_id)),
+                                      origin,
+                                      is_service_worker_global_scope,
+                                      pipeline_id)),
             body_used: Cell::new(false),
             headers: Default::default(),
             mime_type: DOMRefCell::new("".to_string().into_bytes()),
@@ -66,13 +66,13 @@ impl Request {
 
     pub fn new(global: GlobalRef,
                url: Url,
-               origin: Option<Origin>,
-               is_service_worker_global_scope: bool,
-               pipeline_id: Option<PipelineId>) -> Root<Request> {
+               is_service_worker_global_scope: bool) -> Root<Request> {
+        let origin = Origin::Origin(global.get_url().origin());
+        let pipeline_id = global.pipeline();
         reflect_dom_object(box Request::new_inherited(url,
-                                                      origin,
+                                                      Some(origin),
                                                       is_service_worker_global_scope,
-                                                      global.pipeline()),
+                                                      Some(pipeline_id)),
                            global, RequestBinding::Wrap)
     }
 
@@ -83,9 +83,9 @@ impl Request {
                       -> Fallible<Root<Request>> {
         let mut request =
             NetTraitsRequest::new(Url::parse("").unwrap(),
-                                           None,
-                                           false,
-                                           None);
+                                  None,
+                                  false,
+                                  None);
 
         // Step 1
         if is_request(&input) &&
@@ -108,7 +108,7 @@ impl Request {
         // ... let origin = "entry settings object origin";
 
         // Step 4
-        let window = Cell::new(Window::Client);
+        let mut window = Window::Client;
 
         // Step 5
         // TODO: `environment settings object` is not implemented in Servo yet.
@@ -121,22 +121,22 @@ impl Request {
 
         // Step 7
         if !init.window.is_undefined() {
-            window.set(Window::NoWindow);
+            window = Window::NoWindow;
         }
 
         // Step 8
         if let Some(url) = get_current_url(&temporary_request) {
-            request.url_list = RefCell::new(vec![url.clone()]);
+            *request.url_list.borrow_mut() = vec![url.clone()];
         }
         request.method = temporary_request.method;
         request.headers = temporary_request.headers.clone();
         request.unsafe_request = true;
-        request.window = window;
+        request.window = Cell::new(window);
         // TODO: `client` is not implemented in Servo yet.
         // ... new_request's client = entry settings object
-        request.origin = RefCell::new(Origin::Client);
+        *request.origin.borrow_mut() = Origin::Client;
         request.omit_origin_header = temporary_request.omit_origin_header;
-        request.same_origin_data = Cell::new(true);
+        request.same_origin_data.set(true);
         request.referer = temporary_request.referer;
         request.referrer_policy = temporary_request.referrer_policy;
         request.mode = temporary_request.mode;
@@ -146,25 +146,21 @@ impl Request {
         request.integrity_metadata = temporary_request.integrity_metadata;
 
         // Step 9
-        let mut fallback_mode: Option<NetTraitsRequestMode>;
-        fallback_mode = None;
+        let mut fallback_mode: Option<NetTraitsRequestMode> = None;
 
         // Step 10
-        let mut fallback_credentials: Option<NetTraitsRequestCredentials>;
-        fallback_credentials = None;
+        let mut fallback_credentials: Option<NetTraitsRequestCredentials> = None;
 
         // Step 11
         // TODO: `entry settings object` is not implemented in Servo yet.
-        // ... let base_url = entry settings object's API base URL
+        let base_url = global.get_url();
 
         // Step 12
         if let &RequestOrUSVString::USVString(USVString(ref usv_string)) = &input {
             // Step 12.1
-            // TODO: Requires Step 11.
-            // ... This step should use Url::join with base_url.
-            let parsed_url = Url::parse(&usv_string);
+            let parsed_url = base_url.join(&usv_string);
             // Step 12.2
-            if let &Err(_) = &parsed_url {
+            if parsed_url.is_err() {
                 return Err(Error::Type("Url could not be parsed".to_string()))
             }
             // Step 12.3
@@ -173,7 +169,7 @@ impl Request {
                     return Err(Error::Type("Url includes credentials".to_string()))
                 }
                 // Step 12.4
-                request.url_list = RefCell::new(vec![url]);
+                *request.url_list.borrow_mut() = vec![url];
             }
             // Step 12.5
             fallback_mode = Some(NetTraitsRequestMode::CORSMode);
@@ -193,34 +189,31 @@ impl Request {
             init.referrerPolicy.is_some() ||
             !init.window.is_undefined() {
                 // Step 13.1
-                if let NetTraitsRequestMode::Navigate
-                    = request.mode {
-                        return Err(Error::Type(
-                            "Init is present and request mode is 'navigate'".to_string()));
+                if request.mode == NetTraitsRequestMode::Navigate {
+                    return Err(Error::Type(
+                        "Init is present and request mode is 'navigate'".to_string()));
                     }
                 // Step 13.2
-                request.omit_origin_header = Cell::new(false);
+                request.omit_origin_header.set(false);
                 // Step 13.3
-                request.referer = RefCell::new(NetTraitsRequestReferer::Client);
+                *request.referer.borrow_mut() = NetTraitsRequestReferer::Client;
                 // Step 13.4
-                request.referrer_policy = Cell::new(None);
+                request.referrer_policy.set(None);
             }
 
         // Step 14
         if let Some(init_referrer) = init.referrer.as_ref() {
             let parsed_referrer: Url;
             // Step 14.1
-            let referrer: String = init_referrer.0.clone();
+            let ref referrer = init_referrer.0;
             // Step 14.2
             if referrer.is_empty() {
-                request.referer = RefCell::new(NetTraitsRequestReferer::NoReferer);
+                *request.referer.borrow_mut() = NetTraitsRequestReferer::NoReferer;
             } else {
                 // Step 14.3
-                // TODO: Requires Step 11.
-                // ... This step should use Url::join with baseURL.
-                let parsed_referrer = Url::parse(&referrer);
+                let parsed_referrer = base_url.join(referrer);
                 // Step 14.4
-                if let Err(_) = parsed_referrer {
+                if parsed_referrer.is_err() {
                     return Err(Error::Type(
                         "Failed to parse referrer url".to_string()));
                 }
@@ -229,16 +222,14 @@ impl Request {
                     if parsed_referrer.cannot_be_a_base() &&
                         parsed_referrer.scheme() == "about" &&
                         parsed_referrer.path() == "client" {
-                            request.referer =
-                                RefCell::new(NetTraitsRequestReferer::Client);
+                            *request.referer.borrow_mut() = NetTraitsRequestReferer::Client;
                         } else {
                             // Step 14.6
                             // TODO: Requires Step 3.
                             // ... This step matches origin.
 
                             // Step 14.7
-                            request.referer =
-                                RefCell::new(NetTraitsRequestReferer::RefererUrl(parsed_referrer));
+                            *request.referer.borrow_mut() = NetTraitsRequestReferer::RefererUrl(parsed_referrer);
                         }
                 }
             }
@@ -247,16 +238,12 @@ impl Request {
         // Step 15
         if let Some(init_referrerpolicy) = init.referrerPolicy.as_ref() {
             let init_referrer_policy = init_referrerpolicy.clone().into();
-            request.referrer_policy = Cell::new(Some(init_referrer_policy));
+            request.referrer_policy.set(Some(init_referrer_policy));
         }
 
         // Step 16
-        let mut mode: Option<NetTraitsRequestMode>;
-        mode = None;
-        match init.mode.as_ref() {
-            Some(init_mode) => mode = Some(init_mode.clone().into()),
-            None => mode = Some(fallback_mode.unwrap()),
-        }
+        let mut mode: Option<NetTraitsRequestMode> = None;
+        let mode = init.mode.as_ref().map(|m| m.clone().into()).or(fallback_mode);
 
         // Step 17
         if let Some(NetTraitsRequestMode::Navigate) = mode {
@@ -264,76 +251,70 @@ impl Request {
         }
 
         // Step 18
-        if mode.is_some() {
-            request.mode = mode.unwrap();
+        if let Some(m) = mode {
+            request.mode = m;
         }
 
         // Step 19
         let credentials: Option<NetTraitsRequestCredentials>;
-        match init.credentials.as_ref() {
-            Some(init_credentials) => credentials = Some(init_credentials.clone().into()),
-            None => credentials = Some(fallback_credentials.unwrap()),
-        }
+        let credentials = init.credentials.as_ref().map(|m| m.clone().into()).or(fallback_credentials);
 
         // Step 20
-        if credentials.is_some() {
-            request.credentials_mode = credentials.unwrap();
+        if let Some(c) = credentials {
+            request.credentials_mode = c;
         }
 
         // Step 21
         if let Some(init_cache) = init.cache.as_ref() {
             let cache = init_cache.clone().into();
-            request.cache_mode = Cell::new(cache);
+            request.cache_mode.set(cache);
         }
 
         // Step 22
-        if let NetTraitsRequestCache::OnlyIfCached = request.cache_mode.get() {
-            match request.mode {
-                NetTraitsRequestMode::SameOrigin => {},
-                _ => return Err(Error::Type("Cache is 'only-if-cached' and mode is not 'same-origin'".to_string())),
+        if request.cache_mode.get() == NetTraitsRequestCache::OnlyIfCached {
+            if request.mode != NetTraitsRequestMode::SameOrigin {
+                return Err(Error::Type(
+                    "Cache is 'only-if-cached' and mode is not 'same-origin'".to_string()));
             }
         }
 
         // Step 23
         if let Some(init_redirect) = init.redirect.as_ref() {
             let redirect = init_redirect.clone().into();
-            request.redirect_mode = Cell::new(redirect);
+            request.redirect_mode.set(redirect);
         }
 
         // Step 24
         if let Some(init_integrity) = init.integrity.as_ref() {
             let integrity = init_integrity.clone().to_string();
-            request.integrity_metadata = RefCell::new(integrity);
+            *request.integrity_metadata.borrow_mut() = integrity;
         }
 
         // Step 25
         if let Some(init_method) = init.method.as_ref() {
-            let method: ByteString = init_method.clone();
             // Step 25.1
-            if !is_method(&method) {
+            if !is_method(&init_method) {
                 return Err(Error::Type("Method is not a method".to_string()));
             }
-            if is_forbidden_method(&method) {
+            if is_forbidden_method(&init_method) {
                 return Err(Error::Type("Method is forbidden".to_string()));
             }
             // Step 25.2
-            let method_string = method.to_lower().as_str().unwrap().to_string();
-            let normalized_method = normalize_method(&method_string);
+            let method_lower = init_method.to_lower();
+            let method_string = method_lower.as_str();
+            if method_string.is_none() {
+                return Err(Error::Type("Method is not a valid UTF8".to_string()))
+            }
+            let normalized_method = normalize_method(method_string.unwrap());
             // Step 25.3
-            let hyper_method = from_normalized_method_to_method_enum(&normalized_method);
-            request.method = RefCell::new(hyper_method);
+            let hyper_method = normalized_method_to_typed_method(&normalized_method);
+            *request.method.borrow_mut() = hyper_method;
         }
 
         // Step 26
         let r = Request::new(global,
-                                 Url::parse("").unwrap(),
-                                 None,
-                                 // COMMENT:
-                                 // ... Request::new expects Origin
-                                 // ... global.get_url().origin() returns url::Origin
-                                 // ... For now, the url is set to `None`.
-                                 false,
-                                 None);
+                             Url::parse("").unwrap(),
+                             false);
         *r.request.borrow_mut() = request;
         r.headers.or_init(|| Headers::new(r.global().r(), None).unwrap());
         r.headers.get().unwrap().set_guard(Guard::Request);
@@ -344,16 +325,13 @@ impl Request {
         // Step 28
         let mut headers_init: Option<HeadersOrByteStringSequenceSequence>;
         headers_init = None;
-        if let Some(init_headers) = init.headers.as_ref() {
-            let headers = init_headers.clone();
-            headers_init = Some(headers);
-        }
+        let headers_init = init.headers.as_ref().map(|h| h.clone());
 
         // Step 29
         r.headers.get().unwrap().empty_header_list();
 
         // Step 30
-        if let NetTraitsRequestMode::NoCORS = r.request.borrow().mode {
+        if r.request.borrow().mode == NetTraitsRequestMode::NoCORS {
             let method = r.request.borrow().method.clone();
             if !is_cors_safelisted_method(method.into_inner()) {
                 return Err(Error::Type(
@@ -377,13 +355,11 @@ impl Request {
 
         // Step 32
         let mut input_body: Option<Vec<u8>>;
-        input_body = None;
-        if let RequestInfo::Request(input_request) = input {
-            let request_body = input_request.request.borrow().clone().body.into_inner();
-            if request_body.is_some() {
-                input_body = Some(request_body.unwrap());
-            }
-        }
+        let input_body = if let RequestInfo::Request(input_request) = input {
+            input_request.request.borrow().body.clone().into_inner()
+        } else {
+            None
+        };
 
         // Step 33
         if let Some(init_body_option) = init.body.as_ref() {
@@ -411,21 +387,15 @@ impl Request {
         }
 
         // Step 34
-        if let Some(init_body_option) = init.body.as_ref() {
-            if let Some(_) = init_body_option.as_ref() {
-                // Step 34.1
-                let content_type: Option<Vec<u8>>;
-                content_type = None;
-                // Step 34.2
-                // TODO: `ReadableStream` object is not implemented in Servo yet.
-
-                // Step 34.3
-                // TODO: Requires Step 34.2.
-            }
-        }
+        // TODO: `ReadableStream` object is not implemented in Servo yet.
 
         // Step 35
-        r.request.borrow_mut().body = RefCell::new(input_body);
+        // this doesn't compile:
+        let borrowed_r = r.request.borrow();
+        *borrowed_r.body.borrow_mut() = input_body;
+
+        // this compiles:
+        // r.request.borrow_mut().body = RefCell::new(input_body);
 
         // Step 36
         let extracted_mime_type = r.headers.get().unwrap().extract_mime_type();
@@ -449,7 +419,7 @@ fn get_current_url(req: &NetTraitsRequest) -> Option<Ref<Url>> {
     }
 }
 
-fn from_normalized_method_to_method_enum(m: &str) -> hyper::method::Method {
+fn normalized_method_to_typed_method(m: &str) -> hyper::method::Method {
     match m {
         "DELETE" => hyper::method::Method::Delete,
         "GET" => hyper::method::Method::Get,
@@ -647,17 +617,14 @@ impl RequestMethods for Request {
 
         // Step 2
         let url = self.request.borrow().clone().url_list.into_inner()[0].clone();
-        let origin = self.request.borrow().clone().origin.into_inner();
+        // let origin = self.request.borrow().clone().origin.into_inner();
         let is_service_worker_global_scope = self.request.borrow().clone().is_service_worker_global_scope;
-        let pipeline_id = self.request.borrow().clone().pipeline_id.get();
         let body_used = self.body_used.get();
         let mime_type = self.mime_type.borrow().clone();
         let headers_guard = self.headers.get().unwrap().get_guard();
         let r = Request::new(self.global().r(),
                              url,
-                             Some(origin),
-                             is_service_worker_global_scope,
-                             pipeline_id);
+                             is_service_worker_global_scope);
         *r.mime_type.borrow_mut() = mime_type;
         r.body_used.set(body_used);
         r.headers.get().unwrap().set_guard(headers_guard);
