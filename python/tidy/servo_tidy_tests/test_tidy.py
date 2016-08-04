@@ -48,6 +48,12 @@ class CheckTidiness(unittest.TestCase):
         self.assertEqual('incorrect license', errors.next()[2])
         self.assertNoMoreErrors(errors)
 
+    def test_shell(self):
+        errors = tidy.collect_errors_for_files(iterFile('shell_tidy.sh'), [], [tidy.check_shell], print_text=False)
+        self.assertEqual('script does not have shebang "#!/usr/bin/env bash"', errors.next()[2])
+        self.assertEqual('script is missing options "set -o errexit", "set -o pipefail"', errors.next()[2])
+        self.assertNoMoreErrors(errors)
+
     def test_rust(self):
         errors = tidy.collect_errors_for_files(iterFile('rust_tidy.rs'), [], [tidy.check_rust], print_text=False)
         self.assertEqual('use statement spans multiple lines', errors.next()[2])
