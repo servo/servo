@@ -17,14 +17,14 @@ Visit the [Servo Project page](https://servo.org/) for news and guides.
 On OS X (homebrew):
 
 ``` sh
-brew install automake pkg-config python cmake
+brew install automake pkg-config python cmake ffmpeg
 pip install virtualenv
 ```
 
 On OS X (MacPorts):
 
 ``` sh
-sudo port install python27 py27-virtualenv cmake
+sudo port install python27 py27-virtualenv cmake ffmpeg
 ```
 
 On OS X 10.11 (El Capitan), you also have to install openssl:
