@@ -44,7 +44,7 @@ style_tests = {path = "../../tests/unit/style"}
 util_tests = {path = "../../tests/unit/util"}
 
 [dependencies]
-browserhtml = {git = "https://github.com/browserhtml/browserhtml", branch = "gh-pages"}
+browserhtml = {git = "https://github.com/browserhtml/browserhtml", branch = "crate"}
 canvas = {path = "../canvas"}
 canvas_traits = {path = "../canvas_traits"}
 compositing = {path = "../compositing"}
