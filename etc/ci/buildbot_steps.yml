@@ -27,11 +27,11 @@ mac-nightly:
   - ./mach package --release
   - ./etc/ci/upload_nightly.sh mac
 
-linux-intermittent:
+linux-rel-intermittent:
   - ./mach build --release
   - ./etc/ci/check_intermittents.sh
 
-mac-intermittent:
+mac-rel-intermittent:
   - ./mach build --release
   - ./etc/ci/check_intermittents.sh
 
