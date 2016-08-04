@@ -15,6 +15,7 @@ use dom::bindings::js::{Root, RootCollection};
 use dom::bindings::refcounted::LiveDOMReferences;
 use dom::bindings::reflector::Reflectable;
 use dom::bindings::str::DOMString;
+use dom::eventtarget::EventTarget;
 use dom::messageevent::MessageEvent;
 use dom::serviceworker::TrustedServiceWorkerAddress;
 use dom::workerglobalscope::WorkerGlobalScope;
@@ -161,11 +162,9 @@ impl ServiceWorkerGlobalScope {
 
             let (devtools_mpsc_chan, devtools_mpsc_port) = channel();
             ROUTER.route_ipc_receiver_to_mpsc_sender(devtools_receiver, devtools_mpsc_chan);
-
             // TODO XXXcreativcoder use this timer_ipc_port, when we have a service worker instance here
             let (timer_ipc_chan, _timer_ipc_port) = ipc::channel().unwrap();
             let (timer_chan, timer_port) = channel();
-
             let global = ServiceWorkerGlobalScope::new(
                 init, url, pipeline_id, devtools_mpsc_port, runtime,
                 own_sender, receiver,
@@ -178,7 +177,6 @@ impl ServiceWorkerGlobalScope {
             }
 
             scope.execute_script(DOMString::from(source));
-
             // Service workers are time limited
             spawn_named("SWTimeoutThread".to_owned(), move || {
                 let sw_lifetime_timeout = PREFS.get("dom.serviceworker.timeout_seconds").as_u64().unwrap();
@@ -186,6 +184,7 @@ impl ServiceWorkerGlobalScope {
                 let _ = timer_chan.send(());
             });
 
+            scope.upcast::<EventTarget>().fire_simple_event("activate");
             let reporter_name = format!("service-worker-reporter-{}", random::<u64>());
             scope.mem_profiler_chan().run_with_memory_reporting(|| {
                 while let Ok(event) = global.receive_event() {
@@ -250,6 +249,10 @@ impl ServiceWorkerGlobalScope {
                 reports_chan.send(reports);
             },
             Response(mediator) => {
+                // TODO XXXcreativcoder This will eventually use a FetchEvent interface to fire event
+                // when we have the Request and Response dom api's implemented
+                // https://slightlyoff.github.io/ServiceWorker/spec/service_worker_1/index.html#fetch-event-section
+                self.upcast::<EventTarget>().fire_simple_event("fetch");
                 let _ = mediator.response_chan.send(None);
             }
         }
