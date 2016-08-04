@@ -194,10 +194,9 @@ impl<'ln> TNode for GeckoNode<'ln> {
         unimplemented!()
     }
 
-    fn has_changed(&self) -> bool {
-        // FIXME(bholley) - Implement this to allow incremental reflows!
-        true
-    }
+    // NOTE: This is not relevant for Gecko, since we get explicit restyle hints
+    // when a content has changed.
+    fn has_changed(&self) -> bool { false }
 
     unsafe fn set_changed(&self, _value: bool) {
         unimplemented!()
