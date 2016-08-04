@@ -718,7 +718,8 @@ pub trait MatchMethods : TNode {
                                     context: &Ctx,
                                     parent: Option<Self>,
                                     applicable_declarations: &ApplicableDeclarations)
-    where Ctx: StyleContext<'a> {
+        where Ctx: StyleContext<'a>
+    {
         // Get our parent's style. This must be unsafe so that we don't touch the parent's
         // borrow flags.
         //
@@ -790,8 +791,6 @@ pub trait MatchMethods : TNode {
                 damage
             };
 
-            // This method needs to borrow the data as mutable, so make sure data_ref goes out of
-            // scope first.
             self.set_can_be_fragmented(parent.map_or(false, |p| {
                 p.can_be_fragmented() ||
                 parent_style.as_ref().unwrap().is_multicol()
