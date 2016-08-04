@@ -27,9 +27,9 @@ if [ ! -d /usr/include ]; then
 fi
 
 if [ "$(uname)" == "Linux" ]; then
-  LIBCLANG_PATH=/usr/lib/llvm-3.8/lib;
+  LIBCLANG_PATH=/usr/lib/llvm-3.8/lib
 else
-  LIBCLANG_PATH=`brew --prefix llvm38`/lib/llvm-3.8/lib;
+  LIBCLANG_PATH="$(brew --prefix llvm38)/lib/llvm-3.8/lib"
 fi
 
 ./regen.py --target all "$@"
