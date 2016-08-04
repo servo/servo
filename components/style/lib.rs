@@ -51,7 +51,6 @@ extern crate gecko_bindings;
 #[allow(unused_extern_crates)]
 #[macro_use]
 extern crate lazy_static;
-extern crate libc;
 #[macro_use]
 extern crate log;
 #[allow(unused_extern_crates)]
