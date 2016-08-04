@@ -202,8 +202,9 @@ def check_modeline(file_name, lines):
 
 
 def check_length(file_name, idx, line):
-    if file_name.endswith(".lock") or file_name.endswith(".json") or file_name.endswith(".html"):
-        raise StopIteration
+    for suffix in [".lock", ".json", ".html", ".toml"]:
+        if file_name.endswith(suffix):
+            raise StopIteration
     # Prefer shorter lines when shell scripting.
     if file_name.endswith(".sh"):
         max_length = 80
