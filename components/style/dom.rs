@@ -46,7 +46,19 @@ impl OpaqueNode {
 }
 
 pub trait TRestyleDamage : BitOr<Output=Self> + Copy {
-    fn compute(old: Option<&Arc<ComputedValues>>, new: &ComputedValues) -> Self;
+    /// The source for our current computed values in the cascade. This is a
+    /// ComputedValues in Servo and a StyleContext in Gecko.
+    ///
+    /// This is needed because Gecko has a few optimisations for the calculation
+    /// of the difference depending on which values have been used during
+    /// layout.
+    ///
+    /// This should be obtained via TNode::existing_style_for_restyle_damage
+    type PreExistingComputedValues;
+
+    fn compute(old: Option<&Self::PreExistingComputedValues>,
+               new: &Arc<ComputedValues>) -> Self;
+
     fn rebuild_and_reflow() -> Self;
 }
 
@@ -159,6 +171,13 @@ pub trait TNode : Sized + Copy + Clone {
     fn unstyle(self) {
         self.mutate_data().unwrap().style = None;
     }
+
+    /// XXX: It's a bit unfortunate we need to pass the current computed values
+    /// as an argument here, but otherwise Servo would crash due to double
+    /// borrows to return it.
+    fn existing_style_for_restyle_damage<'a>(&'a self,
+                                             current_computed_values: Option<&'a Arc<ComputedValues>>)
+        -> Option<&'a <Self::ConcreteRestyleDamage as TRestyleDamage>::PreExistingComputedValues>;
 }
 
 pub trait TDocument : Sized + Copy + Clone {

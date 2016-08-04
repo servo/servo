@@ -8,7 +8,10 @@ use gecko_bindings::bindings;
 use gecko_bindings::bindings::Gecko_ChildrenCount;
 use gecko_bindings::bindings::Gecko_ClassOrClassList;
 use gecko_bindings::bindings::Gecko_GetNodeData;
+use gecko_bindings::bindings::Gecko_GetStyleContext;
+use gecko_bindings::bindings::ServoComputedValues;
 use gecko_bindings::bindings::ServoNodeData;
+use gecko_bindings::bindings::{Gecko_CalcStyleDifference, Gecko_StoreStyleDifference};
 use gecko_bindings::bindings::{Gecko_ElementState, Gecko_GetDocumentElement};
 use gecko_bindings::bindings::{Gecko_GetFirstChild, Gecko_GetFirstChildElement};
 use gecko_bindings::bindings::{Gecko_GetLastChild, Gecko_GetLastChildElement};
@@ -21,8 +24,8 @@ use gecko_bindings::bindings::{Gecko_IsLink, Gecko_IsRootElement, Gecko_IsTextNo
 use gecko_bindings::bindings::{Gecko_IsUnvisitedLink, Gecko_IsVisitedLink};
 use gecko_bindings::bindings::{Gecko_LocalName, Gecko_Namespace, Gecko_NodeIsElement, Gecko_SetNodeData};
 use gecko_bindings::bindings::{RawGeckoDocument, RawGeckoElement, RawGeckoNode};
-use gecko_bindings::structs::nsIAtom;
 use gecko_bindings::structs::{NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO, NODE_IS_DIRTY_FOR_SERVO};
+use gecko_bindings::structs::{nsIAtom, nsChangeHint, nsStyleContext};
 use glue::GeckoDeclarationBlock;
 use libc::uintptr_t;
 use selectors::Element;
@@ -40,6 +43,7 @@ use style::dom::{OpaqueNode, PresentationalHintsSynthetizer};
 use style::dom::{TDocument, TElement, TNode, TRestyleDamage, UnsafeNode};
 use style::element_state::ElementState;
 use style::error_reporting::StdoutErrorReporter;
+use style::gecko_glue::ArcHelpers;
 use style::gecko_selector_impl::{GeckoSelectorImpl, NonTSPseudoClass};
 use style::parser::ParserContextExtraData;
 use style::properties::{ComputedValues, parse_style_attribute};
@@ -91,14 +95,36 @@ impl<'ln> GeckoNode<'ln> {
 }
 
 #[derive(Clone, Copy)]
-pub struct DummyRestyleDamage;
-impl TRestyleDamage for DummyRestyleDamage {
-    fn compute(_: Option<&Arc<ComputedValues>>, _: &ComputedValues) -> Self { DummyRestyleDamage }
-    fn rebuild_and_reflow() -> Self { DummyRestyleDamage }
+pub struct GeckoRestyleDamage(nsChangeHint);
+
+impl TRestyleDamage for GeckoRestyleDamage {
+    type PreExistingComputedValues = nsStyleContext;
+    fn compute(source: Option<&nsStyleContext>,
+               new_style: &Arc<ComputedValues>) -> Self {
+        type Helpers = ArcHelpers<ServoComputedValues, ComputedValues>;
+        let context = match source {
+            Some(ctx) => ctx as *const nsStyleContext as *mut nsStyleContext,
+            None => return Self::rebuild_and_reflow(),
+        };
+
+        Helpers::borrow(new_style, |new_style| {
+            let hint = unsafe { Gecko_CalcStyleDifference(context, new_style) };
+            GeckoRestyleDamage(hint)
+        })
+    }
+
+    fn rebuild_and_reflow() -> Self {
+        GeckoRestyleDamage(nsChangeHint::nsChangeHint_ReconstructFrame)
+    }
 }
-impl BitOr for DummyRestyleDamage {
+
+impl BitOr for GeckoRestyleDamage {
     type Output = Self;
-    fn bitor(self, _: Self) -> Self { DummyRestyleDamage }
+
+    fn bitor(self, other: Self) -> Self {
+        use std::mem;
+        GeckoRestyleDamage(unsafe { mem::transmute(self.0 as u32 | other.0 as u32) })
+    }
 }
 
 
@@ -106,7 +132,7 @@ impl BitOr for DummyRestyleDamage {
 impl<'ln> TNode for GeckoNode<'ln> {
     type ConcreteDocument = GeckoDocument<'ln>;
     type ConcreteElement = GeckoElement<'ln>;
-    type ConcreteRestyleDamage = DummyRestyleDamage;
+    type ConcreteRestyleDamage = GeckoRestyleDamage;
 
     fn to_unsafe(&self) -> UnsafeNode {
         (self.node as usize, 0)
@@ -243,9 +269,14 @@ impl<'ln> TNode for GeckoNode<'ln> {
         }
     }
 
-    fn restyle_damage(self) -> Self::ConcreteRestyleDamage { DummyRestyleDamage }
+    fn restyle_damage(self) -> Self::ConcreteRestyleDamage {
+        // Not called from style, only for layout.
+        unimplemented!();
+    }
 
-    fn set_restyle_damage(self, _: Self::ConcreteRestyleDamage) {}
+    fn set_restyle_damage(self, damage: Self::ConcreteRestyleDamage) {
+        unsafe { Gecko_StoreStyleDifference(self.node, damage.0) }
+    }
 
     fn parent_node(&self) -> Option<GeckoNode<'ln>> {
         unsafe {
@@ -274,6 +305,20 @@ impl<'ln> TNode for GeckoNode<'ln> {
     fn next_sibling(&self) -> Option<GeckoNode<'ln>> {
         unsafe {
             Gecko_GetNextSibling(self.node).as_ref().map(|n| GeckoNode::from_ref(n))
+        }
+    }
+
+    fn existing_style_for_restyle_damage<'a>(&'a self,
+                                             current_cv: Option<&'a Arc<ComputedValues>>)
+                                             -> Option<&'a nsStyleContext> {
+        if current_cv.is_none() {
+            // Don't bother in doing an ffi call to get null back.
+            return None;
+        }
+
+        unsafe {
+            let context_ptr = Gecko_GetStyleContext(self.node);
+            context_ptr.as_ref()
         }
     }
 

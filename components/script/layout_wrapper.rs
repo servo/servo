@@ -51,6 +51,7 @@ use selectors::matching::{DeclarationBlock, ElementFlags};
 use selectors::parser::{AttrSelector, NamespaceConstraint};
 use std::marker::PhantomData;
 use std::mem::{transmute, transmute_copy};
+use std::sync::Arc;
 use string_cache::{Atom, BorrowedAtom, BorrowedNamespace, Namespace};
 use style::attr::AttrValue;
 use style::computed_values::display;
@@ -58,7 +59,7 @@ use style::context::SharedStyleContext;
 use style::data::PrivateStyleData;
 use style::dom::{PresentationalHintsSynthetizer, OpaqueNode, TDocument, TElement, TNode, UnsafeNode};
 use style::element_state::*;
-use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
+use style::properties::{ComputedValues, PropertyDeclaration, PropertyDeclarationBlock};
 use style::refcell::{Ref, RefCell, RefMut};
 use style::selector_impl::{ElementSnapshot, NonTSPseudoClass, ServoSelectorImpl};
 use style::sink::Push;
@@ -261,6 +262,13 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
         unsafe {
             self.node.next_sibling_ref().map(|node| self.new_with_this_lifetime(&node))
         }
+    }
+
+    #[inline]
+    fn existing_style_for_restyle_damage<'a>(&'a self,
+                                             current_cv: Option<&'a Arc<ComputedValues>>)
+                                             -> Option<&'a Arc<ComputedValues>> {
+        current_cv
     }
 }
 

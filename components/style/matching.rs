@@ -6,7 +6,7 @@
 
 #![allow(unsafe_code)]
 
-use animation::{self, Animation};
+use animation;
 use arc_ptr_eq;
 use cache::{LRUCache, SimpleHashCache};
 use context::{StyleContext, SharedStyleContext};
@@ -442,8 +442,13 @@ trait PrivateMatchMethods: TNode
             cacheable = cacheable && !animations_started
         }
 
+
+        let existing_style =
+            self.existing_style_for_restyle_damage(style.map(|s| &*s));
+
         // Calculate style difference.
-        let damage = Self::ConcreteRestyleDamage::compute(style.map(|s| &*s), &*this_style);
+        let damage =
+            Self::ConcreteRestyleDamage::compute(existing_style, &this_style);
 
         // Cache the resolved style if it was cacheable.
         if cacheable {
@@ -490,8 +495,9 @@ trait PrivateMatchMethods: TNode
                 // See #12171 and the associated PR for an example where this
                 // happened while debugging other release panic.
                 if !running_animation.is_expired() {
-                    animation::update_style_for_animation::<Self::ConcreteRestyleDamage>(
-                        context, running_animation, style, None);
+                    animation::update_style_for_animation(context,
+                                                          running_animation,
+                                                          style);
                     running_animation.mark_as_expired();
                 }
             }
@@ -585,9 +591,17 @@ pub trait ElementMatchMethods : TElement {
             if let Some(shared_style) = self.share_style_with_candidate_if_possible(parent.clone(), candidate) {
                 // Yay, cache hit. Share the style.
                 let node = self.as_node();
+
                 let style = &mut node.mutate_data().unwrap().style;
-                let damage = <<Self as TElement>::ConcreteNode as TNode>
-                                 ::ConcreteRestyleDamage::compute((*style).as_ref(), &*shared_style);
+
+                let damage = {
+                    let source =
+                        node.existing_style_for_restyle_damage((*style).as_ref());
+                    let damage = <<Self as TElement>::ConcreteNode as TNode>
+                                     ::ConcreteRestyleDamage::compute(source, &shared_style);
+                    damage
+                };
+
                 *style = Some(shared_style);
                 return StyleSharingResult::StyleWasShared(i, damage)
             }
@@ -675,8 +689,14 @@ pub trait MatchMethods : TNode {
             let mut data_ref = self.mutate_data().unwrap();
             let mut data = &mut *data_ref;
             let cloned_parent_style = ComputedValues::style_for_child_text_node(parent_style.unwrap());
-            damage = Self::ConcreteRestyleDamage::compute(data.style.as_ref(),
-                                                          &*cloned_parent_style);
+
+            {
+                let existing_style =
+                    self.existing_style_for_restyle_damage(data.style.as_ref());
+                damage = Self::ConcreteRestyleDamage::compute(existing_style,
+                                                              &cloned_parent_style);
+            }
+
             data.style = Some(cloned_parent_style);
         } else {
             damage = {
@@ -696,7 +716,6 @@ pub trait MatchMethods : TNode {
                 <Self::ConcreteElement as Element>::Impl::each_eagerly_cascaded_pseudo_element(|pseudo| {
                     let applicable_declarations_for_this_pseudo =
                         applicable_declarations.per_pseudo.get(&pseudo).unwrap();
-
 
                     if !applicable_declarations_for_this_pseudo.is_empty() {
                         // NB: Transitions and animations should only work for

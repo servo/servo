@@ -21,7 +21,7 @@ pub fn traverse_dom<N, C>(root: N,
 
         for kid in node.children() {
             context.pre_process_child_hook(node, kid);
-            if context.should_process(node) {
+            if context.should_process(kid) {
                 doit::<N, C>(context, kid);
             }
         }

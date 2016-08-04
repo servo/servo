@@ -44,21 +44,28 @@ bitflags! {
 }
 
 impl TRestyleDamage for RestyleDamage {
-    fn compute(old: Option<&Arc<ServoComputedValues>>, new: &ServoComputedValues) ->
-        RestyleDamage { compute_damage(old, new) }
+    /// For Servo the style source is always the computed values.
+    type PreExistingComputedValues = Arc<ServoComputedValues>;
 
-    /// Returns a bitmask that represents a flow that needs to be rebuilt and reflowed.
+    fn compute(old: Option<&Arc<ServoComputedValues>>,
+               new: &Arc<ServoComputedValues>) -> RestyleDamage {
+        compute_damage(old, new)
+    }
+
+    /// Returns a bitmask that represents a flow that needs to be rebuilt and
+    /// reflowed.
     ///
-    /// Use this instead of `RestyleDamage::all()` because `RestyleDamage::all()` will result in
-    /// unnecessary sequential resolution of generated content.
+    /// Use this instead of `RestyleDamage::all()` because
+    /// `RestyleDamage::all()` will result in unnecessary sequential resolution
+    /// of generated content.
     fn rebuild_and_reflow() -> RestyleDamage {
         REPAINT | STORE_OVERFLOW | BUBBLE_ISIZES | REFLOW_OUT_OF_FLOW | REFLOW | RECONSTRUCT_FLOW
     }
 }
 
 impl RestyleDamage {
-    /// Supposing a flow has the given `position` property and this damage, returns the damage that
-    /// we should add to the *parent* of this flow.
+    /// Supposing a flow has the given `position` property and this damage,
+    /// returns the damage that we should add to the *parent* of this flow.
     pub fn damage_for_parent(self, child_is_absolutely_positioned: bool) -> RestyleDamage {
         if child_is_absolutely_positioned {
             self & (REPAINT | STORE_OVERFLOW | REFLOW_OUT_OF_FLOW | RESOLVE_GENERATED_CONTENT)
@@ -143,7 +150,8 @@ macro_rules! add_if_not_equal(
     })
 );
 
-fn compute_damage(old: Option<&Arc<ServoComputedValues>>, new: &ServoComputedValues) -> RestyleDamage {
+fn compute_damage(old: Option<&Arc<ServoComputedValues>>, new: &Arc<ServoComputedValues>) -> RestyleDamage {
+    let new = &**new;
     let old: &ServoComputedValues = match old {
         None => return RestyleDamage::rebuild_and_reflow(),
         Some(cv) => &**cv,
