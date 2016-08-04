@@ -167,7 +167,7 @@ def check_modeline(file_name, lines):
 
 
 def check_length(file_name, idx, line):
-    if file_name.endswith(".lock") or file_name.endswith(".json"):
+    if file_name.endswith(".lock") or file_name.endswith(".json") or file_name.endswith("Cargo.toml"):
         raise StopIteration
     max_length = 120
     if len(line.rstrip('\n')) > max_length:
