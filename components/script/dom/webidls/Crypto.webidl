@@ -20,5 +20,5 @@ interface Crypto {
   //readonly attribute SubtleCrypto subtle;
   //ArrayBufferView getRandomValues(ArrayBufferView array);
   [Throws]
-  ArrayBufferView getRandomValues(object array);
+  object getRandomValues(object array);
 };

@@ -18,5 +18,6 @@ interface ImageData {
   //[Constant]
   readonly attribute unsigned long height;
   //[Constant, StoreInSlot]
-  readonly attribute Uint8ClampedArray data;
+  // readonly attribute Uint8ClampedArray data;
+  readonly attribute object data;
 };
