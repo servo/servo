@@ -100,7 +100,30 @@ impl ComputedValues {
         ComputedValues::inherit_from(parent)
     }
 
-    pub fn initial_values() -> &'static Self { &*INITIAL_GECKO_VALUES }
+    pub fn initial_values() -> &'static Self {
+        unsafe {
+            debug_assert!(!INITIAL_GECKO_VALUES.is_null());
+            &*INITIAL_GECKO_VALUES
+        }
+    }
+
+    pub unsafe fn initialize() {
+        debug_assert!(INITIAL_GECKO_VALUES.is_null());
+        INITIAL_GECKO_VALUES = Box::into_raw(Box::new(ComputedValues {
+            % for style_struct in data.style_structs:
+               ${style_struct.ident}: style_structs::${style_struct.name}::initial(),
+            % endfor
+            custom_properties: None,
+            shareable: true,
+            writing_mode: WritingMode::empty(),
+            root_font_size: longhands::font_size::get_initial_value(),
+        }));
+    }
+
+    pub unsafe fn shutdown() {
+        debug_assert!(!INITIAL_GECKO_VALUES.is_null());
+        let _ = Box::from_raw(INITIAL_GECKO_VALUES);
+    }
 
     #[inline]
     pub fn do_cascade_property<F: FnOnce(&[CascadePropertyFn])>(f: F) {
@@ -236,7 +259,7 @@ def set_gecko_property(ffi_name, expr):
     // In the longer term, Gecko should store currentColor as a computed
     // value, so that we don't need to do this:
     // https://bugzilla.mozilla.org/show_bug.cgi?id=760345
-    unimplemented!();
+    warn!("stylo: mishandling currentColor");
     % endif
 </%def>
 
@@ -1338,17 +1361,7 @@ ${impl_style_struct(style_struct)}
 ${define_ffi_struct_accessor(style_struct)}
 % endfor
 
-lazy_static! {
-    pub static ref INITIAL_GECKO_VALUES: ComputedValues = ComputedValues {
-        % for style_struct in data.style_structs:
-           ${style_struct.ident}: style_structs::${style_struct.name}::initial(),
-        % endfor
-        custom_properties: None,
-        shareable: true,
-        writing_mode: WritingMode::empty(),
-        root_font_size: longhands::font_size::get_initial_value(),
-    };
-}
+static mut INITIAL_GECKO_VALUES: *mut ComputedValues = 0 as *mut ComputedValues;
 
 static CASCADE_PROPERTY: [CascadePropertyFn; ${len(data.longhands)}] = [
     % for property in data.longhands:

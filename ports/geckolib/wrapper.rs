@@ -53,7 +53,8 @@ use style::selector_impl::ElementExt;
 use style::sink::Push;
 use url::Url;
 
-pub type NonOpaqueStyleData = *mut RefCell<PrivateStyleData>;
+pub type NonOpaqueStyleData = RefCell<PrivateStyleData>;
+pub type NonOpaqueStyleDataPtr = *mut NonOpaqueStyleData;
 
 // Important: We don't currently refcount the DOM, because the wrapper lifetime
 // magic guarantees that our LayoutFoo references won't outlive the root, and
@@ -78,16 +79,16 @@ impl<'ln> GeckoNode<'ln> {
         GeckoNode::from_raw(n as *const RawGeckoNode as *mut RawGeckoNode)
     }
 
-    fn get_node_data(&self) -> NonOpaqueStyleData {
+    fn get_node_data(&self) -> NonOpaqueStyleDataPtr {
         unsafe {
-            Gecko_GetNodeData(self.node) as NonOpaqueStyleData
+            Gecko_GetNodeData(self.node) as NonOpaqueStyleDataPtr
         }
     }
 
     pub fn initialize_data(self) {
         unsafe {
             if self.get_node_data().is_null() {
-                let ptr: NonOpaqueStyleData = Box::into_raw(Box::new(RefCell::new(PrivateStyleData::new())));
+                let ptr: NonOpaqueStyleDataPtr = Box::into_raw(Box::new(RefCell::new(PrivateStyleData::new())));
                 Gecko_SetNodeData(self.node, ptr as *mut ServoNodeData);
             }
         }

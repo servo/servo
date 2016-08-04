@@ -76,6 +76,15 @@ pub extern "C" fn Servo_Initialize() -> () {
     //
     // See https://doc.rust-lang.org/log/env_logger/index.html for instructions.
     env_logger::init().unwrap();
+
+    // Allocate our default computed values.
+    unsafe { ComputedValues::initialize(); }
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_Shutdown() -> () {
+    // Destroy our default computed values.
+    unsafe { ComputedValues::shutdown(); }
 }
 
 fn restyle_subtree(node: GeckoNode, raw_data: *mut RawServoStyleSet) {
@@ -355,10 +364,12 @@ pub extern "C" fn Servo_GetComputedValuesForPseudoElement(parent_style: *mut Ser
 pub extern "C" fn Servo_InheritComputedValues(parent_style: *mut ServoComputedValues)
      -> *mut ServoComputedValues {
     type Helpers = ArcHelpers<ServoComputedValues, ComputedValues>;
-    Helpers::with(parent_style, |parent| {
-        let style = ComputedValues::inherit_from(parent);
-        Helpers::from(style)
-    })
+    let style = if parent_style.is_null() {
+        Arc::new(ComputedValues::initial_values().clone())
+    } else {
+        Helpers::with(parent_style, ComputedValues::inherit_from)
+    };
+    Helpers::from(style)
 }
 
 #[no_mangle]

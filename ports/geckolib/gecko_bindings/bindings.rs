@@ -375,6 +375,7 @@ extern "C" {
     pub fn Servo_AddRefComputedValues(arg1: *mut ServoComputedValues);
     pub fn Servo_ReleaseComputedValues(arg1: *mut ServoComputedValues);
     pub fn Servo_Initialize();
+    pub fn Servo_Shutdown();
     pub fn Servo_RestyleDocument(doc: *mut RawGeckoDocument,
                                  set: *mut RawServoStyleSet);
     pub fn Servo_RestyleSubtree(node: *mut RawGeckoNode,
