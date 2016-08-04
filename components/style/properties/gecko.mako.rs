@@ -259,7 +259,7 @@ def set_gecko_property(ffi_name, expr):
     // In the longer term, Gecko should store currentColor as a computed
     // value, so that we don't need to do this:
     // https://bugzilla.mozilla.org/show_bug.cgi?id=760345
-    unimplemented!();
+    warn!("stylo: mishandling currentColor");
     % endif
 </%def>
 
