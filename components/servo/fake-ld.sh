@@ -9,7 +9,7 @@ set -o nounset
 set -o pipefail
 
 TARGET_DIR="${OUT_DIR}/../../.."
-arm-linux-androideabi-gcc "$@" \
+arm-linux-androideabi-gcc "${@}" \
                           "${LDFLAGS-}" -lc -shared \
                           -o "${TARGET_DIR}/libservo.so"
 touch "${TARGET_DIR}/servo"

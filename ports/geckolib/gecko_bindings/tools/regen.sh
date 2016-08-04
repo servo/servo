@@ -8,8 +8,8 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-if [ $# -eq 0 ]; then
-  echo "Usage: $0 /path/to/gecko/objdir [other-regen.py-flags]"
+if [ ${#} -eq 0 ]; then
+  echo "Usage: ${0} /path/to/gecko/objdir [other-regen.py-flags]"
   exit 1
 fi
 
@@ -32,4 +32,4 @@ else
   LIBCLANG_PATH="$(brew --prefix llvm38)/lib/llvm-3.8/lib"
 fi
 
-./regen.py --target all "$@"
+./regen.py --target all "${@}"

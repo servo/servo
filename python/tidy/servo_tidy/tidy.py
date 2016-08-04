@@ -347,6 +347,13 @@ def check_shell(file_name, lines):
         if "`" in stripped:
             yield (idx + 1, "script should not use backticks for command substitution")
 
+        for dollar in re.finditer('\$', stripped):
+            next_idx = dollar.end()
+            if next_idx < len(stripped):
+                next_char = stripped[next_idx]
+                if not (next_char == '{' or next_char == '('):
+                    yield(idx + 1, "variable substitutions should use the full \"${VAR}\" form")
+
 
 def check_rust(file_name, lines):
     if not file_name.endswith(".rs") or \

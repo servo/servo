@@ -17,5 +17,5 @@ set -o pipefail
 ./mach test-wpt --manifest-update --binary= SKIP_TESTS > /dev/null
 
 diff="$(git diff -- tests/*/MANIFEST.json)"
-echo "$diff"
-[[ ! $diff ]]
+echo "${diff}"
+[[ -z "${diff}" ]]

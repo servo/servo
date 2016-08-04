@@ -27,7 +27,7 @@ upload() {
 
 
 main() {
-    if [[ "$#" != 1 ]]; then
+    if [[ "${#}" != 1 ]]; then
         usage >&2
         return 1
     fi
@@ -58,4 +58,4 @@ main() {
     upload "${platform}" ${package} "${extension}"
 }
 
-main "$@"
+main "${@}"

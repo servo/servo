@@ -12,7 +12,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-cd "$(dirname $0)/../.."
+cd "$(dirname ${0})/../.."
 
 ./mach doc
 # etc/doc.servo.org/index.html overwrites $(mach rust-root)/doc/index.html

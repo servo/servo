@@ -53,6 +53,7 @@ class CheckTidiness(unittest.TestCase):
         self.assertEqual('script does not have shebang "#!/usr/bin/env bash"', errors.next()[2])
         self.assertEqual('script is missing options "set -o errexit", "set -o pipefail"', errors.next()[2])
         self.assertEqual('script should not use backticks for command substitution', errors.next()[2])
+        self.assertEqual('variable substitutions should use the full \"${VAR}\" form', errors.next()[2])
         self.assertNoMoreErrors(errors)
 
     def test_rust(self):

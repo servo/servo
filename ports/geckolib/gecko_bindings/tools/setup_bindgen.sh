@@ -9,7 +9,7 @@ set -o nounset
 set -o pipefail
 
 # Run in the tools directory.
-cd "$(dirname $0)"
+cd "$(dirname ${0})"
 
 # Setup and build bindgen.
 if [ "$(uname)" == "Linux" ]; then
@@ -25,8 +25,8 @@ if [ ! -x "$(command -v clang-3.8)" ]; then
     exit 1
 fi
 
-export LD_LIBRARY_PATH=$LIBCLANG_PATH
-export DYLD_LIBRARY_PATH=$LIBCLANG_PATH
+export LD_LIBRARY_PATH="${LIBCLANG_PATH}"
+export DYLD_LIBRARY_PATH="${LIBCLANG_PATH}"
 
 # Check for multirust
 if [ ! -x "$(command -v multirust)" ]; then
