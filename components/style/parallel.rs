@@ -86,18 +86,20 @@ fn top_down_dom<N, C>(unsafe_nodes: UnsafeNodeList,
             }
         }
 
-        // Reset the count of children.
-        {
-            let data = node.mutate_data().unwrap();
-            data.parallel.children_to_process
-                         .store(children_to_process,
-                                Ordering::Relaxed);
-        }
+        // Reset the count of children if we need to do a bottom-up traversal
+        // after the top up.
+        if context.needs_postorder_traversal() {
+            {
+                let data = node.mutate_data().unwrap();
+                data.parallel.children_to_process
+                             .store(children_to_process,
+                                    Ordering::Relaxed);
+            }
 
-
-        // If there were no more children, start walking back up.
-        if children_to_process == 0 {
-            bottom_up_dom::<N, C>(unsafe_nodes.1, unsafe_node, proxy)
+            // If there were no more children, start walking back up.
+            if children_to_process == 0 {
+                bottom_up_dom::<N, C>(unsafe_nodes.1, unsafe_node, proxy)
+            }
         }
     }
 
@@ -123,7 +125,9 @@ fn top_down_dom<N, C>(unsafe_nodes: UnsafeNodeList,
 fn bottom_up_dom<N, C>(root: OpaqueNode,
                        unsafe_node: UnsafeNode,
                        proxy: &mut WorkerProxy<C::SharedContext, UnsafeNodeList>)
-                       where N: TNode, C: DomTraversalContext<N> {
+    where N: TNode,
+          C: DomTraversalContext<N>
+{
     let context = C::new(proxy.user_data(), root);
 
     // Get a real layout node.

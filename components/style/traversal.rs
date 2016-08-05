@@ -141,11 +141,22 @@ pub fn remove_from_bloom_filter<'a, N, C>(context: &C, root: OpaqueNode, node: N
 
 pub trait DomTraversalContext<N: TNode>  {
     type SharedContext: Sync + 'static;
+
     fn new<'a>(&'a Self::SharedContext, OpaqueNode) -> Self;
+
     /// Process `node` on the way down, before its children have been processed.
-    fn process_preorder(&self, node: N);
+    fn process_preorder(&self, node: N) -> ForceTraversalStop;
+
     /// Process `node` on the way up, after its children have been processed.
+    ///
+    /// This is only executed if `needs_postorder_traversal` returns true.
     fn process_postorder(&self, node: N);
+
+    /// Boolean that specifies whether a bottom up traversal should be
+    /// performed.
+    ///
+    /// If it's false, then process_postorder has no effect at all.
+    fn needs_postorder_traversal(&self) -> bool { true }
 
     /// Returns if the node should be processed by the preorder traversal (and
     /// then by the post-order one).
