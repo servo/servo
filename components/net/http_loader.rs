@@ -629,7 +629,7 @@ pub fn send_request_to_devtools(msg: ChromeToDevtoolsControlMsg,
 pub fn send_response_to_devtools(devtools_chan: &Sender<DevtoolsControlMsg>,
                              request_id: String,
                              headers: Option<Headers>,
-                             status: Option<RawStatus>,
+                             status: Option<(u16, Vec<u8>)>,
                              pipeline_id: PipelineId) {
     let response = DevtoolsHttpResponse { headers: headers, status: status, body: None, pipeline_id: pipeline_id };
     let net_event_response = NetworkEvent::HttpResponse(response);
@@ -1081,7 +1081,8 @@ pub fn load<A, B>(load_data: &LoadData,
             None => None
         });
         metadata.headers = Some(Serde(adjusted_headers));
-        metadata.status = Some(Serde(response.status_raw().clone()));
+        metadata.status = Some((response.status_raw().0,
+                                response.status_raw().1.as_bytes().to_vec()));
         metadata.https_state = if doc_url.scheme() == "https" {
             HttpsState::Modern
         } else {
@@ -1097,7 +1098,7 @@ pub fn load<A, B>(load_data: &LoadData,
                 send_response_to_devtools(
                     &chan, request_id.unwrap(),
                     metadata.headers.clone().map(Serde::into_inner),
-                    metadata.status.clone().map(Serde::into_inner),
+                    metadata.status.clone(),
                     pipeline_id);
             }
         }

@@ -973,8 +973,9 @@ fn http_network_fetch(request: Rc<Request>,
         Ok((res, msg)) => {
             response.url = Some(url.clone());
             response.status = Some(res.response.status);
-            response.raw_status = Some(res.response.status_raw().clone());
-            response.headers = res.response.headers.clone();
+            response.raw_status = Some((res.response.status_raw().0,
+                                        res.response.status_raw().1.as_bytes().to_vec()));
+                        response.headers = res.response.headers.clone();
 
             let res_body = response.body.clone();
 
@@ -1001,7 +1002,7 @@ fn http_network_fetch(request: Rc<Request>,
                                 send_response_to_devtools(
                                     &sender, request_id.unwrap(),
                                     meta_headers.map(Serde::into_inner),
-                                    meta_status.map(Serde::into_inner),
+                                    meta_status,
                                     pipeline_id);
                             }
                         }

@@ -209,7 +209,13 @@ impl Headers {
         headers_for_request
     }
 
-     pub fn set_guard(&self, new_guard: Guard) {
+    pub fn for_response(global: GlobalRef) -> Root<Headers> {
+        let headers_for_response = Headers::new(global);
+        headers_for_response.guard.set(Guard::Response);
+        headers_for_response
+    }
+
+    pub fn set_guard(&self, new_guard: Guard) {
         self.guard.set(new_guard)
     }
 
@@ -346,7 +352,7 @@ pub fn is_forbidden_header_name(name: &str) -> bool {
 // [3] https://tools.ietf.org/html/rfc7230#section-3.2.6
 // [4] https://www.rfc-editor.org/errata_search.php?rfc=7230
 fn validate_name_and_value(name: ByteString, value: ByteString)
-                           -> Result<(String, Vec<u8>), Error> {
+                           -> Fallible<(String, Vec<u8>)> {
     let valid_name = try!(validate_name(name));
     if !is_field_content(&value) {
         return Err(Error::Type("Value is not valid".to_string()));
@@ -354,7 +360,7 @@ fn validate_name_and_value(name: ByteString, value: ByteString)
     Ok((valid_name, value.into()))
 }
 
-fn validate_name(name: ByteString) -> Result<String, Error> {
+fn validate_name(name: ByteString) -> Fallible<String> {
     if !is_field_name(&name) {
         return Err(Error::Type("Name is not valid".to_string()));
     }
@@ -444,7 +450,7 @@ fn is_field_vchar(x: u8) -> bool {
 }
 
 // https://tools.ietf.org/html/rfc5234#appendix-B.1
-fn is_vchar(x: u8) -> bool {
+pub fn is_vchar(x: u8) -> bool {
     match x {
         0x21...0x7E => true,
         _ => false,
@@ -452,7 +458,7 @@ fn is_vchar(x: u8) -> bool {
 }
 
 // http://tools.ietf.org/html/rfc7230#section-3.2.6
-fn is_obs_text(x: u8) -> bool {
+pub fn is_obs_text(x: u8) -> bool {
     match x {
         0x80...0xFF => true,
         _ => false,
