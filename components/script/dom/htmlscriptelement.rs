@@ -26,8 +26,6 @@ use dom::window::ScriptHelpers;
 use encoding::label::encoding_from_whatwg_label;
 use encoding::types::{DecoderTrap, EncodingRef};
 use html5ever::tree_builder::NextParserState;
-use hyper::http::RawStatus;
-use hyper_serde::Serde;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsval::UndefinedValue;
@@ -159,7 +157,7 @@ impl AsyncResponseListener for ScriptContext {
 
         let status_code = self.metadata.as_ref().and_then(|m| {
             match m.status {
-                Some(Serde(RawStatus(c, _))) => Some(c),
+                Some((c, _)) => Some(c),
                 _ => None,
             }
         }).unwrap_or(0);

@@ -24,7 +24,6 @@ use dom::htmlsourceelement::HTMLSourceElement;
 use dom::mediaerror::MediaError;
 use dom::node::{window_from_node, document_from_node, Node, UnbindContext};
 use dom::virtualmethods::VirtualMethods;
-use hyper_serde::Serde;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata, NetworkError};
@@ -66,7 +65,7 @@ impl AsyncResponseListener for HTMLMediaElementContext {
                              .as_ref()
                              .and_then(|m| m.status
                                             .as_ref()
-                                            .map(|&Serde(ref s)| s.0 < 200 || s.0 >= 300))
+                                            .map(|&(s, _)| s < 200 || s >= 300))
                              .unwrap_or(false);
         if is_failure {
             // Ensure that the element doesn't receive any further notifications

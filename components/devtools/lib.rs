@@ -21,6 +21,7 @@
 #![deny(unsafe_code)]
 
 extern crate devtools_traits;
+extern crate encoding;
 extern crate hyper;
 extern crate ipc_channel;
 #[macro_use]

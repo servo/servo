@@ -18,7 +18,6 @@ use hyper::http::RawStatus;
 use hyper::method::Method;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper::status::StatusCode;
-use hyper_serde::Serde;
 use msg::constellation_msg::{PipelineId, ReferrerPolicy};
 use net::cookie::Cookie;
 use net::cookie_storage::CookieStorage;
@@ -80,7 +79,7 @@ fn respond_with_headers(body: Vec<u8>, mut headers: Headers) -> MockResponse {
     MockResponse::new(
         headers,
         StatusCode::Ok,
-        RawStatus(200, Cow::Borrowed("Ok")),
+        RawStatus(200, Cow::Borrowed("OK")),
         body
     )
 }
@@ -537,7 +536,7 @@ fn test_request_and_response_data_with_network_messages() {
 
     let httpresponse = DevtoolsHttpResponse {
         headers: Some(response_headers),
-        status: Some(RawStatus(200, Cow::Borrowed("Ok"))),
+        status: Some((200, b"OK".to_vec())),
         body: None,
         pipeline_id: pipeline_id,
     };
@@ -623,7 +622,7 @@ fn test_redirected_request_to_devtools() {
 
     assert!(devhttprequest.method == Method::Post);
     assert!(devhttprequest.url == url);
-    assert!(devhttpresponse.status == Some(RawStatus(301, Cow::Borrowed("Moved Permanently"))));
+    assert!(devhttpresponse.status == Some((301, "Moved Permanently".as_bytes().to_vec())));
 
     let devhttprequest = expect_devtools_http_request(&devtools_port);
     let devhttpresponse = expect_devtools_http_response(&devtools_port);
@@ -631,7 +630,7 @@ fn test_redirected_request_to_devtools() {
 
     assert!(devhttprequest.method == Method::Get);
     assert!(devhttprequest.url == url);
-    assert!(devhttpresponse.status == Some(RawStatus(200, Cow::Borrowed("Ok"))));
+    assert!(devhttpresponse.status == Some((200, b"OK".to_vec())));
 }
 
 
@@ -1586,7 +1585,7 @@ fn test_auth_ui_sets_header_on_401() {
         Err(e) => panic!("response contained error {:?}", e),
         Ok(response) => {
             assert_eq!(response.metadata.status,
-                       Some(Serde(RawStatus(200, Cow::Borrowed("Ok")))));
+                       Some((200, b"OK".to_vec())));
         }
     }
 }
@@ -1621,7 +1620,7 @@ fn test_auth_ui_needs_www_auth() {
         Err(e) => panic!("response contained error {:?}", e),
         Ok(response) => {
             assert_eq!(response.metadata.status,
-                       Some(Serde(RawStatus(401, Cow::Borrowed("Unauthorized")))));
+                       Some((401, "Unauthorized".as_bytes().to_vec())));
         }
     }
 }
@@ -1947,7 +1946,7 @@ fn load_request_for_custom_response(expected_body: Vec<u8>) -> (Metadata, String
 fn test_custom_response() {
     let expected_body = b"Yay!".to_vec();
     let (metadata, body) = load_request_for_custom_response(expected_body.clone());
-    assert_eq!(metadata.status, Some(Serde(RawStatus(200, Cow::Borrowed("OK")))));
+    assert_eq!(metadata.status, Some((200, b"OK".to_vec())));
     assert_eq!(body, String::from_utf8(expected_body).unwrap());
 }
 
