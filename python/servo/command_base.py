@@ -348,7 +348,7 @@ class CommandBase(object):
                                   " --release" if release else ""))
         sys.exit()
 
-    def build_env(self, hosts_file_path=None, target=None):
+    def build_env(self, hosts_file_path=None, target=None, is_build=False):
         """Return an extended environment dictionary."""
         env = os.environ.copy()
         if sys.platform == "win32" and type(env['PATH']) == unicode:
@@ -445,7 +445,7 @@ class CommandBase(object):
         env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -W unused-extern-crates"
 
         git_info = []
-        if os.path.isdir('.git'):
+        if os.path.isdir('.git') and is_build:
             git_sha = subprocess.check_output([
                 'git', 'rev-parse', '--short', 'HEAD'
             ]).strip()
