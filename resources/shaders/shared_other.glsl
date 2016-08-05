@@ -11,8 +11,8 @@
 
     // box-shadow
     in vec4 aBorderPosition;
-	in vec4 aBorderRadii;
-	in float aBlurRadius;
+    in vec4 aBorderRadii;
+    in float aBlurRadius;
 
     // blur
     in vec2 aDestTextureSize;

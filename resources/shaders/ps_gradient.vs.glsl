@@ -7,7 +7,7 @@
 #define DIR_VERTICAL        uint(1)
 
 struct Gradient {
-	PrimitiveInfo info;
+    PrimitiveInfo info;
     vec4 color0;
     vec4 color1;
     uvec4 dir;
