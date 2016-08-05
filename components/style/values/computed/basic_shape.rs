@@ -8,9 +8,12 @@
 //! [basic-shape]: https://drafts.csswg.org/css-shapes/#typedef-basic-shape
 
 use cssparser::ToCss;
+use properties::shorthands::serialize_four_sides;
 use std::fmt;
 use values::computed::position::Position;
 use values::computed::{BorderRadiusSize, LengthOrPercentage};
+
+pub use values::specified::basic_shape::FillRule;
 
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -24,9 +27,9 @@ pub enum BasicShape {
 impl ToCss for BasicShape {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
-            BasicShape::Inset(rect) => rect.to_css(dest),
-            BasicShape::Circle(circle) => circle.to_css(dest),
-            BasicShape::Ellipse(e) => e.to_css(dest),
+            BasicShape::Inset(ref rect) => rect.to_css(dest),
+            BasicShape::Circle(ref circle) => circle.to_css(dest),
+            BasicShape::Ellipse(ref e) => e.to_css(dest),
             BasicShape::Polygon(ref poly) => poly.to_css(dest),
         }
     }
@@ -79,22 +82,23 @@ impl ToCss for Circle {
 #[derive(Clone, PartialEq, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct Ellipse {
-    pub semiaxis_a: ShapeRadius,
-    pub semiaxis_b: ShapeRadius,
+    pub semiaxis_x: ShapeRadius,
+    pub semiaxis_y: ShapeRadius,
     pub position: Position,
 }
 
 impl ToCss for Ellipse {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        if ShapeRadius::ClosestSide != self.semiaxis_a &&
-           ShapeRadius::ClosestSide != self.semiaxis_b {
-            try!(self.semiaxis_a.to_css(dest));
+        try!(dest.write_str("ellipse("));
+        if (self.semiaxis_x, self.semiaxis_y) != Default::default() {
+            try!(self.semiaxis_x.to_css(dest));
             try!(dest.write_str(" "));
-            try!(self.semiaxis_b.to_css(dest));
+            try!(self.semiaxis_y.to_css(dest));
             try!(dest.write_str(" "));
         }
         try!(dest.write_str("at "));
-        self.position.to_css(dest)
+        try!(self.position.to_css(dest));
+        dest.write_str(")")
     }
 }
 
@@ -108,6 +112,7 @@ pub struct Polygon {
 
 impl ToCss for Polygon {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        try!(dest.write_str("polygon("));
         let mut need_space = false;
         if self.fill != Default::default() {
             try!(self.fill.to_css(dest));
@@ -115,14 +120,14 @@ impl ToCss for Polygon {
         }
         for coord in &self.coordinates {
             if need_space {
-                try!(dest.write_str(" "));
+                try!(dest.write_str(", "));
             }
             try!(coord.0.to_css(dest));
             try!(dest.write_str(" "));
             try!(coord.1.to_css(dest));
             need_space = true;
         }
-        Ok(())
+        dest.write_str(")")
     }
 }
 
@@ -157,36 +162,33 @@ impl ToCss for ShapeRadius {
 pub struct BorderRadius {
     pub top_left: BorderRadiusSize,
     pub top_right: BorderRadiusSize,
-    pub bottom_left: BorderRadiusSize,
     pub bottom_right: BorderRadiusSize,
+    pub bottom_left: BorderRadiusSize,
 }
 
 impl ToCss for BorderRadius {
-    // XXXManishearth: We should be producing minimal output:
-    // if height=width for all, we should not be printing the part after
-    // the slash. For any set of four values,
-    // we should try to reduce them to one or two. This probably should be
-    // a helper function somewhere, for all the parse_four_sides-like
-    // values
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        try!(self.top_left.0.width.to_css(dest));
-        try!(dest.write_str(" "));
-        try!(self.top_right.0.width.to_css(dest));
-        try!(dest.write_str(" "));
-        try!(self.bottom_left.0.width.to_css(dest));
-        try!(dest.write_str(" "));
-        try!(self.bottom_right.0.width.to_css(dest));
-        try!(dest.write_str(" / "));
-        try!(self.top_left.0.height.to_css(dest));
-        try!(dest.write_str(" "));
-        try!(self.top_right.0.height.to_css(dest));
-        try!(dest.write_str(" "));
-        try!(self.bottom_left.0.height.to_css(dest));
-        try!(dest.write_str(" "));
-        try!(self.bottom_right.0.height.to_css(dest));
-        dest.write_str(" ")
+        if self.top_left.0.width == self.top_left.0.height &&
+           self.top_right.0.width == self.top_right.0.height &&
+           self.bottom_right.0.width == self.bottom_right.0.height &&
+           self.bottom_left.0.width == self.bottom_left.0.height {
+            serialize_four_sides((&self.top_left.0.width,
+                                  &self.top_right.0.width,
+                                  &self.bottom_right.0.width,
+                                  &self.bottom_left.0.width),
+                                  dest)
+        } else {
+            try!(serialize_four_sides((&self.top_left.0.width,
+                                       &self.top_right.0.width,
+                                       &self.bottom_right.0.width,
+                                       &self.bottom_left.0.width),
+                                       dest));
+            try!(dest.write_str(" / "));
+            serialize_four_sides((&self.top_left.0.height,
+                                  &self.top_right.0.height,
+                                  &self.bottom_right.0.height,
+                                  &self.bottom_left.0.height),
+                                  dest)
+        }
     }
 }
-
-pub use values::specified::basic_shape::FillRule;
-

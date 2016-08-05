@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use parsing::{parse, to_string};
+use parsing::parse;
 use style::values::specified::basic_shape::*;
 
 // Ensure that basic-shape sub-functions parse as both basic shapes
@@ -15,19 +15,19 @@ macro_rules! assert_roundtrip_basicshape {
 }
 
 macro_rules! assert_border_radius_values {
-    ($input:expr; $tlw:expr, $trw:expr, $blw:expr, $brw:expr ;
-                  $tlh:expr, $trh:expr, $blh:expr, $brh:expr) => {
+    ($input:expr; $tlw:expr, $trw:expr, $brw:expr, $blw:expr ;
+                  $tlh:expr, $trh:expr, $brh:expr, $blh:expr) => {
         let input = parse(BorderRadius::parse, $input)
                           .expect(&format!("Failed parsing {} as border radius",
                                   $input));
-        assert_eq!(to_string(input.top_left.0.width), $tlw);
-        assert_eq!(to_string(input.top_right.0.width), $trw);
-        assert_eq!(to_string(input.bottom_left.0.width), $blw);
-        assert_eq!(to_string(input.bottom_right.0.width), $brw);
-        assert_eq!(to_string(input.top_left.0.height), $tlh);
-        assert_eq!(to_string(input.top_right.0.height), $trh);
-        assert_eq!(to_string(input.bottom_left.0.height), $blh);
-        assert_eq!(to_string(input.bottom_right.0.height), $brh);
+        assert_eq!(::cssparser::ToCss::to_css_string(&input.top_left.0.width), $tlw);
+        assert_eq!(::cssparser::ToCss::to_css_string(&input.top_right.0.width), $trw);
+        assert_eq!(::cssparser::ToCss::to_css_string(&input.bottom_right.0.width), $brw);
+        assert_eq!(::cssparser::ToCss::to_css_string(&input.bottom_left.0.width), $blw);
+        assert_eq!(::cssparser::ToCss::to_css_string(&input.top_left.0.height), $tlh);
+        assert_eq!(::cssparser::ToCss::to_css_string(&input.top_right.0.height), $trh);
+        assert_eq!(::cssparser::ToCss::to_css_string(&input.bottom_right.0.height), $brh);
+        assert_eq!(::cssparser::ToCss::to_css_string(&input.bottom_left.0.height), $blh);
     }
 }
 
@@ -121,19 +121,19 @@ fn test_polygon() {
     // surprisingly, polygons are only required to have at least one vertex,
     // not at least 3
     assert_roundtrip_basicshape!(Polygon::parse, "polygon(10px 10px)", "polygon(10px 10px)");
-    assert_roundtrip_basicshape!(Polygon::parse, "polygon(10px 10px 10px 10px)", "polygon(10px 10px 10px 10px)");
-    assert_roundtrip_basicshape!(Polygon::parse, "polygon(nonzero, 10px 10px 10px 10px)",
-                                                 "polygon(10px 10px 10px 10px)");
-    assert_roundtrip_basicshape!(Polygon::parse, "polygon(evenodd, 10px 10px 10px 10px)",
-                                                 "polygon(evenodd, 10px 10px 10px 10px)");
-    assert_roundtrip_basicshape!(Polygon::parse, "polygon(evenodd, 10px 10px 10px calc(10px + 50%))",
-                                                 "polygon(evenodd, 10px 10px 10px calc(10px + 50%))");
-    assert_roundtrip_basicshape!(Polygon::parse, "polygon(evenodd, 10px 10px 10px 10px 10px 10px 10px 10px 10px \
-                                                  10px 10px 10px 10px 10px 10px 10px 10px 10px 10px 10px 10px 10px \
-                                                  10px 10px 10px 10px 10px 10px)",
-                                                 "polygon(evenodd, 10px 10px 10px 10px 10px 10px 10px 10px 10px \
-                                                  10px 10px 10px 10px 10px 10px 10px 10px 10px 10px 10px 10px 10px \
-                                                  10px 10px 10px 10px 10px 10px)");
+    assert_roundtrip_basicshape!(Polygon::parse, "polygon(10px 10px, 10px 10px)", "polygon(10px 10px, 10px 10px)");
+    assert_roundtrip_basicshape!(Polygon::parse, "polygon(nonzero, 10px 10px, 10px 10px)",
+                                                 "polygon(10px 10px, 10px 10px)");
+    assert_roundtrip_basicshape!(Polygon::parse, "polygon(evenodd, 10px 10px, 10px 10px)",
+                                                 "polygon(evenodd, 10px 10px, 10px 10px)");
+    assert_roundtrip_basicshape!(Polygon::parse, "polygon(evenodd, 10px 10px, 10px calc(10px + 50%))",
+                                                 "polygon(evenodd, 10px 10px, 10px calc(10px + 50%))");
+    assert_roundtrip_basicshape!(Polygon::parse, "polygon(evenodd, 10px 10px, 10px 10px, 10px 10px, 10px 10px, 10px \
+                                                  10px, 10px 10px, 10px 10px, 10px 10px, 10px 10px, 10px 10px, \
+                                                  10px 10px, 10px 10px, 10px 10px)",
+                                                 "polygon(evenodd, 10px 10px, 10px 10px, 10px 10px, 10px 10px, 10px \
+                                                  10px, 10px 10px, 10px 10px, 10px 10px, 10px 10px, 10px 10px, \
+                                                  10px 10px, 10px 10px, 10px 10px)");
 
     assert!(parse(Polygon::parse, "polygon()").is_err());
 }
