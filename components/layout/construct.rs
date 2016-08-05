@@ -1374,12 +1374,20 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         // We visit the kids first and reset their HAS_NEWLY_CONSTRUCTED_FLOW flags after checking
         // them.  NOTE: Make sure not to bail out early before resetting all the flags!
         let mut need_to_reconstruct = false;
+
+        // If the node has display: none, it's possible that we haven't even
+        // styled the children once, so we need to bailout early here.
+        if node.style(self.style_context()).get_box().clone_display() == display::T::none {
+            return false;
+        }
+
         for kid in node.children() {
             if kid.flags().contains(HAS_NEWLY_CONSTRUCTED_FLOW) {
                 kid.remove_flags(HAS_NEWLY_CONSTRUCTED_FLOW);
                 need_to_reconstruct = true
             }
         }
+
         if need_to_reconstruct {
             return false
         }
