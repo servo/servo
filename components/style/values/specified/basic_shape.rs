@@ -14,7 +14,7 @@ use std::fmt;
 use values::computed::basic_shape as computed_basic_shape;
 use values::computed::{Context, ToComputedValue, ComputedValueAsSpecified};
 use values::specified::position::{Position, PositionComponent};
-use values::specified::{BorderRadiusSize, Length, LengthOrPercentage};
+use values::specified::{BorderRadiusSize, Length, LengthOrPercentage, Percentage};
 
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -27,16 +27,24 @@ pub enum BasicShape {
 
 impl BasicShape {
     pub fn parse(input: &mut Parser) -> Result<BasicShape, ()> {
-        if let Ok(result) = input.try(InsetRect::parse) {
-            Ok(BasicShape::Inset(result))
-        } else if let Ok(result) = input.try(Circle::parse) {
-            Ok(BasicShape::Circle(result))
-        } else if let Ok(result) = input.try(Ellipse::parse) {
-            Ok(BasicShape::Ellipse(result))
-        } else if let Ok(result) = input.try(Polygon::parse) {
-            Ok(BasicShape::Polygon(result))
-        } else {
-            Err(())
+        match_ignore_ascii_case! { try!(input.expect_function()),
+            "inset" => {
+                Ok(BasicShape::Inset(
+                   try!(input.parse_nested_block(InsetRect::parse_function_arguments))))
+            },
+            "circle" => {
+                Ok(BasicShape::Circle(
+                   try!(input.parse_nested_block(Circle::parse_function_arguments))))
+            },
+            "ellipse" => {
+                Ok(BasicShape::Ellipse(
+                   try!(input.parse_nested_block(Ellipse::parse_function_arguments))))
+            },
+            "polygon" => {
+                Ok(BasicShape::Polygon(
+                   try!(input.parse_nested_block(Polygon::parse_function_arguments))))
+            },
+            _ => Err(())
         }
     }
 }
@@ -81,12 +89,12 @@ impl InsetRect {
     pub fn parse(input: &mut Parser) -> Result<InsetRect, ()> {
         match_ignore_ascii_case! { try!(input.expect_function()),
             "inset" => {
-                Ok(try!(input.parse_nested_block(InsetRect::parse_function)))
+                Ok(try!(input.parse_nested_block(InsetRect::parse_function_arguments)))
             },
             _ => Err(())
         }
     }
-    pub fn parse_function(input: &mut Parser) -> Result<InsetRect, ()> {
+    pub fn parse_function_arguments(input: &mut Parser) -> Result<InsetRect, ()> {
         let (t, r, b, l) = try!(parse_four_sides(input, LengthOrPercentage::parse));
         let mut rect = InsetRect {
             top: t,
@@ -148,18 +156,21 @@ impl Circle {
     pub fn parse(input: &mut Parser) -> Result<Circle, ()> {
         match_ignore_ascii_case! { try!(input.expect_function()),
             "circle" => {
-                Ok(try!(input.parse_nested_block(Circle::parse_function)))
+                Ok(try!(input.parse_nested_block(Circle::parse_function_arguments)))
             },
             _ => Err(())
         }
     }
-    pub fn parse_function(input: &mut Parser) -> Result<Circle, ()> {
+    pub fn parse_function_arguments(input: &mut Parser) -> Result<Circle, ()> {
         let radius = input.try(ShapeRadius::parse).ok().unwrap_or_else(Default::default);
         let position = if let Ok(_) = input.try(|input| input.expect_ident_matching("at")) {
             try!(Position::parse(input))
         } else {
             // Defaults to origin
-            try!(Position::new(PositionComponent::Center, PositionComponent::Center))
+            Position {
+                horizontal: LengthOrPercentage::Percentage(Percentage(0.5)),
+                vertical: LengthOrPercentage::Percentage(Percentage(0.5)),
+            }
         };
         Ok(Circle {
             radius: radius,
@@ -197,8 +208,8 @@ impl ToComputedValue for Circle {
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 /// https://drafts.csswg.org/css-shapes/#funcdef-ellipse
 pub struct Ellipse {
-    pub semiaxis_a: ShapeRadius,
-    pub semiaxis_b: ShapeRadius,
+    pub semiaxis_x: ShapeRadius,
+    pub semiaxis_y: ShapeRadius,
     pub position: Position,
 }
 
@@ -207,24 +218,27 @@ impl Ellipse {
     pub fn parse(input: &mut Parser) -> Result<Ellipse, ()> {
         match_ignore_ascii_case! { try!(input.expect_function()),
             "ellipse" => {
-                Ok(try!(input.parse_nested_block(Ellipse::parse_function)))
+                Ok(try!(input.parse_nested_block(Ellipse::parse_function_arguments)))
             },
             _ => Err(())
         }
     }
-    pub fn parse_function(input: &mut Parser) -> Result<Ellipse, ()> {
+    pub fn parse_function_arguments(input: &mut Parser) -> Result<Ellipse, ()> {
         let (a, b) = input.try(|input| -> Result<_, ()> {
             Ok((try!(ShapeRadius::parse(input)), try!(ShapeRadius::parse(input))))
-        }).unwrap_or((Default::default(), Default::default()));
+        }).ok().unwrap_or_default();
         let position = if let Ok(_) = input.try(|input| input.expect_ident_matching("at")) {
             try!(Position::parse(input))
         } else {
             // Defaults to origin
-            try!(Position::new(PositionComponent::Center, PositionComponent::Center))
+            Position {
+                horizontal: LengthOrPercentage::Percentage(Percentage(0.5)),
+                vertical: LengthOrPercentage::Percentage(Percentage(0.5)),
+            }
         };
         Ok(Ellipse {
-            semiaxis_a: a,
-            semiaxis_b: b,
+            semiaxis_x: a,
+            semiaxis_y: b,
             position: position,
         })
     }
@@ -233,11 +247,10 @@ impl Ellipse {
 impl ToCss for Ellipse {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         try!(dest.write_str("ellipse("));
-        if ShapeRadius::ClosestSide != self.semiaxis_a ||
-           ShapeRadius::ClosestSide != self.semiaxis_b {
-            try!(self.semiaxis_a.to_css(dest));
+        if (self.semiaxis_x, self.semiaxis_y) != Default::default() {
+            try!(self.semiaxis_x.to_css(dest));
             try!(dest.write_str(" "));
-            try!(self.semiaxis_b.to_css(dest));
+            try!(self.semiaxis_y.to_css(dest));
             try!(dest.write_str(" "));
         }
         try!(dest.write_str("at "));
@@ -252,8 +265,8 @@ impl ToComputedValue for Ellipse {
     #[inline]
     fn to_computed_value(&self, cx: &Context) -> Self::ComputedValue {
         computed_basic_shape::Ellipse {
-            semiaxis_a: self.semiaxis_a.to_computed_value(cx),
-            semiaxis_b: self.semiaxis_b.to_computed_value(cx),
+            semiaxis_x: self.semiaxis_x.to_computed_value(cx),
+            semiaxis_y: self.semiaxis_y.to_computed_value(cx),
             position: self.position.to_computed_value(cx),
         }
     }
@@ -272,25 +285,22 @@ impl Polygon {
     pub fn parse(input: &mut Parser) -> Result<Polygon, ()> {
         match_ignore_ascii_case! { try!(input.expect_function()),
             "polygon" => {
-                Ok(try!(input.parse_nested_block(Polygon::parse_function)))
+                Ok(try!(input.parse_nested_block(Polygon::parse_function_arguments)))
             },
             _ => Err(())
         }
     }
-    pub fn parse_function(input: &mut Parser) -> Result<Polygon, ()> {
+    pub fn parse_function_arguments(input: &mut Parser) -> Result<Polygon, ()> {
         let fill = input.try(|input| {
             let fill = FillRule::parse(input);
             // only eat the comma if there is something before it
             try!(input.expect_comma());
             fill
         }).ok().unwrap_or_else(Default::default);
-        let first = (try!(LengthOrPercentage::parse(input)),
-                     try!(LengthOrPercentage::parse(input)));
-        let mut buf = vec![first];
-        while !input.is_exhausted() {
-            buf.push((try!(LengthOrPercentage::parse(input)),
-                      try!(LengthOrPercentage::parse(input))));
-        }
+        let buf = try!(input.parse_comma_separated(|input| {
+            Ok((try!(LengthOrPercentage::parse(input)),
+                try!(LengthOrPercentage::parse(input))))
+        }));
         Ok(Polygon {
             fill: fill,
             coordinates: buf,
@@ -308,7 +318,7 @@ impl ToCss for Polygon {
         }
         for coord in &self.coordinates {
             if need_space {
-                try!(dest.write_str(" "));
+                try!(dest.write_str(", "));
             }
             try!(coord.0.to_css(dest));
             try!(dest.write_str(" "));
