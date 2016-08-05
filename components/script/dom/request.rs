@@ -332,13 +332,12 @@ impl Request {
 
         // Step 30
         if r.request.borrow().mode == NetTraitsRequestMode::NoCORS {
-            let method = r.request.borrow().method.clone();
-            if !is_cors_safelisted_method(method.into_inner()) {
+            let borrowed_request = r.request.borrow();
+            if !is_cors_safelisted_method(borrowed_request.method.borrow().clone()) {
                 return Err(Error::Type(
                     "The mode is 'no-cors' but the method is not a cors-safelisted method".to_string()));
             }
-            let integrity_metadata = r.request.borrow().integrity_metadata.clone();
-            if !integrity_metadata.into_inner().is_empty() {
+            if !borrowed_request.integrity_metadata.borrow().is_empty() {
                 return Err(Error::Type("Integrity metadata is not an empty string".to_string()));
             }
             r.headers.get().unwrap().set_guard(Guard::RequestNoCors);
@@ -390,12 +389,10 @@ impl Request {
         // TODO: `ReadableStream` object is not implemented in Servo yet.
 
         // Step 35
-        // this doesn't compile:
-        let borrowed_r = r.request.borrow();
-        *borrowed_r.body.borrow_mut() = input_body;
-
-        // this compiles:
-        // r.request.borrow_mut().body = RefCell::new(input_body);
+        {
+            let borrowed_request = r.request.borrow();
+            *borrowed_request.body.borrow_mut() = input_body;
+        }
 
         // Step 36
         let extracted_mime_type = r.headers.get().unwrap().extract_mime_type();
@@ -515,13 +512,15 @@ fn requestinfo_is_locked(input: &RequestInfo) -> bool {
 impl RequestMethods for Request {
     // https://fetch.spec.whatwg.org/#dom-request-method
     fn Method(&self) -> ByteString {
-        let r = self.request.borrow().clone();
-        let m = r.method.into_inner();
-        ByteString::new(Vec::from(m.as_ref().as_bytes()))
+        let r = self.request.borrow();
+        let m = r.method.borrow();
+        ByteString::new(m.as_ref().as_bytes().into())
     }
 
     // https://fetch.spec.whatwg.org/#dom-request-url
     fn Url(&self) -> USVString {
+        // let r = self.request.borrow();
+        // USVString(self.request.borrow().url_list.borrow().get(0).map_or("", |u| u.as_str()).into())
         let r = self.request.borrow().clone();
         let url = r.url_list.into_inner()[0].clone();
         USVString(url.into_string())
@@ -538,14 +537,12 @@ impl RequestMethods for Request {
 
     // https://fetch.spec.whatwg.org/#dom-request-type
     fn Type(&self) -> RequestType {
-        let r = self.request.borrow().clone();
-        r.type_.into()
+        self.request.borrow().type_.into()
     }
 
     // https://fetch.spec.whatwg.org/#dom-request-destination
     fn Destination(&self) -> RequestDestination {
-        let r = self.request.borrow().clone();
-        r.destination.into()
+        self.request.borrow().destination.into()
     }
 
     // https://fetch.spec.whatwg.org/#dom-request-referrer
@@ -557,22 +554,23 @@ impl RequestMethods for Request {
             NetTraitsRequestReferer::Client => USVString(String::from("client")),
             NetTraitsRequestReferer::RefererUrl(u) => USVString(u.into_string()),
         }
+        // USVString(match *self.request.borrow().referer.borrow() {
+        //     NetTraitsRequestReferer::NoReferer => String::from("no-referrer"),
+        //     NetTraitsRequestReferer::Client => String::from("client"),
+        //     NetTraitsRequestReferer::RefererUrl(u) => u.into_string(),
+        // })
     }
 
     // https://fetch.spec.whatwg.org/#dom-request-referrerpolicy
     fn ReferrerPolicy(&self) -> ReferrerPolicy {
         let r = self.request.borrow().clone();
         let rp = r.referrer_policy.get();
-        match rp {
-            Some(referrer_policy) => referrer_policy.into(),
-            _ => ReferrerPolicy::_empty,
-        }
+        self.request.borrow().referrer_policy.get().unwrap_or(MsgReferrerPolicy::NoReferrer).into()
     }
 
     // https://fetch.spec.whatwg.org/#dom-request-mode
     fn Mode(&self) -> RequestMode {
-        let r = self.request.borrow().clone();
-        r.mode.into()
+        self.request.borrow().mode.into()
     }
 
     // https://fetch.spec.whatwg.org/#dom-request-credentials
@@ -608,16 +606,15 @@ impl RequestMethods for Request {
     // https://fetch.spec.whatwg.org/#dom-request-clone
     fn Clone(&self) -> Fallible<Root<Request>> {
         // Step 1
-        if request_is_locked(&self) {
+        if request_is_locked(self) {
             return Err(Error::Type("Request is locked".to_string()));
         }
-        if request_is_disturbed(&self) {
+        if request_is_disturbed(self) {
             return Err(Error::Type("Request is disturbed".to_string()));
         }
 
         // Step 2
-        let url = self.request.borrow().clone().url_list.into_inner()[0].clone();
-        // let origin = self.request.borrow().clone().origin.into_inner();
+        let url = self.request.borrow().url();
         let is_service_worker_global_scope = self.request.borrow().clone().is_service_worker_global_scope;
         let body_used = self.body_used.get();
         let mime_type = self.mime_type.borrow().clone();
