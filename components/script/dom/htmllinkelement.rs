@@ -22,7 +22,6 @@ use dom::virtualmethods::VirtualMethods;
 use encoding::EncodingRef;
 use encoding::all::UTF_8;
 use hyper::header::ContentType;
-use hyper::http::RawStatus;
 use hyper::mime::{Mime, TopLevel, SubLevel};
 use hyper_serde::Serde;
 use ipc_channel::ipc;
@@ -335,7 +334,7 @@ impl AsyncResponseListener for StylesheetContext {
             document.invalidate_stylesheets();
 
             // FIXME: Revisit once consensus is reached at: https://github.com/whatwg/html/issues/1142
-            successful = metadata.status.map_or(false, |Serde(RawStatus(code, _))| code == 200);
+            successful = metadata.status.map_or(false, |(code, _)| code == 200);
         }
 
         if elem.parser_inserted.get() {

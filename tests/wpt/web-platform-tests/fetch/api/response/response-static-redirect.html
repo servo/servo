@@ -14,7 +14,7 @@
       var url = "http://test.url:1234/";
       test(function() {
         redirectResponse = Response.redirect(url);
-        assert_equals(redirectResponse.status, 302, "Default redictect status is 302");
+        assert_equals(redirectResponse.status, 302, "Default redirect status is 302");
         assert_equals(redirectResponse.headers.get("Location"), url,
           "redirected response has Location header with the correct url");
       }, "Check default redirect response");
@@ -22,8 +22,8 @@
       var redirectStatus = [301, 302, 303, 307, 308];
       redirectStatus.forEach(function(status) {
         test(function() {
-          redirectResponse = Response.redirect(url, status);
-          assert_equals(redirectResponse.status, status, "Redictect status is " + status);
+      redirectResponse = Response.redirect(url, status);
+      assert_equals(redirectResponse.status, status, "Redirect status is " + status);
         }, "Check response returned by static method redirect(), status = " + status);
       });
 
