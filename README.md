@@ -34,6 +34,16 @@ brew install openssl
 brew link --force openssl
 ```
 
+If you get this error:
+``` sh
+"Couldn't find libavformat", do the following:
+
+brew uninstall ffmpeg
+brew install ffmpeg --build-from-source
+./mach clean
+./mach build
+```
+
 If you've already partially compiled servo but forgot to do this step, run ./mach clean, link openssl, and recompile.
 
 On Debian-based Linuxes:
