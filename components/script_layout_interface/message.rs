@@ -42,8 +42,9 @@ pub enum Msg {
 
     /// Updates layout's timer for animation testing from script.
     ///
-    /// The inner field is the number of *milliseconds* to advance.
-    AdvanceClockMs(i32),
+    /// The inner field is the number of *milliseconds* to advance, and the bool
+    /// field is whether animations should be force-ticked.
+    AdvanceClockMs(i32, bool),
 
     /// Requests that the layout thread reflow with a newly-loaded Web font.
     ReflowWithNewlyLoadedWebFont,

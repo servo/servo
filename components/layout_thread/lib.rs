@@ -674,8 +674,8 @@ impl LayoutThread {
                 let _rw_data = possibly_locked_rw_data.lock();
                 sender.send(self.epoch).unwrap();
             },
-            Msg::AdvanceClockMs(how_many) => {
-                self.handle_advance_clock_ms(how_many, possibly_locked_rw_data);
+            Msg::AdvanceClockMs(how_many, do_tick) => {
+                self.handle_advance_clock_ms(how_many, possibly_locked_rw_data, do_tick);
             }
             Msg::GetWebFontLoadState(sender) => {
                 let _rw_data = possibly_locked_rw_data.lock();
@@ -822,9 +822,12 @@ impl LayoutThread {
     /// Advances the animation clock of the document.
     fn handle_advance_clock_ms<'a, 'b>(&mut self,
                                        how_many_ms: i32,
-                                       possibly_locked_rw_data: &mut RwData<'a, 'b>) {
+                                       possibly_locked_rw_data: &mut RwData<'a, 'b>,
+                                       tick_animations: bool) {
         self.timer.increment(how_many_ms as f64 / 1000.0);
-        self.tick_all_animations(possibly_locked_rw_data);
+        if tick_animations {
+            self.tick_all_animations(possibly_locked_rw_data);
+        }
     }
 
     /// Sets quirks mode for the document, causing the quirks mode stylesheet to be used.
