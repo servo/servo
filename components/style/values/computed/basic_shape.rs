@@ -8,6 +8,7 @@
 //! [basic-shape]: https://drafts.csswg.org/css-shapes/#typedef-basic-shape
 
 use cssparser::ToCss;
+use properties::shorthands::serialize_four_sides;
 use std::fmt;
 use values::computed::position::Position;
 use values::computed::{BorderRadiusSize, LengthOrPercentage};
@@ -161,33 +162,33 @@ impl ToCss for ShapeRadius {
 pub struct BorderRadius {
     pub top_left: BorderRadiusSize,
     pub top_right: BorderRadiusSize,
-    pub bottom_left: BorderRadiusSize,
     pub bottom_right: BorderRadiusSize,
+    pub bottom_left: BorderRadiusSize,
 }
 
 impl ToCss for BorderRadius {
-    // XXXManishearth: We should be producing minimal output:
-    // if height=width for all, we should not be printing the part after
-    // the slash. For any set of four values,
-    // we should try to reduce them to one or two. This probably should be
-    // a helper function somewhere, for all the parse_four_sides-like
-    // values
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        try!(self.top_left.0.width.to_css(dest));
-        try!(dest.write_str(" "));
-        try!(self.top_right.0.width.to_css(dest));
-        try!(dest.write_str(" "));
-        try!(self.bottom_left.0.width.to_css(dest));
-        try!(dest.write_str(" "));
-        try!(self.bottom_right.0.width.to_css(dest));
-        try!(dest.write_str(" / "));
-        try!(self.top_left.0.height.to_css(dest));
-        try!(dest.write_str(" "));
-        try!(self.top_right.0.height.to_css(dest));
-        try!(dest.write_str(" "));
-        try!(self.bottom_left.0.height.to_css(dest));
-        try!(dest.write_str(" "));
-        try!(self.bottom_right.0.height.to_css(dest));
-        dest.write_str(" ")
+        if self.top_left.0.width == self.top_left.0.height &&
+           self.top_right.0.width == self.top_right.0.height &&
+           self.bottom_right.0.width == self.bottom_right.0.height &&
+           self.bottom_left.0.width == self.bottom_left.0.height {
+            serialize_four_sides((&self.top_left.0.width,
+                                  &self.top_right.0.width,
+                                  &self.bottom_right.0.width,
+                                  &self.bottom_left.0.width),
+                                  dest)
+        } else {
+            try!(serialize_four_sides((&self.top_left.0.width,
+                                       &self.top_right.0.width,
+                                       &self.bottom_right.0.width,
+                                       &self.bottom_left.0.width),
+                                       dest));
+            try!(dest.write_str(" / "));
+            serialize_four_sides((&self.top_left.0.height,
+                                  &self.top_right.0.height,
+                                  &self.bottom_right.0.height,
+                                  &self.bottom_left.0.height),
+                                  dest)
+        }
     }
 }

@@ -406,38 +406,32 @@ impl ToComputedValue for ShapeRadius {
 pub struct BorderRadius {
     pub top_left: BorderRadiusSize,
     pub top_right: BorderRadiusSize,
-    pub bottom_left: BorderRadiusSize,
     pub bottom_right: BorderRadiusSize,
+    pub bottom_left: BorderRadiusSize,
 }
 
 impl ToCss for BorderRadius {
-    // XXXManishearth: We should be producing minimal output:
-    // if height=width for all, we should not be printing the part after
-    // the slash. For any set of four values,
-    // we should try to reduce them to one or two. This probably should be
-    // a helper function somewhere, for all the parse_four_sides-like
-    // values
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         if self.top_left.0.width == self.top_left.0.height &&
            self.top_right.0.width == self.top_right.0.height &&
-           self.bottom_left.0.width == self.bottom_left.0.height &&
-           self.bottom_right.0.width == self.bottom_right.0.height {
+           self.bottom_right.0.width == self.bottom_right.0.height &&
+           self.bottom_left.0.width == self.bottom_left.0.height {
             serialize_four_sides((&self.top_left.0.width,
                                   &self.top_right.0.width,
-                                  &self.bottom_left.0.width,
-                                  &self.bottom_right.0.width),
+                                  &self.bottom_right.0.width,
+                                  &self.bottom_left.0.width),
                                   dest)
         } else {
             try!(serialize_four_sides((&self.top_left.0.width,
                                        &self.top_right.0.width,
-                                       &self.bottom_left.0.width,
-                                       &self.bottom_right.0.width),
+                                       &self.bottom_right.0.width,
+                                       &self.bottom_left.0.width),
                                        dest));
             try!(dest.write_str(" / "));
             serialize_four_sides((&self.top_left.0.height,
                                   &self.top_right.0.height,
-                                  &self.bottom_left.0.height,
-                                  &self.bottom_right.0.height),
+                                  &self.bottom_right.0.height,
+                                  &self.bottom_left.0.height),
                                   dest)
         }
     }
@@ -446,38 +440,40 @@ impl ToCss for BorderRadius {
 impl BorderRadius {
     pub fn parse(input: &mut Parser) -> Result<BorderRadius, ()> {
         let widths = try!(parse_one_set_of_border_values(input));
-        let mut heights = widths.clone();
-        if input.try(|input| input.expect_delim('/')).is_ok() {
-            heights = try!(parse_one_set_of_border_values(input));
-        }
+        let heights = if input.try(|input| input.expect_delim('/')).is_ok() {
+            try!(parse_one_set_of_border_values(input))
+        } else {
+            widths.clone()
+        };
         Ok(BorderRadius {
             top_left: BorderRadiusSize::new(widths[0], heights[0]),
             top_right: BorderRadiusSize::new(widths[1], heights[1]),
-            bottom_left: BorderRadiusSize::new(widths[2], heights[2]),
-            bottom_right: BorderRadiusSize::new(widths[3], heights[3]),
+            bottom_right: BorderRadiusSize::new(widths[2], heights[2]),
+            bottom_left: BorderRadiusSize::new(widths[3], heights[3]),
         })
     }
 }
 
 fn parse_one_set_of_border_values(mut input: &mut Parser)
                                  -> Result<[LengthOrPercentage; 4], ()> {
-    let mut count = 0;
-    let mut values = [LengthOrPercentage::Length(Length::Absolute(Au(0))); 4];
-    while count < 4 {
-        if let Ok(value) = input.try(LengthOrPercentage::parse) {
-            values[count] = value;
-            count += 1;
-        } else {
-            break
-        }
-    }
+    let a = try!(LengthOrPercentage::parse(input));
 
-    match count {
-        1 => Ok([values[0], values[0], values[0], values[0]]),
-        2 => Ok([values[0], values[1], values[0], values[1]]),
-        3 => Ok([values[0], values[1], values[2], values[1]]),
-        4 => Ok([values[0], values[1], values[2], values[3]]),
-        _ => Err(()),
+    let b = if let Ok(b) = input.try(LengthOrPercentage::parse) {
+        b
+    } else {
+        return Ok([a, a, a, a])
+    };
+
+    let c = if let Ok(c) = input.try(LengthOrPercentage::parse) {
+        c
+    } else {
+        return Ok([a, b, a, b])
+    };
+
+    if let Ok(d) = input.try(LengthOrPercentage::parse) {
+        Ok([a, b, c, d])
+    } else {
+        Ok([a, b, c, b])
     }
 }
 
@@ -490,8 +486,8 @@ impl ToComputedValue for BorderRadius {
         computed_basic_shape::BorderRadius {
             top_left: self.top_left.to_computed_value(cx),
             top_right: self.top_right.to_computed_value(cx),
-            bottom_left: self.bottom_left.to_computed_value(cx),
             bottom_right: self.bottom_right.to_computed_value(cx),
+            bottom_left: self.bottom_left.to_computed_value(cx),
         }
     }
 }
