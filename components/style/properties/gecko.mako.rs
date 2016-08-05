@@ -1042,17 +1042,18 @@ fn static_assert() {
     }
 
     pub fn clone_background_position(&self) -> longhands::background_position::computed_value::T {
+        use values::computed::position::Position;
         let position = &self.gecko.mImage.mLayers.mFirstElement.mPosition;
-        longhands::background_position::computed_value::T {
+        longhands::background_position::computed_value::T(Position {
             horizontal: position.mXPosition.into(),
             vertical: position.mYPosition.into(),
-        }
+        })
     }
 
     pub fn set_background_position(&mut self, v: longhands::background_position::computed_value::T) {
         let position = &mut self.gecko.mImage.mLayers.mFirstElement.mPosition;
-        position.mXPosition = v.horizontal.into();
-        position.mYPosition = v.vertical.into();
+        position.mXPosition = v.0.horizontal.into();
+        position.mYPosition = v.0.vertical.into();
         self.gecko.mImage.mPositionXCount = 1;
         self.gecko.mImage.mPositionYCount = 1;
     }

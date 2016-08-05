@@ -73,11 +73,12 @@ pub mod longhands {
 }
 
 pub mod shorthands {
-    use cssparser::Parser;
+    use cssparser::{Parser, ToCss};
+    use std::fmt;
     use parser::ParserContext;
     use values::specified;
 
-    fn parse_four_sides<F, T>(input: &mut Parser, parse_one: F) -> Result<(T, T, T, T), ()>
+    pub fn parse_four_sides<F, T>(input: &mut Parser, parse_one: F) -> Result<(T, T, T, T), ()>
     where F: Fn(&mut Parser) -> Result<T, ()>, F: Copy, T: Clone {
         // zero or more than four values is invalid.
         // one value sets them all
@@ -118,6 +119,33 @@ pub mod shorthands {
             }
         }
         Ok((top, right, bottom, left))
+    }
+
+    /// Serialize a set of top,left,bottom,right values, in <margin>-shorthand style,
+    /// attempting to minimize the output
+    pub fn serialize_four_sides<T, W>(sides: (&T, &T, &T, &T), dest: &mut W) -> fmt::Result
+        where W: fmt::Write, T: ToCss+PartialEq {
+        if sides.0 == sides.1 && sides.0 == sides.2 && sides.0 == sides.3 {
+            sides.0.to_css(dest)
+        } else if sides.0 == sides.2 && sides.1 == sides.3 {
+            try!(sides.0.to_css(dest));
+            try!(dest.write_str(" "));
+            sides.1.to_css(dest)
+        } else if sides.1 == sides.3 {
+            try!(sides.0.to_css(dest));
+            try!(dest.write_str(" "));
+            try!(sides.1.to_css(dest));
+            try!(dest.write_str(" "));
+            sides.2.to_css(dest)
+        } else {
+            try!(sides.0.to_css(dest));
+            try!(dest.write_str(" "));
+            try!(sides.1.to_css(dest));
+            try!(dest.write_str(" "));
+            try!(sides.2.to_css(dest));
+            try!(dest.write_str(" "));
+            sides.3.to_css(dest)
+        }
     }
 
     <%include file="/shorthand/background.mako.rs" />

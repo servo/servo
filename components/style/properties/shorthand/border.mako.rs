@@ -97,53 +97,15 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
     'border-%s-radius' % (corner)
      for corner in ['top-left', 'top-right', 'bottom-right', 'bottom-left']
 )}">
-    use app_units::Au;
-    use values::specified::{Length, LengthOrPercentage};
-    use values::specified::BorderRadiusSize;
+    use values::specified::basic_shape::BorderRadius;
 
     let _ignored = context;
 
-    fn parse_one_set_of_border_values(mut input: &mut Parser)
-                                     -> Result<[LengthOrPercentage; 4], ()> {
-        let mut count = 0;
-        let mut values = [LengthOrPercentage::Length(Length::Absolute(Au(0))); 4];
-        while count < 4 {
-            if let Ok(value) = input.try(LengthOrPercentage::parse) {
-                values[count] = value;
-                count += 1;
-            } else {
-                break
-            }
-        }
-
-        match count {
-            1 => Ok([values[0], values[0], values[0], values[0]]),
-            2 => Ok([values[0], values[1], values[0], values[1]]),
-            3 => Ok([values[0], values[1], values[2], values[1]]),
-            4 => Ok([values[0], values[1], values[2], values[3]]),
-            _ => Err(()),
-        }
-    }
-
-    fn parse_one_set_of_border_radii(mut input: &mut Parser)
-                                     -> Result<[BorderRadiusSize; 4], ()> {
-        let widths = try!(parse_one_set_of_border_values(input));
-        let mut heights = widths.clone();
-        let mut radii_values = [BorderRadiusSize::zero(); 4];
-        if input.try(|input| input.expect_delim('/')).is_ok() {
-            heights = try!(parse_one_set_of_border_values(input));
-        }
-        for i in 0..radii_values.len() {
-            radii_values[i] = BorderRadiusSize::new(widths[i], heights[i]);
-        }
-        Ok(radii_values)
-    }
-
-    let radii = try!(parse_one_set_of_border_radii(input));
+    let radii = try!(BorderRadius::parse(input));
     Ok(Longhands {
-        border_top_left_radius: Some(radii[0]),
-        border_top_right_radius: Some(radii[1]),
-        border_bottom_right_radius: Some(radii[2]),
-        border_bottom_left_radius: Some(radii[3]),
+        border_top_left_radius: Some(radii.top_left),
+        border_top_right_radius: Some(radii.top_right),
+        border_bottom_right_radius: Some(radii.bottom_right),
+        border_bottom_left_radius: Some(radii.bottom_left),
     })
 </%helpers:shorthand>

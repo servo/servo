@@ -18,6 +18,9 @@ use super::computed::{Context, ToComputedValue};
 use super::{CSSFloat, FONT_MEDIUM_PX, HasViewportPercentage, LocalToCss, NoViewportPercentage};
 use url::Url;
 
+pub mod basic_shape;
+pub mod position;
+
 impl NoViewportPercentage for i32 {}  // For PropertyDeclaration::Order
 
 #[derive(Clone, PartialEq, Debug)]
@@ -1122,59 +1125,6 @@ impl ToCss for BorderRadiusSize {
     }
 }
 
-// http://dev.w3.org/csswg/css2/colors.html#propdef-background-position
-#[derive(Clone, PartialEq, Copy)]
-pub enum PositionComponent {
-    LengthOrPercentage(LengthOrPercentage),
-    Center,
-    Left,
-    Right,
-    Top,
-    Bottom,
-}
-
-impl HasViewportPercentage for PositionComponent {
-    fn has_viewport_percentage(&self) -> bool {
-        match *self {
-            PositionComponent::LengthOrPercentage(length) => length.has_viewport_percentage(),
-            _ => false
-        }
-    }
-}
-
-impl PositionComponent {
-    pub fn parse(input: &mut Parser) -> Result<PositionComponent, ()> {
-        input.try(LengthOrPercentage::parse)
-        .map(PositionComponent::LengthOrPercentage)
-        .or_else(|()| {
-            match try!(input.next()) {
-                Token::Ident(value) => {
-                    match_ignore_ascii_case! { value,
-                        "center" => Ok(PositionComponent::Center),
-                        "left" => Ok(PositionComponent::Left),
-                        "right" => Ok(PositionComponent::Right),
-                        "top" => Ok(PositionComponent::Top),
-                        "bottom" => Ok(PositionComponent::Bottom),
-                        _ => Err(())
-                    }
-                },
-                _ => Err(())
-            }
-        })
-    }
-    #[inline]
-    pub fn to_length_or_percentage(self) -> LengthOrPercentage {
-        match self {
-            PositionComponent::LengthOrPercentage(value) => value,
-            PositionComponent::Center => LengthOrPercentage::Percentage(Percentage(0.5)),
-            PositionComponent::Left |
-            PositionComponent::Top => LengthOrPercentage::Percentage(Percentage(0.0)),
-            PositionComponent::Right |
-            PositionComponent::Bottom => LengthOrPercentage::Percentage(Percentage(1.0)),
-        }
-    }
-}
-
 #[derive(Clone, PartialEq, PartialOrd, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
 /// An angle, normalized to radians.
@@ -1239,7 +1189,7 @@ pub struct UrlExtraData {
 
 impl UrlExtraData {
     #[cfg(feature = "servo")]
-    pub fn make_from(_context: &ParserContext) -> Option<UrlExtraData> {
+    pub fn make_from(_: &ParserContext) -> Option<UrlExtraData> {
         Some(UrlExtraData { })
     }
 
