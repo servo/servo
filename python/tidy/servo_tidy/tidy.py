@@ -347,6 +347,9 @@ def check_shell(file_name, lines):
         if "`" in stripped:
             yield (idx + 1, "script should not use backticks for command substitution")
 
+        if " [ " in stripped or stripped.startswith("[ "):
+            yield (idx + 1, "script should use `[[` instead of `[` for conditional testing")
+
         for dollar in re.finditer('\$', stripped):
             next_idx = dollar.end()
             if next_idx < len(stripped):
