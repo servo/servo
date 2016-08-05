@@ -47,6 +47,10 @@ impl TRestyleDamage for RestyleDamage {
     /// For Servo the style source is always the computed values.
     type PreExistingComputedValues = Arc<ServoComputedValues>;
 
+    fn empty() -> Self {
+        RestyleDamage::empty()
+    }
+
     fn compute(old: Option<&Arc<ServoComputedValues>>,
                new: &Arc<ServoComputedValues>) -> RestyleDamage {
         compute_damage(old, new)

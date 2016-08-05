@@ -20,6 +20,15 @@ use values::HasViewportPercentage;
 /// detected by ticking a generation number every layout.
 pub type Generation = u32;
 
+/// This enum tells us about whether the traversal stop should stop **regardless
+/// of change hints or dirty bits**. So far this only happens where a display:
+/// none node is found.
+pub enum ForceTraversalStop {
+    Force,
+    DontForce,
+}
+
+
 /// A pair of the bloom filter used for css selector matching, and the node to
 /// which it applies. This is used to efficiently do `Descendant` selector
 /// matches. Thanks to the bloom filter, we can avoid walking up the tree
@@ -145,7 +154,7 @@ pub trait DomTraversalContext<N: TNode>  {
     type SharedContext: Sync + 'static;
     fn new<'a>(&'a Self::SharedContext, OpaqueNode) -> Self;
     /// Process `node` on the way down, before its children have been processed.
-    fn process_preorder(&self, node: N);
+    fn process_preorder(&self, node: N) -> ForceTraversalStop;
     /// Process `node` on the way up, after its children have been processed.
     fn process_postorder(&self, node: N);
 
@@ -185,7 +194,7 @@ pub trait DomTraversalContext<N: TNode>  {
 #[allow(unsafe_code)]
 pub fn recalc_style_at<'a, N, C>(context: &'a C,
                                  root: OpaqueNode,
-                                 node: N)
+                                 node: N) -> ForceTraversalStop
     where N: TNode,
           C: StyleContext<'a>,
           <N::ConcreteElement as Element>::Impl: SelectorImplExt + 'a {
@@ -199,6 +208,7 @@ pub fn recalc_style_at<'a, N, C>(context: &'a C,
     let mut bf = take_thread_local_bloom_filter(parent_opt, root, context.shared_context());
 
     let nonincremental_layout = opts::get().nonincremental_layout;
+    let mut should_stop = ForceTraversalStop::DontForce;
     if nonincremental_layout || node.is_dirty() {
         // Remove existing CSS styles from nodes whose content has changed (e.g. text changed),
         // to force non-incremental reflow.
@@ -248,9 +258,9 @@ pub fn recalc_style_at<'a, N, C>(context: &'a C,
 
                 // Perform the CSS cascade.
                 unsafe {
-                    node.cascade_node(context,
-                                      parent_opt,
-                                      &applicable_declarations);
+                    should_stop = node.cascade_node(context,
+                                                    parent_opt,
+                                                    &applicable_declarations);
                 }
 
                 // Add ourselves to the LRU cache.
@@ -258,7 +268,8 @@ pub fn recalc_style_at<'a, N, C>(context: &'a C,
                     style_sharing_candidate_cache.insert_if_possible::<'ln, N>(&element);
                 }
             }
-            StyleSharingResult::StyleWasShared(index, damage) => {
+            StyleSharingResult::StyleWasShared(index, damage, should_stop_cascade) => {
+                should_stop = should_stop_cascade;
                 style_sharing_candidate_cache.touch(index);
                 node.set_restyle_damage(damage);
             }
@@ -294,5 +305,11 @@ pub fn recalc_style_at<'a, N, C>(context: &'a C,
                 }
             }
         }
+    }
+
+    if nonincremental_layout {
+        ForceTraversalStop::DontForce
+    } else {
+        should_stop
     }
 }
