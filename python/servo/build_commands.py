@@ -209,7 +209,7 @@ class MachCommands(CommandBase):
             opts += ["--features", "%s" % ' '.join(features)]
 
         build_start = time()
-        env = self.build_env(target=target)
+        env = self.build_env(target=target, is_build=True)
 
         if android:
             # Build OpenSSL for android
@@ -299,7 +299,7 @@ class MachCommands(CommandBase):
         build_start = time()
         with cd(path.join("ports", "cef")):
             ret = call(["cargo", "build"] + opts,
-                       env=self.build_env(), verbose=verbose)
+                       env=self.build_env(is_build=True), verbose=verbose)
         elapsed = time() - build_start
 
         # Generate Desktop Notification if elapsed-time > some threshold value
@@ -334,7 +334,7 @@ class MachCommands(CommandBase):
         if release:
             opts += ["--release"]
 
-        env = self.build_env()
+        env = self.build_env(is_build=True)
         env["CARGO_TARGET_DIR"] = path.join(self.context.topdir, "target", "geckolib").encode("UTF-8")
 
         build_start = time()
