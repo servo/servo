@@ -36,6 +36,8 @@ use properties::CascadePropertyFn;
 use properties::longhands;
 use std::fmt::{self, Debug};
 use std::mem::{transmute, uninitialized, zeroed};
+use std::ptr;
+use std::sync::atomic::{ATOMIC_USIZE_INIT, AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::cmp;
 
@@ -102,14 +104,14 @@ impl ComputedValues {
 
     pub fn initial_values() -> &'static Self {
         unsafe {
-            debug_assert!(!INITIAL_GECKO_VALUES.is_null());
-            &*INITIAL_GECKO_VALUES
+            debug_assert!(!raw_initial_values().is_null());
+            &*raw_initial_values()
         }
     }
 
     pub unsafe fn initialize() {
-        debug_assert!(INITIAL_GECKO_VALUES.is_null());
-        INITIAL_GECKO_VALUES = Box::into_raw(Box::new(ComputedValues {
+        debug_assert!(raw_initial_values().is_null());
+        set_raw_initial_values(Box::into_raw(Box::new(ComputedValues {
             % for style_struct in data.style_structs:
                ${style_struct.ident}: style_structs::${style_struct.name}::initial(),
             % endfor
@@ -117,12 +119,13 @@ impl ComputedValues {
             shareable: true,
             writing_mode: WritingMode::empty(),
             root_font_size: longhands::font_size::get_initial_value(),
-        }));
+        })));
     }
 
     pub unsafe fn shutdown() {
-        debug_assert!(!INITIAL_GECKO_VALUES.is_null());
-        let _ = Box::from_raw(INITIAL_GECKO_VALUES);
+        debug_assert!(!raw_initial_values().is_null());
+        let _ = Box::from_raw(raw_initial_values());
+        set_raw_initial_values(ptr::null_mut());
     }
 
     #[inline]
@@ -1362,7 +1365,16 @@ ${impl_style_struct(style_struct)}
 ${define_ffi_struct_accessor(style_struct)}
 % endfor
 
-static mut INITIAL_GECKO_VALUES: *mut ComputedValues = 0 as *mut ComputedValues;
+// To avoid UB, we store the initial values as a atomic. It would be nice to
+// store them as AtomicPtr, but we can't have static AtomicPtr without const
+// fns, which aren't in stable Rust.
+static INITIAL_VALUES_STORAGE: AtomicUsize = ATOMIC_USIZE_INIT;
+unsafe fn raw_initial_values() -> *mut ComputedValues {
+    INITIAL_VALUES_STORAGE.load(Ordering::Relaxed) as *mut ComputedValues
+}
+unsafe fn set_raw_initial_values(v: *mut ComputedValues) {
+    INITIAL_VALUES_STORAGE.store(v as usize, Ordering::Relaxed);
+}
 
 static CASCADE_PROPERTY: [CascadePropertyFn; ${len(data.longhands)}] = [
     % for property in data.longhands:
