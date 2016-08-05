@@ -52,19 +52,17 @@ If `virtualenv` does not exist, try `python-virtualenv`.
 
 On Fedora:
 
+To install FFmpeg dependency, it is required to use third-party sources. For more details on how to setup this third-party source, you may consult: http://rpmfusion.org/Configuration
+
 ``` sh
-sudo dnf install curl freeglut-devel libtool gcc-c++ libXi-devel \
+su dnf install curl freeglut-devel libtool gcc-c++ libXi-devel \
     freetype-devel mesa-libGL-devel mesa-libEGL-devel glib2-devel libX11-devel libXrandr-devel gperf \
     fontconfig-devel cabextract ttmkfdir python python-virtualenv python-pip expat-devel \
     rpm-build openssl-devel cmake bzip2-devel libXcursor-devel libXmu-devel mesa-libOSMesa-devel \
     dbus-devel
-```
-``` sh
-rpm -Uvh http://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-stable.noarch.rpm http://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-stable.noarch.rpm
-sudo dnf install ffmpeg.x86_64 ffmpeg-devel.x86_64
-
+-c 'dnf install http://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm http://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm'
+dnf install ffmpeg.x86_64 ffmpeg-devel.x86_64
 ``` 
-
 On Arch Linux:
 
 ``` sh
