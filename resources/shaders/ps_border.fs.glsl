@@ -28,7 +28,7 @@ vec4 draw_dotted_edge() {
   // like firefox.
   float circleSpacing = diameter * 2.2;
 
-  vec2 size = vec2(vBorders.z, vBorders.w);
+  vec2 size = vBorders.zw;
   // Get our position within this specific segment
   vec2 position = vDevicePos - vBorders.xy;
 
@@ -68,15 +68,16 @@ vec2 get_dashed_nudge_factor(vec2 dash_size, bool is_corner) {
   bool xAxisFudge = vBorders.z > vBorders.w;
   if (xAxisFudge) {
     return vec2(dash_size.x / 2.0, 0);
-  } else {
-    return vec2(0.0, dash_size.y / 2.0);
   }
+
+  return vec2(0.0, dash_size.y / 2.0);
 }
 
 vec4 draw_dashed_edge(bool is_corner) {
   // Everything here should be in device pixels.
   // We want the dot to be roughly the size of the whole border spacing
   // 5.5 here isn't a magic number, it's just what mostly looks like FF/Chrome
+  // TODO: Investigate exactly what FF does.
   float dash_interval = min(vBorders.w, vBorders.z) * 5.5;
   vec2 edge_size = vec2(vBorders.z, vBorders.w);
   vec2 dash_size = vec2(dash_interval / 2.0, dash_interval / 2.0);
@@ -143,6 +144,8 @@ void draw_dashed_border(void) {
   }
 }
 
+// TODO: Investigate performance of this shader and see
+//       if it's worthwhile splitting it / removing branches etc.
 void main(void) {
 	if (vRadii.x > 0.0 &&
 		(distance(vRefPoint, vLocalPos) > vRadii.x ||
@@ -178,7 +181,6 @@ void main(void) {
     default:
     {
       discard;
-      break;
     }
   }
 }

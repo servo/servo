@@ -4,8 +4,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 struct BoxShadow {
-	PrimitiveInfo info;
-	vec4 color;
+    PrimitiveInfo info;
+    vec4 color;
     vec4 border_radii_blur_radius_inverted;
     vec4 bs_rect;
     vec4 src_rect;

@@ -21,7 +21,7 @@ void main(void) {
     float sa = sin(angle);
     float ca = cos(angle);
 
-	float sx = vStartPoint.x * ca - vStartPoint.y * sa;
+    float sx = vStartPoint.x * ca - vStartPoint.y * sa;
     float ex = vEndPoint.x * ca - vEndPoint.y * sa;
     float d = ex - sx;
 
