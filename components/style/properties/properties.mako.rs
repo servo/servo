@@ -414,11 +414,7 @@ where I: Iterator<Item=&'a PropertyDeclaration> {
     Css(&'a str)
 }
 
-fn append_property_name<W>(dest: &mut W,
-                           property_name: &str,
-                           is_first_serialization: &mut bool)
-                           -> fmt::Result where W: fmt::Write {
-
+fn handle_first_serialization<W>(dest: &mut W, is_first_serialization: &mut bool) -> fmt::Result where W: fmt::Write {
     // after first serialization(key: value;) add whitespace between the pairs
     if !*is_first_serialization {
         try!(write!(dest, " "));
@@ -427,7 +423,7 @@ fn append_property_name<W>(dest: &mut W,
         *is_first_serialization = false;
     }
 
-    write!(dest, "{}", property_name)
+    Ok(())
 }
 
 fn append_declaration_value<'a, W, I>
@@ -463,15 +459,15 @@ fn append_serialization<'a, W, I>(dest: &mut W,
                                   -> fmt::Result
                                   where W: fmt::Write, I: Iterator<Item=&'a PropertyDeclaration> {
 
+    try!(handle_first_serialization(dest, is_first_serialization));
+
     // Overflow does not behave like a normal shorthand. When overflow-x and overflow-y are not of equal
     // values, they no longer use the shared property name "overflow" and must be handled differently
-    let is_overflow_shorthand = shorthands::is_overflow_shorthand(&appendable_value);
-    if is_overflow_shorthand {
-        return shorthands::serialize_overflow_shorthand(dest, appendable_value, is_first_serialization);
+    if shorthands::is_overflow_shorthand(&appendable_value) {
+        return append_declaration_value(dest, appendable_value, is_important);
     }
 
-    try!(append_property_name(dest, property_name, is_first_serialization));
-    try!(write!(dest, ":"));
+    write!(dest, "{}:", property_name);
 
     // for normal parsed values, add a space between key: and value
     match &appendable_value {
