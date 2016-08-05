@@ -36,7 +36,6 @@ use encoding::types::{DecoderTrap, EncoderTrap, Encoding, EncodingRef};
 use euclid::length::Length;
 use hyper::header::Headers;
 use hyper::header::{ContentLength, ContentType};
-use hyper::http::RawStatus;
 use hyper::method::Method;
 use hyper::mime::{self, Mime, Attr as MimeAttr, Value as MimeValue};
 use hyper_serde::Serde;
@@ -91,7 +90,7 @@ struct XHRContext {
 #[derive(Clone)]
 pub enum XHRProgress {
     /// Notify that headers have been received
-    HeadersReceived(GenerationId, Option<Headers>, Option<RawStatus>),
+    HeadersReceived(GenerationId, Option<Headers>, Option<(u16, Vec<u8>)>),
     /// Partial progress (after receiving headers), containing portion of the response
     Loading(GenerationId, ByteString),
     /// Loading is done
@@ -879,7 +878,7 @@ impl XMLHttpRequest {
         self.process_partial_response(XHRProgress::HeadersReceived(
             gen_id,
             metadata.headers.map(Serde::into_inner),
-            metadata.status.map(Serde::into_inner)));
+            metadata.status));
         Ok(())
     }
 
@@ -943,9 +942,9 @@ impl XMLHttpRequest {
                 // Part of step 13, send() (processing response)
                 // XXXManishearth handle errors, if any (substep 1)
                 // Substep 2
-                status.map(|RawStatus(code, reason)| {
+                status.map(|(code, reason)| {
                     self.status.set(code);
-                    *self.status_text.borrow_mut() = ByteString::new(reason.into_owned().into_bytes());
+                    *self.status_text.borrow_mut() = ByteString::new(reason);
                 });
                 headers.as_ref().map(|h| *self.response_headers.borrow_mut() = h.clone());
 

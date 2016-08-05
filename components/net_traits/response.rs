@@ -5,7 +5,6 @@
 //! The [Response](https://fetch.spec.whatwg.org/#responses) object
 //! resulting from a [fetch operation](https://fetch.spec.whatwg.org/#concept-fetch)
 use hyper::header::{AccessControlExposeHeaders, ContentType, Headers};
-use hyper::http::RawStatus;
 use hyper::status::StatusCode;
 use hyper_serde::Serde;
 use std::ascii::AsciiExt;
@@ -84,7 +83,7 @@ pub struct Response {
     pub url_list: RefCell<Vec<Url>>,
     /// `None` can be considered a StatusCode of `0`.
     pub status: Option<StatusCode>,
-    pub raw_status: Option<RawStatus>,
+    pub raw_status: Option<(u16, Vec<u8>)>,
     pub headers: Headers,
     pub body: Arc<Mutex<ResponseBody>>,
     pub cache_state: CacheState,
@@ -104,7 +103,7 @@ impl Response {
             url: None,
             url_list: RefCell::new(Vec::new()),
             status: Some(StatusCode::Ok),
-            raw_status: Some(RawStatus(200, "OK".into())),
+            raw_status: Some((200, "OK".as_bytes().to_vec())),
             headers: Headers::new(),
             body: Arc::new(Mutex::new(ResponseBody::Empty)),
             cache_state: CacheState::None,
@@ -239,7 +238,7 @@ impl Response {
             None => None
         });
         metadata.headers = Some(Serde(self.headers.clone()));
-        metadata.status = self.raw_status.clone().map(Serde);
+        metadata.status = self.raw_status.clone();
         metadata.https_state = self.https_state;
         return Ok(metadata);
     }
