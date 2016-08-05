@@ -11,7 +11,7 @@
 use dom::{OpaqueNode, TNode, UnsafeNode};
 use std::mem;
 use std::sync::atomic::Ordering;
-use traversal::DomTraversalContext;
+use traversal::{RestyleResult, DomTraversalContext};
 use workqueue::{WorkQueue, WorkUnit, WorkerProxy};
 
 #[allow(dead_code)]
@@ -68,21 +68,27 @@ fn top_down_dom<N, C>(unsafe_nodes: UnsafeNodeList,
         }
 
         // Perform the appropriate traversal.
-        context.process_preorder(node);
+        let should_stop = match context.process_preorder(node) {
+            RestyleResult::Stop => true,
+            RestyleResult::Continue => false,
+        };
 
         // Possibly enqueue the children.
         let mut children_to_process = 0isize;
-        for kid in node.children() {
-            // Trigger the hook pre-adding the kid to the list. This can (and in
-            // fact uses to) change the result of the should_process operation.
-            //
-            // As of right now, this hook takes care of propagating the restyle
-            // flag down the tree. In the future, more accurate behavior is
-            // probably going to be needed.
-            context.pre_process_child_hook(node, kid);
-            if context.should_process(kid) {
-                children_to_process += 1;
-                discovered_child_nodes.push(kid.to_unsafe())
+        if !should_stop {
+            for kid in node.children() {
+                // Trigger the hook pre-adding the kid to the list. This can
+                // (and in fact uses to) change the result of the should_process
+                // operation.
+                //
+                // As of right now, this hook takes care of propagating the
+                // restyle flag down the tree. In the future, more accurate
+                // behavior is probably going to be needed.
+                context.pre_process_child_hook(node, kid);
+                if context.should_process(kid) {
+                    children_to_process += 1;
+                    discovered_child_nodes.push(kid.to_unsafe())
+                }
             }
         }
 
