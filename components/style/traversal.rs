@@ -18,6 +18,16 @@ use values::HasViewportPercentage;
 /// detected by ticking a generation number every layout.
 pub type Generation = u32;
 
+/// This enum tells us about whether we can stop restyling or not after styling
+/// an element.
+///
+/// So far this only happens where a display: none node is found.
+pub enum RestyleResult {
+    Continue,
+    Stop,
+}
+
+
 /// A pair of the bloom filter used for css selector matching, and the node to
 /// which it applies. This is used to efficiently do `Descendant` selector
 /// matches. Thanks to the bloom filter, we can avoid walking up the tree
@@ -145,7 +155,7 @@ pub trait DomTraversalContext<N: TNode>  {
     fn new<'a>(&'a Self::SharedContext, OpaqueNode) -> Self;
 
     /// Process `node` on the way down, before its children have been processed.
-    fn process_preorder(&self, node: N) -> ForceTraversalStop;
+    fn process_preorder(&self, node: N) -> RestyleResult;
 
     /// Process `node` on the way up, after its children have been processed.
     ///
@@ -188,7 +198,7 @@ pub trait DomTraversalContext<N: TNode>  {
 #[allow(unsafe_code)]
 pub fn recalc_style_at<'a, N, C>(context: &'a C,
                                  root: OpaqueNode,
-                                 node: N)
+                                 node: N) -> RestyleResult
     where N: TNode,
           C: StyleContext<'a> {
     // Get the parent node.
@@ -201,6 +211,7 @@ pub fn recalc_style_at<'a, N, C>(context: &'a C,
     let mut bf = take_thread_local_bloom_filter(parent_opt, root, context.shared_context());
 
     let nonincremental_layout = opts::get().nonincremental_layout;
+    let mut restyle_result = RestyleResult::Continue;
     if nonincremental_layout || node.is_dirty() {
         // Remove existing CSS styles from nodes whose content has changed (e.g. text changed),
         // to force non-incremental reflow.
@@ -250,9 +261,9 @@ pub fn recalc_style_at<'a, N, C>(context: &'a C,
 
                 // Perform the CSS cascade.
                 unsafe {
-                    node.cascade_node(context,
-                                      parent_opt,
-                                      &applicable_declarations);
+                    restyle_result = node.cascade_node(context,
+                                                    parent_opt,
+                                                    &applicable_declarations);
                 }
 
                 // Add ourselves to the LRU cache.
@@ -260,7 +271,8 @@ pub fn recalc_style_at<'a, N, C>(context: &'a C,
                     style_sharing_candidate_cache.insert_if_possible::<'ln, N>(&element);
                 }
             }
-            StyleSharingResult::StyleWasShared(index, damage) => {
+            StyleSharingResult::StyleWasShared(index, damage, restyle_result_cascade) => {
+                restyle_result = restyle_result_cascade;
                 style_sharing_candidate_cache.touch(index);
                 node.set_restyle_damage(damage);
             }
@@ -296,5 +308,11 @@ pub fn recalc_style_at<'a, N, C>(context: &'a C,
                 }
             }
         }
+    }
+
+    if nonincremental_layout {
+        RestyleResult::Continue
+    } else {
+        restyle_result
     }
 }
