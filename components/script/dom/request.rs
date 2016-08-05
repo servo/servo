@@ -88,10 +88,11 @@ impl Request {
                                   None);
 
         // Step 1
-        if is_request(&input) &&
-            (requestinfo_is_disturbed(&input) || requestinfo_is_locked(&input)) {
+        if let &RequestInfo::Request(ref input_request) = &input {
+            if request_is_disturbed(&input_request) || request_is_locked(&input_request) {
                 return Err(Error::Type("Input is disturbed or locked".to_string()))
             }
+        }
 
         // Step 2
         let mut temporary_request =
@@ -131,7 +132,7 @@ impl Request {
         request.method = temporary_request.method;
         request.headers = temporary_request.headers.clone();
         request.unsafe_request = true;
-        request.window = Cell::new(window);
+        request.window.set(window);
         // TODO: `client` is not implemented in Servo yet.
         // ... new_request's client = entry settings object
         *request.origin.borrow_mut() = Origin::Client;
@@ -226,7 +227,6 @@ impl Request {
                         } else {
                             // Step 14.6
                             // TODO: Requires Step 3.
-                            // ... This step matches origin.
 
                             // Step 14.7
                             *request.referer.borrow_mut() = NetTraitsRequestReferer::RefererUrl(parsed_referrer);
@@ -320,7 +320,8 @@ impl Request {
         r.headers.get().unwrap().set_guard(Guard::Request);
 
         // Step 27
-        let headers = r.headers.get().clone();
+        let headers = r.Headers();
+        // let headers = r.headers.get().clone();
 
         // Step 28
         let mut headers_init: Option<HeadersOrByteStringSequenceSequence>;
@@ -362,7 +363,7 @@ impl Request {
 
         // Step 33
         if let Some(init_body_option) = init.body.as_ref() {
-            if let Some(_) = init_body_option.as_ref() {
+            if init_body_option.is_some() || input_body.is_some() {
                 let method = r.request.borrow().method.clone();
                 match method.into_inner() {
                     hyper::method::Method::Get => return Err(Error::Type(
@@ -373,18 +374,7 @@ impl Request {
                 }
             }
         }
-
-        if input_body.is_some() {
-            let method = r.request.borrow().method.clone();
-            match method.into_inner() {
-                hyper::method::Method::Get => return Err(Error::Type(
-                    "Input body is non-null, and request method is GET".to_string())),
-                hyper::method::Method::Head => return Err(Error::Type(
-                    "Input body is non-null, and request method is HEAD".to_string())),
-                _ => {},
-            }
-        }
-
+        
         // Step 34
         // TODO: `ReadableStream` object is not implemented in Servo yet.
 
@@ -478,13 +468,6 @@ fn includes_credentials(input: &Url) -> bool {
     !input.username().is_empty() || input.password().is_some()
 }
 
-fn is_request(input: &RequestInfo) -> bool {
-    match input {
-        &RequestInfo::Request(_) => true,
-        _ => false,
-    }
-}
-
 // TODO: `Readable Stream` object is not implemented in Servo yet.
 // https://fetch.spec.whatwg.org/#concept-body-disturbed
 fn request_is_disturbed(input: &Request) -> bool {
@@ -494,18 +477,6 @@ fn request_is_disturbed(input: &Request) -> bool {
 // TODO: `Readable Stream` object is not implemented in Servo yet.
 // https://fetch.spec.whatwg.org/#concept-body-locked
 fn request_is_locked(input: &Request) -> bool {
-    false
-}
-
-// TODO: `Readable Stream` object is not implemented in Servo yet.
-// https://fetch.spec.whatwg.org/#concept-body-disturbed
-fn requestinfo_is_disturbed(input: &RequestInfo) -> bool {
-    false
-}
-
-// TODO: `Readable Stream` object is not implemented in Servo yet.
-// https://fetch.spec.whatwg.org/#concept-body-locked
-fn requestinfo_is_locked(input: &RequestInfo) -> bool {
     false
 }
 
