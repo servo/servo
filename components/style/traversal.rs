@@ -149,6 +149,12 @@ pub trait DomTraversalContext<N: TNode>  {
     /// Process `node` on the way up, after its children have been processed.
     fn process_postorder(&self, node: N);
 
+    /// Boolean that specifies whether a bottom up traversal should be
+    /// performed.
+    ///
+    /// If it's false, then process_postorder has no effect at all.
+    fn should_traverse_back_up(&self) -> bool { true }
+
     /// Returns if the node should be processed by the preorder traversal (and
     /// then by the post-order one).
     ///

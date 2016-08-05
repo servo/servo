@@ -26,7 +26,9 @@ pub fn traverse_dom<N, C>(root: N,
             }
         }
 
-        context.process_postorder(node);
+        if context.should_traverse_back_up() {
+            context.process_postorder(node);
+        }
     }
 
     let context = C::new(shared, root.opaque());
