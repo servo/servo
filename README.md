@@ -1,6 +1,30 @@
-# The Servo Parallel Browser Engine Project
+# The Servo Tool Kit.
+This project is an experimental attempt to re purpose the Servo browsing engine into a pure rust GUI toolkit on par with Qt, GTK, or WinForms. I conjecture that the combination of HTML, CSS, the DOM API, and Rust (no JavaScript) will make for a very nice and performance GUI library. 
 
-[![Linux Build Status](https://img.shields.io/travis/servo/servo/master.svg?label=Linux%20build)](https://travis-ci.org/servo/servo)  [![Windows Build Status](https://img.shields.io/appveyor/ci/servo/servo/master.svg?label=Windows%20build)](https://ci.appveyor.com/project/servo/servo/branch/master)
+# Tentative design.
+- A heavily modified version of Servo (mostly chopping out SpiderMonkey and the Networking subsystem).
+- An API for 'controls': groups of HTML, CSS, and Rust that the modified Servo uses to construct, style and layout a DOM and respond to user events or engine events. 
+- A build system that makes making custom controls easy. (This will probably make use of the custom derive system.) This build system should also check that any functions referred to in the HTML exist in the DOM api or the API of that control.
+- A standard library of controls for users to start off with. Using these controls should be declarative. Probably by namespaced values for the class attribute and a single onLoad function that iterates over dom values and sets properties.
+
+# Goals
+- Be able to build on the stable Rust compiler.
+- Not force the user to have a JavaScript runtime.
+- Have minimal to no C or C++ code in the binary.
+- Have minimal unsafe code.
+- Be able to link statically against musl. 
+- Be able to build for almost any system easily.
+- Once the Rust compiler supports a WebAsm target make a build configuration of the UI lib that transpiles to WebAsm, HTML, and CSS modules that execute in the browser, using the browsers native DOM and layout instead of Servo executing in the browsers WebAsm engine.
+- Upstream most of the changes to Servo back to the upstream Servo project.
+- Get a unit test using a few minimal 'Hello World!' type controls into upstream Servo with the Servo CI gated on them not breaking. 
+- World domination, Become the premier UI toolkit for Rust based programs and beyond. 
+
+# Is this ambitious?
+- Yes. Possibly [very yes](http://www.homestarrunner.com/sbemail118.html). 
+</br></br></br></br>
+
+# The rest of this file is the readme from servo trunk.
+
 
 Servo is a prototype web browser engine written in the
 [Rust](https://github.com/rust-lang/rust) language. It is currently developed on
