@@ -229,7 +229,7 @@ class PackageCommands(CommandBase):
                     delete(dir_to_package + '/build/' + f)
             print("Writing runservo.sh")
             # TODO: deduplicate this arg list from post_build_commands
-            servo_args = ['-w', '-b', '-M', '-S'
+            servo_args = ['-w', '-b', '-M', '-S',
                           '--pref', 'dom.mozbrowser.enabled',
                           '--pref', 'dom.forcetouch.enabled',
                           '--pref', 'shell.builtin-key-shortcuts.enabled=false',
