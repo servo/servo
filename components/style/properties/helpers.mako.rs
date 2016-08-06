@@ -509,8 +509,7 @@
         use super::parse_four_sides;
         use values::specified;
 
-        pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
-            let _unused = context;
+        pub fn parse_value(_: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
             let (top, right, bottom, left) = try!(parse_four_sides(input, ${parser_function}));
             Ok(Longhands {
                 % for side in ["top", "right", "bottom", "left"]:
@@ -521,7 +520,7 @@
 
         impl<'a> ToCss for LonghandsToSerialize<'a>  {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                super::serialize_four_sides_shorthand(
+                super::serialize_four_sides(
                     dest,
                     self.${to_rust_ident(sub_property_pattern % 'top')},
                     self.${to_rust_ident(sub_property_pattern % 'right')},

@@ -48,7 +48,7 @@
 
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match *self.line {
+            match *self.text_decoration_line {
                 DeclaredValue::Value(ref line) => {
                     try!(line.to_css(dest));
                 },
@@ -57,12 +57,12 @@
                 }
             };
 
-            if let DeclaredValue::Value(ref style) = *self.style {
+            if let DeclaredValue::Value(ref style) = *self.text_decoration_style {
                 try!(write!(dest, " "));
                 try!(style.to_css(dest));
             }
 
-            if let DeclaredValue::Value(ref color) = *self.color {
+            if let DeclaredValue::Value(ref color) = *self.text_decoration_color {
                 try!(write!(dest, " "));
                 try!(color.to_css(dest));
             }

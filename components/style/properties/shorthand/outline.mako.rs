@@ -91,16 +91,16 @@
     // TODO: Border radius for the radius shorthand is not implemented correctly yet
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            try!(self.top_left.to_css(dest));
+            try!(self._moz_outline_radius_topleft.to_css(dest));
             try!(write!(dest, " "));
 
-            try!(self.top_right.to_css(dest));
+            try!(self._moz_outline_radius_topright.to_css(dest));
             try!(write!(dest, " "));
 
-            try!(self.bottom_right.to_css(dest));
+            try!(self._moz_outline_radius_bottomright.to_css(dest));
             try!(write!(dest, " "));
 
-            self.bottom_left.to_css(dest)
+            self._moz_outline_radius_bottomleft.to_css(dest)
         }
     }
 </%helpers:shorthand>

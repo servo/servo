@@ -43,7 +43,7 @@ ${helpers.four_sides_shorthand("border-style", "border-%s-style",
                 };
             % endfor
 
-            super::serialize_four_sides_shorthand(dest, &top, &right, &bottom, &left)
+            super::serialize_four_sides(dest, &top, &right, &bottom, &left)
         }
     }
 </%helpers:shorthand>
@@ -104,7 +104,7 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
 
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            super::serialize_directional_border_shorthand(
+            super::serialize_directional_border(
                 dest,
                 self.border_${side}_width,
                 self.border_${side}_style,
@@ -138,7 +138,7 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             // If all longhands are all present, then all sides should be the same,
             // so we can just one set of color/style/width
-            super::serialize_directional_border_shorthand(
+            super::serialize_directional_border(
                 dest,
                 self.border_${side}_width,
                 self.border_${side}_style,

@@ -172,23 +172,23 @@ impl ToCss for BorderRadius {
            self.top_right.0.width == self.top_right.0.height &&
            self.bottom_right.0.width == self.bottom_right.0.height &&
            self.bottom_left.0.width == self.bottom_left.0.height {
-            serialize_four_sides((&self.top_left.0.width,
-                                  &self.top_right.0.width,
-                                  &self.bottom_right.0.width,
-                                  &self.bottom_left.0.width),
-                                  dest)
+            serialize_four_sides(dest,
+                                 &self.top_left.0.width,
+                                 &self.top_right.0.width,
+                                 &self.bottom_right.0.width,
+                                 &self.bottom_left.0.width)
         } else {
-            try!(serialize_four_sides((&self.top_left.0.width,
-                                       &self.top_right.0.width,
-                                       &self.bottom_right.0.width,
-                                       &self.bottom_left.0.width),
-                                       dest));
+            try!(serialize_four_sides(dest,
+                                      &self.top_left.0.width,
+                                      &self.top_right.0.width,
+                                      &self.bottom_right.0.width,
+                                      &self.bottom_left.0.width));
             try!(dest.write_str(" / "));
-            serialize_four_sides((&self.top_left.0.height,
-                                  &self.top_right.0.height,
-                                  &self.bottom_right.0.height,
-                                  &self.bottom_left.0.height),
-                                  dest)
+            serialize_four_sides(dest,
+                                 &self.top_left.0.height,
+                                 &self.top_right.0.height,
+                                 &self.bottom_right.0.height,
+                                 &self.bottom_left.0.height)
         }
     }
 }

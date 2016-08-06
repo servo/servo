@@ -18,10 +18,34 @@
 
     // Overflow does not behave like a normal shorthand. When overflow-x and overflow-y are not of equal
     // values, they no longer use the shared property name "overflow".
-    // Serialize is implemented elsewhere as a result here
+    // Other shorthands do not include their name in the to_css method
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
-        fn to_css<W>(&self, _: &mut W) -> fmt::Result where W: fmt::Write {
-            Ok(())
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            let x_and_y_equal = match (self.overflow_x, self.overflow_y) {
+                (&DeclaredValue::Value(ref x_value), &DeclaredValue::Value(ref y_container)) => {
+                    *x_value == y_container.0
+                },
+                (&DeclaredValue::WithVariables { .. }, &DeclaredValue::WithVariables { .. }) => true,
+                (&DeclaredValue::Initial, &DeclaredValue::Initial) => true,
+                (&DeclaredValue::Inherit, &DeclaredValue::Inherit) => true,
+                _ => false
+            };
+
+            if x_and_y_equal {
+                try!(write!(dest, "overflow"));
+                try!(write!(dest, ": "));
+                try!(self.overflow_x.to_css(dest));
+            } else {
+                try!(write!(dest, "overflow-x"));
+                try!(write!(dest, ": "));
+                try!(self.overflow_x.to_css(dest));
+                try!(write!(dest, "; "));
+
+                try!(write!(dest, "overflow-y: "));
+                try!(self.overflow_y.to_css(dest));
+            }
+
+            write!(dest, ";")
         }
     }
 </%helpers:shorthand>
@@ -248,8 +272,8 @@ macro_rules! try_parse_one {
             try!(self.animation_duration.to_css(dest));
             try!(write!(dest, " "));
 
-            // FIXME: timing function is displaying the actual mathematical name "cubic-bezier(0.25, 0.1, 0.25, 1)" instead
-            // of the common name "ease"
+            // FIXME: timing function is displaying the actual mathematical name "cubic-bezier(0.25, 0.1, 0.25, 1)"
+            // instead of the common name "ease"
             try!(self.animation_timing_function.to_css(dest));
             try!(write!(dest, " "));
 
