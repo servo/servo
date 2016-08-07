@@ -121,8 +121,8 @@ impl HistoryMethods for History {
         recv.recv().unwrap()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-history-state
     #[allow(unsafe_code)]
+    // https://html.spec.whatwg.org/multipage/#dom-history-state
     unsafe fn State(&self, _cx: *mut JSContext) -> JSVal {
         self.window.browsing_context().state()
     }
@@ -151,8 +151,8 @@ impl HistoryMethods for History {
         self.traverse_history(TraversalDirection::Forward(1));
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-history-pushtstate
     #[allow(unsafe_code)]
+    // https://html.spec.whatwg.org/multipage/#dom-history-pushtstate
     unsafe fn PushState(&self,
                         cx: *mut JSContext,
                         data: HandleValue,
@@ -161,8 +161,8 @@ impl HistoryMethods for History {
         self.add_state(cx, data, title, url, false)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-history-replacestate
     #[allow(unsafe_code)]
+    // https://html.spec.whatwg.org/multipage/#dom-history-replacestate
     unsafe fn ReplaceState(&self,
                            cx: *mut JSContext,
                            data: HandleValue,

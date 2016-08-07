@@ -31,8 +31,8 @@ use js::jsapi::{ObjectOpResult, PropertyDescriptor};
 use js::jsval::{JSVal, PrivateValue, UndefinedValue};
 use js::rust::get_object_class;
 use msg::constellation_msg::{HistoryStateId, PipelineId};
-use servo_url::ServoUrl;
 use script_traits::ScriptMsg as ConstellationMsg;
+use servo_url::ServoUrl;
 use std::cell::Cell;
 use std::collections::HashMap;
 
