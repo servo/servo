@@ -193,6 +193,79 @@ pub trait DomTraversalContext<N: TNode>  {
     }
 }
 
+pub fn ensure_node_styled<'a, N, C>(node: N,
+                                    context: &'a C)
+    where N: TNode,
+          C: StyleContext<'a>
+{
+    let mut display_none = false;
+    ensure_node_styled_internal(node, context, &mut display_none);
+}
+
+#[allow(unsafe_code)]
+fn ensure_node_styled_internal<'a, N, C>(node: N,
+                                         context: &'a C,
+                                         parents_had_display_none: &mut bool)
+    where N: TNode,
+          C: StyleContext<'a>
+{
+    use properties::longhands::display::computed_value as display;
+
+    // Ensure we have style data available. This must be done externally because
+    // there's no way to initialize the style data from the style system
+    // (because in Servo it's coupled with the layout data too).
+    //
+    // Ideally we'd have an initialize_data() or something similar but just for
+    // style data.
+    debug_assert!(node.borrow_data().is_some(),
+                  "Need to initialize the data before calling ensure_node_styled");
+
+    // We need to go to the root and ensure their style is up to date.
+    //
+    // This means potentially a bit of wasted work (usually not much). We could
+    // add a flag at the node at which point we stopped the traversal to know
+    // where should we stop, but let's not add that complication unless needed.
+    let parent = match node.parent_node() {
+        Some(parent) if parent.is_element() => Some(parent),
+        _ => None,
+    };
+
+    if let Some(parent) = parent {
+        ensure_node_styled_internal(parent, context, parents_had_display_none);
+    }
+
+    // Common case: our style is already resolved and none of our ancestors had
+    // display: none.
+    //
+    // We only need to mark whether we have display none, and forget about it,
+    // our style is up to date.
+    if let Some(ref style) = node.borrow_data().unwrap().style {
+        if !*parents_had_display_none {
+            *parents_had_display_none = style.get_box().clone_display() == display::T::none;
+            return;
+        }
+    }
+
+    // Otherwise, our style might be out of date. Time to do selector matching
+    // if appropriate and cascade the node.
+    //
+    // Note that we could add the bloom filter's complexity here, but that's
+    // probably not necessary since we're likely to be matching only a few
+    // nodes, at best.
+    let mut applicable_declarations = ApplicableDeclarations::new();
+    if let Some(element) = node.as_element() {
+        let stylist = &context.shared_context().stylist;
+
+        element.match_element(&**stylist,
+                              None,
+                              &mut applicable_declarations);
+    }
+
+    unsafe {
+        node.cascade_node(context, parent, &applicable_declarations);
+    }
+}
+
 /// Calculates the style for a single node.
 #[inline]
 #[allow(unsafe_code)]
@@ -200,7 +273,8 @@ pub fn recalc_style_at<'a, N, C>(context: &'a C,
                                  root: OpaqueNode,
                                  node: N) -> RestyleResult
     where N: TNode,
-          C: StyleContext<'a> {
+          C: StyleContext<'a>
+{
     // Get the parent node.
     let parent_opt = match node.parent_node() {
         Some(parent) if parent.is_element() => Some(parent),
