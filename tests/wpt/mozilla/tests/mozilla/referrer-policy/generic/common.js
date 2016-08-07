@@ -250,7 +250,12 @@ function queryCssLink(url, callback, referrer_policy) {
 
     if (referrer_policy) {
       for (var attr in referrer_policy) {
-        link[attr] = referrer_policy[attr];
+        // TODO crashed when you assigned value to rel attribute
+        if (attr === "rel") {
+          link.relList.add("noreferrer");
+        } else {
+          link[attr] = referrer_policy[attr];
+        }
       }
     }
 
