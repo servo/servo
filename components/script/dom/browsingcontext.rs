@@ -96,6 +96,27 @@ impl BrowsingContext {
         self.active_document.set(Some(document))
     }
 
+    pub fn replace_session_history_entry(&self,
+                                         title: Option<DOMString>,
+                                         url: Option<Url>,
+                                         state: HandleValue) {
+        let document = &*self.active_document();
+        let mut history = self.history.borrow_mut();
+        let url = match url {
+            Some(url) => url,
+            None => document.url().clone(),
+        };
+        let title = match title {
+            Some(title) => title,
+            None => document.Title(),
+        };
+        // TODO(ConnorGBrewster):
+        // Set Document's Url to url
+        // see: https://html.spec.whatwg.org/multipage/browsers.html#dom-history-pushstate Step 10
+        // Currently you can't mutate document.url
+        history[self.active_index.get()] = SessionHistoryEntry::new(document, url, title, Some(state));
+    }
+
     pub fn active_document(&self) -> Root<Document> {
         self.active_document.get().expect("No active document.")
     }
@@ -106,6 +127,10 @@ impl BrowsingContext {
 
     pub fn active_window(&self) -> Root<Window> {
         Root::from_ref(self.active_document().window())
+    }
+
+    pub fn state(&self) -> JSVal {
+        self.history.borrow()[self.active_index.get()].state.get()
     }
 
     pub fn frame_element(&self) -> Option<&Element> {
