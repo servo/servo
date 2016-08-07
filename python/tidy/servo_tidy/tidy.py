@@ -318,19 +318,23 @@ def check_shell(file_name, lines):
     shebang = "#!/usr/bin/env bash"
     required_options = {"set -o errexit", "set -o nounset", "set -o pipefail"}
 
+    did_shebang_check = False
+
     if len(lines) == 0:
         yield (0, 'script is an empty file')
-    else:
-        if lines[0].rstrip() != shebang:
-            yield (1, 'script does not have shebang "{}"'.format(shebang))
+        return
 
-        for idx in range(1, len(lines)):
-            stripped = lines[idx].rstrip()
+    if lines[0].rstrip() != shebang:
+        yield (1, 'script does not have shebang "{}"'.format(shebang))
 
-            # Comments or blank lines are ignored. (Trailing whitespace is caught with a separate linter.)
-            if lines[idx].startswith("#") or stripped == "":
-                continue
-            elif stripped in required_options:
+    for idx in range(1, len(lines)):
+        stripped = lines[idx].rstrip()
+        # Comments or blank lines are ignored. (Trailing whitespace is caught with a separate linter.)
+        if lines[idx].startswith("#") or stripped == "":
+            continue
+
+        if not did_shebang_check:
+            if stripped in required_options:
                 required_options.remove(stripped)
             else:
                 # The first non-comment, non-whitespace, non-option line is the first "real" line of the script.
@@ -338,7 +342,20 @@ def check_shell(file_name, lines):
                 if len(required_options) != 0:
                     formatted = ['"{}"'.format(opt) for opt in required_options]
                     yield (idx + 1, "script is missing options {}".format(", ".join(formatted)))
-                    break
+                did_shebang_check = True
+
+        if "`" in stripped:
+            yield (idx + 1, "script should not use backticks for command substitution")
+
+        if " [ " in stripped or stripped.startswith("[ "):
+            yield (idx + 1, "script should use `[[` instead of `[` for conditional testing")
+
+        for dollar in re.finditer('\$', stripped):
+            next_idx = dollar.end()
+            if next_idx < len(stripped):
+                next_char = stripped[next_idx]
+                if not (next_char == '{' or next_char == '('):
+                    yield(idx + 1, "variable substitutions should use the full \"${VAR}\" form")
 
 
 def check_rust(file_name, lines):
