@@ -1644,7 +1644,7 @@ impl Fragment {
             _   => return None,
         };
 
-        let mut remaining_inline_size = max_inline_size;
+        let mut remaining_inline_size = max_inline_size - self.border_padding.inline_start_end();
         let mut inline_start_range = Range::new(text_fragment_info.range.begin(), ByteIndex(0));
         let mut inline_end_range = None;
         let mut overflowing = false;
