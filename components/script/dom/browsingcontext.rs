@@ -2,28 +2,39 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::cell::DOMRefCell;
+use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::{ToJSValConvertible, root_from_handleobject};
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root, RootedReference};
 use dom::bindings::proxyhandler::{fill_property_descriptor, get_property_descriptor};
 use dom::bindings::reflector::{DomObject, MutDomObject, Reflector};
+use dom::bindings::str::DOMString;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::WindowProxyHandler;
 use dom::bindings::utils::get_array_index_from_id;
 use dom::element::Element;
+use dom::eventtarget::EventTarget;
+use dom::globalscope::GlobalScope;
+use dom::popstateevent::PopStateEvent;
 use dom::window::Window;
 use js::JSCLASS_IS_GLOBAL;
 use js::glue::{CreateWrapperProxyHandler, ProxyTraps, NewWindowProxy};
 use js::glue::{GetProxyPrivate, SetProxyExtra, GetProxyExtra};
-use js::jsapi::{Handle, HandleId, HandleObject, HandleValue};
+use js::jsapi::{Handle, HandleId, HandleObject, HandleValue, Heap};
 use js::jsapi::{JSAutoCompartment, JSContext, JSErrNum, JSFreeOp, JSObject};
 use js::jsapi::{JSPROP_READONLY, JSTracer, JS_DefinePropertyById};
 use js::jsapi::{JS_ForwardGetPropertyTo, JS_ForwardSetPropertyTo};
 use js::jsapi::{JS_GetOwnPropertyDescriptorById, JS_HasPropertyById};
 use js::jsapi::{MutableHandle, MutableHandleObject, MutableHandleValue};
 use js::jsapi::{ObjectOpResult, PropertyDescriptor};
-use js::jsval::{UndefinedValue, PrivateValue};
+use js::jsval::{JSVal, PrivateValue, UndefinedValue};
 use js::rust::get_object_class;
+use msg::constellation_msg::HistoryStateId;
+use script_traits::ScriptMsg as ConstellationMsg;
+use servo_url::ServoUrl;
 use std::cell::Cell;
+use std::collections::HashMap;
 
 #[dom_struct]
 // NOTE: the browsing context for a window is managed in two places:
@@ -33,24 +44,38 @@ use std::cell::Cell;
 pub struct BrowsingContext {
     reflector: Reflector,
 
+    window: JS<Window>,
+
     /// Has this browsing context been discarded?
     discarded: Cell<bool>,
+
+    active_state: Cell<HistoryStateId>,
+
+    next_state_id: Cell<HistoryStateId>,
+
+    states: DOMRefCell<HashMap<HistoryStateId, HistoryState>>,
 
     /// The containing iframe element, if this is a same-origin iframe
     frame_element: Option<JS<Element>>,
 }
 
 impl BrowsingContext {
-    pub fn new_inherited(frame_element: Option<&Element>) -> BrowsingContext {
+    pub fn new_inherited(window: &Window, frame_element: Option<&Element>, url: ServoUrl) -> BrowsingContext {
+        let mut states = HashMap::new();
+        states.insert(HistoryStateId(0), HistoryState::new(None, None, url));
         BrowsingContext {
             reflector: Reflector::new(),
+            window: JS::from_ref(window),
             discarded:  Cell::new(false),
+            active_state: Cell::new(HistoryStateId(0)),
+            next_state_id: Cell::new(HistoryStateId(1)),
+            states: DOMRefCell::new(states),
             frame_element: frame_element.map(JS::from_ref),
         }
     }
 
     #[allow(unsafe_code)]
-    pub fn new(window: &Window, frame_element: Option<&Element>) -> Root<BrowsingContext> {
+    pub fn new(window: &Window, frame_element: Option<&Element>, url: ServoUrl) -> Root<BrowsingContext> {
         unsafe {
             let WindowProxyHandler(handler) = window.windowproxy_handler();
             assert!(!handler.is_null());
@@ -63,7 +88,7 @@ impl BrowsingContext {
             rooted!(in(cx) let window_proxy = NewWindowProxy(cx, parent, handler));
             assert!(!window_proxy.is_null());
 
-            let object = box BrowsingContext::new_inherited(frame_element);
+            let object = box BrowsingContext::new_inherited(window, frame_element, url);
 
             let raw = Box::into_raw(object);
             SetProxyExtra(window_proxy.get(), 0, &PrivateValue(raw as *const _));
@@ -78,8 +103,65 @@ impl BrowsingContext {
         self.discarded.set(true);
     }
 
+    fn next_state_id(&self) -> HistoryStateId {
+        let next_id = self.next_state_id.get();
+        self.next_state_id.set(HistoryStateId(next_id.0 + 1));
+        next_id
+    }
+
+    // TODO(ConnorGBrewster): Store and do something with `title`, and `url`
+    pub fn replace_session_history_entry(&self,
+                                         title: DOMString,
+                                         url: ServoUrl,
+                                         state: HandleValue) {
+        let mut states = self.states.borrow_mut();
+        states.insert(self.active_state.get(), HistoryState::new(Some(state), Some(title), url));
+        // NOTE: We do not need to notify the constellation, as the history state id
+        // will stay the same and no new entry is added.
+    }
+
+    pub fn push_session_history_entry(&self,
+                                      title: DOMString,
+                                      url: ServoUrl,
+                                      state: HandleValue) {
+        let window = &*self.window;
+        let next_id = self.next_state_id();
+        window.Document().set_url(url.clone());
+        self.states.borrow_mut().insert(next_id, HistoryState::new(Some(state), Some(title), url));
+        self.active_state.set(next_id);
+
+        // Notify the constellation about this new entry so it can be added to the
+        // joint session history.
+        let global_scope = window.upcast::<GlobalScope>();
+        let msg = ConstellationMsg::HistoryStatePushed(global_scope.pipeline_id(), next_id);
+        let _ = global_scope.constellation_chan().send(msg);
+    }
+
+    pub fn remove_history_state_entries(&self, state_ids: Vec<HistoryStateId>) {
+        let mut states = self.states.borrow_mut();
+        for state_id in state_ids {
+            states.remove(&state_id);
+        }
+    }
+
+    pub fn activate_history_state(&self, state_id: HistoryStateId) {
+        let window = &*self.window;
+        let (handle, url) = {
+            let states = self.states.borrow();
+            let state = states.get(&state_id).expect("Activated nonexistent history state.");
+            (state.state.handle(), state.url.clone())
+        };
+        window.Document().set_url(url);
+        PopStateEvent::dispatch_jsval(window.upcast::<EventTarget>(), window.upcast::<GlobalScope>(), handle);
+        self.active_state.set(state_id);
+    }
+
     pub fn is_discarded(&self) -> bool {
         self.discarded.get()
+    }
+
+    pub fn state(&self) -> JSVal {
+        self.states.borrow().get(&self.active_state.get()).expect("No active state.").state.get()
     }
 
     pub fn frame_element(&self) -> Option<&Element> {
@@ -92,6 +174,27 @@ impl BrowsingContext {
         window_proxy.get()
     }
 }
+
+#[derive(JSTraceable, HeapSizeOf)]
+struct HistoryState {
+    title: Option<DOMString>,
+    url: ServoUrl,
+    state: Heap<JSVal>,
+}
+
+impl HistoryState {
+    fn new(state: Option<HandleValue>, title: Option<DOMString>, url: ServoUrl) -> HistoryState {
+        let mut jsval: Heap<JSVal> = Default::default();
+        let state = state.unwrap_or(HandleValue::null());
+        jsval.set(state.get());
+        HistoryState {
+            title: title,
+            url: url,
+            state: jsval,
+        }
+    }
+}
+
 
 #[allow(unsafe_code)]
 unsafe fn GetSubframeWindow(cx: *mut JSContext,

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use msg::constellation_msg::{FrameId, PipelineId};
+use msg::constellation_msg::{FrameId, HistoryStateId, PipelineId};
 use pipeline::Pipeline;
 use servo_url::ServoUrl;
 use std::collections::HashMap;
@@ -29,6 +29,9 @@ pub struct Frame {
     /// The pipeline for the current session history entry
     pub pipeline_id: PipelineId,
 
+    /// The id that maps to the history state entry in the script thread
+    pub state_id: HistoryStateId,
+
     /// The URL for the current session history entry
     pub url: ServoUrl,
 
@@ -45,8 +48,9 @@ impl Frame {
     pub fn new(id: FrameId, pipeline_id: PipelineId, url: ServoUrl) -> Frame {
         Frame {
             id: id,
-            pipeline_id: pipeline_id,
             instant: Instant::now(),
+            pipeline_id: pipeline_id,
+            state_id: HistoryStateId(0),
             url: url,
             prev: vec!(),
             next: vec!(),
@@ -57,9 +61,10 @@ impl Frame {
     pub fn current(&self) -> FrameState {
         FrameState {
             instant: self.instant,
-            frame_id: self.id,
             pipeline_id: Some(self.pipeline_id),
             url: self.url.clone(),
+            frame_id: self.id,
+            state_id: self.state_id,
         }
     }
 
@@ -70,8 +75,17 @@ impl Frame {
         self.instant = Instant::now();
         self.pipeline_id = pipeline_id;
         self.url = url;
+        self.state_id = HistoryStateId(0);
     }
 
+    /// Add an entry representing a new history state.
+    pub fn push_state(&mut self, state_id: HistoryStateId) {
+        let current = self.current();
+        self.prev.push(current);
+        // Only update the time stampt and history state
+        self.instant = Instant::now();
+        self.state_id = state_id;
+    }
     /// Set the future to be empty.
     pub fn remove_forward_entries(&mut self) -> Vec<FrameState> {
         replace(&mut self.next, vec!())
@@ -82,6 +96,7 @@ impl Frame {
         self.pipeline_id = pipeline_id;
         self.instant = entry.instant;
         self.url = entry.url.clone();
+        self.state_id = entry.state_id;
     }
 }
 
@@ -104,6 +119,9 @@ pub struct FrameState {
 
     /// The frame that this session history entry is part of
     pub frame_id: FrameId,
+
+    /// The id that maps to the history state entry in the script thread
+    pub state_id: HistoryStateId,
 }
 
 impl FrameState {
@@ -112,6 +130,7 @@ impl FrameState {
     pub fn replace_pipeline(&mut self, pipeline_id: PipelineId, url: ServoUrl) {
         self.pipeline_id = Some(pipeline_id);
         self.url = url;
+        self.state_id = HistoryStateId(0);
     }
 }
 
@@ -213,11 +232,19 @@ impl<'a> Iterator for FullFrameTreeIterator<'a> {
                     continue;
                 },
             };
-            let child_frame_ids = frame.prev.iter().chain(frame.next.iter())
+            let mut session_pipelines = frame.prev.iter().chain(frame.next.iter())
                 .filter_map(|entry| entry.pipeline_id)
                 .chain(once(frame.pipeline_id))
+                .collect::<Vec<_>>();
+
+            // The session history may contain multiple entries with the same PipelineId.
+            // These duplicates need to be removed.
+            session_pipelines.dedup();
+
+            let child_frame_ids = session_pipelines.iter()
                 .filter_map(|pipeline_id| pipelines.get(&pipeline_id))
                 .flat_map(|pipeline| pipeline.children.iter());
+
             self.stack.extend(child_frame_ids);
             return Some(frame)
         }

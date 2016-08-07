@@ -70,7 +70,7 @@ use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use layout_wrapper::ServoLayoutNode;
 use mem::heap_size_of_self_and_children;
-use msg::constellation_msg::{FrameId, FrameType, PipelineId, PipelineNamespace};
+use msg::constellation_msg::{FrameId, FrameType, HistoryStateId, PipelineId, PipelineNamespace};
 use net_traits::{CoreResourceMsg, FetchMetadata, FetchResponseListener};
 use net_traits::{IpcSend, Metadata, ReferrerPolicy, ResourceThreads};
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheResult, ImageCacheThread};
@@ -1019,6 +1019,10 @@ impl ScriptThread {
                 self.handle_exit_pipeline_msg(pipeline_id, discard_browsing_context),
             ConstellationControlMsg::WebVREvent(pipeline_id, event) =>
                 self.handle_webvr_event(pipeline_id, event),
+            ConstellationControlMsg::ActivateHistoryState(pipeline_id, state_id) =>
+                self.handle_activate_history_state(pipeline_id, state_id),
+            ConstellationControlMsg::RemoveHistoryStateEntries(pipeline_id, state_ids) =>
+                self.handle_remove_history_state_entries(pipeline_id, state_ids),
             msg @ ConstellationControlMsg::AttachLayout(..) |
             msg @ ConstellationControlMsg::Viewport(..) |
             msg @ ConstellationControlMsg::SetScrollState(..) |
@@ -1760,7 +1764,7 @@ impl ScriptThread {
                                  self.webvr_thread.clone());
         let frame_element = frame_element.r().map(Castable::upcast);
 
-        let browsing_context = BrowsingContext::new(&window, frame_element);
+        let browsing_context = BrowsingContext::new(&window, frame_element, incomplete.url.clone());
         window.init_browsing_context(&browsing_context);
 
         let last_modified = metadata.headers.as_ref().and_then(|headers| {
@@ -2220,6 +2224,20 @@ impl ScriptThread {
         if let Some(window) = window {
             let navigator = window.Navigator();
             navigator.handle_webvr_event(event);
+        }
+    }
+
+    fn handle_activate_history_state(&self, pipeline_id: PipelineId, state_id: HistoryStateId) {
+        if let Some(window) = self.documents.borrow().find_window(pipeline_id) {
+            let browsing_context = window.browsing_context();
+            browsing_context.activate_history_state(state_id);
+        }
+    }
+
+    fn handle_remove_history_state_entries(&self, pipeline_id: PipelineId, state_ids: Vec<HistoryStateId>) {
+        if let Some(window) = self.documents.borrow().find_window(pipeline_id) {
+            let browsing_context = window.browsing_context();
+            browsing_context.remove_history_state_entries(state_ids);
         }
     }
 

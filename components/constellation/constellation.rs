@@ -82,7 +82,7 @@ use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout_traits::LayoutThreadFactory;
 use log::{Log, LogLevel, LogLevelFilter, LogMetadata, LogRecord};
-use msg::constellation_msg::{FrameId, FrameType, PipelineId};
+use msg::constellation_msg::{FrameId, FrameType, HistoryStateId, PipelineId};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState};
 use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId, TraversalDirection};
 use net_traits::{self, IpcSend, ResourceThreads};
@@ -940,6 +940,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 debug!("constellation got joint session history length message from script");
                 self.handle_joint_session_history_length(pipeline_id, sender);
             }
+            // Handle a history state pushed request.
+            FromScriptMsg::HistoryStatePushed(pipeline_id, state_id) => {
+                debug!("constellation got histort state pushed message from script");
+                self.handle_history_state_pushed(pipeline_id, state_id);
+            }
             // Notification that the new document is ready to become active
             FromScriptMsg::ActivateDocument(pipeline_id) => {
                 debug!("constellation got activate document message");
@@ -1713,6 +1718,21 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         let _ = sender.send(length as u32);
     }
 
+    fn handle_history_state_pushed(&mut self, pipeline_id: PipelineId, state_id: HistoryStateId) {
+        if !self.pipeline_is_in_current_frame(pipeline_id) {
+            return warn!("Received push state from not fully active pipeline {:?}", pipeline_id);
+        }
+        let frame_id = match self.pipelines.get(&pipeline_id) {
+            Some(pipeline) => pipeline.frame_id,
+            None => return warn!("Pipeline closed after history state was pushed."),
+        };
+        let frame = match self.frames.get_mut(&frame_id) {
+            Some(frame) => frame,
+            None => return warn!("Frame closed after history state was pushed."),
+        };
+        frame.push_state(state_id);
+    }
+
     fn handle_key_msg(&mut self, ch: Option<char>, key: Key, state: KeyState, mods: KeyModifiers) {
         // Send to the explicitly focused pipeline (if it exists), or the root
         // frame's current pipeline. If neither exist, fall back to sending to
@@ -2061,6 +2081,16 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // Set paint permissions correctly for the compositor layers.
         self.send_frame_tree();
 
+        // Notify the corresponding browsing context to activate the specified history state.
+        match self.pipelines.get(&pipeline_id) {
+            Some(pipeline) => {
+                let msg = ConstellationControlMsg::ActivateHistoryState(pipeline_id,
+                        entry.state_id);
+                let _ = pipeline.event_loop.send(msg);
+            },
+            None => return warn!("Pipeline {:?} traversed after closure.", pipeline_id),
+        };
+
         // Update the owning iframe to point to the new pipeline id.
         // This makes things like contentDocument work correctly.
         if let Some((parent_pipeline_id, _)) = parent_info {
@@ -2364,13 +2394,31 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             .map(|frame| frame.id)
             .collect();
         for frame_id in frame_ids {
-            let evicted = match self.frames.get_mut(&frame_id) {
-                Some(frame) => frame.remove_forward_entries(),
+            let (current_pipeline_id, forward_entries) = match self.frames.get_mut(&frame_id) {
+                Some(frame) => (frame.pipeline_id, frame.remove_forward_entries()),
                 None => continue,
             };
-            for entry in evicted {
+            let mut discarded_history_states = vec!();
+            for entry in forward_entries {
                 if let Some(pipeline_id) = entry.pipeline_id {
-                    self.close_pipeline(pipeline_id, DiscardBrowsingContext::No, ExitPipelineMode::Normal);
+                    if pipeline_id == current_pipeline_id {
+                        discarded_history_states.push(entry.state_id);
+                    } else {
+                        self.close_pipeline(pipeline_id, DiscardBrowsingContext::No, ExitPipelineMode::Normal);
+                    }
+                }
+            }
+
+            // Notify the BrowsingContext in the script thread to remove the HistoryState entries
+            // that are now no longer accesible.
+            if !discarded_history_states.is_empty() {
+                match self.pipelines.get(&current_pipeline_id) {
+                    Some(pipeline) => {
+                        let msg = ConstellationControlMsg::RemoveHistoryStateEntries(current_pipeline_id,
+                            discarded_history_states);
+                        let _ = pipeline.event_loop.send(msg);
+                    },
+                    None => return warn!("Pipeline {:?} closed after removing state entries", current_pipeline_id),
                 }
             }
         }
