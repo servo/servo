@@ -401,6 +401,7 @@ pub mod textencoder;
 pub mod touch;
 pub mod touchevent;
 pub mod touchlist;
+pub mod transitionevent;
 pub mod treewalker;
 pub mod uievent;
 pub mod url;
