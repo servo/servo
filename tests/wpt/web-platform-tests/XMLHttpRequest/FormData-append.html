@@ -81,7 +81,7 @@
     }, 'testFormDataAppendToFormNull2');
     test(function() {
         assert_object_equals(create_formdata(['key', new Blob(), 'blank.txt']).get('key'),
-                             new File(new Blob(), 'blank.txt'));
+                             new File([new Blob()], 'blank.txt'));
     }, 'testFormDataAppendEmptyBlob');
 
     function create_formdata() {
