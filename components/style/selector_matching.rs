@@ -21,6 +21,7 @@ use selectors::parser::Selector;
 use sink::Push;
 use smallvec::VecLike;
 use std::collections::HashMap;
+use std::fmt;
 use std::hash::BuildHasherDefault;
 use std::sync::Arc;
 use string_cache::Atom;
@@ -275,6 +276,7 @@ impl Stylist {
                                                   parent: &Arc<ComputedValues>)
                                                   -> Option<Arc<ComputedValues>>
         where E: Element<Impl=TheSelectorImpl> +
+              Debug +
               PresentationalHintsSynthetizer
     {
         debug_assert!(TheSelectorImpl::pseudo_element_cascade_type(pseudo).is_lazy());
@@ -343,6 +345,7 @@ impl Stylist {
                                         pseudo_element: Option<&PseudoElement>,
                                         applicable_declarations: &mut V) -> StyleRelations
         where E: Element<Impl=TheSelectorImpl> +
+                                                 fmt::Debug +
                  PresentationalHintsSynthetizer,
               V: Push<DeclarationBlock> + VecLike<DeclarationBlock>
     {
