@@ -4,5 +4,5 @@
 
 varying vec4 vColor;
 
-varying vec3 vPos;
-flat varying vec4 vRect;
+varying vec3 vLocalPos;
+flat varying vec4 vLocalRect;

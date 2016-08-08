@@ -4,7 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 struct AngleGradient {
-	PrimitiveInfo info;
+    PrimitiveInfo info;
     vec4 start_end_point;
     uvec4 stop_count;
     vec4 colors[MAX_STOPS_PER_ANGLE_GRADIENT];

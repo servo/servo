@@ -4,8 +4,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 struct Rectangle {
-	PrimitiveInfo info;
-	vec4 color;
+    PrimitiveInfo info;
+    vec4 color;
 };
 
 layout(std140) uniform Items {
