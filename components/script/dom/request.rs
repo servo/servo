@@ -23,16 +23,19 @@ use dom::bindings::str::{ByteString, USVString, DOMString};
 use dom::headers::{Headers, Guard};
 use hyper;
 use msg::constellation_msg::{PipelineId, ReferrerPolicy as MsgReferrerPolicy};
-use net_traits::request::{CacheMode as NetTraitsRequestCache,
-                          CredentialsMode as NetTraitsRequestCredentials,
-                          Destination as NetTraitsRequestDestination,
-                          Origin,
-                          RedirectMode as NetTraitsRequestRedirect,
-                          Referer as NetTraitsRequestReferer,
-                          Request as NetTraitsRequest,
-                          RequestMode as NetTraitsRequestMode,
-                          Type as NetTraitsRequestType,
-                          Window};
+use net_traits::request::
+{
+    CacheMode as NetTraitsRequestCache,
+    CredentialsMode as NetTraitsRequestCredentials,
+    Destination as NetTraitsRequestDestination,
+    Origin,
+    RedirectMode as NetTraitsRequestRedirect,
+    Referer as NetTraitsRequestReferer,
+    Request as NetTraitsRequest,
+    RequestMode as NetTraitsRequestMode,
+    Type as NetTraitsRequestType,
+    Window
+};
 use std::cell::{Cell, Ref, RefCell};
 use url::Url;
 
