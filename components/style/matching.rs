@@ -638,13 +638,17 @@ pub trait ElementMatchMethods : TElement {
 
                 let style = &mut node.mutate_data().unwrap().style;
 
-                let damage = {
-                    let source =
-                        node.existing_style_for_restyle_damage((*style).as_ref());
-                    let damage = <<Self as TElement>::ConcreteNode as TNode>
-                                     ::ConcreteRestyleDamage::compute(source, &shared_style);
-                    damage
-                };
+                let damage =
+                    match node.existing_style_for_restyle_damage((*style).as_ref()) {
+                        Some(ref source) => {
+                            <<Self as TElement>::ConcreteNode as TNode>
+                            ::ConcreteRestyleDamage::compute(source, &shared_style)
+                        }
+                        None => {
+                            <<Self as TElement>::ConcreteNode as TNode>
+                            ::ConcreteRestyleDamage::rebuild_and_reflow()
+                        }
+                    };
 
                 let restyle_result = if shared_style.get_box().clone_display() == display::T::none {
                     RestyleResult::Stop
@@ -713,6 +717,43 @@ pub trait MatchMethods : TNode {
         }
     }
 
+    fn compute_restyle_damage(&self,
+                              old_style: Option<&Arc<ComputedValues>>,
+                              new_style: &Arc<ComputedValues>) -> Self::ConcreteRestyleDamage {
+        match self.existing_style_for_restyle_damage(old_style) {
+            Some(ref source) => {
+                Self::ConcreteRestyleDamage::compute(source,
+                                                     new_style)
+            }
+            None => {
+                // If there's no style source, two things can happen:
+                //
+                //  1. This is not an incremental restyle (old_style is none).
+                //     In this case we can't do too much than sending
+                //     rebuild_and_reflow.
+                //
+                //  2. This is an incremental restyle, but the old display value
+                //     is none, so there's no effective way for Gecko to get the
+                //     style source. In this case, we could return either
+                //     RestyleDamage::empty(), in the case both displays are
+                //     none, or rebuild_and_reflow, otherwise. The first case
+                //     should be already handled when calling this function, so
+                //     we can assert that the new display value is not none.
+                //
+                //     Also, this can be a text node (in which case we don't
+                //     care of watching the new display value).
+                //
+                // Unfortunately we can't strongly assert part of this, since
+                // we style some nodes that in Gecko never generate a frame,
+                // like children of replaced content. Arguably, we shouldn't be
+                // styling those here, but until we implement that we'll have to
+                // stick without the assertions.
+                debug_assert!(new_style.get_box().clone_display() != display::T::none);
+                Self::ConcreteRestyleDamage::rebuild_and_reflow()
+            }
+        }
+    }
+
     unsafe fn cascade_node<'a, Ctx>(&self,
                                     context: &Ctx,
                                     parent: Option<Self>,
@@ -741,12 +782,8 @@ pub trait MatchMethods : TNode {
             let mut data = &mut *data_ref;
             let cloned_parent_style = ComputedValues::style_for_child_text_node(parent_style.unwrap());
 
-            let damage = {
-                let existing_style =
-                    self.existing_style_for_restyle_damage(data.style.as_ref());
-                Self::ConcreteRestyleDamage::compute(existing_style,
-                                                     &cloned_parent_style)
-            };
+            let damage =
+                self.compute_restyle_damage(data.style.as_ref(), &cloned_parent_style);
 
             data.style = Some(cloned_parent_style);
 
@@ -810,9 +847,7 @@ pub trait MatchMethods : TNode {
                 Some(display) if display == this_display => {
                     Self::ConcreteRestyleDamage::empty()
                 }
-                _ => {
-                    Self::ConcreteRestyleDamage::rebuild_and_reflow()
-                }
+                _ => Self::ConcreteRestyleDamage::rebuild_and_reflow()
             };
 
             debug!("Short-circuiting traversal: {:?} {:?} {:?}",
@@ -824,12 +859,8 @@ pub trait MatchMethods : TNode {
 
         // Otherwise, we just compute the damage normally, and sum up the damage
         // related to pseudo-elements.
-        let mut damage = {
-            let existing_style =
-                self.existing_style_for_restyle_damage(data.style.as_ref());
-
-            Self::ConcreteRestyleDamage::compute(existing_style, &final_style)
-        };
+        let mut damage =
+            self.compute_restyle_damage(data.style.as_ref(), &final_style);
 
         data.style = Some(final_style);
 
@@ -837,17 +868,22 @@ pub trait MatchMethods : TNode {
         // effectively comparing with the old computed values (given our style
         // source is the old nsStyleContext).
         //
-        // I... don't think any difference can arise from comparing with the old
-        // element restyle damage vs the new one, given that we're only summing
-        // the changes, and any change that we could miss would already have
-        // been caught by the parent's change. If for some reason I'm wrong on
-        // this, we'd have to compare computed values in Gecko too.
+        // We should be diffing the old pseudo-element styles with the new ones,
+        // see https://bugzilla.mozilla.org/show_bug.cgi?id=1293399.
+        //
+        // For now we do the following, which preserves the old Servo behavior.
         let existing_style =
             self.existing_style_for_restyle_damage(data.style.as_ref());
 
         let data_per_pseudo = &mut data.per_pseudo;
         let new_style = data.style.as_ref();
+
         debug_assert!(new_style.is_some());
+
+        let rebuild_and_reflow =
+            Self::ConcreteRestyleDamage::rebuild_and_reflow();
+
+        debug_assert!(existing_style.is_some() || damage == rebuild_and_reflow);
 
         <Self::ConcreteElement as MatchAttr>::Impl::each_eagerly_cascaded_pseudo_element(|pseudo| {
             let applicable_declarations_for_this_pseudo =
@@ -868,9 +904,14 @@ pub trait MatchMethods : TNode {
                                                      /* shareable = */ false,
                                                      should_animate_properties);
 
-                let new_damage =
-                    Self::ConcreteRestyleDamage::compute(existing_style, &new_pseudo_style);
-                damage = damage | new_damage;
+                // No point in computing more damage if we're already doing all
+                // the work.
+                if damage != rebuild_and_reflow {
+                    let new_damage =
+                        Self::ConcreteRestyleDamage::compute(existing_style.unwrap(),
+                                                             &new_pseudo_style);
+                    damage = damage | new_damage;
+                }
                 data_per_pseudo.insert(pseudo, new_pseudo_style);
             }
         });
