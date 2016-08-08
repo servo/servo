@@ -26,6 +26,7 @@ use dom::document::{Document, IsHTMLDocument};
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
 use dom::headers::is_forbidden_header_name;
+use dom::htmlformelement::{encode_multipart_form_data, generate_boundary};
 use dom::progressevent::ProgressEvent;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 use dom::xmlhttprequestupload::XMLHttpRequestUpload;
@@ -1355,12 +1356,12 @@ impl Extractable for BodyInit {
                 let encoding = UTF_8 as EncodingRef;
                 (encoding.encode(s, EncoderTrap::Replace).unwrap(),
                     Some(DOMString::from("text/plain;charset=UTF-8")))
-            },
+            }
             BodyInit::URLSearchParams(ref usp) => {
                 // Default encoding is UTF-8.
                 (usp.serialize(None).into_bytes(),
                     Some(DOMString::from("application/x-www-form-urlencoded;charset=UTF-8")))
-            },
+            }
             BodyInit::Blob(ref b) => {
                 let content_type = if b.Type().as_ref().is_empty() {
                     None
@@ -1369,7 +1370,13 @@ impl Extractable for BodyInit {
                 };
                 let bytes = b.get_bytes().unwrap_or(vec![]);
                 (bytes, content_type)
-            },
+            }
+            BodyInit::FormData(ref formdata) => {
+                let boundary = generate_boundary();
+                let bytes = encode_multipart_form_data(&mut formdata.datums(), boundary.clone(),
+                                                       UTF_8 as EncodingRef);
+                (bytes, Some(DOMString::from(format!("multipart/form-data;boundary={}", boundary))))
+            }
         }
     }
 }

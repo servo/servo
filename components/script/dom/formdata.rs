@@ -3,9 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::cell::DOMRefCell;
+use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use dom::bindings::codegen::Bindings::FormDataBinding;
 use dom::bindings::codegen::Bindings::FormDataBinding::FormDataMethods;
-use dom::bindings::codegen::UnionTypes::BlobOrUSVString;
+use dom::bindings::codegen::UnionTypes::FileOrUSVString;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
@@ -13,18 +14,10 @@ use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::{DOMString, USVString};
 use dom::blob::{Blob, BlobImpl};
 use dom::file::File;
-use dom::htmlformelement::HTMLFormElement;
+use dom::htmlformelement::{HTMLFormElement, FormDatumValue, FormDatum};
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use string_cache::Atom;
-
-#[derive(JSTraceable, Clone)]
-#[must_root]
-#[derive(HeapSizeOf)]
-pub enum FormDatum {
-    StringData(String),
-    BlobData(JS<Blob>)
-}
 
 #[dom_struct]
 pub struct FormData {
@@ -55,24 +48,34 @@ impl FormData {
 
 impl FormDataMethods for FormData {
     // https://xhr.spec.whatwg.org/#dom-formdata-append
-    fn Append(&self, name: USVString, value: USVString) {
+    fn Append(&self, name: USVString, str_value: USVString) {
+        let datum = FormDatum {
+            ty: DOMString::from(""), // XXX(izgzhen): ?
+            name: DOMString::from(name.0.clone()),
+            value: FormDatumValue::String(DOMString::from(str_value.0)),
+        };
+
         let mut data = self.data.borrow_mut();
         match data.entry(Atom::from(name.0)) {
-            Occupied(entry) => entry.into_mut().push(FormDatum::StringData(value.0)),
-            Vacant  (entry) => { entry.insert(vec!(FormDatum::StringData(value.0))); }
+            Occupied(entry) => entry.into_mut().push(datum),
+            Vacant(entry) => { entry.insert(vec!(datum)); }
         }
     }
 
     #[allow(unrooted_must_root)]
     // https://xhr.spec.whatwg.org/#dom-formdata-append
-    fn Append_(&self, name: USVString, value: &Blob, filename: Option<USVString>) {
-        let blob = FormDatum::BlobData(JS::from_ref(&*self.get_file_or_blob(value, filename)));
+    fn Append_(&self, name: USVString, blob: &Blob, filename: Option<USVString>) {
+        let datum = FormDatum {
+            ty: blob.Type(),
+            name: DOMString::from(name.0.clone()),
+            value: FormDatumValue::File(Root::from_ref(&*self.get_file(blob, filename))),
+        };
+
         let mut data = self.data.borrow_mut();
+
         match data.entry(Atom::from(name.0)) {
-            Occupied(entry) => entry.into_mut().push(blob),
-            Vacant(entry) => {
-                entry.insert(vec!(blob));
-            }
+            Occupied(entry) => entry.into_mut().push(datum),
+            Vacant(entry) => { entry.insert(vec!(datum)); },
         }
     }
 
@@ -82,23 +85,23 @@ impl FormDataMethods for FormData {
     }
 
     // https://xhr.spec.whatwg.org/#dom-formdata-get
-    fn Get(&self, name: USVString) -> Option<BlobOrUSVString> {
+    fn Get(&self, name: USVString) -> Option<FileOrUSVString> {
         self.data.borrow()
                  .get(&Atom::from(name.0))
-                 .map(|entry| match entry[0] {
-                     FormDatum::StringData(ref s) => BlobOrUSVString::USVString(USVString(s.clone())),
-                     FormDatum::BlobData(ref b) => BlobOrUSVString::Blob(Root::from_ref(&*b)),
+                 .map(|entry| match entry[0].value {
+                     FormDatumValue::String(ref s) => FileOrUSVString::USVString(USVString(s.to_string())),
+                     FormDatumValue::File(ref b) => FileOrUSVString::File(Root::from_ref(&*b)),
                  })
     }
 
     // https://xhr.spec.whatwg.org/#dom-formdata-getall
-    fn GetAll(&self, name: USVString) -> Vec<BlobOrUSVString> {
+    fn GetAll(&self, name: USVString) -> Vec<FileOrUSVString> {
         self.data.borrow()
                  .get(&Atom::from(name.0))
                  .map_or(vec![], |data|
-                    data.iter().map(|item| match *item {
-                        FormDatum::StringData(ref s) => BlobOrUSVString::USVString(USVString(s.clone())),
-                        FormDatum::BlobData(ref b) => BlobOrUSVString::Blob(Root::from_ref(&*b)),
+                    data.iter().map(|item| match item.value {
+                        FormDatumValue::String(ref s) => FileOrUSVString::USVString(USVString(s.to_string())),
+                        FormDatumValue::File(ref b) => FileOrUSVString::File(Root::from_ref(&*b)),
                     }).collect()
                  )
     }
@@ -108,29 +111,49 @@ impl FormDataMethods for FormData {
         self.data.borrow().contains_key(&Atom::from(name.0))
     }
 
+    // https://xhr.spec.whatwg.org/#dom-formdata-set
+    fn Set(&self, name: USVString, str_value: USVString) {
+        self.data.borrow_mut().insert(Atom::from(name.0.clone()), vec![FormDatum {
+            ty: DOMString::from(""),
+            name: DOMString::from(name.0),
+            value: FormDatumValue::String(DOMString::from(str_value.0)),
+        }]);
+    }
+
     #[allow(unrooted_must_root)]
     // https://xhr.spec.whatwg.org/#dom-formdata-set
-    fn Set(&self, name: USVString, value: BlobOrUSVString) {
-        let val = match value {
-            BlobOrUSVString::USVString(s) => FormDatum::StringData(s.0),
-            BlobOrUSVString::Blob(b) => FormDatum::BlobData(JS::from_ref(&*b))
-        };
-        self.data.borrow_mut().insert(Atom::from(name.0), vec!(val));
+    fn Set_(&self, name: USVString, blob: &Blob, filename: Option<USVString>) {
+        self.data.borrow_mut().insert(Atom::from(name.0.clone()), vec![FormDatum {
+            ty: DOMString::from(""),
+            name: DOMString::from(name.0),
+            value: FormDatumValue::File(Root::from_ref(&*self.get_file(blob, filename))),
+        }]);
     }
+
 }
 
 
 impl FormData {
-    fn get_file_or_blob(&self, blob: &Blob, filename: Option<USVString>) -> Root<Blob> {
-        match filename {
-            Some(fname) => {
-                let global = self.global();
-                let name = DOMString::from(fname.0);
-                let bytes = blob.get_bytes().unwrap_or(vec![]);
+    fn get_file(&self, blob: &Blob, opt_filename: Option<USVString>) -> Root<File> {
+        let global = self.global();
 
-                Root::upcast(File::new(global.r(), BlobImpl::new_from_bytes(bytes), name, None, ""))
-            }
-            None => Root::from_ref(blob)
+        let name = match opt_filename {
+            Some(filename) => DOMString::from(filename.0),
+            None => DOMString::from(""),
+        };
+
+        let bytes = blob.get_bytes().unwrap_or(vec![]);
+
+        File::new(global.r(), BlobImpl::new_from_bytes(bytes), name, None, "")
+    }
+
+    // XXX: note that we have two similar structures here...
+    pub fn datums(&self) -> Vec<FormDatum> {
+        let mut ret = vec![];
+        for values in self.data.borrow().values() {
+            ret.append(&mut values.clone());
         }
+
+        ret
     }
 }

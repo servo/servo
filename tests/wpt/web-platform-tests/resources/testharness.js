@@ -921,21 +921,23 @@ policies and contribution forms [3].
 
              var p;
              for (p in actual) {
-                 assert(expected.hasOwnProperty(p), "assert_object_equals", description,
+                 assert(p in expected, "assert_object_equals", description,
                                                     "unexpected property ${p}", {p:p});
 
                  if (typeof actual[p] === "object" && actual[p] !== null) {
                      if (stack.indexOf(actual[p]) === -1) {
                          check_equal(actual[p], expected[p], stack);
                      }
+                 } else if (p == "lastModified") {
+                    // don't check creation-time related properties
                  } else {
                      assert(same_value(actual[p], expected[p]), "assert_object_equals", description,
                                                        "property ${p} expected ${expected} got ${actual}",
-                                                       {p:p, expected:expected, actual:actual});
+                                                       {p:p, expected:expected[p], actual:actual[p]});
                  }
              }
              for (p in expected) {
-                 assert(actual.hasOwnProperty(p),
+                 assert(p in actual,
                         "assert_object_equals", description,
                         "expected property ${p} missing", {p:p});
              }
