@@ -171,10 +171,9 @@ void do_clip(vec2 pos, vec4 clip_rect, vec4 radius) {
     }
 }
 
-bool point_in_rect(vec2 p, vec2 p0, vec2 p1) {
-    return p.x >= p0.x &&
-           p.y >= p0.y &&
-           p.x <= p1.x &&
-           p.y <= p1.y;
+float squared_distance_from_rect(vec2 p, vec2 origin, vec2 size) {
+    vec2 clamped = clamp(p, origin, origin + size);
+    return distance(clamped, p);
 }
+
 #endif
