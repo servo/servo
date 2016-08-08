@@ -198,7 +198,8 @@ impl Headers {
     }
 
     pub fn no_initializer(global: GlobalRef) -> Root<Headers> {
-        let headers_without_initializer = reflect_dom_object(box Headers::new_inherited(), global, HeadersBinding::Wrap);
+        let headers_without_initializer = reflect_dom_object(
+            box Headers::new_inherited(), global, HeadersBinding::Wrap);
         headers_without_initializer
     }
 
