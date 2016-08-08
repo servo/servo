@@ -1,0 +1,74 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
+use dom::bindings::codegen::Bindings::TransitionEventBinding;
+use dom::bindings::codegen::Bindings::TransitionEventBinding::{TransitionEventInit, TransitionEventMethods};
+use dom::bindings::error::Fallible;
+use dom::bindings::global::GlobalRef;
+use dom::bindings::inheritance::Castable;
+use dom::bindings::js::Root;
+use dom::bindings::num::Finite;
+use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::str::DOMString;
+use dom::event::Event;
+use string_cache::Atom;
+
+#[dom_struct]
+pub struct TransitionEvent {
+    event: Event,
+    property_name: DOMString,
+    elapsed_time: Finite<f32>,
+    pseudo_element: DOMString,
+}
+
+impl TransitionEvent {
+    #[allow(unrooted_must_root)]
+    pub fn new_inherited(type_: Atom, init: &TransitionEventInit) -> TransitionEvent {
+        let event = Event::new_inherited();
+        event.init_event(type_, init.parent.bubbles, init.parent.cancelable);
+        TransitionEvent {
+            event: event,
+            property_name: init.propertyName.clone(),
+            elapsed_time: init.elapsedTime.clone(),
+            pseudo_element: init.pseudoElement.clone()
+        }
+    }
+
+    pub fn new(global: GlobalRef,
+               type_: DOMString,
+               init: &TransitionEventInit) -> Root<TransitionEvent> {
+        reflect_dom_object(box TransitionEvent::new_inherited(Atom::from(type_), init),
+                           global,
+                           TransitionEventBinding::Wrap)
+    }
+
+    pub fn Constructor(global: GlobalRef,
+                       type_: DOMString,
+                       init: &TransitionEventInit) -> Fallible<Root<TransitionEvent>> {
+        Ok(TransitionEvent::new(global, type_, init))
+    }
+}
+
+impl TransitionEventMethods for TransitionEvent {
+    // https://drafts.csswg.org/css-transitions/#Events-TransitionEvent-propertyName
+    fn PropertyName(&self) -> DOMString {
+        self.property_name.clone()
+    }
+
+    // https://drafts.csswg.org/css-transitions/#Events-TransitionEvent-elapsedTime
+    fn ElapsedTime(&self) -> Finite<f32> {
+        self.elapsed_time.clone()
+    }
+
+    // https://drafts.csswg.org/css-transitions/#Events-TransitionEvent-pseudoElement
+    fn PseudoElement(&self) -> DOMString {
+        self.pseudo_element.clone()
+    }
+
+    // https://dom.spec.whatwg.org/#dom-event-istrusted
+    fn IsTrusted(&self) -> bool {
+        self.upcast::<Event>().IsTrusted()
+    }
+}
