@@ -79,6 +79,7 @@ use std::borrow::Cow;
 use std::cell::{Cell, Ref};
 use std::convert::TryFrom;
 use std::default::Default;
+use std::fmt;
 use std::mem;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -113,6 +114,16 @@ pub struct Element {
     class_list: MutNullableHeap<JS<DOMTokenList>>,
     state: Cell<ElementState>,
     atomic_flags: AtomicElementFlags,
+}
+
+impl fmt::Debug for Element {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        try!(write!(f, "<{}", self.local_name));
+        if let Some(ref id) = *self.id_attribute.borrow() {
+            try!(write!(f, " id={}", id));
+        }
+        write!(f, ">")
+    }
 }
 
 #[derive(PartialEq, HeapSizeOf)]
