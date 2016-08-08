@@ -10,6 +10,7 @@ use gfx_traits::{ByteIndex, LayerId, LayerType};
 use msg::constellation_msg::PipelineId;
 use range::Range;
 use restyle_damage::RestyleDamage;
+use std::fmt::Debug;
 use std::sync::Arc;
 use string_cache::{Atom, Namespace};
 use style::computed_values::display;
@@ -350,7 +351,7 @@ pub trait DangerousThreadSafeLayoutNode: ThreadSafeLayoutNode {
     unsafe fn dangerous_next_sibling(&self) -> Option<Self>;
 }
 
-pub trait ThreadSafeLayoutElement: Clone + Copy + Sized +
+pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
                                    ::selectors::Element<Impl=ServoSelectorImpl> +
                                    PresentationalHintsSynthetizer {
     type ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<ConcreteThreadSafeLayoutElement = Self>;
