@@ -1271,10 +1271,18 @@ impl Window {
         self.layout_rpc.node_geometry().client_rect
     }
 
-    pub fn hit_test_query(&self, hit_test_request: Point2D<f32>, update_cursor: bool)
+    pub fn hit_test_query(&self,
+                          client_point: Point2D<f32>,
+                          update_cursor: bool)
                           -> Option<UntrustedNodeAddress> {
+        let translated_point =
+            Point2D::new(client_point.x + self.PageXOffset() as f32,
+                         client_point.y + self.PageYOffset() as f32);
+
         if !self.reflow(ReflowGoal::ForScriptQuery,
-                        ReflowQueryType::HitTestQuery(hit_test_request, update_cursor),
+                        ReflowQueryType::HitTestQuery(translated_point,
+                                                      client_point,
+                                                      update_cursor),
                         ReflowReason::Query) {
             return None
         }
@@ -1770,7 +1778,7 @@ fn debug_reflow_events(id: PipelineId, goal: &ReflowGoal, query_type: &ReflowQue
         ReflowQueryType::NoQuery => "\tNoQuery",
         ReflowQueryType::ContentBoxQuery(_n) => "\tContentBoxQuery",
         ReflowQueryType::ContentBoxesQuery(_n) => "\tContentBoxesQuery",
-        ReflowQueryType::HitTestQuery(_n, _o) => "\tHitTestQuery",
+        ReflowQueryType::HitTestQuery(..) => "\tHitTestQuery",
         ReflowQueryType::NodeGeometryQuery(_n) => "\tNodeGeometryQuery",
         ReflowQueryType::NodeLayerIdQuery(_n) => "\tNodeLayerIdQuery",
         ReflowQueryType::NodeOverflowQuery(_n) => "\tNodeOverFlowQuery",

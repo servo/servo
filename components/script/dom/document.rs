@@ -672,9 +672,7 @@ impl Document {
         };
         debug!("{}: at {:?}", mouse_event_type_string, client_point);
 
-        let page_point = Point2D::new(client_point.x + self.window.PageXOffset() as f32,
-                                      client_point.y + self.window.PageYOffset() as f32);
-        let node = match self.window.hit_test_query(page_point, false) {
+        let node = match self.window.hit_test_query(client_point, false) {
             Some(node_address) => {
                 debug!("node address is {:?}", node_address);
                 node::from_untrusted_node_address(js_runtime, node_address)
@@ -786,9 +784,7 @@ impl Document {
             return;
         }
 
-        let page_point = Point2D::new(client_point.x + self.window.PageXOffset() as f32,
-                                      client_point.y + self.window.PageYOffset() as f32);
-        let node = match self.window.hit_test_query(page_point, false) {
+        let node = match self.window.hit_test_query(client_point, false) {
             Some(node_address) => node::from_untrusted_node_address(js_runtime, node_address),
             None => return
         };
@@ -864,22 +860,17 @@ impl Document {
                                    js_runtime: *mut JSRuntime,
                                    client_point: Option<Point2D<f32>>,
                                    prev_mouse_over_target: &MutNullableHeap<JS<Element>>) {
-        let page_point = match client_point {
+        let client_point = match client_point {
             None => {
                 // If there's no point, there's no target under the mouse
                 // FIXME: dispatch mouseout here. We have no point.
                 prev_mouse_over_target.set(None);
                 return;
             }
-            Some(ref client_point) => {
-                Point2D::new(client_point.x + self.window.PageXOffset() as f32,
-                             client_point.y + self.window.PageYOffset() as f32)
-            }
+            Some(client_point) => client_point,
         };
 
-        let client_point = client_point.unwrap();
-
-        let maybe_new_target = self.window.hit_test_query(page_point, true).and_then(|address| {
+        let maybe_new_target = self.window.hit_test_query(client_point, true).and_then(|address| {
             let node = node::from_untrusted_node_address(js_runtime, address);
             node.inclusive_ancestors()
                 .filter_map(Root::downcast::<Element>)
@@ -1593,7 +1584,11 @@ impl Document {
     }
 
     pub fn nodes_from_point(&self, page_point: &Point2D<f32>) -> Vec<UntrustedNodeAddress> {
-        self.window.layout().nodes_from_point(*page_point)
+        let client_point =
+            Point2D::new(page_point.x - self.window.PageXOffset() as f32,
+                         page_point.y - self.window.PageYOffset() as f32);
+
+        self.window.layout().nodes_from_point(*page_point, client_point)
     }
 }
 
@@ -2824,10 +2819,10 @@ impl DocumentMethods for Document {
             return None;
         }
 
-        let js_runtime = unsafe { JS_GetRuntime(window.get_cx()) };
-
         match self.window.hit_test_query(*point, false) {
             Some(untrusted_node_address) => {
+                let js_runtime = unsafe { JS_GetRuntime(window.get_cx()) };
+
                 let node = node::from_untrusted_node_address(js_runtime, untrusted_node_address);
                 let parent_node = node.GetParentNode().unwrap();
                 let element_ref = node.downcast::<Element>().unwrap_or_else(|| {

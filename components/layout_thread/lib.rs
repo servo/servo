@@ -1038,7 +1038,7 @@ impl LayoutThread {
                     ReflowQueryType::ContentBoxesQuery(_) => {
                         rw_data.content_boxes_response = Vec::new();
                     },
-                    ReflowQueryType::HitTestQuery(_, _) => {
+                    ReflowQueryType::HitTestQuery(..) => {
                         rw_data.hit_test_response = (None, false);
                     },
                     ReflowQueryType::NodeGeometryQuery(_) => {
@@ -1202,12 +1202,21 @@ impl LayoutThread {
                     let node = unsafe { ServoLayoutNode::new(&node) };
                     rw_data.content_boxes_response = process_content_boxes_request(node, &mut root_flow);
                 },
-                ReflowQueryType::HitTestQuery(point, update_cursor) => {
-                    let point = Point2D::new(Au::from_f32_px(point.x), Au::from_f32_px(point.y));
+                ReflowQueryType::HitTestQuery(translated_point, client_point, update_cursor) => {
+                    let translated_point =
+                        Point2D::new(Au::from_f32_px(translated_point.x),
+                                     Au::from_f32_px(translated_point.y));
+
+                    let client_point =
+                        Point2D::new(Au::from_f32_px(client_point.x),
+                                     Au::from_f32_px(client_point.y));
+
                     let result = rw_data.display_list
                                         .as_ref()
                                         .expect("Tried to hit test with no display list")
-                                        .hit_test(&point, &rw_data.stacking_context_scroll_offsets);
+                                        .hit_test(&translated_point,
+                                                  &client_point,
+                                                  &rw_data.stacking_context_scroll_offsets);
                     rw_data.hit_test_response = (result.last().cloned(), update_cursor);
                 },
                 ReflowQueryType::NodeGeometryQuery(node) => {
