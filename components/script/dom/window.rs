@@ -1074,9 +1074,9 @@ impl Window {
     }
 
     /// Advances the layout animation clock by `delta` milliseconds, and then
-    /// forces a reflow.
-    pub fn advance_animation_clock(&self, delta: i32) {
-        self.layout_chan.send(Msg::AdvanceClockMs(delta)).unwrap();
+    /// forces a reflow if `tick` is true.
+    pub fn advance_animation_clock(&self, delta: i32, tick: bool) {
+        self.layout_chan.send(Msg::AdvanceClockMs(delta, tick)).unwrap();
     }
 
     /// Reflows the page unconditionally if possible and not suppressed. This
