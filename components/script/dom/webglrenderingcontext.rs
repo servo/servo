@@ -1233,6 +1233,17 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         }
     }
 
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn DisableVertexAttribArray(&self, attrib_id: u32) {
+        if attrib_id > self.limits.max_vertex_attribs {
+            return self.webgl_error(InvalidValue);
+        }
+
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(WebGLCommand::DisableVertexAttribArray(attrib_id)))
+            .unwrap()
+    }
+
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
     fn DrawArrays(&self, mode: u32, first: i32, count: i32) {
         match mode {
