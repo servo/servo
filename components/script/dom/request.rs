@@ -54,10 +54,10 @@ impl Request {
         Request {
             reflector_: Reflector::new(),
             request: DOMRefCell::new(
-                NetTraitsRequest::new(url,
-                                      origin,
-                                      is_service_worker_global_scope,
-                                      pipeline_id)),
+                Request::new_nettraits_request(url,
+                                               origin,
+                                               is_service_worker_global_scope,
+                                               pipeline_id)),
             body_used: Cell::new(false),
             headers: Default::default(),
             mime_type: DOMRefCell::new("".to_string().into_bytes()),
@@ -76,16 +76,25 @@ impl Request {
                            global, RequestBinding::Wrap)
     }
 
+    fn new_nettraits_request(url: Url,
+                             origin: Option<Origin>,
+                             is_service_worker_global_scope: bool,
+                             pipeline_id: Option<PipelineId>) -> NetTraitsRequest {
+        NetTraitsRequest::new(url,
+                              origin,
+                              is_service_worker_global_scope,
+                              pipeline_id)
+    }
+
     // https://fetch.spec.whatwg.org/#dom-request
     pub fn Constructor(global: GlobalRef,
                        input: RequestInfo,
                        init: &RequestInit)
                       -> Fallible<Root<Request>> {
-        let mut request =
-            NetTraitsRequest::new(Url::parse("").unwrap(),
-                                  None,
-                                  false,
-                                  None);
+        let mut request = Request::new_nettraits_request(Url::parse("").unwrap(),
+                                                         None,
+                                                         false,
+                                                         None);
 
         // Step 1
         if let &RequestInfo::Request(ref input_request) = &input {
@@ -96,7 +105,7 @@ impl Request {
 
         // Step 2
         let mut temporary_request =
-            NetTraitsRequest::new(Url::parse("").unwrap(),
+            Request::new_nettraits_request(Url::parse("").unwrap(),
                                            None,
                                            false,
                                            None);
@@ -316,12 +325,10 @@ impl Request {
                              Url::parse("").unwrap(),
                              false);
         *r.request.borrow_mut() = request;
-        r.headers.or_init(|| Headers::new(r.global().r(), None).unwrap());
-        r.headers.get().unwrap().set_guard(Guard::Request);
+        r.headers.or_init(|| Headers::for_request(r.global().r()));
 
         // Step 27
         let headers = r.Headers();
-        // let headers = r.headers.get().clone();
 
         // Step 28
         let mut headers_init: Option<HeadersOrByteStringSequenceSequence>;
@@ -329,7 +336,8 @@ impl Request {
         let headers_init = init.headers.as_ref().map(|h| h.clone());
 
         // Step 29
-        r.headers.get().unwrap().empty_header_list();
+        headers.empty_header_list();
+
 
         // Step 30
         if r.request.borrow().mode == NetTraitsRequestMode::NoCORS {
@@ -341,16 +349,12 @@ impl Request {
             if !borrowed_request.integrity_metadata.borrow().is_empty() {
                 return Err(Error::Type("Integrity metadata is not an empty string".to_string()));
             }
-            r.headers.get().unwrap().set_guard(Guard::RequestNoCors);
+            headers.set_guard(Guard::RequestNoCors);
         }
 
         // Step 31
         if headers_init.is_some() {
-<<<<<<< 4766958f9579b8c0201d8d9f868a54841246598d
             r.headers_reflector.get().unwrap().fill(headers_init);
-=======
-            r.headers.set(Some(Headers::new(global, headers_init).unwrap().r()));
->>>>>>> Address one third of jdm's comments
         }
 
         // Step 32
@@ -374,7 +378,7 @@ impl Request {
                 }
             }
         }
-        
+
         // Step 34
         // TODO: `ReadableStream` object is not implemented in Servo yet.
 
@@ -385,7 +389,7 @@ impl Request {
         }
 
         // Step 36
-        let extracted_mime_type = r.headers.get().unwrap().extract_mime_type();
+        let extracted_mime_type = headers.extract_mime_type();
         *r.mime_type.borrow_mut() = extracted_mime_type;
 
         // Step 37
@@ -490,20 +494,13 @@ impl RequestMethods for Request {
 
     // https://fetch.spec.whatwg.org/#dom-request-url
     fn Url(&self) -> USVString {
-        // let r = self.request.borrow();
-        // USVString(self.request.borrow().url_list.borrow().get(0).map_or("", |u| u.as_str()).into())
         let r = self.request.borrow().clone();
-        let url = r.url_list.into_inner()[0].clone();
-        USVString(url.into_string())
+        USVString(r.url_list.into_inner().get(0).map_or("", |u| u.as_str()).into())
     }
 
     // https://fetch.spec.whatwg.org/#dom-request-headers
     fn Headers(&self) -> Root<Headers> {
-<<<<<<< 4766958f9579b8c0201d8d9f868a54841246598d
         self.headers_reflector.or_init(|| Headers::new(self.global().r()))
-=======
-        self.headers.or_init(|| Headers::new(self.global().r(), None).unwrap())
->>>>>>> Address one third of jdm's comments
     }
 
     // https://fetch.spec.whatwg.org/#dom-request-type
@@ -525,17 +522,11 @@ impl RequestMethods for Request {
             NetTraitsRequestReferer::Client => USVString(String::from("client")),
             NetTraitsRequestReferer::RefererUrl(u) => USVString(u.into_string()),
         }
-        // USVString(match *self.request.borrow().referer.borrow() {
-        //     NetTraitsRequestReferer::NoReferer => String::from("no-referrer"),
-        //     NetTraitsRequestReferer::Client => String::from("client"),
-        //     NetTraitsRequestReferer::RefererUrl(u) => u.into_string(),
-        // })
     }
 
     // https://fetch.spec.whatwg.org/#dom-request-referrerpolicy
     fn ReferrerPolicy(&self) -> ReferrerPolicy {
         let r = self.request.borrow().clone();
-        let rp = r.referrer_policy.get();
         self.request.borrow().referrer_policy.get().unwrap_or(MsgReferrerPolicy::NoReferrer).into()
     }
 
@@ -565,8 +556,7 @@ impl RequestMethods for Request {
     // https://fetch.spec.whatwg.org/#dom-request-integrity
     fn Integrity(&self) -> DOMString {
         let r = self.request.borrow().clone();
-        let integrity = r.integrity_metadata.into_inner();
-        DOMString::from_string(integrity)
+        DOMString::from_string(r.integrity_metadata.into_inner())
     }
 
     // https://fetch.spec.whatwg.org/#dom-body-bodyused
@@ -589,13 +579,13 @@ impl RequestMethods for Request {
         let is_service_worker_global_scope = self.request.borrow().clone().is_service_worker_global_scope;
         let body_used = self.body_used.get();
         let mime_type = self.mime_type.borrow().clone();
-        let headers_guard = self.headers.get().unwrap().get_guard();
+        let headers_guard = self.Headers().get_guard();
         let r = Request::new(self.global().r(),
                              url,
                              is_service_worker_global_scope);
         *r.mime_type.borrow_mut() = mime_type;
         r.body_used.set(body_used);
-        r.headers.get().unwrap().set_guard(headers_guard);
+        r.Headers().set_guard(headers_guard);
         Ok(r)
     }
 }
@@ -743,11 +733,7 @@ impl Into<RequestMode> for NetTraitsRequestMode {
 }
 
 // TODO
-// ... RequestBinding::ReferrerPolicy does not match MsgReferrerPolicy
-// ... RequestBinding::ReferrerPolicy has _empty
-// ... ... that is not in MsgReferrerPolicy
-// ... MsgReferrerPolicy has SameOrigin
-// ... ... that is not in RequestBinding::ReferrerPolicy
+// When whatwg/fetch PR #346 is merged, fix this.
 impl Into<MsgReferrerPolicy> for ReferrerPolicy {
     fn into(self) -> MsgReferrerPolicy {
         match self {

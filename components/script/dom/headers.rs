@@ -197,7 +197,18 @@ impl Headers {
         }
     }
 
-    pub fn set_guard(&self, new_guard: Guard) {
+    pub fn no_initializer(global: GlobalRef) -> Root<Headers> {
+        let headers_without_initializer = reflect_dom_object(box Headers::new_inherited(), global, HeadersBinding::Wrap);
+        headers_without_initializer
+    }
+
+    pub fn for_request(global: GlobalRef) -> Root<Headers> {
+        let headers_for_request = reflect_dom_object(box Headers::new_inherited(), global, HeadersBinding::Wrap);
+        headers_for_request.guard.set(Guard::Request);
+        headers_for_request
+    }
+
+     pub fn set_guard(&self, new_guard: Guard) {
         self.guard.set(new_guard)
     }
 
