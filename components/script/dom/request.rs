@@ -36,7 +36,7 @@ use net_traits::request::
     Type as NetTraitsRequestType,
     Window
 };
-use std::cell::{Cell, Ref, RefCell};
+use std::cell::{Cell, Ref};
 use url::Url;
 
 #[dom_struct]
@@ -77,16 +77,6 @@ impl Request {
                                                       is_service_worker_global_scope,
                                                       Some(pipeline_id)),
                            global, RequestBinding::Wrap)
-    }
-
-    fn new_nettraits_request(url: Url,
-                             origin: Option<Origin>,
-                             is_service_worker_global_scope: bool,
-                             pipeline_id: Option<PipelineId>) -> NetTraitsRequest {
-        NetTraitsRequest::new(url,
-                              origin,
-                              is_service_worker_global_scope,
-                              pipeline_id)
     }
 
     // https://fetch.spec.whatwg.org/#dom-request
@@ -216,7 +206,6 @@ impl Request {
 
         // Step 14
         if let Some(init_referrer) = init.referrer.as_ref() {
-            let parsed_referrer: Url;
             // Step 14.1
             let ref referrer = init_referrer.0;
             // Step 14.2
@@ -224,6 +213,7 @@ impl Request {
                 *request.referer.borrow_mut() = NetTraitsRequestReferer::NoReferer;
             } else {
                 // Step 14.3
+                // let parsed_referrer: Url;
                 let parsed_referrer = base_url.join(referrer);
                 // Step 14.4
                 if parsed_referrer.is_err() {
@@ -255,7 +245,7 @@ impl Request {
 
         // Step 16
         let mut mode: Option<NetTraitsRequestMode> = None;
-        let mode = init.mode.as_ref().map(|m| m.clone().into()).or(fallback_mode);
+        mode = init.mode.as_ref().map(|m| m.clone().into()).or(fallback_mode);
 
         // Step 17
         if let Some(NetTraitsRequestMode::Navigate) = mode {
@@ -268,8 +258,8 @@ impl Request {
         }
 
         // Step 19
-        let credentials: Option<NetTraitsRequestCredentials>;
-        let credentials = init.credentials.as_ref().map(|m| m.clone().into()).or(fallback_credentials);
+        let credentials: Option<NetTraitsRequestCredentials>
+            = init.credentials.as_ref().map(|m| m.clone().into()).or(fallback_credentials);
 
         // Step 20
         if let Some(c) = credentials {
@@ -324,21 +314,23 @@ impl Request {
         }
 
         // Step 26
-        let r = Request::new(global,
-                             Url::parse("").unwrap(),
-                             false);
-        *r.request.borrow_mut() = request;
+        let r = Request::from_nettraits_request(global,
+                                                Url::parse("").unwrap(),
+                                                false,
+                                                request);
         r.headers.or_init(|| Headers::for_request(r.global().r()));
 
         // Step 27
         let headers = r.Headers();
 
         // Step 28
-        let mut headers_init: Option<HeadersOrByteStringSequenceSequence>;
-        headers_init = None;
-        let headers_init = init.headers.as_ref().map(|h| h.clone());
+        let mut headers_init: Option<HeadersOrByteStringSequenceSequence> = None;
+        headers_init = init.headers.as_ref().map(|h| h.clone());
 
         // Step 29
+        // TODO: It is unclear whether this step should empty
+        // ... r's request's header list or r's header's header
+        // ... list. Currently, it empties the r's header's header list.
         headers.empty_header_list();
 
 
@@ -357,12 +349,12 @@ impl Request {
 
         // Step 31
         if headers_init.is_some() {
-            r.headers_reflector.get().unwrap().fill(headers_init);
+            r.Headers().fill(headers_init);
         }
 
         // Step 32
         let mut input_body: Option<Vec<u8>>;
-        let input_body = if let RequestInfo::Request(input_request) = input {
+        input_body = if let RequestInfo::Request(input_request) = input {
             input_request.request.borrow().body.clone().into_inner()
         } else {
             None
@@ -400,6 +392,46 @@ impl Request {
 
         // Step 38
         Ok(r)
+    }
+}
+
+impl Request {
+    fn new_nettraits_request(url: Url,
+                             origin: Option<Origin>,
+                             is_service_worker_global_scope: bool,
+                             pipeline_id: Option<PipelineId>) -> NetTraitsRequest {
+        NetTraitsRequest::new(url,
+                              origin,
+                              is_service_worker_global_scope,
+                              pipeline_id)
+    }
+
+    fn from_nettraits_request(global: GlobalRef,
+                              url: Url,
+                              is_service_worker_global_scope: bool,
+                              nettraits_request: NetTraitsRequest) -> Root<Request> {
+        let r = Request::new(global,
+                             url,
+                             is_service_worker_global_scope);
+        *r.request.borrow_mut() = nettraits_request;
+        r
+    }
+
+    fn clone_from(r: &Request) -> Root<Request> {
+        let url = r.request.borrow().url();
+        let is_service_worker_global_scope = r.request.borrow().clone().is_service_worker_global_scope;
+        let body_used = r.body_used.get();
+        let mime_type = r.mime_type.borrow().clone();
+        let headers_guard = r.Headers().get_guard();
+        let request = r.request.borrow().clone();
+        let r_clone = Request::from_nettraits_request(r.global().r(),
+                                                      url,
+                                                      is_service_worker_global_scope,
+                                                      request);
+        r_clone.body_used.set(body_used);
+        *r_clone.mime_type.borrow_mut() = mime_type;
+        r_clone.Headers().set_guard(headers_guard);
+        r_clone
     }
 }
 
@@ -497,13 +529,14 @@ impl RequestMethods for Request {
 
     // https://fetch.spec.whatwg.org/#dom-request-url
     fn Url(&self) -> USVString {
-        let r = self.request.borrow().clone();
-        USVString(r.url_list.into_inner().get(0).map_or("", |u| u.as_str()).into())
+        let r = self.request.borrow();
+        let url = r.url_list.borrow();
+        USVString(url.get(0).map_or("", |u| u.as_str()).into())
     }
 
     // https://fetch.spec.whatwg.org/#dom-request-headers
     fn Headers(&self) -> Root<Headers> {
-        self.headers_reflector.or_init(|| Headers::new(self.global().r()))
+        self.headers.or_init(|| Headers::new(self.global().r()))
     }
 
     // https://fetch.spec.whatwg.org/#dom-request-type
@@ -529,7 +562,6 @@ impl RequestMethods for Request {
 
     // https://fetch.spec.whatwg.org/#dom-request-referrerpolicy
     fn ReferrerPolicy(&self) -> ReferrerPolicy {
-        let r = self.request.borrow().clone();
         self.request.borrow().referrer_policy.get().unwrap_or(MsgReferrerPolicy::NoReferrer).into()
     }
 
@@ -558,8 +590,9 @@ impl RequestMethods for Request {
 
     // https://fetch.spec.whatwg.org/#dom-request-integrity
     fn Integrity(&self) -> DOMString {
-        let r = self.request.borrow().clone();
-        DOMString::from_string(r.integrity_metadata.into_inner())
+        let r = self.request.borrow();
+        let integrity = r.integrity_metadata.borrow();
+        DOMString::from_string(integrity.clone())
     }
 
     // https://fetch.spec.whatwg.org/#dom-body-bodyused
@@ -578,18 +611,7 @@ impl RequestMethods for Request {
         }
 
         // Step 2
-        let url = self.request.borrow().url();
-        let is_service_worker_global_scope = self.request.borrow().clone().is_service_worker_global_scope;
-        let body_used = self.body_used.get();
-        let mime_type = self.mime_type.borrow().clone();
-        let headers_guard = self.Headers().get_guard();
-        let r = Request::new(self.global().r(),
-                             url,
-                             is_service_worker_global_scope);
-        *r.mime_type.borrow_mut() = mime_type;
-        r.body_used.set(body_used);
-        r.Headers().set_guard(headers_guard);
-        Ok(r)
+        Ok(Request::clone_from(self))
     }
 }
 

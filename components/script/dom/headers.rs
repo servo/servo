@@ -13,7 +13,6 @@ use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::{ByteString, is_token};
 use hyper::header::Headers as HyperHeaders;
 use std::cell::Cell;
-use std::mem::replace;
 use std::result::Result;
 
 #[dom_struct]
@@ -59,7 +58,7 @@ impl Headers {
 
 impl HeadersMethods for Headers {
     // https://fetch.spec.whatwg.org/#concept-headers-append
-    fn Append(&self, name: ByteString, value: ByteString) -> Result<(), Error> {
+    fn Append(&self, name: ByteString, value: ByteString) -> ErrorResult {
         // Step 1
         let value = normalize_value(value);
         // Step 2
@@ -163,7 +162,7 @@ impl HeadersMethods for Headers {
 
 impl Headers {
     // https://fetch.spec.whatwg.org/#concept-headers-fill
-    pub fn fill(&self, filler: Option<HeadersBinding::HeadersInit>) -> Result<(), Error> {
+    pub fn fill(&self, filler: Option<HeadersBinding::HeadersInit>) -> ErrorResult {
         match filler {
             // Step 1
             Some(HeadersOrByteStringSequenceSequence::Headers(h)) => {
@@ -197,14 +196,8 @@ impl Headers {
         }
     }
 
-    pub fn no_initializer(global: GlobalRef) -> Root<Headers> {
-        let headers_without_initializer = reflect_dom_object(
-            box Headers::new_inherited(), global, HeadersBinding::Wrap);
-        headers_without_initializer
-    }
-
     pub fn for_request(global: GlobalRef) -> Root<Headers> {
-        let headers_for_request = reflect_dom_object(box Headers::new_inherited(), global, HeadersBinding::Wrap);
+        let headers_for_request = Headers::new(global);
         headers_for_request.guard.set(Guard::Request);
         headers_for_request
     }
