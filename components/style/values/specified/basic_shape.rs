@@ -7,14 +7,13 @@
 //!
 //! [basic-shape]: https://drafts.csswg.org/css-shapes/#typedef-basic-shape
 
-use app_units::Au;
 use cssparser::{Parser, ToCss};
 use properties::shorthands::{parse_four_sides, serialize_four_sides};
 use std::fmt;
 use values::computed::basic_shape as computed_basic_shape;
 use values::computed::{Context, ToComputedValue, ComputedValueAsSpecified};
-use values::specified::position::{Position, PositionComponent};
-use values::specified::{BorderRadiusSize, Length, LengthOrPercentage, Percentage};
+use values::specified::position::Position;
+use values::specified::{BorderRadiusSize, LengthOrPercentage, Percentage};
 
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
