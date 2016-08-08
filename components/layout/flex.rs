@@ -276,9 +276,8 @@ impl FlexLine {
         // https://drafts.csswg.org/css-flexbox/#resolve-flexible-lengths
         for item in items.iter_mut().filter(|i| !(i.is_strut && collapse)) {
             item.main_size = max(item.min_size, min(item.base_size, item.max_size));
-            if item.main_size != item.base_size
-                || (self.free_space > Au(0) && item.flex_grow == 0.0)
-                || (self.free_space < Au(0) && item.flex_shrink == 0.0) {
+            if (self.free_space > Au(0) && (item.flex_grow == 0.0 || item.base_size >= item.max_size)) ||
+                (self.free_space < Au(0) && (item.flex_shrink == 0.0 || item.base_size <= item.min_size)) {
                     item.is_frozen = true;
                 } else {
                     item.is_frozen = false;
@@ -311,7 +310,7 @@ impl FlexLine {
                     (item.flex_shrink * item.base_size.0 as f32 / total_scaled, item.min_size)
                 };
                 let variation = self.free_space.scale_by(factor);
-                if variation.0.abs() > (end_size - item.main_size).0.abs() {
+                if variation.0.abs() >= (end_size - item.main_size).0.abs() {
                     // Use constraint as the target main size, and freeze item.
                     total_variation += end_size - item.main_size;
                     item.main_size = end_size;
