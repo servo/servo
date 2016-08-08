@@ -42,7 +42,6 @@ use url::Url;
 #[dom_struct]
 pub struct Request {
     reflector_: Reflector,
-    #[ignore_heap_size_of = "net_traits is missing HeapSizeOf implementation"]
     request: DOMRefCell<NetTraitsRequest>,
     body_used: Cell<bool>,
     headers: MutNullableHeap<JS<Headers>>,
