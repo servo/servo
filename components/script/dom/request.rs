@@ -327,7 +327,7 @@ impl Request {
                                  false,
                                  None);
         *r.request.borrow_mut() = request;
-        r.headers_reflector.or_init(|| Headers::new(r.global().r(), None).unwrap());
+        r.headers_reflector.or_init(|| Headers::new(r.global().r()));
         r.headers_reflector.get().unwrap().set_guard(Guard::Request);
 
         // Step 27
@@ -360,7 +360,7 @@ impl Request {
 
         // Step 31
         if headers_init.is_some() {
-            r.headers_reflector.set(Some(Headers::new(global, headers_init).unwrap().r()));
+            r.headers_reflector.get().unwrap().fill(headers_init);
         }
 
         // Step 32
@@ -547,7 +547,7 @@ impl RequestMethods for Request {
 
     // https://fetch.spec.whatwg.org/#dom-request-headers
     fn Headers(&self) -> Root<Headers> {
-        self.headers_reflector.or_init(|| Headers::new(self.global().r(), None).unwrap())
+        self.headers_reflector.or_init(|| Headers::new(self.global().r()))
     }
 
     // https://fetch.spec.whatwg.org/#dom-request-type
