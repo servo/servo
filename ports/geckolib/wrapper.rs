@@ -34,6 +34,7 @@ use selectors::matching::DeclarationBlock;
 use selectors::parser::{AttrSelector, NamespaceConstraint};
 use snapshot::GeckoElementSnapshot;
 use snapshot_helpers;
+use std::fmt;
 use std::marker::PhantomData;
 use std::ops::BitOr;
 use std::ptr;
@@ -380,6 +381,16 @@ impl<'ld> TDocument for GeckoDocument<'ld> {
 pub struct GeckoElement<'le> {
     element: *mut RawGeckoElement,
     chain: PhantomData<&'le ()>,
+}
+
+impl<'le> fmt::Debug for GeckoElement<'le> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        try!(write!(f, "<{}", self.get_local_name()));
+        if let Some(id) = self.get_id() {
+            try!(write!(f, " id={}", id));
+        }
+        write!(f, ">")
+    }
 }
 
 impl<'le> GeckoElement<'le> {
