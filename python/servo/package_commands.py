@@ -188,7 +188,7 @@ class PackageCommands(CommandBase):
                 print("Packaging MacOS dmg exited with return value %d" % e.returncode)
                 return e.returncode
             print("Cleaning up")
-            # delete(dir_to_dmg)
+            delete(dir_to_dmg)
             print("Packaged Servo into " + dmg_path)
 
             print("Creating brew package")
@@ -208,9 +208,7 @@ class PackageCommands(CommandBase):
             # and therefore is not symlinked into HOMEBREW_PREFIX.
             os.makedirs(dir_to_brew + '/libexec/')
             copy_dependencies(dir_to_brew + '/bin/servo', dir_to_brew + '/libexec/')
-            # FIXME: use #12244
-            with tarfile.open(tar_path, "w:gz") as tar:
-                tar.add(dir_to_brew, arcname="servo/")
+            archive_deterministically(dir_to_brew, tar_path, prepend_path='servo/')
             delete(dir_to_brew)
             print("Packaged Servo into " + tar_path)
 

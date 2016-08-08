@@ -4,7 +4,8 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-cd "$(dirname $0)/../.."
+SCRIPTDIR=$PWD/`dirname $0`
+cd "$SCRIPTDIR/../.."
 
 PACKAGEPATH=`ls -t target/servo-????-??-??.tar.gz | head -n 1`
 PACKAGENAME=`basename $PACKAGEPATH`
@@ -30,7 +31,11 @@ git clone https://github.com/paulrouget/homebrew-servo
 cd homebrew-servo
 
 
-m4 -D PACKAGEURL=$PACKAGEURL -D SHA=$SHA -D VERSION=$VERSION ./servo-bin.rb.in > Formula/servo-bin.rb
+# Not using "/" as it's used in PACKAGEURL
+cat $SCRIPTDIR/servo-binary-formula.rb.in | sed \
+  "s|PACKAGEURL|$PACKAGEURL|g
+   s|SHA|$SHA|g
+   s|VERSION|$VERSION|g" > Formula/servo-bin.rb
 
 git add ./Formula/servo-bin.rb
 git commit -m "Version bump: $VERSION"
