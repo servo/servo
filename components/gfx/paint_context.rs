@@ -122,6 +122,10 @@ struct CornerOrigin {
 }
 
 impl<'a> PaintContext<'a> {
+    pub fn to_nearest_azure_rect(&self, rect: &Rect<Au>) -> Rect<AzFloat> {
+        rect.translate(&self.subpixel_offset).to_nearest_azure_rect(self.screen_pixels_per_px())
+    }
+
     pub fn screen_pixels_per_px(&self) -> ScaleFactor<PagePx, ScreenPx, f32> {
         self.screen_rect.as_f32().size.width / self.page_rect.size.width
     }
@@ -132,7 +136,7 @@ impl<'a> PaintContext<'a> {
 
     pub fn draw_solid_color(&self, bounds: &Rect<Au>, color: Color) {
         self.draw_target.make_current();
-        self.draw_target.fill_rect(&bounds.to_nearest_azure_rect(self.screen_pixels_per_px()),
+        self.draw_target.fill_rect(&self.to_nearest_azure_rect(&bounds),
                                    PatternRef::Color(&ColorPattern::new(color)),
                                    None);
     }
@@ -160,7 +164,7 @@ impl<'a> PaintContext<'a> {
     }
 
     pub fn draw_push_clip(&self, bounds: &Rect<Au>) {
-        let rect = bounds.to_nearest_azure_rect(self.screen_pixels_per_px());
+        let rect = self.to_nearest_azure_rect(bounds);
         let path_builder = self.draw_target.create_path_builder();
 
         let left_top = Point2D::new(rect.origin.x, rect.origin.y);
@@ -211,7 +215,7 @@ impl<'a> PaintContext<'a> {
         let source_rect = Rect::new(Point2D::new(0.0, 0.0),
                                     Size2D::new(image_info.width as AzFloat,
                                                 image_info.height as AzFloat));
-        let dest_rect = bounds.to_nearest_azure_rect(scale);
+        let dest_rect = self.to_nearest_azure_rect(bounds);
 
         // TODO(pcwalton): According to CSS-IMAGES-3 § 5.3, nearest-neighbor interpolation is a
         // conforming implementation of `crisp-edges`, but it is not the best we could do.
@@ -1127,7 +1131,7 @@ impl<'a> PaintContext<'a> {
                                   radius: &BorderRadii<AzFloat>,
                                   color: Color,
                                   dash_size: DashSize) {
-        let rect = bounds.to_nearest_azure_rect(self.screen_pixels_per_px());
+        let rect = self.to_nearest_azure_rect(bounds);
         let draw_opts = DrawOptions::new(1.0, CompositionOp::Over, AntialiasMode::None);
         let border_width = match direction {
             Direction::Top => border.top,
@@ -1195,7 +1199,7 @@ impl<'a> PaintContext<'a> {
                                  border: &SideOffsets2D<f32>,
                                  radius: &BorderRadii<AzFloat>,
                                  color: Color) {
-        let rect = bounds.to_nearest_azure_rect(self.screen_pixels_per_px());
+        let rect = self.to_nearest_azure_rect(bounds);
         self.draw_border_path(&rect, direction, border, radius, color);
     }
 
@@ -1203,7 +1207,7 @@ impl<'a> PaintContext<'a> {
                              bounds: &Rect<Au>,
                              border: &SideOffsets2D<f32>,
                              shrink_factor: f32) -> Rect<f32> {
-        let rect            = bounds.to_nearest_azure_rect(self.screen_pixels_per_px());
+        let rect            = self.to_nearest_azure_rect(bounds);
         let scaled_border   = SideOffsets2D::new(shrink_factor * border.top,
                                                  shrink_factor * border.right,
                                                  shrink_factor * border.bottom,
@@ -1406,7 +1410,7 @@ impl<'a> PaintContext<'a> {
                                                  &end_point.to_nearest_azure_point(scale),
                                                  stops,
                                                  &Matrix2D::identity());
-        self.draw_target.fill_rect(&bounds.to_nearest_azure_rect(scale),
+        self.draw_target.fill_rect(&self.to_nearest_azure_rect(&bounds),
                                    PatternRef::LinearGradient(&pattern),
                                    None);
     }
@@ -1632,7 +1636,7 @@ impl<'a> PaintContext<'a> {
         self.draw_push_clip(&clip_region.main);
         for complex_region in &clip_region.complex {
             // FIXME(pcwalton): Actually draw a rounded rect.
-            self.push_rounded_rect_clip(&complex_region.rect.to_nearest_azure_rect(scale),
+            self.push_rounded_rect_clip(&self.to_nearest_azure_rect(&complex_region.rect),
                                         &complex_region.radii.to_radii_pixels(scale))
         }
         self.transient_clip = Some(clip_region)
