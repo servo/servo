@@ -250,13 +250,6 @@ pub enum ResetFrom {
 
 
 impl HTMLFormElement {
-    fn generate_boundary(&self) -> String {
-        let i1 = random::<u32>();
-        let i2 = random::<u32>();
-
-        format!("---------------------------{0}{1}", i1, i2)
-    }
-
     // https://html.spec.whatwg.org/multipage/#picking-an-encoding-for-the-form
     fn pick_encoding(&self) -> EncodingRef {
         // Step 2
@@ -273,66 +266,6 @@ impl HTMLFormElement {
 
         // Step 1, 3
         document_from_node(self).encoding()
-    }
-
-    // https://html.spec.whatwg.org/multipage/#multipart/form-data-encoding-algorithm
-    fn encode_multipart_form_data(&self, form_data: &mut Vec<FormDatum>,
-                                  boundary: String, encoding: EncodingRef) -> Vec<u8> {
-        // Step 1
-        let mut result = vec![];
-
-        // Step 2
-        let charset = &*encoding.whatwg_name().unwrap_or("UTF-8");
-
-        // Step 3
-        for entry in form_data.iter_mut() {
-            // 3.1
-            if entry.name == "_charset_" && entry.ty == "hidden" {
-                entry.value = FormDatumValue::String(DOMString::from(charset.clone()));
-            }
-            // TODO: 3.2
-
-            // Step 4
-            // https://tools.ietf.org/html/rfc7578#section-4
-            // NOTE(izgzhen): The encoding here expected by most servers seems different from
-            // what spec says (that it should start with a '\r\n').
-            let mut boundary_bytes = format!("--{}\r\n", boundary).into_bytes();
-            result.append(&mut boundary_bytes);
-            let mut content_disposition = ContentDisposition {
-                disposition: DispositionType::Ext("form-data".to_owned()),
-                parameters: vec![DispositionParam::Ext("name".to_owned(), String::from(entry.name.clone()))]
-            };
-
-            match entry.value {
-                FormDatumValue::String(ref s) => {
-                    let mut bytes = format!("Content-Disposition: {}\r\n\r\n{}",
-                                            content_disposition, s).into_bytes();
-                    result.append(&mut bytes);
-                }
-                FormDatumValue::File(ref f) => {
-                    content_disposition.parameters.push(
-                        DispositionParam::Filename(Charset::Ext(String::from(charset.clone())),
-                                                   None,
-                                                   f.name().clone().into()));
-                    // https://tools.ietf.org/html/rfc7578#section-4.4
-                    let content_type = ContentType(f.upcast::<Blob>().Type()
-                                                    .parse().unwrap_or(mime!(Text / Plain)));
-                    let mut type_bytes = format!("Content-Disposition: {}\r\n{}\r\n\r\n",
-                                                 content_disposition,
-                                                 content_type).into_bytes();
-                    result.append(&mut type_bytes);
-
-                    let mut bytes = f.upcast::<Blob>().get_bytes().unwrap_or(vec![]);
-
-                    result.append(&mut bytes);
-                }
-            }
-        }
-
-        let mut boundary_bytes = format!("\r\n--{}--", boundary).into_bytes();
-        result.append(&mut boundary_bytes);
-
-        result
     }
 
     // https://html.spec.whatwg.org/multipage/#text/plain-encoding-algorithm
@@ -459,7 +392,7 @@ impl HTMLFormElement {
     // https://html.spec.whatwg.org/multipage/#submit-body
     fn submit_entity_body(&self, form_data: &mut Vec<FormDatum>, mut load_data: LoadData,
                           enctype: FormEncType, encoding: EncodingRef) {
-        let boundary = self.generate_boundary();
+        let boundary = generate_boundary();
         let bytes = match enctype {
             FormEncType::UrlEncoded => {
                 let mut url = load_data.url.clone();
@@ -476,7 +409,7 @@ impl HTMLFormElement {
             FormEncType::FormDataEncoded => {
                 let mime = mime!(Multipart / FormData; Boundary =(&boundary));
                 load_data.headers.set(ContentType(mime));
-                self.encode_multipart_form_data(form_data, boundary, encoding)
+                encode_multipart_form_data(form_data, boundary, encoding)
             }
             FormEncType::TextPlainEncoded => {
                 load_data.headers.set(ContentType(mime!(Text / Plain)));
@@ -718,12 +651,13 @@ impl HTMLFormElement {
 
 }
 
+#[derive(JSTraceable, HeapSizeOf, Clone)]
 pub enum FormDatumValue {
     File(Root<File>),
     String(DOMString)
 }
 
-// #[derive(HeapSizeOf)]
+#[derive(HeapSizeOf, JSTraceable, Clone)]
 pub struct FormDatum {
     pub ty: DOMString,
     pub name: DOMString,
@@ -971,4 +905,73 @@ impl Runnable for PlannedNavigation {
             script_chan.send(MainThreadScriptMsg::Navigate(self.pipeline_id, self.load_data)).unwrap();
         }
     }
+}
+
+
+// https://html.spec.whatwg.org/multipage/#multipart/form-data-encoding-algorithm
+pub fn encode_multipart_form_data(form_data: &mut Vec<FormDatum>,
+                                  boundary: String, encoding: EncodingRef) -> Vec<u8> {
+    // Step 1
+    let mut result = vec![];
+
+    // Step 2
+    let charset = &*encoding.whatwg_name().unwrap_or("UTF-8");
+
+    // Step 3
+    for entry in form_data.iter_mut() {
+        // 3.1
+        if entry.name == "_charset_" && entry.ty == "hidden" {
+            entry.value = FormDatumValue::String(DOMString::from(charset.clone()));
+        }
+        // TODO: 3.2
+
+        // Step 4
+        // https://tools.ietf.org/html/rfc7578#section-4
+        // NOTE(izgzhen): The encoding here expected by most servers seems different from
+        // what spec says (that it should start with a '\r\n').
+        let mut boundary_bytes = format!("--{}\r\n", boundary).into_bytes();
+        result.append(&mut boundary_bytes);
+        let mut content_disposition = ContentDisposition {
+            disposition: DispositionType::Ext("form-data".to_owned()),
+            parameters: vec![DispositionParam::Ext("name".to_owned(), String::from(entry.name.clone()))]
+        };
+
+        match entry.value {
+            FormDatumValue::String(ref s) => {
+                let mut bytes = format!("Content-Disposition: {}\r\n\r\n{}",
+                                        content_disposition, s).into_bytes();
+                result.append(&mut bytes);
+            }
+            FormDatumValue::File(ref f) => {
+                content_disposition.parameters.push(
+                    DispositionParam::Filename(Charset::Ext(String::from(charset.clone())),
+                                               None,
+                                               f.name().clone().into()));
+                // https://tools.ietf.org/html/rfc7578#section-4.4
+                let content_type = ContentType(f.upcast::<Blob>().Type()
+                                                .parse().unwrap_or(mime!(Text / Plain)));
+                let mut type_bytes = format!("Content-Disposition: {}\r\ncontent-type: {}\r\n\r\n",
+                                             content_disposition,
+                                             content_type).into_bytes();
+                result.append(&mut type_bytes);
+
+                let mut bytes = f.upcast::<Blob>().get_bytes().unwrap_or(vec![]);
+
+                result.append(&mut bytes);
+            }
+        }
+    }
+
+    let mut boundary_bytes = format!("\r\n--{}--", boundary).into_bytes();
+    result.append(&mut boundary_bytes);
+
+    result
+}
+
+// https://tools.ietf.org/html/rfc7578#section-4.1
+pub fn generate_boundary() -> String {
+    let i1 = random::<u32>();
+    let i2 = random::<u32>();
+
+    format!("---------------------------{0}{1}", i1, i2)
 }

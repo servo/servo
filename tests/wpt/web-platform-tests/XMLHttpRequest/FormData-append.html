@@ -80,8 +80,14 @@
         assert_equals(fd.get('key'), "null");
     }, 'testFormDataAppendToFormNull2');
     test(function() {
-        assert_object_equals(create_formdata(['key', new Blob(), 'blank.txt']).get('key'),
-                             new File(new Blob(), 'blank.txt'));
+        var f1 = create_formdata(['key', new Blob(), 'blank.txt']).get('key');
+        var f2 = new File([new Blob()], 'blank.txt');
+
+        var fileAttrs = ['name', 'size', 'type'];
+
+        fileAttrs.forEach(function(attr) {
+            assert_equals(f1[attr], f2[attr], attr + " should be equal");
+        });
     }, 'testFormDataAppendEmptyBlob');
 
     function create_formdata() {

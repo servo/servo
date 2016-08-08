@@ -6,7 +6,7 @@
  * https://xhr.spec.whatwg.org/#interface-formdata
  */
 
-typedef (Blob or USVString) FormDataEntryValue;
+typedef (File or USVString) FormDataEntryValue;
 
 [Constructor(optional HTMLFormElement form),
  Exposed=(Window,Worker)]
@@ -17,6 +17,7 @@ interface FormData {
   FormDataEntryValue? get(USVString name);
   sequence<FormDataEntryValue> getAll(USVString name);
   boolean has(USVString name);
-  void set(USVString name, FormDataEntryValue value);
+  void set(USVString name, USVString value);
+  void set(USVString name, Blob value, optional USVString filename);
   // iterable<USVString, FormDataEntryValue>;
 };
