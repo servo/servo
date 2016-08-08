@@ -95,7 +95,7 @@ impl<'ln> GeckoNode<'ln> {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct GeckoRestyleDamage(nsChangeHint);
 
 impl TRestyleDamage for GeckoRestyleDamage {
@@ -106,31 +106,10 @@ impl TRestyleDamage for GeckoRestyleDamage {
         GeckoRestyleDamage(unsafe { mem::transmute(0u32) })
     }
 
-    fn compute(source: Option<&nsStyleContext>,
+    fn compute(source: &nsStyleContext,
                new_style: &Arc<ComputedValues>) -> Self {
         type Helpers = ArcHelpers<ServoComputedValues, ComputedValues>;
-        let context = match source {
-            Some(ctx) => ctx as *const nsStyleContext as *mut nsStyleContext,
-            // If there's no style source (that is, no style context), there can
-            // be two reasons for it.
-            //
-            // The first one, is that this is not an incremental restyle (so we
-            // also don't have the old computed values). In that case the best
-            // we can do is return rebuild_and_reflow.
-            //
-            // The second one is that this is an incremental restyle, but the
-            // node has display: none. In this case, the old computed values
-            // should still be present, and we should be able to compare the new
-            // to the old display to see if it effectively needs a reflow, or we
-            // can do nothing on it because the old and the new display values
-            // are none.
-            //
-            // This is done outside of this method in servo itself, so we
-            // effectively only need to check for the first case. Ideally, we
-            // should be able to assert that in this case the display values
-            // differ or are not none, but we can't reach the node from here.
-            None => return Self::rebuild_and_reflow(),
-        };
+        let context = source as *const nsStyleContext as *mut nsStyleContext;
 
         Helpers::borrow(new_style, |new_style| {
             let hint = unsafe { Gecko_CalcStyleDifference(context, new_style) };

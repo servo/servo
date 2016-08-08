@@ -45,7 +45,7 @@ impl OpaqueNode {
     }
 }
 
-pub trait TRestyleDamage : Debug + BitOr<Output=Self> + Copy {
+pub trait TRestyleDamage : Debug + PartialEq + BitOr<Output=Self> + Copy {
     /// The source for our current computed values in the cascade. This is a
     /// ComputedValues in Servo and a StyleContext in Gecko.
     ///
@@ -56,7 +56,7 @@ pub trait TRestyleDamage : Debug + BitOr<Output=Self> + Copy {
     /// This should be obtained via TNode::existing_style_for_restyle_damage
     type PreExistingComputedValues;
 
-    fn compute(old: Option<&Self::PreExistingComputedValues>,
+    fn compute(old: &Self::PreExistingComputedValues,
                new: &Arc<ComputedValues>) -> Self;
 
     fn empty() -> Self;

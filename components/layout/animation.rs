@@ -135,7 +135,7 @@ pub fn recalc_style_for_animations(context: &SharedLayoutContext,
                 update_style_for_animation(&context.style_context,
                                            animation,
                                            &mut fragment.style);
-                damage |= RestyleDamage::compute(Some(&old_style), &fragment.style);
+                damage |= RestyleDamage::compute(&old_style, &fragment.style);
             }
         }
     });
