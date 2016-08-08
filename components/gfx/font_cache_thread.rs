@@ -423,10 +423,13 @@ impl FontCacheThread {
 
     pub fn find_font_template(&self, family: FontFamily, desc: FontTemplateDescriptor)
                                                 -> Option<FontTemplateInfo> {
-        let (response_chan, response_port) = ipc::channel().unwrap();
-        self.chan.send(Command::GetFontTemplate(family, desc, response_chan)).unwrap();
+        let (response_chan, response_port) =
+            ipc::channel().expect("failed to create IPC channel");
+        self.chan.send(Command::GetFontTemplate(family, desc, response_chan))
+            .expect("failed to send message to font cache thread");
 
-        let reply = response_port.recv().unwrap();
+        let reply = response_port.recv()
+            .expect("failed to receive response to font request");
 
         match reply {
             Reply::GetFontTemplateReply(data) => {
@@ -437,10 +440,13 @@ impl FontCacheThread {
 
     pub fn last_resort_font_template(&self, desc: FontTemplateDescriptor)
                                                 -> FontTemplateInfo {
-        let (response_chan, response_port) = ipc::channel().unwrap();
-        self.chan.send(Command::GetLastResortFontTemplate(desc, response_chan)).unwrap();
+        let (response_chan, response_port) =
+            ipc::channel().expect("failed to create IPC channel");
+        self.chan.send(Command::GetLastResortFontTemplate(desc, response_chan))
+            .expect("failed to send message to font cache thread");
 
-        let reply = response_port.recv().unwrap();
+        let reply = response_port.recv()
+            .expect("failed to receive response to font request");
 
         match reply {
             Reply::GetFontTemplateReply(data) => {
