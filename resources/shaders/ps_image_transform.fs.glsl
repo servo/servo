@@ -5,9 +5,12 @@
 void main(void) {
     vec2 pos = vPos.xy / vPos.z;
 
-    if (!point_in_rect(pos, vRect.xy, vRect.xy + vRect.zw)) {
-        discard;
-    }
-
     oFragColor = texture(sDiffuse, vUv / vPos.z);
+
+    float squared_distance = squared_distance_from_rect(pos, vRect.xy, vRect.zw);
+    if (squared_distance != 0) {
+        float delta = length(fwidth(vPos.xy));
+        float alpha = smoothstep(1.0, 0.0, squared_distance / delta * 2);
+        oFragColor = oFragColor * vec4(1.0, 1.0, 1.0, alpha);
+    }
 }
