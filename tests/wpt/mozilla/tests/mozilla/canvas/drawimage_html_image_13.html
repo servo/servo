@@ -25,7 +25,7 @@ destCtx.imageSmoothingEnabled = smoothingEnabled;
 // The source Image doesn't have a src url defined
 // It should throw an exception because the HTMLImageElement is
 // in the broken state
-// https://html.spec.whatwg.org/multipage/scripting.html#check-the-usability-of-the-image-argument
+// https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument
 try {
     destCtx.drawImage(sourceImg, 0, 0);
     // It makes the test fail if the exception is not thrown

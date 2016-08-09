@@ -10,20 +10,20 @@
 </body>
 <script>
     async_test(function(t) {
-	setTimeout(t.step_func(function() {
-	    var frame = document.createElement('iframe');
-	    frame.src = "data:text/html,<p>test</p>";
-	    document.body.appendChild(frame);
-	    setTimeout(t.step_func(function() {
-		document.body.removeChild(frame);
-		frame = document.createElement('iframe');
-		frame.src = "data:text/html,<p>test</p>";
-		document.body.appendChild(frame);
-		setTimeout(t.step_func(function() {
-		    t.done();
-		}), 100);
-	    }), 100);
-	}), 100);
+    setTimeout(t.step_func(function() {
+        var frame = document.createElement('iframe');
+        frame.src = "data:text/html,<p>test</p>";
+        document.body.appendChild(frame);
+        setTimeout(t.step_func(function() {
+        document.body.removeChild(frame);
+        frame = document.createElement('iframe');
+        frame.src = "data:text/html,<p>test</p>";
+        document.body.appendChild(frame);
+        setTimeout(t.step_func(function() {
+            t.done();
+        }), 100);
+        }), 100);
+    }), 100);
     });
 </script>
 </html>
