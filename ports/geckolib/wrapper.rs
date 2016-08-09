@@ -44,7 +44,7 @@ use style::dom::{TDocument, TElement, TNode, TRestyleDamage, UnsafeNode};
 use style::element_state::ElementState;
 use style::error_reporting::StdoutErrorReporter;
 use style::gecko_glue::ArcHelpers;
-use style::gecko_selector_impl::{GeckoSelectorImpl, NonTSPseudoClass};
+use style::gecko_selector_impl::{GeckoSelectorImpl, NonTSPseudoClass, PseudoElement};
 use style::parser::ParserContextExtraData;
 use style::properties::{ComputedValues, parse_style_attribute};
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
@@ -312,10 +312,18 @@ impl<'ln> TNode for GeckoNode<'ln> {
     }
 
     fn existing_style_for_restyle_damage<'a>(&'a self,
-                                             current_cv: Option<&'a Arc<ComputedValues>>)
+                                             current_cv: Option<&'a Arc<ComputedValues>>,
+                                             pseudo: Option<&PseudoElement>)
                                              -> Option<&'a nsStyleContext> {
         if current_cv.is_none() {
             // Don't bother in doing an ffi call to get null back.
+            return None;
+        }
+
+        if pseudo.is_some() {
+            // FIXME(emilio): This makes us reconstruct frame for pseudos every
+            // restyle, add a FFI call to get the style context associated with
+            // a PE.
             return None;
         }
 

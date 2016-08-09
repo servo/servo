@@ -12,7 +12,7 @@ use element_state::ElementState;
 use properties::{ComputedValues, PropertyDeclaration, PropertyDeclarationBlock};
 use refcell::{Ref, RefMut};
 use restyle_hints::{RESTYLE_DESCENDANTS, RESTYLE_LATER_SIBLINGS, RESTYLE_SELF, RestyleHint};
-use selector_impl::ElementExt;
+use selector_impl::{ElementExt, PseudoElement};
 use selectors::matching::DeclarationBlock;
 use sink::Push;
 use std::fmt::Debug;
@@ -177,7 +177,8 @@ pub trait TNode : Sized + Copy + Clone {
     /// as an argument here, but otherwise Servo would crash due to double
     /// borrows to return it.
     fn existing_style_for_restyle_damage<'a>(&'a self,
-                                             current_computed_values: Option<&'a Arc<ComputedValues>>)
+                                             current_computed_values: Option<&'a Arc<ComputedValues>>,
+                                             pseudo: Option<&PseudoElement>)
         -> Option<&'a <Self::ConcreteRestyleDamage as TRestyleDamage>::PreExistingComputedValues>;
 }
 

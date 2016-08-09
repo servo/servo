@@ -639,7 +639,7 @@ pub trait ElementMatchMethods : TElement {
                 let style = &mut node.mutate_data().unwrap().style;
 
                 let damage =
-                    match node.existing_style_for_restyle_damage((*style).as_ref()) {
+                    match node.existing_style_for_restyle_damage((*style).as_ref(), None) {
                         Some(ref source) => {
                             <<Self as TElement>::ConcreteNode as TNode>
                             ::ConcreteRestyleDamage::compute(source, &shared_style)
@@ -719,8 +719,11 @@ pub trait MatchMethods : TNode {
 
     fn compute_restyle_damage(&self,
                               old_style: Option<&Arc<ComputedValues>>,
-                              new_style: &Arc<ComputedValues>) -> Self::ConcreteRestyleDamage {
-        match self.existing_style_for_restyle_damage(old_style) {
+                              new_style: &Arc<ComputedValues>,
+                              pseudo: Option<&PseudoElement>)
+                              -> Self::ConcreteRestyleDamage
+    {
+        match self.existing_style_for_restyle_damage(old_style, pseudo) {
             Some(ref source) => {
                 Self::ConcreteRestyleDamage::compute(source,
                                                      new_style)
@@ -748,7 +751,8 @@ pub trait MatchMethods : TNode {
                 // like children of replaced content. Arguably, we shouldn't be
                 // styling those here, but until we implement that we'll have to
                 // stick without the assertions.
-                debug_assert!(new_style.get_box().clone_display() != display::T::none);
+                debug_assert!(pseudo.is_none() ||
+                              new_style.get_box().clone_display() != display::T::none);
                 Self::ConcreteRestyleDamage::rebuild_and_reflow()
             }
         }
@@ -783,7 +787,7 @@ pub trait MatchMethods : TNode {
             let cloned_parent_style = ComputedValues::style_for_child_text_node(parent_style.unwrap());
 
             let damage =
-                self.compute_restyle_damage(data.style.as_ref(), &cloned_parent_style);
+                self.compute_restyle_damage(data.style.as_ref(), &cloned_parent_style, None);
 
             data.style = Some(cloned_parent_style);
 
@@ -860,20 +864,9 @@ pub trait MatchMethods : TNode {
         // Otherwise, we just compute the damage normally, and sum up the damage
         // related to pseudo-elements.
         let mut damage =
-            self.compute_restyle_damage(data.style.as_ref(), &final_style);
+            self.compute_restyle_damage(data.style.as_ref(), &final_style, None);
 
         data.style = Some(final_style);
-
-        // FIXME(emilio): This is not pretty, and in the Gecko case means
-        // effectively comparing with the old computed values (given our style
-        // source is the old nsStyleContext).
-        //
-        // We should be diffing the old pseudo-element styles with the new ones,
-        // see https://bugzilla.mozilla.org/show_bug.cgi?id=1293399.
-        //
-        // For now we do the following, which preserves the old Servo behavior.
-        let existing_style =
-            self.existing_style_for_restyle_damage(data.style.as_ref());
 
         let data_per_pseudo = &mut data.per_pseudo;
         let new_style = data.style.as_ref();
@@ -883,36 +876,72 @@ pub trait MatchMethods : TNode {
         let rebuild_and_reflow =
             Self::ConcreteRestyleDamage::rebuild_and_reflow();
 
-        debug_assert!(existing_style.is_some() || damage == rebuild_and_reflow);
-
         <Self::ConcreteElement as MatchAttr>::Impl::each_eagerly_cascaded_pseudo_element(|pseudo| {
+            use std::collections::hash_map::Entry;
+
             let applicable_declarations_for_this_pseudo =
                 applicable_declarations.per_pseudo.get(&pseudo).unwrap();
 
-            if !applicable_declarations_for_this_pseudo.is_empty() {
+            let has_declarations =
+                !applicable_declarations_for_this_pseudo.is_empty();
+
+            // If there are declarations matching, we're going to need to
+            // recompute the style anyway, so do it now to simplify the logic
+            // below.
+            let pseudo_style_if_declarations = if has_declarations {
                 // NB: Transitions and animations should only work for
                 // pseudo-elements ::before and ::after
                 let should_animate_properties =
                     <Self::ConcreteElement as MatchAttr>::Impl::pseudo_is_before_or_after(&pseudo);
 
-                let new_pseudo_style =
-                    self.cascade_node_pseudo_element(context,
-                                                     new_style,
-                                                     &*applicable_declarations_for_this_pseudo,
-                                                     data_per_pseudo.get_mut(&pseudo),
-                                                     &mut applicable_declarations_cache,
-                                                     /* shareable = */ false,
-                                                     should_animate_properties);
+                Some(self.cascade_node_pseudo_element(context,
+                                                      new_style,
+                                                      &*applicable_declarations_for_this_pseudo,
+                                                      data_per_pseudo.get_mut(&pseudo),
+                                                      &mut applicable_declarations_cache,
+                                                      /* shareable = */ false,
+                                                      should_animate_properties))
+            } else {
+                None
+            };
 
-                // No point in computing more damage if we're already doing all
-                // the work.
-                if damage != rebuild_and_reflow {
-                    let new_damage =
-                        Self::ConcreteRestyleDamage::compute(existing_style.unwrap(),
-                                                             &new_pseudo_style);
-                    damage = damage | new_damage;
+            // Let's see what we had before.
+            match data_per_pseudo.entry(pseudo.clone()) {
+                Entry::Vacant(vacant_entry) => {
+                    // If we had a vacant entry, and no rules that match, we're
+                    // fine so far.
+                    if !has_declarations {
+                        return;
+                    }
+
+                    // Otherwise, we need to insert the new computed styles, and
+                    // generate a rebuild_and_reflow damage.
+                    damage = damage | Self::ConcreteRestyleDamage::rebuild_and_reflow();
+                    vacant_entry.insert(pseudo_style_if_declarations.unwrap());
                 }
-                data_per_pseudo.insert(pseudo, new_pseudo_style);
+                Entry::Occupied(mut occupied_entry) => {
+                    // If there was an existing style, and no declarations, we
+                    // need to remove us from the map, and ensure we're
+                    // reconstructing.
+                    if !has_declarations {
+                        damage = damage | Self::ConcreteRestyleDamage::rebuild_and_reflow();
+                        occupied_entry.remove();
+                        return;
+                    }
+
+                    // If there's a new style, we need to diff it and add the
+                    // damage, except if the damage was already
+                    // rebuild_and_reflow, in which case we can avoid it.
+                    if damage != rebuild_and_reflow {
+                        damage = damage |
+                                 self.compute_restyle_damage(Some(occupied_entry.get()),
+                                                             pseudo_style_if_declarations.as_ref().unwrap(),
+                                                             Some(&pseudo));
+                    }
+
+                    // And now, of course, use the new style.
+                    occupied_entry.insert(pseudo_style_if_declarations.unwrap());
+                }
             }
         });
 

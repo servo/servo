@@ -61,7 +61,7 @@ use style::dom::{PresentationalHintsSynthetizer, OpaqueNode, TDocument, TElement
 use style::element_state::*;
 use style::properties::{ComputedValues, PropertyDeclaration, PropertyDeclarationBlock};
 use style::refcell::{Ref, RefCell, RefMut};
-use style::selector_impl::{ElementSnapshot, NonTSPseudoClass, ServoSelectorImpl};
+use style::selector_impl::{ElementSnapshot, NonTSPseudoClass, PseudoElement, ServoSelectorImpl};
 use style::sink::Push;
 use style::str::is_whitespace;
 use url::Url;
@@ -266,7 +266,8 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
 
     #[inline]
     fn existing_style_for_restyle_damage<'a>(&'a self,
-                                             current_cv: Option<&'a Arc<ComputedValues>>)
+                                             current_cv: Option<&'a Arc<ComputedValues>>,
+                                             _pseudo_element: Option<&PseudoElement>)
                                              -> Option<&'a Arc<ComputedValues>> {
         current_cv
     }
