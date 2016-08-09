@@ -403,7 +403,8 @@ impl Shaper {
         // applied. The effect of the property on other word-separator characters is undefined."
         // We elect to only space the two required code points.
         if character == ' ' || character == '\u{a0}' {
-            advance = advance + options.word_spacing
+            let (length, percent) = options.word_spacing;
+            advance = (advance + length) + Au((advance.0 as f32 * percent.into_inner()) as i32);
         }
 
         advance

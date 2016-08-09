@@ -28,6 +28,7 @@ log = "0.3.5"
 mime = "0.2"
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
+ordered-float = "0.2.2"
 plugins = {path = "../plugins"}
 profile_traits = {path = "../profile_traits"}
 rand = "0.3"

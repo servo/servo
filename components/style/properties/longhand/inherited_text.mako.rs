@@ -275,7 +275,7 @@
     impl HasViewportPercentage for SpecifiedValue {
         fn has_viewport_percentage(&self) -> bool {
             match *self {
-                SpecifiedValue::Specified(length) => length.has_viewport_percentage(),
+                SpecifiedValue::LengthOrPercentage(length) => length.has_viewport_percentage(),
                 _ => false
             }
         }
@@ -285,23 +285,23 @@
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SpecifiedValue {
         Normal,
-        Specified(specified::Length),  // FIXME(SimonSapin) support percentages
+        LengthOrPercentage(specified::LengthOrPercentage),
     }
 
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             match *self {
                 SpecifiedValue::Normal => dest.write_str("normal"),
-                SpecifiedValue::Specified(l) => l.to_css(dest),
+                SpecifiedValue::LengthOrPercentage(l) => l.to_css(dest),
             }
         }
     }
 
     pub mod computed_value {
-        use app_units::Au;
+        use values::computed::LengthOrPercentage;
         #[derive(Debug, Clone, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct T(pub Option<Au>);
+        pub struct T(pub Option<LengthOrPercentage>);
     }
 
     impl ToCss for computed_value::T {
@@ -325,7 +325,7 @@
         fn to_computed_value(&self, context: &Context) -> computed_value::T {
             match *self {
                 SpecifiedValue::Normal => computed_value::T(None),
-                SpecifiedValue::Specified(l) =>
+                SpecifiedValue::LengthOrPercentage(l) =>
                     computed_value::T(Some(l.to_computed_value(context)))
             }
         }
@@ -335,7 +335,7 @@
         if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
             Ok(SpecifiedValue::Normal)
         } else {
-            specified::Length::parse_non_negative(input).map(SpecifiedValue::Specified)
+            specified::LengthOrPercentage::parse_non_negative(input).map(SpecifiedValue::LengthOrPercentage)
         }
     }
 </%helpers:longhand>
