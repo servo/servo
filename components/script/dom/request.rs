@@ -82,60 +82,86 @@ impl Request {
     pub fn Constructor(global: GlobalRef,
                        input: RequestInfo,
                        init: &RequestInit)
-                      -> Fallible<Root<Request>> {
-        let mut request = Request::new_nettraits_request(Url::parse("").unwrap(),
-                                                         None,
-                                                         false,
-                                                         None);
+                       -> Fallible<Root<Request>> {
 
         // Step 1
-        if let &RequestInfo::Request(ref input_request) = &input {
-            if request_is_disturbed(&input_request) || request_is_locked(&input_request) {
-                return Err(Error::Type("Input is disturbed or locked".to_string()))
+        let mut temporary_request: NetTraitsRequest;
+
+        // Step 2
+        let mut fallback_mode: Option<NetTraitsRequestMode> = None;
+
+        // Step 3
+        let mut fallback_credentials: Option<NetTraitsRequestCredentials> = None;
+
+        // Step 4
+        // TODO: `entry settings object` is not implemented in Servo yet.
+        let base_url = global.get_url();
+
+        match &input {
+            // Step 5
+            &RequestInfo::USVString(USVString(ref usv_string)) => {
+                // Step 5.1
+                let parsed_url = base_url.join(&usv_string);
+                // Step 5.2
+                if parsed_url.is_err() {
+                    return Err(Error::Type("Url could not be parsed".to_string()))
+                }
+                // Step 5.3
+                let url = parsed_url.unwrap();
+                if includes_credentials(&url) {
+                    return Err(Error::Type("Url includes credentials".to_string()))
+                }
+                // Step 5.4
+                temporary_request = Request::new_nettraits_request(url,
+                                                                   None,
+                                                                   false,
+                                                                   None);
+                // Step 5.5
+                fallback_mode = Some(NetTraitsRequestMode::CORSMode);
+                // Step 5.6
+                fallback_credentials = Some(NetTraitsRequestCredentials::Omit);
+            }
+            // Step 6
+            &RequestInfo::Request(ref input_request) => {
+                // Step 6.1
+                if request_is_disturbed(&input_request) || request_is_locked(&input_request) {
+                    return Err(Error::Type("Input is disturbed or locked".to_string()))
+                }
+                // Step 6.2
+                temporary_request = input_request.request.borrow().clone();
             }
         }
 
-        // Step 2
-        let mut temporary_request =
-            Request::new_nettraits_request(Url::parse("").unwrap(),
-                                           None,
-                                           false,
-                                           None);
-        if let &RequestOrUSVString::Request(ref req) = &input {
-            temporary_request = req.request.borrow().clone();
-        }
-
-        // Step 3
+        // Step 7
         // TODO: `entry settings object` is not implemented yet.
-        // ... let origin = "entry settings object origin";
 
-        // Step 4
+        // Step 8
         let mut window = Window::Client;
 
-        // Step 5
+        // Step 9
         // TODO: `environment settings object` is not implemented in Servo yet.
-        // ... check whether temporary_request.window == "environment settings object"
 
-        // Step 6
+        // Step 10
         if !init.window.is_undefined() && !init.window.is_null() {
             return Err(Error::Type("Window is present and is not null".to_string()))
         }
 
-        // Step 7
+        // Step 11
         if !init.window.is_undefined() {
             window = Window::NoWindow;
         }
 
-        // Step 8
-        if let Some(url) = get_current_url(&temporary_request) {
-            *request.url_list.borrow_mut() = vec![url.clone()];
-        }
+        // Step 12
+        let mut request: NetTraitsRequest;
+        request = Request::new_nettraits_request(get_current_url(&temporary_request).unwrap().clone(),
+                                                 None,
+                                                 false,
+                                                 None);
         request.method = temporary_request.method;
         request.headers = temporary_request.headers.clone();
         request.unsafe_request = true;
         request.window.set(window);
-        // TODO: `client` is not implemented in Servo yet.
-        // ... new_request's client = entry settings object
+        // TODO: `entry settings object` is not implemented in Servo yet.
         *request.origin.borrow_mut() = Origin::Client;
         request.omit_origin_header = temporary_request.omit_origin_header;
         request.same_origin_data.set(true);
@@ -146,38 +172,6 @@ impl Request {
         request.cache_mode = temporary_request.cache_mode;
         request.redirect_mode = temporary_request.redirect_mode;
         request.integrity_metadata = temporary_request.integrity_metadata;
-
-        // Step 9
-        let mut fallback_mode: Option<NetTraitsRequestMode> = None;
-
-        // Step 10
-        let mut fallback_credentials: Option<NetTraitsRequestCredentials> = None;
-
-        // Step 11
-        // TODO: `entry settings object` is not implemented in Servo yet.
-        let base_url = global.get_url();
-
-        // Step 12
-        if let &RequestOrUSVString::USVString(USVString(ref usv_string)) = &input {
-            // Step 12.1
-            let parsed_url = base_url.join(&usv_string);
-            // Step 12.2
-            if parsed_url.is_err() {
-                return Err(Error::Type("Url could not be parsed".to_string()))
-            }
-            // Step 12.3
-            if let Ok(url) = parsed_url {
-                if includes_credentials(&url) {
-                    return Err(Error::Type("Url includes credentials".to_string()))
-                }
-                // Step 12.4
-                *request.url_list.borrow_mut() = vec![url];
-            }
-            // Step 12.5
-            fallback_mode = Some(NetTraitsRequestMode::CORSMode);
-            // Step 12.6
-            fallback_credentials = Some(NetTraitsRequestCredentials::Omit);
-        }
 
         // Step 13
         if init.body.is_some() ||
