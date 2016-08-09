@@ -48,6 +48,11 @@ class CheckTidiness(unittest.TestCase):
         self.assertEqual('incorrect license', errors.next()[2])
         self.assertNoMoreErrors(errors)
 
+    def test_shebang_license(self):
+        errors = tidy.collect_errors_for_files(iterFile('shebang_license.py'), [], [tidy.check_license], print_text=False)
+        self.assertEqual('missing blank line after shebang', errors.next()[2])
+        self.assertNoMoreErrors(errors)
+
     def test_shell(self):
         errors = tidy.collect_errors_for_files(iterFile('shell_tidy.sh'), [], [tidy.check_shell], print_text=False)
         self.assertEqual('script does not have shebang "#!/usr/bin/env bash"', errors.next()[2])

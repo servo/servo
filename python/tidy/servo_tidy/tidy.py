@@ -170,10 +170,19 @@ def licensed_apache(header):
 def check_license(file_name, lines):
     if any(file_name.endswith(ext) for ext in (".toml", ".lock", ".json")):
         raise StopIteration
-    block = min(len(lines), licenseck.MAX_LICENSE_LINESPAN)
+
+    if lines[0].startswith("#!") and lines[1].strip():
+        yield (1, "missing blank line after shebang")
+
+    blank_lines = 0
+    MAX_BLANK_LINES = 2 if lines[0].startswith("#!") else 1
     license_block = []
-    for l in lines[:block]:
+    for l in lines:
         l = l.rstrip('\n')
+        if not l.strip():
+            blank_lines += 1
+        if blank_lines >= MAX_BLANK_LINES:
+            break
         line = uncomment(l)
         if line is not None:
             license_block += [line]
