@@ -161,8 +161,9 @@ def licensed_mpl(header):
 
 def licensed_apache(header):
     if licenseck.apache in header:
-        if licenseck.copyright in header or licenseck.copyright_rust in header:
-            return True
+        for copyright in licenseck.copyright:
+            if copyright in header:
+                return True
     return False
 
 
