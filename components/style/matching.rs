@@ -645,9 +645,6 @@ pub trait ElementMatchMethods : TElement {
                             ::ConcreteRestyleDamage::compute(source, &shared_style)
                         }
                         None => {
-                            debug_assert!(style.is_none() ||
-                                          style.as_ref().unwrap().get_box().clone_display() != display::T::none);
-
                             <<Self as TElement>::ConcreteNode as TNode>
                             ::ConcreteRestyleDamage::rebuild_and_reflow()
                         }
@@ -736,14 +733,21 @@ pub trait MatchMethods : TNode {
                 //     rebuild_and_reflow.
                 //
                 //  2. This is an incremental restyle, but the old display value
-                //     is none, so there's no effective way for gecko to get the
+                //     is none, so there's no effective way for Gecko to get the
                 //     style source. In this case, we could return either
                 //     RestyleDamage::empty(), in the case both displays are
                 //     none, or rebuild_and_reflow, otherwise. The first case
                 //     should be already handled when calling this function, so
                 //     we can assert that the new display value is not none.
-                debug_assert!(old_style.is_none() ||
-                              old_style.unwrap().get_box().clone_display() != display::T::none);
+                //
+                //     Also, this can be a text node (in which case we don't
+                //     care of watching the new display value).
+                //
+                // Unfortunately we can't strongly assert part of this, since
+                // we style some nodes that in Gecko never generate a frame,
+                // like children of replaced content. Arguably, we shouldn't be
+                // styling those here, but until we implement that we'll have to
+                // stick without the assertions.
                 debug_assert!(new_style.get_box().clone_display() != display::T::none);
                 Self::ConcreteRestyleDamage::rebuild_and_reflow()
             }
