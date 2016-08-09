@@ -816,6 +816,18 @@
             "url": "/_mozilla/css/border_collapse_simple_a.html"
           }
         ],
+        "css/border_inline_split.html": [
+          {
+            "path": "css/border_inline_split.html",
+            "references": [
+              [
+                "/_mozilla/css/border_inline_split_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/border_inline_split.html"
+          }
+        ],
         "css/border_radius_asymmetric_sizes_a.html": [
           {
             "path": "css/border_radius_asymmetric_sizes_a.html",
@@ -9968,6 +9980,18 @@
             ]
           ],
           "url": "/_mozilla/css/border_collapse_simple_a.html"
+        }
+      ],
+      "css/border_inline_split.html": [
+        {
+          "path": "css/border_inline_split.html",
+          "references": [
+            [
+              "/_mozilla/css/border_inline_split_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/border_inline_split.html"
         }
       ],
       "css/border_radius_asymmetric_sizes_a.html": [

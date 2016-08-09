@@ -636,7 +636,23 @@ impl LineBreaker {
         // Push the first fragment onto the line we're working on and start off the next line with
         // the second fragment. If there's no second fragment, the next line will start off empty.
         match (inline_start_fragment, inline_end_fragment) {
-            (Some(inline_start_fragment), Some(inline_end_fragment)) => {
+            (Some(mut inline_start_fragment), Some(mut inline_end_fragment)) => {
+                inline_start_fragment.border_padding.inline_end = Au(0);
+                if let Some(ref mut inline_context) = inline_start_fragment.inline_context {
+                    for node in &mut inline_context.nodes {
+                        node.flags.remove(LAST_FRAGMENT_OF_ELEMENT);
+                    }
+                }
+                inline_start_fragment.border_box.size.inline += inline_start_fragment.border_padding.inline_start;
+
+                inline_end_fragment.border_padding.inline_start = Au(0);
+                if let Some(ref mut inline_context) = inline_end_fragment.inline_context {
+                    for node in &mut inline_context.nodes {
+                        node.flags.remove(FIRST_FRAGMENT_OF_ELEMENT);
+                    }
+                }
+                inline_end_fragment.border_box.size.inline += inline_end_fragment.border_padding.inline_end;
+
                 self.push_fragment_to_line(layout_context,
                                            inline_start_fragment,
                                            LineFlushMode::Flush);
