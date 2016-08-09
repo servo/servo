@@ -300,8 +300,8 @@ impl Request {
         }
 
         // Step 26
+        let url = request.url();
         let r = Request::from_net_request(global,
-                                          Url::parse("").unwrap(),
                                           false,
                                           request);
         r.headers.or_init(|| Headers::for_request(r.global().r()));
@@ -384,27 +384,32 @@ impl Request {
 
 impl Request {
     fn from_net_request(global: GlobalRef,
-                        url: Url,
                         is_service_worker_global_scope: bool,
-                        nettraits_request: NetTraitsRequest) -> Root<Request> {
+                        net_request: NetTraitsRequest) -> Root<Request> {
         let r = Request::new(global,
-                             url,
+                             global.get_url(),
                              is_service_worker_global_scope);
-        *r.request.borrow_mut() = nettraits_request;
+        *r.request.borrow_mut() = net_request;
         r
     }
 
     fn clone_from(r: &Request) -> Root<Request> {
-        let url = r.request.borrow().url();
-        let is_service_worker_global_scope = r.request.borrow().is_service_worker_global_scope;
+        let req = r.request.borrow();
+        let url = req.url();
+        let origin = req.origin.borrow().clone();
+        let is_service_worker_global_scope = req.is_service_worker_global_scope;
+        let pipeline_id = req.pipeline_id.get();
         let body_used = r.body_used.get();
         let mime_type = r.mime_type.borrow().clone();
         let headers_guard = r.Headers().get_guard();
-        let request = r.request.borrow().clone();
-        let r_clone = Request::from_net_request(r.global().r(),
-                                                url,
-                                                is_service_worker_global_scope,
-                                                request);
+        let r_clone = reflect_dom_object(
+            box Request::new_inherited(r.global().r(),
+                                       url,
+                                       Some(origin),
+                                       is_service_worker_global_scope,
+                                       pipeline_id),
+            r.global().r(), RequestBinding::Wrap);
+        *r_clone.request.borrow_mut() = req.clone();
         r_clone.body_used.set(body_used);
         *r_clone.mime_type.borrow_mut() = mime_type;
         r_clone.Headers().set_guard(headers_guard);
