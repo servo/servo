@@ -83,7 +83,6 @@ impl Request {
                        input: RequestInfo,
                        init: &RequestInit)
                        -> Fallible<Root<Request>> {
-
         // Step 1
         let mut temporary_request: NetTraitsRequest;
 
