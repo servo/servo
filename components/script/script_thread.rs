@@ -1391,7 +1391,7 @@ impl ScriptThread {
             doc.find_iframe(old_subpage_id)
         });
 
-        frame_element.unwrap().update_subpage_id(new_subpage_id, new_pipeline_id);
+        frame_element.map(|fe| fe.update_subpage_id(new_subpage_id, new_pipeline_id));
     }
 
     /// Window was resized, but this script was not active, so don't reflow yet
