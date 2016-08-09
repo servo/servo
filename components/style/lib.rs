@@ -57,6 +57,7 @@ extern crate log;
 #[macro_use]
 extern crate matches;
 extern crate num_traits;
+extern crate ordered_float;
 extern crate rand;
 extern crate rustc_serialize;
 extern crate selectors;

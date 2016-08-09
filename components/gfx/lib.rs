@@ -60,6 +60,7 @@ extern crate log;
 extern crate mime;
 extern crate msg;
 extern crate net_traits;
+extern crate ordered_float;
 #[macro_use]
 extern crate profile_traits;
 extern crate rand;

@@ -261,7 +261,7 @@ def check_lock(file_name, contents):
         raise StopIteration
 
     # package names to be neglected (as named by cargo)
-    exceptions = ["lazy_static"]
+    exceptions = ["lazy_static", "unreachable", "void"]
 
     import toml
     content = toml.loads(contents)

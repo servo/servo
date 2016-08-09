@@ -35,6 +35,7 @@ extern crate libc;
 extern crate log;
 extern crate msg;
 extern crate net_traits;
+extern crate ordered_float;
 #[macro_use]
 #[no_link]
 extern crate plugins as servo_plugins;

@@ -5,6 +5,7 @@
 use app_units::Au;
 use euclid::{Point2D, Rect, Size2D};
 use font_template::FontTemplateDescriptor;
+use ordered_float::NotNaN;
 use platform::font::{FontHandle, FontTable};
 use platform::font_context::FontContextHandle;
 use platform::font_template::FontTemplateData;
@@ -157,7 +158,7 @@ pub struct ShapingOptions {
     /// NB: You will probably want to set the `IGNORE_LIGATURES_SHAPING_FLAG` if this is non-null.
     pub letter_spacing: Option<Au>,
     /// Spacing to add between each word. Corresponds to the CSS 2.1 `word-spacing` property.
-    pub word_spacing: Au,
+    pub word_spacing: (Au, NotNaN<f32>),
     /// The Unicode script property of the characters in this run.
     pub script: Script,
     /// Various flags.
@@ -225,7 +226,9 @@ impl Font {
 
             let mut advance = Au::from_f64_px(self.glyph_h_advance(glyph_id));
             if character == ' ' {
-                advance += options.word_spacing;
+                // https://drafts.csswg.org/css-text-3/#word-spacing-property
+                let (length, percent) = options.word_spacing;
+                advance = (advance + length) + Au((advance.0 as f32 * percent.into_inner()) as i32);
             }
             if let Some(letter_spacing) = options.letter_spacing {
                 advance += letter_spacing;

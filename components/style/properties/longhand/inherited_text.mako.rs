@@ -285,7 +285,7 @@
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SpecifiedValue {
         Normal,
-        Specified(specified::Length),  // FIXME(SimonSapin) support percentages
+        Specified(specified::LengthOrPercentage),
     }
 
     impl ToCss for SpecifiedValue {
@@ -298,10 +298,10 @@
     }
 
     pub mod computed_value {
-        use app_units::Au;
+        use values::computed::LengthOrPercentage;
         #[derive(Debug, Clone, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct T(pub Option<Au>);
+        pub struct T(pub Option<LengthOrPercentage>);
     }
 
     impl ToCss for computed_value::T {
@@ -326,7 +326,7 @@
             match *self {
                 SpecifiedValue::Normal => computed_value::T(None),
                 SpecifiedValue::Specified(l) =>
-                    computed_value::T(Some(l.to_computed_value(context)))
+                    computed_value::T(Some(l.to_computed_value(context))),
             }
         }
     }
@@ -335,7 +335,8 @@
         if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
             Ok(SpecifiedValue::Normal)
         } else {
-            specified::Length::parse_non_negative(input).map(SpecifiedValue::Specified)
+            specified::LengthOrPercentage::parse_non_negative(input)
+                                          .map(SpecifiedValue::Specified)
         }
     }
 </%helpers:longhand>
