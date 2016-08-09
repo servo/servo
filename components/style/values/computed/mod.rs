@@ -4,6 +4,7 @@
 
 use app_units::Au;
 use euclid::size::Size2D;
+use ordered_float::NotNaN;
 use properties::ComputedValues;
 use std::fmt;
 use super::LocalToCss;
@@ -239,6 +240,15 @@ impl LengthOrPercentage {
         match *self {
             Length(Au(0)) | Percentage(0.0) => true,
             Length(_) | Percentage(_) | Calc(_) => false
+        }
+    }
+
+    pub fn to_hash_key(&self) -> (Au, NotNaN<f32>) {
+        use self::LengthOrPercentage::*;
+        match *self {
+            Length(l) => (l, NotNaN::new(0.0).unwrap()),
+            Percentage(p) => (Au(0), NotNaN::new(p).unwrap()),
+            Calc(c) => (c.length(), NotNaN::new(c.percentage()).unwrap()),
         }
     }
 }
