@@ -4,10 +4,8 @@
 
 // https://fetch.spec.whatwg.org/#body
 
-[NoInterfaceObject]
-
-/* [NoInterfaceObject,
-  Exposed=(Window,Worker)] */
+[NoInterfaceObject,
+ Exposed=(Window,Worker)]
 
 interface Body {
   readonly attribute boolean bodyUsed;
