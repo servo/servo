@@ -1,9 +1,35 @@
 version: 1.0.{build}
 
 environment:
-  PATH: 'C:\msys64\mingw64\bin;C:\msys64\usr\bin\;%PATH%'
-  MSYSTEM: 'MSYS'
-  MSYS: 'winsymlinks=lnk'
+  RUST_BACKTRACE: 1
+  # The appveyor image we use has a pretty huge set of things installed... we make the
+  # initial PATH something sane so we know what to expect
+  PATH: "C:\\windows\\system32;\
+    C:\\windows;\
+    C:\\windows\\System32\\Wbem;\
+    C:\\windows\\System32\\WindowsPowerShell\\v1.0;\
+    C:\\ProgramData\\chocolatey\\bin;\
+    C:\\Python27;\
+    C:\\Python27\\Scripts;\
+    C:\\Tools\\PsTools;\
+    C:\\Tools\\NuGet3;\
+    C:\\Program Files\\Microsoft\\Web Platform Installer\\;\
+    C:\\Program Files\\7-Zip;\
+    C:\\Program Files\\Mercurial;\
+    C:\\Program Files (x86)\\Subversion\\bin;\
+    C:\\Program Files (x86)\\CMake\\bin;\
+    C:\\Program Files (x86)\\Windows Kits\\10\\Windows Performance Toolkit\\;\
+    C:\\Program Files (x86)\\MSBuild\\14.0\\Bin;\
+    C:\\Program Files\\Amazon\\AWSCLI\\;\
+    C:\\Program Files\\Microsoft Windows Performance Toolkit\\;\
+    C:\\Program Files\\LLVM\\bin;\
+    C:\\Program Files\\Git LFS;\
+    C:\\Program Files\\Git\\cmd;\
+    C:\\Program Files\\Git\\usr\\bin;\
+    C:\\Program Files\\AppVeyor\\BuildAgent;"
+  matrix:
+  - TARGET: nightly-x86_64-pc-windows-msvc
+  - TARGET: nightly-x86_64-pc-windows-gnu
 
 branches:
   only:
@@ -17,16 +43,41 @@ cache:
   - .cargo -> rust-nightly-date, cargo-nightly-build
 
 install:
-  - bash -lc "echo $MSYSTEM; pacman --needed --noconfirm -Sy pacman-mirrors"
-  - bash -lc "pacman --noconfirm -Sy"
-  - bash -lc "pacman -Sy --needed --noconfirm git mingw-w64-x86_64-toolchain mingw-w64-x86_64-freetype mingw-w64-x86_64-icu mingw-w64-x86_64-nspr mingw-w64-x86_64-ca-certificates mingw-w64-x86_64-expat mingw-w64-x86_64-cmake tar diffutils patch patchutils make python2-setuptools mingw-w64-x86_64-ffmpeg"
-  - bash -lc "easy_install-2.7 pip virtualenv"
-  - bash -lc "mv /mingw64/bin/python2.exe /mingw64/bin/python2-mingw64.exe"
-  - bash -lc "mv /mingw64/bin/python2.7.exe /mingw64/bin/python2.7-mingw64.exe"
-  # Downgrade GCC to 5.4.0-1 - https://github.com/servo/servo/issues/12512
-  - set GCC_URL=http://repo.msys2.org/mingw/x86_64/mingw-w64-x86_64-gcc
-  - set GCC_EXT=5.4.0-1-any.pkg.tar.xz
-  - bash -lc "pacman -U --noconfirm $GCC_URL-$GCC_EXT $GCC_URL-ada-$GCC_EXT $GCC_URL-fortran-$GCC_EXT $GCC_URL-libgfortran-$GCC_EXT $GCC_URL-libs-$GCC_EXT $GCC_URL-objc-$GCC_EXT"
+  - if %TARGET:*-msvc=msvc%==msvc set BUILD_ENV=msvc
+  - if %TARGET:*-gnu=gnu%==gnu set BUILD_ENV=gnu
+  - ps: 'if ($env:BUILD_ENV -eq "msvc") {
+           Start-FileDownload "http://servo-rust.s3.amazonaws.com/build/openssl-and-ffmpeg.zip" -ErrorAction Stop ;
+           Start-FileDownload "http://servo-rust.s3.amazonaws.com/build/ninja.zip" -ErrorAction Stop ;
+           Start-FileDownload "http://servo-rust.s3.amazonaws.com/build/MozillaBuildSetup-2.2.0.exe" -ErrorAction Stop ;
+           .\MozillaBuildSetup-2.2.0.exe /S | Out-Null ;
+           7z x openssl-and-ffmpeg.zip | Out-Null ;
+           7z x ninja.zip | Out-Null ;
+           Copy-Item C:\mozilla-build\yasm\yasm.exe C:\mozilla-build\msys\bin ;
+           Copy-Item C:\mozilla-build\mozmake\mozmake.exe C:\mozilla-build\msys\bin ;
+           $env:MOZTOOLS_PATH="C:\mozilla-build\msys\bin" ;
+           $env:NATIVE_WIN32_PYTHON="C:/Python27/python.exe" ;
+           $env:PATH="$pwd\ninja;$env:PATH" ;
+           $env:OPENSSL_INCLUDE_DIR="$pwd\openssl-bin\openssl-1.0.1t-vs2015\include" ;
+           $env:OPENSSL_LIB_DIR="$pwd\openssl-bin\openssl-1.0.1t-vs2015\lib64" ;
+           $env:OPENSSL_LIBS="ssleay32MD:libeay32MD" ;
+           $env:FFMPEG_INCLUDE_DIR="$pwd\ffmpeg-bin\include" ;
+           $env:FFMPEG_LIB_DIR="$pwd\ffmpeg-bin\lib" ;
+           $env:FFMPEG_LIBS="avformat:avcodec:avutil" ;
+        }'
+  - if %BUILD_ENV%==msvc call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\amd64\vcvars64.bat"
+  - if %BUILD_ENV%==gnu  set PATH=C:\msys64\mingw64\bin;C:\msys64\usr\bin\;%PATH%
+  - if %BUILD_ENV%==gnu  set MSYSTEM=MINGW64
+  - if %BUILD_ENV%==gnu  set MSYS=winsymlinks=lnk
+  - if %BUILD_ENV%==gnu  bash -lc "echo $MSYSTEM; pacman --needed --noconfirm -Sy pacman-mirrors"
+  - if %BUILD_ENV%==gnu  bash -lc "pacman --noconfirm -Sy"
+  - if %BUILD_ENV%==gnu  bash -lc "pacman -Sy --needed --noconfirm git mingw-w64-x86_64-toolchain mingw-w64-x86_64-freetype mingw-w64-x86_64-icu mingw-w64-x86_64-nspr mingw-w64-x86_64-ca-certificates mingw-w64-x86_64-expat mingw-w64-x86_64-cmake tar diffutils patch patchutils make python2-setuptools mingw-w64-x86_64-ffmpeg"
+  - if %BUILD_ENV%==gnu  bash -lc "easy_install-2.7 pip virtualenv"
+  - if %BUILD_ENV%==gnu  bash -lc "mv /mingw64/bin/python2.exe /mingw64/bin/python2-mingw64.exe"
+  - if %BUILD_ENV%==gnu  bash -lc "mv /mingw64/bin/python2.7.exe /mingw64/bin/python2.7-mingw64.exe"
+  # Downgrade msys2 build GCC to 5.4.0-1 - https://github.com/servo/servo/issues/12512
+  - if %BUILD_ENV%==gnu  set GCC_URL=http://repo.msys2.org/mingw/x86_64/mingw-w64-x86_64-gcc
+  - if %BUILD_ENV%==gnu  set GCC_EXT=5.4.0-1-any.pkg.tar.xz
+  - if %BUILD_ENV%==gnu  bash -lc "pacman -U --noconfirm $GCC_URL-$GCC_EXT $GCC_URL-ada-$GCC_EXT $GCC_URL-fortran-$GCC_EXT $GCC_URL-libgfortran-$GCC_EXT $GCC_URL-libs-$GCC_EXT $GCC_URL-objc-$GCC_EXT"
 
 # Uncomment these lines to expose RDP access information to the build machine in the build log.
 #init:
@@ -36,9 +87,10 @@ install:
 #  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 
 build_script:
-  - cmd: >-
-      set MSYSTEM=MINGW64
-
-      bash -lc "cd $APPVEYOR_BUILD_FOLDER; ./mach build -d -v && ./mach test-unit"
+  - echo PATH %PATH%
+  - echo VSINSTALLDIR %VSINSTALLDIR%
+  - echo MOZTOOLS_PATH %MOZTOOLS_PATH%
+  - if %BUILD_ENV%==msvc cd %APPVEYOR_BUILD_FOLDER% && mach build -d -v && mach test-unit
+  - if %BUILD_ENV%==gnu  bash -lc "cd $APPVEYOR_BUILD_FOLDER; ./mach build -d -v && ./mach test-unit"
 
 test: off
