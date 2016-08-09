@@ -42,8 +42,7 @@ impl Headers {
         }
     }
 
-    pub fn new(global: GlobalRef)
-               -> Root<Headers> {
+    pub fn new(global: GlobalRef) -> Root<Headers> {
         reflect_dom_object(box Headers::new_inherited(), global, HeadersBinding::Wrap)
     }
 
@@ -168,7 +167,7 @@ impl Headers {
             Some(HeadersOrByteStringSequenceSequence::Headers(h)) => {
                 // header_list_copy has type hyper::header::Headers
                 let header_list_copy = h.header_list.clone();
-                for header in header_list_copy.borrow().iter() {
+                for header in h.header_list.borrow().iter() {
                     try!(self.Append(
                         ByteString::new(Vec::from(header.name())),
                         ByteString::new(Vec::from(header.value_string().into_bytes()))
