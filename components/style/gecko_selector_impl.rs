@@ -3,9 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use element_state::ElementState;
-use selector_impl::{PseudoElementCascadeType, SelectorImplExt};
-use selectors::parser::{ParserContext, SelectorImpl};
-use string_cache::Atom;
+use selector_impl::PseudoElementCascadeType;
+use selector_impl::{attr_exists_selector_is_shareable, attr_equals_selector_is_shareable};
+use selectors::parser::{ParserContext, SelectorImpl, AttrSelector};
+use string_cache::{Atom, WeakAtom, Namespace, WeakNamespace};
 use stylesheets::Stylesheet;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -149,10 +150,27 @@ impl NonTSPseudoClass {
 }
 
 impl SelectorImpl for GeckoSelectorImpl {
-    type AttrString = Atom;
+    type AttrValue = Atom;
+    type Identifier = Atom;
+    type ClassName = Atom;
+    type LocalName = Atom;
+    type Namespace = Namespace;
+    type BorrowedNamespace = WeakNamespace;
+    type BorrowedLocalName = WeakAtom;
+
     type PseudoElement = PseudoElement;
     type NonTSPseudoClass = NonTSPseudoClass;
-    fn parse_non_ts_pseudo_class(_context: &ParserContext,
+
+    fn attr_exists_selector_is_shareable(attr_selector: &AttrSelector<Self>) -> bool {
+        attr_exists_selector_is_shareable(attr_selector)
+    }
+
+    fn attr_equals_selector_is_shareable(attr_selector: &AttrSelector<Self>,
+                                         value: &Self::AttrValue) -> bool {
+        attr_equals_selector_is_shareable(attr_selector, value)
+    }
+
+    fn parse_non_ts_pseudo_class(_context: &ParserContext<Self>,
                                  name: &str) -> Result<NonTSPseudoClass, ()> {
         use self::NonTSPseudoClass::*;
         let pseudo_class = match_ignore_ascii_case! { name,
@@ -174,7 +192,7 @@ impl SelectorImpl for GeckoSelectorImpl {
         Ok(pseudo_class)
     }
 
-    fn parse_pseudo_element(context: &ParserContext,
+    fn parse_pseudo_element(context: &ParserContext<Self>,
                             name: &str) -> Result<PseudoElement, ()> {
         use self::AnonBoxPseudoElement::*;
         use self::PseudoElement::*;
@@ -286,9 +304,9 @@ impl SelectorImpl for GeckoSelectorImpl {
     }
 }
 
-impl SelectorImplExt for GeckoSelectorImpl {
+impl GeckoSelectorImpl {
     #[inline]
-    fn pseudo_element_cascade_type(pseudo: &PseudoElement) -> PseudoElementCascadeType {
+    pub fn pseudo_element_cascade_type(pseudo: &PseudoElement) -> PseudoElementCascadeType {
         match *pseudo {
             PseudoElement::Before |
             PseudoElement::After => PseudoElementCascadeType::Eager,
@@ -298,7 +316,7 @@ impl SelectorImplExt for GeckoSelectorImpl {
     }
 
     #[inline]
-    fn each_pseudo_element<F>(mut fun: F)
+    pub fn each_pseudo_element<F>(mut fun: F)
         where F: FnMut(PseudoElement) {
         use self::AnonBoxPseudoElement::*;
         use self::PseudoElement::*;
@@ -375,7 +393,7 @@ impl SelectorImplExt for GeckoSelectorImpl {
     }
 
     #[inline]
-    fn pseudo_is_before_or_after(pseudo: &PseudoElement) -> bool {
+    pub fn pseudo_is_before_or_after(pseudo: &PseudoElement) -> bool {
         match *pseudo {
             PseudoElement::Before |
             PseudoElement::After => true,
@@ -384,17 +402,17 @@ impl SelectorImplExt for GeckoSelectorImpl {
     }
 
     #[inline]
-    fn pseudo_class_state_flag(pc: &NonTSPseudoClass) -> ElementState {
+    pub fn pseudo_class_state_flag(pc: &NonTSPseudoClass) -> ElementState {
         pc.state_flag()
     }
 
     #[inline]
-    fn get_user_or_user_agent_stylesheets() -> &'static [Stylesheet] {
+    pub fn get_user_or_user_agent_stylesheets() -> &'static [Stylesheet] {
         &[]
     }
 
     #[inline]
-    fn get_quirks_mode_stylesheet() -> Option<&'static Stylesheet> {
+    pub fn get_quirks_mode_stylesheet() -> Option<&'static Stylesheet> {
         None
     }
 }

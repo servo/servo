@@ -7,7 +7,8 @@ use element_state::ElementState;
 use error_reporting::StdoutErrorReporter;
 use parser::ParserContextExtraData;
 use restyle_hints::ElementSnapshot;
-use selector_impl::{SelectorImplExt, ElementExt, PseudoElementCascadeType, TheSelectorImpl};
+use selector_impl::{ElementExt, PseudoElementCascadeType, TheSelectorImpl};
+use selector_impl::{attr_exists_selector_is_shareable, attr_equals_selector_is_shareable};
 use selectors::parser::{AttrSelector, ParserContext, SelectorImpl};
 use selectors::{Element, MatchAttrGeneric};
 use std::process;
@@ -98,11 +99,27 @@ impl NonTSPseudoClass {
 pub struct ServoSelectorImpl;
 
 impl SelectorImpl for ServoSelectorImpl {
-    type AttrString = String;
     type PseudoElement = PseudoElement;
     type NonTSPseudoClass = NonTSPseudoClass;
 
-    fn parse_non_ts_pseudo_class(context: &ParserContext,
+    type AttrValue = String;
+    type Identifier = Atom;
+    type ClassName = Atom;
+    type LocalName = Atom;
+    type Namespace = Namespace;
+    type BorrowedLocalName = Atom;
+    type BorrowedNamespace = Namespace;
+
+    fn attr_exists_selector_is_shareable(attr_selector: &AttrSelector<Self>) -> bool {
+        attr_exists_selector_is_shareable(attr_selector)
+    }
+
+    fn attr_equals_selector_is_shareable(attr_selector: &AttrSelector<Self>,
+                                         value: &Self::AttrValue) -> bool {
+        attr_equals_selector_is_shareable(attr_selector, value)
+    }
+
+    fn parse_non_ts_pseudo_class(context: &ParserContext<TheSelectorImpl>,
                                  name: &str) -> Result<NonTSPseudoClass, ()> {
         use self::NonTSPseudoClass::*;
         let pseudo_class = match_ignore_ascii_case! { name,
@@ -132,7 +149,7 @@ impl SelectorImpl for ServoSelectorImpl {
         Ok(pseudo_class)
     }
 
-    fn parse_pseudo_element(context: &ParserContext,
+    fn parse_pseudo_element(context: &ParserContext<TheSelectorImpl>,
                             name: &str) -> Result<PseudoElement, ()> {
         use self::PseudoElement::*;
         let pseudo_element = match_ignore_ascii_case! { name,
@@ -158,14 +175,14 @@ impl SelectorImpl for ServoSelectorImpl {
     }
 }
 
-impl SelectorImplExt for ServoSelectorImpl {
+impl ServoSelectorImpl {
     #[inline]
-    fn pseudo_element_cascade_type(pseudo: &PseudoElement) -> PseudoElementCascadeType {
+    pub fn pseudo_element_cascade_type(pseudo: &PseudoElement) -> PseudoElementCascadeType {
         pseudo.cascade_type()
     }
 
     #[inline]
-    fn each_pseudo_element<F>(mut fun: F)
+    pub fn each_pseudo_element<F>(mut fun: F)
         where F: FnMut(PseudoElement) {
         fun(PseudoElement::Before);
         fun(PseudoElement::After);
@@ -175,22 +192,22 @@ impl SelectorImplExt for ServoSelectorImpl {
     }
 
     #[inline]
-    fn pseudo_class_state_flag(pc: &NonTSPseudoClass) -> ElementState {
+    pub fn pseudo_class_state_flag(pc: &NonTSPseudoClass) -> ElementState {
         pc.state_flag()
     }
 
     #[inline]
-    fn pseudo_is_before_or_after(pseudo: &PseudoElement) -> bool {
+    pub fn pseudo_is_before_or_after(pseudo: &PseudoElement) -> bool {
         pseudo.is_before_or_after()
     }
 
     #[inline]
-    fn get_user_or_user_agent_stylesheets() -> &'static [Stylesheet] {
+    pub fn get_user_or_user_agent_stylesheets() -> &'static [Stylesheet] {
         &*USER_OR_USER_AGENT_STYLESHEETS
     }
 
     #[inline]
-    fn get_quirks_mode_stylesheet() -> Option<&'static Stylesheet> {
+    pub fn get_quirks_mode_stylesheet() -> Option<&'static Stylesheet> {
         Some(&*QUIRKS_MODE_STYLESHEET)
     }
 }
@@ -257,7 +274,9 @@ impl ElementSnapshot for ServoElementSnapshot {
 }
 
 impl MatchAttrGeneric for ServoElementSnapshot {
-    fn match_attr<F>(&self, attr: &AttrSelector, test: F) -> bool
+    type Impl = ServoSelectorImpl;
+
+    fn match_attr<F>(&self, attr: &AttrSelector<ServoSelectorImpl>, test: F) -> bool
         where F: Fn(&str) -> bool
     {
         use selectors::parser::NamespaceConstraint;
@@ -270,7 +289,7 @@ impl MatchAttrGeneric for ServoElementSnapshot {
     }
 }
 
-impl<E: Element<Impl=TheSelectorImpl, AttrString=String>> ElementExt for E {
+impl<E: Element<Impl=TheSelectorImpl>> ElementExt for E {
     type Snapshot = ServoElementSnapshot;
 
     fn is_link(&self) -> bool {

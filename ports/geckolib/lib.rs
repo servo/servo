@@ -6,15 +6,12 @@ extern crate app_units;
 extern crate env_logger;
 extern crate euclid;
 extern crate gecko_bindings;
-#[macro_use]
-extern crate lazy_static;
+#[macro_use] extern crate gecko_string_cache;
+#[macro_use] extern crate lazy_static;
 extern crate libc;
-#[macro_use]
-extern crate log;
+#[macro_use] extern crate log;
 extern crate num_cpus;
 extern crate selectors;
-#[macro_use(atom, ns)]
-extern crate string_cache;
 extern crate style;
 extern crate style_traits;
 extern crate url;

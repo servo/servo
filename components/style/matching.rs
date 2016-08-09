@@ -13,14 +13,13 @@ use context::{StyleContext, SharedStyleContext};
 use data::PrivateStyleData;
 use dom::{TElement, TNode, TRestyleDamage};
 use properties::{ComputedValues, PropertyDeclaration, cascade};
-use selector_impl::{ElementExt, SelectorImplExt, TheSelectorImpl, PseudoElement};
+use selector_impl::{ElementExt, TheSelectorImpl, PseudoElement};
 use selector_matching::{DeclarationBlock, Stylist};
-use selectors::Element;
 use selectors::bloom::BloomFilter;
-use selectors::matching::{CommonStyleAffectingAttributeMode, CommonStyleAffectingAttributes};
-use selectors::matching::{common_style_affecting_attributes, rare_style_affecting_attributes};
+use selectors::{Element, MatchAttr};
 use sink::ForgetfulSink;
 use smallvec::SmallVec;
+use std::borrow::Borrow;
 use std::collections::HashMap;
 use std::hash::{BuildHasherDefault, Hash, Hasher};
 use std::slice::Iter;
@@ -257,7 +256,7 @@ impl StyleSharingCandidate {
     }
 
     pub fn can_share_style_with<E: TElement>(&self, element: &E) -> bool {
-        if *element.get_local_name() != self.local_name {
+        if element.get_local_name() != self.local_name.borrow() {
             return false
         }
 
@@ -276,7 +275,7 @@ impl StyleSharingCandidate {
             return false;
         }
 
-        if *element.get_namespace() != self.namespace {
+        if element.get_namespace() != self.namespace.borrow() {
             return false
         }
 
@@ -327,6 +326,61 @@ impl StyleSharingCandidate {
     }
 }
 
+bitflags! {
+    pub flags CommonStyleAffectingAttributes: u8 {
+        const HIDDEN_ATTRIBUTE = 0x01,
+        const NO_WRAP_ATTRIBUTE = 0x02,
+        const ALIGN_LEFT_ATTRIBUTE = 0x04,
+        const ALIGN_CENTER_ATTRIBUTE = 0x08,
+        const ALIGN_RIGHT_ATTRIBUTE = 0x10,
+    }
+}
+
+pub struct CommonStyleAffectingAttributeInfo {
+    pub atom: Atom,
+    pub mode: CommonStyleAffectingAttributeMode,
+}
+
+#[derive(Clone)]
+pub enum CommonStyleAffectingAttributeMode {
+    IsPresent(CommonStyleAffectingAttributes),
+    IsEqual(Atom, CommonStyleAffectingAttributes),
+}
+
+// NB: This must match the order in `selectors::matching::CommonStyleAffectingAttributes`.
+#[inline]
+pub fn common_style_affecting_attributes() -> [CommonStyleAffectingAttributeInfo; 5] {
+    [
+        CommonStyleAffectingAttributeInfo {
+            atom: atom!("hidden"),
+            mode: CommonStyleAffectingAttributeMode::IsPresent(HIDDEN_ATTRIBUTE),
+        },
+        CommonStyleAffectingAttributeInfo {
+            atom: atom!("nowrap"),
+            mode: CommonStyleAffectingAttributeMode::IsPresent(NO_WRAP_ATTRIBUTE),
+        },
+        CommonStyleAffectingAttributeInfo {
+            atom: atom!("align"),
+            mode: CommonStyleAffectingAttributeMode::IsEqual(atom!("left"), ALIGN_LEFT_ATTRIBUTE),
+        },
+        CommonStyleAffectingAttributeInfo {
+            atom: atom!("align"),
+            mode: CommonStyleAffectingAttributeMode::IsEqual(atom!("center"), ALIGN_CENTER_ATTRIBUTE),
+        },
+        CommonStyleAffectingAttributeInfo {
+            atom: atom!("align"),
+            mode: CommonStyleAffectingAttributeMode::IsEqual(atom!("right"), ALIGN_RIGHT_ATTRIBUTE),
+        }
+    ]
+}
+
+/// Attributes that, if present, disable style sharing. All legacy HTML attributes must be in
+/// either this list or `common_style_affecting_attributes`. See the comment in
+/// `synthesize_presentational_hints_for_legacy_attributes`.
+pub fn rare_style_affecting_attributes() -> [Atom; 3] {
+    [ atom!("bgcolor"), atom!("border"), atom!("colspan") ]
+}
+
 static STYLE_SHARING_CANDIDATE_CACHE_SIZE: usize = 40;
 
 impl StyleSharingCandidateCache {
@@ -361,8 +415,7 @@ pub enum StyleSharingResult<ConcreteRestyleDamage: TRestyleDamage> {
     StyleWasShared(usize, ConcreteRestyleDamage),
 }
 
-trait PrivateMatchMethods: TNode
-    where <Self::ConcreteElement as Element>::Impl: SelectorImplExt {
+trait PrivateMatchMethods: TNode {
     /// Actually cascades style for a node or a pseudo-element of a node.
     ///
     /// Note that animations only apply to nodes or ::before or ::after
@@ -507,8 +560,7 @@ trait PrivateMatchMethods: TNode
     }
 }
 
-impl<N: TNode> PrivateMatchMethods for N
-    where <N::ConcreteElement as Element>::Impl: SelectorImplExt {}
+impl<N: TNode> PrivateMatchMethods for N {}
 
 trait PrivateElementMatchMethods: TElement {
     fn share_style_with_candidate_if_possible(&self,
@@ -611,8 +663,7 @@ pub trait ElementMatchMethods : TElement {
     }
 }
 
-impl<E: TElement> ElementMatchMethods for E
-    where E::Impl: SelectorImplExt {}
+impl<E: TElement> ElementMatchMethods for E {}
 
 pub trait MatchMethods : TNode {
     // The below two functions are copy+paste because I can't figure out how to
@@ -713,7 +764,7 @@ pub trait MatchMethods : TNode {
 
                 data.style = Some(final_style);
 
-                <Self::ConcreteElement as Element>::Impl::each_eagerly_cascaded_pseudo_element(|pseudo| {
+                <Self::ConcreteElement as MatchAttr>::Impl::each_eagerly_cascaded_pseudo_element(|pseudo| {
                     let applicable_declarations_for_this_pseudo =
                         applicable_declarations.per_pseudo.get(&pseudo).unwrap();
 
@@ -721,7 +772,7 @@ pub trait MatchMethods : TNode {
                         // NB: Transitions and animations should only work for
                         // pseudo-elements ::before and ::after
                         let should_animate_properties =
-                            <Self::ConcreteElement as Element>::Impl::pseudo_is_before_or_after(&pseudo);
+                            <Self::ConcreteElement as MatchAttr>::Impl::pseudo_is_before_or_after(&pseudo);
                         let (new_damage, style) = self.cascade_node_pseudo_element(
                             context,
                             Some(data.style.as_ref().unwrap()),

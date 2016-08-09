@@ -4,14 +4,12 @@
 
 //! The pseudo-classes and pseudo-elements supported by the style system.
 
-use element_state::ElementState;
+use matching::{common_style_affecting_attributes, CommonStyleAffectingAttributeMode};
 use restyle_hints;
 use selectors::Element;
-use selectors::parser::SelectorImpl;
-use std::fmt::Debug;
-use stylesheets::Stylesheet;
+use selectors::parser::{AttrSelector, SelectorImpl};
 
-pub type AttrString = <TheSelectorImpl as SelectorImpl>::AttrString;
+pub type AttrValue = <TheSelectorImpl as SelectorImpl>::AttrValue;
 
 #[cfg(feature = "servo")]
 pub use servo_selector_impl::*;
@@ -72,22 +70,15 @@ impl PseudoElementCascadeType {
     }
 }
 
-pub trait ElementExt: Element<Impl=TheSelectorImpl, AttrString=<TheSelectorImpl as SelectorImpl>::AttrString> {
-    type Snapshot: restyle_hints::ElementSnapshot<AttrString = Self::AttrString> + 'static;
+pub trait ElementExt: Element<Impl=TheSelectorImpl> {
+    type Snapshot: restyle_hints::ElementSnapshot + 'static;
 
     fn is_link(&self) -> bool;
 }
 
-// NB: The `Clone` trait is here for convenience due to:
-// https://github.com/rust-lang/rust/issues/26925
-pub trait SelectorImplExt : SelectorImpl + Clone + Debug + Sized + 'static {
-    fn pseudo_element_cascade_type(pseudo: &Self::PseudoElement) -> PseudoElementCascadeType;
-
-    fn each_pseudo_element<F>(mut fun: F)
-        where F: FnMut(Self::PseudoElement);
-
+impl TheSelectorImpl {
     #[inline]
-    fn each_eagerly_cascaded_pseudo_element<F>(mut fun: F)
+    pub fn each_eagerly_cascaded_pseudo_element<F>(mut fun: F)
         where F: FnMut(<Self as SelectorImpl>::PseudoElement) {
         Self::each_pseudo_element(|pseudo| {
             if Self::pseudo_element_cascade_type(&pseudo).is_eager() {
@@ -97,7 +88,7 @@ pub trait SelectorImplExt : SelectorImpl + Clone + Debug + Sized + 'static {
     }
 
     #[inline]
-    fn each_precomputed_pseudo_element<F>(mut fun: F)
+    pub fn each_precomputed_pseudo_element<F>(mut fun: F)
         where F: FnMut(<Self as SelectorImpl>::PseudoElement) {
         Self::each_pseudo_element(|pseudo| {
             if Self::pseudo_element_cascade_type(&pseudo).is_precomputed() {
@@ -105,12 +96,30 @@ pub trait SelectorImplExt : SelectorImpl + Clone + Debug + Sized + 'static {
             }
         })
     }
+}
 
-    fn pseudo_is_before_or_after(pseudo: &Self::PseudoElement) -> bool;
+pub fn attr_exists_selector_is_shareable(attr_selector: &AttrSelector<TheSelectorImpl>) -> bool {
+    // NB(pcwalton): If you update this, remember to update the corresponding list in
+    // `can_share_style_with()` as well.
+    common_style_affecting_attributes().iter().any(|common_attr_info| {
+        common_attr_info.atom == attr_selector.name && match common_attr_info.mode {
+            CommonStyleAffectingAttributeMode::IsPresent(_) => true,
+            CommonStyleAffectingAttributeMode::IsEqual(..) => false,
+        }
+    })
+}
 
-    fn pseudo_class_state_flag(pc: &Self::NonTSPseudoClass) -> ElementState;
-
-    fn get_user_or_user_agent_stylesheets() -> &'static [Stylesheet];
-
-    fn get_quirks_mode_stylesheet() -> Option<&'static Stylesheet>;
+pub fn attr_equals_selector_is_shareable(attr_selector: &AttrSelector<TheSelectorImpl>,
+                                         value: &AttrValue) -> bool {
+    // FIXME(pcwalton): Remove once we start actually supporting RTL text. This is in
+    // here because the UA style otherwise disables all style sharing completely.
+    atom!("dir") == *value ||
+    common_style_affecting_attributes().iter().any(|common_attr_info| {
+        common_attr_info.atom == attr_selector.name && match common_attr_info.mode {
+            CommonStyleAffectingAttributeMode::IsEqual(ref target_value, _) => {
+                *target_value == *value
+            }
+            CommonStyleAffectingAttributeMode::IsPresent(_) => false,
+        }
+    })
 }

@@ -6,12 +6,12 @@ dependencies = [
  "env_logger 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "gecko_bindings 0.0.1",
+ "gecko_string_cache 0.2.20",
  "lazy_static 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "num_cpus 0.2.13 (registry+https://github.com/rust-lang/crates.io-index)",
- "selectors 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "string_cache 0.2.20 (registry+https://github.com/rust-lang/crates.io-index)",
+ "selectors 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "style 0.0.1",
  "style_traits 0.0.1",
  "url 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -54,6 +54,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "encoding 0.2.32 (registry+https://github.com/rust-lang/crates.io-index)",
  "matches 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "debug_unreachable"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "unreachable 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -152,6 +160,18 @@ name = "gecko_bindings"
 version = "0.0.1"
 dependencies = [
  "heapsize 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "gecko_string_cache"
+version = "0.2.20"
+dependencies = [
+ "cfg-if 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gecko_bindings 0.0.1",
+ "heapsize 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.2.13 (registry+https://github.com/rust-lang/crates.io-index)",
+ "selectors 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 0.7.15 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -264,6 +284,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "phf_generator"
+version = "0.7.16"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "phf_shared 0.7.16 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rand 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "phf_shared"
+version = "0.7.16"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "quickersort"
 version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -304,7 +338,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "selectors"
-version = "0.7.0"
+version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -313,7 +347,7 @@ dependencies = [
  "matches 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "quickersort 2.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "smallvec 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
- "string_cache 0.2.20 (registry+https://github.com/rust-lang/crates.io-index)",
+ "string_cache 0.2.22 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -328,20 +362,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "string_cache"
-version = "0.2.20"
+version = "0.2.22"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "cfg-if 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "gecko_bindings 0.0.1",
- "heapsize 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "libc 0.2.13 (registry+https://github.com/rust-lang/crates.io-index)",
+ "debug_unreachable 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lazy_static 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "phf_generator 0.7.16 (registry+https://github.com/rust-lang/crates.io-index)",
+ "phf_shared 0.7.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.7.15 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
-
-[[package]]
-name = "string_cache"
-version = "0.2.20"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-replace = "string_cache 0.2.20"
 
 [[package]]
 name = "style"
@@ -355,6 +384,7 @@ dependencies = [
  "euclid 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "gecko_bindings 0.0.1",
+ "gecko_string_cache 0.2.20",
  "kernel32-sys 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.13 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -364,9 +394,8 @@ dependencies = [
  "ordered-float 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
- "selectors 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "selectors 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "smallvec 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
- "string_cache 0.2.20 (registry+https://github.com/rust-lang/crates.io-index)",
  "style_traits 0.0.1",
  "time 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)",

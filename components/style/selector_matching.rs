@@ -11,7 +11,7 @@ use keyframes::KeyframesAnimation;
 use media_queries::{Device, MediaType};
 use properties::{self, PropertyDeclaration, PropertyDeclarationBlock, ComputedValues};
 use restyle_hints::{RestyleHint, DependencySet};
-use selector_impl::{ElementExt, SelectorImplExt, TheSelectorImpl, PseudoElement, AttrString};
+use selector_impl::{ElementExt, TheSelectorImpl, PseudoElement};
 use selectors::Element;
 use selectors::bloom::BloomFilter;
 use selectors::matching::DeclarationBlock as GenericDeclarationBlock;
@@ -38,13 +38,6 @@ pub type DeclarationBlock = GenericDeclarationBlock<Vec<PropertyDeclaration>>;
 ///
 /// This structure is effectively created once per pipeline, in the
 /// LayoutThread corresponding to that pipeline.
-///
-/// The stylist is parameterized on `SelectorImplExt`, a trait that extends
-/// `selectors::parser::SelectorImpl`, and that allows to customise what
-/// pseudo-classes and pseudo-elements are parsed. This is actually either
-/// `ServoSelectorImpl`, the implementation used by Servo's layout system in
-/// regular builds, or `GeckoSelectorImpl`, the implementation used in the
-/// geckolib port.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct Stylist {
     /// Device that the stylist is currently evaluating against.
@@ -249,7 +242,7 @@ impl Stylist {
                                                   pseudo: &PseudoElement,
                                                   parent: &Arc<ComputedValues>)
                                                   -> Option<Arc<ComputedValues>>
-                                                  where E: Element<Impl=TheSelectorImpl, AttrString=AttrString> +
+                                                  where E: Element<Impl=TheSelectorImpl> +
                                                         PresentationalHintsSynthetizer {
         debug_assert!(TheSelectorImpl::pseudo_element_cascade_type(pseudo).is_lazy());
         if self.pseudos_map.get(pseudo).is_none() {
@@ -315,7 +308,7 @@ impl Stylist {
                                         pseudo_element: Option<&PseudoElement>,
                                         applicable_declarations: &mut V)
                                         -> bool
-                                        where E: Element<Impl=TheSelectorImpl, AttrString=AttrString> +
+                                        where E: Element<Impl=TheSelectorImpl> +
                                                  PresentationalHintsSynthetizer,
                                               V: Push<DeclarationBlock> + VecLike<DeclarationBlock> {
         assert!(!self.is_device_dirty);

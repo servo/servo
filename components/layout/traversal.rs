@@ -27,7 +27,7 @@ pub struct RecalcStyleAndConstructFlows<'lc> {
 
 impl<'lc, N> DomTraversalContext<N> for RecalcStyleAndConstructFlows<'lc>
     where N: LayoutNode + TNode,
-          N::ConcreteElement: ::selectors::Element<Impl=ServoSelectorImpl, AttrString=String>
+          N::ConcreteElement: ::selectors::Element<Impl=ServoSelectorImpl>
 
 {
     type SharedContext = SharedLayoutContext;

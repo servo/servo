@@ -45,8 +45,8 @@ extern crate deque;
 extern crate encoding;
 extern crate euclid;
 extern crate fnv;
-#[cfg(feature = "gecko")]
-extern crate gecko_bindings;
+#[cfg(feature = "gecko")] extern crate gecko_bindings;
+#[cfg(feature = "gecko")] #[macro_use] extern crate gecko_string_cache as string_cache;
 #[cfg(feature = "servo")] extern crate heapsize;
 #[allow(unused_extern_crates)]
 #[macro_use]
@@ -63,7 +63,7 @@ extern crate rustc_serialize;
 extern crate selectors;
 #[cfg(feature = "servo")] extern crate serde;
 extern crate smallvec;
-#[macro_use(atom, ns)] extern crate string_cache;
+#[cfg(feature = "servo")] #[macro_use] extern crate string_cache;
 #[macro_use]
 extern crate style_traits;
 extern crate time;
