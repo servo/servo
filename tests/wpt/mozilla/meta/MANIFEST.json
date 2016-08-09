@@ -4420,6 +4420,18 @@
             "url": "/_mozilla/css/pseudo_element_a.html"
           }
         ],
+        "css/pseudo_element_restyle_no_rules.html": [
+          {
+            "path": "css/pseudo_element_restyle_no_rules.html",
+            "references": [
+              [
+                "/_mozilla/css/pseudo_element_restyle_no_rules_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/pseudo_element_restyle_no_rules.html"
+          }
+        ],
         "css/pseudo_inherit.html": [
           {
             "path": "css/pseudo_inherit.html",
@@ -13584,6 +13596,18 @@
             ]
           ],
           "url": "/_mozilla/css/pseudo_element_a.html"
+        }
+      ],
+      "css/pseudo_element_restyle_no_rules.html": [
+        {
+          "path": "css/pseudo_element_restyle_no_rules.html",
+          "references": [
+            [
+              "/_mozilla/css/pseudo_element_restyle_no_rules_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/pseudo_element_restyle_no_rules.html"
         }
       ],
       "css/pseudo_inherit.html": [
