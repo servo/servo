@@ -326,9 +326,25 @@ impl Interpolate for CSSParserColor {
 impl Interpolate for CalcLengthOrPercentage {
     #[inline]
     fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
+        fn interpolate_half<T>(this: Option<T>,
+                               other: Option<T>,
+                               time: f64)
+                               -> Result<Option<T>, ()>
+            where T: Default + Interpolate
+        {
+            match (this, other) {
+                (None, None) => Ok(None),
+                (this, other) => {
+                    let this = this.unwrap_or(T::default());
+                    let other = other.unwrap_or(T::default());
+                    this.interpolate(&other, time).map(Some)
+                }
+            }
+        }
+
         Ok(CalcLengthOrPercentage {
-            length: self.length.interpolate(&other.length, time).ok().and_then(|x|x),
-            percentage: self.percentage.interpolate(&other.percentage, time).ok().and_then(|x|x),
+            length: try!(interpolate_half(self.length, other.length, time)),
+            percentage: try!(interpolate_half(self.percentage, other.percentage, time)),
         })
     }
 }

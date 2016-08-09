@@ -6168,6 +6168,12 @@
             "url": "/_mozilla/css/animations/basic-transition.html"
           }
         ],
+        "css/animations/mixed-units.html": [
+          {
+            "path": "css/animations/mixed-units.html",
+            "url": "/_mozilla/css/animations/mixed-units.html"
+          }
+        ],
         "css/animations/transition-raf.html": [
           {
             "path": "css/animations/transition-raf.html",

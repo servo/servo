@@ -1,0 +1,33 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Animation test: mixed units.</title>
+<style>
+  .animatable {
+    width: 50px;
+    height: 50px;
+    background: red;
+    animation: foo 1s infinite linear;
+  }
+  @keyframes foo {
+    from { width: 0%; }
+    to { width: 500px; }
+  }
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div class="animatable"></div>
+<script>
+var div = document.querySelector('.animatable');
+async_test(function(t) {
+  window.addEventListener('load', function() {
+    var test = new window.TestBinding();
+    test.advanceClock(500);
+    assert_equals(getComputedStyle(div).getPropertyValue('width'), '250px');
+    test.advanceClock(500);
+    assert_equals(getComputedStyle(div).getPropertyValue('width'), '500px');
+    test.advanceClock(500);
+    assert_equals(getComputedStyle(div).getPropertyValue('width'), '250px');
+    t.done();
+  })
+})
+</script>
