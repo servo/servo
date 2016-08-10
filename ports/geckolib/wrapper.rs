@@ -5,7 +5,6 @@
 #![allow(unsafe_code)]
 
 use gecko_bindings::bindings;
-use gecko_bindings::bindings::Gecko_ChildrenCount;
 use gecko_bindings::bindings::Gecko_ClassOrClassList;
 use gecko_bindings::bindings::Gecko_GetNodeData;
 use gecko_bindings::bindings::Gecko_GetStyleContext;
@@ -185,12 +184,6 @@ impl<'ln> TNode for GeckoNode<'ln> {
 
     fn debug_id(self) -> usize {
         unimplemented!()
-    }
-
-    fn children_count(&self) -> u32 {
-        unsafe {
-            Gecko_ChildrenCount(self.node)
-        }
     }
 
     fn as_element(&self) -> Option<GeckoElement<'ln>> {

@@ -170,10 +170,6 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
         self.opaque().0
     }
 
-    fn children_count(&self) -> u32 {
-        unsafe { self.node.children_count() }
-    }
-
     fn as_element(&self) -> Option<ServoLayoutElement<'ln>> {
         as_element(self.node)
     }

@@ -100,8 +100,6 @@ pub trait TNode : Sized + Copy + Clone {
 
     fn as_document(&self) -> Option<Self::ConcreteDocument>;
 
-    fn children_count(&self) -> u32;
-
     fn has_changed(&self) -> bool;
 
     unsafe fn set_changed(&self, value: bool);
