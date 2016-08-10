@@ -413,7 +413,9 @@ pub enum StyleSharingResult<ConcreteRestyleDamage: TRestyleDamage> {
     /// We didn't find anybody to share the style with.
     CannotShare,
     /// The node's style can be shared. The integer specifies the index in the
-    /// LRU cache that was hit and the damage that was done.
+    /// LRU cache that was hit and the damage that was done, and the restyle
+    /// result the original result of the candidate's styling, that is, whether
+    /// it should stop the traversal or not.
     StyleWasShared(usize, ConcreteRestyleDamage, RestyleResult),
 }
 
