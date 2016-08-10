@@ -3,25 +3,25 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import mozresource; subresource = mozresource
 
-parsed = ''
-
 def generate_payload(server_data):
-    # TODO When HTMLLinkElement.sheet is available, don't need this
-    #      workaround anymore.
-    global parsed
-
-    params = urlparse.parse_qs(parsed.query)
-    stash_id = params['id'][0]
-
-    req = urllib2.Request('http://127.0.0.1:8000/_mozilla/mozilla/referrer-policy/generic/subresource/stash.py?id=%s' % stash_id)
-    urllib2.urlopen(req, json.dumps(server_data))
-
     return subresource.get_template("css.template") % server_data
 
 def main(request, response):
-    global parsed
+    # TODO: When HTMLLinkElement.sheet is available, don't need this
+    # workaround anymore. We could store data into css.template and
+    # read it from HTMLLinkElement.sheet.
+    path = 'link-element-stash'
+    server_data = {"headers": json.dumps(request.headers, indent = 4)}
 
-    parsed = urlparse.urlparse(request.url)
+    # We do this because in those tests which cause redirection, this
+    # subresource will be called at least twice. And putting data onto stash
+    # more than once is not a valid operation (it'll throw exception). When
+    # there's already something in stash, we simply take it out and put the
+    # new one back since we only interesting in the last request.
+    stashed_data = request.server.stash.take(request.GET["id"], path)
+
+    request.server.stash.put(request.GET["id"], json.dumps(server_data), path)
+
     subresource.respond(request,
                         response,
                         payload_generator = generate_payload)

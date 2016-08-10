@@ -264,7 +264,7 @@ function queryCssLink(url, callback, referrer_policy) {
 
     link.onload = function() {
       var xhr = new XMLHttpRequest();
-      xhr.open('GET', '/_mozilla/mozilla/referrer-policy/generic/subresource/stash.py?id=' + id, false);
+      xhr.open('GET', '/_mozilla/mozilla/referrer-policy/generic/subresource/stash.py?path=link-element-stash&id=' + id, false);
       xhr.onload = function(e) {
         var server_data = JSON.parse(this.responseText);
         server_data.headers = JSON.parse(server_data.headers);
