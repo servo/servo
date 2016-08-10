@@ -866,11 +866,22 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             "    Err(_) => { %s },\n"
             "}" % exceptionCode)
 
-        declType = CGGeneric("ByteString")
-        if type.nullable():
-            declType = CGWrapper(declType, pre="Option<", post=">")
+        if defaultValue is None:
+            default = None
+        elif isinstance(defaultValue, IDLNullValue):
+            assert type.nullable()
+            default = "None"
+        else:
+            assert defaultValue.type.tag() in (IDLType.Tags.domstring, IDLType.Tags.bytestring)
+            default = 'ByteString::new(b"%s".to_vec())' % defaultValue.value
+            if type.nullable():
+                default = "Some(%s)" % default
 
-        return handleOptional(conversionCode, declType, handleDefaultNull("None"))
+        declType = "ByteString"
+        if type.nullable():
+            declType = "Option<%s>" % declType
+
+        return handleOptional(conversionCode, CGGeneric(declType), default)
 
     if type.isEnum():
         assert not isEnforceRange and not isClamp

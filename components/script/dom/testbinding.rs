@@ -312,6 +312,7 @@ impl TestBindingMethods for TestBinding {
                 UnrestrictedDoubleValue: 0.0,
                 anyValue: NullValue(),
                 booleanValue: false,
+                bytestringValue: ByteString::new(vec![]),
                 byteValue: 0,
                 doubleValue: Finite::new(1.0).unwrap(),
                 enumValue: TestEnum::Foo,
@@ -319,6 +320,7 @@ impl TestBindingMethods for TestBinding {
                 longLongValue: 54,
                 longValue: 12,
                 nullableBooleanValue: None,
+                nullableBytestringValue: None,
                 nullableByteValue: None,
                 nullableDoubleValue: None,
                 nullableFloatValue: None,
@@ -506,6 +508,7 @@ impl TestBindingMethods for TestBinding {
     fn PassOptionalUnsignedLongLongWithDefault(&self, _: u64) {}
     fn PassOptionalStringWithDefault(&self, _: DOMString) {}
     fn PassOptionalUsvstringWithDefault(&self, _: USVString) {}
+    fn PassOptionalBytestringWithDefault(&self, _: ByteString) {}
     fn PassOptionalEnumWithDefault(&self, _: TestEnum) {}
 
     fn PassOptionalNullableBooleanWithDefault(&self, _: Option<bool>) {}
