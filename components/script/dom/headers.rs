@@ -80,8 +80,18 @@ impl HeadersMethods for Headers {
             return Ok(());
         }
         // Step 7
-        let mut combined_value = self.header_list.borrow_mut().get_raw(&valid_name).unwrap()[0].clone();
-        combined_value.push(b","[0]);
+        let mut combined_value: Vec<u8> = vec![];
+        {
+            let h_list = self.header_list.borrow();
+            let previous_value = h_list.get_raw(&valid_name);
+            match previous_value {
+                Some(a) => {
+                    combined_value = a[0].clone();
+                    combined_value.push(b","[0]);
+                },
+                _ => {},
+            }
+        }
         combined_value.extend(valid_value.iter().cloned());
         self.header_list.borrow_mut().set_raw(valid_name, vec![combined_value]);
         Ok(())
@@ -346,20 +356,24 @@ fn is_field_name(name: &ByteString) -> bool {
 // field-content = field-vchar [ 1*( SP / HTAB / field-vchar )
 //                               field-vchar ]
 fn is_field_content(value: &ByteString) -> bool {
-    if value.len() == 0 {
+    let value_len = value.len();
+
+    if value_len == 0 {
         return false;
     }
     if !is_field_vchar(value[0]) {
         return false;
     }
 
-    for &ch in &value[1..value.len() - 1] {
-        if !is_field_vchar(ch) || !is_space(ch) || !is_htab(ch) {
-            return false;
+    if value_len > 2 {
+        for &ch in &value[1..value_len - 1] {
+            if !is_field_vchar(ch) & !is_space(ch) & !is_htab(ch) {
+                return false;
+            }
         }
     }
 
-    if !is_field_vchar(value[value.len() - 1]) {
+    if !is_field_vchar(value[value_len - 1]) {
         return false;
     }
 
