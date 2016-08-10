@@ -134,6 +134,21 @@ impl WeakAtom {
     }
 }
 
+impl fmt::Debug for WeakAtom {
+    fn fmt(&self, w: &mut fmt::Formatter) -> fmt::Result {
+        write!(w, "Gecko WeakAtom({:p}, {})", self, self)
+    }
+}
+
+impl fmt::Display for WeakAtom {
+    fn fmt(&self, w: &mut fmt::Formatter) -> fmt::Result {
+        for c in self.chars() {
+            try!(write!(w, "{}", c.unwrap_or(char::REPLACEMENT_CHARACTER)))
+        }
+        Ok(())
+    }
+}
+
 impl Atom {
     pub unsafe fn with<F>(ptr: *mut nsIAtom, callback: &mut F) where F: FnMut(&Atom) {
         let atom = Atom(WeakAtom::new(ptr));
@@ -217,16 +232,15 @@ impl Deserialize for Atom {
 
 impl fmt::Debug for Atom {
     fn fmt(&self, w: &mut fmt::Formatter) -> fmt::Result {
-        write!(w, "Gecko Atom {:p}", self.0)
+        write!(w, "Gecko Atom({:p}, {})", self.0, self)
     }
 }
 
 impl fmt::Display for Atom {
     fn fmt(&self, w: &mut fmt::Formatter) -> fmt::Result {
-        for c in self.chars() {
-            try!(write!(w, "{}", c.unwrap_or(char::REPLACEMENT_CHARACTER)))
+        unsafe {
+            (&*self.0).fmt(w)
         }
-        Ok(())
     }
 }
 
