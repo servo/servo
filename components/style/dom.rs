@@ -83,20 +83,10 @@ pub trait TNode : Sized + Copy + Clone {
 
     fn dump_style(self);
 
-    fn traverse_preorder(self) -> TreeIterator<Self> {
-        TreeIterator::new(self)
-    }
-
     /// Returns an iterator over this node's children.
     fn children(self) -> ChildrenIterator<Self> {
         ChildrenIterator {
             current: self.first_child(),
-        }
-    }
-
-    fn rev_children(self) -> ReverseChildrenIterator<Self> {
-        ReverseChildrenIterator {
-            current: self.last_child(),
         }
     }
 
@@ -255,34 +245,6 @@ pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + Pre
     }
 }
 
-pub struct TreeIterator<ConcreteNode> where ConcreteNode: TNode {
-    stack: Vec<ConcreteNode>,
-}
-
-impl<ConcreteNode> TreeIterator<ConcreteNode> where ConcreteNode: TNode {
-    fn new(root: ConcreteNode) -> TreeIterator<ConcreteNode> {
-        let mut stack = vec![];
-        stack.push(root);
-        TreeIterator {
-            stack: stack,
-        }
-    }
-
-    pub fn next_skipping_children(&mut self) -> Option<ConcreteNode> {
-        self.stack.pop()
-    }
-}
-
-impl<ConcreteNode> Iterator for TreeIterator<ConcreteNode>
-                            where ConcreteNode: TNode {
-    type Item = ConcreteNode;
-    fn next(&mut self) -> Option<ConcreteNode> {
-        let ret = self.stack.pop();
-        ret.map(|node| self.stack.extend(node.rev_children()));
-        ret
-    }
-}
-
 pub struct ChildrenIterator<ConcreteNode> where ConcreteNode: TNode {
     current: Option<ConcreteNode>,
 }
@@ -293,20 +255,6 @@ impl<ConcreteNode> Iterator for ChildrenIterator<ConcreteNode>
     fn next(&mut self) -> Option<ConcreteNode> {
         let node = self.current;
         self.current = node.and_then(|node| node.next_sibling());
-        node
-    }
-}
-
-pub struct ReverseChildrenIterator<ConcreteNode> where ConcreteNode: TNode {
-    current: Option<ConcreteNode>,
-}
-
-impl<ConcreteNode> Iterator for ReverseChildrenIterator<ConcreteNode>
-                            where ConcreteNode: TNode {
-    type Item = ConcreteNode;
-    fn next(&mut self) -> Option<ConcreteNode> {
-        let node = self.current;
-        self.current = node.and_then(|node| node.prev_sibling());
         node
     }
 }
