@@ -89,6 +89,7 @@ impl WeakAtom {
         Atom::from(self.as_ptr())
     }
 
+    #[inline]
     pub fn get_hash(&self) -> u32 {
         self.0.mHash
     }
@@ -106,19 +107,22 @@ impl WeakAtom {
     }
 
     pub fn with_str<F, Output>(&self, cb: F) -> Output
-                               where F: FnOnce(&str) -> Output {
+        where F: FnOnce(&str) -> Output
+    {
         // FIXME(bholley): We should measure whether it makes more sense to
         // cache the UTF-8 version in the Gecko atom table somehow.
         let owned = String::from_utf16(self.as_slice()).unwrap();
         cb(&owned)
     }
 
+    #[inline]
     pub fn eq_str_ignore_ascii_case(&self, s: &str) -> bool {
         unsafe {
             Gecko_AtomEqualsUTF8IgnoreCase(self.as_ptr(), s.as_ptr() as *const _, s.len() as u32)
         }
     }
 
+    #[inline]
     pub fn to_string(&self) -> String {
         String::from_utf16(self.as_slice()).unwrap()
     }
@@ -135,7 +139,12 @@ impl Atom {
         let atom = Atom(WeakAtom::new(ptr));
         callback(&atom);
         mem::forget(atom);
-     }
+    }
+
+    #[inline]
+    pub unsafe fn from_static(ptr: *mut nsIAtom) -> Self {
+        Atom(ptr as *mut WeakAtom)
+    }
 }
 
 impl BloomHash for Atom {
@@ -214,7 +223,7 @@ impl fmt::Debug for Atom {
 
 impl fmt::Display for Atom {
     fn fmt(&self, w: &mut fmt::Formatter) -> fmt::Result {
-        for c in char::decode_utf16(self.as_slice().iter().cloned()) {
+        for c in self.chars() {
             try!(write!(w, "{}", c.unwrap_or(char::REPLACEMENT_CHARACTER)))
         }
         Ok(())
@@ -224,7 +233,7 @@ impl fmt::Display for Atom {
 impl<'a> From<&'a str> for Atom {
     #[inline]
     fn from(string: &str) -> Atom {
-        assert!(string.len() <= u32::max_value() as usize);
+        debug_assert!(string.len() <= u32::max_value() as usize);
         unsafe {
             Atom(WeakAtom::new(
                 Gecko_Atomize(string.as_ptr() as *const _, string.len() as u32)
