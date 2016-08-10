@@ -365,9 +365,9 @@ pub enum Milliseconds {}
 pub enum Nanoseconds {}
 
 /// Amount of milliseconds.
-pub type MsDuration = Length<Milliseconds, u64>;
+pub type MsDuration = Length<u64, Milliseconds>;
 /// Amount of nanoseconds.
-pub type NsDuration = Length<Nanoseconds, u64>;
+pub type NsDuration = Length<u64, Nanoseconds>;
 
 /// Returns the duration since an unspecified epoch measured in ms.
 pub fn precise_time_ms() -> MsDuration {
@@ -568,13 +568,13 @@ pub struct StackingContextScrollState {
 pub struct WindowSizeData {
     /// The size of the initial layout viewport, before parsing an
     /// http://www.w3.org/TR/css-device-adapt/#initial-viewport
-    pub initial_viewport: TypedSize2D<ViewportPx, f32>,
+    pub initial_viewport: TypedSize2D<f32, ViewportPx>,
 
     /// The "viewing area" in page px. See `PagePx` documentation for details.
-    pub visible_viewport: TypedSize2D<PagePx, f32>,
+    pub visible_viewport: TypedSize2D<f32, PagePx>,
 
     /// The resolution of the window in dppx, not including any "pinch zoom" factor.
-    pub device_pixel_ratio: ScaleFactor<ViewportPx, DevicePixel, f32>,
+    pub device_pixel_ratio: ScaleFactor<f32, ViewportPx, DevicePixel>,
 }
 
 /// Messages to the constellation originating from the WebDriver server.

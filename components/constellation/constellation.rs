@@ -535,7 +535,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     fn new_pipeline(&mut self,
                     pipeline_id: PipelineId,
                     parent_info: Option<(PipelineId, SubpageId, FrameType)>,
-                    initial_window_size: Option<TypedSize2D<PagePx, f32>>,
+                    initial_window_size: Option<TypedSize2D<f32, PagePx>>,
                     script_channel: Option<IpcSender<ConstellationControlMsg>>,
                     load_data: LoadData,
                     is_private: bool) {
@@ -734,7 +734,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             // frame trees in the navigation context containing the subframe.
             FromCompositorMsg::FrameSize(pipeline_id, size) => {
                 debug!("constellation got frame size message");
-                self.handle_frame_size_msg(pipeline_id, &Size2D::from_untyped(&size));
+                self.handle_frame_size_msg(pipeline_id, &TypedSize2D::from_untyped(&size));
             }
             FromCompositorMsg::GetFrame(pipeline_id, resp_chan) => {
                 debug!("constellation got get root pipeline message");
@@ -1160,7 +1160,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
     fn handle_frame_size_msg(&mut self,
                              pipeline_id: PipelineId,
-                             size: &TypedSize2D<PagePx, f32>) {
+                             size: &TypedSize2D<f32, PagePx>) {
         let msg = ConstellationControlMsg::Resize(pipeline_id, WindowSizeData {
             visible_viewport: *size,
             initial_viewport: *size * ScaleFactor::new(1.0),
@@ -2139,7 +2139,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 // If the rectangle for this pipeline is zero sized, it will
                 // never be painted. In this case, don't query the layout
                 // thread as it won't contribute to the final output image.
-                if size == Size2D::zero() {
+                if size == TypedSize2D::zero() {
                     continue;
                 }
 

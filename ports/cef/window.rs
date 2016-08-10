@@ -49,7 +49,7 @@ pub static mut DISPLAY: *mut c_void = 0 as *mut c_void;
 #[derive(Clone)]
 pub struct Window {
     cef_browser: RefCell<Option<CefBrowser>>,
-    size: TypedSize2D<DevicePixel,u32>
+    size: TypedSize2D<u32, DevicePixel>
 }
 
 #[cfg(target_os="macos")]
@@ -171,7 +171,7 @@ impl Window {
 }
 
 impl WindowMethods for Window {
-    fn framebuffer_size(&self) -> TypedSize2D<DevicePixel,u32> {
+    fn framebuffer_size(&self) -> TypedSize2D<u32, DevicePixel> {
         let browser = self.cef_browser.borrow();
         match *browser {
             None => self.size,
@@ -208,7 +208,7 @@ impl WindowMethods for Window {
         }
     }
 
-    fn size(&self) -> TypedSize2D<ScreenPx,f32> {
+    fn size(&self) -> TypedSize2D<f32, ScreenPx> {
         let browser = self.cef_browser.borrow();
         match *browser {
             None => Size2D::typed(400.0, 300.0),
@@ -252,7 +252,7 @@ impl WindowMethods for Window {
         }
     }
 
-    fn scale_factor(&self) -> ScaleFactor<ScreenPx,DevicePixel,f32> {
+    fn scale_factor(&self) -> ScaleFactor<f32, ScreenPx, DevicePixel> {
         if cfg!(target_os="macos") {
             let browser = self.cef_browser.borrow();
             match *browser {

@@ -10,7 +10,7 @@ use compositing::windowing::{MouseWindowEvent, WindowNavigateMsg};
 use compositing::windowing::{WindowEvent, WindowMethods};
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
-use euclid::{Size2D, Point2D};
+use euclid::{Size2D, Point2D, TypedPoint2D};
 #[cfg(target_os = "windows")] use gdi32;
 use gleam::gl;
 use glutin;
@@ -108,12 +108,12 @@ pub struct Window {
 }
 
 #[cfg(not(target_os = "windows"))]
-fn window_creation_scale_factor() -> ScaleFactor<ScreenPx, DevicePixel, f32> {
+fn window_creation_scale_factor() -> ScaleFactor<f32, ScreenPx, DevicePixel> {
     ScaleFactor::new(1.0)
 }
 
 #[cfg(target_os = "windows")]
-fn window_creation_scale_factor() -> ScaleFactor<ScreenPx, DevicePixel, f32> {
+fn window_creation_scale_factor() -> ScaleFactor<f32, ScreenPx, DevicePixel> {
         let hdc = unsafe { user32::GetDC(::std::ptr::null_mut()) };
         let ppi = unsafe { gdi32::GetDeviceCaps(hdc, winapi::wingdi::LOGPIXELSY) };
         ScaleFactor::new(ppi as f32 / 96.0)
@@ -122,9 +122,9 @@ fn window_creation_scale_factor() -> ScaleFactor<ScreenPx, DevicePixel, f32> {
 
 impl Window {
     pub fn new(is_foreground: bool,
-               window_size: TypedSize2D<ScreenPx, u32>,
+               window_size: TypedSize2D<u32, ScreenPx>,
                parent: Option<glutin::WindowID>) -> Rc<Window> {
-        let win_size: TypedSize2D<DevicePixel, u32> =
+        let win_size: TypedSize2D<u32, DevicePixel> =
             (window_size.as_f32() * window_creation_scale_factor())
             .as_uint().cast().expect("Window size should fit in u32");
         let width = win_size.to_untyped().width;
@@ -203,7 +203,7 @@ impl Window {
                 None => {}
                 Some(listener) => {
                     (*listener).handle_event_from_nested_event_loop(
-                        WindowEvent::Resize(Size2D::typed(width, height)));
+                        WindowEvent::Resize(TypedSize2D::new(width, height)));
                 }
             }
         }
@@ -297,7 +297,7 @@ impl Window {
                 debug!("Keyboard input without virtual key.");
             }
             Event::Resized(width, height) => {
-                self.event_queue.borrow_mut().push(WindowEvent::Resize(Size2D::typed(width, height)));
+                self.event_queue.borrow_mut().push(WindowEvent::Resize(TypedSize2D::new(width, height)));
             }
             Event::MouseInput(element_state, mouse_button, pos) => {
                 if mouse_button == MouseButton::Left ||
@@ -306,7 +306,7 @@ impl Window {
                         Some((x, y)) => {
                             self.mouse_pos.set(Point2D::new(x, y));
                             self.event_queue.borrow_mut().push(
-                                WindowEvent::MouseWindowMoveEventClass(Point2D::typed(x as f32, y as f32)));
+                                WindowEvent::MouseWindowMoveEventClass(TypedPoint2D::new(x as f32, y as f32)));
                             self.handle_mouse(mouse_button, element_state, x, y);
                         }
                         None => {
@@ -319,7 +319,7 @@ impl Window {
             Event::MouseMoved(x, y) => {
                 self.mouse_pos.set(Point2D::new(x, y));
                 self.event_queue.borrow_mut().push(
-                    WindowEvent::MouseWindowMoveEventClass(Point2D::typed(x as f32, y as f32)));
+                    WindowEvent::MouseWindowMoveEventClass(TypedPoint2D::new(x as f32, y as f32)));
             }
             Event::MouseWheel(delta, phase) => {
                 let (dx, dy) = match delta {
@@ -334,12 +334,12 @@ impl Window {
 
                 let phase = glutin_phase_to_touch_event_type(touch.phase);
                 let id = TouchId(touch.id as i32);
-                let point = Point2D::typed(touch.location.0 as f32, touch.location.1 as f32);
+                let point = TypedPoint2D::new(touch.location.0 as f32, touch.location.1 as f32);
                 self.event_queue.borrow_mut().push(WindowEvent::Touch(phase, id, point));
             }
             Event::TouchpadPressure(pressure, stage) => {
                 let m = self.mouse_pos.get();
-                let point = Point2D::typed(m.x as f32, m.y as f32);
+                let point = TypedPoint2D::new(m.x as f32, m.y as f32);
                 let phase = glutin_pressure_stage_to_touchpad_pressure_phase(stage);
                 self.event_queue.borrow_mut().push(WindowEvent::TouchpadPressure(point, pressure, phase));
             }
@@ -371,8 +371,8 @@ impl Window {
             dy = 0.0;
         }
         let mouse_pos = self.mouse_pos.get();
-        let event = WindowEvent::Scroll(Point2D::typed(dx as f32, dy as f32),
-                                        Point2D::typed(mouse_pos.x as i32, mouse_pos.y as i32),
+        let event = WindowEvent::Scroll(TypedPoint2D::new(dx as f32, dy as f32),
+                                        TypedPoint2D::new(mouse_pos.x as i32, mouse_pos.y as i32),
                                         phase);
         self.event_queue.borrow_mut().push(event);
     }
@@ -387,10 +387,11 @@ impl Window {
             ElementState::Pressed => {
                 self.mouse_down_point.set(Point2D::new(x, y));
                 self.mouse_down_button.set(Some(button));
-                MouseWindowEvent::MouseDown(MouseButton::Left, Point2D::typed(x as f32, y as f32))
+                MouseWindowEvent::MouseDown(MouseButton::Left, TypedPoint2D::new(x as f32, y as f32))
             }
             ElementState::Released => {
-                let mouse_up_event = MouseWindowEvent::MouseUp(MouseButton::Left, Point2D::typed(x as f32, y as f32));
+                let mouse_up_event = MouseWindowEvent::MouseUp(MouseButton::Left,
+                                                               TypedPoint2D::new(x as f32, y as f32));
                 match self.mouse_down_button.get() {
                     None => mouse_up_event,
                     Some(but) if button == but => {
@@ -399,7 +400,7 @@ impl Window {
                                            pixel_dist.y * pixel_dist.y) as f64).sqrt();
                         if pixel_dist < max_pixel_dist {
                             self.event_queue.borrow_mut().push(WindowEvent::MouseWindowEventClass(mouse_up_event));
-                            MouseWindowEvent::Click(MouseButton::Left, Point2D::typed(x as f32, y as f32))
+                            MouseWindowEvent::Click(MouseButton::Left, TypedPoint2D::new(x as f32, y as f32))
                         } else {
                             mouse_up_event
                         }
@@ -671,17 +672,17 @@ fn create_window_proxy(window: &Window) -> Option<glutin::WindowProxy> {
 }
 
 impl WindowMethods for Window {
-    fn framebuffer_size(&self) -> TypedSize2D<DevicePixel, u32> {
+    fn framebuffer_size(&self) -> TypedSize2D<u32, DevicePixel> {
         let scale_factor = self.window.hidpi_factor() as u32;
         // TODO(ajeffrey): can this fail?
         let (width, height) = self.window.get_inner_size().expect("Failed to get window inner size.");
-        Size2D::typed(width * scale_factor, height * scale_factor)
+        TypedSize2D::new(width * scale_factor, height * scale_factor)
     }
 
-    fn size(&self) -> TypedSize2D<ScreenPx, f32> {
+    fn size(&self) -> TypedSize2D<f32, ScreenPx> {
         // TODO(ajeffrey): can this fail?
         let (width, height) = self.window.get_inner_size().expect("Failed to get window inner size.");
-        Size2D::typed(width as f32, height as f32)
+        TypedSize2D::new(width as f32, height as f32)
     }
 
     fn client_window(&self) -> (Size2D<u32>, Point2D<i32>) {
@@ -722,12 +723,12 @@ impl WindowMethods for Window {
     }
 
     #[cfg(not(target_os = "windows"))]
-    fn scale_factor(&self) -> ScaleFactor<ScreenPx, DevicePixel, f32> {
+    fn scale_factor(&self) -> ScaleFactor<f32, ScreenPx, DevicePixel> {
         ScaleFactor::new(self.window.hidpi_factor())
     }
 
     #[cfg(target_os = "windows")]
-    fn scale_factor(&self) -> ScaleFactor<ScreenPx, DevicePixel, f32> {
+    fn scale_factor(&self) -> ScaleFactor<f32, ScreenPx, DevicePixel> {
         let hdc = unsafe { user32::GetDC(::std::ptr::null_mut()) };
         let ppi = unsafe { gdi32::GetDeviceCaps(hdc, winapi::wingdi::LOGPIXELSY) };
         ScaleFactor::new(ppi as f32 / 96.0)

@@ -5,7 +5,7 @@
 //! Configuration options for a single run of the servo application. Created
 //! from command line arguments.
 
-use euclid::size::{Size2D, TypedSize2D};
+use euclid::size::TypedSize2D;
 use geometry::ScreenPx;
 use getopts::Options;
 use num_cpus;
@@ -136,7 +136,7 @@ pub struct Opts {
     pub webdriver_port: Option<u16>,
 
     /// The initial requested size of the window.
-    pub initial_window_size: TypedSize2D<ScreenPx, u32>,
+    pub initial_window_size: TypedSize2D<u32, ScreenPx>,
 
     /// An optional string allowing the user agent to be set for testing.
     pub user_agent: String,
@@ -494,7 +494,7 @@ pub fn default_opts() -> Opts {
         trace_layout: false,
         devtools_port: None,
         webdriver_port: None,
-        initial_window_size: Size2D::typed(1024, 740),
+        initial_window_size: TypedSize2D::new(1024, 740),
         user_agent: default_user_agent_string(DEFAULT_USER_AGENT),
         multiprocess: false,
         random_pipeline_closure_probability: None,
@@ -722,10 +722,10 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
             let res: Vec<u32> = res_string.split('x').map(|r| {
                 r.parse().unwrap_or_else(|err| args_fail(&format!("Error parsing option: --resolution ({})", err)))
             }).collect();
-            Size2D::typed(res[0], res[1])
+            TypedSize2D::new(res[0], res[1])
         }
         None => {
-            Size2D::typed(1024, 740)
+            TypedSize2D::new(1024, 740)
         }
     };
 

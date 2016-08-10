@@ -153,24 +153,24 @@ pub struct IOCompositor<Window: WindowMethods> {
     scene: Scene<CompositorData>,
 
     /// The application window size.
-    window_size: TypedSize2D<DevicePixel, u32>,
+    window_size: TypedSize2D<u32, DevicePixel>,
 
     /// The overridden viewport.
-    viewport: Option<(TypedPoint2D<DevicePixel, u32>, TypedSize2D<DevicePixel, u32>)>,
+    viewport: Option<(TypedPoint2D<u32, DevicePixel>, TypedSize2D<u32, DevicePixel>)>,
 
     /// "Mobile-style" zoom that does not reflow the page.
-    viewport_zoom: ScaleFactor<PagePx, ViewportPx, f32>,
+    viewport_zoom: ScaleFactor<f32, PagePx, ViewportPx>,
 
     /// Viewport zoom constraints provided by @viewport.
-    min_viewport_zoom: Option<ScaleFactor<PagePx, ViewportPx, f32>>,
-    max_viewport_zoom: Option<ScaleFactor<PagePx, ViewportPx, f32>>,
+    min_viewport_zoom: Option<ScaleFactor<f32, PagePx, ViewportPx>>,
+    max_viewport_zoom: Option<ScaleFactor<f32, PagePx, ViewportPx>>,
 
     /// "Desktop-style" zoom that resizes the viewport to fit the window.
     /// See `ViewportPx` docs in util/geom.rs for details.
-    page_zoom: ScaleFactor<ViewportPx, ScreenPx, f32>,
+    page_zoom: ScaleFactor<f32, ViewportPx, ScreenPx>,
 
     /// The device pixel ratio for this window.
-    scale_factor: ScaleFactor<ScreenPx, DevicePixel, f32>,
+    scale_factor: ScaleFactor<f32, ScreenPx, DevicePixel>,
 
     channel_to_self: Box<CompositorProxy + Send>,
 
@@ -254,9 +254,9 @@ struct ScrollZoomEvent {
     /// Change the pinch zoom level by this factor
     magnification: f32,
     /// Scroll by this offset
-    delta: TypedPoint2D<DevicePixel, f32>,
+    delta: TypedPoint2D<f32, DevicePixel>,
     /// Apply changes to the frame at this location
-    cursor: TypedPoint2D<DevicePixel, i32>,
+    cursor: TypedPoint2D<i32, DevicePixel>,
     /// The scroll event phase.
     phase: ScrollEventPhase,
     /// The number of OS events that have been coalesced together into this one event.
@@ -281,7 +281,7 @@ struct HitTestResult {
     /// The topmost layer containing the requested point
     layer: Rc<Layer<CompositorData>>,
     /// The point in client coordinates of the innermost window or frame containing `layer`
-    point: TypedPoint2D<LayerPixel, f32>,
+    point: TypedPoint2D<f32, LayerPixel>,
 }
 
 struct PipelineDetails {
@@ -467,10 +467,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             context: None,
             root_pipeline: None,
             pipeline_details: HashMap::new(),
-            scene: Scene::new(Rect {
-                origin: Point2D::zero(),
-                size: window_size.as_f32(),
-            }),
+            scene: Scene::new(TypedRect::new(TypedPoint2D::zero(), window_size.as_f32())),
             window_size: window_size,
             viewport: None,
             scale_factor: scale_factor,
@@ -792,7 +789,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 match self.find_layer_with_pipeline_and_layer_id(pipeline_id, layer_id) {
                     Some(ref layer) => {
                         let typed = layer.extra_data.borrow().scroll_offset;
-                        let _ = sender.send(Point2D::new(typed.x.get(), typed.y.get()));
+                        let _ = sender.send(Point2D::new(typed.x, typed.y));
                     },
                     None => {
                         warn!("Can't find requested layer in handling Msg::GetScrollOffset");
@@ -913,7 +910,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn create_root_layer_for_pipeline_and_size(&mut self,
                                                pipeline: &CompositionPipeline,
-                                               frame_size: Option<TypedSize2D<PagePx, f32>>)
+                                               frame_size: Option<TypedSize2D<f32, PagePx>>)
                                                -> Rc<Layer<CompositorData>> {
         let layer_properties = LayerProperties {
             id: LayerId::null(),
@@ -939,8 +936,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         *root_layer.masks_to_bounds.borrow_mut() = true;
 
         if let Some(ref frame_size) = frame_size {
-            let frame_size = frame_size.to_untyped();
-            root_layer.bounds.borrow_mut().size = Size2D::from_untyped(&frame_size);
+            root_layer.bounds.borrow_mut().size =
+                TypedSize2D::new(frame_size.width, frame_size.height);
         }
 
         root_layer
@@ -998,8 +995,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         if let Some(subpage_id) = properties.subpage_pipeline_id {
             match self.find_layer_with_pipeline_and_layer_id(subpage_id, LayerId::null()) {
                 Some(layer) => {
-                    *layer.bounds.borrow_mut() = Rect::from_untyped(
-                        &Rect::new(Point2D::zero(), properties.rect.size));
+                    *layer.bounds.borrow_mut() =
+                        TypedRect::new(TypedPoint2D::zero(),
+                                       TypedSize2D::from_untyped(&properties.rect.size));
                 }
                 None => warn!("Tried to update non-existent subpage root layer: {:?}", subpage_id),
             }
@@ -1178,12 +1176,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn move_layer(&self,
                   pipeline_id: PipelineId,
                   layer_id: LayerId,
-                  origin: TypedPoint2D<LayerPixel, f32>)
+                  origin: TypedPoint2D<f32, LayerPixel>)
                   -> bool {
         match self.find_layer_with_pipeline_and_layer_id(pipeline_id, layer_id) {
             Some(ref layer) => {
                 if layer.wants_scroll_events() == WantsScrollEventsFlag::WantsScrollEvents {
-                    layer.clamp_scroll_offset_and_scroll_layer(Point2D::typed(0f32, 0f32) - origin);
+                    layer.clamp_scroll_offset_and_scroll_layer(TypedPoint2D::zero() - origin);
                 }
                 true
             }
@@ -1195,7 +1193,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                                                    pipeline_id: PipelineId,
                                                    layer_id: LayerId) {
         if let Some(point) = self.fragment_point.take() {
-            if !self.move_layer(pipeline_id, layer_id, Point2D::from_untyped(&point)) {
+            if !self.move_layer(pipeline_id, layer_id, TypedPoint2D::from_untyped(&point)) {
                 return warn!("Compositor: Tried to scroll to fragment with unknown layer.");
             }
 
@@ -1251,8 +1249,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                                        new_layer_buffer_set: Box<LayerBufferSet>,
                                        epoch: Epoch) {
         debug!("compositor received new frame at size {:?}x{:?}",
-               self.window_size.width.get(),
-               self.window_size.height.get());
+               self.window_size.width,
+               self.window_size.height);
 
         // From now on, if we destroy the buffers, they will leak.
         let mut new_layer_buffer_set = new_layer_buffer_set;
@@ -1268,7 +1266,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                                 pipeline_id: PipelineId,
                                 layer_id: LayerId,
                                 point: Point2D<f32>) {
-        if self.move_layer(pipeline_id, layer_id, Point2D::from_untyped(&point)) {
+        if self.move_layer(pipeline_id, layer_id, TypedPoint2D::from_untyped(&point)) {
             self.perform_updates_after_scroll();
             self.send_viewport_rects_for_all_layers()
         } else {
@@ -1369,7 +1367,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    fn on_resize_window_event(&mut self, new_size: TypedSize2D<DevicePixel, u32>) {
+    fn on_resize_window_event(&mut self, new_size: TypedSize2D<u32, DevicePixel>) {
         debug!("compositor resizing to {:?}", new_size.to_untyped());
 
         // A size change could also mean a resolution change.
@@ -1457,7 +1455,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    fn on_mouse_window_move_event_class(&mut self, cursor: TypedPoint2D<DevicePixel, f32>) {
+    fn on_mouse_window_move_event_class(&mut self, cursor: TypedPoint2D<f32, DevicePixel>) {
         if opts::get().convert_mouse_to_touch {
             self.on_touch_move(TouchId(0), cursor);
             return
@@ -1505,7 +1503,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    fn on_touch_down(&mut self, identifier: TouchId, point: TypedPoint2D<DevicePixel, f32>) {
+    fn on_touch_down(&mut self, identifier: TouchId, point: TypedPoint2D<f32, DevicePixel>) {
         self.touch_handler.on_touch_down(identifier, point);
         if let Some(result) = self.find_topmost_layer_at_point(point / self.scene.scale) {
             result.layer.send_event(self, TouchEvent(TouchEventType::Down, identifier,
@@ -1513,7 +1511,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    fn on_touch_move(&mut self, identifier: TouchId, point: TypedPoint2D<DevicePixel, f32>) {
+    fn on_touch_move(&mut self, identifier: TouchId, point: TypedPoint2D<f32, DevicePixel>) {
         match self.touch_handler.on_touch_move(identifier, point) {
             TouchAction::Scroll(delta) => {
                 match point.cast() {
@@ -1522,7 +1520,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 }
             }
             TouchAction::Zoom(magnification, scroll_delta) => {
-                let cursor = Point2D::typed(-1, -1);  // Make sure this hits the base layer.
+                let cursor = TypedPoint2D::new(-1, -1);  // Make sure this hits the base layer.
                 self.pending_scroll_zoom_events.push(ScrollZoomEvent {
                     magnification: magnification,
                     delta: scroll_delta,
@@ -1542,7 +1540,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    fn on_touch_up(&mut self, identifier: TouchId, point: TypedPoint2D<DevicePixel, f32>) {
+    fn on_touch_up(&mut self, identifier: TouchId, point: TypedPoint2D<f32, DevicePixel>) {
         if let Some(result) = self.find_topmost_layer_at_point(point / self.scene.scale) {
             result.layer.send_event(self, TouchEvent(TouchEventType::Up, identifier,
                                                      result.point.to_untyped()));
@@ -1552,7 +1550,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    fn on_touch_cancel(&mut self, identifier: TouchId, point: TypedPoint2D<DevicePixel, f32>) {
+    fn on_touch_cancel(&mut self, identifier: TouchId, point: TypedPoint2D<f32, DevicePixel>) {
         // Send the event to script.
         self.touch_handler.on_touch_cancel(identifier, point);
         if let Some(result) = self.find_topmost_layer_at_point(point / self.scene.scale) {
@@ -1562,7 +1560,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     /// http://w3c.github.io/touch-events/#mouse-events
-    fn simulate_mouse_click(&self, p: TypedPoint2D<DevicePixel, f32>) {
+    fn simulate_mouse_click(&self, p: TypedPoint2D<f32, DevicePixel>) {
         match self.find_topmost_layer_at_point(p / self.scene.scale) {
             Some(HitTestResult { layer, point }) => {
                 let button = MouseButton::Left;
@@ -1576,8 +1574,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn on_scroll_window_event(&mut self,
-                              delta: TypedPoint2D<DevicePixel, f32>,
-                              cursor: TypedPoint2D<DevicePixel, i32>) {
+                              delta: TypedPoint2D<f32, DevicePixel>,
+                              cursor: TypedPoint2D<i32, DevicePixel>) {
         self.pending_scroll_zoom_events.push(ScrollZoomEvent {
             magnification: 1.0,
             delta: delta,
@@ -1589,8 +1587,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn on_scroll_start_window_event(&mut self,
-                                    delta: TypedPoint2D<DevicePixel, f32>,
-                                    cursor: TypedPoint2D<DevicePixel, i32>) {
+                                    delta: TypedPoint2D<f32, DevicePixel>,
+                                    cursor: TypedPoint2D<i32, DevicePixel>) {
         self.scroll_in_progress = true;
         self.pending_scroll_zoom_events.push(ScrollZoomEvent {
             magnification: 1.0,
@@ -1603,8 +1601,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn on_scroll_end_window_event(&mut self,
-                                  delta: TypedPoint2D<DevicePixel, f32>,
-                                  cursor: TypedPoint2D<DevicePixel, i32>) {
+                                  delta: TypedPoint2D<f32, DevicePixel>,
+                                  cursor: TypedPoint2D<i32, DevicePixel>) {
         self.scroll_in_progress = false;
         self.pending_scroll_zoom_events.push(ScrollZoomEvent {
             magnification: 1.0,
@@ -1710,17 +1708,19 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     /// sends them to layout as necessary. This ultimately triggers a rerender of the content.
     fn send_updated_display_ports_to_layout(&mut self) {
         fn process_layer(layer: &Layer<CompositorData>,
-                         window_size: &TypedSize2D<LayerPixel, f32>,
+                         window_size: &TypedSize2D<f32, LayerPixel>,
                          new_display_ports: &mut HashMap<PipelineId, Vec<(LayerId, Rect<Au>)>>) {
             let visible_rect =
-                Rect::new(Point2D::zero(), *window_size).translate(&-*layer.content_offset.borrow())
-                                                        .intersection(&*layer.bounds.borrow())
-                                                        .unwrap_or(Rect::zero())
-                                                        .to_untyped();
-            let visible_rect = Rect::new(Point2D::new(Au::from_f32_px(visible_rect.origin.x),
-                                                      Au::from_f32_px(visible_rect.origin.y)),
-                                         Size2D::new(Au::from_f32_px(visible_rect.size.width),
-                                                     Au::from_f32_px(visible_rect.size.height)));
+                TypedRect::new(TypedPoint2D::zero(), *window_size)
+                    .translate(&-*layer.content_offset.borrow())
+                    .intersection(&*layer.bounds.borrow())
+                    .unwrap_or(TypedRect::zero())
+                    .to_untyped();
+            let visible_rect = TypedRect::new(
+                TypedPoint2D::new(Au::from_f32_px(visible_rect.origin.x),
+                                  Au::from_f32_px(visible_rect.origin.y)),
+                TypedSize2D::new(Au::from_f32_px(visible_rect.size.width),
+                                 Au::from_f32_px(visible_rect.size.height)));
 
             let extra_layer_data = layer.extra_data.borrow();
             if !new_display_ports.contains_key(&extra_layer_data.pipeline_id) {
@@ -1815,7 +1815,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    fn device_pixels_per_screen_px(&self) -> ScaleFactor<ScreenPx, DevicePixel, f32> {
+    fn device_pixels_per_screen_px(&self) -> ScaleFactor<f32, ScreenPx, DevicePixel> {
         match opts::get().device_pixels_per_px {
             Some(device_pixels_per_px) => ScaleFactor::new(device_pixels_per_px),
             None => match opts::get().output_file {
@@ -1825,7 +1825,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    fn device_pixels_per_page_px(&self) -> ScaleFactor<PagePx, DevicePixel, f32> {
+    fn device_pixels_per_page_px(&self) -> ScaleFactor<f32, PagePx, DevicePixel> {
         self.viewport_zoom * self.page_zoom * self.device_pixels_per_screen_px()
     }
 
@@ -1855,8 +1855,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn on_pinch_zoom_window_event(&mut self, magnification: f32) {
         self.pending_scroll_zoom_events.push(ScrollZoomEvent {
             magnification: magnification,
-            delta: Point2D::typed(0.0, 0.0), // TODO: Scroll to keep the center in view?
-            cursor:  Point2D::typed(-1, -1), // Make sure this hits the base layer.
+            delta: TypedPoint2D::zero(), // TODO: Scroll to keep the center in view?
+            cursor:  TypedPoint2D::new(-1, -1), // Make sure this hits the base layer.
             phase: ScrollEventPhase::Move(true),
             event_count: 1,
         });
@@ -1874,7 +1874,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    fn on_touchpad_pressure_event(&self, cursor: TypedPoint2D<DevicePixel, f32>, pressure: f32,
+    fn on_touchpad_pressure_event(&self, cursor: TypedPoint2D<f32, DevicePixel>, pressure: f32,
                                   phase: TouchpadPressurePhase) {
         if let Some(true) = PREFS.get("dom.forcetouch.enabled").as_boolean() {
             match self.find_topmost_layer_at_point(cursor / self.scene.scale) {
@@ -2194,7 +2194,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             return Err(UnableToComposite::NoContext)
         }
         let (width, height) =
-            (self.window_size.width.get() as usize, self.window_size.height.get() as usize);
+            (self.window_size.width as usize, self.window_size.height as usize);
         if !self.window.prepare_for_composite(width, height) {
             return Err(UnableToComposite::WindowUnprepared)
         }
@@ -2236,15 +2236,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             self.dump_layer_tree();
             // Adjust the layer dimensions as necessary to correspond to the size of the window.
             self.scene.viewport = match self.viewport {
-                Some((point, size)) => Rect {
-                    origin: point.as_f32(),
-                    size:   size.as_f32(),
-                },
-
-                None => Rect {
-                    origin: Point2D::zero(),
-                    size: self.window_size.as_f32(),
-                }
+                Some((point, size)) => TypedRect::new(point.as_f32(), size.as_f32()),
+                None => TypedRect::new(TypedPoint2D::zero(), self.window_size.as_f32()),
             };
 
             // Paint the scene.
@@ -2255,15 +2248,13 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 match self.context {
                     Some(context) => {
                         if let Some((point, size)) = self.viewport {
-                            let point = point.to_untyped();
-                            let size  = size.to_untyped();
+                            let point = point.to_untyped(); let size  = size.to_untyped();
 
-                            gl::scissor(point.x as GLint, point.y as GLint,
-                                        size.width as GLsizei, size.height as GLsizei);
+                            gl::scissor(point.x as GLint, point.y as GLint, size.width as GLsizei,
+                            size.height as GLsizei);
 
-                            gl::enable(gl::SCISSOR_TEST);
-                            rendergl::render_scene(layer.clone(), context, &self.scene);
-                            gl::disable(gl::SCISSOR_TEST);
+                            gl::enable(gl::SCISSOR_TEST); rendergl::render_scene(layer.clone(),
+                            context, &self.scene); gl::disable(gl::SCISSOR_TEST);
 
                         } else {
                             rendergl::render_scene(layer.clone(), context, &self.scene);
@@ -2389,8 +2380,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn find_topmost_layer_at_point_for_layer(&self,
                                              layer: Rc<Layer<CompositorData>>,
-                                             point_in_parent_layer: TypedPoint2D<LayerPixel, f32>,
-                                             clip_rect_in_parent_layer: &TypedRect<LayerPixel, f32>)
+                                             point_in_parent_layer: TypedPoint2D<f32, LayerPixel>,
+                                             clip_rect_in_parent_layer: &TypedRect<f32, LayerPixel>)
                                              -> Option<HitTestResult> {
         let layer_bounds = *layer.bounds.borrow();
         let masks_to_bounds = *layer.masks_to_bounds.borrow();
@@ -2439,7 +2430,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn find_topmost_layer_at_point(&self,
-                                   point: TypedPoint2D<LayerPixel, f32>)
+                                   point: TypedPoint2D<f32, LayerPixel>)
                                    -> Option<HitTestResult> {
         match self.scene.root {
             Some(ref layer) => {
