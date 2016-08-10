@@ -19,11 +19,11 @@ pub struct TouchHandler {
 #[derive(Clone, Copy, Debug)]
 pub struct TouchPoint {
     pub id: TouchId,
-    pub point: TypedPoint2D<DevicePixel, f32>
+    pub point: TypedPoint2D<f32, DevicePixel>
 }
 
 impl TouchPoint {
-    pub fn new(id: TouchId, point: TypedPoint2D<DevicePixel, f32>) -> Self {
+    pub fn new(id: TouchId, point: TypedPoint2D<f32, DevicePixel>) -> Self {
         TouchPoint { id: id, point: point }
     }
 }
@@ -57,9 +57,9 @@ pub enum TouchAction {
     /// Simulate a mouse click.
     Click,
     /// Scroll by the provided offset.
-    Scroll(TypedPoint2D<DevicePixel, f32>),
+    Scroll(TypedPoint2D<f32, DevicePixel>),
     /// Zoom by a magnification factor and scroll by the provided offset.
-    Zoom(f32, TypedPoint2D<DevicePixel, f32>),
+    Zoom(f32, TypedPoint2D<f32, DevicePixel>),
     /// Send a JavaScript event to content.
     DispatchEvent,
     /// Don't do anything.
@@ -74,7 +74,7 @@ impl TouchHandler {
         }
     }
 
-    pub fn on_touch_down(&mut self, id: TouchId, point: TypedPoint2D<DevicePixel, f32>) {
+    pub fn on_touch_down(&mut self, id: TouchId, point: TypedPoint2D<f32, DevicePixel>) {
         let point = TouchPoint::new(id, point);
         self.active_touch_points.push(point);
 
@@ -87,7 +87,7 @@ impl TouchHandler {
         };
     }
 
-    pub fn on_touch_move(&mut self, id: TouchId, point: TypedPoint2D<DevicePixel, f32>)
+    pub fn on_touch_move(&mut self, id: TouchId, point: TypedPoint2D<f32, DevicePixel>)
                          -> TouchAction {
         let idx = match self.active_touch_points.iter_mut().position(|t| t.id == id) {
             Some(i) => i,
@@ -101,10 +101,10 @@ impl TouchHandler {
         let action = match self.state {
             Touching => {
                 let delta = point - old_point;
-                // TODO let delta: TypedPoint2D<ScreenPx, _> = delta / self.device_pixels_per_screen_px();
+                // TODO let delta: TypedPoint2D<_, ScreenPx> = delta / self.device_pixels_per_screen_px();
 
-                if delta.x.get().abs() > TOUCH_PAN_MIN_SCREEN_PX ||
-                   delta.y.get().abs() > TOUCH_PAN_MIN_SCREEN_PX
+                if delta.x.abs() > TOUCH_PAN_MIN_SCREEN_PX ||
+                   delta.y.abs() > TOUCH_PAN_MIN_SCREEN_PX
                 {
                     self.state = Panning;
                     TouchAction::Scroll(delta)
@@ -142,7 +142,7 @@ impl TouchHandler {
         action
     }
 
-    pub fn on_touch_up(&mut self, id: TouchId, _point: TypedPoint2D<DevicePixel, f32>)
+    pub fn on_touch_up(&mut self, id: TouchId, _point: TypedPoint2D<f32, DevicePixel>)
                        -> TouchAction {
         match self.active_touch_points.iter().position(|t| t.id == id) {
             Some(i) => {
@@ -176,7 +176,7 @@ impl TouchHandler {
         }
     }
 
-    pub fn on_touch_cancel(&mut self, id: TouchId, _point: TypedPoint2D<DevicePixel, f32>) {
+    pub fn on_touch_cancel(&mut self, id: TouchId, _point: TypedPoint2D<f32, DevicePixel>) {
         match self.active_touch_points.iter().position(|t| t.id == id) {
             Some(i) => {
                 self.active_touch_points.swap_remove(i);
@@ -219,16 +219,14 @@ impl TouchHandler {
         self.active_touch_points.len()
     }
 
-    fn pinch_distance_and_center(&self) -> (f32, TypedPoint2D<DevicePixel, f32>) {
+    fn pinch_distance_and_center(&self) -> (f32, TypedPoint2D<f32, DevicePixel>) {
         debug_assert!(self.touch_count() == 2);
         let p0 = self.active_touch_points[0].point;
         let p1 = self.active_touch_points[1].point;
         let center = (p0 + p1) / ScaleFactor::new(2.0);
 
         let d = p0 - p1;
-        let dx = d.x.get();
-        let dy = d.y.get();
-        let distance = f32::sqrt(dx * dx + dy * dy);
+        let distance = f32::sqrt(d.x * d.x + d.y * d.y);
 
         (distance, center)
     }

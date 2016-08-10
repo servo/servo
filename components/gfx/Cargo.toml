@@ -14,7 +14,7 @@ path = "lib.rs"
 app_units = "0.2.5"
 azure = {git = "https://github.com/servo/rust-azure", features = ["plugins"]}
 bitflags = "0.7"
-euclid = "0.7.1"
+euclid = "0.8.2"
 fnv = "1.0"
 gfx_traits = {path = "../gfx_traits"}
 harfbuzz-sys = "0.1"
@@ -59,7 +59,7 @@ core-text = "1.1"
 
 [target.'cfg(any(target_os = "linux", target_os = "android", target_os = "windows"))'.dependencies]
 freetype = {git = "https://github.com/servo/rust-freetype"}
-servo-fontconfig = "0.2"
+servo-fontconfig = "0.2.1"
 
 [target.'cfg(any(target_arch = "x86_64", target_arch = "aarch64"))'.dependencies]
 simd = {git = "https://github.com/huonw/simd"}

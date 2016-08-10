@@ -389,7 +389,7 @@ impl Handler {
 
         let window_size = receiver.recv().unwrap();
         let vp = window_size.visible_viewport;
-        let window_size_response = WindowSizeResponse::new(vp.width.get() as u64, vp.height.get() as u64);
+        let window_size_response = WindowSizeResponse::new(vp.width as u64, vp.height as u64);
         Ok(WebDriverResponse::WindowSize(window_size_response))
     }
 
@@ -413,7 +413,7 @@ impl Handler {
 
         let window_size = receiver.recv().unwrap();
         let vp = window_size.visible_viewport;
-        let window_size_response = WindowSizeResponse::new(vp.width.get() as u64, vp.height.get() as u64);
+        let window_size_response = WindowSizeResponse::new(vp.width as u64, vp.height as u64);
         Ok(WebDriverResponse::WindowSize(window_size_response))
     }
 

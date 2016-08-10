@@ -17,7 +17,7 @@ opt-level = 3
 [dependencies]
 compositing = {path = "../../components/compositing"}
 devtools = {path = "../../components/devtools"}
-euclid = "0.7.1"
+euclid = "0.8.2"
 gleam = "0.2.8"
 glutin_app = {path = "../glutin"}
 layers = {git = "https://github.com/servo/rust-layers"}

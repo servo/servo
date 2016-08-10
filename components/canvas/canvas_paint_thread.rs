@@ -520,7 +520,7 @@ impl<'a> CanvasPaintThread<'a> {
     }
 
     fn set_transform(&mut self, transform: &Matrix2D<f32>) {
-        self.state.transform = *transform;
+        self.state.transform = transform.clone();
         self.drawtarget.set_transform(transform)
     }
 

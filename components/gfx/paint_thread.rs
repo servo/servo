@@ -11,7 +11,7 @@ use display_list::{DisplayItem, DisplayList, DisplayListTraversal};
 use display_list::{LayerInfo, StackingContext, StackingContextType};
 use euclid::Matrix4D;
 use euclid::point::Point2D;
-use euclid::rect::Rect;
+use euclid::rect::{Rect, TypedRect};
 use euclid::size::Size2D;
 use font_cache_thread::FontCacheThread;
 use font_context::FontContext;
@@ -684,8 +684,8 @@ impl WorkerThread {
             let mut paint_context = PaintContext {
                 draw_target: draw_target.clone(),
                 font_context: &mut self.font_context,
-                page_rect: Rect::from_untyped(&tile.page_rect.translate(&paint_layer.display_list_origin)),
-                screen_rect: Rect::from_untyped(&tile.screen_rect),
+                page_rect: TypedRect::from_untyped(&tile.page_rect.translate(&paint_layer.display_list_origin)),
+                screen_rect: TypedRect::from_untyped(&tile.screen_rect),
                 clip_rect: None,
                 transient_clip: None,
                 layer_kind: layer_kind,

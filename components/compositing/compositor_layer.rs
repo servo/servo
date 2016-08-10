@@ -4,9 +4,8 @@
 
 use azure::azure_hl;
 use compositor::IOCompositor;
-use euclid::length::Length;
-use euclid::point::{Point2D, TypedPoint2D};
-use euclid::rect::Rect;
+use euclid::point::TypedPoint2D;
+use euclid::rect::TypedRect;
 use euclid::size::TypedSize2D;
 use gfx_traits::{Epoch, LayerId, LayerProperties, ScrollPolicy};
 use layers::color::Color;
@@ -44,7 +43,7 @@ pub struct CompositorData {
 
     /// The scroll offset originating from this scrolling root. This allows scrolling roots
     /// to track their current scroll position even while their content_offset does not change.
-    pub scroll_offset: TypedPoint2D<LayerPixel, f32>,
+    pub scroll_offset: TypedPoint2D<f32, LayerPixel>,
 
     /// The pipeline ID of this layer, if it represents a subpage.
     pub subpage_info: Option<PipelineId>,
@@ -63,11 +62,11 @@ impl CompositorData {
             scroll_policy: layer_properties.scroll_policy,
             requested_epoch: Epoch(0),
             painted_epoch: Epoch(0),
-            scroll_offset: Point2D::typed(0., 0.),
+            scroll_offset: TypedPoint2D::zero(),
             subpage_info: layer_properties.subpage_pipeline_id,
         };
 
-        Rc::new(Layer::new(Rect::from_untyped(&layer_properties.rect),
+        Rc::new(Layer::new(TypedRect::from_untyped(&layer_properties.rect),
                            tile_size,
                            to_layers_color(&layer_properties.background_color),
                            1.0,
@@ -117,8 +116,8 @@ pub trait CompositorLayer {
     /// ScrollPositionUnchanged or ScrollPositionChanged. If no layer was targeted by the event
     /// returns ScrollEventUnhandled.
     fn handle_scroll_event(&self,
-                           delta: TypedPoint2D<LayerPixel, f32>,
-                           cursor: TypedPoint2D<LayerPixel, f32>)
+                           delta: TypedPoint2D<f32, LayerPixel>,
+                           cursor: TypedPoint2D<f32, LayerPixel>)
                            -> ScrollEventResult;
 
     // Takes in a MouseWindowEvent, determines if it should be passed to children, and
@@ -127,12 +126,12 @@ pub trait CompositorLayer {
     fn send_mouse_event<Window>(&self,
                                 compositor: &IOCompositor<Window>,
                                 event: MouseWindowEvent,
-                                cursor: TypedPoint2D<LayerPixel, f32>)
+                                cursor: TypedPoint2D<f32, LayerPixel>)
                                 where Window: WindowMethods;
 
     fn send_mouse_move_event<Window>(&self,
                                      compositor: &IOCompositor<Window>,
-                                     cursor: TypedPoint2D<LayerPixel, f32>)
+                                     cursor: TypedPoint2D<f32, LayerPixel>)
                                      where Window: WindowMethods;
 
     fn send_event<Window>(&self,
@@ -142,17 +141,17 @@ pub trait CompositorLayer {
 
     fn send_touchpad_pressure_event<Window>(&self,
                                             compositor: &IOCompositor<Window>,
-                                            cursor: TypedPoint2D<LayerPixel, f32>,
+                                            cursor: TypedPoint2D<f32, LayerPixel>,
                                             pressure: f32,
                                             phase: TouchpadPressurePhase)
                                             where Window: WindowMethods;
 
     fn clamp_scroll_offset_and_scroll_layer(&self,
-                                            new_offset: TypedPoint2D<LayerPixel, f32>)
+                                            new_offset: TypedPoint2D<f32, LayerPixel>)
                                             -> ScrollEventResult;
 
     fn scroll_layer_and_all_child_layers(&self,
-                                         new_offset: TypedPoint2D<LayerPixel, f32>)
+                                         new_offset: TypedPoint2D<f32, LayerPixel>)
                                          -> bool;
 
     /// Return a flag describing how this layer deals with scroll events.
@@ -202,8 +201,8 @@ impl Clampable for f32 {
 }
 
 fn calculate_content_size_for_layer(layer: &Layer<CompositorData>)
-                                    -> TypedSize2D<LayerPixel, f32> {
-    layer.children().iter().fold(Rect::zero(),
+                                    -> TypedSize2D<f32, LayerPixel> {
+    layer.children().iter().fold(TypedRect::zero(),
                                  |unioned_rect, child_rect| {
                                     unioned_rect.union(&*child_rect.bounds.borrow())
                                  }).size
@@ -229,11 +228,11 @@ impl CompositorLayer for Layer<CompositorData> {
     }
 
     fn update_layer(&self, layer_properties: LayerProperties) {
-        *self.bounds.borrow_mut() = Rect::from_untyped(&layer_properties.rect);
+        *self.bounds.borrow_mut() = TypedRect::from_untyped(&layer_properties.rect);
 
         // Call scroll for bounds checking if the page shrunk. Use (-1, -1) as the
         // cursor position to make sure the scroll isn't propagated downwards.
-        self.handle_scroll_event(Point2D::typed(0f32, 0f32), Point2D::typed(-1f32, -1f32));
+        self.handle_scroll_event(TypedPoint2D::zero(), TypedPoint2D::new(-1f32, -1f32));
         self.update_layer_except_bounds(layer_properties);
     }
 
@@ -320,8 +319,8 @@ impl CompositorLayer for Layer<CompositorData> {
     }
 
     fn handle_scroll_event(&self,
-                           delta: TypedPoint2D<LayerPixel, f32>,
-                           cursor: TypedPoint2D<LayerPixel, f32>)
+                           delta: TypedPoint2D<f32, LayerPixel>,
+                           cursor: TypedPoint2D<f32, LayerPixel>)
                            -> ScrollEventResult {
         // Allow children to scroll.
         let scroll_offset = self.extra_data.borrow().scroll_offset;
@@ -344,15 +343,15 @@ impl CompositorLayer for Layer<CompositorData> {
         self.clamp_scroll_offset_and_scroll_layer(scroll_offset + delta)
     }
 
-    fn clamp_scroll_offset_and_scroll_layer(&self, new_offset: TypedPoint2D<LayerPixel, f32>)
+    fn clamp_scroll_offset_and_scroll_layer(&self, new_offset: TypedPoint2D<f32, LayerPixel>)
                                             -> ScrollEventResult {
         let layer_size = self.bounds.borrow().size;
         let content_size = calculate_content_size_for_layer(self);
-        let min_x = (layer_size.width - content_size.width).get().min(0.0);
-        let min_y = (layer_size.height - content_size.height).get().min(0.0);
-        let new_offset: TypedPoint2D<LayerPixel, f32> =
-            Point2D::new(Length::new(new_offset.x.get().clamp(&min_x, &0.0)),
-                         Length::new(new_offset.y.get().clamp(&min_y, &0.0)));
+        let min_x = (layer_size.width - content_size.width).min(0.0);
+        let min_y = (layer_size.height - content_size.height).min(0.0);
+        let new_offset: TypedPoint2D<f32, LayerPixel> =
+            TypedPoint2D::new(new_offset.x.clamp(&min_x, &0.0),
+                              new_offset.y.clamp(&min_y, &0.0));
 
         if self.extra_data.borrow().scroll_offset == new_offset {
             return ScrollEventResult::ScrollPositionUnchanged;
@@ -377,7 +376,7 @@ impl CompositorLayer for Layer<CompositorData> {
     fn send_mouse_event<Window>(&self,
                                 compositor: &IOCompositor<Window>,
                                 event: MouseWindowEvent,
-                                cursor: TypedPoint2D<LayerPixel, f32>)
+                                cursor: TypedPoint2D<f32, LayerPixel>)
                                 where Window: WindowMethods {
         let event_point = cursor.to_untyped();
         let message = match event {
@@ -393,7 +392,7 @@ impl CompositorLayer for Layer<CompositorData> {
 
     fn send_mouse_move_event<Window>(&self,
                                      compositor: &IOCompositor<Window>,
-                                     cursor: TypedPoint2D<LayerPixel, f32>)
+                                     cursor: TypedPoint2D<f32, LayerPixel>)
                                      where Window: WindowMethods {
         self.send_event(compositor, MouseMoveEvent(Some(cursor.to_untyped())));
     }
@@ -409,7 +408,7 @@ impl CompositorLayer for Layer<CompositorData> {
 
     fn send_touchpad_pressure_event<Window>(&self,
                                             compositor: &IOCompositor<Window>,
-                                            cursor: TypedPoint2D<LayerPixel, f32>,
+                                            cursor: TypedPoint2D<f32, LayerPixel>,
                                             pressure: f32,
                                             phase: TouchpadPressurePhase)
                                             where Window: WindowMethods {
@@ -419,14 +418,14 @@ impl CompositorLayer for Layer<CompositorData> {
         }
     }
 
-    fn scroll_layer_and_all_child_layers(&self, new_offset: TypedPoint2D<LayerPixel, f32>)
+    fn scroll_layer_and_all_child_layers(&self, new_offset: TypedPoint2D<f32, LayerPixel>)
                                          -> bool {
         let mut result = false;
 
         // Only scroll this layer if it's not fixed-positioned.
         if self.extra_data.borrow().scroll_policy != ScrollPolicy::FixedPosition {
             let new_offset = new_offset.to_untyped();
-            *self.content_offset.borrow_mut() = Point2D::from_untyped(&new_offset);
+            *self.content_offset.borrow_mut() = TypedPoint2D::from_untyped(&new_offset);
             result = true
         }
 
