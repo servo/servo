@@ -17,12 +17,7 @@ pub fn traverse_dom<N, C>(root: N,
               C: DomTraversalContext<N>
     {
         debug_assert!(context.should_process(node));
-        let should_stop = match context.process_preorder(node) {
-            RestyleResult::Stop => true,
-            RestyleResult::Continue => false,
-        };
-
-        if !should_stop {
+        if let RestyleResult::Continue = context.process_preorder(node) {
             for kid in node.children() {
                 context.pre_process_child_hook(node, kid);
                 if context.should_process(kid) {

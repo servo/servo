@@ -67,15 +67,10 @@ fn top_down_dom<N, C>(unsafe_nodes: UnsafeNodeList,
             continue;
         }
 
-        // Perform the appropriate traversal.
-        let should_stop = match context.process_preorder(node) {
-            RestyleResult::Stop => true,
-            RestyleResult::Continue => false,
-        };
-
         // Possibly enqueue the children.
         let mut children_to_process = 0isize;
-        if !should_stop {
+        // Perform the appropriate traversal.
+        if let RestyleResult::Continue = context.process_preorder(node) {
             for kid in node.children() {
                 // Trigger the hook pre-adding the kid to the list. This can
                 // (and in fact uses to) change the result of the should_process
@@ -95,12 +90,10 @@ fn top_down_dom<N, C>(unsafe_nodes: UnsafeNodeList,
         // Reset the count of children if we need to do a bottom-up traversal
         // after the top up.
         if context.needs_postorder_traversal() {
-            {
-                let data = node.mutate_data().unwrap();
-                data.parallel.children_to_process
-                             .store(children_to_process,
-                                    Ordering::Relaxed);
-            }
+            node.mutate_data().unwrap()
+                .parallel.children_to_process
+                         .store(children_to_process,
+                                Ordering::Relaxed);
 
             // If there were no more children, start walking back up.
             if children_to_process == 0 {
