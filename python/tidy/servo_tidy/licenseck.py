@@ -66,4 +66,3 @@ licenses_dep_toml = [
     'name = "webrender"',
     'name = "webrender_traits"',
 ]
-# noqa: Indicate to flake8 that we do not want to check indentation here
