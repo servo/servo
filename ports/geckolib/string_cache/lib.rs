@@ -117,8 +117,11 @@ impl WeakAtom {
 
     #[inline]
     pub fn eq_str_ignore_ascii_case(&self, s: &str) -> bool {
+        let bytes = s.as_bytes();
         unsafe {
-            Gecko_AtomEqualsUTF8IgnoreCase(self.as_ptr(), s.as_ptr() as *const _, s.len() as u32)
+            Gecko_AtomEqualsUTF8IgnoreCase(self.as_ptr(),
+                                           bytes.as_ptr() as *const _,
+                                           bytes.len() as u32)
         }
     }
 
