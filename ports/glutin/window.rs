@@ -157,10 +157,6 @@ impl Window {
             builder = builder.with_vsync();
         }
 
-        if opts::get().use_webrender {
-            builder = builder.with_stencil_buffer(8);
-        }
-
         if opts::get().use_msaa {
             builder = builder.with_multisampling(MULTISAMPLES)
         }
