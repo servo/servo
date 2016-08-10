@@ -2237,6 +2237,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, typedefs, config):
         'js::error::throw_type_error',
         'js::jsapi::HandleValue',
         'js::jsapi::JSContext',
+        'js::jsapi::JSObject',
         'js::jsapi::MutableHandleValue',
         'js::jsval::JSVal',
     ]
@@ -4047,6 +4048,9 @@ def getUnionTypeTemplateVars(type, descriptorProvider):
     elif type.isPrimitive():
         name = type.name
         typeName = builtinNames[type.tag()]
+    elif type.isObject():
+        name = type.name
+        typeName = "*mut JSObject"
     else:
         raise TypeError("Can't handle %s in unions yet" % type)
 
@@ -4056,7 +4060,6 @@ def getUnionTypeTemplateVars(type, descriptorProvider):
         isDefinitelyObject=True)
     template = info.template
 
-    assert not type.isObject()
     jsConversion = string.Template(template).substitute({
         "val": "value",
     })
@@ -4176,7 +4179,10 @@ class CGUnionConversionStruct(CGThing):
 
         objectMemberTypes = filter(lambda t: t.isObject(), memberTypes)
         if len(objectMemberTypes) > 0:
-            raise TypeError("Can't handle objects in unions.")
+            assert len(objectMemberTypes) == 1
+            typeName = objectMemberTypes[0].name
+            object = CGGeneric(get_match(typeName))
+            names.append(typeName)
         else:
             object = None
 
@@ -4191,7 +4197,8 @@ class CGUnionConversionStruct(CGThing):
 
         hasObjectTypes = interfaceObject or arrayObject or dateObject or nonPlatformObject or object or mozMapObject
         if hasObjectTypes:
-            assert interfaceObject or arrayObject or mozMapObject
+            # "object" is not distinguishable from other types
+            assert not object or not (interfaceObject or arrayObject or dateObject or callbackObject or mozMapObject)
             templateBody = CGList([], "\n")
             if interfaceObject:
                 templateBody.append(interfaceObject)

@@ -4,13 +4,13 @@
 
  // http://dev.w3.org/2006/webapi/FileAPI/#APIASynch
 
-//typedef (DOMString or ArrayBuffer) FileReaderResult;
+typedef (DOMString or object) FileReaderResult;
 [Constructor, Exposed=(Window,Worker)]
 interface FileReader: EventTarget {
 
   // async read methods
-  //[Throws]
-  //void readAsArrayBuffer(Blob blob);
+  [Throws]
+  void readAsArrayBuffer(Blob blob);
   [Throws]
   void readAsText(Blob blob, optional DOMString label);
   [Throws]
@@ -25,8 +25,7 @@ interface FileReader: EventTarget {
   readonly attribute unsigned short readyState;
 
   // File or Blob data
-  //readonly attribute FileReaderResult? result;
-  readonly attribute DOMString? result;
+  readonly attribute FileReaderResult? result;
 
   readonly attribute DOMException? error;
 
