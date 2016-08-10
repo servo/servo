@@ -62,7 +62,7 @@ pub struct Pipeline {
     pub url: Url,
     /// The title of the most recently-loaded page.
     pub title: Option<String>,
-    pub size: Option<TypedSize2D<PagePx, f32>>,
+    pub size: Option<TypedSize2D<f32, PagePx>>,
     /// Whether this pipeline is currently running animations. Pipelines that are running
     /// animations cause composites to be continually scheduled.
     pub running_animations: bool,
@@ -112,9 +112,9 @@ pub struct InitialPipelineState {
     /// A channel to the memory profiler thread.
     pub mem_profiler_chan: profile_mem::ProfilerChan,
     /// Information about the initial window size.
-    pub window_size: Option<TypedSize2D<PagePx, f32>>,
+    pub window_size: Option<TypedSize2D<f32, PagePx>>,
     /// Information about the device pixel ratio.
-    pub device_pixel_ratio: ScaleFactor<ViewportPx, DevicePixel, f32>,
+    pub device_pixel_ratio: ScaleFactor<f32, ViewportPx, DevicePixel>,
     /// A channel to the script thread, if applicable. If this is `Some`,
     /// then `parent_info` must also be `Some`.
     pub script_chan: Option<IpcSender<ConstellationControlMsg>>,
@@ -280,7 +280,7 @@ impl Pipeline {
            chrome_to_paint_chan: Sender<ChromeToPaintMsg>,
            is_private: bool,
            url: Url,
-           size: Option<TypedSize2D<PagePx, f32>>,
+           size: Option<TypedSize2D<f32, PagePx>>,
            visible: bool)
            -> Pipeline {
         Pipeline {
