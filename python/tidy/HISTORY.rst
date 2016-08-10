@@ -1,7 +1,7 @@
 Release History
 ---------------
 
-0.1.0 (2016-04-19)
+0.1.0 (2016-08-09)
 ++++++++++++++++++
 
 - Improve license checking to disregard comments and line breaks

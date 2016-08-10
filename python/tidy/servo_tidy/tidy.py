@@ -17,7 +17,7 @@ import site
 import StringIO
 import subprocess
 import sys
-import licenseck
+import licenseck as licenses
 
 COMMENTS = ["// ", "# ", " *", "/* ", "*/ "]
 
@@ -46,8 +46,6 @@ IGNORED_FILES = [
     os.path.join(".", "components", "servo", "platform", "macos", "mod.rs"),
     # Hidden files
     os.path.join(".", "."),
-    # Long strings
-    os.path.join(".", "python", "tidy", "servo_tidy", "licenseck.py"),
 ]
 
 # Directories that are ignored for the non-WPT tidy check.
@@ -154,15 +152,13 @@ def uncomment(line):
 
 
 def licensed_mpl(header):
-    if licenseck.mpl in header:
-        return True
-    return False
+    return licenses.MPL.replace('\n', ' ') in header
 
 
 def licensed_apache(header):
-    if licenseck.apache in header:
-        for copyright in licenseck.copyright:
-            if copyright in header:
+    if licenses.APACHE.replace('\n', ' ') in header:
+        for c in licenses.COPYRIGHT:
+            if c in header:
                 return True
     return False
 
@@ -175,13 +171,13 @@ def check_license(file_name, lines):
         yield (1, "missing blank line after shebang")
 
     blank_lines = 0
-    MAX_BLANK_LINES = 2 if lines[0].startswith("#!") else 1
+    max_blank_lines = 2 if lines[0].startswith("#!") else 1
     license_block = []
     for l in lines:
         l = l.rstrip('\n')
         if not l.strip():
             blank_lines += 1
-        if blank_lines >= MAX_BLANK_LINES:
+        if blank_lines >= max_blank_lines:
             break
         line = uncomment(l)
         if line is not None:
@@ -339,8 +335,8 @@ def check_toml(file_name, lines):
     for idx, line in enumerate(lines):
         if line.find("*") != -1:
             yield (idx + 1, "found asterisk instead of minimum version number")
-        for license in licenseck.licenses_toml:
-            ok_licensed |= (license in line)
+        for license_line in licenses.licenses_toml:
+            ok_licensed |= (license_line in line)
     if not ok_licensed:
         yield (0, ".toml file should contain a valid license.")
 
@@ -745,7 +741,7 @@ def check_dep_license_errors(filenames, progress=True):
             ok_licensed = False
             lines = f.readlines()
             for idx, line in enumerate(lines):
-                for license_line in licenseck.licenses_dep_toml:
+                for license_line in licenses.licenses_dep_toml:
                     ok_licensed |= (license_line in line)
             if not ok_licensed:
                 yield (filename, 0, "dependency should contain a valid license.")
