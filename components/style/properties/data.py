@@ -58,6 +58,9 @@ class Keyword(object):
     def needs_cast(self):
         return self.gecko_enum_prefix is None
 
+    def maybe_cast(self, type_str):
+        return "as " + type_str if self.needs_cast() else ""
+
 
 class Longhand(object):
     def __init__(self, style_struct, name, animatable=None, derived_from=None, keyword=None,

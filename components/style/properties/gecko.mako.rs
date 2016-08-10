@@ -220,11 +220,7 @@ def set_gecko_property(ffi_name, expr):
         // FIXME(bholley): Align binary representations and ditch |match| for cast + static_asserts
         let result = match v {
             % for value in keyword.values_for('gecko'):
-                % if keyword.needs_cast():
-                    Keyword::${to_rust_ident(value)} => structs::${keyword.gecko_constant(value)} as u8,
-                % else:
-                    Keyword::${to_rust_ident(value)} => structs::${keyword.gecko_constant(value)},
-                % endif
+            Keyword::${to_rust_ident(value)} => structs::${keyword.gecko_constant(value)} ${keyword.maybe_cast("u8")},
             % endfor
         };
         ${set_gecko_property(gecko_ffi_name, "result")}
@@ -236,11 +232,11 @@ def set_gecko_property(ffi_name, expr):
     pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
         use properties::longhands::${ident}::computed_value::T as Keyword;
         // FIXME(bholley): Align binary representations and ditch |match| for cast + static_asserts
-        match ${get_gecko_property(gecko_ffi_name)} as u32 {
+        match ${get_gecko_property(gecko_ffi_name)} ${keyword.maybe_cast("u32")} {
             % for value in keyword.values_for('gecko'):
             structs::${keyword.gecko_constant(value)} => Keyword::${to_rust_ident(value)},
             % endfor
-            x => panic!("Found unexpected value in style struct for ${ident} property: {}", x),
+            x => panic!("Found unexpected value in style struct for ${ident} property: {:?}", x),
         }
     }
 </%def>
