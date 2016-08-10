@@ -38,7 +38,7 @@ pub trait LayoutRPC {
     /// Query layout for the resolve values of the margin properties for an element.
     fn margin_style(&self) -> MarginStyleResponse;
 
-    fn nodes_from_point(&self, point: Point2D<f32>) -> Vec<UntrustedNodeAddress>;
+    fn nodes_from_point(&self, page_point: Point2D<f32>, client_point: Point2D<f32>) -> Vec<UntrustedNodeAddress>;
 }
 
 pub struct ContentBoxResponse(pub Rect<Au>);

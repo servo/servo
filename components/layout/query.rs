@@ -133,15 +133,21 @@ impl LayoutRPC for LayoutRPCImpl {
         }
     }
 
-    fn nodes_from_point(&self, point: Point2D<f32>) -> Vec<UntrustedNodeAddress> {
-        let point = Point2D::new(Au::from_f32_px(point.x), Au::from_f32_px(point.y));
+    fn nodes_from_point(&self,
+                        page_point: Point2D<f32>,
+                        client_point: Point2D<f32>) -> Vec<UntrustedNodeAddress> {
+        let page_point = Point2D::new(Au::from_f32_px(page_point.x),
+                                      Au::from_f32_px(page_point.y));
+        let client_point = Point2D::new(Au::from_f32_px(client_point.x),
+                                        Au::from_f32_px(client_point.y));
+
         let nodes_from_point_list = {
             let &LayoutRPCImpl(ref rw_data) = self;
             let rw_data = rw_data.lock().unwrap();
             let result = match rw_data.display_list {
                 None => panic!("Tried to hit test without a DisplayList"),
                 Some(ref display_list) => {
-                    display_list.hit_test(&point, &rw_data.stacking_context_scroll_offsets)
+                    display_list.hit_test(&page_point, &client_point, &rw_data.stacking_context_scroll_offsets)
                 }
             };
 

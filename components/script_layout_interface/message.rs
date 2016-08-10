@@ -98,7 +98,7 @@ pub enum ReflowQueryType {
     ContentBoxQuery(TrustedNodeAddress),
     ContentBoxesQuery(TrustedNodeAddress),
     NodeOverflowQuery(TrustedNodeAddress),
-    HitTestQuery(Point2D<f32>, bool),
+    HitTestQuery(Point2D<f32>, Point2D<f32>, bool),
     NodeGeometryQuery(TrustedNodeAddress),
     NodeLayerIdQuery(TrustedNodeAddress),
     NodeScrollGeometryQuery(TrustedNodeAddress),
