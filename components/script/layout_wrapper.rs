@@ -115,6 +115,7 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
     type ConcreteElement = ServoLayoutElement<'ln>;
     type ConcreteDocument = ServoLayoutDocument<'ln>;
     type ConcreteRestyleDamage = RestyleDamage;
+    type ConcreteChildrenIterator = ServoChildrenIterator<'ln>;
 
     fn to_unsafe(&self) -> UnsafeNode {
         unsafe {
@@ -145,6 +146,12 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
     fn dump_style(self) {
         println!("\nDOM with computed styles:");
         self.dump_style_indent(0);
+    }
+
+    fn children(self) -> ServoChildrenIterator<'ln> {
+        ServoChildrenIterator {
+            current: self.first_child(),
+        }
     }
 
     fn opaque(&self) -> OpaqueNode {
@@ -277,6 +284,19 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
                                              _pseudo_element: Option<&PseudoElement>)
                                              -> Option<&'a Arc<ComputedValues>> {
         current_cv
+    }
+}
+
+pub struct ServoChildrenIterator<'a> {
+    current: Option<ServoLayoutNode<'a>>,
+}
+
+impl<'a> Iterator for ServoChildrenIterator<'a> {
+    type Item = ServoLayoutNode<'a>;
+    fn next(&mut self) -> Option<ServoLayoutNode<'a>> {
+        let node = self.current;
+        self.current = node.and_then(|node| node.next_sibling());
+        node
     }
 }
 

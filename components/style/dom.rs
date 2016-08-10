@@ -68,6 +68,7 @@ pub trait TNode : Sized + Copy + Clone {
     type ConcreteElement: TElement<ConcreteNode = Self, ConcreteDocument = Self::ConcreteDocument>;
     type ConcreteDocument: TDocument<ConcreteNode = Self, ConcreteElement = Self::ConcreteElement>;
     type ConcreteRestyleDamage: TRestyleDamage;
+    type ConcreteChildrenIterator: Iterator<Item = Self>;
 
     fn to_unsafe(&self) -> UnsafeNode;
     unsafe fn from_unsafe(n: &UnsafeNode) -> Self;
@@ -84,11 +85,7 @@ pub trait TNode : Sized + Copy + Clone {
     fn dump_style(self);
 
     /// Returns an iterator over this node's children.
-    fn children(self) -> ChildrenIterator<Self> {
-        ChildrenIterator {
-            current: self.first_child(),
-        }
-    }
+    fn children(self) -> Self::ConcreteChildrenIterator;
 
     /// Converts self into an `OpaqueNode`.
     fn opaque(&self) -> OpaqueNode;
@@ -242,19 +239,5 @@ pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + Pre
                 next = ::selectors::Element::next_sibling_element(&sib);
             }
         }
-    }
-}
-
-pub struct ChildrenIterator<ConcreteNode> where ConcreteNode: TNode {
-    current: Option<ConcreteNode>,
-}
-
-impl<ConcreteNode> Iterator for ChildrenIterator<ConcreteNode>
-                            where ConcreteNode: TNode {
-    type Item = ConcreteNode;
-    fn next(&mut self) -> Option<ConcreteNode> {
-        let node = self.current;
-        self.current = node.and_then(|node| node.next_sibling());
-        node
     }
 }

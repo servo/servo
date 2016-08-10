@@ -134,6 +134,7 @@ impl<'ln> TNode for GeckoNode<'ln> {
     type ConcreteDocument = GeckoDocument<'ln>;
     type ConcreteElement = GeckoElement<'ln>;
     type ConcreteRestyleDamage = GeckoRestyleDamage;
+    type ConcreteChildrenIterator = GeckoChildrenIterator<'ln>;
 
     fn to_unsafe(&self) -> UnsafeNode {
         (self.node as usize, 0)
@@ -161,6 +162,12 @@ impl<'ln> TNode for GeckoNode<'ln> {
 
     fn dump_style(self) {
         unimplemented!()
+    }
+
+    fn children(self) -> GeckoChildrenIterator<'ln> {
+        GeckoChildrenIterator {
+            current: self.first_child(),
+        }
     }
 
     fn opaque(&self) -> OpaqueNode {
@@ -339,6 +346,19 @@ impl<'ln> TNode for GeckoNode<'ln> {
 
     // TODO(shinglyu): implement this in Gecko: https://github.com/servo/servo/pull/11890
     unsafe fn set_dirty_on_viewport_size_changed(&self) {}
+}
+
+pub struct GeckoChildrenIterator<'a> {
+    current: Option<GeckoNode<'a>>,
+}
+
+impl<'a> Iterator for GeckoChildrenIterator<'a> {
+    type Item = GeckoNode<'a>;
+    fn next(&mut self) -> Option<GeckoNode<'a>> {
+        let node = self.current;
+        self.current = node.and_then(|node| node.next_sibling());
+        node
+    }
 }
 
 #[derive(Clone, Copy)]
