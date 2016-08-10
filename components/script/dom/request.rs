@@ -314,9 +314,6 @@ impl Request {
         headers_init = init.headers.as_ref().map(|h| h.clone());
 
         // Step 29
-        // TODO: It is unclear whether this step should empty
-        // ... r's request's header list or r's header's header
-        // ... list. Currently, it empties the r's header's header list.
         headers.empty_header_list();
 
         // Step 30
