@@ -26,6 +26,9 @@ pub struct GeckoSelectorImpl;
 ///
 /// This should allow us to avoid random FFI overhead when cloning/dropping
 /// pseudos.
+///
+/// Also, we can further optimize PartialEq and hash comparing/hashing only the
+/// atoms.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct PseudoElement(Atom, bool);
 
@@ -41,8 +44,9 @@ impl PseudoElement {
     }
 
     #[inline]
-    fn from_atom_unchecked(atom: Atom, is_anon_box: bool) -> Self {
+    pub fn from_atom_unchecked(atom: Atom, is_anon_box: bool) -> Self {
         if cfg!(debug_assertions) {
+            // Do the check on debug regardless.
             match Self::from_atom(&*atom, true) {
                 Some(pseudo) => {
                     assert_eq!(pseudo.is_anon_box(), is_anon_box);
