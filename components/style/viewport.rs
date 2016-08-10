@@ -555,13 +555,13 @@ impl<'a, I> ViewportDescriptorDeclarationCascade for I
 }
 
 pub trait MaybeNew {
-    fn maybe_new(initial_viewport: TypedSize2D<ViewportPx, f32>,
+    fn maybe_new(initial_viewport: TypedSize2D<f32, ViewportPx>,
                      rule: &ViewportRule)
                      -> Option<ViewportConstraints>;
 }
 
 impl MaybeNew for ViewportConstraints {
-    fn maybe_new(initial_viewport: TypedSize2D<ViewportPx, f32>,
+    fn maybe_new(initial_viewport: TypedSize2D<f32, ViewportPx>,
                  rule: &ViewportRule)
                  -> Option<ViewportConstraints>
     {
@@ -639,8 +639,8 @@ impl MaybeNew for ViewportConstraints {
         //
         // Note: DEVICE-ADAPT § 5. states that relative length values are
         // resolved against initial values
-        let initial_viewport = Size2D::new(Au::from_f32_px(initial_viewport.width.get()),
-                                           Au::from_f32_px(initial_viewport.height.get()));
+        let initial_viewport = Size2D::new(Au::from_f32_px(initial_viewport.width),
+                                           Au::from_f32_px(initial_viewport.height));
 
 
         let context = Context {
@@ -749,7 +749,7 @@ impl MaybeNew for ViewportConstraints {
         });
 
         Some(ViewportConstraints {
-            size: Size2D::typed(width.to_f32_px(), height.to_f32_px()),
+            size: TypedSize2D::new(width.to_f32_px(), height.to_f32_px()),
 
             // TODO: compute a zoom factor for 'auto' as suggested by DEVICE-ADAPT § 10.
             initial_zoom: ScaleFactor::new(initial_zoom.unwrap_or(1.)),

@@ -118,11 +118,11 @@ pub enum MediaType {
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct Device {
     pub media_type: MediaType,
-    pub viewport_size: TypedSize2D<ViewportPx, f32>,
+    pub viewport_size: TypedSize2D<f32, ViewportPx>,
 }
 
 impl Device {
-    pub fn new(media_type: MediaType, viewport_size: TypedSize2D<ViewportPx, f32>) -> Device {
+    pub fn new(media_type: MediaType, viewport_size: TypedSize2D<f32, ViewportPx>) -> Device {
         Device {
             media_type: media_type,
             viewport_size: viewport_size,
@@ -131,8 +131,8 @@ impl Device {
 
     #[inline]
     pub fn au_viewport_size(&self) -> Size2D<Au> {
-        Size2D::new(Au::from_f32_px(self.viewport_size.width.get()),
-                    Au::from_f32_px(self.viewport_size.height.get()))
+        Size2D::new(Au::from_f32_px(self.viewport_size.width),
+                    Au::from_f32_px(self.viewport_size.height))
     }
 
 }
