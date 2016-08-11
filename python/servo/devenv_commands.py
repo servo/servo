@@ -34,6 +34,17 @@ class MachCommands(CommandBase):
         if not params:
             params = []
 
+        cargo_paths = [path.join('components', 'servo'),
+                       path.join('ports', 'cef'),
+                       path.join('ports', 'geckolib')]
+
+        if params and params[0] == "fetch":
+            for cargo_path in cargo_paths:
+                with cd(cargo_path):
+                    print(cargo_path)
+                    call(["cargo"] + params, env=self.build_env())
+            return
+
         if self.context.topdir == getcwd():
             with cd(path.join('components', 'servo')):
                 return call(["cargo"] + params, env=self.build_env())
@@ -152,6 +163,16 @@ class MachCommands(CommandBase):
         return call(
             ["git"] + ["grep"] + params + ['--'] + grep_paths + [':(exclude)*.min.js'],
             env=self.build_env())
+
+    @Command('update',
+             description='Update rust, cargo and cargo dependencies',
+             category='devenv')
+    def update(self):
+        # Update rust and cargo if needed
+        self.ensure_bootstrapped()
+
+        # Fetch cargo dependencies
+        self.cargo(params=["fetch"])
 
     @Command('wpt-upgrade',
              description='upgrade wptrunner.',
