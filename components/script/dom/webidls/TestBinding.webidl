@@ -53,6 +53,7 @@ dictionary TestDictionaryDefaults {
   float floatValue = 7.0;
   unrestricted double UnrestrictedDoubleValue = 7.0;
   double doubleValue = 7.0;
+  ByteString bytestringValue = "foo";
   DOMString stringValue = "foo";
   USVString usvstringValue = "foo";
   TestEnum enumValue = "bar";
@@ -71,6 +72,7 @@ dictionary TestDictionaryDefaults {
   float? nullableFloatValue = 7.0;
   unrestricted double? nullableUnrestrictedDoubleValue = 7.0;
   double? nullableDoubleValue = 7.0;
+  ByteString? nullableBytestringValue = "foo";
   DOMString? nullableStringValue = "foo";
   USVString? nullableUsvstringValue = "foo";
   // TestEnum? nullableEnumValue = "bar";
@@ -344,6 +346,7 @@ interface TestBinding {
   void passOptionalUnsignedLongWithDefault(optional unsigned long arg = 6);
   void passOptionalLongLongWithDefault(optional long long arg = -12);
   void passOptionalUnsignedLongLongWithDefault(optional unsigned long long arg = 17);
+  void passOptionalBytestringWithDefault(optional ByteString arg = "x");
   void passOptionalStringWithDefault(optional DOMString arg = "x");
   void passOptionalUsvstringWithDefault(optional USVString arg = "x");
   void passOptionalEnumWithDefault(optional TestEnum arg = "foo");
