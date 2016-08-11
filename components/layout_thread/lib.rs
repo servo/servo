@@ -1237,8 +1237,13 @@ impl LayoutThread {
                 },
                 ReflowQueryType::ResolvedStyleQuery(node, ref pseudo, ref property) => {
                     let node = unsafe { ServoLayoutNode::new(&node) };
+                    let layout_context = LayoutContext::new(&shared_layout_context);
                     rw_data.resolved_style_response =
-                        process_resolved_style_request(node, pseudo, property, &mut root_flow);
+                        process_resolved_style_request(node,
+                                                       &layout_context,
+                                                       pseudo,
+                                                       property,
+                                                       &mut root_flow);
                 },
                 ReflowQueryType::OffsetParentQuery(node) => {
                     let node = unsafe { ServoLayoutNode::new(&node) };

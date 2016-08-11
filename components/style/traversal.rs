@@ -18,6 +18,16 @@ use values::HasViewportPercentage;
 /// detected by ticking a generation number every layout.
 pub type Generation = u32;
 
+/// This enum tells us about whether we can stop restyling or not after styling
+/// an element.
+///
+/// So far this only happens where a display: none node is found.
+pub enum RestyleResult {
+    Continue,
+    Stop,
+}
+
+
 /// A pair of the bloom filter used for css selector matching, and the node to
 /// which it applies. This is used to efficiently do `Descendant` selector
 /// matches. Thanks to the bloom filter, we can avoid walking up the tree
@@ -141,11 +151,22 @@ pub fn remove_from_bloom_filter<'a, N, C>(context: &C, root: OpaqueNode, node: N
 
 pub trait DomTraversalContext<N: TNode>  {
     type SharedContext: Sync + 'static;
+
     fn new<'a>(&'a Self::SharedContext, OpaqueNode) -> Self;
+
     /// Process `node` on the way down, before its children have been processed.
-    fn process_preorder(&self, node: N);
+    fn process_preorder(&self, node: N) -> RestyleResult;
+
     /// Process `node` on the way up, after its children have been processed.
+    ///
+    /// This is only executed if `needs_postorder_traversal` returns true.
     fn process_postorder(&self, node: N);
+
+    /// Boolean that specifies whether a bottom up traversal should be
+    /// performed.
+    ///
+    /// If it's false, then process_postorder has no effect at all.
+    fn needs_postorder_traversal(&self) -> bool { true }
 
     /// Returns if the node should be processed by the preorder traversal (and
     /// then by the post-order one).
@@ -172,14 +193,88 @@ pub trait DomTraversalContext<N: TNode>  {
     }
 }
 
+pub fn ensure_node_styled<'a, N, C>(node: N,
+                                    context: &'a C)
+    where N: TNode,
+          C: StyleContext<'a>
+{
+    let mut display_none = false;
+    ensure_node_styled_internal(node, context, &mut display_none);
+}
+
+#[allow(unsafe_code)]
+fn ensure_node_styled_internal<'a, N, C>(node: N,
+                                         context: &'a C,
+                                         parents_had_display_none: &mut bool)
+    where N: TNode,
+          C: StyleContext<'a>
+{
+    use properties::longhands::display::computed_value as display;
+
+    // Ensure we have style data available. This must be done externally because
+    // there's no way to initialize the style data from the style system
+    // (because in Servo it's coupled with the layout data too).
+    //
+    // Ideally we'd have an initialize_data() or something similar but just for
+    // style data.
+    debug_assert!(node.borrow_data().is_some(),
+                  "Need to initialize the data before calling ensure_node_styled");
+
+    // We need to go to the root and ensure their style is up to date.
+    //
+    // This means potentially a bit of wasted work (usually not much). We could
+    // add a flag at the node at which point we stopped the traversal to know
+    // where should we stop, but let's not add that complication unless needed.
+    let parent = match node.parent_node() {
+        Some(parent) if parent.is_element() => Some(parent),
+        _ => None,
+    };
+
+    if let Some(parent) = parent {
+        ensure_node_styled_internal(parent, context, parents_had_display_none);
+    }
+
+    // Common case: our style is already resolved and none of our ancestors had
+    // display: none.
+    //
+    // We only need to mark whether we have display none, and forget about it,
+    // our style is up to date.
+    if let Some(ref style) = node.borrow_data().unwrap().style {
+        if !*parents_had_display_none {
+            *parents_had_display_none = style.get_box().clone_display() == display::T::none;
+            return;
+        }
+    }
+
+    // Otherwise, our style might be out of date. Time to do selector matching
+    // if appropriate and cascade the node.
+    //
+    // Note that we could add the bloom filter's complexity here, but that's
+    // probably not necessary since we're likely to be matching only a few
+    // nodes, at best.
+    let mut applicable_declarations = ApplicableDeclarations::new();
+    if let Some(element) = node.as_element() {
+        let stylist = &context.shared_context().stylist;
+
+        element.match_element(&**stylist,
+                              None,
+                              &mut applicable_declarations);
+    }
+
+    unsafe {
+        node.cascade_node(context, parent, &applicable_declarations);
+    }
+}
+
 /// Calculates the style for a single node.
 #[inline]
 #[allow(unsafe_code)]
 pub fn recalc_style_at<'a, N, C>(context: &'a C,
                                  root: OpaqueNode,
-                                 node: N)
+                                 node: N) -> RestyleResult
     where N: TNode,
-          C: StyleContext<'a> {
+          C: StyleContext<'a>
+{
     // Get the parent node.
     let parent_opt = match node.parent_node() {
         Some(parent) if parent.is_element() => Some(parent),
@@ -190,6 +285,7 @@ pub fn recalc_style_at<'a, N, C>(context: &'a C,
     let mut bf = take_thread_local_bloom_filter(parent_opt, root, context.shared_context());
 
     let nonincremental_layout = opts::get().nonincremental_layout;
+    let mut restyle_result = RestyleResult::Continue;
     if nonincremental_layout || node.is_dirty() {
         // Remove existing CSS styles from nodes whose content has changed (e.g. text changed),
         // to force non-incremental reflow.
@@ -239,9 +335,9 @@ pub fn recalc_style_at<'a, N, C>(context: &'a C,
 
                 // Perform the CSS cascade.
                 unsafe {
-                    node.cascade_node(context,
-                                      parent_opt,
-                                      &applicable_declarations);
+                    restyle_result = node.cascade_node(context,
+                                                    parent_opt,
+                                                    &applicable_declarations);
                 }
 
                 // Add ourselves to the LRU cache.
@@ -249,7 +345,8 @@ pub fn recalc_style_at<'a, N, C>(context: &'a C,
                     style_sharing_candidate_cache.insert_if_possible::<'ln, N>(&element);
                 }
             }
-            StyleSharingResult::StyleWasShared(index, damage) => {
+            StyleSharingResult::StyleWasShared(index, damage, restyle_result_cascade) => {
+                restyle_result = restyle_result_cascade;
                 style_sharing_candidate_cache.touch(index);
                 node.set_restyle_damage(damage);
             }
@@ -285,5 +382,11 @@ pub fn recalc_style_at<'a, N, C>(context: &'a C,
                 }
             }
         }
+    }
+
+    if nonincremental_layout {
+        RestyleResult::Continue
+    } else {
+        restyle_result
     }
 }

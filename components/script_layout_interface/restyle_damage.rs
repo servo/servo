@@ -47,7 +47,11 @@ impl TRestyleDamage for RestyleDamage {
     /// For Servo the style source is always the computed values.
     type PreExistingComputedValues = Arc<ServoComputedValues>;
 
-    fn compute(old: Option<&Arc<ServoComputedValues>>,
+    fn empty() -> Self {
+        RestyleDamage::empty()
+    }
+
+    fn compute(old: &Arc<ServoComputedValues>,
                new: &Arc<ServoComputedValues>) -> RestyleDamage {
         compute_damage(old, new)
     }
@@ -150,13 +154,7 @@ macro_rules! add_if_not_equal(
     })
 );
 
-fn compute_damage(old: Option<&Arc<ServoComputedValues>>, new: &Arc<ServoComputedValues>) -> RestyleDamage {
-    let new = &**new;
-    let old: &ServoComputedValues = match old {
-        None => return RestyleDamage::rebuild_and_reflow(),
-        Some(cv) => &**cv,
-    };
-
+fn compute_damage(old: &ServoComputedValues, new: &ServoComputedValues) -> RestyleDamage {
     let mut damage = RestyleDamage::empty();
 
     // This should check every CSS property, as enumerated in the fields of

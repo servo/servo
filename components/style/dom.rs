@@ -12,9 +12,10 @@ use element_state::ElementState;
 use properties::{ComputedValues, PropertyDeclaration, PropertyDeclarationBlock};
 use refcell::{Ref, RefMut};
 use restyle_hints::{RESTYLE_DESCENDANTS, RESTYLE_LATER_SIBLINGS, RESTYLE_SELF, RestyleHint};
-use selector_impl::ElementExt;
+use selector_impl::{ElementExt, PseudoElement};
 use selectors::matching::DeclarationBlock;
 use sink::Push;
+use std::fmt::Debug;
 use std::ops::BitOr;
 use std::sync::Arc;
 use string_cache::{Atom, Namespace};
@@ -44,7 +45,7 @@ impl OpaqueNode {
     }
 }
 
-pub trait TRestyleDamage : BitOr<Output=Self> + Copy {
+pub trait TRestyleDamage : Debug + PartialEq + BitOr<Output=Self> + Copy {
     /// The source for our current computed values in the cascade. This is a
     /// ComputedValues in Servo and a StyleContext in Gecko.
     ///
@@ -55,8 +56,10 @@ pub trait TRestyleDamage : BitOr<Output=Self> + Copy {
     /// This should be obtained via TNode::existing_style_for_restyle_damage
     type PreExistingComputedValues;
 
-    fn compute(old: Option<&Self::PreExistingComputedValues>,
+    fn compute(old: &Self::PreExistingComputedValues,
                new: &Arc<ComputedValues>) -> Self;
+
+    fn empty() -> Self;
 
     fn rebuild_and_reflow() -> Self;
 }
@@ -174,7 +177,8 @@ pub trait TNode : Sized + Copy + Clone {
     /// as an argument here, but otherwise Servo would crash due to double
     /// borrows to return it.
     fn existing_style_for_restyle_damage<'a>(&'a self,
-                                             current_computed_values: Option<&'a Arc<ComputedValues>>)
+                                             current_computed_values: Option<&'a Arc<ComputedValues>>,
+                                             pseudo: Option<&PseudoElement>)
         -> Option<&'a <Self::ConcreteRestyleDamage as TRestyleDamage>::PreExistingComputedValues>;
 }
 

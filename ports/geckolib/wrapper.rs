@@ -44,7 +44,7 @@ use style::dom::{TDocument, TElement, TNode, TRestyleDamage, UnsafeNode};
 use style::element_state::ElementState;
 use style::error_reporting::StdoutErrorReporter;
 use style::gecko_glue::ArcHelpers;
-use style::gecko_selector_impl::{GeckoSelectorImpl, NonTSPseudoClass};
+use style::gecko_selector_impl::{GeckoSelectorImpl, NonTSPseudoClass, PseudoElement};
 use style::parser::ParserContextExtraData;
 use style::properties::{ComputedValues, parse_style_attribute};
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
@@ -95,18 +95,21 @@ impl<'ln> GeckoNode<'ln> {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct GeckoRestyleDamage(nsChangeHint);
 
 impl TRestyleDamage for GeckoRestyleDamage {
     type PreExistingComputedValues = nsStyleContext;
-    fn compute(source: Option<&nsStyleContext>,
+
+    fn empty() -> Self {
+        use std::mem;
+        GeckoRestyleDamage(unsafe { mem::transmute(0u32) })
+    }
+
+    fn compute(source: &nsStyleContext,
                new_style: &Arc<ComputedValues>) -> Self {
         type Helpers = ArcHelpers<ServoComputedValues, ComputedValues>;
-        let context = match source {
-            Some(ctx) => ctx as *const nsStyleContext as *mut nsStyleContext,
-            None => return Self::rebuild_and_reflow(),
-        };
+        let context = source as *const nsStyleContext as *mut nsStyleContext;
 
         Helpers::borrow(new_style, |new_style| {
             let hint = unsafe { Gecko_CalcStyleDifference(context, new_style) };
@@ -194,10 +197,9 @@ impl<'ln> TNode for GeckoNode<'ln> {
         unimplemented!()
     }
 
-    fn has_changed(&self) -> bool {
-        // FIXME(bholley) - Implement this to allow incremental reflows!
-        true
-    }
+    // NOTE: This is not relevant for Gecko, since we get explicit restyle hints
+    // when a content has changed.
+    fn has_changed(&self) -> bool { false }
 
     unsafe fn set_changed(&self, _value: bool) {
         unimplemented!()
@@ -310,10 +312,18 @@ impl<'ln> TNode for GeckoNode<'ln> {
     }
 
     fn existing_style_for_restyle_damage<'a>(&'a self,
-                                             current_cv: Option<&'a Arc<ComputedValues>>)
+                                             current_cv: Option<&'a Arc<ComputedValues>>,
+                                             pseudo: Option<&PseudoElement>)
                                              -> Option<&'a nsStyleContext> {
         if current_cv.is_none() {
             // Don't bother in doing an ffi call to get null back.
+            return None;
+        }
+
+        if pseudo.is_some() {
+            // FIXME(emilio): This makes us reconstruct frame for pseudos every
+            // restyle, add a FFI call to get the style context associated with
+            // a PE.
             return None;
         }
 

@@ -11,7 +11,7 @@
 use dom::{OpaqueNode, TNode, UnsafeNode};
 use std::mem;
 use std::sync::atomic::Ordering;
-use traversal::DomTraversalContext;
+use traversal::{RestyleResult, DomTraversalContext};
 use workqueue::{WorkQueue, WorkUnit, WorkerProxy};
 
 #[allow(dead_code)]
@@ -67,37 +67,38 @@ fn top_down_dom<N, C>(unsafe_nodes: UnsafeNodeList,
             continue;
         }
 
-        // Perform the appropriate traversal.
-        context.process_preorder(node);
-
         // Possibly enqueue the children.
         let mut children_to_process = 0isize;
-        for kid in node.children() {
-            // Trigger the hook pre-adding the kid to the list. This can (and in
-            // fact uses to) change the result of the should_process operation.
-            //
-            // As of right now, this hook takes care of propagating the restyle
-            // flag down the tree. In the future, more accurate behavior is
-            // probably going to be needed.
-            context.pre_process_child_hook(node, kid);
-            if context.should_process(kid) {
-                children_to_process += 1;
-                discovered_child_nodes.push(kid.to_unsafe())
+        // Perform the appropriate traversal.
+        if let RestyleResult::Continue = context.process_preorder(node) {
+            for kid in node.children() {
+                // Trigger the hook pre-adding the kid to the list. This can
+                // (and in fact uses to) change the result of the should_process
+                // operation.
+                //
+                // As of right now, this hook takes care of propagating the
+                // restyle flag down the tree. In the future, more accurate
+                // behavior is probably going to be needed.
+                context.pre_process_child_hook(node, kid);
+                if context.should_process(kid) {
+                    children_to_process += 1;
+                    discovered_child_nodes.push(kid.to_unsafe())
+                }
             }
         }
 
-        // Reset the count of children.
-        {
-            let data = node.mutate_data().unwrap();
-            data.parallel.children_to_process
+        // Reset the count of children if we need to do a bottom-up traversal
+        // after the top up.
+        if context.needs_postorder_traversal() {
+            node.mutate_data().unwrap()
+                .parallel.children_to_process
                          .store(children_to_process,
                                 Ordering::Relaxed);
-        }
 
-
-        // If there were no more children, start walking back up.
-        if children_to_process == 0 {
-            bottom_up_dom::<N, C>(unsafe_nodes.1, unsafe_node, proxy)
+            // If there were no more children, start walking back up.
+            if children_to_process == 0 {
+                bottom_up_dom::<N, C>(unsafe_nodes.1, unsafe_node, proxy)
+            }
         }
     }
 
@@ -123,7 +124,9 @@ fn top_down_dom<N, C>(unsafe_nodes: UnsafeNodeList,
 fn bottom_up_dom<N, C>(root: OpaqueNode,
                        unsafe_node: UnsafeNode,
                        proxy: &mut WorkerProxy<C::SharedContext, UnsafeNodeList>)
-                       where N: TNode, C: DomTraversalContext<N> {
+    where N: TNode,
+          C: DomTraversalContext<N>
+{
     let context = C::new(proxy.user_data(), root);
 
     // Get a real layout node.

@@ -30,6 +30,7 @@ use std::ops::Deref;
 use std::sync::{Arc, Mutex};
 use string_cache::Atom;
 use style::computed_values;
+use style::context::StyleContext;
 use style::logical_geometry::{WritingMode, BlockFlowDirection, InlineBaseDirection};
 use style::properties::longhands::{display, position};
 use style::properties::style_structs;
@@ -37,7 +38,7 @@ use style::selector_impl::PseudoElement;
 use style::selector_matching::Stylist;
 use style::values::LocalToCss;
 use style_traits::cursor::Cursor;
-use wrapper::ThreadSafeLayoutNodeHelpers;
+use wrapper::{LayoutNodeLayoutData, ThreadSafeLayoutNodeHelpers};
 
 /// Mutable data belonging to the LayoutThread.
 ///
@@ -620,11 +621,39 @@ pub fn process_node_scroll_area_request< N: LayoutNode>(requested_node: N, layou
     }
 }
 
+/// Ensures that a node's data, and all its parents' is initialized. This is
+/// needed to resolve style lazily.
+fn ensure_node_data_initialized<N: LayoutNode>(node: &N) {
+    let mut cur = Some(node.clone());
+    while let Some(current) = cur {
+        if current.borrow_data().is_some() {
+            break;
+        }
+
+        current.initialize_data();
+        cur = current.parent_node();
+    }
+}
+
 /// Return the resolved value of property for a given (pseudo)element.
 /// https://drafts.csswg.org/cssom/#resolved-value
-pub fn process_resolved_style_request<N: LayoutNode>(
-            requested_node: N, pseudo: &Option<PseudoElement>,
-            property: &Atom, layout_root: &mut FlowRef) -> Option<String> {
+pub fn process_resolved_style_request<'a, N, C>(requested_node: N,
+                                                style_context: &'a C,
+                                                pseudo: &Option<PseudoElement>,
+                                                property: &Atom,
+                                                layout_root: &mut FlowRef) -> Option<String>
+    where N: LayoutNode,
+          C: StyleContext<'a>
+{
+    use style::traversal::ensure_node_styled;
+
+    // This node might have display: none, or it's style might be not up to
+    // date, so we might need to do style recalc.
+    //
+    // FIXME(emilio): Is a bit shame we have to do this instead of in style.
+    ensure_node_data_initialized(&requested_node);
+    ensure_node_styled(requested_node, style_context);
+
     let layout_node = requested_node.to_threadsafe();
     let layout_node = match *pseudo {
         Some(PseudoElement::Before) => layout_node.get_before_pseudo(),

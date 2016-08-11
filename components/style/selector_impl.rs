@@ -79,7 +79,8 @@ pub trait ElementExt: Element<Impl=TheSelectorImpl> {
 impl TheSelectorImpl {
     #[inline]
     pub fn each_eagerly_cascaded_pseudo_element<F>(mut fun: F)
-        where F: FnMut(<Self as SelectorImpl>::PseudoElement) {
+        where F: FnMut(PseudoElement)
+    {
         Self::each_pseudo_element(|pseudo| {
             if Self::pseudo_element_cascade_type(&pseudo).is_eager() {
                 fun(pseudo)
@@ -89,7 +90,8 @@ impl TheSelectorImpl {
 
     #[inline]
     pub fn each_precomputed_pseudo_element<F>(mut fun: F)
-        where F: FnMut(<Self as SelectorImpl>::PseudoElement) {
+        where F: FnMut(PseudoElement)
+    {
         Self::each_pseudo_element(|pseudo| {
             if Self::pseudo_element_cascade_type(&pseudo).is_precomputed() {
                 fun(pseudo)
