@@ -14,7 +14,6 @@ use dom::bindings::xmlname::namespace_from_domstring;
 use dom::element::Element;
 use dom::node::Node;
 use dom::window::Window;
-use std::ascii::AsciiExt;
 use std::cell::Cell;
 use string_cache::{Atom, Namespace, QualName};
 use style::str::split_html_space_chars;
@@ -114,37 +113,70 @@ impl HTMLCollection {
         }
     }
 
-    pub fn by_tag_name(window: &Window, root: &Node, mut tag: DOMString)
-                       -> Root<HTMLCollection> {
-        let tag_atom = Atom::from(&*tag);
-        tag.make_ascii_lowercase();
-        let ascii_lower_tag = Atom::from(tag); // FIXME(ajeffrey): don't clone atom if it was already lowercased.
-        HTMLCollection::by_atomic_tag_name(window, root, tag_atom, ascii_lower_tag)
-    }
-
-    pub fn by_atomic_tag_name(window: &Window, root: &Node, tag_atom: Atom, ascii_lower_tag: Atom)
-                       -> Root<HTMLCollection> {
-        #[derive(JSTraceable, HeapSizeOf)]
-        struct TagNameFilter {
-            tag: Atom,
-            ascii_lower_tag: Atom,
-        }
-        impl CollectionFilter for TagNameFilter {
-            fn filter(&self, elem: &Element, _root: &Node) -> bool {
-                if self.tag == atom!("*") {
+    // https://dom.spec.whatwg.org/#concept-getelementsbytagname
+    pub fn by_qualified_name(window: &Window, root: &Node, qualified_name: Atom)
+                             -> Root<HTMLCollection> {
+        // case 1
+        if qualified_name == atom!("*") {
+            #[derive(JSTraceable, HeapSizeOf)]
+            struct QualifiedNameFilter {
+            }
+            impl CollectionFilter for QualifiedNameFilter {
+                fn filter(&self, _elem: &Element, _root: &Node) -> bool {
                     true
-                } else if elem.html_element_in_html_document() {
-                    *elem.local_name() == self.ascii_lower_tag
-                } else {
-                    *elem.local_name() == self.tag
                 }
             }
+            return HTMLCollection::create(window, root, box QualifiedNameFilter {});
         }
-        let filter = TagNameFilter {
-            tag: tag_atom,
-            ascii_lower_tag: ascii_lower_tag,
-        };
-        HTMLCollection::create(window, root, box filter)
+
+        // case 2
+        if root.is_in_html_doc() {
+            #[derive(JSTraceable, HeapSizeOf)]
+            struct QualifiedNameFilter {
+                qualified_name: Atom,
+                ascii_lower_qualified_name: Atom,
+            }
+            impl CollectionFilter for QualifiedNameFilter {
+                fn filter(&self, elem: &Element, _root: &Node) -> bool {
+                    if elem.html_element_in_html_document() {
+                        HTMLCollection::match_element(elem, &self.ascii_lower_qualified_name)
+                    } else {
+                        HTMLCollection::match_element(elem, &self.qualified_name)
+                    }
+                }
+            }
+
+            let filter = QualifiedNameFilter {
+                ascii_lower_qualified_name: qualified_name.to_ascii_lowercase(),
+                qualified_name: qualified_name,
+            };
+            return HTMLCollection::create(window, root, box filter);
+        }
+
+        // case 3
+        #[derive(JSTraceable, HeapSizeOf)]
+        struct QualifiedNameFilter {
+            qualified_name: Atom,
+        }
+        impl CollectionFilter for QualifiedNameFilter {
+            fn filter(&self, elem: &Element, _root: &Node) -> bool {
+                HTMLCollection::match_element(elem, &self.qualified_name)
+            }
+        }
+
+        HTMLCollection::create(window, root, box QualifiedNameFilter {
+            qualified_name: qualified_name
+        })
+    }
+
+    fn match_element(elem: &Element, qualified_name: &Atom) -> bool {
+        match *elem.prefix() {
+            None => elem.local_name() == qualified_name,
+            Some(ref prefix) => qualified_name.starts_with(prefix as &str) &&
+                // TODO(kevgs): replace find() with char access
+                qualified_name.find(":") == Some((prefix as &str).len()) &&
+                qualified_name.ends_with(elem.local_name() as &str),
+        }
     }
 
     pub fn by_tag_name_ns(window: &Window, root: &Node, tag: DOMString,
