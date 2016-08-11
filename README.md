@@ -34,6 +34,17 @@ brew install openssl
 brew link --force openssl
 ```
 
+If you get this error during the brew link step:
+```sh
+Warning: Refusing to link: openssl
+```
+followed by a compile error not being able to find one or more
+openssl/ include files, you may want to try:
+```sh
+export DEP_OPENSSL_INCLUDE=/usr/local/include
+./mach build ...
+```
+
 If you get this error:
 ``` sh
 "Couldn't find libavformat", do the following:
