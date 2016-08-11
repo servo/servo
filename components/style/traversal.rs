@@ -11,7 +11,6 @@ use matching::{ApplicableDeclarations, ElementMatchMethods, MatchMethods, StyleS
 use selectors::bloom::BloomFilter;
 use selectors::matching::StyleRelations;
 use std::cell::RefCell;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, ATOMIC_USIZE_INIT, Ordering};
 use tid::tid;
 use util::opts;
@@ -367,8 +366,8 @@ pub fn recalc_style_at<'a, N, C>(context: &'a C,
                 // Perform the CSS cascade.
                 unsafe {
                     restyle_result = node.cascade_node(context,
-                                                    parent_opt,
-                                                    &applicable_declarations);
+                                                       parent_opt,
+                                                       &applicable_declarations);
                 }
 
                 // Add ourselves to the LRU cache.
