@@ -236,6 +236,7 @@ pub trait TElement : PartialEq + Sized + Copy + Clone + ElementExt + Presentatio
             unsafe { node.set_dirty(true); }
         // XXX(emilio): For now, dirty implies dirty descendants if found.
         } else if hint.contains(RESTYLE_DESCENDANTS) {
+            unsafe { node.set_dirty_descendants(true); }
             let mut current = node.first_child();
             while let Some(node) = current {
                 unsafe { node.set_dirty(true); }
