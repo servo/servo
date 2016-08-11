@@ -4432,6 +4432,30 @@
             "url": "/_mozilla/css/pseudo_element_restyle_no_rules.html"
           }
         ],
+        "css/pseudo_element_spacing_margin.html": [
+          {
+            "path": "css/pseudo_element_spacing_margin.html",
+            "references": [
+              [
+                "/_mozilla/css/pseudo_element_spacing_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/pseudo_element_spacing_margin.html"
+          }
+        ],
+        "css/pseudo_element_spacing_padding.html": [
+          {
+            "path": "css/pseudo_element_spacing_padding.html",
+            "references": [
+              [
+                "/_mozilla/css/pseudo_element_spacing_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/pseudo_element_spacing_padding.html"
+          }
+        ],
         "css/pseudo_inherit.html": [
           {
             "path": "css/pseudo_inherit.html",
@@ -13608,6 +13632,30 @@
             ]
           ],
           "url": "/_mozilla/css/pseudo_element_restyle_no_rules.html"
+        }
+      ],
+      "css/pseudo_element_spacing_margin.html": [
+        {
+          "path": "css/pseudo_element_spacing_margin.html",
+          "references": [
+            [
+              "/_mozilla/css/pseudo_element_spacing_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/pseudo_element_spacing_margin.html"
+        }
+      ],
+      "css/pseudo_element_spacing_padding.html": [
+        {
+          "path": "css/pseudo_element_spacing_padding.html",
+          "references": [
+            [
+              "/_mozilla/css/pseudo_element_spacing_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/pseudo_element_spacing_padding.html"
         }
       ],
       "css/pseudo_inherit.html": [
