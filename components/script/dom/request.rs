@@ -35,9 +35,6 @@ use net_traits::request::{Origin, Window};
 use std::cell::{Cell, Ref};
 use url::Url;
 
-// for debugging
-use dom::bindings::codegen::Bindings::HeadersBinding::HeadersMethods;
-
 #[dom_struct]
 pub struct Request {
     reflector_: Reflector,
@@ -132,6 +129,7 @@ impl Request {
 
         // Step 7
         // TODO: `entry settings object` is not implemented yet.
+        let origin = global.get_url().origin();
 
         // Step 8
         let mut window = Window::Client;
@@ -175,6 +173,7 @@ impl Request {
             init.cache.is_some() ||
             init.credentials.is_some() ||
             init.integrity.is_some() ||
+            init.headers.is_some() ||
             init.method.is_some() ||
             init.mode.is_some() ||
             init.redirect.is_some() ||
@@ -217,7 +216,11 @@ impl Request {
                             *request.referer.borrow_mut() = NetTraitsRequestReferer::Client;
                         } else {
                             // Step 14.6
-                            // TODO: Requires Step 3.
+                            if parsed_referrer.origin() != origin {
+                                return Err(Error::Type(
+                                    "RequestInit's referrer has invalid origin".to_string()));
+                            }
+                            // TODO: Requires Step 7.
 
                             // Step 14.7
                             *request.referer.borrow_mut() = NetTraitsRequestReferer::RefererUrl(parsed_referrer);
@@ -311,6 +314,12 @@ impl Request {
         // Step 27
         let mut headers_copy = r.Headers();
 
+        // This is not in the spec.
+        // Set headers_copy to input's headers.
+        if let RequestInfo::Request(ref input_request) = input {
+            headers_copy = input_request.headers.get().unwrap().clone();
+        }
+
         // Step 28
         if let Some(possible_header) = init.headers.as_ref() {
             if let &HeadersOrByteStringSequenceSequence::Headers(ref init_headers) = possible_header {
@@ -318,28 +327,22 @@ impl Request {
             }
         }
 
-        // This is not in the spec.
-        // If a Request is given as an input, set headers_copy to its headers.
-         match input {
-             RequestInfo::USVString(USVString(ref usv_string)) => {},
-             RequestInfo::Request(ref input_request) => {
-                 headers_copy = input_request.headers.get().unwrap().clone();
-             },
-         }
-
         // Step 29
         r.Headers().empty_header_list();
 
         // Step 30
         if r.request.borrow().mode == NetTraitsRequestMode::NoCORS {
             let borrowed_request = r.request.borrow();
+            // Step 30.1
             if !is_cors_safelisted_method(&borrowed_request.method.borrow()) {
                 return Err(Error::Type(
                     "The mode is 'no-cors' but the method is not a cors-safelisted method".to_string()));
             }
+            // Step 30.2
             if !borrowed_request.integrity_metadata.borrow().is_empty() {
                 return Err(Error::Type("Integrity metadata is not an empty string".to_string()));
             }
+            // Step 30.3
             r.Headers().set_guard(Guard::RequestNoCors);
         }
 
