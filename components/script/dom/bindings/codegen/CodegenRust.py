@@ -2591,6 +2591,8 @@ assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
         if len(self.descriptor.prototypeChain) == 1:
             if self.descriptor.interface.getExtendedAttribute("ExceptionClass"):
                 getPrototypeProto = "prototype_proto.set(JS_GetErrorPrototype(cx))"
+            elif self.descriptor.interface.isIteratorInterface():
+                getPrototypeProto = "prototype_proto.set(JS_GetIteratorPrototype(cx))"
             else:
                 getPrototypeProto = "prototype_proto.set(JS_GetObjectPrototype(cx, global))"
         else:
@@ -2669,6 +2671,55 @@ assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
                               ptr::null_mut(),
                               interface.get());
 """ % properties))
+
+        aliasedMembers = [m for m in self.descriptor.interface.members if m.isMethod() and m.aliases]
+        if aliasedMembers:
+            def defineAlias(alias):
+                if alias == "@@iterator":
+                    symbolJSID = "RUST_SYMBOL_TO_JSID(GetWellKnownSymbol(cx, SymbolCode::iterator))"
+                    getSymbolJSID = CGGeneric(fill("rooted!(in(cx) let iteratorId = ${symbolJSID});",
+                                                   symbolJSID=symbolJSID))
+                    defineFn = "JS_DefinePropertyById2"
+                    prop = "iteratorId.handle()"
+                elif alias.startswith("@@"):
+                    raise TypeError("Can't handle any well-known Symbol other than @@iterator")
+                else:
+                    getSymbolJSID = None
+                    defineFn = "JS_DefineProperty"
+                    prop = '"%s"' % alias
+                return CGList([
+                    getSymbolJSID,
+                    # XXX If we ever create non-enumerable properties that can
+                    #     be aliased, we should consider making the aliases
+                    #     match the enumerability of the property being aliased.
+                    CGGeneric(fill(
+                        """
+                        assert!(${defineFn}(cx, prototype.handle(), ${prop}, aliasedVal.handle(),
+                                            JSPROP_ENUMERATE, None, None));
+                        """,
+                        defineFn=defineFn,
+                        prop=prop))
+                ], "\n")
+
+            def defineAliasesFor(m):
+                return CGList([
+                    CGGeneric(fill(
+                        """
+                        assert!(JS_GetProperty(cx, prototype.handle(),
+                                               b\"${prop}\0\" as *const u8 as *const i8,
+                                               aliasedVal.handle_mut()));
+                        """,
+                        prop=m.identifier.name))
+                ] + [defineAlias(alias) for alias in sorted(m.aliases)])
+
+            defineAliases = CGList([
+                CGGeneric(fill("""
+                    // Set up aliases on the interface prototype object we just created.
+
+                    """)),
+                CGGeneric("rooted!(in(cx) let mut aliasedVal = UndefinedValue());\n\n")
+            ] + [defineAliasesFor(m) for m in sorted(aliasedMembers)])
+            code.append(defineAliases)
 
         constructors = self.descriptor.interface.namedConstructors
         if constructors:
@@ -5151,7 +5202,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::jsapi::{JSJitInfo_AliasSet, JSJitInfo_ArgType, AutoIdVector, CallArgs, FreeOp}',
         'js::jsapi::{JSITER_SYMBOLS, JSPROP_ENUMERATE, JSPROP_PERMANENT, JSPROP_READONLY, JSPROP_SHARED}',
         'js::jsapi::{JSCLASS_RESERVED_SLOTS_SHIFT, JSITER_HIDDEN, JSITER_OWNONLY}',
-        'js::jsapi::{GetPropertyKeys, Handle}',
+        'js::jsapi::{GetPropertyKeys, Handle, Call, GetWellKnownSymbol}',
         'js::jsapi::{HandleId, HandleObject, HandleValue, HandleValueArray}',
         'js::jsapi::{INTERNED_STRING_TO_JSID, IsCallable, JS_CallFunctionValue}',
         'js::jsapi::{JS_CopyPropertiesFrom, JS_ForwardGetPropertyTo}',
@@ -5160,9 +5211,9 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::jsapi::{JS_GetPropertyById, JS_GetPropertyDescriptorById, JS_GetReservedSlot}',
         'js::jsapi::{JS_HasProperty, JS_HasPropertyById, JS_InitializePropertiesFromCompatibleNativeObject}',
         'js::jsapi::{JS_AtomizeAndPinString, JS_NewObject, JS_NewObjectWithGivenProto}',
-        'js::jsapi::{JS_NewObjectWithoutMetadata, JS_SetProperty}',
+        'js::jsapi::{JS_NewObjectWithoutMetadata, JS_SetProperty, JS_DefinePropertyById2}',
         'js::jsapi::{JS_SetPrototype, JS_SetReservedSlot, JSAutoCompartment}',
-        'js::jsapi::{JSContext, JSClass, JSFreeOp, JSFunctionSpec}',
+        'js::jsapi::{JSContext, JSClass, JSFreeOp, JSFunctionSpec, JS_GetIteratorPrototype}',
         'js::jsapi::{JSJitGetterCallArgs, JSJitInfo, JSJitMethodCallArgs, JSJitSetterCallArgs}',
         'js::jsapi::{JSNative, JSObject, JSNativeWrapper, JSPropertySpec}',
         'js::jsapi::{JSString, JSTracer, JSType, JSTypedMethodJitInfo, JSValueType}',
@@ -5174,7 +5225,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::jsval::{NullValue, UndefinedValue}',
         'js::glue::{CallJitMethodOp, CallJitGetterOp, CallJitSetterOp, CreateProxyHandler}',
         'js::glue::{GetProxyPrivate, NewProxyObject, ProxyTraps}',
-        'js::glue::{RUST_JSID_IS_STRING, int_to_jsid}',
+        'js::glue::{RUST_JSID_IS_STRING, int_to_jsid, RUST_SYMBOL_TO_JSID}',
         'js::glue::AppendToAutoIdVector',
         'js::rust::{GCMethods, define_methods, define_properties}',
         'dom',
