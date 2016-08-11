@@ -24,7 +24,7 @@ use sink::ForgetfulSink;
 use smallvec::SmallVec;
 use std::collections::HashMap;
 use std::hash::{BuildHasherDefault, Hash, Hasher};
-use std::slice::Iter;
+use std::slice::IterMut;
 use std::sync::Arc;
 use string_cache::Atom;
 use traversal::RestyleResult;
@@ -188,7 +188,7 @@ struct StyleSharingCandidate {
     /// The cached computed style, here for convenience.
     style: Arc<ComputedValues>,
     /// The cached common style affecting attribute info.
-    common_style_affecting_attributes: CommonStyleAffectingAttributes,
+    common_style_affecting_attributes: Option<CommonStyleAffectingAttributes>,
 }
 
 impl PartialEq<StyleSharingCandidate> for StyleSharingCandidate {
@@ -230,7 +230,7 @@ pub enum CacheMiss {
 }
 
 fn element_matches_candidate<E: TElement>(element: &E,
-                                          candidate: &StyleSharingCandidate,
+                                          candidate: &mut StyleSharingCandidate,
                                           candidate_element: &E,
                                           shared_context: &SharedStyleContext)
                                           -> Result<Arc<ComputedValues>, CacheMiss> {
@@ -272,7 +272,9 @@ fn element_matches_candidate<E: TElement>(element: &E,
         miss!(Class)
     }
 
-    if !have_same_common_style_affecting_attributes(element, candidate) {
+    if !have_same_common_style_affecting_attributes(element,
+                                                    candidate,
+                                                    candidate_element) {
         miss!(CommonStyleAffectingAttributes)
     }
 
@@ -296,11 +298,14 @@ fn element_matches_candidate<E: TElement>(element: &E,
 }
 
 fn have_same_common_style_affecting_attributes<E: TElement>(element: &E,
-                                                            candidate: &StyleSharingCandidate) -> bool {
-    // XXX probably could do something smarter. Also, the cache should
-    // precompute this for the parent. Just experimenting now though.
+                                                            candidate: &mut StyleSharingCandidate,
+                                                            candidate_element: &E) -> bool {
+    if candidate.common_style_affecting_attributes.is_none() {
+        candidate.common_style_affecting_attributes =
+            Some(create_common_style_affecting_attributes_from_element(candidate_element))
+    }
     create_common_style_affecting_attributes_from_element(element) ==
-        candidate.common_style_affecting_attributes
+        candidate.common_style_affecting_attributes.unwrap()
 }
 
 fn have_same_presentational_hints<E: TElement>(element: &E, candidate: &E) -> bool {
@@ -406,8 +411,8 @@ impl StyleSharingCandidateCache {
         }
     }
 
-    fn iter(&self) -> Iter<(StyleSharingCandidate, ())> {
-        self.cache.iter()
+    fn iter_mut(&mut self) -> IterMut<(StyleSharingCandidate, ())> {
+        self.cache.iter_mut()
     }
 
     pub fn insert_if_possible<E: TElement>(&mut self,
@@ -451,8 +456,7 @@ impl StyleSharingCandidateCache {
         self.cache.insert(StyleSharingCandidate {
             node: node.to_unsafe(),
             style: style.clone(),
-            common_style_affecting_attributes:
-                create_common_style_affecting_attributes_from_element(element),
+            common_style_affecting_attributes: None,
         }, ());
     }
 
@@ -620,7 +624,7 @@ trait PrivateElementMatchMethods: TElement {
     fn share_style_with_candidate_if_possible(&self,
                                               parent_node: Self::ConcreteNode,
                                               shared_context: &SharedStyleContext,
-                                              candidate: &StyleSharingCandidate)
+                                              candidate: &mut StyleSharingCandidate)
                                               -> Result<Arc<ComputedValues>, CacheMiss> {
         debug_assert!(parent_node.is_element());
 
@@ -697,7 +701,7 @@ pub trait ElementMatchMethods : TElement {
             _ => return StyleSharingResult::CannotShare,
         };
 
-        for (i, &(ref candidate, ())) in style_sharing_candidate_cache.iter().enumerate() {
+        for (i, &mut (ref mut candidate, ())) in style_sharing_candidate_cache.iter_mut().enumerate() {
             let sharing_result = self.share_style_with_candidate_if_possible(parent,
                                                                              shared_context,
                                                                              candidate);
@@ -734,6 +738,8 @@ pub trait ElementMatchMethods : TElement {
                     return StyleSharingResult::StyleWasShared(i, damage, restyle_result)
                 }
                 Err(miss) => {
+                    debug!("Cache miss: {:?}", miss);
+
                     // Cache miss, let's see what kind of failure to decide
                     // whether we keep trying or not.
                     match miss {
