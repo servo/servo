@@ -10,7 +10,6 @@ test_interfaces([
   "Attr",
   "BeforeUnloadEvent",
   "Blob",
-  "Body",
   "CanvasGradient",
   "CanvasRenderingContext2D",
   "CanvasPattern",
