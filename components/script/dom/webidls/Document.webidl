@@ -28,8 +28,8 @@ interface Document : Node {
   readonly attribute DocumentType? doctype;
   [Pure]
   readonly attribute Element? documentElement;
-  HTMLCollection getElementsByTagName(DOMString localName);
-  HTMLCollection getElementsByTagNameNS(DOMString? namespace, DOMString localName);
+  HTMLCollection getElementsByTagName(DOMString qualifiedName);
+  HTMLCollection getElementsByTagNameNS(DOMString? namespace, DOMString qualifiedName);
   HTMLCollection getElementsByClassName(DOMString classNames);
 
   [NewObject, Throws]
