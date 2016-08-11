@@ -31,6 +31,9 @@ opt-level = 3
 # debug = true
 # lto = false
 
+[replace]
+"browserhtml:0.1.15" = {git = "https://github.com/vvuk/browserhtml", branch = "crate"}
+
 [dev-dependencies]
 compiletest_helper = {path = "../../tests/compiletest/helper"}
 gfx_tests = {path = "../../tests/unit/gfx"}
