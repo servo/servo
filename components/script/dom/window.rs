@@ -103,7 +103,7 @@ use timers::{IsInterval, OneshotTimerCallback, OneshotTimerHandle, OneshotTimers
 #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
 use tinyfiledialogs::{self, MessageBoxIcon};
 use url::Url;
-use util::geometry::{self, MAX_RECT};
+use util::geometry::{self, max_rect};
 use util::opts;
 use util::prefs::PREFS;
 use webdriver_handlers::jsval_to_webdriver;
@@ -751,7 +751,7 @@ impl WindowMethods for Window {
     //TODO Include Scrollbar
     fn InnerHeight(&self) -> i32 {
         self.window_size.get()
-                        .and_then(|e| e.visible_viewport.height.get().to_i32())
+                        .and_then(|e| e.visible_viewport.height.to_i32())
                         .unwrap_or(0)
     }
 
@@ -759,7 +759,7 @@ impl WindowMethods for Window {
     //TODO Include Scrollbar
     fn InnerWidth(&self) -> i32 {
         self.window_size.get()
-                        .and_then(|e| e.visible_viewport.width.get().to_i32())
+                        .and_then(|e| e.visible_viewport.width.to_i32())
                         .unwrap_or(0)
     }
 
@@ -1529,7 +1529,7 @@ impl Window {
             return false;
         }
 
-        let had_clip_rect = clip_rect != MAX_RECT;
+        let had_clip_rect = clip_rect != max_rect();
         if had_clip_rect && !should_move_clip_rect(clip_rect, viewport) {
             return false;
         }
@@ -1537,7 +1537,7 @@ impl Window {
         self.page_clip_rect.set(proposed_clip_rect);
 
         // If we didn't have a clip rect, the previous display doesn't need rebuilding
-        // because it was built for infinite clip (MAX_RECT).
+        // because it was built for infinite clip (max_rect()).
         had_clip_rect
     }
 
@@ -1721,7 +1721,7 @@ impl Window {
             resource_threads: resource_threads,
             bluetooth_thread: bluetooth_thread,
             constellation_chan: constellation_chan,
-            page_clip_rect: Cell::new(MAX_RECT),
+            page_clip_rect: Cell::new(max_rect()),
             fragment_name: DOMRefCell::new(None),
             resize_event: Cell::new(None),
             next_subpage_id: Cell::new(SubpageId(0)),

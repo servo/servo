@@ -4,7 +4,7 @@
 
 use app_units::Au;
 use cssparser::{Parser, SourcePosition};
-use euclid::size::Size2D;
+use euclid::size::TypedSize2D;
 use std::borrow::ToOwned;
 use style::error_reporting::ParseErrorReporter;
 use style::media_queries::*;
@@ -362,7 +362,7 @@ fn test_mq_malformed_expressions() {
 fn test_matching_simple() {
     let device = Device {
         media_type: MediaType::Screen,
-        viewport_size: Size2D::typed(200.0, 100.0),
+        viewport_size: TypedSize2D::new(200.0, 100.0),
     };
 
     media_query_test(&device, "@media not all { a { color: red; } }", 0);
@@ -381,7 +381,7 @@ fn test_matching_simple() {
 fn test_matching_width() {
     let device = Device {
         media_type: MediaType::Screen,
-        viewport_size: Size2D::typed(200.0, 100.0),
+        viewport_size: TypedSize2D::new(200.0, 100.0),
     };
 
     media_query_test(&device, "@media { a { color: red; } }", 1);
@@ -425,7 +425,7 @@ fn test_matching_width() {
 fn test_matching_invalid() {
     let device = Device {
         media_type: MediaType::Screen,
-        viewport_size: Size2D::typed(200.0, 100.0),
+        viewport_size: TypedSize2D::new(200.0, 100.0),
     };
 
     media_query_test(&device, "@media fridge { a { color: red; } }", 0);

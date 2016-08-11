@@ -21,9 +21,9 @@ use util::geometry::ScreenPx;
 
 #[derive(Clone)]
 pub enum MouseWindowEvent {
-    Click(MouseButton, TypedPoint2D<DevicePixel, f32>),
-    MouseDown(MouseButton, TypedPoint2D<DevicePixel, f32>),
-    MouseUp(MouseButton, TypedPoint2D<DevicePixel, f32>),
+    Click(MouseButton, TypedPoint2D<f32, DevicePixel>),
+    MouseDown(MouseButton, TypedPoint2D<f32, DevicePixel>),
+    MouseUp(MouseButton, TypedPoint2D<f32, DevicePixel>),
 }
 
 #[derive(Clone)]
@@ -49,22 +49,22 @@ pub enum WindowEvent {
     /// context when this message is sent.
     InitializeCompositing,
     /// Sent when the window is resized.
-    Resize(TypedSize2D<DevicePixel, u32>),
+    Resize(TypedSize2D<u32, DevicePixel>),
     /// Touchpad Pressure
-    TouchpadPressure(TypedPoint2D<DevicePixel, f32>, f32, TouchpadPressurePhase),
+    TouchpadPressure(TypedPoint2D<f32, DevicePixel>, f32, TouchpadPressurePhase),
     /// Sent when you want to override the viewport.
-    Viewport(TypedPoint2D<DevicePixel, u32>, TypedSize2D<DevicePixel, u32>),
+    Viewport(TypedPoint2D<u32, DevicePixel>, TypedSize2D<u32, DevicePixel>),
     /// Sent when a new URL is to be loaded.
     LoadUrl(String),
     /// Sent when a mouse hit test is to be performed.
     MouseWindowEventClass(MouseWindowEvent),
     /// Sent when a mouse move.
-    MouseWindowMoveEventClass(TypedPoint2D<DevicePixel, f32>),
+    MouseWindowMoveEventClass(TypedPoint2D<f32, DevicePixel>),
     /// Touch event: type, identifier, point
-    Touch(TouchEventType, TouchId, TypedPoint2D<DevicePixel, f32>),
+    Touch(TouchEventType, TouchId, TypedPoint2D<f32, DevicePixel>),
     /// Sent when the user scrolls. The first point is the delta and the second point is the
     /// origin.
-    Scroll(TypedPoint2D<DevicePixel, f32>, TypedPoint2D<DevicePixel, i32>, TouchEventType),
+    Scroll(TypedPoint2D<f32, DevicePixel>, TypedPoint2D<i32, DevicePixel>, TouchEventType),
     /// Sent when the user zooms.
     Zoom(f32),
     /// Simulated "pinch zoom" gesture for non-touch platforms (e.g. ctrl-scrollwheel).
@@ -108,9 +108,9 @@ impl Debug for WindowEvent {
 
 pub trait WindowMethods {
     /// Returns the size of the window in hardware pixels.
-    fn framebuffer_size(&self) -> TypedSize2D<DevicePixel, u32>;
+    fn framebuffer_size(&self) -> TypedSize2D<u32, DevicePixel>;
     /// Returns the size of the window in density-independent "px" units.
-    fn size(&self) -> TypedSize2D<ScreenPx, f32>;
+    fn size(&self) -> TypedSize2D<f32, ScreenPx>;
     /// Presents the window to the screen (perhaps by page flipping).
     fn present(&self);
 
@@ -137,7 +137,7 @@ pub trait WindowMethods {
     fn head_parsed(&self);
 
     /// Returns the scale factor of the system (device pixels / screen pixels).
-    fn scale_factor(&self) -> ScaleFactor<ScreenPx, DevicePixel, f32>;
+    fn scale_factor(&self) -> ScaleFactor<f32, ScreenPx, DevicePixel>;
 
     /// Gets the OS native graphics display for this window.
     fn native_display(&self) -> NativeDisplay;

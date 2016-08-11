@@ -45,7 +45,7 @@ use style::computed_values::{border_style, filter, image_rendering, mix_blend_mo
 use style_traits::cursor::Cursor;
 use text::TextRun;
 use text::glyph::ByteIndex;
-use util::geometry::{self, MAX_RECT, ScreenPx};
+use util::geometry::{self, max_rect, ScreenPx};
 use webrender_traits::{self, WebGLContextId};
 
 pub use style::dom::OpaqueNode;
@@ -530,7 +530,7 @@ impl DisplayList {
     }
 }
 
-fn transformed_tile_rect(tile_rect: TypedRect<ScreenPx, usize>, transform: &Matrix4D<f32>) -> Rect<Au> {
+fn transformed_tile_rect(tile_rect: TypedRect<usize, ScreenPx>, transform: &Matrix4D<f32>) -> Rect<Au> {
     // Invert the current transform, then use this to back transform
     // the tile rect (placed at the origin) into the space of this
     // stacking context.
@@ -884,7 +884,7 @@ impl ClippingRegion {
     #[inline]
     pub fn max() -> ClippingRegion {
         ClippingRegion {
-            main: MAX_RECT,
+            main: max_rect(),
             complex: Vec::new(),
         }
     }
@@ -1176,7 +1176,7 @@ impl BorderRadii<Au> {
 
     // Scale the border corner radius by the specified factor
     pub fn scale_corner_by(corner: Size2D<Au>, s: f32) -> Size2D<Au> {
-        Size2D { width: corner.width.scale_by(s), height: corner.height.scale_by(s) }
+        Size2D::new(corner.width.scale_by(s), corner.height.scale_by(s))
     }
 }
 
@@ -1193,10 +1193,10 @@ impl<T> BorderRadii<T> where T: PartialEq + Zero + Clone {
     /// Returns a set of border radii that all have the given value.
     pub fn all_same(value: T) -> BorderRadii<T> {
         BorderRadii {
-            top_left: Size2D { width: value.clone(), height: value.clone() },
-            top_right: Size2D { width: value.clone(), height: value.clone() },
-            bottom_right: Size2D { width: value.clone(), height: value.clone() },
-            bottom_left: Size2D { width: value.clone(), height: value.clone() },
+            top_left: Size2D::new(value.clone(), value.clone()),
+            top_right: Size2D::new(value.clone(), value.clone()),
+            bottom_right: Size2D::new(value.clone(), value.clone()),
+            bottom_left: Size2D::new(value.clone(), value.clone()),
         }
     }
 }

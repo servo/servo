@@ -11,8 +11,8 @@ use types::{cef_mouse_button_type_t, cef_mouse_event, cef_rect_t, cef_key_event,
 use wrappers::CefWrap;
 
 use compositing::windowing::{WindowEvent, MouseWindowEvent};
-use euclid::point::Point2D;
-use euclid::size::Size2D;
+use euclid::point::TypedPoint2D;
+use euclid::size::TypedSize2D;
 use libc::{c_double, c_int};
 use msg::constellation_msg::{self, KeyModifiers, KeyState};
 use script_traits::{MouseButton, TouchEventType};
@@ -384,7 +384,7 @@ full_cef_class_impl! {
                     .get_render_handler()
                     .get_view_rect(this.downcast().browser.borrow().clone().unwrap(), &mut rect);
                }
-            let size = Size2D::typed(rect.width as u32, rect.height as u32);
+            let size = TypedSize2D::new(rect.width as u32, rect.height as u32);
             this.downcast().send_window_event(WindowEvent::Resize(size));
         }}
 
@@ -443,7 +443,7 @@ full_cef_class_impl! {
                 cef_mouse_button_type_t::MBT_MIDDLE => MouseButton::Middle,
                 cef_mouse_button_type_t::MBT_RIGHT => MouseButton::Right,
             };
-            let point = Point2D::typed((*event).x as f32, (*event).y as f32);
+            let point = TypedPoint2D::new((*event).x as f32, (*event).y as f32);
             if mouse_up != 0 {
                 this.downcast().send_window_event(WindowEvent::MouseWindowEventClass(
                     MouseWindowEvent::Click(button_type, point)))
@@ -457,7 +457,7 @@ full_cef_class_impl! {
                                  _mouse_exited: c_int [c_int],)
                                  -> () {{
             let event: &cef_mouse_event = event;
-            let point = Point2D::typed((*event).x as f32, (*event).y as f32);
+            let point = TypedPoint2D::new((*event).x as f32, (*event).y as f32);
             this.downcast().send_window_event(WindowEvent::MouseWindowMoveEventClass(point))
         }}
 
@@ -469,8 +469,8 @@ full_cef_class_impl! {
             let event: &cef_mouse_event = event;
             let delta_x: c_int = delta_x;
             let delta_y: c_int = delta_y;
-            let delta = Point2D::typed(delta_x as f32, delta_y as f32);
-            let origin = Point2D::typed((*event).x as i32, (*event).y as i32);
+            let delta = TypedPoint2D::new(delta_x as f32, delta_y as f32);
+            let origin = TypedPoint2D::new((*event).x as i32, (*event).y as i32);
             this.downcast().send_window_event(WindowEvent::Scroll(delta,
                                                                   origin,
                                                                   TouchEventType::Move))

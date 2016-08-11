@@ -61,7 +61,7 @@ use style::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMod
 use style::properties::ServoComputedValues;
 use style::values::computed::{LengthOrNone, LengthOrPercentageOrNone};
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
-use util::geometry::MAX_RECT;
+use util::geometry::max_rect;
 
 /// The number of screens of data we're allowed to generate display lists for in each direction.
 const DISPLAY_PORT_SIZE_FACTOR: i32 = 8;
@@ -1842,7 +1842,7 @@ impl Flow for BlockFlow {
 
         if self.is_root() {
             self.base.clip = ClippingRegion::max();
-            self.base.stacking_relative_position_of_display_port = MAX_RECT;
+            self.base.stacking_relative_position_of_display_port = max_rect();
         }
 
         let transform_style = self.fragment.style().get_used_transform_style();
@@ -1855,7 +1855,7 @@ impl Flow for BlockFlow {
                 (overflow_x::T::auto, _) | (overflow_x::T::scroll, _) |
                 (_, overflow_x::T::auto) | (_, overflow_x::T::scroll) => {
                     self.base.clip = ClippingRegion::max();
-                    self.base.stacking_relative_position_of_display_port = MAX_RECT;
+                    self.base.stacking_relative_position_of_display_port = max_rect();
                 }
                 _ => {}
             }

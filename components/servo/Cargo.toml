@@ -52,7 +52,7 @@ constellation = {path = "../constellation"}
 devtools = {path = "../devtools"}
 devtools_traits = {path = "../devtools_traits"}
 env_logger = "0.3"
-euclid = "0.7.1"
+euclid = "0.8.2"
 gfx = {path = "../gfx"}
 gleam = "0.2"
 glutin_app = {path = "../../ports/glutin"}

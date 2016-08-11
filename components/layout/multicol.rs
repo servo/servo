@@ -11,6 +11,7 @@ use block::BlockFlow;
 use context::LayoutContext;
 use display_list_builder::DisplayListBuildState;
 use euclid::Point2D;
+use euclid::Size2D;
 use floats::FloatKind;
 use flow::{Flow, FlowClass, OpaqueFlow, mut_base, FragmentationContext};
 use flow_ref::{self, FlowRef};
@@ -168,7 +169,7 @@ impl Flow for MulticolFlow {
         let pitch = pitch.to_physical(self.block_flow.base.writing_mode);
         for (i, child) in self.block_flow.base.children.iter_mut().enumerate() {
             let point = &mut mut_base(child).stacking_relative_position;
-            *point = *point + pitch * i as i32;
+            *point = *point + Size2D::new(pitch.width * i as i32, pitch.height * i as i32);
         }
     }
 

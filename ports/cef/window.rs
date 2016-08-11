@@ -49,7 +49,7 @@ pub static mut DISPLAY: *mut c_void = 0 as *mut c_void;
 #[derive(Clone)]
 pub struct Window {
     cef_browser: RefCell<Option<CefBrowser>>,
-    size: TypedSize2D<DevicePixel,u32>
+    size: TypedSize2D<u32, DevicePixel>
 }
 
 #[cfg(target_os="macos")]
@@ -89,7 +89,7 @@ impl Window {
 
         Rc::new(Window {
             cef_browser: RefCell::new(None),
-            size: Size2D::typed(width, height)
+            size: TypedSize2D::new(width, height)
         })
     }
 
@@ -171,7 +171,7 @@ impl Window {
 }
 
 impl WindowMethods for Window {
-    fn framebuffer_size(&self) -> TypedSize2D<DevicePixel,u32> {
+    fn framebuffer_size(&self) -> TypedSize2D<u32, DevicePixel> {
         let browser = self.cef_browser.borrow();
         match *browser {
             None => self.size,
@@ -180,8 +180,8 @@ impl WindowMethods for Window {
                     self.size
                 } else {
                     let mut rect = cef_rect_t::zero();
-                    rect.width = self.size.width.get() as i32;
-                    rect.height = self.size.height.get() as i32;
+                    rect.width = self.size.width as i32;
+                    rect.height = self.size.height as i32;
                     if cfg!(target_os="macos") {
                         // osx relies on virtual pixel scaling to provide sizes different from actual
                         // pixel size on screen. other platforms are just 1.0 unless the desktop/toolkit says otherwise
@@ -202,23 +202,23 @@ impl WindowMethods for Window {
                         }
                     }
 
-                    Size2D::typed(rect.width as u32, rect.height as u32)
+                    TypedSize2D::new(rect.width as u32, rect.height as u32)
                 }
             }
         }
     }
 
-    fn size(&self) -> TypedSize2D<ScreenPx,f32> {
+    fn size(&self) -> TypedSize2D<f32, ScreenPx> {
         let browser = self.cef_browser.borrow();
         match *browser {
-            None => Size2D::typed(400.0, 300.0),
+            None => TypedSize2D::new(400.0, 300.0),
             Some(ref browser) => {
                 let mut rect = cef_rect_t::zero();
                 browser.get_host()
                        .get_client()
                        .get_render_handler()
                        .get_view_rect((*browser).clone(), &mut rect);
-                Size2D::typed(rect.width as f32, rect.height as f32)
+                TypedSize2D::new(rect.width as f32, rect.height as f32)
             }
         }
     }
@@ -252,7 +252,7 @@ impl WindowMethods for Window {
         }
     }
 
-    fn scale_factor(&self) -> ScaleFactor<ScreenPx,DevicePixel,f32> {
+    fn scale_factor(&self) -> ScaleFactor<f32, ScreenPx, DevicePixel> {
         if cfg!(target_os="macos") {
             let browser = self.cef_browser.borrow();
             match *browser {
