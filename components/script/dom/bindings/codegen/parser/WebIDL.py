@@ -6521,7 +6521,7 @@ class Parser(Tokenizer):
                     type = IDLTypedefType(self.getLocation(p, 1), obj.innerType,
                                           obj.identifier.name)
                 elif obj.isCallback() and not obj.isInterface():
-                    type = IDLCallbackType(self.getLocation(p, 1), obj)
+                    type = IDLCallbackType(obj.location, obj)
                 else:
                     type = IDLWrapperType(self.getLocation(p, 1), p[1])
                 p[0] = self.handleModifiers(type, p[2])

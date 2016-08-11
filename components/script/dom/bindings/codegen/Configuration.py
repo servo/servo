@@ -4,7 +4,7 @@
 
 import os
 
-from WebIDL import IDLExternalInterface, IDLInterface, WebIDLError
+from WebIDL import IDLExternalInterface, IDLInterface, IDLWrapperType, WebIDLError
 
 
 class Configuration:
@@ -183,7 +183,8 @@ class Descriptor(DescriptorProvider):
         # built-in rooting mechanisms for them.
         if self.interface.isCallback():
             self.needsRooting = False
-            ty = "%sBinding::%s" % (ifaceName, ifaceName)
+            ty = 'dom::bindings::codegen::Bindings::%sBinding::%s' % (ifaceName, ifaceName)
+            pathDefault = ty
             self.returnType = "Rc<%s>" % ty
             self.argumentType = "???"
             self.nativeType = ty
@@ -192,10 +193,12 @@ class Descriptor(DescriptorProvider):
             self.returnType = "Root<%s>" % typeName
             self.argumentType = "&%s" % typeName
             self.nativeType = "*const %s" % typeName
+            pathDefault = 'dom::types::%s' % typeName
 
         self.concreteType = typeName
         self.register = desc.get('register', True)
-        self.path = desc.get('path', 'dom::types::%s' % typeName)
+        self.path = desc.get('path', pathDefault)
+        self.bindingPath = 'dom::bindings::codegen::Bindings::%s' % ('::'.join([ifaceName + 'Binding'] * 2))
         self.outerObjectHook = desc.get('outerObjectHook', 'None')
         self.proxy = False
         self.weakReferenceable = desc.get('weakReferenceable', False)
@@ -377,7 +380,8 @@ class Descriptor(DescriptorProvider):
 
 # Some utility methods
 def getModuleFromObject(object):
-    return os.path.basename(object.location.filename()).split('.webidl')[0] + 'Binding'
+    return ('dom::bindings::codegen::Bindings::' +
+            os.path.basename(object.location.filename()).split('.webidl')[0] + 'Binding')
 
 
 def getTypesFromDescriptor(descriptor):
@@ -404,6 +408,8 @@ def getTypesFromDictionary(dictionary):
     """
     Get all member types for this dictionary
     """
+    if isinstance(dictionary, IDLWrapperType):
+        dictionary = dictionary.inner
     types = []
     curDict = dictionary
     while curDict:
