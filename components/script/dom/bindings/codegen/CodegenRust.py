@@ -1316,7 +1316,7 @@ def getRetvalDeclarationForType(returnType, descriptorProvider):
     # https://github.com/servo/servo/issues/6307
     if returnType.isAny():
         return CGGeneric("JSVal")
-    if returnType.isObject() or returnType.isSpiderMonkeyInterface():
+    if returnType.isObject():
         return CGGeneric("*mut JSObject")
     if returnType.isSequence():
         result = getRetvalDeclarationForType(innerSequenceType(returnType), descriptorProvider)

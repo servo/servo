@@ -113,7 +113,8 @@ interface TestBinding {
            attribute (Blob or boolean) union7Attribute;
            attribute (Blob or unsigned long) union8Attribute;
            attribute (ByteString or long) union9Attribute;
-  readonly attribute Uint8ClampedArray arrayAttribute;
+  // readonly attribute Uint8ClampedArray arrayAttribute;
+  readonly attribute object arrayAttribute;
            attribute any anyAttribute;
            attribute object objectAttribute;
 
