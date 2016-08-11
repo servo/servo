@@ -10,10 +10,11 @@ use gecko_bindings::bindings::Gecko_GetNodeData;
 use gecko_bindings::bindings::Gecko_GetStyleContext;
 use gecko_bindings::bindings::ServoNodeData;
 use gecko_bindings::bindings::{Gecko_CalcStyleDifference, Gecko_StoreStyleDifference};
+use gecko_bindings::bindings::{Gecko_DropStyleChildrenIterator, Gecko_MaybeCreateStyleChildrenIterator};
 use gecko_bindings::bindings::{Gecko_ElementState, Gecko_GetDocumentElement};
 use gecko_bindings::bindings::{Gecko_GetFirstChild, Gecko_GetFirstChildElement};
 use gecko_bindings::bindings::{Gecko_GetLastChild, Gecko_GetLastChildElement};
-use gecko_bindings::bindings::{Gecko_GetNextSibling, Gecko_GetNextSiblingElement};
+use gecko_bindings::bindings::{Gecko_GetNextSibling, Gecko_GetNextSiblingElement, Gecko_GetNextStyleChild};
 use gecko_bindings::bindings::{Gecko_GetNodeFlags, Gecko_SetNodeFlags, Gecko_UnsetNodeFlags};
 use gecko_bindings::bindings::{Gecko_GetParentElement, Gecko_GetParentNode};
 use gecko_bindings::bindings::{Gecko_GetPrevSibling, Gecko_GetPrevSiblingElement};
@@ -164,8 +165,11 @@ impl<'ln> TNode for GeckoNode<'ln> {
     }
 
     fn children(self) -> GeckoChildrenIterator<'ln> {
-        GeckoChildrenIterator {
-            current: self.first_child(),
+        let maybe_iter = unsafe { Gecko_MaybeCreateStyleChildrenIterator(self.node) };
+        if !maybe_iter.is_null() {
+            GeckoChildrenIterator::GeckoIterator(maybe_iter)
+        } else {
+            GeckoChildrenIterator::Current(self.first_child())
         }
     }
 
@@ -341,16 +345,37 @@ impl<'ln> TNode for GeckoNode<'ln> {
     unsafe fn set_dirty_on_viewport_size_changed(&self) {}
 }
 
-pub struct GeckoChildrenIterator<'a> {
-    current: Option<GeckoNode<'a>>,
+// We generally iterate children by traversing the siblings of the first child
+// like Servo does. However, for nodes with anonymous children, we use a custom
+// (heavier-weight) Gecko-implemented iterator.
+pub enum GeckoChildrenIterator<'a> {
+    Current(Option<GeckoNode<'a>>),
+    GeckoIterator(*mut bindings::StyleChildrenIterator),
+}
+
+impl<'a> Drop for GeckoChildrenIterator<'a> {
+    fn drop(&mut self) {
+        if let GeckoChildrenIterator::GeckoIterator(it) = *self {
+            unsafe {
+                Gecko_DropStyleChildrenIterator(it);
+            }
+        }
+    }
 }
 
 impl<'a> Iterator for GeckoChildrenIterator<'a> {
     type Item = GeckoNode<'a>;
     fn next(&mut self) -> Option<GeckoNode<'a>> {
-        let node = self.current;
-        self.current = node.and_then(|node| node.next_sibling());
-        node
+        match *self {
+            GeckoChildrenIterator::Current(curr) => {
+                let next = curr.and_then(|node| node.next_sibling());
+                *self = GeckoChildrenIterator::Current(next);
+                curr
+            },
+            GeckoChildrenIterator::GeckoIterator(it) => unsafe {
+                Gecko_GetNextStyleChild(it).as_ref().map(|n| GeckoNode::from_ref(n))
+            }
+        }
     }
 }
 
