@@ -35,6 +35,9 @@ use net_traits::request::{Origin, Window};
 use std::cell::{Cell, Ref};
 use url::Url;
 
+// for debugging
+use dom::bindings::codegen::Bindings::HeadersBinding::HeadersMethods;
+
 #[dom_struct]
 pub struct Request {
     reflector_: Reflector,
@@ -230,7 +233,6 @@ impl Request {
         }
 
         // Step 16
-        // let mut mode: Option<NetTraitsRequestMode> = None;
         let mut mode = init.mode.as_ref().map(|m| m.clone().into()).or(fallback_mode);
 
         // Step 17
@@ -307,14 +309,26 @@ impl Request {
         r.headers.or_init(|| Headers::for_request(r.global().r()));
 
         // Step 27
-        let headers = r.Headers();
+        let mut headers_copy = r.Headers();
 
         // Step 28
-        let mut headers_init: Option<HeadersOrByteStringSequenceSequence> = None;
-        headers_init = init.headers.as_ref().map(|h| h.clone());
+        if let Some(possible_header) = init.headers.as_ref() {
+            if let &HeadersOrByteStringSequenceSequence::Headers(ref init_headers) = possible_header {
+                headers_copy = init_headers.clone();
+            }
+        }
+
+        // This is not in the spec.
+        // If a Request is given as an input, set headers_copy to its headers.
+         match input {
+             RequestInfo::USVString(USVString(ref usv_string)) => {},
+             RequestInfo::Request(ref input_request) => {
+                 headers_copy = input_request.headers.get().unwrap().clone();
+             },
+         }
 
         // Step 29
-        headers.empty_header_list();
+        r.Headers().empty_header_list();
 
         // Step 30
         if r.request.borrow().mode == NetTraitsRequestMode::NoCORS {
@@ -326,13 +340,11 @@ impl Request {
             if !borrowed_request.integrity_metadata.borrow().is_empty() {
                 return Err(Error::Type("Integrity metadata is not an empty string".to_string()));
             }
-            headers.set_guard(Guard::RequestNoCors);
+            r.Headers().set_guard(Guard::RequestNoCors);
         }
 
         // Step 31
-        if headers_init.is_some() {
-            headers.fill(headers_init);
-        }
+        r.Headers().fill(Some(HeadersOrByteStringSequenceSequence::Headers(headers_copy)));
 
         // Step 32
         let mut input_body: Option<Vec<u8>>;
@@ -368,7 +380,7 @@ impl Request {
         }
 
         // Step 36
-        let extracted_mime_type = headers.extract_mime_type();
+        let extracted_mime_type = r.Headers().extract_mime_type();
         *r.mime_type.borrow_mut() = extracted_mime_type;
 
         // Step 37
