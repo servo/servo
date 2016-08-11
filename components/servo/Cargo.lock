@@ -193,7 +193,7 @@ dependencies = [
 [[package]]
 name = "browserhtml"
 version = "0.1.15"
-source = "git+https://github.com/browserhtml/browserhtml?branch=crate#702f464d198481476363693315085d37b8e305b7"
+source = "git+https://github.com/browserhtml/browserhtml?branch=crate#706302301a2800478239aef9688c2f087abf4e0b"
 
 [[package]]
 name = "byteorder"
