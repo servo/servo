@@ -255,8 +255,17 @@ impl Frame {
         }
     }
 
-    fn load(&mut self, pipeline_id: PipelineId) {
-        self.next.push(FrameState::new(pipeline_id, self.id));
+    fn load(&mut self, pipeline_id: PipelineId) -> Option<FrameState> {
+        let current = replace(&mut self.current, FrameState::new(pipeline_id, self.id));
+        // TODO(ConnorGBrewster): In my opinion, if the current state is pending, we should
+        // replace is here and return the evicted state so that pipeline can be closed.
+        // However, this was resulting in some test failures with history.length. I don't
+        // understand why in the test case that the current state was still pending.
+        // if !self.current.pending {
+            self.prev.push(current);
+            return None;
+        // }
+        // Some(current)
     }
 
     fn remove_forward_entries(&mut self) -> Vec<FrameState> {
@@ -625,21 +634,26 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             }
         };
 
-        let root_frame_id = match self.get_top_level_frame_for_pipeline(Some(new_pipeline_id)) {
-            Some(root_frame_id) => root_frame_id,
+        match self.get_top_level_frame_for_pipeline(Some(new_pipeline_id)) {
+            Some(root_frame_id) => self.clear_joint_session_future(root_frame_id),
             None => return warn!("Tried to remove forward history after root frame closure."),
         };
 
         // The entry has already been added to current if the Frame was just created.
         // If the Frame existed, we will push the pending pipeline to the Frame's future.
         if !new_frame {
-            // Must clear jsh before adding the new pending pipeline
-            self.clear_joint_session_future(root_frame_id);
-
-            match self.frames.get_mut(&frame_id) {
-                Some(frame) => frame.load(new_pipeline_id),
+            let (old_pipeline_id, evicted_entry) = match self.frames.get_mut(&frame_id) {
+                Some(frame) => (frame.current.pipeline_id, frame.load(new_pipeline_id)),
                 None => return warn!("Tried to add pipeline to nonexistent frame {:?}", frame_id),
             };
+
+            if let Some(evicted_entry) = evicted_entry {
+                self.close_pipeline(evicted_entry.pipeline_id, ExitPipelineMode::Normal);
+            }
+
+            if let Some(pipeline) = self.pipelines.get(&old_pipeline_id) {
+                pipeline.freeze();
+            }
         }
 
         match self.pipelines.get_mut(&new_pipeline_id) {
@@ -1531,7 +1545,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             },
         };
         for (frame_id, pipeline_id) in traversal_info {
-            self.traverse_frame_to_pipeline(frame_id, pipeline_id, false);
+            self.traverse_frame_to_pipeline(frame_id, pipeline_id);
         }
     }
 
@@ -1806,27 +1820,31 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     }
 
     fn mature_pending_pipeline(&mut self, frame_id: FrameId, pipeline_id: PipelineId) {
-        // Check to see if this is an itial load. If so, the pipeline id will match
-        // the pipeline id of the current state.
-        let mut initial = false;
+        let mut is_current = false;
         if let Some(frame) = self.frames.get_mut(&frame_id) {
+            if let Some(entry) = once(&mut frame.current)
+               .chain(frame.next.iter_mut())
+               .chain(frame.prev.iter_mut())
+               .find(|entry| entry.pipeline_id == pipeline_id) {
+                entry.pending = false;
+            }
             if frame.current.pipeline_id == pipeline_id {
-                frame.current.pending = false;
-                initial = true;
+                is_current = true;
             }
         }
-        if !initial {
-            self.traverse_frame_to_pipeline(frame_id, pipeline_id, true);
-            return;
+        // If the pending pipeline is in the current state, this means that a traversal has not
+        // occurred and we should focus the new pipeline if needed, fire location change events,
+        // and update the frame tree.
+        if is_current {
+            if self.focused_pipeline_in_tree(frame_id) {
+                self.focus_pipeline_id = Some(pipeline_id);
+            }
+            self.send_frame_tree_and_grant_paint_permission();
+            self.trigger_mozbrowserlocationchange(pipeline_id);
         }
-        if self.focused_pipeline_in_tree(frame_id) {
-            self.focus_pipeline_id = Some(pipeline_id);
-        }
-        self.send_frame_tree_and_grant_paint_permission();
-        self.trigger_mozbrowserlocationchange(pipeline_id);
     }
 
-    fn traverse_frame_to_pipeline(&mut self, frame_id: FrameId, next_pipeline_id: PipelineId, activate: bool) {
+    fn traverse_frame_to_pipeline(&mut self, frame_id: FrameId, next_pipeline_id: PipelineId) {
         // Check if the currently focused pipeline is the pipeline being replaced
         // (or a child of it). This has to be done here, before the current
         // frame tree is modified below.
@@ -1845,9 +1863,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     while let Some(entry) = frame.next.pop() {
                         if entry.pipeline_id == next_pipeline_id {
                             frame.current = entry;
-                            if activate {
-                                frame.current.pending = false;
-                            }
                             break;
                         } else {
                             frame.prev.push(entry);
@@ -1862,9 +1877,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     while let Some(entry) = frame.prev.pop() {
                         if entry.pipeline_id == next_pipeline_id {
                             frame.current = entry;
-                            if activate {
-                                frame.current.pending = false;
-                            }
                             break;
                         } else {
                             frame.next.push(entry);
@@ -1895,11 +1907,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         if let Some(prev_pipeline) = self.pipelines.get(&prev_pipeline_id) {
             prev_pipeline.freeze();
         }
-        // Don't thaw if we are activating a newly matured pipeline.
-        if !activate {
-            if let Some(next_pipeline) = self.pipelines.get(&next_pipeline_id) {
-                next_pipeline.thaw();
-            }
+        if let Some(next_pipeline) = self.pipelines.get(&next_pipeline_id) {
+            next_pipeline.thaw();
         }
 
         // Set paint permissions correctly for the compositor layers.
@@ -1909,30 +1918,28 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // Update the owning iframe to point to the new subpage id.
         // This makes things like contentDocument work correctly.
         if let Some((parent_pipeline_id, subpage_id, _)) = pipeline_info {
-            if !activate {
-                let new_subpage_id = match self.pipelines.get(&next_pipeline_id) {
-                    None => return warn!("Pipeline {:?} traversed to after closure.", next_pipeline_id),
-                    Some(pipeline) => match pipeline.parent_info {
-                        None => return warn!("Pipeline {:?} has no parent info.", next_pipeline_id),
-                        Some((_, new_subpage_id, _)) => new_subpage_id,
-                    },
-                };
-                let msg = ConstellationControlMsg::UpdateSubpageId(parent_pipeline_id,
-                                                                   subpage_id,
-                                                                   new_subpage_id,
-                                                                   next_pipeline_id);
-                let result = match self.pipelines.get(&parent_pipeline_id) {
-                    None => return warn!("Pipeline {:?} child traversed after closure.", parent_pipeline_id),
-                    Some(pipeline) => pipeline.script_chan.send(msg),
-                };
-                if let Err(e) = result {
-                    self.handle_send_error(parent_pipeline_id, e);
-                }
-
-                // If this is an iframe, send a mozbrowser location change event.
-                // This is the result of a back/forward traversal.
-                self.trigger_mozbrowserlocationchange(next_pipeline_id);
+            let new_subpage_id = match self.pipelines.get(&next_pipeline_id) {
+                None => return warn!("Pipeline {:?} traversed to after closure.", next_pipeline_id),
+                Some(pipeline) => match pipeline.parent_info {
+                    None => return warn!("Pipeline {:?} has no parent info.", next_pipeline_id),
+                    Some((_, new_subpage_id, _)) => new_subpage_id,
+                },
+            };
+            let msg = ConstellationControlMsg::UpdateSubpageId(parent_pipeline_id,
+                                                               subpage_id,
+                                                               new_subpage_id,
+                                                               next_pipeline_id);
+            let result = match self.pipelines.get(&parent_pipeline_id) {
+                None => return warn!("Pipeline {:?} child traversed after closure.", parent_pipeline_id),
+                Some(pipeline) => pipeline.script_chan.send(msg),
+            };
+            if let Err(e) = result {
+                self.handle_send_error(parent_pipeline_id, e);
             }
+
+            // If this is an iframe, send a mozbrowser location change event.
+            // This is the result of a back/forward traversal.
+            self.trigger_mozbrowserlocationchange(next_pipeline_id);
         }
     }
 
