@@ -1090,7 +1090,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         if opts::get().hard_fail {
             // It's quite difficult to make Servo exit cleanly if some threads have failed.
             // Hard fail exists for test runners so we crash and that's good enough.
-            println!("Pipeline failed in hard-fail mode.  Crashing!\n{}\n{}", reason, backtrace.unwrap_or_default());
+            println!("Pipeline failed in hard-fail mode.  Crashing!");
             process::exit(1);
         }
 
