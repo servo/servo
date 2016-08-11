@@ -1788,7 +1788,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn VertexAttrib1fv(&self, _cx: *mut JSContext, indx: u32, data: *mut JSObject) {
         if let Some(data_vec) = array_buffer_view_to_vec_checked::<f32>(data) {
-            if data_vec.len() < 4 {
+            if data_vec.len() < 1 {
                 return self.webgl_error(InvalidOperation);
             }
             self.vertex_attrib(indx, data_vec[0], 0f32, 0f32, 1f32)
