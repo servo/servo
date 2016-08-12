@@ -7122,6 +7122,12 @@
             "url": "/_mozilla/mozilla/preserve_wrapper_callback.html"
           }
         ],
+        "mozilla/promise.html": [
+          {
+            "path": "mozilla/promise.html",
+            "url": "/_mozilla/mozilla/promise.html"
+          }
+        ],
         "mozilla/prototypes.html": [
           {
             "path": "mozilla/prototypes.html",

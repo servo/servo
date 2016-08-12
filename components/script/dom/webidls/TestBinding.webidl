@@ -477,13 +477,19 @@ interface TestBinding {
   [Func="TestBinding::condition_satisfied"]
   const unsigned short funcControlledConstEnabled = 0;
 
-  Promise<DOMString> returnPromise();
+  [Throws]
+  Promise<any> returnResolvedPromise(any value);
+  [Throws]
+  Promise<any> returnRejectedPromise(any value);
   readonly attribute Promise<boolean> promiseAttribute;
   void acceptPromise(Promise<DOMString> string);
   void acceptNullablePromise(Promise<DOMString>? string);
+  Promise<any> promiseNativeHandler(SimpleCallback? resolve, SimpleCallback? reject);
 
   void panic();
 };
+
+callback SimpleCallback = void(any value);
 
 partial interface TestBinding {
   [Pref="dom.testable_crash.enabled"]
