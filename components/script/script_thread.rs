@@ -22,12 +22,14 @@ use devtools_traits::CSSError;
 use devtools_traits::{DevtoolScriptControlMsg, DevtoolsPageInfo};
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use document_loader::DocumentLoader;
+use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
 use dom::bindings::codegen::Bindings::LocationBinding::LocationMethods;
+use dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::{ConversionResult, FromJSValConvertible, StringificationBehavior};
-use dom::bindings::global::GlobalRef;
+use dom::bindings::global::{GlobalRef, global_root_from_object};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root, RootCollection};
 use dom::bindings::js::{RootCollectionPtr, RootedReference};
@@ -59,9 +61,9 @@ use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::glue::GetWindowProxyClass;
-use js::jsapi::{JSAutoCompartment, JSContext, JS_SetWrapObjectCallbacks, JS_ReportPendingException};
-use js::jsapi::{JSTracer, SetWindowProxyClass, Call, SetEnqueuePromiseJobCallback, HandleValueArray};
-use js::jsval::{UndefinedValue, ObjectValue};
+use js::jsapi::{JSAutoCompartment, JSContext, JS_SetWrapObjectCallbacks, HandleObject};
+use js::jsapi::{JSTracer, SetWindowProxyClass, SetEnqueuePromiseJobCallback};
+use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use mem::heap_size_of_self_and_children;
 use msg::constellation_msg::{FrameType, LoadData, PipelineId, PipelineNamespace};
@@ -315,35 +317,15 @@ impl OpaqueSender<CommonScriptMsg> for Sender<MainThreadScriptMsg> {
     }
 }
 
-// src/shell/js.cpp 629-657
 #[allow(unsafe_code)]
-unsafe extern "C" fn enqueue_job(cx: *mut JSContext,
-                   job: HandleObject,
-                   _allocation_site: HandleObject,
-                   _data: *mut c_void) -> bool {
-    // UndefinedHandleValue
-    rooted!(in(cx) let uval = UndefinedValue());
-
-    // JS::HandleValueArray args(JS::HandleValueArray::empty());
-    /*rooted!(in(cx)*/ let args = &HandleValueArray { // !!! missing someting...
-        length_: 0 as ::libc::size_t,
-        elements_: ptr::null(),
-    };//);
-
-    // RootedValue rval(cx);
-    rooted!(in(cx) let mut rval = UndefinedValue());
-
-    // AutoCompartment ac(cx, job);
-    let _ac = JSAutoCompartment::new(cx, job.get());
-
-    //JS::RootedValue fun(cx, JS::ObjectValue(*funObj));
-    rooted!(in(cx) let fun = ObjectValue(&*job.get()));
-
-    // if (!JS::Call(cx, UndefinedHandleValue, job, args, &rval))
-    if !Call(cx, uval.handle(), fun.handle(), args, rval.handle_mut()) {
-        JS_ReportPendingException(cx);
-        return false;
-    }
+unsafe extern "C" fn enqueue_job(_cx: *mut JSContext,
+                                 job: HandleObject,
+                                 _allocation_site: HandleObject,
+                                 _data: *mut c_void) -> bool {
+    SCRIPT_THREAD_ROOT.with(|root| {
+        let script_thread = &*root.get().unwrap();
+        script_thread.enqueue_promise_job(job);
+    });
     true
 }
 
@@ -426,6 +408,16 @@ pub struct ScriptThread {
     timer_event_port: Receiver<TimerEvent>,
 
     content_process_shutdown_chan: IpcSender<()>,
+
+    flushing_job_queue: DOMRefCell<Vec<EnqueuedPromiseCallback>>,
+    promise_job_queue: DOMRefCell<Vec<EnqueuedPromiseCallback>>,
+    pending_promise_job_runnable: Cell<bool>,
+}
+
+#[derive(JSTraceable)]
+struct EnqueuedPromiseCallback {
+    callback: Rc<PromiseJobCallback>,
+    pipeline: PipelineId,
 }
 
 /// In the event of thread panic, all data on the stack runs its destructor. However, there
@@ -632,6 +624,10 @@ impl ScriptThread {
             timer_event_port: timer_event_port,
 
             content_process_shutdown_chan: state.content_process_shutdown_chan,
+
+            promise_job_queue: DOMRefCell::new(vec![]),
+            flushing_job_queue: DOMRefCell::new(vec![]),
+            pending_promise_job_runnable: Cell::new(false),
         }
     }
 
@@ -2210,6 +2206,40 @@ impl ScriptThread {
             let location = win.Location();
             location.Reload();
         }
+    }
+
+    fn enqueue_promise_job(&self, job: HandleObject) {
+        let global = unsafe { global_root_from_object(job.get()) };
+        let pipeline = global.r().pipeline();
+        self.promise_job_queue.borrow_mut().push(EnqueuedPromiseCallback {
+            callback: PromiseJobCallback::new(job.get()),
+            pipeline: pipeline,
+        });
+        if !self.pending_promise_job_runnable.get() {
+            self.pending_promise_job_runnable.set(true);
+            let _ = self.dom_manipulation_task_source.queue(box FlushPromiseJobs, global.r());
+        }
+    }
+
+    fn flush_promise_jobs(&self) {
+        self.pending_promise_job_runnable.set(false);
+        {
+            let mut pending_queue = self.promise_job_queue.borrow_mut();
+            *self.flushing_job_queue.borrow_mut() = pending_queue.drain(..).collect();
+        }
+        for job in &*self.flushing_job_queue.borrow() {
+            if let Some(context) = self.find_child_context(job.pipeline) {
+                let _ = job.callback.Call_(&*context.active_window(), ExceptionHandling::Report);
+            }
+        }
+        self.flushing_job_queue.borrow_mut().clear();
+    }
+}
+
+struct FlushPromiseJobs;
+impl Runnable for FlushPromiseJobs {
+    fn main_thread_handler(self: Box<FlushPromiseJobs>, script_thread: &ScriptThread) {
+        script_thread.flush_promise_jobs();
     }
 }
 
