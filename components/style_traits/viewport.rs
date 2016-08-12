@@ -23,11 +23,11 @@ define_css_keyword_enum!(Orientation:
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize, HeapSizeOf))]
 pub struct ViewportConstraints {
-    pub size: TypedSize2D<ViewportPx, f32>,
+    pub size: TypedSize2D<f32, ViewportPx>,
 
-    pub initial_zoom: ScaleFactor<PagePx, ViewportPx, f32>,
-    pub min_zoom: Option<ScaleFactor<PagePx, ViewportPx, f32>>,
-    pub max_zoom: Option<ScaleFactor<PagePx, ViewportPx, f32>>,
+    pub initial_zoom: ScaleFactor<f32, PagePx, ViewportPx>,
+    pub min_zoom: Option<ScaleFactor<f32, PagePx, ViewportPx>>,
+    pub max_zoom: Option<ScaleFactor<f32, PagePx, ViewportPx>>,
 
     pub user_zoom: UserZoom,
     pub orientation: Orientation
@@ -38,8 +38,8 @@ impl ToCss for ViewportConstraints {
         where W: fmt::Write
     {
         try!(write!(dest, "@viewport {{"));
-        try!(write!(dest, " width: {}px;", self.size.width.get()));
-        try!(write!(dest, " height: {}px;", self.size.height.get()));
+        try!(write!(dest, " width: {}px;", self.size.width));
+        try!(write!(dest, " height: {}px;", self.size.height));
         try!(write!(dest, " zoom: {};", self.initial_zoom.get()));
         if let Some(min_zoom) = self.min_zoom {
             try!(write!(dest, " min-zoom: {};", min_zoom.get()));

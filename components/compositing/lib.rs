@@ -55,7 +55,7 @@ pub mod windowing;
 
 pub struct SendableFrameTree {
     pub pipeline: CompositionPipeline,
-    pub size: Option<TypedSize2D<PagePx, f32>>,
+    pub size: Option<TypedSize2D<f32, PagePx>>,
     pub children: Vec<SendableFrameTree>,
 }
 

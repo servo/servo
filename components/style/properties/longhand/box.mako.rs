@@ -369,47 +369,43 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                    animatable="False">
     use self::computed_value::{StartEnd, TransitionTimingFunction};
 
-    use euclid::point::Point2D;
+    use euclid::point::{Point2D, TypedPoint2D};
+    use std::marker::PhantomData;
 
     pub use self::computed_value::SingleComputedValue as SingleSpecifiedValue;
     pub use self::computed_value::T as SpecifiedValue;
 
-    static EASE: TransitionTimingFunction = TransitionTimingFunction::CubicBezier(Point2D {
-        x: 0.25,
-        y: 0.1,
-    }, Point2D {
-        x: 0.25,
-        y: 1.0,
-    });
-    static LINEAR: TransitionTimingFunction = TransitionTimingFunction::CubicBezier(Point2D {
-        x: 0.0,
-        y: 0.0,
-    }, Point2D {
-        x: 1.0,
-        y: 1.0,
-    });
-    static EASE_IN: TransitionTimingFunction = TransitionTimingFunction::CubicBezier(Point2D {
-        x: 0.42,
-        y: 0.0,
-    }, Point2D {
-        x: 1.0,
-        y: 1.0,
-    });
-    static EASE_OUT: TransitionTimingFunction = TransitionTimingFunction::CubicBezier(Point2D {
-        x: 0.0,
-        y: 0.0,
-    }, Point2D {
-        x: 0.58,
-        y: 1.0,
-    });
-    static EASE_IN_OUT: TransitionTimingFunction =
-        TransitionTimingFunction::CubicBezier(Point2D {
-            x: 0.42,
-            y: 0.0,
-        }, Point2D {
-            x: 0.58,
-            y: 1.0,
-        });
+    // FIXME: This could use static variables and const functions when they are available.
+    #[inline(always)]
+    fn ease() -> TransitionTimingFunction {
+        TransitionTimingFunction::CubicBezier(TypedPoint2D::new(0.25, 0.1),
+                                              TypedPoint2D::new(0.25, 1.0))
+    }
+
+    #[inline(always)]
+    fn linear() -> TransitionTimingFunction {
+        TransitionTimingFunction::CubicBezier(TypedPoint2D::new(0.0, 0.0),
+                                              TypedPoint2D::new(1.0, 1.0))
+    }
+
+    #[inline(always)]
+    fn ease_in() -> TransitionTimingFunction {
+        TransitionTimingFunction::CubicBezier(TypedPoint2D::new(0.42, 0.0),
+                                              TypedPoint2D::new(1.0, 1.0))
+    }
+
+    #[inline(always)]
+    fn ease_out() -> TransitionTimingFunction {
+        TransitionTimingFunction::CubicBezier(TypedPoint2D::new(0.0, 0.0),
+                                              TypedPoint2D::new(0.58, 1.0))
+    }
+
+    #[inline(always)]
+    fn ease_in_out() -> TransitionTimingFunction {
+        TransitionTimingFunction::CubicBezier(TypedPoint2D::new(0.42, 0.0),
+                                              TypedPoint2D::new(0.58, 1.0))
+    }
+
     static STEP_START: TransitionTimingFunction =
         TransitionTimingFunction::Steps(1, StartEnd::Start);
     static STEP_END: TransitionTimingFunction =
@@ -509,7 +505,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 
     #[inline]
     pub fn get_initial_single_value() -> TransitionTimingFunction {
-        EASE
+        ease()
     }
 
     pub fn parse_one(input: &mut Parser) -> Result<SingleSpecifiedValue,()> {
@@ -551,11 +547,11 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
         }
         match_ignore_ascii_case! {
             try!(input.expect_ident()),
-            "ease" => Ok(EASE),
-            "linear" => Ok(LINEAR),
-            "ease-in" => Ok(EASE_IN),
-            "ease-out" => Ok(EASE_OUT),
-            "ease-in-out" => Ok(EASE_IN_OUT),
+            "ease" => Ok(ease()),
+            "linear" => Ok(linear()),
+            "ease-in" => Ok(ease_in()),
+            "ease-out" => Ok(ease_out()),
+            "ease-in-out" => Ok(ease_in_out()),
             "step-start" => Ok(STEP_START),
             "step-end" => Ok(STEP_END),
             _ => Err(())

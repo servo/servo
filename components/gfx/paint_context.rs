@@ -35,16 +35,16 @@ use style::computed_values::{border_style, filter, image_rendering, mix_blend_mo
 use style_traits::PagePx;
 use text::TextRun;
 use text::glyph::ByteIndex;
-use util::geometry::{self, MAX_RECT, ScreenPx};
+use util::geometry::{self, max_rect, ScreenPx};
 use util::opts;
 
 pub struct PaintContext<'a> {
     pub draw_target: DrawTarget,
     pub font_context: &'a mut Box<FontContext>,
     /// The rectangle that this context encompasses in page coordinates.
-    pub page_rect: TypedRect<PagePx, f32>,
+    pub page_rect: TypedRect<f32, PagePx>,
     /// The rectangle that this context encompasses in screen coordinates (pixels).
-    pub screen_rect: TypedRect<ScreenPx, usize>,
+    pub screen_rect: TypedRect<usize, ScreenPx>,
     /// The clipping rect for the stacking context as a whole.
     pub clip_rect: Option<Rect<Au>>,
     /// The current transient clipping region, if any. A "transient clipping region" is the
@@ -126,8 +126,8 @@ impl<'a> PaintContext<'a> {
         rect.translate(&self.subpixel_offset).to_nearest_azure_rect(self.screen_pixels_per_px())
     }
 
-    pub fn screen_pixels_per_px(&self) -> ScaleFactor<PagePx, ScreenPx, f32> {
-        self.screen_rect.as_f32().size.width / self.page_rect.size.width
+    pub fn screen_pixels_per_px(&self) -> ScaleFactor<f32, PagePx, ScreenPx> {
+        ScaleFactor::new(self.screen_rect.as_f32().size.width / self.page_rect.size.width)
     }
 
     pub fn draw_target(&self) -> &DrawTarget {
@@ -1539,7 +1539,7 @@ impl<'a> PaintContext<'a> {
         match clip_mode {
             BoxShadowClipMode::Inset => {
                 path = temporary_draw_target.draw_target
-                                            .create_rectangular_border_path(&MAX_RECT,
+                                            .create_rectangular_border_path(&max_rect(),
                                                                             &shadow_bounds,
                                                                             pixels_per_px);
                 self.draw_target.push_clip(
@@ -1549,7 +1549,7 @@ impl<'a> PaintContext<'a> {
                 path = temporary_draw_target.draw_target.create_rectangular_path(&shadow_bounds,
                                                                                 pixels_per_px);
                 self.draw_target.push_clip(
-                    &self.draw_target.create_rectangular_border_path(&MAX_RECT, box_bounds,
+                    &self.draw_target.create_rectangular_border_path(&max_rect(), box_bounds,
                                                                      pixels_per_px))
             }
             BoxShadowClipMode::None => {
@@ -1644,12 +1644,12 @@ impl<'a> PaintContext<'a> {
 }
 
 pub trait ToAzurePoint {
-    fn to_nearest_azure_point(&self, pixels_per_px: ScaleFactor<PagePx, ScreenPx, f32>) -> Point2D<AzFloat>;
+    fn to_nearest_azure_point(&self, pixels_per_px: ScaleFactor<f32, PagePx, ScreenPx>) -> Point2D<AzFloat>;
     fn to_azure_point(&self) -> Point2D<AzFloat>;
 }
 
 impl ToAzurePoint for Point2D<Au> {
-    fn to_nearest_azure_point(&self, pixels_per_px: ScaleFactor<PagePx, ScreenPx, f32>) -> Point2D<AzFloat> {
+    fn to_nearest_azure_point(&self, pixels_per_px: ScaleFactor<f32, PagePx, ScreenPx>) -> Point2D<AzFloat> {
         Point2D::new(self.x.to_nearest_pixel(pixels_per_px.get()) as AzFloat,
                      self.y.to_nearest_pixel(pixels_per_px.get()) as AzFloat)
     }
@@ -1659,15 +1659,15 @@ impl ToAzurePoint for Point2D<Au> {
 }
 
 pub trait ToAzureRect {
-    fn to_nearest_azure_rect(&self, pixels_per_px: ScaleFactor<PagePx, ScreenPx, f32>) -> Rect<AzFloat>;
-    fn to_nearest_non_empty_azure_rect(&self, pixels_per_px: ScaleFactor<PagePx, ScreenPx, f32>) -> Rect<AzFloat>;
+    fn to_nearest_azure_rect(&self, pixels_per_px: ScaleFactor<f32, PagePx, ScreenPx>) -> Rect<AzFloat>;
+    fn to_nearest_non_empty_azure_rect(&self, pixels_per_px: ScaleFactor<f32, PagePx, ScreenPx>) -> Rect<AzFloat>;
     fn to_azure_rect(&self) -> Rect<AzFloat>;
 }
 
 impl ToAzureRect for Rect<Au> {
     /// Round rects to pixel coordinates, maintaining the invariant of non-overlap,
     /// assuming that before rounding rects don't overlap.
-    fn to_nearest_azure_rect(&self, pixels_per_px: ScaleFactor<PagePx, ScreenPx, f32>) -> Rect<AzFloat> {
+    fn to_nearest_azure_rect(&self, pixels_per_px: ScaleFactor<f32, PagePx, ScreenPx>) -> Rect<AzFloat> {
         // Rounding the top left corner to the nearest pixel with the size rounded
         // to the nearest pixel multiple would violate the non-overlap condition,
         // e.g.
@@ -1687,7 +1687,7 @@ impl ToAzureRect for Rect<Au> {
     /// 10px×0.6px at 0px,28.56px -> 10px×0px at 0px,29px
     /// Instead round the top left to the nearest pixel and the size to the nearest pixel
     /// multiple. It's possible for non-overlapping rects after this rounding to overlap.
-    fn to_nearest_non_empty_azure_rect(&self, pixels_per_px: ScaleFactor<PagePx, ScreenPx, f32>) -> Rect<AzFloat> {
+    fn to_nearest_non_empty_azure_rect(&self, pixels_per_px: ScaleFactor<f32, PagePx, ScreenPx>) -> Rect<AzFloat> {
         Rect::new(self.origin.to_nearest_azure_point(pixels_per_px),
                   self.size.to_nearest_azure_size(pixels_per_px))
     }
@@ -1698,11 +1698,11 @@ impl ToAzureRect for Rect<Au> {
 }
 
 pub trait ToNearestAzureSize {
-    fn to_nearest_azure_size(&self, pixels_per_px: ScaleFactor<PagePx, ScreenPx, f32>) -> Size2D<AzFloat>;
+    fn to_nearest_azure_size(&self, pixels_per_px: ScaleFactor<f32, PagePx, ScreenPx>) -> Size2D<AzFloat>;
 }
 
 impl ToNearestAzureSize for Size2D<Au> {
-    fn to_nearest_azure_size(&self, pixels_per_px: ScaleFactor<PagePx, ScreenPx, f32>) -> Size2D<AzFloat> {
+    fn to_nearest_azure_size(&self, pixels_per_px: ScaleFactor<f32, PagePx, ScreenPx>) -> Size2D<AzFloat> {
         Size2D::new(self.width.to_nearest_pixel(pixels_per_px.get()) as AzFloat,
                     self.height.to_nearest_pixel(pixels_per_px.get()) as AzFloat)
     }
@@ -1735,11 +1735,11 @@ impl ToAzureIntSize for Size2D<AzFloat> {
 }
 
 trait ToSideOffsetsPixels {
-    fn to_float_pixels(&self, pixels_per_px: ScaleFactor<PagePx, ScreenPx, f32>) -> SideOffsets2D<AzFloat>;
+    fn to_float_pixels(&self, pixels_per_px: ScaleFactor<f32, PagePx, ScreenPx>) -> SideOffsets2D<AzFloat>;
 }
 
 impl ToSideOffsetsPixels for SideOffsets2D<Au> {
-    fn to_float_pixels(&self, pixels_per_px: ScaleFactor<PagePx, ScreenPx, f32>) -> SideOffsets2D<AzFloat> {
+    fn to_float_pixels(&self, pixels_per_px: ScaleFactor<f32, PagePx, ScreenPx>) -> SideOffsets2D<AzFloat> {
         SideOffsets2D::new(self.top.to_nearest_pixel(pixels_per_px.get()) as AzFloat,
                            self.right.to_nearest_pixel(pixels_per_px.get()) as AzFloat,
                            self.bottom.to_nearest_pixel(pixels_per_px.get()) as AzFloat,
@@ -1748,24 +1748,24 @@ impl ToSideOffsetsPixels for SideOffsets2D<Au> {
 }
 
 trait ToRadiiPixels {
-    fn to_radii_pixels(&self, pixels_per_px: ScaleFactor<PagePx, ScreenPx, f32>) -> BorderRadii<AzFloat>;
+    fn to_radii_pixels(&self, pixels_per_px: ScaleFactor<f32, PagePx, ScreenPx>) -> BorderRadii<AzFloat>;
 }
 
 impl ToRadiiPixels for BorderRadii<Au> {
-    fn to_radii_pixels(&self, pixels_per_px: ScaleFactor<PagePx, ScreenPx, f32>) -> BorderRadii<AzFloat> {
+    fn to_radii_pixels(&self, pixels_per_px: ScaleFactor<f32, PagePx, ScreenPx>) -> BorderRadii<AzFloat> {
         let to_nearest_px = |x: Au| -> AzFloat {
             x.to_nearest_pixel(pixels_per_px.get()) as AzFloat
         };
 
         BorderRadii {
-            top_left: Size2D { width: to_nearest_px(self.top_left.width),
-                               height: to_nearest_px(self.top_left.height) },
-            top_right: Size2D { width: to_nearest_px(self.top_right.width),
-                                height: to_nearest_px(self.top_right.height) },
-            bottom_left: Size2D { width: to_nearest_px(self.bottom_left.width),
-                                  height: to_nearest_px(self.bottom_left.height) },
-            bottom_right: Size2D { width: to_nearest_px(self.bottom_right.width),
-                                   height: to_nearest_px(self.bottom_right.height) },
+            top_left: Size2D::new(to_nearest_px(self.top_left.width),
+                                  to_nearest_px(self.top_left.height)),
+            top_right: Size2D::new(to_nearest_px(self.top_right.width),
+                                   to_nearest_px(self.top_right.height)),
+            bottom_left: Size2D::new(to_nearest_px(self.bottom_left.width),
+                                     to_nearest_px(self.bottom_left.height)),
+            bottom_right: Size2D::new(to_nearest_px(self.bottom_right.width),
+                                      to_nearest_px(self.bottom_right.height)),
        }
     }
 }
@@ -1863,17 +1863,17 @@ trait DrawTargetExtensions {
     fn create_rectangular_border_path(&self,
                                       outer_rect: &Rect<Au>,
                                       inner_rect: &Rect<Au>,
-                                      pixels_per_px: ScaleFactor<PagePx, ScreenPx, f32>) -> Path;
+                                      pixels_per_px: ScaleFactor<f32, PagePx, ScreenPx>) -> Path;
 
     /// Creates and returns a path that represents a rectangle.
-    fn create_rectangular_path(&self, rect: &Rect<Au>, pixels_per_px: ScaleFactor<PagePx, ScreenPx, f32>) -> Path;
+    fn create_rectangular_path(&self, rect: &Rect<Au>, pixels_per_px: ScaleFactor<f32, PagePx, ScreenPx>) -> Path;
 }
 
 impl DrawTargetExtensions for DrawTarget {
     fn create_rectangular_border_path(&self,
                                       outer_rect: &Rect<Au>,
                                       inner_rect: &Rect<Au>,
-                                      pixels_per_px: ScaleFactor<PagePx, ScreenPx, f32>) -> Path {
+                                      pixels_per_px: ScaleFactor<f32, PagePx, ScreenPx>) -> Path {
         // +-----------+
         // |2          |1
         // |           |
@@ -1902,7 +1902,7 @@ impl DrawTargetExtensions for DrawTarget {
         path_builder.finish()
     }
 
-    fn create_rectangular_path(&self, rect: &Rect<Au>, pixels_per_px: ScaleFactor<PagePx, ScreenPx, f32>) -> Path {
+    fn create_rectangular_path(&self, rect: &Rect<Au>, pixels_per_px: ScaleFactor<f32, PagePx, ScreenPx>) -> Path {
         // Explicitly round to the nearest non-empty rect because when drawing
         // box-shadow the rect height can be between 0.5px & 1px and could
         // otherwise round to an empty rect.

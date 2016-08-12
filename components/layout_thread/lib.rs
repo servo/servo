@@ -113,7 +113,7 @@ use style::stylesheets::{Stylesheet, CSSRuleIteratorExt};
 use style::timer::Timer;
 use style::workqueue::WorkQueue;
 use url::Url;
-use util::geometry::MAX_RECT;
+use util::geometry::max_rect;
 use util::ipc::OptionalIpcSender;
 use util::opts;
 use util::prefs::PREFS;
@@ -617,7 +617,7 @@ impl LayoutThread {
 
         let reflow_info = Reflow {
             goal: ReflowGoal::ForDisplay,
-            page_clip_rect: MAX_RECT,
+            page_clip_rect: max_rect(),
         };
         let mut layout_context = self.build_shared_layout_context(&*rw_data,
                                                                   false,
@@ -1076,8 +1076,8 @@ impl LayoutThread {
 
         let initial_viewport = data.window_size.initial_viewport;
         let old_viewport_size = self.viewport_size;
-        let current_screen_size = Size2D::new(Au::from_f32_px(initial_viewport.width.get()),
-                                              Au::from_f32_px(initial_viewport.height.get()));
+        let current_screen_size = Size2D::new(Au::from_f32_px(initial_viewport.width),
+                                              Au::from_f32_px(initial_viewport.height));
 
         // Calculate the actual viewport as per DEVICE-ADAPT § 6
         let device = Device::new(MediaType::Screen, initial_viewport);
@@ -1089,8 +1089,8 @@ impl LayoutThread {
                 debug!("Viewport constraints: {:?}", constraints);
 
                 // other rules are evaluated against the actual viewport
-                Size2D::new(Au::from_f32_px(constraints.size.width.get()),
-                            Au::from_f32_px(constraints.size.height.get()))
+                Size2D::new(Au::from_f32_px(constraints.size.width),
+                            Au::from_f32_px(constraints.size.height))
             }
             None => current_screen_size,
         };
@@ -1303,7 +1303,7 @@ impl LayoutThread {
         // Regenerate the display lists.
         let reflow_info = Reflow {
             goal: ReflowGoal::ForDisplay,
-            page_clip_rect: MAX_RECT,
+            page_clip_rect: max_rect(),
         };
 
         let mut layout_context = self.build_shared_layout_context(&*rw_data,
@@ -1347,7 +1347,7 @@ impl LayoutThread {
     fn tick_animations(&mut self, rw_data: &mut LayoutThreadData) {
         let reflow_info = Reflow {
             goal: ReflowGoal::ForDisplay,
-            page_clip_rect: MAX_RECT,
+            page_clip_rect: max_rect(),
         };
 
         let mut layout_context = self.build_shared_layout_context(&*rw_data,
@@ -1378,7 +1378,7 @@ impl LayoutThread {
 
         let reflow_info = Reflow {
             goal: ReflowGoal::ForDisplay,
-            page_clip_rect: MAX_RECT,
+            page_clip_rect: max_rect(),
         };
 
         let mut layout_context = self.build_shared_layout_context(&*rw_data,
