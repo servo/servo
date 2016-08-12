@@ -81,16 +81,9 @@ impl HeadersMethods for Headers {
         }
         // Step 7
         let mut combined_value: Vec<u8> = vec![];
-        {
-            let h_list = self.header_list.borrow();
-            let previous_value = h_list.get_raw(&valid_name);
-            match previous_value {
-                Some(a) => {
-                    combined_value = a[0].clone();
-                    combined_value.push(b","[0]);
-                },
-                _ => {},
-            }
+        if let Some(v) = self.header_list.borrow().get_raw(&valid_name) {
+            combined_value = v[0].clone();
+            combined_value.push(b","[0]);
         }
         combined_value.extend(valid_value.iter().cloned());
         self.header_list.borrow_mut().set_raw(valid_name, vec![combined_value]);
@@ -175,8 +168,6 @@ impl Headers {
         match filler {
             // Step 1
             Some(HeadersOrByteStringSequenceSequence::Headers(h)) => {
-                // header_list_copy has type hyper::header::Headers
-                let header_list_copy = h.header_list.clone();
                 for header in h.header_list.borrow().iter() {
                     try!(self.Append(
                         ByteString::new(Vec::from(header.name())),
@@ -367,7 +358,7 @@ fn is_field_content(value: &ByteString) -> bool {
 
     if value_len > 2 {
         for &ch in &value[1..value_len - 1] {
-            if !is_field_vchar(ch) & !is_space(ch) & !is_htab(ch) {
+            if !is_field_vchar(ch) && !is_space(ch) && !is_htab(ch) {
                 return false;
             }
         }

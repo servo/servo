@@ -14,7 +14,7 @@ use dom::bindings::codegen::Bindings::RequestBinding::RequestMethods;
 use dom::bindings::codegen::Bindings::RequestBinding::RequestMode;
 use dom::bindings::codegen::Bindings::RequestBinding::RequestRedirect;
 use dom::bindings::codegen::Bindings::RequestBinding::RequestType;
-use dom::bindings::codegen::UnionTypes::{HeadersOrByteStringSequenceSequence, RequestOrUSVString};
+use dom::bindings::codegen::UnionTypes::HeadersOrByteStringSequenceSequence;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
@@ -22,7 +22,7 @@ use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::{ByteString, USVString, DOMString};
 use dom::headers::{Headers, Guard};
 use hyper;
-use msg::constellation_msg::{PipelineId, ReferrerPolicy as MsgReferrerPolicy};
+use msg::constellation_msg::{ReferrerPolicy as MsgReferrerPolicy};
 use net_traits::request::CacheMode as NetTraitsRequestCache;
 use net_traits::request::CredentialsMode as NetTraitsRequestCredentials;
 use net_traits::request::Destination as NetTraitsRequestDestination;
@@ -47,9 +47,7 @@ pub struct Request {
 impl Request {
     fn new_inherited(global: GlobalRef,
                      url: Url,
-                     origin: Option<Origin>,
-                     is_service_worker_global_scope: bool,
-                     pipeline_id: Option<PipelineId>) -> Request {
+                     is_service_worker_global_scope: bool) -> Request {
         Request {
             reflector_: Reflector::new(),
             request: DOMRefCell::new(
@@ -65,13 +63,9 @@ impl Request {
     pub fn new(global: GlobalRef,
                url: Url,
                is_service_worker_global_scope: bool) -> Root<Request> {
-        let origin = Origin::Origin(global.get_url().origin());
-        let pipeline_id = global.pipeline();
         reflect_dom_object(box Request::new_inherited(global,
                                                       url,
-                                                      Some(origin),
-                                                      is_service_worker_global_scope,
-                                                      Some(pipeline_id)),
+                                                      is_service_worker_global_scope),
                            global, RequestBinding::Wrap)
     }
 
@@ -81,7 +75,7 @@ impl Request {
                        init: &RequestInit)
                        -> Fallible<Root<Request>> {
         // Step 1
-        let mut temporary_request: NetTraitsRequest;
+        let temporary_request: NetTraitsRequest;
 
         // Step 2
         let mut fallback_mode: Option<NetTraitsRequestMode> = None;
@@ -236,7 +230,7 @@ impl Request {
         }
 
         // Step 16
-        let mut mode = init.mode.as_ref().map(|m| m.clone().into()).or(fallback_mode);
+        let mode = init.mode.as_ref().map(|m| m.clone().into()).or(fallback_mode);
 
         // Step 17
         if let Some(NetTraitsRequestMode::Navigate) = mode {
@@ -249,8 +243,7 @@ impl Request {
         }
 
         // Step 19
-        let credentials: Option<NetTraitsRequestCredentials>
-            = init.credentials.as_ref().map(|m| m.clone().into()).or(fallback_credentials);
+        let credentials = init.credentials.as_ref().map(|m| m.clone().into()).or(fallback_credentials);
 
         // Step 20
         if let Some(c) = credentials {
@@ -305,7 +298,6 @@ impl Request {
         }
 
         // Step 26
-        let url = request.url();
         let r = Request::from_net_request(global,
                                           false,
                                           request);
@@ -314,10 +306,10 @@ impl Request {
         // Step 27
         let mut headers_copy = r.Headers();
 
-        // This is not in the spec.
-        // Set headers_copy to input's headers.
+        // This is equivalent to the specification's concept of
+        // "associated headers list".
         if let RequestInfo::Request(ref input_request) = input {
-            headers_copy = input_request.headers.get().unwrap().clone();
+            headers_copy = input_request.Headers();
         }
 
         // Step 28
@@ -350,12 +342,12 @@ impl Request {
         r.Headers().fill(Some(HeadersOrByteStringSequenceSequence::Headers(headers_copy)));
 
         // Step 32
-        let mut input_body: Option<Vec<u8>>;
-        if let RequestInfo::Request(input_request) = input {
+        let input_body = if let RequestInfo::Request(ref input_request) = input {
             let input_request_request = input_request.request.borrow();
-            input_body = input_request_request.body.borrow().clone();
+            let body = input_request_request.body.borrow();
+            body.clone()
         } else {
-            input_body = None
+            None
         };
 
         // Step 33
@@ -399,7 +391,7 @@ impl Request {
                         is_service_worker_global_scope: bool,
                         net_request: NetTraitsRequest) -> Root<Request> {
         let r = Request::new(global,
-                             global.get_url(),
+                             net_request.current_url(),
                              is_service_worker_global_scope);
         *r.request.borrow_mut() = net_request;
         r
@@ -408,19 +400,20 @@ impl Request {
     fn clone_from(r: &Request) -> Root<Request> {
         let req = r.request.borrow();
         let url = req.url();
-        let origin = req.origin.borrow().clone();
         let is_service_worker_global_scope = req.is_service_worker_global_scope;
-        let pipeline_id = req.pipeline_id.get();
         let body_used = r.body_used.get();
         let mime_type = r.mime_type.borrow().clone();
         let headers_guard = r.Headers().get_guard();
         let r_clone = reflect_dom_object(
             box Request::new_inherited(r.global().r(),
                                        url,
-                                       Some(origin),
-                                       is_service_worker_global_scope,
-                                       pipeline_id),
+                                       is_service_worker_global_scope),
             r.global().r(), RequestBinding::Wrap);
+        r_clone.request.borrow_mut().pipeline_id.set(req.pipeline_id.get());
+        {
+            let mut borrowed_r_request = r_clone.request.borrow_mut();
+            *borrowed_r_request.origin.borrow_mut() = req.origin.borrow().clone();
+        }
         *r_clone.request.borrow_mut() = req.clone();
         r_clone.body_used.set(body_used);
         *r_clone.mime_type.borrow_mut() = mime_type;
@@ -556,13 +549,16 @@ impl RequestMethods for Request {
 
     // https://fetch.spec.whatwg.org/#dom-request-referrer
     fn Referrer(&self) -> USVString {
-        let r = self.request.borrow().clone();
-        let referrer = r.referer.into_inner();
-        match referrer {
-            NetTraitsRequestReferer::NoReferer => USVString(String::from("no-referrer")),
-            NetTraitsRequestReferer::Client => USVString(String::from("client")),
-            NetTraitsRequestReferer::RefererUrl(u) => USVString(u.into_string()),
-        }
+        let r = self.request.borrow();
+        let referrer = r.referer.borrow();
+        USVString(match &*referrer {
+            &NetTraitsRequestReferer::NoReferer => String::from("no-referrer"),
+            &NetTraitsRequestReferer::Client => String::from("client"),
+            &NetTraitsRequestReferer::RefererUrl(ref u) => {
+                let u_c = u.clone();
+                u_c.into_string()
+            }
+        })
     }
 
     // https://fetch.spec.whatwg.org/#dom-request-referrerpolicy
