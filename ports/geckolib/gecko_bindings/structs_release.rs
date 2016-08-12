@@ -6544,16 +6544,13 @@ fn bindgen_test_layout_nsStyleCounterData() {
 #[derive(Debug)]
 pub struct nsStyleContent {
     pub mMarkerOffset: nsStyleCoord,
-    pub mContents: *mut nsStyleContentData,
-    pub mIncrements: *mut nsStyleCounterData,
-    pub mResets: *mut nsStyleCounterData,
-    pub mContentCount: u32,
-    pub mIncrementCount: u32,
-    pub mResetCount: u32,
+    pub mContents: nsTArray<nsStyleContentData>,
+    pub mIncrements: nsTArray<nsStyleCounterData>,
+    pub mResets: nsTArray<nsStyleCounterData>,
 }
 #[test]
 fn bindgen_test_layout_nsStyleContent() {
-    assert_eq!(::std::mem::size_of::<nsStyleContent>() , 56usize);
+    assert_eq!(::std::mem::size_of::<nsStyleContent>() , 40usize);
     assert_eq!(::std::mem::align_of::<nsStyleContent>() , 8usize);
 }
 #[repr(C)]
