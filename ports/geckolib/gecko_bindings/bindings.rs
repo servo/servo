@@ -156,6 +156,26 @@ pub type RawGeckoDocument = nsIDocument;
 pub enum ServoNodeData { }
 pub enum ServoComputedValues { }
 pub enum RawServoStyleSheet { }
+#[repr(C)]
+#[derive(Debug)]
+pub struct ServoComputedValuesStrong {
+    pub mPtr: *mut ServoComputedValues,
+}
+#[test]
+fn bindgen_test_layout_ServoComputedValuesStrong() {
+    assert_eq!(::std::mem::size_of::<ServoComputedValuesStrong>() , 8usize);
+    assert_eq!(::std::mem::align_of::<ServoComputedValuesStrong>() , 8usize);
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct RawServoStyleSheetStrong {
+    pub mPtr: *mut RawServoStyleSheet,
+}
+#[test]
+fn bindgen_test_layout_RawServoStyleSheetStrong() {
+    assert_eq!(::std::mem::size_of::<RawServoStyleSheetStrong>() , 8usize);
+    assert_eq!(::std::mem::align_of::<RawServoStyleSheetStrong>() , 8usize);
+}
 pub enum RawServoStyleSet { }
 pub enum nsHTMLCSSStyleSheet { }
 pub enum ServoDeclarationBlock { }
@@ -326,7 +346,7 @@ extern "C" {
                                          referrer: *mut ThreadSafeURIHolder,
                                          principal:
                                              *mut ThreadSafePrincipalHolder)
-     -> *mut RawServoStyleSheet;
+     -> RawServoStyleSheetStrong;
     pub fn Servo_AddRefStyleSheet(sheet: *mut RawServoStyleSheet);
     pub fn Servo_ReleaseStyleSheet(sheet: *mut RawServoStyleSheet);
     pub fn Servo_AppendStyleSheet(sheet: *mut RawServoStyleSheet,
@@ -356,12 +376,12 @@ extern "C" {
     pub fn Servo_CSSSupports(name: *const u8, name_length: u32,
                              value: *const u8, value_length: u32) -> bool;
     pub fn Servo_GetComputedValues(node: *mut RawGeckoNode)
-     -> *mut ServoComputedValues;
+     -> ServoComputedValuesStrong;
     pub fn Servo_GetComputedValuesForAnonymousBox(parentStyleOrNull:
                                                       *mut ServoComputedValues,
                                                   pseudoTag: *mut nsIAtom,
                                                   set: *mut RawServoStyleSet)
-     -> *mut ServoComputedValues;
+     -> ServoComputedValuesStrong;
     pub fn Servo_GetComputedValuesForPseudoElement(parent_style:
                                                        *mut ServoComputedValues,
                                                    match_element:
@@ -369,9 +389,9 @@ extern "C" {
                                                    pseudo_tag: *mut nsIAtom,
                                                    set: *mut RawServoStyleSet,
                                                    is_probe: bool)
-     -> *mut ServoComputedValues;
+     -> ServoComputedValuesStrong;
     pub fn Servo_InheritComputedValues(parent_style: *mut ServoComputedValues)
-     -> *mut ServoComputedValues;
+     -> ServoComputedValuesStrong;
     pub fn Servo_AddRefComputedValues(arg1: *mut ServoComputedValues);
     pub fn Servo_ReleaseComputedValues(arg1: *mut ServoComputedValues);
     pub fn Servo_Initialize();
