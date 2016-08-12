@@ -269,8 +269,20 @@ def check_lock(file_name, contents):
     # package names to be neglected (as named by cargo)
     exceptions = ["lazy_static"]
 
-    import toml
-    content = toml.loads(contents)
+    # python toml has a bug(?) -- in [metadata] sections, if there's a line like:
+    #  "checksum angle 0.1.1 (git+https://github.com/servo/angle?branch=servo)" = "<none>"
+    # it ignores the quotes and tries to parse 'servo)" = "<none>"' as assignment.
+    # This line somehow gets ignored, but on a line where the bit after the = is longer,
+    # it bails in load_date, because it tries to convert a string like 'gh-pages)" = "<none>"'
+    # to a date, and tries to do an int() on '>"'
+    try:
+        import toml
+        content = toml.loads(contents)
+    except:
+        print "WARNING!"
+        print "WARNING! toml parsing failed for Cargo.lock, but ignoring..."
+        print "WARNING!"
+        raise StopIteration
 
     packages = {}
     for package in content.get("package", []):
