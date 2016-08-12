@@ -93,7 +93,6 @@ use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::collections::{HashMap, HashSet};
 use std::option::Option;
-use std::os::raw::c_void;
 use std::ptr;
 use std::rc::Rc;
 use std::result::Result;
