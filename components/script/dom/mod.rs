@@ -367,6 +367,7 @@ pub mod popstateevent;
 pub mod processinginstruction;
 pub mod progressevent;
 pub mod promise;
+pub mod promisenativehandler;
 pub mod radionodelist;
 pub mod range;
 pub mod screen;
