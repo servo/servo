@@ -14,6 +14,12 @@ layout(std140) uniform Items {
 
 void main(void) {
     Rectangle rect = rects[gl_InstanceID];
-    write_vertex(rect.info);
     vColor = rect.color;
+#ifdef WR_FEATURE_TRANSFORM
+    TransformVertexInfo vi = write_transform_vertex(rect.info);
+    vLocalRect = rect.info.local_rect;
+    vLocalPos = vi.local_pos;
+#else
+    write_vertex(rect.info);
+#endif
 }

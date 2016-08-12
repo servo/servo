@@ -3,3 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 varying vec4 vColor;
+
+#ifdef WR_FEATURE_TRANSFORM
+varying vec3 vLocalPos;
+flat varying vec4 vLocalRect;
+#endif

@@ -15,10 +15,18 @@ layout(std140) uniform Items {
 
 void main(void) {
     Image image = images[gl_InstanceID];
+
+#ifdef WR_FEATURE_TRANSFORM
+    TransformVertexInfo vi = write_transform_vertex(image.info);
+    vLocalRect = image.info.local_rect;
+    vLocalPos = vi.local_pos;
+    vStretchSize = image.stretch_size.xy;
+#else
     VertexInfo vi = write_vertex(image.info);
+    vUv = (vi.local_clamped_pos - vi.local_rect.p0) / image.stretch_size.xy;
+#endif
 
     // vUv will contain how many times this image has wrapped around the image size.
-    vUv = (vi.local_clamped_pos - vi.local_rect.p0) / image.stretch_size.xy;
     vTextureSize = image.st_rect.zw - image.st_rect.xy;
     vTextureOffset = image.st_rect.xy;
 }
