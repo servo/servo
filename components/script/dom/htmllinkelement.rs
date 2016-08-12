@@ -24,6 +24,7 @@ use encoding::all::UTF_8;
 use hyper::header::ContentType;
 use hyper::http::RawStatus;
 use hyper::mime::{Mime, TopLevel, SubLevel};
+use hyper_serde::Serde;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata, NetworkError};
@@ -282,7 +283,7 @@ impl AsyncResponseListener for StylesheetContext {
     fn headers_available(&mut self, metadata: Result<Metadata, NetworkError>) {
         self.metadata = metadata.ok();
         if let Some(ref meta) = self.metadata {
-            if let Some(ContentType(Mime(TopLevel::Text, SubLevel::Css, _))) = meta.content_type {
+            if let Some(Serde(ContentType(Mime(TopLevel::Text, SubLevel::Css, _)))) = meta.content_type {
             } else {
                 self.elem.root().upcast::<EventTarget>().fire_simple_event("error");
             }
@@ -304,7 +305,7 @@ impl AsyncResponseListener for StylesheetContext {
                 Some(meta) => meta,
                 None => return,
             };
-            let is_css = metadata.content_type.map_or(false, |ContentType(Mime(top, sub, _))|
+            let is_css = metadata.content_type.map_or(false, |Serde(ContentType(Mime(top, sub, _)))|
                 top == TopLevel::Text && sub == SubLevel::Css);
 
             let data = if is_css { mem::replace(&mut self.data, vec!()) } else { vec!() };
@@ -334,7 +335,7 @@ impl AsyncResponseListener for StylesheetContext {
             document.invalidate_stylesheets();
 
             // FIXME: Revisit once consensus is reached at: https://github.com/whatwg/html/issues/1142
-            successful = metadata.status.map_or(false, |RawStatus(code, _)| code == 200);
+            successful = metadata.status.map_or(false, |Serde(RawStatus(code, _))| code == 200);
         }
 
         if elem.parser_inserted.get() {

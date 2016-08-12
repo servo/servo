@@ -86,9 +86,6 @@ impl JsonPacketStream for TcpStream {
                             serde_json::Error::Syntax(_, l, c) => {
                                 return Err(format!("syntax at {}:{}", l, c))
                             },
-                            serde_json::Error::FromUtf8(e) => {
-                                return Err(e.description().to_owned())
-                            },
                         },
                     };
                 },

@@ -39,6 +39,7 @@ use hyper::header::{ContentLength, ContentType};
 use hyper::http::RawStatus;
 use hyper::method::Method;
 use hyper::mime::{self, Mime, Attr as MimeAttr, Value as MimeValue};
+use hyper_serde::Serde;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsapi::JS_ClearPendingException;
@@ -875,7 +876,10 @@ impl XMLHttpRequest {
         *self.response_url.borrow_mut() = metadata.final_url[..Position::AfterQuery].to_owned();
 
         // XXXManishearth Clear cache entries in case of a network error
-        self.process_partial_response(XHRProgress::HeadersReceived(gen_id, metadata.headers, metadata.status));
+        self.process_partial_response(XHRProgress::HeadersReceived(
+            gen_id,
+            metadata.headers.map(Serde::into_inner),
+            metadata.status.map(Serde::into_inner)));
         Ok(())
     }
 

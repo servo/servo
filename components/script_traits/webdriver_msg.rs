@@ -6,6 +6,7 @@
 
 use cookie_rs::Cookie;
 use euclid::rect::Rect;
+use hyper_serde::Serde;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
 use rustc_serialize::json::{Json, ToJson};
@@ -13,15 +14,20 @@ use url::Url;
 
 #[derive(Deserialize, Serialize)]
 pub enum WebDriverScriptCommand {
-    AddCookie(Cookie, IpcSender<Result<(), WebDriverCookieError>>),
+    AddCookie(
+        #[serde(deserialize_with = "::hyper_serde::deserialize",
+                serialize_with = "::hyper_serde::serialize")]
+        Cookie,
+        IpcSender<Result<(), WebDriverCookieError>>
+    ),
     ExecuteScript(String, IpcSender<WebDriverJSResult>),
     ExecuteAsyncScript(String, IpcSender<WebDriverJSResult>),
     FindElementCSS(String, IpcSender<Result<Option<String>, ()>>),
     FindElementsCSS(String, IpcSender<Result<Vec<String>, ()>>),
     FocusElement(String, IpcSender<Result<(), ()>>),
     GetActiveElement(IpcSender<Option<String>>),
-    GetCookie(String, IpcSender<Vec<Cookie>>),
-    GetCookies(IpcSender<Vec<Cookie>>),
+    GetCookie(String, IpcSender<Vec<Serde<Cookie>>>),
+    GetCookies(IpcSender<Vec<Serde<Cookie>>>),
     GetElementAttribute(String, String, IpcSender<Result<Option<String>, ()>>),
     GetElementCSS(String, String, IpcSender<Result<String, ()>>),
     GetElementRect(String, IpcSender<Result<Rect<f64>, ()>>),

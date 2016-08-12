@@ -18,6 +18,7 @@ use hyper::http::RawStatus;
 use hyper::method::Method;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper::status::StatusCode;
+use hyper_serde::Serde;
 use msg::constellation_msg::{PipelineId, ReferrerPolicy};
 use net::cookie::Cookie;
 use net::cookie_storage::CookieStorage;
@@ -1584,7 +1585,8 @@ fn test_auth_ui_sets_header_on_401() {
         }, DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None), None) {
         Err(e) => panic!("response contained error {:?}", e),
         Ok(response) => {
-            assert_eq!(response.metadata.status, Some(RawStatus(200, Cow::Borrowed("Ok"))));
+            assert_eq!(response.metadata.status,
+                       Some(Serde(RawStatus(200, Cow::Borrowed("Ok")))));
         }
     }
 }
@@ -1618,7 +1620,8 @@ fn test_auth_ui_needs_www_auth() {
     match response {
         Err(e) => panic!("response contained error {:?}", e),
         Ok(response) => {
-            assert_eq!(response.metadata.status, Some(RawStatus(401, Cow::Borrowed("Unauthorized"))));
+            assert_eq!(response.metadata.status,
+                       Some(Serde(RawStatus(401, Cow::Borrowed("Unauthorized")))));
         }
     }
 }
@@ -1944,7 +1947,7 @@ fn load_request_for_custom_response(expected_body: Vec<u8>) -> (Metadata, String
 fn test_custom_response() {
     let expected_body = b"Yay!".to_vec();
     let (metadata, body) = load_request_for_custom_response(expected_body.clone());
-    assert_eq!(metadata.status, Some(RawStatus(200, Cow::Borrowed("OK"))));
+    assert_eq!(metadata.status, Some(Serde(RawStatus(200, Cow::Borrowed("OK")))));
     assert_eq!(body, String::from_utf8(expected_body).unwrap());
 }
 

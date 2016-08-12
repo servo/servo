@@ -24,6 +24,7 @@ use hyper::method::Method;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper::net::Fresh;
 use hyper::status::{StatusClass, StatusCode};
+use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
 use log;
 use mime_classifier::MimeClassifier;
@@ -1076,8 +1077,8 @@ pub fn load<A, B>(load_data: &LoadData,
             Some(&ContentType(ref mime)) => Some(mime),
             None => None
         });
-        metadata.headers = Some(adjusted_headers);
-        metadata.status = Some(response.status_raw().clone());
+        metadata.headers = Some(Serde(adjusted_headers));
+        metadata.status = Some(Serde(response.status_raw().clone()));
         metadata.https_state = if doc_url.scheme() == "https" {
             HttpsState::Modern
         } else {
@@ -1092,7 +1093,8 @@ pub fn load<A, B>(load_data: &LoadData,
             if let Some(ref chan) = devtools_chan {
                 send_response_to_devtools(
                     &chan, request_id,
-                    metadata.headers.clone(), metadata.status.clone(),
+                    metadata.headers.clone().map(Serde::into_inner),
+                    metadata.status.clone().map(Serde::into_inner),
                     pipeline_id);
             }
         }

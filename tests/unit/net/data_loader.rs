@@ -3,7 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 extern crate hyper;
+extern crate hyper_serde;
 
+use hyper_serde::Serde;
 use ipc_channel::ipc;
 use msg::constellation_msg::{PipelineId, ReferrerPolicy};
 use net_traits::LoadConsumer::Channel;
@@ -44,7 +46,8 @@ fn assert_parse(url:          &'static str,
          classifier, CancellationListener::new(None));
 
     let response = start_port.recv().unwrap();
-    assert_eq!(&response.metadata.content_type, &content_type);
+    assert_eq!(&response.metadata.content_type.map(Serde::into_inner),
+               &content_type);
     assert_eq!(&response.metadata.charset,      &charset);
 
     let progress = response.progress_port.recv().unwrap();

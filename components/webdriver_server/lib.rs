@@ -643,7 +643,7 @@ impl Handler {
         try!(self.frame_script_command(WebDriverScriptCommand::GetCookies(sender)));
         let cookies = receiver.recv().unwrap();
         let response = cookies.into_iter().map(|cookie| {
-            cookie_msg_to_cookie(cookie)
+            cookie_msg_to_cookie(cookie.into_inner())
         }).collect::<Vec<Cookie>>();
         Ok(WebDriverResponse::Cookie(CookieResponse::new(response)))
     }
@@ -653,7 +653,7 @@ impl Handler {
         try!(self.frame_script_command(WebDriverScriptCommand::GetCookie(name.to_owned(), sender)));
         let cookies = receiver.recv().unwrap();
         let response = cookies.into_iter().map(|cookie| {
-            cookie_msg_to_cookie(cookie)
+            cookie_msg_to_cookie(cookie.into_inner())
         }).collect::<Vec<Cookie>>();
         Ok(WebDriverResponse::Cookie(CookieResponse::new(response)))
     }

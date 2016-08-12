@@ -48,6 +48,7 @@ extern crate gfx_traits;
 extern crate heapsize;
 extern crate html5ever;
 extern crate hyper;
+extern crate hyper_serde;
 extern crate image;
 extern crate ipc_channel;
 #[macro_use]

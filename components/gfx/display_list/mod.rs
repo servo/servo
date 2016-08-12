@@ -31,7 +31,6 @@ use net_traits::image::base::{Image, PixelFormat};
 use paint_context::PaintContext;
 use range::Range;
 use serde::de::{self, Deserialize, Deserializer, MapVisitor, Visitor};
-use serde::ser::impls::MapIteratorVisitor;
 use serde::ser::{Serialize, Serializer};
 use std::cmp::{self, Ordering};
 use std::collections::HashMap;
@@ -161,7 +160,12 @@ impl<K, V> DerefMut for FnvHashMap<K, V> {
 impl<K, V> Serialize for FnvHashMap<K, V> where K: Eq + Hash + Serialize, V: Serialize {
     #[inline]
     fn serialize<S>(&self, serializer: &mut S) -> Result<(), S::Error> where S: Serializer {
-        serializer.serialize_map(MapIteratorVisitor::new(self.iter(), Some(self.len())))
+        let mut state = try!(serializer.serialize_map(Some(self.len())));
+        for (key, value) in self.iter() {
+            try!(serializer.serialize_map_key(&mut state, key));
+            try!(serializer.serialize_map_value(&mut state, value));
+        }
+        serializer.serialize_map_end(state)
     }
 }
 

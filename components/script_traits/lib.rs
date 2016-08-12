@@ -18,6 +18,7 @@ extern crate devtools_traits;
 extern crate euclid;
 extern crate gfx_traits;
 extern crate heapsize;
+extern crate hyper_serde;
 extern crate ipc_channel;
 extern crate layers;
 extern crate libc;

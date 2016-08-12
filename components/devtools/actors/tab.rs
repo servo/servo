@@ -94,7 +94,7 @@ impl Actor for TabActor {
             "reconfigure" => {
                 if let Some(options) = msg.get("options").and_then(|o| o.as_object()) {
                     if let Some(val) = options.get("performReload") {
-                        if val.as_boolean().unwrap_or(false) {
+                        if val.as_bool().unwrap_or(false) {
                             let console_actor = registry.find::<ConsoleActor>(&self.console);
                             let _ = console_actor.script_chan.send(
                                 DevtoolScriptControlMsg::Reload(console_actor.pipeline));

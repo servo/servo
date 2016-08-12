@@ -21,6 +21,7 @@ use http_loader::{self, HttpState};
 use hyper::client::pool::Pool;
 use hyper::header::{ContentType, Header, SetCookie};
 use hyper::mime::{Mime, SubLevel, TopLevel};
+use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender, IpcReceiverSet};
 use mime_classifier::{ApacheBugFlag, MimeClassifier, NoSniffFlag};
 use net_traits::LoadContext;
@@ -115,7 +116,7 @@ pub fn start_sending_sniffed_opt(start_chan: LoadConsumer, mut metadata: Metadat
         }
 
         let supplied_type =
-            metadata.content_type.as_ref().map(|&ContentType(Mime(ref toplevel, ref sublevel, _))| {
+            metadata.content_type.as_ref().map(|&Serde(ContentType(Mime(ref toplevel, ref sublevel, _)))| {
             (format!("{}", toplevel), format!("{}", sublevel))
         });
         let (toplevel, sublevel) = classifier.classify(context,
@@ -125,7 +126,8 @@ pub fn start_sending_sniffed_opt(start_chan: LoadConsumer, mut metadata: Metadat
                                                        &partial_body);
         let mime_tp: TopLevel = toplevel.parse().unwrap();
         let mime_sb: SubLevel = sublevel.parse().unwrap();
-        metadata.content_type = Some(ContentType(Mime(mime_tp, mime_sb, vec![])));
+        metadata.content_type =
+            Some(Serde(ContentType(Mime(mime_tp, mime_sb, vec![]))));
     }
 
     start_sending_opt(start_chan, metadata, None)
@@ -291,7 +293,7 @@ impl ResourceChannelManager {
             }
             CoreResourceMsg::GetCookiesDataForUrl(url, consumer, source) => {
                 let mut cookie_jar = group.cookie_jar.write().unwrap();
-                let cookies = cookie_jar.cookies_data_for_url(&url, source).collect();
+                let cookies = cookie_jar.cookies_data_for_url(&url, source).map(Serde).collect();
                 consumer.send(cookies).unwrap();
             }
             CoreResourceMsg::Cancel(res_id) => {

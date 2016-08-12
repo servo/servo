@@ -10,9 +10,9 @@ path = "lib.rs"
 crate-type = ["staticlib"]
 
 [dependencies]
-app_units = "0.2.5"
+app_units = "0.3"
 env_logger = "0.3"
-euclid = "0.8.2"
+euclid = "0.9"
 gecko_bindings = {version = "0.0.1", path = "gecko_bindings"}
 gecko_string_cache = {path = "string_cache"}
 lazy_static = "0.2"
@@ -22,5 +22,5 @@ num_cpus = "0.2.2"
 selectors = "0.8"
 style = {path = "../../components/style", features = ["gecko"]}
 style_traits = {path = "../../components/style_traits"}
-url = "1.0.0"
+url = "1.2"
 util = {path = "../../components/util"}

@@ -191,14 +191,14 @@ impl Actor for TimelineActor {
 
                 // init memory actor
                 if let Some(with_memory) = msg.get("withMemory") {
-                    if let Some(true) = with_memory.as_boolean() {
+                    if let Some(true) = with_memory.as_bool() {
                         *self.memory_actor.borrow_mut() = Some(MemoryActor::create(registry));
                     }
                 }
 
                 // init framerate actor
                 if let Some(with_ticks) = msg.get("withTicks") {
-                    if let Some(true) = with_ticks.as_boolean() {
+                    if let Some(true) = with_ticks.as_bool() {
                         let framerate_actor = Some(FramerateActor::create(
                                 registry,
                                 self.pipeline.clone(),

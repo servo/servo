@@ -229,7 +229,7 @@ impl FontCache {
                                 Ok(ref metadata) => {
                                     metadata.content_type.as_ref().map_or(false, |content_type| {
                                         let mime = &content_type.0;
-                                        is_supported_font_type(&mime.0, &mime.1)
+                                        is_supported_font_type(&(mime.0).0, &mime.1)
                                     })
                                 }
                                 Err(_) => false,

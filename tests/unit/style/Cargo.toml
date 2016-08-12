@@ -10,13 +10,13 @@ path = "lib.rs"
 doctest = false
 
 [dependencies]
-app_units = "0.2.5"
-cssparser = {version = "0.5.4", features = ["heap_size"]}
-euclid = "0.8.2"
+app_units = "0.3"
+cssparser = {version = "0.5.7", features = ["heap_size"]}
+euclid = "0.9"
 rustc-serialize = "0.3"
 selectors = {version = "0.8", features = ["heap_size"]}
-string_cache = {version = "0.2", features = ["heap_size"]}
+string_cache = {version = "0.2.23", features = ["heap_size"]}
 style = {path = "../../../components/style"}
 style_traits = {path = "../../../components/style_traits"}
-url = {version = "1.0.0", features = ["heap_size"]}
+url = {version = "1.2", features = ["heap_size"]}
 util = {path = "../../../components/util"}

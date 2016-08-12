@@ -191,7 +191,11 @@ pub struct Image {
 #[derive(Clone, Deserialize, Serialize)]
 pub struct LoadData {
     pub url: Url,
+    #[serde(deserialize_with = "::hyper_serde::deserialize",
+            serialize_with = "::hyper_serde::serialize")]
     pub method: Method,
+    #[serde(deserialize_with = "::hyper_serde::deserialize",
+            serialize_with = "::hyper_serde::serialize")]
     pub headers: Headers,
     pub data: Option<Vec<u8>>,
     pub referrer_policy: Option<ReferrerPolicy>,

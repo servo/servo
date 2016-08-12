@@ -52,11 +52,11 @@ constellation = {path = "../constellation"}
 devtools = {path = "../devtools"}
 devtools_traits = {path = "../devtools_traits"}
 env_logger = "0.3"
-euclid = "0.8.2"
+euclid = "0.9"
 gfx = {path = "../gfx"}
 gleam = "0.2"
 glutin_app = {path = "../../ports/glutin"}
-ipc-channel = "0.4.0"
+ipc-channel = "0.5"
 layout = {path = "../layout"}
 layout_thread = {path = "../layout_thread"}
 libc = "0.2"
@@ -70,7 +70,7 @@ script = {path = "../script"}
 script_layout_interface = {path = "../script_layout_interface"}
 script_traits = {path = "../script_traits"}
 style = {path = "../style", features = ["servo"]}
-url = "1.0.0"
+url = "1.2"
 util = {path = "../util"}
 webdriver_server = {path = "../webdriver_server", optional = true}
 
