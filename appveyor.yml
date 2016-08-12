@@ -1,6 +1,7 @@
 version: 1.0.{build}
 
 environment:
+  RUST_BACKTRACE: 1
   # The appveyor image we use has a pretty huge set of things installed... we make the
   # initial PATH something sane so we know what to expect
   PATH: "C:\\windows\\system32;\
