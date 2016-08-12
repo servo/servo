@@ -4,14 +4,19 @@
 
 use dom::bindings::callback::CallbackContainer;
 use dom::bindings::codegen::Bindings::PromiseBinding::AnyCallback;
+use dom::bindings::conversions::root_from_object;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::reflector::{Reflectable, Reflector};
+use dom::promisenativehandler::PromiseNativeHandler;
+use js::conversions::ToJSValConvertible;
 use js::jsapi::{JSAutoCompartment, CallArgs, JS_GetFunctionObject, JS_NewFunction};
-use js::jsapi::{JSContext, HandleValue, HandleObject, IsPromiseObject};
+use js::jsapi::{JSContext, HandleValue, HandleObject, IsPromiseObject, GetFunctionNativeReserved};
+use js::jsapi::{JS_ClearPendingException, JSObject};
 use js::jsapi::{CallOriginalPromiseResolve, CallOriginalPromiseReject, CallOriginalPromiseThen};
-use js::jsapi::{MutableHandleObject, NewPromiseObject, ResolvePromise, RejectPromise, JS_ClearPendingException};
-use js::jsval::{JSVal, UndefinedValue};
+use js::jsapi::{MutableHandleObject, NewPromiseObject, ResolvePromise, RejectPromise};
+use js::jsapi::{SetFunctionNativeReserved, NewFunctionWithReserved, AddPromiseReactions};
+use js::jsval::{JSVal, UndefinedValue, ObjectValue, Int32Value};
 use std::ptr;
 use std::rc::Rc;
 
@@ -78,7 +83,7 @@ impl Promise {
     pub fn maybe_resolve_native<T>(&self, cx: *mut JSContext, val: &T) where T: ToJSValConvertible {
         rooted!(in(cx) let mut v = UndefinedValue());
         unsafe {
-            val.to_jsval(cx, m.handle_mut());
+            val.to_jsval(cx, v.handle_mut());
         }
         self.maybe_resolve(cx, v.handle());
     }
@@ -98,7 +103,7 @@ impl Promise {
     pub fn maybe_reject_native<T>(&self, cx: *mut JSContext, val: &T) where T: ToJSValConvertible {
         rooted!(in(cx) let mut v = UndefinedValue());
         unsafe {
-            val.to_jsval(cx, m.handle_mut());
+            val.to_jsval(cx, v.handle_mut());
         }
         self.maybe_reject(cx, v.handle());
     }
@@ -139,6 +144,29 @@ impl Promise {
         }
         obj
     }
+
+    #[allow(unsafe_code)]
+    pub fn append_native_handler(&self, handler: &PromiseNativeHandler) {
+        let global = self.global();
+        let cx = global.r().get_cx();
+        rooted!(in(cx) let resolve_func =
+                create_native_handler_function(cx,
+                                               handler.reflector().get_jsobject(),
+                                               NativeHandlerTask::Resolve));
+
+        rooted!(in(cx) let reject_func =
+                create_native_handler_function(cx,
+                                               handler.reflector().get_jsobject(),
+                                               NativeHandlerTask::Reject));
+
+        unsafe {
+            let ok = AddPromiseReactions(cx,
+                                         self.promise_obj(),
+                                         resolve_func.handle(),
+                                         reject_func.handle());
+            assert!(ok);
+        }
+    }
 }
 
 #[allow(unsafe_code)]
@@ -146,4 +174,57 @@ unsafe extern fn do_nothing_promise_executor(_cx: *mut JSContext, argc: u32, vp:
     let args = CallArgs::from_vp(vp, argc);
     *args.rval() = UndefinedValue();
     true
+}
+
+const SLOT_NATIVEHANDLER: usize = 0;
+const SLOT_NATIVEHANDLER_TASK: usize = 1;
+
+#[derive(PartialEq)]
+enum NativeHandlerTask {
+    Resolve = 0,
+    Reject = 1,
+}
+
+#[allow(unsafe_code)]
+unsafe extern fn native_handler_callback(cx: *mut JSContext, argc: u32, vp: *mut JSVal) -> bool {
+    let args = CallArgs::from_vp(vp, argc);
+    rooted!(in(cx) let v = *GetFunctionNativeReserved(args.callee(), SLOT_NATIVEHANDLER));
+    assert!(v.get().is_object());
+
+    let handler = match root_from_object::<PromiseNativeHandler>(v.to_object()) {
+        Ok(h) => h,
+        Err(_) => {
+            //TODO throw an exception
+            return false;
+        }
+    };
+
+    rooted!(in(cx) let v = *GetFunctionNativeReserved(args.callee(), SLOT_NATIVEHANDLER_TASK));
+    match v.to_int32() {
+        v if v == NativeHandlerTask::Resolve as i32 => handler.resolved_callback(cx, args.get(0)),
+        v if v == NativeHandlerTask::Reject as i32 => handler.rejected_callback(cx, args.get(0)),
+        _ => panic!("unexpected native handler task value"),
+    };
+
+    true
+}
+
+#[allow(unsafe_code)]
+fn create_native_handler_function(cx: *mut JSContext,
+                                  holder: HandleObject,
+                                  task: NativeHandlerTask) -> *mut JSObject {
+    unsafe {
+        let func = NewFunctionWithReserved(cx, Some(native_handler_callback), 1, 0, ptr::null());
+        assert!(!func.is_null());
+
+        rooted!(in(cx) let obj = JS_GetFunctionObject(func));
+        assert!(!obj.is_null());
+        SetFunctionNativeReserved(obj.get(),
+                                  SLOT_NATIVEHANDLER,
+                                  &ObjectValue(&**holder));
+        SetFunctionNativeReserved(obj.get(),
+                                  SLOT_NATIVEHANDLER_TASK,
+                                  &Int32Value(task as i32));
+        obj.get()
+    }
 }
