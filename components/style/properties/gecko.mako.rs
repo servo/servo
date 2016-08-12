@@ -914,7 +914,6 @@ fn static_assert() {
             T::left   => true,
             T::right  => true
         };
-        // TODO(shinglyu): Rename Gecko's struct to mPageBreakBefore
         self.gecko.mBreakBefore = result;
     }
 
@@ -931,7 +930,6 @@ fn static_assert() {
             T::left   => true,
             T::right  => true
         };
-        // TODO(shinglyu): Rename Gecko's struct to mPageBreakBefore
         self.gecko.mBreakBefore = result;
     }
 
