@@ -38,7 +38,11 @@ impl<T> nsTArray<T> {
     // unsafe, since header may be in shared static or something
     unsafe fn header_mut<'a>(&'a mut self) -> &'a mut nsTArrayHeader {
         debug_assert!(!self.mBuffer.is_null());
-        mem::transmute(self.mBuffer)
+
+        let ret: &'a mut nsTArrayHeader = mem::transmute(self.mBuffer);
+        debug_assert!(ret.mLength != 0,
+                      "Manually changing the size of the shared nsTArrayHeader!");
+        ret
     }
 
     #[inline]
@@ -50,6 +54,17 @@ impl<T> nsTArray<T> {
     fn ensure_capacity(&mut self, cap: usize) {
         unsafe {
             Gecko_EnsureTArrayCapacity(self as *mut nsTArray<T> as *mut c_void, cap, mem::size_of::<T>())
+        }
+    }
+
+    #[inline]
+    fn clear(&mut self)
+        where T: Copy
+    {
+        unsafe {
+            Gecko_ClearPODTArray(self as *mut _,
+                                 mem::size_of::<T>(),
+                                 mem::align_of::<T>());
         }
     }
 
