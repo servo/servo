@@ -42,10 +42,6 @@ impl<GeckoType, ServoType> ArcHelpers<GeckoType, ServoType> {
         transmute(ptr)
     }
 
-    pub fn from(owned: Arc<ServoType>) -> *mut GeckoType {
-        unsafe { transmute(owned) }
-    }
-
     pub fn borrow<F, Output>(borrowed: &Arc<ServoType>, cb: F) -> Output
         where F: FnOnce(&mut GeckoType) -> Output
     {

@@ -41,6 +41,7 @@ COMPILATION_TARGETS = {
         "test": True,
         "flags": [
             "-ignore-functions",
+            "-ignore-methods",
         ],
         "includes": [
             "{}/dist/include/nsThemeConstants.h",
@@ -110,6 +111,9 @@ COMPILATION_TARGETS = {
     "bindings": {
         "raw_lines": [
             "use heapsize::HeapSizeOf;",
+        ],
+        "flags": [
+            "-ignore-methods",
         ],
         "match_headers": [
             "ServoBindings.h",

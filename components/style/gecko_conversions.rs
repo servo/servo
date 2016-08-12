@@ -6,9 +6,40 @@
 //! Ideally, it would be in geckolib itself, but coherence
 //! forces us to keep the traits and implementations here
 
+#![allow(unsafe_code)]
+
 use app_units::Au;
+use gecko_bindings::bindings::{RawServoStyleSheetStrong, ServoComputedValuesStrong};
 use gecko_bindings::structs::nsStyleCoord_CalcValue;
+use gecko_bindings::sugar::refptr::HasStrong;
+use properties::ComputedValues;
+use std::mem::transmute;
+use std::ptr::null;
+use std::sync::Arc;
+use stylesheets::Stylesheet;
 use values::computed::{CalcLengthOrPercentage, LengthOrPercentage};
+
+macro_rules! unsafe_impl_strong {
+    ($strong:ty, $servo:ty) => {
+        unsafe impl HasStrong for $servo {
+            type Strong = $strong;
+            fn into_strong(x: Arc<Self>) -> Self::Strong {
+                // we can't use a default method for this
+                // because transmute needs to know that the sizes are
+                // the same pre-monomorphization.
+                // We could use transmute_copy but that throws away
+                // the size check.
+                unsafe {transmute(x)}
+            }
+            fn null_strong() -> Self::Strong {
+                unsafe {transmute(null::<Self>())}
+            }
+        }
+    }
+}
+
+unsafe_impl_strong!(RawServoStyleSheetStrong, Stylesheet);
+unsafe_impl_strong!(ServoComputedValuesStrong, ComputedValues);
 
 impl From<CalcLengthOrPercentage> for nsStyleCoord_CalcValue {
     fn from(other: CalcLengthOrPercentage) -> nsStyleCoord_CalcValue {
