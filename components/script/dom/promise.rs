@@ -74,6 +74,15 @@ impl Promise {
         Ok(Promise::new_with_js_promise(p.handle()))
     }
 
+    #[allow(unsafe_code)]
+    pub fn maybe_resolve_native<T>(&self, cx: *mut JSContext, val: &T) where T: ToJSValConvertible {
+        rooted!(in(cx) let mut v = UndefinedValue());
+        unsafe {
+            val.to_jsval(cx, m.handle_mut());
+        }
+        self.maybe_resolve(cx, v.handle());
+    }
+
     #[allow(unrooted_must_root, unsafe_code)]
     pub fn maybe_resolve(&self,
                          cx: *mut JSContext,
@@ -83,6 +92,15 @@ impl Promise {
                 JS_ClearPendingException(cx);
             }
         }
+    }
+
+    #[allow(unsafe_code)]
+    pub fn maybe_reject_native<T>(&self, cx: *mut JSContext, val: &T) where T: ToJSValConvertible {
+        rooted!(in(cx) let mut v = UndefinedValue());
+        unsafe {
+            val.to_jsval(cx, m.handle_mut());
+        }
+        self.maybe_reject(cx, v.handle());
     }
 
     #[allow(unrooted_must_root, unsafe_code)]
