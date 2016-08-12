@@ -455,7 +455,7 @@ impl Clone for ${style_struct.gecko_struct_name} {
 impl Debug for ${style_struct.gecko_struct_name} {
     // FIXME(bholley): Generate this.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "GECKO STYLE STRUCT")
+        write!(f, "Gecko style struct: ${style_struct.gecko_struct_name}")
     }
 }
 %else:
