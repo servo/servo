@@ -33,6 +33,7 @@ use net_traits::request::RequestMode as NetTraitsRequestMode;
 use net_traits::request::Type as NetTraitsRequestType;
 use net_traits::request::{Origin, Window};
 use std::cell::Cell;
+use std::rc::Rc;
 use url::Url;
 
 #[dom_struct]
@@ -147,7 +148,7 @@ impl Request {
                                           temporary_request.current_url(),
                                           false);
         request.method = temporary_request.method;
-        request.headers = temporary_request.headers.clone();
+        request.headers = Rc::new((*temporary_request.headers).clone());
         request.unsafe_request = true;
         request.window.set(window);
         // TODO: `entry settings object` is not implemented in Servo yet.

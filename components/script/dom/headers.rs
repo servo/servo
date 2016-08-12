@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HeadersBinding;
 use dom::bindings::codegen::Bindings::HeadersBinding::HeadersMethods;
 use dom::bindings::codegen::UnionTypes::HeadersOrByteStringSequenceSequence;
@@ -11,16 +10,21 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::{ByteString, is_token};
+use dom::bindings::trace::JSTraceable;
 use hyper::header::Headers as HyperHeaders;
-use std::cell::Cell;
+use js::jsapi::JSTracer;
+use std::cell::{Cell, RefCell};
+use std::rc::Rc;
 use std::result::Result;
 
+// TODO Implement clone manually when needed.
+// #[derive(Clone)] will undesirably increment Rc count.
 #[dom_struct]
 pub struct Headers {
     reflector_: Reflector,
     guard: Cell<Guard>,
     #[ignore_heap_size_of = "Defined in hyper"]
-    header_list: DOMRefCell<HyperHeaders>
+    header_list: Rc<RefCell<HyperHeaders>>
 }
 
 // https://fetch.spec.whatwg.org/#concept-headers-guard
@@ -38,7 +42,7 @@ impl Headers {
         Headers {
             reflector_: Reflector::new(),
             guard: Cell::new(Guard::None),
-            header_list: DOMRefCell::new(HyperHeaders::new()),
+            header_list: Rc::new(RefCell::new(HyperHeaders::new())),
         }
     }
 
@@ -397,5 +401,11 @@ fn is_obs_text(x: u8) -> bool {
     match x {
         0x80...0xFF => true,
         _ => false,
+    }
+}
+
+impl<T: JSTraceable> JSTraceable for RefCell<T> {
+    fn trace(&self, trc: *mut JSTracer) {
+        (*self).borrow().trace(trc)
     }
 }

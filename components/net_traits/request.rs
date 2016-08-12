@@ -7,6 +7,7 @@ use hyper::method::Method;
 use msg::constellation_msg::{PipelineId, ReferrerPolicy};
 use std::cell::{Cell, RefCell};
 use std::mem::swap;
+use std::rc::Rc;
 use url::{Origin as UrlOrigin, Url};
 
 /// An [initiator](https://fetch.spec.whatwg.org/#concept-request-initiator)
@@ -138,14 +139,14 @@ pub struct RequestInit {
 }
 
 /// A [Request](https://fetch.spec.whatwg.org/#requests) as defined by the Fetch spec
-#[derive(Clone, HeapSizeOf)]
+#[derive(HeapSizeOf)]
 pub struct Request {
     #[ignore_heap_size_of = "Defined in hyper"]
     pub method: RefCell<Method>,
     pub local_urls_only: bool,
     pub sandboxed_storage_area_urls: bool,
     #[ignore_heap_size_of = "Defined in hyper"]
-    pub headers: RefCell<Headers>,
+    pub headers: Rc<RefCell<Headers>>,
     pub unsafe_request: bool,
     pub body: RefCell<Option<Vec<u8>>>,
     // TODO: client object
@@ -192,7 +193,7 @@ impl Request {
             method: RefCell::new(Method::Get),
             local_urls_only: false,
             sandboxed_storage_area_urls: false,
-            headers: RefCell::new(Headers::new()),
+            headers: Rc::new(RefCell::new(Headers::new())),
             unsafe_request: false,
             body: RefCell::new(None),
             is_service_worker_global_scope: is_service_worker_global_scope,
@@ -258,7 +259,7 @@ impl Request {
             method: RefCell::new(Method::Get),
             local_urls_only: false,
             sandboxed_storage_area_urls: false,
-            headers: RefCell::new(Headers::new()),
+            headers: Rc::new(RefCell::new(Headers::new())),
             unsafe_request: false,
             body: RefCell::new(None),
             is_service_worker_global_scope: is_service_worker_global_scope,
@@ -345,6 +346,45 @@ impl Referer {
         match new {
             Referer::NoReferer | Referer::Client => None,
             Referer::RefererUrl(url) => Some(url)
+        }
+    }
+}
+
+impl Clone for Request {
+    fn clone(&self) -> Request {
+        let headers = (*self.headers).clone();
+        Request {
+            method: self.method.clone(),
+            local_urls_only: self.local_urls_only.clone(),
+            sandboxed_storage_area_urls: self.sandboxed_storage_area_urls.clone(),
+            headers: Rc::new(headers),
+            unsafe_request: self.unsafe_request.clone(),
+            body: self.body.clone(),
+            is_service_worker_global_scope: self.is_service_worker_global_scope.clone(),
+            window: self.window.clone(),
+            keep_alive: self.keep_alive.clone(),
+            skip_service_worker: self.skip_service_worker.clone(),
+            initiator: self.initiator.clone(),
+            type_: self.type_.clone(),
+            destination: self.destination.clone(),
+            origin: self.origin.clone(),
+            omit_origin_header: self.omit_origin_header.clone(),
+            same_origin_data: self.same_origin_data.clone(),
+            referer: self.referer.clone(),
+            referrer_policy: self.referrer_policy.clone(),
+            pipeline_id: self.pipeline_id.clone(),
+            synchronous: self.synchronous.clone(),
+            mode: self.mode.clone(),
+            use_cors_preflight: self.use_cors_preflight.clone(),
+            credentials_mode: self.credentials_mode.clone(),
+            use_url_credentials: self.use_url_credentials.clone(),
+            cache_mode: self.cache_mode.clone(),
+            redirect_mode: self.redirect_mode.clone(),
+            integrity_metadata: self.integrity_metadata.clone(),
+            url_list: self.url_list.clone(),
+            redirect_count: self.redirect_count.clone(),
+            response_tainting: self.response_tainting.clone(),
+            done: self.done.clone()
         }
     }
 }

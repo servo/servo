@@ -10,6 +10,7 @@ use hyper::status::StatusCode;
 use hyper_serde::Serde;
 use std::ascii::AsciiExt;
 use std::cell::{Cell, RefCell};
+use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use url::Url;
 use {Metadata, NetworkError};
@@ -76,7 +77,6 @@ pub enum ResponseMsg {
 }
 
 /// A [Response](https://fetch.spec.whatwg.org/#concept-response) as defined by the Fetch spec
-#[derive(Clone)]
 pub struct Response {
     pub response_type: ResponseType,
     pub termination_reason: Option<TerminationReason>,
@@ -85,7 +85,7 @@ pub struct Response {
     /// `None` can be considered a StatusCode of `0`.
     pub status: Option<StatusCode>,
     pub raw_status: Option<RawStatus>,
-    pub headers: Headers,
+    pub headers: Rc<RefCell<Headers>>,
     pub body: Arc<Mutex<ResponseBody>>,
     pub cache_state: CacheState,
     pub https_state: HttpsState,
@@ -105,7 +105,7 @@ impl Response {
             url_list: RefCell::new(Vec::new()),
             status: Some(StatusCode::Ok),
             raw_status: Some(RawStatus(200, "OK".into())),
-            headers: Headers::new(),
+            headers: Rc::new(RefCell::new(Headers::new())),
             body: Arc::new(Mutex::new(ResponseBody::Empty)),
             cache_state: CacheState::None,
             https_state: HttpsState::None,
@@ -122,7 +122,7 @@ impl Response {
             url_list: RefCell::new(vec![]),
             status: None,
             raw_status: None,
-            headers: Headers::new(),
+            headers: Rc::new(RefCell::new(Headers::new())),
             body: Arc::new(Mutex::new(ResponseBody::Empty)),
             cache_state: CacheState::None,
             https_state: HttpsState::None,
@@ -166,7 +166,7 @@ impl Response {
             return Response::network_error();
         }
 
-        let old_headers = old_response.headers.clone();
+        let old_headers = (*old_response.headers).clone().into_inner();
         let mut response = old_response.clone();
         response.internal_response = Some(Box::new(old_response));
         response.response_type = filter_type;
@@ -181,7 +181,7 @@ impl Response {
                         _ => true
                     }
                 }).collect();
-                response.headers = headers;
+                response.headers = Rc::new(RefCell::new(headers));
             },
 
             ResponseType::CORS => {
@@ -200,20 +200,20 @@ impl Response {
                         }
                     }
                 }).collect();
-                response.headers = headers;
+                response.headers = Rc::new(RefCell::new(headers));
             },
 
             ResponseType::Opaque => {
                 response.url_list = RefCell::new(vec![]);
                 response.url = None;
-                response.headers = Headers::new();
+                response.headers = Rc::new(RefCell::new(Headers::new()));
                 response.status = None;
                 response.body = Arc::new(Mutex::new(ResponseBody::Empty));
                 response.cache_state = CacheState::None;
             },
 
             ResponseType::OpaqueRedirect => {
-                response.headers = Headers::new();
+                response.headers = Rc::new(RefCell::new(Headers::new()));
                 response.status = None;
                 response.body = Arc::new(Mutex::new(ResponseBody::Empty));
                 response.cache_state = CacheState::None;
@@ -234,13 +234,35 @@ impl Response {
             return Err(NetworkError::Internal("Cannot extract metadata from network error".to_string()));
         }
 
-        metadata.set_content_type(match self.headers.get() {
+        let headers = (*self.headers).clone().into_inner();
+
+        metadata.set_content_type(match headers.get() {
             Some(&ContentType(ref mime)) => Some(mime),
             None => None
         });
-        metadata.headers = Some(Serde(self.headers.clone()));
+        metadata.headers = Some(Serde(headers));
         metadata.status = self.raw_status.clone().map(Serde);
         metadata.https_state = self.https_state;
         return Ok(metadata);
+    }
+}
+
+impl Clone for Response {
+    fn clone(&self) -> Response {
+        let headers = (*self.headers).clone();
+        Response {
+            response_type: self.response_type.clone(),
+            termination_reason: self.termination_reason.clone(),
+            url: self.url.clone(),
+            url_list: self.url_list.clone(),
+            status: self.status.clone(),
+            raw_status: self.raw_status.clone(),
+            headers: Rc::new(headers),
+            body: self.body.clone(),
+            cache_state: self.cache_state.clone(),
+            https_state: self.https_state.clone(),
+            internal_response: self.internal_response.clone(),
+            return_internal: self.return_internal.clone()
+        }
     }
 }
