@@ -230,6 +230,7 @@ impl Stylist {
                                     &declarations, false,
                                     parent.map(|p| &**p),
                                     None,
+                                    None,
                                     Box::new(StdoutErrorReporter));
             Some(Arc::new(computed))
         } else {
@@ -242,8 +243,9 @@ impl Stylist {
                                                   pseudo: &PseudoElement,
                                                   parent: &Arc<ComputedValues>)
                                                   -> Option<Arc<ComputedValues>>
-                                                  where E: Element<Impl=TheSelectorImpl> +
-                                                        PresentationalHintsSynthetizer {
+        where E: Element<Impl=TheSelectorImpl> +
+              PresentationalHintsSynthetizer
+    {
         debug_assert!(TheSelectorImpl::pseudo_element_cascade_type(pseudo).is_lazy());
         if self.pseudos_map.get(pseudo).is_none() {
             return None;
@@ -262,8 +264,10 @@ impl Stylist {
         let (computed, _) =
             properties::cascade(self.device.au_viewport_size(),
                                 &declarations, false,
-                                Some(&**parent), None,
+                                Some(&**parent), None, None,
                                 Box::new(StdoutErrorReporter));
+
+
         Some(Arc::new(computed))
     }
 
