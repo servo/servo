@@ -298,8 +298,18 @@ def check_lock(file_name, contents):
     # package names to be neglected (as named by cargo)
     exceptions = ["lazy_static"]
 
-    import toml
-    content = toml.loads(contents)
+    # toml.py has a bug(?) that we trip up in [metadata] sections;
+    # see https://github.com/uiri/toml/issues/61
+    # This should only affect a very few lines (that have embedded ?branch=...),
+    # and most of them won't be in the repo
+    try:
+        import toml
+        content = toml.loads(contents)
+    except:
+        print "WARNING!"
+        print "WARNING! toml parsing failed for Cargo.lock, but ignoring..."
+        print "WARNING!"
+        raise StopIteration
 
     packages = {}
     for package in content.get("package", []):
