@@ -140,6 +140,11 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
         self.dump_indent(0);
     }
 
+    fn dump_style(self) {
+        println!("\nDOM with computed styles:");
+        self.dump_style_indent(0);
+    }
+
     fn opaque(&self) -> OpaqueNode {
         unsafe { self.get_jsmanaged().opaque() }
     }
@@ -320,9 +325,36 @@ impl<'ln> ServoLayoutNode<'ln> {
         }
     }
 
+    fn dump_style_indent(self, indent: u32) {
+        if self.is_element() {
+            let mut s = String::new();
+            for _ in 0..indent {
+                s.push_str("  ");
+            }
+            s.push_str(&self.debug_style_str());
+            println!("{}", s);
+        }
+
+        for kid in self.children() {
+            kid.dump_style_indent(indent + 1);
+        }
+    }
+
     fn debug_str(self) -> String {
         format!("{:?}: changed={} dirty={} dirty_descendants={}",
                 self.script_type_id(), self.has_changed(), self.is_dirty(), self.has_dirty_descendants())
+    }
+
+    fn debug_style_str(self) -> String {
+        if let Some(data) = self.borrow_data() {
+            if let Some(data) = data.style.as_ref() {
+                format!("{:?}: {:?}", self.script_type_id(), data)
+            } else {
+                format!("{:?}: style=None", self.script_type_id())
+            }
+        } else {
+            format!("{:?}: style_data=None", self.script_type_id())
+        }
     }
 
     /// Returns the interior of this node as a `LayoutJS`. This is highly unsafe for layout to
