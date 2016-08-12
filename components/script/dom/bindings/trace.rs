@@ -156,7 +156,7 @@ impl<T: JSTraceable> JSTraceable for Rc<T> {
     }
 }
 
-impl<T: JSTraceable> JSTraceable for Box<T> {
+impl<T: JSTraceable + ?Sized> JSTraceable for Box<T> {
     fn trace(&self, trc: *mut JSTracer) {
         (**self).trace(trc)
     }
