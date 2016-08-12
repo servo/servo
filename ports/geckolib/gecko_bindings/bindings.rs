@@ -310,6 +310,7 @@ extern "C" {
                                       capacity: usize, elem_size: usize);
     pub fn Gecko_ClearPODTArray(array: *mut ::std::os::raw::c_void,
                                 elem_size: usize, elem_align: usize);
+    pub fn Gecko_ClearStyleContents(content: *mut nsStyleContent);
     pub fn Gecko_EnsureImageLayersLength(layers: *mut nsStyleImageLayers,
                                          len: usize);
     pub fn Gecko_InitializeImageLayer(layer: *mut Layer,

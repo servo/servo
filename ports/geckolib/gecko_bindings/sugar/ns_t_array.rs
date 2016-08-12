@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use bindings::Gecko_EnsureTArrayCapacity;
+use bindings;
 use std::mem;
 use std::ops::{Deref, DerefMut};
 use std::os::raw::c_void;
@@ -39,10 +39,7 @@ impl<T> nsTArray<T> {
     unsafe fn header_mut<'a>(&'a mut self) -> &'a mut nsTArrayHeader {
         debug_assert!(!self.mBuffer.is_null());
 
-        let ret: &'a mut nsTArrayHeader = mem::transmute(self.mBuffer);
-        debug_assert!(ret.mLength != 0,
-                      "Manually changing the size of the shared nsTArrayHeader!");
-        ret
+        mem::transmute(self.mBuffer)
     }
 
     #[inline]
@@ -51,21 +48,35 @@ impl<T> nsTArray<T> {
         (self.mBuffer as *const nsTArrayHeader).offset(1) as *mut _
     }
 
-    fn ensure_capacity(&mut self, cap: usize) {
-        unsafe {
-            Gecko_EnsureTArrayCapacity(self as *mut nsTArray<T> as *mut c_void, cap, mem::size_of::<T>())
+    /// Ensures the array has enough capacity at least to hold `cap` elements.
+    ///
+    /// NOTE: This doesn't call the constructor on the values!
+    pub fn ensure_capacity(&mut self, cap: usize) {
+        if cap >= self.len() {
+            unsafe {
+                bindings::Gecko_EnsureTArrayCapacity(self as *mut nsTArray<T> as *mut _,
+                                                     cap, mem::size_of::<T>())
+            }
         }
     }
 
+    /// Clears the array storage without calling the destructor on the values.
     #[inline]
-    fn clear(&mut self)
+    pub unsafe fn clear(&mut self) {
+        if self.len() != 0 {
+            bindings::Gecko_ClearPODTArray(self as *mut nsTArray<T> as *mut _,
+                                           mem::size_of::<T>(),
+                                           mem::align_of::<T>());
+        }
+    }
+
+
+    /// Clears a POD array. This is safe since copy types are memcopyable.
+    #[inline]
+    pub fn clear_pod(&mut self)
         where T: Copy
     {
-        unsafe {
-            Gecko_ClearPODTArray(self as *mut _,
-                                 mem::size_of::<T>(),
-                                 mem::align_of::<T>());
-        }
+        unsafe { self.clear() }
     }
 
     // unsafe because the array may contain uninits

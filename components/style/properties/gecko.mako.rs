@@ -1339,6 +1339,80 @@ fn static_assert() {
     ${impl_coord_copy('column_width', 'mColumnWidth')}
 </%self:impl_trait>
 
+<%self:impl_trait style_struct_name="Counters"
+                  skip_longhands="content">
+    pub fn set_content(&mut self, v: longhands::content::computed_value::T) {
+        use properties::longhands::content::computed_value::T;
+        use properties::longhands::content::computed_value::ContentItem;
+        use gecko_bindings::structs::nsStyleContentType::*;
+        use gecko_bindings::bindings::Gecko_ClearStyleContents;
+
+        // Converts a string as utf16, and returns an owned, zero-terminated raw buffer.
+        fn as_utf16_and_forget(s: &str) -> *mut u16 {
+            use std::mem;
+            let mut vec = s.encode_utf16().collect::<Vec<_>>();
+            vec.push(0u16);
+            let ptr = vec.as_mut_ptr();
+            mem::forget(vec);
+            ptr
+        }
+
+        match v {
+            T::none |
+            T::normal => {
+                if !self.gecko.mContents.is_empty() {
+                    unsafe {
+                        Gecko_ClearStyleContents(&mut self.gecko);
+                    }
+                }
+            },
+            T::Content(items) => {
+                // Ensure destructors run, otherwise we could leak.
+                if !self.gecko.mContents.is_empty() {
+                    unsafe {
+                        Gecko_ClearStyleContents(&mut self.gecko);
+                    }
+                }
+                // NB: set_len also reserves the appropriate space.
+                unsafe { self.gecko.mContents.set_len(items.len() as u32) }
+                for (i, item) in items.into_iter().enumerate() {
+                    // TODO: Servo lacks support for attr(), and URIs,
+                    if cfg!(debug_assertions) {
+                        // We don't support images, but need to remember to
+                        // explicitly set this.
+                        self.gecko.mContents[i].mImageTracked = false;
+                    }
+                    match item {
+                        ContentItem::String(value) => {
+                            self.gecko.mContents[i].mType = eStyleContentType_String;
+                            unsafe {
+                                // NB: we share allocators, so doing this is fine.
+                                *self.gecko.mContents[i].mContent.mString.as_mut() =
+                                    as_utf16_and_forget(&value);
+                            }
+                        }
+                        ContentItem::OpenQuote
+                            => self.gecko.mContents[i].mType = eStyleContentType_OpenQuote,
+                        ContentItem::CloseQuote
+                            => self.gecko.mContents[i].mType = eStyleContentType_CloseQuote,
+                        ContentItem::NoOpenQuote
+                            => self.gecko.mContents[i].mType = eStyleContentType_NoOpenQuote,
+                        ContentItem::NoCloseQuote
+                            => self.gecko.mContents[i].mType = eStyleContentType_NoCloseQuote,
+                        ContentItem::Counter(..) |
+                        ContentItem::Counters(..)
+                            => self.gecko.mContents[i].mType = eStyleContentType_Uninitialized,
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn copy_content_from(&mut self, other: &Self) {
+        // TODO.
+    }
+</%self:impl_trait>
+
 <%def name="define_ffi_struct_accessor(style_struct)">
 #[no_mangle]
 #[allow(non_snake_case, unused_variables)]
