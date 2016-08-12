@@ -25,7 +25,7 @@ from mach.decorators import (
     Command,
 )
 
-from servo.command_base import CommandBase, call, check_call
+from servo.command_base import CommandBase, call, check_call, host_triple
 from wptrunner import wptcommandline
 from update import updatecommandline
 from servo_tidy import tidy
@@ -218,10 +218,11 @@ class MachCommands(CommandBase):
             args += ["--features", "%s" % ' '.join(features)]
 
         env = self.build_env()
-        env[b"RUST_BACKTRACE"] = b"1"
+        env["RUST_BACKTRACE"] = "1"
 
-#        if sys.platform == "win32" or sys.platform == "msys":
-#            env["RUSTFLAGS"] = "-C link-args=-Wl,--subsystem,windows"
+        if sys.platform in ("win32", "msys"):
+            if "msvc" not in host_triple():
+                env["RUSTFLAGS"] = "-C link-args=-Wl,--subsystem,windows"
 
         result = call(args, env=env, cwd=self.servo_crate())
         if result != 0:
