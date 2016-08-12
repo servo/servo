@@ -162,7 +162,7 @@ impl Pipeline {
                     pipeline_port: pipeline_port,
                     layout_to_constellation_chan: state.layout_to_constellation_chan.clone(),
                     content_process_shutdown_chan: layout_content_process_shutdown_chan.clone(),
-                    layout_threads: opts::get().layout_threads,
+                    layout_threads: PREFS.get("layout.threads").as_u64().expect("count") as usize,
                 };
 
                 if let Err(e) = script_chan.send(ConstellationControlMsg::AttachLayout(new_layout_info)) {
@@ -474,7 +474,8 @@ impl UnprivilegedPipelineContent {
                     self.mem_profiler_chan,
                     self.layout_content_process_shutdown_chan,
                     self.webrender_api_sender,
-                    opts::get().layout_threads);
+                    self.prefs.get("layout.threads").expect("exists").value()
+                        .as_u64().expect("count") as usize);
 
         if wait_for_completion {
             let _ = self.script_content_process_shutdown_port.recv();
