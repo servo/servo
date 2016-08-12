@@ -1,0 +1,40 @@
+<!doctype html>
+<meta charset=utf-8>
+<title></title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+  promise_test(function() {
+      var t = new TestBinding;
+      return t.returnResolvedPromise('success')
+          .then(function(s) {
+              assert_equals(s, 'success');
+          });
+  }, 'Resolve callback gets argument');
+
+  promise_test(function(test) {
+      var t = new TestBinding;
+      return t.returnRejectedPromise('success')
+          .then(test.unreached_func())
+          .catch(function(s) {
+              assert_equals(s, 'success');
+          });
+  }, 'Reject callback gets argument');
+
+  promise_test(function(test) {
+      var t = new TestBinding;
+      var p = t.promiseNativeHandler(function(v) {
+          assert_equals(v, 'success');
+      }, null);
+      return Promise.resolve('success').then(p);
+  }, 'Native resolve callback gets argument');
+
+  promise_test(function(test) {
+      var t = new TestBinding;
+      var p = t.promiseNativeHandler(null, function(v) {
+          assert_equals(v, 'success');
+      });
+      p.then(test.unreached_func());
+      return Promise.resolve('success').then(p);
+  }, 'Native resolve callback gets argument');
+</script>
