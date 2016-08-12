@@ -791,7 +791,6 @@ impl fmt::Debug for StackingContext {
 
 /// One drawing command in the list.
 #[derive(Clone, Deserialize, HeapSizeOf, Serialize)]
-#[serde(bound = "")] // Prevent serde from generating cyclic bounds.
 pub enum DisplayItem {
     SolidColorClass(Box<SolidColorDisplayItem>),
     TextClass(Box<TextDisplayItem>),

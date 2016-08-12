@@ -59,7 +59,6 @@ pub enum LogEntry {
 
 /// Messages from the script to the constellation.
 #[derive(Deserialize, Serialize)]
-#[serde(bound = "")] // Prevent serde from generating cyclic bounds.
 pub enum ScriptMsg {
     /// Indicates whether this pipeline is currently running animations.
     ChangeRunningAnimationsState(PipelineId, AnimationState),
