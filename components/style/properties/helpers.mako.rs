@@ -167,6 +167,7 @@
             use parser::{ParserContext, ParserContextExtraData};
             use properties::{CSSWideKeyword, DeclaredValue, Shorthand};
         % endif
+        use cascade_info::CascadeInfo;
         use error_reporting::ParseErrorReporter;
         use properties::longhands;
         use properties::property_bit_field::PropertyBitField;
@@ -185,6 +186,7 @@
                                 context: &mut computed::Context,
                                 seen: &mut PropertyBitField,
                                 cacheable: &mut bool,
+                                cascade_info: &mut Option<<&mut CascadeInfo>,
                                 error_reporter: &mut StdBox<ParseErrorReporter + Send>) {
             let declared_value = match *declaration {
                 PropertyDeclaration::${property.camel_case}(ref declared_value) => {
@@ -200,7 +202,13 @@
                 {
                     let custom_props = context.style().custom_properties();
                     ::properties::substitute_variables_${property.ident}(
-                        declared_value, &custom_props, |value| match *value {
+                        declared_value, &custom_props,
+                    |value| {
+                        if let Some(ref mut cascade_info) = *cascade_info {
+                            cascade_info.on_cascade_property(&declaration,
+                                                             &value);
+                        }
+                        match *value {
                             DeclaredValue::Value(ref specified_value) => {
                                 let computed = specified_value.to_computed_value(context);
                                 context.mutate_style().mutate_${data.current_style_struct.name_lower}()
@@ -226,8 +234,8 @@
                                 context.mutate_style().mutate_${data.current_style_struct.name_lower}()
                                        .copy_${property.ident}_from(inherited_struct);
                             }
-                        }, error_reporter
-                    );
+                        }
+                    }, error_reporter);
                 }
 
                 % if property.custom_cascade:

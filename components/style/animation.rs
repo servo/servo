@@ -394,6 +394,7 @@ fn compute_style_for_animation_step(context: &SharedStyleContext,
                                                     false,
                                                     Some(previous_style),
                                                     None,
+                                                    None,
                                                     context.error_reporter.clone());
             computed
         }
