@@ -895,6 +895,12 @@ impl BlockFlow {
                     !had_children_with_clearance);
                 translate_including_floats(&mut cur_b, delta, &mut floats);
 
+                // Collapse-through margins should be placed at the top edge,
+                // so we'll handle the delta after the bottom margin is processed
+                if let CollapsibleMargins::CollapseThrough(_) = flow::base(kid).collapsible_margins {
+                    cur_b = cur_b - delta;
+                }
+
                 // Clear past the floats that came in, if necessary.
                 let clearance = match (flow::base(kid).flags.contains(CLEARS_LEFT),
                                        flow::base(kid).flags.contains(CLEARS_RIGHT)) {
@@ -926,6 +932,17 @@ impl BlockFlow {
                     margin_collapse_info.advance_block_end_margin(&kid_base.collapsible_margins);
                 translate_including_floats(&mut cur_b, delta, &mut floats);
 
+                // Collapse-through margin should be placed at the top edge of the flow.
+                let collapse_delta = match kid_base.collapsible_margins {
+                    CollapsibleMargins::CollapseThrough(_) => {
+                        let delta = margin_collapse_info.current_float_ceiling();
+                        cur_b = cur_b + delta;
+                        kid_base.position.start.b = kid_base.position.start.b + delta;
+                        delta
+                    }
+                    _ => Au(0)
+                };
+
                 if break_at.is_some() {
                     break
                 }
@@ -938,6 +955,10 @@ impl BlockFlow {
                     }
                     ctx.this_fragment_is_empty = false
                 }
+
+                // For consecutive collapse-through flows, their top margin should be calculated
+                // from the same baseline.
+                cur_b = cur_b - collapse_delta;
             }
 
             // Add in our block-end margin and compute our collapsible margins.
