@@ -11,16 +11,16 @@ name = "gfx"
 path = "lib.rs"
 
 [dependencies]
-app_units = "0.2.5"
+app_units = "0.3"
 azure = {git = "https://github.com/servo/rust-azure", features = ["plugins"]}
 bitflags = "0.7"
-euclid = "0.8.2"
+euclid = "0.9"
 fnv = "1.0"
 gfx_traits = {path = "../gfx_traits"}
 harfbuzz-sys = "0.1"
 heapsize = "0.3.0"
 heapsize_plugin = "0.1.2"
-ipc-channel = "0.4.0"
+ipc-channel = "0.5"
 layers = {git = "https://github.com/servo/rust-layers", features = ["plugins"]}
 lazy_static = "0.2"
 libc = "0.2"
@@ -34,15 +34,15 @@ profile_traits = {path = "../profile_traits"}
 rand = "0.3"
 range = {path = "../range"}
 rustc-serialize = "0.3"
-serde = "0.7.15"
-serde_macros = "0.7.15"
+serde = "0.8"
+serde_macros = "0.8"
 smallvec = "0.1"
-string_cache = {version = "0.2.20", features = ["heap_size"]}
+string_cache = {version = "0.2.23", features = ["heap_size"]}
 style = {path = "../style"}
 style_traits = {path = "../style_traits"}
 time = "0.1.12"
 unicode-script = {version = "0.1", features = ["harfbuzz"]}
-url = {version = "1.0.0", features = ["heap_size"]}
+url = {version = "1.2", features = ["heap_size"]}
 util = {path = "../util"}
 xi-unicode = "0.0.1"
 
@@ -54,8 +54,8 @@ features = ["serde_macros"]
 [target.'cfg(target_os = "macos")'.dependencies]
 byteorder = "0.5"
 core-foundation = "0.2"
-core-graphics = "0.3"
-core-text = "1.1"
+core-graphics = "0.4"
+core-text = "2.0"
 
 [target.'cfg(any(target_os = "linux", target_os = "android", target_os = "windows"))'.dependencies]
 freetype = {git = "https://github.com/servo/rust-freetype"}

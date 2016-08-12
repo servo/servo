@@ -12,13 +12,13 @@ path = "lib.rs"
 [dependencies]
 azure = {git = "https://github.com/servo/rust-azure", features = ["plugins"]}
 canvas_traits = {path = "../canvas_traits"}
-euclid = "0.8.2"
+euclid = "0.9"
 gfx_traits = {path = "../gfx_traits"}
 gleam = "0.2.8"
-ipc-channel = "0.4.0"
+ipc-channel = "0.5"
 log = "0.3.5"
 num-traits = "0.1.32"
-offscreen_gl_context = "0.2.0"
+offscreen_gl_context = "0.3"
 plugins = {path = "../plugins"}
 util = {path = "../util"}
 

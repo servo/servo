@@ -6,6 +6,7 @@ use file_loader;
 use hyper::header::ContentType;
 use hyper::http::RawStatus;
 use hyper::mime::{Mime, SubLevel, TopLevel};
+use hyper_serde::Serde;
 use mime_classifier::MimeClassifier;
 use net_traits::ProgressMsg::Done;
 use net_traits::response::HttpsState;
@@ -33,10 +34,11 @@ pub fn factory(mut load_data: LoadData,
         "blank" => {
             let metadata = Metadata {
                 final_url: load_data.url,
-                content_type: Some(ContentType(Mime(TopLevel::Text, SubLevel::Html, vec![]))),
+                content_type:
+                    Some(Serde(ContentType(Mime(TopLevel::Text, SubLevel::Html, vec![])))),
                 charset: Some("utf-8".to_owned()),
                 headers: None,
-                status: Some(RawStatus(200, "OK".into())),
+                status: Some(Serde(RawStatus(200, "OK".into()))),
                 https_state: HttpsState::None,
                 referrer: None,
             };

@@ -19,6 +19,7 @@ use hyper::header::{IfNoneMatch, Pragma, Location, QualityItem, Referer as Refer
 use hyper::method::Method;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper::status::StatusCode;
+use hyper_serde::Serde;
 use mime_guess::guess_mime_type;
 use msg::constellation_msg::ReferrerPolicy;
 use net_traits::FetchTaskTarget;
@@ -996,7 +997,8 @@ fn http_network_fetch(request: Rc<Request>,
                             if let Some(pipeline_id) = pipeline_id {
                                 send_response_to_devtools(
                                     &sender, request_id.into(),
-                                    meta_headers, meta_status,
+                                    meta_headers.map(Serde::into_inner),
+                                    meta_status.map(Serde::into_inner),
                                     pipeline_id);
                             }
                         }

@@ -6,6 +6,7 @@ use filemanager_thread::{FileManager, UIProvider};
 use hyper::header::{DispositionType, ContentDisposition, DispositionParam};
 use hyper::header::{Headers, ContentType, ContentLength, Charset};
 use hyper::http::RawStatus;
+use hyper_serde::Serde;
 use ipc_channel::ipc;
 use mime::{Mime, Attr};
 use mime_classifier::MimeClassifier;
@@ -68,11 +69,11 @@ fn load_blob<UI: 'static + UIProvider>
 
                 let metadata = Metadata {
                     final_url: load_data.url.clone(),
-                    content_type: Some(ContentType(content_type.clone())),
+                    content_type: Some(Serde(ContentType(content_type.clone()))),
                     charset: charset.map(|c| c.as_str().to_string()),
-                    headers: Some(headers),
+                    headers: Some(Serde(headers)),
                     // https://w3c.github.io/FileAPI/#TwoHundredOK
-                    status: Some(RawStatus(200, "OK".into())),
+                    status: Some(Serde(RawStatus(200, "OK".into()))),
                     https_state: HttpsState::None,
                     referrer: None,
                 };

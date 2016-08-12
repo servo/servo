@@ -21,6 +21,7 @@ extern crate device;
 extern crate devtools_traits;
 extern crate flate2;
 extern crate hyper;
+extern crate hyper_serde;
 extern crate immeta;
 extern crate ipc_channel;
 #[macro_use] extern crate lazy_static;

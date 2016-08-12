@@ -27,6 +27,7 @@ use dom::window::ScriptHelpers;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::size::Size2D;
+use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{JSContext, HandleValue};
 use js::jsval::UndefinedValue;
@@ -194,7 +195,7 @@ pub fn handle_get_active_element(context: &BrowsingContext,
 
 pub fn handle_get_cookies(context: &BrowsingContext,
                          _pipeline: PipelineId,
-                         reply: IpcSender<Vec<Cookie>>) {
+                         reply: IpcSender<Vec<Serde<Cookie>>>) {
     let document = context.active_document();
     let url = document.url();
     let (sender, receiver) = ipc::channel().unwrap();
@@ -209,7 +210,7 @@ pub fn handle_get_cookies(context: &BrowsingContext,
 pub fn handle_get_cookie(context: &BrowsingContext,
                          _pipeline: PipelineId,
                          name: String,
-                         reply: IpcSender<Vec<Cookie>>) {
+                         reply: IpcSender<Vec<Serde<Cookie>>>) {
     let document = context.active_document();
     let url = document.url();
     let (sender, receiver) = ipc::channel().unwrap();

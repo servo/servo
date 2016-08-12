@@ -12,6 +12,7 @@
 extern crate bitflags;
 extern crate heapsize;
 extern crate hyper;
+extern crate hyper_serde;
 extern crate ipc_channel;
 extern crate serde;
 extern crate url;

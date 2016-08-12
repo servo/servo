@@ -15,19 +15,19 @@ servo = ["serde", "serde_macros", "ipc-channel", "app_units/plugins",
          "euclid/unstable", "url/heap_size", "url/serde", "plugins"]
 
 [dependencies]
-app_units = "0.2.5"
+app_units = "0.3"
 bitflags = "0.7"
-euclid = "0.8.2"
+euclid = "0.9"
 getopts = "0.2.11"
 heapsize = "0.3.0"
-ipc-channel = {version = "0.4.0", optional = true}
+ipc-channel = {version = "0.5", optional = true}
 lazy_static = "0.2"
 log = "0.3.5"
 num_cpus = "0.2.2"
 rustc-serialize = "0.3"
-serde = {version = "0.7.11", optional = true}
-serde_macros = {version = "0.7.11", optional = true}
-url = "1.0.0"
+serde = {version = "0.8", optional = true}
+serde_macros = {version = "0.8", optional = true}
+url = "1.2"
 plugins = {path = "../plugins", optional = true}
 
 [dev-dependencies]

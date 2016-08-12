@@ -153,12 +153,12 @@ impl ActorRegistry {
                           msg: &BTreeMap<String, Value>,
                           stream: &mut TcpStream)
                           -> Result<(), ()> {
-        let to = msg.get("to").unwrap().as_string().unwrap();
+        let to = msg.get("to").unwrap().as_str().unwrap();
 
         match self.actors.get(to) {
             None => debug!("message received for unknown actor \"{}\"", to),
             Some(actor) => {
-                let msg_type = msg.get("type").unwrap().as_string().unwrap();
+                let msg_type = msg.get("type").unwrap().as_str().unwrap();
                 if try!(actor.handle_message(self, msg_type, msg, stream))
                         != ActorMessageStatus::Processed {
                     debug!("unexpected message type \"{}\" found for actor \"{}\"",

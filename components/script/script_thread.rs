@@ -55,6 +55,7 @@ use hyper::header::{ContentType, Headers, HttpDate, LastModified};
 use hyper::header::{ReferrerPolicy as ReferrerPolicyHeader};
 use hyper::method::Method;
 use hyper::mime::{Mime, SubLevel, TopLevel};
+use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::glue::GetWindowProxyClass;
@@ -1695,7 +1696,7 @@ impl ScriptThread {
             headers.get().map(|&LastModified(HttpDate(ref tm))| dom_last_modified(tm))
         });
 
-        let content_type = metadata.content_type.as_ref().and_then(|&ContentType(ref mimetype)| {
+        let content_type = metadata.content_type.as_ref().and_then(|&Serde(ContentType(ref mimetype))| {
             match *mimetype {
                 Mime(TopLevel::Application, SubLevel::Xml, _) |
                 Mime(TopLevel::Application, SubLevel::Ext(_), _) |
@@ -1710,8 +1711,8 @@ impl ScriptThread {
                                                       Some(incomplete.url.clone()));
 
         let is_html_document = match metadata.content_type {
-            Some(ContentType(Mime(TopLevel::Application, SubLevel::Xml, _))) |
-            Some(ContentType(Mime(TopLevel::Text, SubLevel::Xml, _))) =>
+            Some(Serde(ContentType(Mime(TopLevel::Application, SubLevel::Xml, _)))) |
+            Some(Serde(ContentType(Mime(TopLevel::Text, SubLevel::Xml, _)))) =>
                 IsHTMLDocument::NonHTMLDocument,
             _ => IsHTMLDocument::HTMLDocument,
         };
@@ -1797,11 +1798,11 @@ impl ScriptThread {
         document.set_https_state(metadata.https_state);
 
         let is_xml = match metadata.content_type {
-            Some(ContentType(Mime(TopLevel::Application, SubLevel::Ext(ref sub_level), _)))
+            Some(Serde(ContentType(Mime(TopLevel::Application, SubLevel::Ext(ref sub_level), _))))
                 if sub_level.ends_with("+xml") => true,
 
-            Some(ContentType(Mime(TopLevel::Application, SubLevel::Xml, _))) |
-            Some(ContentType(Mime(TopLevel::Text, SubLevel::Xml, _))) => true,
+            Some(Serde(ContentType(Mime(TopLevel::Application, SubLevel::Xml, _)))) |
+            Some(Serde(ContentType(Mime(TopLevel::Text, SubLevel::Xml, _)))) => true,
 
             _ => false,
         };

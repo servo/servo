@@ -28,6 +28,7 @@ use html5ever::tree_builder;
 use html5ever::tree_builder::{TreeBuilder, TreeBuilderOpts};
 use hyper::header::ContentType;
 use hyper::mime::{Mime, SubLevel, TopLevel};
+use hyper_serde::Serde;
 use js::jsapi::JSTracer;
 use msg::constellation_msg::{PipelineId, SubpageId};
 use net_traits::{AsyncResponseListener, Metadata, NetworkError};
@@ -98,7 +99,8 @@ impl AsyncResponseListener for ParserContext {
             },
             Err(_) => None,
         };
-        let content_type = metadata.clone().and_then(|meta| meta.content_type);
+        let content_type =
+            metadata.clone().and_then(|meta| meta.content_type).map(Serde::into_inner);
         let parser = match ScriptThread::page_headers_available(&self.id,
                                                                 self.subpage.as_ref(),
                                                                 metadata) {

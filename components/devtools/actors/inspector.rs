@@ -106,7 +106,7 @@ impl Actor for NodeActor {
                       stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "modifyAttributes" => {
-                let target = msg.get("to").unwrap().as_string().unwrap();
+                let target = msg.get("to").unwrap().as_str().unwrap();
                 let mods = msg.get("modifications").unwrap().as_array().unwrap();
                 let modifications = mods.iter().map(|json_mod| {
                     serde_json::from_str(&serde_json::to_string(json_mod).unwrap()).unwrap()
@@ -310,7 +310,7 @@ impl Actor for WalkerActor {
             }
 
             "children" => {
-                let target = msg.get("node").unwrap().as_string().unwrap();
+                let target = msg.get("node").unwrap().as_str().unwrap();
                 let (tx, rx) = ipc::channel().unwrap();
                 self.script_chan.send(GetChildren(self.pipeline,
                                                   registry.actor_to_script(target.to_owned()),
@@ -478,7 +478,7 @@ impl Actor for PageStyleActor {
 
             //TODO: query script for box layout properties of node (msg.node)
             "getLayout" => {
-                let target = msg.get("node").unwrap().as_string().unwrap();
+                let target = msg.get("node").unwrap().as_str().unwrap();
                 let (tx, rx) = ipc::channel().unwrap();
                 self.script_chan.send(GetLayout(self.pipeline,
                                       registry.actor_to_script(target.to_owned()),
@@ -493,7 +493,7 @@ impl Actor for PageStyleActor {
                 } = try!(rx.recv().unwrap().ok_or(()));
 
                 let auto_margins = msg.get("autoMargins")
-                    .and_then(&Value::as_boolean).unwrap_or(false);
+                    .and_then(&Value::as_bool).unwrap_or(false);
 
                 // http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/styles.js
                 let msg = GetLayoutReply {

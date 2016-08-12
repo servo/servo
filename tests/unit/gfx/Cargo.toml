@@ -11,5 +11,5 @@ doctest = false
 
 [dependencies]
 gfx = {path = "../../../components/gfx"}
-ipc-channel = "0.4.0"
+ipc-channel = "0.5"
 style = {path = "../../../components/style"}

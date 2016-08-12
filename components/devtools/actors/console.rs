@@ -103,7 +103,7 @@ impl Actor for ConsoleActor {
         Ok(match msg_type {
             "getCachedMessages" => {
                 let str_types = msg.get("messageTypes").unwrap().as_array().unwrap().into_iter().map(|json_type| {
-                    json_type.as_string().unwrap()
+                    json_type.as_str().unwrap()
                 });
                 let mut message_types = CachedConsoleMessageTypes::empty();
                 for str_type in str_types {
@@ -154,7 +154,7 @@ impl Actor for ConsoleActor {
                                          .as_array()
                                          .unwrap_or(&vec!())
                                          .iter()
-                                         .map(|listener| listener.as_string().unwrap().to_owned())
+                                         .map(|listener| listener.as_str().unwrap().to_owned())
                                          .collect(),
                 };
                 stream.write_json_packet(&msg);
@@ -174,7 +174,7 @@ impl Actor for ConsoleActor {
             }
 
             "evaluateJS" => {
-                let input = msg.get("text").unwrap().as_string().unwrap().to_owned();
+                let input = msg.get("text").unwrap().as_str().unwrap().to_owned();
                 let (chan, port) = ipc::channel().unwrap();
                 self.script_chan.send(DevtoolScriptControlMsg::EvaluateJS(
                     self.pipeline, input.clone(), chan)).unwrap();

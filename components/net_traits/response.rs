@@ -7,6 +7,7 @@
 use hyper::header::{AccessControlExposeHeaders, ContentType, Headers};
 use hyper::http::RawStatus;
 use hyper::status::StatusCode;
+use hyper_serde::Serde;
 use std::ascii::AsciiExt;
 use std::cell::{Cell, RefCell};
 use std::sync::{Arc, Mutex};
@@ -237,8 +238,8 @@ impl Response {
             Some(&ContentType(ref mime)) => Some(mime),
             None => None
         });
-        metadata.headers = Some(self.headers.clone());
-        metadata.status = self.raw_status.clone();
+        metadata.headers = Some(Serde(self.headers.clone()));
+        metadata.status = self.raw_status.clone().map(Serde);
         metadata.https_state = self.https_state;
         return Ok(metadata);
     }

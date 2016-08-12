@@ -10,12 +10,13 @@ path = "lib.rs"
 doctest = false
 
 [dependencies]
-content-blocker = "0.2"
+content-blocker = "0.2.1"
 cookie = "0.2"
 devtools_traits = {path = "../../../components/devtools_traits"}
 flate2 = "0.2.0"
 hyper = "0.9.9"
-ipc-channel = "0.4.0"
+hyper_serde = "0.1.4"
+ipc-channel = "0.5"
 msg = {path = "../../../components/msg"}
 net = {path = "../../../components/net"}
 net_traits = {path = "../../../components/net_traits"}
@@ -23,5 +24,5 @@ plugins = {path = "../../../components/plugins"}
 profile_traits = {path = "../../../components/profile_traits"}
 time = "0.1"
 unicase = "1.0"
-url = {version = "1.0.0", features = ["heap_size"]}
+url = {version = "1.2", features = ["heap_size"]}
 util = {path = "../../../components/util"}

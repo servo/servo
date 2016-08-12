@@ -12,14 +12,15 @@ path = "lib.rs"
 [dependencies]
 bitflags = "0.7"
 brotli = "1.0.6"
-content-blocker = "0.2"
-cookie = { version = "0.2.5", features = ["serialize-serde", "serialize-rustc" ] }
+content-blocker = "0.2.1"
+cookie = {version = "0.2.5", features = ["serialize-rustc"]}
 device = {git = "https://github.com/servo/devices"}
 devtools_traits = {path = "../devtools_traits"}
 flate2 = "0.2.0"
-hyper = {version = "0.9.9", features = ["serde-serialization"]}
+hyper = "0.9.9"
+hyper_serde = "0.1.4"
 immeta = "0.3.1"
-ipc-channel = "0.4.0"
+ipc-channel = "0.5"
 lazy_static = "0.2"
 log = "0.3.5"
 matches = "0.1"
@@ -36,9 +37,9 @@ rustc-serialize = "0.3"
 threadpool = "1.0"
 time = "0.1.17"
 unicase = "1.4.0"
-url = {version = "1.0.0", features = ["heap_size", "rustc-serialize"]}
+url = {version = "1.2", features = ["heap_size", "rustc-serialize"]}
 util = {path = "../util"}
-uuid = {version = "0.2", features = ["v4"]}
+uuid = {version = "0.3", features = ["v4"]}
 websocket = "0.17"
 
 [dependencies.webrender_traits]

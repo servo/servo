@@ -111,8 +111,12 @@ pub enum CORSSettings {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct RequestInit {
+    #[serde(deserialize_with = "::hyper_serde::deserialize",
+            serialize_with = "::hyper_serde::serialize")]
     pub method: Method,
     pub url: Url,
+    #[serde(deserialize_with = "::hyper_serde::deserialize",
+            serialize_with = "::hyper_serde::serialize")]
     pub headers: Headers,
     pub unsafe_request: bool,
     pub same_origin_data: bool,
