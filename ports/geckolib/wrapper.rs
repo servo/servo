@@ -162,6 +162,10 @@ impl<'ln> TNode for GeckoNode<'ln> {
         unimplemented!()
     }
 
+    fn dump_style(self) {
+        unimplemented!()
+    }
+
     fn opaque(&self) -> OpaqueNode {
         let ptr: uintptr_t = self.node as uintptr_t;
         OpaqueNode(ptr)
