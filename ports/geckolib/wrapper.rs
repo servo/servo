@@ -319,15 +319,10 @@ impl<'ln> TNode for GeckoNode<'ln> {
             return None;
         }
 
-        if pseudo.is_some() {
-            // FIXME(emilio): This makes us reconstruct frame for pseudos every
-            // restyle, add a FFI call to get the style context associated with
-            // a PE.
-            return None;
-        }
-
         unsafe {
-            let context_ptr = Gecko_GetStyleContext(self.node);
+            let atom_ptr = pseudo.map(|p| p.as_atom().as_ptr())
+                                 .unwrap_or(ptr::null_mut());
+            let context_ptr = Gecko_GetStyleContext(self.node, atom_ptr);
             context_ptr.as_ref()
         }
     }
