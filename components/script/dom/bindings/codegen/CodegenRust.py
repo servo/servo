@@ -665,10 +665,9 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
     # Helper functions for dealing with failures due to the JS value being the
     # wrong type of value.
     def onFailureNotAnObject(failureCode):
-        return CGGeneric(
-                failureCode or
-                ('throw_type_error(cx, "%s is not an object.");\n'
-                 '%s' % (firstCap(sourceDescription), exceptionCode)))
+        return CGGeneric(failureCode or
+                         ('throw_type_error(cx, "%s is not an object.");\n'
+                          '%s' % (firstCap(sourceDescription), exceptionCode)))
 
     def onFailureInvalidEnumValue(failureCode, passedVarName):
         return CGGeneric(
