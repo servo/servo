@@ -1173,7 +1173,7 @@ fn static_assert() {
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="InheritedText"
-                  skip_longhands="text-align line-height">
+                  skip_longhands="text-align line-height word-spacing">
 
     <% text_align_keyword = Keyword("text-align", "start end left right center justify -moz-center -moz-left " +
                                                   "-moz-right match-parent") %>
@@ -1208,6 +1208,22 @@ fn static_assert() {
     }
 
     <%call expr="impl_coord_copy('line_height', 'mLineHeight')"></%call>
+
+    pub fn set_word_spacing(&mut self, v: longhands::word_spacing::computed_value::T) {
+        use values::computed::LengthOrPercentage::*;
+
+        match v.0 {
+            Some(lop) => match lop {
+                Length(au) => self.gecko.mWordSpacing.set_value(CoordDataValue::Coord(au.0)),
+                Percentage(f) => self.gecko.mWordSpacing.set_value(CoordDataValue::Percent(f)),
+                Calc(l_p) => self.gecko.mWordSpacing.set_value(CoordDataValue::Calc(l_p.into())),
+            },
+            // https://drafts.csswg.org/css-text-3/#valdef-word-spacing-normal
+            None => self.gecko.mWordSpacing.set_value(CoordDataValue::Coord(0)),
+        }
+    }
+
+    <%call expr="impl_coord_copy('word_spacing', 'mWordSpacing')"></%call>
 
 </%self:impl_trait>
 
