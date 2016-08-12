@@ -11,7 +11,7 @@
 use app_units::Au;
 use gecko_bindings::bindings::{RawServoStyleSheetStrong, ServoComputedValuesStrong};
 use gecko_bindings::structs::nsStyleCoord_CalcValue;
-use gecko_bindings::sugar::refptr::HasStrong;
+use gecko_bindings::sugar::refptr::{RefCounted, RawServoStyleSheetBorrowed, ServoComputedValuesBorrowed};
 use properties::ComputedValues;
 use std::mem::transmute;
 use std::ptr::null;
@@ -19,10 +19,11 @@ use std::sync::Arc;
 use stylesheets::Stylesheet;
 use values::computed::{CalcLengthOrPercentage, LengthOrPercentage};
 
-macro_rules! unsafe_impl_strong {
-    ($strong:ty, $servo:ty) => {
-        unsafe impl HasStrong for $servo {
+macro_rules! unsafe_impl_refcounted {
+    ($strong:ident, $borrowed:ident, $servo:ident) => {
+        unsafe impl<'a> RefCounted<'a> for $servo {
             type Strong = $strong;
+            type Borrowed = $borrowed<'a>;
             fn into_strong(x: Arc<Self>) -> Self::Strong {
                 // we can't use a default method for this
                 // because transmute needs to know that the sizes are
@@ -34,12 +35,20 @@ macro_rules! unsafe_impl_strong {
             fn null_strong() -> Self::Strong {
                 unsafe {transmute(null::<Self>())}
             }
+            fn from_borrowed(mut x: Self::Borrowed) -> &'a Arc<Self> {
+                let arc = unsafe { &*(&mut x as *mut Self::Borrowed as *mut Arc<Self>) };
+                debug_assert!(&**arc as *const Self != null());
+                arc
+            }
+            fn into_borrowed(x: &'a Arc<Self>) -> Self::Borrowed {
+                unsafe { *(x as *const Arc<Self> as *const Self::Borrowed) }
+            }
         }
     }
 }
 
-unsafe_impl_strong!(RawServoStyleSheetStrong, Stylesheet);
-unsafe_impl_strong!(ServoComputedValuesStrong, ComputedValues);
+unsafe_impl_refcounted!(RawServoStyleSheetStrong, RawServoStyleSheetBorrowed, Stylesheet);
+unsafe_impl_refcounted!(ServoComputedValuesStrong, ServoComputedValuesBorrowed, ComputedValues);
 
 impl From<CalcLengthOrPercentage> for nsStyleCoord_CalcValue {
     fn from(other: CalcLengthOrPercentage) -> nsStyleCoord_CalcValue {

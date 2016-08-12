@@ -144,6 +144,7 @@ COMPILATION_TARGETS = {
         "void_types": [
             "nsINode", "nsIDocument", "nsIPrincipal", "nsIURI",
         ],
+        "refptr_types": ["ServoComputedValues", "RawServoStyleSheet"]
     }
 }
 
@@ -279,7 +280,12 @@ def build(objdir, target_name, kind_name=None,
         for ty in current_target["void_types"]:
             flags.append("-raw-line")
             flags.append("pub enum {} {{}}".format(ty))
-
+    if "refptr_types" in current_target:
+        for ty in current_target["refptr_types"]:
+            flags.append("-blacklist-type")
+            flags.append("{}Borrowed".format(ty))
+            flags.append("-raw-line")
+            flags.append("use sugar::refptr::{}Borrowed;".format(ty))
     if "structs_types" in current_target:
         for ty in current_target["structs_types"]:
             ty_fragments = ty.split("::")
