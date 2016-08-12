@@ -218,18 +218,19 @@ void do_clip(vec2 pos, vec4 clip_rect, vec4 radius) {
     }
 }
 
-bool point_in_rect(vec2 p, vec2 p0, vec2 p1) {
-    return p.x >= p0.x &&
-           p.y >= p0.y &&
-           p.x <= p1.x &&
-           p.y <= p1.y;
+float squared_distance_from_rect(vec2 p, vec2 origin, vec2 size) {
+    vec2 clamped = clamp(p, origin, origin + size);
+    return distance(clamped, p);
 }
 
-vec2 init_transform_fs(vec3 local_pos, vec4 local_rect) {
+vec2 init_transform_fs(vec3 local_pos, vec4 local_rect, out float fragment_alpha) {
+    fragment_alpha = 1.0;
     vec2 pos = local_pos.xy / local_pos.z;
 
-    if (!point_in_rect(pos, local_rect.xy, local_rect.xy + local_rect.zw)) {
-        discard;
+    float squared_distance = squared_distance_from_rect(pos, local_rect.xy, local_rect.zw);
+    if (squared_distance != 0) {
+        float delta = length(fwidth(local_pos.xy));
+        fragment_alpha = smoothstep(1.0, 0.0, squared_distance / delta * 2);
     }
 
     return pos;
