@@ -1187,6 +1187,10 @@ impl LayoutThread {
             self.root_flow = self.try_get_layout_root(node);
         }
 
+        if opts::get().dump_style_tree {
+            node.dump_style();
+        }
+
         // Perform post-style recalculation layout passes.
         self.perform_post_style_recalc_layout_passes(&data.reflow_info,
                                                      &mut rw_data,

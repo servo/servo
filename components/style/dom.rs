@@ -81,6 +81,8 @@ pub trait TNode : Sized + Copy + Clone {
 
     fn dump(self);
 
+    fn dump_style(self);
+
     fn traverse_preorder(self) -> TreeIterator<Self> {
         TreeIterator::new(self)
     }

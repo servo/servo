@@ -155,6 +155,9 @@ pub struct Opts {
     /// used for testing the hardening of the constellation.
     pub random_pipeline_closure_seed: Option<usize>,
 
+    /// Dumps the DOM after restyle.
+    pub dump_style_tree: bool,
+
     /// Dumps the flow tree after a layout.
     pub dump_flow_tree: bool,
 
@@ -230,6 +233,9 @@ pub struct DebugOptions {
 
     /// Disable antialiasing of rendered text on the HTML canvas element.
     pub disable_canvas_aa: bool,
+
+    /// Print the DOM after each restyle.
+    pub dump_style_tree: bool,
 
     /// Print the flow tree after each layout.
     pub dump_flow_tree: bool,
@@ -314,6 +320,7 @@ impl DebugOptions {
                 "bubble-widths" => debug_options.bubble_widths = true,
                 "disable-text-aa" => debug_options.disable_text_aa = true,
                 "disable-canvas-aa" => debug_options.disable_text_aa = true,
+                "dump-style-tree" => debug_options.dump_style_tree = true,
                 "dump-flow-tree" => debug_options.dump_flow_tree = true,
                 "dump-display-list" => debug_options.dump_display_list = true,
                 "dump-display-list-json" => debug_options.dump_display_list_json = true,
@@ -357,6 +364,7 @@ pub fn print_debug_usage(app: &str) -> ! {
     print_option("bubble-widths", "Bubble intrinsic widths separately like other engines.");
     print_option("disable-text-aa", "Disable antialiasing of rendered text.");
     print_option("disable-canvas-aa", "Disable antialiasing on the HTML canvas element.");
+    print_option("dump-style-tree", "Print the DOM with computed styles after each restyle.");
     print_option("dump-flow-tree", "Print the flow tree after each layout.");
     print_option("dump-display-list", "Print the display list after each layout.");
     print_option("dump-display-list-json", "Print the display list in JSON form.");
@@ -500,6 +508,7 @@ pub fn default_opts() -> Opts {
         random_pipeline_closure_probability: None,
         random_pipeline_closure_seed: None,
         sandbox: false,
+        dump_style_tree: false,
         dump_flow_tree: false,
         dump_display_list: false,
         dump_display_list_json: false,
@@ -807,6 +816,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         paint_flashing: debug_options.paint_flashing,
         enable_text_antialiasing: !debug_options.disable_text_aa,
         enable_canvas_antialiasing: !debug_options.disable_canvas_aa,
+        dump_style_tree: debug_options.dump_style_tree,
         dump_flow_tree: debug_options.dump_flow_tree,
         dump_display_list: debug_options.dump_display_list,
         dump_display_list_json: debug_options.dump_display_list_json,
