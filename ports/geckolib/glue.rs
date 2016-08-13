@@ -264,7 +264,7 @@ pub extern "C" fn Servo_GetComputedValuesForAnonymousBox(parent_style_or_null: *
     let data = PerDocumentStyleData::borrow_mut_from_raw(raw_data);
     data.flush_stylesheets();
 
-    let atom = unsafe { Atom::from_static(pseudo_tag) };
+    let atom = Atom::from(pseudo_tag);
     let pseudo = PseudoElement::from_atom_unchecked(atom, /* anon_box = */ true);
 
     type Helpers = ArcHelpers<ServoComputedValues, ComputedValues>;
@@ -293,7 +293,7 @@ pub extern "C" fn Servo_GetComputedValuesForPseudoElement(parent_style: *mut Ser
         }
     };
 
-    let atom = unsafe { Atom::from_static(pseudo_tag) };
+    let atom = Atom::from(pseudo_tag);
     let pseudo = PseudoElement::from_atom_unchecked(atom, /* anon_box = */ false);
 
     // The stylist consumes stylesheets lazily.
