@@ -12,8 +12,7 @@
 use hyper::method::Method;
 use net_traits::request::{CredentialsMode, Origin, Request};
 use std::ascii::AsciiExt;
-use time;
-use time::{now, Timespec};
+use time::{self, Timespec};
 use url::Url;
 
 /// Union type for CORS cache entries
