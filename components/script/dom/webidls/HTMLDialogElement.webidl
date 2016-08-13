@@ -9,7 +9,6 @@ interface HTMLDialogElement : HTMLElement {
   //void show(optional (MouseEvent or Element) anchor);
   //void showModal(optional (MouseEvent or Element) anchor);
 
-  // https://html.spec.whatwg.org/multipage/#the-dialog-element:dom-dialog-close
   [Throws]
   void close(optional DOMString returnValue);
 };
