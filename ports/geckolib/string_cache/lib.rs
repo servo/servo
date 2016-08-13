@@ -118,6 +118,12 @@ impl WeakAtom {
 
     #[inline]
     pub fn eq_str_ignore_ascii_case(&self, s: &str) -> bool {
+        // NB: We're comparing character lengths here, one encoded in utf-16 and
+        // other in utf-8.
+        if self.len() as usize != s.len() {
+            return false;
+        }
+
         let bytes = s.as_bytes();
         unsafe {
             Gecko_AtomEqualsUTF8IgnoreCase(self.as_ptr(),
