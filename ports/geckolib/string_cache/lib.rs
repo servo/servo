@@ -102,7 +102,8 @@ impl WeakAtom {
         }
     }
 
-    pub fn chars(&self) -> DecodeUtf16<Cloned<slice::Iter<u16>>> {
+    // NOTE: don't expose this, since it's slow, and easy to be misused.
+    fn chars(&self) -> DecodeUtf16<Cloned<slice::Iter<u16>>> {
         char::decode_utf16(self.as_slice().iter().cloned())
     }
 
