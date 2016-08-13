@@ -6,9 +6,22 @@
 //! Ideally, it would be in geckolib itself, but coherence
 //! forces us to keep the traits and implementations here
 
+#![allow(unsafe_code)]
+
 use app_units::Au;
+use gecko_bindings::bindings::{RawServoStyleSheet, ServoComputedValues};
 use gecko_bindings::structs::nsStyleCoord_CalcValue;
+use gecko_bindings::sugar::refptr::HasArcFFI;
+use properties::ComputedValues;
+use stylesheets::Stylesheet;
 use values::computed::{CalcLengthOrPercentage, LengthOrPercentage};
+
+unsafe impl HasArcFFI for Stylesheet {
+    type FFIType = RawServoStyleSheet;
+}
+unsafe impl HasArcFFI for ComputedValues {
+    type FFIType = ServoComputedValues;
+}
 
 impl From<CalcLengthOrPercentage> for nsStyleCoord_CalcValue {
     fn from(other: CalcLengthOrPercentage) -> nsStyleCoord_CalcValue {
