@@ -1,0 +1,72 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Test: Hit testing works well with nested stacking contexts</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .outer-sc {
+    transform: translate(-50px, -50px);
+    position: absolute;
+    width: 250px;
+    height: 250px;
+    top: 250px;
+    left: 250px;
+    background: blue;
+  }
+
+  .outer-sc:hover {
+    background: red;
+  }
+
+  .inner-sc {
+    transform: translate(50px, 50px);
+    position: absolute;
+    width: 250px;
+    height: 250px;
+    top: 250px;
+    left: 250px;
+    background: green;
+  }
+
+  .inner-sc:hover {
+    background: yellow;
+  }
+
+  html, body { margin: 0; padding: 0; }
+</style>
+<div class="outer-sc">
+  <div class="inner-sc">
+  </div>
+</div>
+<script>
+async_test(function(t) {
+  window.onload = t.step_func(function() {
+    // This should be in the middle of the squares:
+    // +-------------+
+    // |             |
+    // |             |
+    // |             |
+    // |             |
+    // |             |
+    // +-------------+
+    //                 . <-- here
+    //                   +-------------+
+    //                   |             |
+    //                   |             |
+    //                   |             |
+    //                   |             |
+    //                   |             |
+    //                   +-------------+
+    //
+    // If we have forgotten to take into account the nested transformations,
+    // then it will report that the inner stacking context is at that point
+    // (but obviously shouldn't).
+    var points = document.elementsFromPoint(450 + 25, 450 + 25);
+    assert_true(points.length > 0,
+                "Should report at least one element");
+    assert_true(points[0].className !== "inner-sc",
+                "Should not be the inner stacking context");
+    t.done();
+  })
+})
+</script>
