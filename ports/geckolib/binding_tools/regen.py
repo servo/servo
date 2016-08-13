@@ -24,7 +24,7 @@ COMPILATION_TARGETS = {
     COMMON_BUILD_KEY: {
         "flags": [
             "-x", "c++", "-std=c++14",
-            "-allow-unknown-types", "-no-bitfield-methods",
+            "-allow-unknown-types", "-no-unstable-rust",
             "-no-type-renaming", "-no-namespaced-constants",
             "-DTRACING=1", "-DIMPL_LIBXUL", "-DMOZ_STYLO_BINDINGS=1",
             "-DMOZILLA_INTERNAL_API", "-DRUST_BINDGEN",
