@@ -84,8 +84,10 @@ pub fn build_display_list_for_subtree(root: &mut FlowRef,
     let flow_root = flow_ref::deref_mut(root);
     let layout_context = LayoutContext::new(shared_layout_context);
     flow_root.traverse_preorder(&ComputeAbsolutePositions { layout_context: &layout_context });
+    let mut children = vec![];
     flow_root.collect_stacking_contexts(root_stacking_context.id,
-                                        &mut root_stacking_context.children);
+                                        &mut children);
+    root_stacking_context.add_children(children);
     let mut build_display_list = BuildDisplayList {
         state: DisplayListBuildState::new(&layout_context,
                                           flow::base(&*flow_root).stacking_context_id),

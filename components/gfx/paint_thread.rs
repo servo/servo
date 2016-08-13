@@ -254,7 +254,7 @@ impl LayerCreator {
                                           parent_origin: &Point2D<Au>,
                                           transform: &Matrix4D<f32>,
                                           perspective: &Matrix4D<f32>) {
-        for kid in stacking_context.children.iter() {
+        for kid in stacking_context.children() {
             while let Some(item) = traversal.advance(stacking_context) {
                 self.create_layers_for_item(item,
                                             parent_origin,
