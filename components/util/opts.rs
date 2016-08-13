@@ -15,7 +15,7 @@ use std::cmp;
 use std::default::Default;
 use std::env;
 use std::fs::{self, File};
-use std::io::{self, Read, Write, stderr};
+use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process;
 use std::sync::atomic::{AtomicBool, ATOMIC_BOOL_INIT, Ordering};

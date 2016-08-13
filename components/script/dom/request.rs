@@ -507,13 +507,13 @@ fn includes_credentials(input: &Url) -> bool {
 
 // TODO: `Readable Stream` object is not implemented in Servo yet.
 // https://fetch.spec.whatwg.org/#concept-body-disturbed
-fn request_is_disturbed(input: &Request) -> bool {
+fn request_is_disturbed(_input: &Request) -> bool {
     false
 }
 
 // TODO: `Readable Stream` object is not implemented in Servo yet.
 // https://fetch.spec.whatwg.org/#concept-body-locked
-fn request_is_locked(input: &Request) -> bool {
+fn request_is_locked(_input: &Request) -> bool {
     false
 }
 
