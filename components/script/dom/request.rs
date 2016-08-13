@@ -32,7 +32,7 @@ use net_traits::request::Request as NetTraitsRequest;
 use net_traits::request::RequestMode as NetTraitsRequestMode;
 use net_traits::request::Type as NetTraitsRequestType;
 use net_traits::request::{Origin, Window};
-use std::cell::{Cell, Ref};
+use std::cell::Cell;
 use url::Url;
 
 #[dom_struct]
@@ -144,7 +144,7 @@ impl Request {
         // Step 12
         let mut request: NetTraitsRequest;
         request = net_request_from_global(global,
-                                          get_current_url(&temporary_request).unwrap().clone(),
+                                          temporary_request.current_url(),
                                           false);
         request.method = temporary_request.method;
         request.headers = temporary_request.headers.clone();
@@ -214,8 +214,6 @@ impl Request {
                                 return Err(Error::Type(
                                     "RequestInit's referrer has invalid origin".to_string()));
                             }
-                            // TODO: Requires Step 7.
-
                             // Step 14.7
                             *request.referer.borrow_mut() = NetTraitsRequestReferer::RefererUrl(parsed_referrer);
                         }
@@ -339,7 +337,7 @@ impl Request {
         }
 
         // Step 31
-        r.Headers().fill(Some(HeadersOrByteStringSequenceSequence::Headers(headers_copy)));
+        try!(r.Headers().fill(Some(HeadersOrByteStringSequenceSequence::Headers(headers_copy))));
 
         // Step 32
         let input_body = if let RequestInfo::Request(ref input_request) = input {
@@ -431,16 +429,6 @@ fn net_request_from_global(global: GlobalRef,
                           Some(origin),
                           is_service_worker_global_scope,
                           Some(pipeline_id))
-}
-
-// https://fetch.spec.whatwg.org/#concept-request-current-url
-fn get_current_url(req: &NetTraitsRequest) -> Option<Ref<Url>> {
-    let url_list = req.url_list.borrow();
-    if url_list.len() > 0 {
-        Some(Ref::map(url_list, |urls| urls.last().unwrap()))
-    } else {
-        None
-    }
 }
 
 fn normalized_method_to_typed_method(m: &str) -> hyper::method::Method {
