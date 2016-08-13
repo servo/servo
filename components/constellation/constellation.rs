@@ -1263,10 +1263,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
             let window_size = old_pipeline.and_then(|old_pipeline| old_pipeline.size);
 
-            if let Some(old_pipeline) = old_pipeline {
-                old_pipeline.freeze();
-            }
-
             (load_data, script_chan, window_size, is_private)
         };
 
@@ -1487,6 +1483,14 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 }
             },
         };
+
+        // Remove any pending pipelines
+        let pending_pipelines = self.pending_frames.iter().map(|p| p.new_pipeline_id).collect::<Vec<_>>();
+        for pipeline_id in pending_pipelines {
+            println!("closing pending frame change {:?}", pipeline_id);
+            self.close_pipeline(pipeline_id, ExitPipelineMode::Normal);
+        }
+
         for (frame_id, pipeline_id) in traversal_info {
             self.traverse_frame_to_pipeline(frame_id, pipeline_id);
         }
@@ -1894,8 +1898,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // of the pipeline being changed) then update the focus pipeline to be
         // the replacement.
         if let Some(old_pipeline_id) = frame_change.old_pipeline_id {
-            if let Some(old_frame_id) = self.pipelines.get(&old_pipeline_id).and_then(|pipeline| pipeline.frame) {
-                if self.focused_pipeline_in_tree(old_frame_id) {
+            if let Some(old_pipeline) = self.pipelines.get(&old_pipeline_id) {
+                old_pipeline.freeze();
+                if old_pipeline.frame.map(|p| self.focused_pipeline_in_tree(p)).unwrap_or(false) {
                     self.focus_pipeline_id = Some(frame_change.new_pipeline_id);
                 }
             }
