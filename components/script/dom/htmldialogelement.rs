@@ -5,11 +5,14 @@
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HTMLDialogElementBinding;
 use dom::bindings::codegen::Bindings::HTMLDialogElementBinding::HTMLDialogElementMethods;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::str::DOMString;
 use dom::document::Document;
+use dom::element::Element;
+use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
-use dom::node::Node;
+use dom::node::{Node, window_from_node};
 use string_cache::Atom;
 
 #[dom_struct]
@@ -55,5 +58,27 @@ impl HTMLDialogElementMethods for HTMLDialogElement {
     // https://html.spec.whatwg.org/multipage/#dom-dialog-returnvalue
     fn SetReturnValue(&self, return_value: DOMString) {
         *self.return_value.borrow_mut() = return_value;
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-dialog-close
+    fn Close(&self, return_value: Option<DOMString>) {
+        let element = self.upcast::<Element>();
+        let target = self.upcast::<EventTarget>();
+        let win = window_from_node(self);
+
+        // Step 1 & 2
+        if element.remove_attribute(&ns!(), &atom!("open")).is_none() {
+            return;
+        }
+
+        // Step 3
+        if let Some(new_value) = return_value {
+            *self.return_value.borrow_mut() = new_value;
+        }
+
+        // TODO: Step 4 implement pending dialog stack removal
+
+        // Step 5
+        win.dom_manipulation_task_source().queue_simple_event(target, atom!("close"), win.r());
     }
 }

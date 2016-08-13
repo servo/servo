@@ -36,10 +36,9 @@
       was_queued = false;
 
   test(function(){
-    assert_throws("INVALID_STATE_ERR", function() {
-      d1.close();
-    });
-  }, "close() on a <dialog> that doesn't have an open attribute throws an InvalidStateError exception");
+    d1.close("closedialog");
+    assert_equals(d1.returnValue, "");
+  }, "close() on a <dialog> that doesn't have an open attribute aborts the steps");
 
   test(function(){
     assert_true(d2.open);
