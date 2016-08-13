@@ -18,6 +18,7 @@ import StringIO
 import subprocess
 import sys
 from licenseck import MPL, APACHE, COPYRIGHT, licenses_toml, licenses_dep_toml
+import colorama
 
 COMMENTS = ["// ", "# ", " *", "/* "]
 
@@ -785,8 +786,10 @@ def scan(only_changed_files=False, progress=True):
     errors = itertools.chain(errors, dep_license_errors, wpt_lint_errors)
     error = None
     for error in errors:
+        colorama.init()
         print "\r\033[94m{}\033[0m:\033[93m{}\033[0m: \033[91m{}\033[0m".format(*error)
     print
     if error is None:
+        colorama.init()
         print "\033[92mtidy reported no errors.\033[0m"
     return int(error is not None)

@@ -16,6 +16,7 @@ VERSION = '0.1.0'
 install_requires = [
     "flake8==2.4.1",
     "toml==0.9.1",
+    "colorama==0.3.7",
 ]
 
 here = os.path.dirname(os.path.abspath(__file__))
