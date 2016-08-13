@@ -89,6 +89,7 @@ test_interfaces([
   "ProgressEvent",
   "RadioNodeList",
   "Range",
+  "Request",
   "Screen",
   "Storage",
   "StorageEvent",

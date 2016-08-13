@@ -10,7 +10,7 @@ use std::mem::swap;
 use url::{Origin as UrlOrigin, Url};
 
 /// An [initiator](https://fetch.spec.whatwg.org/#concept-request-initiator)
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, HeapSizeOf)]
 pub enum Initiator {
     None,
     Download,
@@ -20,14 +20,14 @@ pub enum Initiator {
 }
 
 /// A request [type](https://fetch.spec.whatwg.org/#concept-request-type)
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, HeapSizeOf)]
 pub enum Type {
     None, Audio, Font, Image,
     Script, Style, Track, Video
 }
 
 /// A request [destination](https://fetch.spec.whatwg.org/#concept-request-destination)
-#[derive(Copy, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Copy, Clone, PartialEq, Serialize, Deserialize, HeapSizeOf)]
 pub enum Destination {
     None, Document, Embed, Font, Image, Manifest,
     Media, Object, Report, Script, ServiceWorker,
@@ -35,14 +35,14 @@ pub enum Destination {
 }
 
 /// A request [origin](https://fetch.spec.whatwg.org/#concept-request-origin)
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, HeapSizeOf)]
 pub enum Origin {
     Client,
     Origin(UrlOrigin)
 }
 
 /// A [referer](https://fetch.spec.whatwg.org/#concept-request-referrer)
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, HeapSizeOf)]
 pub enum Referer {
     NoReferer,
     /// Default referer if nothing is specified
@@ -51,7 +51,7 @@ pub enum Referer {
 }
 
 /// A [request mode](https://fetch.spec.whatwg.org/#concept-request-mode)
-#[derive(Copy, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Copy, Clone, PartialEq, Serialize, Deserialize, HeapSizeOf)]
 pub enum RequestMode {
     Navigate,
     SameOrigin,
@@ -60,7 +60,7 @@ pub enum RequestMode {
 }
 
 /// Request [credentials mode](https://fetch.spec.whatwg.org/#concept-request-credentials-mode)
-#[derive(Copy, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Copy, Clone, PartialEq, Serialize, Deserialize, HeapSizeOf)]
 pub enum CredentialsMode {
     Omit,
     CredentialsSameOrigin,
@@ -68,7 +68,7 @@ pub enum CredentialsMode {
 }
 
 /// [Cache mode](https://fetch.spec.whatwg.org/#concept-request-cache-mode)
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, HeapSizeOf)]
 pub enum CacheMode {
     Default,
     NoStore,
@@ -79,7 +79,7 @@ pub enum CacheMode {
 }
 
 /// [Redirect mode](https://fetch.spec.whatwg.org/#concept-request-redirect-mode)
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, HeapSizeOf)]
 pub enum RedirectMode {
     Follow,
     Error,
@@ -87,7 +87,7 @@ pub enum RedirectMode {
 }
 
 /// [Response tainting](https://fetch.spec.whatwg.org/#concept-request-response-tainting)
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, HeapSizeOf)]
 pub enum ResponseTainting {
     Basic,
     CORSTainting,
@@ -95,7 +95,7 @@ pub enum ResponseTainting {
 }
 
 /// [Window](https://fetch.spec.whatwg.org/#concept-request-window)
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, HeapSizeOf)]
 pub enum Window {
     NoWindow,
     Client,
@@ -138,11 +138,13 @@ pub struct RequestInit {
 }
 
 /// A [Request](https://fetch.spec.whatwg.org/#requests) as defined by the Fetch spec
-#[derive(Clone)]
+#[derive(Clone, HeapSizeOf)]
 pub struct Request {
+    #[ignore_heap_size_of = "Defined in hyper"]
     pub method: RefCell<Method>,
     pub local_urls_only: bool,
     pub sandboxed_storage_area_urls: bool,
+    #[ignore_heap_size_of = "Defined in hyper"]
     pub headers: RefCell<Headers>,
     pub unsafe_request: bool,
     pub body: RefCell<Option<Vec<u8>>>,
