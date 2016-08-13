@@ -41,6 +41,7 @@ COMPILATION_TARGETS = {
         "test": True,
         "flags": [
             "-ignore-functions",
+            "-ignore-methods",
         ],
         "includes": [
             "{}/dist/include/nsThemeConstants.h",
@@ -111,6 +112,9 @@ COMPILATION_TARGETS = {
         "raw_lines": [
             "use heapsize::HeapSizeOf;",
         ],
+        "flags": [
+            "-ignore-methods",
+        ],
         "match_headers": [
             "ServoBindings.h",
             "nsStyleStructList.h",
@@ -140,6 +144,7 @@ COMPILATION_TARGETS = {
         "void_types": [
             "nsINode", "nsIDocument", "nsIPrincipal", "nsIURI",
         ],
+        "refptr_types": ["ServoComputedValues", "RawServoStyleSheet"]
     }
 }
 
@@ -275,7 +280,16 @@ def build(objdir, target_name, kind_name=None,
         for ty in current_target["void_types"]:
             flags.append("-raw-line")
             flags.append("pub enum {} {{}}".format(ty))
-
+    if "refptr_types" in current_target:
+        for ty in current_target["refptr_types"]:
+            flags.append("-blacklist-type")
+            flags.append("{}Strong".format(ty))
+            flags.append("-raw-line")
+            flags.append("pub type {0}Strong = ::sugar::refptr::Strong<{0}>;".format(ty))
+            flags.append("-blacklist-type")
+            flags.append("{}Borrowed".format(ty))
+            flags.append("-raw-line")
+            flags.append("pub type {0}Borrowed<'a> = ::sugar::refptr::Borrowed<'a, {0}>;".format(ty))
     if "structs_types" in current_target:
         for ty in current_target["structs_types"]:
             ty_fragments = ty.split("::")
