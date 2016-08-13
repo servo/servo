@@ -273,10 +273,11 @@ impl fmt::Display for Atom {
 impl<'a> From<&'a str> for Atom {
     #[inline]
     fn from(string: &str) -> Atom {
-        debug_assert!(string.len() <= u32::max_value() as usize);
+        debug_assert!(string.as_bytes().len() <= u32::max_value() as usize);
+        let bytes = string.as_bytes();
         unsafe {
             Atom(WeakAtom::new(
-                Gecko_Atomize(string.as_ptr() as *const _, string.len() as u32)
+                Gecko_Atomize(bytes.as_ptr() as *const _, bytes.len() as u32)
             ))
         }
     }
