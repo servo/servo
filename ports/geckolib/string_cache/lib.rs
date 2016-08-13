@@ -182,7 +182,10 @@ impl Atom {
 
     #[inline]
     unsafe fn from_static(ptr: *mut nsIAtom) -> Self {
-        Atom(ptr as *mut WeakAtom)
+        let atom = Atom(ptr as *mut WeakAtom);
+        debug_assert!(atom.is_static(),
+                      "Called from_static for a non-static atom!");
+        atom
     }
 }
 
