@@ -209,24 +209,21 @@ class PackageCommands(CommandBase):
             msi_path = path.join(dir_to_msi, "Servo.msi")
             print("Packaged Servo into {}".format(msi_path))
         else:
+            dir_to_temp = '/'.join(binary_path.split('/')[:-2]) + '/targz'
             dir_to_package = '/'.join(binary_path.split('/')[:-1])
             dir_to_root = '/'.join(binary_path.split('/')[:-3])
-            resources_dir = dir_to_package + '/resources'
-            if os.path.exists(resources_dir):
-                delete(resources_dir)
-            shutil.copytree(dir_to_root + '/resources', resources_dir)
+            resources_dir = dir_to_temp + '/resources'
+            if os.path.exists(dir_to_temp):
+                print("Cleaning up from previous packaging")
+                delete(dir_to_temp)
             browserhtml_path = find_dep_path_newest('browserhtml', binary_path)
             if browserhtml_path is None:
                 print("Could not find browserhtml package; perhaps you haven't built Servo.")
                 return 1
-            print("Deleting unused files")
-            keep = ['servo', 'resources', 'build']
-            for f in os.listdir(dir_to_package + '/'):
-                if f not in keep:
-                    delete(dir_to_package + '/' + f)
-            for f in os.listdir(dir_to_package + '/build/'):
-                if 'browserhtml' not in f:
-                    delete(dir_to_package + '/build/' + f)
+            print("Copying files")
+            shutil.copytree(dir_to_package + '/resources', resources_dir)
+            shutil.copytree(browserhtml_path, resources_dir + browserhtml_path.split('/')[-1])
+
             print("Writing runservo.sh")
             # TODO: deduplicate this arg list from post_build_commands
             servo_args = ['-w', '-b', '-M', '-S',
@@ -235,17 +232,20 @@ class PackageCommands(CommandBase):
                           '--pref', 'shell.builtin-key-shortcuts.enabled=false',
                           path.join('./build/' + browserhtml_path.split('/')[-1], 'out', 'index.html')]
 
-            runservo = os.open(dir_to_package + '/runservo.sh', os.O_WRONLY | os.O_CREAT, int("0755", 8))
+            runservo = os.open(dir_to_temp + '/runservo.sh', os.O_WRONLY | os.O_CREAT, int("0755", 8))
             os.write(runservo, "#!/usr/bin/env sh\n./servo " + ' '.join(servo_args))
             os.close(runservo)
+
             print("Creating tarball")
             tar_path = '/'.join(dir_to_package.split('/')[:-1]) + '/'
             time = datetime.utcnow().replace(microsecond=0).isoformat()
             time = time.replace(':', "-")
             tar_path += time + "-servo-tech-demo.tar.gz"
 
-            archive_deterministically(dir_to_package, tar_path, prepend_path='servo/')
+            archive_deterministically(dir_to_temp, tar_path, prepend_path='servo/')
 
+            print("Cleaning up")
+            delete(dir_to_temp)
             print("Packaged Servo into " + tar_path)
 
     @Command('install',
