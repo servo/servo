@@ -129,6 +129,20 @@ impl WeakAtom {
     }
 
     #[inline]
+    pub fn is_static(&self) -> bool {
+        unsafe {
+            (*self.as_ptr()).mIsStatic() != 0
+        }
+    }
+
+    #[inline]
+    pub fn len(&self) -> u32 {
+        unsafe {
+            (*self.as_ptr()).mLength()
+        }
+    }
+
+    #[inline]
     pub fn as_ptr(&self) -> *mut nsIAtom {
         let const_ptr: *const nsIAtom = &self.0;
         const_ptr as *mut nsIAtom
@@ -158,7 +172,7 @@ impl Atom {
     }
 
     #[inline]
-    pub unsafe fn from_static(ptr: *mut nsIAtom) -> Self {
+    unsafe fn from_static(ptr: *mut nsIAtom) -> Self {
         Atom(ptr as *mut WeakAtom)
     }
 }
@@ -199,8 +213,10 @@ impl Clone for Atom {
 impl Drop for Atom {
     #[inline]
     fn drop(&mut self) {
-        unsafe {
-            Gecko_ReleaseAtom(self.as_ptr());
+        if !self.is_static() {
+            unsafe {
+                Gecko_ReleaseAtom(self.as_ptr());
+            }
         }
     }
 }
@@ -281,8 +297,11 @@ impl From<String> for Atom {
 impl From<*mut nsIAtom> for Atom {
     #[inline]
     fn from(ptr: *mut nsIAtom) -> Atom {
+        debug_assert!(!ptr.is_null());
         unsafe {
-            Gecko_AddRefAtom(ptr);
+            if (*ptr).mIsStatic() == 0 {
+                Gecko_AddRefAtom(ptr);
+            }
             Atom(WeakAtom::new(ptr))
         }
     }
