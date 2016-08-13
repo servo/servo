@@ -260,7 +260,7 @@ impl WebRenderStackingContextConverter for StackingContext {
                                          builder: &mut webrender_traits::DisplayListBuilder,
                                          frame_builder: &mut WebRenderFrameBuilder,
                                          _force_positioned_stacking_level: bool) {
-        for child in self.children.iter() {
+        for child in self.children() {
             while let Some(item) = traversal.advance(self) {
                 item.convert_to_webrender(builder, frame_builder);
             }

@@ -360,7 +360,7 @@ impl DisplayList {
                 return Some(stacking_context);
             }
 
-            for kid in stacking_context.children.iter() {
+            for kid in stacking_context.children() {
                 let result = find_stacking_context_in_stacking_context(kid, stacking_context_id);
                 if result.is_some() {
                     return result;
@@ -449,8 +449,9 @@ impl DisplayList {
         let old_transform = paint_context.draw_target.get_transform();
         let pixels_per_px = paint_context.screen_pixels_per_px();
         let (transform, subpixel_offset) = match stacking_context.layer_info {
-            // If this stacking context starts a layer, the offset and transformation are handled
-            // by layer position within the compositor.
+            // If this stacking context starts a layer, the offset and
+            // transformation are handled by layer position within the
+            // compositor.
             Some(..) => (*transform, *subpixel_offset),
             None => {
                 let origin = stacking_context.bounds.origin + *subpixel_offset;
@@ -606,7 +607,7 @@ pub struct StackingContext {
     pub layer_info: Option<LayerInfo>,
 
     /// Children of this StackingContext.
-    pub children: Vec<Box<StackingContext>>,
+    children: Vec<Box<StackingContext>>,
 }
 
 impl StackingContext {
@@ -640,6 +641,72 @@ impl StackingContext {
             layer_info: layer_info,
             children: Vec::new(),
         }
+    }
+
+    pub fn set_children(&mut self, children: Vec<Box<StackingContext>>) {
+        debug_assert!(self.children.is_empty());
+        // We need to take into account the possible transformations of the
+        // child stacking contexts.
+        for child in &children {
+            self.update_overflow_for_new_child(&child);
+        }
+
+        self.children = children;
+    }
+
+    pub fn add_child(&mut self, child: Box<StackingContext>) {
+        self.update_overflow_for_new_child(&child);
+        self.children.push(child);
+    }
+
+    pub fn add_children(&mut self, children: Vec<Box<StackingContext>>) {
+        if self.children.is_empty() {
+            return self.set_children(children);
+        }
+
+        for child in children {
+            self.add_child(child);
+        }
+    }
+
+    pub fn child_at_mut(&mut self, index: usize) -> &mut StackingContext {
+        &mut *self.children[index]
+    }
+
+    pub fn children(&self) -> &[Box<StackingContext>] {
+        &self.children
+    }
+
+    fn update_overflow_for_new_child(&mut self, child: &StackingContext) {
+        // This children might be transformed, so we need to take into account
+        // its transformed overflow rect too, but at the correct position.
+        //
+        // FIXME(emilio): Should translate the origin, and scale the size.
+        let overflow =
+            child.overflow_rect_taking_transform_and_origin_into_account();
+
+        self.overflow = self.overflow.union(&overflow);
+    }
+
+    fn overflow_rect_taking_transform_and_origin_into_account(&self) -> Rect<Au> {
+        // TODO: short-circuit simple cases.
+        let origin = self.bounds.origin;
+        let origin_x = origin.x.to_f32_px();
+        let origin_y = origin.y.to_f32_px();
+
+        // Translate the origin.
+        let origin = Point2D::new(Au::from_f32_px(origin_x + self.transform.m41),
+                                  Au::from_f32_px(origin_y + self.transform.m42));
+
+        // Scale the size.
+        let size_x = self.overflow.size.width.to_f32_px();
+        let size_y = self.overflow.size.height.to_f32_px();
+        let size = Size2D::new(Au::from_f32_px(size_x * self.transform.m11),
+                               Au::from_f32_px(size_y * self.transform.m22));
+
+        // TODO: Note that rotations could affect too, we need to take into
+        // account the diagonal if there's one.
+        Rect::new(origin, size)
     }
 
     fn hit_test<'a>(&self,
@@ -683,7 +750,7 @@ impl StackingContext {
             }
         }
 
-        for child in self.children.iter() {
+        for child in self.children() {
             while let Some(item) = traversal.advance(self) {
                 if let Some(meta) = item.hit_test(translated_point) {
                     result.push(meta);
@@ -702,7 +769,7 @@ impl StackingContext {
 
     pub fn print_with_tree(&self, print_tree: &mut PrintTree) {
         print_tree.new_level(format!("{:?}", self));
-        for kid in self.children.iter() {
+        for kid in self.children() {
             kid.print_with_tree(print_tree);
         }
         print_tree.end_level();
