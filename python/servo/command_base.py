@@ -116,16 +116,6 @@ def host_triple():
     return "%s-%s" % (cpu_type, os_type)
 
 
-def call(*args, **kwargs):
-    """Wrap `subprocess.call`, printing the command if verbose=True."""
-    verbose = kwargs.pop('verbose', False)
-    if verbose:
-        print(' '.join(args[0]))
-    # we have to use shell=True in order to get PATH handling
-    # when looking for the binary on Windows
-    return subprocess.call(*args, shell=sys.platform == 'win32', **kwargs)
-
-
 def normalize_env(env):
     # There is a bug in subprocess where it doesn't like unicode types in
     # environment variables. Here, ensure all unicode are converted to
@@ -142,6 +132,18 @@ def normalize_env(env):
         normalized_env[k] = v
 
     return normalized_env
+
+
+def call(*args, **kwargs):
+    """Wrap `subprocess.call`, printing the command if verbose=True."""
+    verbose = kwargs.pop('verbose', False)
+    if verbose:
+        print(' '.join(args[0]))
+    if 'env' in kwargs:
+        kwargs['env'] = normalize_env(kwargs['env'])
+    # we have to use shell=True in order to get PATH handling
+    # when looking for the binary on Windows
+    return subprocess.call(*args, shell=sys.platform == 'win32', **kwargs)
 
 
 def check_call(*args, **kwargs):
