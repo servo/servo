@@ -82,6 +82,7 @@ pub struct WebGLRenderingContext {
     #[ignore_heap_size_of = "Defined in webrender_traits"]
     last_error: Cell<Option<WebGLError>>,
     texture_unpacking_settings: Cell<TextureUnpacking>,
+    bound_framebuffer: MutNullableHeap<JS<WebGLFramebuffer>>,
     bound_texture_2d: MutNullableHeap<JS<WebGLTexture>>,
     bound_texture_cube_map: MutNullableHeap<JS<WebGLTexture>>,
     bound_buffer_array: MutNullableHeap<JS<WebGLBuffer>>,
@@ -111,6 +112,7 @@ impl WebGLRenderingContext {
                 canvas: JS::from_ref(canvas),
                 last_error: Cell::new(None),
                 texture_unpacking_settings: Cell::new(CONVERT_COLORSPACE),
+                bound_framebuffer: MutNullableHeap::new(None),
                 bound_texture_2d: MutNullableHeap::new(None),
                 bound_texture_cube_map: MutNullableHeap::new(None),
                 bound_buffer_array: MutNullableHeap::new(None),
@@ -511,6 +513,22 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn GetParameter(&self, cx: *mut JSContext, parameter: u32) -> JSVal {
+        // Handle the GL_FRAMEBUFFER_BINDING without going all the way
+        // to the GL, since we would just need to map back from GL's
+        // returned ID to the WebGLFramebuffer we're tracking.
+        match parameter {
+            constants::FRAMEBUFFER_BINDING => {
+                rooted!(in(cx) let mut rval = NullValue());
+                if let Some(bound_fb) = self.bound_framebuffer.get() {
+                    unsafe {
+                        bound_fb.to_jsval(cx, rval.handle_mut());
+                    }
+                }
+                return rval.get()
+            }
+            _ => {}
+        }
+
         let (sender, receiver) = ipc::channel().unwrap();
         self.ipc_renderer
             .send(CanvasMsg::WebGL(WebGLCommand::GetParameter(parameter, sender)))
@@ -671,6 +689,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return self.webgl_error(InvalidOperation);
         }
 
+        self.bound_framebuffer.set(framebuffer);
         if let Some(framebuffer) = framebuffer {
             framebuffer.bind(target)
         } else {
@@ -1083,6 +1102,11 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
     fn DeleteFramebuffer(&self, framebuffer: Option<&WebGLFramebuffer>) {
         if let Some(framebuffer) = framebuffer {
+            if let Some(bound_fb) = self.bound_framebuffer.get() {
+                if bound_fb.id() == framebuffer.id() {
+                    self.bound_framebuffer.set(None);
+                }
+            }
             framebuffer.delete()
         }
     }
@@ -1788,7 +1812,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn VertexAttrib1fv(&self, _cx: *mut JSContext, indx: u32, data: *mut JSObject) {
         if let Some(data_vec) = array_buffer_view_to_vec_checked::<f32>(data) {
-            if data_vec.len() < 4 {
+            if data_vec.len() < 1 {
                 return self.webgl_error(InvalidOperation);
             }
             self.vertex_attrib(indx, data_vec[0], 0f32, 0f32, 1f32)
