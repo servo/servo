@@ -27,7 +27,7 @@ use gecko_bindings::bindings::{Gecko_FontFamilyList_Clear, Gecko_InitializeImage
 use gecko_bindings::bindings::ServoComputedValuesBorrowed;
 use gecko_bindings::structs;
 use gecko_bindings::sugar::ns_style_coord::{CoordDataValue, CoordData, CoordDataMut};
-use gecko_bindings::sugar::refptr::RefCounted;
+use gecko_bindings::sugar::refptr::HasArcFFI;
 use gecko_values::{StyleCoordHelpers, GeckoStyleCoordConvertible, convert_nscolor_to_rgba};
 use gecko_values::convert_rgba_to_nscolor;
 use gecko_values::round_border_to_device_pixels;
