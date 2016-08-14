@@ -11,7 +11,7 @@ shopt -s failglob
 
 
 usage() {
-    printf "usage: ${0} android|linux|mac|windows\n"
+    printf "usage: ${0} android|linux|mac|macbrew|windows\n"
 }
 
 
@@ -44,6 +44,9 @@ main() {
     elif [[ "${platform}" == "mac" ]]; then
         extension=dmg
         package=target/*."${extension}"
+    elif [[ "${platform}" == "macbrew" ]]; then
+        extension=tar.gz
+        package=target/brew/*."${extension}"
     elif [[ "${platform}" == "windows" ]]; then
         extension=msi
         package=target/release/msi/*.msi
