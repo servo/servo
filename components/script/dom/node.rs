@@ -70,7 +70,7 @@ use std::borrow::ToOwned;
 use std::cell::{Cell, UnsafeCell};
 use std::cmp::max;
 use std::default::Default;
-use std::iter::{self, FilterMap, Peekable};
+use std::iter;
 use std::mem;
 use std::ops::Range;
 use string_cache::{Atom, Namespace, QualName};
@@ -781,7 +781,7 @@ impl Node {
         }
     }
 
-    pub fn child_elements(&self) -> ChildElementIterator {
+    pub fn child_elements(&self) -> impl Iterator<Item=Root<Element>> {
         self.children().filter_map(Root::downcast as fn(_) -> _).peekable()
     }
 
@@ -1110,10 +1110,6 @@ impl LayoutNodeHelpers for LayoutJS<Node> {
 //
 // Iteration and traversal
 //
-
-pub type ChildElementIterator =
-    Peekable<FilterMap<NodeSiblingIterator,
-                       fn(Root<Node>) -> Option<Root<Element>>>>;
 
 pub struct NodeSiblingIterator {
     current: Option<Root<Node>>,
@@ -1460,7 +1456,7 @@ impl Node {
                         0 => (),
                         // Step 6.1.2
                         1 => {
-                            if !parent.child_elements().peek().is_none() {
+                            if !parent.child_elements().next().is_none() {
                                 return Err(Error::HierarchyRequest);
                             }
                             if let Some(child) = child {
@@ -1476,7 +1472,7 @@ impl Node {
                 },
                 // Step 6.2
                 NodeTypeId::Element(_) => {
-                    if !parent.child_elements().peek().is_none() {
+                    if !parent.child_elements().next().is_none() {
                         return Err(Error::HierarchyRequest);
                     }
                     if let Some(ref child) = child {
@@ -1503,7 +1499,7 @@ impl Node {
                             }
                         },
                         None => {
-                            if !parent.child_elements().peek().is_none() {
+                            if !parent.child_elements().next().is_none() {
                                 return Err(Error::HierarchyRequest);
                             }
                         },
