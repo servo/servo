@@ -36,8 +36,6 @@ use string_cache::Atom;
 use task_source::TaskSource;
 use time::{self, Timespec, Duration};
 use url::Url;
-#[cfg(not(any(target_os = "android", target_arch = "arm", target_arch = "aarch64")))]
-use video_metadata;
 
 struct HTMLMediaElementContext {
     /// The element that initiated the request.
@@ -161,31 +159,11 @@ impl HTMLMediaElementContext {
         }
     }
 
-    #[cfg(not(any(target_os = "android", target_arch = "arm", target_arch = "aarch64")))]
-    fn check_metadata(&mut self, elem: &HTMLMediaElement) {
-        match video_metadata::get_format_from_slice(&self.data) {
-            Ok(meta) => {
-                let dur = meta.duration.unwrap_or(::std::time::Duration::new(0, 0));
-                *elem.video.borrow_mut() = Some(VideoMedia {
-                    format: format!("{:?}", meta.format),
-                    duration: Duration::seconds(dur.as_secs() as i64) +
-                              Duration::nanoseconds(dur.subsec_nanos() as i64),
-                    width: meta.size.width,
-                    height: meta.size.height,
-                    video: meta.video,
-                    audio: meta.audio,
-                });
-                // Step 6
-                elem.change_ready_state(HAVE_METADATA);
-                self.have_metadata = true;
-            }
-            _ => {}
-        }
-    }
-
-    #[cfg(any(target_os = "android", target_arch = "arm", target_arch = "aarch64"))]
     fn check_metadata(&mut self, elem: &HTMLMediaElement) {
         // Step 6.
+        //
+        // TODO: Properly implement once we have figured out the build and
+        // licensing ffmpeg issues.
         elem.change_ready_state(HAVE_METADATA);
         self.have_metadata = true;
     }
