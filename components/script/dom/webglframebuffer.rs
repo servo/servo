@@ -33,6 +33,7 @@ pub struct WebGLFramebuffer {
     /// target can only be gl::FRAMEBUFFER at the moment
     target: Cell<Option<u32>>,
     is_deleted: Cell<bool>,
+    size: Cell<Option<(i32, i32)>>,
     status: Cell<u32>,
     #[ignore_heap_size_of = "Defined in ipc-channel"]
     renderer: IpcSender<CanvasMsg>,
@@ -55,6 +56,7 @@ impl WebGLFramebuffer {
             target: Cell::new(None),
             is_deleted: Cell::new(false),
             renderer: renderer,
+            size: Cell::new(None),
             status: Cell::new(constants::FRAMEBUFFER_UNSUPPORTED),
             color: DOMRefCell::new(None),
             depth: DOMRefCell::new(None),
@@ -108,6 +110,10 @@ impl WebGLFramebuffer {
 
     pub fn is_deleted(&self) -> bool {
         self.is_deleted.get()
+    }
+
+    pub fn size(&self) -> Option<(i32, i32)> {
+        self.size.get()
     }
 
     fn update_status(&self) {
@@ -165,6 +171,7 @@ impl WebGLFramebuffer {
                 }
             }
         }
+        self.size.set(fb_size);
 
         if has_c || has_z || has_zs || has_s {
             self.status.set(constants::FRAMEBUFFER_COMPLETE);
