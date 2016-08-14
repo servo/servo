@@ -18,7 +18,7 @@ use gecko_bindings::ptr::{GeckoArcPrincipal, GeckoArcURI};
 use gecko_bindings::structs::ServoElementSnapshot;
 use gecko_bindings::structs::nsRestyleHint;
 use gecko_bindings::structs::{SheetParsingMode, nsIAtom};
-use gecko_bindings::sugar::refptr::RefCounted;
+use gecko_bindings::sugar::refptr::HasArcFFI;
 use snapshot::GeckoElementSnapshot;
 use std::mem::transmute;
 use std::ptr;
@@ -309,9 +309,7 @@ pub extern "C" fn Servo_GetComputedValuesForPseudoElement(parent_style: ServoCom
         if is_probe {
             ComputedValues::null_strong()
         } else {
-            Servo_AddRefComputedValues(parent_style);
-            // XXXManishearth temporary till we can borrow
-            unsafe {transmute(parent_style)}
+            ComputedValues::from_arc(ComputedValues::with(parent_style, |parent| parent.clone()))
         }
     };
 
