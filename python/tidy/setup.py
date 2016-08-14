@@ -11,11 +11,12 @@ import os
 from setuptools import setup, find_packages
 
 
-VERSION = '0.0.3'
+VERSION = '0.1.0'
 
 install_requires = [
     "flake8==2.4.1",
     "toml==0.9.1",
+    "colorama==0.3.7",
 ]
 
 here = os.path.dirname(os.path.abspath(__file__))
@@ -51,7 +52,7 @@ if __name__ == '__main__':
         zip_safe=False,
         entry_points={
             'console_scripts': [
-                'servo-tidy=servo_tidy.tidy:scan'
+                'servo-tidy=servo_tidy.tidy:scan',
             ],
         },
     )

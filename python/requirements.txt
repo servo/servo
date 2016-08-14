@@ -14,4 +14,7 @@ pyflakes == 0.8.1
 # For test-webidl
 ply == 3.8
 
+# For Cross-platform colored terminal text
+colorama == 0.3.7
+
 -e python/tidy
