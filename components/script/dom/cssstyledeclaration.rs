@@ -14,12 +14,11 @@ use dom::element::{Element, StylePriority};
 use dom::node::{Node, NodeDamage, window_from_node};
 use dom::window::Window;
 use std::ascii::AsciiExt;
-use std::cell::Ref;
-use std::slice;
+use std::ops::Deref;
 use string_cache::Atom;
 use style::parser::ParserContextExtraData;
-use style::properties::{PropertyDeclaration, Shorthand};
-use style::properties::{is_supported_property, parse_one_declaration, parse_style_attribute};
+use style::properties::{Shorthand, is_supported_property};
+use style::properties::{parse_one_declaration, parse_style_attribute};
 use style::selector_impl::PseudoElement;
 
 // http://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface
@@ -148,19 +147,9 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
                 }
             }
 
-            // Step 2.3
-            // Work around closures not being Clone
-            #[derive(Clone)]
-            struct Map<'a, 'b: 'a>(slice::Iter<'a, Ref<'b, PropertyDeclaration>>);
-            impl<'a, 'b> Iterator for Map<'a, 'b> {
-                type Item = &'a PropertyDeclaration;
-                fn next(&mut self) -> Option<Self::Item> {
-                    self.0.next().map(|r| &**r)
-                }
-            }
-
             // TODO: important is hardcoded to false because method does not implement it yet
-            let serialized_value = shorthand.serialize_shorthand_value_to_string(Map(list.iter()), false);
+            let serialized_value = shorthand.serialize_shorthand_value_to_string(
+                list.iter().map(Deref::deref as fn(_) -> _), false);
             return DOMString::from(serialized_value);
         }
 
