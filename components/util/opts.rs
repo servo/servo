@@ -55,10 +55,6 @@ pub struct Opts {
     /// and cause it to produce output on that interval (`-m`).
     pub mem_profiler_period: Option<f64>,
 
-    /// The number of threads to use for layout (`-y`). Defaults to 1, which results in a recursive
-    /// sequential algorithm.
-    pub layout_threads: usize,
-
     pub nonincremental_layout: bool,
 
     /// Where to load userscripts from, if any. An empty string will load from
@@ -481,7 +477,6 @@ pub fn default_opts() -> Opts {
         time_profiling: None,
         time_profiler_trace_path: None,
         mem_profiler_period: None,
-        layout_threads: 1,
         nonincremental_layout: false,
         userscripts: None,
         user_stylesheets: Vec::new(),
@@ -671,7 +666,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
                 Ok(interval) => Some(OutputOptions::Stdout(interval)) ,
                 Err(_) => Some(OutputOptions::FileName(argument)),
             },
-            None => Some(OutputOptions::Stdout(5 as f64)),
+            None => Some(OutputOptions::Stdout(5.0 as f64)),
         }
     } else {
         // if the p option doesn't exist:
@@ -691,11 +686,11 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         period.parse().unwrap_or_else(|err| args_fail(&format!("Error parsing option: -m ({})", err)))
     });
 
-    let mut layout_threads: usize = match opt_match.opt_str("y") {
-        Some(layout_threads_str) => layout_threads_str.parse()
-            .unwrap_or_else(|err| args_fail(&format!("Error parsing option: -y ({})", err))),
-        None => cmp::max(num_cpus::get() * 3 / 4, 1),
-    };
+    let mut layout_threads: Option<usize> = opt_match.opt_str("y")
+        .map(|layout_threads_str| {
+            layout_threads_str.parse()
+                .unwrap_or_else(|err| args_fail(&format!("Error parsing option: -y ({})", err)))
+        });
 
     let nonincremental_layout = opt_match.opt_present("i");
 
@@ -714,7 +709,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     let mut bubble_inline_sizes_separately = debug_options.bubble_widths;
     if debug_options.trace_layout {
         paint_threads = 1;
-        layout_threads = 1;
+        layout_threads = Some(1);
         bubble_inline_sizes_separately = true;
     }
 
@@ -786,7 +781,6 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         time_profiling: time_profiling,
         time_profiler_trace_path: opt_match.opt_str("profiler-trace-path"),
         mem_profiler_period: mem_profiler_period,
-        layout_threads: layout_threads,
         nonincremental_layout: nonincremental_layout,
         userscripts: opt_match.opt_default("userscripts", ""),
         user_stylesheets: user_stylesheets,
@@ -853,6 +847,15 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
             Some(&"true") | None => PREFS.set(pref_name, PrefValue::Boolean(true)),
             _ => PREFS.set(pref_name, PrefValue::String(value.unwrap().to_string()))
         };
+    }
+
+    if let Some(layout_threads) = layout_threads {
+        PREFS.set("layout.threads", PrefValue::Number(layout_threads as f64));
+    } else if let Some(layout_threads) = PREFS.get("layout.threads").as_string() {
+        PREFS.set("layout.threads", PrefValue::Number(layout_threads.parse::<f64>().unwrap()));
+    } else if *PREFS.get("layout.threads") == PrefValue::Missing {
+        let layout_threads = cmp::max(num_cpus::get() * 3 / 4, 1);
+        PREFS.set("layout.threads", PrefValue::Number(layout_threads as f64));
     }
 
     ArgumentParsingResult::ChromeProcess

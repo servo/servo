@@ -1716,6 +1716,9 @@ fn cascade_with_cached_declarations(
         context.mutate_style().mutate_font().compute_font_hash();
     }
 
+    let mode = get_writing_mode(context.style.get_inheritedbox());
+    context.style.set_writing_mode(mode);
+
     context.style
 }
 
