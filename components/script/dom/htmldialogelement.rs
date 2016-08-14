@@ -68,16 +68,22 @@ impl HTMLDialogElementMethods for HTMLDialogElement {
         let target = self.upcast::<EventTarget>();
         let win = window_from_node(self);
 
+        // Step 1
         if !element.has_attribute(&atom!("open")) {
             return Err(Error::InvalidState);
         }
 
+        // Step 2
         element.remove_attribute_by_name(&atom!("open"));
 
+        // Step 3
         if let Some(new_value) = return_value {
             *self.return_value.borrow_mut() = new_value;
         }
 
+        // TODO: Step 4 implement pending dialog stack removal
+
+        // Step 5
         win.dom_manipulation_task_source().queue_event(target, atom!("close"), EventBubbles::DoesNotBubble,
         EventCancelable::NotCancelable, win.r());
 
