@@ -31,7 +31,7 @@ use context::LayoutContext;
 use display_list_builder::DisplayListBuildState;
 use euclid::{Point2D, Rect, Size2D};
 use floats::{Floats, SpeculatedFloatPlacement};
-use flow_list::{FlowList, FlowListIterator, MutFlowListIterator};
+use flow_list::{FlowList, MutFlowListIterator};
 use flow_ref::{self, FlowRef, WeakFlowRef};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow, SpecificFragmentInfo};
 use gfx::display_list::{ClippingRegion, StackingContext};
@@ -432,7 +432,7 @@ pub fn base<T: ?Sized + Flow>(this: &T) -> &BaseFlow {
 }
 
 /// Iterates over the children of this immutable flow.
-pub fn child_iter<'a>(flow: &'a Flow) -> FlowListIterator<'a> {
+pub fn child_iter<'a>(flow: &'a Flow) -> impl Iterator<Item = &'a Flow> {
     base(flow).children.iter()
 }
 
