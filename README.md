@@ -14,6 +14,9 @@ Visit the [Servo Project page](https://servo.org/) for news and guides.
 
 ## Prerequisites
 
+**Want to skip the steps for setting up your environment?**
+You can now contribute to Servo in the cloud! [The Janitor](https://janitor.technology) is an open source project lead by Jan Keromnes that allows you to help us from any platform. Keep in mind, the project is still is in developement, please visit https://janitor.technology to apply for Alpha testing.
+
 On OS X (homebrew):
 
 ``` sh
