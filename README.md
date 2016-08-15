@@ -18,12 +18,15 @@ Please select your operating system:
 * [OSX (homebrew)](#osxHome)
 * [OSX (MacPorts)](#osxPorts)
 * [OSX 10.11 (El Capitan) with openssl](#osxCapitan)
-* [Debian-based Linuxes](#debian)
-* [Fedora](#fedora)
-* [Arch Linux](#archLinux)
-* [Gentoo Linux](#gentooLinux)
+* [Debian-based (64 Bit)](#debian)
+* [Fedora (64 Bit)](#fedora)
+* [Arch Linux (64 Bit)](#archLinux)
+* [Gentoo Linux (64 Bit)](#gentooLinux)
 * [Microsoft Windows](#windows)
 * [Android](#android)
+
+**Want to skip the steps for setting up your environment?**
+You can now contribute to Servo in the cloud! [The Janitor](https://janitor.technology) is an open source project lead by Jan Keromnes that allows you to help us from any platform. Keep in mind, the project is still is in developement, please visit https://janitor.technology to apply for Alpha testing.
 
 <a name="osxHome"></a>
 **On OS X (homebrew):**
