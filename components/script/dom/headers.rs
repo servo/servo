@@ -5,9 +5,11 @@
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HeadersBinding;
 use dom::bindings::codegen::Bindings::HeadersBinding::HeadersMethods;
+use dom::bindings::codegen::Bindings::HeadersBinding::HeadersWrap;
 use dom::bindings::codegen::UnionTypes::HeadersOrByteStringSequenceSequence;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
+use dom::bindings::iterable::Iterable;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::{ByteString, is_token};
@@ -20,13 +22,13 @@ use std::str;
 #[dom_struct]
 pub struct Headers {
     reflector_: Reflector,
-    guard: Guard,
+    guard: Cell<Guard>,
     #[ignore_heap_size_of = "Defined in hyper"]
     header_list: DOMRefCell<HyperHeaders>
 }
 
 // https://fetch.spec.whatwg.org/#concept-headers-guard
-#[derive(JSTraceable, HeapSizeOf, PartialEq)]
+#[derive(Copy, Clone, JSTraceable, HeapSizeOf, PartialEq)]
 pub enum Guard {
     Immutable,
     Request,
@@ -39,35 +41,38 @@ impl Headers {
     pub fn new_inherited() -> Headers {
         Headers {
             reflector_: Reflector::new(),
-            guard: Guard::None,
+            guard: Cell::new(Guard::None),
             header_list: DOMRefCell::new(HyperHeaders::new()),
         }
     }
 
     pub fn new(global: GlobalRef) -> Root<Headers> {
-        reflect_dom_object(box Headers::new_inherited(), global, HeadersBinding::Wrap)
+        reflect_dom_object(box Headers::new_inherited(), global, HeadersWrap)
     }
 
+    // https://fetch.spec.whatwg.org/#dom-headers
     pub fn Constructor(global: GlobalRef, init: Option<HeadersBinding::HeadersInit>)
                        -> Fallible<Root<Headers>> {
-        Headers::new(global, init)
+        let dom_headers_new = Headers::new(global);
+        try!(dom_headers_new.fill(init));
+        Ok(dom_headers_new)
     }
 }
 
 impl HeadersMethods for Headers {
     // https://fetch.spec.whatwg.org/#concept-headers-append
-    fn Append(&self, name: ByteString, value: ByteString) -> Result<(), Error> {
+    fn Append(&self, name: ByteString, value: ByteString) -> ErrorResult {
         // Step 1
         let value = normalize_value(value);
         // Step 2
         let (mut valid_name, valid_value) = try!(validate_name_and_value(name, value));
         valid_name = valid_name.to_lowercase();
         // Step 3
-        if self.guard == Guard::Immutable {
+        if self.guard.get() == Guard::Immutable {
             return Err(Error::Type("Guard is immutable".to_string()));
         }
         // Step 4
-        if self.guard == Guard::Request && is_forbidden_header_name(&valid_name) {
+        if self.guard.get() == Guard::Request && is_forbidden_header_name(&valid_name) {
             return Ok(());
         }
         // Step 5
@@ -75,12 +80,15 @@ impl HeadersMethods for Headers {
             return Ok(());
         }
         // Step 6
-        if self.guard == Guard::Response && is_forbidden_response_header(&valid_name) {
+        if self.guard.get() == Guard::Response && is_forbidden_response_header(&valid_name) {
             return Ok(());
         }
         // Step 7
-        let mut combined_value = self.header_list.borrow_mut().get_raw(&valid_name).unwrap()[0].clone();
-        combined_value.push(b","[0]);
+        let mut combined_value: Vec<u8> = vec![];
+        if let Some(v) = self.header_list.borrow().get_raw(&valid_name) {
+            combined_value = v[0].clone();
+            combined_value.push(b","[0]);
+        }
         combined_value.extend(valid_value.iter().cloned());
         self.header_list.borrow_mut().set_raw(valid_name, vec![combined_value]);
         Ok(())
@@ -91,11 +99,11 @@ impl HeadersMethods for Headers {
         // Step 1
         let valid_name = try!(validate_name(name));
         // Step 2
-        if self.guard == Guard::Immutable {
+        if self.guard.get() == Guard::Immutable {
             return Err(Error::Type("Guard is immutable".to_string()));
         }
         // Step 3
-        if self.guard == Guard::Request && is_forbidden_header_name(&valid_name) {
+        if self.guard.get() == Guard::Request && is_forbidden_header_name(&valid_name) {
             return Ok(());
         }
         // Step 4
@@ -106,7 +114,7 @@ impl HeadersMethods for Headers {
                 return Ok(());
             }
         // Step 5
-        if self.guard == Guard::Response && is_forbidden_response_header(&valid_name) {
+        if self.guard.get() == Guard::Response && is_forbidden_response_header(&valid_name) {
             return Ok(());
         }
         // Step 6
@@ -139,11 +147,11 @@ impl HeadersMethods for Headers {
         let (mut valid_name, valid_value) = try!(validate_name_and_value(name, value));
         valid_name = valid_name.to_lowercase();
         // Step 3
-        if self.guard == Guard::Immutable {
+        if self.guard.get() == Guard::Immutable {
             return Err(Error::Type("Guard is immutable".to_string()));
         }
         // Step 4
-        if self.guard == Guard::Request && is_forbidden_header_name(&valid_name) {
+        if self.guard.get() == Guard::Request && is_forbidden_header_name(&valid_name) {
             return Ok(());
         }
         // Step 5
@@ -151,7 +159,7 @@ impl HeadersMethods for Headers {
             return Ok(());
         }
         // Step 6
-        if self.guard == Guard::Response && is_forbidden_response_header(&valid_name) {
+        if self.guard.get() == Guard::Response && is_forbidden_response_header(&valid_name) {
             return Ok(());
         }
         // Step 7
@@ -216,6 +224,41 @@ impl Headers {
     // https://fetch.spec.whatwg.org/#concept-header-extract-mime-type
     pub fn extract_mime_type(&self) -> Vec<u8> {
         self.header_list.borrow().get_raw("content-type").map_or(vec![], |v| v[0].clone())
+    }
+
+    pub fn sort_header_list(&self) -> Vec<(String, String)> {
+        let borrowed_header_list = self.header_list.borrow();
+        let headers_iter = borrowed_header_list.iter();
+        let mut header_vec = vec![];
+        for header in headers_iter {
+            let name = header.name().to_string();
+            let value = header.value_string();
+            let name_value = (name, value);
+            header_vec.push(name_value);
+        }
+        header_vec.sort();
+        header_vec
+    }
+}
+
+impl Iterable for Headers {
+    type Key = ByteString;
+    type Value = ByteString;
+
+    fn get_iterable_length(&self) -> u32 {
+        self.header_list.borrow().iter().count() as u32
+    }
+
+    fn get_value_at_index(&self, n: u32) -> ByteString {
+        let sorted_header_vec = self.sort_header_list();
+        let value = sorted_header_vec[n as usize].1.clone();
+        ByteString::new(value.into_bytes().to_vec())
+    }
+
+    fn get_key_at_index(&self, n: u32) -> ByteString {
+        let sorted_header_vec = self.sort_header_list();
+        let key = sorted_header_vec[n as usize].1.clone();
+        ByteString::new(key.into_bytes().to_vec())
     }
 }
 
@@ -363,20 +406,24 @@ fn is_field_name(name: &ByteString) -> bool {
 // field-content = field-vchar [ 1*( SP / HTAB / field-vchar )
 //                               field-vchar ]
 fn is_field_content(value: &ByteString) -> bool {
-    if value.len() == 0 {
+    let value_len = value.len();
+
+    if value_len == 0 {
         return false;
     }
     if !is_field_vchar(value[0]) {
         return false;
     }
 
-    for &ch in &value[1..value.len() - 1] {
-        if !is_field_vchar(ch) || !is_space(ch) || !is_htab(ch) {
-            return false;
+    if value_len > 2 {
+        for &ch in &value[1..value_len - 1] {
+            if !is_field_vchar(ch) && !is_space(ch) && !is_htab(ch) {
+                return false;
+            }
         }
     }
 
-    if !is_field_vchar(value[value.len() - 1]) {
+    if !is_field_vchar(value[value_len - 1]) {
         return false;
     }
 
