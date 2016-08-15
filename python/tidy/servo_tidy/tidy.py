@@ -19,6 +19,25 @@ import subprocess
 import sys
 from licenseck import MPL, APACHE, COPYRIGHT, licenses_toml, licenses_dep_toml
 import colorama
+import toml
+
+# Load configs from servo-tidy.toml if config file exists
+if os.path.exists("./servo-tidy.toml"):
+    with open("./servo-tidy.toml") as conffile:
+        config_file = toml.loads(conffile.read())
+        exclude = config_file.get("ignore", [])
+        # Define constant for ignored directories
+        # Ignore hidden directories by default
+        ignored_dirs = ["./."]
+        dirs = exclude.get("directories")
+        ignored_dirs += dirs if exclude and dirs else []
+        IGNORED_DIRS = ignored_dirs
+        # Define constant for ignored files
+        # Ignore servo-tidy.toml and hidden files by default
+        ignored_files = ["./servo-tidy.toml", "./."]
+        files = exclude.get("files")
+        ignored_files += files if exclude and files else []
+        IGNORED_FILES = ignored_files
 
 COMMENTS = ["// ", "# ", " *", "/* "]
 
@@ -29,53 +48,6 @@ FILE_PATTERNS_TO_CHECK = ["*.rs", "*.rc", "*.cpp", "*.c",
 
 # File patterns that are ignored for all tidy and lint checks.
 FILE_PATTERNS_TO_IGNORE = ["*.#*", "*.pyc"]
-
-# Files that are ignored for all tidy and lint checks.
-IGNORED_FILES = [
-    # Generated and upstream code combined with our own. Could use cleanup
-    os.path.join(".", "ports", "geckolib", "gecko_bindings", "bindings.rs"),
-    os.path.join(".", "ports", "geckolib", "gecko_bindings", "structs_debug.rs"),
-    os.path.join(".", "ports", "geckolib", "gecko_bindings", "structs_release.rs"),
-    os.path.join(".", "ports", "geckolib", "string_cache", "atom_macro.rs"),
-    os.path.join(".", "resources", "hsts_preload.json"),
-    os.path.join(".", "tests", "wpt", "metadata", "MANIFEST.json"),
-    os.path.join(".", "tests", "wpt", "metadata-css", "MANIFEST.json"),
-    os.path.join(".", "components", "script", "dom", "webidls", "ForceTouchEvent.webidl"),
-    os.path.join(".", "support", "android", "openssl.sh"),
-    # Ignore those files since the issues reported are on purpose
-    os.path.join(".", "tests", "html", "bad-line-ends.html"),
-    os.path.join(".", "tests", "unit", "net", "parsable_mime", "text"),
-    os.path.join(".", "tests", "wpt", "mozilla", "tests", "css", "fonts"),
-    os.path.join(".", "tests", "wpt", "mozilla", "tests", "css", "pre_with_tab.html"),
-    # FIXME(pcwalton, #11679): This is a workaround for a tidy error on the quoted string
-    # `"__TEXT,_info_plist"` inside an attribute.
-    os.path.join(".", "components", "servo", "platform", "macos", "mod.rs"),
-    # Hidden files
-    os.path.join(".", "."),
-]
-
-# Directories that are ignored for the non-WPT tidy check.
-IGNORED_DIRS = [
-    # Upstream
-    os.path.join(".", "support", "android", "apk"),
-    os.path.join(".", "tests", "wpt", "css-tests"),
-    os.path.join(".", "tests", "wpt", "harness"),
-    os.path.join(".", "tests", "wpt", "update"),
-    os.path.join(".", "tests", "wpt", "web-platform-tests"),
-    os.path.join(".", "tests", "wpt", "mozilla", "tests", "mozilla", "referrer-policy"),
-    os.path.join(".", "tests", "wpt", "sync"),
-    os.path.join(".", "tests", "wpt", "sync_css"),
-    os.path.join(".", "python", "mach"),
-    os.path.join(".", "python", "tidy", "servo_tidy_tests"),
-    os.path.join(".", "components", "script", "dom", "bindings", "codegen", "parser"),
-    os.path.join(".", "components", "script", "dom", "bindings", "codegen", "ply"),
-    os.path.join(".", "python", "_virtualenv"),
-    # Generated and upstream code combined with our own. Could use cleanup
-    os.path.join(".", "target"),
-    os.path.join(".", "ports", "cef"),
-    # Hidden directories
-    os.path.join(".", "."),
-]
 
 SPEC_BASE_PATH = "components/script/dom/"
 
@@ -103,6 +75,23 @@ WEBIDL_STANDARDS = [
     "// This interface is entirely internal to Servo, and should not be" +
     " accessible to\n// web pages."
 ]
+
+# Default configs
+config = {
+    "skip-check-length": False,
+    "skip-check-licenses": False,
+}
+
+
+def set_configs():
+    if not config_file:
+        return
+
+    # Override default configs
+    configs = config_file.get("configs", [])
+    print(configs)
+    for pref in configs:
+        config[pref] = configs[pref]
 
 
 def is_iter_empty(iterator):
@@ -167,7 +156,8 @@ def licensed_apache(header):
 
 
 def check_license(file_name, lines):
-    if any(file_name.endswith(ext) for ext in (".toml", ".lock", ".json", ".html")):
+    if any(file_name.endswith(ext) for ext in (".toml", ".lock", ".json", ".html")) or \
+       config["skip-check-licenses"]:
         raise StopIteration
 
     if lines[0].startswith("#!") and lines[1].strip():
@@ -202,8 +192,10 @@ def check_modeline(file_name, lines):
 
 
 def check_length(file_name, idx, line):
-    if file_name.endswith(".lock") or file_name.endswith(".json") or file_name.endswith(".html"):
+    if any(file_name.endswith(ext) for ext in (".lock", ".json", ".html")) or \
+       config["skip-check-length"]:
         raise StopIteration
+
     # Prefer shorter lines when shell scripting.
     if file_name.endswith(".sh"):
         max_length = 80
@@ -295,9 +287,9 @@ def check_lock(file_name, contents):
         raise StopIteration
 
     # package names to be neglected (as named by cargo)
-    exceptions = ["lazy_static"]
+    packages = exclude.get("packages")
+    exceptions = packages if exclude and packages else []
 
-    import toml
     content = toml.loads(contents)
 
     packages = {}
@@ -777,6 +769,9 @@ def get_file_list(directory, only_changed_files=False, exclude_dirs=[]):
 
 
 def scan(only_changed_files=False, progress=True):
+    # Override default configs with those from servo-tidy.toml
+    set_configs()
+
     # standard checks
     files_to_check = filter_files('.', only_changed_files, progress)
     checking_functions = (check_flake8, check_lock, check_webidl_spec, check_json)
