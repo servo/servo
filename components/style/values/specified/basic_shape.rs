@@ -8,12 +8,113 @@
 //! [basic-shape]: https://drafts.csswg.org/css-shapes/#typedef-basic-shape
 
 use cssparser::{Parser, ToCss};
+use parser::{ParserContext, Parseable};
 use properties::shorthands::{parse_four_sides, serialize_four_sides};
 use std::fmt;
+use url::Url;
 use values::computed::basic_shape as computed_basic_shape;
 use values::computed::{Context, ToComputedValue, ComputedValueAsSpecified};
 use values::specified::position::Position;
 use values::specified::{BorderRadiusSize, LengthOrPercentage, Percentage};
+use values::specified::UrlExtraData;
+
+/// A shape source, for some reference box
+///
+/// clip-path uses ShapeSource<GeometryBox>,
+/// shape-outside uses ShapeSource<ShapeBox>
+#[derive(Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub enum ShapeSource<T> {
+    Url(Url, UrlExtraData),
+    ShapeOrBox(Option<BasicShape>, Option<T>),
+}
+
+impl<T> Default for ShapeSource<T> {
+    fn default() -> Self {
+        ShapeSource::ShapeOrBox(None, None)
+    }
+}
+
+impl<T: ToCss> ToCss for ShapeSource<T> {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        use values::LocalToCss;
+        match *self {
+            ShapeSource::Url(ref url, _) => url.to_css(dest),
+            ShapeSource::ShapeOrBox(Some(ref shape), Some(ref reference)) => {
+                try!(shape.to_css(dest));
+                try!(dest.write_str(" "));
+                reference.to_css(dest)
+            }
+            ShapeSource::ShapeOrBox(Some(ref shape), None) => shape.to_css(dest),
+            ShapeSource::ShapeOrBox(None, Some(ref reference)) => reference.to_css(dest),
+            ShapeSource::ShapeOrBox(None, None) => dest.write_str("none"),
+
+        }
+    }
+}
+
+impl<T: Parseable> ShapeSource<T> {
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        if let Ok(_) = input.try(|input| input.expect_ident_matching("none")) {
+            Ok(ShapeSource::ShapeOrBox(None, None))
+        } else if let Ok(url) = input.try(|input| input.expect_url()) {
+            match UrlExtraData::make_from(context) {
+                Some(extra_data) => {
+                    Ok(ShapeSource::Url(context.parse_url(&url), extra_data))
+                },
+                None => Err(()),
+            }
+        } else {
+            let mut shape = None;
+            let mut reference = None;
+            let mut found = false;
+            loop {
+                if let Ok(a_shape) = input.try(BasicShape::parse) {
+                    if shape.is_some() {
+                        // We already found a shape; there should be only 1
+                        return Err(());
+                    }
+                    shape = Some(a_shape);
+                    found = true;
+                } else if let Ok(a_reference) = input.try(T::parse) {
+                    if reference.is_some() {
+                        // We already found a reference box; there should be only 1
+                        return Err(());
+                    }
+                    reference = Some(a_reference);
+                    found = true;
+                } else if found {
+                    // If we have already found something and can't parse further,
+                    // we're done
+                    break;
+                } else {
+                    // If we can't parse further but haven't found anything yet,
+                    // throw an error -- at least one of the shape or reference
+                    // must be present
+                    return Err(());
+                }
+            }
+            Ok(ShapeSource::ShapeOrBox(shape, reference))
+        }
+    }
+}
+
+impl<T: ToComputedValue> ToComputedValue for ShapeSource<T> {
+    type ComputedValue = computed_basic_shape::ShapeSource<T::ComputedValue>;
+    #[inline]
+    fn to_computed_value(&self, cx: &Context) -> Self::ComputedValue {
+        match *self {
+            ShapeSource::Url(ref url, ref data) => {
+                computed_basic_shape::ShapeSource::Url(url.clone(), data.clone())
+            }
+            ShapeSource::ShapeOrBox(ref shape, ref reference) => {
+                computed_basic_shape::ShapeSource::ShapeOrBox(
+                    shape.as_ref().map(|ref s| s.to_computed_value(cx)),
+                    reference.as_ref().map(|ref r| r.to_computed_value(cx)))
+            }
+        }
+    }
+}
 
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -497,7 +598,7 @@ impl ToComputedValue for BorderRadius {
 pub enum FillRule {
     NonZero,
     EvenOdd,
-    // basic-shapes spec says that these are the only two values, however
+    // basic-shapes spec `ys that these are the only two values, however
     // https://www.w3.org/TR/SVG/painting.html#FillRuleProperty
     // says that it can also be `inherit`
 }
@@ -528,3 +629,77 @@ impl ToCss for FillRule {
         }
     }
 }
+
+/// https://drafts.fxtf.org/css-masking-1/#typedef-geometry-box
+#[derive(Clone, PartialEq, Copy, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub enum GeometryBox {
+    Fill,
+    Stroke,
+    View,
+    Shape(ShapeBox),
+}
+
+impl Parseable for GeometryBox {
+    fn parse(input: &mut Parser) -> Result<Self, ()> {
+        if let Ok(shape_box) = input.try(ShapeBox::parse) {
+            Ok(GeometryBox::Shape(shape_box))
+        } else {
+            match_ignore_ascii_case! { try!(input.expect_ident()),
+                "fill-box" => Ok(GeometryBox::Fill),
+                "stroke-box" => Ok(GeometryBox::Stroke),
+                "view-box" => Ok(GeometryBox::View),
+                _ => Err(())
+            }
+        }
+    }
+}
+
+impl ToCss for GeometryBox {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            GeometryBox::Fill => dest.write_str("fill-box"),
+            GeometryBox::Stroke => dest.write_str("stroke-box"),
+            GeometryBox::View => dest.write_str("view-box"),
+            GeometryBox::Shape(s) => s.to_css(dest),
+        }
+    }
+}
+
+impl ComputedValueAsSpecified for GeometryBox {}
+
+// https://drafts.csswg.org/css-shapes-1/#typedef-shape-box
+#[derive(Clone, PartialEq, Copy, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub enum ShapeBox {
+    Margin,
+    // https://drafts.csswg.org/css-backgrounds-3/#box
+    Border,
+    Padding,
+    Content,
+}
+
+impl Parseable for ShapeBox {
+    fn parse(input: &mut Parser) -> Result<Self, ()> {
+        match_ignore_ascii_case! { try!(input.expect_ident()),
+            "margin-box" => Ok(ShapeBox::Margin),
+            "border-box" => Ok(ShapeBox::Border),
+            "padding-box" => Ok(ShapeBox::Padding),
+            "content-box" => Ok(ShapeBox::Content),
+            _ => Err(())
+        }
+    }
+}
+
+impl ToCss for ShapeBox {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            ShapeBox::Margin => dest.write_str("margin-box"),
+            ShapeBox::Border => dest.write_str("border-box"),
+            ShapeBox::Padding => dest.write_str("padding-box"),
+            ShapeBox::Content => dest.write_str("content-box"),
+        }
+    }
+}
+
+impl ComputedValueAsSpecified for ShapeBox {}
