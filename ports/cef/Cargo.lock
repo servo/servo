@@ -155,8 +155,13 @@ version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
+name = "blurdroid"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "blurz"
-version = "0.1.7"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "dbus 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -435,9 +440,10 @@ dependencies = [
 [[package]]
 name = "device"
 version = "0.0.1"
-source = "git+https://github.com/servo/devices#09ab8682bddfa73ba36025a150625504212d34da"
+source = "git+https://github.com/servo/devices#6d40b1412fb496b0d9434ee2f46e9dfc4dc67ae7"
 dependencies = [
- "blurz 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "blurdroid 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "blurz 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -2588,7 +2594,8 @@ dependencies = [
 "checksum bit-vec 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)" = "5b97c2c8e8bbb4251754f559df8af22fb264853c7d009084a576cdf12565089d"
 "checksum bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)" = "aad18937a628ec6abcd26d1489012cc0e18c21798210f491af69ded9b881106d"
 "checksum block 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)" = "0d8c1fef690941d3e7788d328517591fecc684c084084702d6ff1641e993699a"
-"checksum blurz 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)" = "a18fbcef6db7f58d135f77ad561e8f9b7fc809c91619c33422714cf5548004ed"
+"checksum blurdroid 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "5fce4ea3366b583e9d49e1aa3a42252e53b42911bccd06f31c3e81c48ccfc79e"
+"checksum blurz 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "96134f6ac62fa6925761dbdb4096617d65d7c1d383d90e5c2d4c489919f773dc"
 "checksum brotli 1.0.6 (registry+https://github.com/rust-lang/crates.io-index)" = "bff2d5511b5ba5840f46cc3f9c0c3ab09db20e9b9a4db344ef7df3fb547a627a"
 "checksum browserhtml 0.1.17 (git+https://github.com/browserhtml/browserhtml?branch=crate)" = "<none>"
 "checksum byteorder 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)" = "0fc10e8cc6b2580fda3f36eb6dc5316657f812a3df879a44a66fc9f0fdbc4855"

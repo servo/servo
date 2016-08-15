@@ -4,7 +4,6 @@
 
 use device::bluetooth::BluetoothAdapter;
 use device::bluetooth::BluetoothDevice;
-use device::bluetooth::BluetoothDiscoverySession;
 use device::bluetooth::BluetoothGATTCharacteristic;
 use device::bluetooth::BluetoothGATTDescriptor;
 use device::bluetooth::BluetoothGATTService;
@@ -294,8 +293,8 @@ impl BluetoothManager {
             None => vec!(),
         };
         for service in &services {
-            self.cached_services.insert(service.get_object_path(), service.clone());
-            self.service_to_device.insert(service.get_object_path(), device_id.to_owned());
+            self.cached_services.insert(service.get_id(), service.clone());
+            self.service_to_device.insert(service.get_id(), device_id.to_owned());
         }
         services
     }
@@ -332,8 +331,8 @@ impl BluetoothManager {
         };
 
         for characteristic in &characteristics {
-            self.cached_characteristics.insert(characteristic.get_object_path(), characteristic.clone());
-            self.characteristic_to_service.insert(characteristic.get_object_path(), service_id.to_owned());
+            self.cached_characteristics.insert(characteristic.get_id(), characteristic.clone());
+            self.characteristic_to_service.insert(characteristic.get_id(), service_id.to_owned());
         }
         characteristics
     }
@@ -395,8 +394,8 @@ impl BluetoothManager {
         };
 
         for descriptor in &descriptors {
-            self.cached_descriptors.insert(descriptor.get_object_path(), descriptor.clone());
-            self.descriptor_to_characteristic.insert(descriptor.get_object_path(), characteristic_id.to_owned());
+            self.cached_descriptors.insert(descriptor.get_id(), descriptor.clone());
+            self.descriptor_to_characteristic.insert(descriptor.get_id(), characteristic_id.to_owned());
         }
         descriptors
     }
@@ -432,7 +431,7 @@ impl BluetoothManager {
                       options: RequestDeviceoptions,
                       sender: IpcSender<BluetoothResult<BluetoothDeviceMsg>>) {
         let mut adapter = get_adapter_or_return_error!(self, sender);
-        if let Some(ref session) = BluetoothDiscoverySession::create_session(adapter.get_object_path()).ok() {
+        if let Ok(ref session) = adapter.create_discovery_session() {
             if session.start_discovery().is_ok() {
                 thread::sleep(Duration::from_millis(DISCOVERY_TIMEOUT_MS));
             }
@@ -526,7 +525,7 @@ impl BluetoothManager {
                     return drop(sender.send(Ok(BluetoothServiceMsg {
                                                    uuid: uuid,
                                                    is_primary: true,
-                                                   instance_id: service.get_object_path(),
+                                                   instance_id: service.get_id(),
                                                })));
                 }
             }
@@ -558,7 +557,7 @@ impl BluetoothManager {
                     services_vec.push(BluetoothServiceMsg {
                                           uuid: uuid,
                                           is_primary: true,
-                                          instance_id: service.get_object_path(),
+                                          instance_id: service.get_id(),
                                       });
                 }
             }
@@ -589,7 +588,7 @@ impl BluetoothManager {
                     return drop(sender.send(Ok(BluetoothServiceMsg {
                                                    uuid: uuid,
                                                    is_primary: service.is_primary().unwrap_or(false),
-                                                   instance_id: service.get_object_path(),
+                                                   instance_id: service.get_id(),
                                                })));
                 }
             }
@@ -616,7 +615,7 @@ impl BluetoothManager {
                 services_vec.push(BluetoothServiceMsg {
                                       uuid: service_uuid,
                                       is_primary: service.is_primary().unwrap_or(false),
-                                      instance_id: service.get_object_path(),
+                                      instance_id: service.get_id(),
                                   });
             }
         }
@@ -644,7 +643,7 @@ impl BluetoothManager {
                 let properties = self.get_characteristic_properties(&characteristic);
                 let message = Ok(BluetoothCharacteristicMsg {
                                      uuid: uuid,
-                                     instance_id: characteristic.get_object_path(),
+                                     instance_id: characteristic.get_id(),
                                      broadcast: properties.contains(BROADCAST),
                                      read: properties.contains(READ),
                                      write_without_response: properties.contains(WRITE_WITHOUT_RESPONSE),
@@ -680,7 +679,7 @@ impl BluetoothManager {
                 characteristics_vec.push(
                                 BluetoothCharacteristicMsg {
                                     uuid: uuid,
-                                    instance_id: characteristic.get_object_path(),
+                                    instance_id: characteristic.get_id(),
                                     broadcast: properties.contains(BROADCAST),
                                     read: properties.contains(READ),
                                     write_without_response: properties.contains(WRITE_WITHOUT_RESPONSE),
@@ -713,7 +712,7 @@ impl BluetoothManager {
             if let Ok(uuid) = descriptor.get_uuid() {
                 return drop(sender.send(Ok(BluetoothDescriptorMsg {
                                                uuid: uuid,
-                                               instance_id: descriptor.get_object_path(),
+                                               instance_id: descriptor.get_id(),
                                            })));
             }
         }
@@ -737,7 +736,7 @@ impl BluetoothManager {
             if let Ok(uuid) = descriptor.get_uuid() {
                 descriptors_vec.push(BluetoothDescriptorMsg {
                                          uuid: uuid,
-                                         instance_id: descriptor.get_object_path(),
+                                         instance_id: descriptor.get_id(),
                                      });
             }
         }
