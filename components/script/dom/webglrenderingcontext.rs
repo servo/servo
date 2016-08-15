@@ -61,6 +61,16 @@ macro_rules! handle_potential_webgl_error {
     };
 }
 
+macro_rules! handle_object_deletion {
+    ($binding:expr, $object:ident) => {
+        if let Some(bound_object) = $binding.get() {
+            if bound_object.id() == $object.id() {
+                $binding.set(None);
+            }
+        }
+    };
+}
+
 /// Set of bitflags for texture unpacking (texImage2d, etc...)
 bitflags! {
     #[derive(HeapSizeOf, JSTraceable)]
@@ -1098,6 +1108,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     fn DeleteBuffer(&self, buffer: Option<&WebGLBuffer>) {
         if let Some(buffer) = buffer {
+            handle_object_deletion!(self.bound_buffer_array, buffer);
+            handle_object_deletion!(self.bound_buffer_element_array, buffer);
             buffer.delete()
         }
     }
@@ -1105,11 +1117,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
     fn DeleteFramebuffer(&self, framebuffer: Option<&WebGLFramebuffer>) {
         if let Some(framebuffer) = framebuffer {
-            if let Some(bound_fb) = self.bound_framebuffer.get() {
-                if bound_fb.id() == framebuffer.id() {
-                    self.bound_framebuffer.set(None);
-                }
-            }
+            handle_object_deletion!(self.bound_framebuffer, framebuffer);
             framebuffer.delete()
         }
     }
@@ -1124,6 +1132,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
     fn DeleteTexture(&self, texture: Option<&WebGLTexture>) {
         if let Some(texture) = texture {
+            handle_object_deletion!(self.bound_texture_2d, texture);
+            handle_object_deletion!(self.bound_texture_cube_map, texture);
             texture.delete()
         }
     }
@@ -1131,6 +1141,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn DeleteProgram(&self, program: Option<&WebGLProgram>) {
         if let Some(program) = program {
+            handle_object_deletion!(self.current_program, program);
             program.delete()
         }
     }
