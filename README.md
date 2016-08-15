@@ -12,22 +12,34 @@ for help getting started.
 
 Visit the [Servo Project page](https://servo.org/) for news and guides.
 
-## Prerequisites
+## Setting up your environment
 
-On OS X (homebrew):
+Please select your operating system:
+* [OSX (homebrew)](#osxHome)
+* [OSX (MacPorts)](#osxPorts)
+* [OSX 10.11 (El Capitan) with openssl](#osxCapitan)
+* [Debian-based Linuxes](#debian)
+* [Fedora](#fedora)
+* [Arch Linux](#archLinux)
+* [Gentoo Linux](#gentooLinux)
+* [Microsoft Windows](#windows)
+* [Android](#android)
+
+<a name="osxHome"></a>
+**On OS X (homebrew):**
 
 ``` sh
 brew install automake pkg-config python cmake ffmpeg
 pip install virtualenv
 ```
-
-On OS X (MacPorts):
+<a name="osxPorts"></a>
+**On OS X (MacPorts):**
 
 ``` sh
 sudo port install python27 py27-virtualenv cmake ffmpeg
 ```
-
-On OS X 10.11 (El Capitan), you also have to install openssl:
+<a name="osxCapitan"></a>
+**On OS X 10.11 (El Capitan), you also have to install openssl:**
 
 ``` sh
 brew install openssl
@@ -57,7 +69,8 @@ brew install ffmpeg --build-from-source
 
 If you've already partially compiled servo but forgot to do this step, run ./mach clean, link openssl, and recompile.
 
-On Debian-based Linuxes:
+<a name="debian"></name>
+**On Debian-based Linuxes:**
 
 ``` sh
 sudo apt-get install git curl freeglut3-dev autoconf \
@@ -71,7 +84,8 @@ If you are on **Ubuntu 14.04** and encountered errors on installing these depend
 
 If `virtualenv` does not exist, try `python-virtualenv`.
 
-On Fedora:
+<a name="fedora"></name>
+**On Fedora:**
 
 ``` sh
 sudo dnf install curl freeglut-devel libtool gcc-c++ libXi-devel \
@@ -80,14 +94,14 @@ sudo dnf install curl freeglut-devel libtool gcc-c++ libXi-devel \
     rpm-build openssl-devel cmake bzip2-devel libXcursor-devel libXmu-devel mesa-libOSMesa-devel \
     dbus-devel ffmpeg-devel
 ```
-
-On Arch Linux:
+<a name="archLinux">
+**On Arch Linux:**
 
 ``` sh
 sudo pacman -S --needed base-devel git python2 python2-virtualenv python2-pip mesa cmake bzip2 libxmu glu pkg-config
 ```
-
-On Gentoo Linux:
+<a name="gentooLinux"></a>
+**On Gentoo Linux:**
 
 ```sh
 sudo emerge net-misc/curl media-libs/freeglut \
@@ -95,8 +109,8 @@ sudo emerge net-misc/curl media-libs/freeglut \
     dev-python/virtualenv dev-python/pip dev-libs/openssl \
     x11-libs/libXmu media-libs/glu x11-base/xorg-server
 ```
-
-On Windows:
+<a name="windows"></a>
+**On Windows:**
 
 Download Python for Windows [here](https://www.python.org/downloads/release/python-2711/). This is
 required for the SpiderMonkey build on Windows.
@@ -131,7 +145,8 @@ mv python2.7.exe python2.7-mingw64.exe
 
 Now, open a MINGW64 (not MSYS!) shell window, and you should be able to build servo as usual!
 
-Cross-compilation for Android:
+<a name="android"></a>
+**Cross-compilation for Android:**
 
 Pre-installed Android tools are needed. See wiki for
 [details](https://github.com/servo/servo/wiki/Building-for-Android)
