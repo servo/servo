@@ -705,13 +705,19 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return self.webgl_error(InvalidEnum);
         }
 
-        if let Some(renderbuffer) = renderbuffer {
-            renderbuffer.bind(target)
-        } else {
-            // Unbind the currently bound renderbuffer
-            self.ipc_renderer
-                .send(CanvasMsg::WebGL(WebGLCommand::BindRenderbuffer(target, None)))
-                .unwrap()
+        match renderbuffer {
+            // Implementations differ on what to do in the deleted
+            // case: Chromium currently unbinds, and Gecko silently
+            // returns.  The conformance tests don't cover this case.
+            Some(renderbuffer) if !renderbuffer.is_deleted() => {
+                renderbuffer.bind(target)
+            }
+            _ => {
+                // Unbind the currently bound renderbuffer
+                self.ipc_renderer
+                    .send(CanvasMsg::WebGL(WebGLCommand::BindRenderbuffer(target, None)))
+                    .unwrap()
+            }
         }
     }
 
