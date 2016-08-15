@@ -177,7 +177,7 @@ class PackageCommands(CommandBase):
             print("Writing run-servo")
             bhtml_path = path.join('${0%/*}/../Resources', browserhtml_path.split('/')[-1], 'out', 'index.html')
             runservo = os.open(dir_to_app + '/Contents/MacOS/run-servo', os.O_WRONLY | os.O_CREAT, int("0755", 8))
-            os.write(runservo, '#!/bin/bash\nexec ${0%/*}/servo -M -S ' + bhtml_path)
+            os.write(runservo, '#!/bin/bash\nexec ${0%/*}/servo ' + bhtml_path)
             os.close(runservo)
 
             print("Creating dmg")
@@ -278,7 +278,7 @@ class PackageCommands(CommandBase):
                     delete(dir_to_package + '/build/' + f)
             print("Writing runservo.sh")
             # TODO: deduplicate this arg list from post_build_commands
-            servo_args = ['-w', '-b', '-M', '-S',
+            servo_args = ['-w', '-b',
                           '--pref', 'dom.mozbrowser.enabled',
                           '--pref', 'dom.forcetouch.enabled',
                           '--pref', 'shell.builtin-key-shortcuts.enabled=false',
