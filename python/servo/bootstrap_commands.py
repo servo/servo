@@ -70,7 +70,7 @@ def download(desc, src, writer, start_byte=0):
                   "Please see https://github.com/servo/servo/#prerequisites")
         sys.exit(1)
     except urllib2.URLError, e:
-        print("Error downloading Rust compiler: " + str(e.reason) + ". The failing URL was: " + src)
+        print("Error downloading Rust compiler: %s. The failing URL was: %s" % (e.reason, src))
         sys.exit(1)
     except KeyboardInterrupt:
         writer.flush()
