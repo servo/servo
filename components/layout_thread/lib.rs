@@ -401,7 +401,6 @@ impl LayoutThread {
                                     thread_state::LAYOUT,
                                     layout_threads);
 
-
         debug!("Possible layout Threads: {}", layout_threads);
 
         // Create the channel on which new animations can be sent.
@@ -738,8 +737,7 @@ impl LayoutThread {
         });
 
         // ... as do each of the LayoutWorkers, if present.
-        let ref traversal = self.parallel_traversal;
-        let sizes = traversal.heap_size_of_tls(heap_size_of_local_context);
+        let sizes = self.parallel_traversal.heap_size_of_tls(heap_size_of_local_context);
         for (i, size) in sizes.iter().enumerate() {
             reports.push(Report {
                 path: path![formatted_url,
@@ -799,8 +797,7 @@ impl LayoutThread {
     /// Shuts down the layout thread now. If there are any DOM nodes left, layout will now (safely)
     /// crash.
     fn exit_now(&mut self) {
-        let ref mut traversal = self.parallel_traversal;
-        traversal.shutdown();
+        self.parallel_traversal.shutdown();
 
         let _ = self.paint_chan.send(LayoutToPaintMsg::Exit);
     }
@@ -1455,7 +1452,6 @@ impl LayoutThread {
                         || {
                     let profiler_metadata = self.profiler_metadata();
 
-                    debug!("layout: post style parallel? {}", self.parallel_flag);
                     if self.parallel_flag {
                         // Parallel mode.
                         LayoutThread::solve_constraints_parallel(&mut self.parallel_traversal,
