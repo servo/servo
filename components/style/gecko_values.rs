@@ -7,11 +7,12 @@
 use app_units::Au;
 use cssparser::RGBA;
 use gecko_bindings::structs::nsStyleCoord;
+use gecko_bindings::structs::{NS_RADIUS_CLOSEST_SIDE, NS_RADIUS_FARTHEST_SIDE};
 use gecko_bindings::sugar::ns_style_coord::{CoordDataValue, CoordData, CoordDataMut};
 use std::cmp::max;
 use values::computed::Angle;
+use values::computed::basic_shape::ShapeRadius;
 use values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
-
 
 pub trait StyleCoordHelpers {
     fn set<T: GeckoStyleCoordConvertible>(&mut self, val: T);
@@ -90,6 +91,28 @@ impl GeckoStyleCoordConvertible for LengthOrPercentageOrNone {
             CoordDataValue::None => Some(LengthOrPercentageOrNone::None),
             CoordDataValue::Calc(calc) => Some(LengthOrPercentageOrNone::Calc(calc.into())),
             _ => None,
+        }
+    }
+}
+
+impl GeckoStyleCoordConvertible for ShapeRadius {
+    fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
+        match *self {
+            ShapeRadius::ClosestSide => {
+                coord.set_value(CoordDataValue::Enumerated(NS_RADIUS_CLOSEST_SIDE))
+            }
+            ShapeRadius::FarthestSide => {
+                coord.set_value(CoordDataValue::Enumerated(NS_RADIUS_FARTHEST_SIDE))
+            }
+            ShapeRadius::Length(lop) => lop.to_gecko_style_coord(coord),
+        }
+    }
+
+    fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
+        match coord.as_value() {
+            CoordDataValue::Enumerated(NS_RADIUS_CLOSEST_SIDE) => Some(ShapeRadius::ClosestSide),
+            CoordDataValue::Enumerated(NS_RADIUS_FARTHEST_SIDE) => Some(ShapeRadius::FarthestSide),
+            _ => LengthOrPercentage::from_gecko_style_coord(coord).map(ShapeRadius::Length),
         }
     }
 }

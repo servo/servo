@@ -57,21 +57,13 @@ ${helpers.single_keyword("mask-type", "luminance alpha",
     use values::NoViewportPercentage;
     use values::specified::basic_shape::{ShapeSource, GeometryBox};
 
-    // NB: `top` and `left` are 0 if `auto` per CSS 2.1 11.1.2.
-
     pub mod computed_value {
         use app_units::Au;
         use values::computed::basic_shape::{ShapeSource, GeometryBox};
 
         #[derive(Debug, Clone, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct T(pub ShapeSource<GeometryBox>);
-    }
-
-    impl ToCss for computed_value::T {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            self.0.to_css(dest)
-        }
+        pub type T = ShapeSource<GeometryBox>;
     }
 
     #[derive(Clone, Debug, PartialEq)]
@@ -94,7 +86,7 @@ ${helpers.single_keyword("mask-type", "luminance alpha",
 
         #[inline]
         fn to_computed_value(&self, context: &Context) -> computed_value::T {
-            computed_value::T(self.0.to_computed_value(context))
+            self.0.to_computed_value(context)
         }
     }
 

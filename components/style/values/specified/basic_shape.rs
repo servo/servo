@@ -14,9 +14,9 @@ use std::fmt;
 use url::Url;
 use values::computed::basic_shape as computed_basic_shape;
 use values::computed::{Context, ToComputedValue, ComputedValueAsSpecified};
+use values::specified::UrlExtraData;
 use values::specified::position::Position;
 use values::specified::{BorderRadiusSize, LengthOrPercentage, Percentage};
-use values::specified::UrlExtraData;
 
 /// A shape source, for some reference box
 ///
@@ -642,13 +642,13 @@ pub enum GeometryBox {
     Fill,
     Stroke,
     View,
-    Shape(ShapeBox),
+    ShapeBox(ShapeBox),
 }
 
 impl Parse for GeometryBox {
     fn parse(input: &mut Parser) -> Result<Self, ()> {
         if let Ok(shape_box) = input.try(ShapeBox::parse) {
-            Ok(GeometryBox::Shape(shape_box))
+            Ok(GeometryBox::ShapeBox(shape_box))
         } else {
             match_ignore_ascii_case! { try!(input.expect_ident()),
                 "fill-box" => Ok(GeometryBox::Fill),
@@ -666,7 +666,7 @@ impl ToCss for GeometryBox {
             GeometryBox::Fill => dest.write_str("fill-box"),
             GeometryBox::Stroke => dest.write_str("stroke-box"),
             GeometryBox::View => dest.write_str("view-box"),
-            GeometryBox::Shape(s) => s.to_css(dest),
+            GeometryBox::ShapeBox(s) => s.to_css(dest),
         }
     }
 }
