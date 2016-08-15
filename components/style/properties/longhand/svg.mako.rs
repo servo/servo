@@ -49,3 +49,58 @@ ${helpers.predefined_type(
 // https://www.w3.org/TR/css-masking-1/
 ${helpers.single_keyword("mask-type", "luminance alpha",
                          products="gecko", animatable=False)}
+
+<%helpers:longhand name="clip-path" animatable="False" products="gecko">
+    use cssparser::ToCss;
+    use std::fmt;
+    use values::LocalToCss;
+    use values::NoViewportPercentage;
+    use values::specified::basic_shape::{ShapeSource, GeometryBox};
+
+    // NB: `top` and `left` are 0 if `auto` per CSS 2.1 11.1.2.
+
+    pub mod computed_value {
+        use app_units::Au;
+        use values::computed::basic_shape::{ShapeSource, GeometryBox};
+
+        #[derive(Debug, Clone, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        pub struct T(pub ShapeSource<GeometryBox>);
+    }
+
+    impl ToCss for computed_value::T {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            self.0.to_css(dest)
+        }
+    }
+
+    #[derive(Clone, Debug, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub struct SpecifiedValue(ShapeSource<GeometryBox>);
+
+    impl ToCss for SpecifiedValue {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            self.0.to_css(dest)
+        }
+    }
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        computed_value::T(Default::default())
+    }
+
+    impl ToComputedValue for SpecifiedValue {
+        type ComputedValue = computed_value::T;
+
+        #[inline]
+        fn to_computed_value(&self, context: &Context) -> computed_value::T {
+            computed_value::T(self.0.to_computed_value(context))
+        }
+    }
+
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        ShapeSource::parse(context, input).map(SpecifiedValue)
+    }
+
+    impl NoViewportPercentage for SpecifiedValue {}
+</%helpers:longhand>
