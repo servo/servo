@@ -169,7 +169,8 @@ impl Stylesheet {
             origin: origin,
             rules: rules,
             media: None,
-            dirty_on_viewport_size_change: input.seen_viewport_percentages(),
+            dirty_on_viewport_size_change:
+                input.seen_viewport_percentages(),
         }
     }
 

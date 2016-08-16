@@ -197,6 +197,7 @@ impl HasViewportPercentage for Length {
     fn has_viewport_percentage(&self) -> bool {
         match *self {
             Length::ViewportPercentage(_) => true,
+            Length::Calc(ref calc) => calc.has_viewport_percentage(),
             _ => false
         }
     }
@@ -208,7 +209,7 @@ impl ToCss for Length {
             Length::Absolute(length) => write!(dest, "{}px", length.to_f32_px()),
             Length::FontRelative(length) => length.to_css(dest),
             Length::ViewportPercentage(length) => length.to_css(dest),
-            Length::Calc(calc) => calc.to_css(dest),
+            Length::Calc(ref calc) => calc.to_css(dest),
             Length::ServoCharacterWidth(_)
             => panic!("internal CSS values should never be serialized"),
         }
@@ -467,6 +468,7 @@ pub struct CalcLengthOrPercentage {
     pub rem: Option<FontRelativeLength>,
     pub percentage: Option<Percentage>,
 }
+
 impl CalcLengthOrPercentage {
     fn parse_sum(input: &mut Parser, expected_unit: CalcUnit) -> Result<CalcSumNode, ()> {
         let mut products = Vec::new();
@@ -751,6 +753,13 @@ impl CalcLengthOrPercentage {
     }
 }
 
+impl HasViewportPercentage for CalcLengthOrPercentage {
+    fn has_viewport_percentage(&self) -> bool {
+        self.vw.is_some() || self.vh.is_some() ||
+            self.vmin.is_some() || self.vmax.is_some()
+    }
+}
+
 impl ToCss for CalcLengthOrPercentage {
     #[allow(unused_assignments)]
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
@@ -823,7 +832,8 @@ pub enum LengthOrPercentage {
 impl HasViewportPercentage for LengthOrPercentage {
     fn has_viewport_percentage(&self) -> bool {
         match *self {
-            LengthOrPercentage::Length(length) => length.has_viewport_percentage(),
+            LengthOrPercentage::Length(ref length) => length.has_viewport_percentage(),
+            LengthOrPercentage::Calc(ref calc) => calc.has_viewport_percentage(),
             _ => false
         }
     }
@@ -882,7 +892,8 @@ pub enum LengthOrPercentageOrAuto {
 impl HasViewportPercentage for LengthOrPercentageOrAuto {
     fn has_viewport_percentage(&self) -> bool {
         match *self {
-            LengthOrPercentageOrAuto::Length(length) => length.has_viewport_percentage(),
+            LengthOrPercentageOrAuto::Length(ref length) => length.has_viewport_percentage(),
+            LengthOrPercentageOrAuto::Calc(ref calc) => calc.has_viewport_percentage(),
             _ => false
         }
     }
@@ -941,7 +952,8 @@ pub enum LengthOrPercentageOrNone {
 impl HasViewportPercentage for LengthOrPercentageOrNone {
     fn has_viewport_percentage(&self) -> bool {
         match *self {
-            LengthOrPercentageOrNone::Length(length) => length.has_viewport_percentage(),
+            LengthOrPercentageOrNone::Length(ref length) => length.has_viewport_percentage(),
+            LengthOrPercentageOrNone::Calc(ref calc) => calc.has_viewport_percentage(),
             _ => false
         }
     }
@@ -950,9 +962,9 @@ impl HasViewportPercentage for LengthOrPercentageOrNone {
 impl ToCss for LengthOrPercentageOrNone {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
-            LengthOrPercentageOrNone::Length(length) => length.to_css(dest),
-            LengthOrPercentageOrNone::Percentage(percentage) => percentage.to_css(dest),
-            LengthOrPercentageOrNone::Calc(calc) => calc.to_css(dest),
+            LengthOrPercentageOrNone::Length(ref length) => length.to_css(dest),
+            LengthOrPercentageOrNone::Percentage(ref percentage) => percentage.to_css(dest),
+            LengthOrPercentageOrNone::Calc(ref calc) => calc.to_css(dest),
             LengthOrPercentageOrNone::None => dest.write_str("none"),
         }
     }
@@ -997,7 +1009,7 @@ pub enum LengthOrNone {
 impl HasViewportPercentage for LengthOrNone {
     fn has_viewport_percentage(&self) -> bool {
         match *self {
-            LengthOrNone::Length(length) => length.has_viewport_percentage(),
+            LengthOrNone::Length(ref length) => length.has_viewport_percentage(),
             _ => false
         }
     }
@@ -1051,6 +1063,7 @@ impl HasViewportPercentage for LengthOrPercentageOrAutoOrContent {
     fn has_viewport_percentage(&self) -> bool {
         match *self {
             LengthOrPercentageOrAutoOrContent::Length(length) => length.has_viewport_percentage(),
+            LengthOrPercentageOrAutoOrContent::Calc(ref calc) => calc.has_viewport_percentage(),
             _ => false
         }
     }

@@ -34,6 +34,7 @@ use stylesheets::Origin;
 use values::LocalToCss;
 use values::HasViewportPercentage;
 use values::computed::{self, ToComputedValue};
+use cascade_info::CascadeInfo;
 #[cfg(feature = "servo")] use values::specified::BorderStyle;
 
 use self::property_bit_field::PropertyBitField;
@@ -773,6 +774,19 @@ pub enum DeclaredValue<T> {
     // depending on whether the property is inherited.
 }
 
+impl<T: HasViewportPercentage> HasViewportPercentage for DeclaredValue<T> {
+    fn has_viewport_percentage(&self) -> bool {
+        match *self {
+            DeclaredValue::Value(ref v)
+                => v.has_viewport_percentage(),
+            DeclaredValue::WithVariables { .. }
+                => panic!("DeclaredValue::has_viewport_percentage without resolving variables!"),
+            DeclaredValue::Initial |
+            DeclaredValue::Inherit => false,
+        }
+    }
+}
+
 impl<T: ToCss> ToCss for DeclaredValue<T> {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
@@ -797,6 +811,20 @@ pub enum PropertyDeclaration {
     Custom(::custom_properties::Name, DeclaredValue<::custom_properties::SpecifiedValue>),
 }
 
+impl HasViewportPercentage for PropertyDeclaration {
+    fn has_viewport_percentage(&self) -> bool {
+        match *self {
+            % for property in data.longhands:
+                PropertyDeclaration::${property.camel_case}(ref val) => {
+                    val.has_viewport_percentage()
+                },
+            % endfor
+            PropertyDeclaration::Custom(_, ref val) => {
+                val.has_viewport_percentage()
+            }
+        }
+    }
+}
 
 #[derive(Eq, PartialEq, Copy, Clone)]
 pub enum PropertyDeclarationParseResult {
@@ -850,19 +878,6 @@ impl ToCss for PropertyDeclaration {
             % if any(property.derived_from for property in data.longhands):
                 _ => Err(fmt::Error),
             % endif
-        }
-    }
-}
-
-impl HasViewportPercentage for PropertyDeclaration {
-    fn has_viewport_percentage(&self) -> bool {
-        match *self {
-            % for property in data.longhands:
-                PropertyDeclaration::${property.camel_case}(DeclaredValue::Value(ref val)) => {
-                    val.has_viewport_percentage()
-                },
-            % endfor
-            _ => false
         }
     }
 }
@@ -1622,6 +1637,7 @@ fn cascade_with_cached_declarations(
         parent_style: &ComputedValues,
         cached_style: &ComputedValues,
         custom_properties: Option<Arc<::custom_properties::ComputedValuesMap>>,
+        mut cascade_info: Option<<&mut CascadeInfo>,
         mut error_reporter: StdBox<ParseErrorReporter + Send>)
         -> ComputedValues {
     let mut context = computed::Context {
@@ -1664,7 +1680,12 @@ fn cascade_with_cached_declarations(
                                     let custom_props = context.style().custom_properties();
                                     substitute_variables_${property.ident}(
                                         declared_value, &custom_props,
-                                        |value| match *value {
+                                    |value| {
+                                        if let Some(ref mut cascade_info) = cascade_info {
+                                            cascade_info.on_cascade_property(&declaration,
+                                                                             &value);
+                                        }
+                                        match *value {
                                             DeclaredValue::Value(ref specified_value)
                                             => {
                                                 let computed = specified_value.to_computed_value(&context);
@@ -1688,8 +1709,8 @@ fn cascade_with_cached_declarations(
                                                        .copy_${property.ident}_from(inherited_struct);
                                             }
                                             DeclaredValue::WithVariables { .. } => unreachable!()
-                                        }, &mut error_reporter
-                                    );
+                                        }
+                                    }, &mut error_reporter);
                                 % endif
 
                                 % if property.name in data.derived_longhands:
@@ -1728,6 +1749,7 @@ pub type CascadePropertyFn =
                      context: &mut computed::Context,
                      seen: &mut PropertyBitField,
                      cacheable: &mut bool,
+                     cascade_info: &mut Option<<&mut CascadeInfo>,
                      error_reporter: &mut StdBox<ParseErrorReporter + Send>);
 
 #[cfg(feature = "servo")]
@@ -1760,6 +1782,7 @@ pub fn cascade(viewport_size: Size2D<Au>,
                shareable: bool,
                parent_style: Option<<&ComputedValues>,
                cached_style: Option<<&ComputedValues>,
+               mut cascade_info: Option<<&mut CascadeInfo>,
                mut error_reporter: StdBox<ParseErrorReporter + Send>)
                -> (ComputedValues, bool) {
     let initial_values = ComputedValues::initial_values();
@@ -1794,6 +1817,7 @@ pub fn cascade(viewport_size: Size2D<Au>,
                                                      parent_style,
                                                      cached_style,
                                                      custom_properties,
+                                                     cascade_info,
                                                      error_reporter);
         return (style, false)
     }
@@ -1863,6 +1887,7 @@ pub fn cascade(viewport_size: Size2D<Au>,
                                                      &mut context,
                                                      &mut seen,
                                                      &mut cacheable,
+                                                     &mut cascade_info,
                                                      &mut error_reporter);
                 }
             }

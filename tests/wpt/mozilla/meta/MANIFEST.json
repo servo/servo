@@ -1356,6 +1356,18 @@
             "url": "/_mozilla/css/direction_style_caching.html"
           }
         ],
+        "css/dirty_viewport.html": [
+          {
+            "path": "css/dirty_viewport.html",
+            "references": [
+              [
+                "/_mozilla/css/dirty_viewport_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/dirty_viewport.html"
+          }
+        ],
         "css/empty_cells_a.html": [
           {
             "path": "css/empty_cells_a.html",
@@ -10574,6 +10586,18 @@
             ]
           ],
           "url": "/_mozilla/css/direction_style_caching.html"
+        }
+      ],
+      "css/dirty_viewport.html": [
+        {
+          "path": "css/dirty_viewport.html",
+          "references": [
+            [
+              "/_mozilla/css/dirty_viewport_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/dirty_viewport.html"
         }
       ],
       "css/empty_cells_a.html": [

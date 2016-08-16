@@ -1114,6 +1114,14 @@ impl LayoutThread {
                     if node.needs_dirty_on_viewport_size_changed() {
                         // NB: The dirty bit is propagated down the tree.
                         unsafe { node.set_dirty(true); }
+
+                        let mut current = node.parent_node();
+                        while let Some(node) = current {
+                            if node.has_dirty_descendants() { break; }
+                            unsafe { node.set_dirty_descendants(true); }
+                            current = node.parent_node();
+                        }
+
                         next = iter.next_skipping_children();
                     } else {
                         next = iter.next();

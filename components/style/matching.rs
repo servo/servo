@@ -9,6 +9,7 @@
 use animation;
 use arc_ptr_eq;
 use cache::{LRUCache, SimpleHashCache};
+use cascade_info::CascadeInfo;
 use context::{StyleContext, SharedStyleContext};
 use data::PrivateStyleData;
 use dom::{TElement, TNode, TRestyleDamage};
@@ -443,6 +444,7 @@ trait PrivateMatchMethods: TNode {
                                                             &mut old_style) && cacheable;
         }
 
+        let mut cascade_info = CascadeInfo::new();
         let (this_style, is_cacheable) = match parent_style {
             Some(ref parent_style) => {
                 let cache_entry = applicable_declarations_cache.find(applicable_declarations);
@@ -456,6 +458,7 @@ trait PrivateMatchMethods: TNode {
                         shareable,
                         Some(&***parent_style),
                         cached_computed_values,
+                        Some(&mut cascade_info),
                         shared_context.error_reporter.clone())
             }
             None => {
@@ -464,9 +467,11 @@ trait PrivateMatchMethods: TNode {
                         shareable,
                         None,
                         None,
+                        Some(&mut cascade_info),
                         shared_context.error_reporter.clone())
             }
         };
+        cascade_info.finish(self);
 
         cacheable = cacheable && is_cacheable;
 
@@ -496,7 +501,6 @@ trait PrivateMatchMethods: TNode {
 
             cacheable = cacheable && !animations_started
         }
-
 
         // Cache the resolved style if it was cacheable.
         if cacheable {

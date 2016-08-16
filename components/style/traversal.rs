@@ -370,20 +370,6 @@ pub fn recalc_style_at<'a, N, C>(context: &'a C,
     // NB: flow construction updates the bloom filter on the way up.
     put_thread_local_bloom_filter(bf, &unsafe_layout_node, context.shared_context());
 
-    // Mark the node as DIRTY_ON_VIEWPORT_SIZE_CHANGE is it uses viewport
-    // percentage units.
-    if !node.needs_dirty_on_viewport_size_changed() {
-        if let Some(element) = node.as_element() {
-            if let Some(ref property_declaration_block) = *element.style_attribute() {
-                if property_declaration_block.declarations().any(|d| d.0.has_viewport_percentage()) {
-                    unsafe {
-                        node.set_dirty_on_viewport_size_changed();
-                    }
-                }
-            }
-        }
-    }
-
     if nonincremental_layout {
         RestyleResult::Continue
     } else {
