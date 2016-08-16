@@ -8,6 +8,7 @@ use num_traits::ToPrimitive;
 use std::cmp::{max, min};
 use std::ops::Range;
 use std::path::PathBuf;
+use uuid::Uuid;
 
 // HACK: Not really process-safe now, we should send Origin
 //       directly instead of this in future, blocked on #11722
@@ -98,15 +99,10 @@ impl RelativePos {
     }
 }
 
-// XXX: We should opt to Uuid once it implements `Deserialize` and `Serialize`
-/// FileID used in inter-process message
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct SelectedFileId(pub String);
-
 /// Response to file selection request
 #[derive(Debug, Deserialize, Serialize)]
 pub struct SelectedFile {
-    pub id: SelectedFileId,
+    pub id: Uuid,
     pub filename: PathBuf,
     pub modified: u64,
     pub size: u64,
@@ -128,24 +124,24 @@ pub enum FileManagerThreadMsg {
     SelectFiles(Vec<FilterPattern>, IpcSender<FileManagerResult<Vec<SelectedFile>>>, FileOrigin, Option<Vec<String>>),
 
     /// Read FileID-indexed file in chunks, optionally check URL validity based on boolean flag
-    ReadFile(IpcSender<FileManagerResult<ReadFileProgress>>, SelectedFileId, bool, FileOrigin),
+    ReadFile(IpcSender<FileManagerResult<ReadFileProgress>>, Uuid, bool, FileOrigin),
 
     /// Add an entry as promoted memory-based blob and send back the associated FileID
     /// as part of a valid/invalid Blob URL depending on the boolean flag
-    PromoteMemory(BlobBuf, bool, IpcSender<Result<SelectedFileId, BlobURLStoreError>>, FileOrigin),
+    PromoteMemory(BlobBuf, bool, IpcSender<Result<Uuid, BlobURLStoreError>>, FileOrigin),
 
     /// Add a sliced entry pointing to the parent FileID, and send back the associated FileID
     /// as part of a valid Blob URL
-    AddSlicedURLEntry(SelectedFileId, RelativePos, IpcSender<Result<SelectedFileId, BlobURLStoreError>>, FileOrigin),
+    AddSlicedURLEntry(Uuid, RelativePos, IpcSender<Result<Uuid, BlobURLStoreError>>, FileOrigin),
 
     /// Decrease reference count and send back the acknowledgement
-    DecRef(SelectedFileId, FileOrigin, IpcSender<Result<(), BlobURLStoreError>>),
+    DecRef(Uuid, FileOrigin, IpcSender<Result<(), BlobURLStoreError>>),
 
     /// Activate an internal FileID so it becomes valid as part of a Blob URL
-    ActivateBlobURL(SelectedFileId, IpcSender<Result<(), BlobURLStoreError>>, FileOrigin),
+    ActivateBlobURL(Uuid, IpcSender<Result<(), BlobURLStoreError>>, FileOrigin),
 
     /// Revoke Blob URL and send back the acknowledgement
-    RevokeBlobURL(SelectedFileId, FileOrigin, IpcSender<Result<(), BlobURLStoreError>>),
+    RevokeBlobURL(Uuid, FileOrigin, IpcSender<Result<(), BlobURLStoreError>>),
 }
 
 #[derive(Debug, Deserialize, Serialize)]

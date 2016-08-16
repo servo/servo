@@ -70,7 +70,7 @@ style = {path = "../style"}
 time = "0.1.12"
 url = {version = "1.2", features = ["heap_size", "query_encoding"]}
 util = {path = "../util"}
-uuid = {version = "0.3", features = ["v4"]}
+uuid = {version = "0.3.1", features = ["v4"]}
 websocket = "0.17"
 xml5ever = {version = "0.1.2", features = ["unstable"]}
 

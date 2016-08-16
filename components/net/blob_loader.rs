@@ -12,7 +12,7 @@ use mime::{Mime, Attr};
 use mime_classifier::MimeClassifier;
 use net_traits::ProgressMsg::{Payload, Done};
 use net_traits::blob_url_store::parse_blob_url;
-use net_traits::filemanager_thread::{FileManagerThreadMsg, SelectedFileId, ReadFileProgress};
+use net_traits::filemanager_thread::{FileManagerThreadMsg, ReadFileProgress};
 use net_traits::response::HttpsState;
 use net_traits::{LoadConsumer, LoadData, Metadata, NetworkError};
 use resource_thread::CancellationListener;
@@ -40,7 +40,6 @@ fn load_blob<UI: 'static + UIProvider>
              cancel_listener: CancellationListener) {
     let (chan, recv) = ipc::channel().unwrap();
     if let Ok((id, origin, _fragment)) = parse_blob_url(&load_data.url.clone()) {
-        let id = SelectedFileId(id.simple().to_string());
         let check_url_validity = true;
         let msg = FileManagerThreadMsg::ReadFile(chan, id, check_url_validity, origin);
         let _ = filemanager.handle(msg, Some(cancel_listener));

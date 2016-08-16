@@ -15,7 +15,7 @@ use dom::urlhelper::UrlHelper;
 use dom::urlsearchparams::URLSearchParams;
 use ipc_channel::ipc;
 use net_traits::blob_url_store::{get_blob_origin, parse_blob_url};
-use net_traits::filemanager_thread::{SelectedFileId, FileManagerThreadMsg};
+use net_traits::filemanager_thread::FileManagerThreadMsg;
 use net_traits::{IpcSend, CoreResourceMsg};
 use std::borrow::ToOwned;
 use std::default::Default;
@@ -121,13 +121,13 @@ impl URL {
 
         if blob.IsClosed() {
             // Generate a dummy id
-            let id = Uuid::new_v4().simple().to_string();
+            let id = Uuid::new_v4();
             return DOMString::from(URL::unicode_serialization_blob_url(&origin, &id));
         }
 
         let id = blob.get_blob_url_id();
 
-        DOMString::from(URL::unicode_serialization_blob_url(&origin, &id.0))
+        DOMString::from(URL::unicode_serialization_blob_url(&origin, &id))
     }
 
     // https://w3c.github.io/FileAPI/#dfn-revokeObjectURL
@@ -146,7 +146,6 @@ impl URL {
         if let Ok(url) = Url::parse(&url) {
              if let Ok((id, _, _)) = parse_blob_url(&url) {
                 let resource_threads = global.resource_threads();
-                let id = SelectedFileId(id.simple().to_string());
                 let (tx, rx) = ipc::channel().unwrap();
                 let msg = FileManagerThreadMsg::RevokeBlobURL(id, origin, tx);
                 let _ = resource_threads.send(CoreResourceMsg::ToFileManager(msg));
@@ -157,7 +156,7 @@ impl URL {
     }
 
     // https://w3c.github.io/FileAPI/#unicodeSerializationOfBlobURL
-    fn unicode_serialization_blob_url(origin: &str, id: &str) -> String {
+    fn unicode_serialization_blob_url(origin: &str, id: &Uuid) -> String {
         // Step 1, 2
         let mut result = "blob:".to_string();
 
@@ -168,7 +167,7 @@ impl URL {
         result.push('/');
 
         // Step 5
-        result.push_str(id);
+        result.push_str(&id.simple().to_string());
 
         result
     }
