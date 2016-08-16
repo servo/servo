@@ -44,6 +44,7 @@ COMPILATION_TARGETS = {
         "test": True,
         "flags": [
             "-ignore-functions",
+            "-ignore-methods",
         ],
         "includes": [
             "{}/dist/include/nsThemeConstants.h",
