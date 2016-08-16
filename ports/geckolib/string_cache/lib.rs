@@ -89,6 +89,7 @@ impl WeakAtom {
         Atom::from(self.as_ptr())
     }
 
+    #[inline]
     pub fn get_hash(&self) -> u32 {
         self.0.mHash
     }
@@ -101,26 +102,44 @@ impl WeakAtom {
         }
     }
 
-    pub fn chars(&self) -> DecodeUtf16<Cloned<slice::Iter<u16>>> {
+    // NOTE: don't expose this, since it's slow, and easy to be misused.
+    fn chars(&self) -> DecodeUtf16<Cloned<slice::Iter<u16>>> {
         char::decode_utf16(self.as_slice().iter().cloned())
     }
 
     pub fn with_str<F, Output>(&self, cb: F) -> Output
-                               where F: FnOnce(&str) -> Output {
+        where F: FnOnce(&str) -> Output
+    {
         // FIXME(bholley): We should measure whether it makes more sense to
         // cache the UTF-8 version in the Gecko atom table somehow.
         let owned = String::from_utf16(self.as_slice()).unwrap();
         cb(&owned)
     }
 
+    #[inline]
     pub fn eq_str_ignore_ascii_case(&self, s: &str) -> bool {
         unsafe {
             Gecko_AtomEqualsUTF8IgnoreCase(self.as_ptr(), s.as_ptr() as *const _, s.len() as u32)
         }
     }
 
+    #[inline]
     pub fn to_string(&self) -> String {
         String::from_utf16(self.as_slice()).unwrap()
+    }
+
+    #[inline]
+    pub fn is_static(&self) -> bool {
+        unsafe {
+            (*self.as_ptr()).mIsStatic() != 0
+        }
+    }
+
+    #[inline]
+    pub fn len(&self) -> u32 {
+        unsafe {
+            (*self.as_ptr()).mLength()
+        }
     }
 
     #[inline]
@@ -130,12 +149,41 @@ impl WeakAtom {
     }
 }
 
+impl fmt::Debug for WeakAtom {
+    fn fmt(&self, w: &mut fmt::Formatter) -> fmt::Result {
+        write!(w, "Gecko WeakAtom({:p}, {})", self, self)
+    }
+}
+
+impl fmt::Display for WeakAtom {
+    fn fmt(&self, w: &mut fmt::Formatter) -> fmt::Result {
+        for c in self.chars() {
+            try!(write!(w, "{}", c.unwrap_or(char::REPLACEMENT_CHARACTER)))
+        }
+        Ok(())
+    }
+}
+
 impl Atom {
     pub unsafe fn with<F>(ptr: *mut nsIAtom, callback: &mut F) where F: FnMut(&Atom) {
         let atom = Atom(WeakAtom::new(ptr));
         callback(&atom);
         mem::forget(atom);
-     }
+    }
+
+    /// Creates an atom from an static atom pointer without checking in release
+    /// builds.
+    ///
+    /// Right now it's only used by the atom macro, and ideally it should keep
+    /// that way, now we have sugar for is_static, creating atoms using
+    /// Atom::from should involve almost no overhead.
+    #[inline]
+    unsafe fn from_static(ptr: *mut nsIAtom) -> Self {
+        let atom = Atom(ptr as *mut WeakAtom);
+        debug_assert!(atom.is_static(),
+                      "Called from_static for a non-static atom!");
+        atom
+    }
 }
 
 impl BloomHash for Atom {
@@ -174,8 +222,10 @@ impl Clone for Atom {
 impl Drop for Atom {
     #[inline]
     fn drop(&mut self) {
-        unsafe {
-            Gecko_ReleaseAtom(self.as_ptr());
+        if !self.is_static() {
+            unsafe {
+                Gecko_ReleaseAtom(self.as_ptr());
+            }
         }
     }
 }
@@ -208,23 +258,22 @@ impl Deserialize for Atom {
 
 impl fmt::Debug for Atom {
     fn fmt(&self, w: &mut fmt::Formatter) -> fmt::Result {
-        write!(w, "Gecko Atom {:p}", self.0)
+        write!(w, "Gecko Atom({:p}, {})", self.0, self)
     }
 }
 
 impl fmt::Display for Atom {
     fn fmt(&self, w: &mut fmt::Formatter) -> fmt::Result {
-        for c in char::decode_utf16(self.as_slice().iter().cloned()) {
-            try!(write!(w, "{}", c.unwrap_or(char::REPLACEMENT_CHARACTER)))
+        unsafe {
+            (&*self.0).fmt(w)
         }
-        Ok(())
     }
 }
 
 impl<'a> From<&'a str> for Atom {
     #[inline]
     fn from(string: &str) -> Atom {
-        assert!(string.len() <= u32::max_value() as usize);
+        debug_assert!(string.len() <= u32::max_value() as usize);
         unsafe {
             Atom(WeakAtom::new(
                 Gecko_Atomize(string.as_ptr() as *const _, string.len() as u32)
@@ -257,8 +306,11 @@ impl From<String> for Atom {
 impl From<*mut nsIAtom> for Atom {
     #[inline]
     fn from(ptr: *mut nsIAtom) -> Atom {
+        debug_assert!(!ptr.is_null());
         unsafe {
-            Gecko_AddRefAtom(ptr);
+            if (*ptr).mIsStatic() == 0 {
+                Gecko_AddRefAtom(ptr);
+            }
             Atom(WeakAtom::new(ptr))
         }
     }

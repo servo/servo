@@ -13,6 +13,8 @@ import copy
 import subprocess
 import tempfile
 
+import regen_atoms
+
 DESCRIPTION = 'Regenerate the rust version of the structs or the bindings file.'
 TOOLS_DIR = os.path.dirname(os.path.abspath(__file__))
 COMMON_BUILD_KEY = "__common__"
@@ -22,7 +24,7 @@ COMPILATION_TARGETS = {
     COMMON_BUILD_KEY: {
         "flags": [
             "-x", "c++", "-std=c++14",
-            "-allow-unknown-types", "-no-bitfield-methods",
+            "-allow-unknown-types", "-no-unstable-rust",
             "-no-type-renaming", "-no-namespaced-constants",
             "-DTRACING=1", "-DIMPL_LIBXUL", "-DMOZ_STYLO_BINDINGS=1",
             "-DMOZILLA_INTERNAL_API", "-DRUST_BINDGEN",
@@ -38,9 +40,11 @@ COMPILATION_TARGETS = {
     },
     # Generation of style structs.
     "structs": {
+        "target_dir": "../gecko_bindings",
         "test": True,
         "flags": [
             "-ignore-functions",
+            "-ignore-methods",
         ],
         "includes": [
             "{}/dist/include/nsThemeConstants.h",
@@ -108,6 +112,7 @@ COMPILATION_TARGETS = {
     },
     # Generation of the ffi bindings.
     "bindings": {
+        "target_dir": "../gecko_bindings",
         "raw_lines": [
             "use heapsize::HeapSizeOf;",
         ],
@@ -140,6 +145,10 @@ COMPILATION_TARGETS = {
         "void_types": [
             "nsINode", "nsIDocument", "nsIPrincipal", "nsIURI",
         ],
+    },
+
+    "atoms": {
+        "custom_build": regen_atoms.build,
     }
 }
 
@@ -212,6 +221,17 @@ def build(objdir, target_name, kind_name=None,
     assert ((kind_name is None and "build_kinds" not in current_target) or
             (kind_name in current_target["build_kinds"]))
 
+    if "custom_build" in current_target:
+        print("[CUSTOM] {}::{} in \"{}\"... ".format(target_name, kind_name, objdir), end='')
+        sys.stdout.flush()
+        ret = current_target["custom_build"](objdir, verbose=True)
+        if ret != 0:
+            print("FAIL")
+        else:
+            print("OK")
+
+        return ret
+
     if bindgen is None:
         bindgen = os.path.join(TOOLS_DIR, "rust-bindgen")
 
@@ -221,17 +241,22 @@ def build(objdir, target_name, kind_name=None,
     else:
         bindgen = [bindgen]
 
-    if output_filename is None:
-        filename = "{}.rs".format(target_name)
-
-        if kind_name is not None:
-            filename = "{}_{}.rs".format(target_name, kind_name)
-
-        output_filename = "{}/../{}".format(TOOLS_DIR, filename)
-
     if kind_name is not None:
         current_target = copy.deepcopy(current_target)
         extend_object(current_target, current_target["build_kinds"][kind_name])
+
+    target_dir = None
+    if output_filename is None and "target_dir" in current_target:
+        target_dir = current_target["target_dir"]
+
+    if output_filename is None:
+        output_filename = "{}.rs".format(target_name)
+
+        if kind_name is not None:
+            output_filename = "{}_{}.rs".format(target_name, kind_name)
+
+    if target_dir:
+        output_filename = "{}/{}".format(target_dir, output_filename)
 
     print("[BINDGEN] {}::{} in \"{}\"... ".format(target_name, kind_name, objdir), end='')
     sys.stdout.flush()

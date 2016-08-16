@@ -16,6 +16,7 @@ use gecko_bindings::ptr::{GeckoArcPrincipal, GeckoArcURI};
 use gecko_bindings::structs::ServoElementSnapshot;
 use gecko_bindings::structs::nsRestyleHint;
 use gecko_bindings::structs::{SheetParsingMode, nsIAtom};
+use gecko_string_cache::Atom;
 use snapshot::GeckoElementSnapshot;
 use std::mem::transmute;
 use std::ptr;
@@ -38,29 +39,6 @@ use style::timer::Timer;
 use traversal::RecalcStyleOnly;
 use url::Url;
 use wrapper::{DUMMY_BASE_URL, GeckoDocument, GeckoElement, GeckoNode, NonOpaqueStyleData};
-
-// TODO: This is ugly and should go away once we get an atom back-end.
-pub fn pseudo_element_from_atom(pseudo: *mut nsIAtom,
-                                in_ua_stylesheet: bool) -> Result<PseudoElement, String> {
-    use gecko_bindings::bindings::Gecko_GetAtomAsUTF16;
-    use selectors::parser::{ParserContext, SelectorImpl};
-
-    let pseudo_string = unsafe {
-        let mut length = 0;
-        let mut buff = Gecko_GetAtomAsUTF16(pseudo, &mut length);
-
-        // Handle the annoying preceding colon in front of everything in nsCSSAnonBoxList.h.
-        debug_assert!(length >= 2 && *buff == ':' as u16 && *buff.offset(1) != ':' as u16);
-        buff = buff.offset(1);
-        length -= 1;
-
-        String::from_utf16(slice::from_raw_parts(buff, length as usize)).unwrap()
-    };
-
-    let mut context = ParserContext::new();
-    context.in_user_agent_stylesheet = in_ua_stylesheet;
-    GeckoSelectorImpl::parse_pseudo_element(&context, &pseudo_string).map_err(|_| pseudo_string)
-}
 
 /*
  * For Gecko->Servo function calls, we need to redeclare the same signature that was declared in
@@ -286,13 +264,8 @@ pub extern "C" fn Servo_GetComputedValuesForAnonymousBox(parent_style_or_null: *
     let data = PerDocumentStyleData::borrow_mut_from_raw(raw_data);
     data.flush_stylesheets();
 
-    let pseudo = match pseudo_element_from_atom(pseudo_tag, /* ua_stylesheet = */ true) {
-        Ok(pseudo) => pseudo,
-        Err(pseudo) => {
-            warn!("stylo: Unable to parse anonymous-box pseudo-element: {}", pseudo);
-            return ptr::null_mut();
-        }
-    };
+    let atom = Atom::from(pseudo_tag);
+    let pseudo = PseudoElement::from_atom_unchecked(atom, /* anon_box = */ true);
 
     type Helpers = ArcHelpers<ServoComputedValues, ComputedValues>;
 
@@ -320,14 +293,8 @@ pub extern "C" fn Servo_GetComputedValuesForPseudoElement(parent_style: *mut Ser
         }
     };
 
-    let pseudo = match pseudo_element_from_atom(pseudo_tag, /* ua_stylesheet = */ true) {
-        Ok(pseudo) => pseudo,
-        Err(pseudo) => {
-            warn!("stylo: Unable to parse anonymous-box pseudo-element: {}", pseudo);
-            return parent_or_null();
-        }
-    };
-
+    let atom = Atom::from(pseudo_tag);
+    let pseudo = PseudoElement::from_atom_unchecked(atom, /* anon_box = */ false);
 
     // The stylist consumes stylesheets lazily.
     let data = PerDocumentStyleData::borrow_mut_from_raw(raw_data);
