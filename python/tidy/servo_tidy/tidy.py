@@ -26,8 +26,8 @@ config = {
     "skip-check-length": False,
     "skip-check-licenses": False,
     "ignore": {
-        # Ignore servo-tidy.toml and hidden files by default
-        "files": ["./servo-tidy.toml", "./."],
+        # Ignore hidden files by default
+        "files": ["./."],
         # Ignore hidden directories by default
         "directories": ["./."],
         "packages": [],
@@ -49,7 +49,8 @@ if os.path.exists("./servo-tidy.toml"):
         # Override default configs
         configs = config_file.get("configs", [])
         for pref in configs:
-            config[pref] = configs[pref]
+            if pref in config:
+                config[pref] = configs[pref]
 else:
     print("./servo-tidy.toml config file is required but was not found")
     sys.exit(1)
@@ -682,6 +683,36 @@ def check_spec(file_name, lines):
                 brace_count -= 1
 
 
+def check_config_file(lines):
+    current_table = ""
+    for idx, line in enumerate(lines):
+        # Ignore comment lines
+        if line.strip().startswith("#"):
+            continue
+
+        # Check for invalid tables
+        if re.match("\[(.*?)\]", line.strip()):
+            table_name = re.findall(r"\[(.*?)\]", line)[0].strip()
+            if table_name not in ("configs", "ignore"):
+                yield(idx + 1, "invalid config table [%s]" % table_name)
+            current_table = table_name
+            continue
+
+        # Skip if there is no equel sign in line, assuming is not a key
+        if "=" not in line:
+            continue
+
+        key = line.split("=")
+        key = key[0].strip()
+
+        # Check for invalid keys inside [configs] and [ignore] table
+        if (current_table == "configs" and key not in config or
+                current_table == "ignore" and key not in config["ignore"] or
+                # Any key outside of tables
+                current_table == ""):
+            yield(idx + 1, "invalid config key '%s'" % key)
+
+
 def collect_errors_for_files(files_to_check, checking_functions, line_checking_functions, print_text=True):
     (has_element, files_to_check) = is_iter_empty(files_to_check)
     if not has_element:
@@ -694,11 +725,16 @@ def collect_errors_for_files(files_to_check, checking_functions, line_checking_f
             continue
         with open(filename, "r") as f:
             contents = f.read()
+            lines = contents.splitlines(True)
+            if filename.endswith("/servo-tidy.toml"):
+                for error in (check_config_file(lines) or []):
+                    # the result will be: `(filename, line, message)`
+                    yield (filename,) + error
+                continue
             for check in checking_functions:
                 for error in check(filename, contents):
                     # the result will be: `(filename, line, message)`
                     yield (filename,) + error
-            lines = contents.splitlines(True)
             for check in line_checking_functions:
                 for error in check(filename, lines):
                     yield (filename,) + error

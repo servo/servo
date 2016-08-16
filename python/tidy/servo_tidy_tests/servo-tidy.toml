@@ -1,0 +1,13 @@
+key-outside = ""
+
+[configs]
+skip-check-length = false
+skip-check-licenses = false
+wrong-key = false
+
+[wrong]
+wrong-key = true
+
+[ignore]
+files = []
+directories = []

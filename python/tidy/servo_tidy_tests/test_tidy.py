@@ -23,6 +23,13 @@ class CheckTidiness(unittest.TestCase):
         with self.assertRaises(StopIteration):
             errors.next()
 
+    def test_tidy_config(self):
+        errors = tidy.collect_errors_for_files(iterFile('servo-tidy.toml'), [], [tidy.check_by_line], print_text=False)
+        self.assertEqual('invalid config key \'key-outside\'', errors.next()[2])
+        self.assertEqual('invalid config key \'wrong-key\'', errors.next()[2])
+        self.assertEqual('invalid config table [wrong]', errors.next()[2])
+        self.assertNoMoreErrors(errors)
+
     def test_spaces_correctnes(self):
         errors = tidy.collect_errors_for_files(iterFile('wrong_space.rs'), [], [tidy.check_by_line], print_text=False)
         self.assertEqual('trailing whitespace', errors.next()[2])
