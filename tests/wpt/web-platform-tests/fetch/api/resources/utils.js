@@ -53,7 +53,7 @@ function stringToArray(str) {
 
 function validateBufferFromString(buffer, expectedValue, message)
 {
-  return assert_array_equals(new Uint8Array(buffer), stringToArray(expectedValue), message);
+  return assert_array_equals(new Uint8Array(buffer !== undefined ? buffer : []), stringToArray(expectedValue), message);
 }
 
 function validateStreamFromString(reader, expectedValue, retrievedArrayBuffer) {

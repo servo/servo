@@ -15,7 +15,7 @@ function corsPreflightReferrer(desc, corsUrl, referrerPolicy, expectedReferrer) 
   urlParameters += "&allow_headers=x-force-preflight";
 
   promise_test(function(test) {
-    fetch(RESOURCES_DIR + "clean-stash.py?token=" + uuid_token).then(function(resp) {
+    return fetch(RESOURCES_DIR + "clean-stash.py?token=" + uuid_token).then(function(resp) {
       assert_equals(resp.status, 200, "Clean stash response's status is 200");
       return fetch(url + urlParameters, requestInit).then(function(resp) {
         assert_equals(resp.status, 200, "Response's status is 200");
@@ -27,7 +27,7 @@ function corsPreflightReferrer(desc, corsUrl, referrerPolicy, expectedReferrer) 
   }, desc);
 }
 
-var corsUrl = "http://www1.{{host}}:{{ports[http][0]}}" + dirname(location.pathname) + RESOURCES_DIR + "preflight.py";
+var corsUrl = "http://{{host}}:{{ports[http][1]}}" + dirname(location.pathname) + RESOURCES_DIR + "preflight.py";
 var origin = "http://{{host}}:{{ports[http][0]}}";
 
 corsPreflightReferrer("Referrer policy: no-referrer", corsUrl, "no-referrer", "");

@@ -24,7 +24,6 @@ var url = RESOURCES_DIR + "inspect-headers.py"
 
 requestHeaders("Fetch with GET", url, "GET", null, location.origin, null);
 requestHeaders("Fetch with HEAD", url, "HEAD", null, location.origin, "0");
-requestHeaders("Fetch with HEAD with body", url, "HEAD", "Request's body", location.origin, "14");
 requestHeaders("Fetch with PUT without body", url, "POST", null, location.origin, "0");
 requestHeaders("Fetch with PUT with body", url, "PUT", "Request's body", location.origin, "14");
 requestHeaders("Fetch with POST without body", url, "POST", null, location.origin, "0");

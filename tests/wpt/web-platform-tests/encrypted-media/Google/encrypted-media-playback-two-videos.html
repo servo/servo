@@ -4,8 +4,8 @@
     <head>
         <title>Clear Key Play Two Videos At Same Time</title>
         <script src="encrypted-media-utils.js"></script>
-        <script src="../../resources/testharness.js"></script>
-        <script src="../../resources/testharnessreport.js"></script>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
     </head>
     <body>
         <video id="testVideo"></video>
@@ -18,19 +18,20 @@
             var keyId = stringToUint8Array('0123456789012345');
             var rawKey = new Uint8Array([0xeb, 0xdd, 0x62, 0xf1, 0x68, 0x14, 0xd2, 0x7b,
                                          0x68, 0xef, 0x12, 0x2a, 0xfc, 0xe4, 0xae, 0x3c]);
+            var content = 'webm/test-encrypted.webm';
 
             promise_test(function(test)
             {
                 var promises = [
-                    play_video_as_promise(document.getElementById('testVideo'), '../content/test-encrypted.webm'),
-                    play_video_as_promise(document.getElementById('secondVideo'), '../content/test-encrypted.webm')
+                    play_video_as_promise(document.getElementById('testVideo'), content),
+                    play_video_as_promise(document.getElementById('secondVideo'), content)
                 ];
                 return Promise.all(promises);
             }, 'Play two videos at the same time.');
 
             function play_video_as_promise(video, content)
             {
-                return navigator.requestMediaKeySystemAccess('org.w3.clearkey', [{}]).then(function(access) {
+                return navigator.requestMediaKeySystemAccess('org.w3.clearkey', getConfigurationForFile(content)).then(function(access) {
                     return access.createMediaKeys();
                 }).then(function(mediaKeys) {
                     return video.setMediaKeys(mediaKeys);

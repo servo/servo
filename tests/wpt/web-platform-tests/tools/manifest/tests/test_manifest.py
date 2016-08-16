@@ -53,3 +53,10 @@ def test_manifest_to_json():
     assert list(loaded) == list(m)
 
     assert loaded.to_json() == json_str
+
+def test_multi_global():
+    s = sourcefile.SourceFile("/", "test.any.js", "/")
+    assert s.name_is_multi_global
+    assert not s.name_is_manual
+    assert not s.name_is_reference
+    assert not s.name_is_worker

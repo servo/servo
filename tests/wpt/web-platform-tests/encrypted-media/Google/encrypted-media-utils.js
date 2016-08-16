@@ -19,23 +19,8 @@ function consoleWrite(text)
 function isInitDataTypeSupported(initDataType)
 {
     return navigator.requestMediaKeySystemAccess(
-                         "org.w3.clearkey", [{ initDataTypes : [initDataType] }])
-        .then(function() { return(true); }, function() { return(false); });
-}
-
-// Returns a promise that is fulfilled with an initDataType that is supported,
-// rejected if none are supported.
-function getSupportedInitDataType()
-{
-    var configuration = [{ initDataTypes : [ 'webm', 'cenc', 'keyids' ] }];
-    return navigator.requestMediaKeySystemAccess('org.w3.clearkey', configuration)
-        .then(function(access) {
-            var initDataTypes = access.getConfiguration().initDataTypes;
-            assert_greater_than(initDataTypes.length, 0);
-            return Promise.resolve(initDataTypes[0]);
-        }, function(error) {
-            return Promise.reject('No supported initDataType.');
-        });
+                        "org.w3.clearkey", getSimpleConfigurationForInitDataType(initDataType))
+        .then(function() { return true; }, function() { return false; });
 }
 
 function getInitData(initDataType)
@@ -71,6 +56,54 @@ function getInitData(initDataType)
   }
 
   throw 'initDataType ' + initDataType + ' not supported.';
+}
+
+// Returns an array of audioCapabilities that includes entries for a set of
+// codecs that should cover all user agents.
+function getPossibleAudioCapabilities()
+{
+    return [
+        { contentType: 'audio/mp4; codecs="mp4a.40.2"' },
+        { contentType: 'audio/webm; codecs="opus"' },
+    ];
+}
+
+// Returns a trivial MediaKeySystemConfiguration that should be accepted,
+// possibly as a subset of the specified capabilities, by all user agents.
+function getSimpleConfiguration()
+{
+    return [ {
+        initDataTypes : [ 'webm', 'cenc', 'keyids' ],
+        audioCapabilities: getPossibleAudioCapabilities()
+    } ];
+}
+
+// Returns a MediaKeySystemConfiguration for |initDataType| that should be
+// accepted, possibly as a subset of the specified capabilities, by all
+// user agents.
+function getSimpleConfigurationForInitDataType(initDataType)
+{
+    return [ {
+        initDataTypes: [ initDataType ],
+        audioCapabilities: getPossibleAudioCapabilities()
+    } ];
+}
+
+// Returns a MediaKeySystemConfiguration for |mediaFile| that specifies
+// both audio and video capabilities for the specified file..
+function getConfigurationForFile(mediaFile)
+{
+    if (mediaFile.toLowerCase().endsWith('webm')) {
+        return [ {
+            initDataTypes: [ 'webm' ],
+            audioCapabilities: [ { contentType: 'audio/webm; codecs="opus"' } ],
+            videoCapabilities: [ { contentType: 'video/webm; codecs="vp8"' } ]
+        } ];
+    }
+
+    // NOTE: Supporting other mediaFormats is not currently implemented as
+    // Chromium only tests with WebM files.
+    throw 'mediaFile ' + mediaFile + ' not supported.';
 }
 
 function waitForEventAndRunStep(eventName, element, func, stepTest)
@@ -130,23 +163,23 @@ function dumpKeyStatuses(keyStatuses)
 {
     consoleWrite("for (var entry of keyStatuses)");
     for (var entry of keyStatuses) {
-        consoleWrite(arrayBufferAsString(entry[0]) + ", " + entry[1]);
+        consoleWrite(arrayBufferAsString(entry[0]) + ": " + entry[1]);
     }
-    consoleWrite("for (var key of keyStatuses.keys())");
-    for (var key of keyStatuses.keys()) {
-        consoleWrite(arrayBufferAsString(key));
+    consoleWrite("for (var keyId of keyStatuses.keys())");
+    for (var keyId of keyStatuses.keys()) {
+        consoleWrite(arrayBufferAsString(keyId));
     }
-    consoleWrite("for (var value of keyStatuses.values())");
-    for (var value of keyStatuses.values()) {
-        consoleWrite(value);
+    consoleWrite("for (var status of keyStatuses.values())");
+    for (var status of keyStatuses.values()) {
+        consoleWrite(status);
     }
     consoleWrite("for (var entry of keyStatuses.entries())");
     for (var entry of keyStatuses.entries()) {
-        consoleWrite(arrayBufferAsString(entry[0]) + ", " + entry[1]);
+        consoleWrite(arrayBufferAsString(entry[0]) + ": " + entry[1]);
     }
     consoleWrite("keyStatuses.forEach()");
-    keyStatuses.forEach(function(value, key, map) {
-        consoleWrite(arrayBufferAsString(key) + ", " + value);
+    keyStatuses.forEach(function(status, keyId) {
+        consoleWrite(arrayBufferAsString(keyId) + ": " + status);
     });
 }
 
@@ -270,7 +303,7 @@ function createMediaKeys(keyId, key)
     var request = stringToUint8Array(createKeyIDs(keyId));
     var jwkSet = stringToUint8Array(createJWKSet(createJWK(keyId, key)));
 
-    return navigator.requestMediaKeySystemAccess('org.w3.clearkey', [{}]).then(function(access) {
+    return navigator.requestMediaKeySystemAccess('org.w3.clearkey', getSimpleConfigurationForInitDataType('keyids')).then(function(access) {
         return access.createMediaKeys();
     }).then(function(result) {
         mediaKeys = result;

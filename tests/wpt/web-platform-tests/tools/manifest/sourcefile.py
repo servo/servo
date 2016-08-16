@@ -18,6 +18,15 @@ from .utils import rel_path_to_url, is_blacklisted, ContextManagerStringIO, cach
 
 wd_pattern = "*.py"
 
+def replace_end(s, old, new):
+    """
+    Given a string `s` that ends with `old`, replace that occurrence of `old`
+    with `new`.
+    """
+    assert s.endswith(old)
+    return s[:-len(old)] + new
+
+
 class SourceFile(object):
     parsers = {"html":lambda x:html5lib.parse(x, treebuilder="etree"),
                "xhtml":ElementTree.parse,
@@ -101,6 +110,12 @@ class SourceFile(object):
         """Check if the file name matches the conditions for the file to
         be a manual test file"""
         return self.type_flag == "manual"
+
+    @property
+    def name_is_multi_global(self):
+        """Check if the file name matches the conditions for the file to
+        be a multi-global js test file"""
+        return "any" in self.meta_flags and self.ext == ".js"
 
     @property
     def name_is_worker(self):
@@ -296,8 +311,14 @@ class SourceFile(object):
         elif self.name_is_manual:
             rv = [ManualTest(self, self.url)]
 
+        elif self.name_is_multi_global:
+            rv = [
+                TestharnessTest(self, replace_end(self.url, ".any.js", ".any.html")),
+                TestharnessTest(self, replace_end(self.url, ".any.js", ".any.worker")),
+            ]
+
         elif self.name_is_worker:
-            rv = [TestharnessTest(self, self.url[:-3])]
+            rv = [TestharnessTest(self, replace_end(self.url, ".worker.js", ".worker"))]
 
         elif self.name_is_webdriver:
             rv = [WebdriverSpecTest(self, self.url)]

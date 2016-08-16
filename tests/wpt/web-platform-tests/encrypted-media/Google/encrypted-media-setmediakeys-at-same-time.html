@@ -4,8 +4,8 @@
     <head>
         <title>Set MediaKeys multiple times in parallel</title>
         <script src="encrypted-media-utils.js"></script>
-        <script src="../../resources/testharness.js"></script>
-        <script src="../../resources/testharnessreport.js"></script>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
     </head>
     <body>
         <video id="video"></video>
@@ -56,6 +56,7 @@
             promise_test(function(test)
             {
                 var video = document.getElementById('video');
+                var content = 'webm/test-encrypted.webm';
                 var access;
                 var mediaKeys1;
                 var mediaKeys2;
@@ -65,10 +66,10 @@
 
                 // Start a video now so that it is waiting for MediaKeys
                 // in order to continue.
-                video.src = '../content/test-encrypted.webm';
+                video.src = content;
                 video.play();
                 return wait_for_encrypted_event(video).then(function() {
-                    return navigator.requestMediaKeySystemAccess('org.w3.clearkey', [{}]);
+                    return navigator.requestMediaKeySystemAccess('org.w3.clearkey', getConfigurationForFile(content));
                 }).then(function(result) {
                     access = result;
                     return access.createMediaKeys();

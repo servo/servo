@@ -27,7 +27,7 @@ args = parser.parse_args()
 
 # pull in the template
 
-template = open(TEMPLATE).read()
+template = open(TEMPLATE, "r").read()
 
 defList = []
 defnames = ""
@@ -37,7 +37,7 @@ for curdir, subdirList, fileList in os.walk(DEFDIR, topdown=True):
   for file in fnmatch.filter(fileList, "*.json"):
     theFile = os.path.join(curdir, file)
     try:
-      testJSON = json.load(open(theFile))
+      testJSON = json.load(open(theFile, "r"))
     except ValueError as e:
       print "parse of " + theFile + " failed: " + e[0]
     else:
@@ -61,7 +61,7 @@ for curdir, subdirList, fileList in os.walk(TESTTREE, topdown=True):
 # for each .test file, create a corresponding .html file using template
     theFile = os.path.join(curdir, file)
     try:
-      testJSON = json.load(open(theFile))
+      testJSON = json.load(open(theFile, "r"))
     except ValueError as e:
       print "parse of " + theFile + " failed: " + e[0]
     else:

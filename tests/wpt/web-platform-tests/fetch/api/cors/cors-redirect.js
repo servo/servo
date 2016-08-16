@@ -2,6 +2,7 @@ if (this.document === undefined) {
   importScripts("/resources/testharness.js");
   importScripts("/common/utils.js");
   importScripts("../resources/utils.js");
+  importScripts("../resources/get-host-info.sub.js");
 }
 
 function corsRedirect(desc, redirectUrl, redirectLocation, redirectStatus, expectedOrigin) {
@@ -27,12 +28,14 @@ function corsRedirect(desc, redirectUrl, redirectLocation, redirectStatus, expec
 var redirPath = dirname(location.pathname) + RESOURCES_DIR + "redirect.py";
 var preflightPath = dirname(location.pathname) + RESOURCES_DIR + "preflight.py";
 
-var localRedirect = "http://{{host}}:{{ports[http][0]}}" + redirPath;
-var remoteRedirect = "http://www1.{{host}}:{{ports[http][0]}}" + redirPath;
+var host_info = get_host_info();
 
-var localLocation = "http://{{host}}:{{ports[http][0]}}" + preflightPath;
-var remoteLocation = "http://www1.{{host}}:{{ports[http][0]}}" + preflightPath;
-var remoteLocation2 = "http://www.{{host}}:{{ports[http][0]}}" + preflightPath;
+var localRedirect = host_info.HTTP_ORIGIN + redirPath;
+var remoteRedirect = host_info.HTTP_REMOTE_ORIGIN + redirPath;
+
+var localLocation = host_info.HTTP_ORIGIN + preflightPath;
+var remoteLocation = host_info.HTTP_REMOTE_ORIGIN + preflightPath;
+var remoteLocation2 = host_info.HTTP_ORIGIN_WITH_DIFFERENT_PORT + preflightPath;
 
 for (var code of [301, 302, 303, 307, 308]) {
   corsRedirect("Redirect " + code + ": cors to same cors", remoteRedirect, remoteLocation, code, location.origin);
