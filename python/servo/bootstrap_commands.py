@@ -37,9 +37,10 @@ def download(desc, src, writer, start_byte=0):
     dumb = (os.environ.get("TERM") == "dumb") or (not sys.stdout.isatty())
 
     try:
+        req = urllib2.Request(src)
         if start_byte:
-            src = urllib2.Request(src, headers={'Range': 'bytes={}-'.format(start_byte)})
-        resp = urllib2.urlopen(src)
+            req = urllib2.Request(src, headers={'Range': 'bytes={}-'.format(start_byte)})
+        resp = urllib2.urlopen(req)
 
         fsize = None
         if resp.info().getheader('Content-Length'):
