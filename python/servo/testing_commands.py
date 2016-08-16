@@ -221,9 +221,7 @@ class MachCommands(CommandBase):
         env["RUST_BACKTRACE"] = "1"
 
         if sys.platform in ("win32", "msys"):
-            if "msvc" in host_triple():
-                env["RUSTFLAGS"] = "-C link-args=/SUBSYSTEM:WINDOWS"
-            else:
+            if "msvc" not in host_triple():
                 env["RUSTFLAGS"] = "-C link-args=-Wl,--subsystem,windows"
 
         result = call(args, env=env, cwd=self.servo_crate())
