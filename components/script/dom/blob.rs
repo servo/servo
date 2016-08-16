@@ -357,11 +357,12 @@ pub fn blob_parts_to_bytes(blobparts: Vec<BlobOrString>) -> Result<Vec<u8>, ()> 
 impl BlobMethods for Blob {
     // https://w3c.github.io/FileAPI/#dfn-size
     fn Size(&self) -> u64 {
-        // XXX: This will incur reading if file-based
-        match self.get_bytes() {
-            Ok(s) => s.len() as u64,
-            _ => 0,
-        }
+         match *self.blob_impl.borrow() {
+            BlobImpl::File(ref f) => f.size,
+            BlobImpl::Memory(ref v) => v.len() as u64,
+            BlobImpl::Sliced(ref parent, ref rel_pos) =>
+                rel_pos.to_abs_range(parent.Size() as usize).len() as u64,
+         }
     }
 
     // https://w3c.github.io/FileAPI/#dfn-type
