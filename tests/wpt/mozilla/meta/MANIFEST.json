@@ -3960,6 +3960,30 @@
             "url": "/_mozilla/css/overflow_simple_a.html"
           }
         ],
+        "css/overflow_transformed_sc.html": [
+          {
+            "path": "css/overflow_transformed_sc.html",
+            "references": [
+              [
+                "/_mozilla/css/overflow_transformed_sc_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/overflow_transformed_sc.html"
+          }
+        ],
+        "css/overflow_transformed_sc_rotate.html": [
+          {
+            "path": "css/overflow_transformed_sc_rotate.html",
+            "references": [
+              [
+                "/_mozilla/css/overflow_transformed_sc_rotate_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/overflow_transformed_sc_rotate.html"
+          }
+        ],
         "css/overflow_wrap_a.html": [
           {
             "path": "css/overflow_wrap_a.html",
@@ -13190,6 +13214,30 @@
             ]
           ],
           "url": "/_mozilla/css/overflow_simple_a.html"
+        }
+      ],
+      "css/overflow_transformed_sc.html": [
+        {
+          "path": "css/overflow_transformed_sc.html",
+          "references": [
+            [
+              "/_mozilla/css/overflow_transformed_sc_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/overflow_transformed_sc.html"
+        }
+      ],
+      "css/overflow_transformed_sc_rotate.html": [
+        {
+          "path": "css/overflow_transformed_sc_rotate.html",
+          "references": [
+            [
+              "/_mozilla/css/overflow_transformed_sc_rotate_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/overflow_transformed_sc_rotate.html"
         }
       ],
       "css/overflow_wrap_a.html": [
