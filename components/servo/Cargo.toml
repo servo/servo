@@ -90,7 +90,7 @@ backtrace = "0.2"
 
 [target.'cfg(target_os = "android")'.dependencies]
 log = "0.3"
-android_glue = "0.1.3"
+android_glue = "0.2"
 
 [target.'cfg(not(target_os = "windows"))'.dependencies]
 gaol = {git = "https://github.com/servo/gaol"}
