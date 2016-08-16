@@ -171,9 +171,18 @@ impl Atom {
         mem::forget(atom);
     }
 
+    /// Creates an atom from an static atom pointer without checking in release
+    /// builds.
+    ///
+    /// Right now it's only used by the atom macro, and ideally it should keep
+    /// that way, now we have sugar for is_static, creating atoms using
+    /// Atom::from should involve almost no overhead.
     #[inline]
     unsafe fn from_static(ptr: *mut nsIAtom) -> Self {
-        Atom(ptr as *mut WeakAtom)
+        let atom = Atom(ptr as *mut WeakAtom);
+        debug_assert!(atom.is_static(),
+                      "Called from_static for a non-static atom!");
+        atom
     }
 }
 
