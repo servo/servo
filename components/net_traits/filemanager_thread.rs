@@ -121,17 +121,17 @@ pub struct FilterPattern(pub String);
 
 #[derive(Deserialize, Serialize)]
 pub enum FileManagerThreadMsg {
-    /// Select a single file, return triple (FileID, FileName, lastModified)
+    /// Select a single file. Last field is pre-selected file path for testing
     SelectFile(Vec<FilterPattern>, IpcSender<FileManagerResult<SelectedFile>>, FileOrigin, Option<String>),
 
-    /// Select multiple files, return a vector of triples
+    /// Select multiple files. Last field is pre-selected file paths for testing
     SelectFiles(Vec<FilterPattern>, IpcSender<FileManagerResult<Vec<SelectedFile>>>, FileOrigin, Option<Vec<String>>),
 
-    /// Read file in chunks by FileID, optionally check URL validity based on fourth flag
+    /// Read FileID-indexed file in chunks, optionally check URL validity based on boolean flag
     ReadFile(IpcSender<FileManagerResult<ReadFileProgress>>, SelectedFileId, bool, FileOrigin),
 
     /// Add an entry as promoted memory-based blob and send back the associated FileID
-    /// as part of a valid/invalid Blob URL depending on the second bool flag
+    /// as part of a valid/invalid Blob URL depending on the boolean flag
     PromoteMemory(BlobBuf, bool, IpcSender<Result<SelectedFileId, BlobURLStoreError>>, FileOrigin),
 
     /// Add a sliced entry pointing to the parent FileID, and send back the associated FileID
