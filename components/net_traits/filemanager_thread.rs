@@ -8,6 +8,7 @@ use num_traits::ToPrimitive;
 use std::cmp::{max, min};
 use std::ops::Range;
 use std::path::PathBuf;
+use uuid::Uuid;
 
 // HACK: Not really process-safe now, we should send Origin
 //       directly instead of this in future, blocked on #11722
@@ -98,10 +99,8 @@ impl RelativePos {
     }
 }
 
-// XXX: We should opt to Uuid once it implements `Deserialize` and `Serialize`
 /// FileID used in inter-process message
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct SelectedFileId(pub String);
+pub type SelectedFileId = Uuid;
 
 /// Response to file selection request
 #[derive(Debug, Deserialize, Serialize)]

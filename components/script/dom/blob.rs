@@ -191,7 +191,7 @@ impl Blob {
             BlobImpl::Sliced(_, _) => {
                 debug!("Sliced can't have a sliced parent");
                 // Return dummy id
-                return SelectedFileId(Uuid::new_v4().simple().to_string());
+                return Uuid::new_v4();
             }
             BlobImpl::File(ref f) => {
                 if set_valid {
@@ -205,7 +205,7 @@ impl Blob {
                     match rx.recv().unwrap() {
                         Ok(_) => return f.id.clone(),
                         // Return a dummy id on error
-                        Err(_) => return SelectedFileId(Uuid::new_v4().simple().to_string())
+                        Err(_) => return Uuid::new_v4(),
                     }
                 } else {
                     // no need to activate
@@ -231,7 +231,6 @@ impl Blob {
 
         match rx.recv().unwrap() {
             Ok(id) => {
-                let id = SelectedFileId(id.0);
                 *self.blob_impl.borrow_mut() = BlobImpl::File(FileBlob {
                     id: id.clone(),
                     name: None,
@@ -241,7 +240,7 @@ impl Blob {
                 id
             }
             // Dummy id
-            Err(_) => SelectedFileId(Uuid::new_v4().simple().to_string()),
+            Err(_) => Uuid::new_v4(),
         }
     }
 
@@ -259,8 +258,6 @@ impl Blob {
         self.send_to_file_manager(msg);
         match rx.recv().expect("File manager thread is down") {
             Ok(new_id) => {
-                let new_id = SelectedFileId(new_id.0);
-
                 *self.blob_impl.borrow_mut() = BlobImpl::File(FileBlob {
                     id: new_id.clone(),
                     name: None,
@@ -273,7 +270,7 @@ impl Blob {
             }
             Err(_) => {
                 // Return dummy id
-                SelectedFileId(Uuid::new_v4().simple().to_string())
+                Uuid::new_v4()
             }
         }
     }
