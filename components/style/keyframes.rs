@@ -2,10 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::{AtRuleParser, Delimiter, Parser, QualifiedRuleParser, RuleListParser};
+use cssparser::{AtRuleParser, Parser, QualifiedRuleParser, RuleListParser};
+use cssparser::{DeclarationListParser, DeclarationParser};
 use parser::{ParserContext, log_css_error};
+use properties::PropertyDeclaration;
+use properties::PropertyDeclarationParseResult;
 use properties::animated_properties::TransitionProperty;
-use properties::{PropertyDeclaration, parse_property_declaration_list};
 use std::sync::Arc;
 
 /// A number from 1 to 100, indicating the percentage of the animation where
@@ -238,12 +240,49 @@ impl<'a> QualifiedRuleParser for KeyframeListParser<'a> {
 
     fn parse_block(&self, prelude: Self::Prelude, input: &mut Parser)
                    -> Result<Self::QualifiedRule, ()> {
+        let mut declarations = Vec::new();
+        let parser = KeyframeDeclarationParser {
+            context: self.context,
+        };
+        let mut iter = DeclarationListParser::new(input, parser);
+        while let Some(declaration) = iter.next() {
+            match declaration {
+                Ok(d) => declarations.extend(d),
+                Err(range) => {
+                    let pos = range.start;
+                    let message = format!("Unsupported keyframe property declaration: '{}'",
+                                          iter.input.slice(range));
+                    log_css_error(iter.input, pos, &*message, self.context);
+                }
+            }
+            // `parse_important` is not called here, `!important` is not allowed in keyframe blocks.
+        }
         Ok(Keyframe {
             selector: prelude,
-            // FIXME: needs parsing different from parse_property_declaration_list:
-            // https://drafts.csswg.org/css-animations/#keyframes
-            // Paragraph "The <declaration-list> inside of <keyframe-block> ..."
-            declarations: parse_property_declaration_list(self.context, input).normal,
+            declarations: Arc::new(declarations),
         })
+    }
+}
+
+struct KeyframeDeclarationParser<'a, 'b: 'a> {
+    context: &'a ParserContext<'b>,
+}
+
+/// Default methods reject all at rules.
+impl<'a, 'b> AtRuleParser for KeyframeDeclarationParser<'a, 'b> {
+    type Prelude = ();
+    type AtRule = Vec<PropertyDeclaration>;
+}
+
+impl<'a, 'b> DeclarationParser for KeyframeDeclarationParser<'a, 'b> {
+    type Declaration = Vec<PropertyDeclaration>;
+
+    fn parse_value(&self, name: &str, input: &mut Parser) -> Result<Vec<PropertyDeclaration>, ()> {
+        let mut results = Vec::new();
+        match PropertyDeclaration::parse(name, self.context, input, &mut results, true) {
+            PropertyDeclarationParseResult::ValidOrIgnoredDeclaration => {}
+            _ => return Err(())
+        }
+        Ok(results)
     }
 }

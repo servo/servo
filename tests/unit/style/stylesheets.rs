@@ -13,6 +13,7 @@ use style::error_reporting::ParseErrorReporter;
 use style::keyframes::{Keyframe, KeyframeSelector, KeyframePercentage};
 use style::parser::ParserContextExtraData;
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, DeclaredValue, longhands};
+use style::properties::longhands::animation_play_state;
 use style::stylesheets::{Stylesheet, CSSRule, StyleRule, KeyframesRule, Origin};
 use style::values::specified::{LengthOrPercentageOrAuto, Percentage};
 use url::Url;
@@ -27,7 +28,12 @@ fn test_parse_stylesheet() {
         #d1 > .ok { background: blue; }
         @keyframes foo {
             from { width: 0% }
-            to { width: 100%}
+            to {
+                width: 100%;
+                width: 50% !important; /* !important not allowed here */
+                animation-name: 'foo'; /* animation properties not allowed here */
+                animation-play-state: running; /* … except animation-play-state */
+            }
         }";
     let url = Url::parse("about::test").unwrap();
     let stylesheet = Stylesheet::from_str(css, url, Origin::UserAgent,
@@ -187,6 +193,9 @@ fn test_parse_stylesheet() {
                         declarations: Arc::new(vec![
                             PropertyDeclaration::Width(DeclaredValue::Value(
                                 LengthOrPercentageOrAuto::Percentage(Percentage(1.)))),
+                            PropertyDeclaration::AnimationPlayState(DeclaredValue::Value(
+                                animation_play_state::SpecifiedValue(
+                                    vec![animation_play_state::SingleSpecifiedValue::running]))),
                         ]),
                     },
                 ]
