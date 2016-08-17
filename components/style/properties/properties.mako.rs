@@ -14,6 +14,8 @@ use std::ascii::AsciiExt;
 use std::boxed::Box as StdBox;
 use std::collections::HashSet;
 use std::fmt::{self, Write};
+use std::iter::{Iterator, Chain, Zip, Rev, Repeat, repeat};
+use std::slice;
 use std::sync::Arc;
 
 use app_units::Au;
@@ -261,11 +263,26 @@ mod property_bit_field {
     % endif
 % endfor
 
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum Importance {
+    /// Indicates a declaration without `!important`.
+    Normal,
 
-use std::iter::{Iterator, Chain, Zip, Rev, Repeat, repeat};
-use std::slice;
+    /// Indicates a declaration with `!important`.
+    Important,
+}
+
+impl Importance {
+    pub fn important(self) -> bool {
+        match self {
+            Importance::Normal => false,
+            Importance::Important => true,
+        }
+    }
+}
+
 /// Overridden declarations are skipped.
-
 // FIXME (https://github.com/servo/servo/issues/3426)
 #[derive(Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -279,12 +296,12 @@ pub struct PropertyDeclarationBlock {
 impl PropertyDeclarationBlock {
     /// Provides an iterator of all declarations, with indication of !important value
     pub fn declarations(&self) -> Chain<
-        Zip<Rev<slice::Iter<PropertyDeclaration>>, Repeat<bool>>,
-        Zip<Rev<slice::Iter<PropertyDeclaration>>, Repeat<bool>>
+        Zip<Rev<slice::Iter<PropertyDeclaration>>, Repeat<Importance>>,
+        Zip<Rev<slice::Iter<PropertyDeclaration>>, Repeat<Importance>>
     > {
         // Declarations are stored in reverse order.
-        let normal = self.normal.iter().rev().zip(repeat(false));
-        let important = self.important.iter().rev().zip(repeat(true));
+        let normal = self.normal.iter().rev().zip(repeat(Importance::Normal));
+        let important = self.important.iter().rev().zip(repeat(Importance::Important));
         normal.chain(important)
     }
 }
@@ -300,7 +317,7 @@ impl ToCss for PropertyDeclarationBlock {
         let mut already_serialized = Vec::new();
 
         // Step 3
-        for (declaration, important) in self.declarations() {
+        for (declaration, importance) in self.declarations() {
             // Step 3.1
             let property = declaration.name();
 
@@ -326,11 +343,11 @@ impl ToCss for PropertyDeclarationBlock {
                     let mut current_longhands = Vec::new();
                     let mut important_count = 0;
 
-                    for &(longhand, longhand_important) in longhands.iter() {
+                    for &(longhand, longhand_importance) in longhands.iter() {
                         let longhand_name = longhand.name();
                         if properties.iter().any(|p| &longhand_name == *p) {
                             current_longhands.push(longhand);
-                            if longhand_important {
+                            if longhand_importance.important() {
                                 important_count += 1;
                             }
                         }
@@ -396,7 +413,7 @@ impl ToCss for PropertyDeclarationBlock {
                 dest,
                 &property.to_string(),
                 AppendableValue::Declaration(declaration),
-                important,
+                importance,
                 &mut is_first_serialization));
 
             // Step 3.3.8
@@ -430,7 +447,7 @@ fn handle_first_serialization<W>(dest: &mut W, is_first_serialization: &mut bool
 fn append_declaration_value<'a, W, I>
                            (dest: &mut W,
                             appendable_value: AppendableValue<'a, I>,
-                            is_important: bool)
+                            importance: Importance)
                             -> fmt::Result
                             where W: fmt::Write, I: Iterator<Item=&'a PropertyDeclaration> {
   match appendable_value {
@@ -445,7 +462,7 @@ fn append_declaration_value<'a, W, I>
        }
   }
 
-  if is_important {
+  if importance.important() {
       try!(write!(dest, " !important"));
   }
 
@@ -455,7 +472,7 @@ fn append_declaration_value<'a, W, I>
 fn append_serialization<'a, W, I>(dest: &mut W,
                                   property_name: &str,
                                   appendable_value: AppendableValue<'a, I>,
-                                  is_important: bool,
+                                  importance: Importance,
                                   is_first_serialization: &mut bool)
                                   -> fmt::Result
                                   where W: fmt::Write, I: Iterator<Item=&'a PropertyDeclaration> {
@@ -465,7 +482,7 @@ fn append_serialization<'a, W, I>(dest: &mut W,
     // Overflow does not behave like a normal shorthand. When overflow-x and overflow-y are not of equal
     // values, they no longer use the shared property name "overflow" and must be handled differently
     if shorthands::is_overflow_shorthand(&appendable_value) {
-        return append_declaration_value(dest, appendable_value, is_important);
+        return append_declaration_value(dest, appendable_value, importance);
     }
 
     try!(write!(dest, "{}:", property_name));
@@ -484,7 +501,7 @@ fn append_serialization<'a, W, I>(dest: &mut W,
          &AppendableValue::DeclarationsForShorthand(..) => try!(write!(dest, " "))
     }
 
-    try!(append_declaration_value(dest, appendable_value, is_important));
+    try!(append_declaration_value(dest, appendable_value, importance));
     write!(dest, ";")
 }
 
@@ -514,14 +531,15 @@ struct PropertyDeclarationParser<'a, 'b: 'a> {
 /// Default methods reject all at rules.
 impl<'a, 'b> AtRuleParser for PropertyDeclarationParser<'a, 'b> {
     type Prelude = ();
-    type AtRule = (Vec<PropertyDeclaration>, bool);
+    type AtRule = (Vec<PropertyDeclaration>, Importance);
 }
 
 
 impl<'a, 'b> DeclarationParser for PropertyDeclarationParser<'a, 'b> {
-    type Declaration = (Vec<PropertyDeclaration>, bool);
+    type Declaration = (Vec<PropertyDeclaration>, Importance);
 
-    fn parse_value(&self, name: &str, input: &mut Parser) -> Result<(Vec<PropertyDeclaration>, bool), ()> {
+    fn parse_value(&self, name: &str, input: &mut Parser)
+                   -> Result<(Vec<PropertyDeclaration>, Importance), ()> {
         let mut results = vec![];
         try!(input.parse_until_before(Delimiter::Bang, |input| {
             match PropertyDeclaration::parse(name, self.context, input, &mut results) {
@@ -529,8 +547,11 @@ impl<'a, 'b> DeclarationParser for PropertyDeclarationParser<'a, 'b> {
                 _ => Err(())
             }
         }));
-        let important = input.try(parse_important).is_ok();
-        Ok((results, important))
+        let importance = match input.try(parse_important) {
+            Ok(()) => Importance::Important,
+            Err(()) => Importance::Normal,
+        };
+        Ok((results, importance))
     }
 }
 
@@ -545,8 +566,8 @@ pub fn parse_property_declaration_list(context: &ParserContext, input: &mut Pars
     let mut iter = DeclarationListParser::new(input, parser);
     while let Some(declaration) = iter.next() {
         match declaration {
-            Ok((results, important)) => {
-                if important {
+            Ok((results, importance)) => {
+                if importance.important() {
                     important_declarations.extend(results);
                 } else {
                     normal_declarations.extend(results);
@@ -675,11 +696,11 @@ impl Shorthand {
     }
 
     /// Serializes possible shorthand value to String.
-    pub fn serialize_shorthand_value_to_string<'a, I>(self, declarations: I, is_important: bool) -> String
+    pub fn serialize_shorthand_value_to_string<'a, I>(self, declarations: I, importance: Importance) -> String
     where I: Iterator<Item=&'a PropertyDeclaration> + Clone {
         let appendable_value = self.get_shorthand_appendable_value(declarations).unwrap();
         let mut result = String::new();
-        append_declaration_value(&mut result, appendable_value, is_important).unwrap();
+        append_declaration_value(&mut result, appendable_value, importance).unwrap();
         result
     }
 
@@ -700,7 +721,7 @@ impl Shorthand {
                     dest,
                     property_name,
                     appendable_value,
-                    false,
+                    Importance::Normal,
                     is_first_serialization
                 ).and_then(|_| Ok(true))
             }

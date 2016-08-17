@@ -10,7 +10,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
-use dom::element::{Element, StylePriority};
+use dom::element::Element;
 use dom::node::{Node, NodeDamage, window_from_node};
 use dom::window::Window;
 use std::ascii::AsciiExt;
@@ -18,7 +18,7 @@ use std::cell::Ref;
 use std::slice;
 use string_cache::Atom;
 use style::parser::ParserContextExtraData;
-use style::properties::{PropertyDeclaration, Shorthand};
+use style::properties::{PropertyDeclaration, Shorthand, Importance};
 use style::properties::{is_supported_property, parse_one_declaration, parse_style_attribute};
 use style::selector_impl::PseudoElement;
 
@@ -160,7 +160,8 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
             }
 
             // TODO: important is hardcoded to false because method does not implement it yet
-            let serialized_value = shorthand.serialize_shorthand_value_to_string(Map(list.iter()), false);
+            let serialized_value = shorthand.serialize_shorthand_value_to_string(
+                Map(list.iter()), Importance::Normal);
             return DOMString::from(serialized_value);
         }
 
@@ -222,8 +223,8 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
 
         // Step 5
         let priority = match &*priority {
-            "" => StylePriority::Normal,
-            p if p.eq_ignore_ascii_case("important") => StylePriority::Important,
+            "" => Importance::Normal,
+            p if p.eq_ignore_ascii_case("important") => Importance::Important,
             _ => return Ok(()),
         };
 
@@ -265,8 +266,8 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
 
         // Step 4
         let priority = match &*priority {
-            "" => StylePriority::Normal,
-            p if p.eq_ignore_ascii_case("important") => StylePriority::Important,
+            "" => Importance::Normal,
+            p if p.eq_ignore_ascii_case("important") => Importance::Important,
             _ => return Ok(()),
         };
 
