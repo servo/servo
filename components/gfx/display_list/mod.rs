@@ -360,7 +360,7 @@ impl DisplayList {
                 return Some(stacking_context);
             }
 
-            for kid in stacking_context.children.iter() {
+            for kid in stacking_context.children() {
                 let result = find_stacking_context_in_stacking_context(kid, stacking_context_id);
                 if result.is_some() {
                     return result;
@@ -449,8 +449,9 @@ impl DisplayList {
         let old_transform = paint_context.draw_target.get_transform();
         let pixels_per_px = paint_context.screen_pixels_per_px();
         let (transform, subpixel_offset) = match stacking_context.layer_info {
-            // If this stacking context starts a layer, the offset and transformation are handled
-            // by layer position within the compositor.
+            // If this stacking context starts a layer, the offset and
+            // transformation are handled by layer position within the
+            // compositor.
             Some(..) => (*transform, *subpixel_offset),
             None => {
                 let origin = stacking_context.bounds.origin + *subpixel_offset;
@@ -606,7 +607,7 @@ pub struct StackingContext {
     pub layer_info: Option<LayerInfo>,
 
     /// Children of this StackingContext.
-    pub children: Vec<Box<StackingContext>>,
+    children: Vec<Box<StackingContext>>,
 }
 
 impl StackingContext {
@@ -640,6 +641,73 @@ impl StackingContext {
             layer_info: layer_info,
             children: Vec::new(),
         }
+    }
+
+    pub fn set_children(&mut self, children: Vec<Box<StackingContext>>) {
+        debug_assert!(self.children.is_empty());
+        // We need to take into account the possible transformations of the
+        // child stacking contexts.
+        for child in &children {
+            self.update_overflow_for_new_child(&child);
+        }
+
+        self.children = children;
+    }
+
+    pub fn add_child(&mut self, child: Box<StackingContext>) {
+        self.update_overflow_for_new_child(&child);
+        self.children.push(child);
+    }
+
+    pub fn add_children(&mut self, children: Vec<Box<StackingContext>>) {
+        if self.children.is_empty() {
+            return self.set_children(children);
+        }
+
+        for child in children {
+            self.add_child(child);
+        }
+    }
+
+    pub fn child_at_mut(&mut self, index: usize) -> &mut StackingContext {
+        &mut *self.children[index]
+    }
+
+    pub fn children(&self) -> &[Box<StackingContext>] {
+        &self.children
+    }
+
+    fn update_overflow_for_new_child(&mut self, child: &StackingContext) {
+        if self.context_type == StackingContextType::Real &&
+           child.context_type == StackingContextType::Real &&
+           !self.scrolls_overflow_area {
+            // This child might be transformed, so we need to take into account
+            // its transformed overflow rect too, but at the correct position.
+            let overflow =
+                child.overflow_rect_in_parent_space();
+
+            self.overflow = self.overflow.union(&overflow);
+        }
+    }
+
+    fn overflow_rect_in_parent_space(&self) -> Rect<Au> {
+        // Transform this stacking context to get it into the same space as
+        // the parent stacking context.
+        //
+        // TODO: Take into account 3d transforms, even though it's a fairly
+        // uncommon case.
+        let origin_x = self.bounds.origin.x.to_f32_px();
+        let origin_y = self.bounds.origin.y.to_f32_px();
+
+        let transform = Matrix4D::identity().translate(origin_x, origin_y, 0.0)
+                                            .mul(&self.transform);
+        let transform_2d = Matrix2D::new(transform.m11, transform.m12,
+                                         transform.m21, transform.m22,
+                                         transform.m41, transform.m42);
+
+        let overflow = geometry::au_rect_to_f32_rect(self.overflow);
+        let overflow = transform_2d.transform_rect(&overflow);
+        geometry::f32_rect_to_au_rect(overflow)
     }
 
     pub fn hit_test<'a>(&self,
@@ -679,7 +747,7 @@ impl StackingContext {
             }
         }
 
-        for child in self.children.iter() {
+        for child in self.children() {
             while let Some(item) = traversal.advance(self) {
                 if let Some(meta) = item.hit_test(point) {
                     result.push(meta);
@@ -697,13 +765,13 @@ impl StackingContext {
 
     pub fn print_with_tree(&self, print_tree: &mut PrintTree) {
         print_tree.new_level(format!("{:?}", self));
-        for kid in self.children.iter() {
+        for kid in self.children() {
             kid.print_with_tree(print_tree);
         }
         print_tree.end_level();
     }
 
-    pub fn intersects_rect_in_parent_context(&self, rect: Option<Rect<Au>>) -> bool {
+    fn intersects_rect_in_parent_context(&self, rect: Option<Rect<Au>>) -> bool {
         // We only do intersection checks for real stacking contexts, since
         // pseudo stacking contexts might not have proper position information.
         if self.context_type != StackingContextType::Real {
@@ -715,24 +783,7 @@ impl StackingContext {
             None => return true,
         };
 
-        // Transform this stacking context to get it into the same space as
-        // the parent stacking context.
-        let origin_x = self.bounds.origin.x.to_f32_px();
-        let origin_y = self.bounds.origin.y.to_f32_px();
-
-        let transform = Matrix4D::identity().translate(origin_x,
-                                                       origin_y,
-                                                       0.0)
-                                           .mul(&self.transform);
-        let transform_2d = Matrix2D::new(transform.m11, transform.m12,
-                                         transform.m21, transform.m22,
-                                         transform.m41, transform.m42);
-
-        let overflow = geometry::au_rect_to_f32_rect(self.overflow);
-        let overflow = transform_2d.transform_rect(&overflow);
-        let overflow = geometry::f32_rect_to_au_rect(overflow);
-
-        rect.intersects(&overflow)
+        self.overflow_rect_in_parent_space().intersects(rect)
     }
 }
 
