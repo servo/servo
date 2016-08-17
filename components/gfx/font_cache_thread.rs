@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use font_template::{FontTemplate, FontTemplateDescriptor};
-use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
+use ipc_channel::ipc::{self, IpcReceiver, IpcSender, IpcSharedMemory};
 use ipc_channel::router::ROUTER;
 use mime::{TopLevel, SubLevel};
 use net_traits::{AsyncResponseTarget, LoadContext, PendingAsyncLoad, CoreResourceThread, ResponseAction};
@@ -88,7 +88,9 @@ impl FontTemplates {
         None
     }
 
-    fn add_template(&mut self, identifier: Atom, maybe_data: Option<Vec<u8>>) {
+    fn add_template(&mut self,
+                    identifier: Atom,
+                    maybe_data: Option<IpcSharedMemory>) {
         for template in &self.templates {
             if *template.identifier() == identifier {
                 return;
@@ -106,7 +108,7 @@ pub enum Command {
     GetFontTemplate(FontFamily, FontTemplateDescriptor, IpcSender<Reply>),
     GetLastResortFontTemplate(FontTemplateDescriptor, IpcSender<Reply>),
     AddWebFont(LowercaseString, EffectiveSources, IpcSender<()>),
-    AddDownloadedWebFont(LowercaseString, Url, Vec<u8>, IpcSender<()>),
+    AddDownloadedWebFont(LowercaseString, Url, IpcSharedMemory, IpcSender<()>),
     Exit(IpcSender<()>),
 }
 
@@ -252,8 +254,7 @@ impl FontCache {
                                 channel_to_self.send(msg).unwrap();
                                 return;
                             }
-                            let mut bytes = bytes.lock().unwrap();
-                            let bytes = mem::replace(&mut *bytes, Vec::new());
+                            let bytes = IpcSharedMemory::from_bytes(&bytes.lock().unwrap());
                             let command =
                                 Command::AddDownloadedWebFont(family_name.clone(),
                                                               url.clone(),
@@ -340,10 +341,10 @@ impl FontCache {
         let webrender_fonts = &mut self.webrender_fonts;
         let font_key = self.webrender_api.as_ref().map(|webrender_api| {
             *webrender_fonts.entry(template.identifier.clone()).or_insert_with(|| {
-                match (template.bytes_if_in_memory(), template.native_font()) {
-                    (Some(bytes), _) => webrender_api.add_raw_font(bytes),
-                    (None, Some(native_font)) => webrender_api.add_native_font(native_font),
-                    (None, None) => webrender_api.add_raw_font(template.bytes().clone()),
+                if let Some(native_font) = template.native_font() {
+                    webrender_api.add_native_font(native_font)
+                } else {
+                    webrender_api.add_raw_font(template.bytes())
                 }
             })
         });

@@ -7,6 +7,7 @@ use core_graphics::data_provider::CGDataProvider;
 use core_graphics::font::CGFont;
 use core_text;
 use core_text::font::CTFont;
+use ipc_channel::ipc::IpcSharedMemory;
 use serde::de::{Error, Visitor};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::borrow::ToOwned;
@@ -34,18 +35,20 @@ pub struct FontTemplateData {
     ctfont: CachedCTFont,
 
     pub identifier: Atom,
-    pub font_data: Option<Vec<u8>>
+    pub font_data: Option<IpcSharedMemory>,
 }
 
 unsafe impl Send for FontTemplateData {}
 unsafe impl Sync for FontTemplateData {}
 
 impl FontTemplateData {
-    pub fn new(identifier: Atom, font_data: Option<Vec<u8>>) -> FontTemplateData {
+    pub fn new(identifier: Atom,
+               font_data: Option<IpcSharedMemory>)
+               -> FontTemplateData {
         FontTemplateData {
             ctfont: CachedCTFont(Mutex::new(HashMap::new())),
             identifier: identifier.to_owned(),
-            font_data: font_data
+            font_data: font_data,
         }
     }
 
@@ -77,12 +80,10 @@ impl FontTemplateData {
         ctfonts.get(&pt_size_key).map(|ctfont| (*ctfont).clone())
     }
 
-    /// Returns a clone of the data in this font. This may be a hugely expensive
-    /// operation (depending on the platform) which performs synchronous disk I/O
-    /// and should never be done lightly.
-    pub fn bytes(&self) -> Vec<u8> {
-        match self.bytes_if_in_memory() {
-            Some(font_data) => return font_data,
+    /// Returns the bytes of that font template.
+    pub fn bytes(&self) -> IpcSharedMemory {
+        match self.font_data {
+            Some(ref font_data) => return font_data.clone(),
             None => {}
         }
 
@@ -96,13 +97,7 @@ impl FontTemplateData {
                                                  .expect("Core Text font didn't name a path!");
         let mut bytes = Vec::new();
         File::open(path).expect("Couldn't open font file!").read_to_end(&mut bytes).unwrap();
-        bytes
-    }
-
-    /// Returns a clone of the bytes in this font if they are in memory. This function never
-    /// performs disk I/O.
-    pub fn bytes_if_in_memory(&self) -> Option<Vec<u8>> {
-        self.font_data.clone()
+        IpcSharedMemory::from_bytes(&bytes)
     }
 
     /// Returns the native font that underlies this font template, if applicable.

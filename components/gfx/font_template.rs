@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use font::FontHandleMethods;
+use ipc_channel::ipc::IpcSharedMemory;
 use platform::font::FontHandle;
 use platform::font_context::FontContextHandle;
 use platform::font_template::FontTemplateData;
@@ -77,7 +78,9 @@ impl Debug for FontTemplate {
 /// is common, regardless of the number of instances of
 /// this font handle per thread.
 impl FontTemplate {
-    pub fn new(identifier: Atom, maybe_bytes: Option<Vec<u8>>) -> FontTemplate {
+    pub fn new(identifier: Atom,
+               maybe_bytes: Option<IpcSharedMemory>)
+               -> FontTemplate {
         let maybe_data = match maybe_bytes {
             Some(_) => Some(FontTemplateData::new(identifier.clone(), maybe_bytes)),
             None => None,
