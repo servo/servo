@@ -6,7 +6,7 @@
 
 // Please note that valid Rust syntax may be mangled by the Mako parser.
 // For example, Vec<&Foo> will be mangled as Vec&Foo>. To work around these issues, the code
-// can be escaped. In the above example, Vec<<&Foo> achieves the desired result of Vec<&Foo>.
+// can be escaped. In the above example, Vec<<&Foo> or Vec< &Foo> achieves the desired result of Vec<&Foo>.
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
@@ -74,8 +74,7 @@ pub mod longhands {
 }
 
 pub mod shorthands {
-    use cssparser::{Parser, ToCss};
-    use std::fmt;
+    use cssparser::Parser;
     use parser::ParserContext;
     use values::specified;
 
@@ -122,33 +121,7 @@ pub mod shorthands {
         Ok((top, right, bottom, left))
     }
 
-    /// Serialize a set of top,left,bottom,right values, in <margin>-shorthand style,
-    /// attempting to minimize the output
-    pub fn serialize_four_sides<T, W>(sides: (&T, &T, &T, &T), dest: &mut W) -> fmt::Result
-        where W: fmt::Write, T: ToCss+PartialEq {
-        if sides.0 == sides.1 && sides.0 == sides.2 && sides.0 == sides.3 {
-            sides.0.to_css(dest)
-        } else if sides.0 == sides.2 && sides.1 == sides.3 {
-            try!(sides.0.to_css(dest));
-            try!(dest.write_str(" "));
-            sides.1.to_css(dest)
-        } else if sides.1 == sides.3 {
-            try!(sides.0.to_css(dest));
-            try!(dest.write_str(" "));
-            try!(sides.1.to_css(dest));
-            try!(dest.write_str(" "));
-            sides.2.to_css(dest)
-        } else {
-            try!(sides.0.to_css(dest));
-            try!(dest.write_str(" "));
-            try!(sides.1.to_css(dest));
-            try!(dest.write_str(" "));
-            try!(sides.2.to_css(dest));
-            try!(dest.write_str(" "));
-            sides.3.to_css(dest)
-        }
-    }
-
+    <%include file="/shorthand/serialize.mako.rs" />
     <%include file="/shorthand/background.mako.rs" />
     <%include file="/shorthand/border.mako.rs" />
     <%include file="/shorthand/box.mako.rs" />
@@ -435,18 +408,14 @@ impl ToCss for PropertyDeclarationBlock {
     }
 }
 
-enum AppendableValue<'a, I>
+pub enum AppendableValue<'a, I>
 where I: Iterator<Item=&'a PropertyDeclaration> {
     Declaration(&'a PropertyDeclaration),
-    DeclarationsForShorthand(I),
+    DeclarationsForShorthand(Shorthand, I),
     Css(&'a str)
 }
 
-fn append_property_name<W>(dest: &mut W,
-                           property_name: &str,
-                           is_first_serialization: &mut bool)
-                           -> fmt::Result where W: fmt::Write {
-
+fn handle_first_serialization<W>(dest: &mut W, is_first_serialization: &mut bool) -> fmt::Result where W: fmt::Write {
     // after first serialization(key: value;) add whitespace between the pairs
     if !*is_first_serialization {
         try!(write!(dest, " "));
@@ -455,7 +424,7 @@ fn append_property_name<W>(dest: &mut W,
         *is_first_serialization = false;
     }
 
-    write!(dest, "{}", property_name)
+    Ok(())
 }
 
 fn append_declaration_value<'a, W, I>
@@ -471,15 +440,8 @@ fn append_declaration_value<'a, W, I>
       AppendableValue::Declaration(decl) => {
           try!(decl.to_css(dest));
        },
-       AppendableValue::DeclarationsForShorthand(decls) => {
-           let mut decls = decls.peekable();
-           while let Some(decl) = decls.next() {
-               try!(decl.to_css(dest));
-
-               if decls.peek().is_some() {
-                   try!(write!(dest, " "));
-               }
-           }
+       AppendableValue::DeclarationsForShorthand(shorthand, decls) => {
+          try!(shorthand.longhands_to_css(decls, dest));
        }
   }
 
@@ -498,8 +460,15 @@ fn append_serialization<'a, W, I>(dest: &mut W,
                                   -> fmt::Result
                                   where W: fmt::Write, I: Iterator<Item=&'a PropertyDeclaration> {
 
-    try!(append_property_name(dest, property_name, is_first_serialization));
-    try!(write!(dest, ":"));
+    try!(handle_first_serialization(dest, is_first_serialization));
+
+    // Overflow does not behave like a normal shorthand. When overflow-x and overflow-y are not of equal
+    // values, they no longer use the shared property name "overflow" and must be handled differently
+    if shorthands::is_overflow_shorthand(&appendable_value) {
+        return append_declaration_value(dest, appendable_value, is_important);
+    }
+
+    write!(dest, "{}:", property_name);
 
     // for normal parsed values, add a space between key: and value
     match &appendable_value {
@@ -512,7 +481,7 @@ fn append_serialization<'a, W, I>(dest: &mut W,
                 try!(write!(dest, " "));
             }
          },
-         &AppendableValue::DeclarationsForShorthand(_) => try!(write!(dest, " "))
+         &AppendableValue::DeclarationsForShorthand(..) => try!(write!(dest, " "))
     }
 
     try!(append_declaration_value(dest, appendable_value, is_important));
@@ -691,6 +660,20 @@ impl Shorthand {
         }
     }
 
+    pub fn longhands_to_css<'a, W, I>(&self, declarations: I, dest: &mut W) -> fmt::Result
+        where W: fmt::Write, I: Iterator<Item=&'a PropertyDeclaration> {
+        match *self {
+            % for property in data.shorthands:
+                Shorthand::${property.camel_case} => {
+                    match shorthands::${property.ident}::LonghandsToSerialize::from_iter(declarations) {
+                        Ok(longhands) => longhands.to_css(dest),
+                        Err(_) => Err(fmt::Error)
+                    }
+                },
+            % endfor
+        }
+    }
+
     /// Serializes possible shorthand value to String.
     pub fn serialize_shorthand_value_to_string<'a, I>(self, declarations: I, is_important: bool) -> String
     where I: Iterator<Item=&'a PropertyDeclaration> + Clone {
@@ -747,10 +730,7 @@ impl Shorthand {
             }
 
             if !declarations3.any(|d| d.with_variables()) {
-                return Some(AppendableValue::DeclarationsForShorthand(declarations));
-                // FIXME: this needs property-specific code, which probably should be in style/
-                // "as appropriate according to the grammar of shorthand "
-                // https://drafts.csswg.org/cssom/#serialize-a-css-value
+                return Some(AppendableValue::DeclarationsForShorthand(self, declarations));
             }
 
             None
