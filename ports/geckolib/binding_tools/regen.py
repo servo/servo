@@ -69,7 +69,7 @@ COMPILATION_TARGETS = {
             "nsAString", "nsSubstring", "nsTSubstring", "nsTString",
             "nsISupportsBase.h", "nsCOMPtr.h", "nsIAtom.h", "nsIURI.h",
             "nsAutoPtr.h", "nsColor.h", "nsCoord.h", "nsPoint.h", "nsRect.h",
-            "nsMargin.h", "nsThemeConstants.h", "nsCSSProperty.h",
+            "nsMargin.h", "nsThemeConstants.h", "nsCSSProperty.h", "nsCSSPropertyID.h",
             "CSSVariableValues.h", "nsFont.h", "nsTHashtable.h",
             "PLDHashTable.h", "nsColor.h", "nsStyleStruct.h", "nsStyleCoord.h",
             "RefPtr.h", "nsISupportsImpl.h", "gfxFontConstants.h",

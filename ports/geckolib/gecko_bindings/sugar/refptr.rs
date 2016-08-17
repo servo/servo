@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 use std::marker::PhantomData;
 use std::mem::{forget, transmute};
 use std::ptr;
@@ -89,7 +93,7 @@ pub struct Borrowed<'a, T: 'a> {
 impl<'a, T> Copy for Borrowed<'a, T> {}
 
 impl<'a, T> Clone for Borrowed<'a, T> {
-    fn clone(&self) -> Self {*self}
+    fn clone(&self) -> Self { *self }
 }
 
 impl<'a, T> Borrowed<'a, T> {

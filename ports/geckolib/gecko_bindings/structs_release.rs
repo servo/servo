@@ -189,12 +189,6 @@ pub const NS_ERROR_MODULE_BASE_OFFSET: ::std::os::raw::c_uint = 69;
 pub const MOZ_STRING_WITH_OBSOLETE_API: ::std::os::raw::c_uint = 1;
 pub const NSID_LENGTH: ::std::os::raw::c_uint = 39;
 pub const NS_NUMBER_OF_FLAGS_IN_REFCNT: ::std::os::raw::c_uint = 2;
-pub const _STL_PAIR_H: ::std::os::raw::c_uint = 1;
-pub const _GLIBCXX_UTILITY: ::std::os::raw::c_uint = 1;
-pub const __cpp_lib_tuple_element_t: ::std::os::raw::c_uint = 201402;
-pub const __cpp_lib_tuples_by_type: ::std::os::raw::c_uint = 201304;
-pub const __cpp_lib_exchange_function: ::std::os::raw::c_uint = 201304;
-pub const __cpp_lib_integer_sequence: ::std::os::raw::c_uint = 201304;
 pub const NS_EVENT_STATE_HIGHEST_SERVO_BIT: ::std::os::raw::c_uint = 6;
 pub const DOM_USER_DATA: ::std::os::raw::c_uint = 1;
 pub const SMIL_MAPPED_ATTR_ANIMVAL: ::std::os::raw::c_uint = 2;
@@ -804,8 +798,6 @@ pub const NS_STYLE_DOMINANT_BASELINE_TEXT_AFTER_EDGE: ::std::os::raw::c_uint =
 pub const NS_STYLE_DOMINANT_BASELINE_TEXT_BEFORE_EDGE: ::std::os::raw::c_uint
           =
     11;
-pub const NS_STYLE_FILL_RULE_NONZERO: ::std::os::raw::c_uint = 0;
-pub const NS_STYLE_FILL_RULE_EVENODD: ::std::os::raw::c_uint = 1;
 pub const NS_STYLE_IMAGE_RENDERING_AUTO: ::std::os::raw::c_uint = 0;
 pub const NS_STYLE_IMAGE_RENDERING_OPTIMIZESPEED: ::std::os::raw::c_uint = 1;
 pub const NS_STYLE_IMAGE_RENDERING_OPTIMIZEQUALITY: ::std::os::raw::c_uint =
@@ -2776,12 +2768,6 @@ impl ::std::clone::Clone for nsIExpandedPrincipal {
     fn clone(&self) -> Self { *self }
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct _Make_integer_sequence<_Tp, _ISeq> {
-    pub _phantom0: ::std::marker::PhantomData<_Tp>,
-    pub _phantom1: ::std::marker::PhantomData<_ISeq>,
-}
-#[repr(C)]
 #[derive(Debug, Copy)]
 pub struct nsIURI {
     pub _base: nsISupports,
@@ -2833,7 +2819,7 @@ impl ::std::clone::Clone for nsIRequest {
 #[repr(C)]
 #[derive(Debug, Copy)]
 pub struct EventStates {
-    pub mStates: ::std::os::raw::c_ulong,
+    pub mStates: ::std::os::raw::c_ulonglong,
 }
 impl ::std::clone::Clone for EventStates {
     fn clone(&self) -> Self { *self }
@@ -2963,7 +2949,7 @@ fn bindgen_test_layout_nsMutationGuard() {
 extern "C" {
     #[link_name = "_ZN15nsMutationGuard11sGenerationE"]
     pub static mut nsMutationGuard_consts_sGeneration:
-               ::std::os::raw::c_ulong;
+               ::std::os::raw::c_ulonglong;
 }
 pub type Float = f32;
 #[repr(i8)]
@@ -3493,6 +3479,7 @@ pub enum nsChangeHint {
     nsChangeHint_UpdateComputedBSize = 16777216,
     nsChangeHint_UpdateUsesOpacity = 33554432,
     nsChangeHint_UpdateBackgroundPosition = 67108864,
+    nsChangeHint_AllHints = 134217727,
 }
 pub type nsChangeHint_size_t = ::std::os::raw::c_int;
 /**
@@ -3983,6 +3970,9 @@ pub enum StyleClipPathGeometryBox {
 }
 #[repr(i8)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub enum StyleFillRule { Nonzero = 0, Evenodd = 1, }
+#[repr(i8)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum StyleFloat {
     None_ = 0,
     Left = 1,
@@ -4031,21 +4021,21 @@ pub enum StyleUserSelect {
     MozAll = 8,
     MozText = 9,
 }
-pub const eCSSProperty_COUNT_DUMMY: nsCSSProperty =
-    nsCSSProperty::eCSSProperty_z_index;
-pub const eCSSProperty_all: nsCSSProperty =
-    nsCSSProperty::eCSSProperty_COUNT_no_shorthands;
-pub const eCSSProperty_COUNT_DUMMY2: nsCSSProperty =
-    nsCSSProperty::eCSSProperty_transition;
-pub const eCSSPropertyAlias_WordWrap: nsCSSProperty =
-    nsCSSProperty::eCSSProperty_COUNT;
-pub const eCSSProperty_COUNT_DUMMY3: nsCSSProperty =
-    nsCSSProperty::eCSSPropertyAlias_WebkitUserSelect;
-pub const eCSSPropertyExtra_no_properties: nsCSSProperty =
-    nsCSSProperty::eCSSProperty_COUNT_with_aliases;
+pub const eCSSProperty_COUNT_DUMMY: nsCSSPropertyID =
+    nsCSSPropertyID::eCSSProperty_z_index;
+pub const eCSSProperty_all: nsCSSPropertyID =
+    nsCSSPropertyID::eCSSProperty_COUNT_no_shorthands;
+pub const eCSSProperty_COUNT_DUMMY2: nsCSSPropertyID =
+    nsCSSPropertyID::eCSSProperty_transition;
+pub const eCSSPropertyAlias_WordWrap: nsCSSPropertyID =
+    nsCSSPropertyID::eCSSProperty_COUNT;
+pub const eCSSProperty_COUNT_DUMMY3: nsCSSPropertyID =
+    nsCSSPropertyID::eCSSPropertyAlias_WebkitUserSelect;
+pub const eCSSPropertyExtra_no_properties: nsCSSPropertyID =
+    nsCSSPropertyID::eCSSProperty_COUNT_with_aliases;
 #[repr(i32)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
-pub enum nsCSSProperty {
+pub enum nsCSSPropertyID {
     eCSSProperty_UNKNOWN = -1,
     eCSSProperty_align_content = 0,
     eCSSProperty_align_items = 1,
@@ -5061,8 +5051,8 @@ fn bindgen_test_layout_nsCSSValueGradient() {
 pub struct nsCSSValueTokenStream {
     pub mRefCnt: nsAutoRefCnt,
     pub _mOwningThread: nsAutoOwningThread,
-    pub mPropertyID: nsCSSProperty,
-    pub mShorthandPropertyID: nsCSSProperty,
+    pub mPropertyID: nsCSSPropertyID,
+    pub mShorthandPropertyID: nsCSSPropertyID,
     pub mTokenStream: nsString,
     pub mBaseURI: nsCOMPtr<nsIURI>,
     pub mSheetURI: nsCOMPtr<nsIURI>,
@@ -5801,10 +5791,10 @@ fn bindgen_test_layout_nsStyleImageLayers() {
 extern "C" {
     #[link_name = "_ZN18nsStyleImageLayers21kBackgroundLayerTableE"]
     pub static mut nsStyleImageLayers_consts_kBackgroundLayerTable:
-               *const nsCSSProperty;
+               *const nsCSSPropertyID;
     #[link_name = "_ZN18nsStyleImageLayers15kMaskLayerTableE"]
     pub static mut nsStyleImageLayers_consts_kMaskLayerTable:
-               *const nsCSSProperty;
+               *const nsCSSPropertyID;
 }
 #[repr(C)]
 pub struct nsStyleBackground {
@@ -6335,7 +6325,7 @@ pub struct StyleTransition {
     pub mTimingFunction: nsTimingFunction,
     pub mDuration: f32,
     pub mDelay: f32,
-    pub mProperty: nsCSSProperty,
+    pub mProperty: nsCSSPropertyID,
     pub mUnknownProperty: nsCOMPtr<nsIAtom>,
 }
 #[test]
@@ -6366,7 +6356,7 @@ pub struct StyleBasicShape {
     pub mRefCnt: nsAutoRefCnt,
     pub _mOwningThread: nsAutoOwningThread,
     pub mType: StyleBasicShapeType,
-    pub mFillRule: i32,
+    pub mFillRule: StyleFillRule,
     pub mCoordinates: nsTArray<nsStyleCoord>,
     pub mPosition: nsStyleImageLayers_Position,
     pub mRadius: nsStyleCorners,
@@ -6715,10 +6705,10 @@ pub struct nsStyleSVG {
     pub mFillOpacity: f32,
     pub mStrokeMiterlimit: f32,
     pub mStrokeOpacity: f32,
-    pub mClipRule: u8,
+    pub mClipRule: StyleFillRule,
     pub mColorInterpolation: u8,
     pub mColorInterpolationFilters: u8,
-    pub mFillRule: u8,
+    pub mFillRule: StyleFillRule,
     pub mPaintOrder: u8,
     pub mShapeRendering: u8,
     pub mStrokeLinecap: u8,
