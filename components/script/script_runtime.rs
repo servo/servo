@@ -6,7 +6,7 @@
 //! script thread, the dom, and the worker threads.
 
 use dom::bindings::js::{RootCollection, RootCollectionPtr, trace_roots};
-use dom::bindings::refcounted::{LiveDOMReferences, TrustedReference, trace_refcounted_objects};
+use dom::bindings::refcounted::{LiveDOMReferences, trace_refcounted_objects};
 use dom::bindings::trace::trace_traceables;
 use dom::bindings::utils::DOM_CALLBACKS;
 use js::glue::CollectServoSizes;
@@ -35,8 +35,6 @@ pub enum CommonScriptMsg {
     /// Requests that the script thread measure its memory usage. The results are sent back via the
     /// supplied channel.
     CollectReports(ReportsChan),
-    /// A DOM object's last pinned reference was removed (dispatched to all threads).
-    RefcountCleanup(TrustedReference),
     /// Generic message that encapsulates event handling.
     RunnableMsg(ScriptThreadEventCategory, Box<Runnable + Send>),
 }

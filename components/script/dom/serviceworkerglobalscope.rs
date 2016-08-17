@@ -12,7 +12,6 @@ use dom::bindings::codegen::Bindings::ServiceWorkerGlobalScopeBinding::ServiceWo
 use dom::bindings::global::{GlobalRef, global_root_from_context};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{Root, RootCollection};
-use dom::bindings::refcounted::LiveDOMReferences;
 use dom::bindings::reflector::Reflectable;
 use dom::bindings::str::DOMString;
 use dom::eventtarget::EventTarget;
@@ -237,9 +236,6 @@ impl ServiceWorkerGlobalScope {
             },
             CommonWorker(WorkerScriptMsg::Common(CommonScriptMsg::RunnableMsg(_, runnable))) => {
                 runnable.handler()
-            },
-            CommonWorker(WorkerScriptMsg::Common(CommonScriptMsg::RefcountCleanup(addr))) => {
-                LiveDOMReferences::cleanup(addr);
             },
             CommonWorker(WorkerScriptMsg::Common(CommonScriptMsg::CollectReports(reports_chan))) => {
                 let scope = self.upcast::<WorkerGlobalScope>();
