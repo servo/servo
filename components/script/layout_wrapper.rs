@@ -144,6 +144,7 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
     fn dump_style(self) {
         println!("\nDOM with computed styles:");
         self.dump_style_indent(0);
+    }
 
     fn children(self) -> ServoChildrenIterator<'ln> {
         ServoChildrenIterator {
