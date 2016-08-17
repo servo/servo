@@ -1265,7 +1265,7 @@ fn static_assert() {
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="SVG"
-                  skip_longhands="flood-color lighting-color stop-color"
+                  skip_longhands="flood-color lighting-color stop-color clip-path"
                   skip_additionals="*">
 
     <% impl_color("flood_color", "mFloodColor") %>
@@ -1273,6 +1273,140 @@ fn static_assert() {
     <% impl_color("lighting_color", "mLightingColor") %>
 
     <% impl_color("stop_color", "mStopColor") %>
+
+    pub fn set_clip_path(&mut self, v: longhands::clip_path::computed_value::T) {
+        use gecko_bindings::bindings::{Gecko_NewBasicShape, Gecko_DestroyClipPath};
+        use gecko_bindings::structs::StyleClipPathGeometryBox;
+        use gecko_bindings::structs::{StyleBasicShape, StyleBasicShapeType, StyleShapeSourceType};
+        use gecko_bindings::structs::{StyleClipPath, StyleFillRule};
+        use gecko_conversions::basic_shape::set_corners_from_radius;
+        use gecko_values::GeckoStyleCoordConvertible;
+        use values::computed::basic_shape::*;
+        let ref mut clip_path = self.gecko.mClipPath;
+        // clean up existing struct
+        unsafe { Gecko_DestroyClipPath(clip_path) };
+
+        clip_path.mType = StyleShapeSourceType::None_;
+
+        match v {
+            ShapeSource::Url(..) => println!("stylo: clip-path: url() not yet implemented"),
+            ShapeSource::None => {} // don't change the type
+            ShapeSource::Box(reference) => {
+                clip_path.mReferenceBox = reference.into();
+                clip_path.mType = StyleShapeSourceType::Box;
+            }
+            ShapeSource::Shape(servo_shape, maybe_box) => {
+                clip_path.mReferenceBox = maybe_box.map(Into::into)
+                                                   .unwrap_or(StyleClipPathGeometryBox::NoBox);
+                clip_path.mType = StyleShapeSourceType::Shape;
+
+                fn init_shape(clip_path: &mut StyleClipPath, ty: StyleBasicShapeType) -> &mut StyleBasicShape {
+                    unsafe {
+                        // We have to be very careful to avoid a copy here!
+                        let ref mut union = clip_path.StyleShapeSource_nsStyleStruct_h_unnamed_26;
+                        let mut shape: &mut *mut StyleBasicShape = union.mBasicShape.as_mut();
+                        *shape = Gecko_NewBasicShape(ty);
+                        &mut **shape
+                    }
+                }
+                match servo_shape {
+                    BasicShape::Inset(rect) => {
+                        let mut shape = init_shape(clip_path, StyleBasicShapeType::Inset);
+                        unsafe { shape.mCoordinates.set_len(4) };
+
+                        // set_len() can't call constructors, so the coordinates
+                        // can contain any value. set_value() attempts to free
+                        // allocated coordinates, so we don't want to feed it
+                        // garbage values which it may misinterpret.
+                        // Instead, we use leaky_set_value to blindly overwrite
+                        // the garbage data without
+                        // attempting to clean up.
+                        shape.mCoordinates[0].leaky_set_null();
+                        rect.top.to_gecko_style_coord(&mut shape.mCoordinates[0]);
+                        shape.mCoordinates[1].leaky_set_null();
+                        rect.right.to_gecko_style_coord(&mut shape.mCoordinates[1]);
+                        shape.mCoordinates[2].leaky_set_null();
+                        rect.bottom.to_gecko_style_coord(&mut shape.mCoordinates[2]);
+                        shape.mCoordinates[3].leaky_set_null();
+                        rect.left.to_gecko_style_coord(&mut shape.mCoordinates[3]);
+
+                        set_corners_from_radius(rect.round, &mut shape.mRadius);
+                    }
+                    BasicShape::Circle(circ) => {
+                        let mut shape = init_shape(clip_path, StyleBasicShapeType::Circle);
+                        unsafe { shape.mCoordinates.set_len(1) };
+                        shape.mCoordinates[0].leaky_set_null();
+                        circ.radius.to_gecko_style_coord(&mut shape.mCoordinates[0]);
+
+                        shape.mPosition = circ.position.into();
+                    }
+                    BasicShape::Ellipse(el) => {
+                        let mut shape = init_shape(clip_path, StyleBasicShapeType::Ellipse);
+                        unsafe { shape.mCoordinates.set_len(2) };
+                        shape.mCoordinates[0].leaky_set_null();
+                        el.semiaxis_x.to_gecko_style_coord(&mut shape.mCoordinates[0]);
+                        shape.mCoordinates[1].leaky_set_null();
+                        el.semiaxis_y.to_gecko_style_coord(&mut shape.mCoordinates[1]);
+
+                        shape.mPosition = el.position.into();
+                    }
+                    BasicShape::Polygon(poly) => {
+                        let mut shape = init_shape(clip_path, StyleBasicShapeType::Polygon);
+                        unsafe {
+                            shape.mCoordinates.set_len(poly.coordinates.len() as u32 * 2);
+                        }
+                        for (i, coord) in poly.coordinates.iter().enumerate() {
+                            shape.mCoordinates[2 * i].leaky_set_null();
+                            shape.mCoordinates[2 * i + 1].leaky_set_null();
+                            coord.0.to_gecko_style_coord(&mut shape.mCoordinates[2 * i]);
+                            coord.1.to_gecko_style_coord(&mut shape.mCoordinates[2 * i + 1]);
+                        }
+                        shape.mFillRule = if poly.fill == FillRule::EvenOdd {
+                            StyleFillRule::Evenodd
+                        } else {
+                            StyleFillRule::Nonzero
+                        };
+                    }
+                }
+            }
+        }
+
+    }
+
+    pub fn copy_clip_path_from(&mut self, other: &Self) {
+        use gecko_bindings::bindings::Gecko_CopyClipPathValueFrom;
+        unsafe {
+            Gecko_CopyClipPathValueFrom(&mut self.gecko.mClipPath, &other.gecko.mClipPath);
+        }
+    }
+
+    pub fn clone_clip_path(&self) -> longhands::clip_path::computed_value::T {
+        use gecko_bindings::structs::StyleShapeSourceType;
+        use gecko_bindings::structs::StyleClipPathGeometryBox;
+        use values::computed::basic_shape::*;
+        let ref clip_path = self.gecko.mClipPath;
+
+        match clip_path.mType {
+            StyleShapeSourceType::None_ => ShapeSource::None,
+            StyleShapeSourceType::Box => {
+                ShapeSource::Box(clip_path.mReferenceBox.into())
+            }
+            StyleShapeSourceType::URL => {
+                warn!("stylo: clip-path: url() not implemented yet");
+                Default::default()
+            }
+            StyleShapeSourceType::Shape => {
+                let reference = if let StyleClipPathGeometryBox::NoBox = clip_path.mReferenceBox {
+                    None
+                } else {
+                    Some(clip_path.mReferenceBox.into())
+                };
+                let union = clip_path.StyleShapeSource_nsStyleStruct_h_unnamed_26;
+                let shape = unsafe { &**union.mBasicShape.as_ref() };
+                ShapeSource::Shape(shape.into(), reference)
+            }
+        }
+    }
 
 </%self:impl_trait>
 

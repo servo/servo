@@ -211,6 +211,17 @@ pub trait CoordDataMut : CoordData {
             *union = other.union();
     }
 
+    /// Useful for initializing uninits
+    /// (set_value may segfault on uninits)
+    fn leaky_set_null(&mut self) {
+        use structs::nsStyleUnit::*;
+        unsafe {
+            let (unit, union) = self.values_mut();
+            *unit = eStyleUnit_Null;
+            *union.mInt.as_mut() = 0;
+        }
+    }
+
     #[inline(always)]
     fn set_value(&mut self, value: CoordDataValue) {
         use self::CoordDataValue::*;

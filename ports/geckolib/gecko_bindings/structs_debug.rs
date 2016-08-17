@@ -5452,7 +5452,7 @@ fn bindgen_test_layout_nsStyleSides() {
     assert_eq!(::std::mem::align_of::<nsStyleSides>() , 8usize);
 }
 /**
- * Class that represents a set of top-left/top-right/bottom-left/bottom-right
+ * Class that represents a set of top-left/top-right/bottom-right/bottom-left
  * nsStyleCoord pairs.  This is used to hold the dimensions of the
  * corners of a box (for, e.g., border-radius and outline-radius).
  */
@@ -6375,8 +6375,7 @@ fn bindgen_test_layout_StyleAnimation() {
 #[repr(C)]
 #[derive(Debug)]
 pub struct StyleBasicShape {
-    pub mRefCnt: nsAutoRefCnt,
-    pub _mOwningThread: nsAutoOwningThread,
+    pub mRefCnt: ThreadSafeAutoRefCnt,
     pub mType: StyleBasicShapeType,
     pub mFillRule: StyleFillRule,
     pub mCoordinates: nsTArray<nsStyleCoord>,
@@ -6385,29 +6384,37 @@ pub struct StyleBasicShape {
 }
 #[test]
 fn bindgen_test_layout_StyleBasicShape() {
-    assert_eq!(::std::mem::size_of::<StyleBasicShape>() , 128usize);
+    assert_eq!(::std::mem::size_of::<StyleBasicShape>() , 120usize);
     assert_eq!(::std::mem::align_of::<StyleBasicShape>() , 8usize);
 }
 #[repr(C)]
-pub struct StyleShapeSource;
-#[repr(C)]
-pub struct StyleClipPath {
-    pub _bindgen_opaque_blob: [u64; 2usize],
-}
-#[test]
-fn bindgen_test_layout_StyleClipPath() {
-    assert_eq!(::std::mem::size_of::<StyleClipPath>() , 16usize);
-    assert_eq!(::std::mem::align_of::<StyleClipPath>() , 8usize);
+#[derive(Debug)]
+pub struct StyleShapeSource<ReferenceBox> {
+    pub StyleShapeSource_nsStyleStruct_h_unnamed_26: StyleShapeSource_nsStyleStruct_h_unnamed_26<ReferenceBox>,
+    pub mType: StyleShapeSourceType,
+    pub mReferenceBox: ReferenceBox,
 }
 #[repr(C)]
-pub struct StyleShapeOutside {
-    pub _bindgen_opaque_blob: [u64; 2usize],
+#[derive(Debug, Copy, Clone)]
+pub struct StyleShapeSource_nsStyleStruct_h_unnamed_26<ReferenceBox> {
+    pub mBasicShape: __BindgenUnionField<*mut StyleBasicShape>,
+    pub mURL: __BindgenUnionField<*mut FragmentOrURL>,
+    pub _bindgen_data_: u64,
+    pub _phantom0: ::std::marker::PhantomData<ReferenceBox>,
 }
-#[test]
-fn bindgen_test_layout_StyleShapeOutside() {
-    assert_eq!(::std::mem::size_of::<StyleShapeOutside>() , 16usize);
-    assert_eq!(::std::mem::align_of::<StyleShapeOutside>() , 8usize);
+impl <ReferenceBox> StyleShapeSource_nsStyleStruct_h_unnamed_26<ReferenceBox>
+ {
+    pub unsafe fn mBasicShape(&mut self) -> *mut *mut StyleBasicShape {
+        let raw: *mut u8 = ::std::mem::transmute(&self._bindgen_data_);
+        ::std::mem::transmute(raw.offset(0))
+    }
+    pub unsafe fn mURL(&mut self) -> *mut *mut FragmentOrURL {
+        let raw: *mut u8 = ::std::mem::transmute(&self._bindgen_data_);
+        ::std::mem::transmute(raw.offset(0))
+    }
 }
+pub type StyleClipPath = StyleShapeSource<StyleClipPathGeometryBox>;
+pub type StyleShapeOutside = StyleShapeSource<StyleShapeOutsideShapeBox>;
 #[repr(C)]
 pub struct nsStyleDisplay {
     pub mBinding: RefPtr<URLValue>,
@@ -6461,7 +6468,7 @@ pub struct nsStyleDisplay {
     pub mAnimationFillModeCount: u32,
     pub mAnimationPlayStateCount: u32,
     pub mAnimationIterationCountCount: u32,
-    pub mShapeOutside: [u64; 2usize],
+    pub mShapeOutside: StyleShapeOutside,
 }
 #[test]
 fn bindgen_test_layout_nsStyleDisplay() {
@@ -6797,7 +6804,7 @@ fn bindgen_test_layout_nsStyleFilter() {
 #[repr(C)]
 pub struct nsStyleSVGReset {
     pub mMask: nsStyleImageLayers,
-    pub mClipPath: [u64; 2usize],
+    pub mClipPath: StyleClipPath,
     pub mStopColor: nscolor,
     pub mFloodColor: nscolor,
     pub mLightingColor: nscolor,

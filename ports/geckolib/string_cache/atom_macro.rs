@@ -1172,6 +1172,8 @@ pub enum nsICSSAnonBoxPseudo {}
             pub static nsGkAtoms_minheight: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms13minimum_scaleE"]
             pub static nsGkAtoms_minimum_scale: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms9minlengthE"]
+            pub static nsGkAtoms_minlength: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms6minposE"]
             pub static nsGkAtoms_minpos: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms9minusSignE"]
@@ -3838,6 +3840,8 @@ pub enum nsICSSAnonBoxPseudo {}
             pub static nsGkAtoms_onmozinterruptbegin: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms17onmozinterruptendE"]
             pub static nsGkAtoms_onmozinterruptend: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms14ondevicechangeE"]
+            pub static nsGkAtoms_ondevicechange: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms12cdataTagNameE"]
             pub static nsGkAtoms_cdataTagName: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms14commentTagNameE"]
@@ -6083,6 +6087,8 @@ pub enum nsICSSAnonBoxPseudo {}
             pub static nsGkAtoms_minheight: *mut nsIAtom;
             #[link_name = "?minimum_scale@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_minimum_scale: *mut nsIAtom;
+            #[link_name = "?minlength@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_minlength: *mut nsIAtom;
             #[link_name = "?minpos@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_minpos: *mut nsIAtom;
             #[link_name = "?minusSign@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -8749,6 +8755,8 @@ pub enum nsICSSAnonBoxPseudo {}
             pub static nsGkAtoms_onmozinterruptbegin: *mut nsIAtom;
             #[link_name = "?onmozinterruptend@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_onmozinterruptend: *mut nsIAtom;
+            #[link_name = "?ondevicechange@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_ondevicechange: *mut nsIAtom;
             #[link_name = "?cdataTagName@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_cdataTagName: *mut nsIAtom;
             #[link_name = "?commentTagName@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -10994,6 +11002,8 @@ pub enum nsICSSAnonBoxPseudo {}
             pub static nsGkAtoms_minheight: *mut nsIAtom;
             #[link_name = "?minimum_scale@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_minimum_scale: *mut nsIAtom;
+            #[link_name = "?minlength@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_minlength: *mut nsIAtom;
             #[link_name = "?minpos@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_minpos: *mut nsIAtom;
             #[link_name = "?minusSign@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -13660,6 +13670,8 @@ pub enum nsICSSAnonBoxPseudo {}
             pub static nsGkAtoms_onmozinterruptbegin: *mut nsIAtom;
             #[link_name = "?onmozinterruptend@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_onmozinterruptend: *mut nsIAtom;
+            #[link_name = "?ondevicechange@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_ondevicechange: *mut nsIAtom;
             #[link_name = "?cdataTagName@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_cdataTagName: *mut nsIAtom;
             #[link_name = "?commentTagName@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -15332,6 +15344,7 @@ macro_rules! atom {
 ("min") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsGkAtoms_min as *mut _) };
 ("minheight") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsGkAtoms_minheight as *mut _) };
 ("minimum-scale") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsGkAtoms_minimum_scale as *mut _) };
+("minlength") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsGkAtoms_minlength as *mut _) };
 ("minpos") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsGkAtoms_minpos as *mut _) };
 ("minus-sign") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsGkAtoms_minusSign as *mut _) };
 ("minwidth") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsGkAtoms_minwidth as *mut _) };
@@ -16665,6 +16678,7 @@ macro_rules! atom {
 ("ondevicelight") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsGkAtoms_ondevicelight as *mut _) };
 ("onmozinterruptbegin") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsGkAtoms_onmozinterruptbegin as *mut _) };
 ("onmozinterruptend") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsGkAtoms_onmozinterruptend as *mut _) };
+("ondevicechange") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsGkAtoms_ondevicechange as *mut _) };
 ("#cdata-section") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsGkAtoms_cdataTagName as *mut _) };
 ("#comment") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsGkAtoms_commentTagName as *mut _) };
 ("#document") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsGkAtoms_documentNodeName as *mut _) };

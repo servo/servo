@@ -14,9 +14,9 @@ use std::fmt;
 use url::Url;
 use values::computed::basic_shape as computed_basic_shape;
 use values::computed::{Context, ToComputedValue, ComputedValueAsSpecified};
+use values::specified::UrlExtraData;
 use values::specified::position::Position;
 use values::specified::{BorderRadiusSize, LengthOrPercentage, Percentage};
-use values::specified::UrlExtraData;
 
 /// A shape source, for some reference box
 ///
