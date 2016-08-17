@@ -636,7 +636,8 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 
 <%helpers:longhand name="animation-name"
                    need_index="True"
-                   animatable="False">
+                   animatable="False",
+                   allowed_in_keyframe_block="False">
     use values::computed::ComputedValueAsSpecified;
     use values::NoViewportPercentage;
 
@@ -699,7 +700,8 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 
 <%helpers:longhand name="animation-duration"
                    need_index="True"
-                   animatable="False">
+                   animatable="False",
+                   allowed_in_keyframe_block="False">
     pub use super::transition_duration::computed_value;
     pub use super::transition_duration::{get_initial_value, get_initial_single_value};
     pub use super::transition_duration::{parse, parse_one};
@@ -709,7 +711,8 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 
 <%helpers:longhand name="animation-timing-function"
                    need_index="True"
-                   animatable="False">
+                   animatable="False",
+                   allowed_in_keyframe_block="False">
     pub use super::transition_timing_function::computed_value;
     pub use super::transition_timing_function::{get_initial_value, get_initial_single_value};
     pub use super::transition_timing_function::{parse, parse_one};
@@ -719,7 +722,8 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 
 <%helpers:longhand name="animation-iteration-count"
                    need_index="True"
-                   animatable="False">
+                   animatable="False",
+                   allowed_in_keyframe_block="False">
     use values::computed::ComputedValueAsSpecified;
     use values::NoViewportPercentage;
 
@@ -804,22 +808,28 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 ${helpers.keyword_list("animation-direction",
                        "normal reverse alternate alternate-reverse",
                        need_index=True,
-                       animatable=False)}
+                       animatable=False,
+                       allowed_in_keyframe_block=False)}
 
+// animation-play-state is the exception to the rule for allowed_in_keyframe_block:
+// https://drafts.csswg.org/css-animations/#keyframes
 ${helpers.keyword_list("animation-play-state",
                        "running paused",
                        need_clone=True,
                        need_index=True,
-                       animatable=False)}
+                       animatable=False,
+                       allowed_in_keyframe_block=True)}
 
 ${helpers.keyword_list("animation-fill-mode",
                        "none forwards backwards both",
                        need_index=True,
-                       animatable=False)}
+                       animatable=False,
+                       allowed_in_keyframe_block=False)}
 
 <%helpers:longhand name="animation-delay"
                    need_index="True"
-                   animatable="False">
+                   animatable="False",
+                   allowed_in_keyframe_block="False">
     pub use super::transition_duration::computed_value;
     pub use super::transition_duration::{get_initial_value, get_initial_single_value};
     pub use super::transition_duration::{parse, parse_one};
