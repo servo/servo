@@ -152,7 +152,8 @@ macro_rules! try_parse_one {
                     sub_properties="animation-name animation-duration
                                     animation-timing-function animation-delay
                                     animation-iteration-count animation-direction
-                                    animation-fill-mode animation-play-state">
+                                    animation-fill-mode animation-play-state"
+                    allowed_in_keyframe_block="False">
     use properties::longhands::{animation_name, animation_duration, animation_timing_function};
     use properties::longhands::{animation_delay, animation_iteration_count, animation_direction};
     use properties::longhands::{animation_fill_mode, animation_play_state};

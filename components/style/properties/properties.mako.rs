@@ -517,7 +517,7 @@ pub fn parse_one_declaration(name: &str, input: &str, base_url: &Url, error_repo
                              -> Result<Vec<PropertyDeclaration>, ()> {
     let context = ParserContext::new_with_extra_data(Origin::Author, base_url, error_reporter, extra_data);
     let mut results = vec![];
-    match PropertyDeclaration::parse(name, &context, &mut Parser::new(input), &mut results) {
+    match PropertyDeclaration::parse(name, &context, &mut Parser::new(input), &mut results, false) {
         PropertyDeclarationParseResult::ValidOrIgnoredDeclaration => Ok(results),
         _ => Err(())
     }
@@ -542,7 +542,7 @@ impl<'a, 'b> DeclarationParser for PropertyDeclarationParser<'a, 'b> {
                    -> Result<(Vec<PropertyDeclaration>, Importance), ()> {
         let mut results = vec![];
         try!(input.parse_until_before(Delimiter::Bang, |input| {
-            match PropertyDeclaration::parse(name, self.context, input, &mut results) {
+            match PropertyDeclaration::parse(name, self.context, input, &mut results, false) {
                 PropertyDeclarationParseResult::ValidOrIgnoredDeclaration => Ok(()),
                 _ => Err(())
             }
@@ -832,6 +832,7 @@ pub enum PropertyDeclarationParseResult {
     UnknownProperty,
     ExperimentalProperty,
     InvalidValue,
+    AnimationPropertyInKeyframeBlock,
     ValidOrIgnoredDeclaration,
 }
 
@@ -984,8 +985,16 @@ impl PropertyDeclaration {
         }
     }
 
+    /// The `in_keyframe_block` parameter controls this:
+    ///
+    /// https://drafts.csswg.org/css-animations/#keyframes
+    /// > The <declaration-list> inside of <keyframe-block> accepts any CSS property
+    /// > except those defined in this specification,
+    /// > but does accept the `animation-play-state` property and interprets it specially.
     pub fn parse(name: &str, context: &ParserContext, input: &mut Parser,
-                 result_list: &mut Vec<PropertyDeclaration>) -> PropertyDeclarationParseResult {
+                 result_list: &mut Vec<PropertyDeclaration>,
+                 in_keyframe_block: bool)
+                 -> PropertyDeclarationParseResult {
         if let Ok(name) = ::custom_properties::parse_name(name) {
             let value = match input.try(CSSWideKeyword::parse) {
                 Ok(CSSWideKeyword::UnsetKeyword) |  // Custom properties are alawys inherited
@@ -1003,6 +1012,11 @@ impl PropertyDeclaration {
             % for property in data.longhands:
                 % if not property.derived_from:
                     "${property.name}" => {
+                        % if not property.allowed_in_keyframe_block:
+                            if in_keyframe_block {
+                                return PropertyDeclarationParseResult::AnimationPropertyInKeyframeBlock
+                            }
+                        % endif
                         % if property.internal:
                             if context.stylesheet_origin != Origin::UserAgent {
                                 return PropertyDeclarationParseResult::UnknownProperty
@@ -1028,6 +1042,11 @@ impl PropertyDeclaration {
             % endfor
             % for shorthand in data.shorthands:
                 "${shorthand.name}" => {
+                    % if not shorthand.allowed_in_keyframe_block:
+                        if in_keyframe_block {
+                            return PropertyDeclarationParseResult::AnimationPropertyInKeyframeBlock
+                        }
+                    % endif
                     % if shorthand.internal:
                         if context.stylesheet_origin != Origin::UserAgent {
                             return PropertyDeclarationParseResult::UnknownProperty
