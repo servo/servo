@@ -87,8 +87,8 @@ use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use style::element_state::*;
 use style::matching::{common_style_affecting_attributes, rare_style_affecting_attributes};
 use style::parser::ParserContextExtraData;
-use style::properties::DeclaredValue;
 use style::properties::longhands::{self, background_image, border_spacing, font_family, overflow_x, font_size};
+use style::properties::{DeclaredValue, Importance};
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, parse_style_attribute};
 use style::selector_impl::{NonTSPseudoClass, ServoSelectorImpl};
 use style::sink::Push;
@@ -660,13 +660,6 @@ impl LayoutElementHelpers for LayoutJS<Element> {
     }
 }
 
-#[derive(PartialEq, Eq, Copy, Clone, HeapSizeOf)]
-pub enum StylePriority {
-    Important,
-    Normal,
-}
-
-
 impl Element {
     pub fn html_element_in_html_document(&self) -> bool {
         self.namespace == ns!(html) && self.upcast::<Node>().is_in_html_doc()
@@ -780,11 +773,12 @@ impl Element {
 
     pub fn update_inline_style(&self,
                                declarations: Vec<PropertyDeclaration>,
-                               style_priority: StylePriority) {
-        fn update(element: &Element, mut declarations: Vec<PropertyDeclaration>, style_priority: StylePriority) {
+                               importance: Importance) {
+        fn update(element: &Element, mut declarations: Vec<PropertyDeclaration>,
+                  importance: Importance) {
             let mut inline_declarations = element.style_attribute().borrow_mut();
             if let &mut Some(ref mut existing_declarations) = &mut *inline_declarations {
-                let existing_declarations = if style_priority == StylePriority::Important {
+                let existing_declarations = if importance.important() {
                     &mut existing_declarations.important
                 } else {
                     &mut existing_declarations.normal
@@ -813,7 +807,7 @@ impl Element {
                 return;
             }
 
-            let (important, normal) = if style_priority == StylePriority::Important {
+            let (important, normal) = if importance.important() {
                 (declarations, vec![])
             } else {
                 (vec![], declarations)
@@ -825,17 +819,17 @@ impl Element {
             });
         }
 
-        update(self, declarations, style_priority);
+        update(self, declarations, importance);
         self.sync_property_with_attrs_style();
     }
 
     pub fn set_inline_style_property_priority(&self,
                                               properties: &[&str],
-                                              style_priority: StylePriority) {
+                                              importance: Importance) {
         {
             let mut inline_declarations = self.style_attribute().borrow_mut();
             if let &mut Some(ref mut declarations) = &mut *inline_declarations {
-              let (from, to) = if style_priority == StylePriority::Important {
+              let (from, to) = if importance == Importance::Important {
                   (&mut declarations.normal, &mut declarations.important)
               } else {
                   (&mut declarations.important, &mut declarations.normal)
