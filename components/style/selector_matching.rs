@@ -525,10 +525,10 @@ impl Stylist {
 /// Map that contains the CSS rules for a given origin.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 struct PerOriginSelectorMap {
-    /// Rules that contains at least one property declararion with
+    /// Rules that contains at least one property declaration with
     /// normal importance.
     normal: SelectorMap<Vec<PropertyDeclaration>, TheSelectorImpl>,
-    /// Rules that contains at least one property declararion with
+    /// Rules that contains at least one property declaration with
     /// !important.
     important: SelectorMap<Vec<PropertyDeclaration>, TheSelectorImpl>,
 }
