@@ -12,10 +12,11 @@
 from __future__ import print_function, unicode_literals
 
 import os
+from os import path
 import sys
 
 def main(args):
-    topdir = os.path.dirname(sys.argv[0])
+    topdir = path.abspath(path.dirname(sys.argv[0]))
     sys.path.insert(0, os.path.join(topdir, "python"))
     import mach_bootstrap
     mach = mach_bootstrap.bootstrap(topdir)

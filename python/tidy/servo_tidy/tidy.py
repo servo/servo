@@ -202,8 +202,9 @@ def check_modeline(file_name, lines):
 
 
 def check_length(file_name, idx, line):
-    if file_name.endswith(".lock") or file_name.endswith(".json") or file_name.endswith(".html"):
-        raise StopIteration
+    for suffix in [".lock", ".json", ".html", ".toml"]:
+        if file_name.endswith(suffix):
+            raise StopIteration
     # Prefer shorter lines when shell scripting.
     if file_name.endswith(".sh"):
         max_length = 80
@@ -297,8 +298,18 @@ def check_lock(file_name, contents):
     # package names to be neglected (as named by cargo)
     exceptions = ["lazy_static"]
 
-    import toml
-    content = toml.loads(contents)
+    # toml.py has a bug(?) that we trip up in [metadata] sections;
+    # see https://github.com/uiri/toml/issues/61
+    # This should only affect a very few lines (that have embedded ?branch=...),
+    # and most of them won't be in the repo
+    try:
+        import toml
+        content = toml.loads(contents)
+    except:
+        print "WARNING!"
+        print "WARNING! toml parsing failed for Cargo.lock, but ignoring..."
+        print "WARNING!"
+        raise StopIteration
 
     packages = {}
     for package in content.get("package", []):
