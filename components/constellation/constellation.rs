@@ -1862,7 +1862,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     frame.prev.push(frame.current.clone());
                     while let Some(entry) = frame.next.pop() {
                         if entry.pipeline_id == next_pipeline_id {
-                            debug_assert!(!entry.pending);
+                            assert!(!entry.pending);
                             frame.current = entry;
                             break;
                         } else {
@@ -1877,7 +1877,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     frame.next.push(frame.current.clone());
                     while let Some(entry) = frame.prev.pop() {
                         if entry.pipeline_id == next_pipeline_id {
-                            debug_assert!(!entry.pending);
+                            assert!(!entry.pending);
                             frame.current = entry;
                             break;
                         } else {
