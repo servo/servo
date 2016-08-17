@@ -143,7 +143,7 @@ impl LiveDOMReferences {
         }
         match table.entry(ptr as *const libc::c_void) {
             Occupied(mut entry) => match entry.get().upgrade() {
-                Some(refcount) => refcount.clone(),
+                Some(refcount) => refcount,
                 None => {
                     let refcount = Arc::new(TrustedReference::new(ptr));
                     entry.insert(Arc::downgrade(&refcount));
