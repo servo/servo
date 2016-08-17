@@ -34,6 +34,7 @@ ${helpers.predefined_type("fill-opacity", "Opacity", "1.0",
                           products="gecko", animatable=False)}
 
 ${helpers.single_keyword("fill-rule", "nonzero evenodd",
+                         gecko_enum_prefix="StyleFillRule",
                          products="gecko", animatable=False)}
 
 ${helpers.single_keyword("shape-rendering",
@@ -57,5 +58,5 @@ ${helpers.predefined_type("stroke-opacity", "Opacity", "1.0",
 // Section 14 - Clipping, Masking and Compositing
 ${helpers.single_keyword("clip-rule", "nonzero evenodd",
                          products="gecko",
-                         gecko_constant_prefix="NS_STYLE_FILL_RULE",
+                         gecko_enum_prefix="StyleFillRule",
                          animatable=False)}

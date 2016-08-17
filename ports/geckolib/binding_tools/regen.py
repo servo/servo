@@ -69,7 +69,7 @@ COMPILATION_TARGETS = {
             "nsAString", "nsSubstring", "nsTSubstring", "nsTString",
             "nsISupportsBase.h", "nsCOMPtr.h", "nsIAtom.h", "nsIURI.h",
             "nsAutoPtr.h", "nsColor.h", "nsCoord.h", "nsPoint.h", "nsRect.h",
-            "nsMargin.h", "nsThemeConstants.h", "nsCSSProperty.h",
+            "nsMargin.h", "nsThemeConstants.h", "nsCSSProperty.h", "nsCSSPropertyID.h",
             "CSSVariableValues.h", "nsFont.h", "nsTHashtable.h",
             "PLDHashTable.h", "nsColor.h", "nsStyleStruct.h", "nsStyleCoord.h",
             "RefPtr.h", "nsISupportsImpl.h", "gfxFontConstants.h",
@@ -116,6 +116,9 @@ COMPILATION_TARGETS = {
         "raw_lines": [
             "use heapsize::HeapSizeOf;",
         ],
+        "flags": [
+            "-ignore-methods",
+        ],
         "match_headers": [
             "ServoBindings.h",
             "nsStyleStructList.h",
@@ -145,6 +148,7 @@ COMPILATION_TARGETS = {
         "void_types": [
             "nsINode", "nsIDocument", "nsIPrincipal", "nsIURI",
         ],
+        "servo_arc_types": ["ServoComputedValues", "RawServoStyleSheet"]
     },
 
     "atoms": {
@@ -300,7 +304,16 @@ def build(objdir, target_name, kind_name=None,
         for ty in current_target["void_types"]:
             flags.append("-raw-line")
             flags.append("pub enum {} {{}}".format(ty))
-
+    if "servo_arc_types" in current_target:
+        for ty in current_target["servo_arc_types"]:
+            flags.append("-blacklist-type")
+            flags.append("{}Strong".format(ty))
+            flags.append("-raw-line")
+            flags.append("pub type {0}Strong = ::sugar::refptr::Strong<{0}>;".format(ty))
+            flags.append("-blacklist-type")
+            flags.append("{}Borrowed".format(ty))
+            flags.append("-raw-line")
+            flags.append("pub type {0}Borrowed<'a> = ::sugar::refptr::Borrowed<'a, {0}>;".format(ty))
     if "structs_types" in current_target:
         for ty in current_target["structs_types"]:
             ty_fragments = ty.split("::")

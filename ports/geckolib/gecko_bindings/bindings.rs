@@ -5,6 +5,10 @@ pub enum nsINode {}
 pub enum nsIDocument {}
 pub enum nsIPrincipal {}
 pub enum nsIURI {}
+pub type ServoComputedValuesStrong = ::sugar::refptr::Strong<ServoComputedValues>;
+pub type ServoComputedValuesBorrowed<'a> = ::sugar::refptr::Borrowed<'a, ServoComputedValues>;
+pub type RawServoStyleSheetStrong = ::sugar::refptr::Strong<RawServoStyleSheet>;
+pub type RawServoStyleSheetBorrowed<'a> = ::sugar::refptr::Borrowed<'a, RawServoStyleSheet>;
 use structs::nsStyleFont;
 unsafe impl Send for nsStyleFont {}
 unsafe impl Sync for nsStyleFont {}
@@ -301,7 +305,7 @@ extern "C" {
     pub fn Gecko_GetStyleContext(node: *mut RawGeckoNode)
      -> *mut nsStyleContext;
     pub fn Gecko_CalcStyleDifference(oldstyle: *mut nsStyleContext,
-                                     newstyle: *mut ServoComputedValues)
+                                     newstyle: ServoComputedValuesBorrowed)
      -> nsChangeHint;
     pub fn Gecko_StoreStyleDifference(node: *mut RawGeckoNode,
                                       change: nsChangeHint);
@@ -326,19 +330,20 @@ extern "C" {
                                          referrer: *mut ThreadSafeURIHolder,
                                          principal:
                                              *mut ThreadSafePrincipalHolder)
-     -> *mut RawServoStyleSheet;
-    pub fn Servo_AddRefStyleSheet(sheet: *mut RawServoStyleSheet);
-    pub fn Servo_ReleaseStyleSheet(sheet: *mut RawServoStyleSheet);
-    pub fn Servo_AppendStyleSheet(sheet: *mut RawServoStyleSheet,
+     -> RawServoStyleSheetStrong;
+    pub fn Servo_AddRefStyleSheet(sheet: RawServoStyleSheetBorrowed);
+    pub fn Servo_ReleaseStyleSheet(sheet: RawServoStyleSheetBorrowed);
+    pub fn Servo_AppendStyleSheet(sheet: RawServoStyleSheetBorrowed,
                                   set: *mut RawServoStyleSet);
-    pub fn Servo_PrependStyleSheet(sheet: *mut RawServoStyleSheet,
+    pub fn Servo_PrependStyleSheet(sheet: RawServoStyleSheetBorrowed,
                                    set: *mut RawServoStyleSet);
-    pub fn Servo_RemoveStyleSheet(sheet: *mut RawServoStyleSheet,
+    pub fn Servo_RemoveStyleSheet(sheet: RawServoStyleSheetBorrowed,
                                   set: *mut RawServoStyleSet);
-    pub fn Servo_InsertStyleSheetBefore(sheet: *mut RawServoStyleSheet,
-                                        reference: *mut RawServoStyleSheet,
+    pub fn Servo_InsertStyleSheetBefore(sheet: RawServoStyleSheetBorrowed,
+                                        reference: RawServoStyleSheetBorrowed,
                                         set: *mut RawServoStyleSet);
-    pub fn Servo_StyleSheetHasRules(sheet: *mut RawServoStyleSheet) -> bool;
+    pub fn Servo_StyleSheetHasRules(sheet: RawServoStyleSheetBorrowed)
+     -> bool;
     pub fn Servo_InitStyleSet() -> *mut RawServoStyleSet;
     pub fn Servo_DropStyleSet(set: *mut RawServoStyleSet);
     pub fn Servo_ParseStyleAttribute(bytes: *const u8, length: u32,
@@ -356,24 +361,25 @@ extern "C" {
     pub fn Servo_CSSSupports(name: *const u8, name_length: u32,
                              value: *const u8, value_length: u32) -> bool;
     pub fn Servo_GetComputedValues(node: *mut RawGeckoNode)
-     -> *mut ServoComputedValues;
+     -> ServoComputedValuesStrong;
     pub fn Servo_GetComputedValuesForAnonymousBox(parentStyleOrNull:
-                                                      *mut ServoComputedValues,
+                                                      ServoComputedValuesBorrowed,
                                                   pseudoTag: *mut nsIAtom,
                                                   set: *mut RawServoStyleSet)
-     -> *mut ServoComputedValues;
+     -> ServoComputedValuesStrong;
     pub fn Servo_GetComputedValuesForPseudoElement(parent_style:
-                                                       *mut ServoComputedValues,
+                                                       ServoComputedValuesBorrowed,
                                                    match_element:
                                                        *mut RawGeckoElement,
                                                    pseudo_tag: *mut nsIAtom,
                                                    set: *mut RawServoStyleSet,
                                                    is_probe: bool)
-     -> *mut ServoComputedValues;
-    pub fn Servo_InheritComputedValues(parent_style: *mut ServoComputedValues)
-     -> *mut ServoComputedValues;
-    pub fn Servo_AddRefComputedValues(arg1: *mut ServoComputedValues);
-    pub fn Servo_ReleaseComputedValues(arg1: *mut ServoComputedValues);
+     -> ServoComputedValuesStrong;
+    pub fn Servo_InheritComputedValues(parent_style:
+                                           ServoComputedValuesBorrowed)
+     -> ServoComputedValuesStrong;
+    pub fn Servo_AddRefComputedValues(arg1: ServoComputedValuesBorrowed);
+    pub fn Servo_ReleaseComputedValues(arg1: ServoComputedValuesBorrowed);
     pub fn Servo_Initialize();
     pub fn Servo_Shutdown();
     pub fn Servo_RestyleDocument(doc: *mut RawGeckoDocument,
@@ -388,32 +394,33 @@ extern "C" {
     pub fn Gecko_CopyConstruct_nsStyleFont(ptr: *mut nsStyleFont,
                                            other: *const nsStyleFont);
     pub fn Gecko_Destroy_nsStyleFont(ptr: *mut nsStyleFont);
-    pub fn Servo_GetStyleFont(computedValues: *mut ServoComputedValues)
+    pub fn Servo_GetStyleFont(computedValues: ServoComputedValuesBorrowed)
      -> *const nsStyleFont;
     pub fn Gecko_Construct_nsStyleColor(ptr: *mut nsStyleColor);
     pub fn Gecko_CopyConstruct_nsStyleColor(ptr: *mut nsStyleColor,
                                             other: *const nsStyleColor);
     pub fn Gecko_Destroy_nsStyleColor(ptr: *mut nsStyleColor);
-    pub fn Servo_GetStyleColor(computedValues: *mut ServoComputedValues)
+    pub fn Servo_GetStyleColor(computedValues: ServoComputedValuesBorrowed)
      -> *const nsStyleColor;
     pub fn Gecko_Construct_nsStyleList(ptr: *mut nsStyleList);
     pub fn Gecko_CopyConstruct_nsStyleList(ptr: *mut nsStyleList,
                                            other: *const nsStyleList);
     pub fn Gecko_Destroy_nsStyleList(ptr: *mut nsStyleList);
-    pub fn Servo_GetStyleList(computedValues: *mut ServoComputedValues)
+    pub fn Servo_GetStyleList(computedValues: ServoComputedValuesBorrowed)
      -> *const nsStyleList;
     pub fn Gecko_Construct_nsStyleText(ptr: *mut nsStyleText);
     pub fn Gecko_CopyConstruct_nsStyleText(ptr: *mut nsStyleText,
                                            other: *const nsStyleText);
     pub fn Gecko_Destroy_nsStyleText(ptr: *mut nsStyleText);
-    pub fn Servo_GetStyleText(computedValues: *mut ServoComputedValues)
+    pub fn Servo_GetStyleText(computedValues: ServoComputedValuesBorrowed)
      -> *const nsStyleText;
     pub fn Gecko_Construct_nsStyleVisibility(ptr: *mut nsStyleVisibility);
     pub fn Gecko_CopyConstruct_nsStyleVisibility(ptr: *mut nsStyleVisibility,
                                                  other:
                                                      *const nsStyleVisibility);
     pub fn Gecko_Destroy_nsStyleVisibility(ptr: *mut nsStyleVisibility);
-    pub fn Servo_GetStyleVisibility(computedValues: *mut ServoComputedValues)
+    pub fn Servo_GetStyleVisibility(computedValues:
+                                        ServoComputedValuesBorrowed)
      -> *const nsStyleVisibility;
     pub fn Gecko_Construct_nsStyleUserInterface(ptr:
                                                     *mut nsStyleUserInterface);
@@ -423,7 +430,7 @@ extern "C" {
                                                         *const nsStyleUserInterface);
     pub fn Gecko_Destroy_nsStyleUserInterface(ptr: *mut nsStyleUserInterface);
     pub fn Servo_GetStyleUserInterface(computedValues:
-                                           *mut ServoComputedValues)
+                                           ServoComputedValuesBorrowed)
      -> *const nsStyleUserInterface;
     pub fn Gecko_Construct_nsStyleTableBorder(ptr: *mut nsStyleTableBorder);
     pub fn Gecko_CopyConstruct_nsStyleTableBorder(ptr:
@@ -431,111 +438,115 @@ extern "C" {
                                                   other:
                                                       *const nsStyleTableBorder);
     pub fn Gecko_Destroy_nsStyleTableBorder(ptr: *mut nsStyleTableBorder);
-    pub fn Servo_GetStyleTableBorder(computedValues: *mut ServoComputedValues)
+    pub fn Servo_GetStyleTableBorder(computedValues:
+                                         ServoComputedValuesBorrowed)
      -> *const nsStyleTableBorder;
     pub fn Gecko_Construct_nsStyleSVG(ptr: *mut nsStyleSVG);
     pub fn Gecko_CopyConstruct_nsStyleSVG(ptr: *mut nsStyleSVG,
                                           other: *const nsStyleSVG);
     pub fn Gecko_Destroy_nsStyleSVG(ptr: *mut nsStyleSVG);
-    pub fn Servo_GetStyleSVG(computedValues: *mut ServoComputedValues)
+    pub fn Servo_GetStyleSVG(computedValues: ServoComputedValuesBorrowed)
      -> *const nsStyleSVG;
     pub fn Gecko_Construct_nsStyleVariables(ptr: *mut nsStyleVariables);
     pub fn Gecko_CopyConstruct_nsStyleVariables(ptr: *mut nsStyleVariables,
                                                 other:
                                                     *const nsStyleVariables);
     pub fn Gecko_Destroy_nsStyleVariables(ptr: *mut nsStyleVariables);
-    pub fn Servo_GetStyleVariables(computedValues: *mut ServoComputedValues)
+    pub fn Servo_GetStyleVariables(computedValues:
+                                       ServoComputedValuesBorrowed)
      -> *const nsStyleVariables;
     pub fn Gecko_Construct_nsStyleBackground(ptr: *mut nsStyleBackground);
     pub fn Gecko_CopyConstruct_nsStyleBackground(ptr: *mut nsStyleBackground,
                                                  other:
                                                      *const nsStyleBackground);
     pub fn Gecko_Destroy_nsStyleBackground(ptr: *mut nsStyleBackground);
-    pub fn Servo_GetStyleBackground(computedValues: *mut ServoComputedValues)
+    pub fn Servo_GetStyleBackground(computedValues:
+                                        ServoComputedValuesBorrowed)
      -> *const nsStyleBackground;
     pub fn Gecko_Construct_nsStylePosition(ptr: *mut nsStylePosition);
     pub fn Gecko_CopyConstruct_nsStylePosition(ptr: *mut nsStylePosition,
                                                other: *const nsStylePosition);
     pub fn Gecko_Destroy_nsStylePosition(ptr: *mut nsStylePosition);
-    pub fn Servo_GetStylePosition(computedValues: *mut ServoComputedValues)
+    pub fn Servo_GetStylePosition(computedValues: ServoComputedValuesBorrowed)
      -> *const nsStylePosition;
     pub fn Gecko_Construct_nsStyleTextReset(ptr: *mut nsStyleTextReset);
     pub fn Gecko_CopyConstruct_nsStyleTextReset(ptr: *mut nsStyleTextReset,
                                                 other:
                                                     *const nsStyleTextReset);
     pub fn Gecko_Destroy_nsStyleTextReset(ptr: *mut nsStyleTextReset);
-    pub fn Servo_GetStyleTextReset(computedValues: *mut ServoComputedValues)
+    pub fn Servo_GetStyleTextReset(computedValues:
+                                       ServoComputedValuesBorrowed)
      -> *const nsStyleTextReset;
     pub fn Gecko_Construct_nsStyleDisplay(ptr: *mut nsStyleDisplay);
     pub fn Gecko_CopyConstruct_nsStyleDisplay(ptr: *mut nsStyleDisplay,
                                               other: *const nsStyleDisplay);
     pub fn Gecko_Destroy_nsStyleDisplay(ptr: *mut nsStyleDisplay);
-    pub fn Servo_GetStyleDisplay(computedValues: *mut ServoComputedValues)
+    pub fn Servo_GetStyleDisplay(computedValues: ServoComputedValuesBorrowed)
      -> *const nsStyleDisplay;
     pub fn Gecko_Construct_nsStyleContent(ptr: *mut nsStyleContent);
     pub fn Gecko_CopyConstruct_nsStyleContent(ptr: *mut nsStyleContent,
                                               other: *const nsStyleContent);
     pub fn Gecko_Destroy_nsStyleContent(ptr: *mut nsStyleContent);
-    pub fn Servo_GetStyleContent(computedValues: *mut ServoComputedValues)
+    pub fn Servo_GetStyleContent(computedValues: ServoComputedValuesBorrowed)
      -> *const nsStyleContent;
     pub fn Gecko_Construct_nsStyleUIReset(ptr: *mut nsStyleUIReset);
     pub fn Gecko_CopyConstruct_nsStyleUIReset(ptr: *mut nsStyleUIReset,
                                               other: *const nsStyleUIReset);
     pub fn Gecko_Destroy_nsStyleUIReset(ptr: *mut nsStyleUIReset);
-    pub fn Servo_GetStyleUIReset(computedValues: *mut ServoComputedValues)
+    pub fn Servo_GetStyleUIReset(computedValues: ServoComputedValuesBorrowed)
      -> *const nsStyleUIReset;
     pub fn Gecko_Construct_nsStyleTable(ptr: *mut nsStyleTable);
     pub fn Gecko_CopyConstruct_nsStyleTable(ptr: *mut nsStyleTable,
                                             other: *const nsStyleTable);
     pub fn Gecko_Destroy_nsStyleTable(ptr: *mut nsStyleTable);
-    pub fn Servo_GetStyleTable(computedValues: *mut ServoComputedValues)
+    pub fn Servo_GetStyleTable(computedValues: ServoComputedValuesBorrowed)
      -> *const nsStyleTable;
     pub fn Gecko_Construct_nsStyleMargin(ptr: *mut nsStyleMargin);
     pub fn Gecko_CopyConstruct_nsStyleMargin(ptr: *mut nsStyleMargin,
                                              other: *const nsStyleMargin);
     pub fn Gecko_Destroy_nsStyleMargin(ptr: *mut nsStyleMargin);
-    pub fn Servo_GetStyleMargin(computedValues: *mut ServoComputedValues)
+    pub fn Servo_GetStyleMargin(computedValues: ServoComputedValuesBorrowed)
      -> *const nsStyleMargin;
     pub fn Gecko_Construct_nsStylePadding(ptr: *mut nsStylePadding);
     pub fn Gecko_CopyConstruct_nsStylePadding(ptr: *mut nsStylePadding,
                                               other: *const nsStylePadding);
     pub fn Gecko_Destroy_nsStylePadding(ptr: *mut nsStylePadding);
-    pub fn Servo_GetStylePadding(computedValues: *mut ServoComputedValues)
+    pub fn Servo_GetStylePadding(computedValues: ServoComputedValuesBorrowed)
      -> *const nsStylePadding;
     pub fn Gecko_Construct_nsStyleBorder(ptr: *mut nsStyleBorder);
     pub fn Gecko_CopyConstruct_nsStyleBorder(ptr: *mut nsStyleBorder,
                                              other: *const nsStyleBorder);
     pub fn Gecko_Destroy_nsStyleBorder(ptr: *mut nsStyleBorder);
-    pub fn Servo_GetStyleBorder(computedValues: *mut ServoComputedValues)
+    pub fn Servo_GetStyleBorder(computedValues: ServoComputedValuesBorrowed)
      -> *const nsStyleBorder;
     pub fn Gecko_Construct_nsStyleOutline(ptr: *mut nsStyleOutline);
     pub fn Gecko_CopyConstruct_nsStyleOutline(ptr: *mut nsStyleOutline,
                                               other: *const nsStyleOutline);
     pub fn Gecko_Destroy_nsStyleOutline(ptr: *mut nsStyleOutline);
-    pub fn Servo_GetStyleOutline(computedValues: *mut ServoComputedValues)
+    pub fn Servo_GetStyleOutline(computedValues: ServoComputedValuesBorrowed)
      -> *const nsStyleOutline;
     pub fn Gecko_Construct_nsStyleXUL(ptr: *mut nsStyleXUL);
     pub fn Gecko_CopyConstruct_nsStyleXUL(ptr: *mut nsStyleXUL,
                                           other: *const nsStyleXUL);
     pub fn Gecko_Destroy_nsStyleXUL(ptr: *mut nsStyleXUL);
-    pub fn Servo_GetStyleXUL(computedValues: *mut ServoComputedValues)
+    pub fn Servo_GetStyleXUL(computedValues: ServoComputedValuesBorrowed)
      -> *const nsStyleXUL;
     pub fn Gecko_Construct_nsStyleSVGReset(ptr: *mut nsStyleSVGReset);
     pub fn Gecko_CopyConstruct_nsStyleSVGReset(ptr: *mut nsStyleSVGReset,
                                                other: *const nsStyleSVGReset);
     pub fn Gecko_Destroy_nsStyleSVGReset(ptr: *mut nsStyleSVGReset);
-    pub fn Servo_GetStyleSVGReset(computedValues: *mut ServoComputedValues)
+    pub fn Servo_GetStyleSVGReset(computedValues: ServoComputedValuesBorrowed)
      -> *const nsStyleSVGReset;
     pub fn Gecko_Construct_nsStyleColumn(ptr: *mut nsStyleColumn);
     pub fn Gecko_CopyConstruct_nsStyleColumn(ptr: *mut nsStyleColumn,
                                              other: *const nsStyleColumn);
     pub fn Gecko_Destroy_nsStyleColumn(ptr: *mut nsStyleColumn);
-    pub fn Servo_GetStyleColumn(computedValues: *mut ServoComputedValues)
+    pub fn Servo_GetStyleColumn(computedValues: ServoComputedValuesBorrowed)
      -> *const nsStyleColumn;
     pub fn Gecko_Construct_nsStyleEffects(ptr: *mut nsStyleEffects);
     pub fn Gecko_CopyConstruct_nsStyleEffects(ptr: *mut nsStyleEffects,
                                               other: *const nsStyleEffects);
     pub fn Gecko_Destroy_nsStyleEffects(ptr: *mut nsStyleEffects);
-    pub fn Servo_GetStyleEffects(computedValues: *mut ServoComputedValues)
+    pub fn Servo_GetStyleEffects(computedValues: ServoComputedValuesBorrowed)
      -> *const nsStyleEffects;
 }
