@@ -33,17 +33,18 @@ pub struct FileBlob {
 }
 
 
-/// Blob backend implementation
+/// Different backends of Blob
 #[must_root]
 #[derive(JSTraceable)]
 pub enum BlobImpl {
-    /// File-based blob
+    /// File-based blob, whose content lives in the net process
     File(FileBlob),
-    /// Memory-based blob
+    /// Memory-based blob, whose content lives in the script process
     Memory(Vec<u8>),
-    /// Sliced blob, including parent blob and
-    /// relative positions representing current slicing range,
-    /// it is leaf of a two-layer fat tree
+    /// Sliced blob, including parent blob reference and
+    /// relative positions of current slicing range,
+    /// IMPORTANT: The depth of tree is only two, i.e. the parent Blob must be
+    /// either File-based or Memory-based
     Sliced(JS<Blob>, RelativePos),
 }
 
@@ -71,6 +72,7 @@ pub struct Blob {
     reflector_: Reflector,
     #[ignore_heap_size_of = "No clear owner"]
     blob_impl: DOMRefCell<BlobImpl>,
+    /// content-type string
     typeString: String,
     isClosed_: Cell<bool>,
 }
@@ -181,7 +183,7 @@ impl Blob {
 
     /// Promote non-Slice blob:
     /// 1. Memory-based: The bytes in data slice will be transferred to file manager thread.
-    /// 2. File-based: Activation
+    /// 2. File-based: If set_valid, then activate the FileID so it can serve as URL
     /// Depending on set_valid, the returned FileID can be part of
     /// valid or invalid Blob URL.
     fn promote(&self, set_valid: bool) -> SelectedFileId {
