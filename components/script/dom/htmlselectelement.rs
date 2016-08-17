@@ -6,6 +6,7 @@ use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptionElementMethods;
 use dom::bindings::codegen::Bindings::HTMLSelectElementBinding;
 use dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementMethods;
+use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::UnionTypes::HTMLElementOrLong;
 use dom::bindings::codegen::UnionTypes::HTMLOptionElementOrHTMLOptGroupElement;
 use dom::bindings::inheritance::Castable;
@@ -182,6 +183,65 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
     fn Labels(&self) -> Root<NodeList> {
         self.upcast::<HTMLElement>().labels()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-select-length
+    fn SetLength(&self, value: u32) {
+        let length  = self.Length();
+        let node = self.upcast::<Node>();
+        if value < length {     // truncate the number of option elements
+            for _ in 0..(length - value) {
+                let lastChild = node.GetLastChild();
+                if lastChild.is_some() {
+                    let removed = node.RemoveChild(&lastChild.unwrap());
+                    match removed {
+                        Ok(_) => {},
+                        Err(e) => println!("error removing child of HTML Select: {:?}", e),
+                    }
+                } else {
+                    println!("error: there is no child of HTML Select" );
+                }
+            }
+        } else if value > length {  // add new blank option elements
+            let document = node.GetOwnerDocument();
+            if document.is_some() {
+                let document = document.unwrap();
+                for _ in 0..(value - length) {
+                    let element = HTMLOptionElement::new(atom!("option"), None, &document.upcast());
+                    let appended = node.AppendChild(element.upcast());
+                    match appended {
+                        Ok(_) => {},
+                        Err(e) => println!("error appending child of HTML Select: {:?}", e),
+                    }
+                }
+            } else {
+                println!("error: there is no document of HTML Select" );
+            }
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-select-length
+    fn Length(&self) -> u32 {
+        let node = self.upcast::<Node>();
+        node.traverse_preorder().filter_map(Root::downcast::<HTMLOptionElement>).count() as u32
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-select-item
+    fn Item(&self, index: u32) -> Option<Root<Element>> {
+        let node = self.upcast::<Node>();
+        let item = node.traverse_preorder().filter_map(Root::downcast::<HTMLOptionElement>).nth(index as usize);
+        if item.is_some() {
+            Some(Root::from_ref(item.unwrap().upcast::<Element>()))
+        } else {
+            None
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-select-item
+    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Root<Element>> {
+        let maybe_elem = self.Item(index);
+        *found = maybe_elem.is_some();
+        maybe_elem
     }
 }
 
