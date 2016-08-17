@@ -8,6 +8,7 @@
 # except according to those terms.
 
 from __future__ import print_function, unicode_literals
+from socket import error as socket_error
 
 import base64
 import json
@@ -72,6 +73,9 @@ def download(desc, src, writer, start_byte=0):
         sys.exit(1)
     except urllib2.URLError, e:
         print("Error downloading Rust compiler: %s. The failing URL was: %s" % (e.reason, src))
+        sys.exit(1)
+    except socket_error, e:
+        print("Looks like there's a connectivity issue, check your Internet connection. %s" % (e))
         sys.exit(1)
     except KeyboardInterrupt:
         writer.flush()
