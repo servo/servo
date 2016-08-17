@@ -12,8 +12,10 @@ use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::{ByteString, is_token};
 use hyper::header::Headers as HyperHeaders;
+use mime::{Mime, TopLevel, SubLevel};
 use std::cell::Cell;
 use std::result::Result;
+use std::str;
 
 #[dom_struct]
 pub struct Headers {
@@ -72,7 +74,7 @@ impl HeadersMethods for Headers {
             return Ok(());
         }
         // Step 5
-        if self.guard.get() == Guard::RequestNoCors && !is_cors_safelisted_request_header(&valid_name) {
+        if self.guard.get() == Guard::RequestNoCors && !is_cors_safelisted_request_header(&valid_name, &valid_value) {
             return Ok(());
         }
         // Step 6
@@ -103,9 +105,12 @@ impl HeadersMethods for Headers {
             return Ok(());
         }
         // Step 4
-        if self.guard.get() == Guard::RequestNoCors && !is_cors_safelisted_request_header(&valid_name) {
-            return Ok(());
-        }
+        // TODO: Requires clarification from the Fetch spec:
+        // ... https://github.com/whatwg/fetch/issues/372
+        if self.guard.get() == Guard::RequestNoCors &&
+            !is_cors_safelisted_request_header(&valid_name, &b"invalid".to_vec()) {
+                return Ok(());
+            }
         // Step 5
         if self.guard.get() == Guard::Response && is_forbidden_response_header(&valid_name) {
             return Ok(());
@@ -148,7 +153,7 @@ impl HeadersMethods for Headers {
             return Ok(());
         }
         // Step 5
-        if self.guard.get() == Guard::RequestNoCors && !is_cors_safelisted_request_header(&valid_name) {
+        if self.guard.get() == Guard::RequestNoCors && !is_cors_safelisted_request_header(&valid_name, &valid_value) {
             return Ok(());
         }
         // Step 6
@@ -220,18 +225,35 @@ impl Headers {
     }
 }
 
-// TODO
-// "Content-Type" once parsed, the value should be
-// `application/x-www-form-urlencoded`, `multipart/form-data`,
-// or `text/plain`.
-// "DPR", "Downlink", "Save-Data", "Viewport-Width", "Width":
-// once parsed, the value should not be failure.
+fn is_cors_safelisted_request_content_type(value: &[u8]) -> bool {
+    let value_string = if let Ok(s) = str::from_utf8(value) {
+        s
+    } else {
+        return false;
+    };
+    let value_mime_result: Result<Mime, _> = value_string.parse();
+    match value_mime_result {
+        Err(_) => false,
+        Ok(value_mime) => {
+            match value_mime {
+                Mime(TopLevel::Application, SubLevel::WwwFormUrlEncoded, _) |
+                Mime(TopLevel::Multipart, SubLevel::FormData, _) |
+                Mime(TopLevel::Text, SubLevel::Plain, _) => true,
+                _ => false,
+            }
+        }
+    }
+}
+
+// TODO: "DPR", "Downlink", "Save-Data", "Viewport-Width", "Width":
+// ... once parsed, the value should not be failure.
 // https://fetch.spec.whatwg.org/#cors-safelisted-request-header
-fn is_cors_safelisted_request_header(name: &str) -> bool {
+fn is_cors_safelisted_request_header(name: &str, value: &[u8]) -> bool {
     match name {
         "accept" |
         "accept-language" |
         "content-language" => true,
+        "content-type" => is_cors_safelisted_request_content_type(value),
         _ => false,
     }
 }
