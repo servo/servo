@@ -172,6 +172,9 @@ pub struct Opts {
     /// Whether Style Sharing Cache is used
     pub disable_share_style_cache: bool,
 
+    /// Whether to show in stdout style sharing cache stats after a restyle.
+    pub style_sharing_stats: bool,
+
     /// Translate mouse input into touch events.
     pub convert_mouse_to_touch: bool,
 
@@ -275,6 +278,9 @@ pub struct DebugOptions {
     /// Disable the style sharing cache.
     pub disable_share_style_cache: bool,
 
+    /// Whether to show in stdout style sharing cache stats after a restyle.
+    pub style_sharing_stats: bool,
+
     /// Translate mouse input into touch events.
     pub convert_mouse_to_touch: bool,
 
@@ -331,6 +337,7 @@ impl DebugOptions {
                 "paint-flashing" => debug_options.paint_flashing = true,
                 "trace-layout" => debug_options.trace_layout = true,
                 "disable-share-style-cache" => debug_options.disable_share_style_cache = true,
+                "style-sharing-stats" => debug_options.style_sharing_stats = true,
                 "convert-mouse-to-touch" => debug_options.convert_mouse_to_touch = true,
                 "replace-surrogates" => debug_options.replace_surrogates = true,
                 "gc-profile" => debug_options.gc_profile = true,
@@ -512,6 +519,7 @@ pub fn default_opts() -> Opts {
         profile_script_events: false,
         profile_heartbeats: false,
         disable_share_style_cache: false,
+        style_sharing_stats: false,
         convert_mouse_to_touch: false,
         exit_after_load: false,
         no_native_titlebar: false,
@@ -817,6 +825,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         dump_layer_tree: debug_options.dump_layer_tree,
         relayout_event: debug_options.relayout_event,
         disable_share_style_cache: debug_options.disable_share_style_cache,
+        style_sharing_stats: debug_options.style_sharing_stats,
         convert_mouse_to_touch: debug_options.convert_mouse_to_touch,
         exit_after_load: opt_match.opt_present("x"),
         no_native_titlebar: do_not_use_native_titlebar,

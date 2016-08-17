@@ -5,11 +5,13 @@
 //! Traversing the DOM tree; the bloom filter.
 
 use animation;
-use context::{SharedStyleContext, StyleContext};
+use context::{LocalStyleContext, SharedStyleContext, StyleContext};
 use dom::{OpaqueNode, TElement, TNode, TRestyleDamage, UnsafeNode};
 use matching::{ApplicableDeclarations, ElementMatchMethods, MatchMethods, StyleSharingResult};
 use selectors::bloom::BloomFilter;
+use selectors::matching::StyleRelations;
 use std::cell::RefCell;
+use std::sync::atomic::{AtomicUsize, ATOMIC_USIZE_INIT, Ordering};
 use tid::tid;
 use util::opts;
 use values::HasViewportPercentage;
@@ -27,6 +29,10 @@ pub enum RestyleResult {
     Stop,
 }
 
+/// Style sharing candidate cache stats. These are only used when
+/// `-Z style-sharing-stats` is given.
+pub static STYLE_SHARING_CACHE_HITS: AtomicUsize = ATOMIC_USIZE_INIT;
+pub static STYLE_SHARING_CACHE_MISSES: AtomicUsize = ATOMIC_USIZE_INIT;
 
 /// A pair of the bloom filter used for css selector matching, and the node to
 /// which it applies. This is used to efficiently do `Descendant` selector
@@ -149,7 +155,7 @@ pub fn remove_from_bloom_filter<'a, N, C>(context: &C, root: OpaqueNode, node: N
     };
 }
 
-pub trait DomTraversalContext<N: TNode>  {
+pub trait DomTraversalContext<N: TNode> {
     type SharedContext: Sync + 'static;
 
     fn new<'a>(&'a Self::SharedContext, OpaqueNode) -> Self;
@@ -191,6 +197,19 @@ pub trait DomTraversalContext<N: TNode>  {
             }
         }
     }
+
+    fn local_context(&self) -> &LocalStyleContext;
+}
+
+/// Determines the amount of relations where we're going to share style.
+#[inline]
+pub fn relations_are_shareable(relations: &StyleRelations) -> bool {
+    use selectors::matching::*;
+    !relations.intersects(AFFECTED_BY_ID_SELECTOR |
+                          AFFECTED_BY_PSEUDO_ELEMENTS | AFFECTED_BY_STATE |
+                          AFFECTED_BY_NON_COMMON_STYLE_AFFECTING_ATTRIBUTE_SELECTOR |
+                          AFFECTED_BY_STYLE_ATTRIBUTE |
+                          AFFECTED_BY_PRESENTATIONAL_HINTS)
 }
 
 pub fn ensure_node_styled<'a, N, C>(node: N,
@@ -301,6 +320,7 @@ pub fn recalc_style_at<'a, N, C>(context: &'a C,
             Some(element) => {
                 unsafe {
                     element.share_style_if_possible(style_sharing_candidate_cache,
+                                                    context.shared_context(),
                                                     parent_opt.clone())
                 }
             },
@@ -312,20 +332,30 @@ pub fn recalc_style_at<'a, N, C>(context: &'a C,
             StyleSharingResult::CannotShare => {
                 let mut applicable_declarations = ApplicableDeclarations::new();
 
+                let relations;
                 let shareable_element = match node.as_element() {
                     Some(element) => {
+                        if opts::get().style_sharing_stats {
+                            STYLE_SHARING_CACHE_MISSES.fetch_add(1, Ordering::Relaxed);
+                        }
+
                         // Perform the CSS selector matching.
                         let stylist = &context.shared_context().stylist;
 
-                        if element.match_element(&**stylist,
-                                                 Some(&*bf),
-                                                 &mut applicable_declarations) {
+                        relations = element.match_element(&**stylist,
+                                                          Some(&*bf),
+                                                          &mut applicable_declarations);
+
+                        debug!("Result of selector matching: {:?}", relations);
+
+                        if relations_are_shareable(&relations) {
                             Some(element)
                         } else {
                             None
                         }
                     },
                     None => {
+                        relations = StyleRelations::empty();
                         if node.has_changed() {
                             node.set_restyle_damage(N::ConcreteRestyleDamage::rebuild_and_reflow())
                         }
@@ -336,17 +366,20 @@ pub fn recalc_style_at<'a, N, C>(context: &'a C,
                 // Perform the CSS cascade.
                 unsafe {
                     restyle_result = node.cascade_node(context,
-                                                    parent_opt,
-                                                    &applicable_declarations);
+                                                       parent_opt,
+                                                       &applicable_declarations);
                 }
 
                 // Add ourselves to the LRU cache.
                 if let Some(element) = shareable_element {
-                    style_sharing_candidate_cache.insert_if_possible::<'ln, N>(&element);
+                    style_sharing_candidate_cache.insert_if_possible(&element, relations);
                 }
             }
-            StyleSharingResult::StyleWasShared(index, damage, restyle_result_cascade) => {
-                restyle_result = restyle_result_cascade;
+            StyleSharingResult::StyleWasShared(index, damage, cached_restyle_result) => {
+                restyle_result = cached_restyle_result;
+                if opts::get().style_sharing_stats {
+                    STYLE_SHARING_CACHE_HITS.fetch_add(1, Ordering::Relaxed);
+                }
                 style_sharing_candidate_cache.touch(index);
                 node.set_restyle_damage(damage);
             }

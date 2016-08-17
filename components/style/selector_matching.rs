@@ -15,7 +15,9 @@ use selector_impl::{ElementExt, TheSelectorImpl, PseudoElement};
 use selectors::Element;
 use selectors::bloom::BloomFilter;
 use selectors::matching::DeclarationBlock as GenericDeclarationBlock;
-use selectors::matching::{Rule, SelectorMap};
+use selectors::matching::{AFFECTED_BY_STYLE_ATTRIBUTE, AFFECTED_BY_PRESENTATIONAL_HINTS};
+use selectors::matching::{Rule, SelectorMap, StyleRelations};
+use selectors::parser::Selector;
 use sink::Push;
 use smallvec::VecLike;
 use std::collections::HashMap;
@@ -25,7 +27,6 @@ use string_cache::Atom;
 use style_traits::viewport::ViewportConstraints;
 use stylesheets::{CSSRule, CSSRuleIteratorExt, Origin, Stylesheet};
 use viewport::{MaybeNew, ViewportRuleCascade};
-
 
 pub type DeclarationBlock = GenericDeclarationBlock<Vec<PropertyDeclaration>>;
 
@@ -76,6 +77,13 @@ pub struct Stylist {
 
     /// Selector dependencies used to compute restyle hints.
     state_deps: DependencySet,
+
+    /// Selectors in the page affecting siblings
+    sibling_affecting_selectors: Vec<Selector<TheSelectorImpl>>,
+
+    /// Selectors in the page matching elements with non-common style-affecting
+    /// attributes.
+    non_common_style_affecting_attributes_selectors: Vec<Selector<TheSelectorImpl>>,
 }
 
 impl Stylist {
@@ -93,6 +101,10 @@ impl Stylist {
             precomputed_pseudo_element_decls: HashMap::with_hasher(Default::default()),
             rules_source_order: 0,
             state_deps: DependencySet::new(),
+
+            // XXX remember resetting them!
+            sibling_affecting_selectors: vec![],
+            non_common_style_affecting_attributes_selectors: vec![]
         };
 
         TheSelectorImpl::each_eagerly_cascaded_pseudo_element(|pseudo| {
@@ -119,6 +131,9 @@ impl Stylist {
         self.precomputed_pseudo_element_decls = HashMap::with_hasher(Default::default());
         self.rules_source_order = 0;
         self.state_deps.clear();
+
+        self.sibling_affecting_selectors.clear();
+        self.non_common_style_affecting_attributes_selectors.clear();
 
         for ref stylesheet in TheSelectorImpl::get_user_or_user_agent_stylesheets().iter() {
             self.add_stylesheet(&stylesheet);
@@ -178,8 +193,16 @@ impl Stylist {
                     append!(style_rule, normal);
                     append!(style_rule, important);
                     rules_source_order += 1;
+
                     for selector in &style_rule.selectors {
-                        self.state_deps.note_selector(selector.compound_selectors.clone());
+                        self.state_deps.note_selector(&selector.compound_selectors);
+                        if selector.affects_siblings() {
+                            self.sibling_affecting_selectors.push(selector.clone());
+                        }
+
+                        if selector.matches_non_common_style_affecting_attribute() {
+                            self.non_common_style_affecting_attributes_selectors.push(selector.clone());
+                        }
                     }
 
                     self.rules_source_order = rules_source_order;
@@ -201,6 +224,14 @@ impl Stylist {
                 _ => {}
             }
         }
+
+        debug!("Stylist stats:");
+        debug!(" - Got {} sibling-affecting selectors",
+               self.sibling_affecting_selectors.len());
+        debug!(" - Got {} non-common-style-attribute-affecting selectors",
+               self.non_common_style_affecting_attributes_selectors.len());
+        debug!(" - Got {} deps for style-hint calculation",
+               self.state_deps.len());
 
         TheSelectorImpl::each_precomputed_pseudo_element(|pseudo| {
             // TODO: Consider not doing this and just getting the rules on the
@@ -310,11 +341,11 @@ impl Stylist {
                                         parent_bf: Option<&BloomFilter>,
                                         style_attribute: Option<&PropertyDeclarationBlock>,
                                         pseudo_element: Option<&PseudoElement>,
-                                        applicable_declarations: &mut V)
-                                        -> bool
-                                        where E: Element<Impl=TheSelectorImpl> +
-                                                 PresentationalHintsSynthetizer,
-                                              V: Push<DeclarationBlock> + VecLike<DeclarationBlock> {
+                                        applicable_declarations: &mut V) -> StyleRelations
+        where E: Element<Impl=TheSelectorImpl> +
+                 PresentationalHintsSynthetizer,
+              V: Push<DeclarationBlock> + VecLike<DeclarationBlock>
+    {
         assert!(!self.is_device_dirty);
         assert!(style_attribute.is_none() || pseudo_element.is_none(),
                 "Style attributes do not apply to pseudo-elements");
@@ -327,65 +358,82 @@ impl Stylist {
             None => &self.element_map,
         };
 
-        let mut shareable = true;
+        let mut relations = StyleRelations::empty();
 
+        debug!("Determining if style is shareable: pseudo: {}", pseudo_element.is_some());
         // Step 1: Normal user-agent rules.
         map.user_agent.normal.get_all_matching_rules(element,
                                                      parent_bf,
                                                      applicable_declarations,
-                                                     &mut shareable);
+                                                     &mut relations);
+        debug!("UA normal: {:?}", relations);
 
         // Step 2: Presentational hints.
         let length = applicable_declarations.len();
         element.synthesize_presentational_hints_for_legacy_attributes(applicable_declarations);
         if applicable_declarations.len() != length {
             // Never share style for elements with preshints
-            shareable = false;
+            relations |= AFFECTED_BY_PRESENTATIONAL_HINTS;
         }
+        debug!("preshints: {:?}", relations);
 
         // Step 3: User and author normal rules.
         map.user.normal.get_all_matching_rules(element,
                                                parent_bf,
                                                applicable_declarations,
-                                               &mut shareable);
+                                               &mut relations);
+        debug!("user normal: {:?}", relations);
         map.author.normal.get_all_matching_rules(element,
                                                  parent_bf,
                                                  applicable_declarations,
-                                                 &mut shareable);
+                                                 &mut relations);
+        debug!("author normal: {:?}", relations);
 
         // Step 4: Normal style attributes.
-        style_attribute.map(|sa| {
-            shareable = false;
+        if let Some(ref sa)  = style_attribute {
+            relations |= AFFECTED_BY_STYLE_ATTRIBUTE;
             Push::push(
                 applicable_declarations,
-                GenericDeclarationBlock::from_declarations(sa.normal.clone()))
-        });
+                GenericDeclarationBlock::from_declarations(sa.normal.clone()));
+        }
+
+        debug!("style attr: {:?}", relations);
 
         // Step 5: Author-supplied `!important` rules.
         map.author.important.get_all_matching_rules(element,
                                                     parent_bf,
                                                     applicable_declarations,
-                                                    &mut shareable);
+                                                    &mut relations);
+
+        debug!("author important: {:?}", relations);
 
         // Step 6: `!important` style attributes.
-        style_attribute.map(|sa| {
-            shareable = false;
+        if let Some(ref sa) = style_attribute {
             Push::push(
                 applicable_declarations,
-                GenericDeclarationBlock::from_declarations(sa.important.clone()))
-        });
+                GenericDeclarationBlock::from_declarations(sa.important.clone()));
+        }
+
+        debug!("style attr important: {:?}", relations);
 
         // Step 7: User and UA `!important` rules.
         map.user.important.get_all_matching_rules(element,
                                                   parent_bf,
                                                   applicable_declarations,
-                                                  &mut shareable);
+                                                  &mut relations);
+
+        debug!("user important: {:?}", relations);
+
         map.user_agent.important.get_all_matching_rules(element,
                                                         parent_bf,
                                                         applicable_declarations,
-                                                        &mut shareable);
+                                                        &mut relations);
 
-        shareable
+        debug!("UA important: {:?}", relations);
+
+        debug!("push_applicable_declarations: shareable: {:?}", relations);
+
+        relations
     }
 
     #[inline]
@@ -396,6 +444,67 @@ impl Stylist {
     #[inline]
     pub fn animations(&self) -> &HashMap<Atom, KeyframesAnimation> {
         &self.animations
+    }
+
+    pub fn match_same_not_common_style_affecting_attributes_rules<E>(&self,
+                                                                     element: &E,
+                                                                     candidate: &E) -> bool
+    where E: ElementExt
+    {
+        use selectors::matching::StyleRelations;
+        use selectors::matching::matches_compound_selector;
+        // XXX we can probably do better, the candidate should already know what
+        // rules it matches.
+        //
+        // XXX Could the bloom filter help here? Should be available.
+        for ref selector in self.non_common_style_affecting_attributes_selectors.iter() {
+            let element_matches = matches_compound_selector(&selector.compound_selectors,
+                                                            element,
+                                                            None,
+                                                            &mut StyleRelations::empty());
+            let candidate_matches = matches_compound_selector(&selector.compound_selectors,
+                                                              candidate,
+                                                              None,
+                                                              &mut StyleRelations::empty());
+
+            if element_matches != candidate_matches {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    pub fn match_same_sibling_affecting_rules<E>(&self,
+                                                 element: &E,
+                                                 candidate: &E) -> bool
+    where E: ElementExt
+    {
+        use selectors::matching::StyleRelations;
+        use selectors::matching::matches_compound_selector;
+        // XXX we can probably do better, the candidate should already know what
+        // rules it matches.
+        //
+        // XXX The bloom filter would help here, and should be available.
+        for ref selector in self.sibling_affecting_selectors.iter() {
+            let element_matches = matches_compound_selector(&selector.compound_selectors,
+                                                            element,
+                                                            None,
+                                                            &mut StyleRelations::empty());
+
+            let candidate_matches = matches_compound_selector(&selector.compound_selectors,
+                                                              candidate,
+                                                              None,
+                                                              &mut StyleRelations::empty());
+
+            if element_matches != candidate_matches {
+                debug!("match_same_sibling_affecting_rules: Failure due to {:?}",
+                       selector.compound_selectors);
+                return false;
+            }
+        }
+
+        true
     }
 
     pub fn compute_restyle_hint<E>(&self, element: &E,

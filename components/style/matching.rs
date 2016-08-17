@@ -12,21 +12,21 @@ use cache::{LRUCache, SimpleHashCache};
 use cascade_info::CascadeInfo;
 use context::{StyleContext, SharedStyleContext};
 use data::PrivateStyleData;
-use dom::{TElement, TNode, TRestyleDamage};
+use dom::{TElement, TNode, TRestyleDamage, UnsafeNode};
 use properties::longhands::display::computed_value as display;
 use properties::{ComputedValues, PropertyDeclaration, cascade};
-use selector_impl::{ElementExt, TheSelectorImpl, PseudoElement};
+use selector_impl::{TheSelectorImpl, PseudoElement};
 use selector_matching::{DeclarationBlock, Stylist};
 use selectors::bloom::BloomFilter;
+use selectors::matching::{StyleRelations, AFFECTED_BY_PSEUDO_ELEMENTS};
 use selectors::{Element, MatchAttr};
 use sink::ForgetfulSink;
 use smallvec::SmallVec;
-use std::borrow::Borrow;
 use std::collections::HashMap;
 use std::hash::{BuildHasherDefault, Hash, Hasher};
-use std::slice::Iter;
+use std::slice::IterMut;
 use std::sync::Arc;
-use string_cache::{Atom, Namespace};
+use string_cache::Atom;
 use traversal::RestyleResult;
 use util::opts;
 
@@ -178,155 +178,147 @@ impl ApplicableDeclarationsCache {
     }
 }
 
-/// An LRU cache of the last few nodes seen, so that we can aggressively try to reuse their styles.
-pub struct StyleSharingCandidateCache {
-    cache: LRUCache<StyleSharingCandidate, ()>,
+/// Information regarding a candidate.
+///
+/// TODO: We can stick a lot more info here.
+#[derive(Debug)]
+struct StyleSharingCandidate {
+    /// The node, guaranteed to be an element.
+    node: UnsafeNode,
+    /// The cached computed style, here for convenience.
+    style: Arc<ComputedValues>,
+    /// The cached common style affecting attribute info.
+    common_style_affecting_attributes: Option<CommonStyleAffectingAttributes>,
 }
 
-#[derive(Clone)]
-pub struct StyleSharingCandidate {
-    pub style: Arc<ComputedValues>,
-    pub parent_style: Arc<ComputedValues>,
-    pub local_name: Atom,
-    pub classes: Vec<Atom>,
-    pub namespace: Namespace,
-    pub common_style_affecting_attributes: CommonStyleAffectingAttributes,
-    pub link: bool,
-}
-
-impl PartialEq for StyleSharingCandidate {
+impl PartialEq<StyleSharingCandidate> for StyleSharingCandidate {
     fn eq(&self, other: &Self) -> bool {
-        arc_ptr_eq(&self.style, &other.style) &&
-            arc_ptr_eq(&self.parent_style, &other.parent_style) &&
-            self.local_name == other.local_name &&
-            self.classes == other.classes &&
-            self.link == other.link &&
-            self.namespace == other.namespace &&
+        self.node == other.node &&
+            arc_ptr_eq(&self.style, &other.style) &&
             self.common_style_affecting_attributes == other.common_style_affecting_attributes
     }
 }
 
-impl StyleSharingCandidate {
-    /// Attempts to create a style sharing candidate from this node. Returns
-    /// the style sharing candidate or `None` if this node is ineligible for
-    /// style sharing.
-    #[allow(unsafe_code)]
-    fn new<N: TNode>(element: &N::ConcreteElement) -> Option<Self> {
-        let parent_element = match element.parent_element() {
-            None => return None,
-            Some(parent_element) => parent_element,
-        };
+/// An LRU cache of the last few nodes seen, so that we can aggressively try to
+/// reuse their styles.
+///
+/// Note that this cache is flushed every time we steal work from the queue, so
+/// storing nodes here temporarily is safe.
+///
+/// NB: We store UnsafeNode's, but this is not unsafe. It's a shame being
+/// generic over elements is unfeasible (you can make compile style without much
+/// difficulty, but good luck with layout and all the types with assoc.
+/// lifetimes).
+pub struct StyleSharingCandidateCache {
+    cache: LRUCache<StyleSharingCandidate, ()>,
+}
 
-        let style = unsafe {
-            match element.as_node().borrow_data_unchecked() {
-                None => return None,
-                Some(data_ref) => {
-                    match (*data_ref).style {
-                        None => return None,
-                        Some(ref data) => (*data).clone(),
-                    }
-                }
-            }
-        };
-        let parent_style = unsafe {
-            match parent_element.as_node().borrow_data_unchecked() {
-                None => return None,
-                Some(parent_data_ref) => {
-                    match (*parent_data_ref).style {
-                        None => return None,
-                        Some(ref data) => (*data).clone(),
-                    }
-                }
-            }
-        };
+#[derive(Clone, Debug)]
+pub enum CacheMiss {
+    Parent,
+    LocalName,
+    Namespace,
+    Link,
+    State,
+    IdAttr,
+    StyleAttr,
+    Class,
+    CommonStyleAffectingAttributes,
+    PresHints,
+    SiblingRules,
+    NonCommonAttrRules,
+}
 
-        if element.style_attribute().is_some() {
-            return None
+fn element_matches_candidate<E: TElement>(element: &E,
+                                          candidate: &mut StyleSharingCandidate,
+                                          candidate_element: &E,
+                                          shared_context: &SharedStyleContext)
+                                          -> Result<Arc<ComputedValues>, CacheMiss> {
+    macro_rules! miss {
+        ($miss: ident) => {
+            return Err(CacheMiss::$miss);
         }
-
-        let mut classes = Vec::new();
-        element.each_class(|c| classes.push(c.clone()));
-        Some(StyleSharingCandidate {
-            style: style,
-            parent_style: parent_style,
-            local_name: element.get_local_name().clone(),
-            classes: classes,
-            link: element.is_link(),
-            namespace: (*element.get_namespace()).clone(),
-            common_style_affecting_attributes:
-                   create_common_style_affecting_attributes_from_element::<N::ConcreteElement>(&element)
-        })
     }
 
-    pub fn can_share_style_with<E: TElement>(&self, element: &E) -> bool {
-        if element.get_local_name() != self.local_name.borrow() {
-            return false
-        }
-
-        let mut num_classes = 0;
-        let mut classes_match = true;
-        element.each_class(|c| {
-            num_classes += 1;
-            // Note that we could do this check more cheaply if we decided to
-            // only consider class lists as equal if the orders match, since
-            // we could then index by num_classes instead of using .contains().
-            if classes_match && !self.classes.contains(c) {
-                classes_match = false;
-            }
-        });
-        if !classes_match || num_classes != self.classes.len() {
-            return false;
-        }
-
-        if element.get_namespace() != self.namespace.borrow() {
-            return false
-        }
-
-        let mut matching_rules = ForgetfulSink::new();
-        element.synthesize_presentational_hints_for_legacy_attributes(&mut matching_rules);
-        if !matching_rules.is_empty() {
-            return false;
-        }
-
-        // FIXME(pcwalton): It's probably faster to iterate over all the element's attributes and
-        // use the {common, rare}-style-affecting-attributes tables as lookup tables.
-
-        for attribute_info in &common_style_affecting_attributes() {
-            match attribute_info.mode {
-                CommonStyleAffectingAttributeMode::IsPresent(flag) => {
-                    if self.common_style_affecting_attributes.contains(flag) !=
-                            element.has_attr(&ns!(), &attribute_info.atom) {
-                        return false
-                    }
-                }
-                CommonStyleAffectingAttributeMode::IsEqual(ref target_value, flag) => {
-                    let contains = self.common_style_affecting_attributes.contains(flag);
-                    if element.has_attr(&ns!(), &attribute_info.atom) {
-                        if !contains || !element.attr_equals(&ns!(), &attribute_info.atom, target_value) {
-                            return false
-                        }
-                    } else if contains {
-                        return false
-                    }
-                }
-            }
-        }
-
-        for attribute_name in &rare_style_affecting_attributes() {
-            if element.has_attr(&ns!(), attribute_name) {
-                return false
-            }
-        }
-
-        if element.is_link() != self.link {
-            return false
-        }
-
-        // TODO(pcwalton): We don't support visited links yet, but when we do there will need to
-        // be some logic here.
-
-        true
+    if element.parent_element() != candidate_element.parent_element() {
+        miss!(Parent)
     }
+
+    if *element.get_local_name() != *candidate_element.get_local_name() {
+        miss!(LocalName)
+    }
+
+    if *element.get_namespace() != *candidate_element.get_namespace() {
+        miss!(Namespace)
+    }
+
+    if element.is_link() != candidate_element.is_link() {
+        miss!(Link)
+    }
+
+    if element.get_state() != candidate_element.get_state() {
+        miss!(State)
+    }
+
+    if element.get_id().is_some() {
+        miss!(IdAttr)
+    }
+
+    if element.style_attribute().is_some() {
+        miss!(StyleAttr)
+    }
+
+    if !have_same_class(element, candidate_element) {
+        miss!(Class)
+    }
+
+    if !have_same_common_style_affecting_attributes(element,
+                                                    candidate,
+                                                    candidate_element) {
+        miss!(CommonStyleAffectingAttributes)
+    }
+
+    if !have_same_presentational_hints(element, candidate_element) {
+        miss!(PresHints)
+    }
+
+    if !match_same_sibling_affecting_rules(element,
+                                           candidate_element,
+                                           shared_context) {
+        miss!(SiblingRules)
+    }
+
+    if !match_same_not_common_style_affecting_attributes_rules(element,
+                                                               candidate_element,
+                                                               shared_context) {
+        miss!(NonCommonAttrRules)
+    }
+
+    Ok(candidate.style.clone())
+}
+
+fn have_same_common_style_affecting_attributes<E: TElement>(element: &E,
+                                                            candidate: &mut StyleSharingCandidate,
+                                                            candidate_element: &E) -> bool {
+    if candidate.common_style_affecting_attributes.is_none() {
+        candidate.common_style_affecting_attributes =
+            Some(create_common_style_affecting_attributes_from_element(candidate_element))
+    }
+    create_common_style_affecting_attributes_from_element(element) ==
+        candidate.common_style_affecting_attributes.unwrap()
+}
+
+fn have_same_presentational_hints<E: TElement>(element: &E, candidate: &E) -> bool {
+    let mut first = ForgetfulSink::new();
+    element.synthesize_presentational_hints_for_legacy_attributes(&mut first);
+    if cfg!(debug_assertions) {
+        let mut second = vec![];
+        candidate.synthesize_presentational_hints_for_legacy_attributes(&mut second);
+        debug_assert!(second.is_empty(),
+                      "Should never have inserted an element with preshints in the cache!");
+    }
+
+    first.is_empty()
 }
 
 bitflags! {
@@ -384,7 +376,33 @@ pub fn rare_style_affecting_attributes() -> [Atom; 3] {
     [ atom!("bgcolor"), atom!("border"), atom!("colspan") ]
 }
 
-static STYLE_SHARING_CANDIDATE_CACHE_SIZE: usize = 40;
+fn have_same_class<E: TElement>(element: &E, candidate: &E) -> bool {
+    // XXX Efficiency here, I'm only validating ideas.
+    let mut first = vec![];
+    let mut second = vec![];
+
+    element.each_class(|c| first.push(c.clone()));
+    candidate.each_class(|c| second.push(c.clone()));
+
+    first == second
+}
+
+// TODO: These re-match the candidate every time, which is suboptimal.
+#[inline]
+fn match_same_not_common_style_affecting_attributes_rules<E: TElement>(element: &E,
+                                                                       candidate: &E,
+                                                                       ctx: &SharedStyleContext) -> bool {
+    ctx.stylist.match_same_not_common_style_affecting_attributes_rules(element, candidate)
+}
+
+#[inline]
+fn match_same_sibling_affecting_rules<E: TElement>(element: &E,
+                                                   candidate: &E,
+                                                   ctx: &SharedStyleContext) -> bool {
+    ctx.stylist.match_same_sibling_affecting_rules(element, candidate)
+}
+
+static STYLE_SHARING_CANDIDATE_CACHE_SIZE: usize = 8;
 
 impl StyleSharingCandidateCache {
     pub fn new() -> Self {
@@ -393,19 +411,61 @@ impl StyleSharingCandidateCache {
         }
     }
 
-    pub fn iter(&self) -> Iter<(StyleSharingCandidate, ())> {
-        self.cache.iter()
+    fn iter_mut(&mut self) -> IterMut<(StyleSharingCandidate, ())> {
+        self.cache.iter_mut()
     }
 
-    pub fn insert_if_possible<N: TNode>(&mut self, element: &N::ConcreteElement) {
-        match StyleSharingCandidate::new::<N>(element) {
-            None => {}
-            Some(candidate) => self.cache.insert(candidate, ())
+    pub fn insert_if_possible<E: TElement>(&mut self,
+                                           element: &E,
+                                           relations: StyleRelations) {
+        use traversal::relations_are_shareable;
+
+        let parent = match element.parent_element() {
+            Some(element) => element,
+            None => {
+                debug!("Failing to insert to the cache: no parent element");
+                return;
+            }
+        };
+
+        // These are things we don't check in the candidate match because they
+        // are either uncommon or expensive.
+        if !relations_are_shareable(&relations) {
+            debug!("Failing to insert to the cache: {:?}", relations);
+            return;
         }
+
+        let node = element.as_node();
+        let data = node.borrow_data().unwrap();
+        let style = data.style.as_ref().unwrap();
+
+        let box_style = style.get_box();
+        if box_style.transition_property_count() > 0 {
+            debug!("Failing to insert to the cache: transitions");
+            return;
+        }
+
+        if box_style.animation_name_count() > 0 {
+            debug!("Failing to insert to the cache: animations");
+            return;
+        }
+
+        debug!("Inserting into cache: {:?} with parent {:?}",
+               element.as_node().to_unsafe(), parent.as_node().to_unsafe());
+
+        self.cache.insert(StyleSharingCandidate {
+            node: node.to_unsafe(),
+            style: style.clone(),
+            common_style_affecting_attributes: None,
+        }, ());
     }
 
     pub fn touch(&mut self, index: usize) {
         self.cache.touch(index);
+    }
+
+    pub fn clear(&mut self) {
+        self.cache.evict_all()
     }
 }
 
@@ -562,31 +622,18 @@ impl<N: TNode> PrivateMatchMethods for N {}
 
 trait PrivateElementMatchMethods: TElement {
     fn share_style_with_candidate_if_possible(&self,
-                                              parent_node: Option<Self::ConcreteNode>,
-                                              candidate: &StyleSharingCandidate)
-                                              -> Option<Arc<ComputedValues>> {
-        let parent_node = match parent_node {
-            Some(ref parent_node) if parent_node.as_element().is_some() => parent_node,
-            Some(_) | None => return None,
+                                              parent_node: Self::ConcreteNode,
+                                              shared_context: &SharedStyleContext,
+                                              candidate: &mut StyleSharingCandidate)
+                                              -> Result<Arc<ComputedValues>, CacheMiss> {
+        debug_assert!(parent_node.is_element());
+
+        let candidate_element = unsafe {
+            Self::ConcreteNode::from_unsafe(&candidate.node).as_element().unwrap()
         };
 
-        let parent_data: Option<&PrivateStyleData> = unsafe {
-            parent_node.borrow_data_unchecked().map(|d| &*d)
-        };
-
-        if let Some(parent_data_ref) = parent_data {
-            // Check parent style.
-            let parent_style = (*parent_data_ref).style.as_ref().unwrap();
-            if !arc_ptr_eq(parent_style, &candidate.parent_style) {
-                return None
-            }
-            // Check tag names, classes, etc.
-            if !candidate.can_share_style_with(self) {
-                return None
-            }
-            return Some(candidate.style.clone())
-        }
-        None
+        element_matches_candidate(self, candidate, &candidate_element,
+                                  shared_context)
     }
 }
 
@@ -597,15 +644,19 @@ pub trait ElementMatchMethods : TElement {
                      stylist: &Stylist,
                      parent_bf: Option<&BloomFilter>,
                      applicable_declarations: &mut ApplicableDeclarations)
-                     -> bool {
+                     -> StyleRelations {
+        use traversal::relations_are_shareable;
         let style_attribute = self.style_attribute().as_ref();
 
-        applicable_declarations.normal_shareable =
+        let mut relations =
             stylist.push_applicable_declarations(self,
                                                  parent_bf,
                                                  style_attribute,
                                                  None,
                                                  &mut applicable_declarations.normal);
+
+        applicable_declarations.normal_shareable = relations_are_shareable(&relations);
+
         TheSelectorImpl::each_eagerly_cascaded_pseudo_element(|pseudo| {
             stylist.push_applicable_declarations(self,
                                                  parent_bf,
@@ -614,8 +665,14 @@ pub trait ElementMatchMethods : TElement {
                                                  applicable_declarations.per_pseudo.entry(pseudo).or_insert(vec![]));
         });
 
-        applicable_declarations.normal_shareable &&
-        applicable_declarations.per_pseudo.values().all(|v| v.is_empty())
+        let has_pseudos =
+            applicable_declarations.per_pseudo.values().any(|v| !v.is_empty());
+
+        if has_pseudos {
+            relations |= AFFECTED_BY_PSEUDO_ELEMENTS;
+        }
+
+        relations
     }
 
     /// Attempts to share a style with another node. This method is unsafe because it depends on
@@ -624,6 +681,7 @@ pub trait ElementMatchMethods : TElement {
     unsafe fn share_style_if_possible(&self,
                                       style_sharing_candidate_cache:
                                         &mut StyleSharingCandidateCache,
+                                      shared_context: &SharedStyleContext,
                                       parent: Option<Self::ConcreteNode>)
                                       -> StyleSharingResult<<Self::ConcreteNode as TNode>::ConcreteRestyleDamage> {
         if opts::get().disable_share_style_cache {
@@ -633,38 +691,67 @@ pub trait ElementMatchMethods : TElement {
         if self.style_attribute().is_some() {
             return StyleSharingResult::CannotShare
         }
+
         if self.has_attr(&ns!(), &atom!("id")) {
             return StyleSharingResult::CannotShare
         }
 
-        for (i, &(ref candidate, ())) in style_sharing_candidate_cache.iter().enumerate() {
-            if let Some(shared_style) = self.share_style_with_candidate_if_possible(parent.clone(), candidate) {
-                // Yay, cache hit. Share the style.
-                let node = self.as_node();
+        let parent = match parent {
+            Some(parent) if parent.is_element() => parent,
+            _ => return StyleSharingResult::CannotShare,
+        };
 
-                let style = &mut node.mutate_data().unwrap().style;
+        for (i, &mut (ref mut candidate, ())) in style_sharing_candidate_cache.iter_mut().enumerate() {
+            let sharing_result = self.share_style_with_candidate_if_possible(parent,
+                                                                             shared_context,
+                                                                             candidate);
+            match sharing_result {
+                Ok(shared_style) => {
+                    // Yay, cache hit. Share the style.
+                    let node = self.as_node();
+                    let style = &mut node.mutate_data().unwrap().style;
 
-                let damage =
-                    match node.existing_style_for_restyle_damage((*style).as_ref(), None) {
-                        Some(ref source) => {
-                            <<Self as TElement>::ConcreteNode as TNode>
-                            ::ConcreteRestyleDamage::compute(source, &shared_style)
-                        }
-                        None => {
-                            <<Self as TElement>::ConcreteNode as TNode>
-                            ::ConcreteRestyleDamage::rebuild_and_reflow()
-                        }
+                    // TODO: add the display: none optimisation here too! Even
+                    // better, factor it out/make it a bit more generic so Gecko
+                    // can decide more easily if it knows that it's a child of
+                    // replaced content, or similar stuff!
+                    let damage =
+                        match node.existing_style_for_restyle_damage((*style).as_ref(), None) {
+                            Some(ref source) => {
+                                <<Self as TElement>::ConcreteNode as TNode>
+                                ::ConcreteRestyleDamage::compute(source, &shared_style)
+                            }
+                            None => {
+                                <<Self as TElement>::ConcreteNode as TNode>
+                                ::ConcreteRestyleDamage::rebuild_and_reflow()
+                            }
+                        };
+
+                    let restyle_result = if shared_style.get_box().clone_display() == display::T::none {
+                        RestyleResult::Stop
+                    } else {
+                        RestyleResult::Continue
                     };
 
-                let restyle_result = if shared_style.get_box().clone_display() == display::T::none {
-                    RestyleResult::Stop
-                } else {
-                    RestyleResult::Continue
-                };
+                    *style = Some(shared_style);
 
-                *style = Some(shared_style);
+                    return StyleSharingResult::StyleWasShared(i, damage, restyle_result)
+                }
+                Err(miss) => {
+                    debug!("Cache miss: {:?}", miss);
 
-                return StyleSharingResult::StyleWasShared(i, damage, restyle_result)
+                    // Cache miss, let's see what kind of failure to decide
+                    // whether we keep trying or not.
+                    match miss {
+                        // Too expensive failure, give up, we don't want another
+                        // one of these.
+                        CacheMiss::CommonStyleAffectingAttributes |
+                        CacheMiss::PresHints |
+                        CacheMiss::SiblingRules |
+                        CacheMiss::NonCommonAttrRules => break,
+                        _ => {}
+                    }
+                }
             }
         }
 

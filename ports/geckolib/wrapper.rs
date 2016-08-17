@@ -459,6 +459,12 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 }
 
+impl<'le> PartialEq for GeckoElement<'le> {
+    fn eq(&self, other: &Self) -> bool {
+        self.element == other.element
+    }
+}
+
 impl<'le> PresentationalHintsSynthetizer for GeckoElement<'le> {
     fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, _hints: &mut V)
         where V: Push<DeclarationBlock<Vec<PropertyDeclaration>>>

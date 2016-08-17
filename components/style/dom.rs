@@ -201,7 +201,7 @@ pub trait PresentationalHintsSynthetizer {
         where V: Push<DeclarationBlock<Vec<PropertyDeclaration>>>;
 }
 
-pub trait TElement : Sized + Copy + Clone + ElementExt + PresentationalHintsSynthetizer {
+pub trait TElement : PartialEq + Sized + Copy + Clone + ElementExt + PresentationalHintsSynthetizer {
     type ConcreteNode: TNode<ConcreteElement = Self, ConcreteDocument = Self::ConcreteDocument>;
     type ConcreteDocument: TDocument<ConcreteNode = Self::ConcreteNode, ConcreteElement = Self>;
 
@@ -236,6 +236,7 @@ pub trait TElement : Sized + Copy + Clone + ElementExt + PresentationalHintsSynt
             unsafe { node.set_dirty(true); }
         // XXX(emilio): For now, dirty implies dirty descendants if found.
         } else if hint.contains(RESTYLE_DESCENDANTS) {
+            unsafe { node.set_dirty_descendants(true); }
             let mut current = node.first_child();
             while let Some(node) = current {
                 unsafe { node.set_dirty(true); }

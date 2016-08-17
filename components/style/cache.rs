@@ -7,7 +7,7 @@
 use rand;
 use rand::Rng;
 use std::hash::{Hash, Hasher, SipHasher};
-use std::slice::Iter;
+use std::slice::{Iter, IterMut};
 
 pub struct LRUCache<K, V> {
     entries: Vec<(K, V)>,
@@ -17,7 +17,7 @@ pub struct LRUCache<K, V> {
 impl<K: PartialEq, V: Clone> LRUCache<K, V> {
     pub fn new(size: usize) -> LRUCache<K, V> {
         LRUCache {
-          entries: vec!(),
+          entries: vec![],
           cache_size: size,
         }
     }
@@ -34,6 +34,10 @@ impl<K: PartialEq, V: Clone> LRUCache<K, V> {
 
     pub fn iter(&self) -> Iter<(K, V)> {
         self.entries.iter()
+    }
+
+    pub fn iter_mut(&mut self) -> IterMut<(K, V)> {
+        self.entries.iter_mut()
     }
 
     pub fn insert(&mut self, key: K, val: V) {
