@@ -103,6 +103,9 @@ void main(void) {
     // Local space
     vLocalPos = vi.local_clamped_pos.xy;
 
+    // Local space
+    vLocalBorders = border.info.local_rect;
+
     // These are in device space
     vDevicePos = vi.global_clamped_pos;
 
