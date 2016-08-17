@@ -8,7 +8,16 @@
 // the `overflow-wrap` property, as if it were a shorthand of `overflow-wrap`."
 <%helpers:shorthand name="word-wrap" sub_properties="overflow-wrap">
     use properties::longhands::overflow_wrap;
-    Ok(Longhands {
-        overflow_wrap: Some(try!(overflow_wrap::parse(context, input))),
-    })
+
+    pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+        Ok(Longhands {
+            overflow_wrap: Some(try!(overflow_wrap::parse(context, input))),
+        })
+    }
+
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            self.overflow_wrap.to_css(dest)
+        }
+    }
 </%helpers:shorthand>
