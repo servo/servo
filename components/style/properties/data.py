@@ -185,15 +185,15 @@ class PropertiesData(object):
         if self.product not in products:
             return
 
-        longand = Longhand(self.current_style_struct, name, **kwargs)
-        self.current_style_struct.longhands.append(longand)
-        self.longhands.append(longand)
-        self.longhands_by_name[name] = longand
+        longhand = Longhand(self.current_style_struct, name, **kwargs)
+        self.current_style_struct.longhands.append(longhand)
+        self.longhands.append(longhand)
+        self.longhands_by_name[name] = longhand
 
-        for name in longand.derived_from:
-            self.derived_longhands.setdefault(name, []).append(longand)
+        for name in longhand.derived_from:
+            self.derived_longhands.setdefault(name, []).append(longhand)
 
-        return longand
+        return longhand
 
     def declare_shorthand(self, name, sub_properties, products="gecko servo", *args, **kwargs):
         products = products.split()
