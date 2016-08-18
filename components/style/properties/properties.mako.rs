@@ -468,7 +468,7 @@ fn append_serialization<'a, W, I>(dest: &mut W,
         return append_declaration_value(dest, appendable_value, is_important);
     }
 
-    write!(dest, "{}:", property_name);
+    try!(write!(dest, "{}:", property_name));
 
     // for normal parsed values, add a space between key: and value
     match &appendable_value {
