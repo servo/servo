@@ -12,6 +12,7 @@ from __future__ import print_function, unicode_literals
 import datetime
 import os
 import os.path as path
+import platform
 import sys
 import shutil
 
@@ -233,6 +234,7 @@ class MachCommands(CommandBase):
                 os.makedirs(openssl_dir)
             shutil.copy(path.join(self.android_support_dir(), "openssl.makefile"), openssl_dir)
             shutil.copy(path.join(self.android_support_dir(), "openssl.sh"), openssl_dir)
+            env["ANDROID_NDK_ROOT"] = env["ANDROID_NDK"]
             with cd(openssl_dir):
                 status = call(
                     make_cmd + ["-f", "openssl.makefile"],
@@ -244,6 +246,36 @@ class MachCommands(CommandBase):
             env['OPENSSL_LIB_DIR'] = openssl_dir
             env['OPENSSL_INCLUDE_DIR'] = path.join(openssl_dir, "include")
             env['OPENSSL_STATIC'] = 'TRUE'
+            # Android builds also require having the gcc bits on the PATH and various INCLUDE
+            # path munging if you do not want to install a standalone NDK. See:
+            # https://dxr.mozilla.org/mozilla-central/source/build/autoconf/android.m4#139-161
+            os_type = platform.system().lower()
+            if os_type not in ["linux", "darwin"]:
+                raise Exception("Android cross builds are only supported on Linux and macOS.")
+            cpu_type = platform.machine().lower()
+            host_suffix = "unknown"
+            if cpu_type in ["i386", "i486", "i686", "i768", "x86"]:
+                host_suffix = "x86"
+            elif cpu_type in ["x86_64", "x86-64", "x64", "amd64"]:
+                host_suffix = "x86_64"
+            host = os_type + "-" + host_suffix
+            env['PATH'] = path.join(
+                env['ANDROID_NDK'], "toolchains", "arm-linux-androideabi-4.9", "prebuilt", host, "bin"
+            ) + ':' + env['PATH']
+            env['ANDROID_SYSROOT'] = path.join(env['ANDROID_NDK'], "platforms", "android-18", "arch-arm")
+            support_include = path.join(env['ANDROID_NDK'], "sources", "android", "support", "include")
+            cxx_include = path.join(
+                env['ANDROID_NDK'], "sources", "cxx-stl", "llvm-libc++", "libcxx", "include")
+            cxxabi_include = path.join(
+                env['ANDROID_NDK'], "sources", "cxx-stl", "llvm-libc++abi", "libcxxabi", "include")
+            env['CFLAGS'] = ' '.join([
+                "--sysroot", env['ANDROID_SYSROOT'],
+                "-I" + support_include])
+            env['CXXFLAGS'] = ' '.join([
+                "--sysroot", env['ANDROID_SYSROOT'],
+                "-I" + support_include,
+                "-I" + cxx_include,
+                "-I" + cxxabi_include])
 
         cargo_binary = "cargo" + BIN_SUFFIX
 

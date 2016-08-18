@@ -22,7 +22,7 @@ _ANDROID_NDK="android-ndk-r9"
 # list in $ANDROID_NDK_ROOT/toolchains. This value is always used.
 # _ANDROID_EABI="x86-4.6"
 # _ANDROID_EABI="arm-linux-androideabi-4.6"
-_ANDROID_EABI="arm-linux-androideabi-4.8"
+_ANDROID_EABI="arm-linux-androideabi-4.9"
 
 # Set _ANDROID_ARCH to the architecture you are building for.
 # This value is always used.
