@@ -39,8 +39,6 @@ fn property_declaration_block_should_serialize_correctly() {
     let height = DeclaredValue::Value(LengthOrPercentageOrAuto::Length(Length::from_px(20f32)));
     important.push(PropertyDeclaration::Height(height));
 
-    normal.reverse();
-    important.reverse();
     let block = PropertyDeclarationBlock {
         normal: Arc::new(normal),
         important: Arc::new(important)
