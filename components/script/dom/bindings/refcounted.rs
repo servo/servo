@@ -6,21 +6,21 @@
 //! between threads (or intra-thread for asynchronous events). Akin to Gecko's
 //! nsMainThreadPtrHandle, this uses thread-safe reference counting and ensures
 //! that the actual SpiderMonkey GC integration occurs on the script thread via
-//! message passing. Ownership of a `Trusted<T>` object means the DOM object of
+//! weak refcounts. Ownership of a `Trusted<T>` object means the DOM object of
 //! type T to which it points remains alive. Any other behaviour is undefined.
 //! To guarantee the lifetime of a DOM object when performing asynchronous operations,
 //! obtain a `Trusted<T>` from that object and pass it along with each operation.
 //! A usable pointer to the original DOM object can be obtained on the script thread
 //! from a `Trusted<T>` via the `to_temporary` method.
 //!
-//! The implementation of Trusted<T> is as follows:
-//! A hashtable resides in the script thread, keyed on the pointer to the Rust DOM object.
-//! The values in this hashtable are atomic reference counts. When a Trusted<T> object is
-//! created or cloned, this count is increased. When a Trusted<T> is dropped, the count
-//! decreases. If the count hits zero, a message is dispatched to the script thread to remove
-//! the entry from the hashmap if the count is still zero. The JS reflector for the DOM object
-//! is rooted when a hashmap entry is first created, and unrooted when the hashmap entry
-//! is removed.
+//! The implementation of `Trusted<T>` is as follows:
+//! The `Trusted<T>` object contains an atomic reference counted pointer to the Rust DOM object.
+//! A hashtable resides in the script thread, keyed on the pointer.
+//! The values in this hashtable are weak reference counts. When a `Trusted<T>` object is
+//! created or cloned, the reference count is increased. When a `Trusted<T>` is dropped, the count
+//! decreases. If the count hits zero, the weak reference is emptied, and is removed from
+//! its hash table during the next GC. During GC, the entries of the hash table are counted
+//! as JS roots.
 
 use core::nonzero::NonZero;
 use dom::bindings::js::Root;
