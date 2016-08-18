@@ -85,8 +85,6 @@ ${helpers.predefined_type("background-color", "CSSColor",
         pub mod computed_value {
             use values::computed::position::Position;
 
-            #[derive(PartialEq, Copy, Clone, Debug)]
-            #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
             pub type T = Position;
         }
 
@@ -96,8 +94,6 @@ ${helpers.predefined_type("background-color", "CSSColor",
             }
         }
 
-        #[derive(Debug, Clone, PartialEq, Copy)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub type SpecifiedValue = Position;
 
         impl ToCss for SpecifiedValue {
