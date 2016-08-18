@@ -47,7 +47,7 @@ use script_layout_interface::wrapper_traits::{DangerousThreadSafeLayoutNode, Lay
 use script_layout_interface::wrapper_traits::{ThreadSafeLayoutNode, ThreadSafeLayoutElement};
 use script_layout_interface::{HTMLCanvasData, LayoutNodeType, TrustedNodeAddress};
 use script_layout_interface::{OpaqueStyleAndLayoutData, PartialStyleAndLayoutData};
-use selectors::matching::{DeclarationBlock, ElementFlags};
+use selectors::matching::ElementFlags;
 use selectors::parser::{AttrSelector, NamespaceConstraint};
 use std::fmt;
 use std::marker::PhantomData;
@@ -60,9 +60,10 @@ use style::context::SharedStyleContext;
 use style::data::PrivateStyleData;
 use style::dom::{PresentationalHintsSynthetizer, OpaqueNode, TDocument, TElement, TNode, UnsafeNode};
 use style::element_state::*;
-use style::properties::{ComputedValues, PropertyDeclaration, PropertyDeclarationBlock};
+use style::properties::{ComputedValues, PropertyDeclarationBlock};
 use style::refcell::{Ref, RefCell, RefMut};
 use style::selector_impl::{ElementSnapshot, NonTSPseudoClass, PseudoElement, ServoSelectorImpl};
+use style::selector_matching::DeclarationBlock;
 use style::sink::Push;
 use style::str::is_whitespace;
 use url::Url;
@@ -418,7 +419,7 @@ impl<'le> fmt::Debug for ServoLayoutElement<'le> {
 
 impl<'le> PresentationalHintsSynthetizer for ServoLayoutElement<'le> {
     fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, hints: &mut V)
-        where V: Push<DeclarationBlock<Vec<PropertyDeclaration>>>
+        where V: Push<DeclarationBlock>
     {
         unsafe {
             self.element.synthesize_presentational_hints_for_legacy_attributes(hints);
@@ -1070,5 +1071,5 @@ impl<'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
 
 impl<'le> PresentationalHintsSynthetizer for ServoThreadSafeLayoutElement<'le> {
     fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, _hints: &mut V)
-        where V: Push<DeclarationBlock<Vec<PropertyDeclaration>>> {}
+        where V: Push<DeclarationBlock> {}
 }
