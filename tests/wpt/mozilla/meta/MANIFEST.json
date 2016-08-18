@@ -1340,6 +1340,18 @@
             "url": "/_mozilla/css/clip_a.html"
           }
         ],
+        "css/complex_glyphs_a.html": [
+          {
+            "path": "css/complex_glyphs_a.html",
+            "references": [
+              [
+                "/_mozilla/css/complex_glyphs_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/complex_glyphs_a.html"
+          }
+        ],
         "css/content_color.html": [
           {
             "path": "css/content_color.html",
@@ -16686,6 +16698,18 @@
             ]
           ],
           "url": "/_mozilla/css/clip_a.html"
+        }
+      ],
+      "css/complex_glyphs_a.html": [
+        {
+          "path": "css/complex_glyphs_a.html",
+          "references": [
+            [
+              "/_mozilla/css/complex_glyphs_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/complex_glyphs_a.html"
         }
       ],
       "css/content_color.html": [
