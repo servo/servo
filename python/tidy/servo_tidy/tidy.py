@@ -45,6 +45,18 @@ if os.path.exists("./servo-tidy.toml"):
         config["ignore"]["files"] += exclude.get("files", [])
         # Add list of ignored packages to config
         config["ignore"]["packages"] = exclude.get("packages", [])
+        # On Windows via cmd are paths with backslashes,
+        # which will break ignore lists matching,
+        # this convert ignore lists paths to use backslashes
+        if sys.platform == "win32":
+            files = []
+            for f in config["ignore"]["files"]:
+                files += [os.path.join(*f.split("/"))]
+            config["ignore"]["files"] = files
+            dirs = []
+            for f in config["ignore"]["directories"]:
+                dirs += [os.path.join(*f.split("/"))]
+            config["ignore"]["directories"] = dirs
 
         # Override default configs
         configs = config_file.get("configs", [])
@@ -726,7 +738,7 @@ def collect_errors_for_files(files_to_check, checking_functions, line_checking_f
         with open(filename, "r") as f:
             contents = f.read()
             lines = contents.splitlines(True)
-            if filename.endswith("/servo-tidy.toml"):
+            if filename.endswith(os.path.join(os.sep, "servo-tidy.toml")):
                 for error in (check_config_file(lines) or []):
                     # the result will be: `(filename, line, message)`
                     yield (filename,) + error
