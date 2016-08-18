@@ -79,6 +79,20 @@ macro_rules! handle_object_deletion {
     };
 }
 
+macro_rules! object_binding_to_js_or_null {
+    ($cx: expr, $binding:expr) => {
+        {
+            rooted!(in($cx) let mut rval = NullValue());
+            if let Some(bound_object) = $binding.get() {
+                unsafe {
+                    bound_object.to_jsval($cx, rval.handle_mut());
+                }
+            }
+            rval.get()
+        }
+    };
+}
+
 /// Set of bitflags for texture unpacking (texImage2d, etc...)
 bitflags! {
     #[derive(HeapSizeOf, JSTraceable)]
@@ -101,6 +115,7 @@ pub struct WebGLRenderingContext {
     last_error: Cell<Option<WebGLError>>,
     texture_unpacking_settings: Cell<TextureUnpacking>,
     bound_framebuffer: MutNullableHeap<JS<WebGLFramebuffer>>,
+    bound_renderbuffer: MutNullableHeap<JS<WebGLRenderbuffer>>,
     bound_texture_2d: MutNullableHeap<JS<WebGLTexture>>,
     bound_texture_cube_map: MutNullableHeap<JS<WebGLTexture>>,
     bound_buffer_array: MutNullableHeap<JS<WebGLBuffer>>,
@@ -135,6 +150,7 @@ impl WebGLRenderingContext {
                 bound_texture_cube_map: MutNullableHeap::new(None),
                 bound_buffer_array: MutNullableHeap::new(None),
                 bound_buffer_element_array: MutNullableHeap::new(None),
+                bound_renderbuffer: MutNullableHeap::new(None),
                 current_program: MutNullableHeap::new(None),
                 current_vertex_attrib_0: Cell::new((0f32, 0f32, 0f32, 1f32)),
             }
@@ -531,19 +547,22 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn GetParameter(&self, cx: *mut JSContext, parameter: u32) -> JSVal {
-        // Handle the GL_FRAMEBUFFER_BINDING without going all the way
+        // Handle the GL_*_BINDING without going all the way
         // to the GL, since we would just need to map back from GL's
-        // returned ID to the WebGLFramebuffer we're tracking.
+        // returned ID to the WebGL* object we're tracking.
         match parameter {
-            constants::FRAMEBUFFER_BINDING => {
-                rooted!(in(cx) let mut rval = NullValue());
-                if let Some(bound_fb) = self.bound_framebuffer.get() {
-                    unsafe {
-                        bound_fb.to_jsval(cx, rval.handle_mut());
-                    }
-                }
-                return rval.get()
-            }
+            constants::ARRAY_BUFFER_BINDING =>
+                return object_binding_to_js_or_null!(cx, &self.bound_buffer_array),
+            constants::ELEMENT_ARRAY_BUFFER_BINDING =>
+                return object_binding_to_js_or_null!(cx, &self.bound_buffer_element_array),
+            constants::FRAMEBUFFER_BINDING =>
+                return object_binding_to_js_or_null!(cx, &self.bound_framebuffer),
+            constants::RENDERBUFFER_BINDING =>
+                return object_binding_to_js_or_null!(cx, &self.bound_renderbuffer),
+            constants::TEXTURE_BINDING_2D =>
+                return object_binding_to_js_or_null!(cx, &self.bound_texture_2d),
+            constants::TEXTURE_BINDING_CUBE_MAP =>
+                return object_binding_to_js_or_null!(cx, &self.bound_texture_cube_map),
             _ => {}
         }
 
@@ -1136,6 +1155,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7
     fn DeleteRenderbuffer(&self, renderbuffer: Option<&WebGLRenderbuffer>) {
         if let Some(renderbuffer) = renderbuffer {
+            handle_object_deletion!(self.bound_renderbuffer, renderbuffer);
             renderbuffer.delete()
         }
     }
