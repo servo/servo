@@ -302,7 +302,8 @@ extern "C" {
     pub fn Gecko_GetNodeFlags(node: *mut RawGeckoNode) -> u32;
     pub fn Gecko_SetNodeFlags(node: *mut RawGeckoNode, flags: u32);
     pub fn Gecko_UnsetNodeFlags(node: *mut RawGeckoNode, flags: u32);
-    pub fn Gecko_GetStyleContext(node: *mut RawGeckoNode)
+    pub fn Gecko_GetStyleContext(node: *mut RawGeckoNode,
+                                 aPseudoTagOrNull: *mut nsIAtom)
      -> *mut nsStyleContext;
     pub fn Gecko_CalcStyleDifference(oldstyle: *mut nsStyleContext,
                                      newstyle: ServoComputedValuesBorrowed)
@@ -311,6 +312,11 @@ extern "C" {
                                       change: nsChangeHint);
     pub fn Gecko_EnsureTArrayCapacity(array: *mut ::std::os::raw::c_void,
                                       capacity: usize, elem_size: usize);
+    pub fn Gecko_ClearPODTArray(array: *mut ::std::os::raw::c_void,
+                                elem_size: usize, elem_align: usize);
+    pub fn Gecko_ClearStyleContents(content: *mut nsStyleContent);
+    pub fn Gecko_CopyStyleContentsFrom(content: *mut nsStyleContent,
+                                       other: *const nsStyleContent);
     pub fn Gecko_EnsureImageLayersLength(layers: *mut nsStyleImageLayers,
                                          len: usize);
     pub fn Gecko_InitializeImageLayer(layer: *mut Layer,

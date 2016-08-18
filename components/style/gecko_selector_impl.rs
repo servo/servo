@@ -34,7 +34,7 @@ pub struct PseudoElement(Atom, bool);
 
 impl PseudoElement {
     #[inline]
-    fn as_atom(&self) -> &Atom {
+    pub fn as_atom(&self) -> &Atom {
         &self.0
     }
 

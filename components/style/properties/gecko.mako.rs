@@ -455,7 +455,7 @@ impl Clone for ${style_struct.gecko_struct_name} {
 impl Debug for ${style_struct.gecko_struct_name} {
     // FIXME(bholley): Generate this.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "GECKO STYLE STRUCT")
+        write!(f, "Gecko style struct: ${style_struct.gecko_struct_name}")
     }
 }
 %else:
@@ -1353,6 +1353,93 @@ fn static_assert() {
     }
 
     ${impl_coord_copy('column_width', 'mColumnWidth')}
+</%self:impl_trait>
+
+<%self:impl_trait style_struct_name="Counters"
+                  skip_longhands="content">
+    pub fn set_content(&mut self, v: longhands::content::computed_value::T) {
+        use properties::longhands::content::computed_value::T;
+        use properties::longhands::content::computed_value::ContentItem;
+        use gecko_bindings::structs::nsStyleContentData;
+        use gecko_bindings::structs::nsStyleContentType::*;
+        use gecko_bindings::bindings::Gecko_ClearStyleContents;
+
+        // Converts a string as utf16, and returns an owned, zero-terminated raw buffer.
+        fn as_utf16_and_forget(s: &str) -> *mut u16 {
+            use std::mem;
+            let mut vec = s.encode_utf16().collect::<Vec<_>>();
+            vec.push(0u16);
+            let ptr = vec.as_mut_ptr();
+            mem::forget(vec);
+            ptr
+        }
+
+        #[inline(always)]
+        #[cfg(debug_assertions)]
+        fn set_image_tracked(contents: &mut nsStyleContentData, val: bool) {
+            contents.mImageTracked = val;
+        }
+
+        #[inline(always)]
+        #[cfg(not(debug_assertions))]
+        fn set_image_tracked(_contents: &mut nsStyleContentData, _val: bool) {}
+
+        // Ensure destructors run, otherwise we could leak.
+        if !self.gecko.mContents.is_empty() {
+            unsafe {
+                Gecko_ClearStyleContents(&mut self.gecko);
+            }
+        }
+
+        match v {
+            T::none |
+            T::normal => {}, // Do nothing, already cleared.
+            T::Content(items) => {
+                // NB: set_len also reserves the appropriate space.
+                unsafe { self.gecko.mContents.set_len(items.len() as u32) }
+                for (i, item) in items.into_iter().enumerate() {
+                    // TODO: Servo lacks support for attr(), and URIs,
+                    // We don't support images, but need to remember to
+                    // explicitly initialize mImageTracked in debug builds.
+                    set_image_tracked(&mut self.gecko.mContents[i], false);
+                    // NB: Gecko compares the mString value if type is not image
+                    // or URI independently of whatever gets there. In the quote
+                    // cases, they set it to null, so do the same here.
+                    unsafe {
+                        *self.gecko.mContents[i].mContent.mString.as_mut() = ptr::null_mut();
+                    }
+                    match item {
+                        ContentItem::String(value) => {
+                            self.gecko.mContents[i].mType = eStyleContentType_String;
+                            unsafe {
+                                // NB: we share allocators, so doing this is fine.
+                                *self.gecko.mContents[i].mContent.mString.as_mut() =
+                                    as_utf16_and_forget(&value);
+                            }
+                        }
+                        ContentItem::OpenQuote
+                            => self.gecko.mContents[i].mType = eStyleContentType_OpenQuote,
+                        ContentItem::CloseQuote
+                            => self.gecko.mContents[i].mType = eStyleContentType_CloseQuote,
+                        ContentItem::NoOpenQuote
+                            => self.gecko.mContents[i].mType = eStyleContentType_NoOpenQuote,
+                        ContentItem::NoCloseQuote
+                            => self.gecko.mContents[i].mType = eStyleContentType_NoCloseQuote,
+                        ContentItem::Counter(..) |
+                        ContentItem::Counters(..)
+                            => self.gecko.mContents[i].mType = eStyleContentType_Uninitialized,
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn copy_content_from(&mut self, other: &Self) {
+        use gecko_bindings::bindings::Gecko_CopyStyleContentsFrom;
+        unsafe {
+            Gecko_CopyStyleContentsFrom(&mut self.gecko, &other.gecko)
+        }
+    }
 </%self:impl_trait>
 
 <%def name="define_ffi_struct_accessor(style_struct)">

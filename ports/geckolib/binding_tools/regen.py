@@ -106,8 +106,6 @@ COMPILATION_TARGETS = {
             "Maybe",  # <- AlignedStorage, which means templated union, which
                       # means impossible to represent in stable rust as of
                       # right now.
-            # Union handling falls over for templated types.
-            "StyleShapeSource", "StyleClipPath", "StyleShapeOutside",
         ],
     },
     # Generation of the ffi bindings.
@@ -212,7 +210,7 @@ def extend_object(obj, other):
             obj[key] = copy.deepcopy(other[key])
 
 
-def build(objdir, target_name, kind_name=None,
+def build(objdir, target_name, debug, debugger, kind_name=None,
           output_filename=None, bindgen=None, skip_test=False,
           verbose=False):
     assert target_name in COMPILATION_TARGETS
@@ -346,10 +344,15 @@ def build(objdir, target_name, kind_name=None,
     flags.append(current_target["files"][0].format(objdir))
 
     flags = bindgen + flags
-    output = None
+
+    output = ""
     try:
-        output = subprocess.check_output(flags, stderr=subprocess.STDOUT)
-        output = output.decode('utf8')
+        if debug:
+            flags = [debugger, "--args"] + flags
+            subprocess.check_call(flags)
+        else:
+            output = subprocess.check_output(flags, stderr=subprocess.STDOUT)
+            output = output.decode('utf8')
     except subprocess.CalledProcessError as e:
         print("FAIL\n", e.output.decode('utf8'))
         return 1
@@ -428,7 +431,7 @@ def builds_for(target_name, kind):
 
 def main():
     parser = argparse.ArgumentParser(description=DESCRIPTION)
-    parser.add_argument('--target', default="all",
+    parser.add_argument('--target', default='all',
                         help='The target to build, either "structs" or "bindings"')
     parser.add_argument('--kind',
                         help='Kind of build')
@@ -442,6 +445,11 @@ def main():
     parser.add_argument('--verbose', '-v',
                         action='store_true',
                         help='Be... verbose')
+    parser.add_argument('--debug',
+                        action='store_true',
+                        help='Try to use a debugger to debug bindgen commands (default: gdb)')
+    parser.add_argument('--debugger', default='gdb',
+                        help='Debugger to use. Only used if --debug is passed.')
     parser.add_argument('objdir')
 
     args = parser.parse_args()
@@ -467,7 +475,8 @@ def main():
         return 1
 
     for target, kind in builds_for(args.target, args.kind):
-        ret = build(args.objdir, target, kind,
+        ret = build(args.objdir, target, kind_name=kind,
+                    debug=args.debug, debugger=args.debugger,
                     bindgen=args.bindgen, skip_test=args.skip_test,
                     output_filename=args.output,
                     verbose=args.verbose)
