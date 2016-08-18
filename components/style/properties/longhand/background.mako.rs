@@ -88,34 +88,7 @@ ${helpers.predefined_type("background-color", "CSSColor",
             pub type T = Position;
         }
 
-        impl HasViewportPercentage for SpecifiedValue {
-            fn has_viewport_percentage(&self) -> bool {
-                self.0.has_viewport_percentage()
-            }
-        }
-
         pub type SpecifiedValue = Position;
-
-        impl ToCss for SpecifiedValue {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                self.0.to_css(dest)
-            }
-        }
-
-        impl ToCss for computed_value::T {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                self.0.to_css(dest)
-            }
-        }
-
-        impl ToComputedValue for SpecifiedValue {
-            type ComputedValue = computed_value::T;
-
-            #[inline]
-            fn to_computed_value(&self, context: &Context) -> computed_value::T {
-                computed_value::T(self.0.to_computed_value(context))
-            }
-        }
 
         #[inline]
         pub fn get_initial_value() -> computed_value::T {
