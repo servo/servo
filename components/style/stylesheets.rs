@@ -58,7 +58,11 @@ pub struct Stylesheet {
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum CSSRule {
     Charset(String),
-    Namespace(Option<String>, Namespace),
+    Namespace {
+        /// `None` for the default Namespace
+        prefix: Option<Atom>,
+        url: Namespace,
+    },
     Style(StyleRule),
     Media(MediaRule),
     FontFace(FontFaceRule),
@@ -143,13 +147,13 @@ impl Stylesheet {
             while let Some(result) = iter.next() {
                 match result {
                     Ok(rule) => {
-                        if let CSSRule::Namespace(ref prefix, ref namespace) = rule {
+                        if let CSSRule::Namespace { ref prefix, ref url } = rule {
                             if let Some(prefix) = prefix.as_ref() {
                                 iter.parser.context.selector_context.namespace_prefixes.insert(
-                                    prefix.clone(), namespace.clone());
+                                    prefix.clone(), url.clone());
                             } else {
                                 iter.parser.context.selector_context.default_namespace =
-                                    Some(namespace.clone());
+                                    Some(url.clone());
                             }
                         }
 
@@ -435,9 +439,12 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
                 if self.state.get() <= State::Namespaces {
                     self.state.set(State::Namespaces);
 
-                    let prefix = input.try(|input| input.expect_ident()).ok().map(|p| p.into_owned());
+                    let prefix = input.try(|input| input.expect_ident()).ok().map(|p| p.into());
                     let url = Namespace(Atom::from(try!(input.expect_url_or_string())));
-                    return Ok(AtRuleType::WithoutBlock(CSSRule::Namespace(prefix, url)))
+                    return Ok(AtRuleType::WithoutBlock(CSSRule::Namespace {
+                        prefix: prefix,
+                        url: url,
+                    }))
                 } else {
                     return Err(())  // "@namespace must be before any rule but @charset and @import"
                 }

@@ -38,7 +38,10 @@ fn test_parse_stylesheet() {
         media: None,
         dirty_on_viewport_size_change: false,
         rules: vec![
-            CSSRule::Namespace(None, NsAtom(Atom::from("http://www.w3.org/1999/xhtml"))),
+            CSSRule::Namespace {
+                prefix: None,
+                url: NsAtom(Atom::from("http://www.w3.org/1999/xhtml"))
+            },
             CSSRule::Style(StyleRule {
                 selectors: vec![
                     Selector {

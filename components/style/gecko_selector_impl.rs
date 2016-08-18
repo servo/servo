@@ -167,7 +167,7 @@ impl SelectorImpl for GeckoSelectorImpl {
     type Identifier = Atom;
     type ClassName = Atom;
     type LocalName = Atom;
-    type NamespacePrefix = String;
+    type NamespacePrefix = Atom;
     type NamespaceUrl = Namespace;
     type BorrowedNamespaceUrl = WeakNamespace;
     type BorrowedLocalName = WeakAtom;

@@ -145,7 +145,7 @@ impl SelectorImpl for ServoSelectorImpl {
     type Identifier = Atom;
     type ClassName = Atom;
     type LocalName = Atom;
-    type NamespacePrefix = String;
+    type NamespacePrefix = Atom;
     type NamespaceUrl = Namespace;
     type BorrowedLocalName = Atom;
     type BorrowedNamespaceUrl = Namespace;
