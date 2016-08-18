@@ -220,7 +220,7 @@ impl<'a, E> Element for ElementWrapper<'a, E>
         self.element.get_local_name()
     }
 
-    fn get_namespace(&self) -> &<Self::Impl as SelectorImpl>::BorrowedNamespace {
+    fn get_namespace(&self) -> &<Self::Impl as SelectorImpl>::BorrowedNamespaceUrl {
         self.element.get_namespace()
     }
 
