@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Presentation API, testing to start a new presentation with an default request setup. (success - manual)</title>
+<link rel="author" title="Marius Wessel" href="http://www.fokus.fraunhofer.de">
+<link rel="help" href="http://w3c.github.io/presentation-api/#dfn-controlling-user-agent">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<p>Click the button below and select the available casting device, to start the manual test.</p>
+<button onclick="startPresentation()">Start Presentation Test</button>
+
+<script>
+    // disable the timeout function for the tests
+    // and call 'done()' when the tests cases are finished.
+    setup({explicit_timeout: true});
+
+    // -------------------
+    // defaultRequest init
+    // -------------------
+    var validUnixDate = new Date().getTime() + String(Math.floor(Math.random() * 1e5)),
+            validPresURL = '../receiving-ua/idlharness.html#__castAppId__=2334D33A/__castClientId__=' + validUnixDate;
+
+    navigator.presentation.defaultRequest = new PresentationRequest(validPresURL);
+
+    var startPresentation = function () {
+        promise_test(function () {
+            return navigator.presentation.defaultRequest.start();
+        }, "The presentation was started successfully.");
+    }
+    // ------------------------------
+    // Start New Presentation with
+    // 'default request' Test - BEGIN
+    // ------------------------------
+    navigator.presentation.defaultRequest.onconnectionavailable = function (evt) {
+        var connection = evt.connection;
+
+        test(function () {
+
+            assert_equals(connection.state, "connected", "The presentation has an connected state.");
+            assert_true(!!connection.id, "The connection ID is set.");
+            assert_true(typeof connection.id === 'string', "The connection ID is a string.");
+            assert_true(connection instanceof PresentationConnection, "The connection is an instance of PresentationConnection.");
+
+        }, "The presentation was started successfully.");
+
+        done();
+    };
+    // ----------------------------
+    // Start New Presentation with
+    // 'default request' Test - END
+    // ----------------------------
+</script>

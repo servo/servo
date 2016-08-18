@@ -145,6 +145,22 @@
         assert_equals(request.headers.get("Content-Type"), "potato");
       }, "Request should get its content-type from init headers if one is provided");
 
+      test(function() {
+        var array = [["hello", "worldAHH"]];
+        var object = {"hello": 'worldOOH'};
+        var headers = new Headers(array);
+
+        assert_equals(headers.get("hello"), "worldAHH");
+
+        var request1 = new Request("", {"headers": headers});
+        var request2 = new Request("", {"headers": array});
+        var request3 = new Request("", {"headers": object});
+
+        assert_equals(request1.headers.get("hello"), "worldAHH");
+        assert_equals(request2.headers.get("hello"), "worldAHH");
+        assert_equals(request3.headers.get("hello"), "worldOOH");
+      }, "Testing request header creations with various objects");
+
     </script>
   </body>
 </html>

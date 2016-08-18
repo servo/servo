@@ -1668,9 +1668,9 @@
     g.addColorStop(1, 'rgba(0,0,255, 1)');
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, 100, 50);
-    @assert pixel 25,25 ==~ 191,191,63,63 +/- 3;
-    @assert pixel 50,25 ==~ 127,127,127,127 +/- 3;
-    @assert pixel 75,25 ==~ 63,63,191,191 +/- 3;
+    @assert pixel 25,25 ==~ 190,190,65,65 +/- 3;
+    @assert pixel 50,25 ==~ 126,126,128,128 +/- 3;
+    @assert pixel 75,25 ==~ 62,62,192,192 +/- 3;
   expected: |
     size 100 50
     g = cairo.LinearGradient(0, 0, 100, 0)

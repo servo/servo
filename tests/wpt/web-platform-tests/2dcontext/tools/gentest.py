@@ -128,18 +128,18 @@ if len(sys.argv) > 1 and sys.argv[1] == '--test':
     doctest.testmod()
     sys.exit()
 
-templates = yaml.load(open('templates.yaml').read())
-name_mapping = yaml.load(open('name2dir.yaml').read())
+templates = yaml.load(open('templates.yaml', "r").read())
+name_mapping = yaml.load(open('name2dir.yaml', "r").read())
 
 spec_assertions = []
-for s in yaml.load(open('spec.yaml').read())['assertions']:
+for s in yaml.load(open('spec.yaml', "r").read())['assertions']:
     if 'meta' in s:
         eval(compile(s['meta'], '<meta spec assertion>', 'exec'), {}, {'assertions':spec_assertions})
     else:
         spec_assertions.append(s)
 
 tests = []
-for t in sum([ yaml.load(open(f).read()) for f in ['tests.yaml', 'tests2d.yaml', 'tests2dtext.yaml']], []):
+for t in sum([ yaml.load(open(f, "r").read()) for f in ['tests.yaml', 'tests2d.yaml', 'tests2dtext.yaml']], []):
     if 'DISABLED' in t:
         continue
     if 'meta' in t:
@@ -543,7 +543,7 @@ def write_results():
     if not os.path.exists('results.yaml'):
         print "Can't find results.yaml"
     else:
-        for resultset in yaml.load(open('results.yaml').read()):
+        for resultset in yaml.load(open('results.yaml', "r").read()):
             #title = "%s (%s)" % (resultset['ua'], resultset['time'])
             title = resultset['name']
             #assert title not in uas # don't allow repetitions

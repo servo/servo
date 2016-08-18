@@ -4,8 +4,8 @@
     <head>
         <title>Test support of different initDataTypes.</title>
         <script src="encrypted-media-utils.js"></script>
-        <script src="../../resources/testharness.js"></script>
-        <script src="../../resources/testharnessreport.js"></script>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
     </head>
     <body>
         <div id="log"></div>
@@ -17,8 +17,7 @@
                     if (!result)
                         return Promise.resolve('Not supported');
 
-                    var options = [ { initDataTypes: [initDataType] } ];
-                    return navigator.requestMediaKeySystemAccess('org.w3.clearkey', options)
+                    return navigator.requestMediaKeySystemAccess('org.w3.clearkey', getSimpleConfigurationForInitDataType(initDataType))
                         .then(function(access) {
                             return access.createMediaKeys();
                         }).then(function(mediaKeys) {

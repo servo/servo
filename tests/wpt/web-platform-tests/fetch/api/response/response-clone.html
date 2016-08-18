@@ -54,7 +54,7 @@
       }, "Check cloned response's body");
 
       promise_test(function(test) {
-        var disturbedResponse = new Response();
+        var disturbedResponse = new Response("data");
         return disturbedResponse.text().then(function() {
             assert_true(disturbedResponse.bodyUsed, "response is disturbed");
             assert_throws(new TypeError() , function() { disturbedResponse.clone(); },

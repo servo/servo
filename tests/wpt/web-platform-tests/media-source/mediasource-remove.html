@@ -13,7 +13,7 @@
           {
               var sourceBuffer = mediaSource.addSourceBuffer(MediaSourceUtil.AUDIO_VIDEO_TYPE);
 
-              assert_throws("InvalidAccessError", function()
+              assert_throws(new TypeError(), function()
               {
                   sourceBuffer.remove(-1, 2);
               }, "remove");
@@ -42,7 +42,7 @@
 
               mediaSource.duration = 10;
 
-              assert_throws("InvalidAccessError", function()
+              assert_throws(new TypeError(), function()
               {
                   sourceBuffer.remove(11, 12);
               }, "remove");
@@ -56,7 +56,7 @@
 
               mediaSource.duration = 10;
 
-              assert_throws("InvalidAccessError", function()
+              assert_throws(new TypeError(), function()
               {
                   sourceBuffer.remove(2, 1);
               }, "remove");
@@ -68,7 +68,7 @@
           {
               var sourceBuffer = mediaSource.addSourceBuffer(MediaSourceUtil.AUDIO_VIDEO_TYPE);
 
-              assert_throws("InvalidAccessError", function()
+              assert_throws(new TypeError(), function()
               {
                   sourceBuffer.remove(0, Number.NEGATIVE_INFINITY);
               }, "remove");
@@ -80,7 +80,7 @@
           {
               var sourceBuffer = mediaSource.addSourceBuffer(MediaSourceUtil.AUDIO_VIDEO_TYPE);
 
-              assert_throws("InvalidAccessError", function()
+              assert_throws(new TypeError(), function()
               {
                   sourceBuffer.remove(0, Number.NaN);
               }, "remove");
@@ -136,15 +136,18 @@
               mediaSource.duration = 10;
 
               test.expectEvent(sourceBuffer, "updatestart");
-              test.expectEvent(sourceBuffer, "abort");
+              test.expectEvent(sourceBuffer, "update");
               test.expectEvent(sourceBuffer, "updateend");
               sourceBuffer.remove(1, 2);
 
               assert_true(sourceBuffer.updating, "updating");
 
-              sourceBuffer.abort();
+              assert_throws("InvalidStateError", function()
+              {
+                  sourceBuffer.abort();
+              }, "abort");
 
-              assert_false(sourceBuffer.updating, "updating");
+              assert_true(sourceBuffer.updating, "updating");
 
               test.waitForExpectedEvents(function()
               {

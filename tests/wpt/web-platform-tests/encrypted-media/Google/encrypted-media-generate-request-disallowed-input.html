@@ -4,8 +4,8 @@
     <head>
         <title>Test handling of invalid initData for generateRequest().</title>
         <script src="encrypted-media-utils.js"></script>
-        <script src="../../resources/testharness.js"></script>
-        <script src="../../resources/testharnessreport.js"></script>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
     </head>
     <body>
         <div id="log"></div>
@@ -21,7 +21,7 @@
                     if (!result)
                         return Promise.resolve('Not supported');
 
-                    return navigator.requestMediaKeySystemAccess('org.w3.clearkey', [{}]).then(function(access) {
+                    return navigator.requestMediaKeySystemAccess('org.w3.clearkey', getSimpleConfigurationForInitDataType(initDataType)).then(function(access) {
                         return access.createMediaKeys();
                     }).then(function(mediaKeys) {
                         var mediaKeySession = mediaKeys.createSession();
@@ -67,13 +67,13 @@
                     0x00, 0x00, 0x00, 0x00                           // datasize
                 ]);
                 return test_session('cenc', initData);
-            }, 'generateRequest() with invalid pssh data.');
+            }, 'generateRequest() with invalid pssh box size.');
 
             promise_test(function()
             {
                 // Invalid data as type = 'psss'.
                 var initData = new Uint8Array([
-                    0x00, 0x00, 0x00, 0x00,                          // size = 0
+                    0x00, 0x00, 0x00, 0x20,                          // size = 32
                     0x70, 0x73, 0x73, 0x73,                          // 'psss'
                     0x00,                                            // version = 0
                     0x00, 0x00, 0x00,                                // flags

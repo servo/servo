@@ -1,0 +1,43 @@
+{
+  "@context": "https://www.w3.org/ns/JSONtest-v1.jsonld",
+  "name": "when bodyValue is present, it MUST be a string and there MUST NOT be a body",
+  "description": "When bodyValue is used, body MUST NOT be used",
+  "testType": "manual",
+  "ref": "https://www.w3.org/TR/annotation-model/#h-string-body",
+  "assertions": [
+  "annotations/requiredProperties.json",
+  {
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "Check bodyValue presence",
+    "description": "There may be a 'bodyValue' property (Section 3.2.5)",
+    "assertionType": "may",
+    "expectedResult": "valid",
+    "errorMessage": "Error: There was no 'bodyValue' property",
+    "type": "object",
+    "required": [ "bodyValue" ],
+    "properties": {
+      "bodyValue": {
+        "type": "string"
+      }
+    }
+  },
+  {
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "There MUST NOT be a 'body' property",
+    "description": "When there is a 'bodyValue' property, there MUST NOT be a 'body' property (Section 3.2.5).",
+    "assertionType": "must",
+    "expectedResult": "valid",
+    "errorMessage": "Error: 'Annotation' is not a 'type' value.",
+    "type": "object",
+    "required": [ "bodyValue" ],
+    "properties": {
+      "bodyValue": {
+        "type": "string"
+      },
+      "body": {
+        "not": {}
+      }
+    }
+  }
+  ]
+}

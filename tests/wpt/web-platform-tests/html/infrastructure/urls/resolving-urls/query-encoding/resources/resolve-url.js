@@ -299,7 +299,7 @@ onload = function() {
     async_test(function() {
       var elm = document.createElement(tag);
       var video_ext = '';
-      if (elm.canPlayType('video/ogg; codecs="theora,vorbis"')) {
+      if (elm.canPlayType('video/ogg; codecs="theora,flac"')) {
         video_ext = 'ogv';
       } else if (elm.canPlayType('video/mp4; codecs="avc1.42E01E,mp4a.40.2"')) {
         video_ext = 'mp4';

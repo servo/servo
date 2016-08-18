@@ -26,6 +26,7 @@ INDENT TABS: webaudio/*
 INDENT TABS: webvtt/*
 INDENT TABS: XMLHttpRequest/*
 INDENT TABS: encoding/legacy*/*
+INDENT TABS: encrypted-media/polyfill/Makefile
 
 TRAILING WHITESPACE: app-uri/*
 TRAILING WHITESPACE: battery-status/*

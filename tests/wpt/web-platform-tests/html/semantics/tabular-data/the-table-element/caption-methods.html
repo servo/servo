@@ -36,6 +36,8 @@
   </table>
   <table id="table4" style="display:none">
   </table>
+  <table id="table5" style="display:none">
+  </table>
   <script>
     test(function () {
       var table0 = document.getElementById('table0');
@@ -81,6 +83,18 @@
       table4.deleteCaption();
       assert_equals(caption.parentNode, table4);
     }, "deleteCaption method not remove caption that is not in html namespace")
+    test(function() {
+      var table5 = document.getElementById('table5');
+      var caption = document.createElement('caption');
+      caption.appendChild(table5)
+
+      // Node cannot be inserted at the specified point in the hierarchy
+      assert_throws("HierarchyRequestError", function() {
+        table5.caption = caption;
+      });
+
+      assert_not_equals(table5.caption, caption);
+    }, "Setting caption rethrows exception");
   </script>
 </body>
 </html>

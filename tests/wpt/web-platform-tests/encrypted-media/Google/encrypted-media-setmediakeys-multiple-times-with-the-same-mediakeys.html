@@ -4,8 +4,8 @@
     <head>
         <title>setMediaKeys() multiple times with the same MediaKeys.</title>
         <script src="encrypted-media-utils.js"></script>
-        <script src="../../resources/testharness.js"></script>
-        <script src="../../resources/testharnessreport.js"></script>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
     </head>
     <body>
         <video id="video"></video>
@@ -14,11 +14,12 @@
             promise_test(function(test)
             {
                 var video = document.getElementById('video');
+                var content = 'webm/test-encrypted.webm';
                 var mediaKeys;
 
                 assert_equals(video.mediaKeys, null);
 
-                return navigator.requestMediaKeySystemAccess('org.w3.clearkey', [{}]).then(function(access) {
+                return navigator.requestMediaKeySystemAccess('org.w3.clearkey', getConfigurationForFile(content)).then(function(access) {
                     return access.createMediaKeys();
                 }).then(function(result) {
                     mediaKeys = result;
@@ -33,7 +34,7 @@
                 }).then(function() {
                     assert_true(video.mediaKeys === mediaKeys);
                     // Load the media element to create the WebMediaPlayer.
-                    video.src = '../content/test-encrypted.webm';
+                    video.src = content;
                     // Set mediaKeys again on video should still return a
                     // resolved promise.
                     return video.setMediaKeys(mediaKeys);

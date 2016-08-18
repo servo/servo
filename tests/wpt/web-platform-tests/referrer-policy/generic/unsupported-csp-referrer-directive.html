@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Referrer Policy: CSP 'referrer' directive should not be supported</title>
+    <meta http-equiv="Content-Security-Policy" content="referrer no-referrer">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <!-- Common global functions for referrer-policy tests. -->
+    <script src="/referrer-policy/generic/common.js"></script>
+  </head>
+  <body>
+    <h1>Referrer Policy: CSP 'referrer' directive should not be supported</h1>
+    <p>CSP used to have a 'referrer' directive to set a Referrer Policy. This directive has been removed and should not be supported.</p>
+
+    <pre id="received_message">Running...</pre>
+
+    <script>
+      var test = async_test("Image has a referrer despite CSP 'referrer' directive");
+      var urlPath = '/referrer-policy/generic/subresource/image.py';
+      var url = location.protocol + "//www1." + location.hostname + ":" + location.port +
+                urlPath;
+      queryImage(url, test.step_func(function(message) {
+        assert_equals(message.referrer, document.location.href);
+        test.done();
+      }));
+    </script>
+
+    <div id="log"></div>
+  </body>
+</html>

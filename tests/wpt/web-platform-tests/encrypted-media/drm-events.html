@@ -1,0 +1,70 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <meta name="timeout" content="long">
+    <title>Encrypted Media Extensions: Events with DRM</title>
+    <link rel="help" href="https://w3c.github.io/encrypted-media/">
+
+    <!-- Web Platform Test Harness scripts -->
+    <script src=/resources/testharness.js></script>
+    <script src=/resources/testharnessreport.js></script>
+
+    <!-- Helper scripts for Encrypted Media Extensions tests  -->
+    <script src=/encrypted-media/util/utils.js></script>
+    <script src=/encrypted-media/util/utf8.js></script>
+    <script src=/encrypted-media/util/fetch.js></script>
+    <script src=/encrypted-media/util/testmediasource.js></script>
+
+    <!-- Content metadata -->
+    <script src=/encrypted-media/content/content-metadata.js></script>
+
+    <!-- Message handler for DRM servers -->
+    <script src=/encrypted-media/util/drmtoday-messagehandler.js></script>
+
+    <!-- The script for this specific test -->
+    <script src=/encrypted-media/scripts/events.js></script>
+
+  </head>
+  <body>
+    <div id='log'></div>
+
+    <script>
+        var keysystem = getSupportedKeySystem();
+
+        getSupportedContentAndInitDataTypes( keysystem )
+        .then( function( supported )
+        {
+            // This test requires initData for supported content.
+            // We prefer explciit initData configured for the content, but
+            // otherwise we will generate initData for a supported initDataType
+            // FIXME: Move me to a utility function
+            var content,
+                initDataType,
+                initData;
+
+            var contentWithExplicitInitData = supported.filter( function( s ) { return s.content.initDataType; } );
+            if ( contentWithExplicitInitData.length > 0 )
+            {
+                content = contentWithExplicitInitData[ 0 ].content;
+                initDataType = content.keys[ 0 ].initDataType;
+                initData = base64DecodeToUnit8Array( content.keys[ 0 ].initData );
+            }
+            else
+            {
+                content = supported[ 0 ].content;
+                initDataType = supported[ 0 ].initDataTypes[ 0 ];
+                initData = getInitData( content, initDataType );
+            }
+
+            runTest( {  keysystem:          keysystem,
+                        content:            content,
+                        messagehandler:     messagehandler.bind( content ),
+                        initDataType:       initDataType,
+                        initData:           initData
+                    } );
+        } );
+
+    </script>
+  </body>
+</html>

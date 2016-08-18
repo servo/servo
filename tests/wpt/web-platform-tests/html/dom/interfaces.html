@@ -1000,6 +1000,8 @@ interface HTMLElement : Element {
            attribute boolean spellcheck;
   void forceSpellCheck();
 
+  [CEReactions, TreatNullAs=EmptyString] attribute DOMString innerText;
+
   // command API
   readonly attribute DOMString? commandType;
   readonly attribute DOMString? commandLabel;
@@ -1300,7 +1302,7 @@ interface HTMLMediaElement : HTMLElement {
   readonly attribute boolean ended;
            attribute boolean autoplay;
            attribute boolean loop;
-  void play();
+  Promise<void> play();
   void pause();
 
   // media controller
@@ -2571,7 +2573,7 @@ interface NavigatorStorageUtils {
 interface NavigatorPlugins {
   readonly attribute PluginArray plugins;
   readonly attribute MimeTypeArray mimeTypes;
-  readonly attribute boolean javaEnabled;
+  boolean javaEnabled();
 };
 
 interface PluginArray {

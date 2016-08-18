@@ -257,6 +257,10 @@ var gKeyframeSequenceTests = [
     input:  [{ left: "10px" }],
     output: [{ offset: null, computedOffset: 1, easing: "linear",
                left: "10px" }] },
+  { desc:   "a single keyframe sequence with string offset",
+    input:  [{ offset: '0.5', left: "10px" }],
+    output: [{ offset: 0.5, computedOffset: 1, easing: "linear",
+               left: "10px" }] },
   { desc:   "a one property keyframe sequence with some omitted offsets",
     input:  [{ offset: 0.00, left: "10px" },
              { offset: 0.25, left: "20px" },
@@ -321,9 +325,9 @@ var gKeyframeSequenceTests = [
                left: "30px" },
              { offset: 0.5, computedOffset: 0.5, easing: "linear",
                top: "40px" },
-             { offset: 1.0, computedOffset: 1.0, easing: "step-end",
+             { offset: 1.0, computedOffset: 1.0, easing: "steps(1)",
                left: "50px" },
-             { offset: 1.0, computedOffset: 1.0, easing: "step-end",
+             { offset: 1.0, computedOffset: 1.0, easing: "steps(1)",
                top: "60px" }] },
   { desc:   "a keyframe sequence with different composite values, but the"
             + " same composite value for a given offset",
@@ -432,7 +436,7 @@ var gKeyframeSequenceTests = [
                left: "300px" },
              { offset: 1.0, computedOffset: 1.0, easing: "ease-out",
                left: "400px" },
-             { offset: 1.0, computedOffset: 1.0, easing: "step-end",
+             { offset: 1.0, computedOffset: 1.0, easing: "steps(1)",
                left: "500px" }] },
 ];
 

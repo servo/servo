@@ -1,0 +1,56 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <meta name="timeout" content="long">
+    <title>Encrypted Media Extensions: Successful Playback, Temporary session with Clear Key, mp4, multiple keys for audio/video</title>
+    <link rel="help" href="https://w3c.github.io/encrypted-media/">
+
+    <!-- Web Platform Test Harness scripts -->
+    <script src=/resources/testharness.js></script>
+    <script src=/resources/testharnessreport.js></script>
+
+    <!-- Helper scripts for Encrypted Media Extensions tests  -->
+    <script src=/encrypted-media/util/utils.js></script>
+    <script src=/encrypted-media/util/fetch.js></script>
+    <script src=/encrypted-media/util/testmediasource.js></script>
+    <script src=/encrypted-media/util/utf8.js></script>
+
+    <!-- Content metadata -->
+    <script src=/encrypted-media/content/content-metadata.js></script>
+
+    <!-- Message handler for Clear Key keysystem -->
+    <script src=/encrypted-media/util/drmtoday-messagehandler.js></script>
+
+    <!-- The script for this specific test -->
+    <script src=/encrypted-media/scripts/keystatuses-multiple-sessions.js></script>
+
+  </head>
+  <body>
+    <div id='log'></div>
+
+    <div id='video'>
+      <video id="videoelement" width="200px"></video>
+    </div>
+
+    <script>
+        var keysystem = getSupportedKeySystem();
+        getSupportedContent( keysystem )
+        .then( function( contents ) {
+
+            // Select a content item with multiple keys and initData
+            var contentitem = contents.filter( function( item ) { return item.keys.length > 1 && item.initDataType && !item.associatedInitData; } )[ 0 ];
+
+            var config = {  keysystem:          keysystem,
+                            content:            contentitem,
+                            messagehandler:     messagehandler.bind( contentitem ),
+                            initDataType:       contentitem.initDataType,
+                            initData:           getProprietaryInitDatas(contentitem).initDatas.map( base64DecodeToUnit8Array ),
+                        };
+
+            runTest(config);
+
+        } );
+    </script>
+  </body>
+</html>

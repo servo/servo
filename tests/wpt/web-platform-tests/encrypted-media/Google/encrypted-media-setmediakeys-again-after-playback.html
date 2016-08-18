@@ -4,8 +4,8 @@
     <head>
         <title>setMediaKeys() again after playback</title>
         <script src="encrypted-media-utils.js"></script>
-        <script src="../../resources/testharness.js"></script>
-        <script src="../../resources/testharnessreport.js"></script>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
     </head>
     <body>
         <video id="testVideo"></video>
@@ -17,7 +17,7 @@
                 var keyId = stringToUint8Array('0123456789012345');
                 var rawKey = new Uint8Array([0xeb, 0xdd, 0x62, 0xf1, 0x68, 0x14, 0xd2, 0x7b,
                                              0x68, 0xef, 0x12, 0x2a, 0xfc, 0xe4, 0xae, 0x3c]);
-                var content = '../content/test-encrypted.webm';
+                var content = 'webm/test-encrypted.webm';
                 var duration = 0.2;
 
                 return createMediaKeys(keyId, rawKey).then(function(mediaKeys) {

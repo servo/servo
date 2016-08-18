@@ -4,8 +4,8 @@
     <head>
         <title>Test Clear Key handling of non-ASCII responses for update().</title>
         <script src="encrypted-media-utils.js"></script>
-        <script src="../../resources/testharness.js"></script>
-        <script src="../../resources/testharnessreport.js"></script>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
     </head>
     <body>
         <div id="log"></div>
@@ -16,6 +16,7 @@
             async_test(function(test)
             {
                 var initDataType;
+                var initData;
                 var mediaKeySession;
 
                 function processMessage(event)
@@ -34,15 +35,14 @@
                     });
                 }
 
-                getSupportedInitDataType().then(function(type) {
-                    initDataType = type;
-                    return navigator.requestMediaKeySystemAccess('org.w3.clearkey', [{}]);
-                }).then(function(access) {
+                navigator.requestMediaKeySystemAccess('org.w3.clearkey', getSimpleConfiguration()).then(function(access) {
+                    initDataType = access.getConfiguration().initDataTypes[0];
+                    initData = getInitData(initDataType);
                     return access.createMediaKeys();
                 }).then(function(mediaKeys) {
                     mediaKeySession = mediaKeys.createSession();
                     waitForEventAndRunStep('message', mediaKeySession, processMessage, test);
-                    return mediaKeySession.generateRequest(initDataType, getInitData(initDataType));
+                    return mediaKeySession.generateRequest(initDataType, initData);
                 });
             }, 'Clear Key update() with non-ASCII response.');
         </script>

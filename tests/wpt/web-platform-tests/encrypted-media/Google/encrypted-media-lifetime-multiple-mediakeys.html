@@ -4,8 +4,8 @@
     <head>
         <title>Test multiple MediaKeys lifetimes</title>
         <script src="encrypted-media-utils.js"></script>
-        <script src="../../resources/testharness.js"></script>
-        <script src="../../resources/testharnessreport.js"></script>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
     </head>
     <body>
         <div id="log"></div>
@@ -25,9 +25,7 @@
                 // with the new MediaKeys object.
                 function createMediaKeys()
                 {
-                    return getSupportedInitDataType().then(function(type) {
-                        return navigator.requestMediaKeySystemAccess('org.w3.clearkey', [{}]);
-                    }).then(function(access) {
+                    return navigator.requestMediaKeySystemAccess('org.w3.clearkey', getSimpleConfiguration()).then(function(access) {
                         return access.createMediaKeys();
                     }).then(function(mediaKeys) {
                         return mediaKeys;

@@ -25,7 +25,7 @@ window.addEventListener('message', function(evt) {
           return check_referer(
               'request-headers.py',
               host_info['HTTPS_ORIGIN'] +
-              base_path() + 'fetch-rewrite-worker.js');
+              base_path() + 'referer-iframe.html');
         })
       .then(function() {
           return check_referer(

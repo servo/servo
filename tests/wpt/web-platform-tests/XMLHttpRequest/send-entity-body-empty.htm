@@ -10,13 +10,17 @@
   <body>
     <div id="log"></div>
     <script>
-      test(function() {
+      function request(method) {
         var client = new XMLHttpRequest()
-        client.open("POST", "resources/content.py", false)
+        client.open(method, "resources/content.py", false)
         client.upload.onloadstart = function(){assert_unreached('this event should not fire for empty strings')}
         client.send("")
-        assert_equals(client.getResponseHeader("x-request-content-length"), "0")
-      })
+        var expectedLength = method == "HEAD" ? "NO" : "0";
+        assert_equals(client.getResponseHeader("x-request-content-length"), expectedLength)
+      }
+      test(function() { request("POST"); }, document.title + " (POST)");
+      test(function() { request("PUT"); }, document.title + " (PUT)");
+      test(function() { request("HEAD"); }, document.title + " (HEAD)");
     </script>
   </body>
 </html>
