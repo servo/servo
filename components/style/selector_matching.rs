@@ -21,7 +21,6 @@ use selectors::parser::{Selector, SelectorImpl, SimpleSelector, LocalName, Compo
 use sink::Push;
 use smallvec::VecLike;
 use std::borrow::Borrow;
-use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fmt;
 use std::hash::BuildHasherDefault;
@@ -616,8 +615,8 @@ pub struct SelectorMap<T, Impl: SelectorImpl> {
 }
 
 #[inline]
-fn compare<T>(a: &GenericDeclarationBlock<T>, b: &GenericDeclarationBlock<T>) -> Ordering {
-    (a.specificity, a.source_order).cmp(&(b.specificity, b.source_order))
+fn sort_by_key<T, F: Fn(&T) -> K, K: Ord>(v: &mut [T], f: F) {
+    sort_by(v, &|a, b| f(a).cmp(&f(b)))
 }
 
 impl<T, Impl: SelectorImpl> SelectorMap<T, Impl> {
@@ -687,7 +686,8 @@ impl<T, Impl: SelectorImpl> SelectorMap<T, Impl> {
                                         relations);
 
         // Sort only the rules we just added.
-        sort_by(&mut matching_rules_list[init_len..], &compare);
+        sort_by_key(&mut matching_rules_list[init_len..],
+                    |rule| (rule.specificity, rule.source_order));
     }
 
     /// Append to `rule_list` all universal Rules (rules with selector `*|*`) in
@@ -709,7 +709,8 @@ impl<T, Impl: SelectorImpl> SelectorMap<T, Impl> {
             }
         }
 
-        sort_by(&mut matching_rules_list[init_len..], &compare);
+        sort_by_key(&mut matching_rules_list[init_len..],
+                    |rule| (rule.specificity, rule.source_order));
     }
 
     fn get_matching_rules_from_hash<E, Str, BorrowedStr: ?Sized, Vector>(
