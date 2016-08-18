@@ -34,7 +34,20 @@ uint get_border_style(Border a_border, uint a_edge) {
 
 void main(void) {
     Border border = borders[gl_InstanceID];
+#ifdef WR_FEATURE_TRANSFORM
+    TransformVertexInfo vi = write_transform_vertex(border.info);
+    vLocalPos = vi.local_pos;
+#else
     VertexInfo vi = write_vertex(border.info);
+    vLocalPos = vi.local_clamped_pos.xy;
+#endif
+
+    // This is what was currently sent.
+    vVerticalColor = border.verticalColor;
+    vHorizontalColor = border.horizontalColor;
+
+    // Local space
+    vLocalRect = border.info.local_rect;
 
     // Just our boring radius position.
     vRadii = border.radii;
@@ -93,22 +106,16 @@ void main(void) {
     // x1 - x0 is the width of the corner / line.
     float width = x1 - x0;
     float height = y1 - y0;
+#ifdef WR_FEATURE_TRANSFORM
+    vSizeInfo = vec4(x0, y0, width, height);
+#else
     // This is just a weighting of the pixel colors it seems?
     vF = (vi.local_clamped_pos.x - x0) * height - (vi.local_clamped_pos.y - y0) * width;
-
-    // This is what was currently sent.
-    vVerticalColor = border.verticalColor;
-    vHorizontalColor = border.horizontalColor;
-
-    // Local space
-    vLocalPos = vi.local_clamped_pos.xy;
-
-    // Local space
-    vLocalBorders = border.info.local_rect;
 
     // These are in device space
     vDevicePos = vi.global_clamped_pos;
 
     // These are in device space
     vBorders = border.info.local_rect * uDevicePixelRatio;
+#endif
 }

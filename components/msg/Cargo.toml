@@ -23,6 +23,6 @@ serde_macros = "0.8"
 url = {version = "1.2", features = ["heap_size", "serde"]}
 
 [dependencies.webrender_traits]
-git = "https://github.com/servo/webrender_traits"
+git = "https://github.com/servo/webrender"
 default_features = false
 features = ["serde_macros"]
