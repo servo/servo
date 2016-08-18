@@ -80,7 +80,7 @@ default-features = false
 features = ["serde_macros"]
 
 [dependencies.webrender_traits]
-git = "https://github.com/servo/webrender_traits"
+git = "https://github.com/servo/webrender"
 default_features = false
 features = ["serde_macros"]
 

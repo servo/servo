@@ -1,7 +1,12 @@
+#line 1
+
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#ifdef WR_FEATURE_TRANSFORM
+
+#else
 // draw a circle at position aDesiredPos with a aRadius
 vec4 drawCircle(vec2 aPixel, vec2 aDesiredPos, float aRadius, vec3 aColor) {
   float farFromCenter = length(aDesiredPos - aPixel) - aRadius;
@@ -77,14 +82,14 @@ vec4 draw_double_edge(float pos, float len) {
 
 vec4 draw_double_edge_vertical() {
   // Get our position within this specific segment
-  float position = vLocalPos.x - vLocalBorders.x;
-  return draw_double_edge(position, vLocalBorders.z);
+  float position = vLocalPos.x - vLocalRect.x;
+  return draw_double_edge(position, vLocalRect.z);
 }
 
 vec4 draw_double_edge_horizontal() {
   // Get our position within this specific segment
-  float position = vLocalPos.y - vLocalBorders.y;
-  return draw_double_edge(position, vLocalBorders.w);
+  float position = vLocalPos.y - vLocalRect.y;
+  return draw_double_edge(position, vLocalRect.w);
 }
 
 vec4 draw_double_edge_with_radius() {
@@ -220,49 +225,96 @@ void draw_double_border(void) {
     }
   }
 }
+#endif
+
+void discard_pixels_in_rounded_borders(vec2 local_pos) {
+  float distanceFromRef = distance(vRefPoint, local_pos);
+  if (vRadii.x > 0.0 && (distanceFromRef > vRadii.x || distanceFromRef < vRadii.z)) {
+      discard;
+  }
+}
+
+void draw_antialiased_solid_border_corner(vec2 local_pos) {
+  if (vRadii.x <= 0.0) {
+    return;
+  }
+
+  // This is the conversion factor for transformations and device pixel scaling.
+  float pixelsPerFragment = length(fwidth(local_pos.xy));
+
+  float distanceFromRef = distance(vRefPoint, local_pos);
+
+  // We want to start anti-aliasing one pixel in from the border.
+  float nudge = 1 * pixelsPerFragment;
+  float innerRadius = vRadii.z + nudge;
+  float outerRadius = vRadii.x - nudge;
+
+  if (vRadii.x > 0.0 && (distanceFromRef > outerRadius || distanceFromRef < innerRadius)) {
+    float distanceFromBorder = max(distanceFromRef - outerRadius,
+                                   innerRadius - distanceFromRef);
+    // Move the distance back into pixels.
+    distanceFromBorder /= pixelsPerFragment;
+
+    // Apply a more gradual fade out to transparent.
+    distanceFromBorder -= 0.5;
+
+    oFragColor = oFragColor * vec4(1, 1, 1, smoothstep(1.0, 0, distanceFromBorder));
+  }
+}
 
 // TODO: Investigate performance of this shader and see
 //       if it's worthwhile splitting it / removing branches etc.
 void main(void) {
-	if (vRadii.x > 0.0 &&
-		(distance(vRefPoint, vLocalPos) > vRadii.x ||
-		 distance(vRefPoint, vLocalPos) < vRadii.z)) {
-		discard;
-	}
+#ifdef WR_FEATURE_TRANSFORM
+    float alpha = 0;
+    vec2 local_pos = init_transform_fs(vLocalPos, vLocalRect, alpha);
+#else
+    vec2 local_pos = vLocalPos;
+#endif
 
-  switch (vBorderStyle) {
-    case BORDER_STYLE_DASHED:
-    {
-      draw_dashed_border();
-      break;
+#ifdef WR_FEATURE_TRANSFORM
+    // TODO(gw): Support other border styles for transformed elements.
+    discard_pixels_in_rounded_borders(local_pos);
+    float f = (local_pos.x - vSizeInfo.x) * vSizeInfo.w - (local_pos.y - vSizeInfo.y) * vSizeInfo.z;
+    oFragColor = vec4(1, 1, 1, alpha) * mix(vHorizontalColor, vVerticalColor, step(0.0, f));
+#else
+    switch (vBorderStyle) {
+        case BORDER_STYLE_DASHED:
+            discard_pixels_in_rounded_borders(local_pos);
+            draw_dashed_border();
+            break;
+        case BORDER_STYLE_DOTTED:
+            discard_pixels_in_rounded_borders(local_pos);
+            draw_dotted_border();
+            break;
+        case BORDER_STYLE_OUTSET:
+        case BORDER_STYLE_INSET:
+            discard_pixels_in_rounded_borders(local_pos);
+            oFragColor = mix(vVerticalColor, vHorizontalColor, step(0.0, vF));
+            break;
+        case BORDER_STYLE_SOLID:
+            oFragColor = mix(vHorizontalColor, vVerticalColor, step(0.0, vF));
+            switch (vBorderPart) {
+              case PST_TOP_LEFT:
+              case PST_TOP_RIGHT:
+              case PST_BOTTOM_LEFT:
+              case PST_BOTTOM_RIGHT:
+                draw_antialiased_solid_border_corner(local_pos);
+                break;
+              default:
+                discard_pixels_in_rounded_borders(local_pos);
+              }
+            break;
+        case BORDER_STYLE_NONE:
+            discard_pixels_in_rounded_borders(local_pos);
+            oFragColor = mix(vHorizontalColor, vVerticalColor, step(0.0, vF));
+            break;
+        case BORDER_STYLE_DOUBLE:
+            discard_pixels_in_rounded_borders(local_pos);
+            draw_double_border();
+            break;
+        default:
+            discard;
     }
-    case BORDER_STYLE_DOTTED:
-    {
-      draw_dotted_border();
-      break;
-    }
-    case BORDER_STYLE_OUTSET:
-    case BORDER_STYLE_INSET:
-    {
-      float color = step(0.0, vF);
-      oFragColor = mix(vVerticalColor, vHorizontalColor, color);
-      break;
-    }
-    case BORDER_STYLE_NONE:
-    case BORDER_STYLE_SOLID:
-    {
-      float color = step(0.0, vF);
-      oFragColor = mix(vHorizontalColor, vVerticalColor, color);
-      break;
-    }
-    case BORDER_STYLE_DOUBLE:
-    {
-      draw_double_border();
-      break;
-    }
-    default:
-    {
-      discard;
-    }
-  }
+#endif
 }

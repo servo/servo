@@ -47,7 +47,7 @@ util = {path = "../util"}
 xi-unicode = "0.0.1"
 
 [dependencies.webrender_traits]
-git = "https://github.com/servo/webrender_traits"
+git = "https://github.com/servo/webrender"
 default_features = false
 features = ["serde_macros"]
 
