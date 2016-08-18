@@ -87,7 +87,7 @@ ${helpers.predefined_type("background-color", "CSSColor",
 
             #[derive(PartialEq, Copy, Clone, Debug)]
             #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-            pub struct T(pub Position);
+            pub type T = Position;
         }
 
         impl HasViewportPercentage for SpecifiedValue {
@@ -98,7 +98,7 @@ ${helpers.predefined_type("background-color", "CSSColor",
 
         #[derive(Debug, Clone, PartialEq, Copy)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct SpecifiedValue(pub Position);
+        pub type SpecifiedValue = Position;
 
         impl ToCss for SpecifiedValue {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
