@@ -8,7 +8,5 @@ interface HTMLDialogElement : HTMLElement {
   attribute DOMString returnValue;
   //void show(optional (MouseEvent or Element) anchor);
   //void showModal(optional (MouseEvent or Element) anchor);
-
-  [Throws]
   void close(optional DOMString returnValue);
 };
