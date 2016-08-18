@@ -16,7 +16,7 @@ use properties::longhands::animation_play_state::computed_value::AnimationPlaySt
 use properties::longhands::transition_timing_function::computed_value::StartEnd;
 use properties::longhands::transition_timing_function::computed_value::TransitionTimingFunction;
 use properties::{self, ComputedValues};
-use selectors::matching::DeclarationBlock;
+use selector_matching::DeclarationBlock;
 use std::sync::Arc;
 use std::sync::mpsc::Sender;
 use string_cache::Atom;

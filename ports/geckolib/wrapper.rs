@@ -30,7 +30,6 @@ use gecko_string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
 use glue::GeckoDeclarationBlock;
 use libc::uintptr_t;
 use selectors::Element;
-use selectors::matching::DeclarationBlock;
 use selectors::parser::{AttrSelector, NamespaceConstraint};
 use snapshot::GeckoElementSnapshot;
 use snapshot_helpers;
@@ -50,6 +49,7 @@ use style::properties::{ComputedValues, parse_style_attribute};
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use style::refcell::{Ref, RefCell, RefMut};
 use style::selector_impl::ElementExt;
+use style::selector_matching::DeclarationBlock;
 use style::sink::Push;
 use url::Url;
 
@@ -473,7 +473,7 @@ impl<'le> PartialEq for GeckoElement<'le> {
 
 impl<'le> PresentationalHintsSynthetizer for GeckoElement<'le> {
     fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, _hints: &mut V)
-        where V: Push<DeclarationBlock<Vec<PropertyDeclaration>>>
+        where V: Push<DeclarationBlock>
     {
         // FIXME(bholley) - Need to implement this.
     }
