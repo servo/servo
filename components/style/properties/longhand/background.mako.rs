@@ -93,15 +93,15 @@ ${helpers.predefined_type("background-color", "CSSColor",
         #[inline]
         pub fn get_initial_value() -> computed_value::T {
             use values::computed::position::Position;
-            computed_value::T(Position {
+            Position {
                 horizontal: computed::LengthOrPercentage::Percentage(0.0),
                 vertical: computed::LengthOrPercentage::Percentage(0.0),
-            })
+            }
         }
 
         pub fn parse(_context: &ParserContext, input: &mut Parser)
                      -> Result<SpecifiedValue, ()> {
-            Ok(SpecifiedValue(try!(Position::parse(input))))
+            Ok(try!(Position::parse(input)))
         }
 </%helpers:longhand>
 
