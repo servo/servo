@@ -2008,10 +2008,8 @@ impl Fragment {
                 let font_derived_metrics =
                     InlineMetrics::from_font_metrics(&info.run.font_metrics, line_height);
                 InlineMetrics {
-                    block_size_above_baseline: font_derived_metrics.block_size_above_baseline +
-                                                   self.border_padding.block_start,
-                    depth_below_baseline: font_derived_metrics.depth_below_baseline +
-                        self.border_padding.block_end,
+                    block_size_above_baseline: font_derived_metrics.block_size_above_baseline,
+                    depth_below_baseline: font_derived_metrics.depth_below_baseline,
                     ascent: font_derived_metrics.ascent + self.border_padding.block_start,
                 }
             }
