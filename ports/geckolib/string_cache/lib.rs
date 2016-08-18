@@ -10,15 +10,14 @@ extern crate selectors;
 extern crate serde;
 
 use gecko_bindings::bindings::Gecko_AddRefAtom;
-use gecko_bindings::bindings::Gecko_AtomEqualsUTF8IgnoreCase;
 use gecko_bindings::bindings::Gecko_Atomize;
-use gecko_bindings::bindings::Gecko_GetAtomAsUTF16;
 use gecko_bindings::bindings::Gecko_ReleaseAtom;
 use gecko_bindings::structs::nsIAtom;
 use heapsize::HeapSizeOf;
 use selectors::bloom::BloomHash;
 use selectors::parser::FromCowStr;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use std::ascii::AsciiExt;
 use std::borrow::{Cow, Borrow};
 use std::char::{self, DecodeUtf16};
 use std::fmt;
@@ -96,9 +95,7 @@ impl WeakAtom {
 
     pub fn as_slice(&self) -> &[u16] {
         unsafe {
-            let mut len = 0;
-            let ptr = Gecko_GetAtomAsUTF16(self.as_ptr(), &mut len);
-            slice::from_raw_parts(ptr, len as usize)
+            slice::from_raw_parts((*self.as_ptr()).mString, self.len() as usize)
         }
     }
 
@@ -118,9 +115,10 @@ impl WeakAtom {
 
     #[inline]
     pub fn eq_str_ignore_ascii_case(&self, s: &str) -> bool {
-        unsafe {
-            Gecko_AtomEqualsUTF8IgnoreCase(self.as_ptr(), s.as_ptr() as *const _, s.len() as u32)
-        }
+        self.chars().map(|r| match r {
+            Ok(c) => c.to_ascii_lowercase() as u32,
+            Err(e) => e.unpaired_surrogate() as u32,
+        }).eq(s.chars().map(|c| c.to_ascii_lowercase() as u32))
     }
 
     #[inline]
