@@ -17,7 +17,7 @@ use selectors::Element;
 use selectors::bloom::BloomFilter;
 use selectors::matching::{AFFECTED_BY_STYLE_ATTRIBUTE, AFFECTED_BY_PRESENTATIONAL_HINTS};
 use selectors::matching::{StyleRelations, matches_compound_selector};
-use selectors::parser::{Selector, SelectorImpl, SimpleSelector, LocalName, CompoundSelector};
+use selectors::parser::{Selector, SimpleSelector, LocalName, CompoundSelector};
 use sink::Push;
 use smallvec::VecLike;
 use std::borrow::Borrow;
@@ -30,8 +30,6 @@ use string_cache::Atom;
 use style_traits::viewport::ViewportConstraints;
 use stylesheets::{CSSRule, CSSRuleIteratorExt, Origin, Stylesheet};
 use viewport::{MaybeNew, ViewportRuleCascade};
-
-pub type DeclarationBlock = GenericDeclarationBlock<Vec<PropertyDeclaration>>;
 
 /// This structure holds all the selectors and device characteristics
 /// for a given document. The selectors are converted into `Rule`s
@@ -399,7 +397,7 @@ impl Stylist {
             relations |= AFFECTED_BY_STYLE_ATTRIBUTE;
             Push::push(
                 applicable_declarations,
-                GenericDeclarationBlock::from_declarations(sa.normal.clone()));
+                DeclarationBlock::from_declarations(sa.normal.clone()));
         }
 
         debug!("style attr: {:?}", relations);
@@ -416,7 +414,7 @@ impl Stylist {
         if let Some(ref sa) = style_attribute {
             Push::push(
                 applicable_declarations,
-                GenericDeclarationBlock::from_declarations(sa.important.clone()));
+                DeclarationBlock::from_declarations(sa.important.clone()));
         }
 
         debug!("style attr important: {:?}", relations);
@@ -532,10 +530,10 @@ impl Stylist {
 struct PerOriginSelectorMap {
     /// Rules that contains at least one property declaration with
     /// normal importance.
-    normal: SelectorMap<Vec<PropertyDeclaration>, TheSelectorImpl>,
+    normal: SelectorMap,
     /// Rules that contains at least one property declaration with
     /// !important.
-    important: SelectorMap<Vec<PropertyDeclaration>, TheSelectorImpl>,
+    important: SelectorMap,
 }
 
 impl PerOriginSelectorMap {
@@ -600,16 +598,16 @@ impl PerPseudoElementSelectorMap {
 /// element name, etc. will contain the Rules that actually match that
 /// element.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub struct SelectorMap<T, Impl: SelectorImpl> {
+pub struct SelectorMap {
     // TODO: Tune the initial capacity of the HashMap
-    id_hash: HashMap<Impl::Identifier, Vec<Rule<T, Impl>>>,
-    class_hash: HashMap<Impl::ClassName, Vec<Rule<T, Impl>>>,
-    local_name_hash: HashMap<Impl::LocalName, Vec<Rule<T, Impl>>>,
+    id_hash: HashMap<Atom, Vec<Rule>>,
+    class_hash: HashMap<Atom, Vec<Rule>>,
+    local_name_hash: HashMap<Atom, Vec<Rule>>,
     /// Same as local_name_hash, but keys are lower-cased.
     /// For HTML elements in HTML documents.
-    lower_local_name_hash: HashMap<Impl::LocalName, Vec<Rule<T, Impl>>>,
+    lower_local_name_hash: HashMap<Atom, Vec<Rule>>,
     /// Rules that don't have ID, class, or element selectors.
-    other_rules: Vec<Rule<T, Impl>>,
+    other_rules: Vec<Rule>,
     /// Whether this hash is empty.
     empty: bool,
 }
@@ -619,14 +617,14 @@ fn sort_by_key<T, F: Fn(&T) -> K, K: Ord>(v: &mut [T], f: F) {
     sort_by(v, &|a, b| f(a).cmp(&f(b)))
 }
 
-impl<T, Impl: SelectorImpl> SelectorMap<T, Impl> {
-    pub fn new() -> SelectorMap<T, Impl> {
+impl SelectorMap {
+    pub fn new() -> Self {
         SelectorMap {
             id_hash: HashMap::default(),
             class_hash: HashMap::default(),
             local_name_hash: HashMap::default(),
             lower_local_name_hash: HashMap::default(),
-            other_rules: vec!(),
+            other_rules: Vec::new(),
             empty: true,
         }
     }
@@ -640,8 +638,8 @@ impl<T, Impl: SelectorImpl> SelectorMap<T, Impl> {
                                         parent_bf: Option<&BloomFilter>,
                                         matching_rules_list: &mut V,
                                         relations: &mut StyleRelations)
-        where E: Element<Impl=Impl>,
-              V: VecLike<GenericDeclarationBlock<T>>
+        where E: Element<Impl=TheSelectorImpl>,
+              V: VecLike<DeclarationBlock>
     {
         if self.empty {
             return
@@ -675,7 +673,7 @@ impl<T, Impl: SelectorImpl> SelectorMap<T, Impl> {
         SelectorMap::get_matching_rules_from_hash(element,
                                                   parent_bf,
                                                   local_name_hash,
-                                                  &element.get_local_name(),
+                                                  element.get_local_name(),
                                                   matching_rules_list,
                                                   relations);
 
@@ -694,7 +692,7 @@ impl<T, Impl: SelectorImpl> SelectorMap<T, Impl> {
     /// `self` sorted by specifity and source order.
     pub fn get_universal_rules<V>(&self,
                                   matching_rules_list: &mut V)
-        where V: VecLike<GenericDeclarationBlock<T>>
+        where V: VecLike<DeclarationBlock>
     {
         if self.empty {
             return
@@ -716,14 +714,14 @@ impl<T, Impl: SelectorImpl> SelectorMap<T, Impl> {
     fn get_matching_rules_from_hash<E, Str, BorrowedStr: ?Sized, Vector>(
         element: &E,
         parent_bf: Option<&BloomFilter>,
-        hash: &HashMap<Str, Vec<Rule<T, Impl>>>,
+        hash: &HashMap<Str, Vec<Rule>>,
         key: &BorrowedStr,
         matching_rules: &mut Vector,
         relations: &mut StyleRelations)
-        where E: Element<Impl=Impl>,
+        where E: Element<Impl=TheSelectorImpl>,
               Str: Borrow<BorrowedStr> + Eq + Hash,
               BorrowedStr: Eq + Hash,
-              Vector: VecLike<GenericDeclarationBlock<T>>
+              Vector: VecLike<DeclarationBlock>
     {
         if let Some(rules) = hash.get(key) {
             SelectorMap::get_matching_rules(element,
@@ -737,11 +735,11 @@ impl<T, Impl: SelectorImpl> SelectorMap<T, Impl> {
     /// Adds rules in `rules` that match `element` to the `matching_rules` list.
     fn get_matching_rules<E, V>(element: &E,
                                 parent_bf: Option<&BloomFilter>,
-                                rules: &[Rule<T, Impl>],
+                                rules: &[Rule],
                                 matching_rules: &mut V,
                                 relations: &mut StyleRelations)
-        where E: Element<Impl=Impl>,
-              V: VecLike<GenericDeclarationBlock<T>>
+        where E: Element<Impl=TheSelectorImpl>,
+              V: VecLike<DeclarationBlock>
     {
         for rule in rules.iter() {
             if matches_compound_selector(&*rule.selector,
@@ -753,7 +751,7 @@ impl<T, Impl: SelectorImpl> SelectorMap<T, Impl> {
 
     /// Insert rule into the correct hash.
     /// Order in which to try: id_hash, class_hash, local_name_hash, other_rules.
-    pub fn insert(&mut self, rule: Rule<T, Impl>) {
+    pub fn insert(&mut self, rule: Rule) {
         self.empty = false;
 
         if let Some(id_name) = SelectorMap::get_id_name(&rule) {
@@ -776,7 +774,7 @@ impl<T, Impl: SelectorImpl> SelectorMap<T, Impl> {
     }
 
     /// Retrieve the first ID name in Rule, or None otherwise.
-    fn get_id_name(rule: &Rule<T, Impl>) -> Option<Impl::Identifier> {
+    fn get_id_name(rule: &Rule) -> Option<Atom> {
         for ss in &rule.selector.simple_selectors {
             // TODO(pradeep): Implement case-sensitivity based on the
             // document type and quirks mode.
@@ -789,7 +787,7 @@ impl<T, Impl: SelectorImpl> SelectorMap<T, Impl> {
     }
 
     /// Retrieve the FIRST class name in Rule, or None otherwise.
-    fn get_class_name(rule: &Rule<T, Impl>) -> Option<Impl::ClassName> {
+    fn get_class_name(rule: &Rule) -> Option<Atom> {
         for ss in &rule.selector.simple_selectors {
             // TODO(pradeep): Implement case-sensitivity based on the
             // document type and quirks mode.
@@ -802,7 +800,7 @@ impl<T, Impl: SelectorImpl> SelectorMap<T, Impl> {
     }
 
     /// Retrieve the name if it is a type selector, or None otherwise.
-    fn get_local_name(rule: &Rule<T, Impl>) -> Option<LocalName<Impl>> {
+    fn get_local_name(rule: &Rule) -> Option<LocalName<TheSelectorImpl>> {
         for ss in &rule.selector.simple_selectors {
             if let SimpleSelector::LocalName(ref n) = *ss {
                 return Some(LocalName {
@@ -817,50 +815,29 @@ impl<T, Impl: SelectorImpl> SelectorMap<T, Impl> {
 }
 
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub struct Rule<T, Impl: SelectorImpl> {
+#[derive(Clone)]
+pub struct Rule {
     // This is an Arc because Rule will essentially be cloned for every element
     // that it matches. Selector contains an owned vector (through
     // CompoundSelector) and we want to avoid the allocation.
-    pub selector: Arc<CompoundSelector<Impl>>,
-    pub declarations: GenericDeclarationBlock<T>,
+    pub selector: Arc<CompoundSelector<TheSelectorImpl>>,
+    pub declarations: DeclarationBlock,
 }
 
 /// A property declaration together with its precedence among rules of equal specificity so that
 /// we can sort them.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Debug)]
-pub struct GenericDeclarationBlock<T> {
-    pub declarations: Arc<T>,
+#[derive(Debug, Clone)]
+pub struct DeclarationBlock {
+    pub declarations: Arc<Vec<PropertyDeclaration>>,
     pub source_order: usize,
     pub specificity: u32,
 }
 
-// FIXME(https://github.com/rust-lang/rust/issues/7671)
-// derive(Clone) requires T: Clone, even though Arc<T>: T regardless.
-impl<T> Clone for GenericDeclarationBlock<T> {
-    fn clone(&self) -> Self {
-        GenericDeclarationBlock {
-            declarations: self.declarations.clone(),
-            source_order: self.source_order,
-            specificity: self.specificity,
-        }
-    }
-}
-
-// FIXME(https://github.com/rust-lang/rust/issues/7671)
-impl<T, Impl: SelectorImpl> Clone for Rule<T, Impl> {
-    fn clone(&self) -> Rule<T, Impl> {
-        Rule {
-            selector: self.selector.clone(),
-            declarations: self.declarations.clone(),
-        }
-    }
-}
-
-impl<T> GenericDeclarationBlock<T> {
+impl DeclarationBlock {
     #[inline]
-    pub fn from_declarations(declarations: Arc<T>) -> Self {
-        GenericDeclarationBlock {
+    pub fn from_declarations(declarations: Arc<Vec<PropertyDeclaration>>) -> Self {
+        DeclarationBlock {
             declarations: declarations,
             source_order: 0,
             specificity: 0,
@@ -868,14 +845,6 @@ impl<T> GenericDeclarationBlock<T> {
     }
 }
 
-fn find_push<T, Impl: SelectorImpl, Str: Eq + Hash>(
-    map: &mut HashMap<Str, Vec<Rule<T, Impl>>>,
-    key: Str,
-    value: Rule<T, Impl>
-) {
-    if let Some(vec) = map.get_mut(&key) {
-        vec.push(value);
-        return
-    }
-    map.insert(key, vec![value]);
+fn find_push<Str: Eq + Hash>(map: &mut HashMap<Str, Vec<Rule>>, key: Str, value: Rule) {
+    map.entry(key).or_insert_with(Vec::new).push(value)
 }
