@@ -44,35 +44,35 @@
                   function() { sourceBuffer.appendWindowStart = Number.NaN; },
                   "set appendWindowStart throws an exception for Number.NaN.");
 
-              assert_throws("InvalidAccessError",
+              assert_throws(new TypeError(),
                   function() { sourceBuffer.appendWindowStart = 600.0; },
                   "set appendWindowStart throws an exception when greater than appendWindowEnd.");
 
-              assert_throws("InvalidAccessError",
+              assert_throws(new TypeError(),
                   function() { sourceBuffer.appendWindowStart = sourceBuffer.appendWindowEnd; },
                   "set appendWindowStart throws an exception when equal to appendWindowEnd.");
 
-              assert_throws("InvalidAccessError",
+              assert_throws(new TypeError(),
                   function() { sourceBuffer.appendWindowEnd = sourceBuffer.appendWindowStart; },
                   "set appendWindowEnd throws an exception when equal to appendWindowStart.");
 
-              assert_throws("InvalidAccessError",
+              assert_throws(new TypeError(),
                   function() { sourceBuffer.appendWindowEnd = sourceBuffer.appendWindowStart - 1; },
                   "set appendWindowEnd throws an exception if less than appendWindowStart.");
 
-              assert_throws("InvalidAccessError",
+              assert_throws(new TypeError(),
                   function() { sourceBuffer.appendWindowStart = -100.0; },
                   "set appendWindowStart throws an exception when less than 0.");
 
-              assert_throws("InvalidAccessError",
+              assert_throws(new TypeError(),
                   function() { sourceBuffer.appendWindowEnd = -100.0; },
                   "set appendWindowEnd throws an exception when less than 0.");
 
-              assert_throws("InvalidAccessError",
+              assert_throws(new TypeError(),
                   function() { sourceBuffer.appendWindowEnd = Number.NaN; },
                   "set appendWindowEnd throws an exception if NaN.");
 
-              assert_throws("InvalidAccessError",
+              assert_throws(new TypeError(),
                   function() { sourceBuffer.appendWindowEnd = undefined; },
                   "set appendWindowEnd throws an exception if undefined.");
 

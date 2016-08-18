@@ -1,3 +1,6 @@
+from urllib import urlencode
+from urlparse import urlparse
+
 def main(request, response):
     stashed_data = {'count': 0, 'preflight': "0"}
     status = 302
@@ -28,13 +31,16 @@ def main(request, response):
 
     stashed_data['count'] += 1
 
-    #keep url parameters in location
-    url_parameters = "?" + "&".join(map(lambda x: x[0][0] + "=" + x[1][0], request.GET.items()))
-    #make sure location changes during redirection loop
-    url_parameters += "&count=" + str(stashed_data['count'])
-
     if "location" in request.GET:
-        headers.append(("Location", request.GET['location'] + url_parameters))
+        url = request.GET['location']
+        scheme = urlparse(url).scheme
+        if scheme == "" or scheme == "http" or scheme == "https":
+            url += "&" if '?' in url else "?"
+            #keep url parameters in location
+            url += urlencode(request.GET.items())
+            #make sure location changes during redirection loop
+            url += "&count=" + str(stashed_data['count'])
+        headers.append(("Location", url))
 
     if token:
         request.server.stash.put(request.GET.first("token"), stashed_data)

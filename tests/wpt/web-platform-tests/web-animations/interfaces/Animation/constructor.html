@@ -13,45 +13,52 @@
 "use strict";
 
 var gTarget = document.getElementById("target");
-var gEffect = new KeyframeEffectReadOnly(gTarget, { opacity: [0, 1] });
+
+function createEffect() {
+  return new KeyframeEffectReadOnly(gTarget, { opacity: [0, 1] });
+}
+
+function createNull() {
+  return null;
+}
 
 var gTestArguments = [
   {
-    effect: null,
+    createEffect: createNull,
     timeline: null,
     expectedTimeline: null,
     expectedTimelineDescription: "null",
     description: "with null effect and null timeline"
   },
   {
-    effect: null,
+    createEffect: createNull,
     timeline: document.timeline,
     expectedTimeline: document.timeline,
     expectedTimelineDescription: "document.timeline",
     description: "with null effect and non-null timeline"
   },
   {
-    effect: null,
+    createEffect: createNull,
     expectedTimeline: document.timeline,
     expectedTimelineDescription: "document.timeline",
     description: "with null effect and no timeline parameter"
   },
   {
-    effect: gEffect,
+    createEffect: createEffect,
     timeline: null,
     expectedTimeline: null,
     expectedTimelineDescription: "null",
     description: "with non-null effect and null timeline"
   },
   {
-    effect: gEffect,
+    createEffect: createEffect,
     timeline: document.timeline,
     expectedTimeline: document.timeline,
     expectedTimelineDescription: "document.timeline",
     description: "with non-null effect and non-null timeline"
   },
   {
-    effect: gEffect,
+    createEffect: createEffect,
     expectedTimeline: document.timeline,
     expectedTimelineDescription: "document.timeline",
     description: "with non-null effect and no timeline parameter"
@@ -60,11 +67,12 @@ var gTestArguments = [
 
 gTestArguments.forEach(function(args) {
   test(function(t) {
-    var animation = new Animation(args.effect, args.timeline);
+    var effect = args.createEffect();
+    var animation = new Animation(effect, args.timeline);
 
     assert_not_equals(animation, null,
                       "An animation sohuld be created");
-    assert_equals(animation.effect, args.effect,
+    assert_equals(animation.effect, effect,
                   "Animation returns the same effect passed to " +
                   "the Constructor");
     assert_equals(animation.timeline, args.expectedTimeline,

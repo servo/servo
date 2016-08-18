@@ -71,17 +71,17 @@ test(function() {
 test(function() {
   var t = document.body.appendChild(document.createElementNS("http://www.w3.org/1999/xhtml", "test:aÇ"))
   this.add_cleanup(function() {document.body.removeChild(t)})
-  assert_array_equals(document.getElementsByTagName("AÇ"), [], "All uppercase input")
-  assert_array_equals(document.getElementsByTagName("aÇ"), [t], "Ascii lowercase input")
-  assert_array_equals(document.getElementsByTagName("aç"), [], "All lowercase input")
+  assert_array_equals(document.getElementsByTagName("TEST:AÇ"), [], "All uppercase input")
+  assert_array_equals(document.getElementsByTagName("test:aÇ"), [t], "Ascii lowercase input")
+  assert_array_equals(document.getElementsByTagName("test:aç"), [], "All lowercase input")
 }, "Element in HTML namespace, prefix, non-ascii characters in name")
 
 test(function() {
-  var t = document.body.appendChild(document.createElementNS("test", "test:AÇ"))
+  var t = document.body.appendChild(document.createElementNS("test", "TEST:AÇ"))
   this.add_cleanup(function() {document.body.removeChild(t)})
-  assert_array_equals(document.getElementsByTagName("AÇ"), [t], "All uppercase input")
-  assert_array_equals(document.getElementsByTagName("aÇ"), [], "Ascii lowercase input")
-  assert_array_equals(document.getElementsByTagName("aç"), [], "All lowercase input")
+  assert_array_equals(document.getElementsByTagName("TEST:AÇ"), [t], "All uppercase input")
+  assert_array_equals(document.getElementsByTagName("test:aÇ"), [], "Ascii lowercase input")
+  assert_array_equals(document.getElementsByTagName("test:aç"), [], "All lowercase input")
 }, "Element in non-HTML namespace, prefix, non-ascii characters in name")
 
 test(function() {

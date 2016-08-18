@@ -1,23 +1,18 @@
 if (this.document === undefined) {
+  importScripts("/common/utils.js");
   importScripts("/resources/testharness.js");
   importScripts("../resources/utils.js");
-  importScripts("/common/utils.js");
+  importScripts("../resources/get-host-info.sub.js")
 }
 
 /* If origin is undefined, it is set to fetched url's origin*/
-function corsOrigin(desc, scheme, subdomain, port, method, origin, shouldPass) {
-  if (!port)
-    port = location.port;
-  if (subdomain)
-    subdomain = subdomain + ".";
-  else
-    subdomain = "";
+function corsOrigin(desc, baseURL, method, origin, shouldPass) {
   if (!origin)
-    origin = scheme + "://" + subdomain + "{{host}}" + ":" + port;
+    origin = baseURL;
 
   var uuid_token = token();
   var urlParameters = "?token=" + uuid_token + "&max_age=0&origin=" + encodeURIComponent(origin) + "&allow_methods=" + method;
-  var url = scheme + "://" + subdomain + "{{host}}" + ":" + port + dirname(location.pathname) + RESOURCES_DIR + "preflight.py";
+  var url = baseURL + dirname(location.pathname) + RESOURCES_DIR + "preflight.py";
   var requestInit = {"mode": "cors", "method": method};
 
   promise_test(function(test) {
@@ -34,28 +29,28 @@ function corsOrigin(desc, scheme, subdomain, port, method, origin, shouldPass) {
   }, desc);
 
 }
-var port = "{{ports[http][0]}}";
-var port2 = "{{ports[http][1]}}";
-var httpsPort = "{{ports[https][0]}}";
-/* Actual origin */
-var origin = "http://{{host}}:{{ports[http][0]}}";
 
-corsOrigin("Cross domain different subdomain [origin OK]", "http", "www1", undefined, "GET", origin, true);
-corsOrigin("Cross domain different subdomain [origin KO]", "http", "www1", undefined, "GET", undefined, false);
-corsOrigin("Same domain different port [origin OK]", "http", undefined, port2, "GET", origin, true);
-corsOrigin("Same domain different port [origin KO]", "http", undefined, port2, "GET", undefined, false);
-corsOrigin("Cross domain different port [origin OK]", "http", "www1", port2, "GET", origin, true);
-corsOrigin("Cross domain different port [origin KO]", "http", "www1", port2, "GET", undefined, false);
-corsOrigin("Cross domain different protocol [origin OK]", "https", "www1", httpsPort, "GET", origin, true);
-corsOrigin("Cross domain different protocol [origin KO]", "https", "www1", httpsPort, "GET", undefined, false);
-corsOrigin("Same domain different protocol different port [origin OK]", "https", undefined, httpsPort, "GET", origin, true);
-corsOrigin("Same domain different protocol different port [origin KO]", "https", undefined, httpsPort, "GET", undefined, false);
-corsOrigin("Cross domain [POST] [origin OK]", "http", "www1", undefined, "POST", origin, true);
-corsOrigin("Cross domain [POST] [origin KO]", "http", "www1", undefined, "POST", undefined, false);
-corsOrigin("Cross domain [HEAD] [origin OK]", "http", "www1", undefined, "HEAD", origin, true);
-corsOrigin("Cross domain [HEAD] [origin KO]", "http", "www1", undefined, "HEAD", undefined, false);
-corsOrigin("CORS preflight [PUT] [origin OK]", "http", "www1", undefined, "PUT", origin, true);
-corsOrigin("CORS preflight [PUT] [origin KO]", "http", "www1", undefined, "PUT", undefined, false);
-corsOrigin("Allowed origin: \"\" [origin KO]", "http", "www1", undefined, "GET", "" , false);
+var host_info = get_host_info();
+
+/* Actual origin */
+var origin = host_info.HTTP_ORIGIN;
+
+corsOrigin("Cross domain different subdomain [origin OK]", host_info.HTTP_REMOTE_ORIGIN, "GET", origin, true);
+corsOrigin("Cross domain different subdomain [origin KO]", host_info.HTTP_REMOTE_ORIGIN, "GET", undefined, false);
+corsOrigin("Same domain different port [origin OK]", host_info.HTTP_ORIGIN_WITH_DIFFERENT_PORT, "GET", origin, true);
+corsOrigin("Same domain different port [origin KO]", host_info.HTTP_ORIGIN_WITH_DIFFERENT_PORT, "GET", undefined, false);
+corsOrigin("Cross domain different port [origin OK]", host_info.HTTP_REMOTE_ORIGIN_WITH_DIFFERENT_PORT, "GET", origin, true);
+corsOrigin("Cross domain different port [origin KO]", host_info.HTTP_REMOTE_ORIGIN_WITH_DIFFERENT_PORT, "GET", undefined, false);
+corsOrigin("Cross domain different protocol [origin OK]", host_info.HTTPS_REMOTE_ORIGIN, "GET", origin, true);
+corsOrigin("Cross domain different protocol [origin KO]", host_info.HTTPS_REMOTE_ORIGIN, "GET", undefined, false);
+corsOrigin("Same domain different protocol different port [origin OK]", host_info.HTTPS_ORIGIN, "GET", origin, true);
+corsOrigin("Same domain different protocol different port [origin KO]", host_info.HTTPS_ORIGIN, "GET", undefined, false);
+corsOrigin("Cross domain [POST] [origin OK]", host_info.HTTP_REMOTE_ORIGIN, "POST", origin, true);
+corsOrigin("Cross domain [POST] [origin KO]", host_info.HTTP_REMOTE_ORIGIN, "POST", undefined, false);
+corsOrigin("Cross domain [HEAD] [origin OK]", host_info.HTTP_REMOTE_ORIGIN, "HEAD", origin, true);
+corsOrigin("Cross domain [HEAD] [origin KO]", host_info.HTTP_REMOTE_ORIGIN, "HEAD", undefined, false);
+corsOrigin("CORS preflight [PUT] [origin OK]", host_info.HTTP_REMOTE_ORIGIN, "PUT", origin, true);
+corsOrigin("CORS preflight [PUT] [origin KO]", host_info.HTTP_REMOTE_ORIGIN, "PUT", undefined, false);
+corsOrigin("Allowed origin: \"\" [origin KO]", host_info.HTTP_REMOTE_ORIGIN, "GET", "" , false);
 
 done();

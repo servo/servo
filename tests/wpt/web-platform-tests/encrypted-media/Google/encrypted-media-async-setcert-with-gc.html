@@ -4,8 +4,8 @@
     <head>
         <title>Test asynchronous setServerCertificate while running garbage collection</title>
         <script src="encrypted-media-utils.js"></script>
-        <script src="../../resources/testharness.js"></script>
-        <script src="../../resources/testharnessreport.js"></script>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
     </head>
     <body>
         <div id="log"></div>
@@ -15,7 +15,7 @@
 
             promise_test(function(test)
             {
-                return navigator.requestMediaKeySystemAccess('org.w3.clearkey', [{}]).then(function(access) {
+                return navigator.requestMediaKeySystemAccess('org.w3.clearkey', getSimpleConfiguration()).then(function(access) {
                     return access.createMediaKeys();
                 }).then(function(mediaKeys) {
                     var cert = new Uint8Array(200);

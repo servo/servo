@@ -2,6 +2,7 @@ if (this.document === undefined) {
   importScripts("/resources/testharness.js");
   importScripts("../resources/utils.js");
   importScripts("/common/utils.js");
+  importScripts("../resources/get-host-info.sub.js");
 }
 
 function corsPreflightRedirect(desc, redirectUrl, redirectLocation, redirectStatus, redirectPreflight) {
@@ -27,8 +28,8 @@ function corsPreflightRedirect(desc, redirectUrl, redirectLocation, redirectStat
   }, desc);
 }
 
-var redirectUrl = "http://www1.{{host}}:{{ports[http][0]}}" + dirname(location.pathname) + RESOURCES_DIR + "redirect.py";
-var locationUrl = "http://www1.{{host}}:{{ports[http][0]}}" + dirname(location.pathname) + RESOURCES_DIR + "preflight.py";
+var redirectUrl = get_host_info().HTTP_REMOTE_ORIGIN + dirname(location.pathname) + RESOURCES_DIR + "redirect.py";
+var locationUrl =  get_host_info().HTTP_REMOTE_ORIGIN + dirname(location.pathname) + RESOURCES_DIR + "preflight.py";
 
 for (var code of [301, 302, 303, 307, 308]) {
   /* preflight should not follow the redirection */

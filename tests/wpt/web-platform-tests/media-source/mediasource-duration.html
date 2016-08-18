@@ -41,20 +41,28 @@
                   test.waitForExpectedEvents(function()
                   {
                       assert_greater_than_equal(mediaElement.currentTime, seekTo, 'Playback time has reached seekTo');
-                      assert_equals(mediaElement.duration, fullDuration, 'mediaElement fullDuration after seekTo');
-                      assert_equals(mediaSource.duration, fullDuration, 'mediaSource fullDuration after seekTo');
                       assert_false(mediaElement.seeking, 'mediaElement.seeking after seeked to seekTo');
-
-                      test.expectEvent(mediaElement, 'seeking', 'Seeking to truncated duration');
 
                       assert_false(sourceBuffer.updating, 'sourceBuffer.updating');
 
-                      mediaSource.duration = truncatedDuration;
+                      sourceBuffer.remove(truncatedDuration, Infinity);
 
                       assert_true(sourceBuffer.updating, 'sourceBuffer.updating');
                       test.expectEvent(sourceBuffer, 'updatestart', 'sourceBuffer');
                       test.expectEvent(sourceBuffer, 'update', 'sourceBuffer');
                       test.expectEvent(sourceBuffer, 'updateend', 'sourceBuffer');
+                  });
+
+                  test.waitForExpectedEvents(function()
+                  {
+                      assert_greater_than_equal(mediaElement.currentTime, seekTo, 'Playback time has reached seekTo');
+                      assert_equals(mediaElement.duration, fullDuration, 'mediaElement fullDuration after seekTo');
+                      assert_equals(mediaSource.duration, fullDuration, 'mediaSource fullDuration after seekTo');
+                      test.expectEvent(mediaElement, 'seeking', 'Seeking to truncated duration');
+
+                      assert_false(sourceBuffer.updating, 'sourceBuffer.updating');
+
+                      mediaSource.duration = truncatedDuration;
 
                       assert_true(mediaElement.seeking, 'Seeking after setting truncatedDuration');
                   });
@@ -168,13 +176,10 @@
                   assert_equals(mediaSource.duration, fullDuration, 'mediaSource fullDuration');
                   assert_less_than(mediaElement.currentTime, newDuration / 2, 'mediaElement currentTime');
 
-                  // Media load also fires 'durationchange' event, so only start counting them now.
-                  mediaElement.addEventListener('durationchange', durationchangeEventHandler);
-
                   assert_false(sourceBuffer.updating, "updating");
 
                   // Truncate duration. This should result in one 'durationchange' fired.
-                  mediaSource.duration = newDuration;
+                  sourceBuffer.remove(newDuration, Infinity);
 
                   assert_true(sourceBuffer.updating, "updating");
                   test.expectEvent(sourceBuffer, 'updatestart', 'sourceBuffer');
@@ -184,7 +189,27 @@
 
               test.waitForExpectedEvents(function()
               {
+                  assert_equals(mediaElement.duration, fullDuration, 'mediaElement fullDuration');
+                  assert_equals(mediaSource.duration, fullDuration, 'mediaSource fullDuration');
+                  assert_less_than(mediaElement.currentTime, newDuration / 2, 'mediaElement currentTime');
+
+                  // Media load also fires 'durationchange' event, so only start counting them now.
+                  mediaElement.addEventListener('durationchange', durationchangeEventHandler);
+
                   assert_false(sourceBuffer.updating, "updating");
+
+                  // Truncate duration. This should result in one 'durationchange' fired.
+                  mediaSource.duration = newDuration;
+              });
+
+              test.waitForExpectedEvents(function()
+              {
+                  assert_false(sourceBuffer.updating, "updating");
+
+                  // Final duration may be greater than originally set as per MSE's 2.4.6 Duration change
+                  // Adjust newDuration accordingly.
+                  assert_true(newDuration <= mediaSource.duration, 'adjusted duration');
+                  newDuration = mediaSource.duration;
 
                   // Set duration again to make sure it does not trigger another 'durationchange' event.
                   mediaSource.duration = newDuration;
@@ -193,11 +218,10 @@
                   test.expectEvent(mediaSource, 'sourceended', 'endOfStream acknowledged');
                   mediaSource.endOfStream();
 
-                  // endOfStream can change duration downwards slightly.
+                  // endOfStream can change duration slightly.
                   // Allow for one more 'durationchange' event only in this case.
                   var currentDuration = mediaSource.duration;
                   if (currentDuration != newDuration) {
-                      assert_true(currentDuration > 0 && currentDuration < newDuration, 'adjusted duration');
                       newDuration = currentDuration;
                       ++expectedDurationChangeEventCount;
                   }
@@ -212,6 +236,32 @@
                   });
               });
           }, 'Test setting same duration multiple times does not fire duplicate durationchange');
+
+          mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
+          {
+              assert_greater_than(segmentInfo.duration, 2, 'Sufficient test media duration');
+
+              var fullDuration = segmentInfo.duration;
+              var newDuration = fullDuration / 2;
+
+              // Append all the segments
+              test.expectEvent(sourceBuffer, 'updateend', 'sourceBuffer');
+              test.expectEvent(mediaElement, 'loadedmetadata', 'mediaElement');
+              sourceBuffer.appendBuffer(mediaData);
+
+              test.waitForExpectedEvents(function()
+              {
+                  assert_false(sourceBuffer.updating, "updating");
+
+                  assert_throws("InvalidStateError", function()
+                  {
+                      mediaSource.duration = newDuration;
+                  }, "duration");
+
+                  test.done();
+              });
+          }, 'Test setting the duration to less than the highest starting presentation timestamp will throw');
+
         </script>
     </body>
 </html>

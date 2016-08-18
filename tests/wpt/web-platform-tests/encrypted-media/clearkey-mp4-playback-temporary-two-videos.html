@@ -1,0 +1,54 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <meta name="timeout" content="long">
+    <title>Encrypted Media Extensions: Successful Playback, Temporary session with Clear Key, mp4, two videos</title>
+    <link rel="help" href="https://w3c.github.io/encrypted-media/">
+
+    <!-- Web Platform Test Harness scripts -->
+    <script src=/resources/testharness.js></script>
+    <script src=/resources/testharnessreport.js></script>
+
+    <!-- Helper scripts for Encrypted Media Extensions tests  -->
+    <script src=/encrypted-media/util/utils.js></script>
+    <script src=/encrypted-media/util/fetch.js></script>
+    <script src=/encrypted-media/util/testmediasource.js></script>
+    <script src=/encrypted-media/util/utf8.js></script>
+
+    <!-- Content metadata -->
+    <script src=/encrypted-media/content/content-metadata.js></script>
+
+    <!-- Message handler for Clear Key keysystem -->
+    <script src=/encrypted-media/util/clearkey-messagehandler.js></script>
+
+    <!-- The script for this specific test -->
+    <script src=/encrypted-media/scripts/playback-temporary-two-videos.js></script>
+
+  </head>
+  <body>
+    <div id='log'></div>
+
+    <div id='video'>
+      <video id="videoelement1" width="200px"></video>
+      <video id="videoelement2" width="200px"></video>
+    </div>
+
+    <script>
+        var contentitem = content['mp4-basic'],
+            config = {  video:              [   document.getElementById( 'videoelement1' ),
+                                                document.getElementById( 'videoelement2' ) ],
+                        keysystem:          'org.w3.clearkey',
+                        messagehandler:     messagehandler.bind( contentitem ),
+                        audioPath:          contentitem.audio.path,
+                        videoPath:          contentitem.video.path,
+                        audioType:          contentitem.audio.type,
+                        videoType:          contentitem.video.type,
+                        initDataType:       'keyids',
+                        initData:           getInitData(contentitem,'keyids'),
+                        duration:           2 };
+
+        runTest(config);
+    </script>
+  </body>
+</html>

@@ -49,7 +49,7 @@ def get_tests(base_dir, file_name, tests_list):
 def process_test(test):
     (new, new_path) = tempfile.mkstemp()
     script_tag_found = False
-    with open(test) as test_file:
+    with open(test, "r") as test_file:
         for line in test_file:
             if not script_tag_found and "<script" in line:
                 indent = ' ' * line.index('<')

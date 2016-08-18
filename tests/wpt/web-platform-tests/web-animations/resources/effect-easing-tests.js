@@ -1,13 +1,42 @@
 var gEffectEasingTests = [
   {
-    desc: 'steps(start) function',
+    desc: 'step-start function',
+    easing: 'step-start',
+    easingFunction: stepStart(1),
+    serialization: 'steps(1, start)'
+  },
+  {
+    desc: 'steps(1, start) function',
+    easing: 'steps(1, start)',
+    easingFunction: stepStart(1)
+  },
+  {
+    desc: 'steps(2, start) function',
     easing: 'steps(2, start)',
     easingFunction: stepStart(2)
   },
   {
-    desc: 'steps(end) function',
+    desc: 'step-end function',
+    easing: 'step-end',
+    easingFunction: stepEnd(1),
+    serialization: 'steps(1)'
+  },
+  {
+    desc: 'steps(1) function',
+    easing: 'steps(1)',
+    easingFunction: stepEnd(1)
+  },
+  {
+    desc: 'steps(1, end) function',
+    easing: 'steps(1, end)',
+    easingFunction: stepEnd(1),
+    serialization: 'steps(1)'
+  },
+  {
+    desc: 'steps(2, end) function',
     easing: 'steps(2, end)',
-    easingFunction: stepEnd(2)
+    easingFunction: stepEnd(2),
+    serialization: 'steps(2)'
   },
   {
     desc: 'linear function',
@@ -39,4 +68,31 @@ var gEffectEasingTests = [
     easing: 'cubic-bezier(0, 1.5, 1, 1.5)',
     easingFunction: cubicBezier(0, 1.5, 1, 1.5)
   }
+];
+
+var gInvalidEasingTests = [
+  {
+    easing: ''
+  },
+  {
+    easing: 'test'
+  },
+  {
+    easing: 'cubic-bezier(1.1, 0, 1, 1)'
+  },
+  {
+    easing: 'cubic-bezier(0, 0, 1.1, 1)'
+  },
+  {
+    easing: 'cubic-bezier(-0.1, 0, 1, 1)'
+  },
+  {
+    easing: 'cubic-bezier(0, 0, -0.1, 1)'
+  },
+  {
+    easing: 'steps(-1, start)'
+  },
+  {
+    easing: 'steps(0.1, start)'
+  },
 ];

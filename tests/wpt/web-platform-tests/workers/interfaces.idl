@@ -1,7 +1,7 @@
 // -----------------------------------------------------------------------------
 // DOM
 // -----------------------------------------------------------------------------
-//[Exposed=Window,Worker]
+[Exposed=(Window,Worker)]
 interface EventTarget {
   void addEventListener(DOMString type, EventListener? callback, optional boolean capture = false);
   void removeEventListener(DOMString type, EventListener? callback, optional boolean capture = false);
@@ -23,7 +23,7 @@ typedef EventHandlerNonNull? EventHandler;
 callback OnErrorEventHandlerNonNull = any ((Event or DOMString) event, optional DOMString source, optional unsigned long lineno, optional unsigned long column, optional any error);
 typedef OnErrorEventHandlerNonNull? OnErrorEventHandler;
 
-//[Exposed=Worker]
+[Exposed=Worker]
 interface WorkerGlobalScope : EventTarget {
   readonly attribute WorkerGlobalScope self;
   readonly attribute WorkerLocation location;
@@ -35,7 +35,7 @@ interface WorkerGlobalScope : EventTarget {
   attribute EventHandler ononline;
 };
 
-[Global/*=(Worker,DedicatedWorker),Exposed=DedicatedWorker*/]
+[Global=(Worker,DedicatedWorker),Exposed=DedicatedWorker]
 /*sealed*/ interface DedicatedWorkerGlobalScope : WorkerGlobalScope {
   void postMessage(any message, optional sequence<Transferable> transfer);
   attribute EventHandler onmessage;
@@ -49,7 +49,7 @@ partial interface WorkerGlobalScope { // not obsolete
 WorkerGlobalScope implements WindowTimers;
 WorkerGlobalScope implements WindowBase64;
 
-[NoInterfaceObject/*, Exposed=(Window,Worker)*/]
+[NoInterfaceObject, Exposed=(Window,Worker)]
 interface WindowTimers {
   long setTimeout(Function handler, optional long timeout = 0, any... arguments);
   long setTimeout(DOMString handler, optional long timeout = 0, any... arguments);
@@ -59,19 +59,19 @@ interface WindowTimers {
   void clearInterval(optional long handle = 0);
 };
 
-[NoInterfaceObject/*, Exposed=(Window,Worker)*/]
+[NoInterfaceObject, Exposed=(Window,Worker)]
 interface WindowBase64 {
   DOMString btoa(DOMString btoa);
   DOMString atob(DOMString atob);
 };
 
-//[Exposed=Worker]
+[Exposed=Worker]
 interface WorkerNavigator {};
 WorkerNavigator implements NavigatorID;
 WorkerNavigator implements NavigatorLanguage;
 WorkerNavigator implements NavigatorOnLine;
 
-[NoInterfaceObject/*, Exposed=(Window,Worker)*/]
+[NoInterfaceObject, Exposed=(Window,Worker)]
 interface NavigatorID {
   readonly attribute DOMString appCodeName; // constant "Mozilla"
   readonly attribute DOMString appName;
@@ -81,18 +81,18 @@ interface NavigatorID {
   readonly attribute DOMString userAgent;
 };
 
-[NoInterfaceObject/*, Exposed=(Window,Worker)*/]
+[NoInterfaceObject, Exposed=(Window,Worker)]
 interface NavigatorLanguage {
   readonly attribute DOMString? language;
   readonly attribute DOMString[] languages;
 };
 
-[NoInterfaceObject/*, Exposed=(Window,Worker)*/]
+[NoInterfaceObject, Exposed=(Window,Worker)]
 interface NavigatorOnLine {
   readonly attribute boolean onLine;
 };
 
-//[Exposed=Worker]
+[Exposed=Worker]
 interface WorkerLocation {
   stringifier readonly attribute USVString href;
   readonly attribute USVString origin;

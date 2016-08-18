@@ -119,7 +119,7 @@
     });
   }, 'If the name is already defined, should throw a NotSupportedError');
 
-  // 4. If this CustomElementsRegistry contains an entry with constructor constructor,
+  // 5. If this CustomElementsRegistry contains an entry with constructor constructor,
   // then throw a NotSupportedError and abort these steps.
   test(() =>  {
     class TestDupConstructor {};
@@ -129,7 +129,7 @@
     });
   }, 'If the constructor is already defined, should throw a NotSupportedError');
 
-  // 7.1. If extends is a valid custom element name,
+  // 9.1. If extends is a valid custom element name,
   // then throw a NotSupportedError.
   validCustomElementNames.forEach(name =>  {
     test(() =>  {
@@ -139,7 +139,7 @@
     }, `If extends is ${name}, should throw a NotSupportedError`);
   });
 
-  // 7.2. If the element interface for extends and the HTML namespace is HTMLUnknownElement
+  // 9.2. If the element interface for extends and the HTML namespace is HTMLUnknownElement
   // (e.g., if extends does not indicate an element definition in this specification),
   // then throw a NotSupportedError.
   [
@@ -159,19 +159,7 @@
     }, `If extends is ${name}, should throw a NotSupportedError`);
   });
 
-  // 8. Let observedAttributesIterable be Get(constructor, "observedAttributes").
-  // Rethrow any exceptions.
-  test(() => {
-    class C {
-      static get observedAttributes() { throw_rethrown_error(); }
-      attributeChangedCallback() {}
-    }
-    assert_rethrown(() => {
-      customElements.define('test-define-observedattributes-rethrow', C);
-    });
-  }, 'If constructor.observedAttributes throws, should rethrow');
-
-  // 10. Let prototype be Get(constructor, "prototype"). Rethrow any exceptions.
+  // 12.1. Let prototype be Get(constructor, "prototype"). Rethrow any exceptions.
   function assert_rethrown(func, description) {
     assert_throws({ name: 'rethrown' }, func, description);
   }
@@ -190,7 +178,8 @@
       customElements.define('test-define-constructor-prototype-rethrow', BadConstructor);
     });
   }, 'If constructor.prototype throws, should rethrow');
-  // 11. If Type(prototype) is not Object,
+
+  // 12.2. If Type(prototype) is not Object,
   // then throw a TypeError exception.
   test(() =>  {
     const c = (function () { }).bind({}); // prototype is undefined.
@@ -206,18 +195,18 @@
     });
   }, 'If Type(constructor.prototype) is string, should throw a TypeError');
 
-  // 12. Let connectedCallback be Get(prototype, "connectedCallback"). Rethrow any exceptions.
-  // 13. If connectedCallback is not undefined, and IsCallable(connectedCallback) is false,
-  // then throw a TypeError exception.
-  // 14. Let disconnectedCallback be Get(prototype, "disconnectedCallback"). Rethrow any exceptions.
-  // 15. If disconnectedCallback is not undefined, and IsCallable(disconnectedCallback) is false,
-  // then throw a TypeError exception.
-  // 16. Let attributeChangedCallback be Get(prototype, "attributeChangedCallback"). Rethrow any exceptions.
-  // 17. If attributeChangedCallback is not undefined, and IsCallable(attributeChangedCallback) is false,
-  // then throw a TypeError exception.
+  // 12.3. Let lifecycleCallbacks be a map with the four keys "connectedCallback",
+  // "disconnectedCallback", "adoptedCallback", and "attributeChangedCallback",
+  // each of which belongs to an entry whose value is null.
+  // 12.4. For each of the four keys callbackName in lifecycleCallbacks:
+  // 12.4.1. Let callbackValue be Get(prototype, callbackName). Rethrow any exceptions.
+  // 12.4.2. If callbackValue is not undefined, then set the value of the entry in
+  // lifecycleCallbacks with key callbackName to the result of converting callbackValue
+  // to the Web IDL Function callback type. Rethrow any exceptions from the conversion.
   [
     'connectedCallback',
     'disconnectedCallback',
+    'adoptedCallback',
     'attributeChangedCallback',
   ].forEach(name => {
     test(() => {

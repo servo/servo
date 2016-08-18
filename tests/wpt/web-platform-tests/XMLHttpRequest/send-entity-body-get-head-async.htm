@@ -23,13 +23,7 @@
         client.upload.addEventListener('loadstart', logEvt)
         client.addEventListener('loadend', function(){
           test.step(function(){
-            if (method === "HEAD") {
-              // Fetch 4.4.3 --- Set Content-Length to 0 if method is HEAD and
-              // request's body is null.
-              assert_equals(client.getResponseHeader("x-request-content-length"), "0")
-            } else {
-              assert_equals(client.getResponseHeader("x-request-content-length"), "NO")
-            }
+            assert_equals(client.getResponseHeader("x-request-content-length"), "NO")
             assert_equals(client.getResponseHeader("x-request-method"), method)
             assert_equals(client.responseText, "")
             assert_array_equals(events, [])

@@ -1,0 +1,51 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <meta name="timeout" content="long">
+    <title>Encrypted Media Extensions: Successful Playback, Temporary session with DRM, mp4</title>
+    <link rel="help" href="https://w3c.github.io/encrypted-media/">
+
+    <!-- Web Platform Test Harness scripts -->
+    <script src=/resources/testharness.js></script>
+    <script src=/resources/testharnessreport.js></script>
+
+    <!-- Helper scripts for Encrypted Media Extensions tests  -->
+    <script src=/encrypted-media/util/utils.js></script>
+    <script src=/encrypted-media/util/utf8.js></script>
+    <script src=/encrypted-media/util/fetch.js></script>
+    <script src=/encrypted-media/util/testmediasource.js></script>
+
+    <!-- Content metadata -->
+    <script src=/encrypted-media/content/content-metadata.js></script>
+
+    <!-- Message handler for DRM servers -->
+    <script src=/encrypted-media/util/drmtoday-messagehandler.js></script>
+
+    <!-- The script for this specific test -->
+    <script src=/encrypted-media/scripts/playback-temporary.js></script>
+
+  </head>
+  <body>
+    <div id='log'></div>
+
+    <div id='video'>
+      <video id="videoelement" width="200px"></video>
+    </div>
+
+    <script>
+        var contentitem = content['mp4-basic'],
+            config = {  video:              document.getElementById('videoelement'),
+                        keysystem:          getSupportedKeySystem(),
+                        messagehandler:     messagehandler.bind( contentitem ),
+                        audioPath:          contentitem.audio.path,
+                        videoPath:          contentitem.video.path,
+                        audioType:          contentitem.audio.type,
+                        videoType:          contentitem.video.type,
+                        initDataType:       contentitem.initDataType,
+                        duration:           2 };
+
+        runTest(config);
+    </script>
+  </body>
+</html>

@@ -22,3 +22,6 @@ testText("<div>", "abc ", "abc ", "Trailing whitespace preserved");
 testText("<div>", "abc  def", "abc  def", "Whitespace not compressed");
 testHTML("<div>abc\n\n", "abc", "abc", "Existing text deleted");
 testHTML("<div><br>", "abc", "abc", "Existing <br> deleted");
+testHTML("<div>", "", "", "Assigning the empty string");
+testHTML("<div>", null, "", "Assigning null");
+testHTML("<div>", undefined, "undefined", "Assigning undefined");

@@ -9,9 +9,16 @@
   var parser = new DOMParser();
   var parse = parser.parseFromString.bind(parser);
 
-  function generateTestFunction(entitystring, expectedString, doctypeMarkupString, mimeType, friendlyMime) {
+  function generateTestFunction(entitystring, expectedString, publicId, systemId, mimeType, friendlyMime) {
     return function () {
-      var doc = parse(doctypeMarkupString + "<html><head></head><body id='test'>"+entitystring+"</body></html>", mimeType);
+      var doctypeString = '<!DOCTYPE html';
+      if (publicId != null)
+        doctypeString += ' PUBLIC "' + publicId + '" "' + systemId + '">';
+      else if (systemId != null)
+        doctypeString += ' SYSTEM "' + systemId + '">';
+      else // both are null
+        doctypeString += '>';
+      var doc = parse(doctypeString + "<html><head></head><body id='test'>"+entitystring+"</body></html>", mimeType);
       var root = doc.getElementById('test');
       assert_not_equals(root, null, friendlyMime + " parsing the entity reference caused a parse error;");
       assert_true(!!root.firstChild);
@@ -24,10 +31,10 @@
     }
   }
 
-  function setupTests(jsonEntities, doctypeMarkupString, mimeType, friendlyMime) {
+  function setupTests(jsonEntities, publicId, systemId, mimeType, friendlyMime) {
     for (entityName in jsonEntities) {
       if ((mimeType == "text/html") || /;$/.test(entityName)) {
-        test(generateTestFunction(entityName, jsonEntities[entityName].characters, doctypeMarkupString, mimeType, friendlyMime), friendlyMime + " parsing " + entityName);
+        test(generateTestFunction(entityName, jsonEntities[entityName].characters, publicId, systemId, mimeType, friendlyMime), friendlyMime + " parsing " + entityName);
       }
     }
   }
@@ -37,22 +44,21 @@
   var xhr = new XMLHttpRequest();
   xhr.open("GET", "/common/entities.json");
   xhr.onload = function () {
-    // Note: for proper XML parsing of the Doctype, Edge requires a non-empty string for url part
     var entitiesJSON = JSON.parse(xhr.response);
     [
-      ["application/xhtml+xml", "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"foo\">", "XHTML1.0 Transitional"],
-      ["application/xhtml+xml", "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.1//EN\" \"foo\">", "XHTML1.1"],
-      ["application/xhtml+xml", "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\" \"foo\">", "XHTML1.0 Strict"],
-      ["application/xhtml+xml", "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Frameset//EN\" \"foo\">", "XHTML1.0 Frameset"],
-      ["application/xhtml+xml", "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML Basic 1.0//EN\" \"foo\">", "XHTML Basic"],
-      ["application/xhtml+xml", "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.1 plus MathML 2.0//EN\" \"foo\">", "XHTML1.1+MathML"],
-      ["application/xhtml+xml", "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.1 plus MathML 2.0 plus SVG 1.1//EN\" \"foo\">", "XHTML1.1+MathML+SVG"],
-      ["application/xhtml+xml", "<!DOCTYPE html PUBLIC \"-//W3C//DTD MathML 2.0//EN\" \"foo\">", "MathML"],
-      ["application/xhtml+xml", "<!DOCTYPE html PUBLIC \"-//WAPFORUM//DTD XHTML Mobile 1.0//EN\" \"foo\">", "XHTML Mobile"],
-//      ["application/xhtml+xml", "<!DOCTYPE html SYSTEM \"mathml.dtd\">", "SYSTEM MathML"], // Experimental
-      ["text/html", "<!DOCTYPE html>", "HTML"]
+      ["application/xhtml+xml", "-//W3C//DTD XHTML 1.0 Transitional//EN", "foo", "XHTML1.0 Transitional"],
+      ["application/xhtml+xml", "-//W3C//DTD XHTML 1.1//EN", "foo", "XHTML1.1"],
+      ["application/xhtml+xml", "-//W3C//DTD XHTML 1.0 Strict//EN", "foo", "XHTML1.0 Strict"],
+      ["application/xhtml+xml", "-//W3C//DTD XHTML 1.0 Frameset//EN", "foo", "XHTML1.0 Frameset"],
+      ["application/xhtml+xml", "-//W3C//DTD XHTML Basic 1.0//EN", "foo", "XHTML Basic"],
+      ["application/xhtml+xml", "-//W3C//DTD XHTML 1.1 plus MathML 2.0//EN", "foo", "XHTML1.1+MathML"],
+      ["application/xhtml+xml", "-//W3C//DTD XHTML 1.1 plus MathML 2.0 plus SVG 1.1//EN", "foo", "XHTML1.1+MathML+SVG"],
+      ["application/xhtml+xml", "-//W3C//DTD MathML 2.0//EN", "foo", "MathML"],
+      ["application/xhtml+xml", "-//WAPFORUM//DTD XHTML Mobile 1.0//EN", "foo", "XHTML Mobile"],
+//      ["application/xhtml+xml", null, "mathml.dtd", "SYSTEM MathML"], // Experimental
+      ["text/html", null, null, "HTML"]
     ].forEach(function (row) {
-      setupTests(entitiesJSON, row[1], row[0], row[2]);
+      setupTests(entitiesJSON, row[1], row[2], row[0], row[3]);
     });
     done();
   }

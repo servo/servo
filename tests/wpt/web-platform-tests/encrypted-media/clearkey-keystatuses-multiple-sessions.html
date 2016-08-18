@@ -1,0 +1,51 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <meta name="timeout" content="long">
+    <title>Encrypted Media Extensions: Verify MediaKeySession.keyStatuses with multiple sessions, Clear Key</title>
+    <link rel="help" href="https://w3c.github.io/encrypted-media/">
+
+    <!-- Web Platform Test Harness scripts -->
+    <script src=/resources/testharness.js></script>
+    <script src=/resources/testharnessreport.js></script>
+
+    <!-- Helper scripts for Encrypted Media Extensions tests  -->
+    <script src=/encrypted-media/util/utils.js></script>
+    <script src=/encrypted-media/util/fetch.js></script>
+    <script src=/encrypted-media/util/testmediasource.js></script>
+    <script src=/encrypted-media/util/utf8.js></script>
+
+    <!-- Content metadata -->
+    <script src=/encrypted-media/content/content-metadata.js></script>
+
+    <!-- Message handler for Clear Key keysystem -->
+    <script src=/encrypted-media/util/clearkey-messagehandler.js></script>
+
+    <!-- The script for this specific test -->
+    <script src=/encrypted-media/scripts/keystatuses-multiple-sessions.js></script>
+
+  </head>
+  <body>
+    <div id='log'></div>
+
+    <script>
+        getSupportedContent( 'org.w3.clearkey' )
+        .then( function( contents ) {
+
+            // Select a content item with multiple keys
+            var contentitem = contents.filter( function( item ) { return item.keys.length > 1; } )[ 0 ];
+
+            var config = {  keysystem:          'org.w3.clearkey',
+                            content:            contentitem,
+                            messagehandler:     messagehandler.bind( contentitem ),
+                            initDataType:       'keyids',
+                            initData:           getMultikeyInitDatas(contentitem,'keyids'),
+                        };
+
+            runTest(config);
+
+        } );
+    </script>
+  </body>
+</html>

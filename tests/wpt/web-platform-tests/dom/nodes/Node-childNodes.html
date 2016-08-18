@@ -45,4 +45,53 @@ test(function() {
 test(function() {
   check_parent_node(new Document());
 }, "Node.childNodes on a Document.");
+
+test(function() {
+  var node = document.createElement("div");
+  var kid1 = document.createElement("p");
+  var kid2 = document.createTextNode("hey");
+  var kid3 = document.createElement("span");
+  node.appendChild(kid1);
+  node.appendChild(kid2);
+  node.appendChild(kid3);
+
+  var list = node.childNodes;
+  assert_array_equals([...list], [kid1, kid2, kid3]);
+
+  var keys = list.keys();
+  assert_false(keys instanceof Array);
+  keys = [...keys];
+  assert_array_equals(keys, [0, 1, 2]);
+
+  var values = list.values();
+  assert_false(values instanceof Array);
+  values = [...values];
+  assert_array_equals(values, [kid1, kid2, kid3]);
+
+  var entries = list.entries();
+  assert_false(entries instanceof Array);
+  entries = [...entries];
+  assert_equals(entries.length, keys.length);
+  assert_equals(entries.length, values.length);
+  for (var i = 0; i < entries.length; ++i) {
+    assert_array_equals(entries[i], [keys[i], values[i]]);
+  }
+
+  var cur = 0;
+  var thisObj = {};
+  list.forEach(function(value, key, listObj) {
+    assert_equals(listObj, list);
+    assert_equals(this, thisObj);
+    assert_equals(value, values[cur]);
+    assert_equals(key, keys[cur]);
+    cur++;
+  }, thisObj);
+  assert_equals(cur, entries.length);
+
+  assert_equals(list[Symbol.iterator], Array.prototype[Symbol.iterator]);
+  assert_equals(list.keys, Array.prototype.keys);
+  assert_equals(list.values, Array.prototype.values);
+  assert_equals(list.entries, Array.prototype.entries);
+  assert_equals(list.forEach, Array.prototype.forEach);
+}, "Iterator behavior of Node.childNodes");
 </script>

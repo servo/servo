@@ -8,6 +8,7 @@
 <script src="../../resources/keyframe-utils.js"></script>
 <body>
 <div id="log"></div>
+<iframe width="10" height="10" id="iframe"></iframe>
 <script>
 'use strict';
 
@@ -20,11 +21,55 @@ test(function(t) {
 }, 'Element.animate() creates an Animation object');
 
 test(function(t) {
+  var iframe = window.frames[0];
+  var div = createDiv(t, iframe.document);
+  var anim = Element.prototype.animate.call(div, null);
+  assert_equals(Object.getPrototypeOf(anim), iframe.Animation.prototype,
+                'The prototype of the created Animation is that defined on'
+                + ' the relevant global for the target element');
+  assert_not_equals(Object.getPrototypeOf(anim), Animation.prototype,
+                    'The prototype of the created Animation is NOT that of'
+                    + ' the current global');
+}, 'Element.animate() creates an Animation object in the relevant realm of'
+   + ' the target element');
+
+test(function(t) {
   var div = createDiv(t);
-  var anim = div.animate(null);
+  var anim = Element.prototype.animate.call(div, null);
   assert_class_string(anim.effect, 'KeyframeEffect',
                       'Returned Animation has a KeyframeEffect');
 }, 'Element.animate() creates an Animation object with a KeyframeEffect');
+
+test(function(t) {
+  var iframe = window.frames[0];
+  var div = createDiv(t, iframe.document);
+  var anim = Element.prototype.animate.call(div, null);
+  assert_equals(Object.getPrototypeOf(anim.effect),
+                iframe.KeyframeEffect.prototype,
+                'The prototype of the created KeyframeEffect is that defined on'
+                + ' the relevant global for the target element');
+  assert_not_equals(Object.getPrototypeOf(anim.effect),
+                    KeyframeEffect.prototype,
+                    'The prototype of the created KeyframeEffect is NOT that of'
+                    + ' the current global');
+}, 'Element.animate() creates an Animation object with a KeyframeEffect'
+   + ' that is created in the relevant realm of the target element');
+
+test(function(t) {
+  var iframe = window.frames[0];
+  var div = createDiv(t, iframe.document);
+  var anim = div.animate(null);
+  assert_equals(Object.getPrototypeOf(anim.effect.timing),
+                iframe.AnimationEffectTiming.prototype,
+                'The prototype of the created AnimationEffectTiming is that'
+                + ' defined on the relevant global for the target element');
+  assert_not_equals(Object.getPrototypeOf(anim.effect.timing),
+                    AnimationEffectTiming.prototype,
+                    'The prototype of the created AnimationEffectTiming is NOT'
+                    + ' that of the current global');
+}, 'Element.animate() creates an Animation object with a KeyframeEffect'
+   + ' whose AnimationEffectTiming object is created in the relevant realm'
+   + ' of the target element');
 
 gPropertyIndexedKeyframesTests.forEach(function(subtest) {
   test(function(t) {

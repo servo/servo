@@ -92,6 +92,25 @@
     checkBlobResponseBody(blob, textData, "json", checkBodyJSON);
     checkBlobResponseBody(blob, textData, "arrayBuffer", checkBodyArrayBuffer);
 
+    function checkReadableStreamResponseBody(streamData, bodyType, checkFunction) {
+      promise_test(function(test) {
+        var stream = new ReadableStream({
+          start: function(controller) {
+            controller.enqueue(stringToArray(streamData));
+            controller.close();
+          }
+        });
+        var response = new Response(stream);
+        assert_false(response.bodyUsed, "bodyUsed is false at init");
+        return checkFunction(response, streamData);
+      }, "Consume stream response's body as " + bodyType);
+    }
+
+    checkReadableStreamResponseBody(textData, "blob", checkBodyBlob);
+    checkReadableStreamResponseBody(textData, "text", checkBodyText);
+    checkReadableStreamResponseBody(textData, "json", checkBodyJSON);
+    checkReadableStreamResponseBody(textData, "arrayBuffer", checkBodyArrayBuffer);
+
     </script>
   </body>
 </html>

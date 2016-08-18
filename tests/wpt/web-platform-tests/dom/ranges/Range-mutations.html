@@ -86,12 +86,14 @@ function doTests(sourceTests, descFn, testFn) {
     ]);
     tests.push([
       descFn(params) + ", with selected " + describeRange(params[len - 4], params[len - 3], params[len - 2], params[len - 1]),
-      function(params) { return function() {
-        var evaledParams = params.map(eval);
+      function(params) { return function(selectedRange) {
+        var evaledParams = params.slice(0, len - 4).map(eval);
         for (var i = 0; i < evaledParams.length; i++) {
           assert_true(typeof evaledParams[i] != "undefined",
             "Test bug: " + params[i] + " is undefined");
         }
+        // Override input range with the one that was actually selected when computing the expected result.
+        evaledParams = evaledParams.concat([selectedRange.startContainer, selectedRange.startOffset, selectedRange.endContainer, selectedRange.endOffset]);
         return testFn.apply(null, evaledParams);
       } }(params),
       true,
@@ -133,26 +135,16 @@ function doTest(callback, useSelection, startContainer, startOffset, endContaine
     getSelection().removeAllRanges();
     getSelection().addRange(range);
 
-    assert_equals(getSelection().rangeCount, 1,
-      "Sanity check: selection must have exactly one range after adding the range");
-    assert_equals(getSelection().getRangeAt(0), range,
-      "Sanity check: selection's range must initially be the same as the range we added");
-    assert_equals(range.startContainer, startContainer,
-      "Sanity check: range's startContainer must initially be the one we set");
-    assert_equals(range.endContainer, endContainer,
-      "Sanity check: range's endContainer must initially be the one we set");
-    assert_equals(range.startOffset, startOffset,
-      "Sanity check: range's startOffset must initially be the one we set");
-    assert_equals(range.endOffset, endOffset,
-      "Sanity check: range's endOffset must initially be the one we set");
+    // Some browsers refuse to add a range unless it results in an actual visible selection.
+    if (!getSelection().rangeCount)
+        return;
+
+    // Override range with the one that was actually selected as it differs in some browsers.
+    range = getSelection().getRangeAt(0);
   }
 
-  var expected = callback();
+  var expected = callback(range);
 
-  if (useSelection) {
-    assert_equals(getSelection().getRangeAt(0), range,
-      "The range we added must not be removed from the selection");
-  }
   assert_equals(range.startContainer, expected[0],
     "Wrong start container");
   assert_equals(range.startOffset, expected[1],
