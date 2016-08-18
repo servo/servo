@@ -89,8 +89,6 @@ extern crate url;
 #[macro_use]
 extern crate util;
 extern crate uuid;
-#[cfg(not(any(target_os = "android", target_arch = "arm", target_arch = "aarch64")))]
-extern crate video_metadata;
 extern crate webrender_traits;
 extern crate websocket;
 extern crate xml5ever;
