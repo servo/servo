@@ -39,6 +39,16 @@ fn test_parse_stylesheet() {
     let stylesheet = Stylesheet::from_str(css, url, Origin::UserAgent,
                                           Box::new(CSSErrorReporterTest),
                                           ParserContextExtraData::default());
+    macro_rules! assert_eq {
+        ($left: expr, $right: expr) => {
+            let left = $left;
+            let right = $right;
+            if left != right {
+                panic!("{:#?} != {:#?}", left, right)
+            }
+        }
+    }
+
     assert_eq!(stylesheet, Stylesheet {
         origin: Origin::UserAgent,
         media: None,
@@ -157,13 +167,6 @@ fn test_parse_stylesheet() {
                 ],
                 declarations: PropertyDeclarationBlock {
                     normal: Arc::new(vec![
-                        PropertyDeclaration::BackgroundClip(DeclaredValue::Initial),
-                        PropertyDeclaration::BackgroundOrigin(DeclaredValue::Initial),
-                        PropertyDeclaration::BackgroundSize(DeclaredValue::Initial),
-                        PropertyDeclaration::BackgroundImage(DeclaredValue::Initial),
-                        PropertyDeclaration::BackgroundAttachment(DeclaredValue::Initial),
-                        PropertyDeclaration::BackgroundRepeat(DeclaredValue::Initial),
-                        PropertyDeclaration::BackgroundPosition(DeclaredValue::Initial),
                         PropertyDeclaration::BackgroundColor(DeclaredValue::Value(
                             longhands::background_color::SpecifiedValue {
                                 authored: Some("blue".to_owned()),
@@ -172,6 +175,13 @@ fn test_parse_stylesheet() {
                                 }),
                             }
                         )),
+                        PropertyDeclaration::BackgroundPosition(DeclaredValue::Initial),
+                        PropertyDeclaration::BackgroundRepeat(DeclaredValue::Initial),
+                        PropertyDeclaration::BackgroundAttachment(DeclaredValue::Initial),
+                        PropertyDeclaration::BackgroundImage(DeclaredValue::Initial),
+                        PropertyDeclaration::BackgroundSize(DeclaredValue::Initial),
+                        PropertyDeclaration::BackgroundOrigin(DeclaredValue::Initial),
+                        PropertyDeclaration::BackgroundClip(DeclaredValue::Initial),
                     ]),
                     important: Arc::new(vec![]),
                 },

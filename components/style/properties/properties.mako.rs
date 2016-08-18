@@ -14,7 +14,7 @@ use std::ascii::AsciiExt;
 use std::boxed::Box as StdBox;
 use std::collections::HashSet;
 use std::fmt::{self, Write};
-use std::iter::{Iterator, Chain, Zip, Rev, Repeat, repeat};
+use std::iter::{Iterator, Chain, Zip, Repeat, repeat};
 use std::slice;
 use std::sync::Arc;
 
@@ -296,12 +296,11 @@ pub struct PropertyDeclarationBlock {
 impl PropertyDeclarationBlock {
     /// Provides an iterator of all declarations, with indication of !important value
     pub fn declarations(&self) -> Chain<
-        Zip<Rev<slice::Iter<PropertyDeclaration>>, Repeat<Importance>>,
-        Zip<Rev<slice::Iter<PropertyDeclaration>>, Repeat<Importance>>
+        Zip<slice::Iter<PropertyDeclaration>, Repeat<Importance>>,
+        Zip<slice::Iter<PropertyDeclaration>, Repeat<Importance>>
     > {
-        // Declarations are stored in reverse order.
-        let normal = self.normal.iter().rev().zip(repeat(Importance::Normal));
-        let important = self.important.iter().rev().zip(repeat(Importance::Important));
+        let normal = self.normal.iter().zip(repeat(Importance::Normal));
+        let important = self.important.iter().zip(repeat(Importance::Important));
         normal.chain(important)
     }
 }
@@ -589,7 +588,7 @@ pub fn parse_property_declaration_list(context: &ParserContext, input: &mut Pars
 
 
 /// Only keep the last declaration for any given property.
-/// The input is in source order, output in reverse source order.
+/// The input and output are in source order
 fn deduplicate_property_declarations(declarations: Vec<PropertyDeclaration>)
                                      -> Vec<PropertyDeclaration> {
     let mut deduplicated = vec![];
@@ -618,6 +617,7 @@ fn deduplicate_property_declarations(declarations: Vec<PropertyDeclaration>)
         }
         deduplicated.push(declaration)
     }
+    deduplicated.reverse();
     deduplicated
 }
 
@@ -1683,8 +1683,7 @@ fn cascade_with_cached_declarations(
     // Declaration blocks are stored in increasing precedence order,
     // we want them in decreasing order here.
     for sub_list in applicable_declarations.iter().rev() {
-        // Declarations are already stored in reverse order.
-        for declaration in sub_list.declarations.iter() {
+        for declaration in sub_list.declarations.iter().rev() {
             match *declaration {
                 % for style_struct in data.active_style_structs():
                     % for property in style_struct.longhands:
@@ -1815,8 +1814,7 @@ pub fn cascade(viewport_size: Size2D<Au>,
     let mut custom_properties = None;
     let mut seen_custom = HashSet::new();
     for sub_list in applicable_declarations.iter().rev() {
-        // Declarations are already stored in reverse order.
-        for declaration in sub_list.declarations.iter() {
+        for declaration in sub_list.declarations.iter().rev() {
             match *declaration {
                 PropertyDeclaration::Custom(ref name, ref value) => {
                     ::custom_properties::cascade(
@@ -1874,8 +1872,7 @@ pub fn cascade(viewport_size: Size2D<Au>,
     ComputedValues::do_cascade_property(|cascade_property| {
         % for category_to_cascade_now in ["early", "other"]:
             for sub_list in applicable_declarations.iter().rev() {
-                // Declarations are already stored in reverse order.
-                for declaration in sub_list.declarations.iter() {
+                for declaration in sub_list.declarations.iter().rev() {
                     if let PropertyDeclaration::Custom(..) = *declaration {
                         continue
                     }
