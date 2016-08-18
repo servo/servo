@@ -17,22 +17,46 @@ fn main() {
 
 fn android_main() {
     // Get the NDK path from NDK_HOME env.
-    let ndk_path = env::var("NDK_HOME").ok().expect("Please set the NDK_HOME environment variable");
+    let ndk_path = env::var("ANDROID_NDK").ok().expect("Please set the ANDROID_NDK environment variable");
     let ndk_path = Path::new(&ndk_path);
 
-    // Get the standalone NDK path from NDK_STANDALONE env.
-    let standalone_path = env::var("NDK_STANDALONE").ok().expect("Please set the NDK_STANDALONE environment variable");
-    let standalone_path = Path::new(&standalone_path);
+    // Build up the path to the NDK compilers
+    // Options for host are:  "linux-x86_64" "linux-x86" "darwin-x86_64" "darwin-x86"
+    // per: https://android.googlesource.com/platform/ndk/+/ics-mr0/docs/STANDALONE-TOOLCHAIN.html
 
-    // Get the standalone NDK path from NDK_STANDALONE env.
+    let host = env::var("HOST").unwrap();
+    let google_host = match host.as_ref() {
+        "i686-unknown-linux-gnu" => "linux-x86",
+        "x86_64-apple-darwin" => "darwin-x86_64",
+        "x86_64-unknown-linux-gnu" => "linux-x86_64",
+        _ => panic!("Unknown support android cross-compile host: {}", host)
+    };
+
+    let toolchain_path = ndk_path.join("toolchains").join("arm-linux-androideabi-4.9").join("prebuilt").
+        join(google_host);
+    println!("toolchain path is: {}", toolchain_path.to_str().unwrap());
+
+    let target = env::var("TARGET").unwrap();
+    let arch = if target.contains("arm") {
+        "arch-arm"
+    } else if target.contains("x86") {
+        "arch-x86"
+    } else if target.contains("mips") {
+        "arch-mips"
+    } else {
+        panic!("Invalid target architecture {}", target);
+    };
+
+    // Get the output directory.
     let out_dir = env::var("OUT_DIR").ok().expect("Cargo should have set the OUT_DIR environment variable");
     let directory = Path::new(&out_dir);
 
     // compiling android_native_app_glue.c
-    if Command::new(standalone_path.join("bin").join("arm-linux-androideabi-gcc"))
+    if Command::new(toolchain_path.join("bin").join("arm-linux-androideabi-gcc"))
         .arg(ndk_path.join("sources").join("android").join("native_app_glue").join("android_native_app_glue.c"))
         .arg("-c")
         .arg("-o").arg(directory.join("android_native_app_glue.o"))
+        .arg("--sysroot").arg(ndk_path.join("platforms").join("android-18").join(arch))
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit())
         .status().unwrap().code().unwrap() != 0
@@ -42,7 +66,7 @@ fn android_main() {
     }
 
     // compiling libandroid_native_app_glue.a
-    if Command::new(standalone_path.join("bin").join("arm-linux-androideabi-ar"))
+    if Command::new(toolchain_path.join("bin").join("arm-linux-androideabi-ar"))
         .arg("rcs")
         .arg(directory.join("libandroid_native_app_glue.a"))
         .arg(directory.join("android_native_app_glue.o"))
