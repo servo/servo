@@ -788,7 +788,7 @@ impl Element {
                 // than that.
                 let existing_declarations = Arc::make_mut(existing_declarations);
 
-                while let Some(mut incoming_declaration) = declarations.pop() {
+                for mut incoming_declaration in declarations {
                     let mut replaced = false;
                     for existing_declaration in &mut *existing_declarations {
                         if existing_declaration.name() == incoming_declaration.name() {
@@ -799,8 +799,7 @@ impl Element {
                     }
 
                     if !replaced {
-                        // inserting instead of pushing since the declarations are in reverse order
-                        existing_declarations.insert(0, incoming_declaration);
+                        existing_declarations.push(incoming_declaration);
                     }
                 }
 
