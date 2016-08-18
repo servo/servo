@@ -24,7 +24,7 @@ class CheckTidiness(unittest.TestCase):
             errors.next()
 
     def test_tidy_config(self):
-        errors = tidy.collect_errors_for_files(iterFile('servo-tidy.toml'), [], [tidy.check_by_line], print_text=False)
+        errors = tidy.check_config_file(os.path.join(base_path, 'servo-tidy.toml'))
         self.assertEqual('invalid config key \'key-outside\'', errors.next()[2])
         self.assertEqual('invalid config key \'wrong-key\'', errors.next()[2])
         self.assertEqual('invalid config table [wrong]', errors.next()[2])
