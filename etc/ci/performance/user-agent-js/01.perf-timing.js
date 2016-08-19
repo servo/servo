@@ -12,6 +12,7 @@ function formatLine(name, t) {
 function printPerfTiming() {
   print("[PERF] perf block start")
   formatLine("testcase", window.location);
+  formatLine("title", document.title.replace(/,/g, "&#44;"));
   formatLine("navigationStart", performance.timing.navigationStart);
   formatLine("unloadEventStart", performance.timing.unloadEventStart);
   formatLine("unloadEventEnd", performance.timing.unloadEventEnd);
