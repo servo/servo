@@ -944,7 +944,7 @@ fn static_assert() {
         }
         for (layer, other) in self.gecko.mImage.mLayers.iter_mut()
                                   .zip(other.gecko.mImage.mLayers.iter())
-                                  .take(other.gecko.mImage.${field_name}Count) {
+                                  .take(other.gecko.mImage.${field_name}Count as usize) {
             layer.${field_name} = other.${field_name};
         }
         self.gecko.mImage.${field_name}Count = other.gecko.mImage.${field_name}Count;
@@ -1033,23 +1033,48 @@ fn static_assert() {
         self.gecko.mImage.mPositionYCount = cmp::min(1, other.gecko.mImage.mPositionYCount);
         self.gecko.mImage.mLayers.mFirstElement.mPosition =
             other.gecko.mImage.mLayers.mFirstElement.mPosition;
+        unsafe {
+            Gecko_EnsureImageLayersLength(&mut self.gecko.mImage, other.gecko.mImage.mLayers.len());
+        }
+        for (layer, other) in self.gecko.mImage.mLayers.iter_mut()
+                                  .zip(other.gecko.mImage.mLayers.iter())
+                                  .take(other.gecko.mImage.mPositionXCount as usize) {
+            layer.mPosition.mXPosition = other.mPosition.mXPosition;
+        }
+        for (layer, other) in self.gecko.mImage.mLayers.iter_mut()
+                                  .zip(other.gecko.mImage.mLayers.iter())
+                                  .take(other.gecko.mImage.mPositionYCount as usize) {
+            layer.mPosition.mYPosition = other.mPosition.mYPosition;
+        }
+        self.gecko.mImage.mPositionXCount = other.gecko.mImage.mPositionXCount;
+        self.gecko.mImage.mPositionYCount = other.gecko.mImage.mPositionYCount;
     }
 
     pub fn clone_background_position(&self) -> longhands::background_position::computed_value::T {
         use values::computed::position::Position;
-        let position = &self.gecko.mImage.mLayers.mFirstElement.mPosition;
-        Position {
-            horizontal: position.mXPosition.into(),
-            vertical: position.mYPosition.into(),
-        }
+        longhands::background_position::computed_value::T(
+            self.gecko.mImage.mLayers.iter()
+                .take(self.gecko.mImage.mPositionXCount as usize)
+                .take(self.gecko.mImage.mPositionYCount as usize)
+                .map(|position| Position {
+                    horizontal: position.mPosition.mXPosition.into(),
+                    vertical: position.mPosition.mYPosition.into(),
+                })
+                .collect()
+        )
     }
 
     pub fn set_background_position(&mut self, v: longhands::background_position::computed_value::T) {
-        let position = &mut self.gecko.mImage.mLayers.mFirstElement.mPosition;
-        position.mXPosition = v.horizontal.into();
-        position.mYPosition = v.vertical.into();
-        self.gecko.mImage.mPositionXCount = 1;
-        self.gecko.mImage.mPositionYCount = 1;
+        unsafe {
+          Gecko_EnsureImageLayersLength(&mut self.gecko.mImage, v.0.len());
+        }
+
+        self.gecko.mImage.mPositionXCount = v.0.len() as u32;
+        self.gecko.mImage.mPositionYCount = v.0.len() as u32;
+        for (servo, geckolayer) in v.0.into_iter().zip(self.gecko.mImage.mLayers.iter_mut()) {
+            geckolayer.mPosition.mXPosition = servo.horizontal.into();
+            geckolayer.mPosition.mYPosition = servo.vertical.into();
+        }
     }
 
     pub fn copy_background_image_from(&mut self, other: &Self) {
