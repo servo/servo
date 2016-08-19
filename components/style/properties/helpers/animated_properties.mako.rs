@@ -242,7 +242,7 @@ impl Interpolate for ZIndex {
     }
 }
 
-impl<T: Interpolate + Clone> Interpolate for Size2D<T> {
+impl<T: Interpolate + Copy> Interpolate for Size2D<T> {
     #[inline]
     fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
         let width = try!(self.width.interpolate(&other.width, time));
@@ -252,7 +252,7 @@ impl<T: Interpolate + Clone> Interpolate for Size2D<T> {
     }
 }
 
-impl<T: Interpolate + Clone> Interpolate for Point2D<T> {
+impl<T: Interpolate + Copy> Interpolate for Point2D<T> {
     #[inline]
     fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
         let x = try!(self.x.interpolate(&other.x, time));

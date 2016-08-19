@@ -21,7 +21,7 @@ use euclid::approxeq::ApproxEq;
 use euclid::num::{One, Zero};
 use euclid::rect::TypedRect;
 use euclid::side_offsets::SideOffsets2D;
-use euclid::{Matrix2D, Matrix4D, Point2D, Rect, Size2D};
+use euclid::{Matrix4D, Point2D, Rect, Size2D};
 use fnv::FnvHasher;
 use gfx_traits::print_tree::PrintTree;
 use gfx_traits::{LayerId, ScrollPolicy, StackingContextId};
@@ -339,10 +339,7 @@ impl DisplayList {
                                            transform: &Matrix4D<f32>,
                                            index: usize) {
         let old_transform = paint_context.draw_target.get_transform();
-        paint_context.draw_target.set_transform(
-            &Matrix2D::new(transform.m11, transform.m12,
-                           transform.m21, transform.m22,
-                           transform.m41, transform.m42));
+        paint_context.draw_target.set_transform(&transform.to_2d());
 
         let item = &self.list[index];
         item.draw_into_context(paint_context);
@@ -459,9 +456,11 @@ impl DisplayList {
                     Point2D::new(origin.x.to_nearest_pixel(pixels_per_px.get()),
                                  origin.y.to_nearest_pixel(pixels_per_px.get()));
 
-                let transform = transform.translate(pixel_snapped_origin.x as AzFloat,
-                                                    pixel_snapped_origin.y as AzFloat,
-                                                    0.0).mul(&stacking_context.transform);
+                let transform = transform
+                    .post_translated(pixel_snapped_origin.x as AzFloat,
+                                     pixel_snapped_origin.y as AzFloat,
+                                     0.0)
+                    .post_mul(&stacking_context.transform);
 
                 if transform.is_identity_or_simple_translation() {
                     let pixel_snapped_origin = Point2D::new(Au::from_f32_px(pixel_snapped_origin.x),
@@ -490,10 +489,7 @@ impl DisplayList {
             };
 
             // Set up our clip rect and transform.
-            paint_subcontext.draw_target.set_transform(
-                &Matrix2D::new(transform.m11, transform.m12,
-                               transform.m21, transform.m22,
-                               transform.m41, transform.m42));
+            paint_subcontext.draw_target.set_transform(&transform.to_2d());
             paint_subcontext.push_clip_if_applicable();
 
             self.draw_stacking_context_contents(
@@ -539,11 +535,9 @@ fn transformed_tile_rect(tile_rect: TypedRect<usize, ScreenPx>, transform: &Matr
     // Invert the current transform, then use this to back transform
     // the tile rect (placed at the origin) into the space of this
     // stacking context.
-    let inverse_transform = transform.invert();
-    let inverse_transform_2d = Matrix2D::new(inverse_transform.m11, inverse_transform.m12,
-                                             inverse_transform.m21, inverse_transform.m22,
-                                             inverse_transform.m41, inverse_transform.m42);
-    let tile_size = Size2D::new(tile_rect.as_f32().size.width, tile_rect.as_f32().size.height);
+    let inverse_transform = transform.inverse().unwrap();
+    let inverse_transform_2d = inverse_transform.to_2d();
+    let tile_size = Size2D::new(tile_rect.to_f32().size.width, tile_rect.to_f32().size.height);
     let tile_rect = Rect::new(Point2D::zero(), tile_size).to_untyped();
     geometry::f32_rect_to_au_rect(inverse_transform_2d.transform_rect(&tile_rect))
 }
@@ -699,11 +693,9 @@ impl StackingContext {
         let origin_x = self.bounds.origin.x.to_f32_px();
         let origin_y = self.bounds.origin.y.to_f32_px();
 
-        let transform = Matrix4D::identity().translate(origin_x, origin_y, 0.0)
-                                            .mul(&self.transform);
-        let transform_2d = Matrix2D::new(transform.m11, transform.m12,
-                                         transform.m21, transform.m22,
-                                         transform.m41, transform.m42);
+        let transform = Matrix4D::identity().post_translated(origin_x, origin_y, 0.0)
+                                            .post_mul(&self.transform);
+        let transform_2d = transform.to_2d();
 
         let overflow = geometry::au_rect_to_f32_rect(self.overflow);
         let overflow = transform_2d.transform_rect(&overflow);
@@ -726,7 +718,7 @@ impl StackingContext {
         // Convert the point into stacking context local transform space.
         let mut point = if self.context_type == StackingContextType::Real {
             let point = *effective_point - self.bounds.origin;
-            let inv_transform = self.transform.invert();
+            let inv_transform = self.transform.inverse().unwrap();
             let frac_point = inv_transform.transform_point(&Point2D::new(point.x.to_f32_px(),
                                                                          point.y.to_f32_px()));
             Point2D::new(Au::from_f32_px(frac_point.x), Au::from_f32_px(frac_point.y))

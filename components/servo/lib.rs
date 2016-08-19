@@ -151,6 +151,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
                         enable_msaa: opts.use_msaa,
                         enable_profiler: opts.webrender_stats,
                         debug: opts.webrender_debug,
+                        enable_recording: false,
                     });
                 (Some(webrender), Some(webrender_sender))
             } else {

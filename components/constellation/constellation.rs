@@ -501,9 +501,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 time_profiler_chan: state.time_profiler_chan,
                 mem_profiler_chan: state.mem_profiler_chan,
                 window_size: WindowSizeData {
-                    visible_viewport: opts::get().initial_window_size.as_f32() *
+                    visible_viewport: opts::get().initial_window_size.to_f32() *
                                           ScaleFactor::new(1.0),
-                    initial_viewport: opts::get().initial_window_size.as_f32() *
+                    initial_viewport: opts::get().initial_window_size.to_f32() *
                         ScaleFactor::new(1.0),
                     device_pixel_ratio:
                         ScaleFactor::new(opts::get().device_pixels_per_px.unwrap_or(1.0)),
