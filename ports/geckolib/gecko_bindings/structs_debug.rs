@@ -5452,7 +5452,7 @@ fn bindgen_test_layout_nsStyleSides() {
     assert_eq!(::std::mem::align_of::<nsStyleSides>() , 8usize);
 }
 /**
- * Class that represents a set of top-left/top-right/bottom-left/bottom-right
+ * Class that represents a set of top-left/top-right/bottom-right/bottom-left
  * nsStyleCoord pairs.  This is used to hold the dimensions of the
  * corners of a box (for, e.g., border-radius and outline-radius).
  */
@@ -6375,8 +6375,7 @@ fn bindgen_test_layout_StyleAnimation() {
 #[repr(C)]
 #[derive(Debug)]
 pub struct StyleBasicShape {
-    pub mRefCnt: nsAutoRefCnt,
-    pub _mOwningThread: nsAutoOwningThread,
+    pub mRefCnt: ThreadSafeAutoRefCnt,
     pub mType: StyleBasicShapeType,
     pub mFillRule: StyleFillRule,
     pub mCoordinates: nsTArray<nsStyleCoord>,
@@ -6385,7 +6384,7 @@ pub struct StyleBasicShape {
 }
 #[test]
 fn bindgen_test_layout_StyleBasicShape() {
-    assert_eq!(::std::mem::size_of::<StyleBasicShape>() , 128usize);
+    assert_eq!(::std::mem::size_of::<StyleBasicShape>() , 120usize);
     assert_eq!(::std::mem::align_of::<StyleBasicShape>() , 8usize);
 }
 #[repr(C)]

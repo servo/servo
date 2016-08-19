@@ -49,3 +49,31 @@ ${helpers.predefined_type(
 // https://www.w3.org/TR/css-masking-1/
 ${helpers.single_keyword("mask-type", "luminance alpha",
                          products="gecko", animatable=False)}
+
+<%helpers:longhand name="clip-path" animatable="False" products="gecko">
+    use cssparser::ToCss;
+    use std::fmt;
+    use values::LocalToCss;
+    use values::NoViewportPercentage;
+    use values::specified::basic_shape::{ShapeSource, GeometryBox};
+
+    pub mod computed_value {
+        use app_units::Au;
+        use values::computed::basic_shape::{ShapeSource, GeometryBox};
+
+        pub type T = ShapeSource<GeometryBox>;
+    }
+
+    pub type SpecifiedValue = ShapeSource<GeometryBox>;
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        Default::default()
+    }
+
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        ShapeSource::parse(context, input)
+    }
+
+    impl NoViewportPercentage for SpecifiedValue {}
+</%helpers:longhand>

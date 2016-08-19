@@ -152,6 +152,9 @@ use structs::nsStyleContext;
 unsafe impl Send for nsStyleContext {}
 unsafe impl Sync for nsStyleContext {}
 impl HeapSizeOf for nsStyleContext { fn heap_size_of_children(&self) -> usize { 0 } }
+use structs::StyleClipPath;
+use structs::StyleBasicShapeType;
+use structs::StyleBasicShape;
 
 pub type RawGeckoNode = nsINode;
 pub enum Element { }
@@ -326,6 +329,11 @@ extern "C" {
     pub fn Gecko_SetStyleCoordCalcValue(unit: *mut nsStyleUnit,
                                         value: *mut nsStyleUnion,
                                         calc: CalcValue);
+    pub fn Gecko_CopyClipPathValueFrom(dst: *mut StyleClipPath,
+                                       src: *const StyleClipPath);
+    pub fn Gecko_DestroyClipPath(clip: *mut StyleClipPath);
+    pub fn Gecko_NewBasicShape(type_: StyleBasicShapeType)
+     -> *mut StyleBasicShape;
     pub fn Gecko_AddRefCalcArbitraryThread(aPtr: *mut Calc);
     pub fn Gecko_ReleaseCalcArbitraryThread(aPtr: *mut Calc);
     pub fn Servo_StylesheetFromUTF8Bytes(bytes: *const u8, length: u32,

@@ -10,10 +10,46 @@
 use cssparser::ToCss;
 use properties::shorthands::serialize_four_sides;
 use std::fmt;
+use url::Url;
+use values::computed::UrlExtraData;
 use values::computed::position::Position;
 use values::computed::{BorderRadiusSize, LengthOrPercentage};
 
-pub use values::specified::basic_shape::FillRule;
+pub use values::specified::basic_shape::{FillRule, GeometryBox, ShapeBox};
+
+#[derive(Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub enum ShapeSource<T> {
+    Url(Url, UrlExtraData),
+    Shape(BasicShape, Option<T>),
+    Box(T),
+    None,
+}
+
+impl<T> Default for ShapeSource<T> {
+    fn default() -> Self {
+        ShapeSource::None
+    }
+}
+
+impl<T: ToCss> ToCss for ShapeSource<T> {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        use values::LocalToCss;
+        match *self {
+            ShapeSource::Url(ref url, _) => url.to_css(dest),
+            ShapeSource::Shape(ref shape, Some(ref reference)) => {
+                try!(shape.to_css(dest));
+                try!(dest.write_str(" "));
+                reference.to_css(dest)
+            }
+            ShapeSource::Shape(ref shape, None) => shape.to_css(dest),
+            ShapeSource::Box(ref reference) => reference.to_css(dest),
+            ShapeSource::None => dest.write_str("none"),
+
+        }
+    }
+}
+
 
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
