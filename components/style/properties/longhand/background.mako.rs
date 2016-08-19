@@ -107,18 +107,26 @@ ${helpers.predefined_type("background-color", "CSSColor",
 
 ${helpers.single_keyword("background-repeat",
                          "repeat repeat-x repeat-y no-repeat",
+                         vector=True,
+                         gecko_only=True,
                          animatable=False)}
 
 ${helpers.single_keyword("background-attachment",
                          "scroll fixed" + (" local" if product == "gecko" else ""),
+                         vector=True,
+                         gecko_only=True,
                          animatable=False)}
 
 ${helpers.single_keyword("background-clip",
                          "border-box padding-box content-box",
+                         vector=True,
+                         gecko_only=True,
                          animatable=False)}
 
 ${helpers.single_keyword("background-origin",
                          "padding-box border-box content-box",
+                         vector=True,
+                         gecko_only=True,
                          animatable=False)}
 
 <%helpers:longhand name="background-size" animatable="True">
