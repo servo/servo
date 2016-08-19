@@ -92,7 +92,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
     fn Length(&self) -> u32 {
         let elem = self.owner.upcast::<Element>();
         let len = match *elem.style_attribute().borrow() {
-            Some(ref declarations) => declarations.normal.len() + declarations.important.len(),
+            Some(ref declarations) => declarations.declarations.len(),
             None => 0,
         };
         len as u32
@@ -103,19 +103,15 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         let index = index as usize;
         let elem = self.owner.upcast::<Element>();
         let style_attribute = elem.style_attribute().borrow();
-        let result = style_attribute.as_ref().and_then(|declarations| {
-            if index > declarations.normal.len() {
-                declarations.important
-                            .get(index - declarations.normal.len())
-                            .map(|decl| format!("{:?} !important", decl))
-            } else {
-                declarations.normal
-                            .get(index)
-                            .map(|decl| format!("{:?}", decl))
+        style_attribute.as_ref().and_then(|declarations| {
+            declarations.declarations.get(index)
+        }).map(|&(ref declaration, importance)| {
+            let mut css = declaration.to_css_string();
+            if importance.important() {
+                css += " !important";
             }
-        });
-
-        result.map_or(DOMString::new(), DOMString::from)
+            DOMString::from(css)
+        }).unwrap_or_else(DOMString::new)
     }
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertyvalue
@@ -151,11 +147,11 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
             // Step 2.3
             // Work around closures not being Clone
             #[derive(Clone)]
-            struct Map<'a, 'b: 'a>(slice::Iter<'a, Ref<'b, PropertyDeclaration>>);
+            struct Map<'a, 'b: 'a>(slice::Iter<'a, Ref<'b, (PropertyDeclaration, Importance)>>);
             impl<'a, 'b> Iterator for Map<'a, 'b> {
                 type Item = &'a PropertyDeclaration;
                 fn next(&mut self) -> Option<Self::Item> {
-                    self.0.next().map(|r| &**r)
+                    self.0.next().map(|r| &r.0)
                 }
             }
 
@@ -167,7 +163,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
 
         // Step 3 & 4
         match owner.get_inline_style_declaration(&property) {
-            Some(declaration) => DOMString::from(declaration.value()),
+            Some(declaration) => DOMString::from(declaration.0.value()),
             None => DOMString::new(),
         }
     }
@@ -188,8 +184,10 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
             }
         // Step 3
         } else {
-            if self.owner.get_important_inline_style_declaration(&property).is_some() {
-                return DOMString::from("important");
+            if let Some(decl) = self.owner.get_inline_style_declaration(&property) {
+                if decl.1.important() {
+                    return DOMString::from("important");
+                }
             }
         }
 
@@ -366,7 +364,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         // Step 3
         let decl_block = parse_style_attribute(&value, &window.get_url(), window.css_error_reporter(),
                                                ParserContextExtraData::default());
-        *element.style_attribute().borrow_mut() = if decl_block.normal.is_empty() && decl_block.important.is_empty() {
+        *element.style_attribute().borrow_mut() = if decl_block.declarations.is_empty() {
             None // Step 2
         } else {
             Some(decl_block)

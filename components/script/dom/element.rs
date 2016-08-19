@@ -80,7 +80,6 @@ use std::cell::{Cell, Ref};
 use std::convert::TryFrom;
 use std::default::Default;
 use std::fmt;
-use std::mem;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use string_cache::{Atom, Namespace, QualName};
@@ -329,7 +328,9 @@ impl LayoutElementHelpers for LayoutJS<Element> {
     {
         #[inline]
         fn from_declaration(rule: PropertyDeclaration) -> DeclarationBlock {
-            DeclarationBlock::from_declarations(Arc::new(vec![rule]))
+            DeclarationBlock::from_declarations(
+                Arc::new(vec![(rule, Importance::Normal)]),
+                Importance::Normal)
         }
 
         let bgcolor = if let Some(this) = self.downcast::<HTMLBodyElement>() {
@@ -761,20 +762,11 @@ impl Element {
         fn remove(element: &Element, property: &str) {
             let mut inline_declarations = element.style_attribute.borrow_mut();
             if let &mut Some(ref mut declarations) = &mut *inline_declarations {
-                let index = declarations.normal
+                let index = declarations.declarations
                                         .iter()
-                                        .position(|decl| decl.matches(property));
+                                        .position(|&(ref decl, _)| decl.matches(property));
                 if let Some(index) = index {
-                    Arc::make_mut(&mut declarations.normal).remove(index);
-                    return;
-                }
-
-                let index = declarations.important
-                                        .iter()
-                                        .position(|decl| decl.matches(property));
-                if let Some(index) = index {
-                    Arc::make_mut(&mut declarations.important).remove(index);
-                    return;
+                    Arc::make_mut(&mut declarations.declarations).remove(index);
                 }
             }
         }
@@ -786,47 +778,29 @@ impl Element {
     pub fn update_inline_style(&self,
                                declarations: Vec<PropertyDeclaration>,
                                importance: Importance) {
-        fn update(element: &Element, mut declarations: Vec<PropertyDeclaration>,
+        fn update(element: &Element, declarations: Vec<PropertyDeclaration>,
                   importance: Importance) {
             let mut inline_declarations = element.style_attribute().borrow_mut();
             if let &mut Some(ref mut existing_declarations) = &mut *inline_declarations {
-                let existing_declarations = if importance.important() {
-                    &mut existing_declarations.important
-                } else {
-                    &mut existing_declarations.normal
-                };
-
                 // Usually, the reference count will be 1 here. But transitions could make it greater
                 // than that.
-                let existing_declarations = Arc::make_mut(existing_declarations);
+                let existing_declarations = Arc::make_mut(&mut existing_declarations.declarations);
 
-                for mut incoming_declaration in declarations {
-                    let mut replaced = false;
+                'outer: for incoming_declaration in declarations {
                     for existing_declaration in &mut *existing_declarations {
-                        if existing_declaration.name() == incoming_declaration.name() {
-                            mem::swap(existing_declaration, &mut incoming_declaration);
-                            replaced = true;
-                            break;
+                        if existing_declaration.0.name() == incoming_declaration.name() {
+                            *existing_declaration = (incoming_declaration, importance);
+                            continue 'outer;
                         }
                     }
-
-                    if !replaced {
-                        existing_declarations.push(incoming_declaration);
-                    }
+                    existing_declarations.push((incoming_declaration, importance));
                 }
 
                 return;
             }
 
-            let (important, normal) = if importance.important() {
-                (declarations, vec![])
-            } else {
-                (vec![], declarations)
-            };
-
             *inline_declarations = Some(PropertyDeclarationBlock {
-                important: Arc::new(important),
-                normal: Arc::new(normal),
+                declarations: Arc::new(declarations.into_iter().map(|d| (d, importance)).collect()),
             });
         }
 
@@ -836,30 +810,18 @@ impl Element {
 
     pub fn set_inline_style_property_priority(&self,
                                               properties: &[&str],
-                                              importance: Importance) {
+                                              new_importance: Importance) {
         {
             let mut inline_declarations = self.style_attribute().borrow_mut();
             if let &mut Some(ref mut declarations) = &mut *inline_declarations {
-              let (from, to) = if importance == Importance::Important {
-                  (&mut declarations.normal, &mut declarations.important)
-              } else {
-                  (&mut declarations.important, &mut declarations.normal)
-              };
-
-              // Usually, the reference counts of `from` and `to` will be 1 here. But transitions
-              // could make them greater than that.
-              let from = Arc::make_mut(from);
-              let to = Arc::make_mut(to);
-              let mut new_from = Vec::new();
-              for declaration in from.drain(..) {
-                  let name = declaration.name();
-                  if properties.iter().any(|p| name == **p) {
-                      to.push(declaration)
-                  } else {
-                      new_from.push(declaration)
-                  }
-              }
-              mem::replace(from, new_from);
+                // Usually, the reference counts of `from` and `to` will be 1 here. But transitions
+                // could make them greater than that.
+                let declarations = Arc::make_mut(&mut declarations.declarations);
+                for &mut (ref declaration, ref mut importance) in declarations {
+                    if properties.iter().any(|p| declaration.name() == **p) {
+                        *importance = new_importance
+                    }
+                }
             }
         }
 
@@ -868,25 +830,12 @@ impl Element {
 
     pub fn get_inline_style_declaration(&self,
                                         property: &Atom)
-                                        -> Option<Ref<PropertyDeclaration>> {
+                                        -> Option<Ref<(PropertyDeclaration, Importance)>> {
         ref_filter_map(self.style_attribute.borrow(), |inline_declarations| {
             inline_declarations.as_ref().and_then(|declarations| {
-                declarations.normal
+                declarations.declarations
                             .iter()
-                            .chain(declarations.important.iter())
-                            .find(|decl| decl.matches(&property))
-            })
-        })
-    }
-
-    pub fn get_important_inline_style_declaration(&self,
-                                                  property: &Atom)
-                                                  -> Option<Ref<PropertyDeclaration>> {
-        ref_filter_map(self.style_attribute.borrow(), |inline_declarations| {
-            inline_declarations.as_ref().and_then(|declarations| {
-                declarations.important
-                            .iter()
-                            .find(|decl| decl.matches(&property))
+                            .find(|&&(ref decl, _)| decl.matches(&property))
             })
         })
     }
