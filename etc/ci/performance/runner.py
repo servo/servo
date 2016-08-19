@@ -42,7 +42,7 @@ def execute_test(url, command, timeout):
 def get_servo_command(url):
     ua_script_path = "{}/user-agent-js".format(os.getcwd())
     return ["./servo/servo", url,
-            " --userscripts", ua_script_path,
+            "--userscripts", ua_script_path,
             "-x", "-o", "output.png"]
 
 
