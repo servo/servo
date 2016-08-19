@@ -12,7 +12,7 @@ doctest = false
 [dependencies]
 app_units = "0.3"
 cssparser = {version = "0.5.7", features = ["heap_size"]}
-euclid = "0.9"
+euclid = "0.10.1"
 rustc-serialize = "0.3"
 selectors = {version = "0.11", features = ["heap_size"]}
 string_cache = {version = "0.2.23", features = ["heap_size"]}

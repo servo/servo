@@ -77,8 +77,8 @@ impl PaintLayer {
             Size2D::new(bounds.size.width.to_nearest_px() as f32,
                         bounds.size.height.to_nearest_px() as f32));
 
-        let transform = transform.mul(&stacking_context.transform);
-        let perspective = perspective.mul(&stacking_context.perspective);
+        let transform = transform.pre_mul(&stacking_context.transform);
+        let perspective = perspective.pre_mul(&stacking_context.perspective);
         let establishes_3d_context = stacking_context.establishes_3d_context;
         let scrolls_overflow_area = stacking_context.scrolls_overflow_area;
 
@@ -244,8 +244,8 @@ impl LayerCreator {
         self.process_stacking_context_items(stacking_context,
                                             traversal,
                                             &(stacking_context.bounds.origin + *parent_origin),
-                                            &transform.mul(&stacking_context.transform),
-                                            &perspective.mul(&stacking_context.perspective));
+                                            &transform.pre_mul(&stacking_context.transform),
+                                            &perspective.pre_mul(&stacking_context.perspective));
     }
 
     fn process_stacking_context_items<'a>(&mut self,
@@ -694,11 +694,11 @@ impl WorkerThread {
 
             // Apply the translation to paint the tile we want.
             let matrix = Matrix4D::identity();
-            let matrix = matrix.scale(scale as AzFloat, scale as AzFloat, 1.0);
+            let matrix = matrix.pre_scaled(scale as AzFloat, scale as AzFloat, 1.0);
             let tile_bounds = tile.page_rect.translate(&paint_layer.display_list_origin);
-            let matrix = matrix.translate(-tile_bounds.origin.x as AzFloat,
-                                          -tile_bounds.origin.y as AzFloat,
-                                          0.0);
+            let matrix = matrix.pre_translated(-tile_bounds.origin.x as AzFloat,
+                                                -tile_bounds.origin.y as AzFloat,
+                                                0.0);
 
             // Clear the buffer.
             paint_context.clear();

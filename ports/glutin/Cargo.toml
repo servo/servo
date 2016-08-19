@@ -11,7 +11,7 @@ path = "lib.rs"
 [dependencies]
 bitflags = "0.7"
 compositing = {path = "../../components/compositing"}
-euclid = "0.9"
+euclid = "0.10.1"
 gleam = "0.2.8"
 layers = {git = "https://github.com/servo/rust-layers", features = ["plugins"]}
 log = "0.3.5"

@@ -25,7 +25,7 @@ bitflags = "0.7"
 cssparser = "0.5.7"
 deque = "0.3.1"
 encoding = "0.2"
-euclid = "0.9"
+euclid = "0.10.1"
 fnv = "1.0"
 gecko_bindings = {path = "../../ports/geckolib/gecko_bindings", optional = true}
 gecko_string_cache = {path = "../../ports/geckolib/string_cache", optional = true}

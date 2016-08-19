@@ -17,7 +17,7 @@ servo = ["serde", "serde_macros", "ipc-channel", "app_units/plugins",
 [dependencies]
 app_units = "0.3"
 bitflags = "0.7"
-euclid = "0.9"
+euclid = "0.10.1"
 getopts = "0.2.11"
 heapsize = "0.3.0"
 ipc-channel = {version = "0.5", optional = true}

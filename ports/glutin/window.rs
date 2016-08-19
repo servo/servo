@@ -125,8 +125,8 @@ impl Window {
                window_size: TypedSize2D<u32, ScreenPx>,
                parent: Option<glutin::WindowID>) -> Rc<Window> {
         let win_size: TypedSize2D<u32, DevicePixel> =
-            (window_size.as_f32() * window_creation_scale_factor())
-            .as_uint().cast().expect("Window size should fit in u32");
+            (window_size.to_f32() * window_creation_scale_factor())
+                .to_uint().cast().expect("Window size should fit in u32");
         let width = win_size.to_untyped().width;
         let height = win_size.to_untyped().height;
 
@@ -886,7 +886,7 @@ impl WindowMethods for Window {
             (NONE, Some(' '), _) => {
                 self.scroll_window(0.0,
                                    -self.framebuffer_size()
-                                        .as_f32()
+                                        .to_f32()
                                         .to_untyped()
                                         .height + 2.0 * LINE_HEIGHT,
                                    TouchEventType::Move);
@@ -895,7 +895,7 @@ impl WindowMethods for Window {
             (SHIFT, Some(' '), _) => {
                 self.scroll_window(0.0,
                                    self.framebuffer_size()
-                                       .as_f32()
+                                       .to_f32()
                                        .to_untyped()
                                        .height - 2.0 * LINE_HEIGHT,
                                    TouchEventType::Move);

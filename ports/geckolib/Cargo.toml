@@ -12,7 +12,7 @@ crate-type = ["staticlib"]
 [dependencies]
 app_units = "0.3"
 env_logger = "0.3"
-euclid = "0.9"
+euclid = "0.10.1"
 gecko_bindings = {version = "0.0.1", path = "gecko_bindings"}
 gecko_string_cache = {path = "string_cache"}
 lazy_static = "0.2"

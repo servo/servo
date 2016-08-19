@@ -127,7 +127,7 @@ impl<'a> PaintContext<'a> {
     }
 
     pub fn screen_pixels_per_px(&self) -> ScaleFactor<f32, PagePx, ScreenPx> {
-        ScaleFactor::new(self.screen_rect.as_f32().size.width / self.page_rect.size.width)
+        ScaleFactor::new(self.screen_rect.to_f32().size.width / self.page_rect.size.width)
     }
 
     pub fn draw_target(&self) -> &DrawTarget {
@@ -242,7 +242,7 @@ impl<'a> PaintContext<'a> {
         //
         // Annoyingly, surface patterns in Azure/Skia are relative to the top left of the *canvas*,
         // not the rectangle we're drawing to. So we need to translate it explicitly.
-        let matrix = Matrix2D::identity().translate(dest_rect.origin.x, dest_rect.origin.y);
+        let matrix = Matrix2D::identity().pre_translated(dest_rect.origin.x, dest_rect.origin.y);
         let stretch_size = stretch_size.to_nearest_azure_size(scale);
         if source_rect.size == stretch_size {
             let pattern = SurfacePattern::new(azure_surface.azure_source_surface,
@@ -1358,17 +1358,15 @@ impl<'a> PaintContext<'a> {
             SidewaysLeft => {
                 let x = origin.x.to_f32_px();
                 let y = origin.y.to_f32_px();
-                self.draw_target.set_transform(&draw_target_transform.mul(&Matrix2D::new(0., -1.,
-                                                                                         1., 0.,
-                                                                                         x, y)));
+                self.draw_target.set_transform(
+                    &draw_target_transform.pre_mul(&Matrix2D::row_major(0., -1., 1., 0., x, y)));
                 Point2D::zero()
             }
             SidewaysRight => {
                 let x = origin.x.to_f32_px();
                 let y = origin.y.to_f32_px();
-                self.draw_target.set_transform(&draw_target_transform.mul(&Matrix2D::new(0., 1.,
-                                                                                         -1., 0.,
-                                                                                         x, y)));
+                self.draw_target.set_transform(
+                    &draw_target_transform.pre_mul(&Matrix2D::row_major(0., 1., -1., 0., x, y)));
                 Point2D::zero()
             }
         };
@@ -1450,9 +1448,10 @@ impl<'a> PaintContext<'a> {
                                           Size2D::new(size.width as AzFloat,
                                                       size.height as AzFloat));
             let temporary_draw_target_bounds = old_transform.transform_rect(&inflated_size);
-            matrix = Matrix2D::identity().translate(
-                -temporary_draw_target_bounds.origin.x as AzFloat,
-                -temporary_draw_target_bounds.origin.y as AzFloat).mul(&old_transform);
+            matrix = Matrix2D::identity()
+                .pre_translated(-temporary_draw_target_bounds.origin.x as AzFloat,
+                                -temporary_draw_target_bounds.origin.y as AzFloat)
+                .pre_mul(&old_transform);
         }
 
         let temporary_draw_target =
@@ -1978,10 +1977,10 @@ impl TemporaryDrawTarget {
         let temporary_draw_target =
             main_draw_target.create_similar_draw_target(&temporary_draw_target_size,
                                                         main_draw_target.get_format());
-        let matrix =
-            Matrix2D::identity().translate(-temporary_draw_target_bounds.origin.x as AzFloat,
-                                           -temporary_draw_target_bounds.origin.y as AzFloat)
-                                .mul(&draw_target_transform);
+        let matrix = Matrix2D::identity()
+            .pre_translated(-temporary_draw_target_bounds.origin.x as AzFloat,
+                            -temporary_draw_target_bounds.origin.y as AzFloat)
+            .pre_mul(&draw_target_transform);
         temporary_draw_target.set_transform(&matrix);
         TemporaryDrawTarget {
             draw_target: temporary_draw_target,

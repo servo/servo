@@ -11,7 +11,7 @@ path = "lib.rs"
 
 [dependencies]
 azure = {git = "https://github.com/servo/rust-azure", features = ["plugins"]}
-euclid = "0.9"
+euclid = "0.10.1"
 heapsize = "0.3.0"
 heapsize_plugin = "0.1.2"
 layers = {git = "https://github.com/servo/rust-layers", features = ["plugins"]}
