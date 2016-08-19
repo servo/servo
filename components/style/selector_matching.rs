@@ -164,8 +164,8 @@ impl Stylist {
         // Take apart the StyleRule into individual Rules and insert
         // them into the SelectorMap of that priority.
         macro_rules! append(
-            ($style_rule: ident, $priority: ident, $importance: expr) => {
-                if !$style_rule.declarations.declarations.is_empty() {
+            ($style_rule: ident, $priority: ident, $importance: expr, $any: ident) => {
+                if $style_rule.declarations.$any {
                     for selector in &$style_rule.selectors {
                         let map = if let Some(ref pseudo) = selector.pseudo_element {
                             self.pseudos_map
@@ -193,8 +193,8 @@ impl Stylist {
         for rule in stylesheet.effective_rules(&self.device) {
             match *rule {
                 CSSRule::Style(ref style_rule) => {
-                    append!(style_rule, normal, Importance::Normal);
-                    append!(style_rule, important, Importance::Important);
+                    append!(style_rule, normal, Importance::Normal, any_normal);
+                    append!(style_rule, important, Importance::Important, any_important);
                     rules_source_order += 1;
 
                     for selector in &style_rule.selectors {
@@ -396,12 +396,14 @@ impl Stylist {
 
         // Step 4: Normal style attributes.
         if let Some(ref sa)  = style_attribute {
-            relations |= AFFECTED_BY_STYLE_ATTRIBUTE;
-            Push::push(
-                applicable_declarations,
-                DeclarationBlock::from_declarations(
-                    sa.declarations.clone(),
-                    Importance::Normal));
+            if sa.any_normal {
+                relations |= AFFECTED_BY_STYLE_ATTRIBUTE;
+                Push::push(
+                    applicable_declarations,
+                    DeclarationBlock::from_declarations(
+                        sa.declarations.clone(),
+                        Importance::Normal));
+            }
         }
 
         debug!("style attr: {:?}", relations);
@@ -416,11 +418,14 @@ impl Stylist {
 
         // Step 6: `!important` style attributes.
         if let Some(ref sa) = style_attribute {
-            Push::push(
-                applicable_declarations,
-                DeclarationBlock::from_declarations(
-                    sa.declarations.clone(),
-                    Importance::Important));
+            if sa.any_important {
+                relations |= AFFECTED_BY_STYLE_ATTRIBUTE;
+                Push::push(
+                    applicable_declarations,
+                    DeclarationBlock::from_declarations(
+                        sa.declarations.clone(),
+                        Importance::Important));
+            }
         }
 
         debug!("style attr important: {:?}", relations);

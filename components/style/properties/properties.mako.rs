@@ -287,6 +287,28 @@ impl Importance {
 pub struct PropertyDeclarationBlock {
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "#7038")]
     pub declarations: Arc<Vec<(PropertyDeclaration, Importance)>>,
+
+    /// Whether `self.declaration` contains at least one declaration with `Importance::Normal`
+    pub any_normal: bool,
+
+    /// Whether `self.declaration` contains at least one declaration with `Importance::Important`
+    pub any_important: bool,
+}
+
+impl PropertyDeclarationBlock {
+    pub fn recalc_any(&mut self) {
+        let mut any_normal = false;
+        let mut any_important = false;
+        for &(_, importance) in &*self.declarations {
+            if importance.important() {
+                any_important = true
+            } else {
+                any_normal = true
+            }
+        }
+        self.any_normal = any_normal;
+        self.any_important = any_important;
+    }
 }
 
 impl ToCss for PropertyDeclarationBlock {
@@ -542,6 +564,8 @@ impl<'a, 'b> DeclarationParser for PropertyDeclarationParser<'a, 'b> {
 pub fn parse_property_declaration_list(context: &ParserContext, input: &mut Parser)
                                        -> PropertyDeclarationBlock {
     let mut declarations = Vec::new();
+    let mut any_normal = false;
+    let mut any_important = false;
     let parser = PropertyDeclarationParser {
         context: context,
     };
@@ -549,6 +573,11 @@ pub fn parse_property_declaration_list(context: &ParserContext, input: &mut Pars
     while let Some(declaration) = iter.next() {
         match declaration {
             Ok((results, importance)) => {
+                if importance.important() {
+                    any_important = true
+                } else {
+                    any_normal = true
+                }
                 declarations.extend(results.into_iter().map(|d| (d, importance)))
             }
             Err(range) => {
@@ -561,6 +590,8 @@ pub fn parse_property_declaration_list(context: &ParserContext, input: &mut Pars
     }
     PropertyDeclarationBlock {
         declarations: Arc::new(deduplicate_property_declarations(declarations)),
+        any_normal: any_normal,
+        any_important: any_important,
     }
 }
 

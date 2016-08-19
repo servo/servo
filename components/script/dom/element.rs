@@ -767,6 +767,7 @@ impl Element {
                                         .position(|&(ref decl, _)| decl.matches(property));
                 if let Some(index) = index {
                     Arc::make_mut(&mut declarations.declarations).remove(index);
+                    declarations.recalc_any();
                 }
             }
         }
@@ -781,26 +782,30 @@ impl Element {
         fn update(element: &Element, declarations: Vec<PropertyDeclaration>,
                   importance: Importance) {
             let mut inline_declarations = element.style_attribute().borrow_mut();
-            if let &mut Some(ref mut existing_declarations) = &mut *inline_declarations {
-                // Usually, the reference count will be 1 here. But transitions could make it greater
-                // than that.
-                let existing_declarations = Arc::make_mut(&mut existing_declarations.declarations);
+            if let &mut Some(ref mut declaration_block) = &mut *inline_declarations {
+                {
+                    // Usually, the reference count will be 1 here. But transitions could make it greater
+                    // than that.
+                    let existing_declarations = Arc::make_mut(&mut declaration_block.declarations);
 
-                'outer: for incoming_declaration in declarations {
-                    for existing_declaration in &mut *existing_declarations {
-                        if existing_declaration.0.name() == incoming_declaration.name() {
-                            *existing_declaration = (incoming_declaration, importance);
-                            continue 'outer;
+                    'outer: for incoming_declaration in declarations {
+                        for existing_declaration in &mut *existing_declarations {
+                            if existing_declaration.0.name() == incoming_declaration.name() {
+                                *existing_declaration = (incoming_declaration, importance);
+                                continue 'outer;
+                            }
                         }
+                        existing_declarations.push((incoming_declaration, importance));
                     }
-                    existing_declarations.push((incoming_declaration, importance));
                 }
-
+                declaration_block.recalc_any();
                 return;
             }
 
             *inline_declarations = Some(PropertyDeclarationBlock {
                 declarations: Arc::new(declarations.into_iter().map(|d| (d, importance)).collect()),
+                any_important: importance.important(),
+                any_normal: !importance.important(),
             });
         }
 
