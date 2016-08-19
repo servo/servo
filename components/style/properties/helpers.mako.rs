@@ -285,8 +285,11 @@
     }
 </%def>
 
-<%def name="single_keyword(name, values, **kwargs)">
-    <%call expr="single_keyword_computed(name, values, **kwargs)">
+<%def name="maybe_vector_longhand(name, maybe, **kwargs)">
+
+</%def> 
+<%def name="single_keyword(name, values, vector=False, **kwargs)">
+    <%call expr="single_keyword_computed(name, values, vector, **kwargs)">
         use values::computed::ComputedValueAsSpecified;
         use values::NoViewportPercentage;
         impl ComputedValueAsSpecified for SpecifiedValue {}
@@ -294,16 +297,16 @@
     </%call>
 </%def>
 
-<%def name="single_keyword_computed(name, values, **kwargs)">
+<%def name="single_keyword_computed(name, values, vector=False, **kwargs)">
     <%
         keyword_kwargs = {a: kwargs.pop(a, None) for a in [
             'gecko_constant_prefix', 'gecko_enum_prefix',
             'extra_gecko_values', 'extra_servo_values',
         ]}
     %>
-    <%call expr="longhand(name, keyword=Keyword(name, values, **keyword_kwargs), **kwargs)">
+    
+    <%def name="inner_body()">
         pub use self::computed_value::T as SpecifiedValue;
-        ${caller.body()}
         pub mod computed_value {
             define_css_keyword_enum! { T:
                 % for value in data.longhands_by_name[name].keyword.values_for(product):
@@ -320,7 +323,18 @@
                      -> Result<SpecifiedValue, ()> {
             computed_value::T::parse(input)
         }
-    </%call>
+    </%def>
+    % if vector:
+        <%call expr="vector_longhand(name, keyword=Keyword(name, values, **keyword_kwargs), **kwargs)">
+            ${inner_body()}
+            ${caller.body()}
+        </%call>
+    % else:
+        <%call expr="longhand(name, keyword=Keyword(name, values, **keyword_kwargs), **kwargs)">
+            ${inner_body()}
+            ${caller.body()}
+        </%call>
+    % endif
 </%def>
 
 <%def name="keyword_list(name, values, **kwargs)">
