@@ -66,7 +66,7 @@ def parse_log(log, testcase=None):
             copy = False
             blocks.append(block)
             block = []
-        elif copy:
+        elif copy and line.strip().startswith("[PERF]"):
             block.append(line)
 
     # We need to still include the failed tests, otherwise Treeherder will
