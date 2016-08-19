@@ -35,6 +35,7 @@ use snapshot::GeckoElementSnapshot;
 use snapshot_helpers;
 use std::fmt;
 use std::marker::PhantomData;
+use std::mem::transmute;
 use std::ops::BitOr;
 use std::ptr;
 use std::sync::Arc;
@@ -432,9 +433,13 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     fn style_attribute(&self) -> &Option<PropertyDeclarationBlock> {
-        unsafe {
-            let ptr = Gecko_GetServoDeclarationBlock(self.element) as *mut GeckoDeclarationBlock;
-            ptr.as_ref().map(|d| &d.declarations).unwrap_or(&NO_STYLE_ATTRIBUTE)
+        let declarations = unsafe { Gecko_GetServoDeclarationBlock(self.element) };
+        if declarations.is_null() {
+            &NO_STYLE_ATTRIBUTE
+        } else {
+            GeckoDeclarationBlock::with(declarations, |declarations| {
+                unsafe { transmute(&declarations.declarations) }
+            })
         }
     }
 

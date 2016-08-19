@@ -9,6 +9,8 @@ pub type ServoComputedValuesStrong = ::sugar::refptr::Strong<ServoComputedValues
 pub type ServoComputedValuesBorrowed<'a> = ::sugar::refptr::Borrowed<'a, ServoComputedValues>;
 pub type RawServoStyleSheetStrong = ::sugar::refptr::Strong<RawServoStyleSheet>;
 pub type RawServoStyleSheetBorrowed<'a> = ::sugar::refptr::Borrowed<'a, RawServoStyleSheet>;
+pub type ServoDeclarationBlockStrong = ::sugar::refptr::Strong<ServoDeclarationBlock>;
+pub type ServoDeclarationBlockBorrowed<'a> = ::sugar::refptr::Borrowed<'a, ServoDeclarationBlock>;
 use structs::nsStyleFont;
 unsafe impl Send for nsStyleFont {}
 unsafe impl Sync for nsStyleFont {}
@@ -254,7 +256,7 @@ extern "C" {
                                           classList: *mut *mut *mut nsIAtom)
      -> u32;
     pub fn Gecko_GetServoDeclarationBlock(element: *mut RawGeckoElement)
-     -> *mut ServoDeclarationBlock;
+     -> ServoDeclarationBlockBorrowed;
     pub fn Gecko_GetNodeData(node: *mut RawGeckoNode) -> *mut ServoNodeData;
     pub fn Gecko_SetNodeData(node: *mut RawGeckoNode,
                              data: *mut ServoNodeData);
@@ -467,16 +469,18 @@ extern "C" {
     pub fn Servo_DropStyleSet(set: *mut RawServoStyleSet);
     pub fn Servo_ParseStyleAttribute(bytes: *const u8, length: u32,
                                      cache: *mut nsHTMLCSSStyleSheet)
-     -> *mut ServoDeclarationBlock;
-    pub fn Servo_DropDeclarationBlock(declarations:
-                                          *mut ServoDeclarationBlock);
+     -> ServoDeclarationBlockStrong;
+    pub fn Servo_DeclarationBlock_AddRef(declarations:
+                                             ServoDeclarationBlockBorrowed);
+    pub fn Servo_DeclarationBlock_Release(declarations:
+                                              ServoDeclarationBlockBorrowed);
     pub fn Servo_GetDeclarationBlockCache(declarations:
-                                              *mut ServoDeclarationBlock)
+                                              ServoDeclarationBlockBorrowed)
      -> *mut nsHTMLCSSStyleSheet;
     pub fn Servo_SetDeclarationBlockImmutable(declarations:
-                                                  *mut ServoDeclarationBlock);
+                                                  ServoDeclarationBlockBorrowed);
     pub fn Servo_ClearDeclarationBlockCachePointer(declarations:
-                                                       *mut ServoDeclarationBlock);
+                                                       ServoDeclarationBlockBorrowed);
     pub fn Servo_CSSSupports(name: *const u8, name_length: u32,
                              value: *const u8, value_length: u32) -> bool;
     pub fn Servo_GetComputedValues(node: *mut RawGeckoNode)
