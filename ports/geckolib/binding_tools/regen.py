@@ -148,7 +148,10 @@ COMPILATION_TARGETS = {
         "void_types": [
             "nsINode", "nsIDocument", "nsIPrincipal", "nsIURI",
         ],
-        "servo_arc_types": ["ServoComputedValues", "RawServoStyleSheet"]
+        "servo_arc_types": [
+            "ServoComputedValues", "RawServoStyleSheet",
+            "ServoDeclarationBlock"
+        ]
     },
 
     "atoms": {
