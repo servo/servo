@@ -36,40 +36,6 @@ config = {
     }
 }
 
-# Load configs from servo-tidy.toml
-if os.path.exists(CONFIG_FILE_PATH):
-    with open(CONFIG_FILE_PATH) as conffile:
-        conf_file = conffile.read()
-        config_file = toml.loads(conf_file)
-        exclude = config_file.get("ignore", {})
-        # Add list of ignored directories to config
-        config["ignore"]["directories"] += exclude.get("directories", [])
-        # Add list of ignored files to config
-        config["ignore"]["files"] += exclude.get("files", [])
-        # Add list of ignored packages to config
-        config["ignore"]["packages"] = exclude.get("packages", [])
-        # On Windows via cmd are paths with backslashes,
-        # which will break ignore lists matching,
-        # this convert ignore lists paths to use backslashes
-        if sys.platform == "win32":
-            files = []
-            for f in config["ignore"]["files"]:
-                files += [os.path.join(*f.split("/"))]
-            config["ignore"]["files"] = files
-            dirs = []
-            for f in config["ignore"]["directories"]:
-                dirs += [os.path.join(*f.split("/"))]
-            config["ignore"]["directories"] = dirs
-
-        # Override default configs
-        configs = config_file.get("configs", [])
-        for pref in configs:
-            if pref in config:
-                config[pref] = configs[pref]
-else:
-    print("%s config file is required but was not found" % CONFIG_FILE_PATH)
-    sys.exit(1)
-
 COMMENTS = ["// ", "# ", " *", "/* "]
 
 # File patterns to include in the non-WPT tidy check.
@@ -699,15 +665,17 @@ def check_spec(file_name, lines):
 
 
 def check_config_file(config_file, print_text=True):
-    if conf_file and config_file == CONFIG_FILE_PATH:
-        lines = conf_file.splitlines(True)
+    # Load configs from servo-tidy.toml
+    if os.path.exists(config_file):
+        with open(config_file) as content:
+            conf_file = content.read()
+            lines = conf_file.splitlines(True)
     else:
-        # Needed for running tests
-        with open(config_file, "r") as content:
-            lines = content.read().splitlines(True)
+        print("%s config file is required but was not found" % config_file)
+        sys.exit(1)
 
     if print_text:
-        print '\rChecking config file for tidiness...'
+        print '\rChecking for config file...'
 
     current_table = ""
     for idx, line in enumerate(lines):
@@ -719,7 +687,7 @@ def check_config_file(config_file, print_text=True):
         if re.match("\[(.*?)\]", line.strip()):
             table_name = re.findall(r"\[(.*?)\]", line)[0].strip()
             if table_name not in ("configs", "ignore"):
-                yield(config_file, idx + 1, "invalid config table [%s]" % table_name)
+                yield config_file, idx + 1, "invalid config table [%s]" % table_name
             current_table = table_name
             continue
 
@@ -735,7 +703,40 @@ def check_config_file(config_file, print_text=True):
                 current_table == "ignore" and key not in config["ignore"] or
                 # Any key outside of tables
                 current_table == ""):
-            yield(config_file, idx + 1, "invalid config key '%s'" % key)
+            yield config_file, idx + 1, "invalid config key '%s'" % key
+
+    # Skip parsing config file for tests
+    if config_file == CONFIG_FILE_PATH:
+        parse_config(conf_file)
+
+
+def parse_config(content):
+    config_file = toml.loads(content)
+    exclude = config_file.get("ignore", {})
+    # Add list of ignored directories to config
+    config["ignore"]["directories"] += exclude.get("directories", [])
+    # Add list of ignored files to config
+    config["ignore"]["files"] += exclude.get("files", [])
+    # Add list of ignored packages to config
+    config["ignore"]["packages"] = exclude.get("packages", [])
+    # On Windows via cmd are paths with backslashes,
+    # which will break ignore lists matching,
+    # this convert ignore lists paths to use backslashes
+    if sys.platform == "win32":
+        files = []
+        for f in config["ignore"]["files"]:
+            files += [os.path.join(*f.split("/"))]
+        config["ignore"]["files"] = files
+        dirs = []
+        for f in config["ignore"]["directories"]:
+            dirs += [os.path.join(*f.split("/"))]
+        config["ignore"]["directories"] = dirs
+
+    # Override default configs
+    configs = config_file.get("configs", [])
+    for pref in configs:
+        if pref in config:
+            config[pref] = configs[pref]
 
 
 def collect_errors_for_files(files_to_check, checking_functions, line_checking_functions, print_text=True):
