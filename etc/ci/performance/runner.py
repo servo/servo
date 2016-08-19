@@ -239,7 +239,7 @@ def main():
         testcases = load_manifest(args.tp5_manifest)
         results = []
         for testcase in testcases:
-            command = (["timeout", "{timeout}s".format(args.timeout)] +
+            command = (["timeout", "{}s".format(args.timeout)] +
                        command_factory(testcase))
             for run in range(args.runs):
                 print("Running test {}/{} on {}".format(run + 1,
