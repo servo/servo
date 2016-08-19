@@ -8,7 +8,7 @@ use selectors::parser::*;
 use std::borrow::ToOwned;
 use std::sync::Arc;
 use std::sync::Mutex;
-use string_cache::{Atom, Namespace};
+use string_cache::{Atom, Namespace as NsAtom};
 use style::error_reporting::ParseErrorReporter;
 use style::keyframes::{Keyframe, KeyframeSelector, KeyframePercentage};
 use style::parser::ParserContextExtraData;
@@ -38,13 +38,19 @@ fn test_parse_stylesheet() {
         media: None,
         dirty_on_viewport_size_change: false,
         rules: vec![
-            CSSRule::Namespace(None, Namespace(Atom::from("http://www.w3.org/1999/xhtml"))),
+            CSSRule::Namespace {
+                prefix: None,
+                url: NsAtom(Atom::from("http://www.w3.org/1999/xhtml"))
+            },
             CSSRule::Style(StyleRule {
                 selectors: vec![
                     Selector {
                         compound_selectors: Arc::new(CompoundSelector {
                             simple_selectors: vec![
-                                SimpleSelector::Namespace(Namespace(Atom::from("http://www.w3.org/1999/xhtml"))),
+                                SimpleSelector::Namespace(Namespace {
+                                    prefix: None,
+                                    url: NsAtom(Atom::from("http://www.w3.org/1999/xhtml"))
+                                }),
                                 SimpleSelector::LocalName(LocalName {
                                     name: atom!("input"),
                                     lower_name: atom!("input"),
@@ -52,7 +58,10 @@ fn test_parse_stylesheet() {
                                 SimpleSelector::AttrEqual(AttrSelector {
                                     name: atom!("type"),
                                     lower_name: atom!("type"),
-                                    namespace: NamespaceConstraint::Specific(ns!()),
+                                    namespace: NamespaceConstraint::Specific(Namespace {
+                                        prefix: None,
+                                        url: ns!()
+                                    }),
                                 }, "hidden".to_owned(), CaseSensitivity::CaseInsensitive)
                             ],
                             next: None,
@@ -74,7 +83,10 @@ fn test_parse_stylesheet() {
                     Selector {
                         compound_selectors: Arc::new(CompoundSelector {
                             simple_selectors: vec![
-                                SimpleSelector::Namespace(Namespace(Atom::from("http://www.w3.org/1999/xhtml"))),
+                                SimpleSelector::Namespace(Namespace {
+                                    prefix: None,
+                                    url: NsAtom(Atom::from("http://www.w3.org/1999/xhtml"))
+                                }),
                                 SimpleSelector::LocalName(LocalName {
                                     name: atom!("html"),
                                     lower_name: atom!("html"),
@@ -88,7 +100,10 @@ fn test_parse_stylesheet() {
                     Selector {
                         compound_selectors: Arc::new(CompoundSelector {
                             simple_selectors: vec![
-                                SimpleSelector::Namespace(Namespace(Atom::from("http://www.w3.org/1999/xhtml"))),
+                                SimpleSelector::Namespace(Namespace {
+                                    prefix: None,
+                                    url: NsAtom(Atom::from("http://www.w3.org/1999/xhtml"))
+                                }),
                                 SimpleSelector::LocalName(LocalName {
                                     name: atom!("body"),
                                     lower_name: atom!("body"),
@@ -113,12 +128,18 @@ fn test_parse_stylesheet() {
                     Selector {
                         compound_selectors: Arc::new(CompoundSelector {
                             simple_selectors: vec![
-                                SimpleSelector::Namespace(Namespace(Atom::from("http://www.w3.org/1999/xhtml"))),
+                                SimpleSelector::Namespace(Namespace {
+                                    prefix: None,
+                                    url: NsAtom(Atom::from("http://www.w3.org/1999/xhtml"))
+                                }),
                                 SimpleSelector::Class(Atom::from("ok")),
                             ],
                             next: Some((Arc::new(CompoundSelector {
                                 simple_selectors: vec![
-                                    SimpleSelector::Namespace(Namespace(Atom::from("http://www.w3.org/1999/xhtml"))),
+                                    SimpleSelector::Namespace(Namespace {
+                                        prefix: None,
+                                        url: NsAtom(Atom::from("http://www.w3.org/1999/xhtml"))
+                                    }),
                                     SimpleSelector::ID(Atom::from("d1")),
                                 ],
                                 next: None,

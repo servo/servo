@@ -2,10 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use cssparser::ToCss;
 use element_state::ElementState;
 use selector_impl::PseudoElementCascadeType;
 use selector_impl::{attr_exists_selector_is_shareable, attr_equals_selector_is_shareable};
 use selectors::parser::{ParserContext, SelectorImpl, AttrSelector};
+use std::fmt;
 use string_cache::{Atom, WeakAtom, Namespace, WeakNamespace};
 use stylesheets::Stylesheet;
 
@@ -93,6 +95,16 @@ impl PseudoElement {
     }
 }
 
+impl ToCss for PseudoElement {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        // FIXME: why does the atom contain one colon? Pseudo-element has two
+        debug_assert!(self.0.as_slice().starts_with(&[b':' as u16]) &&
+                      !self.0.as_slice().starts_with(&[b':' as u16, b':' as u16]));
+        try!(dest.write_char(':'));
+        write!(dest, "{}", self.0)
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum NonTSPseudoClass {
     AnyLink,
@@ -107,6 +119,26 @@ pub enum NonTSPseudoClass {
     Indeterminate,
     ReadWrite,
     ReadOnly,
+}
+
+impl ToCss for NonTSPseudoClass {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        use self::NonTSPseudoClass::*;
+        dest.write_str(match *self {
+            AnyLink => ":any-link",
+            Link => ":link",
+            Visited => ":visited",
+            Active => ":active",
+            Focus => ":focus",
+            Hover => ":hover",
+            Enabled => ":enabled",
+            Disabled => ":disabled",
+            Checked => ":checked",
+            Indeterminate => ":indeterminate",
+            ReadWrite => ":read-write",
+            ReadOnly => ":read-only",
+        })
+    }
 }
 
 impl NonTSPseudoClass {
@@ -135,8 +167,9 @@ impl SelectorImpl for GeckoSelectorImpl {
     type Identifier = Atom;
     type ClassName = Atom;
     type LocalName = Atom;
-    type Namespace = Namespace;
-    type BorrowedNamespace = WeakNamespace;
+    type NamespacePrefix = Atom;
+    type NamespaceUrl = Namespace;
+    type BorrowedNamespaceUrl = WeakNamespace;
     type BorrowedLocalName = WeakAtom;
 
     type PseudoElement = PseudoElement;

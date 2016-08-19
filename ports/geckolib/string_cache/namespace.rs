@@ -5,6 +5,7 @@
 use gecko_bindings::structs::nsIAtom;
 use selectors::bloom::BloomHash;
 use std::borrow::Borrow;
+use std::fmt;
 use std::ops::Deref;
 use {Atom, WeakAtom};
 
@@ -26,6 +27,12 @@ impl Deref for Namespace {
         unsafe {
             &*(weak as *const WeakNamespace)
         }
+    }
+}
+
+impl fmt::Display for Namespace {
+    fn fmt(&self, w: &mut fmt::Formatter) -> fmt::Result {
+        self.0.fmt(w)
     }
 }
 

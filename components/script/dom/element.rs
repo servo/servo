@@ -2250,7 +2250,7 @@ impl<'a> ::selectors::MatchAttrGeneric for Root<Element> {
         };
         match attr.namespace {
             NamespaceConstraint::Specific(ref ns) => {
-                self.get_attribute(ns, local_name)
+                self.get_attribute(&ns.url, local_name)
                     .map_or(false, |attr| {
                         test(&attr.value())
                     })

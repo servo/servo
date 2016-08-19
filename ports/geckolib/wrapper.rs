@@ -587,7 +587,7 @@ impl AttrSelectorHelpers for AttrSelector<GeckoSelectorImpl> {
     fn ns_or_null(&self) -> *mut nsIAtom {
         match self.namespace {
             NamespaceConstraint::Any => ptr::null_mut(),
-            NamespaceConstraint::Specific(ref ns) => ns.0.as_ptr(),
+            NamespaceConstraint::Specific(ref ns) => ns.url.0.as_ptr(),
         }
     }
 

@@ -62,7 +62,7 @@ regex = "0.1.43"
 rustc-serialize = "0.3"
 script_layout_interface = {path = "../script_layout_interface"}
 script_traits = {path = "../script_traits"}
-selectors = {version = "0.9", features = ["heap_size"]}
+selectors = {version = "0.10", features = ["heap_size"]}
 serde = "0.8"
 smallvec = "0.1"
 string_cache = {version = "0.2.23", features = ["heap_size", "unstable"]}
