@@ -285,9 +285,6 @@
     }
 </%def>
 
-<%def name="maybe_vector_longhand(name, maybe, **kwargs)">
-
-</%def> 
 <%def name="single_keyword(name, values, vector=False, **kwargs)">
     <%call expr="single_keyword_computed(name, values, vector, **kwargs)">
         use values::computed::ComputedValueAsSpecified;
@@ -304,7 +301,7 @@
             'extra_gecko_values', 'extra_servo_values',
         ]}
     %>
-    
+
     <%def name="inner_body()">
         pub use self::computed_value::T as SpecifiedValue;
         pub mod computed_value {

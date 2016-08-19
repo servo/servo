@@ -3,12 +3,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::iter::{once, Chain, Once, IntoIterator};
-use std::slice::IterMut;
+use std::slice::{Iter, IterMut};
 use structs::nsStyleAutoArray;
 
 impl<T> nsStyleAutoArray<T> {
     pub fn iter_mut(&mut self) -> Chain<Once<&mut T>, IterMut<T>> {
         once(&mut self.mFirstElement).chain(self.mOtherElements.iter_mut())
+    }
+    pub fn iter(&self) -> Chain<Once<&T>, Iter<T>> {
+        once(&self.mFirstElement).chain(self.mOtherElements.iter())
     }
 
     // Note that often structs containing autoarrays will have
