@@ -14,8 +14,6 @@ use std::ascii::AsciiExt;
 use std::boxed::Box as StdBox;
 use std::collections::HashSet;
 use std::fmt::{self, Write};
-use std::iter::{Iterator, Chain, Zip, Repeat, repeat};
-use std::slice;
 use std::sync::Arc;
 
 use app_units::Au;
@@ -264,7 +262,7 @@ mod property_bit_field {
 % endfor
 
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Importance {
     /// Indicates a declaration without `!important`.
     Normal,
@@ -288,21 +286,7 @@ impl Importance {
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct PropertyDeclarationBlock {
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "#7038")]
-    pub important: Arc<Vec<PropertyDeclaration>>,
-    #[cfg_attr(feature = "servo", ignore_heap_size_of = "#7038")]
-    pub normal: Arc<Vec<PropertyDeclaration>>,
-}
-
-impl PropertyDeclarationBlock {
-    /// Provides an iterator of all declarations, with indication of !important value
-    pub fn declarations(&self) -> Chain<
-        Zip<slice::Iter<PropertyDeclaration>, Repeat<Importance>>,
-        Zip<slice::Iter<PropertyDeclaration>, Repeat<Importance>>
-    > {
-        let normal = self.normal.iter().zip(repeat(Importance::Normal));
-        let important = self.important.iter().zip(repeat(Importance::Important));
-        normal.chain(important)
-    }
+    pub declarations: Arc<Vec<(PropertyDeclaration, Importance)>>,
 }
 
 impl ToCss for PropertyDeclarationBlock {
@@ -316,7 +300,7 @@ impl ToCss for PropertyDeclarationBlock {
         let mut already_serialized = Vec::new();
 
         // Step 3
-        for (declaration, importance) in self.declarations() {
+        for &(ref declaration, importance) in &*self.declarations {
             // Step 3.1
             let property = declaration.name();
 
@@ -330,7 +314,7 @@ impl ToCss for PropertyDeclarationBlock {
             if !shorthands.is_empty() {
 
                 // Step 3.3.1
-                let mut longhands = self.declarations()
+                let mut longhands = self.declarations.iter()
                     .filter(|d| !already_serialized.contains(&d.0.name()))
                     .collect::<Vec<_>>();
 
@@ -342,7 +326,7 @@ impl ToCss for PropertyDeclarationBlock {
                     let mut current_longhands = Vec::new();
                     let mut important_count = 0;
 
-                    for &(longhand, longhand_importance) in longhands.iter() {
+                    for &&(ref longhand, longhand_importance) in longhands.iter() {
                         let longhand_name = longhand.name();
                         if properties.iter().any(|p| &longhand_name == *p) {
                             current_longhands.push(longhand);
@@ -386,7 +370,7 @@ impl ToCss for PropertyDeclarationBlock {
                     for current_longhand in current_longhands {
                         // Substep 9
                         already_serialized.push(current_longhand.name());
-                        let index_to_remove = longhands.iter().position(|l| l.0 == current_longhand);
+                        let index_to_remove = longhands.iter().position(|l| l.0 == *current_longhand);
                         if let Some(index) = index_to_remove {
                             // Substep 10
                             longhands.remove(index);
@@ -557,8 +541,7 @@ impl<'a, 'b> DeclarationParser for PropertyDeclarationParser<'a, 'b> {
 
 pub fn parse_property_declaration_list(context: &ParserContext, input: &mut Parser)
                                        -> PropertyDeclarationBlock {
-    let mut important_declarations = Vec::new();
-    let mut normal_declarations = Vec::new();
+    let mut declarations = Vec::new();
     let parser = PropertyDeclarationParser {
         context: context,
     };
@@ -566,11 +549,7 @@ pub fn parse_property_declaration_list(context: &ParserContext, input: &mut Pars
     while let Some(declaration) = iter.next() {
         match declaration {
             Ok((results, importance)) => {
-                if importance.important() {
-                    important_declarations.extend(results);
-                } else {
-                    normal_declarations.extend(results);
-                }
+                declarations.extend(results.into_iter().map(|d| (d, importance)))
             }
             Err(range) => {
                 let pos = range.start;
@@ -581,46 +560,79 @@ pub fn parse_property_declaration_list(context: &ParserContext, input: &mut Pars
         }
     }
     PropertyDeclarationBlock {
-        important: Arc::new(deduplicate_property_declarations(important_declarations)),
-        normal: Arc::new(deduplicate_property_declarations(normal_declarations)),
+        declarations: Arc::new(deduplicate_property_declarations(declarations)),
     }
 }
 
 
-/// Only keep the last declaration for any given property.
+/// Only keep the "winning" declaration for any given property, by importance then source order.
 /// The input and output are in source order
-fn deduplicate_property_declarations(declarations: Vec<PropertyDeclaration>)
-                                     -> Vec<PropertyDeclaration> {
-    let mut deduplicated = vec![];
-    let mut seen = PropertyBitField::new();
-    let mut seen_custom = Vec::new();
-    for declaration in declarations.into_iter().rev() {
+fn deduplicate_property_declarations(declarations: Vec<(PropertyDeclaration, Importance)>)
+                                     -> Vec<(PropertyDeclaration, Importance)> {
+    let mut deduplicated = Vec::new();
+    let mut seen_normal = PropertyBitField::new();
+    let mut seen_important = PropertyBitField::new();
+    let mut seen_custom_normal = Vec::new();
+    let mut seen_custom_important = Vec::new();
+    for (declaration, importance) in declarations.into_iter().rev() {
         match declaration {
             % for property in data.longhands:
                 PropertyDeclaration::${property.camel_case}(..) => {
                     % if not property.derived_from:
-                        if seen.get_${property.ident}() {
-                            continue
+                        if importance.important() {
+                            if seen_important.get_${property.ident}() {
+                                continue
+                            }
+                            if seen_normal.get_${property.ident}() {
+                                remove_one(&mut deduplicated, |d| {
+                                    matches!(d, &(PropertyDeclaration::${property.camel_case}(..), _))
+                                })
+                            }
+                            seen_important.set_${property.ident}()
+                        } else {
+                            if seen_normal.get_${property.ident}() ||
+                               seen_important.get_${property.ident}() {
+                                continue
+                            }
+                            seen_normal.set_${property.ident}()
                         }
-                        seen.set_${property.ident}()
                     % else:
                         unreachable!();
                     % endif
                 },
             % endfor
             PropertyDeclaration::Custom(ref name, _) => {
-                if seen_custom.contains(name) {
-                    continue
+                if importance.important() {
+                    if seen_custom_important.contains(name) {
+                        continue
+                    }
+                    if seen_custom_normal.contains(name) {
+                        remove_one(&mut deduplicated, |d| {
+                            matches!(d, &(PropertyDeclaration::Custom(ref n, _), _) if n == name)
+                        })
+                    }
+                    seen_custom_important.push(name.clone())
+                } else {
+                    if seen_custom_normal.contains(name) ||
+                       seen_custom_important.contains(name) {
+                        continue
+                    }
+                    seen_custom_normal.push(name.clone())
                 }
-                seen_custom.push(name.clone())
             }
         }
-        deduplicated.push(declaration)
+        deduplicated.push((declaration, importance))
     }
     deduplicated.reverse();
     deduplicated
 }
 
+#[inline]
+fn remove_one<T, F: FnMut(&T) -> bool>(v: &mut Vec<T>, mut remove_this: F) {
+    let previous_len = v.len();
+    v.retain(|x| !remove_this(x));
+    debug_assert_eq!(v.len(), previous_len - 1);
+}
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum CSSWideKeyword {
@@ -1701,7 +1713,7 @@ fn cascade_with_cached_declarations(
     // Declaration blocks are stored in increasing precedence order,
     // we want them in decreasing order here.
     for sub_list in applicable_declarations.iter().rev() {
-        for declaration in sub_list.declarations.iter().rev() {
+        for declaration in sub_list.iter().rev() {
             match *declaration {
                 % for style_struct in data.active_style_structs():
                     % for property in style_struct.longhands:
@@ -1832,7 +1844,7 @@ pub fn cascade(viewport_size: Size2D<Au>,
     let mut custom_properties = None;
     let mut seen_custom = HashSet::new();
     for sub_list in applicable_declarations.iter().rev() {
-        for declaration in sub_list.declarations.iter().rev() {
+        for declaration in sub_list.iter().rev() {
             match *declaration {
                 PropertyDeclaration::Custom(ref name, ref value) => {
                     ::custom_properties::cascade(
@@ -1890,7 +1902,7 @@ pub fn cascade(viewport_size: Size2D<Au>,
     ComputedValues::do_cascade_property(|cascade_property| {
         % for category_to_cascade_now in ["early", "other"]:
             for sub_list in applicable_declarations.iter().rev() {
-                for declaration in sub_list.declarations.iter().rev() {
+                for declaration in sub_list.iter().rev() {
                     if let PropertyDeclaration::Custom(..) = *declaration {
                         continue
                     }

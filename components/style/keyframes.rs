@@ -5,9 +5,9 @@
 use cssparser::{AtRuleParser, Parser, QualifiedRuleParser, RuleListParser};
 use cssparser::{DeclarationListParser, DeclarationParser};
 use parser::{ParserContext, log_css_error};
-use properties::PropertyDeclaration;
 use properties::PropertyDeclarationParseResult;
 use properties::animated_properties::TransitionProperty;
+use properties::{PropertyDeclaration, Importance};
 use std::sync::Arc;
 
 /// A number from 1 to 100, indicating the percentage of the animation where
@@ -72,7 +72,12 @@ impl KeyframeSelector {
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct Keyframe {
     pub selector: KeyframeSelector,
-    pub declarations: Arc<Vec<PropertyDeclaration>>,
+
+    /// `!important` is not allowed in keyframe declarations,
+    /// so the second value of these tuples is always `Importance::Normal`.
+    /// But including them enables `compute_style_for_animation_step` to create a `DeclarationBlock`
+    /// by cloning an `Arc<_>` (incrementing a reference count) rather than re-creating a `Vec<_>`.
+    pub declarations: Arc<Vec<(PropertyDeclaration, Importance)>>,
 }
 
 /// A keyframes step value. This can be a synthetised keyframes animation, that
@@ -82,7 +87,8 @@ pub struct Keyframe {
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum KeyframesStepValue {
-    Declarations(Arc<Vec<PropertyDeclaration>>),
+    /// See `Keyframe::declarations`’s docs about the presence of `Importance`.
+    Declarations(Arc<Vec<(PropertyDeclaration, Importance)>>),
     ComputedValues,
 }
 
@@ -108,7 +114,7 @@ impl KeyframesStep {
            value: KeyframesStepValue) -> Self {
         let declared_timing_function = match value {
             KeyframesStepValue::Declarations(ref declarations) => {
-                declarations.iter().any(|prop_decl| {
+                declarations.iter().any(|&(ref prop_decl, _)| {
                     match *prop_decl {
                         PropertyDeclaration::AnimationTimingFunction(..) => true,
                         _ => false,
@@ -148,8 +154,8 @@ fn get_animated_properties(keyframe: &Keyframe) -> Vec<TransitionProperty> {
     let mut ret = vec![];
     // NB: declarations are already deduplicated, so we don't have to check for
     // it here.
-    for declaration in keyframe.declarations.iter() {
-        if let Some(property) = TransitionProperty::from_declaration(&declaration) {
+    for &(ref declaration, _) in keyframe.declarations.iter() {
+        if let Some(property) = TransitionProperty::from_declaration(declaration) {
             ret.push(property);
         }
     }
@@ -247,7 +253,7 @@ impl<'a> QualifiedRuleParser for KeyframeListParser<'a> {
         let mut iter = DeclarationListParser::new(input, parser);
         while let Some(declaration) = iter.next() {
             match declaration {
-                Ok(d) => declarations.extend(d),
+                Ok(d) => declarations.extend(d.into_iter().map(|d| (d, Importance::Normal))),
                 Err(range) => {
                     let pos = range.start;
                     let message = format!("Unsupported keyframe property declaration: '{}'",
