@@ -175,7 +175,7 @@ impl Stylist {
                         };
 
                         map.$priority.insert(Rule {
-                            selector: selector.compound_selectors.clone(),
+                            selector: selector.complex_selector.clone(),
                             declarations: DeclarationBlock {
                                 specificity: selector.specificity,
                                 declarations: $style_rule.declarations.$priority.clone(),
@@ -195,7 +195,7 @@ impl Stylist {
                     rules_source_order += 1;
 
                     for selector in &style_rule.selectors {
-                        self.state_deps.note_selector(&selector.compound_selectors);
+                        self.state_deps.note_selector(&selector.complex_selector);
                         if selector.affects_siblings() {
                             self.sibling_affecting_selectors.push(selector.clone());
                         }
@@ -452,20 +452,20 @@ impl Stylist {
     where E: ElementExt
     {
         use selectors::matching::StyleRelations;
-        use selectors::matching::matches_compound_selector;
+        use selectors::matching::matches_complex_selector;
         // XXX we can probably do better, the candidate should already know what
         // rules it matches.
         //
         // XXX Could the bloom filter help here? Should be available.
         for ref selector in self.non_common_style_affecting_attributes_selectors.iter() {
-            let element_matches = matches_compound_selector(&selector.compound_selectors,
-                                                            element,
-                                                            None,
-                                                            &mut StyleRelations::empty());
-            let candidate_matches = matches_compound_selector(&selector.compound_selectors,
-                                                              candidate,
-                                                              None,
-                                                              &mut StyleRelations::empty());
+            let element_matches = matches_complex_selector(&selector.complex_selector,
+                                                           element,
+                                                           None,
+                                                           &mut StyleRelations::empty());
+            let candidate_matches = matches_complex_selector(&selector.complex_selector,
+                                                             candidate,
+                                                             None,
+                                                             &mut StyleRelations::empty());
 
             if element_matches != candidate_matches {
                 return false;
@@ -481,25 +481,25 @@ impl Stylist {
     where E: ElementExt
     {
         use selectors::matching::StyleRelations;
-        use selectors::matching::matches_compound_selector;
+        use selectors::matching::matches_complex_selector;
         // XXX we can probably do better, the candidate should already know what
         // rules it matches.
         //
         // XXX The bloom filter would help here, and should be available.
         for ref selector in self.sibling_affecting_selectors.iter() {
-            let element_matches = matches_compound_selector(&selector.compound_selectors,
-                                                            element,
-                                                            None,
-                                                            &mut StyleRelations::empty());
+            let element_matches = matches_complex_selector(&selector.complex_selector,
+                                                           element,
+                                                           None,
+                                                           &mut StyleRelations::empty());
 
-            let candidate_matches = matches_compound_selector(&selector.compound_selectors,
-                                                              candidate,
-                                                              None,
-                                                              &mut StyleRelations::empty());
+            let candidate_matches = matches_complex_selector(&selector.complex_selector,
+                                                             candidate,
+                                                             None,
+                                                             &mut StyleRelations::empty());
 
             if element_matches != candidate_matches {
                 debug!("match_same_sibling_affecting_rules: Failure due to {:?}",
-                       selector.compound_selectors);
+                       selector.complex_selector);
                 return false;
             }
         }

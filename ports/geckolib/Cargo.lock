@@ -11,7 +11,7 @@ dependencies = [
  "libc 0.2.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "num_cpus 0.2.13 (registry+https://github.com/rust-lang/crates.io-index)",
- "selectors 0.10.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "selectors 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "style 0.0.1",
  "style_traits 0.0.1",
  "url 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -170,7 +170,7 @@ dependencies = [
  "gecko_bindings 0.0.1",
  "heapsize 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.13 (registry+https://github.com/rust-lang/crates.io-index)",
- "selectors 0.10.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "selectors 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -311,7 +311,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "selectors"
-version = "0.10.1"
+version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -367,7 +367,7 @@ dependencies = [
  "ordered-float 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
- "selectors 0.10.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "selectors 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "smallvec 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "style_traits 0.0.1",
  "time 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)",
