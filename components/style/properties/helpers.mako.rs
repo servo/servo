@@ -316,6 +316,10 @@
             computed_value::T::${to_rust_ident(values.split()[0])}
         }
         #[inline]
+        pub fn get_initial_specified_value() -> SpecifiedValue {
+            get_initial_value()
+        }
+        #[inline]
         pub fn parse(_context: &ParserContext, input: &mut Parser)
                      -> Result<SpecifiedValue, ()> {
             computed_value::T::parse(input)
