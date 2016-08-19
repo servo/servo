@@ -46,6 +46,8 @@ fn property_declaration_block_should_serialize_correctly() {
 
     let block = PropertyDeclarationBlock {
         declarations: Arc::new(declarations),
+        any_important: true,
+        any_normal: true,
     };
 
     let css_string = block.to_css_string();
@@ -62,6 +64,8 @@ mod shorthand_serialization {
     pub fn shorthand_properties_to_string(properties: Vec<PropertyDeclaration>) -> String {
         let block = PropertyDeclarationBlock {
             declarations: Arc::new(properties.into_iter().map(|d| (d, Importance::Normal)).collect()),
+            any_important: false,
+            any_normal: true,
         };
 
         block.to_css_string()

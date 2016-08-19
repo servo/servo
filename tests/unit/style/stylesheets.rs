@@ -93,6 +93,8 @@ fn test_parse_stylesheet() {
                             longhands::display::SpecifiedValue::none)),
                          Importance::Important),
                     ]),
+                    any_normal: false,
+                    any_important: true,
                 },
             }),
             CSSRule::Style(StyleRule {
@@ -138,6 +140,8 @@ fn test_parse_stylesheet() {
                             longhands::display::SpecifiedValue::block)),
                          Importance::Normal),
                     ]),
+                    any_normal: true,
+                    any_important: false,
                 },
             }),
             CSSRule::Style(StyleRule {
@@ -192,6 +196,8 @@ fn test_parse_stylesheet() {
                         (PropertyDeclaration::BackgroundClip(DeclaredValue::Initial),
                          Importance::Normal),
                     ]),
+                    any_normal: true,
+                    any_important: false,
                 },
             }),
             CSSRule::Keyframes(KeyframesRule {

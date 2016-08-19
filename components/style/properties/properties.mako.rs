@@ -287,6 +287,28 @@ impl Importance {
 pub struct PropertyDeclarationBlock {
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "#7038")]
     pub declarations: Arc<Vec<(PropertyDeclaration, Importance)>>,
+
+    /// Whether `self.declaration` contains at least one declaration with `Importance::Normal`
+    pub any_normal: bool,
+
+    /// Whether `self.declaration` contains at least one declaration with `Importance::Important`
+    pub any_important: bool,
+}
+
+impl PropertyDeclarationBlock {
+    pub fn recalc_any(&mut self) {
+        let mut any_normal = false;
+        let mut any_important = false;
+        for &(_, importance) in &*self.declarations {
+            if importance.important() {
+                any_important = true
+            } else {
+                any_normal = true
+            }
+        }
+        self.any_normal = any_normal;
+        self.any_important = any_important;
+    }
 }
 
 impl ToCss for PropertyDeclarationBlock {
@@ -542,6 +564,8 @@ impl<'a, 'b> DeclarationParser for PropertyDeclarationParser<'a, 'b> {
 pub fn parse_property_declaration_list(context: &ParserContext, input: &mut Parser)
                                        -> PropertyDeclarationBlock {
     let mut declarations = Vec::new();
+    let mut any_normal = false;
+    let mut any_important = false;
     let parser = PropertyDeclarationParser {
         context: context,
     };
@@ -549,6 +573,11 @@ pub fn parse_property_declaration_list(context: &ParserContext, input: &mut Pars
     while let Some(declaration) = iter.next() {
         match declaration {
             Ok((results, importance)) => {
+                if importance.important() {
+                    any_important = true
+                } else {
+                    any_normal = true
+                }
                 declarations.extend(results.into_iter().map(|d| (d, importance)))
             }
             Err(range) => {
@@ -559,16 +588,24 @@ pub fn parse_property_declaration_list(context: &ParserContext, input: &mut Pars
             }
         }
     }
-    PropertyDeclarationBlock {
-        declarations: Arc::new(deduplicate_property_declarations(declarations)),
+    let (declarations, removed_any) = deduplicate_property_declarations(declarations);
+    let mut block = PropertyDeclarationBlock {
+        declarations: Arc::new(declarations),
+        any_normal: any_normal,
+        any_important: any_important,
+    };
+    if removed_any {
+        block.recalc_any();
     }
+    block
 }
 
 
 /// Only keep the "winning" declaration for any given property, by importance then source order.
 /// The input and output are in source order
 fn deduplicate_property_declarations(declarations: Vec<(PropertyDeclaration, Importance)>)
-                                     -> Vec<(PropertyDeclaration, Importance)> {
+                                     -> (Vec<(PropertyDeclaration, Importance)>, bool) {
+    let mut removed_any = false;
     let mut deduplicated = Vec::new();
     let mut seen_normal = PropertyBitField::new();
     let mut seen_important = PropertyBitField::new();
@@ -581,17 +618,20 @@ fn deduplicate_property_declarations(declarations: Vec<(PropertyDeclaration, Imp
                     % if not property.derived_from:
                         if importance.important() {
                             if seen_important.get_${property.ident}() {
+                                removed_any = true;
                                 continue
                             }
                             if seen_normal.get_${property.ident}() {
                                 remove_one(&mut deduplicated, |d| {
                                     matches!(d, &(PropertyDeclaration::${property.camel_case}(..), _))
-                                })
+                                });
+                                removed_any = true;
                             }
                             seen_important.set_${property.ident}()
                         } else {
                             if seen_normal.get_${property.ident}() ||
                                seen_important.get_${property.ident}() {
+                                removed_any = true;
                                 continue
                             }
                             seen_normal.set_${property.ident}()
@@ -604,17 +644,20 @@ fn deduplicate_property_declarations(declarations: Vec<(PropertyDeclaration, Imp
             PropertyDeclaration::Custom(ref name, _) => {
                 if importance.important() {
                     if seen_custom_important.contains(name) {
+                        removed_any = true;
                         continue
                     }
                     if seen_custom_normal.contains(name) {
                         remove_one(&mut deduplicated, |d| {
                             matches!(d, &(PropertyDeclaration::Custom(ref n, _), _) if n == name)
-                        })
+                        });
+                        removed_any = true;
                     }
                     seen_custom_important.push(name.clone())
                 } else {
                     if seen_custom_normal.contains(name) ||
                        seen_custom_important.contains(name) {
+                        removed_any = true;
                         continue
                     }
                     seen_custom_normal.push(name.clone())
@@ -624,7 +667,7 @@ fn deduplicate_property_declarations(declarations: Vec<(PropertyDeclaration, Imp
         deduplicated.push((declaration, importance))
     }
     deduplicated.reverse();
-    deduplicated
+    (deduplicated, removed_any)
 }
 
 #[inline]
