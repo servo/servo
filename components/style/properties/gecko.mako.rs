@@ -937,6 +937,32 @@ fn static_assert() {
 
 </%self:impl_trait>
 
+<%def name="simple_background_array_property(name, field_name)">
+    pub fn copy_background_${name}_from(&mut self, other: &Self) {
+        unsafe {
+            Gecko_EnsureImageLayersLength(&mut self.gecko.mImage, other.gecko.mImage.mLayers.len());
+        }
+        for (layer, other) in self.gecko.mImage.mLayers.iter_mut()
+                                  .zip(other.gecko.mImage.mLayers.iter())
+                                  .take(other.gecko.mImage.${field_name}Count) {
+            layer.${field_name} = other.${field_name};
+        }
+        self.gecko.mImage.${field_name}Count = other.gecko.mImage.${field_name}Count;
+    }
+
+    pub fn set_background_${name}(&mut self, v: longhands::background_${name}::computed_value::T) {
+        unsafe {
+          Gecko_EnsureImageLayersLength(&mut self.gecko.mImage, v.0.len());
+        }
+
+        self.gecko.mImage.${field_name}Count = v.0.len() as u32;
+        for (servo, geckolayer) in v.0.into_iter().zip(self.gecko.mImage.mLayers.iter_mut()) {
+            geckolayer.${field_name} = {
+                ${caller.body()}
+            };
+        }
+    }
+</%def>
 // TODO: Gecko accepts lists in most background-related properties. We just use
 // the first element (which is the common case), but at some point we want to
 // add support for parsing these lists in servo and pushing to nsTArray's.
@@ -950,86 +976,57 @@ fn static_assert() {
 
     <% impl_color("background_color", "mBackgroundColor", need_clone=True) %>
 
-    pub fn copy_background_repeat_from(&mut self, other: &Self) {
-        self.gecko.mImage.mRepeatCount = cmp::min(1, other.gecko.mImage.mRepeatCount);
-        self.gecko.mImage.mLayers.mFirstElement.mRepeat =
-            other.gecko.mImage.mLayers.mFirstElement.mRepeat;
-    }
-
-    pub fn set_background_repeat(&mut self, v: longhands::background_repeat::computed_value::T) {
-        use properties::longhands::background_repeat::computed_value::T;
-        use gecko_bindings::structs::{NS_STYLE_IMAGELAYER_REPEAT_REPEAT, NS_STYLE_IMAGELAYER_REPEAT_NO_REPEAT};
+    <%self:simple_background_array_property name="repeat" field_name="mRepeat">
+        use properties::longhands::background_repeat::single_value::computed_value::T;
         use gecko_bindings::structs::nsStyleImageLayers_Repeat;
-        let (repeat_x, repeat_y) = match v {
-            T::repeat_x => (NS_STYLE_IMAGELAYER_REPEAT_REPEAT,
-                            NS_STYLE_IMAGELAYER_REPEAT_NO_REPEAT),
-            T::repeat_y => (NS_STYLE_IMAGELAYER_REPEAT_NO_REPEAT,
-                            NS_STYLE_IMAGELAYER_REPEAT_REPEAT),
-            T::repeat => (NS_STYLE_IMAGELAYER_REPEAT_REPEAT,
+        use gecko_bindings::structs::NS_STYLE_IMAGELAYER_REPEAT_REPEAT;
+        use gecko_bindings::structs::NS_STYLE_IMAGELAYER_REPEAT_NO_REPEAT;
+
+        let (repeat_x, repeat_y) = match servo {
+          T::repeat_x => (NS_STYLE_IMAGELAYER_REPEAT_REPEAT,
+                          NS_STYLE_IMAGELAYER_REPEAT_NO_REPEAT),
+          T::repeat_y => (NS_STYLE_IMAGELAYER_REPEAT_NO_REPEAT,
                           NS_STYLE_IMAGELAYER_REPEAT_REPEAT),
-            T::no_repeat => (NS_STYLE_IMAGELAYER_REPEAT_NO_REPEAT,
-                             NS_STYLE_IMAGELAYER_REPEAT_NO_REPEAT),
+          T::repeat => (NS_STYLE_IMAGELAYER_REPEAT_REPEAT,
+                        NS_STYLE_IMAGELAYER_REPEAT_REPEAT),
+          T::no_repeat => (NS_STYLE_IMAGELAYER_REPEAT_NO_REPEAT,
+                           NS_STYLE_IMAGELAYER_REPEAT_NO_REPEAT),
         };
+        nsStyleImageLayers_Repeat {
+              mXRepeat: repeat_x as u8,
+              mYRepeat: repeat_y as u8,
+        }
+    </%self:simple_background_array_property>
 
-        self.gecko.mImage.mRepeatCount = 1;
-        self.gecko.mImage.mLayers.mFirstElement.mRepeat = nsStyleImageLayers_Repeat {
-            mXRepeat: repeat_x as u8,
-            mYRepeat: repeat_y as u8,
-        };
-    }
+    <%self:simple_background_array_property name="clip" field_name="mClip">
+        use properties::longhands::background_clip::single_value::computed_value::T;
 
-    pub fn copy_background_clip_from(&mut self, other: &Self) {
-        self.gecko.mImage.mClipCount = cmp::min(1, other.gecko.mImage.mClipCount);
-        self.gecko.mImage.mLayers.mFirstElement.mClip =
-            other.gecko.mImage.mLayers.mFirstElement.mClip;
-    }
-
-    pub fn set_background_clip(&mut self, v: longhands::background_clip::computed_value::T) {
-        use properties::longhands::background_clip::computed_value::T;
-        self.gecko.mImage.mClipCount = 1;
-
-        // TODO: Gecko supports background-clip: text, but just on -webkit-
-        // prefixed properties.
-        self.gecko.mImage.mLayers.mFirstElement.mClip = match v {
+        match servo {
             T::border_box => structs::NS_STYLE_IMAGELAYER_CLIP_BORDER as u8,
             T::padding_box => structs::NS_STYLE_IMAGELAYER_CLIP_PADDING as u8,
             T::content_box => structs::NS_STYLE_IMAGELAYER_CLIP_CONTENT as u8,
-        };
-    }
+        }
+    </%self:simple_background_array_property>
 
-    pub fn copy_background_origin_from(&mut self, other: &Self) {
-        self.gecko.mImage.mOriginCount = cmp::min(1, other.gecko.mImage.mOriginCount);
-        self.gecko.mImage.mLayers.mFirstElement.mOrigin =
-            other.gecko.mImage.mLayers.mFirstElement.mOrigin;
-    }
+    <%self:simple_background_array_property name="origin" field_name="mOrigin">
+        use properties::longhands::background_origin::single_value::computed_value::T;
 
-    pub fn set_background_origin(&mut self, v: longhands::background_origin::computed_value::T) {
-        use properties::longhands::background_origin::computed_value::T;
-
-        self.gecko.mImage.mOriginCount = 1;
-        self.gecko.mImage.mLayers.mFirstElement.mOrigin = match v {
+        match servo {
             T::border_box => structs::NS_STYLE_IMAGELAYER_ORIGIN_BORDER as u8,
             T::padding_box => structs::NS_STYLE_IMAGELAYER_ORIGIN_PADDING as u8,
             T::content_box => structs::NS_STYLE_IMAGELAYER_ORIGIN_CONTENT as u8,
-        };
-    }
+        }
+    </%self:simple_background_array_property>
 
-    pub fn copy_background_attachment_from(&mut self, other: &Self) {
-        self.gecko.mImage.mAttachmentCount = cmp::min(1, other.gecko.mImage.mAttachmentCount);
-        self.gecko.mImage.mLayers.mFirstElement.mAttachment =
-            other.gecko.mImage.mLayers.mFirstElement.mAttachment;
-    }
+    <%self:simple_background_array_property name="attachment" field_name="mAttachment">
+        use properties::longhands::background_attachment::single_value::computed_value::T;
 
-    pub fn set_background_attachment(&mut self, v: longhands::background_attachment::computed_value::T) {
-        use properties::longhands::background_attachment::computed_value::T;
-
-        self.gecko.mImage.mAttachmentCount = 1;
-        self.gecko.mImage.mLayers.mFirstElement.mAttachment = match v {
+        match servo {
             T::scroll => structs::NS_STYLE_IMAGELAYER_ATTACHMENT_SCROLL as u8,
             T::fixed => structs::NS_STYLE_IMAGELAYER_ATTACHMENT_FIXED as u8,
             T::local => structs::NS_STYLE_IMAGELAYER_ATTACHMENT_LOCAL as u8,
-        };
-    }
+        }
+    </%self:simple_background_array_property>
 
     pub fn copy_background_position_from(&mut self, other: &Self) {
         self.gecko.mImage.mPositionXCount = cmp::min(1, other.gecko.mImage.mPositionXCount);
