@@ -28,8 +28,7 @@ def execute_test(url, command, timeout):
     print(' '.join(command))
     print("Timeout:{}".format(timeout))
     try:
-        return subprocess.check_output(command, stderr=subprocess.STDOUT,
-                                       shell=True, timeout=timeout)
+        return subprocess.check_output(command, stderr=subprocess.STDOUT, timeout=timeout)
     except subprocess.CalledProcessError as e:
         print("Unexpected Fail:")
         print(e)
