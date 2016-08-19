@@ -69,10 +69,10 @@
                 ${caller.body()}
             }
             pub mod computed_value {
-                use super::single_value;
+                pub use super::single_value::computed_value as single_value;
                 #[derive(Debug, Clone, PartialEq)]
                 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-                pub struct T(pub Vec<single_value::computed_value::T>);
+                pub struct T(pub Vec<single_value::T>);
             }
 
             impl ToCss for computed_value::T {
