@@ -10,7 +10,7 @@ ${helpers.predefined_type("background-color", "CSSColor",
     "::cssparser::Color::RGBA(::cssparser::RGBA { red: 0., green: 0., blue: 0., alpha: 0. }) /* transparent */",
     animatable=True)}
 
-<%helpers:vector_longhand gecko_only="True" name="background-image" animatable="False">
+<%helpers:vector_longhand name="background-image" animatable="False">
     use cssparser::ToCss;
     use std::fmt;
     use values::specified::Image;
@@ -79,7 +79,7 @@ ${helpers.predefined_type("background-color", "CSSColor",
     }
 </%helpers:vector_longhand>
 
-<%helpers:vector_longhand name="background-position" gecko_only="True" animatable="True">
+<%helpers:vector_longhand name="background-position" animatable="True">
         use cssparser::ToCss;
         use std::fmt;
         use values::LocalToCss;
@@ -160,25 +160,21 @@ ${helpers.predefined_type("background-color", "CSSColor",
 ${helpers.single_keyword("background-repeat",
                          "repeat repeat-x repeat-y no-repeat",
                          vector=True,
-                         gecko_only=True,
                          animatable=False)}
 
 ${helpers.single_keyword("background-attachment",
                          "scroll fixed" + (" local" if product == "gecko" else ""),
                          vector=True,
-                         gecko_only=True,
                          animatable=False)}
 
 ${helpers.single_keyword("background-clip",
                          "border-box padding-box content-box",
                          vector=True,
-                         gecko_only=True,
                          animatable=False)}
 
 ${helpers.single_keyword("background-origin",
                          "padding-box border-box content-box",
                          vector=True,
-                         gecko_only=True,
                          animatable=False)}
 
 <%helpers:vector_longhand name="background-size" animatable="True">
