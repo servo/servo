@@ -43,7 +43,7 @@ MANIFEST="page_load_test/tp5n/20160509.manifest" # A manifest that excludes
 PERF_FILE="output/perf-$(date --iso-8601=seconds).json"
 
 echo "Running tests"
-echo python3 runner.py ${engine} --runs 3 "${MANIFEST}" "${PERF_FILE}"
+python3 runner.py ${engine} --runs 3 "${MANIFEST}" "${PERF_FILE}"
 
 if [[ -z "${local:-}" ]];
 then
@@ -53,7 +53,7 @@ then
     # TODO: we are using Servo's revision hash for Gecko's result to make both
     # results appear on the same date. Use the correct result when Perfherder
     # allows us to change the date.
-    echo python3 submit_to_perfherder.py \
+    python3 submit_to_perfherder.py \
             "${output:-}" "${engine}" "${PERF_FILE}" servo/revision.json
 fi
 
