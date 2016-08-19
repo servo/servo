@@ -104,7 +104,16 @@ def host_triple():
         os_type = "unknown"
 
     cpu_type = platform.machine().lower()
-    if cpu_type in ["i386", "i486", "i686", "i768", "x86"]:
+    if os_type.endswith("-msvc"):
+        # vcvars*.bat should set it properly
+        platform_env = os.environ.get("PLATFORM")
+        if platform_env == "X86":
+            cpu_type = "i686"
+        elif platform_env == "X64":
+            cpu_type = "x86_64"
+        else:
+            cpu_type = "unknown"
+    elif cpu_type in ["i386", "i486", "i686", "i768", "x86"]:
         cpu_type = "i686"
     elif cpu_type in ["x86_64", "x86-64", "x64", "amd64"]:
         cpu_type = "x86_64"
