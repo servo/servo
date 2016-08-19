@@ -8,9 +8,9 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-while (( "$#" ))
+while (( "${#}" ))
 do
-case "$1" in
+case "${1}" in
   --servo)
     engine="--engine servo"
     ;;
@@ -21,15 +21,15 @@ case "$1" in
     local=1
     ;;
   *)
-    echo "Unknown option $1."
+    echo "Unknown option ${1}."
     exit
     ;;
 esac
 shift
 done
 
-if [ -z "${engine:-}" ];
-then echo "You didn't specify the engine to run: either --servo or --gecko."; exit;
+if [[ -z "${engine:-}" ]];
+then echo "You didn't specify the engine to run: --servo or --gecko."; exit;
 fi
 
 echo "Starting the local server"
@@ -43,9 +43,9 @@ MANIFEST="page_load_test/tp5n/20160509.manifest" # A manifest that excludes
 PERF_FILE="output/perf-$(date --iso-8601=seconds).json"
 
 echo "Running tests"
-python3 runner.py ${engine} --runs 3 "${MANIFEST}" "${PERF_FILE}"
+echo python3 runner.py ${engine} --runs 3 "${MANIFEST}" "${PERF_FILE}"
 
-if [ -z "${local:-}" ];
+if [[ -z "${local:-}" ]];
 then
     echo "Submitting to Perfherder"
     # Perfherder SSL check will fail if time is not accurate,
@@ -53,7 +53,8 @@ then
     # TODO: we are using Servo's revision hash for Gecko's result to make both
     # results appear on the same date. Use the correct result when Perfherder
     # allows us to change the date.
-    python3 submit_to_perfherder.py "${output:-}" "${engine}" "${PERF_FILE}" servo/revision.json
+    echo python3 submit_to_perfherder.py \
+            "${output:-}" "${engine}" "${PERF_FILE}" servo/revision.json
 fi
 
 echo "Stopping the local server"
