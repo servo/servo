@@ -6,7 +6,7 @@
 
 use animation;
 use context::{LocalStyleContext, SharedStyleContext, StyleContext};
-use dom::{OpaqueNode, TElement, TNode, TRestyleDamage, UnsafeNode};
+use dom::{OpaqueNode, TNode, TRestyleDamage, UnsafeNode};
 use matching::{ApplicableDeclarations, ElementMatchMethods, MatchMethods, StyleSharingResult};
 use selectors::bloom::BloomFilter;
 use selectors::matching::StyleRelations;
@@ -14,7 +14,6 @@ use std::cell::RefCell;
 use std::sync::atomic::{AtomicUsize, ATOMIC_USIZE_INIT, Ordering};
 use tid::tid;
 use util::opts;
-use values::HasViewportPercentage;
 
 /// Every time we do another layout, the old bloom filters are invalid. This is
 /// detected by ticking a generation number every layout.
