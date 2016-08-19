@@ -9,7 +9,7 @@ use element_state::*;
 use error_reporting::StdoutErrorReporter;
 use keyframes::KeyframesAnimation;
 use media_queries::{Device, MediaType};
-use properties::{self, PropertyDeclaration, PropertyDeclarationBlock, ComputedValues};
+use properties::{self, PropertyDeclaration, PropertyDeclarationBlock, ComputedValues, Importance};
 use quickersort::sort_by;
 use restyle_hints::{RestyleHint, DependencySet};
 use selector_impl::{ElementExt, TheSelectorImpl, PseudoElement};
@@ -25,6 +25,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::hash::BuildHasherDefault;
 use std::hash::Hash;
+use std::slice;
 use std::sync::Arc;
 use string_cache::Atom;
 use style_traits::viewport::ViewportConstraints;
@@ -163,8 +164,8 @@ impl Stylist {
         // Take apart the StyleRule into individual Rules and insert
         // them into the SelectorMap of that priority.
         macro_rules! append(
-            ($style_rule: ident, $priority: ident) => {
-                if !$style_rule.declarations.$priority.is_empty() {
+            ($style_rule: ident, $priority: ident, $importance: expr) => {
+                if !$style_rule.declarations.declarations.is_empty() {
                     for selector in &$style_rule.selectors {
                         let map = if let Some(ref pseudo) = selector.pseudo_element {
                             self.pseudos_map
@@ -179,7 +180,8 @@ impl Stylist {
                             selector: selector.complex_selector.clone(),
                             declarations: DeclarationBlock {
                                 specificity: selector.specificity,
-                                declarations: $style_rule.declarations.$priority.clone(),
+                                mixed_declarations: $style_rule.declarations.declarations.clone(),
+                                importance: $importance,
                                 source_order: rules_source_order,
                             },
                         });
@@ -191,8 +193,8 @@ impl Stylist {
         for rule in stylesheet.effective_rules(&self.device) {
             match *rule {
                 CSSRule::Style(ref style_rule) => {
-                    append!(style_rule, normal);
-                    append!(style_rule, important);
+                    append!(style_rule, normal, Importance::Normal);
+                    append!(style_rule, important, Importance::Important);
                     rules_source_order += 1;
 
                     for selector in &style_rule.selectors {
@@ -397,7 +399,9 @@ impl Stylist {
             relations |= AFFECTED_BY_STYLE_ATTRIBUTE;
             Push::push(
                 applicable_declarations,
-                DeclarationBlock::from_declarations(sa.normal.clone()));
+                DeclarationBlock::from_declarations(
+                    sa.declarations.clone(),
+                    Importance::Normal));
         }
 
         debug!("style attr: {:?}", relations);
@@ -414,7 +418,9 @@ impl Stylist {
         if let Some(ref sa) = style_attribute {
             Push::push(
                 applicable_declarations,
-                DeclarationBlock::from_declarations(sa.important.clone()));
+                DeclarationBlock::from_declarations(
+                    sa.declarations.clone(),
+                    Importance::Important));
         }
 
         debug!("style attr important: {:?}", relations);
@@ -829,19 +835,63 @@ pub struct Rule {
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Debug, Clone)]
 pub struct DeclarationBlock {
-    pub declarations: Arc<Vec<PropertyDeclaration>>,
+    /// Contains declarations of either importance, but only those of self.importance are relevant.
+    /// Use DeclarationBlock::iter
+    pub mixed_declarations: Arc<Vec<(PropertyDeclaration, Importance)>>,
+    pub importance: Importance,
     pub source_order: usize,
     pub specificity: u32,
 }
 
 impl DeclarationBlock {
     #[inline]
-    pub fn from_declarations(declarations: Arc<Vec<PropertyDeclaration>>) -> Self {
+    pub fn from_declarations(declarations: Arc<Vec<(PropertyDeclaration, Importance)>>,
+                             importance: Importance)
+                             -> Self {
         DeclarationBlock {
-            declarations: declarations,
+            mixed_declarations: declarations,
+            importance: importance,
             source_order: 0,
             specificity: 0,
         }
+    }
+
+    pub fn iter(&self) -> DeclarationBlockIter {
+        DeclarationBlockIter {
+            iter: self.mixed_declarations.iter(),
+            importance: self.importance,
+        }
+    }
+}
+
+pub struct DeclarationBlockIter<'a> {
+    iter: slice::Iter<'a, (PropertyDeclaration, Importance)>,
+    importance: Importance,
+}
+
+impl<'a> Iterator for DeclarationBlockIter<'a> {
+    type Item = &'a PropertyDeclaration;
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        while let Some(&(ref declaration, importance)) = self.iter.next() {
+            if importance == self.importance {
+                return Some(declaration)
+            }
+        }
+        None
+    }
+}
+
+impl<'a> DoubleEndedIterator for DeclarationBlockIter<'a> {
+    #[inline]
+    fn next_back(&mut self) -> Option<Self::Item> {
+        while let Some(&(ref declaration, importance)) = self.iter.next_back() {
+            if importance == self.importance {
+                return Some(declaration)
+            }
+        }
+        None
     }
 }
 
