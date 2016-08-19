@@ -23,14 +23,14 @@
             % endfor
 
             loop {
-                if background_color.is_none() {
-                    if let Ok(value) = input.try(|input| background_color::parse(context, input)) {
+                if let Ok(value) = input.try(|input| background_color::parse(context, input)) {
+                    if background_color.is_none() {
                         background_color = Some(value);
                         continue
+                    } else {
+                        // color can only be the last element
+                        return Err(())
                     }
-                } else {
-                    // color can only be the last element
-                    return Err(())
                 }
                 if position.is_none() {
                     if let Ok(value) = input.try(|input| background_position::single_value::parse(context, input)) {
@@ -117,6 +117,11 @@
                 len = cmp::max(len, extract_value(self.background_${name}).map(|i| i.0.len())
                                                                           .unwrap_or(0));
             % endfor
+
+            // There should be at least one declared value
+            if len == 0 {
+                return Err(())
+            }
 
             let iter = repeat(None).take(len - 1).chain(once(Some(self.background_color)))
                 % for name in "image position repeat size attachment origin clip".split():
