@@ -54,6 +54,10 @@ ${helpers.predefined_type("background-color", "CSSColor",
     pub fn get_initial_value() -> computed_value::T {
         computed_value::T(None)
     }
+    #[inline]
+    pub fn get_initial_specified_value() -> SpecifiedValue {
+        SpecifiedValue(None)
+    }
     pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
         if input.try(|input| input.expect_ident_matching("none")).is_ok() {
             Ok(SpecifiedValue(None))
@@ -75,7 +79,7 @@ ${helpers.predefined_type("background-color", "CSSColor",
     }
 </%helpers:vector_longhand>
 
-<%helpers:longhand name="background-position" animatable="True">
+<%helpers:vector_longhand name="background-position" gecko_only="True" animatable="True">
         use cssparser::ToCss;
         use std::fmt;
         use values::LocalToCss;
@@ -84,6 +88,7 @@ ${helpers.predefined_type("background-color", "CSSColor",
 
         pub mod computed_value {
             use values::computed::position::Position;
+            use properties::animated_properties::{Interpolate, RepeatableListInterpolate};
 
             pub type T = Position;
         }
@@ -98,12 +103,20 @@ ${helpers.predefined_type("background-color", "CSSColor",
                 vertical: computed::LengthOrPercentage::Percentage(0.0),
             }
         }
+        #[inline]
+        pub fn get_initial_specified_value() -> SpecifiedValue {
+            use values::specified::Percentage;
+            Position {
+                horizontal: specified::LengthOrPercentage::Percentage(Percentage(0.0)),
+                vertical: specified::LengthOrPercentage::Percentage(Percentage(0.0)),
+            }
+        }
 
         pub fn parse(_context: &ParserContext, input: &mut Parser)
                      -> Result<SpecifiedValue, ()> {
             Ok(try!(Position::parse(input)))
         }
-</%helpers:longhand>
+</%helpers:vector_longhand>
 
 ${helpers.single_keyword("background-repeat",
                          "repeat repeat-x repeat-y no-repeat",
@@ -129,7 +142,7 @@ ${helpers.single_keyword("background-origin",
                          gecko_only=True,
                          animatable=False)}
 
-<%helpers:longhand name="background-size" animatable="True">
+<%helpers:vector_longhand name="background-size" animatable="True">
     use cssparser::{ToCss, Token};
     use std::ascii::AsciiExt;
     use std::fmt;
@@ -137,6 +150,7 @@ ${helpers.single_keyword("background-origin",
 
     pub mod computed_value {
         use values::computed::LengthOrPercentageOrAuto;
+        use properties::animated_properties::{Interpolate, RepeatableListInterpolate};
 
         #[derive(PartialEq, Clone, Debug)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -151,6 +165,23 @@ ${helpers.single_keyword("background-origin",
             Explicit(ExplicitSize),
             Cover,
             Contain,
+        }
+
+        impl RepeatableListInterpolate for T {}
+
+        impl Interpolate for T {
+            fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
+                use properties::longhands::background_size::single_value::computed_value::ExplicitSize;
+                match (self, other) {
+                    (&T::Explicit(ref me), &T::Explicit(ref other)) => {
+                        Ok(T::Explicit(ExplicitSize {
+                            width: try!(me.width.interpolate(&other.width, time)),
+                            height: try!(me.height.interpolate(&other.height, time)),
+                        }))
+                    }
+                    _ => Err(()),
+                }
+            }
         }
     }
 
@@ -245,6 +276,13 @@ ${helpers.single_keyword("background-origin",
             height: computed::LengthOrPercentageOrAuto::Auto,
         })
     }
+    #[inline]
+    pub fn get_initial_specified_value() -> SpecifiedValue {
+        SpecifiedValue::Explicit(SpecifiedExplicitSize {
+            width: specified::LengthOrPercentageOrAuto::Auto,
+            height: specified::LengthOrPercentageOrAuto::Auto,
+        })
+    }
 
     pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
         let width;
@@ -282,4 +320,4 @@ ${helpers.single_keyword("background-origin",
             height: height,
         }))
     }
-</%helpers:longhand>
+</%helpers:vector_longhand>

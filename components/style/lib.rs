@@ -56,6 +56,7 @@ extern crate log;
 #[allow(unused_extern_crates)]
 #[macro_use]
 extern crate matches;
+extern crate num_integer;
 extern crate num_traits;
 extern crate ordered_float;
 extern crate quickersort;

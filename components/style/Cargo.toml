@@ -34,6 +34,7 @@ heapsize_plugin = {version = "0.1.2", optional = true}
 lazy_static = "0.2"
 log = "0.3.5"
 matches = "0.1"
+num-integer = "0.1.32"
 num-traits = "0.1.32"
 ordered-float = "0.2.2"
 quickersort = "2.0.0"
