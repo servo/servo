@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use ipc_channel::ipc::IpcSharedMemory;
 use std::fs::File;
 use std::io::Read;
 use string_cache::Atom;
@@ -13,12 +14,14 @@ use webrender_traits::NativeFontHandle;
 /// freetype and azure directly.
 #[derive(Deserialize, Serialize, Debug)]
 pub struct FontTemplateData {
-    pub bytes: Vec<u8>,
+    pub bytes: IpcSharedMemory,
     pub identifier: Atom,
 }
 
 impl FontTemplateData {
-    pub fn new(identifier: Atom, font_data: Option<Vec<u8>>) -> FontTemplateData {
+    pub fn new(identifier: Atom,
+               font_data: Option<IpcSharedMemory>)
+               -> FontTemplateData {
         let bytes = match font_data {
             Some(bytes) => {
                 bytes
@@ -28,7 +31,7 @@ impl FontTemplateData {
                 let mut file = File::open(&*identifier).unwrap();
                 let mut buffer = vec![];
                 file.read_to_end(&mut buffer).unwrap();
-                buffer
+                IpcSharedMemory::new(&buffer)
             },
         };
 
@@ -41,14 +44,8 @@ impl FontTemplateData {
     /// Returns a clone of the data in this font. This may be a hugely expensive
     /// operation (depending on the platform) which performs synchronous disk I/O
     /// and should never be done lightly.
-    pub fn bytes(&self) -> Vec<u8> {
+    pub fn bytes(&self) -> IpcSharedMemory {
         self.bytes.clone()
-    }
-
-    /// Returns a clone of the bytes in this font if they are in memory. This function never
-    /// performs disk I/O.
-    pub fn bytes_if_in_memory(&self) -> Option<Vec<u8>> {
-        Some(self.bytes())
     }
 
     /// Returns the native font that underlies this font template, if applicable.
