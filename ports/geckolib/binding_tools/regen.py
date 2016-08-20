@@ -118,6 +118,7 @@ COMPILATION_TARGETS = {
             "-ignore-methods",
         ],
         "match_headers": [
+            "ServoBindingList.h",
             "ServoBindings.h",
             "nsStyleStructList.h",
         ],
