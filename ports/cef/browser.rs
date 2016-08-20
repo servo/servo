@@ -17,7 +17,7 @@ use wrappers::CefWrap;
 use compositing::windowing::{WindowNavigateMsg, WindowEvent};
 use glutin_app;
 use libc::c_int;
-use std::cell::{Cell, RefCell, BorrowState};
+use std::cell::{Cell, RefCell};
 use std::ptr;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicIsize, Ordering};
@@ -183,24 +183,18 @@ impl ServoCefBrowserExtensions for CefBrowser {
     }
 
     fn send_window_event(&self, event: WindowEvent) {
-        self.downcast().message_queue.borrow_mut().push(event);
+        let browser = self.downcast();
 
-        loop {
-            match self.downcast().servo_browser.borrow_state() {
-                BorrowState::Unused => {
-                    let event = match self.downcast().message_queue.borrow_mut().pop() {
-                        None => return,
-                        Some(event) => event,
-                    };
-                    self.downcast().servo_browser.borrow_mut().handle_event(event);
-                }
-                _ => {
-                    // We're trying to send an event while processing another one. This will
-                    // cause general badness, so queue up that event instead of immediately
-                    // processing it.
-                    break
-                }
+        if let Ok(mut servo_browser) = browser.servo_browser.try_borrow_mut() {
+            servo_browser.handle_event(event);
+            while let Some(event) = browser.message_queue.borrow_mut().pop() {
+                servo_browser.handle_event(event);
             }
+        } else {
+            // If we fail to borrow mutably, this means we're trying to send an
+            // event while processing another one. This will cause general badness,
+            // we just queue up that event instead of immediately processing it.
+            browser.message_queue.borrow_mut().push(event);
         }
     }
 
