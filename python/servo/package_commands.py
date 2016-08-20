@@ -16,6 +16,7 @@ sys.path.append(path.join(path.dirname(sys.argv[0]), "components", "style", "pro
 import os
 import shutil
 import subprocess
+import mako.template
 
 from mach.registrar import Registrar
 from datetime import datetime
@@ -173,6 +174,25 @@ class PackageCommands(CommandBase):
 
             print("Finding dylibs and relinking")
             copy_dependencies(dir_to_app + '/Contents/MacOS/servo', dir_to_app + '/Contents/MacOS/')
+
+            print("Adding version to Credits.rtf")
+            version_command = [binary_path, '--version']
+            p = subprocess.Popen(version_command,
+                                 stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE,
+                                 universal_newlines=True)
+            version, stderr = p.communicate()
+            if p.returncode != 0:
+                raise Exception("Error occurred when getting Servo version: " + stderr)
+            version = "Nightly version: " + version
+
+            template_path = os.path.join(dir_to_resources, 'Credits.rtf.mako')
+            credits_path = os.path.join(dir_to_resources, 'Credits.rtf')
+            with open(template_path) as template_file:
+                template = mako.template.Template(template_file.read())
+                with open(credits_path, "w") as credits_file:
+                    credits_file.write(template.render(version=version))
+            delete(template_path)
 
             print("Writing run-servo")
             bhtml_path = path.join('${0%/*}/../Resources', browserhtml_path.split('/')[-1], 'out', 'index.html')
