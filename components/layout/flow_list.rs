@@ -13,10 +13,6 @@ pub struct FlowList {
     flows: LinkedList<FlowRef>,
 }
 
-pub struct FlowListIterator<'a> {
-    it: linked_list::Iter<'a, FlowRef>,
-}
-
 pub struct MutFlowListIterator<'a> {
     it: linked_list::IterMut<'a, FlowRef>,
 }
@@ -58,10 +54,8 @@ impl FlowList {
 
     /// Provide a forward iterator
     #[inline]
-    pub fn iter(&self) -> FlowListIterator {
-        FlowListIterator {
-            it: self.flows.iter(),
-        }
+    pub fn iter<'a>(&'a self) -> impl DoubleEndedIterator<Item = &'a Flow> {
+        self.flows.iter().map(|flow| &**flow)
     }
 
     /// Provide a forward iterator with mutable references
@@ -74,7 +68,8 @@ impl FlowList {
 
     /// Provide a forward iterator with FlowRef items
     #[inline]
-    pub fn iter_flow_ref_mut<'a>(&'a mut self) -> linked_list::IterMut<'a, FlowRef> {
+    pub fn iter_flow_ref_mut<'a>(&'a mut self)
+                                 -> impl DoubleEndedIterator<Item = &'a mut FlowRef> {
         self.flows.iter_mut()
     }
 
@@ -95,25 +90,6 @@ impl FlowList {
         FlowList {
             flows: self.flows.split_off(i)
         }
-    }
-}
-
-impl<'a> Iterator for FlowListIterator<'a> {
-    type Item = &'a Flow;
-    #[inline]
-    fn next(&mut self) -> Option<&'a Flow> {
-        self.it.next().map(|x| &**x)
-    }
-
-    #[inline]
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        self.it.size_hint()
-    }
-}
-
-impl<'a> DoubleEndedIterator for FlowListIterator<'a> {
-    fn next_back(&mut self) -> Option<&'a Flow> {
-        self.it.next_back().map(|x| &**x)
     }
 }
 

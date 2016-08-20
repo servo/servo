@@ -4,6 +4,7 @@
 
 #![feature(box_patterns)]
 #![feature(box_syntax)]
+#![feature(conservative_impl_trait)]
 #![feature(custom_derive)]
 #![feature(nonzero)]
 #![feature(plugin)]
