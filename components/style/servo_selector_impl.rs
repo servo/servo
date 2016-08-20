@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use attr::{AttrIdentifier, AttrValue};
+use cssparser::ToCss;
 use element_state::ElementState;
 use error_reporting::StdoutErrorReporter;
 use parser::ParserContextExtraData;
@@ -11,6 +12,7 @@ use selector_impl::{ElementExt, PseudoElementCascadeType, TheSelectorImpl};
 use selector_impl::{attr_exists_selector_is_shareable, attr_equals_selector_is_shareable};
 use selectors::parser::{AttrSelector, ParserContext, SelectorImpl};
 use selectors::{Element, MatchAttrGeneric};
+use std::fmt;
 use std::process;
 use string_cache::{Atom, Namespace};
 use stylesheets::{Stylesheet, Origin};
@@ -27,6 +29,20 @@ pub enum PseudoElement {
     DetailsSummary,
     DetailsContent,
 }
+
+impl ToCss for PseudoElement {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        use self::PseudoElement::*;
+        dest.write_str(match *self {
+            Before => "::before",
+            After => "::after",
+            Selection => "::selection",
+            DetailsSummary => "::-servo-details-summary",
+            DetailsContent => "::-servo-details-content",
+        })
+    }
+}
+
 
 impl PseudoElement {
     #[inline]
@@ -70,6 +86,29 @@ pub enum NonTSPseudoClass {
     Target,
 }
 
+impl ToCss for NonTSPseudoClass {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        use self::NonTSPseudoClass::*;
+        dest.write_str(match *self {
+            AnyLink => ":any-link",
+            Link => ":link",
+            Visited => ":visited",
+            Active => ":active",
+            Focus => ":focus",
+            Hover => ":hover",
+            Enabled => ":enabled",
+            Disabled => ":disabled",
+            Checked => ":checked",
+            Indeterminate => ":indeterminate",
+            ReadWrite => ":read-write",
+            ReadOnly => ":read-only",
+            PlaceholderShown => ":placeholder-shown",
+            Target => ":target",
+            ServoNonZeroBorder => ":-servo-nonzero-border",
+        })
+    }
+}
+
 impl NonTSPseudoClass {
     pub fn state_flag(&self) -> ElementState {
         use element_state::*;
@@ -106,9 +145,10 @@ impl SelectorImpl for ServoSelectorImpl {
     type Identifier = Atom;
     type ClassName = Atom;
     type LocalName = Atom;
-    type Namespace = Namespace;
+    type NamespacePrefix = Atom;
+    type NamespaceUrl = Namespace;
     type BorrowedLocalName = Atom;
-    type BorrowedNamespace = Namespace;
+    type BorrowedNamespaceUrl = Namespace;
 
     fn attr_exists_selector_is_shareable(attr_selector: &AttrSelector<Self>) -> bool {
         attr_exists_selector_is_shareable(attr_selector)
@@ -283,7 +323,7 @@ impl MatchAttrGeneric for ServoElementSnapshot {
         let html = self.is_html_element_in_html_document;
         let local_name = if html { &attr.lower_name } else { &attr.name };
         match attr.namespace {
-            NamespaceConstraint::Specific(ref ns) => self.get_attr(ns, local_name),
+            NamespaceConstraint::Specific(ref ns) => self.get_attr(&ns.url, local_name),
             NamespaceConstraint::Any => self.get_attr_ignore_ns(local_name),
         }.map_or(false, |v| test(v))
     }

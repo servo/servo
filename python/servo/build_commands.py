@@ -23,7 +23,7 @@ from mach.decorators import (
     Command,
 )
 
-from servo.command_base import CommandBase, cd, call, BIN_SUFFIX
+from servo.command_base import CommandBase, cd, call, BIN_SUFFIX, host_triple
 
 
 def format_duration(seconds):
@@ -42,26 +42,31 @@ def notify_linux(title, text):
 
 
 def notify_win(title, text):
-    from ctypes import Structure, windll, POINTER, sizeof
-    from ctypes.wintypes import DWORD, HANDLE, WINFUNCTYPE, BOOL, UINT
+    try:
+        from servo.win32_toast import WindowsToast
+        w = WindowsToast()
+        w.balloon_tip(title, text)
+    except:
+        from ctypes import Structure, windll, POINTER, sizeof
+        from ctypes.wintypes import DWORD, HANDLE, WINFUNCTYPE, BOOL, UINT
 
-    class FLASHWINDOW(Structure):
-        _fields_ = [("cbSize", UINT),
-                    ("hwnd", HANDLE),
-                    ("dwFlags", DWORD),
-                    ("uCount", UINT),
-                    ("dwTimeout", DWORD)]
+        class FLASHWINDOW(Structure):
+            _fields_ = [("cbSize", UINT),
+                        ("hwnd", HANDLE),
+                        ("dwFlags", DWORD),
+                        ("uCount", UINT),
+                        ("dwTimeout", DWORD)]
 
-    FlashWindowExProto = WINFUNCTYPE(BOOL, POINTER(FLASHWINDOW))
-    FlashWindowEx = FlashWindowExProto(("FlashWindowEx", windll.user32))
-    FLASHW_CAPTION = 0x01
-    FLASHW_TRAY = 0x02
-    FLASHW_TIMERNOFG = 0x0C
+        FlashWindowExProto = WINFUNCTYPE(BOOL, POINTER(FLASHWINDOW))
+        FlashWindowEx = FlashWindowExProto(("FlashWindowEx", windll.user32))
+        FLASHW_CAPTION = 0x01
+        FLASHW_TRAY = 0x02
+        FLASHW_TIMERNOFG = 0x0C
 
-    params = FLASHWINDOW(sizeof(FLASHWINDOW),
-                         windll.kernel32.GetConsoleWindow(),
-                         FLASHW_CAPTION | FLASHW_TRAY | FLASHW_TIMERNOFG, 3, 0)
-    FlashWindowEx(params)
+        params = FLASHWINDOW(sizeof(FLASHWINDOW),
+                             windll.kernel32.GetConsoleWindow(),
+                             FLASHW_CAPTION | FLASHW_TRAY | FLASHW_TIMERNOFG, 3, 0)
+        FlashWindowEx(params)
 
 
 def notify_darwin(title, text):
@@ -86,11 +91,11 @@ def notify_darwin(title, text):
         raise Exception("Optional Python module 'pyobjc' is not installed.")
 
 
-def notify_build_done(elapsed):
+def notify_build_done(elapsed, success=True):
     """Generate desktop notification when build is complete and the
     elapsed build time was longer than 30 seconds."""
     if elapsed > 30:
-        notify("Servo build", "Completed in %s" % format_duration(elapsed))
+        notify("Servo build", "%s in %s" % ("Completed" if success else "FAILED", format_duration(elapsed)))
 
 
 def notify(title, text):
@@ -100,7 +105,7 @@ def notify(title, text):
     platforms = {
         "linux": notify_linux,
         "linux2": notify_linux,
-        "win": notify_win,
+        "win32": notify_win,
         "darwin": notify_darwin
     }
     func = platforms.get(sys.platform)
@@ -236,36 +241,52 @@ class MachCommands(CommandBase):
 
         cargo_binary = "cargo" + BIN_SUFFIX
 
-        if sys.platform == "win32" or sys.platform == "msys":
-            env["RUSTFLAGS"] = "-C link-args=-Wl,--subsystem,windows"
+        if sys.platform in ("win32", "msys"):
+            if "msvc" not in host_triple():
+                env[b'RUSTFLAGS'] = b'-C link-args=-Wl,--subsystem,windows'
 
         status = call(
             [cargo_binary, "build"] + opts,
             env=env, cwd=self.servo_crate(), verbose=verbose)
         elapsed = time() - build_start
 
-        if sys.platform == "win32" or sys.platform == "msys":
-            shutil.copy(path.join(self.get_top_dir(), "components", "servo", "servo.exe.manifest"),
-                        path.join(base_path, "debug" if dev else "release"))
+        # Do some additional things if the build succeeded
+        if status == 0:
+            if sys.platform in ("win32", "msys"):
+                servo_exe_dir = path.join(base_path, "debug" if dev else "release")
+                # On windows, copy in our manifest
+                shutil.copy(path.join(self.get_top_dir(), "components", "servo", "servo.exe.manifest"),
+                            servo_exe_dir)
+                if "msvc" in host_triple():
+                    # on msvc builds, use editbin to change the subsystem to windows
+                    call(["editbin", "/nologo", "/subsystem:windows", path.join(servo_exe_dir, "servo.exe")],
+                         verbose=verbose)
+                    # on msvc, we need to copy in some DLLs in to the servo.exe dir
+                    for ssl_lib in ["ssleay32md.dll", "libeay32md.dll"]:
+                        shutil.copy(path.join(os.getenv('OPENSSL_LIB_DIR'), "../bin64", ssl_lib),
+                                    servo_exe_dir)
+                    for ffmpeg_lib in ["avutil-55.dll", "avformat-57.dll", "avcodec-57.dll", "swresample-2.dll"]:
+                        shutil.copy(path.join(os.getenv('FFMPEG_LIB_DIR'), "../bin", ffmpeg_lib),
+                                    servo_exe_dir)
 
-        # On the Mac, set a lovely icon. This makes it easier to pick out the Servo binary in tools
-        # like Instruments.app.
-        if sys.platform == "darwin":
-            try:
-                import Cocoa
-                icon_path = path.join(self.get_top_dir(), "resources", "servo.png")
-                icon = Cocoa.NSImage.alloc().initWithContentsOfFile_(icon_path)
-                if icon is not None:
-                    Cocoa.NSWorkspace.sharedWorkspace().setIcon_forFile_options_(icon,
-                                                                                 servo_path,
-                                                                                 0)
-            except ImportError:
-                pass
+                elif sys.platform == "darwin":
+                    # On the Mac, set a lovely icon. This makes it easier to pick out the Servo binary in tools
+                    # like Instruments.app.
+                    try:
+                        import Cocoa
+                        icon_path = path.join(self.get_top_dir(), "resources", "servo.png")
+                        icon = Cocoa.NSImage.alloc().initWithContentsOfFile_(icon_path)
+                        if icon is not None:
+                            Cocoa.NSWorkspace.sharedWorkspace().setIcon_forFile_options_(icon,
+                                                                                         servo_path,
+                                                                                         0)
+                    except ImportError:
+                        pass
 
         # Generate Desktop Notification if elapsed-time > some threshold value
-        notify_build_done(elapsed)
+        notify_build_done(elapsed, status == 0)
 
-        print("Build completed in %s" % format_duration(elapsed))
+        print("Build %s in %s" % ("Completed" if status == 0 else "FAILED", format_duration(elapsed)))
         return status
 
     @Command('build-cef',

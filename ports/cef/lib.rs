@@ -6,7 +6,6 @@
 #![feature(box_syntax)]
 #![feature(core_intrinsics)]
 #![feature(filling_drop)]
-#![feature(iter_arith)]
 #![feature(link_args)]
 #![feature(plugin)]
 #![feature(unicode)]

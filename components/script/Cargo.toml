@@ -14,11 +14,11 @@ path = "lib.rs"
 [features]
 debugmozjs = ['js/debugmozjs']
 
+[build-dependencies]
+cmake = "0.1"
+
 [target.'cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))'.dependencies]
 tinyfiledialogs = {git = "https://github.com/jdm/tinyfiledialogs"}
-
-[target.'cfg(not(any(target_os = "android", target_arch = "arm", target_arch = "aarch64")))'.dependencies]
-video-metadata = {git = "https://github.com/GuillaumeGomez/video-metadata-rs"}
 
 [dependencies]
 angle = {git = "https://github.com/servo/angle", branch = "servo"}
@@ -62,7 +62,7 @@ regex = "0.1.43"
 rustc-serialize = "0.3"
 script_layout_interface = {path = "../script_layout_interface"}
 script_traits = {path = "../script_traits"}
-selectors = {version = "0.8", features = ["heap_size"]}
+selectors = {version = "0.11", features = ["heap_size"]}
 serde = "0.8"
 smallvec = "0.1"
 string_cache = {version = "0.2.23", features = ["heap_size", "unstable"]}
@@ -75,6 +75,6 @@ websocket = "0.17"
 xml5ever = {version = "0.1.2", features = ["unstable"]}
 
 [dependencies.webrender_traits]
-git = "https://github.com/servo/webrender_traits"
+git = "https://github.com/servo/webrender"
 default_features = false
 features = ["nightly", "serde_macros"]

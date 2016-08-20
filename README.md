@@ -12,22 +12,30 @@ for help getting started.
 
 Visit the [Servo Project page](https://servo.org/) for news and guides.
 
-## Prerequisites
+## Setting up your environment
 
-On OS X (homebrew):
+Please select your operating system:
+* [OS X](#os-x)
+* [Debian-based Linuxes](#on-debian-based-linuxes)
+* [Fedora](#on-fedora)
+* [Arch Linux](#on-arch-linux)
+* [Gentoo Linux](#on-gentoo-linux)
+* [Microsoft Windows](#on-windows)
+* [Android](#cross-compilation-for-android)
+
+#### OS X
+#### On OS X (homebrew)
 
 ``` sh
-brew install automake pkg-config python cmake ffmpeg
+brew install automake pkg-config python cmake
 pip install virtualenv
 ```
-
-On OS X (MacPorts):
+#### On OS X (MacPorts)
 
 ``` sh
-sudo port install python27 py27-virtualenv cmake ffmpeg
+sudo port install python27 py27-virtualenv cmake
 ```
-
-On OS X 10.11 (El Capitan), you also have to install openssl:
+#### On OS X 10.11 (El Capitan), you also have to install openssl
 
 ``` sh
 brew install openssl
@@ -45,49 +53,36 @@ export DEP_OPENSSL_INCLUDE=/usr/local/include
 ./mach build ...
 ```
 
-If you get this error:
-``` sh
-"Couldn't find libavformat", do the following:
-
-brew uninstall ffmpeg
-brew install ffmpeg --build-from-source
-./mach clean
-./mach build
-```
-
 If you've already partially compiled servo but forgot to do this step, run ./mach clean, link openssl, and recompile.
 
-On Debian-based Linuxes:
+#### On Debian-based Linuxes
 
 ``` sh
 sudo apt-get install git curl freeglut3-dev autoconf \
     libfreetype6-dev libgl1-mesa-dri libglib2.0-dev xorg-dev \
     gperf g++ build-essential cmake virtualenv python-pip \
     libssl-dev libbz2-dev libosmesa6-dev libxmu6 libxmu-dev \
-    libglu1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev libdbus-1-dev \
-    libavformat-dev
+    libglu1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev libdbus-1-dev
 ```
 If you are on **Ubuntu 14.04** and encountered errors on installing these dependencies involving `libcheese`, see [#6158](https://github.com/servo/servo/issues/6158) for a workaround.
 
 If `virtualenv` does not exist, try `python-virtualenv`.
 
-On Fedora:
+#### On Fedora
 
 ``` sh
 sudo dnf install curl freeglut-devel libtool gcc-c++ libXi-devel \
     freetype-devel mesa-libGL-devel mesa-libEGL-devel glib2-devel libX11-devel libXrandr-devel gperf \
     fontconfig-devel cabextract ttmkfdir python python-virtualenv python-pip expat-devel \
     rpm-build openssl-devel cmake bzip2-devel libXcursor-devel libXmu-devel mesa-libOSMesa-devel \
-    dbus-devel ffmpeg-devel
+    dbus-devel
 ```
-
-On Arch Linux:
+#### On Arch Linux
 
 ``` sh
 sudo pacman -S --needed base-devel git python2 python2-virtualenv python2-pip mesa cmake bzip2 libxmu glu pkg-config
 ```
-
-On Gentoo Linux:
+#### On Gentoo Linux
 
 ```sh
 sudo emerge net-misc/curl media-libs/freeglut \
@@ -95,8 +90,7 @@ sudo emerge net-misc/curl media-libs/freeglut \
     dev-python/virtualenv dev-python/pip dev-libs/openssl \
     x11-libs/libXmu media-libs/glu x11-base/xorg-server
 ```
-
-On Windows:
+#### On Windows
 
 Download Python for Windows [here](https://www.python.org/downloads/release/python-2711/). This is
 required for the SpiderMonkey build on Windows.
@@ -111,7 +105,7 @@ pacman -Su
 pacman -Sy git mingw-w64-x86_64-toolchain mingw-w64-x86_64-freetype \
     mingw-w64-x86_64-icu mingw-w64-x86_64-nspr mingw-w64-x86_64-ca-certificates \
     mingw-w64-x86_64-expat mingw-w64-x86_64-cmake tar diffutils patch \
-    patchutils make python2-setuptools mingw-w64-x86_64-ffmpeg
+    patchutils make python2-setuptools
 export GCC_URL=http://repo.msys2.org/mingw/x86_64/mingw-w64-x86_64-gcc
 export GCC_EXT=5.4.0-1-any.pkg.tar.xz
 pacman -U --noconfirm $GCC_URL-$GCC_EXT $GCC_URL-ada-$GCC_EXT \
@@ -131,7 +125,7 @@ mv python2.7.exe python2.7-mingw64.exe
 
 Now, open a MINGW64 (not MSYS!) shell window, and you should be able to build servo as usual!
 
-Cross-compilation for Android:
+#### Cross-compilation for Android
 
 Pre-installed Android tools are needed. See wiki for
 [details](https://github.com/servo/servo/wiki/Building-for-Android)

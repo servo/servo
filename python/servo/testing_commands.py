@@ -25,7 +25,7 @@ from mach.decorators import (
     Command,
 )
 
-from servo.command_base import CommandBase, call, check_call
+from servo.command_base import CommandBase, call, check_call, host_triple
 from wptrunner import wptcommandline
 from update import updatecommandline
 from servo_tidy import tidy
@@ -220,8 +220,13 @@ class MachCommands(CommandBase):
         env = self.build_env()
         env["RUST_BACKTRACE"] = "1"
 
-        if sys.platform == "win32" or sys.platform == "msys":
-            env["RUSTFLAGS"] = "-C link-args=-Wl,--subsystem,windows"
+        if sys.platform in ("win32", "msys"):
+            if "msvc" in host_triple():
+                # on MSVC, we need some DLLs in the path. They were copied
+                # in to the servo.exe build dir, so just point PATH to that.
+                env["PATH"] = "%s%s%s" % (path.dirname(self.get_binary_path(False, False)), os.pathsep, env["PATH"])
+            else:
+                env["RUSTFLAGS"] = "-C link-args=-Wl,--subsystem,windows"
 
         result = call(args, env=env, cwd=self.servo_crate())
         if result != 0:

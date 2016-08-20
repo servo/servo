@@ -26,6 +26,8 @@ mac-nightly:
   - ./mach build --release
   - ./mach package --release
   - ./etc/ci/upload_nightly.sh mac
+  - ./etc/ci/upload_nightly.sh macbrew
+  - ./etc/ci/update_brew.sh
 
 linux-rel-intermittent:
   - ./mach build --release

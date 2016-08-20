@@ -1729,7 +1729,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                 }
             }
 
-            contexts[stacking_context_index].children = floating;
+            contexts[stacking_context_index].set_children(floating);
             return stacking_context_id;
         }
 
@@ -1745,14 +1745,14 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                 &self.base,
                 scroll_policy,
                 StackingContextCreationMode::InnerScrollWrapper);
-            inner_stacking_context.children = child_contexts;
+            inner_stacking_context.set_children(child_contexts);
 
             let mut outer_stacking_context = self.fragment.create_stacking_context(
                 stacking_context_id,
                 &self.base,
                 scroll_policy,
                 StackingContextCreationMode::OuterScrollWrapper);
-            outer_stacking_context.children.push(inner_stacking_context);
+            outer_stacking_context.add_child(inner_stacking_context);
             outer_stacking_context
         } else {
             let mut stacking_context = self.fragment.create_stacking_context(
@@ -1760,7 +1760,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                 &self.base,
                 scroll_policy,
                 StackingContextCreationMode::Normal);
-            stacking_context.children = child_contexts;
+            stacking_context.set_children(child_contexts);
             stacking_context
         };
 

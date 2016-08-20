@@ -4,7 +4,7 @@
 
 use context::StandaloneStyleContext;
 use std::mem;
-use style::context::SharedStyleContext;
+use style::context::{LocalStyleContext, SharedStyleContext, StyleContext};
 use style::dom::OpaqueNode;
 use style::traversal::RestyleResult;
 use style::traversal::{DomTraversalContext, recalc_style_at};
@@ -42,4 +42,8 @@ impl<'lc, 'ln> DomTraversalContext<GeckoNode<'ln>> for RecalcStyleOnly<'lc> {
 
     /// We don't use the post-order traversal for anything.
     fn needs_postorder_traversal(&self) -> bool { false }
+
+    fn local_context(&self) -> &LocalStyleContext {
+        self.context.local_context()
+    }
 }

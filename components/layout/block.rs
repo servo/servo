@@ -817,11 +817,14 @@ impl BlockFlow {
             for (child_index, kid) in self.base.child_iter_mut().enumerate() {
                 if flow::base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED) {
                     // Assume that the *hypothetical box* for an absolute flow starts immediately
-                    // after the block-end border edge of the previous flow.
+                    // after the margin-end border edge of the previous flow.
                     if flow::base(kid).flags.contains(BLOCK_POSITION_IS_STATIC) {
+                        let previous_bottom_margin = margin_collapse_info.current_float_ceiling();
+
                         flow::mut_base(kid).position.start.b = cur_b +
                             flow::base(kid).collapsible_margins
-                                           .block_start_margin_for_noncollapsible_context()
+                                           .block_start_margin_for_noncollapsible_context() +
+                            previous_bottom_margin
                     }
                     kid.place_float_if_applicable();
                     if !flow::base(kid).flags.is_float() {

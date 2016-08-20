@@ -34,6 +34,8 @@ def main():
                  help="Directory in which to cache lex/parse tables.")
     o.add_option("--only-html", dest='only_html', action="store_true",
                  help="Only generate HTML from WebIDL inputs")
+    o.add_option("--filelist", dest='filelist', default=None,
+                 help="A file containing the list (one per line) of webidl files to process.")
     (options, args) = o.parse_args()
 
     if len(args) < 2:
@@ -42,7 +44,10 @@ def main():
     configFile = args[0]
     outputdir = args[1]
     baseDir = args[2]
-    fileList = args[3:]
+    if options.filelist is not None:
+        fileList = (l.strip() for l in open(options.filelist).xreadlines())
+    else:
+        fileList = args[3:]
 
     # Parse the WebIDL.
     parser = WebIDL.Parser(options.cachedir)

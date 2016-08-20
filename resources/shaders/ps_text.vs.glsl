@@ -6,7 +6,7 @@
 struct Glyph {
     PrimitiveInfo info;
     vec4 color;
-    vec4 st_rect;
+    ivec4 uv_rect;
 };
 
 layout(std140) uniform Items {
@@ -19,8 +19,10 @@ void main(void) {
 
     vec2 f = (vi.local_clamped_pos - vi.local_rect.p0) / (vi.local_rect.p1 - vi.local_rect.p0);
 
+    vec2 texture_size = textureSize(sDiffuse, 0);
+    vec2 st0 = glyph.uv_rect.xy / texture_size;
+    vec2 st1 = glyph.uv_rect.zw / texture_size;
+
     vColor = glyph.color;
-    vUv = mix(glyph.st_rect.xy,
-              glyph.st_rect.zw,
-              f);
+    vUv = mix(st0, st1, f);
 }

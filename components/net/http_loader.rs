@@ -45,6 +45,7 @@ use std::collections::HashSet;
 use std::error::Error;
 use std::fmt;
 use std::io::{self, Cursor, Read, Write};
+use std::ops::Deref;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, RwLock};
 use time;
@@ -744,8 +745,7 @@ pub fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
                           load_data_method: &Method,
                           pipeline_id: &Option<PipelineId>,
                           iters: u32,
-                          devtools_chan: &Option<Sender<DevtoolsControlMsg>>,
-                          request_id: &str,
+                          request_id: Option<&str>,
                           is_xhr: bool)
                           -> Result<(A::R, Option<ChromeToDevtoolsControlMsg>), LoadError>
                           where A: HttpRequest + 'static  {
@@ -808,10 +808,10 @@ pub fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
 
         let send_end = precise_time_ms();
 
-        msg = if devtools_chan.is_some() {
+        msg = if let Some(request_id) = request_id {
             if let Some(pipeline_id) = *pipeline_id {
                 Some(prepare_devtools_request(
-                    request_id.clone().into(),
+                    request_id.into(),
                     url.clone(), method.clone(), headers,
                     request_body.clone(), pipeline_id, time::now(),
                     connect_end - connect_start, send_end - send_start, is_xhr))
@@ -968,7 +968,9 @@ pub fn load<A, B>(load_data: &LoadData,
             load_data.preserved_headers.clone()
         };
 
-        let request_id = uuid::Uuid::new_v4().simple().to_string();
+        let request_id = devtools_chan.as_ref().map(|_| {
+            uuid::Uuid::new_v4().simple().to_string()
+        });
 
         modify_request_headers(&mut request_headers, &doc_url,
                                &user_agent, load_data.referrer_policy,
@@ -992,7 +994,8 @@ pub fn load<A, B>(load_data: &LoadData,
         let (response, msg) =
             try!(obtain_response(request_factory, &doc_url, &method, &request_headers,
                                  &cancel_listener, &load_data.data, &load_data.method,
-                                 &load_data.pipeline_id, iters, &devtools_chan, &request_id, false));
+                                 &load_data.pipeline_id, iters,
+                                 request_id.as_ref().map(Deref::deref), false));
 
         process_response_headers(&response, &doc_url, &http_state.cookie_jar, &http_state.hsts_list, &load_data);
 
@@ -1092,7 +1095,7 @@ pub fn load<A, B>(load_data: &LoadData,
         if let Some(pipeline_id) = load_data.pipeline_id {
             if let Some(ref chan) = devtools_chan {
                 send_response_to_devtools(
-                    &chan, request_id,
+                    &chan, request_id.unwrap(),
                     metadata.headers.clone().map(Serde::into_inner),
                     metadata.status.clone().map(Serde::into_inner),
                     pipeline_id);

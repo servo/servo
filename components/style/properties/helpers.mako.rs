@@ -167,6 +167,7 @@
             use parser::{ParserContext, ParserContextExtraData};
             use properties::{CSSWideKeyword, DeclaredValue, Shorthand};
         % endif
+        use cascade_info::CascadeInfo;
         use error_reporting::ParseErrorReporter;
         use properties::longhands;
         use properties::property_bit_field::PropertyBitField;
@@ -185,6 +186,7 @@
                                 context: &mut computed::Context,
                                 seen: &mut PropertyBitField,
                                 cacheable: &mut bool,
+                                cascade_info: &mut Option<<&mut CascadeInfo>,
                                 error_reporter: &mut StdBox<ParseErrorReporter + Send>) {
             let declared_value = match *declaration {
                 PropertyDeclaration::${property.camel_case}(ref declared_value) => {
@@ -200,7 +202,13 @@
                 {
                     let custom_props = context.style().custom_properties();
                     ::properties::substitute_variables_${property.ident}(
-                        declared_value, &custom_props, |value| match *value {
+                        declared_value, &custom_props,
+                    |value| {
+                        if let Some(ref mut cascade_info) = *cascade_info {
+                            cascade_info.on_cascade_property(&declaration,
+                                                             &value);
+                        }
+                        match *value {
                             DeclaredValue::Value(ref specified_value) => {
                                 let computed = specified_value.to_computed_value(context);
                                 context.mutate_style().mutate_${data.current_style_struct.name_lower}()
@@ -226,8 +234,8 @@
                                 context.mutate_style().mutate_${data.current_style_struct.name_lower}()
                                        .copy_${property.ident}_from(inherited_struct);
                             }
-                        }, error_reporter
-                    );
+                        }
+                    }, error_reporter);
                 }
 
                 % if property.custom_cascade:
@@ -395,9 +403,11 @@
 %>
     % if shorthand:
     pub mod ${shorthand.ident} {
-        use cssparser::Parser;
+        #[allow(unused_imports)]
+        use cssparser::{Parser, ToCss};
         use parser::ParserContext;
         use properties::{longhands, PropertyDeclaration, DeclaredValue, Shorthand};
+        use std::fmt;
 
         pub struct Longhands {
             % for sub_property in shorthand.sub_properties:
@@ -405,6 +415,55 @@
                     Option<longhands::${sub_property.ident}::SpecifiedValue>,
             % endfor
         }
+
+        /// Represents a serializable set of all of the longhand properties that correspond to a shorthand
+        pub struct LonghandsToSerialize<'a> {
+            % for sub_property in shorthand.sub_properties:
+                pub ${sub_property.ident}: &'a DeclaredValue<longhands::${sub_property.ident}::SpecifiedValue>,
+            % endfor
+        }
+
+        impl<'a> LonghandsToSerialize<'a> {
+            pub fn from_iter<I: Iterator<Item=&'a PropertyDeclaration>>(iter: I) -> Result<Self, ()> {
+                // Define all of the expected variables that correspond to the shorthand
+                % for sub_property in shorthand.sub_properties:
+                    let mut ${sub_property.ident} = None;
+                % endfor
+
+                // Attempt to assign the incoming declarations to the expected variables
+                for longhand in iter {
+                    match *longhand {
+                        % for sub_property in shorthand.sub_properties:
+                            PropertyDeclaration::${sub_property.camel_case}(ref value) => {
+                                ${sub_property.ident} = Some(value)
+                            },
+                        % endfor
+                        _ => {}
+                    };
+                }
+
+                // If any of the expected variables are missing, return an error
+                match (
+                    % for sub_property in shorthand.sub_properties:
+                        ${sub_property.ident},
+                    % endfor
+                ) {
+
+                    (
+                    % for sub_property in shorthand.sub_properties:
+                        Some(${sub_property.ident}),
+                    % endfor
+                    ) =>
+                    Ok(LonghandsToSerialize {
+                        % for sub_property in shorthand.sub_properties:
+                            ${sub_property.ident}: ${sub_property.ident},
+                        % endfor
+                    }),
+                    _ => Err(())
+                }
+            }
+        }
+
 
         pub fn parse(context: &ParserContext, input: &mut Parser,
                      declarations: &mut Vec<PropertyDeclaration>)
@@ -446,10 +505,7 @@
             }
         }
 
-        #[allow(unused_variables)]
-        pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
-            ${caller.body()}
-        }
+        ${caller.body()}
     }
     % endif
 </%def>
@@ -460,12 +516,26 @@
                      for side in ['top', 'right', 'bottom', 'left'])}">
         use super::parse_four_sides;
         use values::specified;
-        let _unused = context;
-        let (top, right, bottom, left) = try!(parse_four_sides(input, ${parser_function}));
-        Ok(Longhands {
-            % for side in ["top", "right", "bottom", "left"]:
-                ${to_rust_ident(sub_property_pattern % side)}: Some(${side}),
-            % endfor
-        })
+
+        pub fn parse_value(_: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+            let (top, right, bottom, left) = try!(parse_four_sides(input, ${parser_function}));
+            Ok(Longhands {
+                % for side in ["top", "right", "bottom", "left"]:
+                    ${to_rust_ident(sub_property_pattern % side)}: Some(${side}),
+                % endfor
+            })
+        }
+
+        impl<'a> ToCss for LonghandsToSerialize<'a>  {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                super::serialize_four_sides(
+                    dest,
+                    self.${to_rust_ident(sub_property_pattern % 'top')},
+                    self.${to_rust_ident(sub_property_pattern % 'right')},
+                    self.${to_rust_ident(sub_property_pattern % 'bottom')},
+                    self.${to_rust_ident(sub_property_pattern % 'left')}
+                )
+            }
+        }
     </%self:shorthand>
 </%def>

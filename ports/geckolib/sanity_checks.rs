@@ -42,3 +42,28 @@ fn assert_restyle_hints_match() {
     check_enum_value_non_static!(nsRestyleHint::eRestyle_SomeDescendants, RESTYLE_DESCENDANTS.bits());
     check_enum_value_non_static!(nsRestyleHint::eRestyle_LaterSiblings, RESTYLE_LATER_SIBLINGS.bits());
 }
+
+// Note that we can't call each_pseudo_element, parse_pseudo_element, or
+// similar, because we'd need the foreign atom symbols to link.
+#[test]
+fn assert_basic_pseudo_elements() {
+    let mut saw_before = false;
+    let mut saw_after = false;
+
+    macro_rules! pseudo_element {
+        (":before", $atom:expr, false) => {
+            saw_before = true;
+        };
+        (":after", $atom:expr, false) => {
+            saw_after = true;
+        };
+        ($pseudo_str_with_colon:expr, $atom:expr, $is_anon_box:expr) => {
+            // Do nothing
+        };
+    }
+
+    include!("../../components/style/generated/gecko_pseudo_element_helper.rs");
+
+    assert!(saw_before);
+    assert!(saw_after);
+}

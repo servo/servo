@@ -5,6 +5,7 @@
 #![feature(as_unsafe_cell)]
 #![feature(borrow_state)]
 #![feature(box_syntax)]
+#![feature(conservative_impl_trait)]
 #![feature(const_fn)]
 #![feature(core_intrinsics)]
 #![feature(custom_attribute)]
@@ -88,8 +89,6 @@ extern crate url;
 #[macro_use]
 extern crate util;
 extern crate uuid;
-#[cfg(not(any(target_os = "android", target_arch = "arm", target_arch = "aarch64")))]
-extern crate video_metadata;
 extern crate webrender_traits;
 extern crate websocket;
 extern crate xml5ever;

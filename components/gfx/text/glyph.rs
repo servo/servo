@@ -22,7 +22,7 @@ pub use gfx_traits::ByteIndex;
 /// glyph offsets), we pack the glyph count into GlyphEntry, and store the other glyph information
 /// in DetailedGlyphStore.
 #[derive(Clone, Debug, Copy, Deserialize, Serialize, PartialEq)]
-struct GlyphEntry {
+pub struct GlyphEntry {
     value: u32,
 }
 
@@ -103,7 +103,7 @@ fn is_simple_advance(advance: Au) -> bool {
     }
 }
 
-type DetailedGlyphCount = u16;
+pub type DetailedGlyphCount = u16;
 
 // Getters and setters for GlyphEntry. Setter methods are functional,
 // because GlyphEntry is immutable and only a u32 in size.

@@ -25,7 +25,6 @@ extern crate rustc_plugin;
 #[macro_use]
 extern crate syntax;
 extern crate syntax_ext;
-extern crate tenacious;
 
 use rustc_plugin::Registry;
 use syntax::ext::base::*;
@@ -53,7 +52,6 @@ pub fn plugin_registrar(reg: &mut Registry) {
     reg.register_late_lint_pass(box lints::inheritance_integrity::InheritancePass);
     reg.register_late_lint_pass(box lints::transmute_type::TransmutePass);
     reg.register_early_lint_pass(box lints::ban::BanPass);
-    reg.register_late_lint_pass(box tenacious::TenaciousPass);
     reg.register_attribute("must_root".to_string(), Whitelisted);
     reg.register_attribute("servo_lang".to_string(), Whitelisted);
     reg.register_attribute("allow_unrooted_interior".to_string(), Whitelisted);

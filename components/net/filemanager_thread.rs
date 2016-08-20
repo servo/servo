@@ -23,7 +23,7 @@ use util::prefs::PREFS;
 use util::thread::spawn_named;
 use uuid::Uuid;
 
-/// Trait that provider of file-dialog UI should implement.
+/// The provider of file-dialog UI should implement this trait.
 /// It will be used to initialize a generic FileManager.
 /// For example, we can choose a dummy UI for testing purpose.
 pub trait UIProvider where Self: Sync {
@@ -82,8 +82,10 @@ struct FileStoreEntry {
     origin: FileOrigin,
     /// Backend implementation
     file_impl: FileImpl,
-    /// Number of `FileImpl::Sliced` entries in `FileManagerStore`
-    /// that has a reference (FileID) to this entry
+    /// Number of FileID holders that the ID is used to
+    /// index this entry in `FileManagerStore`.
+    /// Reference holders include a FileStoreEntry or
+    /// a script-side File-based Blob
     refs: AtomicUsize,
     /// UUIDs only become valid blob URIs when explicitly requested
     /// by the user with createObjectURL. Validity can be revoked as well.
@@ -157,8 +159,6 @@ impl<UI: 'static + UIProvider> FileManager<UI> {
             FileManagerThreadMsg::DecRef(id, origin, sender) => {
                 if let Ok(id) = Uuid::parse_str(&id.0) {
                     spawn_named("dec ref".to_owned(), move || {
-                        // Since it is simple DecRef (possibly caused by close/drop),
-                        // unset_url_validity is false
                         let _ = sender.send(store.dec_ref(&id, &origin));
                     })
                 } else {
@@ -168,7 +168,6 @@ impl<UI: 'static + UIProvider> FileManager<UI> {
             FileManagerThreadMsg::RevokeBlobURL(id, origin, sender) => {
                 if let Ok(id) = Uuid::parse_str(&id.0) {
                     spawn_named("revoke blob url".to_owned(), move || {
-                        // Since it is revocation, unset_url_validity is true
                         let _ = sender.send(store.set_blob_url_validity(false, &id, &origin));
                     })
                 } else {
@@ -487,8 +486,6 @@ impl <UI: 'static + UIProvider> FileManagerStore<UI> {
             self.remove(id);
 
             if let Some(parent_id) = opt_parent_id {
-                // unset_url_validity for parent is false since we only need
-                // to unset the initial requesting URL
                 return self.dec_ref(&parent_id, origin_in);
             }
         }
@@ -505,7 +502,6 @@ impl <UI: 'static + UIProvider> FileManagerStore<UI> {
                     origin: origin.clone(),
                     file_impl: FileImpl::Memory(blob_buf),
                     refs: AtomicUsize::new(1),
-                    // Valid here since PromoteMemory implies URL creation
                     is_valid_url: AtomicBool::new(set_valid),
                 });
 

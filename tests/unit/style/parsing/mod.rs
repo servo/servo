@@ -15,6 +15,9 @@ fn parse<T, F: Fn(&mut Parser) -> Result<T, ()>>(f: F, s: &str) -> Result<T, ()>
 // This is a macro so that the file/line information
 // is preserved in the panic
 macro_rules! assert_roundtrip {
+    ($fun:expr, $string:expr) => {
+        assert_roundtrip!($fun, $string, $string);
+    };
     ($fun:expr, $input:expr, $output:expr) => {
         let parsed = $crate::parsing::parse($fun, $input)
                         .expect(&format!("Failed to parse {}", $input));
@@ -31,3 +34,4 @@ macro_rules! assert_roundtrip {
 
 mod basic_shape;
 mod position;
+mod selectors;

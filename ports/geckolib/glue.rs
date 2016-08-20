@@ -8,14 +8,18 @@ use app_units::Au;
 use data::{NUM_THREADS, PerDocumentStyleData};
 use env_logger;
 use euclid::Size2D;
+use gecko_bindings::bindings::RawServoStyleSet;
 use gecko_bindings::bindings::{RawGeckoDocument, RawGeckoElement, RawGeckoNode};
-use gecko_bindings::bindings::{RawServoStyleSet, RawServoStyleSheet, ServoComputedValues};
+use gecko_bindings::bindings::{RawServoStyleSheetBorrowed, ServoComputedValuesBorrowed};
+use gecko_bindings::bindings::{RawServoStyleSheetStrong, ServoComputedValuesStrong};
 use gecko_bindings::bindings::{ServoDeclarationBlock, ServoNodeData, ThreadSafePrincipalHolder};
 use gecko_bindings::bindings::{ThreadSafeURIHolder, nsHTMLCSSStyleSheet};
 use gecko_bindings::ptr::{GeckoArcPrincipal, GeckoArcURI};
 use gecko_bindings::structs::ServoElementSnapshot;
 use gecko_bindings::structs::nsRestyleHint;
 use gecko_bindings::structs::{SheetParsingMode, nsIAtom};
+use gecko_bindings::sugar::refptr::HasArcFFI;
+use gecko_string_cache::Atom;
 use snapshot::GeckoElementSnapshot;
 use std::mem::transmute;
 use std::ptr;
@@ -26,7 +30,6 @@ use style::arc_ptr_eq;
 use style::context::{LocalStyleContextCreationInfo, ReflowGoal, SharedStyleContext};
 use style::dom::{TDocument, TElement, TNode};
 use style::error_reporting::StdoutErrorReporter;
-use style::gecko_glue::ArcHelpers;
 use style::gecko_selector_impl::{GeckoSelectorImpl, PseudoElement};
 use style::parallel;
 use style::parser::ParserContextExtraData;
@@ -38,29 +41,6 @@ use style::timer::Timer;
 use traversal::RecalcStyleOnly;
 use url::Url;
 use wrapper::{DUMMY_BASE_URL, GeckoDocument, GeckoElement, GeckoNode, NonOpaqueStyleData};
-
-// TODO: This is ugly and should go away once we get an atom back-end.
-pub fn pseudo_element_from_atom(pseudo: *mut nsIAtom,
-                                in_ua_stylesheet: bool) -> Result<PseudoElement, String> {
-    use gecko_bindings::bindings::Gecko_GetAtomAsUTF16;
-    use selectors::parser::{ParserContext, SelectorImpl};
-
-    let pseudo_string = unsafe {
-        let mut length = 0;
-        let mut buff = Gecko_GetAtomAsUTF16(pseudo, &mut length);
-
-        // Handle the annoying preceding colon in front of everything in nsCSSAnonBoxList.h.
-        debug_assert!(length >= 2 && *buff == ':' as u16 && *buff.offset(1) != ':' as u16);
-        buff = buff.offset(1);
-        length -= 1;
-
-        String::from_utf16(slice::from_raw_parts(buff, length as usize)).unwrap()
-    };
-
-    let mut context = ParserContext::new();
-    context.in_user_agent_stylesheet = in_ua_stylesheet;
-    GeckoSelectorImpl::parse_pseudo_element(&context, &pseudo_string).map_err(|_| pseudo_string)
-}
 
 /*
  * For Gecko->Servo function calls, we need to redeclare the same signature that was declared in
@@ -167,7 +147,7 @@ pub extern "C" fn Servo_StylesheetFromUTF8Bytes(bytes: *const u8,
                                                 base: *mut ThreadSafeURIHolder,
                                                 referrer: *mut ThreadSafeURIHolder,
                                                 principal: *mut ThreadSafePrincipalHolder)
-                                                -> *mut RawServoStyleSheet {
+                                                -> RawServoStyleSheetStrong {
     let input = unsafe { from_utf8_unchecked(slice::from_raw_parts(bytes, length as usize)) };
 
     let origin = match mode {
@@ -191,11 +171,10 @@ pub extern "C" fn Servo_StylesheetFromUTF8Bytes(bytes: *const u8,
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_AppendStyleSheet(raw_sheet: *mut RawServoStyleSheet,
+pub extern "C" fn Servo_AppendStyleSheet(raw_sheet: RawServoStyleSheetBorrowed,
                                          raw_data: *mut RawServoStyleSet) {
-    type Helpers = ArcHelpers<RawServoStyleSheet, Stylesheet>;
     let data = PerDocumentStyleData::borrow_mut_from_raw(raw_data);
-    Helpers::with(raw_sheet, |sheet| {
+    Stylesheet::with(raw_sheet, |sheet| {
         data.stylesheets.retain(|x| !arc_ptr_eq(x, sheet));
         data.stylesheets.push(sheet.clone());
         data.stylesheets_changed = true;
@@ -203,11 +182,10 @@ pub extern "C" fn Servo_AppendStyleSheet(raw_sheet: *mut RawServoStyleSheet,
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_PrependStyleSheet(raw_sheet: *mut RawServoStyleSheet,
+pub extern "C" fn Servo_PrependStyleSheet(raw_sheet: RawServoStyleSheetBorrowed,
                                           raw_data: *mut RawServoStyleSet) {
-    type Helpers = ArcHelpers<RawServoStyleSheet, Stylesheet>;
     let data = PerDocumentStyleData::borrow_mut_from_raw(raw_data);
-    Helpers::with(raw_sheet, |sheet| {
+    Stylesheet::with(raw_sheet, |sheet| {
         data.stylesheets.retain(|x| !arc_ptr_eq(x, sheet));
         data.stylesheets.insert(0, sheet.clone());
         data.stylesheets_changed = true;
@@ -215,13 +193,12 @@ pub extern "C" fn Servo_PrependStyleSheet(raw_sheet: *mut RawServoStyleSheet,
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_InsertStyleSheetBefore(raw_sheet: *mut RawServoStyleSheet,
-                                               raw_reference: *mut RawServoStyleSheet,
+pub extern "C" fn Servo_InsertStyleSheetBefore(raw_sheet: RawServoStyleSheetBorrowed,
+                                               raw_reference: RawServoStyleSheetBorrowed,
                                                raw_data: *mut RawServoStyleSet) {
-    type Helpers = ArcHelpers<RawServoStyleSheet, Stylesheet>;
     let data = PerDocumentStyleData::borrow_mut_from_raw(raw_data);
-    Helpers::with(raw_sheet, |sheet| {
-        Helpers::with(raw_reference, |reference| {
+    Stylesheet::with(raw_sheet, |sheet| {
+        Stylesheet::with(raw_reference, |reference| {
             data.stylesheets.retain(|x| !arc_ptr_eq(x, sheet));
             let index = data.stylesheets.iter().position(|x| arc_ptr_eq(x, reference)).unwrap();
             data.stylesheets.insert(index, sheet.clone());
@@ -231,37 +208,33 @@ pub extern "C" fn Servo_InsertStyleSheetBefore(raw_sheet: *mut RawServoStyleShee
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_RemoveStyleSheet(raw_sheet: *mut RawServoStyleSheet,
+pub extern "C" fn Servo_RemoveStyleSheet(raw_sheet: RawServoStyleSheetBorrowed,
                                          raw_data: *mut RawServoStyleSet) {
-    type Helpers = ArcHelpers<RawServoStyleSheet, Stylesheet>;
     let data = PerDocumentStyleData::borrow_mut_from_raw(raw_data);
-    Helpers::with(raw_sheet, |sheet| {
+    Stylesheet::with(raw_sheet, |sheet| {
         data.stylesheets.retain(|x| !arc_ptr_eq(x, sheet));
         data.stylesheets_changed = true;
     });
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_StyleSheetHasRules(raw_sheet: *mut RawServoStyleSheet) -> bool {
-    type Helpers = ArcHelpers<RawServoStyleSheet, Stylesheet>;
-    Helpers::with(raw_sheet, |sheet| !sheet.rules.is_empty())
+pub extern "C" fn Servo_StyleSheetHasRules(raw_sheet: RawServoStyleSheetBorrowed) -> bool {
+    Stylesheet::with(raw_sheet, |sheet| !sheet.rules.is_empty())
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_AddRefStyleSheet(sheet: *mut RawServoStyleSheet) -> () {
-    type Helpers = ArcHelpers<RawServoStyleSheet, Stylesheet>;
-    unsafe { Helpers::addref(sheet) };
+pub extern "C" fn Servo_AddRefStyleSheet(sheet: RawServoStyleSheetBorrowed) -> () {
+    unsafe { Stylesheet::addref(sheet) };
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_ReleaseStyleSheet(sheet: *mut RawServoStyleSheet) -> () {
-    type Helpers = ArcHelpers<RawServoStyleSheet, Stylesheet>;
-    unsafe { Helpers::release(sheet) };
+pub extern "C" fn Servo_ReleaseStyleSheet(sheet: RawServoStyleSheetBorrowed) -> () {
+    unsafe { Stylesheet::release(sheet) };
 }
 
 #[no_mangle]
 pub extern "C" fn Servo_GetComputedValues(node: *mut RawGeckoNode)
-     -> *mut ServoComputedValues {
+     -> ServoComputedValuesStrong {
     let node = unsafe { GeckoNode::from_raw(node) };
     let arc_cv = match node.borrow_data().map_or(None, |data| data.style.clone()) {
         Some(style) => style,
@@ -274,60 +247,47 @@ pub extern "C" fn Servo_GetComputedValues(node: *mut RawGeckoNode)
             Arc::new(ComputedValues::initial_values().clone())
         },
     };
-    unsafe { transmute(arc_cv) }
+    ComputedValues::from_arc(arc_cv)
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_GetComputedValuesForAnonymousBox(parent_style_or_null: *mut ServoComputedValues,
+pub extern "C" fn Servo_GetComputedValuesForAnonymousBox(parent_style_or_null: ServoComputedValuesBorrowed,
                                                          pseudo_tag: *mut nsIAtom,
                                                          raw_data: *mut RawServoStyleSet)
-     -> *mut ServoComputedValues {
+     -> ServoComputedValuesStrong {
     // The stylist consumes stylesheets lazily.
     let data = PerDocumentStyleData::borrow_mut_from_raw(raw_data);
     data.flush_stylesheets();
 
-    let pseudo = match pseudo_element_from_atom(pseudo_tag, /* ua_stylesheet = */ true) {
-        Ok(pseudo) => pseudo,
-        Err(pseudo) => {
-            warn!("stylo: Unable to parse anonymous-box pseudo-element: {}", pseudo);
-            return ptr::null_mut();
-        }
-    };
+    let atom = Atom::from(pseudo_tag);
+    let pseudo = PseudoElement::from_atom_unchecked(atom, /* anon_box = */ true);
 
-    type Helpers = ArcHelpers<ServoComputedValues, ComputedValues>;
 
-    Helpers::maybe_with(parent_style_or_null, |maybe_parent| {
+    ComputedValues::maybe_with(parent_style_or_null, |maybe_parent| {
         let new_computed = data.stylist.precomputed_values_for_pseudo(&pseudo, maybe_parent);
-        new_computed.map_or(ptr::null_mut(), |c| Helpers::from(c))
+        new_computed.map_or(ComputedValues::null_strong(), |c| ComputedValues::from_arc(c))
     })
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_GetComputedValuesForPseudoElement(parent_style: *mut ServoComputedValues,
+pub extern "C" fn Servo_GetComputedValuesForPseudoElement(parent_style: ServoComputedValuesBorrowed,
                                                           match_element: *mut RawGeckoElement,
                                                           pseudo_tag: *mut nsIAtom,
                                                           raw_data: *mut RawServoStyleSet,
                                                           is_probe: bool)
-     -> *mut ServoComputedValues {
+     -> ServoComputedValuesStrong {
     debug_assert!(!match_element.is_null());
 
     let parent_or_null = || {
         if is_probe {
-            ptr::null_mut()
+            ComputedValues::null_strong()
         } else {
-            Servo_AddRefComputedValues(parent_style);
-            parent_style
+            ComputedValues::from_arc(ComputedValues::with(parent_style, |parent| parent.clone()))
         }
     };
 
-    let pseudo = match pseudo_element_from_atom(pseudo_tag, /* ua_stylesheet = */ true) {
-        Ok(pseudo) => pseudo,
-        Err(pseudo) => {
-            warn!("stylo: Unable to parse anonymous-box pseudo-element: {}", pseudo);
-            return parent_or_null();
-        }
-    };
-
+    let atom = Atom::from(pseudo_tag);
+    let pseudo = PseudoElement::from_atom_unchecked(atom, /* anon_box = */ false);
 
     // The stylist consumes stylesheets lazily.
     let data = PerDocumentStyleData::borrow_mut_from_raw(raw_data);
@@ -335,7 +295,6 @@ pub extern "C" fn Servo_GetComputedValuesForPseudoElement(parent_style: *mut Ser
 
     let element = unsafe { GeckoElement::from_raw(match_element) };
 
-    type Helpers = ArcHelpers<ServoComputedValues, ComputedValues>;
 
     match GeckoSelectorImpl::pseudo_element_cascade_type(&pseudo) {
         PseudoElementCascadeType::Eager => {
@@ -344,13 +303,13 @@ pub extern "C" fn Servo_GetComputedValuesForPseudoElement(parent_style: *mut Ser
                                      .and_then(|data| {
                                          data.per_pseudo.get(&pseudo).map(|c| c.clone())
                                      });
-            maybe_computed.map_or_else(parent_or_null, Helpers::from)
+            maybe_computed.map_or_else(parent_or_null, ComputedValues::from_arc)
         }
         PseudoElementCascadeType::Lazy => {
-            Helpers::with(parent_style, |parent| {
+            ComputedValues::with(parent_style, |parent| {
                 data.stylist
                     .lazily_compute_pseudo_element_style(&element, &pseudo, parent)
-                    .map_or_else(parent_or_null, Helpers::from)
+                    .map_or_else(parent_or_null, ComputedValues::from_arc)
             })
         }
         PseudoElementCascadeType::Precomputed => {
@@ -361,27 +320,24 @@ pub extern "C" fn Servo_GetComputedValuesForPseudoElement(parent_style: *mut Ser
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_InheritComputedValues(parent_style: *mut ServoComputedValues)
-     -> *mut ServoComputedValues {
-    type Helpers = ArcHelpers<ServoComputedValues, ComputedValues>;
+pub extern "C" fn Servo_InheritComputedValues(parent_style: ServoComputedValuesBorrowed)
+     -> ServoComputedValuesStrong {
     let style = if parent_style.is_null() {
         Arc::new(ComputedValues::initial_values().clone())
     } else {
-        Helpers::with(parent_style, ComputedValues::inherit_from)
+        ComputedValues::with(parent_style, ComputedValues::inherit_from)
     };
-    Helpers::from(style)
+    ComputedValues::from_arc(style)
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_AddRefComputedValues(ptr: *mut ServoComputedValues) -> () {
-    type Helpers = ArcHelpers<ServoComputedValues, ComputedValues>;
-    unsafe { Helpers::addref(ptr) };
+pub extern "C" fn Servo_AddRefComputedValues(ptr: ServoComputedValuesBorrowed) -> () {
+    unsafe { ComputedValues::addref(ptr) };
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_ReleaseComputedValues(ptr: *mut ServoComputedValues) -> () {
-    type Helpers = ArcHelpers<ServoComputedValues, ComputedValues>;
-    unsafe { Helpers::release(ptr) };
+pub extern "C" fn Servo_ReleaseComputedValues(ptr: ServoComputedValuesBorrowed) -> () {
+    unsafe { ComputedValues::release(ptr) };
 }
 
 #[no_mangle]

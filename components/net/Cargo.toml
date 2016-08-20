@@ -43,7 +43,7 @@ uuid = {version = "0.3", features = ["v4"]}
 websocket = "0.17"
 
 [dependencies.webrender_traits]
-git = "https://github.com/servo/webrender_traits"
+git = "https://github.com/servo/webrender"
 default_features = false
 features = ["serde_macros"]
 

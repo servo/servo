@@ -24,10 +24,10 @@ use gecko_bindings::bindings::{Gecko_EnsureImageLayersLength, Gecko_CreateGradie
 use gecko_bindings::bindings::{Gecko_CopyImageValueFrom, Gecko_CopyFontFamilyFrom};
 use gecko_bindings::bindings::{Gecko_FontFamilyList_AppendGeneric, Gecko_FontFamilyList_AppendNamed};
 use gecko_bindings::bindings::{Gecko_FontFamilyList_Clear, Gecko_InitializeImageLayer};
-use gecko_bindings::bindings;
+use gecko_bindings::bindings::ServoComputedValuesBorrowed;
 use gecko_bindings::structs;
 use gecko_bindings::sugar::ns_style_coord::{CoordDataValue, CoordData, CoordDataMut};
-use gecko_glue::ArcHelpers;
+use gecko_bindings::sugar::refptr::HasArcFFI;
 use gecko_values::{StyleCoordHelpers, GeckoStyleCoordConvertible, convert_nscolor_to_rgba};
 use gecko_values::convert_rgba_to_nscolor;
 use gecko_values::round_border_to_device_pixels;
@@ -425,7 +425,7 @@ impl ${style_struct.gecko_struct_name} {
     pub fn initial() -> Arc<Self> {
         let mut result = Arc::new(${style_struct.gecko_struct_name} { gecko: unsafe { zeroed() } });
         unsafe {
-            Gecko_Construct_${style_struct.gecko_ffi_name}(&mut Arc::make_mut(&mut result).gecko);
+            Gecko_Construct_${style_struct.gecko_ffi_name}(&mut Arc::get_mut(&mut result).unwrap().gecko);
         }
         result
     }
@@ -455,7 +455,7 @@ impl Clone for ${style_struct.gecko_struct_name} {
 impl Debug for ${style_struct.gecko_struct_name} {
     // FIXME(bholley): Generate this.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "GECKO STYLE STRUCT")
+        write!(f, "Gecko style struct: ${style_struct.gecko_struct_name}")
     }
 }
 %else:
@@ -914,7 +914,6 @@ fn static_assert() {
             T::left   => true,
             T::right  => true
         };
-        // TODO(shinglyu): Rename Gecko's struct to mPageBreakBefore
         self.gecko.mBreakBefore = result;
     }
 
@@ -931,7 +930,6 @@ fn static_assert() {
             T::left   => true,
             T::right  => true
         };
-        // TODO(shinglyu): Rename Gecko's struct to mPageBreakBefore
         self.gecko.mBreakBefore = result;
     }
 
@@ -1267,7 +1265,7 @@ fn static_assert() {
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="SVG"
-                  skip_longhands="flood-color lighting-color stop-color"
+                  skip_longhands="flood-color lighting-color stop-color clip-path"
                   skip_additionals="*">
 
     <% impl_color("flood_color", "mFloodColor") %>
@@ -1275,6 +1273,140 @@ fn static_assert() {
     <% impl_color("lighting_color", "mLightingColor") %>
 
     <% impl_color("stop_color", "mStopColor") %>
+
+    pub fn set_clip_path(&mut self, v: longhands::clip_path::computed_value::T) {
+        use gecko_bindings::bindings::{Gecko_NewBasicShape, Gecko_DestroyClipPath};
+        use gecko_bindings::structs::StyleClipPathGeometryBox;
+        use gecko_bindings::structs::{StyleBasicShape, StyleBasicShapeType, StyleShapeSourceType};
+        use gecko_bindings::structs::{StyleClipPath, StyleFillRule};
+        use gecko_conversions::basic_shape::set_corners_from_radius;
+        use gecko_values::GeckoStyleCoordConvertible;
+        use values::computed::basic_shape::*;
+        let ref mut clip_path = self.gecko.mClipPath;
+        // clean up existing struct
+        unsafe { Gecko_DestroyClipPath(clip_path) };
+
+        clip_path.mType = StyleShapeSourceType::None_;
+
+        match v {
+            ShapeSource::Url(..) => println!("stylo: clip-path: url() not yet implemented"),
+            ShapeSource::None => {} // don't change the type
+            ShapeSource::Box(reference) => {
+                clip_path.mReferenceBox = reference.into();
+                clip_path.mType = StyleShapeSourceType::Box;
+            }
+            ShapeSource::Shape(servo_shape, maybe_box) => {
+                clip_path.mReferenceBox = maybe_box.map(Into::into)
+                                                   .unwrap_or(StyleClipPathGeometryBox::NoBox);
+                clip_path.mType = StyleShapeSourceType::Shape;
+
+                fn init_shape(clip_path: &mut StyleClipPath, ty: StyleBasicShapeType) -> &mut StyleBasicShape {
+                    unsafe {
+                        // We have to be very careful to avoid a copy here!
+                        let ref mut union = clip_path.StyleShapeSource_nsStyleStruct_h_unnamed_26;
+                        let mut shape: &mut *mut StyleBasicShape = union.mBasicShape.as_mut();
+                        *shape = Gecko_NewBasicShape(ty);
+                        &mut **shape
+                    }
+                }
+                match servo_shape {
+                    BasicShape::Inset(rect) => {
+                        let mut shape = init_shape(clip_path, StyleBasicShapeType::Inset);
+                        unsafe { shape.mCoordinates.set_len(4) };
+
+                        // set_len() can't call constructors, so the coordinates
+                        // can contain any value. set_value() attempts to free
+                        // allocated coordinates, so we don't want to feed it
+                        // garbage values which it may misinterpret.
+                        // Instead, we use leaky_set_value to blindly overwrite
+                        // the garbage data without
+                        // attempting to clean up.
+                        shape.mCoordinates[0].leaky_set_null();
+                        rect.top.to_gecko_style_coord(&mut shape.mCoordinates[0]);
+                        shape.mCoordinates[1].leaky_set_null();
+                        rect.right.to_gecko_style_coord(&mut shape.mCoordinates[1]);
+                        shape.mCoordinates[2].leaky_set_null();
+                        rect.bottom.to_gecko_style_coord(&mut shape.mCoordinates[2]);
+                        shape.mCoordinates[3].leaky_set_null();
+                        rect.left.to_gecko_style_coord(&mut shape.mCoordinates[3]);
+
+                        set_corners_from_radius(rect.round, &mut shape.mRadius);
+                    }
+                    BasicShape::Circle(circ) => {
+                        let mut shape = init_shape(clip_path, StyleBasicShapeType::Circle);
+                        unsafe { shape.mCoordinates.set_len(1) };
+                        shape.mCoordinates[0].leaky_set_null();
+                        circ.radius.to_gecko_style_coord(&mut shape.mCoordinates[0]);
+
+                        shape.mPosition = circ.position.into();
+                    }
+                    BasicShape::Ellipse(el) => {
+                        let mut shape = init_shape(clip_path, StyleBasicShapeType::Ellipse);
+                        unsafe { shape.mCoordinates.set_len(2) };
+                        shape.mCoordinates[0].leaky_set_null();
+                        el.semiaxis_x.to_gecko_style_coord(&mut shape.mCoordinates[0]);
+                        shape.mCoordinates[1].leaky_set_null();
+                        el.semiaxis_y.to_gecko_style_coord(&mut shape.mCoordinates[1]);
+
+                        shape.mPosition = el.position.into();
+                    }
+                    BasicShape::Polygon(poly) => {
+                        let mut shape = init_shape(clip_path, StyleBasicShapeType::Polygon);
+                        unsafe {
+                            shape.mCoordinates.set_len(poly.coordinates.len() as u32 * 2);
+                        }
+                        for (i, coord) in poly.coordinates.iter().enumerate() {
+                            shape.mCoordinates[2 * i].leaky_set_null();
+                            shape.mCoordinates[2 * i + 1].leaky_set_null();
+                            coord.0.to_gecko_style_coord(&mut shape.mCoordinates[2 * i]);
+                            coord.1.to_gecko_style_coord(&mut shape.mCoordinates[2 * i + 1]);
+                        }
+                        shape.mFillRule = if poly.fill == FillRule::EvenOdd {
+                            StyleFillRule::Evenodd
+                        } else {
+                            StyleFillRule::Nonzero
+                        };
+                    }
+                }
+            }
+        }
+
+    }
+
+    pub fn copy_clip_path_from(&mut self, other: &Self) {
+        use gecko_bindings::bindings::Gecko_CopyClipPathValueFrom;
+        unsafe {
+            Gecko_CopyClipPathValueFrom(&mut self.gecko.mClipPath, &other.gecko.mClipPath);
+        }
+    }
+
+    pub fn clone_clip_path(&self) -> longhands::clip_path::computed_value::T {
+        use gecko_bindings::structs::StyleShapeSourceType;
+        use gecko_bindings::structs::StyleClipPathGeometryBox;
+        use values::computed::basic_shape::*;
+        let ref clip_path = self.gecko.mClipPath;
+
+        match clip_path.mType {
+            StyleShapeSourceType::None_ => ShapeSource::None,
+            StyleShapeSourceType::Box => {
+                ShapeSource::Box(clip_path.mReferenceBox.into())
+            }
+            StyleShapeSourceType::URL => {
+                warn!("stylo: clip-path: url() not implemented yet");
+                Default::default()
+            }
+            StyleShapeSourceType::Shape => {
+                let reference = if let StyleClipPathGeometryBox::NoBox = clip_path.mReferenceBox {
+                    None
+                } else {
+                    Some(clip_path.mReferenceBox.into())
+                };
+                let union = clip_path.StyleShapeSource_nsStyleStruct_h_unnamed_26;
+                let shape = unsafe { &**union.mBasicShape.as_ref() };
+                ShapeSource::Shape(shape.into(), reference)
+            }
+        }
+    }
 
 </%self:impl_trait>
 
@@ -1357,13 +1489,99 @@ fn static_assert() {
     ${impl_coord_copy('column_width', 'mColumnWidth')}
 </%self:impl_trait>
 
+<%self:impl_trait style_struct_name="Counters"
+                  skip_longhands="content">
+    pub fn set_content(&mut self, v: longhands::content::computed_value::T) {
+        use properties::longhands::content::computed_value::T;
+        use properties::longhands::content::computed_value::ContentItem;
+        use gecko_bindings::structs::nsStyleContentData;
+        use gecko_bindings::structs::nsStyleContentType::*;
+        use gecko_bindings::bindings::Gecko_ClearStyleContents;
+
+        // Converts a string as utf16, and returns an owned, zero-terminated raw buffer.
+        fn as_utf16_and_forget(s: &str) -> *mut u16 {
+            use std::mem;
+            let mut vec = s.encode_utf16().collect::<Vec<_>>();
+            vec.push(0u16);
+            let ptr = vec.as_mut_ptr();
+            mem::forget(vec);
+            ptr
+        }
+
+        #[inline(always)]
+        #[cfg(debug_assertions)]
+        fn set_image_tracked(contents: &mut nsStyleContentData, val: bool) {
+            contents.mImageTracked = val;
+        }
+
+        #[inline(always)]
+        #[cfg(not(debug_assertions))]
+        fn set_image_tracked(_contents: &mut nsStyleContentData, _val: bool) {}
+
+        // Ensure destructors run, otherwise we could leak.
+        if !self.gecko.mContents.is_empty() {
+            unsafe {
+                Gecko_ClearStyleContents(&mut self.gecko);
+            }
+        }
+
+        match v {
+            T::none |
+            T::normal => {}, // Do nothing, already cleared.
+            T::Content(items) => {
+                // NB: set_len also reserves the appropriate space.
+                unsafe { self.gecko.mContents.set_len(items.len() as u32) }
+                for (i, item) in items.into_iter().enumerate() {
+                    // TODO: Servo lacks support for attr(), and URIs,
+                    // We don't support images, but need to remember to
+                    // explicitly initialize mImageTracked in debug builds.
+                    set_image_tracked(&mut self.gecko.mContents[i], false);
+                    // NB: Gecko compares the mString value if type is not image
+                    // or URI independently of whatever gets there. In the quote
+                    // cases, they set it to null, so do the same here.
+                    unsafe {
+                        *self.gecko.mContents[i].mContent.mString.as_mut() = ptr::null_mut();
+                    }
+                    match item {
+                        ContentItem::String(value) => {
+                            self.gecko.mContents[i].mType = eStyleContentType_String;
+                            unsafe {
+                                // NB: we share allocators, so doing this is fine.
+                                *self.gecko.mContents[i].mContent.mString.as_mut() =
+                                    as_utf16_and_forget(&value);
+                            }
+                        }
+                        ContentItem::OpenQuote
+                            => self.gecko.mContents[i].mType = eStyleContentType_OpenQuote,
+                        ContentItem::CloseQuote
+                            => self.gecko.mContents[i].mType = eStyleContentType_CloseQuote,
+                        ContentItem::NoOpenQuote
+                            => self.gecko.mContents[i].mType = eStyleContentType_NoOpenQuote,
+                        ContentItem::NoCloseQuote
+                            => self.gecko.mContents[i].mType = eStyleContentType_NoCloseQuote,
+                        ContentItem::Counter(..) |
+                        ContentItem::Counters(..)
+                            => self.gecko.mContents[i].mType = eStyleContentType_Uninitialized,
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn copy_content_from(&mut self, other: &Self) {
+        use gecko_bindings::bindings::Gecko_CopyStyleContentsFrom;
+        unsafe {
+            Gecko_CopyStyleContentsFrom(&mut self.gecko, &other.gecko)
+        }
+    }
+</%self:impl_trait>
+
 <%def name="define_ffi_struct_accessor(style_struct)">
 #[no_mangle]
 #[allow(non_snake_case, unused_variables)]
-pub extern "C" fn Servo_GetStyle${style_struct.gecko_name}(computed_values: *mut bindings::ServoComputedValues)
+pub extern "C" fn Servo_GetStyle${style_struct.gecko_name}(computed_values: ServoComputedValuesBorrowed)
   -> *const ${style_struct.gecko_ffi_name} {
-    type Helpers = ArcHelpers<bindings::ServoComputedValues, ComputedValues>;
-    Helpers::with(computed_values, |values| values.get_${style_struct.name_lower}().get_gecko()
+    ComputedValues::with(computed_values, |values| values.get_${style_struct.name_lower}().get_gecko()
                                                 as *const ${style_struct.gecko_ffi_name})
 }
 </%def>

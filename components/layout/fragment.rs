@@ -23,7 +23,7 @@ use inline::{InlineMetrics, LAST_FRAGMENT_OF_ELEMENT};
 use ipc_channel::ipc::IpcSender;
 #[cfg(debug_assertions)]
 use layout_debug;
-use model::{self, Direction, IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto, specified};
+use model::{self, Direction, IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto};
 use msg::constellation_msg::PipelineId;
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache_thread::{ImageOrMetadataAvailable, UsePlaceholder};

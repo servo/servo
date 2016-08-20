@@ -15,7 +15,7 @@ use std::cmp;
 use std::default::Default;
 use std::env;
 use std::fs::{self, File};
-use std::io::{self, Read, Write, stderr};
+use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
 use std::process;
 use std::sync::atomic::{AtomicBool, ATOMIC_BOOL_INIT, Ordering};
@@ -54,10 +54,6 @@ pub struct Opts {
     /// `None` to disable the memory profiler or `Some` with an interval in seconds to enable it
     /// and cause it to produce output on that interval (`-m`).
     pub mem_profiler_period: Option<f64>,
-
-    /// The number of threads to use for layout (`-y`). Defaults to 1, which results in a recursive
-    /// sequential algorithm.
-    pub layout_threads: usize,
 
     pub nonincremental_layout: bool,
 
@@ -176,6 +172,9 @@ pub struct Opts {
     /// Whether Style Sharing Cache is used
     pub disable_share_style_cache: bool,
 
+    /// Whether to show in stdout style sharing cache stats after a restyle.
+    pub style_sharing_stats: bool,
+
     /// Translate mouse input into touch events.
     pub convert_mouse_to_touch: bool,
 
@@ -279,6 +278,9 @@ pub struct DebugOptions {
     /// Disable the style sharing cache.
     pub disable_share_style_cache: bool,
 
+    /// Whether to show in stdout style sharing cache stats after a restyle.
+    pub style_sharing_stats: bool,
+
     /// Translate mouse input into touch events.
     pub convert_mouse_to_touch: bool,
 
@@ -335,6 +337,7 @@ impl DebugOptions {
                 "paint-flashing" => debug_options.paint_flashing = true,
                 "trace-layout" => debug_options.trace_layout = true,
                 "disable-share-style-cache" => debug_options.disable_share_style_cache = true,
+                "style-sharing-stats" => debug_options.style_sharing_stats = true,
                 "convert-mouse-to-touch" => debug_options.convert_mouse_to_touch = true,
                 "replace-surrogates" => debug_options.replace_surrogates = true,
                 "gc-profile" => debug_options.gc_profile = true,
@@ -481,7 +484,6 @@ pub fn default_opts() -> Opts {
         time_profiling: None,
         time_profiler_trace_path: None,
         mem_profiler_period: None,
-        layout_threads: 1,
         nonincremental_layout: false,
         userscripts: None,
         user_stylesheets: Vec::new(),
@@ -517,6 +519,7 @@ pub fn default_opts() -> Opts {
         profile_script_events: false,
         profile_heartbeats: false,
         disable_share_style_cache: false,
+        style_sharing_stats: false,
         convert_mouse_to_touch: false,
         exit_after_load: false,
         no_native_titlebar: false,
@@ -671,7 +674,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
                 Ok(interval) => Some(OutputOptions::Stdout(interval)) ,
                 Err(_) => Some(OutputOptions::FileName(argument)),
             },
-            None => Some(OutputOptions::Stdout(5 as f64)),
+            None => Some(OutputOptions::Stdout(5.0 as f64)),
         }
     } else {
         // if the p option doesn't exist:
@@ -691,11 +694,11 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         period.parse().unwrap_or_else(|err| args_fail(&format!("Error parsing option: -m ({})", err)))
     });
 
-    let mut layout_threads: usize = match opt_match.opt_str("y") {
-        Some(layout_threads_str) => layout_threads_str.parse()
-            .unwrap_or_else(|err| args_fail(&format!("Error parsing option: -y ({})", err))),
-        None => cmp::max(num_cpus::get() * 3 / 4, 1),
-    };
+    let mut layout_threads: Option<usize> = opt_match.opt_str("y")
+        .map(|layout_threads_str| {
+            layout_threads_str.parse()
+                .unwrap_or_else(|err| args_fail(&format!("Error parsing option: -y ({})", err)))
+        });
 
     let nonincremental_layout = opt_match.opt_present("i");
 
@@ -714,7 +717,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     let mut bubble_inline_sizes_separately = debug_options.bubble_widths;
     if debug_options.trace_layout {
         paint_threads = 1;
-        layout_threads = 1;
+        layout_threads = Some(1);
         bubble_inline_sizes_separately = true;
     }
 
@@ -786,7 +789,6 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         time_profiling: time_profiling,
         time_profiler_trace_path: opt_match.opt_str("profiler-trace-path"),
         mem_profiler_period: mem_profiler_period,
-        layout_threads: layout_threads,
         nonincremental_layout: nonincremental_layout,
         userscripts: opt_match.opt_default("userscripts", ""),
         user_stylesheets: user_stylesheets,
@@ -823,6 +825,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         dump_layer_tree: debug_options.dump_layer_tree,
         relayout_event: debug_options.relayout_event,
         disable_share_style_cache: debug_options.disable_share_style_cache,
+        style_sharing_stats: debug_options.style_sharing_stats,
         convert_mouse_to_touch: debug_options.convert_mouse_to_touch,
         exit_after_load: opt_match.opt_present("x"),
         no_native_titlebar: do_not_use_native_titlebar,
@@ -853,6 +856,15 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
             Some(&"true") | None => PREFS.set(pref_name, PrefValue::Boolean(true)),
             _ => PREFS.set(pref_name, PrefValue::String(value.unwrap().to_string()))
         };
+    }
+
+    if let Some(layout_threads) = layout_threads {
+        PREFS.set("layout.threads", PrefValue::Number(layout_threads as f64));
+    } else if let Some(layout_threads) = PREFS.get("layout.threads").as_string() {
+        PREFS.set("layout.threads", PrefValue::Number(layout_threads.parse::<f64>().unwrap()));
+    } else if *PREFS.get("layout.threads") == PrefValue::Missing {
+        let layout_threads = cmp::max(num_cpus::get() * 3 / 4, 1);
+        PREFS.set("layout.threads", PrefValue::Number(layout_threads as f64));
     }
 
     ArgumentParsingResult::ChromeProcess

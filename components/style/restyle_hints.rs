@@ -6,8 +6,9 @@
 
 use element_state::*;
 use selector_impl::{ElementExt, TheSelectorImpl, NonTSPseudoClass, AttrValue};
-use selectors::matching::matches_compound_selector;
-use selectors::parser::{AttrSelector, Combinator, CompoundSelector, SimpleSelector, SelectorImpl};
+use selectors::matching::StyleRelations;
+use selectors::matching::matches_complex_selector;
+use selectors::parser::{AttrSelector, Combinator, ComplexSelector, SimpleSelector, SelectorImpl};
 use selectors::{Element, MatchAttr};
 use std::clone::Clone;
 use std::sync::Arc;
@@ -219,7 +220,7 @@ impl<'a, E> Element for ElementWrapper<'a, E>
         self.element.get_local_name()
     }
 
-    fn get_namespace(&self) -> &<Self::Impl as SelectorImpl>::BorrowedNamespace {
+    fn get_namespace(&self) -> &<Self::Impl as SelectorImpl>::BorrowedNamespaceUrl {
         self.element.get_namespace()
     }
 
@@ -332,7 +333,7 @@ impl Sensitivities {
 #[derive(Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 struct Dependency {
-    selector: Arc<CompoundSelector<TheSelectorImpl>>,
+    selector: Arc<ComplexSelector<TheSelectorImpl>>,
     combinator: Option<Combinator>,
     sensitivities: Sensitivities,
 }
@@ -348,12 +349,16 @@ impl DependencySet {
         DependencySet { deps: Vec::new() }
     }
 
-    pub fn note_selector(&mut self, selector: Arc<CompoundSelector<TheSelectorImpl>>) {
+    pub fn len(&self) -> usize {
+        self.deps.len()
+    }
+
+    pub fn note_selector(&mut self, selector: &Arc<ComplexSelector<TheSelectorImpl>>) {
         let mut cur = selector;
         let mut combinator: Option<Combinator> = None;
         loop {
             let mut sensitivities = Sensitivities::new();
-            for s in &cur.simple_selectors {
+            for s in &cur.compound_selector {
                 sensitivities.states.insert(selector_to_state(s));
                 if !sensitivities.attrs {
                     sensitivities.attrs = is_attr_selector(s);
@@ -370,7 +375,7 @@ impl DependencySet {
             cur = match cur.next {
                 Some((ref sel, comb)) => {
                     combinator = Some(comb);
-                    sel.clone()
+                    sel
                 }
                 None => break,
             }
@@ -389,14 +394,19 @@ impl DependencySet {
                            -> RestyleHint
     where E: ElementExt + Clone
     {
+        debug!("About to calculate restyle hint for element. Deps: {}",
+               self.deps.len());
+
         let state_changes = snapshot.state().map_or_else(ElementState::empty, |old_state| current_state ^ old_state);
         let attrs_changed = snapshot.has_attrs();
         let mut hint = RestyleHint::empty();
         for dep in &self.deps {
             if state_changes.intersects(dep.sensitivities.states) || (attrs_changed && dep.sensitivities.attrs) {
                 let old_el: ElementWrapper<E> = ElementWrapper::new_with_snapshot(el.clone(), snapshot);
-                let matched_then = matches_compound_selector(&*dep.selector, &old_el, None, &mut false);
-                let matches_now = matches_compound_selector(&*dep.selector, el, None, &mut false);
+                let matched_then =
+                    matches_complex_selector(&*dep.selector, &old_el, None, &mut StyleRelations::empty());
+                let matches_now =
+                    matches_complex_selector(&*dep.selector, el, None, &mut StyleRelations::empty());
                 if matched_then != matches_now {
                     hint.insert(combinator_to_restyle_hint(dep.combinator));
                     if hint.is_all() {

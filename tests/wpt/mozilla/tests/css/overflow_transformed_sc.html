@@ -1,0 +1,31 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Inner stacking contexts' transforms are taken into account for overflow computation</title>
+<link rel="match" href="overflow_transformed_sc_ref.html">
+<style>
+  .outer-sc {
+    transform: translate(-50px, -50px);
+    position: absolute;
+    width: 250px;
+    height: 250px;
+    top: 50px;
+    left: 50px;
+    background: blue;
+  }
+
+  .inner-sc {
+    position: absolute;
+    width: 250px;
+    height: 250px;
+    top: 0;
+    left: 0;
+    transform: translate(250px, 250px);
+    background: green;
+  }
+
+  html, body { margin: 0; padding: 0; }
+</style>
+<div class="outer-sc">
+  <div class="inner-sc">
+  </div>
+</div>

@@ -34,6 +34,7 @@ use std::fs::File;
 use std::io::Read;
 use std::iter::FromIterator;
 use std::mem::swap;
+use std::ops::Deref;
 use std::rc::Rc;
 use std::sync::mpsc::{channel, Sender, Receiver};
 use unicase::UniCase;
@@ -952,7 +953,9 @@ fn http_network_fetch(request: Rc<Request>,
     let url = request.current_url();
     let cancellation_listener = CancellationListener::new(None);
 
-    let request_id = uuid::Uuid::new_v4().simple().to_string();
+    let request_id = devtools_chan.as_ref().map(|_| {
+        uuid::Uuid::new_v4().simple().to_string()
+    });
 
     // XHR uses the default destination; other kinds of fetches (which haven't been implemented yet)
     // do not. Once we support other kinds of fetches we'll need to be more fine grained here
@@ -962,7 +965,7 @@ fn http_network_fetch(request: Rc<Request>,
                                            &request.headers.borrow(),
                                            &cancellation_listener, &request.body.borrow(), &request.method.borrow(),
                                            &request.pipeline_id.get(), request.redirect_count.get() + 1,
-                                           &devtools_chan, &request_id, is_xhr);
+                                           request_id.as_ref().map(Deref::deref), is_xhr);
 
     let pipeline_id = request.pipeline_id.get();
     let mut response = Response::new();
@@ -996,7 +999,7 @@ fn http_network_fetch(request: Rc<Request>,
                             // Send an HttpResponse message to devtools with the corresponding request_id
                             if let Some(pipeline_id) = pipeline_id {
                                 send_response_to_devtools(
-                                    &sender, request_id.into(),
+                                    &sender, request_id.unwrap(),
                                     meta_headers.map(Serde::into_inner),
                                     meta_status.map(Serde::into_inner),
                                     pipeline_id);

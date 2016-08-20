@@ -444,6 +444,11 @@ impl<'le> TElement for ServoLayoutElement<'le> {
     }
 }
 
+impl<'le> PartialEq for ServoLayoutElement<'le> {
+    fn eq(&self, other: &Self) -> bool {
+        self.as_node() == other.as_node()
+    }
+}
 
 impl<'le> ServoLayoutElement<'le> {
     fn from_layout_js(el: LayoutJS<Element>) -> ServoLayoutElement<'le> {
@@ -478,7 +483,7 @@ impl<'le> ::selectors::MatchAttrGeneric for ServoLayoutElement<'le> {
         };
         match attr.namespace {
             NamespaceConstraint::Specific(ref ns) => {
-                self.get_attr(ns, name).map_or(false, |attr| test(attr))
+                self.get_attr(&ns.url, name).map_or(false, |attr| test(attr))
             },
             NamespaceConstraint::Any => {
                 let attrs = unsafe {
@@ -965,7 +970,7 @@ impl<'le> ::selectors::MatchAttrGeneric for ServoThreadSafeLayoutElement<'le> {
         where F: Fn(&str) -> bool {
         match attr.namespace {
             NamespaceConstraint::Specific(ref ns) => {
-                self.get_attr(ns, &attr.name).map_or(false, |attr| test(attr))
+                self.get_attr(&ns.url, &attr.name).map_or(false, |attr| test(attr))
             },
             NamespaceConstraint::Any => {
                 unsafe {
