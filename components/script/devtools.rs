@@ -12,7 +12,7 @@ use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::LocationBinding::LocationMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::conversions::{FromJSValConvertible, jsstring_to_str};
+use dom::bindings::conversions::{ConversionResult, FromJSValConvertible, jsstring_to_str};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
@@ -45,8 +45,11 @@ pub fn handle_evaluate_js(global: &GlobalRef, eval: String, reply: IpcSender<Eva
         } else if rval.is_boolean() {
             EvaluateJSReply::BooleanValue(rval.to_boolean())
         } else if rval.is_double() || rval.is_int32() {
-            EvaluateJSReply::NumberValue(FromJSValConvertible::from_jsval(cx, rval.handle(), ())
-                                             .unwrap())
+            EvaluateJSReply::NumberValue(
+                match FromJSValConvertible::from_jsval(cx, rval.handle(), ()) {
+                    Ok(ConversionResult::Success(v)) => v,
+                    _ => unreachable!(),
+                })
         } else if rval.is_string() {
             EvaluateJSReply::StringValue(String::from(jsstring_to_str(cx, rval.to_string())))
         } else if rval.is_null() {

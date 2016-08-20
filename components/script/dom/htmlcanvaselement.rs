@@ -10,6 +10,7 @@ use dom::bindings::codegen::Bindings::HTMLCanvasElementBinding;
 use dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::HTMLCanvasElementMethods;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLContextAttributes;
 use dom::bindings::codegen::UnionTypes::CanvasRenderingContext2DOrWebGLRenderingContext;
+use dom::bindings::conversions::ConversionResult;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
@@ -27,6 +28,7 @@ use euclid::size::Size2D;
 use image::ColorType;
 use image::png::PNGEncoder;
 use ipc_channel::ipc::{self, IpcSender};
+use js::error::throw_type_error;
 use js::jsapi::{HandleValue, JSContext};
 use offscreen_gl_context::GLContextAttributes;
 use rustc_serialize::base64::{STANDARD, ToBase64};
@@ -159,11 +161,17 @@ impl HTMLCanvasElement {
             let size = self.get_size();
 
             let attrs = if let Some(webgl_attributes) = attrs {
-                if let Ok(ref attrs) = unsafe { WebGLContextAttributes::new(cx, webgl_attributes) } {
-                    From::from(attrs)
-                } else {
-                    debug!("Unexpected error on conversion of WebGLContextAttributes");
-                    return None;
+                match unsafe {
+                    WebGLContextAttributes::new(cx, webgl_attributes) } {
+                    Ok(ConversionResult::Success(ref attrs)) => From::from(attrs),
+                    Ok(ConversionResult::Failure(ref error)) => {
+                        unsafe { throw_type_error(cx, &error); }
+                        return None;
+                    }
+                    _ => {
+                        debug!("Unexpected error on conversion of WebGLContextAttributes");
+                        return None;
+                    }
                 }
             } else {
                 GLContextAttributes::default()

@@ -727,9 +727,13 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             declType = CGWrapper(declType, pre="Option<", post=" >")
 
         templateBody = ("match FromJSValConvertible::from_jsval(cx, ${val}, %s) {\n"
-                        "    Ok(value) => value,\n"
-                        "    Err(()) => { %s },\n"
-                        "}" % (config, exceptionCode))
+                        "    Ok(ConversionResult::Success(value)) => value,\n"
+                        "    Ok(ConversionResult::Failure(error)) => {\n"
+                        "        throw_type_error(cx, &error);\n"
+                        "        %s\n"
+                        "    }\n"
+                        "    _ => { %s },\n"
+                        "}" % (config, exceptionCode, exceptionCode))
 
         return handleOptional(templateBody, declType, handleDefaultNull("None"))
 
@@ -739,9 +743,13 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             declType = CGWrapper(declType, pre="Option<", post=" >")
 
         templateBody = ("match FromJSValConvertible::from_jsval(cx, ${val}, ()) {\n"
-                        "    Ok(value) => value,\n"
-                        "    Err(()) => { %s },\n"
-                        "}" % exceptionCode)
+                        "    Ok(ConversionResult::Success(value)) => value,\n"
+                        "    Ok(ConversionResult::Failure(error)) => {\n"
+                        "        throw_type_error(cx, &error);\n"
+                        "        %s\n"
+                        "    }\n"
+                        "    _ => { %s },\n"
+                        "}" % (exceptionCode, exceptionCode))
 
         return handleOptional(templateBody, declType, handleDefaultNull("None"))
 
@@ -810,9 +818,13 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
 
         conversionCode = (
             "match FromJSValConvertible::from_jsval(cx, ${val}, %s) {\n"
-            "    Ok(strval) => strval,\n"
-            "    Err(_) => { %s },\n"
-            "}" % (nullBehavior, exceptionCode))
+            "    Ok(ConversionResult::Success(strval)) => strval,\n"
+            "    Ok(ConversionResult::Failure(error)) => {\n"
+            "        throw_type_error(cx, &error);\n"
+            "        %s\n"
+            "    }\n"
+            "    _ => { %s },\n"
+            "}" % (nullBehavior, exceptionCode, exceptionCode))
 
         if defaultValue is None:
             default = None
@@ -836,9 +848,13 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
 
         conversionCode = (
             "match FromJSValConvertible::from_jsval(cx, ${val}, ()) {\n"
-            "    Ok(strval) => strval,\n"
-            "    Err(_) => { %s },\n"
-            "}" % exceptionCode)
+            "    Ok(ConversionResult::Success(strval)) => strval,\n"
+            "    Ok(ConversionResult::Failure(error)) => {\n"
+            "        throw_type_error(cx, &error);\n"
+            "        %s\n"
+            "    }\n"
+            "    _ => { %s },\n"
+            "}" % (exceptionCode, exceptionCode))
 
         if defaultValue is None:
             default = None
@@ -862,9 +878,13 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
 
         conversionCode = (
             "match FromJSValConvertible::from_jsval(cx, ${val}, ()) {\n"
-            "    Ok(strval) => strval,\n"
-            "    Err(_) => { %s },\n"
-            "}" % exceptionCode)
+            "    Ok(ConversionResult::Success(strval)) => strval,\n"
+            "    Ok(ConversionResult::Failure(error)) => {\n"
+            "        throw_type_error(cx, &error);\n"
+            "        %s\n"
+            "    }\n"
+            "    _ => { %s },\n"
+            "}" % (exceptionCode, exceptionCode))
 
         if defaultValue is None:
             default = None
@@ -1017,9 +1037,13 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
                                CGDictionary.makeDictionaryName(type.inner))
         declType = CGGeneric(typeName)
         template = ("match %s::new(cx, ${val}) {\n"
-                    "    Ok(dictionary) => dictionary,\n"
-                    "    Err(_) => { %s },\n"
-                    "}" % (typeName, exceptionCode))
+                    "    Ok(ConversionResult::Success(dictionary)) => dictionary,\n"
+                    "    Ok(ConversionResult::Failure(error)) => {\n"
+                    "        throw_type_error(cx, &error);\n"
+                    "        %s\n"
+                    "    }\n"
+                    "    _ => { %s },\n"
+                    "}" % (typeName, exceptionCode, exceptionCode))
 
         return handleOptional(template, declType, handleDefaultNull("%s::empty(cx)" % typeName))
 
@@ -1042,9 +1066,13 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
 
     template = (
         "match FromJSValConvertible::from_jsval(cx, ${val}, %s) {\n"
-        "    Ok(v) => v,\n"
-        "    Err(_) => { %s }\n"
-        "}" % (conversionBehavior, exceptionCode))
+        "    Ok(ConversionResult::Success(v)) => v,\n"
+        "    Ok(ConversionResult::Failure(error)) => {\n"
+        "        throw_type_error(cx, &error);\n"
+        "        %s\n"
+        "    }\n"
+        "    _ => { %s }\n"
+        "}" % (conversionBehavior, exceptionCode, exceptionCode))
 
     if defaultValue is not None:
         if isinstance(defaultValue, IDLNullValue):
@@ -2048,6 +2076,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, config):
 
     imports = [
         'dom::bindings::codegen::PrototypeList',
+        'dom::bindings::conversions::ConversionResult',
         'dom::bindings::conversions::FromJSValConvertible',
         'dom::bindings::conversions::ToJSValConvertible',
         'dom::bindings::conversions::ConversionBehavior',
@@ -2057,6 +2086,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, config):
         'dom::bindings::js::Root',
         'dom::bindings::str::{ByteString, DOMString, USVString}',
         'dom::types::*',
+        'js::error::throw_type_error',
         'js::jsapi::JSContext',
         'js::jsapi::{HandleValue, MutableHandleValue}',
         'js::jsval::JSVal',
@@ -3826,7 +3856,7 @@ class CGUnionConversionStruct(CGThing):
             return (
                 "match %s::TryConvertTo%s(cx, value) {\n"
                 "    Err(_) => return Err(()),\n"
-                "    Ok(Some(value)) => return Ok(%s::%s(value)),\n"
+                "    Ok(Some(value)) => return Ok(ConversionResult::Success(%s::%s(value))),\n"
                 "    Ok(None) => (),\n"
                 "}\n") % (self.type, name, self.type, name)
 
@@ -3923,7 +3953,8 @@ class CGUnionConversionStruct(CGThing):
         method = CGWrapper(
             CGIndenter(CGList(conversions, "\n\n")),
             pre="unsafe fn from_jsval(cx: *mut JSContext,\n"
-                "                     value: HandleValue, _option: ()) -> Result<%s, ()> {\n" % self.type,
+                "                     value: HandleValue, _option: ())"
+                "                     -> Result<ConversionResult<%s>, ()> {\n" % self.type,
             post="\n}")
         return CGWrapper(
             CGIndenter(CGList([
@@ -5271,9 +5302,14 @@ class CGDictionary(CGThing):
     def impl(self):
         d = self.dictionary
         if d.parent:
-            initParent = "parent: try!(%s::%s::new(cx, val)),\n" % (
-                self.makeModuleName(d.parent),
-                self.makeClassName(d.parent))
+            initParent = ("parent: match try!(%s::%s::new(cx, val)) {\n"
+                          "            ConversionResult::Success(v) => v,\n"
+                          "            ConversionResult::Failure(error) => {\n"
+                          "                throw_type_error(cx, &error);\n"
+                          "                return Err(());\n"
+                          "            }\n"
+                          "        },\n" % (self.makeModuleName(d.parent),
+                                            self.makeClassName(d.parent)))
         else:
             initParent = ""
 
@@ -5307,9 +5343,13 @@ class CGDictionary(CGThing):
         return string.Template(
             "impl ${selfName} {\n"
             "    pub unsafe fn empty(cx: *mut JSContext) -> ${selfName} {\n"
-            "        ${selfName}::new(cx, HandleValue::null()).unwrap()\n"
+            "        match ${selfName}::new(cx, HandleValue::null()) {\n"
+            "            Ok(ConversionResult::Success(v)) => v,\n"
+            "            _ => unreachable!(),\n"
+            "        }\n"
             "    }\n"
-            "    pub unsafe fn new(cx: *mut JSContext, val: HandleValue) -> Result<${selfName}, ()> {\n"
+            "    pub unsafe fn new(cx: *mut JSContext, val: HandleValue) \n"
+            "                      -> Result<ConversionResult<${selfName}>, ()> {\n"
             "        let object = if val.get().is_null_or_undefined() {\n"
             "            ptr::null_mut()\n"
             "        } else if val.get().is_object() {\n"
@@ -5319,17 +5359,17 @@ class CGDictionary(CGThing):
             "            return Err(());\n"
             "        };\n"
             "        rooted!(in(cx) let object = object);\n"
-            "        Ok(${selfName} {\n"
+            "        Ok(ConversionResult::Success(${selfName} {\n"
             "${initParent}"
             "${initMembers}"
-            "        })\n"
+            "        }))\n"
             "    }\n"
             "}\n"
             "\n"
             "impl FromJSValConvertible for ${selfName} {\n"
             "    type Config = ();\n"
             "    unsafe fn from_jsval(cx: *mut JSContext, value: HandleValue, _option: ())\n"
-            "                         -> Result<${selfName}, ()> {\n"
+            "                         -> Result<ConversionResult<${selfName}>, ()> {\n"
             "        ${selfName}::new(cx, value)\n"
             "    }\n"
             "}\n"
@@ -5572,7 +5612,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::callback::{CallbackContainer,CallbackInterface,CallbackFunction}',
             'dom::bindings::callback::{CallSetup,ExceptionHandling}',
             'dom::bindings::callback::wrap_call_this_object',
-            'dom::bindings::conversions::{ConversionBehavior, DOM_OBJECT_SLOT}',
+            'dom::bindings::conversions::{ConversionBehavior, ConversionResult, DOM_OBJECT_SLOT}',
             'dom::bindings::conversions::{IDLInterface, is_array_like}',
             'dom::bindings::conversions::{FromJSValConvertible, StringificationBehavior}',
             'dom::bindings::conversions::{ToJSValConvertible, jsid_to_str, native_from_handlevalue}',
