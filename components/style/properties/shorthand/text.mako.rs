@@ -46,8 +46,8 @@
         })
     }
 
-    impl<'a> ToCss for LonghandsToSerialize<'a>  {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    impl<'a> LonghandsToSerialize<'a>  {
+        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             match *self.text_decoration_line {
                 DeclaredValue::Value(ref line) => {
                     try!(line.to_css(dest));

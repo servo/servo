@@ -68,8 +68,8 @@
     }
 
     // This may be a bit off, unsure, possibly needs changes
-    impl<'a> ToCss for LonghandsToSerialize<'a>  {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    impl<'a> LonghandsToSerialize<'a>  {
+        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             if let DeclaredValue::Value(ref style) = *self.font_style {
                 try!(style.to_css(dest));
                 try!(write!(dest, " "));

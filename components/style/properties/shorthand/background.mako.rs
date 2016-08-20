@@ -101,8 +101,8 @@
          })
     }
 
-    impl<'a> ToCss for LonghandsToSerialize<'a>  {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    impl<'a> LonghandsToSerialize<'a>  {
+        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             // mako doesn't like ampersands following `<`
             fn extract_value<T>(x: &DeclaredValue<T>) -> Option< &T> {
                 match *x {
@@ -120,7 +120,7 @@
 
             // There should be at least one declared value
             if len == 0 {
-                return Err(())
+                return dest.write_str("")
             }
 
             let iter = repeat(None).take(len - 1).chain(once(Some(self.background_color)))
