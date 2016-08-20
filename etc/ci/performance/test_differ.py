@@ -48,4 +48,4 @@ for key in keys:
         diff = value2 - value1
         change = diff / value1 
         color = BLUE if value1 <= value2 else GREEN
-        print("{}Test {}: first={}, second={}, diff={}, change={:.2%}.{}".format(color, key, value1, value2, diff, change, END))
+        print("{}{:6} {:6} {:+6} {:+8.2%}   {}.{}".format(color, value1, value2, diff, change, key, END))
