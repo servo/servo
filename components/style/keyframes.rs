@@ -261,6 +261,7 @@ impl<'a> QualifiedRuleParser for KeyframeListParser<'a> {
                     log_css_error(iter.input, pos, &*message, self.context);
                 }
             }
+            // `parse_important` is not called here, `!important` is not allowed in keyframe blocks.
         }
         Ok(Keyframe {
             selector: prelude,
