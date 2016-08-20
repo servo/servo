@@ -7,8 +7,8 @@
 use element_state::*;
 use selector_impl::{ElementExt, TheSelectorImpl, NonTSPseudoClass, AttrValue};
 use selectors::matching::StyleRelations;
-use selectors::matching::matches_compound_selector;
-use selectors::parser::{AttrSelector, Combinator, CompoundSelector, SimpleSelector, SelectorImpl};
+use selectors::matching::matches_complex_selector;
+use selectors::parser::{AttrSelector, Combinator, ComplexSelector, SimpleSelector, SelectorImpl};
 use selectors::{Element, MatchAttr};
 use std::clone::Clone;
 use std::sync::Arc;
@@ -333,7 +333,7 @@ impl Sensitivities {
 #[derive(Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 struct Dependency {
-    selector: Arc<CompoundSelector<TheSelectorImpl>>,
+    selector: Arc<ComplexSelector<TheSelectorImpl>>,
     combinator: Option<Combinator>,
     sensitivities: Sensitivities,
 }
@@ -353,12 +353,12 @@ impl DependencySet {
         self.deps.len()
     }
 
-    pub fn note_selector(&mut self, selector: &Arc<CompoundSelector<TheSelectorImpl>>) {
+    pub fn note_selector(&mut self, selector: &Arc<ComplexSelector<TheSelectorImpl>>) {
         let mut cur = selector;
         let mut combinator: Option<Combinator> = None;
         loop {
             let mut sensitivities = Sensitivities::new();
-            for s in &cur.simple_selectors {
+            for s in &cur.compound_selector {
                 sensitivities.states.insert(selector_to_state(s));
                 if !sensitivities.attrs {
                     sensitivities.attrs = is_attr_selector(s);
@@ -404,9 +404,9 @@ impl DependencySet {
             if state_changes.intersects(dep.sensitivities.states) || (attrs_changed && dep.sensitivities.attrs) {
                 let old_el: ElementWrapper<E> = ElementWrapper::new_with_snapshot(el.clone(), snapshot);
                 let matched_then =
-                    matches_compound_selector(&*dep.selector, &old_el, None, &mut StyleRelations::empty());
+                    matches_complex_selector(&*dep.selector, &old_el, None, &mut StyleRelations::empty());
                 let matches_now =
-                    matches_compound_selector(&*dep.selector, el, None, &mut StyleRelations::empty());
+                    matches_complex_selector(&*dep.selector, el, None, &mut StyleRelations::empty());
                 if matched_then != matches_now {
                     hint.insert(combinator_to_restyle_hint(dep.combinator));
                     if hint.is_all() {

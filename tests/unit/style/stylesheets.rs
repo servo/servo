@@ -45,8 +45,8 @@ fn test_parse_stylesheet() {
             CSSRule::Style(StyleRule {
                 selectors: vec![
                     Selector {
-                        compound_selectors: Arc::new(CompoundSelector {
-                            simple_selectors: vec![
+                        complex_selector: Arc::new(ComplexSelector {
+                            compound_selector: vec![
                                 SimpleSelector::Namespace(Namespace {
                                     prefix: None,
                                     url: NsAtom(Atom::from("http://www.w3.org/1999/xhtml"))
@@ -81,8 +81,8 @@ fn test_parse_stylesheet() {
             CSSRule::Style(StyleRule {
                 selectors: vec![
                     Selector {
-                        compound_selectors: Arc::new(CompoundSelector {
-                            simple_selectors: vec![
+                        complex_selector: Arc::new(ComplexSelector {
+                            compound_selector: vec![
                                 SimpleSelector::Namespace(Namespace {
                                     prefix: None,
                                     url: NsAtom(Atom::from("http://www.w3.org/1999/xhtml"))
@@ -98,8 +98,8 @@ fn test_parse_stylesheet() {
                         specificity: (0 << 20) + (0 << 10) + (1 << 0),
                     },
                     Selector {
-                        compound_selectors: Arc::new(CompoundSelector {
-                            simple_selectors: vec![
+                        complex_selector: Arc::new(ComplexSelector {
+                            compound_selector: vec![
                                 SimpleSelector::Namespace(Namespace {
                                     prefix: None,
                                     url: NsAtom(Atom::from("http://www.w3.org/1999/xhtml"))
@@ -126,16 +126,16 @@ fn test_parse_stylesheet() {
             CSSRule::Style(StyleRule {
                 selectors: vec![
                     Selector {
-                        compound_selectors: Arc::new(CompoundSelector {
-                            simple_selectors: vec![
+                        complex_selector: Arc::new(ComplexSelector {
+                            compound_selector: vec![
                                 SimpleSelector::Namespace(Namespace {
                                     prefix: None,
                                     url: NsAtom(Atom::from("http://www.w3.org/1999/xhtml"))
                                 }),
                                 SimpleSelector::Class(Atom::from("ok")),
                             ],
-                            next: Some((Arc::new(CompoundSelector {
-                                simple_selectors: vec![
+                            next: Some((Arc::new(ComplexSelector {
+                                compound_selector: vec![
                                     SimpleSelector::Namespace(Namespace {
                                         prefix: None,
                                         url: NsAtom(Atom::from("http://www.w3.org/1999/xhtml"))

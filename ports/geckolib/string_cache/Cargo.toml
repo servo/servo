@@ -14,5 +14,5 @@ cfg-if = "0.1.0"
 gecko_bindings = {version = "0.0.1", path = "../gecko_bindings"}
 heapsize = "0.3.5"
 libc = "0.2"
-selectors = "0.10"
+selectors = "0.11"
 serde = "0.8"
