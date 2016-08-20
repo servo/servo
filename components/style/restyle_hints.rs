@@ -341,16 +341,38 @@ struct Dependency {
 #[derive(Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct DependencySet {
-    deps: Vec<Dependency>,
+    /// Dependencies only affected by state.
+    state_deps: Vec<Dependency>,
+    /// Dependencies only affected by attributes.
+    attr_deps: Vec<Dependency>,
+    /// Dependencies affected by both.
+    common_deps: Vec<Dependency>,
 }
 
 impl DependencySet {
+    fn add_dependency(&mut self, dep: Dependency) {
+        let affects_attrs = dep.sensitivities.attrs;
+        let affects_states = !dep.sensitivities.states.is_empty();
+
+        if affects_attrs && affects_states {
+            self.common_deps.push(dep)
+        } else if affects_attrs {
+            self.attr_deps.push(dep)
+        } else {
+            self.state_deps.push(dep)
+        }
+    }
+
     pub fn new() -> Self {
-        DependencySet { deps: Vec::new() }
+        DependencySet {
+            state_deps: vec![],
+            attr_deps: vec![],
+            common_deps: vec![],
+        }
     }
 
     pub fn len(&self) -> usize {
-        self.deps.len()
+        self.common_deps.len() + self.attr_deps.len() + self.state_deps.len()
     }
 
     pub fn note_selector(&mut self, selector: &Arc<ComplexSelector<TheSelectorImpl>>) {
@@ -365,7 +387,7 @@ impl DependencySet {
                 }
             }
             if !sensitivities.is_empty() {
-                self.deps.push(Dependency {
+                self.add_dependency(Dependency {
                     selector: cur.clone(),
                     combinator: combinator,
                     sensitivities: sensitivities,
@@ -383,38 +405,79 @@ impl DependencySet {
     }
 
     pub fn clear(&mut self) {
-        self.deps.clear();
+        self.common_deps.clear();
+        self.attr_deps.clear();
+        self.state_deps.clear();
     }
 }
 
 impl DependencySet {
+    fn test_dependency<E>(&self,
+                          dep: &Dependency,
+                          element: &E,
+                          snapshot: &ElementWrapper<E>,
+                          state_changes: &ElementState,
+                          attrs_changed: bool,
+                          hint: &mut RestyleHint)
+        where E: ElementExt
+    {
+        if state_changes.intersects(dep.sensitivities.states) || (attrs_changed && dep.sensitivities.attrs) {
+            let matched_then =
+                matches_complex_selector(&dep.selector, snapshot, None, &mut StyleRelations::empty());
+            let matches_now =
+                matches_complex_selector(&dep.selector, element, None, &mut StyleRelations::empty());
+            if matched_then != matches_now {
+                hint.insert(combinator_to_restyle_hint(dep.combinator));
+            }
+        }
+    }
+
     pub fn compute_hint<E>(&self, el: &E,
                            snapshot: &E::Snapshot,
                            current_state: ElementState)
                            -> RestyleHint
-    where E: ElementExt + Clone
+        where E: ElementExt + Clone
     {
         debug!("About to calculate restyle hint for element. Deps: {}",
-               self.deps.len());
+               self.len());
 
         let state_changes = snapshot.state().map_or_else(ElementState::empty, |old_state| current_state ^ old_state);
         let attrs_changed = snapshot.has_attrs();
+
+        if state_changes.is_empty() && !attrs_changed {
+            return RestyleHint::empty();
+        }
+
         let mut hint = RestyleHint::empty();
-        for dep in &self.deps {
-            if state_changes.intersects(dep.sensitivities.states) || (attrs_changed && dep.sensitivities.attrs) {
-                let old_el: ElementWrapper<E> = ElementWrapper::new_with_snapshot(el.clone(), snapshot);
-                let matched_then =
-                    matches_complex_selector(&*dep.selector, &old_el, None, &mut StyleRelations::empty());
-                let matches_now =
-                    matches_complex_selector(&*dep.selector, el, None, &mut StyleRelations::empty());
-                if matched_then != matches_now {
-                    hint.insert(combinator_to_restyle_hint(dep.combinator));
-                    if hint.is_all() {
-                        break
-                    }
+        let snapshot = ElementWrapper::new_with_snapshot(el.clone(), snapshot);
+        for dep in &self.common_deps {
+            self.test_dependency(dep, el, &snapshot, &state_changes,
+                                 attrs_changed, &mut hint);
+            if hint.is_all() {
+                return hint;
+            }
+        }
+
+        if !state_changes.is_empty() {
+            for dep in &self.state_deps {
+                self.test_dependency(dep, el, &snapshot, &state_changes,
+                                     attrs_changed, &mut hint);
+                if hint.is_all() {
+                    return hint;
                 }
             }
         }
+
+        if attrs_changed {
+            for dep in &self.attr_deps {
+                self.test_dependency(dep, el, &snapshot, &state_changes,
+                                     attrs_changed, &mut hint);
+                if hint.is_all() {
+                    return hint;
+                }
+            }
+        }
+
         hint
     }
 }
