@@ -16,8 +16,8 @@ use selector_impl::{ElementExt, TheSelectorImpl, PseudoElement};
 use selectors::Element;
 use selectors::bloom::BloomFilter;
 use selectors::matching::{AFFECTED_BY_STYLE_ATTRIBUTE, AFFECTED_BY_PRESENTATIONAL_HINTS};
-use selectors::matching::{StyleRelations, matches_compound_selector};
-use selectors::parser::{Selector, SimpleSelector, LocalName, CompoundSelector};
+use selectors::matching::{StyleRelations, matches_complex_selector};
+use selectors::parser::{Selector, SimpleSelector, LocalName, ComplexSelector};
 use sink::Push;
 use smallvec::VecLike;
 use std::borrow::Borrow;
@@ -31,6 +31,8 @@ use string_cache::Atom;
 use style_traits::viewport::ViewportConstraints;
 use stylesheets::{CSSRule, CSSRuleIteratorExt, Origin, Stylesheet};
 use viewport::{MaybeNew, ViewportRuleCascade};
+
+pub type FnvHashMap<K, V> = HashMap<K, V, BuildHasherDefault<::fnv::FnvHasher>>;
 
 /// This structure holds all the selectors and device characteristics
 /// for a given document. The selectors are converted into `Rule`s
@@ -61,19 +63,15 @@ pub struct Stylist {
 
     /// The selector maps corresponding to a given pseudo-element
     /// (depending on the implementation)
-    pseudos_map: HashMap<PseudoElement,
-                         PerPseudoElementSelectorMap,
-                         BuildHasherDefault<::fnv::FnvHasher>>,
+    pseudos_map: FnvHashMap<PseudoElement, PerPseudoElementSelectorMap>,
 
     /// A map with all the animations indexed by name.
-    animations: HashMap<Atom, KeyframesAnimation>,
+    animations: FnvHashMap<Atom, KeyframesAnimation>,
 
     /// Applicable declarations for a given non-eagerly cascaded pseudo-element.
     /// These are eagerly computed once, and then used to resolve the new
     /// computed values on the fly on layout.
-    precomputed_pseudo_element_decls: HashMap<PseudoElement,
-                                              Vec<DeclarationBlock>,
-                                              BuildHasherDefault<::fnv::FnvHasher>>,
+    precomputed_pseudo_element_decls: FnvHashMap<PseudoElement, Vec<DeclarationBlock>>,
 
     rules_source_order: usize,
 
@@ -98,9 +96,9 @@ impl Stylist {
             quirks_mode: false,
 
             element_map: PerPseudoElementSelectorMap::new(),
-            pseudos_map: HashMap::with_hasher(Default::default()),
-            animations: HashMap::with_hasher(Default::default()),
-            precomputed_pseudo_element_decls: HashMap::with_hasher(Default::default()),
+            pseudos_map: Default::default(),
+            animations: Default::default(),
+            precomputed_pseudo_element_decls: Default::default(),
             rules_source_order: 0,
             state_deps: DependencySet::new(),
 
@@ -124,13 +122,13 @@ impl Stylist {
         }
 
         self.element_map = PerPseudoElementSelectorMap::new();
-        self.pseudos_map = HashMap::with_hasher(Default::default());
-        self.animations = HashMap::with_hasher(Default::default());
+        self.pseudos_map = Default::default();
+        self.animations = Default::default();
         TheSelectorImpl::each_eagerly_cascaded_pseudo_element(|pseudo| {
             self.pseudos_map.insert(pseudo, PerPseudoElementSelectorMap::new());
         });
 
-        self.precomputed_pseudo_element_decls = HashMap::with_hasher(Default::default());
+        self.precomputed_pseudo_element_decls = Default::default();
         self.rules_source_order = 0;
         self.state_deps.clear();
 
@@ -456,7 +454,7 @@ impl Stylist {
     }
 
     #[inline]
-    pub fn animations(&self) -> &HashMap<Atom, KeyframesAnimation> {
+    pub fn animations(&self) -> &FnvHashMap<Atom, KeyframesAnimation> {
         &self.animations
     }
 
@@ -611,12 +609,12 @@ impl PerPseudoElementSelectorMap {
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct SelectorMap {
     // TODO: Tune the initial capacity of the HashMap
-    id_hash: HashMap<Atom, Vec<Rule>>,
-    class_hash: HashMap<Atom, Vec<Rule>>,
-    local_name_hash: HashMap<Atom, Vec<Rule>>,
+    id_hash: FnvHashMap<Atom, Vec<Rule>>,
+    class_hash: FnvHashMap<Atom, Vec<Rule>>,
+    local_name_hash: FnvHashMap<Atom, Vec<Rule>>,
     /// Same as local_name_hash, but keys are lower-cased.
     /// For HTML elements in HTML documents.
-    lower_local_name_hash: HashMap<Atom, Vec<Rule>>,
+    lower_local_name_hash: FnvHashMap<Atom, Vec<Rule>>,
     /// Rules that don't have ID, class, or element selectors.
     other_rules: Vec<Rule>,
     /// Whether this hash is empty.
@@ -712,7 +710,7 @@ impl SelectorMap {
         let init_len = matching_rules_list.len();
 
         for rule in self.other_rules.iter() {
-            if rule.selector.simple_selectors.is_empty() &&
+            if rule.selector.compound_selector.is_empty() &&
                rule.selector.next.is_none() {
                 matching_rules_list.push(rule.declarations.clone());
             }
@@ -725,7 +723,7 @@ impl SelectorMap {
     fn get_matching_rules_from_hash<E, Str, BorrowedStr: ?Sized, Vector>(
         element: &E,
         parent_bf: Option<&BloomFilter>,
-        hash: &HashMap<Str, Vec<Rule>>,
+        hash: &FnvHashMap<Str, Vec<Rule>>,
         key: &BorrowedStr,
         matching_rules: &mut Vector,
         relations: &mut StyleRelations)
@@ -753,7 +751,7 @@ impl SelectorMap {
               V: VecLike<DeclarationBlock>
     {
         for rule in rules.iter() {
-            if matches_compound_selector(&*rule.selector,
+            if matches_complex_selector(&*rule.selector,
                                          element, parent_bf, relations) {
                 matching_rules.push(rule.declarations.clone());
             }
@@ -786,7 +784,7 @@ impl SelectorMap {
 
     /// Retrieve the first ID name in Rule, or None otherwise.
     fn get_id_name(rule: &Rule) -> Option<Atom> {
-        for ss in &rule.selector.simple_selectors {
+        for ss in &rule.selector.compound_selector {
             // TODO(pradeep): Implement case-sensitivity based on the
             // document type and quirks mode.
             if let SimpleSelector::ID(ref id) = *ss {
@@ -799,7 +797,7 @@ impl SelectorMap {
 
     /// Retrieve the FIRST class name in Rule, or None otherwise.
     fn get_class_name(rule: &Rule) -> Option<Atom> {
-        for ss in &rule.selector.simple_selectors {
+        for ss in &rule.selector.compound_selector {
             // TODO(pradeep): Implement case-sensitivity based on the
             // document type and quirks mode.
             if let SimpleSelector::Class(ref class) = *ss {
@@ -812,7 +810,7 @@ impl SelectorMap {
 
     /// Retrieve the name if it is a type selector, or None otherwise.
     fn get_local_name(rule: &Rule) -> Option<LocalName<TheSelectorImpl>> {
-        for ss in &rule.selector.simple_selectors {
+        for ss in &rule.selector.compound_selector {
             if let SimpleSelector::LocalName(ref n) = *ss {
                 return Some(LocalName {
                     name: n.name.clone(),
@@ -830,8 +828,8 @@ impl SelectorMap {
 pub struct Rule {
     // This is an Arc because Rule will essentially be cloned for every element
     // that it matches. Selector contains an owned vector (through
-    // CompoundSelector) and we want to avoid the allocation.
-    pub selector: Arc<CompoundSelector<TheSelectorImpl>>,
+    // ComplexSelector) and we want to avoid the allocation.
+    pub selector: Arc<ComplexSelector<TheSelectorImpl>>,
     pub declarations: DeclarationBlock,
 }
 
@@ -900,6 +898,6 @@ impl<'a> DoubleEndedIterator for DeclarationBlockIter<'a> {
     }
 }
 
-fn find_push<Str: Eq + Hash>(map: &mut HashMap<Str, Vec<Rule>>, key: Str, value: Rule) {
+fn find_push<Str: Eq + Hash>(map: &mut FnvHashMap<Str, Vec<Rule>>, key: Str, value: Rule) {
     map.entry(key).or_insert_with(Vec::new).push(value)
 }
