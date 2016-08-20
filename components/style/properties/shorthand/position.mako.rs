@@ -38,8 +38,8 @@
     }
 
 
-    impl<'a> ToCss for LonghandsToSerialize<'a>  {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    impl<'a> LonghandsToSerialize<'a>  {
+        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             match *self.flex_direction {
                 DeclaredValue::Initial => try!(write!(dest, "row")),
                 _ => try!(self.flex_direction.to_css(dest))
@@ -107,8 +107,8 @@
         })
     }
 
-    impl<'a> ToCss for LonghandsToSerialize<'a>  {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    impl<'a> LonghandsToSerialize<'a>  {
+        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             try!(self.flex_grow.to_css(dest));
             try!(write!(dest, " "));
 
