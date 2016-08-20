@@ -3717,7 +3717,7 @@ def getUnionTypeTemplateVars(type, descriptorProvider):
     # Also, for dictionaries we would need to handle conversion of
     # null/undefined to the dictionary correctly.
     if type.isDictionary():
-        raise TypeError("Can't handle dictionaries in unions")
+        raise TypeError("Can't handle dictionaries when failureCode is not None")
 
     if type.isGeckoInterface():
         name = type.inner.identifier.name
@@ -5315,8 +5315,7 @@ class CGDictionary(CGThing):
             "        } else if val.get().is_object() {\n"
             "            val.get().to_object()\n"
             "        } else {\n"
-            "            throw_type_error(cx, \"Value not an object.\");\n"
-            "            return Err(());\n"
+            "            return Ok(ConversionResult::Failure(Cow::Owned(\"Value not an object.\")));\n"
             "        };\n"
             "        rooted!(in(cx) let object = object);\n"
             "        Ok(${selfName} {\n"
