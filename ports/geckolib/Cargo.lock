@@ -34,7 +34,7 @@ dependencies = [
  "heapsize 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "num-traits 0.1.32 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 0.8.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -147,7 +147,7 @@ dependencies = [
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "num-traits 0.1.32 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 0.8.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -171,7 +171,7 @@ dependencies = [
  "heapsize 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "selectors 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 0.8.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -325,7 +325,7 @@ dependencies = [
 
 [[package]]
 name = "serde"
-version = "0.8.1"
+version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -342,7 +342,7 @@ dependencies = [
  "lazy_static 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "phf_generator 0.7.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "phf_shared 0.7.16 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 0.8.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
