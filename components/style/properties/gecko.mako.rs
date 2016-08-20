@@ -47,6 +47,14 @@ pub mod style_structs {
     % endfor
 }
 
+bitflags! {
+    flags ComputedValuesFlags : u8 {
+        const PARENT_INHERITED_STRUCTS = 1,
+        const INITIAL_RESET_STRUCTS = 1 << 1,
+        const SHAREABLE = 1 << 2,
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct ComputedValues {
     % for style_struct in data.style_structs:
@@ -54,7 +62,7 @@ pub struct ComputedValues {
     % endfor
 
     custom_properties: Option<Arc<ComputedValuesMap>>,
-    shareable: bool,
+    flags: ComputedValuesFlags,
     pub writing_mode: WritingMode,
     pub root_font_size: Au,
 }
@@ -63,7 +71,7 @@ impl ComputedValues {
     pub fn inherit_from(parent: &Arc<Self>) -> Arc<Self> {
         Arc::new(ComputedValues {
             custom_properties: parent.custom_properties.clone(),
-            shareable: parent.shareable,
+            flags: parent.flags | PARENT_INHERITED_STRUCTS | INITIAL_RESET_STRUCTS,
             writing_mode: parent.writing_mode,
             root_font_size: parent.root_font_size,
             % for style_struct in data.style_structs:
@@ -77,16 +85,16 @@ impl ComputedValues {
     }
 
     pub fn new(custom_properties: Option<Arc<ComputedValuesMap>>,
-           shareable: bool,
-           writing_mode: WritingMode,
-           root_font_size: Au,
-            % for style_struct in data.style_structs:
-           ${style_struct.ident}: Arc<style_structs::${style_struct.name}>,
-            % endfor
+               shareable: bool,
+               writing_mode: WritingMode,
+               root_font_size: Au,
+               % for style_struct in data.style_structs:
+               ${style_struct.ident}: Arc<style_structs::${style_struct.name}>,
+               % endfor
     ) -> Self {
         ComputedValues {
             custom_properties: custom_properties,
-            shareable: shareable,
+            flags: if shareable { SHAREABLE } else { ComputedValuesFlags::empty() },
             writing_mode: writing_mode,
             root_font_size: root_font_size,
             % for style_struct in data.style_structs:
@@ -116,7 +124,7 @@ impl ComputedValues {
                ${style_struct.ident}: style_structs::${style_struct.name}::initial(),
             % endfor
             custom_properties: None,
-            shareable: true,
+            flags: INITIAL_RESET_STRUCTS | SHAREABLE,
             writing_mode: WritingMode::empty(),
             root_font_size: longhands::font_size::get_initial_value(),
         })));
@@ -144,6 +152,11 @@ impl ComputedValues {
     }
     #[inline]
     pub fn mutate_${style_struct.name_lower}(&mut self) -> &mut style_structs::${style_struct.name} {
+        % if style_struct.inherited:
+            self.flags.remove(PARENT_INHERITED_STRUCTS);
+        % else:
+            self.flags.remove(INITIAL_RESET_STRUCTS);
+        % endif
         Arc::make_mut(&mut self.${style_struct.ident})
     }
     % endfor
@@ -1575,6 +1588,14 @@ fn static_assert() {
         }
     }
 </%self:impl_trait>
+
+#[no_mangle]
+#[allow(non_snake_case)]
+pub extern "C" fn Servo_ComputedValuesMatchNoRules(computed_values: ServoComputedValuesBorrowed) -> bool {
+    ComputedValues::with(computed_values, |values| {
+        values.flags.contains(PARENT_INHERITED_STRUCTS | INITIAL_RESET_STRUCTS)
+    })
+}
 
 <%def name="define_ffi_struct_accessor(style_struct)">
 #[no_mangle]

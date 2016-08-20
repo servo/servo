@@ -501,6 +501,9 @@ extern "C" {
                                           ServoComputedValuesBorrowed);
     pub fn Servo_ReleaseComputedValues(computed_values:
                                            ServoComputedValuesBorrowed);
+    pub fn Servo_ComputedValuesMatchNoRules(computed_values:
+                                                ServoComputedValuesBorrowed)
+     -> bool;
     pub fn Servo_Initialize();
     pub fn Servo_Shutdown();
     pub fn Servo_ComputeRestyleHint(element: *mut RawGeckoElement,
