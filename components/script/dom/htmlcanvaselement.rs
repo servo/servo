@@ -10,6 +10,7 @@ use dom::bindings::codegen::Bindings::HTMLCanvasElementBinding;
 use dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::HTMLCanvasElementMethods;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLContextAttributes;
 use dom::bindings::codegen::UnionTypes::CanvasRenderingContext2DOrWebGLRenderingContext;
+use dom::bindings::conversions::ConversionResult;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
@@ -159,7 +160,8 @@ impl HTMLCanvasElement {
             let size = self.get_size();
 
             let attrs = if let Some(webgl_attributes) = attrs {
-                if let Ok(ref attrs) = unsafe { WebGLContextAttributes::new(cx, webgl_attributes) } {
+                if let Ok(ConversionResult::Success(ref attrs)) = unsafe {
+                    WebGLContextAttributes::new(cx, webgl_attributes) } {
                     From::from(attrs)
                 } else {
                     debug!("Unexpected error on conversion of WebGLContextAttributes");
