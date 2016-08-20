@@ -667,6 +667,52 @@ def check_spec(file_name, lines):
                 brace_count -= 1
 
 
+def check_config_file(config_file, print_text=True):
+    # Check if config file exists
+    if not os.path.exists(config_file):
+        print("%s config file is required but was not found" % config_file)
+        sys.exit(1)
+
+    # Load configs from servo-tidy.toml
+    with open(config_file) as content:
+        conf_file = content.read()
+        lines = conf_file.splitlines(True)
+
+    if print_text:
+        print '\rChecking for config file...'
+
+    current_table = ""
+    for idx, line in enumerate(lines):
+        # Ignore comment lines
+        if line.strip().startswith("#"):
+            continue
+
+        # Check for invalid tables
+        if re.match("\[(.*?)\]", line.strip()):
+            table_name = re.findall(r"\[(.*?)\]", line)[0].strip()
+            if table_name not in ("configs", "ignore"):
+                yield config_file, idx + 1, "invalid config table [%s]" % table_name
+            current_table = table_name
+            continue
+
+        # Skip if there is no equal sign in line, assuming it's not a key
+        if "=" not in line:
+            continue
+
+        key = line.split("=")
+        key = key[0].strip()
+
+        # Check for invalid keys inside [configs] and [ignore] table
+        if (current_table == "configs" and key not in config or
+                current_table == "ignore" and key not in config["ignore"] or
+                # Any key outside of tables
+                current_table == ""):
+            yield config_file, idx + 1, "invalid config key '%s'" % key
+
+    # Parse config file
+    parse_config(conf_file)
+
+
 def parse_config(content):
     config_file = toml.loads(content)
     exclude = config_file.get("ignore", {})
@@ -789,6 +835,8 @@ def get_file_list(directory, only_changed_files=False, exclude_dirs=[]):
 
 
 def scan(only_changed_files=False, progress=True):
+    # check config file for errors
+    config_errors = check_config_file(CONFIG_FILE_PATH, progress)
     # standard checks
     files_to_check = filter_files('.', only_changed_files, progress)
     checking_functions = (check_flake8, check_lock, check_webidl_spec, check_json)
@@ -800,7 +848,7 @@ def scan(only_changed_files=False, progress=True):
     # wpt lint checks
     wpt_lint_errors = check_wpt_lint_errors(get_wpt_files(only_changed_files, progress))
     # collect errors
-    errors = itertools.chain(errors, dep_license_errors, wpt_lint_errors)
+    errors = itertools.chain(config_errors, errors, dep_license_errors, wpt_lint_errors)
     error = None
     for error in errors:
         colorama.init()
