@@ -14,6 +14,7 @@ parser.add_argument("file2", help="the second output json from runner")
 
 args = parser.parse_args()
 
+
 def load_data(filename):
     with open(filename, 'r') as f:
         results = {}
@@ -36,7 +37,7 @@ BLUE = '\033[94m'
 GREEN = '\033[92m'
 WARNING = '\033[93m'
 END = '\033[0m'
-    
+
 for key in keys:
     value1 = data1.get(key)
     value2 = data2.get(key)
@@ -46,6 +47,6 @@ for key in keys:
         print ("{}Test {}: missing from {}.{}".format(WARNING, key, args.file1, END))
     elif value1 and value2:
         diff = value2 - value1
-        change = diff / value1 
+        change = diff / value1
         color = BLUE if value1 <= value2 else GREEN
         print("{}{:6} {:6} {:+6} {:+8.2%}   {}.{}".format(color, value1, value2, diff, change, key, END))
