@@ -72,6 +72,11 @@ impl KeyframeSelector {
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct Keyframe {
     pub selector: KeyframeSelector,
+
+    /// `!important` is not allowed in keyframe declarations,
+    /// so the second value of these tuples is always `Importance::Normal`.
+    /// But including them enables `compute_style_for_animation_step` to create a `DeclarationBlock`
+    /// by cloning an `Arc<_>` (incrementing a reference count) rather than re-creating a `Vec<_>`.
     pub declarations: Arc<Vec<(PropertyDeclaration, Importance)>>,
 }
 
@@ -82,6 +87,7 @@ pub struct Keyframe {
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum KeyframesStepValue {
+    /// See `Keyframe::declarations`’s docs about the presence of `Importance`.
     Declarations(Arc<Vec<(PropertyDeclaration, Importance)>>),
     ComputedValues,
 }

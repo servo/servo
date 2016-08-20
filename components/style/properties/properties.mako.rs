@@ -596,40 +596,74 @@ pub fn parse_property_declaration_list(context: &ParserContext, input: &mut Pars
 }
 
 
-/// Only keep the last declaration for any given property.
+/// Only keep the "winning" declaration for any given property, by importance then source order.
 /// The input and output are in source order
 fn deduplicate_property_declarations(declarations: Vec<(PropertyDeclaration, Importance)>)
                                      -> Vec<(PropertyDeclaration, Importance)> {
-    let mut deduplicated = vec![];
-    let mut seen = PropertyBitField::new();
-    let mut seen_custom = Vec::new();
-    for declaration in declarations.into_iter().rev() {
-        match declaration.0 {
+    let mut deduplicated = Vec::new();
+    let mut seen_normal = PropertyBitField::new();
+    let mut seen_important = PropertyBitField::new();
+    let mut seen_custom_normal = Vec::new();
+    let mut seen_custom_important = Vec::new();
+    for (declaration, importance) in declarations.into_iter().rev() {
+        match declaration {
             % for property in data.longhands:
                 PropertyDeclaration::${property.camel_case}(..) => {
                     % if not property.derived_from:
-                        if seen.get_${property.ident}() {
-                            continue
+                        if importance.important() {
+                            if seen_important.get_${property.ident}() {
+                                continue
+                            }
+                            if seen_normal.get_${property.ident}() {
+                                remove_one(&mut deduplicated, |d| {
+                                    matches!(d, &(PropertyDeclaration::${property.camel_case}(..), _))
+                                })
+                            }
+                            seen_important.set_${property.ident}()
+                        } else {
+                            if seen_normal.get_${property.ident}() ||
+                               seen_important.get_${property.ident}() {
+                                continue
+                            }
+                            seen_normal.set_${property.ident}()
                         }
-                        seen.set_${property.ident}()
                     % else:
                         unreachable!();
                     % endif
                 },
             % endfor
             PropertyDeclaration::Custom(ref name, _) => {
-                if seen_custom.contains(name) {
-                    continue
+                if importance.important() {
+                    if seen_custom_important.contains(name) {
+                        continue
+                    }
+                    if seen_custom_normal.contains(name) {
+                        remove_one(&mut deduplicated, |d| {
+                            matches!(d, &(PropertyDeclaration::Custom(ref n, _), _) if n == name)
+                        })
+                    }
+                    seen_custom_important.push(name.clone())
+                } else {
+                    if seen_custom_normal.contains(name) ||
+                       seen_custom_important.contains(name) {
+                        continue
+                    }
+                    seen_custom_normal.push(name.clone())
                 }
-                seen_custom.push(name.clone())
             }
         }
-        deduplicated.push(declaration)
+        deduplicated.push((declaration, importance))
     }
     deduplicated.reverse();
     deduplicated
 }
 
+#[inline]
+fn remove_one<T, F: FnMut(&T) -> bool>(v: &mut Vec<T>, mut remove_this: F) {
+    let previous_len = v.len();
+    v.retain(|x| !remove_this(x));
+    assert_eq!(v.len(), previous_len - 1);
+}
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum CSSWideKeyword {
