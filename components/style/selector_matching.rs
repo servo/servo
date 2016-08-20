@@ -609,16 +609,16 @@ impl PerPseudoElementSelectorMap {
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct SelectorMap {
     // TODO: Tune the initial capacity of the HashMap
-    id_hash: FnvHashMap<Atom, Vec<Rule>>,
-    class_hash: FnvHashMap<Atom, Vec<Rule>>,
-    local_name_hash: FnvHashMap<Atom, Vec<Rule>>,
+    pub id_hash: FnvHashMap<Atom, Vec<Rule>>,
+    pub class_hash: FnvHashMap<Atom, Vec<Rule>>,
+    pub local_name_hash: FnvHashMap<Atom, Vec<Rule>>,
     /// Same as local_name_hash, but keys are lower-cased.
     /// For HTML elements in HTML documents.
-    lower_local_name_hash: FnvHashMap<Atom, Vec<Rule>>,
+    pub lower_local_name_hash: FnvHashMap<Atom, Vec<Rule>>,
     /// Rules that don't have ID, class, or element selectors.
-    other_rules: Vec<Rule>,
+    pub other_rules: Vec<Rule>,
     /// Whether this hash is empty.
-    empty: bool,
+    pub empty: bool,
 }
 
 #[inline]
@@ -783,7 +783,7 @@ impl SelectorMap {
     }
 
     /// Retrieve the first ID name in Rule, or None otherwise.
-    fn get_id_name(rule: &Rule) -> Option<Atom> {
+    pub fn get_id_name(rule: &Rule) -> Option<Atom> {
         for ss in &rule.selector.compound_selector {
             // TODO(pradeep): Implement case-sensitivity based on the
             // document type and quirks mode.
@@ -796,7 +796,7 @@ impl SelectorMap {
     }
 
     /// Retrieve the FIRST class name in Rule, or None otherwise.
-    fn get_class_name(rule: &Rule) -> Option<Atom> {
+    pub fn get_class_name(rule: &Rule) -> Option<Atom> {
         for ss in &rule.selector.compound_selector {
             // TODO(pradeep): Implement case-sensitivity based on the
             // document type and quirks mode.
@@ -809,7 +809,7 @@ impl SelectorMap {
     }
 
     /// Retrieve the name if it is a type selector, or None otherwise.
-    fn get_local_name(rule: &Rule) -> Option<LocalName<TheSelectorImpl>> {
+    pub fn get_local_name(rule: &Rule) -> Option<LocalName<TheSelectorImpl>> {
         for ss in &rule.selector.compound_selector {
             if let SimpleSelector::LocalName(ref n) = *ss {
                 return Some(LocalName {
