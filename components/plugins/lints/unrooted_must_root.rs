@@ -139,10 +139,8 @@ impl LateLintPass for UnrootedPass {
             }
 
             if !in_new_function {
-                if let ty::FnOutput::FnConverging(ret) = ty.fn_ret().0 {
-                    if is_unrooted_ty(cx, ret, false) {
-                        cx.span_lint(UNROOTED_MUST_ROOT, decl.output.span(), "Type must be rooted")
-                    }
+                if is_unrooted_ty(cx, ty.fn_ret().0, false) {
+                    cx.span_lint(UNROOTED_MUST_ROOT, decl.output.span(), "Type must be rooted")
                 }
             }
         }
