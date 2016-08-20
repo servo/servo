@@ -664,15 +664,8 @@ def check_spec(file_name, lines):
                 brace_count -= 1
 
 
-def check_config_file(config_file, print_text=True):
-    # Load configs from servo-tidy.toml
-    if os.path.exists(config_file):
-        with open(config_file) as content:
-            conf_file = content.read()
-            lines = conf_file.splitlines(True)
-    else:
-        print("%s config file is required but was not found" % config_file)
-        sys.exit(1)
+def check_config_file(content, print_text=True):
+    lines = content.splitlines(True)
 
     if print_text:
         print '\rChecking for config file...'
@@ -687,11 +680,11 @@ def check_config_file(config_file, print_text=True):
         if re.match("\[(.*?)\]", line.strip()):
             table_name = re.findall(r"\[(.*?)\]", line)[0].strip()
             if table_name not in ("configs", "ignore"):
-                yield config_file, idx + 1, "invalid config table [%s]" % table_name
+                yield CONFIG_FILE_PATH, idx + 1, "invalid config table [%s]" % table_name
             current_table = table_name
             continue
 
-        # Skip if there is no equel sign in line, assuming is not a key
+        # Skip if there is no equal sign in line, assuming it's not a key
         if "=" not in line:
             continue
 
@@ -703,11 +696,7 @@ def check_config_file(config_file, print_text=True):
                 current_table == "ignore" and key not in config["ignore"] or
                 # Any key outside of tables
                 current_table == ""):
-            yield config_file, idx + 1, "invalid config key '%s'" % key
-
-    # Skip parsing config file for tests
-    if config_file == CONFIG_FILE_PATH:
-        parse_config(conf_file)
+            yield CONFIG_FILE_PATH, idx + 1, "invalid config key '%s'" % key
 
 
 def parse_config(content):
@@ -719,9 +708,7 @@ def parse_config(content):
     config["ignore"]["files"] += exclude.get("files", [])
     # Add list of ignored packages to config
     config["ignore"]["packages"] = exclude.get("packages", [])
-    # On Windows via cmd are paths with backslashes,
-    # which will break ignore lists matching,
-    # this convert ignore lists paths to use backslashes
+    # Fix the necessary paths if we're in Windows
     if sys.platform == "win32":
         files = []
         for f in config["ignore"]["files"]:
@@ -834,8 +821,17 @@ def get_file_list(directory, only_changed_files=False, exclude_dirs=[]):
 
 
 def scan(only_changed_files=False, progress=True):
+    # check if config file exists
+    if not os.path.exists(CONFIG_FILE_PATH):
+        print("%s config file is required but was not found" % CONFIG_FILE_PATH)
+        sys.exit(1)
+    # load configs from ./servo-tidy.toml
+    with open(CONFIG_FILE_PATH) as content:
+        conf_file = content.read()
     # check config file for errors
-    config_errors = check_config_file(CONFIG_FILE_PATH, progress)
+    config_errors = check_config_file(conf_file, progress)
+    # parse config file
+    parse_config(conf_file)
     # standard checks
     files_to_check = filter_files('.', only_changed_files, progress)
     checking_functions = (check_flake8, check_lock, check_webidl_spec, check_json)
