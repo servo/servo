@@ -479,6 +479,36 @@
             }
         }
 
+        impl<'a> ToCss for LonghandsToSerialize<'a> {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                let mut all_inherit = true;
+                let mut all_initial = true;
+                let mut with_variables = false;
+                % for sub_property in shorthand.sub_properties:
+                    match *self.${sub_property.ident} {
+                        DeclaredValue::Initial => all_inherit = false,
+                        DeclaredValue::Inherit => all_initial = false,
+                        DeclaredValue::WithVariables {..} => with_variables = true,
+                        DeclaredValue::Value(..) => {
+                            all_initial = false;
+                            all_inherit = false;
+                        }
+                    }
+                % endfor
+
+                if with_variables {
+                    // We don't serialize shorthands with variables
+                    dest.write_str("")
+                } else if all_inherit {
+                    dest.write_str("inherit")
+                } else if all_initial {
+                    dest.write_str("initial")
+                } else {
+                    self.to_css_declared(dest)
+                }
+            }
+        }
+
 
         pub fn parse(context: &ParserContext, input: &mut Parser,
                      declarations: &mut Vec<PropertyDeclaration>)
@@ -541,8 +571,8 @@
             })
         }
 
-        impl<'a> ToCss for LonghandsToSerialize<'a>  {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        impl<'a> LonghandsToSerialize<'a> {
+            fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
                 super::serialize_four_sides(
                     dest,
                     self.${to_rust_ident(sub_property_pattern % 'top')},

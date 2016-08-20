@@ -19,8 +19,8 @@
     // Overflow does not behave like a normal shorthand. When overflow-x and overflow-y are not of equal
     // values, they no longer use the shared property name "overflow".
     // Other shorthands do not include their name in the to_css method
-    impl<'a> ToCss for LonghandsToSerialize<'a>  {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    impl<'a> LonghandsToSerialize<'a>  {
+        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             let x_and_y_equal = match (self.overflow_x, self.overflow_y) {
                 (&DeclaredValue::Value(ref x_value), &DeclaredValue::Value(ref y_container)) => {
                     *x_value == y_container.0
@@ -132,8 +132,8 @@ macro_rules! try_parse_one {
         })
     }
 
-    impl<'a> ToCss for LonghandsToSerialize<'a>  {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    impl<'a> LonghandsToSerialize<'a>  {
+        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             try!(self.transition_property.to_css(dest));
             try!(write!(dest, " "));
 
@@ -268,8 +268,8 @@ macro_rules! try_parse_one {
         })
     }
 
-    impl<'a> ToCss for LonghandsToSerialize<'a>  {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    impl<'a> LonghandsToSerialize<'a>  {
+        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             try!(self.animation_duration.to_css(dest));
             try!(write!(dest, " "));
 
