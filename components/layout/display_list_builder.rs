@@ -15,7 +15,7 @@ use azure::azure_hl::Color;
 use block::{BlockFlow, BlockStackingContextType};
 use canvas_traits::{CanvasMsg, CanvasData, FromLayoutMsg};
 use context::LayoutContext;
-use euclid::{Matrix4D, Point2D, Point3D, Rect, SideOffsets2D, Size2D};
+use euclid::{Matrix4D, Point2D, Point3D, Radians, Rect, SideOffsets2D, Size2D};
 use flex::FlexFlow;
 use flow::{BaseFlow, Flow, IS_ABSOLUTELY_POSITIONED};
 use flow_ref;
@@ -1367,7 +1367,7 @@ impl FragmentDisplayListBuilding for Fragment {
                 let matrix = match *operation {
                     transform::ComputedOperation::Rotate(ax, ay, az, theta) => {
                         let theta = 2.0f32 * f32::consts::PI - theta.radians();
-                        Matrix4D::create_rotation(ax, ay, az, theta)
+                        Matrix4D::create_rotation(ax, ay, az, Radians::new(theta))
                     }
                     transform::ComputedOperation::Perspective(d) => {
                         create_perspective_matrix(d)
@@ -1385,14 +1385,15 @@ impl FragmentDisplayListBuilding for Fragment {
                         m.to_gfx_matrix()
                     }
                     transform::ComputedOperation::Skew(theta_x, theta_y) => {
-                        Matrix4D::create_skew(theta_x.radians(), theta_y.radians())
+                        Matrix4D::create_skew(Radians::new(theta_x.radians()),
+                                              Radians::new(theta_y.radians()))
                     }
                 };
 
-                transform = transform.mul(&matrix);
+                transform = transform.pre_mul(&matrix);
             }
 
-            transform = pre_transform.mul(&transform).mul(&post_transform);
+            transform = pre_transform.pre_mul(&transform).pre_mul(&post_transform);
         }
 
         let perspective = match self.style().get_effects().perspective {
@@ -1413,7 +1414,7 @@ impl FragmentDisplayListBuilding for Fragment {
 
                 let perspective_matrix = create_perspective_matrix(d);
 
-                pre_transform.mul(&perspective_matrix).mul(&post_transform)
+                pre_transform.pre_mul(&perspective_matrix).pre_mul(&post_transform)
             }
             LengthOrNone::None => {
                 Matrix4D::identity()

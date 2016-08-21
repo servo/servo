@@ -14,7 +14,7 @@ app_units = "0.3"
 canvas_traits = {path = "../canvas_traits"}
 cookie = {version = "0.2.5", features = ["serialize-rustc"]}
 devtools_traits = {path = "../devtools_traits"}
-euclid = "0.9"
+euclid = "0.10.1"
 gfx_traits = {path = "../gfx_traits"}
 heapsize = "0.3.0"
 heapsize_plugin = "0.1.2"
@@ -24,7 +24,7 @@ layers = {git = "https://github.com/servo/rust-layers", features = ["plugins"]}
 libc = "0.2"
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
-offscreen_gl_context = "0.3"
+offscreen_gl_context = "0.4"
 plugins = {path = "../plugins"}
 profile_traits = {path = "../profile_traits"}
 rustc-serialize = "0.3.4"

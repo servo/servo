@@ -30,7 +30,7 @@ cookie = {version = "0.2.5", features = ["serialize-rustc"]}
 cssparser = {version = "0.5.7", features = ["heap_size", "serde-serialization"]}
 devtools_traits = {path = "../devtools_traits"}
 encoding = "0.2"
-euclid = "0.9"
+euclid = "0.10.1"
 fnv = "1.0"
 gfx_traits = {path = "../gfx_traits"}
 heapsize = "0.3.6"
@@ -48,7 +48,7 @@ mime_guess = "1.8.0"
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
 num-traits = "0.1.32"
-offscreen_gl_context = "0.3"
+offscreen_gl_context = "0.4"
 open = "1.1.1"
 phf = "0.7.16"
 phf_macros = "0.7.16"

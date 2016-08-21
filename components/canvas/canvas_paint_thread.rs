@@ -683,9 +683,10 @@ impl<'a> CanvasPaintThread<'a> {
         let draw_target = self.drawtarget.create_similar_draw_target(&Size2D::new(source_rect.size.width as i32,
                                                                                   source_rect.size.height as i32),
                                                                      self.drawtarget.get_format());
-        let matrix = Matrix2D::identity().translate(-source_rect.origin.x as AzFloat,
-                                                    -source_rect.origin.y as AzFloat)
-                                         .mul(&self.state.transform);
+        let matrix = Matrix2D::identity()
+            .pre_translated(-source_rect.origin.x as AzFloat,
+                            -source_rect.origin.y as AzFloat)
+            .pre_mul(&self.state.transform);
         draw_target.set_transform(&matrix);
         draw_target
     }

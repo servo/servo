@@ -10,7 +10,7 @@ name = "webdriver_server"
 path = "lib.rs"
 
 [dependencies]
-euclid = "0.9"
+euclid = "0.10.1"
 hyper = "0.9.9"
 image = "0.10"
 ipc-channel = "0.5"

@@ -573,7 +573,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
         }
 
         let transform = self.state.borrow().transform;
-        self.state.borrow_mut().transform = transform.scale(x as f32, y as f32);
+        self.state.borrow_mut().transform = transform.pre_scaled(x as f32, y as f32);
         self.update_transform()
     }
 
@@ -585,9 +585,10 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
 
         let (sin, cos) = (angle.sin(), angle.cos());
         let transform = self.state.borrow().transform;
-        self.state.borrow_mut().transform = transform.mul(&Matrix2D::new(cos as f32, sin as f32,
-                                                                         -sin as f32, cos as f32,
-                                                                         0.0, 0.0));
+        self.state.borrow_mut().transform = transform.pre_mul(
+            &Matrix2D::row_major(cos as f32, sin as f32,
+                                 -sin as f32, cos as f32,
+                                 0.0, 0.0));
         self.update_transform()
     }
 
@@ -598,7 +599,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
         }
 
         let transform = self.state.borrow().transform;
-        self.state.borrow_mut().transform = transform.translate(x as f32, y as f32);
+        self.state.borrow_mut().transform = transform.pre_translated(x as f32, y as f32);
         self.update_transform()
     }
 
@@ -610,12 +611,8 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
         }
 
         let transform = self.state.borrow().transform;
-        self.state.borrow_mut().transform = transform.mul(&Matrix2D::new(a as f32,
-                                                                         b as f32,
-                                                                         c as f32,
-                                                                         d as f32,
-                                                                         e as f32,
-                                                                         f as f32));
+        self.state.borrow_mut().transform = transform.pre_mul(
+            &Matrix2D::row_major(a as f32, b as f32, c as f32, d as f32, e as f32, f as f32));
         self.update_transform()
     }
 
@@ -626,12 +623,8 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
             return;
         }
 
-        self.state.borrow_mut().transform = Matrix2D::new(a as f32,
-                                                          b as f32,
-                                                          c as f32,
-                                                          d as f32,
-                                                          e as f32,
-                                                          f as f32);
+        self.state.borrow_mut().transform =
+            Matrix2D::row_major(a as f32, b as f32, c as f32, d as f32, e as f32, f as f32);
         self.update_transform()
     }
 

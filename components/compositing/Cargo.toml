@@ -12,7 +12,7 @@ path = "lib.rs"
 [dependencies]
 app_units = "0.3"
 azure = {git = "https://github.com/servo/rust-azure", features = ["plugins"]}
-euclid = "0.9"
+euclid = "0.10.1"
 gfx_traits = {path = "../gfx_traits"}
 gleam = "0.2.8"
 image = "0.10"
