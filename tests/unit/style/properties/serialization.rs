@@ -5,7 +5,7 @@
 pub use cssparser::ToCss;
 pub use std::sync::Arc;
 pub use style::computed_values::display::T::inline_block;
-pub use style::properties::{DeclaredValue, PropertyDeclaration, PropertyDeclarationBlock};
+pub use style::properties::{DeclaredValue, PropertyDeclaration, PropertyDeclarationBlock, Importance};
 pub use style::values::specified::{BorderStyle, CSSColor, Length};
 pub use style::values::specified::{LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrAutoOrContent};
 pub use style::properties::longhands::outline_color::computed_value::T as ComputedColor;
@@ -18,39 +18,45 @@ fn property_declaration_block_should_serialize_correctly() {
     use style::properties::longhands::overflow_x::computed_value::T as OverflowXValue;
     use style::properties::longhands::overflow_y::computed_value::T as OverflowYContainer;
 
-    let mut normal = Vec::new();
-    let mut important = Vec::new();
+    let declarations = vec![
+        (PropertyDeclaration::Width(
+            DeclaredValue::Value(LengthOrPercentageOrAuto::Length(Length::from_px(70f32)))),
+         Importance::Normal),
 
-    let length = DeclaredValue::Value(LengthOrPercentageOrAuto::Length(Length::from_px(70f32)));
-    normal.push(PropertyDeclaration::Width(length));
+        (PropertyDeclaration::MinHeight(
+            DeclaredValue::Value(LengthOrPercentage::Length(Length::from_px(20f32)))),
+         Importance::Normal),
 
-    let min_height = DeclaredValue::Value(LengthOrPercentage::Length(Length::from_px(20f32)));
-    normal.push(PropertyDeclaration::MinHeight(min_height));
+        (PropertyDeclaration::Height(
+            DeclaredValue::Value(LengthOrPercentageOrAuto::Length(Length::from_px(20f32)))),
+         Importance::Important),
 
-    let value = DeclaredValue::Value(inline_block);
-    normal.push(PropertyDeclaration::Display(value));
+        (PropertyDeclaration::Display(
+            DeclaredValue::Value(inline_block)),
+         Importance::Normal),
 
-    let overflow_x = DeclaredValue::Value(OverflowXValue::auto);
-    normal.push(PropertyDeclaration::OverflowX(overflow_x));
+        (PropertyDeclaration::OverflowX(
+            DeclaredValue::Value(OverflowXValue::auto)),
+         Importance::Normal),
 
-    let overflow_y = DeclaredValue::Value(OverflowYContainer(OverflowXValue::auto));
-    normal.push(PropertyDeclaration::OverflowY(overflow_y));
+        (PropertyDeclaration::OverflowY(
+            DeclaredValue::Value(OverflowYContainer(OverflowXValue::auto))),
+         Importance::Normal),
+    ];
 
-    let height = DeclaredValue::Value(LengthOrPercentageOrAuto::Length(Length::from_px(20f32)));
-    important.push(PropertyDeclaration::Height(height));
-
-    normal.reverse();
-    important.reverse();
     let block = PropertyDeclarationBlock {
-        normal: Arc::new(normal),
-        important: Arc::new(important)
+        declarations: Arc::new(declarations),
+
+        // Incorrect, but not used here:
+        normal_count: 0,
+        important_count: 0,
     };
 
     let css_string = block.to_css_string();
 
     assert_eq!(
         css_string,
-        "width: 70px; min-height: 20px; display: inline-block; overflow: auto; height: 20px !important;"
+        "width: 70px; min-height: 20px; height: 20px !important; display: inline-block; overflow: auto;"
     );
 }
 
@@ -59,8 +65,11 @@ mod shorthand_serialization {
 
     pub fn shorthand_properties_to_string(properties: Vec<PropertyDeclaration>) -> String {
         let block = PropertyDeclarationBlock {
-            normal: Arc::new(properties),
-            important: Arc::new(Vec::new())
+            declarations: Arc::new(properties.into_iter().map(|d| (d, Importance::Normal)).collect()),
+
+            // Incorrect, but not used here:
+            normal_count: 0,
+            important_count: 0,
         };
 
         block.to_css_string()

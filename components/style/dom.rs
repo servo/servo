@@ -9,11 +9,11 @@
 use context::SharedStyleContext;
 use data::PrivateStyleData;
 use element_state::ElementState;
-use properties::{ComputedValues, PropertyDeclaration, PropertyDeclarationBlock};
+use properties::{ComputedValues, PropertyDeclarationBlock};
 use refcell::{Ref, RefMut};
 use restyle_hints::{RESTYLE_DESCENDANTS, RESTYLE_LATER_SIBLINGS, RESTYLE_SELF, RestyleHint};
 use selector_impl::{ElementExt, PseudoElement};
-use selectors::matching::DeclarationBlock;
+use selector_matching::DeclarationBlock;
 use sink::Push;
 use std::fmt::Debug;
 use std::ops::BitOr;
@@ -198,10 +198,10 @@ pub trait TDocument : Sized + Copy + Clone {
 
 pub trait PresentationalHintsSynthetizer {
     fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, hints: &mut V)
-        where V: Push<DeclarationBlock<Vec<PropertyDeclaration>>>;
+        where V: Push<DeclarationBlock>;
 }
 
-pub trait TElement : PartialEq + Sized + Copy + Clone + ElementExt + PresentationalHintsSynthetizer {
+pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + PresentationalHintsSynthetizer {
     type ConcreteNode: TNode<ConcreteElement = Self, ConcreteDocument = Self::ConcreteDocument>;
     type ConcreteDocument: TDocument<ConcreteNode = Self::ConcreteNode, ConcreteElement = Self>;
 

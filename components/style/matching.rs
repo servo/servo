@@ -14,7 +14,7 @@ use context::{StyleContext, SharedStyleContext};
 use data::PrivateStyleData;
 use dom::{TElement, TNode, TRestyleDamage, UnsafeNode};
 use properties::longhands::display::computed_value as display;
-use properties::{ComputedValues, PropertyDeclaration, cascade};
+use properties::{ComputedValues, cascade};
 use selector_impl::{TheSelectorImpl, PseudoElement};
 use selector_matching::{DeclarationBlock, Stylist};
 use selectors::bloom::BloomFilter;
@@ -118,15 +118,11 @@ impl<'a> ApplicableDeclarationsCacheQuery<'a> {
 
 impl<'a> PartialEq for ApplicableDeclarationsCacheQuery<'a> {
     fn eq(&self, other: &ApplicableDeclarationsCacheQuery<'a>) -> bool {
-        if self.declarations.len() != other.declarations.len() {
-            return false
-        }
-        for (this, other) in self.declarations.iter().zip(other.declarations) {
-            if !arc_ptr_eq(&this.declarations, &other.declarations) {
-                return false
-            }
-        }
-        true
+        self.declarations.len() == other.declarations.len() &&
+        self.declarations.iter().zip(other.declarations).all(|(this, other)| {
+            arc_ptr_eq(&this.mixed_declarations, &other.mixed_declarations) &&
+            this.importance == other.importance
+        })
     }
 }
 impl<'a> Eq for ApplicableDeclarationsCacheQuery<'a> {}
@@ -143,8 +139,9 @@ impl<'a> Hash for ApplicableDeclarationsCacheQuery<'a> {
         for declaration in self.declarations {
             // Each declaration contians an Arc, which is a stable
             // pointer; we use that for hashing and equality.
-            let ptr = &*declaration.declarations as *const Vec<PropertyDeclaration>;
+            let ptr: *const Vec<_> = &*declaration.mixed_declarations;
             ptr.hash(state);
+            declaration.importance.hash(state);
         }
     }
 }

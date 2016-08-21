@@ -13,6 +13,8 @@ use style::error_reporting::ParseErrorReporter;
 use style::keyframes::{Keyframe, KeyframeSelector, KeyframePercentage};
 use style::parser::ParserContextExtraData;
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, DeclaredValue, longhands};
+use style::properties::Importance;
+use style::properties::longhands::animation_play_state;
 use style::stylesheets::{Stylesheet, CSSRule, StyleRule, KeyframesRule, Origin};
 use style::values::specified::{LengthOrPercentageOrAuto, Percentage};
 use url::Url;
@@ -22,17 +24,42 @@ fn test_parse_stylesheet() {
     let css = r"
         @namespace url(http://www.w3.org/1999/xhtml);
         /* FIXME: only if scripting is enabled */
-        input[type=hidden i] { display: none !important; }
-        html , body /**/ { display: block; }
+        input[type=hidden i] {
+            display: block !important;
+            display: none !important;
+            display: inline;
+            --a: b !important;
+            --a: inherit !important;
+            --a: c;
+        }
+        html , body /**/ {
+            display: none;
+            display: block;
+        }
         #d1 > .ok { background: blue; }
         @keyframes foo {
             from { width: 0% }
-            to { width: 100%}
+            to {
+                width: 100%;
+                width: 50% !important; /* !important not allowed here */
+                animation-name: 'foo'; /* animation properties not allowed here */
+                animation-play-state: running; /* … except animation-play-state */
+            }
         }";
     let url = Url::parse("about::test").unwrap();
     let stylesheet = Stylesheet::from_str(css, url, Origin::UserAgent,
                                           Box::new(CSSErrorReporterTest),
                                           ParserContextExtraData::default());
+    macro_rules! assert_eq {
+        ($left: expr, $right: expr) => {
+            let left = $left;
+            let right = $right;
+            if left != right {
+                panic!("{:#?} != {:#?}", left, right)
+            }
+        }
+    }
+
     assert_eq!(stylesheet, Stylesheet {
         origin: Origin::UserAgent,
         media: None,
@@ -71,11 +98,15 @@ fn test_parse_stylesheet() {
                     },
                 ],
                 declarations: PropertyDeclarationBlock {
-                    normal: Arc::new(vec![]),
-                    important: Arc::new(vec![
-                        PropertyDeclaration::Display(DeclaredValue::Value(
+                    declarations: Arc::new(vec![
+                        (PropertyDeclaration::Display(DeclaredValue::Value(
                             longhands::display::SpecifiedValue::none)),
+                         Importance::Important),
+                        (PropertyDeclaration::Custom(Atom::from("a"), DeclaredValue::Inherit),
+                         Importance::Important),
                     ]),
+                    normal_count: 0,
+                    important_count: 2,
                 },
             }),
             CSSRule::Style(StyleRule {
@@ -116,11 +147,13 @@ fn test_parse_stylesheet() {
                     },
                 ],
                 declarations: PropertyDeclarationBlock {
-                    normal: Arc::new(vec![
-                        PropertyDeclaration::Display(DeclaredValue::Value(
+                    declarations: Arc::new(vec![
+                        (PropertyDeclaration::Display(DeclaredValue::Value(
                             longhands::display::SpecifiedValue::block)),
+                         Importance::Normal),
                     ]),
-                    important: Arc::new(vec![]),
+                    normal_count: 1,
+                    important_count: 0,
                 },
             }),
             CSSRule::Style(StyleRule {
@@ -150,24 +183,33 @@ fn test_parse_stylesheet() {
                     },
                 ],
                 declarations: PropertyDeclarationBlock {
-                    normal: Arc::new(vec![
-                        PropertyDeclaration::BackgroundClip(DeclaredValue::Initial),
-                        PropertyDeclaration::BackgroundOrigin(DeclaredValue::Initial),
-                        PropertyDeclaration::BackgroundSize(DeclaredValue::Initial),
-                        PropertyDeclaration::BackgroundImage(DeclaredValue::Initial),
-                        PropertyDeclaration::BackgroundAttachment(DeclaredValue::Initial),
-                        PropertyDeclaration::BackgroundRepeat(DeclaredValue::Initial),
-                        PropertyDeclaration::BackgroundPosition(DeclaredValue::Initial),
-                        PropertyDeclaration::BackgroundColor(DeclaredValue::Value(
+                    declarations: Arc::new(vec![
+                        (PropertyDeclaration::BackgroundColor(DeclaredValue::Value(
                             longhands::background_color::SpecifiedValue {
                                 authored: Some("blue".to_owned()),
                                 parsed: cssparser::Color::RGBA(cssparser::RGBA {
                                     red: 0., green: 0., blue: 1., alpha: 1.
                                 }),
                             }
-                        )),
+                         )),
+                         Importance::Normal),
+                        (PropertyDeclaration::BackgroundPosition(DeclaredValue::Initial),
+                         Importance::Normal),
+                        (PropertyDeclaration::BackgroundRepeat(DeclaredValue::Initial),
+                         Importance::Normal),
+                        (PropertyDeclaration::BackgroundAttachment(DeclaredValue::Initial),
+                         Importance::Normal),
+                        (PropertyDeclaration::BackgroundImage(DeclaredValue::Initial),
+                         Importance::Normal),
+                        (PropertyDeclaration::BackgroundSize(DeclaredValue::Initial),
+                         Importance::Normal),
+                        (PropertyDeclaration::BackgroundOrigin(DeclaredValue::Initial),
+                         Importance::Normal),
+                        (PropertyDeclaration::BackgroundClip(DeclaredValue::Initial),
+                         Importance::Normal),
                     ]),
-                    important: Arc::new(vec![]),
+                    normal_count: 8,
+                    important_count: 0,
                 },
             }),
             CSSRule::Keyframes(KeyframesRule {
@@ -177,16 +219,22 @@ fn test_parse_stylesheet() {
                         selector: KeyframeSelector::new_for_unit_testing(
                                       vec![KeyframePercentage::new(0.)]),
                         declarations: Arc::new(vec![
-                            PropertyDeclaration::Width(DeclaredValue::Value(
+                            (PropertyDeclaration::Width(DeclaredValue::Value(
                                 LengthOrPercentageOrAuto::Percentage(Percentage(0.)))),
+                             Importance::Normal),
                         ]),
                     },
                     Keyframe {
                         selector: KeyframeSelector::new_for_unit_testing(
                                       vec![KeyframePercentage::new(1.)]),
                         declarations: Arc::new(vec![
-                            PropertyDeclaration::Width(DeclaredValue::Value(
+                            (PropertyDeclaration::Width(DeclaredValue::Value(
                                 LengthOrPercentageOrAuto::Percentage(Percentage(1.)))),
+                             Importance::Normal),
+                            (PropertyDeclaration::AnimationPlayState(DeclaredValue::Value(
+                                animation_play_state::SpecifiedValue(
+                                    vec![animation_play_state::SingleSpecifiedValue::running]))),
+                             Importance::Normal),
                         ]),
                     },
                 ]

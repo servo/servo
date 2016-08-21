@@ -30,10 +30,10 @@ use gecko_string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
 use glue::GeckoDeclarationBlock;
 use libc::uintptr_t;
 use selectors::Element;
-use selectors::matching::DeclarationBlock;
 use selectors::parser::{AttrSelector, NamespaceConstraint};
 use snapshot::GeckoElementSnapshot;
 use snapshot_helpers;
+use std::fmt;
 use std::marker::PhantomData;
 use std::ops::BitOr;
 use std::ptr;
@@ -45,10 +45,11 @@ use style::element_state::ElementState;
 use style::error_reporting::StdoutErrorReporter;
 use style::gecko_selector_impl::{GeckoSelectorImpl, NonTSPseudoClass, PseudoElement};
 use style::parser::ParserContextExtraData;
+use style::properties::PropertyDeclarationBlock;
 use style::properties::{ComputedValues, parse_style_attribute};
-use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use style::refcell::{Ref, RefCell, RefMut};
 use style::selector_impl::ElementExt;
+use style::selector_matching::DeclarationBlock;
 use style::sink::Push;
 use url::Url;
 
@@ -382,6 +383,16 @@ pub struct GeckoElement<'le> {
     chain: PhantomData<&'le ()>,
 }
 
+impl<'le> fmt::Debug for GeckoElement<'le> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        try!(write!(f, "<{}", self.get_local_name()));
+        if let Some(id) = self.get_id() {
+            try!(write!(f, " id={}", id));
+        }
+        write!(f, ">")
+    }
+}
+
 impl<'le> GeckoElement<'le> {
     pub unsafe fn from_raw(el: *mut RawGeckoElement) -> GeckoElement<'le> {
         GeckoElement {
@@ -462,7 +473,7 @@ impl<'le> PartialEq for GeckoElement<'le> {
 
 impl<'le> PresentationalHintsSynthetizer for GeckoElement<'le> {
     fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, _hints: &mut V)
-        where V: Push<DeclarationBlock<Vec<PropertyDeclaration>>>
+        where V: Push<DeclarationBlock>
     {
         // FIXME(bholley) - Need to implement this.
     }

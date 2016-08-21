@@ -23,6 +23,7 @@ mod logical_geometry;
 mod media_queries;
 mod parsing;
 mod properties;
+mod selector_matching;
 mod str;
 mod stylesheets;
 mod value;

@@ -65,7 +65,8 @@ class Keyword(object):
 class Longhand(object):
     def __init__(self, style_struct, name, animatable=None, derived_from=None, keyword=None,
                  predefined_type=None, custom_cascade=False, experimental=False, internal=False,
-                 need_clone=False, need_index=False, gecko_ffi_name=None, depend_on_viewport_size=False):
+                 need_clone=False, need_index=False, gecko_ffi_name=None, depend_on_viewport_size=False,
+                 allowed_in_keyframe_block=True):
         self.name = name
         self.keyword = keyword
         self.predefined_type = predefined_type
@@ -79,6 +80,13 @@ class Longhand(object):
         self.gecko_ffi_name = gecko_ffi_name or "m" + self.camel_case
         self.depend_on_viewport_size = depend_on_viewport_size
         self.derived_from = (derived_from or "").split()
+
+        # https://drafts.csswg.org/css-animations/#keyframes
+        # > The <declaration-list> inside of <keyframe-block> accepts any CSS property
+        # > except those defined in this specification,
+        # > but does accept the `animation-play-state` property and interprets it specially.
+        self.allowed_in_keyframe_block = allowed_in_keyframe_block \
+            and allowed_in_keyframe_block != "False"
 
         # This is done like this since just a plain bool argument seemed like
         # really random.
@@ -98,7 +106,8 @@ class Longhand(object):
 
 
 class Shorthand(object):
-    def __init__(self, name, sub_properties, experimental=False, internal=False):
+    def __init__(self, name, sub_properties, experimental=False, internal=False,
+                 allowed_in_keyframe_block=True):
         self.name = name
         self.ident = to_rust_ident(name)
         self.camel_case = to_camel_case(self.ident)
@@ -106,6 +115,13 @@ class Shorthand(object):
         self.experimental = ("layout.%s.enabled" % name) if experimental else None
         self.sub_properties = sub_properties
         self.internal = internal
+
+        # https://drafts.csswg.org/css-animations/#keyframes
+        # > The <declaration-list> inside of <keyframe-block> accepts any CSS property
+        # > except those defined in this specification,
+        # > but does accept the `animation-play-state` property and interprets it specially.
+        self.allowed_in_keyframe_block = allowed_in_keyframe_block \
+            and allowed_in_keyframe_block != "False"
 
 
 class Method(object):
@@ -169,15 +185,15 @@ class PropertiesData(object):
         if self.product not in products:
             return
 
-        longand = Longhand(self.current_style_struct, name, **kwargs)
-        self.current_style_struct.longhands.append(longand)
-        self.longhands.append(longand)
-        self.longhands_by_name[name] = longand
+        longhand = Longhand(self.current_style_struct, name, **kwargs)
+        self.current_style_struct.longhands.append(longhand)
+        self.longhands.append(longhand)
+        self.longhands_by_name[name] = longhand
 
-        for name in longand.derived_from:
-            self.derived_longhands.setdefault(name, []).append(longand)
+        for name in longhand.derived_from:
+            self.derived_longhands.setdefault(name, []).append(longhand)
 
-        return longand
+        return longhand
 
     def declare_shorthand(self, name, sub_properties, products="gecko servo", *args, **kwargs):
         products = products.split()

@@ -47,8 +47,9 @@ use script_layout_interface::wrapper_traits::{DangerousThreadSafeLayoutNode, Lay
 use script_layout_interface::wrapper_traits::{ThreadSafeLayoutNode, ThreadSafeLayoutElement};
 use script_layout_interface::{HTMLCanvasData, LayoutNodeType, TrustedNodeAddress};
 use script_layout_interface::{OpaqueStyleAndLayoutData, PartialStyleAndLayoutData};
-use selectors::matching::{DeclarationBlock, ElementFlags};
+use selectors::matching::ElementFlags;
 use selectors::parser::{AttrSelector, NamespaceConstraint};
+use std::fmt;
 use std::marker::PhantomData;
 use std::mem::{transmute, transmute_copy};
 use std::sync::Arc;
@@ -59,9 +60,10 @@ use style::context::SharedStyleContext;
 use style::data::PrivateStyleData;
 use style::dom::{PresentationalHintsSynthetizer, OpaqueNode, TDocument, TElement, TNode, UnsafeNode};
 use style::element_state::*;
-use style::properties::{ComputedValues, PropertyDeclaration, PropertyDeclarationBlock};
+use style::properties::{ComputedValues, PropertyDeclarationBlock};
 use style::refcell::{Ref, RefCell, RefMut};
 use style::selector_impl::{ElementSnapshot, NonTSPseudoClass, PseudoElement, ServoSelectorImpl};
+use style::selector_matching::DeclarationBlock;
 use style::sink::Push;
 use style::str::is_whitespace;
 use url::Url;
@@ -405,9 +407,19 @@ pub struct ServoLayoutElement<'le> {
     chain: PhantomData<&'le ()>,
 }
 
+impl<'le> fmt::Debug for ServoLayoutElement<'le> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        try!(write!(f, "<{}", self.element.local_name()));
+        if let &Some(ref id) = unsafe { &*self.element.id_attribute() } {
+            try!(write!(f, " id={}", id));
+        }
+        write!(f, ">")
+    }
+}
+
 impl<'le> PresentationalHintsSynthetizer for ServoLayoutElement<'le> {
     fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, hints: &mut V)
-        where V: Push<DeclarationBlock<Vec<PropertyDeclaration>>>
+        where V: Push<DeclarationBlock>
     {
         unsafe {
             self.element.synthesize_presentational_hints_for_legacy_attributes(hints);
@@ -926,7 +938,7 @@ impl<ConcreteNode> Iterator for ThreadSafeLayoutNodeChildrenIterator<ConcreteNod
 
 /// A wrapper around elements that ensures layout can only
 /// ever access safe properties and cannot race on elements.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct ServoThreadSafeLayoutElement<'le> {
     element: &'le Element,
 }
@@ -1059,5 +1071,5 @@ impl<'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
 
 impl<'le> PresentationalHintsSynthetizer for ServoThreadSafeLayoutElement<'le> {
     fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, _hints: &mut V)
-        where V: Push<DeclarationBlock<Vec<PropertyDeclaration>>> {}
+        where V: Push<DeclarationBlock> {}
 }
