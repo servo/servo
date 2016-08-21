@@ -762,12 +762,21 @@ impl Element {
         fn remove(element: &Element, property: &str) {
             let mut inline_declarations = element.style_attribute.borrow_mut();
             if let &mut Some(ref mut declarations) = &mut *inline_declarations {
-                let index = declarations.declarations
-                                        .iter()
-                                        .position(|&(ref decl, _)| decl.matches(property));
+                let mut importance = None;
+                let index = declarations.declarations.iter().position(|&(ref decl, i)| {
+                    let matching = decl.matches(property);
+                    if matching {
+                        importance = Some(i)
+                    }
+                    matching
+                });
                 if let Some(index) = index {
                     Arc::make_mut(&mut declarations.declarations).remove(index);
-                    declarations.recalc_any();
+                    if importance.unwrap().important() {
+                        declarations.important_count -= 1;
+                    } else {
+                        declarations.normal_count -= 1;
+                    }
                 }
             }
         }
@@ -791,21 +800,42 @@ impl Element {
                     'outer: for incoming_declaration in declarations {
                         for existing_declaration in &mut *existing_declarations {
                             if existing_declaration.0.name() == incoming_declaration.name() {
+                                match (existing_declaration.1, importance) {
+                                    (Importance::Normal, Importance::Important) => {
+                                        declaration_block.normal_count -= 1;
+                                        declaration_block.important_count += 1;
+                                    }
+                                    (Importance::Important, Importance::Normal) => {
+                                        declaration_block.normal_count += 1;
+                                        declaration_block.important_count -= 1;
+                                    }
+                                    _ => {}
+                                }
                                 *existing_declaration = (incoming_declaration, importance);
                                 continue 'outer;
                             }
                         }
                         existing_declarations.push((incoming_declaration, importance));
+                        if importance.important() {
+                            declaration_block.important_count += 1;
+                        } else {
+                            declaration_block.normal_count += 1;
+                        }
                     }
                 }
-                declaration_block.recalc_any();
                 return;
             }
 
+            let (normal_count, important_count) = if importance.important() {
+                (0, declarations.len() as u32)
+            } else {
+                (declarations.len() as u32, 0)
+            };
+
             *inline_declarations = Some(PropertyDeclarationBlock {
                 declarations: Arc::new(declarations.into_iter().map(|d| (d, importance)).collect()),
-                any_important: importance.important(),
-                any_normal: !importance.important(),
+                normal_count: normal_count,
+                important_count: important_count,
             });
         }
 
@@ -818,13 +848,24 @@ impl Element {
                                               new_importance: Importance) {
         {
             let mut inline_declarations = self.style_attribute().borrow_mut();
-            if let &mut Some(ref mut declarations) = &mut *inline_declarations {
+            if let &mut Some(ref mut block) = &mut *inline_declarations {
                 // Usually, the reference counts of `from` and `to` will be 1 here. But transitions
                 // could make them greater than that.
-                let declarations = Arc::make_mut(&mut declarations.declarations);
+                let declarations = Arc::make_mut(&mut block.declarations);
                 for &mut (ref declaration, ref mut importance) in declarations {
                     if properties.iter().any(|p| declaration.name() == **p) {
-                        *importance = new_importance
+                        match (*importance, new_importance) {
+                            (Importance::Normal, Importance::Important) => {
+                                block.normal_count -= 1;
+                                block.important_count += 1;
+                            }
+                            (Importance::Important, Importance::Normal) => {
+                                block.normal_count += 1;
+                                block.important_count -= 1;
+                            }
+                            _ => {}
+                        }
+                        *importance = new_importance;
                     }
                 }
             }

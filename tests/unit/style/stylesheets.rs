@@ -24,8 +24,18 @@ fn test_parse_stylesheet() {
     let css = r"
         @namespace url(http://www.w3.org/1999/xhtml);
         /* FIXME: only if scripting is enabled */
-        input[type=hidden i] { display: none !important; }
-        html , body /**/ { display: block; }
+        input[type=hidden i] {
+            display: block !important;
+            display: none !important;
+            display: inline;
+            --a: b !important;
+            --a: inherit !important;
+            --a: c;
+        }
+        html , body /**/ {
+            display: none;
+            display: block;
+        }
         #d1 > .ok { background: blue; }
         @keyframes foo {
             from { width: 0% }
@@ -92,9 +102,11 @@ fn test_parse_stylesheet() {
                         (PropertyDeclaration::Display(DeclaredValue::Value(
                             longhands::display::SpecifiedValue::none)),
                          Importance::Important),
+                        (PropertyDeclaration::Custom(Atom::from("a"), DeclaredValue::Inherit),
+                         Importance::Important),
                     ]),
-                    any_normal: false,
-                    any_important: true,
+                    normal_count: 0,
+                    important_count: 2,
                 },
             }),
             CSSRule::Style(StyleRule {
@@ -140,8 +152,8 @@ fn test_parse_stylesheet() {
                             longhands::display::SpecifiedValue::block)),
                          Importance::Normal),
                     ]),
-                    any_normal: true,
-                    any_important: false,
+                    normal_count: 1,
+                    important_count: 0,
                 },
             }),
             CSSRule::Style(StyleRule {
@@ -196,8 +208,8 @@ fn test_parse_stylesheet() {
                         (PropertyDeclaration::BackgroundClip(DeclaredValue::Initial),
                          Importance::Normal),
                     ]),
-                    any_normal: true,
-                    any_important: false,
+                    normal_count: 8,
+                    important_count: 0,
                 },
             }),
             CSSRule::Keyframes(KeyframesRule {
