@@ -1314,7 +1314,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                -> Box<StackingContext> {
         let use_webrender = opts::get().use_webrender;
         let border_box = match mode {
-            StackingContextCreationMode::InnerScrollWrapper if !use_webrender => {
+            StackingContextCreationMode::InnerScrollWrapper => {
                 Rect::new(Point2D::zero(), base_flow.overflow.scroll.size)
             }
             _ => {
