@@ -75,6 +75,8 @@ pub struct Pipeline {
     /// Frame that contains this Pipeline. Can be `None` if the pipeline is not apart of the
     /// frame tree.
     pub frame: Option<FrameId>,
+    /// Whether this pipeline has matured or not.
+    pub is_pending: bool,
 }
 
 /// Initial setup data needed to construct a pipeline.
@@ -298,6 +300,7 @@ impl Pipeline {
             visible: visible,
             is_private: is_private,
             frame: None,
+            is_pending: true,
         }
     }
 

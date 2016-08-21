@@ -1617,7 +1617,13 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     fn handle_get_pipeline_title_msg(&mut self, pipeline_id: PipelineId) {
         let result = match self.pipelines.get(&pipeline_id) {
             None => return self.compositor_proxy.send(ToCompositorMsg::ChangePageTitle(pipeline_id, None)),
-            Some(pipeline) => pipeline.script_chan.send(ConstellationControlMsg::GetTitle(pipeline_id)),
+            Some(pipeline) => {
+                if !pipeline.is_pending {
+                    pipeline.script_chan.send(ConstellationControlMsg::GetTitle(pipeline_id))
+                } else {
+                    return warn!("Tried to get title for pending pipeline: {:?}", pipeline_id);
+                }
+            },
         };
         if let Err(e) = result {
             self.handle_send_error(pipeline_id, e);
@@ -1831,6 +1837,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             if frame.current.pipeline_id == pipeline_id {
                 is_current = true;
             }
+        }
+        if let Some(pipeline) = self.pipelines.get_mut(&pipeline_id) {
+            pipeline.is_pending = false;
         }
         // If the pending pipeline is in the current state, this means that a traversal has not
         // occurred and we should focus the new pipeline if needed, fire location change events,
