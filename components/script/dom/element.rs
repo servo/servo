@@ -774,8 +774,6 @@ impl Element {
                     Arc::make_mut(&mut declarations.declarations).remove(index);
                     if importance.unwrap().important() {
                         declarations.important_count -= 1;
-                    } else {
-                        declarations.normal_count -= 1;
                     }
                 }
             }
@@ -802,11 +800,9 @@ impl Element {
                             if existing_declaration.0.name() == incoming_declaration.name() {
                                 match (existing_declaration.1, importance) {
                                     (Importance::Normal, Importance::Important) => {
-                                        declaration_block.normal_count -= 1;
                                         declaration_block.important_count += 1;
                                     }
                                     (Importance::Important, Importance::Normal) => {
-                                        declaration_block.normal_count += 1;
                                         declaration_block.important_count -= 1;
                                     }
                                     _ => {}
@@ -818,23 +814,20 @@ impl Element {
                         existing_declarations.push((incoming_declaration, importance));
                         if importance.important() {
                             declaration_block.important_count += 1;
-                        } else {
-                            declaration_block.normal_count += 1;
                         }
                     }
                 }
                 return;
             }
 
-            let (normal_count, important_count) = if importance.important() {
-                (0, declarations.len() as u32)
+            let important_count = if importance.important() {
+                declarations.len() as u32
             } else {
-                (declarations.len() as u32, 0)
+                0
             };
 
             *inline_declarations = Some(PropertyDeclarationBlock {
                 declarations: Arc::new(declarations.into_iter().map(|d| (d, importance)).collect()),
-                normal_count: normal_count,
                 important_count: important_count,
             });
         }
@@ -856,11 +849,9 @@ impl Element {
                     if properties.iter().any(|p| declaration.name() == **p) {
                         match (*importance, new_importance) {
                             (Importance::Normal, Importance::Important) => {
-                                block.normal_count -= 1;
                                 block.important_count += 1;
                             }
                             (Importance::Important, Importance::Normal) => {
-                                block.normal_count += 1;
                                 block.important_count -= 1;
                             }
                             _ => {}
