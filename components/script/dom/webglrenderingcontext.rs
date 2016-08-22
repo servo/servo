@@ -1165,10 +1165,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
     fn DrawElements(&self, mode: u32, count: i32, type_: u32, offset: i64) {
+        // From the GLES 2.0.25 spec, page 21:
+        //
+        //     "type must be one of UNSIGNED_BYTE or UNSIGNED_SHORT"
         let type_size = match type_ {
-            constants::BYTE | constants::UNSIGNED_BYTE => 1,
-            constants::SHORT | constants::UNSIGNED_SHORT => 2,
-            constants::INT | constants::UNSIGNED_INT | constants::FLOAT => 4,
+            constants::UNSIGNED_BYTE => 1,
+            constants::UNSIGNED_SHORT => 2,
             _ => return self.webgl_error(InvalidEnum),
         };
 
