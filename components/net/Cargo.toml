@@ -39,7 +39,7 @@ time = "0.1.17"
 unicase = "1.4.0"
 url = {version = "1.2", features = ["heap_size", "rustc-serialize"]}
 util = {path = "../util"}
-uuid = {version = "0.3", features = ["v4"]}
+uuid = {version = "0.3.1", features = ["v4"]}
 websocket = "0.17"
 
 [dependencies.webrender_traits]

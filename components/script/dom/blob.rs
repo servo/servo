@@ -15,7 +15,7 @@ use encoding::all::UTF_8;
 use encoding::types::{EncoderTrap, Encoding};
 use ipc_channel::ipc;
 use net_traits::blob_url_store::{BlobBuf, get_blob_origin};
-use net_traits::filemanager_thread::{FileManagerThreadMsg, SelectedFileId, RelativePos, ReadFileProgress};
+use net_traits::filemanager_thread::{FileManagerThreadMsg, RelativePos, ReadFileProgress};
 use net_traits::{CoreResourceMsg, IpcSend};
 use std::cell::Cell;
 use std::mem;
@@ -26,7 +26,7 @@ use uuid::Uuid;
 /// File-based blob
 #[derive(JSTraceable)]
 pub struct FileBlob {
-    id: SelectedFileId,
+    id: Uuid,
     name: Option<PathBuf>,
     cache: DOMRefCell<Option<Vec<u8>>>,
     size: u64,
@@ -56,7 +56,7 @@ impl BlobImpl {
     }
 
     /// Construct file-backed BlobImpl from File ID
-    pub fn new_from_file(file_id: SelectedFileId, name: PathBuf, size: u64) -> BlobImpl {
+    pub fn new_from_file(file_id: Uuid, name: PathBuf, size: u64) -> BlobImpl {
         BlobImpl::File(FileBlob {
             id: file_id,
             name: Some(name),
@@ -167,7 +167,7 @@ impl Blob {
 
     /// Get a FileID representing the Blob content,
     /// used by URL.createObjectURL
-    pub fn get_blob_url_id(&self) -> SelectedFileId {
+    pub fn get_blob_url_id(&self) -> Uuid {
         let opt_sliced_parent = match *self.blob_impl.borrow() {
             BlobImpl::Sliced(ref parent, ref rel_pos) => {
                 Some((parent.promote(/* set_valid is */ false), rel_pos.clone(), parent.Size()))
@@ -186,14 +186,14 @@ impl Blob {
     /// 2. File-based: If set_valid, then activate the FileID so it can serve as URL
     /// Depending on set_valid, the returned FileID can be part of
     /// valid or invalid Blob URL.
-    fn promote(&self, set_valid: bool) -> SelectedFileId {
+    fn promote(&self, set_valid: bool) -> Uuid {
         let mut bytes = vec![];
 
         match *self.blob_impl.borrow_mut() {
             BlobImpl::Sliced(_, _) => {
                 debug!("Sliced can't have a sliced parent");
                 // Return dummy id
-                return SelectedFileId(Uuid::new_v4().simple().to_string());
+                return Uuid::new_v4();
             }
             BlobImpl::File(ref f) => {
                 if set_valid {
@@ -207,7 +207,7 @@ impl Blob {
                     match rx.recv().unwrap() {
                         Ok(_) => return f.id.clone(),
                         // Return a dummy id on error
-                        Err(_) => return SelectedFileId(Uuid::new_v4().simple().to_string())
+                        Err(_) => return Uuid::new_v4(),
                     }
                 } else {
                     // no need to activate
@@ -233,7 +233,6 @@ impl Blob {
 
         match rx.recv().unwrap() {
             Ok(id) => {
-                let id = SelectedFileId(id.0);
                 *self.blob_impl.borrow_mut() = BlobImpl::File(FileBlob {
                     id: id.clone(),
                     name: None,
@@ -243,13 +242,13 @@ impl Blob {
                 id
             }
             // Dummy id
-            Err(_) => SelectedFileId(Uuid::new_v4().simple().to_string()),
+            Err(_) => Uuid::new_v4(),
         }
     }
 
     /// Get a FileID representing sliced parent-blob content
-    fn create_sliced_url_id(&self, parent_id: &SelectedFileId,
-                            rel_pos: &RelativePos, parent_len: u64) -> SelectedFileId {
+    fn create_sliced_url_id(&self, parent_id: &Uuid,
+                            rel_pos: &RelativePos, parent_len: u64) -> Uuid {
         let global = self.global();
 
         let origin = get_blob_origin(&global.r().get_url());
@@ -261,8 +260,6 @@ impl Blob {
         self.send_to_file_manager(msg);
         match rx.recv().expect("File manager thread is down") {
             Ok(new_id) => {
-                let new_id = SelectedFileId(new_id.0);
-
                 *self.blob_impl.borrow_mut() = BlobImpl::File(FileBlob {
                     id: new_id.clone(),
                     name: None,
@@ -275,7 +272,7 @@ impl Blob {
             }
             Err(_) => {
                 // Return dummy id
-                SelectedFileId(Uuid::new_v4().simple().to_string())
+                Uuid::new_v4()
             }
         }
     }
@@ -309,7 +306,7 @@ impl Drop for Blob {
     }
 }
 
-fn read_file(global: GlobalRef, id: SelectedFileId) -> Result<Vec<u8>, ()> {
+fn read_file(global: GlobalRef, id: Uuid) -> Result<Vec<u8>, ()> {
     let resource_threads = global.resource_threads();
     let (chan, recv) = ipc::channel().map_err(|_|())?;
     let origin = get_blob_origin(&global.get_url());
