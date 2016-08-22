@@ -186,6 +186,8 @@ struct StyleSharingCandidate {
     style: Arc<ComputedValues>,
     /// The cached common style affecting attribute info.
     common_style_affecting_attributes: Option<CommonStyleAffectingAttributes>,
+    /// the cached class names.
+    class_attributes: Option<Vec<Atom>>,
 }
 
 impl PartialEq<StyleSharingCandidate> for StyleSharingCandidate {
@@ -265,7 +267,7 @@ fn element_matches_candidate<E: TElement>(element: &E,
         miss!(StyleAttr)
     }
 
-    if !have_same_class(element, candidate_element) {
+    if !have_same_class(element, candidate, candidate_element) {
         miss!(Class)
     }
 
@@ -373,15 +375,20 @@ pub fn rare_style_affecting_attributes() -> [Atom; 3] {
     [ atom!("bgcolor"), atom!("border"), atom!("colspan") ]
 }
 
-fn have_same_class<E: TElement>(element: &E, candidate: &E) -> bool {
+fn have_same_class<E: TElement>(element: &E,
+                                candidate: &mut StyleSharingCandidate,
+                                candidate_element: &E) -> bool {
     // XXX Efficiency here, I'm only validating ideas.
-    let mut first = vec![];
-    let mut second = vec![];
+    let mut element_class_attributes = vec![];
+    element.each_class(|c| element_class_attributes.push(c.clone()));
 
-    element.each_class(|c| first.push(c.clone()));
-    candidate.each_class(|c| second.push(c.clone()));
+    if candidate.class_attributes.is_none() {
+        let mut attrs = vec![];
+        candidate_element.each_class(|c| attrs.push(c.clone()));
+        candidate.class_attributes = Some(attrs)
+    }
 
-    first == second
+    element_class_attributes == candidate.class_attributes.clone().unwrap()
 }
 
 // TODO: These re-match the candidate every time, which is suboptimal.
@@ -454,6 +461,7 @@ impl StyleSharingCandidateCache {
             node: node.to_unsafe(),
             style: style.clone(),
             common_style_affecting_attributes: None,
+            class_attributes: None,
         }, ());
     }
 
