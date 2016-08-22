@@ -162,8 +162,8 @@ impl Stylist {
         // Take apart the StyleRule into individual Rules and insert
         // them into the SelectorMap of that priority.
         macro_rules! append(
-            ($style_rule: ident, $priority: ident, $importance: expr, $count: ident) => {
-                if $style_rule.declarations.$count > 0 {
+            ($style_rule: ident, $priority: ident, $importance: expr, $count: expr) => {
+                if $count > 0 {
                     for selector in &$style_rule.selectors {
                         let map = if let Some(ref pseudo) = selector.pseudo_element {
                             self.pseudos_map
@@ -191,6 +191,8 @@ impl Stylist {
         for rule in stylesheet.effective_rules(&self.device) {
             match *rule {
                 CSSRule::Style(ref style_rule) => {
+                    let important_count = style_rule.declarations.important_count;
+                    let normal_count = style_rule.declarations.declarations.len() as u32 - important_count;
                     append!(style_rule, normal, Importance::Normal, normal_count);
                     append!(style_rule, important, Importance::Important, important_count);
                     rules_source_order += 1;
@@ -394,7 +396,7 @@ impl Stylist {
 
         // Step 4: Normal style attributes.
         if let Some(ref sa)  = style_attribute {
-            if sa.normal_count > 0 {
+            if sa.declarations.len() as u32 - sa.important_count > 0 {
                 relations |= AFFECTED_BY_STYLE_ATTRIBUTE;
                 Push::push(
                     applicable_declarations,

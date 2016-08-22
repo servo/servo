@@ -288,9 +288,6 @@ pub struct PropertyDeclarationBlock {
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "#7038")]
     pub declarations: Arc<Vec<(PropertyDeclaration, Importance)>>,
 
-    /// The number of entries in `self.declaration` with `Importance::Normal`
-    pub normal_count: u32,
-
     /// The number of entries in `self.declaration` with `Importance::Important`
     pub important_count: u32,
 }
@@ -548,7 +545,6 @@ impl<'a, 'b> DeclarationParser for PropertyDeclarationParser<'a, 'b> {
 pub fn parse_property_declaration_list(context: &ParserContext, input: &mut Parser)
                                        -> PropertyDeclarationBlock {
     let mut declarations = Vec::new();
-    let mut normal_count = 0;
     let mut important_count = 0;
     let parser = PropertyDeclarationParser {
         context: context,
@@ -559,8 +555,6 @@ pub fn parse_property_declaration_list(context: &ParserContext, input: &mut Pars
             Ok((results, importance)) => {
                 if importance.important() {
                     important_count += results.len() as u32;
-                } else {
-                    normal_count += results.len() as u32;
                 }
                 declarations.extend(results.into_iter().map(|d| (d, importance)))
             }
@@ -574,7 +568,6 @@ pub fn parse_property_declaration_list(context: &ParserContext, input: &mut Pars
     }
     let mut block = PropertyDeclarationBlock {
         declarations: Arc::new(declarations),
-        normal_count: normal_count,
         important_count: important_count,
     };
     deduplicate_property_declarations(&mut block);
@@ -605,13 +598,11 @@ fn deduplicate_property_declarations(block: &mut PropertyDeclarationBlock) {
                                 remove_one(&mut deduplicated, |d| {
                                     matches!(d, &(PropertyDeclaration::${property.camel_case}(..), _))
                                 });
-                                block.normal_count -= 1;
                             }
                             seen_important.set_${property.ident}()
                         } else {
                             if seen_normal.get_${property.ident}() ||
                                seen_important.get_${property.ident}() {
-                                block.normal_count -= 1;
                                 continue
                             }
                             seen_normal.set_${property.ident}()
@@ -631,13 +622,11 @@ fn deduplicate_property_declarations(block: &mut PropertyDeclarationBlock) {
                         remove_one(&mut deduplicated, |d| {
                             matches!(d, &(PropertyDeclaration::Custom(ref n, _), _) if n == name)
                         });
-                        block.normal_count -= 1;
                     }
                     seen_custom_important.push(name.clone())
                 } else {
                     if seen_custom_normal.contains(name) ||
                        seen_custom_important.contains(name) {
-                        block.normal_count -= 1;
                         continue
                     }
                     seen_custom_normal.push(name.clone())

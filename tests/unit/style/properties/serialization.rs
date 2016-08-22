@@ -47,8 +47,6 @@ fn property_declaration_block_should_serialize_correctly() {
     let block = PropertyDeclarationBlock {
         declarations: Arc::new(declarations),
 
-        // Incorrect, but not used here:
-        normal_count: 0,
         important_count: 0,
     };
 
@@ -67,8 +65,6 @@ mod shorthand_serialization {
         let block = PropertyDeclarationBlock {
             declarations: Arc::new(properties.into_iter().map(|d| (d, Importance::Normal)).collect()),
 
-            // Incorrect, but not used here:
-            normal_count: 0,
             important_count: 0,
         };
 
