@@ -29,11 +29,11 @@ config = {
     "skip-check-licenses": False,
     "ignore": {
         "files": [
-            CONFIG_FILE_PATH,  # ignore config file
-            "./.",  # ignore hidden files
+            CONFIG_FILE_PATH,   # ignore config file
+            "./.",              # ignore hidden files
         ],
         "directories": [
-            "./.",  # ignore hidden directories
+            "./.",              # ignore hidden directories
         ],
         "packages": [],
     }
@@ -112,6 +112,7 @@ def filter_files(start_dir, only_changed_files, progress):
         raise StopIteration
     if progress:
         file_iter = progress_wrapper(file_iter)
+
     for file_name in file_iter:
         base_name = os.path.basename(file_name)
         if not any(fnmatch.fnmatch(base_name, pattern) for pattern in FILE_PATTERNS_TO_CHECK):
@@ -129,11 +130,7 @@ def uncomment(line):
             return line[len(c):].strip()
 
 
-def licensed_mpl(header):
-    return MPL in header
-
-
-def licensed_apache(header):
+def is_apache_licensed(header):
     if APACHE in header:
         return any(c in header for c in COPYRIGHT)
 
@@ -159,9 +156,10 @@ def check_license(file_name, lines):
         line = uncomment(l)
         if line is not None:
             license_block.append(line)
-    contents = " ".join(license_block)
-    valid_license = licensed_mpl(contents) or licensed_apache(contents)
-    acknowledged_bad_license = "xfail-license" in contents
+
+    header = " ".join(license_block)
+    valid_license = MPL in header or is_apache_licensed(header)
+    acknowledged_bad_license = "xfail-license" in header
     if not (valid_license or acknowledged_bad_license):
         yield (1, "incorrect license")
 
@@ -180,10 +178,7 @@ def check_length(file_name, idx, line):
         raise StopIteration
 
     # Prefer shorter lines when shell scripting.
-    if file_name.endswith(".sh"):
-        max_length = 80
-    else:
-        max_length = 120
+    max_length = 80 if file_name.endswith(".sh") else 120
     if len(line.rstrip('\n')) > max_length:
         yield (idx + 1, "Line is longer than %d characters" % max_length)
 
@@ -338,7 +333,7 @@ def check_shell(file_name, lines):
 
     did_shebang_check = False
 
-    if len(lines) == 0:
+    if not lines:
         yield (0, 'script is an empty file')
         return
 
@@ -357,7 +352,7 @@ def check_shell(file_name, lines):
             else:
                 # The first non-comment, non-whitespace, non-option line is the first "real" line of the script.
                 # The shebang, options, etc. must come before this.
-                if len(required_options) != 0:
+                if required_options:
                     formatted = ['"{}"'.format(opt) for opt in required_options]
                     yield (idx + 1, "script is missing options {}".format(", ".join(formatted)))
                 did_shebang_check = True
@@ -420,9 +415,8 @@ def check_rust(file_name, lines):
             line = merged_lines + line
             merged_lines = ''
 
-        # Keep track of whitespace to enable checking for a merged import block
-
         # Ignore attributes, comments, and imports
+        # Keep track of whitespace to enable checking for a merged import block
         if import_block:
             if not (is_comment or is_attribute or line.startswith("use ")):
                 whitespace = line == ""
@@ -550,7 +544,7 @@ def check_rust(file_name, lines):
                     prev_mod[indent] = ""
                 if match == -1 and not line.endswith(";"):
                     yield (idx + 1, "mod declaration spans multiple lines")
-                if len(prev_mod[indent]) > 0 and mod < prev_mod[indent]:
+                if prev_mod[indent] and mod < prev_mod[indent]:
                     yield(idx + 1, decl_message.format("mod declaration")
                           + decl_expected.format(prev_mod[indent])
                           + decl_found.format(mod))
@@ -679,7 +673,7 @@ def check_config_file(config_file, print_text=True):
         lines = conf_file.splitlines(True)
 
     if print_text:
-        print '\rChecking for config file...'
+        print '\rChecking the config file...'
 
     current_table = ""
     for idx, line in enumerate(lines):
@@ -699,8 +693,7 @@ def check_config_file(config_file, print_text=True):
         if "=" not in line:
             continue
 
-        key = line.split("=")
-        key = key[0].strip()
+        key = line.split("=")[0].strip()
 
         # Check for invalid keys inside [configs] and [ignore] table
         if (current_table == "configs" and key not in config or
@@ -722,22 +715,17 @@ def parse_config(content):
     config["ignore"]["files"] += exclude.get("files", [])
     # Add list of ignored packages to config
     config["ignore"]["packages"] = exclude.get("packages", [])
-    # Fix the necessary paths if we're in Windows
-    if sys.platform == "win32":
-        files = []
-        for f in config["ignore"]["files"]:
-            files += [os.path.join(*f.split("/"))]
-        config["ignore"]["files"] = files
-        dirs = []
-        for f in config["ignore"]["directories"]:
-            dirs += [os.path.join(*f.split("/"))]
-        config["ignore"]["directories"] = dirs
+    # Fix the paths (OS-dependent)
+    config['ignore']['files'] = map(lambda path: os.path.join(*path.split('/')),
+                                    config['ignore']['files'])
+    config['ignore']['directories'] = map(lambda path: os.path.join(*path.split('/')),
+                                          config['ignore']['directories'])
 
     # Override default configs
-    configs = config_file.get("configs", [])
-    for pref in configs:
+    user_configs = config_file.get("configs", [])
+    for pref in user_configs:
         if pref in config:
-            config[pref] = configs[pref]
+            config[pref] = user_configs[pref]
 
 
 def collect_errors_for_files(files_to_check, checking_functions, line_checking_functions, print_text=True):
@@ -836,25 +824,28 @@ def get_file_list(directory, only_changed_files=False, exclude_dirs=[]):
 
 def scan(only_changed_files=False, progress=True):
     # check config file for errors
-    config_errors = check_config_file(CONFIG_FILE_PATH, progress)
+    config_errors = check_config_file(CONFIG_FILE_PATH)
     # standard checks
     files_to_check = filter_files('.', only_changed_files, progress)
     checking_functions = (check_flake8, check_lock, check_webidl_spec, check_json)
     line_checking_functions = (check_license, check_by_line, check_toml, check_shell,
                                check_rust, check_spec, check_modeline)
-    errors = collect_errors_for_files(files_to_check, checking_functions, line_checking_functions)
+    file_errors = collect_errors_for_files(files_to_check, checking_functions, line_checking_functions)
     # check dependecy licenses
     dep_license_errors = check_dep_license_errors(get_dep_toml_files(only_changed_files), progress)
     # wpt lint checks
     wpt_lint_errors = check_wpt_lint_errors(get_wpt_files(only_changed_files, progress))
-    # collect errors
-    errors = itertools.chain(config_errors, errors, dep_license_errors, wpt_lint_errors)
+    # chain all the iterators
+    errors = itertools.chain(config_errors, file_errors, dep_license_errors, wpt_lint_errors)
+
     error = None
     for error in errors:
         colorama.init()
         print "\r\033[94m{}\033[0m:\033[93m{}\033[0m: \033[91m{}\033[0m".format(*error)
+
     print
     if error is None:
         colorama.init()
         print "\033[92mtidy reported no errors.\033[0m"
+
     return int(error is not None)
