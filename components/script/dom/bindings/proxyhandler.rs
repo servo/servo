@@ -10,20 +10,36 @@ use dom::bindings::conversions::is_dom_proxy;
 use dom::bindings::utils::delete_property_by_id;
 use js::glue::GetProxyExtra;
 use js::glue::InvokeGetOwnPropertyDescriptor;
-use js::glue::{GetProxyHandler, SetProxyExtra};
+use js::glue::{GetProxyHandler, SetProxyExtra, GetProxyHandlerFamily};
 use js::jsapi::GetObjectProto;
 use js::jsapi::GetStaticPrototype;
 use js::jsapi::JS_GetPropertyDescriptorById;
 use js::jsapi::MutableHandleObject;
 use js::jsapi::{Handle, HandleId, HandleObject, MutableHandle, ObjectOpResult};
-use js::jsapi::{JSContext, JSObject, JSPROP_GETTER, PropertyDescriptor};
+use js::jsapi::{JSContext, JSObject, JSPROP_GETTER, PropertyDescriptor, DOMProxyShadowsResult};
 use js::jsapi::{JSErrNum, JS_StrictPropertyStub};
-use js::jsapi::{JS_DefinePropertyById, JS_NewObjectWithGivenProto};
+use js::jsapi::{JS_DefinePropertyById, JS_NewObjectWithGivenProto, SetDOMProxyInformation};
 use js::jsval::ObjectValue;
 use libc;
 use std::{mem, ptr};
 
 static JSPROXYSLOT_EXPANDO: u32 = 0;
+
+/// Determine if this id shadows any existing properties for this proxy.
+pub unsafe extern "C" fn shadow_check_callback(_cx: *mut JSContext,
+                                               _object: HandleObject,
+                                               _id: HandleId)
+                                               -> DOMProxyShadowsResult {
+    // XXX implement me
+    DOMProxyShadowsResult::ShadowCheckFailed
+}
+
+/// Initialize the infrastructure for DOM proxy objects.
+pub unsafe fn init() {
+    SetDOMProxyInformation(GetProxyHandlerFamily(),
+                           JSPROXYSLOT_EXPANDO,
+                           Some(shadow_check_callback));
+}
 
 /// Invoke the [[GetOwnProperty]] trap (`getOwnPropertyDescriptor`) on `proxy`,
 /// with argument `id` and return the result, if it is not `undefined`.

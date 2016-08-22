@@ -114,10 +114,10 @@ mod unpremultiplytable;
 mod webdriver_handlers;
 
 use dom::bindings::codegen::RegisterBindings;
-use js::jsapi::{Handle, JSContext, JSObject, SetDOMProxyInformation};
+use dom::bindings::proxyhandler;
+use js::jsapi::{Handle, JSContext, JSObject};
 use script_traits::SWManagerSenders;
 use serviceworker_manager::ServiceWorkerManager;
-use std::ptr;
 use util::opts;
 
 #[cfg(target_os = "linux")]
@@ -164,7 +164,7 @@ fn perform_platform_specific_initialization() {}
 #[allow(unsafe_code)]
 pub fn init(sw_senders: SWManagerSenders) {
     unsafe {
-        SetDOMProxyInformation(ptr::null(), 0, Some(script_thread::shadow_check_callback));
+        proxyhandler::init();
     }
 
     // Spawn the service worker manager passing the constellation sender
