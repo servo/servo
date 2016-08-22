@@ -101,6 +101,7 @@ pub mod sequential;
 pub mod sink;
 pub mod str;
 pub mod stylesheets;
+pub mod thread_state;
 mod tid;
 pub mod timer;
 pub mod traversal;

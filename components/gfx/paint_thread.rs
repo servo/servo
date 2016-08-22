@@ -29,11 +29,11 @@ use std::collections::HashMap;
 use std::mem as std_mem;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender, channel};
+use style::thread_state;
 use url::Url;
 use util::geometry::ExpandToPixelBoundaries;
 use util::opts;
 use util::thread;
-use util::thread_state;
 
 #[derive(Clone, HeapSizeOf)]
 struct PaintLayer {

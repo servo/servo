@@ -76,8 +76,8 @@ use std::ops::Range;
 use string_cache::{Atom, Namespace, QualName};
 use style::dom::OpaqueNode;
 use style::selector_impl::ServoSelectorImpl;
+use style::thread_state;
 use url::Url;
-use util::thread_state;
 use uuid::Uuid;
 
 //

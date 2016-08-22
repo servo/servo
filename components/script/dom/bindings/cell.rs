@@ -7,8 +7,8 @@
 use dom::bindings::trace::JSTraceable;
 use js::jsapi::JSTracer;
 use std::cell::{BorrowError, BorrowMutError, Ref, RefCell, RefMut};
-use util::thread_state;
-use util::thread_state::SCRIPT;
+use style::thread_state;
+use style::thread_state::SCRIPT;
 
 /// A mutable field in the DOM.
 ///

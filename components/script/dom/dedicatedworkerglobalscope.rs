@@ -37,9 +37,9 @@ use std::mem::replace;
 use std::sync::atomic::AtomicBool;
 use std::sync::mpsc::{Receiver, RecvError, Select, Sender, channel};
 use std::sync::{Arc, Mutex};
+use style::thread_state;
 use url::Url;
 use util::thread::spawn_named;
-use util::thread_state;
 
 /// Set the `worker` field of a related DedicatedWorkerGlobalScope object to a particular
 /// value for the duration of this object's lifetime. This ensures that the related Worker

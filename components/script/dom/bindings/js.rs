@@ -43,7 +43,7 @@ use std::intrinsics::type_name;
 use std::mem;
 use std::ops::Deref;
 use std::ptr;
-use util::thread_state;
+use style::thread_state;
 
 /// A traced reference to a DOM object
 ///

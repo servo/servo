@@ -17,9 +17,9 @@ use style::media_queries::{Device, MediaType};
 use style::parallel::WorkQueueData;
 use style::selector_matching::Stylist;
 use style::stylesheets::Stylesheet;
+use style::thread_state;
 use style::workqueue::WorkQueue;
 use style_traits::ViewportPx;
-use util::thread_state;
 
 pub struct PerDocumentStyleData {
     /// Rule processor.

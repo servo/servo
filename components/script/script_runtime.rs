@@ -25,10 +25,10 @@ use std::io::{Write, stdout};
 use std::marker::PhantomData;
 use std::os;
 use std::ptr;
+use style::thread_state;
 use time::{Tm, now};
 use util::opts;
 use util::prefs::PREFS;
-use util::thread_state;
 
 /// Common messages used to control the event loops in both the script and the worker
 pub enum CommonScriptMsg {
