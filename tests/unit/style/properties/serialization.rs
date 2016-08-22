@@ -704,12 +704,12 @@ mod shorthand_serialization {
                 authored: None
             });
 
-            let position = DeclaredValue::Value(PositionContainer(
+            let position = DeclaredValue::Value(
                 Position {
                     horizontal: LengthOrPercentage::Length(Length::from_px(7f32)),
                     vertical: LengthOrPercentage::Length(Length::from_px(4f32))
                 }
-            ));
+            );
 
             let repeat = DeclaredValue::Value(Repeat::repeat_x);
             let attachment = DeclaredValue::Value(Attachment::scroll);
@@ -755,12 +755,12 @@ mod shorthand_serialization {
                 authored: None
             });
 
-            let position = DeclaredValue::Value(PositionContainer(
+            let position = DeclaredValue::Value(
                 Position {
                     horizontal: LengthOrPercentage::Length(Length::from_px(7f32)),
                     vertical: LengthOrPercentage::Length(Length::from_px(4f32))
                 }
-            ));
+            );
 
             let repeat = DeclaredValue::Value(Repeat::repeat_x);
             let attachment = DeclaredValue::Value(Attachment::scroll);
@@ -805,12 +805,12 @@ mod shorthand_serialization {
                 authored: None
             });
 
-            let position = DeclaredValue::Value(PositionContainer(
+            let position = DeclaredValue::Value(
                 Position {
                     horizontal: LengthOrPercentage::Length(Length::from_px(0f32)),
                     vertical: LengthOrPercentage::Length(Length::from_px(0f32))
                 }
-            ));
+            );
 
             let repeat = DeclaredValue::Value(Repeat::repeat_x);
             let attachment = DeclaredValue::Value(Attachment::scroll);
