@@ -378,21 +378,20 @@ pub fn rare_style_affecting_attributes() -> [Atom; 3] {
     [ atom!("bgcolor"), atom!("border"), atom!("colspan") ]
 }
 
-fn have_same_class<E: TElement>(element: &E, 
+fn have_same_class<E: TElement>(element: &E,
                                 candidate: &mut StyleSharingCandidate,
                                 candidate_element: &E) -> bool {
     // XXX Efficiency here, I'm only validating ideas.
     let mut element_class_attributes = vec![];
     element.each_class(|c| element_class_attributes.push(c.clone()));
-    
+
     if candidate.class_attributes.is_none() {
         let mut attrs = vec![];
         candidate_element.each_class(|c| attrs.push(c.clone()));
         candidate.class_attributes = Some(attrs)
     }
 
-    element_class_attributes == candidate.class_attributes.clone().unwrap() 
-    
+    element_class_attributes == candidate.class_attributes.clone().unwrap()
 }
 
 // TODO: These re-match the candidate every time, which is suboptimal.
