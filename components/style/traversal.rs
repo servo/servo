@@ -179,7 +179,7 @@ pub trait DomTraversalContext<N: TNode> {
     /// Note that this is true unconditionally for servo, since it requires to
     /// bubble the widths bottom-up for all the DOM.
     fn should_process(&self, node: N) -> bool {
-        node.is_dirty() || node.has_dirty_descendants()
+        opts::get().nonincremental_layout || node.is_dirty() || node.has_dirty_descendants()
     }
 
     /// Do an action over the child before pushing him to the work queue.
