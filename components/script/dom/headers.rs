@@ -12,7 +12,10 @@ use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::{ByteString, is_token};
 use hyper::header::Headers as HyperHeaders;
+use mime::{Mime, TopLevel, SubLevel};
+use std::cell::Cell;
 use std::result::Result;
+use std::str;
 
 #[dom_struct]
 pub struct Headers {
@@ -41,41 +44,8 @@ impl Headers {
         }
     }
 
-    // https://fetch.spec.whatwg.org/#concept-headers-fill
-    pub fn new(global: GlobalRef, init: Option<HeadersBinding::HeadersInit>)
-               -> Fallible<Root<Headers>> {
-        let dom_headers_new = reflect_dom_object(box Headers::new_inherited(), global, HeadersBinding::Wrap);
-        match init {
-            // Step 1
-            Some(HeadersOrByteStringSequenceSequence::Headers(h)) => {
-                // header_list_copy has type hyper::header::Headers
-                let header_list_copy = h.header_list.clone();
-                for header in header_list_copy.borrow().iter() {
-                    try!(dom_headers_new.Append(
-                        ByteString::new(Vec::from(header.name())),
-                        ByteString::new(Vec::from(header.value_string().into_bytes()))
-                    ));
-                }
-                Ok(dom_headers_new)
-            },
-            // Step 2
-            Some(HeadersOrByteStringSequenceSequence::ByteStringSequenceSequence(v)) => {
-                for mut seq in v {
-                    if seq.len() == 2 {
-                        let val = seq.pop().unwrap();
-                        let name = seq.pop().unwrap();
-                        try!(dom_headers_new.Append(name, val));
-                    } else {
-                        return Err(Error::Type(
-                            format!("Each header object must be a sequence of length 2 - found one with length {}",
-                                    seq.len())));
-                    }
-                }
-                Ok(dom_headers_new)
-            },
-            // Step 3 TODO constructor for when init is an open-ended dictionary
-            None => Ok(dom_headers_new),
-        }
+    pub fn new(global: GlobalRef) -> Root<Headers> {
+        reflect_dom_object(box Headers::new_inherited(), global, HeadersBinding::Wrap)
     }
 
     pub fn Constructor(global: GlobalRef, init: Option<HeadersBinding::HeadersInit>)
@@ -101,7 +71,7 @@ impl HeadersMethods for Headers {
             return Ok(());
         }
         // Step 5
-        if self.guard == Guard::RequestNoCors && !is_cors_safelisted_request_header(&valid_name) {
+        if self.guard.get() == Guard::RequestNoCors && !is_cors_safelisted_request_header(&valid_name, &valid_value) {
             return Ok(());
         }
         // Step 6
@@ -129,9 +99,12 @@ impl HeadersMethods for Headers {
             return Ok(());
         }
         // Step 4
-        if self.guard == Guard::RequestNoCors && !is_cors_safelisted_request_header(&valid_name) {
-            return Ok(());
-        }
+        // TODO: Requires clarification from the Fetch spec:
+        // ... https://github.com/whatwg/fetch/issues/372
+        if self.guard.get() == Guard::RequestNoCors &&
+            !is_cors_safelisted_request_header(&valid_name, &b"invalid".to_vec()) {
+                return Ok(());
+            }
         // Step 5
         if self.guard == Guard::Response && is_forbidden_response_header(&valid_name) {
             return Ok(());
@@ -174,7 +147,7 @@ impl HeadersMethods for Headers {
             return Ok(());
         }
         // Step 5
-        if self.guard == Guard::RequestNoCors && !is_cors_safelisted_request_header(&valid_name) {
+        if self.guard.get() == Guard::RequestNoCors && !is_cors_safelisted_request_header(&valid_name, &valid_value) {
             return Ok(());
         }
         // Step 6
@@ -188,18 +161,93 @@ impl HeadersMethods for Headers {
     }
 }
 
-// TODO
-// "Content-Type" once parsed, the value should be
-// `application/x-www-form-urlencoded`, `multipart/form-data`,
-// or `text/plain`.
-// "DPR", "Downlink", "Save-Data", "Viewport-Width", "Width":
-// once parsed, the value should not be failure.
+impl Headers {
+    // https://fetch.spec.whatwg.org/#concept-headers-fill
+    pub fn fill(&self, filler: Option<HeadersBinding::HeadersInit>) -> ErrorResult {
+        match filler {
+            // Step 1
+            Some(HeadersOrByteStringSequenceSequence::Headers(h)) => {
+                for header in h.header_list.borrow().iter() {
+                    try!(self.Append(
+                        ByteString::new(Vec::from(header.name())),
+                        ByteString::new(Vec::from(header.value_string().into_bytes()))
+                    ));
+                }
+                Ok(())
+            },
+            // Step 2
+            Some(HeadersOrByteStringSequenceSequence::ByteStringSequenceSequence(v)) => {
+                for mut seq in v {
+                    if seq.len() == 2 {
+                        let val = seq.pop().unwrap();
+                        let name = seq.pop().unwrap();
+                        try!(self.Append(name, val));
+                    } else {
+                        return Err(Error::Type(
+                            format!("Each header object must be a sequence of length 2 - found one with length {}",
+                                    seq.len())));
+                    }
+                }
+                Ok(())
+            },
+            // Step 3 TODO constructor for when init is an open-ended dictionary
+            None => Ok(()),
+        }
+    }
+
+    pub fn for_request(global: GlobalRef) -> Root<Headers> {
+        let headers_for_request = Headers::new(global);
+        headers_for_request.guard.set(Guard::Request);
+        headers_for_request
+    }
+
+     pub fn set_guard(&self, new_guard: Guard) {
+        self.guard.set(new_guard)
+    }
+
+    pub fn get_guard(&self) -> Guard {
+        self.guard.get()
+    }
+
+    pub fn empty_header_list(&self) {
+        *self.header_list.borrow_mut() = HyperHeaders::new();
+    }
+
+    // https://fetch.spec.whatwg.org/#concept-header-extract-mime-type
+    pub fn extract_mime_type(&self) -> Vec<u8> {
+        self.header_list.borrow().get_raw("content-type").map_or(vec![], |v| v[0].clone())
+    }
+}
+
+fn is_cors_safelisted_request_content_type(value: &[u8]) -> bool {
+    let value_string = if let Ok(s) = str::from_utf8(value) {
+        s
+    } else {
+        return false;
+    };
+    let value_mime_result: Result<Mime, _> = value_string.parse();
+    match value_mime_result {
+        Err(_) => false,
+        Ok(value_mime) => {
+            match value_mime {
+                Mime(TopLevel::Application, SubLevel::WwwFormUrlEncoded, _) |
+                Mime(TopLevel::Multipart, SubLevel::FormData, _) |
+                Mime(TopLevel::Text, SubLevel::Plain, _) => true,
+                _ => false,
+            }
+        }
+    }
+}
+
+// TODO: "DPR", "Downlink", "Save-Data", "Viewport-Width", "Width":
+// ... once parsed, the value should not be failure.
 // https://fetch.spec.whatwg.org/#cors-safelisted-request-header
-fn is_cors_safelisted_request_header(name: &str) -> bool {
+fn is_cors_safelisted_request_header(name: &str, value: &[u8]) -> bool {
     match name {
         "accept" |
         "accept-language" |
         "content-language" => true,
+        "content-type" => is_cors_safelisted_request_content_type(value),
         _ => false,
     }
 }
