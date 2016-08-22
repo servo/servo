@@ -516,31 +516,31 @@ impl FragmentDisplayListBuilding for Fragment {
             // Use 'background-origin' to get the origin value.
             let origin = get_cyclic(&background.background_origin.0, index);
             let (mut origin_x, mut origin_y) = match *origin {
-              background_origin::single_value::T::padding_box => {
-                  (Au(0), Au(0))
-              }
-              background_origin::single_value::T::border_box => {
-                  (-border.left, -border.top)
-              }
-              background_origin::single_value::T::content_box => {
-                  let border_padding = self.border_padding.to_physical(self.style.writing_mode);
-                  (border_padding.left - border.left, border_padding.top - border.top)
-              }
+                background_origin::single_value::T::padding_box => {
+                    (Au(0), Au(0))
+                }
+                background_origin::single_value::T::border_box => {
+                    (-border.left, -border.top)
+                }
+                background_origin::single_value::T::content_box => {
+                    let border_padding = self.border_padding.to_physical(self.style.writing_mode);
+                    (border_padding.left - border.left, border_padding.top - border.top)
+                }
             };
 
             // Use `background-attachment` to get the initial virtual origin
             let attachment = get_cyclic(&background.background_attachment.0, index);
             let (virtual_origin_x, virtual_origin_y) = match *attachment {
-              background_attachment::single_value::T::scroll => {
-                  (absolute_bounds.origin.x, absolute_bounds.origin.y)
-              }
-              background_attachment::single_value::T::fixed => {
-                  // If the ‘background-attachment’ value for this image is ‘fixed’, then
-                  // 'background-origin' has no effect.
-                  origin_x = Au(0);
-                  origin_y = Au(0);
-                  (Au(0), Au(0))
-              }
+                background_attachment::single_value::T::scroll => {
+                    (absolute_bounds.origin.x, absolute_bounds.origin.y)
+                }
+                background_attachment::single_value::T::fixed => {
+                    // If the ‘background-attachment’ value for this image is ‘fixed’, then
+                    // 'background-origin' has no effect.
+                    origin_x = Au(0);
+                    origin_y = Au(0);
+                    (Au(0), Au(0))
+                }
             };
 
             let position = *get_cyclic(&background.background_position.0, index);

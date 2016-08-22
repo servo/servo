@@ -162,16 +162,9 @@ impl<T: RepeatableListInterpolate> Interpolate for Vec<T> {
     fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
         use num_integer::lcm;
         let len = lcm(self.len(), other.len());
-        let ret = self.iter().cycle().zip(other.iter().cycle())
-                      .take(len)
-                      .filter_map(|(ref me, ref you)| {
-                        me.interpolate(you, time).ok()
-                      }).collect::<Self>();
-        if ret.len() == len {
-            Ok(ret)
-        } else {
-            Err(())
-        }
+        self.iter().cycle().zip(other.iter().cycle()).take(len).map(|(me, you)| {
+            me.interpolate(you, time)
+        }).collect()
     }
 }
 /// https://drafts.csswg.org/css-transitions/#animtype-number

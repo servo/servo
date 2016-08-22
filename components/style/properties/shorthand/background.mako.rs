@@ -12,16 +12,15 @@
     use properties::longhands::{background_image, background_size, background_origin, background_clip};
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
-        % for name in "image position repeat size attachment origin clip".split():
-            let mut any_${name} = false;
-        % endfor
-
         let mut background_color = None;
-        let vec = try!(input.parse_comma_separated(|input| {
+
+        % for name in "image position repeat size attachment origin clip".split():
+            let mut background_${name} = background_${name}::SpecifiedValue(Vec::new());
+        % endfor
+        try!(input.parse_comma_separated(|input| {
             % for name in "image position repeat size attachment origin clip".split():
                 let mut ${name} = None;
             % endfor
-
             loop {
                 if let Ok(value) = input.try(|input| background_color::parse(context, input)) {
                     if background_color.is_none() {
@@ -33,71 +32,59 @@
                     }
                 }
                 if position.is_none() {
-                    if let Ok(value) = input.try(|input| background_position::single_value::parse(context, input)) {
+                    if let Ok(value) = input.try(|input| background_position::single_value
+                                                                            ::parse(context, input)) {
                         position = Some(value);
-                        any_position = true;
 
                         // Parse background size, if applicable.
                         size = input.try(|input| {
                             try!(input.expect_delim('/'));
                             background_size::single_value::parse(context, input)
                         }).ok();
-                        if let Some(_) = size {
-                            any_size = true;
-                        }
 
                         continue
                     }
                 }
                 % for name in "image repeat attachment origin clip".split():
                     if ${name}.is_none() {
-                        if let Ok(value) = input.try(|input| background_${name}::single_value::parse(context, input)) {
+                        if let Ok(value) = input.try(|input| background_${name}::single_value
+                                                                               ::parse(context, input)) {
                             ${name} = Some(value);
-                            any_${name} = true;
                             continue
                         }
                     }
                 % endfor
                 break
             }
-            Ok((image, position, repeat, size, attachment, origin, clip))
-        }));
-
-        if !(any_image || any_position || any_repeat || any_size ||
-             any_attachment || any_origin || any_clip ||
-             background_color.is_some()) {
-            return Err(())
-        }
-
-        % for name in "image position repeat size attachment origin clip".split():
-            let mut background_${name} = if any_${name} {
-                Some(background_${name}::SpecifiedValue(Vec::new()))
-            } else {
-                None
-            };
-        % endfor
-
-        for i in vec {
-            % for i,name in enumerate("image position repeat size attachment origin clip".split()):
-                if let Some(ref mut buf) = background_${name} {
-                    if let Some(bg_${name}) = i.${i} {
-                        buf.0.push(bg_${name})
-                    } else {
-                        buf.0.push(background_${name}::single_value::get_initial_specified_value())
-                    }
-                }
+            let mut any = false;
+            % for name in "image position repeat size attachment origin clip".split():
+                any = any || ${name}.is_some();
             % endfor
-        }
+            any = any || background_color.is_some();
+            if any {
+                % for name in "image position repeat size attachment origin clip".split():
+                    if let Some(bg_${name}) = ${name} {
+                        background_${name}.0.push(bg_${name});
+                    } else {
+                        background_${name}.0.push(background_${name}::single_value
+                                                                    ::get_initial_specified_value());
+                    }
+                % endfor
+                Ok(())
+            } else {
+                Err(())
+            }
+        }));
 
         Ok(Longhands {
              background_color: background_color,
-             background_image: background_image,
-             background_position: background_position,
-             background_repeat: background_repeat,
-             background_attachment: background_attachment,
-             background_size: background_size,
-             background_origin: background_origin,
-             background_clip: background_clip,
+             background_image: Some(background_image),
+             background_position: Some(background_position),
+             background_repeat: Some(background_repeat),
+             background_attachment: Some(background_attachment),
+             background_size: Some(background_size),
+             background_origin: Some(background_origin),
+             background_clip: Some(background_clip),
          })
     }
 
@@ -111,7 +98,6 @@
                 }
             }
             use std::cmp;
-            use std::iter::{once, repeat};
             let mut len = 0;
             % for name in "image position repeat size attachment origin clip".split():
                 len = cmp::max(len, extract_value(self.background_${name}).map(|i| i.0.len())
@@ -123,15 +109,21 @@
                 return dest.write_str("")
             }
 
-            let iter = repeat(None).take(len - 1).chain(once(Some(self.background_color)))
-                % for name in "image position repeat size attachment origin clip".split():
-                    .zip(extract_value(self.background_${name}).into_iter()
-                                                               .flat_map(|x| x.0.iter())
-                                                               .map(Some).chain(repeat(None)))
-                % endfor
-                ;
             let mut first = true;
-            for (((((((color, image), position), repeat), size), attachment), origin), clip) in iter {
+            for i in 0..len {
+                % for name in "image position repeat size attachment origin clip".split():
+                    let ${name} = if let DeclaredValue::Value(ref arr) = *self.background_${name} {
+                        arr.0.get(i % arr.0.len())
+                    } else {
+                        None
+                    };
+                % endfor
+                let color = if i == len - 1 {
+                    Some(self.background_color)
+                } else {
+                    None
+                };
+
                 if first {
                     first = false;
                 } else {
@@ -144,7 +136,6 @@
                     },
                     Some(_) => {
                         try!(write!(dest, "transparent "));
-                        try!(write!(dest, " "));
                     }
                     // Not yet the last one
                     None => ()
