@@ -2616,6 +2616,18 @@
             "url": "/_mozilla/css/inline_element_border_a.html"
           }
         ],
+        "css/inline_element_padding_margin.html": [
+          {
+            "path": "css/inline_element_padding_margin.html",
+            "references": [
+              [
+                "/_mozilla/css/inline_element_padding_margin_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/inline_element_padding_margin.html"
+          }
+        ],
         "css/inline_font_size_zero_a.html": [
           {
             "path": "css/inline_font_size_zero_a.html",
@@ -11870,6 +11882,18 @@
             ]
           ],
           "url": "/_mozilla/css/inline_element_border_a.html"
+        }
+      ],
+      "css/inline_element_padding_margin.html": [
+        {
+          "path": "css/inline_element_padding_margin.html",
+          "references": [
+            [
+              "/_mozilla/css/inline_element_padding_margin_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/inline_element_padding_margin.html"
         }
       ],
       "css/inline_font_size_zero_a.html": [
