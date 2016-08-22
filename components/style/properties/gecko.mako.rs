@@ -1178,6 +1178,24 @@ fn static_assert() {
 
         }
     }
+
+    pub fn fill_arrays(&mut self) {
+        use gecko_bindings::bindings::Gecko_FillAllBackgroundLists;
+        use std::cmp;
+        let mut max_len = 1;
+        % for member in "mRepeat mClip mOrigin mAttachment mPositionX mPositionY mImage".split():
+            max_len = cmp::max(max_len, self.gecko.mImage.${member}Count);
+        % endfor
+
+        // XXXManishearth Gecko does an optimization here where it only
+        // fills things in if any of the properties have been set
+
+        unsafe {
+            // While we could do this manually, we'd need to also manually
+            // run all the copy constructors, so we just delegate to gecko
+            Gecko_FillAllBackgroundLists(&mut self.gecko.mImage, max_len);
+        }
+    }
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="List" skip_longhands="list-style-type" skip_additionals="*">
