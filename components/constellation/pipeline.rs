@@ -538,6 +538,7 @@ impl UnprivilegedPipelineContent {
         process::exit(1);
     }
 
+    #[cfg(not(windows))]
     fn setup_common<C: CommandMethods>(&self, command: &mut C, token: String) {
         C::arg(command, "--content-process");
         C::arg(command, token);
