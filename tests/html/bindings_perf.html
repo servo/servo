@@ -1,6 +1,7 @@
 <button onclick="void_method()">measure void method</button>
 <button onclick="int_getter()">measure int getter</button>
 <button onclick="firstChild_getter()">measure firstChild getter</button>
+<button onclick="proxy_firstChild_getter()">measure proxy firstChild getter</button>
 <script>
 var t = 'TestBinding' in window ? (new TestBinding()) : (new TextEncoder());
 function void_method() {
@@ -32,5 +33,16 @@ function firstChild_getter() {
   }
   var stop = new Date();
   console.log('firstChild getter: ' + ((stop - start) / count * 1e6) + 'ns');
+}
+
+function proxy_firstChild_getter() {
+  var n = document;
+  var start = new Date();
+  var count = 1000000;
+  for (var i = 0; i < count; i++) {
+    var a = n.firstChild;
+  }
+  var stop = new Date();
+  console.log('proxy firstChild getter: ' + ((stop - start) / count * 1e6) + 'ns');
 }
 </script>
