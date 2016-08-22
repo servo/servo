@@ -32,11 +32,11 @@ use script_traits::{TimerEvent, WorkerGlobalScopeInit, ScopeThings, ServiceWorke
 use std::sync::mpsc::{Receiver, RecvError, Select, Sender, channel};
 use std::thread;
 use std::time::Duration;
+use style::thread_state;
+use style::thread_state::{IN_WORKER, SCRIPT};
 use url::Url;
 use util::prefs::PREFS;
 use util::thread::spawn_named;
-use util::thread_state;
-use util::thread_state::{IN_WORKER, SCRIPT};
 
 /// Messages used to control service worker event loop
 pub enum ServiceWorkerScriptMsg {

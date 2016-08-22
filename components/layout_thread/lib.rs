@@ -110,6 +110,7 @@ use style::refcell::RefCell;
 use style::selector_matching::Stylist;
 use style::servo_selector_impl::USER_OR_USER_AGENT_STYLESHEETS;
 use style::stylesheets::{Stylesheet, CSSRuleIteratorExt};
+use style::thread_state;
 use style::timer::Timer;
 use style::workqueue::WorkQueue;
 use url::Url;
@@ -118,7 +119,6 @@ use util::ipc::OptionalIpcSender;
 use util::opts;
 use util::prefs::PREFS;
 use util::thread;
-use util::thread_state;
 
 /// The number of screens we have to traverse before we decide to generate new display lists.
 const DISPLAY_PORT_THRESHOLD_SIZE_FACTOR: i32 = 4;

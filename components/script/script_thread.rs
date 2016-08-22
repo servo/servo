@@ -99,6 +99,7 @@ use std::sync::atomic::{Ordering, AtomicBool};
 use std::sync::mpsc::{Receiver, Select, Sender, channel};
 use std::sync::{Arc, Mutex};
 use style::context::ReflowGoal;
+use style::thread_state;
 use task_source::TaskSource;
 use task_source::dom_manipulation::{DOMManipulationTaskSource, DOMManipulationTask};
 use task_source::file_reading::FileReadingTaskSource;
@@ -109,7 +110,6 @@ use time::Tm;
 use url::{Url, Position};
 use util::opts;
 use util::thread;
-use util::thread_state;
 use webdriver_handlers;
 
 thread_local!(pub static STACK_ROOTS: Cell<Option<RootCollectionPtr>> = Cell::new(None));
