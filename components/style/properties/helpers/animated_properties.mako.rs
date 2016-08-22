@@ -496,13 +496,6 @@ impl Interpolate for Position {
     }
 }
 
-impl Interpolate for BackgroundPosition {
-    #[inline]
-    fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
-        Ok(BackgroundPosition(try!(self.0.interpolate(&other.0, time))))
-    }
-}
-
 impl Interpolate for BackgroundSize {
     fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
         use properties::longhands::background_size::computed_value::ExplicitSize;

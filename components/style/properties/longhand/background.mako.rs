@@ -85,54 +85,23 @@ ${helpers.predefined_type("background-color", "CSSColor",
         pub mod computed_value {
             use values::computed::position::Position;
 
-            #[derive(PartialEq, Copy, Clone, Debug)]
-            #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-            pub struct T(pub Position);
+            pub type T = Position;
         }
 
-        impl HasViewportPercentage for SpecifiedValue {
-            fn has_viewport_percentage(&self) -> bool {
-                self.0.has_viewport_percentage()
-            }
-        }
-
-        #[derive(Debug, Clone, PartialEq, Copy)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct SpecifiedValue(pub Position);
-
-        impl ToCss for SpecifiedValue {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                self.0.to_css(dest)
-            }
-        }
-
-        impl ToCss for computed_value::T {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                self.0.to_css(dest)
-            }
-        }
-
-        impl ToComputedValue for SpecifiedValue {
-            type ComputedValue = computed_value::T;
-
-            #[inline]
-            fn to_computed_value(&self, context: &Context) -> computed_value::T {
-                computed_value::T(self.0.to_computed_value(context))
-            }
-        }
+        pub type SpecifiedValue = Position;
 
         #[inline]
         pub fn get_initial_value() -> computed_value::T {
             use values::computed::position::Position;
-            computed_value::T(Position {
+            Position {
                 horizontal: computed::LengthOrPercentage::Percentage(0.0),
                 vertical: computed::LengthOrPercentage::Percentage(0.0),
-            })
+            }
         }
 
         pub fn parse(_context: &ParserContext, input: &mut Parser)
                      -> Result<SpecifiedValue, ()> {
-            Ok(SpecifiedValue(try!(Position::parse(input))))
+            Ok(try!(Position::parse(input)))
         }
 </%helpers:longhand>
 
