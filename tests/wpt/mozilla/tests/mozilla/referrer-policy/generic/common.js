@@ -183,7 +183,7 @@ function queryNavigable(element, url, callback, attributes) {
   navigable.click();
 }
 
-function queryLink(url, callback, referrer_policy) {
+function queryAnchor(url, callback, referrer_policy) {
   var x = document.createElement('script');
   x.src = '/common/utils.js';
   x.onerror = function() { console.log('whoops') };
@@ -237,7 +237,7 @@ function queryScript(url, callback) {
   document.body.appendChild(script);
 }
 
-function queryCssLink(url, callback, referrer_policy) {
+function queryLink(url, callback, referrer_policy) {
   var x = document.createElement('script');
   x.src = '/common/utils.js';
   x.onerror = function() { console.log('whoops') };

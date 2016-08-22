@@ -14,7 +14,7 @@ function ReferrerPolicyTestCase(scenario, testDescription, sanityChecker) {
   sanityChecker.checkScenario(scenario);
 
   var subresourceInvoker = {
-    "a-tag": queryLink,
+    "a-tag": queryAnchor,
     "area-tag": queryAreaLink,
     "fetch-request": queryFetch,
     "iframe-tag": queryIframe,
@@ -22,7 +22,7 @@ function ReferrerPolicyTestCase(scenario, testDescription, sanityChecker) {
     "script-tag": queryScript,
     "worker-request": queryWorker,
     "xhr-request": queryXhr,
-    "link-tag": queryCssLink
+    "link-tag": queryLink
   };
 
   var referrerUrlResolver = {
