@@ -59,7 +59,6 @@ use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::glue::GetWindowProxyClass;
-use js::jsapi::{DOMProxyShadowsResult, HandleId, HandleObject};
 use js::jsapi::{JSAutoCompartment, JSContext, JS_SetWrapObjectCallbacks};
 use js::jsapi::{JSTracer, SetWindowProxyClass};
 use js::jsval::UndefinedValue;
@@ -482,12 +481,6 @@ impl ScriptThreadFactory for ScriptThread {
 
         (sender, receiver)
     }
-}
-
-pub unsafe extern "C" fn shadow_check_callback(_cx: *mut JSContext,
-    _object: HandleObject, _id: HandleId) -> DOMProxyShadowsResult {
-    // XXX implement me
-    DOMProxyShadowsResult::ShadowCheckFailed
 }
 
 impl ScriptThread {
