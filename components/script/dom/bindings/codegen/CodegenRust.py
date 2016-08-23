@@ -2194,7 +2194,14 @@ def UnionTypes(descriptors, dictionaries, callbacks, config):
     # Sort unionStructs by key, retrieve value
     unionStructs = (i[1] for i in sorted(unionStructs.items(), key=operator.itemgetter(0)))
 
-    return CGImports(CGList(unionStructs, "\n\n"), [], [], [], [], imports, config, ignored_warnings=[])
+    return CGImports(CGList(unionStructs, "\n\n"),
+                     descriptors=[],
+                     callbacks=[],
+                     dictionaries=[],
+                     enums=[],
+                     imports=imports,
+                     config=config,
+                     ignored_warnings=[])
 
 
 class Argument():
@@ -6566,11 +6573,11 @@ class GlobalGenRoots():
             CGRegisterProxyHandlers(config),
         ], "\n")
 
-        return CGImports(code, [], [], [], [], [
+        return CGImports(code, descriptors=[], callbacks=[], dictionaries=[], enums=[], imports=[
             'dom::bindings::codegen::Bindings',
             'dom::bindings::codegen::PrototypeList::Proxies',
             'libc',
-        ], config, ignored_warnings=[])
+        ], config=config, ignored_warnings=[])
 
     @staticmethod
     def InterfaceTypes(config):
