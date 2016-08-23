@@ -306,10 +306,6 @@ impl<'a> Reflectable for GlobalRef<'a> {
             GlobalRef::Worker(ref worker) => worker.reflector(),
         }
     }
-
-    fn init_reflector(&mut self, _obj: *mut JSObject) {
-        unreachable!()
-    }
 }
 
 impl GlobalRoot {
