@@ -29,7 +29,7 @@ impl<T> DOMRefCell<T> {
     #[allow(unsafe_code)]
     pub unsafe fn borrow_for_layout(&self) -> &T {
         debug_assert!(thread_state::get().is_layout());
-        &*self.value.as_unsafe_cell().get()
+        &*self.value.as_ptr()
     }
 
     /// Borrow the contents for the purpose of GC tracing.
@@ -41,7 +41,7 @@ impl<T> DOMRefCell<T> {
         // FIXME: IN_GC isn't reliable enough - doesn't catch minor GCs
         // https://github.com/servo/servo/issues/6389
         // debug_assert!(thread_state::get().contains(SCRIPT | IN_GC));
-        &*self.value.as_unsafe_cell().get()
+        &*self.value.as_ptr()
     }
 
     /// Borrow the contents for the purpose of script deallocation.
@@ -49,7 +49,7 @@ impl<T> DOMRefCell<T> {
     #[allow(unsafe_code)]
     pub unsafe fn borrow_for_script_deallocation(&self) -> &mut T {
         debug_assert!(thread_state::get().contains(SCRIPT));
-        &mut *self.value.as_unsafe_cell().get()
+        &mut *self.value.as_ptr()
     }
 
     /// Version of the above that we use during restyle while the script thread
