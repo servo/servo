@@ -4,3 +4,8 @@
 
 flat varying vec4 vColor;
 varying vec2 vUv;
+
+#ifdef WR_FEATURE_TRANSFORM
+varying vec3 vLocalPos;
+flat varying vec4 vLocalRect;
+#endif

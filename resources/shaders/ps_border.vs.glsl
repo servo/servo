@@ -37,17 +37,20 @@ void main(void) {
 #ifdef WR_FEATURE_TRANSFORM
     TransformVertexInfo vi = write_transform_vertex(border.info);
     vLocalPos = vi.local_pos;
+
+    // Local space
+    vLocalRect = vi.clipped_local_rect;
 #else
     VertexInfo vi = write_vertex(border.info);
     vLocalPos = vi.local_clamped_pos.xy;
+
+    // Local space
+    vLocalRect = border.info.local_rect;
 #endif
 
     // This is what was currently sent.
     vVerticalColor = border.verticalColor;
     vHorizontalColor = border.horizontalColor;
-
-    // Local space
-    vLocalRect = border.info.local_rect;
 
     // Just our boring radius position.
     vRadii = border.radii;

@@ -29,7 +29,7 @@
 struct Layer {
     mat4 transform;
     mat4 inv_transform;
-    ivec4 world_clip_rect;
+    vec4 local_clip_rect;
     vec4 screen_vertices[4];
 };
 
@@ -123,6 +123,10 @@ VertexInfo write_vertex(PrimitiveInfo info) {
     vec2 cp1 = floor(0.5 + (info.local_clip_rect.xy + info.local_clip_rect.zw) * uDevicePixelRatio) / uDevicePixelRatio;
     local_pos = clamp(local_pos, cp0, cp1);
 
+    local_pos = clamp(local_pos,
+                      vec2(layer.local_clip_rect.xy),
+                      vec2(layer.local_clip_rect.xy + layer.local_clip_rect.zw));
+
     vec4 world_pos = layer.transform * vec4(local_pos, 0, 1);
     world_pos.xyz /= world_pos.w;
 
@@ -131,10 +135,6 @@ VertexInfo write_vertex(PrimitiveInfo info) {
     vec2 clamped_pos = clamp(device_pos,
                              vec2(tile.actual_rect.xy),
                              vec2(tile.actual_rect.xy + tile.actual_rect.zw));
-
-    clamped_pos = clamp(clamped_pos,
-                        vec2(layer.world_clip_rect.xy),
-                        vec2(layer.world_clip_rect.xy + layer.world_clip_rect.zw));
 
     vec4 local_clamped_pos = layer.inv_transform * vec4(clamped_pos / uDevicePixelRatio, world_pos.z, 1);
     local_clamped_pos.xyz /= local_clamped_pos.w;
@@ -149,16 +149,29 @@ VertexInfo write_vertex(PrimitiveInfo info) {
 
 struct TransformVertexInfo {
     vec3 local_pos;
+    vec4 clipped_local_rect;
 };
 
 TransformVertexInfo write_transform_vertex(PrimitiveInfo info) {
     Layer layer = layers[info.layer_tile_part.x];
     Tile tile = tiles[info.layer_tile_part.y];
 
-    vec2 p0 = info.local_rect.xy;
-    vec2 p1 = info.local_rect.xy + vec2(info.local_rect.z, 0.0);
-    vec2 p2 = info.local_rect.xy + vec2(0.0, info.local_rect.w);
-    vec2 p3 = info.local_rect.xy + info.local_rect.zw;
+    vec2 lp0 = info.local_rect.xy;
+    vec2 lp1 = info.local_rect.xy + info.local_rect.zw;
+
+    lp0 = clamp(lp0,
+                layer.local_clip_rect.xy,
+                layer.local_clip_rect.xy + layer.local_clip_rect.zw);
+    lp1 = clamp(lp1,
+                layer.local_clip_rect.xy,
+                layer.local_clip_rect.xy + layer.local_clip_rect.zw);
+
+    vec4 clipped_local_rect = vec4(lp0, lp1 - lp0);
+
+    vec2 p0 = lp0;
+    vec2 p1 = vec2(lp1.x, lp0.y);
+    vec2 p2 = vec2(lp0.x, lp1.y);
+    vec2 p3 = lp1;
 
     vec4 t0 = layer.transform * vec4(p0, 0, 1);
     vec4 t1 = layer.transform * vec4(p1, 0, 1);
@@ -191,7 +204,7 @@ TransformVertexInfo write_transform_vertex(PrimitiveInfo info) {
 
     gl_Position = uTransform * vec4(final_pos, 0, 1);
 
-    return TransformVertexInfo(layer_pos);
+    return TransformVertexInfo(layer_pos, clipped_local_rect);
 }
 #endif
 

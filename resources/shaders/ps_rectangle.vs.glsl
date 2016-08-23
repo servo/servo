@@ -17,7 +17,7 @@ void main(void) {
     vColor = rect.color;
 #ifdef WR_FEATURE_TRANSFORM
     TransformVertexInfo vi = write_transform_vertex(rect.info);
-    vLocalRect = rect.info.local_rect;
+    vLocalRect = vi.clipped_local_rect;
     vLocalPos = vi.local_pos;
 #else
     write_vertex(rect.info);
