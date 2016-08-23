@@ -29,7 +29,7 @@ use std::slice;
 use std::sync::Arc;
 use string_cache::Atom;
 use style_traits::viewport::ViewportConstraints;
-use stylesheets::{CSSRule, CSSRuleIteratorExt, Origin, Stylesheet};
+use stylesheets::{CSSRule, CSSRuleIteratorExt, Origin, Stylesheet, UserAgentStylesheets};
 use viewport::{MaybeNew, ViewportRuleCascade};
 
 pub type FnvHashMap<K, V> = HashMap<K, V, BuildHasherDefault<::fnv::FnvHasher>>;
@@ -116,7 +116,10 @@ impl Stylist {
         stylist
     }
 
-    pub fn update(&mut self, doc_stylesheets: &[Arc<Stylesheet>], stylesheets_changed: bool) -> bool {
+    pub fn update(&mut self,
+                  doc_stylesheets: &[Arc<Stylesheet>],
+                  ua_stylesheets: Option<&UserAgentStylesheets>,
+                  stylesheets_changed: bool) -> bool {
         if !(self.is_device_dirty || stylesheets_changed) {
             return false;
         }
@@ -135,13 +138,13 @@ impl Stylist {
         self.sibling_affecting_selectors.clear();
         self.non_common_style_affecting_attributes_selectors.clear();
 
-        for ref stylesheet in TheSelectorImpl::get_user_or_user_agent_stylesheets().iter() {
-            self.add_stylesheet(&stylesheet);
-        }
+        if let Some(ua_stylesheets) = ua_stylesheets {
+            for stylesheet in &ua_stylesheets.user_or_user_agent_stylesheets {
+                self.add_stylesheet(&stylesheet);
+            }
 
-        if self.quirks_mode {
-            if let Some(s) = TheSelectorImpl::get_quirks_mode_stylesheet() {
-                self.add_stylesheet(s);
+            if self.quirks_mode {
+                self.add_stylesheet(&ua_stylesheets.quirks_mode_stylesheet);
             }
         }
 
