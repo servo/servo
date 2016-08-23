@@ -19306,6 +19306,10 @@
         "url": "/html/semantics/embedded-content/the-img-element/invalid-src.html"
       },
       {
+        "path": "html/semantics/embedded-content/the-img-element/nonexistent-image.html",
+        "url": "/html/semantics/embedded-content/the-img-element/nonexistent-image.html"
+      },
+      {
         "path": "html/semantics/embedded-content/the-img-element/relevant-mutations.html",
         "url": "/html/semantics/embedded-content/the-img-element/relevant-mutations.html"
       },
