@@ -247,7 +247,7 @@ fn compute_damage(old: &ServoComputedValues, new: &ServoComputedValues) -> Resty
         get_effects.box_shadow, get_effects.clip, get_inheritedtext.text_shadow, get_effects.filter,
         get_effects.transform, get_effects.backface_visibility, get_effects.transform_style,
         get_effects.transform_origin, get_effects.perspective, get_effects.perspective_origin,
-        get_effects.mix_blend_mode, get_inheritedbox.image_rendering,
+        get_effects.mix_blend_mode, get_effects.opacity, get_inheritedbox.image_rendering,
 
         // Note: May require REFLOW et al. if `visibility: collapse` is implemented.
         get_inheritedbox.visibility

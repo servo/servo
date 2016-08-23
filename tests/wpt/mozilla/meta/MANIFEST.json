@@ -2496,6 +2496,18 @@
             "url": "/_mozilla/css/inline_block_min_width.html"
           }
         ],
+        "css/inline_block_opacity_change.html": [
+          {
+            "path": "css/inline_block_opacity_change.html",
+            "references": [
+              [
+                "/_mozilla/css/inline_block_opacity_change_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/inline_block_opacity_change.html"
+          }
+        ],
         "css/inline_block_overflow.html": [
           {
             "path": "css/inline_block_overflow.html",
@@ -11786,6 +11798,18 @@
             ]
           ],
           "url": "/_mozilla/css/inline_block_min_width.html"
+        }
+      ],
+      "css/inline_block_opacity_change.html": [
+        {
+          "path": "css/inline_block_opacity_change.html",
+          "references": [
+            [
+              "/_mozilla/css/inline_block_opacity_change_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/inline_block_opacity_change.html"
         }
       ],
       "css/inline_block_overflow.html": [
