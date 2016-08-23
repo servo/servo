@@ -5,20 +5,13 @@
 use attr::{AttrIdentifier, AttrValue};
 use cssparser::ToCss;
 use element_state::ElementState;
-use error_reporting::StdoutErrorReporter;
-use parser::ParserContextExtraData;
 use restyle_hints::ElementSnapshot;
 use selector_impl::{ElementExt, PseudoElementCascadeType, TheSelectorImpl};
 use selector_impl::{attr_exists_selector_is_shareable, attr_equals_selector_is_shareable};
 use selectors::parser::{AttrSelector, ParserContext, SelectorImpl};
 use selectors::{Element, MatchAttrGeneric};
 use std::fmt;
-use std::process;
 use string_cache::{Atom, Namespace};
-use stylesheets::{Stylesheet, Origin};
-use url::Url;
-use util::opts;
-use util::resource_files::read_resource_file;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -240,16 +233,6 @@ impl ServoSelectorImpl {
     pub fn pseudo_is_before_or_after(pseudo: &PseudoElement) -> bool {
         pseudo.is_before_or_after()
     }
-
-    #[inline]
-    pub fn get_user_or_user_agent_stylesheets() -> &'static [Stylesheet] {
-        &*USER_OR_USER_AGENT_STYLESHEETS
-    }
-
-    #[inline]
-    pub fn get_quirks_mode_stylesheet() -> Option<&'static Stylesheet> {
-        Some(&*QUIRKS_MODE_STYLESHEET)
-    }
 }
 
 /// Servo's version of an element snapshot.
@@ -335,58 +318,4 @@ impl<E: Element<Impl=TheSelectorImpl>> ElementExt for E {
     fn is_link(&self) -> bool {
         self.match_non_ts_pseudo_class(NonTSPseudoClass::AnyLink)
     }
-}
-
-lazy_static! {
-    pub static ref USER_OR_USER_AGENT_STYLESHEETS: Vec<Stylesheet> = {
-        let mut stylesheets = vec!();
-        // FIXME: presentational-hints.css should be at author origin with zero specificity.
-        //        (Does it make a difference?)
-        for &filename in &["user-agent.css", "servo.css", "presentational-hints.css"] {
-            match read_resource_file(filename) {
-                Ok(res) => {
-                    let ua_stylesheet = Stylesheet::from_bytes(
-                        &res,
-                        Url::parse(&format!("chrome://resources/{:?}", filename)).unwrap(),
-                        None,
-                        None,
-                        Origin::UserAgent,
-                        Box::new(StdoutErrorReporter),
-                        ParserContextExtraData::default());
-                    stylesheets.push(ua_stylesheet);
-                }
-                Err(..) => {
-                    error!("Failed to load UA stylesheet {}!", filename);
-                    process::exit(1);
-                }
-            }
-        }
-        for &(ref contents, ref url) in &opts::get().user_stylesheets {
-            stylesheets.push(Stylesheet::from_bytes(
-                &contents, url.clone(), None, None, Origin::User, Box::new(StdoutErrorReporter),
-                ParserContextExtraData::default()));
-        }
-        stylesheets
-    };
-}
-
-lazy_static! {
-    pub static ref QUIRKS_MODE_STYLESHEET: Stylesheet = {
-        match read_resource_file("quirks-mode.css") {
-            Ok(res) => {
-                Stylesheet::from_bytes(
-                    &res,
-                    Url::parse("chrome://resources/quirks-mode.css").unwrap(),
-                    None,
-                    None,
-                    Origin::UserAgent,
-                    Box::new(StdoutErrorReporter),
-                    ParserContextExtraData::default())
-            },
-            Err(..) => {
-                error!("Stylist failed to load 'quirks-mode.css'!");
-                process::exit(1);
-            }
-        }
-    };
 }
