@@ -107,8 +107,6 @@ impl HeadersMethods for Headers {
             return Ok(());
         }
         // Step 4
-        // TODO: Requires clarification from the Fetch spec:
-        // ... https://github.com/whatwg/fetch/issues/372
         if self.guard.get() == Guard::RequestNoCors &&
             !is_cors_safelisted_request_header(&valid_name, &b"invalid".to_vec()) {
                 return Ok(());
@@ -257,7 +255,7 @@ impl Iterable for Headers {
 
     fn get_key_at_index(&self, n: u32) -> ByteString {
         let sorted_header_vec = self.sort_header_list();
-        let key = sorted_header_vec[n as usize].1.clone();
+        let key = sorted_header_vec[n as usize].0.clone();
         ByteString::new(key.into_bytes().to_vec())
     }
 }
