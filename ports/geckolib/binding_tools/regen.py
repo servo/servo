@@ -154,12 +154,9 @@ COMPILATION_TARGETS = {
             "ServoComputedValues", "RawServoStyleSheet",
             "ServoDeclarationBlock"
         ],
-        "servo_borrowed_types": [
+        "servo_owned_types": [
             "RawServoStyleSet",
         ],
-        "servo_borrowed_mut_types": [
-            "RawServoStyleSet",
-        ]
     },
 
     "atoms": {
@@ -331,18 +328,20 @@ def build(objdir, target_name, debug, debugger, kind_name=None,
             flags.append("{}Borrowed".format(ty))
             flags.append("--raw-line")
             flags.append("pub type {0}Borrowed<'a> = ::sugar::refptr::Borrowed<'a, {0}>;".format(ty))
-    if "servo_borrowed_types" in current_target:
-        for ty in current_target["servo_borrowed_types"]:
+    if "servo_owned_types" in current_target:
+        for ty in current_target["servo_owned_types"]:
             flags.append("-blacklist-type")
             flags.append("{}Borrowed".format(ty))
             flags.append("-raw-line")
             flags.append("pub type {0}Borrowed<'a> = &'a {0};".format(ty))
-    if "servo_borrowed_mut_types" in current_target:
-        for ty in current_target["servo_borrowed_mut_types"]:
             flags.append("-blacklist-type")
             flags.append("{}BorrowedMut".format(ty))
             flags.append("-raw-line")
             flags.append("pub type {0}BorrowedMut<'a> = &'a mut {0};".format(ty))
+            flags.append("-blacklist-type")
+            flags.append("{}Owned".format(ty))
+            flags.append("-raw-line")
+            flags.append("pub type {0}Owned = ::sugar::refptr::Owned<{0}>;".format(ty))
     if "structs_types" in current_target:
         for ty in current_target["structs_types"]:
             ty_fragments = ty.split("::")

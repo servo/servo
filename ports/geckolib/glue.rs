@@ -10,6 +10,7 @@ use env_logger;
 use euclid::Size2D;
 use gecko_bindings::bindings::{RawGeckoDocument, RawGeckoElement, RawGeckoNode};
 use gecko_bindings::bindings::{RawServoStyleSet, RawServoStyleSetBorrowedMut};
+use gecko_bindings::bindings::RawServoStyleSetOwned;
 use gecko_bindings::bindings::{RawServoStyleSheetBorrowed, ServoComputedValuesBorrowed};
 use gecko_bindings::bindings::{RawServoStyleSheetStrong, ServoComputedValuesStrong};
 use gecko_bindings::bindings::{ServoDeclarationBlock, ServoNodeData, ThreadSafePrincipalHolder};
@@ -19,7 +20,8 @@ use gecko_bindings::ptr::{GeckoArcPrincipal, GeckoArcURI};
 use gecko_bindings::structs::ServoElementSnapshot;
 use gecko_bindings::structs::nsRestyleHint;
 use gecko_bindings::structs::{SheetParsingMode, nsIAtom};
-use gecko_bindings::sugar::refptr::{FFIArcHelpers, HasArcFFI, HasSimpleFFI, HasFFI, Strong};
+use gecko_bindings::sugar::refptr::{FFIArcHelpers, HasArcFFI, HasBoxFFI};
+use gecko_bindings::sugar::refptr::{HasSimpleFFI, HasFFI, Strong};
 use gecko_string_cache::Atom;
 use snapshot::GeckoElementSnapshot;
 use std::mem::transmute;
@@ -336,16 +338,14 @@ pub extern "C" fn Servo_ComputedValues_Release(ptr: ServoComputedValuesBorrowed)
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_StyleSet_Init() -> *mut RawServoStyleSet {
+pub extern "C" fn Servo_StyleSet_Init() -> RawServoStyleSetOwned {
     let data = Box::new(PerDocumentStyleData::new());
-    Box::into_raw(data) as *mut RawServoStyleSet
+    data.into_ffi()
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_StyleSet_Drop(data: *mut RawServoStyleSet) -> () {
-    unsafe {
-        let _ = Box::<PerDocumentStyleData>::from_raw(data as *mut PerDocumentStyleData);
-    }
+pub extern "C" fn Servo_StyleSet_Drop(data: RawServoStyleSetOwned) -> () {
+    let _ = data.into_box::<PerDocumentStyleData>();
 }
 
 pub struct GeckoDeclarationBlock {

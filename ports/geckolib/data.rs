@@ -4,7 +4,7 @@
 
 use euclid::size::TypedSize2D;
 use gecko_bindings::bindings::RawServoStyleSet;
-use gecko_bindings::sugar::refptr::{HasSimpleFFI, HasFFI};
+use gecko_bindings::sugar::refptr::{HasBoxFFI, HasFFI, HasSimpleFFI};
 use num_cpus;
 use std::cmp;
 use std::collections::HashMap;
@@ -94,6 +94,7 @@ unsafe impl HasFFI for PerDocumentStyleData {
     type FFIType = RawServoStyleSet;
 }
 unsafe impl HasSimpleFFI for PerDocumentStyleData {}
+unsafe impl HasBoxFFI for PerDocumentStyleData {}
 
 impl Drop for PerDocumentStyleData {
     fn drop(&mut self) {
