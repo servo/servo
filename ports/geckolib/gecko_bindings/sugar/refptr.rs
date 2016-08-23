@@ -15,10 +15,29 @@ pub unsafe trait HasFFI : Sized {
     type FFIType: Sized;
 }
 
+/// Indicates that a given Servo type has the same layout
+/// as the corresponding HasFFI::FFIType type
+pub unsafe trait HasSimpleFFI : HasFFI {
+    fn as_ffi(&self) -> &Self::FFIType {
+        unsafe { transmute(self) }
+    }
+    fn as_ffi_mut(&mut self) -> &mut Self::FFIType {
+        unsafe { transmute(self) }
+    }
+    fn from_ffi(ffi: &Self::FFIType) -> &Self {
+        unsafe { transmute(ffi) }
+    }
+    fn from_ffi_mut(ffi: &mut Self::FFIType) -> &mut Self {
+        unsafe { transmute(ffi) }
+    }
+}
+
 /// Helper trait for conversions between FFI Strong/Borrowed types and Arcs
 ///
 /// Should be implemented by types which are passed over FFI as Arcs
 /// via Strong and Borrowed
+///
+/// In this case, the FFIType is the rough equivalent of ArcInner<Self>
 pub unsafe trait HasArcFFI : HasFFI {
     // these methods can't be on Borrowed because it leads to an unspecified
     // impl parameter
@@ -112,7 +131,7 @@ pub unsafe trait FFIArcHelpers {
 unsafe impl<T: HasArcFFI> FFIArcHelpers for Arc<T> {
     type Inner = T;
     fn into_strong(self) -> Strong<T::FFIType> {
-        unsafe {transmute(self)}
+        unsafe { transmute(self) }
     }
     fn as_borrowed(&self) -> Borrowed<T::FFIType> {
         let borrowedptr = self as *const Arc<T> as *const Borrowed<T::FFIType>;
