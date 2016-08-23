@@ -13,6 +13,7 @@ pub type ServoDeclarationBlockStrong = ::sugar::refptr::Strong<ServoDeclarationB
 pub type ServoDeclarationBlockBorrowed<'a> = ::sugar::refptr::Borrowed<'a, ServoDeclarationBlock>;
 pub type RawServoStyleSetBorrowed<'a> = &'a RawServoStyleSet;
 pub type RawServoStyleSetBorrowedMut<'a> = &'a mut RawServoStyleSet;
+pub type RawServoStyleSetOwned = ::sugar::refptr::Owned<RawServoStyleSet>;
 use structs::nsStyleFont;
 unsafe impl Send for nsStyleFont {}
 unsafe impl Sync for nsStyleFont {}
@@ -460,9 +461,9 @@ extern "C" {
     pub fn Servo_StyleSheet_Release(sheet: RawServoStyleSheetBorrowed);
     pub fn Servo_StyleSheet_HasRules(sheet: RawServoStyleSheetBorrowed)
      -> bool;
-    pub fn Servo_StyleSet_Init() -> *mut RawServoStyleSet;
-    pub fn Servo_StyleSet_Drop(set: *mut RawServoStyleSet);
-    pub fn Servo_StyleSet_AppendStyleSheet(set: *mut RawServoStyleSet,
+    pub fn Servo_StyleSet_Init() -> RawServoStyleSetOwned;
+    pub fn Servo_StyleSet_Drop(set: RawServoStyleSetOwned);
+    pub fn Servo_StyleSet_AppendStyleSheet(set: RawServoStyleSetBorrowedMut,
                                            sheet: RawServoStyleSheetBorrowed);
     pub fn Servo_StyleSet_PrependStyleSheet(set: RawServoStyleSetBorrowedMut,
                                             sheet:

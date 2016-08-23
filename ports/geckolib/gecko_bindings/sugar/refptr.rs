@@ -4,6 +4,7 @@
 
 use std::marker::PhantomData;
 use std::mem::{forget, transmute};
+use std::ops::{Deref, DerefMut};
 use std::ptr;
 use std::sync::Arc;
 
@@ -29,6 +30,14 @@ pub unsafe trait HasSimpleFFI : HasFFI {
     }
     fn from_ffi_mut(ffi: &mut Self::FFIType) -> &mut Self {
         unsafe { transmute(ffi) }
+    }
+}
+
+/// Indicates that the given Servo type is passed over FFI
+/// as a Box
+pub unsafe trait HasBoxFFI : HasSimpleFFI {
+    fn into_ffi(self: Box<Self>) -> Owned<Self::FFIType> {
+        unsafe { transmute(self) }
     }
 }
 
@@ -136,5 +145,32 @@ unsafe impl<T: HasArcFFI> FFIArcHelpers for Arc<T> {
     fn as_borrowed(&self) -> Borrowed<T::FFIType> {
         let borrowedptr = self as *const Arc<T> as *const Borrowed<T::FFIType>;
         unsafe { ptr::read(borrowedptr) }
+    }
+}
+
+#[repr(C)]
+/// Gecko-FFI-safe owned pointer
+/// Cannot be null
+pub struct Owned<T> {
+    ptr: *mut T,
+    _marker: PhantomData<T>,
+}
+
+impl<T> Owned<T> {
+    pub fn into_box<U>(self) -> Box<T> where U: HasBoxFFI<FFIType = T> {
+        unsafe { transmute(self) }
+    }
+}
+
+impl<T> Deref for Owned<T> {
+    type Target = T;
+    fn deref(&self) -> &T {
+        unsafe { &*self.ptr }
+    }
+}
+
+impl<T> DerefMut for Owned<T> {
+    fn deref_mut(&mut self) -> &mut T {
+        unsafe { &mut *self.ptr }
     }
 }
