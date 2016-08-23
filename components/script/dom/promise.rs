@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::PromiseBinding::AnyCallback;
 use dom::bindings::conversions::root_from_object;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::reflector::{Reflectable, Reflector};
+use dom::bindings::reflector::{Reflectable, MutReflectable, Reflector};
 use dom::promisenativehandler::PromiseNativeHandler;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::{CallOriginalPromiseResolve, CallOriginalPromiseReject, CallOriginalPromiseThen};
