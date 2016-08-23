@@ -42,6 +42,7 @@ use style::computed_values::content::ContentItem;
 use style::computed_values::{border_collapse, box_sizing, clear, color, display, mix_blend_mode};
 use style::computed_values::{overflow_wrap, overflow_x, position, text_decoration};
 use style::computed_values::{transform_style, vertical_align, white_space, word_break, z_index};
+use style::context::SharedStyleContext;
 use style::dom::TRestyleDamage;
 use style::logical_geometry::{LogicalMargin, LogicalRect, LogicalSize, WritingMode};
 use style::properties::ServoComputedValues;
@@ -325,7 +326,7 @@ pub struct CanvasFragmentInfo {
 impl CanvasFragmentInfo {
     pub fn new<N: ThreadSafeLayoutNode>(node: &N, data: HTMLCanvasData, ctx: &LayoutContext) -> CanvasFragmentInfo {
         CanvasFragmentInfo {
-            replaced_image_fragment_info: ReplacedImageFragmentInfo::new(node, ctx),
+            replaced_image_fragment_info: ReplacedImageFragmentInfo::new(node, ctx.style_context()),
             ipc_renderer: data.ipc_renderer
                               .map(|renderer| Arc::new(Mutex::new(renderer))),
             dom_width: Au::from_px(data.width as i32),
@@ -386,7 +387,7 @@ impl ImageFragmentInfo {
         };
 
         ImageFragmentInfo {
-            replaced_image_fragment_info: ReplacedImageFragmentInfo::new(node, layout_context),
+            replaced_image_fragment_info: ReplacedImageFragmentInfo::new(node, layout_context.style_context()),
             image: image,
             metadata: metadata,
         }
@@ -445,9 +446,9 @@ pub struct ReplacedImageFragmentInfo {
 }
 
 impl ReplacedImageFragmentInfo {
-    pub fn new<N>(node: &N, ctx: &LayoutContext) -> ReplacedImageFragmentInfo
+    pub fn new<N>(node: &N, ctx: &SharedStyleContext) -> ReplacedImageFragmentInfo
             where N: ThreadSafeLayoutNode {
-        let is_vertical = node.style(ctx.style_context()).writing_mode.is_vertical();
+        let is_vertical = node.style(ctx).writing_mode.is_vertical();
         ReplacedImageFragmentInfo {
             computed_inline_size: None,
             computed_block_size: None,
