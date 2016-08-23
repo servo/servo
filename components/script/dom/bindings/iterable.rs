@@ -12,7 +12,7 @@ use dom::bindings::codegen::Bindings::IterableIteratorBinding::IterableKeyOrValu
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
-use dom::bindings::reflector::{Reflector, Reflectable, reflect_dom_object};
+use dom::bindings::reflector::{Reflector, Reflectable, MutReflectable, reflect_dom_object};
 use dom::bindings::trace::JSTraceable;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::{JSContext, JSObject, MutableHandleValue, MutableHandleObject, HandleValue};
@@ -63,6 +63,9 @@ impl<T: Reflectable + JSTraceable + Iterable> Reflectable for IterableIterator<T
     fn reflector<'a>(&'a self) -> &'a Reflector {
         &self.reflector
     }
+}
+
+impl<T: Reflectable + JSTraceable + Iterable> MutReflectable for IterableIterator<T> {
     fn init_reflector(&mut self, obj: *mut JSObject) {
         self.reflector.set_jsobject(obj);
     }

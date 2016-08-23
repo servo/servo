@@ -73,11 +73,15 @@ impl Reflector {
 pub trait Reflectable {
     /// Returns the receiver's reflector.
     fn reflector(&self) -> &Reflector;
-    /// Initializes the Reflector
-    fn init_reflector(&mut self, obj: *mut JSObject);
 
     /// Returns the global object of the realm that the Reflectable was created in.
     fn global(&self) -> GlobalRoot where Self: Sized {
         global_root_from_reflector(self)
     }
+}
+
+/// A trait to initialize the `Reflector` for a DOM object.
+pub trait MutReflectable: Reflectable {
+    /// Initializes the Reflector
+    fn init_reflector(&mut self, obj: *mut JSObject);
 }

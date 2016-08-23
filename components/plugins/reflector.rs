@@ -24,12 +24,17 @@ pub fn expand_reflector(cx: &mut ExtCtxt, span: Span, _: &MetaItem, annotatable:
                             fn reflector<'a>(&'a self) -> &'a ::dom::bindings::reflector::Reflector {
                                 &self.$field_name
                             }
+                        }
+                    );
+                    let impl_item_mut = quote_item!(cx,
+                        impl ::dom::bindings::reflector::MutReflectable for $struct_name {
                             fn init_reflector(&mut self, obj: *mut ::js::jsapi::JSObject) {
                                 self.$field_name.set_jsobject(obj);
                             }
                         }
                     );
-                    impl_item.map(|it| push(Annotatable::Item(it)))
+                    impl_item.map(|it| push(Annotatable::Item(it)));
+                    impl_item_mut.map(|it| push(Annotatable::Item(it)))
                 },
                 // Or just call it on the first field (supertype).
                 None => {
@@ -39,12 +44,17 @@ pub fn expand_reflector(cx: &mut ExtCtxt, span: Span, _: &MetaItem, annotatable:
                             fn reflector<'a>(&'a self) -> &'a ::dom::bindings::reflector::Reflector {
                                 self.$field_name.reflector()
                             }
+                        }
+                    );
+                    let impl_item_mut = quote_item!(cx,
+                        impl ::dom::bindings::reflector::MutReflectable for $struct_name {
                             fn init_reflector(&mut self, obj: *mut ::js::jsapi::JSObject) {
                                 self.$field_name.init_reflector(obj);
                             }
                         }
                     );
-                    impl_item.map(|it| push(Annotatable::Item(it)))
+                    impl_item.map(|it| push(Annotatable::Item(it)));
+                    impl_item_mut.map(|it| push(Annotatable::Item(it)))
                 }
             };
 
