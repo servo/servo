@@ -39,6 +39,7 @@ extern crate fnv;
 // Platforms that use Freetype/Fontconfig library dependencies
 #[cfg(any(target_os = "linux", target_os = "android", all(target_os = "windows", target_env = "gnu")))]
 extern crate fontconfig;
+extern crate fontsan;
 #[cfg(any(target_os = "linux", target_os = "android", all(target_os = "windows", target_env = "gnu")))]
 extern crate freetype;
 

@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use font_template::{FontTemplate, FontTemplateDescriptor};
+use fontsan;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use mime::{TopLevel, SubLevel};
@@ -252,8 +253,18 @@ impl FontCache {
                                 channel_to_self.send(msg).unwrap();
                                 return;
                             }
-                            let mut bytes = bytes.lock().unwrap();
-                            let bytes = mem::replace(&mut *bytes, Vec::new());
+                            let bytes = mem::replace(&mut *bytes.lock().unwrap(), vec![]);
+                            let bytes = match fontsan::process(&bytes) {
+                                Ok(san) => san,
+                                Err(_) => {
+                                    // FIXME(servo/fontsan#1): get an error message
+                                    debug!("Sanitiser rejected web font: \
+                                            family={:?} url={}", family_name, url);
+                                    let msg = Command::AddWebFont(family_name.clone(), sources.clone(), sender.clone());
+                                    channel_to_self.send(msg).unwrap();
+                                    return;
+                                },
+                            };
                             let command =
                                 Command::AddDownloadedWebFont(family_name.clone(),
                                                               url.clone(),
