@@ -29,6 +29,7 @@ use net_traits::request::{Type, Origin, Window};
 use net_traits::response::{HttpsState, TerminationReason};
 use net_traits::response::{Response, ResponseBody, ResponseType};
 use resource_thread::CancellationListener;
+use std::cell::RefCell;
 use std::collections::HashSet;
 use std::fs::File;
 use std::io::Read;
@@ -394,7 +395,7 @@ fn basic_fetch(request: Rc<Request>, cache: &mut CORSCache,
             let mut response = Response::new();
             // https://github.com/whatwg/fetch/issues/312
             response.url = Some(url);
-            response.headers.set(ContentType(mime!(Text / Html; Charset = Utf8)));
+            response.headers.borrow_mut().set(ContentType(mime!(Text / Html; Charset = Utf8)));
             *response.body.lock().unwrap() = ResponseBody::Done(vec![]);
             response
         },
@@ -411,7 +412,7 @@ fn basic_fetch(request: Rc<Request>, cache: &mut CORSCache,
                         // https://github.com/whatwg/fetch/issues/312
                         response.url = Some(url.clone());
                         *response.body.lock().unwrap() = ResponseBody::Done(bytes);
-                        response.headers.set(ContentType(mime));
+                        response.headers.borrow_mut().set(ContentType(mime));
                         response
                     },
                     Err(_) => Response::network_error()
@@ -434,7 +435,7 @@ fn basic_fetch(request: Rc<Request>, cache: &mut CORSCache,
                             // https://github.com/whatwg/fetch/issues/312
                             response.url = Some(url.clone());
                             *response.body.lock().unwrap() = ResponseBody::Done(bytes);
-                            response.headers.set(ContentType(mime));
+                            response.headers.borrow_mut().set(ContentType(mime));
                             response
                         })
                     },
@@ -639,12 +640,12 @@ fn http_redirect_fetch(request: Rc<Request>,
     // Step 3
     // this step is done early, because querying if Location exists says
     // if it is None or Some, making it easy to seperate from the retrieval failure case
-    if !response.actual_response().headers.has::<Location>() {
+    if !response.actual_response().headers.borrow().has::<Location>() {
         return Rc::try_unwrap(response).ok().unwrap();
     }
 
     // Step 2
-    let location = match response.actual_response().headers.get::<Location>() {
+    let location = match response.actual_response().headers.borrow_mut().get::<Location>() {
         Some(&Location(ref location)) => location.clone(),
         // Step 4
         _ => return Response::network_error()
@@ -974,7 +975,7 @@ fn http_network_fetch(request: Rc<Request>,
             response.url = Some(url.clone());
             response.status = Some(res.response.status);
             response.raw_status = Some(res.response.status_raw().clone());
-            response.headers = res.response.headers.clone();
+            response.headers = Rc::new(RefCell::new(res.response.headers.clone()));
 
             let res_body = response.body.clone();
 
@@ -1068,7 +1069,7 @@ fn http_network_fetch(request: Rc<Request>,
     // TODO when https://bugzilla.mozilla.org/show_bug.cgi?id=1030660
     // is resolved, this step will become uneccesary
     // TODO this step
-    if let Some(encoding) = response.headers.get::<ContentEncoding>() {
+    if let Some(encoding) = response.headers.borrow().get::<ContentEncoding>() {
         if encoding.contains(&Encoding::Gzip) {
         }
 
@@ -1139,8 +1140,8 @@ fn cors_preflight_fetch(request: Rc<Request>, cache: &mut CORSCache,
     if cors_check(request.clone(), &response).is_ok() &&
        response.status.map_or(false, |status| status.is_success()) {
         // Substep 1
-        let mut methods = if response.headers.has::<AccessControlAllowMethods>() {
-            match response.headers.get::<AccessControlAllowMethods>() {
+        let mut methods = if response.headers.borrow().has::<AccessControlAllowMethods>() {
+            match response.headers.borrow().get::<AccessControlAllowMethods>() {
                 Some(&AccessControlAllowMethods(ref m)) => m.clone(),
                 // Substep 3
                 None => return Response::network_error()
@@ -1150,8 +1151,8 @@ fn cors_preflight_fetch(request: Rc<Request>, cache: &mut CORSCache,
         };
 
         // Substep 2
-        let header_names = if response.headers.has::<AccessControlAllowHeaders>() {
-            match response.headers.get::<AccessControlAllowHeaders>() {
+        let header_names = if response.headers.borrow().has::<AccessControlAllowHeaders>() {
+            match response.headers.borrow().get::<AccessControlAllowHeaders>() {
                 Some(&AccessControlAllowHeaders(ref hn)) => hn.clone(),
                 // Substep 3
                 None => return Response::network_error()
@@ -1183,7 +1184,7 @@ fn cors_preflight_fetch(request: Rc<Request>, cache: &mut CORSCache,
         }
 
         // Substep 7, 8
-        let max_age = response.headers.get::<AccessControlMaxAge>().map(|acma| acma.0).unwrap_or(0);
+        let max_age = response.headers.borrow().get::<AccessControlMaxAge>().map(|acma| acma.0).unwrap_or(0);
 
         // TODO: Substep 9 - Need to define what an imposed limit on max-age is
 
@@ -1208,7 +1209,7 @@ fn cors_preflight_fetch(request: Rc<Request>, cache: &mut CORSCache,
 /// [CORS check](https://fetch.spec.whatwg.org#concept-cors-check)
 fn cors_check(request: Rc<Request>, response: &Response) -> Result<(), ()> {
     // Step 1
-    let origin = response.headers.get::<AccessControlAllowOrigin>().cloned();
+    let origin = response.headers.borrow().get::<AccessControlAllowOrigin>().cloned();
 
     // Step 2
     let origin = try!(origin.ok_or(()));
