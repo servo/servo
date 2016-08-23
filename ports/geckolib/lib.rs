@@ -15,7 +15,6 @@ extern crate selectors;
 extern crate style;
 extern crate style_traits;
 extern crate url;
-extern crate util;
 
 mod context;
 mod data;
