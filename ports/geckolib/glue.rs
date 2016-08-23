@@ -13,6 +13,7 @@ use gecko_bindings::bindings::{RawGeckoDocument, RawGeckoElement, RawGeckoNode};
 use gecko_bindings::bindings::{RawServoStyleSheetBorrowed, ServoComputedValuesBorrowed};
 use gecko_bindings::bindings::{RawServoStyleSheetStrong, ServoComputedValuesStrong};
 use gecko_bindings::bindings::{ServoDeclarationBlock, ServoNodeData, ThreadSafePrincipalHolder};
+use gecko_bindings::bindings::{ServoDeclarationBlockBorrowed, ServoDeclarationBlockStrong};
 use gecko_bindings::bindings::{ThreadSafeURIHolder, nsHTMLCSSStyleSheet};
 use gecko_bindings::ptr::{GeckoArcPrincipal, GeckoArcURI};
 use gecko_bindings::structs::ServoElementSnapshot;
@@ -25,6 +26,7 @@ use std::mem::transmute;
 use std::ptr;
 use std::slice;
 use std::str::from_utf8_unchecked;
+use std::sync::atomic::{AtomicBool, AtomicPtr, Ordering};
 use std::sync::{Arc, Mutex};
 use style::arc_ptr_eq;
 use style::context::{LocalStyleContextCreationInfo, ReflowGoal, SharedStyleContext};
@@ -355,47 +357,62 @@ pub extern "C" fn Servo_DropStyleSet(data: *mut RawServoStyleSet) -> () {
 
 pub struct GeckoDeclarationBlock {
     pub declarations: Option<PropertyDeclarationBlock>,
-    pub cache: *mut nsHTMLCSSStyleSheet,
-    pub immutable: bool,
+    // XXX The following two fields are made atomic to work around the
+    // ownership system so that they can be changed inside a shared
+    // instance. It wouldn't provide safety as Rust usually promises,
+    // but it is fine as far as we only access them in a single thread.
+    // If we need to access them in different threads, we would need
+    // to redesign how it works with MiscContainer in Gecko side.
+    pub cache: AtomicPtr<nsHTMLCSSStyleSheet>,
+    pub immutable: AtomicBool,
+}
+
+unsafe impl HasArcFFI for GeckoDeclarationBlock {
+    type FFIType = ServoDeclarationBlock;
 }
 
 #[no_mangle]
 pub extern "C" fn Servo_ParseStyleAttribute(bytes: *const u8, length: u32,
                                             cache: *mut nsHTMLCSSStyleSheet)
-                                            -> *mut ServoDeclarationBlock {
+                                            -> ServoDeclarationBlockStrong {
     let value = unsafe { from_utf8_unchecked(slice::from_raw_parts(bytes, length as usize)) };
-    let declarations = Box::new(GeckoDeclarationBlock {
+    GeckoDeclarationBlock::from_arc(Arc::new(GeckoDeclarationBlock {
         declarations: GeckoElement::parse_style_attribute(value),
-        cache: cache,
-        immutable: false,
-    });
-    Box::into_raw(declarations) as *mut ServoDeclarationBlock
+        cache: AtomicPtr::new(cache),
+        immutable: AtomicBool::new(false),
+    }))
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_DropDeclarationBlock(declarations: *mut ServoDeclarationBlock) {
-    unsafe {
-        let _ = Box::<GeckoDeclarationBlock>::from_raw(declarations as *mut GeckoDeclarationBlock);
-    }
+pub extern "C" fn Servo_DeclarationBlock_AddRef(declarations: ServoDeclarationBlockBorrowed) {
+    unsafe { GeckoDeclarationBlock::addref(declarations) };
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_GetDeclarationBlockCache(declarations: *mut ServoDeclarationBlock)
+pub extern "C" fn Servo_DeclarationBlock_Release(declarations: ServoDeclarationBlockBorrowed) {
+    unsafe { GeckoDeclarationBlock::release(declarations) };
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_GetDeclarationBlockCache(declarations: ServoDeclarationBlockBorrowed)
                                                  -> *mut nsHTMLCSSStyleSheet {
-    let declarations = unsafe { (declarations as *const GeckoDeclarationBlock).as_ref().unwrap() };
-    declarations.cache
+    GeckoDeclarationBlock::with(declarations, |declarations| {
+        declarations.cache.load(Ordering::Relaxed)
+    })
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_SetDeclarationBlockImmutable(declarations: *mut ServoDeclarationBlock) {
-    let declarations = unsafe { (declarations as *mut GeckoDeclarationBlock).as_mut().unwrap() };
-    declarations.immutable = true;
+pub extern "C" fn Servo_SetDeclarationBlockImmutable(declarations: ServoDeclarationBlockBorrowed) {
+    GeckoDeclarationBlock::with(declarations, |declarations| {
+        declarations.immutable.store(true, Ordering::Relaxed)
+    })
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_ClearDeclarationBlockCachePointer(declarations: *mut ServoDeclarationBlock) {
-    let declarations = unsafe { (declarations as *mut GeckoDeclarationBlock).as_mut().unwrap() };
-    declarations.cache = ptr::null_mut();
+pub extern "C" fn Servo_ClearDeclarationBlockCachePointer(declarations: ServoDeclarationBlockBorrowed) {
+    GeckoDeclarationBlock::with(declarations, |declarations| {
+        declarations.cache.store(ptr::null_mut(), Ordering::Relaxed)
+    });
 }
 
 #[no_mangle]
