@@ -64,7 +64,9 @@ pub struct UserAgentStylesheets {
 #[derive(Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum CSSRule {
-    Charset(String),
+    // No Charset here, CSSCharsetRule has been removed from CSSOM
+    // https://drafts.csswg.org/cssom/#changes-from-5-december-2013
+
     Namespace {
         /// `None` for the default Namespace
         prefix: Option<Atom>,
@@ -423,16 +425,6 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
     fn parse_prelude(&self, name: &str, input: &mut Parser)
                      -> Result<AtRuleType<AtRulePrelude, CSSRule>, ()> {
         match_ignore_ascii_case! { name,
-            "charset" => {
-                if self.state.get() <= State::Start {
-                    // Valid @charset rules are just ignored
-                    self.state.set(State::Imports);
-                    let charset = try!(input.expect_string()).into_owned();
-                    return Ok(AtRuleType::WithoutBlock(CSSRule::Charset(charset)))
-                } else {
-                    return Err(())  // "@charset must be the first rule"
-                }
-            },
             "import" => {
                 if self.state.get() <= State::Imports {
                     self.state.set(State::Imports);
@@ -456,6 +448,9 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
                     return Err(())  // "@namespace must be before any rule but @charset and @import"
                 }
             },
+            // @charset is removed by rust-cssparser if it’s the first rule in the stylesheet
+            // anything left is invalid.
+            "charset" => return Err(()), // (insert appropriate error message)
             _ => {}
         }
 
