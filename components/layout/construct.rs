@@ -332,7 +332,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
             }
             Some(LayoutNodeType::Element(LayoutElementType::HTMLCanvasElement)) => {
                 let data = node.canvas_data().unwrap();
-                SpecificFragmentInfo::Canvas(box CanvasFragmentInfo::new(node, data, self.layout_context))
+                SpecificFragmentInfo::Canvas(box CanvasFragmentInfo::new(node, data, self.style_context()))
             }
             _ => {
                 // This includes pseudo-elements.

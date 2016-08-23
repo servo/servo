@@ -324,9 +324,12 @@ pub struct CanvasFragmentInfo {
 }
 
 impl CanvasFragmentInfo {
-    pub fn new<N: ThreadSafeLayoutNode>(node: &N, data: HTMLCanvasData, ctx: &LayoutContext) -> CanvasFragmentInfo {
+    pub fn new<N: ThreadSafeLayoutNode>(node: &N,
+                                        data: HTMLCanvasData,
+                                        ctx: &SharedStyleContext)
+                                        -> CanvasFragmentInfo {
         CanvasFragmentInfo {
-            replaced_image_fragment_info: ReplacedImageFragmentInfo::new(node, ctx.style_context()),
+            replaced_image_fragment_info: ReplacedImageFragmentInfo::new(node, ctx),
             ipc_renderer: data.ipc_renderer
                               .map(|renderer| Arc::new(Mutex::new(renderer))),
             dom_width: Au::from_px(data.width as i32),
