@@ -11,6 +11,8 @@ pub type RawServoStyleSheetStrong = ::sugar::refptr::Strong<RawServoStyleSheet>;
 pub type RawServoStyleSheetBorrowed<'a> = ::sugar::refptr::Borrowed<'a, RawServoStyleSheet>;
 pub type ServoDeclarationBlockStrong = ::sugar::refptr::Strong<ServoDeclarationBlock>;
 pub type ServoDeclarationBlockBorrowed<'a> = ::sugar::refptr::Borrowed<'a, ServoDeclarationBlock>;
+pub type RawServoStyleSetBorrowed<'a> = &'a RawServoStyleSet;
+pub type RawServoStyleSetBorrowedMut<'a> = &'a mut RawServoStyleSet;
 use structs::nsStyleFont;
 unsafe impl Send for nsStyleFont {}
 unsafe impl Sync for nsStyleFont {}
@@ -462,12 +464,12 @@ extern "C" {
     pub fn Servo_StyleSet_Drop(set: *mut RawServoStyleSet);
     pub fn Servo_StyleSet_AppendStyleSheet(set: *mut RawServoStyleSet,
                                            sheet: RawServoStyleSheetBorrowed);
-    pub fn Servo_StyleSet_PrependStyleSheet(set: *mut RawServoStyleSet,
+    pub fn Servo_StyleSet_PrependStyleSheet(set: RawServoStyleSetBorrowedMut,
                                             sheet:
                                                 RawServoStyleSheetBorrowed);
-    pub fn Servo_StyleSet_RemoveStyleSheet(set: *mut RawServoStyleSet,
+    pub fn Servo_StyleSet_RemoveStyleSheet(set: RawServoStyleSetBorrowedMut,
                                            sheet: RawServoStyleSheetBorrowed);
-    pub fn Servo_StyleSet_InsertStyleSheetBefore(set: *mut RawServoStyleSet,
+    pub fn Servo_StyleSet_InsertStyleSheetBefore(set: RawServoStyleSetBorrowedMut,
                                                  sheet:
                                                      RawServoStyleSheetBorrowed,
                                                  reference:
@@ -493,7 +495,7 @@ extern "C" {
     pub fn Servo_ComputedValues_GetForAnonymousBox(parent_style_or_null:
                                                        ServoComputedValuesBorrowed,
                                                    pseudoTag: *mut nsIAtom,
-                                                   set: *mut RawServoStyleSet)
+                                                   set: RawServoStyleSetBorrowedMut)
      -> ServoComputedValuesStrong;
     pub fn Servo_ComputedValues_GetForPseudoElement(parent_style:
                                                         ServoComputedValuesBorrowed,
@@ -501,7 +503,7 @@ extern "C" {
                                                         *mut RawGeckoElement,
                                                     pseudo_tag: *mut nsIAtom,
                                                     set:
-                                                        *mut RawServoStyleSet,
+                                                        RawServoStyleSetBorrowedMut,
                                                     is_probe: bool)
      -> ServoComputedValuesStrong;
     pub fn Servo_ComputedValues_Inherit(parent_style:
@@ -515,12 +517,12 @@ extern "C" {
     pub fn Servo_Shutdown();
     pub fn Servo_ComputeRestyleHint(element: *mut RawGeckoElement,
                                     snapshot: *mut ServoElementSnapshot,
-                                    set: *mut RawServoStyleSet)
+                                    set: RawServoStyleSetBorrowedMut)
      -> nsRestyleHint;
     pub fn Servo_RestyleDocument(doc: *mut RawGeckoDocument,
-                                 set: *mut RawServoStyleSet);
+                                 set: RawServoStyleSetBorrowedMut);
     pub fn Servo_RestyleSubtree(node: *mut RawGeckoNode,
-                                set: *mut RawServoStyleSet);
+                                set: RawServoStyleSetBorrowedMut);
     pub fn Servo_GetStyleFont(computed_values: ServoComputedValuesBorrowed)
      -> *const nsStyleFont;
     pub fn Servo_GetStyleColor(computed_values: ServoComputedValuesBorrowed)
