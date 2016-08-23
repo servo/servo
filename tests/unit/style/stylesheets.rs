@@ -191,19 +191,40 @@ fn test_parse_stylesheet() {
                             }
                          )),
                          Importance::Normal),
-                        (PropertyDeclaration::BackgroundPosition(DeclaredValue::Initial),
+                        (PropertyDeclaration::BackgroundPosition(DeclaredValue::Value(
+                            longhands::background_position::SpecifiedValue(
+                            vec![longhands::background_position::single_value
+                                                       ::get_initial_specified_value()]))),
                          Importance::Normal),
-                        (PropertyDeclaration::BackgroundRepeat(DeclaredValue::Initial),
+                        (PropertyDeclaration::BackgroundRepeat(DeclaredValue::Value(
+                            longhands::background_repeat::SpecifiedValue(
+                            vec![longhands::background_repeat::single_value
+                                                       ::get_initial_specified_value()]))),
                          Importance::Normal),
-                        (PropertyDeclaration::BackgroundAttachment(DeclaredValue::Initial),
+                        (PropertyDeclaration::BackgroundAttachment(DeclaredValue::Value(
+                            longhands::background_attachment::SpecifiedValue(
+                            vec![longhands::background_attachment::single_value
+                                                       ::get_initial_specified_value()]))),
                          Importance::Normal),
-                        (PropertyDeclaration::BackgroundImage(DeclaredValue::Initial),
+                        (PropertyDeclaration::BackgroundImage(DeclaredValue::Value(
+                            longhands::background_image::SpecifiedValue(
+                            vec![longhands::background_image::single_value
+                                                       ::get_initial_specified_value()]))),
                          Importance::Normal),
-                        (PropertyDeclaration::BackgroundSize(DeclaredValue::Initial),
+                        (PropertyDeclaration::BackgroundSize(DeclaredValue::Value(
+                            longhands::background_size::SpecifiedValue(
+                            vec![longhands::background_size::single_value
+                                                       ::get_initial_specified_value()]))),
                          Importance::Normal),
-                        (PropertyDeclaration::BackgroundOrigin(DeclaredValue::Initial),
+                        (PropertyDeclaration::BackgroundOrigin(DeclaredValue::Value(
+                            longhands::background_origin::SpecifiedValue(
+                            vec![longhands::background_origin::single_value
+                                                       ::get_initial_specified_value()]))),
                          Importance::Normal),
-                        (PropertyDeclaration::BackgroundClip(DeclaredValue::Initial),
+                        (PropertyDeclaration::BackgroundClip(DeclaredValue::Value(
+                            longhands::background_clip::SpecifiedValue(
+                            vec![longhands::background_clip::single_value
+                                                       ::get_initial_specified_value()]))),
                          Importance::Normal),
                     ]),
                     important_count: 0,

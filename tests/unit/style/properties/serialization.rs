@@ -679,18 +679,44 @@ mod shorthand_serialization {
     */
 
     mod background {
-        use style::properties::longhands::background_attachment::computed_value::T as Attachment;
-        use style::properties::longhands::background_clip::computed_value::T as Clip;
-        use style::properties::longhands::background_image::SpecifiedValue as ImageContainer;
-        use style::properties::longhands::background_origin::computed_value::T as Origin;
-        use style::properties::longhands::background_position::SpecifiedValue as PositionContainer;
-        use style::properties::longhands::background_repeat::computed_value::T as Repeat;
-        use style::properties::longhands::background_size::SpecifiedExplicitSize;
-        use style::properties::longhands::background_size::SpecifiedValue as Size;
+        use style::properties::longhands::background_attachment as attachment;
+        use style::properties::longhands::background_clip as clip;
+        use style::properties::longhands::background_image as image;
+        use style::properties::longhands::background_origin as origin;
+        use style::properties::longhands::background_position as position;
+        use style::properties::longhands::background_repeat as repeat;
+        use style::properties::longhands::background_size as size;
         use style::values::specified::Image;
         use style::values::specified::position::Position;
         use super::*;
-
+        macro_rules! single_vec_value_typedef {
+            ($name:ident, $path:expr) => {
+                DeclaredValue::Value($name::SpecifiedValue(
+                    vec![$path]
+                ))
+            };
+        }
+        macro_rules! single_vec_value {
+            ($name:ident, $path:expr) => {
+                DeclaredValue::Value($name::SpecifiedValue(
+                    vec![$name::single_value::SpecifiedValue($path)]
+                ))
+            };
+        }
+        macro_rules! single_vec_keyword_value {
+            ($name:ident, $kw:ident) => {
+                DeclaredValue::Value($name::SpecifiedValue(
+                    vec![$name::single_value::SpecifiedValue::$kw]
+                ))
+            };
+        }
+        macro_rules! single_vec_variant_value {
+            ($name:ident, $variant:expr) => {
+                DeclaredValue::Value($name::SpecifiedValue(
+                        vec![$variant]
+                ))
+            };
+        }
         #[test]
         fn background_should_serialize_all_available_properties_when_specified() {
             let mut properties = Vec::new();
@@ -700,29 +726,31 @@ mod shorthand_serialization {
                 authored: None
             });
 
-            let position = DeclaredValue::Value(
+            let position = single_vec_value_typedef!(position,
                 Position {
                     horizontal: LengthOrPercentage::Length(Length::from_px(7f32)),
                     vertical: LengthOrPercentage::Length(Length::from_px(4f32))
                 }
             );
 
-            let repeat = DeclaredValue::Value(Repeat::repeat_x);
-            let attachment = DeclaredValue::Value(Attachment::scroll);
+            let repeat = single_vec_keyword_value!(repeat, repeat_x);
+            let attachment = single_vec_keyword_value!(attachment, scroll);
 
-            let image = DeclaredValue::Value(ImageContainer(
-                Some(Image::Url(Url::parse("http://servo/test.png").unwrap(), UrlExtraData {}))
-            ));
+            let image = single_vec_value!(image,
+                Some(Image::Url(Url::parse("http://servo/test.png").unwrap(),
+                                UrlExtraData {})));
 
-            let size = DeclaredValue::Value(
-                Size::Explicit(SpecifiedExplicitSize {
-                    width: LengthOrPercentageOrAuto::Length(Length::from_px(70f32)),
-                    height: LengthOrPercentageOrAuto::Length(Length::from_px(50f32))
-                }
-            ));
+            let size = single_vec_variant_value!(size,
+                size::single_value::SpecifiedValue::Explicit(
+                    size::single_value::SpecifiedExplicitSize {
+                        width: LengthOrPercentageOrAuto::Length(Length::from_px(70f32)),
+                        height: LengthOrPercentageOrAuto::Length(Length::from_px(50f32))
+                    }
+                )
+            );
 
-            let origin = DeclaredValue::Value(Origin::border_box);
-            let clip = DeclaredValue::Value(Clip::padding_box);
+            let origin = single_vec_keyword_value!(origin, border_box);
+            let clip = single_vec_keyword_value!(clip, padding_box);
 
             properties.push(PropertyDeclaration::BackgroundColor(color));
             properties.push(PropertyDeclaration::BackgroundPosition(position));
@@ -751,29 +779,31 @@ mod shorthand_serialization {
                 authored: None
             });
 
-            let position = DeclaredValue::Value(
+            let position = single_vec_value_typedef!(position,
                 Position {
                     horizontal: LengthOrPercentage::Length(Length::from_px(7f32)),
                     vertical: LengthOrPercentage::Length(Length::from_px(4f32))
                 }
             );
 
-            let repeat = DeclaredValue::Value(Repeat::repeat_x);
-            let attachment = DeclaredValue::Value(Attachment::scroll);
+            let repeat = single_vec_keyword_value!(repeat, repeat_x);
+            let attachment = single_vec_keyword_value!(attachment, scroll);
 
-            let image = DeclaredValue::Value(ImageContainer(
-                Some(Image::Url(Url::parse("http://servo/test.png").unwrap(), UrlExtraData {}))
-            ));
+            let image = single_vec_value!(image,
+                        Some(Image::Url(Url::parse("http://servo/test.png").unwrap(),
+                                        UrlExtraData {})));
 
-            let size = DeclaredValue::Value(
-                Size::Explicit(SpecifiedExplicitSize {
-                    width: LengthOrPercentageOrAuto::Length(Length::from_px(70f32)),
-                    height: LengthOrPercentageOrAuto::Length(Length::from_px(50f32))
-                })
+            let size = single_vec_variant_value!(size,
+                size::single_value::SpecifiedValue::Explicit(
+                    size::single_value::SpecifiedExplicitSize {
+                        width: LengthOrPercentageOrAuto::Length(Length::from_px(70f32)),
+                        height: LengthOrPercentageOrAuto::Length(Length::from_px(50f32))
+                    }
+                )
             );
 
-            let origin = DeclaredValue::Value(Origin::padding_box);
-            let clip = DeclaredValue::Value(Clip::padding_box);
+            let origin = single_vec_keyword_value!(origin, padding_box);
+            let clip = single_vec_keyword_value!(clip, padding_box);
 
             properties.push(PropertyDeclaration::BackgroundColor(color));
             properties.push(PropertyDeclaration::BackgroundPosition(position));
@@ -801,17 +831,17 @@ mod shorthand_serialization {
                 authored: None
             });
 
-            let position = DeclaredValue::Value(
+             let position = single_vec_value_typedef!(position,
                 Position {
                     horizontal: LengthOrPercentage::Length(Length::from_px(0f32)),
                     vertical: LengthOrPercentage::Length(Length::from_px(0f32))
                 }
             );
 
-            let repeat = DeclaredValue::Value(Repeat::repeat_x);
-            let attachment = DeclaredValue::Value(Attachment::scroll);
+            let repeat = single_vec_keyword_value!(repeat, repeat_x);
+            let attachment = single_vec_keyword_value!(attachment, scroll);
 
-            let image = DeclaredValue::Value(ImageContainer(None));
+            let image = single_vec_value!(image, None);
 
             let size = DeclaredValue::Initial;
 

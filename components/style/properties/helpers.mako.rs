@@ -69,10 +69,10 @@
                 ${caller.body()}
             }
             pub mod computed_value {
-                use super::single_value;
+                pub use super::single_value::computed_value as single_value;
                 #[derive(Debug, Clone, PartialEq)]
                 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-                pub struct T(pub Vec<single_value::computed_value::T>);
+                pub struct T(pub Vec<single_value::T>);
             }
 
             impl ToCss for computed_value::T {
@@ -285,8 +285,8 @@
     }
 </%def>
 
-<%def name="single_keyword(name, values, **kwargs)">
-    <%call expr="single_keyword_computed(name, values, **kwargs)">
+<%def name="single_keyword(name, values, vector=False, **kwargs)">
+    <%call expr="single_keyword_computed(name, values, vector, **kwargs)">
         use values::computed::ComputedValueAsSpecified;
         use values::NoViewportPercentage;
         impl ComputedValueAsSpecified for SpecifiedValue {}
@@ -294,16 +294,16 @@
     </%call>
 </%def>
 
-<%def name="single_keyword_computed(name, values, **kwargs)">
+<%def name="single_keyword_computed(name, values, vector=False, **kwargs)">
     <%
         keyword_kwargs = {a: kwargs.pop(a, None) for a in [
             'gecko_constant_prefix', 'gecko_enum_prefix',
             'extra_gecko_values', 'extra_servo_values',
         ]}
     %>
-    <%call expr="longhand(name, keyword=Keyword(name, values, **keyword_kwargs), **kwargs)">
+
+    <%def name="inner_body()">
         pub use self::computed_value::T as SpecifiedValue;
-        ${caller.body()}
         pub mod computed_value {
             define_css_keyword_enum! { T:
                 % for value in data.longhands_by_name[name].keyword.values_for(product):
@@ -316,11 +316,26 @@
             computed_value::T::${to_rust_ident(values.split()[0])}
         }
         #[inline]
+        pub fn get_initial_specified_value() -> SpecifiedValue {
+            get_initial_value()
+        }
+        #[inline]
         pub fn parse(_context: &ParserContext, input: &mut Parser)
                      -> Result<SpecifiedValue, ()> {
             computed_value::T::parse(input)
         }
-    </%call>
+    </%def>
+    % if vector:
+        <%call expr="vector_longhand(name, keyword=Keyword(name, values, **keyword_kwargs), **kwargs)">
+            ${inner_body()}
+            ${caller.body()}
+        </%call>
+    % else:
+        <%call expr="longhand(name, keyword=Keyword(name, values, **keyword_kwargs), **kwargs)">
+            ${inner_body()}
+            ${caller.body()}
+        </%call>
+    % endif
 </%def>
 
 <%def name="keyword_list(name, values, **kwargs)">
@@ -464,6 +479,36 @@
             }
         }
 
+        impl<'a> ToCss for LonghandsToSerialize<'a> {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                let mut all_inherit = true;
+                let mut all_initial = true;
+                let mut with_variables = false;
+                % for sub_property in shorthand.sub_properties:
+                    match *self.${sub_property.ident} {
+                        DeclaredValue::Initial => all_inherit = false,
+                        DeclaredValue::Inherit => all_initial = false,
+                        DeclaredValue::WithVariables {..} => with_variables = true,
+                        DeclaredValue::Value(..) => {
+                            all_initial = false;
+                            all_inherit = false;
+                        }
+                    }
+                % endfor
+
+                if with_variables {
+                    // We don't serialize shorthands with variables
+                    dest.write_str("")
+                } else if all_inherit {
+                    dest.write_str("inherit")
+                } else if all_initial {
+                    dest.write_str("initial")
+                } else {
+                    self.to_css_declared(dest)
+                }
+            }
+        }
+
 
         pub fn parse(context: &ParserContext, input: &mut Parser,
                      declarations: &mut Vec<PropertyDeclaration>)
@@ -526,8 +571,8 @@
             })
         }
 
-        impl<'a> ToCss for LonghandsToSerialize<'a>  {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        impl<'a> LonghandsToSerialize<'a> {
+            fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
                 super::serialize_four_sides(
                     dest,
                     self.${to_rust_ident(sub_property_pattern % 'top')},

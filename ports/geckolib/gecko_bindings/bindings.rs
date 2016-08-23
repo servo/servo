@@ -335,6 +335,8 @@ extern "C" {
     pub fn Gecko_DestroyClipPath(clip: *mut StyleClipPath);
     pub fn Gecko_NewBasicShape(type_: StyleBasicShapeType)
      -> *mut StyleBasicShape;
+    pub fn Gecko_FillAllBackgroundLists(layers: *mut nsStyleImageLayers,
+                                        maxLen: u32);
     pub fn Gecko_AddRefCalcArbitraryThread(aPtr: *mut Calc);
     pub fn Gecko_ReleaseCalcArbitraryThread(aPtr: *mut Calc);
     pub fn Gecko_Construct_nsStyleFont(ptr: *mut nsStyleFont);

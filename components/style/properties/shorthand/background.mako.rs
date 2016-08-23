@@ -12,172 +12,204 @@
     use properties::longhands::{background_image, background_size, background_origin, background_clip};
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
-        let mut color = None;
-        let mut image = None;
-        let mut position = None;
-        let mut repeat = None;
-        let mut size = None;
-        let mut attachment = None;
-        let mut any = false;
-        let mut origin = None;
-        let mut clip = None;
+        let mut background_color = None;
 
-        loop {
-            if position.is_none() {
-                if let Ok(value) = input.try(|input| background_position::parse(context, input)) {
-                    position = Some(value);
-                    any = true;
-
-                    // Parse background size, if applicable.
-                    size = input.try(|input| {
-                        try!(input.expect_delim('/'));
-                        background_size::parse(context, input)
-                    }).ok();
-
-                    continue
-                }
-            }
-            if color.is_none() {
+        % for name in "image position repeat size attachment origin clip".split():
+            let mut background_${name} = background_${name}::SpecifiedValue(Vec::new());
+        % endfor
+        try!(input.parse_comma_separated(|input| {
+            % for name in "image position repeat size attachment origin clip".split():
+                let mut ${name} = None;
+            % endfor
+            loop {
                 if let Ok(value) = input.try(|input| background_color::parse(context, input)) {
-                    color = Some(value);
-                    any = true;
-                    continue
+                    if background_color.is_none() {
+                        background_color = Some(value);
+                        continue
+                    } else {
+                        // color can only be the last element
+                        return Err(())
+                    }
                 }
-            }
-            if image.is_none() {
-                if let Ok(value) = input.try(|input| background_image::parse(context, input)) {
-                    image = Some(value);
-                    any = true;
-                    continue
+                if position.is_none() {
+                    if let Ok(value) = input.try(|input| background_position::single_value
+                                                                            ::parse(context, input)) {
+                        position = Some(value);
+
+                        // Parse background size, if applicable.
+                        size = input.try(|input| {
+                            try!(input.expect_delim('/'));
+                            background_size::single_value::parse(context, input)
+                        }).ok();
+
+                        continue
+                    }
                 }
-            }
-            if repeat.is_none() {
-                if let Ok(value) = input.try(|input| background_repeat::parse(context, input)) {
-                    repeat = Some(value);
-                    any = true;
-                    continue
-                }
-            }
-            if attachment.is_none() {
-                if let Ok(value) = input.try(|input| background_attachment::parse(context, input)) {
-                    attachment = Some(value);
-                    any = true;
-                    continue
-                }
-            }
-            if origin.is_none() {
-                if let Ok(value) = input.try(|input| background_origin::parse(context, input)) {
-                    origin = Some(value);
-                    any = true;
-                    continue
-                }
-            }
-            if clip.is_none() {
-                if let Ok(value) = input.try(|input| background_clip::parse(context, input)) {
-                    clip = Some(value);
-                    any = true;
-                    continue
-                }
-            }
-            break
-        }
-
-        if any {
-            Ok(Longhands {
-                background_color: color,
-                background_image: image,
-                background_position: position,
-                background_repeat: repeat,
-                background_attachment: attachment,
-                background_size: size,
-                background_origin: origin,
-                background_clip: clip,
-            })
-        } else {
-            Err(())
-        }
-    }
-
-    impl<'a> ToCss for LonghandsToSerialize<'a>  {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match *self.background_color {
-                DeclaredValue::Value(ref color) => {
-                    try!(color.to_css(dest));
-                },
-                _ => {
-                    try!(write!(dest, "transparent"));
-                }
-            };
-
-            try!(write!(dest, " "));
-
-            match *self.background_image {
-                DeclaredValue::Value(ref image) => {
-                    try!(image.to_css(dest));
-                },
-                _ => {
-                    try!(write!(dest, "none"));
-                }
-            };
-
-            try!(write!(dest, " "));
-
-            try!(self.background_repeat.to_css(dest));
-
-            try!(write!(dest, " "));
-
-            match *self.background_attachment {
-                DeclaredValue::Value(ref attachment) => {
-                    try!(attachment.to_css(dest));
-                },
-                _ => {
-                    try!(write!(dest, "scroll"));
-                }
-            };
-
-            try!(write!(dest, " "));
-
-            try!(self.background_position.to_css(dest));
-
-            if let DeclaredValue::Value(ref size) = *self.background_size {
-                try!(write!(dest, " / "));
-                try!(size.to_css(dest));
-            }
-
-            match (self.background_origin, self.background_clip) {
-                (&DeclaredValue::Value(ref origin), &DeclaredValue::Value(ref clip)) => {
-                    use properties::longhands::background_origin::computed_value::T as Origin;
-                    use properties::longhands::background_clip::computed_value::T as Clip;
-
-                    try!(write!(dest, " "));
-
-                    match (origin, clip) {
-                        (&Origin::padding_box, &Clip::padding_box) => {
-                            try!(origin.to_css(dest));
-                        },
-                        (&Origin::border_box, &Clip::border_box) => {
-                            try!(origin.to_css(dest));
-                        },
-                        (&Origin::content_box, &Clip::content_box) => {
-                            try!(origin.to_css(dest));
-                        },
-                        _ => {
-                            try!(origin.to_css(dest));
-                            try!(write!(dest, " "));
-                            try!(clip.to_css(dest));
+                % for name in "image repeat attachment origin clip".split():
+                    if ${name}.is_none() {
+                        if let Ok(value) = input.try(|input| background_${name}::single_value
+                                                                               ::parse(context, input)) {
+                            ${name} = Some(value);
+                            continue
                         }
                     }
-                },
-                (&DeclaredValue::Value(ref origin), _) => {
-                    try!(write!(dest, " "));
-                    try!(origin.to_css(dest));
-                },
-                (_, &DeclaredValue::Value(ref clip)) => {
-                    try!(write!(dest, " "));
-                    try!(clip.to_css(dest));
-                },
-                _ => {}
-            };
+                % endfor
+                break
+            }
+            let mut any = false;
+            % for name in "image position repeat size attachment origin clip".split():
+                any = any || ${name}.is_some();
+            % endfor
+            any = any || background_color.is_some();
+            if any {
+                % for name in "image position repeat size attachment origin clip".split():
+                    if let Some(bg_${name}) = ${name} {
+                        background_${name}.0.push(bg_${name});
+                    } else {
+                        background_${name}.0.push(background_${name}::single_value
+                                                                    ::get_initial_specified_value());
+                    }
+                % endfor
+                Ok(())
+            } else {
+                Err(())
+            }
+        }));
+
+        Ok(Longhands {
+             background_color: background_color,
+             background_image: Some(background_image),
+             background_position: Some(background_position),
+             background_repeat: Some(background_repeat),
+             background_attachment: Some(background_attachment),
+             background_size: Some(background_size),
+             background_origin: Some(background_origin),
+             background_clip: Some(background_clip),
+         })
+    }
+
+    impl<'a> LonghandsToSerialize<'a>  {
+        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            // mako doesn't like ampersands following `<`
+            fn extract_value<T>(x: &DeclaredValue<T>) -> Option< &T> {
+                match *x {
+                    DeclaredValue::Value(ref val) => Some(val),
+                    _ => None,
+                }
+            }
+            use std::cmp;
+            let mut len = 0;
+            % for name in "image position repeat size attachment origin clip".split():
+                len = cmp::max(len, extract_value(self.background_${name}).map(|i| i.0.len())
+                                                                          .unwrap_or(0));
+            % endfor
+
+            // There should be at least one declared value
+            if len == 0 {
+                return dest.write_str("")
+            }
+
+            let mut first = true;
+            for i in 0..len {
+                % for name in "image position repeat size attachment origin clip".split():
+                    let ${name} = if let DeclaredValue::Value(ref arr) = *self.background_${name} {
+                        arr.0.get(i % arr.0.len())
+                    } else {
+                        None
+                    };
+                % endfor
+                let color = if i == len - 1 {
+                    Some(self.background_color)
+                } else {
+                    None
+                };
+
+                if first {
+                    first = false;
+                } else {
+                    try!(write!(dest, ", "));
+                }
+                match color {
+                    Some(&DeclaredValue::Value(ref color)) => {
+                        try!(color.to_css(dest));
+                        try!(write!(dest, " "));
+                    },
+                    Some(_) => {
+                        try!(write!(dest, "transparent "));
+                    }
+                    // Not yet the last one
+                    None => ()
+                };
+
+
+                if let Some(image) = image {
+                    try!(image.to_css(dest));
+                } else {
+                    try!(write!(dest, "none"));
+                }
+
+                try!(write!(dest, " "));
+
+                if let Some(repeat) = repeat {
+                    try!(repeat.to_css(dest));
+                } else {
+                    try!(write!(dest, "repeat"));
+                }
+
+                try!(write!(dest, " "));
+
+                if let Some(attachment) = attachment {
+                    try!(attachment.to_css(dest));
+                } else {
+                    try!(write!(dest, "scroll"));
+                }
+
+                try!(write!(dest, " "));
+
+                try!(position.unwrap_or(&background_position::single_value
+                                                            ::get_initial_specified_value())
+                             .to_css(dest));
+
+                if let Some(size) = size {
+                    try!(write!(dest, " / "));
+                    try!(size.to_css(dest));
+                }
+
+                match (origin, clip) {
+                    (Some(origin), Some(clip)) => {
+                        use properties::longhands::background_origin::single_value::computed_value::T as Origin;
+                        use properties::longhands::background_clip::single_value::computed_value::T as Clip;
+
+                        try!(write!(dest, " "));
+
+                        match (origin, clip) {
+                            (&Origin::padding_box, &Clip::padding_box) => {
+                                try!(origin.to_css(dest));
+                            },
+                            (&Origin::border_box, &Clip::border_box) => {
+                                try!(origin.to_css(dest));
+                            },
+                            (&Origin::content_box, &Clip::content_box) => {
+                                try!(origin.to_css(dest));
+                            },
+                            _ => {
+                                try!(origin.to_css(dest));
+                                try!(write!(dest, " "));
+                                try!(clip.to_css(dest));
+                            }
+                        }
+                    },
+                    (Some(origin), _) => {
+                        try!(write!(dest, " "));
+                        try!(origin.to_css(dest));
+                    },
+                    (_, Some(clip)) => {
+                        try!(write!(dest, " "));
+                        try!(clip.to_css(dest));
+                    },
+                    _ => {}
+                };
+            }
 
 
             Ok(())

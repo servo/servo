@@ -92,8 +92,8 @@
         }
     }
 
-    impl<'a> ToCss for LonghandsToSerialize<'a>  {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    impl<'a> LonghandsToSerialize<'a>  {
+        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             match *self.list_style_position {
                 DeclaredValue::Initial => try!(write!(dest, "outside")),
                 _ => try!(self.list_style_position.to_css(dest))

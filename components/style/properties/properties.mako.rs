@@ -2034,6 +2034,10 @@ pub fn cascade(viewport_size: Size2D<Au>,
         }
     % endfor
 
+    % if product == "gecko":
+        style.mutate_background().fill_arrays();
+    % endif
+
     // The initial value of outline width may be changed at computed value time.
     if style.get_outline().clone_outline_style().none_or_hidden() &&
        style.get_outline().outline_has_nonzero_width() {

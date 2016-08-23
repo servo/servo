@@ -3564,6 +3564,30 @@
             "url": "/_mozilla/css/mix_blend_mode_a.html"
           }
         ],
+        "css/multiple_backgrounds.html": [
+          {
+            "path": "css/multiple_backgrounds.html",
+            "references": [
+              [
+                "/_mozilla/css/multiple_backgrounds_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/multiple_backgrounds.html"
+          }
+        ],
+        "css/multiple_backgrounds_ref.html": [
+          {
+            "path": "css/multiple_backgrounds_ref.html",
+            "references": [
+              [
+                "/_mozilla/css/multiple_backgrounds_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/multiple_backgrounds_ref.html"
+          }
+        ],
         "css/multiple_css_class_a.html": [
           {
             "path": "css/multiple_css_class_a.html",
@@ -12830,6 +12854,30 @@
             ]
           ],
           "url": "/_mozilla/css/mix_blend_mode_a.html"
+        }
+      ],
+      "css/multiple_backgrounds.html": [
+        {
+          "path": "css/multiple_backgrounds.html",
+          "references": [
+            [
+              "/_mozilla/css/multiple_backgrounds_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/multiple_backgrounds.html"
+        }
+      ],
+      "css/multiple_backgrounds_ref.html": [
+        {
+          "path": "css/multiple_backgrounds_ref.html",
+          "references": [
+            [
+              "/_mozilla/css/multiple_backgrounds_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/multiple_backgrounds_ref.html"
         }
       ],
       "css/multiple_css_class_a.html": [

@@ -155,6 +155,18 @@ pub trait Interpolate: Sized {
     fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()>;
 }
 
+/// https://drafts.csswg.org/css-transitions/#animtype-repeatable-list
+pub trait RepeatableListInterpolate: Interpolate {}
+
+impl<T: RepeatableListInterpolate> Interpolate for Vec<T> {
+    fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
+        use num_integer::lcm;
+        let len = lcm(self.len(), other.len());
+        self.iter().cycle().zip(other.iter().cycle()).take(len).map(|(me, you)| {
+            me.interpolate(you, time)
+        }).collect()
+    }
+}
 /// https://drafts.csswg.org/css-transitions/#animtype-number
 impl Interpolate for Au {
     #[inline]
@@ -295,6 +307,14 @@ impl Interpolate for BorderSpacing {
         })
     }
 }
+
+impl Interpolate for BackgroundSize {
+    #[inline]
+    fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
+        self.0.interpolate(&other.0, time).map(BackgroundSize)
+    }
+}
+
 
 /// https://drafts.csswg.org/css-transitions/#animtype-color
 impl Interpolate for RGBA {
@@ -496,18 +516,12 @@ impl Interpolate for Position {
     }
 }
 
-impl Interpolate for BackgroundSize {
+impl RepeatableListInterpolate for Position {}
+
+impl Interpolate for BackgroundPosition {
+    #[inline]
     fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
-        use properties::longhands::background_size::computed_value::ExplicitSize;
-        match (self, other) {
-            (&BackgroundSize::Explicit(ref me), &BackgroundSize::Explicit(ref other)) => {
-                Ok(BackgroundSize::Explicit(ExplicitSize {
-                    width: try!(me.width.interpolate(&other.width, time)),
-                    height: try!(me.height.interpolate(&other.height, time)),
-                }))
-            }
-            _ => Err(()),
-        }
+        Ok(BackgroundPosition(try!(self.0.interpolate(&other.0, time))))
     }
 }
 
