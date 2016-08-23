@@ -5335,7 +5335,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'dom::bindings::iterable::{IteratorType, Iterable}',
         'dom::bindings::js::{JS, Root, RootedReference, RootedRcReference}',
         'dom::bindings::js::{OptionalRootedReference}',
-        'dom::bindings::reflector::{Reflectable}',
+        'dom::bindings::reflector::{Reflectable, MutReflectable}',
         'dom::bindings::utils::{DOMClass, DOMJSClass}',
         'dom::bindings::utils::{DOM_PROTO_UNFORGEABLE_HOLDER_SLOT, JSCLASS_DOM_GLOBAL}',
         'dom::bindings::utils::{ProtoOrIfaceArray, create_dom_global}',
