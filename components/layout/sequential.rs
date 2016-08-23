@@ -89,7 +89,7 @@ pub fn build_display_list_for_subtree(root: &mut FlowRef,
                                         &mut children);
     root_stacking_context.add_children(children);
     let mut build_display_list = BuildDisplayList {
-        state: DisplayListBuildState::new(&layout_context,
+        state: DisplayListBuildState::new(&layout_context.shared,
                                           flow::base(&*flow_root).stacking_context_id),
     };
     build_display_list.traverse(&mut *flow_root);
