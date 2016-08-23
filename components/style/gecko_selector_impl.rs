@@ -9,7 +9,6 @@ use selector_impl::{attr_exists_selector_is_shareable, attr_equals_selector_is_s
 use selectors::parser::{ParserContext, SelectorImpl, AttrSelector};
 use std::fmt;
 use string_cache::{Atom, WeakAtom, Namespace, WeakNamespace};
-use stylesheets::Stylesheet;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GeckoSelectorImpl;
@@ -251,15 +250,5 @@ impl GeckoSelectorImpl {
     #[inline]
     pub fn pseudo_class_state_flag(pc: &NonTSPseudoClass) -> ElementState {
         pc.state_flag()
-    }
-
-    #[inline]
-    pub fn get_user_or_user_agent_stylesheets() -> &'static [Stylesheet] {
-        &[]
-    }
-
-    #[inline]
-    pub fn get_quirks_mode_stylesheet() -> Option<&'static Stylesheet> {
-        None
     }
 }
