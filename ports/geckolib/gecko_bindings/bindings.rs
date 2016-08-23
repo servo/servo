@@ -5,15 +5,15 @@ pub enum nsINode {}
 pub enum nsIDocument {}
 pub enum nsIPrincipal {}
 pub enum nsIURI {}
-pub type ServoComputedValuesStrong = ::sugar::refptr::Strong<ServoComputedValues>;
-pub type ServoComputedValuesBorrowed<'a> = ::sugar::refptr::Borrowed<'a, ServoComputedValues>;
-pub type RawServoStyleSheetStrong = ::sugar::refptr::Strong<RawServoStyleSheet>;
-pub type RawServoStyleSheetBorrowed<'a> = ::sugar::refptr::Borrowed<'a, RawServoStyleSheet>;
-pub type ServoDeclarationBlockStrong = ::sugar::refptr::Strong<ServoDeclarationBlock>;
-pub type ServoDeclarationBlockBorrowed<'a> = ::sugar::refptr::Borrowed<'a, ServoDeclarationBlock>;
+pub type ServoComputedValuesStrong = ::sugar::ownership::Strong<ServoComputedValues>;
+pub type ServoComputedValuesBorrowed<'a> = ::sugar::ownership::Borrowed<'a, ServoComputedValues>;
+pub type RawServoStyleSheetStrong = ::sugar::ownership::Strong<RawServoStyleSheet>;
+pub type RawServoStyleSheetBorrowed<'a> = ::sugar::ownership::Borrowed<'a, RawServoStyleSheet>;
+pub type ServoDeclarationBlockStrong = ::sugar::ownership::Strong<ServoDeclarationBlock>;
+pub type ServoDeclarationBlockBorrowed<'a> = ::sugar::ownership::Borrowed<'a, ServoDeclarationBlock>;
 pub type RawServoStyleSetBorrowed<'a> = &'a RawServoStyleSet;
 pub type RawServoStyleSetBorrowedMut<'a> = &'a mut RawServoStyleSet;
-pub type RawServoStyleSetOwned = ::sugar::refptr::Owned<RawServoStyleSet>;
+pub type RawServoStyleSetOwned = ::sugar::ownership::Owned<RawServoStyleSet>;
 use structs::nsStyleFont;
 unsafe impl Send for nsStyleFont {}
 unsafe impl Sync for nsStyleFont {}
