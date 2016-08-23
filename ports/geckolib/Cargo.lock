@@ -15,7 +15,6 @@ dependencies = [
  "style 0.0.1",
  "style_traits 0.0.1",
  "url 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "util 0.0.1",
 ]
 
 [[package]]

@@ -23,4 +23,3 @@ selectors = "0.11"
 style = {path = "../../components/style", features = ["gecko"]}
 style_traits = {path = "../../components/style_traits"}
 url = "1.2"
-util = {path = "../../components/util"}
