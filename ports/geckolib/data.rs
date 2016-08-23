@@ -4,7 +4,7 @@
 
 use euclid::size::TypedSize2D;
 use gecko_bindings::bindings::RawServoStyleSet;
-use gecko_bindings::sugar::refptr::{HasBoxFFI, HasFFI, HasSimpleFFI};
+use gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
 use num_cpus;
 use std::cmp;
 use std::collections::HashMap;

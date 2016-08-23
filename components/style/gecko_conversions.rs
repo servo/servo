@@ -11,7 +11,7 @@
 use app_units::Au;
 use gecko_bindings::bindings::{RawServoStyleSheet, ServoComputedValues};
 use gecko_bindings::structs::nsStyleCoord_CalcValue;
-use gecko_bindings::sugar::refptr::{HasArcFFI, HasFFI};
+use gecko_bindings::sugar::ownership::{HasArcFFI, HasFFI};
 use properties::ComputedValues;
 use stylesheets::Stylesheet;
 use values::computed::{CalcLengthOrPercentage, LengthOrPercentage};
