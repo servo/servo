@@ -7,55 +7,24 @@ use std::mem::{forget, transmute};
 use std::ptr;
 use std::sync::Arc;
 
+/// Indicates that a given Servo type has a corresponding
+/// Gecko FFI type
+/// The correspondence is not defined at this stage,
+/// use HasArcFFI or similar traits to define it
+pub unsafe trait HasFFI : Sized {
+    type FFIType: Sized;
+}
+
 /// Helper trait for conversions between FFI Strong/Borrowed types and Arcs
 ///
 /// Should be implemented by types which are passed over FFI as Arcs
 /// via Strong and Borrowed
-pub unsafe trait HasArcFFI where Self: Sized {
-    /// Gecko's name for the type
-    /// This is equivalent to ArcInner<Self>
-    type FFIType: Sized;
-
-    /// Given a non-null borrowed FFI reference, this produces a temporary
-    /// Arc which is borrowed by the given closure and used.
-    /// Panics on null.
-    fn with<F, Output>(raw: Borrowed<Self::FFIType>, cb: F) -> Output
-               where F: FnOnce(&Arc<Self>) -> Output {
-        Self::maybe_with(raw, |opt| cb(opt.unwrap()))
-    }
-
-    /// Given a maybe-null borrowed FFI reference, this produces a temporary
-    /// Option<Arc> (None if null) which is borrowed by the given closure and used
-    fn maybe_with<F, Output>(maybe_raw: Borrowed<Self::FFIType>, cb: F) -> Output
-                         where F: FnOnce(Option<&Arc<Self>>) -> Output {
-        cb(Self::borrowed_as(&maybe_raw))
-    }
-
-    /// Given a non-null strong FFI reference, converts it into an Arc.
-    /// Panics on null.
-    fn into(ptr: Strong<Self::FFIType>) -> Arc<Self> {
-        assert!(!ptr.is_null());
-        unsafe { transmute(ptr) }
-    }
-
-    fn borrowed_as<'a>(ptr: &'a Borrowed<'a, Self::FFIType>) -> Option<&'a Arc<Self>> {
-        unsafe {
-            if ptr.is_null() {
-                None
-            } else {
-                Some(transmute::<&Borrowed<_>, &Arc<_>>(ptr))
-            }
-        }
-    }
-
-    /// Converts an Arc into a strong FFI reference.
-    fn from_arc(owned: Arc<Self>) -> Strong<Self::FFIType> {
-        unsafe { transmute(owned) }
-    }
-
+pub unsafe trait HasArcFFI : HasFFI {
+    // these methods can't be on Borrowed because it leads to an unspecified
+    // impl parameter
     /// Artificially increments the refcount of a borrowed Arc over FFI.
     unsafe fn addref(ptr: Borrowed<Self::FFIType>) {
-        Self::with(ptr, |arc| forget(arc.clone()));
+        forget(ptr.as_arc::<Self>().clone())
     }
 
     /// Given a (possibly null) borrowed FFI reference, decrements the refcount.
@@ -63,21 +32,9 @@ pub unsafe trait HasArcFFI where Self: Sized {
     /// know that a strong reference to the backing Arc is disappearing
     /// (usually on the C++ side) without running the Arc destructor.
     unsafe fn release(ptr: Borrowed<Self::FFIType>) {
-        if let Some(arc) = Self::borrowed_as(&ptr) {
+        if let Some(arc) = ptr.as_arc_opt::<Self>() {
             let _: Arc<_> = ptr::read(arc as *const Arc<_>);
         }
-    }
-
-    /// Produces a borrowed FFI reference by borrowing an Arc.
-    fn to_borrowed<'a>(arc: &'a Arc<Self>)
-        -> Borrowed<'a, Self::FFIType> {
-        let borrowedptr = arc as *const Arc<Self> as *const Borrowed<'a, Self::FFIType>;
-        unsafe { ptr::read(borrowedptr) }
-    }
-
-    /// Produces a null strong FFI reference
-    fn null_strong() -> Strong<Self::FFIType> {
-        unsafe { transmute(ptr::null::<Self::FFIType>()) }
     }
 }
 
@@ -100,6 +57,22 @@ impl<'a, T> Borrowed<'a, T> {
     pub fn is_null(&self) -> bool {
         self.ptr == ptr::null()
     }
+
+    pub fn as_arc_opt<U>(&self) -> Option<&Arc<U>> where U: HasArcFFI<FFIType = T> {
+        unsafe {
+            if self.is_null() {
+                None
+            } else {
+                Some(transmute::<&Borrowed<_>, &Arc<_>>(self))
+            }
+        }
+    }
+
+    /// Converts a borrowed FFI reference to a borrowed Arc.
+    /// Panics on null
+    pub fn as_arc<U>(&self) -> &Arc<U> where U: HasArcFFI<FFIType = T> {
+        self.as_arc_opt().unwrap()
+    }
 }
 
 #[repr(C)]
@@ -113,5 +86,36 @@ pub struct Strong<T> {
 impl<T> Strong<T> {
     pub fn is_null(&self) -> bool {
         self.ptr == ptr::null()
+    }
+
+    /// Given a non-null strong FFI reference, converts it into an Arc.
+    /// Panics on null.
+    pub fn into_arc<U>(self) -> Arc<U> where U: HasArcFFI<FFIType = T> {
+        assert!(!self.is_null());
+        unsafe { transmute(self) }
+    }
+
+    /// Produces a null strong FFI reference
+    pub fn null_strong() -> Self {
+        unsafe { transmute(ptr::null::<T>()) }
+    }
+}
+
+pub unsafe trait FFIArcHelpers {
+    type Inner: HasArcFFI;
+    /// Converts an Arc into a strong FFI reference.
+    fn into_strong(self) -> Strong<<Self::Inner as HasFFI>::FFIType>;
+    /// Produces a borrowed FFI reference by borrowing an Arc.
+    fn as_borrowed(&self) -> Borrowed<<Self::Inner as HasFFI>::FFIType>;
+}
+
+unsafe impl<T: HasArcFFI> FFIArcHelpers for Arc<T> {
+    type Inner = T;
+    fn into_strong(self) -> Strong<T::FFIType> {
+        unsafe {transmute(self)}
+    }
+    fn as_borrowed(&self) -> Borrowed<T::FFIType> {
+        let borrowedptr = self as *const Arc<T> as *const Borrowed<T::FFIType>;
+        unsafe { ptr::read(borrowedptr) }
     }
 }

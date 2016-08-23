@@ -25,7 +25,7 @@ use gecko_bindings::bindings::{Gecko_LocalName, Gecko_Namespace, Gecko_NodeIsEle
 use gecko_bindings::bindings::{RawGeckoDocument, RawGeckoElement, RawGeckoNode};
 use gecko_bindings::structs::{NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO, NODE_IS_DIRTY_FOR_SERVO};
 use gecko_bindings::structs::{nsIAtom, nsChangeHint, nsStyleContext};
-use gecko_bindings::sugar::refptr::HasArcFFI;
+use gecko_bindings::sugar::refptr::FFIArcHelpers;
 use gecko_string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
 use glue::GeckoDeclarationBlock;
 use libc::uintptr_t;
@@ -110,7 +110,7 @@ impl TRestyleDamage for GeckoRestyleDamage {
     fn compute(source: &nsStyleContext,
                new_style: &Arc<ComputedValues>) -> Self {
         let context = source as *const nsStyleContext as *mut nsStyleContext;
-        let hint = unsafe { Gecko_CalcStyleDifference(context, ComputedValues::to_borrowed(new_style)) };
+        let hint = unsafe { Gecko_CalcStyleDifference(context, new_style.as_borrowed()) };
         GeckoRestyleDamage(hint)
     }
 
@@ -437,9 +437,8 @@ impl<'le> TElement for GeckoElement<'le> {
         if declarations.is_null() {
             &NO_STYLE_ATTRIBUTE
         } else {
-            GeckoDeclarationBlock::with(declarations, |declarations| {
-                unsafe { transmute(&declarations.declarations) }
-            })
+            let declarations = declarations.as_arc::<GeckoDeclarationBlock>();
+            unsafe { transmute(&declarations.declarations) }
         }
     }
 
