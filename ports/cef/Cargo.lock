@@ -786,7 +786,7 @@ dependencies = [
  "net_traits 0.0.1",
  "script_traits 0.0.1",
  "servo-egl 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "servo-glutin 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "servo-glutin 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "style_traits 0.0.1",
  "url 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "user32-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1999,7 +1999,7 @@ dependencies = [
 
 [[package]]
 name = "servo-glutin"
-version = "0.6.0"
+version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "android_glue 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2042,7 +2042,7 @@ dependencies = [
  "servo-egl 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo-fontconfig-sys 4.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo-freetype-sys 4.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "servo-glutin 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "servo-glutin 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "x11 2.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
