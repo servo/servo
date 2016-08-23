@@ -286,9 +286,9 @@ class CommandBase(object):
     def rust_path(self):
         version = self.rust_version()
         if self._use_stable_rust:
-            return "%s/rustc-%s-%s" % (version, version, host_triple())
+            return os.path.join(version, "rustc-%s-%s" % (version, host_triple()))
         else:
-            return "%s/rustc-nightly-%s" % (version, host_triple())
+            return os.path.join(version, "rustc-nightly-%s" % (host_triple()))
 
     def rust_version(self):
         if self._rust_version is None or self._use_stable_rust != self._rust_version_is_stable:
