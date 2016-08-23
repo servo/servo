@@ -130,13 +130,15 @@ impl<'a> LayoutContext<'a> {
     pub fn font_context(&self) -> RefMut<FontContext> {
         self.cached_local_layout_context.font_context.borrow_mut()
     }
+}
 
+impl SharedLayoutContext {
     fn get_or_request_image_synchronously(&self, url: Url, use_placeholder: UsePlaceholder)
                                           -> Option<Arc<Image>> {
         debug_assert!(opts::get().output_file.is_some() || opts::get().exit_after_load);
 
         // See if the image is already available
-        let result = self.shared.image_cache_thread.find_image(url.clone(), use_placeholder);
+        let result = self.image_cache_thread.find_image(url.clone(), use_placeholder);
 
         match result {
             Ok(image) => return Some(image),
@@ -150,7 +152,7 @@ impl<'a> LayoutContext<'a> {
         // If we are emitting an output file, then we need to block on
         // image load or we risk emitting an output file missing the image.
         let (sync_tx, sync_rx) = ipc::channel().unwrap();
-        self.shared.image_cache_thread.request_image(url, ImageCacheChan(sync_tx), None);
+        self.image_cache_thread.request_image(url, ImageCacheChan(sync_tx), None);
         loop {
             match sync_rx.recv() {
                 Err(_) => return None,
@@ -174,16 +176,16 @@ impl<'a> LayoutContext<'a> {
                        .map(|img| ImageOrMetadataAvailable::ImageAvailable(img));
         }
         // See if the image is already available
-        let result = self.shared.image_cache_thread.find_image_or_metadata(url.clone(),
-                                                                           use_placeholder);
+        let result = self.image_cache_thread.find_image_or_metadata(url.clone(),
+                                                                    use_placeholder);
         match result {
             Ok(image_or_metadata) => Some(image_or_metadata),
             // Image failed to load, so just return nothing
             Err(ImageState::LoadError) => None,
             // Not yet requested, async mode - request image or metadata from the cache
             Err(ImageState::NotRequested) => {
-                let sender = self.shared.image_cache_sender.lock().unwrap().clone();
-                self.shared.image_cache_thread.request_image_and_metadata(url, sender, None);
+                let sender = self.image_cache_sender.lock().unwrap().clone();
+                self.image_cache_thread.request_image_and_metadata(url, sender, None);
                 None
             }
             // Image has been requested, is still pending. Return no image for this paint loop.
@@ -198,7 +200,7 @@ impl<'a> LayoutContext<'a> {
                                        fetch_image_data_as_well: bool)
                                        -> Option<(WebRenderImageInfo, Option<IpcSharedMemory>)> {
         if !fetch_image_data_as_well {
-            let webrender_image_cache = self.shared.webrender_image_cache.read().unwrap();
+            let webrender_image_cache = self.webrender_image_cache.read().unwrap();
             if let Some(existing_webrender_image) =
                     webrender_image_cache.get(&((*url).clone(), use_placeholder)) {
                 return Some(((*existing_webrender_image).clone(), None))
@@ -216,8 +218,7 @@ impl<'a> LayoutContext<'a> {
                     };
                     Some((image_info, bytes))
                 } else if !fetch_image_data_as_well {
-                    let mut webrender_image_cache = self.shared
-                                                        .webrender_image_cache
+                    let mut webrender_image_cache = self.webrender_image_cache
                                                         .write()
                                                         .unwrap();
                     webrender_image_cache.insert(((*url).clone(), use_placeholder),

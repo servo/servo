@@ -370,7 +370,7 @@ impl ImageFragmentInfo {
     pub fn new<N: ThreadSafeLayoutNode>(node: &N, url: Option<Url>,
                                         layout_context: &LayoutContext) -> ImageFragmentInfo {
         let image_or_metadata = url.and_then(|url| {
-            layout_context.get_or_request_image_or_meta(url, UsePlaceholder::Yes)
+            layout_context.shared.get_or_request_image_or_meta(url, UsePlaceholder::Yes)
         });
 
         let (image, metadata) = match image_or_metadata {

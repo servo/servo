@@ -491,10 +491,11 @@ impl FragmentDisplayListBuilding for Fragment {
                                                index: usize) {
         let background = style.get_background();
         let fetch_image_data_as_well = !opts::get().use_webrender;
-        let webrender_image =
-            state.layout_context.get_webrender_image_for_url(image_url,
-                                                             UsePlaceholder::No,
-                                                             fetch_image_data_as_well);
+        let webrender_image = state.layout_context
+                                   .shared
+                                   .get_webrender_image_for_url(image_url,
+                                                                UsePlaceholder::No,
+                                                                fetch_image_data_as_well);
 
         if let Some((webrender_image, image_data)) = webrender_image {
             debug!("(building display list) building background image");
