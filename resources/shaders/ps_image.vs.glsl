@@ -18,7 +18,7 @@ void main(void) {
 
 #ifdef WR_FEATURE_TRANSFORM
     TransformVertexInfo vi = write_transform_vertex(image.info);
-    vLocalRect = image.info.local_rect;
+    vLocalRect = vi.clipped_local_rect;
     vLocalPos = vi.local_pos;
     vStretchSize = image.stretch_size.xy;
 #else

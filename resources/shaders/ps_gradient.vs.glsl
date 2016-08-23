@@ -20,9 +20,17 @@ layout(std140) uniform Items {
 
 void main(void) {
     Gradient gradient = gradients[gl_InstanceID];
-    VertexInfo vi = write_vertex(gradient.info);
 
+#ifdef WR_FEATURE_TRANSFORM
+    TransformVertexInfo vi = write_transform_vertex(gradient.info);
+    vLocalRect = vi.clipped_local_rect;
+    vLocalPos = vi.local_pos;
+    vec2 f = (vi.local_pos.xy - gradient.info.local_rect.xy) / gradient.info.local_rect.zw;
+#else
+    VertexInfo vi = write_vertex(gradient.info);
     vec2 f = (vi.local_clamped_pos - gradient.info.local_rect.xy) / gradient.info.local_rect.zw;
+    vPos = vi.local_clamped_pos;
+#endif
 
     switch (gradient.dir.x) {
         case DIR_HORIZONTAL:
@@ -38,7 +46,6 @@ void main(void) {
                        gradient.clip.top_right.outer_inner_radius.x,
                        gradient.clip.bottom_right.outer_inner_radius.x,
                        gradient.clip.bottom_left.outer_inner_radius.x);
-    vPos = vi.local_clamped_pos;
 
     vColor0 = gradient.color0;
     vColor1 = gradient.color1;

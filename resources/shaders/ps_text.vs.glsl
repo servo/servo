@@ -15,9 +15,16 @@ layout(std140) uniform Items {
 
 void main(void) {
     Glyph glyph = glyphs[gl_InstanceID];
-    VertexInfo vi = write_vertex(glyph.info);
 
+#ifdef WR_FEATURE_TRANSFORM
+    TransformVertexInfo vi = write_transform_vertex(glyph.info);
+    vLocalRect = vi.clipped_local_rect;
+    vLocalPos = vi.local_pos;
+    vec2 f = (vi.local_pos.xy - glyph.info.local_rect.xy) / glyph.info.local_rect.zw;
+#else
+    VertexInfo vi = write_vertex(glyph.info);
     vec2 f = (vi.local_clamped_pos - vi.local_rect.p0) / (vi.local_rect.p1 - vi.local_rect.p0);
+#endif
 
     vec2 texture_size = textureSize(sDiffuse, 0);
     vec2 st0 = glyph.uv_rect.xy / texture_size;
