@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="match" href="inline_block_opacity_change_ref.html">
+    <style>
+    #a {
+        background-color: green;
+        display: inline-block;
+        width: 1em;
+        opacity: 0.2;
+    }
+
+    #a.go {
+        opacity: 1;
+    }
+    </style>
+</head>
+
+<body>
+    <span style="transition: opacity .1s ease-out;" id="a">a</span>
+    <script>
+            document.body.offsetWidth; // force layout
+            document.querySelector('#a').classList.add('go');
+    </script>
+</body>
+</html>
