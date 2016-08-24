@@ -20,5 +20,5 @@ interface Headers {
   boolean has(ByteString name);
   [Throws]
   void set(ByteString name, ByteString value);
-  // iterable<ByteString, ByteString>; // TODO see issue #12628
+  iterable<ByteString, ByteString>;
 };
