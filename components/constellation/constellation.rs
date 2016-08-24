@@ -738,12 +738,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 // store service worker manager for communicating with it.
                 self.swmanager_chan = Some(sw_sender);
             }
-            SWManagerMsg::ConnectServiceWorker(scope_url, pipeline_id, msg_chan) => {
-                if let Some(ref parent_info) = self.pipelines.get(&pipeline_id) {
-                    let from_cons_msg = ConstellationControlMsg::ConnectServiceWorker(scope_url, msg_chan);
-                    let _ = parent_info.script_chan.send(from_cons_msg);
-                }
-            }
         }
     }
 
@@ -1005,6 +999,13 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             FromScriptMsg::RegisterServiceWorker(scope_things, scope) => {
                 debug!("constellation got store registration scope message");
                 self.handle_register_serviceworker(scope_things, scope);
+            }
+            FromScriptMsg::ForwardDOMMessage(msg_vec, scope_url) => {
+                if let Some(ref mgr) = self.swmanager_chan {
+                    let _ = mgr.send(ServiceWorkerMsg::ForwardDOMMessage(msg_vec, scope_url));
+                } else {
+                    warn!("Unable to forward DOMMessage for postMessage call");
+                }
             }
         }
     }

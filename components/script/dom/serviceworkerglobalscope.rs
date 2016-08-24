@@ -13,7 +13,6 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{Root, RootCollection};
 use dom::bindings::reflector::Reflectable;
 use dom::bindings::str::DOMString;
-use dom::bindings::structuredclone::StructuredCloneData;
 use dom::eventtarget::EventTarget;
 use dom::messageevent::MessageEvent;
 use dom::workerglobalscope::WorkerGlobalScope;
@@ -26,12 +25,11 @@ use msg::constellation_msg::PipelineId;
 use net_traits::{LoadContext, load_whole_resource, IpcSend, CustomResponseMediator};
 use rand::random;
 use script_runtime::{CommonScriptMsg, StackRootTLS, get_reports, new_rt_and_cx, ScriptChan};
-use script_traits::{TimerEvent, WorkerGlobalScopeInit, ScopeThings, ServiceWorkerMsg, DOMMessage};
+use script_traits::{TimerEvent, WorkerGlobalScopeInit, ScopeThings, ServiceWorkerMsg};
 use std::sync::mpsc::{Receiver, RecvError, Select, Sender, channel};
 use std::thread;
 use std::time::Duration;
-use style::thread_state;
-use style::thread_state::{IN_WORKER, SCRIPT};
+use style::thread_state::{self, IN_WORKER, SCRIPT};
 use url::Url;
 use util::prefs::PREFS;
 use util::thread::spawn_named;
@@ -47,11 +45,9 @@ pub enum ServiceWorkerScriptMsg {
 pub enum MixedMessage {
     FromServiceWorker(ServiceWorkerScriptMsg),
     FromDevtools(DevtoolScriptControlMsg),
-    FromTimeoutThread(()),
-    PostMessage(DOMMessage)
+    FromTimeoutThread(())
 }
 
-// Required for run_with_memory_reporting
 #[derive(JSTraceable, Clone)]
 pub struct ServiceWorkerChan {
     pub sender: Sender<ServiceWorkerScriptMsg>
@@ -83,9 +79,6 @@ pub struct ServiceWorkerGlobalScope {
     timer_event_port: Receiver<()>,
     #[ignore_heap_size_of = "Defined in std"]
     swmanager_sender: IpcSender<ServiceWorkerMsg>,
-    #[ignore_heap_size_of = "Defined in std"]
-    msg_port: Receiver<DOMMessage>,
-    #[ignore_heap_size_of = "Defined in std"]
     scope_url: Url,
 }
 
@@ -100,8 +93,7 @@ impl ServiceWorkerGlobalScope {
                      timer_event_chan: IpcSender<TimerEvent>,
                      timer_event_port: Receiver<()>,
                      swmanager_sender: IpcSender<ServiceWorkerMsg>,
-                     scope_url: Url,
-                     msg_port: Receiver<DOMMessage>)
+                     scope_url: Url)
                      -> ServiceWorkerGlobalScope {
         ServiceWorkerGlobalScope {
             workerglobalscope: WorkerGlobalScope::new_inherited(init,
@@ -115,8 +107,7 @@ impl ServiceWorkerGlobalScope {
             timer_event_port: timer_event_port,
             own_sender: own_sender,
             swmanager_sender: swmanager_sender,
-            scope_url: scope_url,
-            msg_port: msg_port
+            scope_url: scope_url
         }
     }
 
@@ -130,8 +121,7 @@ impl ServiceWorkerGlobalScope {
                timer_event_chan: IpcSender<TimerEvent>,
                timer_event_port: Receiver<()>,
                swmanager_sender: IpcSender<ServiceWorkerMsg>,
-               scope_url: Url,
-               msg_port: Receiver<DOMMessage>)
+               scope_url: Url)
                -> Root<ServiceWorkerGlobalScope> {
         let cx = runtime.cx();
         let scope = box ServiceWorkerGlobalScope::new_inherited(init,
@@ -144,8 +134,7 @@ impl ServiceWorkerGlobalScope {
                                                                   timer_event_chan,
                                                                   timer_event_port,
                                                                   swmanager_sender,
-                                                                  scope_url,
-                                                                  msg_port);
+                                                                  scope_url);
         ServiceWorkerGlobalScopeBinding::Wrap(cx, scope)
     }
 
@@ -155,8 +144,7 @@ impl ServiceWorkerGlobalScope {
                             receiver: Receiver<ServiceWorkerScriptMsg>,
                             devtools_receiver: IpcReceiver<DevtoolScriptControlMsg>,
                             swmanager_sender: IpcSender<ServiceWorkerMsg>,
-                            scope_url: Url,
-                            msg_port: Receiver<DOMMessage>) {
+                            scope_url: Url) {
         let ScopeThings { script_url,
                           pipeline_id,
                           init,
@@ -191,7 +179,7 @@ impl ServiceWorkerGlobalScope {
             let global = ServiceWorkerGlobalScope::new(
                 init, url, pipeline_id, devtools_mpsc_port, runtime,
                 own_sender, receiver,
-                timer_ipc_chan, timer_port, swmanager_sender, scope_url, msg_port);
+                timer_ipc_chan, timer_port, swmanager_sender, scope_url);
             let scope = global.upcast::<WorkerGlobalScope>();
 
             unsafe {
@@ -238,17 +226,6 @@ impl ServiceWorkerGlobalScope {
                 self.handle_script_event(msg);
                 true
             }
-            MixedMessage::PostMessage(data) => {
-                let DOMMessage(mut data) = data;
-                let data = StructuredCloneData::make_structured_clone(data.as_mut_ptr(), data.len());
-                let scope = self.upcast::<WorkerGlobalScope>();
-                let target = self.upcast();
-                let _ac = JSAutoCompartment::new(scope.get_cx(), scope.reflector().get_jsobject().get());
-                rooted!(in(scope.get_cx()) let mut message = UndefinedValue());
-                data.read(GlobalRef::Worker(scope), message.handle_mut());
-                MessageEvent::dispatch_jsval(target, GlobalRef::Worker(scope), message.handle());
-                true
-            }
             MixedMessage::FromTimeoutThread(_) => {
                 let _ = self.swmanager_sender.send(ServiceWorkerMsg::Timeout(self.scope_url.clone()));
                 false
@@ -260,7 +237,14 @@ impl ServiceWorkerGlobalScope {
         use self::ServiceWorkerScriptMsg::*;
 
         match msg {
-            CommonWorker(WorkerScriptMsg::DOMMessage(_)) => { },
+            CommonWorker(WorkerScriptMsg::DOMMessage(data)) => {
+                let scope = self.upcast::<WorkerGlobalScope>();
+                let target = self.upcast();
+                let _ac = JSAutoCompartment::new(scope.get_cx(), scope.reflector().get_jsobject().get());
+                rooted!(in(scope.get_cx()) let mut message = UndefinedValue());
+                data.read(GlobalRef::Worker(scope), message.handle_mut());
+                MessageEvent::dispatch_jsval(target, GlobalRef::Worker(scope), message.handle());
+            },
             CommonWorker(WorkerScriptMsg::Common(CommonScriptMsg::RunnableMsg(_, runnable))) => {
                 runnable.handler()
             },
@@ -287,20 +271,17 @@ impl ServiceWorkerGlobalScope {
         let worker_port = &self.receiver;
         let devtools_port = scope.from_devtools_receiver();
         let timer_event_port = &self.timer_event_port;
-        let msg_port = &self.msg_port;
 
         let sel = Select::new();
         let mut worker_handle = sel.handle(worker_port);
         let mut devtools_handle = sel.handle(devtools_port);
         let mut timer_port_handle = sel.handle(timer_event_port);
-        let mut msg_port_handle = sel.handle(msg_port);
         unsafe {
             worker_handle.add();
             if scope.from_devtools_sender().is_some() {
                 devtools_handle.add();
             }
             timer_port_handle.add();
-            msg_port_handle.add();
         }
 
         let ret = sel.wait();
@@ -310,8 +291,6 @@ impl ServiceWorkerGlobalScope {
             Ok(MixedMessage::FromDevtools(try!(devtools_port.recv())))
         } else if ret == timer_port_handle.id() {
             Ok(MixedMessage::FromTimeoutThread(try!(timer_event_port.recv())))
-        } else if ret == msg_port_handle.id() {
-            Ok(MixedMessage::PostMessage(try!(msg_port.recv())))
         } else {
             panic!("unexpected select result!")
         }

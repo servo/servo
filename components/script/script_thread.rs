@@ -42,7 +42,7 @@ use dom::element::Element;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::node::{Node, NodeDamage, window_from_node};
-use dom::serviceworker::{TrustedServiceWorkerAddress, ServiceWorker};
+use dom::serviceworker::TrustedServiceWorkerAddress;
 use dom::serviceworkerregistration::ServiceWorkerRegistration;
 use dom::servohtmlparser::ParserContext;
 use dom::uievent::UIEvent;
@@ -84,7 +84,7 @@ use script_traits::CompositorEvent::{TouchEvent, TouchpadPressureEvent};
 use script_traits::webdriver_msg::WebDriverScriptCommand;
 use script_traits::{CompositorEvent, ConstellationControlMsg, EventResult};
 use script_traits::{InitialScriptState, MouseButton, MouseEventType, MozBrowserEvent};
-use script_traits::{NewLayoutInfo, ScriptMsg as ConstellationMsg, DOMMessage};
+use script_traits::{NewLayoutInfo, ScriptMsg as ConstellationMsg};
 use script_traits::{ScriptThreadFactory, TimerEvent, TimerEventRequest, TimerSource};
 use script_traits::{TouchEventType, TouchId, UntrustedNodeAddress, WindowSizeData};
 use std::borrow::ToOwned;
@@ -924,8 +924,6 @@ impl ScriptThread {
                 self.handle_css_error_reporting(pipeline_id, filename, line, column, msg),
             ConstellationControlMsg::Reload(pipeline_id) =>
                 self.handle_reload(pipeline_id),
-            ConstellationControlMsg::ConnectServiceWorker(scope_url, chan) =>
-                self.connect_serviceworker_to_scope(scope_url, chan),
             msg @ ConstellationControlMsg::AttachLayout(..) |
             msg @ ConstellationControlMsg::Viewport(..) |
             msg @ ConstellationControlMsg::SetScrollState(..) |
@@ -1459,15 +1457,6 @@ impl ScriptThread {
             let _ = self.constellation_chan.send(ConstellationMsg::RegisterServiceWorker(scope_things, scope));
         } else {
             warn!("Registration failed for {}", scope);
-        }
-    }
-
-    // Set the sender to the corresponding scope of the service worker object.
-    fn connect_serviceworker_to_scope(&self, scope_url: Url, chan: IpcSender<DOMMessage>) {
-        let ref maybe_registration_ref = *self.registration_map.borrow();
-        if let Some(ref registration) = maybe_registration_ref.get(&scope_url) {
-            let trusted_worker = registration.get_trusted_worker();
-            ServiceWorker::store_sender(trusted_worker, chan);
         }
     }
 

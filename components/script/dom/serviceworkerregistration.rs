@@ -6,11 +6,10 @@ use dom::bindings::codegen::Bindings::ServiceWorkerBinding::ServiceWorkerState;
 use dom::bindings::codegen::Bindings::ServiceWorkerRegistrationBinding::{ServiceWorkerRegistrationMethods, Wrap};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
-use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::USVString;
 use dom::eventtarget::EventTarget;
-use dom::serviceworker::{ServiceWorker, TrustedServiceWorkerAddress};
+use dom::serviceworker::ServiceWorker;
 use dom::serviceworkercontainer::Controllable;
 use dom::workerglobalscope::prepare_workerscope_init;
 use script_traits::{WorkerScriptLoadOrigin, ScopeThings};
@@ -40,7 +39,7 @@ impl ServiceWorkerRegistration {
                script_url: Url,
                scope: String,
                container: &Controllable) -> Root<ServiceWorkerRegistration> {
-        let active_worker = ServiceWorker::install_serviceworker(global, script_url.clone(), true);
+        let active_worker = ServiceWorker::install_serviceworker(global, script_url.clone(), &scope, true);
         active_worker.set_transition_state(ServiceWorkerState::Installed);
         container.set_controller(&*active_worker.clone());
         reflect_dom_object(box ServiceWorkerRegistration::new_inherited(&*active_worker, scope), global, Wrap)
@@ -48,10 +47,6 @@ impl ServiceWorkerRegistration {
 
     pub fn get_installed(&self) -> &ServiceWorker {
         self.active.as_ref().unwrap()
-    }
-
-    pub fn get_trusted_worker(&self) -> TrustedServiceWorkerAddress {
-        Trusted::new(self.active.as_ref().unwrap())
     }
 
     pub fn create_scope_things(global: GlobalRef, script_url: Url) -> ScopeThings {
