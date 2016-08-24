@@ -2514,11 +2514,11 @@ let raw = Box::into_raw(object);
 let _rt = RootedTraceable::new(&*raw);
 
 rooted!(in(cx) let obj =
-    create_dom_global(
+    create_global_object(
         cx,
         &Class.base as *const js::jsapi::Class as *const _,
         raw as *const libc::c_void,
-        Some(_trace)));
+        _trace));
 assert!(!obj.is_null());
 
 (*raw).init_reflector(obj.get());
@@ -5294,26 +5294,26 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'dom::bindings',
         'dom::bindings::codegen::InterfaceObjectMap',
         'dom::bindings::global::{GlobalRef, global_root_from_object, global_root_from_reflector}',
-        'dom::bindings::interface::{InterfaceConstructorBehavior, NonCallbackInterfaceObjectClass}',
-        'dom::bindings::interface::{create_callback_interface_object, create_interface_prototype_object}',
-        'dom::bindings::interface::{create_named_constructors, create_noncallback_interface_object}',
-        'dom::bindings::interface::{define_guarded_methods, define_guarded_properties}',
-        'dom::bindings::interface::{ConstantSpec, NonNullJSNative}',
+        'dom::bindings::interface::{ConstantSpec, InterfaceConstructorBehavior}',
+        'dom::bindings::interface::{NonCallbackInterfaceObjectClass, NonNullJSNative}',
+        'dom::bindings::interface::{create_callback_interface_object, create_global_object}',
+        'dom::bindings::interface::{create_interface_prototype_object, create_named_constructors}',
+        'dom::bindings::interface::{create_noncallback_interface_object, define_guarded_methods}',
+        'dom::bindings::interface::{define_guarded_properties, is_exposed_in}',
         'dom::bindings::interface::ConstantVal::{IntVal, UintVal}',
-        'dom::bindings::interface::is_exposed_in',
         'dom::bindings::iterable::{IteratorType, Iterable}',
         'dom::bindings::js::{JS, Root, RootedReference}',
         'dom::bindings::js::{OptionalRootedReference}',
         'dom::bindings::reflector::{Reflectable}',
         'dom::bindings::utils::{DOMClass, DOMJSClass}',
         'dom::bindings::utils::{DOM_PROTO_UNFORGEABLE_HOLDER_SLOT, JSCLASS_DOM_GLOBAL}',
-        'dom::bindings::utils::{ProtoOrIfaceArray, create_dom_global}',
-        'dom::bindings::utils::{enumerate_global, finalize_global, find_enum_string_index}',
-        'dom::bindings::utils::{generic_getter, generic_lenient_getter, generic_lenient_setter}',
-        'dom::bindings::utils::{generic_method, generic_setter, get_array_index_from_id}',
-        'dom::bindings::utils::{get_dictionary_property, get_property_on_prototype}',
-        'dom::bindings::utils::{get_proto_or_iface_array, has_property_on_prototype}',
-        'dom::bindings::utils::{is_platform_object, resolve_global, set_dictionary_property, trace_global}',
+        'dom::bindings::utils::{ProtoOrIfaceArray, enumerate_global, finalize_global}',
+        'dom::bindings::utils::{find_enum_string_index, generic_getter, generic_lenient_getter}',
+        'dom::bindings::utils::{generic_lenient_setter, generic_method, generic_setter}',
+        'dom::bindings::utils::{get_array_index_from_id, get_dictionary_property}',
+        'dom::bindings::utils::{get_property_on_prototype, get_proto_or_iface_array}',
+        'dom::bindings::utils::{has_property_on_prototype, is_platform_object}',
+        'dom::bindings::utils::{resolve_global, set_dictionary_property, trace_global}',
         'dom::bindings::trace::{JSTraceable, RootedTraceable}',
         'dom::bindings::callback::{CallbackContainer,CallbackInterface,CallbackFunction}',
         'dom::bindings::callback::{CallSetup,ExceptionHandling}',
