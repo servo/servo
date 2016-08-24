@@ -896,7 +896,6 @@ impl Node {
     }
 }
 
-
 /// Iterate through `nodes` until we find a `Node` that is not in `not_in`
 fn first_node_not_in<I>(mut nodes: I, not_in: &[NodeOrString]) -> Option<Root<Node>>
         where I: Iterator<Item=Root<Node>>
