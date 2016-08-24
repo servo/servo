@@ -4724,10 +4724,17 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
             # Once we start supporting OverrideBuiltins we need to make
             # ResolveOwnProperty or EnumerateOwnProperties filter out named
             # properties that shadow prototype properties.
-            namedGet = ("\n" +
-                        "if RUST_JSID_IS_STRING(id) && !has_property_on_prototype(cx, proxy, id) {\n" +
-                        CGIndenter(CGProxyNamedGetter(self.descriptor, templateValues)).define() + "\n" +
-                        "}\n")
+            namedGet = """
+if RUST_JSID_IS_STRING(id) {
+    let mut has_on_proto = false;
+    if !has_property_on_prototype(cx, proxy, id, &mut has_on_proto) {
+        return false;
+    }
+    if !has_on_proto {
+        %s
+    }
+}
+""" % CGIndenter(CGProxyNamedGetter(self.descriptor, templateValues), 8).define()
         else:
             namedGet = ""
 
@@ -4952,12 +4959,20 @@ class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
 
         namedGetter = self.descriptor.operations['NamedGetter']
         if namedGetter:
-            named = ("if RUST_JSID_IS_STRING(id) && !has_property_on_prototype(cx, proxy, id) {\n" +
-                     CGIndenter(CGProxyNamedGetter(self.descriptor)).define() + "\n" +
-                     "    *bp = found;\n"
-                     "    return true;\n"
-                     "}\n" +
-                     "\n")
+            named = """\
+if RUST_JSID_IS_STRING(id) {
+    let mut has_on_proto = false;
+    if !has_property_on_prototype(cx, proxy, id, &mut has_on_proto) {
+        return false;
+    }
+    if !has_on_proto {
+        %s
+        *bp = found;
+        return true;
+    }
+}
+
+""" % CGIndenter(CGProxyNamedGetter(self.descriptor), 8).define()
         else:
             named = ""
 

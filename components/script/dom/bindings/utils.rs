@@ -284,12 +284,15 @@ pub fn set_dictionary_property(cx: *mut JSContext,
 /// Returns whether `proxy` has a property `id` on its prototype.
 pub unsafe fn has_property_on_prototype(cx: *mut JSContext,
                                         proxy: HandleObject,
-                                        id: HandleId)
+                                        id: HandleId,
+                                        found: &mut bool)
                                         -> bool {
-    let mut found = false;
-    !get_property_on_prototype(
-        cx, proxy, id, &mut found,
-        MutableHandleValue::from_marked_location(ptr::null_mut())) || found
+    rooted!(in(cx) let mut proto = ptr::null_mut());
+    if !JS_GetPrototype(cx, proxy, proto.handle_mut()) {
+        return false;
+    }
+    assert!(!proto.is_null());
+    JS_HasPropertyById(cx, proto.handle(), id, found)
 }
 
 /// Drop the resources held by reserved slots of a global object
