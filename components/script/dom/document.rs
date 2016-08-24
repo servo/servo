@@ -789,8 +789,9 @@ impl Document {
         }
 
         // https://w3c.github.io/uievents/#event-type-dblclick
-        let DBL_CLICK_TIMEOUT = Duration::from_millis(PREFS.get("dom.document.dblclick_timeout").as_u64().unwrap()); // Clicks within 300ms of each other can be considered for double clicks
-        let DBL_CLICK_DIST_THRESHOLD = 100 as f64;
+        let DBL_CLICK_TIMEOUT = Duration::from_millis(PREFS.get("dom.document.dblclick_timeout").as_u64().unwrap());
+        let DBL_CLICK_DIST_THRESHOLD = PREFS.get("dom.document.dblclick_dist").as_u64().unwrap();
+        
         if let MouseEventType::Click = mouse_event_type {
             let opt = self.last_click_info.borrow_mut().take();
             let new_pos = Point2D::new(client_x, client_y);
@@ -798,7 +799,7 @@ impl Document {
                 Some((last_time, last_pos)) => {
                     let line = new_pos - last_pos;
                     let dist = (line.dot(line) as f64).sqrt();
-                    if Instant::now().duration_since(last_time) < DBL_CLICK_TIMEOUT && dist < DBL_CLICK_DIST_THRESHOLD {
+                    if Instant::now().duration_since(last_time) < DBL_CLICK_TIMEOUT && dist < DBL_CLICK_DIST_THRESHOLD as f64 {
                         let evt_node = node;
                         let event = MouseEvent::new(&self.window,
                                     DOMString::from("dblclick".to_owned()),
