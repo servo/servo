@@ -29,11 +29,10 @@ config = {
     "skip-check-licenses": False,
     "ignore": {
         "files": [
-            CONFIG_FILE_PATH,   # ignore config file
-            "./.",              # ignore hidden files
+            "./.",   # ignore hidden files
         ],
         "directories": [
-            "./.",              # ignore hidden directories
+            "./.",   # ignore hidden directories
         ],
         "packages": [],
     }
@@ -312,7 +311,7 @@ duplicate versions for package "{package}"
 
 
 def check_toml(file_name, lines):
-    if not file_name.endswith(".toml"):
+    if not file_name.endswith("Cargo.toml"):
         raise StopIteration
     ok_licensed = False
     for idx, line in enumerate(lines):
