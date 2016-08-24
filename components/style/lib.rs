@@ -48,6 +48,7 @@ extern crate fnv;
 #[cfg(feature = "gecko")] extern crate gecko_bindings;
 #[cfg(feature = "gecko")] #[macro_use] extern crate gecko_string_cache as string_cache;
 #[cfg(feature = "servo")] extern crate heapsize;
+extern crate ipc_channel;
 #[allow(unused_extern_crates)]
 #[macro_use]
 extern crate lazy_static;
@@ -62,6 +63,7 @@ extern crate ordered_float;
 extern crate quickersort;
 extern crate rand;
 extern crate rustc_serialize;
+extern crate script_traits;
 extern crate selectors;
 #[cfg(feature = "servo")] extern crate serde;
 extern crate smallvec;

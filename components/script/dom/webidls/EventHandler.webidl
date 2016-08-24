@@ -87,6 +87,9 @@ interface GlobalEventHandlers {
            attribute EventHandler ontoggle;
            attribute EventHandler onvolumechange;
            attribute EventHandler onwaiting;
+
+// https://drafts.csswg.org/css-transitions/#interface-globaleventhandlers-idl
+           attribute EventHandler ontransitionend;
 };
 
 // https://html.spec.whatwg.org/multipage/#windoweventhandlers

@@ -513,7 +513,8 @@ impl LayoutThread {
                                    screen_size_changed: bool,
                                    goal: ReflowGoal)
                                    -> SharedLayoutContext {
-        let local_style_context_creation_data = LocalStyleContextCreationInfo::new(self.new_animations_sender.clone());
+        let local_style_context_creation_data = LocalStyleContextCreationInfo::new(self.new_animations_sender.clone(),
+                                                                                   self.script_chan.clone());
 
         SharedLayoutContext {
             style_context: SharedStyleContext {

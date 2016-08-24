@@ -6,12 +6,13 @@
 
 use animation;
 use context::{LocalStyleContext, SharedStyleContext, StyleContext};
-use dom::{OpaqueNode, TNode, TRestyleDamage, UnsafeNode};
+use dom::{OpaqueNode, TNode, TRestyleDamage};
 use matching::{ApplicableDeclarations, ElementMatchMethods, MatchMethods, StyleSharingResult};
 use selectors::bloom::BloomFilter;
 use selectors::matching::StyleRelations;
 use std::cell::RefCell;
 use std::sync::atomic::{AtomicUsize, ATOMIC_USIZE_INIT, Ordering};
+use style_traits::UnsafeNode;
 use tid::tid;
 use util::opts;
 
@@ -387,8 +388,9 @@ pub fn recalc_style_at<'a, N, C>(context: &'a C,
         // Finish any expired transitions.
         animation::complete_expired_transitions(
             node.opaque(),
+            node.to_unsafe(),
             node.mutate_data().unwrap().style.as_mut().unwrap(),
-            context.shared_context()
+            context
         );
     }
 

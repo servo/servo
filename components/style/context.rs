@@ -9,7 +9,9 @@ use app_units::Au;
 use dom::OpaqueNode;
 use error_reporting::ParseErrorReporter;
 use euclid::Size2D;
+use ipc_channel::ipc::IpcSender;
 use matching::{ApplicableDeclarationsCache, StyleSharingCandidateCache};
+use script_traits::ConstellationControlMsg;
 use selector_matching::Stylist;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -20,12 +22,14 @@ use timer::Timer;
 /// This structure is used to create a local style context from a shared one.
 pub struct LocalStyleContextCreationInfo {
     new_animations_sender: Sender<Animation>,
+    script_chan: IpcSender<ConstellationControlMsg>,
 }
 
 impl LocalStyleContextCreationInfo {
-    pub fn new(animations_sender: Sender<Animation>) -> Self {
+    pub fn new(animations_sender: Sender<Animation>, script_chan: IpcSender<ConstellationControlMsg>) -> Self {
         LocalStyleContextCreationInfo {
             new_animations_sender: animations_sender,
+            script_chan: script_chan,
         }
     }
 }
@@ -70,6 +74,9 @@ pub struct LocalStyleContext {
     /// A channel on which new animations that have been triggered by style
     /// recalculation can be sent.
     pub new_animations_sender: Sender<Animation>,
+
+    /// A channel to communicate with the script thread about transition events.
+    pub script_chan: IpcSender<ConstellationControlMsg>,
 }
 
 impl LocalStyleContext {
@@ -78,6 +85,7 @@ impl LocalStyleContext {
             applicable_declarations_cache: RefCell::new(ApplicableDeclarationsCache::new()),
             style_sharing_candidate_cache: RefCell::new(StyleSharingCandidateCache::new()),
             new_animations_sender: local_context_creation_data.new_animations_sender.clone(),
+            script_chan: local_context_creation_data.script_chan.clone(),
         }
     }
 }

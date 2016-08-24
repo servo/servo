@@ -64,7 +64,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
 use std::fmt;
 use std::sync::mpsc::{Sender, Receiver};
-use style_traits::{PagePx, ViewportPx};
+use style_traits::{PagePx, ViewportPx, UnsafeNode};
 use url::Url;
 use util::ipc::OptionalOpaqueIpcSender;
 use webdriver_msg::{LoadStatus, WebDriverScriptCommand};
@@ -151,7 +151,7 @@ pub struct NewLayoutInfo {
     pub layout_threads: usize,
 }
 
-/// Messages sent from the constellation or layout to the script thread.
+/// Messages sent from the constellation, layout or style to the script thread.
 #[derive(Deserialize, Serialize)]
 pub enum ConstellationControlMsg {
     /// Gives a channel and ID to a layout thread, as well as the ID of that layout's parent
@@ -191,6 +191,8 @@ pub enum ConstellationControlMsg {
     WebDriverScriptCommand(PipelineId, WebDriverScriptCommand),
     /// Notifies script thread that all animations are done
     TickAllAnimations(PipelineId),
+    /// Notifies the script thread of a transition end
+    TransitionEnd(UnsafeNode, String, f64),
     /// Notifies the script thread that a new Web font has been loaded, and thus the page should be
     /// reflowed.
     WebFontLoaded(PipelineId),
@@ -231,6 +233,7 @@ impl fmt::Debug for ConstellationControlMsg {
             FocusIFrame(..) => "FocusIFrame",
             WebDriverScriptCommand(..) => "WebDriverScriptCommand",
             TickAllAnimations(..) => "TickAllAnimations",
+            TransitionEnd(..) => "TransitionEnd",
             WebFontLoaded(..) => "WebFontLoaded",
             DispatchFrameLoadEvent { .. } => "DispatchFrameLoadEvent",
             FramedContentChanged(..) => "FramedContentChanged",

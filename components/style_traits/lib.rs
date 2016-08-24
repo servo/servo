@@ -44,6 +44,10 @@ pub enum ViewportPx {}
 #[derive(Clone, Copy, Debug)]
 pub enum PagePx {}
 
+/// Opaque type stored in type-unsafe work queues for parallel layout.
+/// Must be transmutable to and from TNode.
+pub type UnsafeNode = (usize, usize);
+
 // In summary, the hierarchy of pixel units and the factors to convert from one to the next:
 //
 // DevicePixel

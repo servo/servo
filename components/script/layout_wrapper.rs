@@ -58,7 +58,7 @@ use style::attr::AttrValue;
 use style::computed_values::display;
 use style::context::SharedStyleContext;
 use style::data::PrivateStyleData;
-use style::dom::{PresentationalHintsSynthetizer, OpaqueNode, TDocument, TElement, TNode, UnsafeNode};
+use style::dom::{PresentationalHintsSynthetizer, OpaqueNode, TDocument, TElement, TNode};
 use style::element_state::*;
 use style::properties::{ComputedValues, PropertyDeclarationBlock};
 use style::refcell::{Ref, RefCell, RefMut};
@@ -66,6 +66,7 @@ use style::selector_impl::{ElementSnapshot, NonTSPseudoClass, PseudoElement, Ser
 use style::selector_matching::DeclarationBlock;
 use style::sink::Push;
 use style::str::is_whitespace;
+use style_traits::UnsafeNode;
 use url::Url;
 
 #[derive(Copy, Clone)]
@@ -377,7 +378,7 @@ impl<'ln> ServoLayoutNode<'ln> {
 
     /// Returns the interior of this node as a `LayoutJS`. This is highly unsafe for layout to
     /// call and as such is marked `unsafe`.
-    unsafe fn get_jsmanaged(&self) -> &LayoutJS<Node> {
+    pub unsafe fn get_jsmanaged(&self) -> &LayoutJS<Node> {
         &self.node
     }
 }

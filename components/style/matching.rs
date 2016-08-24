@@ -12,7 +12,7 @@ use cache::{LRUCache, SimpleHashCache};
 use cascade_info::CascadeInfo;
 use context::{StyleContext, SharedStyleContext};
 use data::PrivateStyleData;
-use dom::{TElement, TNode, TRestyleDamage, UnsafeNode};
+use dom::{TElement, TNode, TRestyleDamage};
 use properties::longhands::display::computed_value as display;
 use properties::{ComputedValues, cascade};
 use selector_impl::{TheSelectorImpl, PseudoElement};
@@ -27,6 +27,7 @@ use std::hash::{BuildHasherDefault, Hash, Hasher};
 use std::slice::IterMut;
 use std::sync::Arc;
 use string_cache::Atom;
+use style_traits::UnsafeNode;
 use traversal::RestyleResult;
 use util::opts;
 
@@ -505,7 +506,7 @@ trait PrivateMatchMethods: TNode {
         let mut cacheable = true;
         let shared_context = context.shared_context();
         if animate_properties {
-            cacheable = !self.update_animations_for_cascade(shared_context,
+            cacheable = !self.update_animations_for_cascade(context,
                                                             &mut old_style) && cacheable;
         }
 
@@ -577,7 +578,7 @@ trait PrivateMatchMethods: TNode {
     }
 
     fn update_animations_for_cascade(&self,
-                                     context: &SharedStyleContext,
+                                     context: &StyleContext,
                                      style: &mut Option<&mut Arc<ComputedValues>>)
                                      -> bool {
         let style = match *style {
@@ -588,8 +589,9 @@ trait PrivateMatchMethods: TNode {
         // Finish any expired transitions.
         let this_opaque = self.opaque();
         let had_animations_to_expire =
-            animation::complete_expired_transitions(this_opaque, style, context);
+            animation::complete_expired_transitions(this_opaque, self.to_unsafe(), style, context);
 
+        let context = context.shared_context();
         // Merge any running transitions into the current style, and cancel them.
         let had_running_animations = context.running_animations
                                             .read()

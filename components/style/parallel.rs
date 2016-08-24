@@ -8,9 +8,10 @@
 
 #![allow(unsafe_code)]
 
-use dom::{OpaqueNode, TNode, UnsafeNode};
+use dom::{OpaqueNode, TNode};
 use std::mem;
 use std::sync::atomic::Ordering;
+use style_traits::UnsafeNode;
 use traversal::{RestyleResult, DomTraversalContext};
 use traversal::{STYLE_SHARING_CACHE_HITS, STYLE_SHARING_CACHE_MISSES};
 use util::opts;
