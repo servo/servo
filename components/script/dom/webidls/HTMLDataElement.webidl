@@ -4,5 +4,5 @@
 
 // https://html.spec.whatwg.org/multipage/#htmldataelement
 interface HTMLDataElement : HTMLElement {
-  //         attribute DOMString value;
+           attribute DOMString value;
 };
