@@ -207,9 +207,7 @@ pub enum ConstellationControlMsg {
     /// Report an error from a CSS parser for the given pipeline
     ReportCSSError(PipelineId, String, usize, usize, String),
     /// Reload the given page.
-    Reload(PipelineId),
-    /// Requests the script thread to connect service worker object to its scope
-    ConnectServiceWorker(Url, IpcSender<DOMMessage>)
+    Reload(PipelineId)
 }
 
 impl fmt::Debug for ConstellationControlMsg {
@@ -238,8 +236,7 @@ impl fmt::Debug for ConstellationControlMsg {
             DispatchFrameLoadEvent { .. } => "DispatchFrameLoadEvent",
             FramedContentChanged(..) => "FramedContentChanged",
             ReportCSSError(..) => "ReportCSSError",
-            Reload(..) => "Reload",
-            ConnectServiceWorker(..) => "ConnectServiceWorker"
+            Reload(..) => "Reload"
         })
     }
 }
