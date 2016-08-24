@@ -14,7 +14,7 @@ use app_units::{Au, AU_PER_PX};
 use azure::azure_hl::Color;
 use block::{BlockFlow, BlockStackingContextType};
 use canvas_traits::{CanvasMsg, CanvasData, FromLayoutMsg};
-use context::LayoutContext;
+use context::SharedLayoutContext;
 use euclid::{Matrix4D, Point2D, Point3D, Radians, Rect, SideOffsets2D, Size2D};
 use flex::FlexFlow;
 use flow::{BaseFlow, Flow, IS_ABSOLUTELY_POSITIONED};
@@ -65,16 +65,17 @@ fn get_cyclic<T>(arr: &[T], index: usize) -> &T {
 }
 
 pub struct DisplayListBuildState<'a> {
-    pub layout_context: &'a LayoutContext<'a>,
+    pub shared_layout_context: &'a SharedLayoutContext,
     pub items: Vec<DisplayItem>,
     pub stacking_context_id_stack: Vec<StackingContextId>,
 }
 
 impl<'a> DisplayListBuildState<'a> {
-    pub fn new(layout_context: &'a LayoutContext, stacking_context_id: StackingContextId)
+    pub fn new(shared_layout_context: &'a SharedLayoutContext,
+               stacking_context_id: StackingContextId)
                -> DisplayListBuildState<'a> {
         DisplayListBuildState {
-            layout_context: layout_context,
+            shared_layout_context: shared_layout_context,
             items: Vec::new(),
             stacking_context_id_stack: vec!(stacking_context_id),
         }
@@ -491,10 +492,10 @@ impl FragmentDisplayListBuilding for Fragment {
                                                index: usize) {
         let background = style.get_background();
         let fetch_image_data_as_well = !opts::get().use_webrender;
-        let webrender_image =
-            state.layout_context.get_webrender_image_for_url(image_url,
-                                                             UsePlaceholder::No,
-                                                             fetch_image_data_as_well);
+        let webrender_image = state.shared_layout_context
+                                   .get_webrender_image_for_url(image_url,
+                                                                UsePlaceholder::No,
+                                                                fetch_image_data_as_well);
 
         if let Some((webrender_image, image_data)) = webrender_image {
             debug!("(building display list) building background image");

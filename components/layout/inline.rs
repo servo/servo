@@ -6,7 +6,7 @@
 
 use app_units::Au;
 use block::AbsoluteAssignBSizesTraversal;
-use context::LayoutContext;
+use context::{LayoutContext, SharedLayoutContext};
 use display_list_builder::DisplayListBuildState;
 use display_list_builder::{FragmentDisplayListBuilding, InlineFlowDisplayListBuilding};
 use euclid::{Point2D, Size2D};
@@ -1532,7 +1532,7 @@ impl Flow for InlineFlow {
         }
     }
 
-    fn compute_absolute_position(&mut self, _: &LayoutContext) {
+    fn compute_absolute_position(&mut self, _: &SharedLayoutContext) {
         // First, gather up the positions of all the containing blocks (if any).
         //
         // FIXME(pcwalton): This will get the absolute containing blocks inside `...` wrong in the

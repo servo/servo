@@ -9,7 +9,7 @@
 
 use app_units::Au;
 use block::BlockFlow;
-use context::LayoutContext;
+use context::{LayoutContext, SharedLayoutContext};
 use display_list_builder::{DisplayListBuildState, ListItemFlowDisplayListBuilding};
 use euclid::Point2D;
 use floats::FloatKind;
@@ -124,7 +124,7 @@ impl Flow for ListItemFlow {
         }
     }
 
-    fn compute_absolute_position(&mut self, layout_context: &LayoutContext) {
+    fn compute_absolute_position(&mut self, layout_context: &SharedLayoutContext) {
         self.block_flow.compute_absolute_position(layout_context)
     }
 

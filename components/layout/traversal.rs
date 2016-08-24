@@ -198,7 +198,7 @@ impl<'a> PostorderFlowTraversal for AssignBSizes<'a> {
 
 #[derive(Copy, Clone)]
 pub struct ComputeAbsolutePositions<'a> {
-    pub layout_context: &'a LayoutContext<'a>,
+    pub layout_context: &'a SharedLayoutContext,
 }
 
 impl<'a> PreorderFlowTraversal for ComputeAbsolutePositions<'a> {

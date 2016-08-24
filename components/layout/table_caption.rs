@@ -8,7 +8,7 @@
 
 use app_units::Au;
 use block::BlockFlow;
-use context::LayoutContext;
+use context::{LayoutContext, SharedLayoutContext};
 use display_list_builder::DisplayListBuildState;
 use euclid::Point2D;
 use flow::{Flow, FlowClass, OpaqueFlow};
@@ -66,7 +66,7 @@ impl Flow for TableCaptionFlow {
         self.block_flow.assign_block_size(layout_context);
     }
 
-    fn compute_absolute_position(&mut self, layout_context: &LayoutContext) {
+    fn compute_absolute_position(&mut self, layout_context: &SharedLayoutContext) {
         self.block_flow.compute_absolute_position(layout_context)
     }
 
