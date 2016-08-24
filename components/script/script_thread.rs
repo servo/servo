@@ -26,7 +26,7 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
 use dom::bindings::codegen::Bindings::LocationBinding::LocationMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::conversions::{FromJSValConvertible, StringificationBehavior};
+use dom::bindings::conversions::{ConversionResult, FromJSValConvertible, StringificationBehavior};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root, RootCollection};
@@ -1789,7 +1789,10 @@ impl ScriptThread {
                 let strval = DOMString::from_jsval(self.get_cx(),
                                                    jsval.handle(),
                                                    StringificationBehavior::Empty);
-                strval.unwrap_or(DOMString::new())
+                match strval {
+                    Ok(ConversionResult::Success(s)) => s,
+                    _ => DOMString::new(),
+                }
             }
         } else {
             DOMString::new()

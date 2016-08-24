@@ -7,7 +7,7 @@
 use dom::bindings::codegen::Bindings::DOMExceptionBinding::DOMExceptionMethods;
 use dom::bindings::codegen::PrototypeList::proto_id_to_name;
 use dom::bindings::conversions::root_from_object;
-use dom::bindings::conversions::{FromJSValConvertible, ToJSValConvertible};
+use dom::bindings::conversions::{ConversionResult, FromJSValConvertible, ToJSValConvertible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::str::USVString;
 use dom::domexception::{DOMErrorName, DOMException};
@@ -207,8 +207,8 @@ pub unsafe fn report_pending_exception(cx: *mut JSContext, obj: *mut JSObject) {
         JS_ClearPendingException(cx);
         if !value.is_object() {
             match USVString::from_jsval(cx, value.handle(), ()) {
-                Ok(USVString(string)) => error!("Uncaught exception: {}", string),
-                Err(_) => error!("Uncaught exception: failed to stringify primitive"),
+                Ok(ConversionResult::Success(USVString(string))) => error!("Uncaught exception: {}", string),
+                _ => error!("Uncaught exception: failed to stringify primitive"),
             }
             return;
         }
