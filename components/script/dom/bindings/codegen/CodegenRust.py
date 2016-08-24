@@ -2394,7 +2394,7 @@ Root::from_ref(&*raw)""" % {'copyUnforgeable': unforgeable, 'createObject': crea
 let _ac = JSAutoCompartment::new(cx, obj.get());
 rooted!(in(cx) let mut proto = ptr::null_mut());
 GetProtoObject(cx, obj.handle(), proto.handle_mut());
-JS_SetPrototype(cx, obj.handle(), proto.handle());
+JS_SplicePrototype(cx, obj.handle(), proto.handle());
 
 %(copyUnforgeable)s
 
@@ -5530,7 +5530,7 @@ class CGBindingRoot(CGThing):
             'js::jsapi::{JS_HasProperty, JS_HasPropertyById, JS_InitializePropertiesFromCompatibleNativeObject}',
             'js::jsapi::{JS_AtomizeAndPinString, JS_NewObject, JS_NewObjectWithGivenProto}',
             'js::jsapi::{JS_NewObjectWithoutMetadata, JS_SetProperty}',
-            'js::jsapi::{JS_SetPrototype, JS_SetReservedSlot, JSAutoCompartment}',
+            'js::jsapi::{JS_SplicePrototype, JS_SetReservedSlot, JSAutoCompartment}',
             'js::jsapi::{JSContext, JSClass, JSFreeOp, JSFunctionSpec}',
             'js::jsapi::{JSJitGetterCallArgs, JSJitInfo, JSJitMethodCallArgs, JSJitSetterCallArgs}',
             'js::jsapi::{JSNative, JSObject, JSNativeWrapper, JSPropertySpec}',
