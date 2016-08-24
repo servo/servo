@@ -135,6 +135,8 @@ pub enum ScriptMsg {
     LogEntry(Option<PipelineId>, Option<String>, LogEntry),
     /// Notifies the constellation that this pipeline has exited.
     PipelineExited(PipelineId),
+    /// Backup Messages
+    BackupMessage(DOMMessage, Url),
     /// Store the data required to activate a service worker for the given scope
     RegisterServiceWorker(ScopeThings, Url),
     /// Requests that the compositor shut down.
@@ -159,8 +161,8 @@ pub struct ScopeThings {
 }
 
 /// Message that gets passed to service worker scope on postMessage
-#[derive(Deserialize, Serialize, Debug)]
-pub struct DOMMessage(pub Vec<u64>);
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct DOMMessage(pub Vec<u8>);
 
 /// Channels to allow service worker manager to communicate with constellation and resource thread
 pub struct SWManagerSenders {
@@ -177,6 +179,8 @@ pub enum ServiceWorkerMsg {
     RegisterServiceWorker(ScopeThings, Url),
     /// Timeout message sent by active service workers
     Timeout(Url),
+    /// Backup message
+    BackupMessage(DOMMessage, Url),
     /// Exit the service worker manager
     Exit,
 }
@@ -185,8 +189,6 @@ pub enum ServiceWorkerMsg {
 #[derive(Deserialize, Serialize)]
 pub enum SWManagerMsg {
     /// Provide the constellation with a means of communicating with the Service Worker Manager
-    OwnSender(IpcSender<ServiceWorkerMsg>),
-    /// Message to ask to get a Trusted<ServiceWorker> to constellation
-    ConnectServiceWorker(Url, PipelineId, IpcSender<DOMMessage>)
+    OwnSender(IpcSender<ServiceWorkerMsg>)
 
 }
