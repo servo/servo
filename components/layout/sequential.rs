@@ -95,7 +95,7 @@ pub fn build_display_list_for_subtree(root: &mut FlowRef,
     build_display_list.state.items
 }
 
-pub fn iterate_through_flow_tree_fragment_border_boxes(root: &mut FlowRef,
+pub fn iterate_through_flow_tree_fragment_border_boxes(root: &mut Flow,
                                                        iterator: &mut FragmentBorderBoxIterator) {
     fn doit(flow: &mut Flow,
             level: i32,
@@ -117,7 +117,7 @@ pub fn iterate_through_flow_tree_fragment_border_boxes(root: &mut FlowRef,
         }
     }
 
-    doit(flow_ref::deref_mut(root), 0, iterator, &Point2D::zero());
+    doit(root, 0, iterator, &Point2D::zero());
 }
 
 pub fn store_overflow(layout_context: &LayoutContext, flow: &mut Flow) {

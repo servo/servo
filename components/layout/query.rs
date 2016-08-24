@@ -10,7 +10,7 @@ use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::size::Size2D;
 use flow;
-use flow_ref::FlowRef;
+use flow_ref::{self, FlowRef};
 use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
 use gfx::display_list::{DisplayItemMetadata, DisplayList, OpaqueNode, ScrollOffsetMap};
 use gfx_traits::LayerId;
@@ -379,7 +379,7 @@ pub fn process_content_box_request<N: LayoutNode>(
     // FIXME(pcwalton): This has not been updated to handle the stacking context relative
     // stuff. So the position is wrong in most cases.
     let mut iterator = UnioningFragmentBorderBoxIterator::new(requested_node.opaque());
-    sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
+    sequential::iterate_through_flow_tree_fragment_border_boxes(flow_ref::deref_mut(layout_root), &mut iterator);
     match iterator.rect {
         Some(rect) => rect,
         None       => Rect::zero()
@@ -391,7 +391,7 @@ pub fn process_content_boxes_request<N: LayoutNode>(requested_node: N, layout_ro
     // FIXME(pcwalton): This has not been updated to handle the stacking context relative
     // stuff. So the position is wrong in most cases.
     let mut iterator = CollectingFragmentBorderBoxIterator::new(requested_node.opaque());
-    sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
+    sequential::iterate_through_flow_tree_fragment_border_boxes(flow_ref::deref_mut(layout_root), &mut iterator);
     iterator.rects
 }
 
@@ -584,7 +584,7 @@ impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
 pub fn process_node_geometry_request<N: LayoutNode>(requested_node: N, layout_root: &mut FlowRef)
         -> Rect<i32> {
     let mut iterator = FragmentLocatingFragmentIterator::new(requested_node.opaque());
-    sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
+    sequential::iterate_through_flow_tree_fragment_border_boxes(flow_ref::deref_mut(layout_root), &mut iterator);
     iterator.client_rect
 }
 
@@ -596,7 +596,7 @@ pub fn process_node_layer_id_request<N: LayoutNode>(requested_node: N) -> LayerI
 pub fn process_node_scroll_area_request< N: LayoutNode>(requested_node: N, layout_root: &mut FlowRef)
         -> Rect<i32> {
     let mut iterator = UnioningFragmentScrollAreaIterator::new(requested_node.opaque());
-    sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
+    sequential::iterate_through_flow_tree_fragment_border_boxes(flow_ref::deref_mut(layout_root), &mut iterator);
     match iterator.overflow_direction {
         OverflowDirection::RightAndDown => {
             let right = max(iterator.union_rect.size.width, iterator.origin_rect.size.width);
@@ -721,7 +721,7 @@ pub fn process_resolved_style_request<'a, N, C>(requested_node: N,
             PositionRetrievingFragmentBorderBoxIterator::new(requested_node.opaque(),
                                                              property,
                                                              position);
-        sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root,
+        sequential::iterate_through_flow_tree_fragment_border_boxes(flow_ref::deref_mut(layout_root),
                                                                     &mut iterator);
         iterator.result.map(|r| r.to_css_string())
     }
@@ -751,7 +751,7 @@ pub fn process_resolved_style_request<'a, N, C>(requested_node: N,
                                                                side,
                                                                margin_padding,
                                                                style.writing_mode);
-            sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root,
+            sequential::iterate_through_flow_tree_fragment_border_boxes(flow_ref::deref_mut(layout_root),
                                                                         &mut iterator);
             iterator.result.map(|r| r.to_css_string())
         },
@@ -777,7 +777,7 @@ pub fn process_resolved_style_request<'a, N, C>(requested_node: N,
 pub fn process_offset_parent_query<N: LayoutNode>(requested_node: N, layout_root: &mut FlowRef)
         -> OffsetParentResponse {
     let mut iterator = ParentOffsetBorderBoxIterator::new(requested_node.opaque());
-    sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
+    sequential::iterate_through_flow_tree_fragment_border_boxes(flow_ref::deref_mut(layout_root), &mut iterator);
     let parent_info_index = iterator.parent_nodes.iter().rposition(|info| info.is_some());
     match parent_info_index {
         Some(parent_info_index) => {
