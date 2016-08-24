@@ -11,6 +11,7 @@ use js::jsapi::{HandleValue, MutableHandleValue};
 use js::jsapi::{JSContext, JS_ReadStructuredClone, JS_STRUCTURED_CLONE_VERSION};
 use js::jsapi::{JS_ClearPendingException, JS_WriteStructuredClone};
 use libc::size_t;
+use script_traits::DOMMessage;
 use std::ptr;
 use std::slice;
 
@@ -46,15 +47,18 @@ impl StructuredCloneData {
         })
     }
 
-    /// Converts a StructuredCloneData to Vec<u64>
-    pub fn move_to_arraybuffer(self) -> Vec<u64> {
+    /// Converts a StructuredCloneData to Vec<u8> for inter-thread sharing
+    pub fn move_to_arraybuffer(self) -> DOMMessage {
         unsafe {
-            slice::from_raw_parts(self.data, self.nbytes).to_vec()
+            DOMMessage(slice::from_raw_parts(self.data as *const u8, self.nbytes).to_vec())
         }
     }
 
-    /// Converts back to StructuredCloneData using a pointer and no of bytes
-    pub fn make_structured_clone(data: *mut u64, nbytes: size_t) -> StructuredCloneData {
+    /// Converts back to StructuredCloneData
+    pub fn make_structured_clone(data: DOMMessage) -> StructuredCloneData {
+        let DOMMessage(mut data) = data;
+        let nbytes = data.len();
+        let data = data.as_mut_ptr() as *mut u64;
         StructuredCloneData {
             data: data,
             nbytes: nbytes

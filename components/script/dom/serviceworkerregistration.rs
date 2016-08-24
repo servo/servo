@@ -6,7 +6,6 @@ use dom::bindings::codegen::Bindings::ServiceWorkerBinding::ServiceWorkerState;
 use dom::bindings::codegen::Bindings::ServiceWorkerRegistrationBinding::{ServiceWorkerRegistrationMethods, Wrap};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
-use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::USVString;
 use dom::eventtarget::EventTarget;
@@ -48,10 +47,6 @@ impl ServiceWorkerRegistration {
 
     pub fn get_installed(&self) -> &ServiceWorker {
         self.active.as_ref().unwrap()
-    }
-
-    pub fn get_trusted_worker(&self) -> TrustedServiceWorkerAddress {
-        Trusted::new(self.active.as_ref().unwrap())
     }
 
     pub fn create_scope_things(global: GlobalRef, script_url: Url) -> ScopeThings {

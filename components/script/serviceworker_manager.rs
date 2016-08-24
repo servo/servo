@@ -8,12 +8,14 @@
 //! active_workers map
 
 use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg};
+use dom::abstractworker::WorkerScriptMsg;
+use dom::bindings::structuredclone::StructuredCloneData;
 use dom::serviceworkerglobalscope::{ServiceWorkerGlobalScope, ServiceWorkerScriptMsg};
 use dom::serviceworkerregistration::longest_prefix_match;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use net_traits::{CustomResponseMediator, CoreResourceMsg};
-use script_traits::{ServiceWorkerMsg, ScopeThings, SWManagerMsg, SWManagerSenders};
+use script_traits::{ServiceWorkerMsg, ScopeThings, SWManagerMsg, SWManagerSenders, DOMMessage};
 use std::collections::HashMap;
 use std::sync::mpsc::{channel, Sender, Receiver, RecvError};
 use url::Url;
@@ -36,22 +38,21 @@ pub struct ServiceWorkerManager {
     own_port: Receiver<ServiceWorkerMsg>,
     // to receive resource messages
     resource_receiver: Receiver<CustomResponseMediator>,
-    // to send message to constellation
-    constellation_sender: IpcSender<SWManagerMsg>
+    // pending messages from postMessage calls in ServiceWorkers
+    msg_backup: HashMap<Url, Vec<DOMMessage>>,
 }
 
 impl ServiceWorkerManager {
     fn new(own_sender: IpcSender<ServiceWorkerMsg>,
            from_constellation_receiver: Receiver<ServiceWorkerMsg>,
-           resource_port: Receiver<CustomResponseMediator>,
-           constellation_sender: IpcSender<SWManagerMsg>) -> ServiceWorkerManager {
+           resource_port: Receiver<CustomResponseMediator>) -> ServiceWorkerManager {
         ServiceWorkerManager {
             registered_workers: HashMap::new(),
             active_workers: HashMap::new(),
             own_sender: own_sender,
             own_port: from_constellation_receiver,
             resource_receiver: resource_port,
-            constellation_sender: constellation_sender
+            msg_backup: HashMap::new()
         }
     }
 
@@ -62,12 +63,10 @@ impl ServiceWorkerManager {
         let resource_port = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(resource_port);
         let _ = sw_senders.resource_sender.send(CoreResourceMsg::NetworkMediator(resource_chan));
         let _ = sw_senders.swmanager_sender.send(SWManagerMsg::OwnSender(own_sender.clone()));
-        let constellation_sender = sw_senders.swmanager_sender.clone();
         spawn_named("ServiceWorkerManager".to_owned(), move || {
             ServiceWorkerManager::new(own_sender,
                                       from_constellation,
-                                      resource_port,
-                                      constellation_sender).handle_message();
+                                      resource_port).handle_message();
         });
     }
 
@@ -101,22 +100,21 @@ impl ServiceWorkerManager {
                                                                              devtools_sender.clone(),
                                                                              page_info));
                 };
-                let (msg_chan, msg_port) = ipc::channel().unwrap();
-                let msg_port = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(msg_port);
                 ServiceWorkerGlobalScope::run_serviceworker_scope(scope_things.clone(),
                                                                   sender.clone(),
                                                                   receiver,
                                                                   devtools_receiver,
                                                                   self.own_sender.clone(),
-                                                                  scope_url.clone(),
-                                                                  msg_port);
-                // Send the message to constellation which then talks to the script thread for storing this msg_chan
-                let connection_msg = SWManagerMsg::ConnectServiceWorker(scope_url.clone(),
-                                                                        scope_things.pipeline_id,
-                                                                        msg_chan);
-                let _ = self.constellation_sender.send(connection_msg);
+                                                                  scope_url.clone());
                 // We store the activated worker
                 self.active_workers.insert(scope_url.clone(), scope_things.clone());
+                // Send any backed up messages from postMessage calls
+                if let Some(ref mut msg_vec) = self.msg_backup.get_mut(&scope_things.script_url) {
+                    for msg in msg_vec.drain(..) {
+                        let data = StructuredCloneData::make_structured_clone(msg);
+                        let _ = sender.send(ServiceWorkerScriptMsg::CommonWorker(WorkerScriptMsg::DOMMessage(data)));
+                    }
+                }
                 return Some(sender);
             } else {
                 warn!("Unable to activate service worker");
@@ -157,6 +155,11 @@ impl ServiceWorkerManager {
                 } else {
                     warn!("ScopeThings for {:?} is not active", scope);
                 }
+                true
+            },
+            ServiceWorkerMsg::BackupMessage(msg, url) => {
+                let msg_vec = self.msg_backup.entry(url).or_insert(vec![]);
+                msg_vec.push(msg);
                 true
             }
             ServiceWorkerMsg::Exit => false

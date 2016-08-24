@@ -398,7 +398,7 @@ impl WorkerGlobalScope {
         } else if let Some(service_worker) = service_worker {
             return service_worker.script_chan();
         } else {
-            panic!("need to implement a sender for SharedWorker/ServiceWorker")
+            panic!("need to implement a sender for SharedWorker")
         }
     }
 

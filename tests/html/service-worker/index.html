@@ -23,13 +23,9 @@
     console.log("From client worker registered: ", navigator.serviceWorker.controller);
     console.log("Registered script source: "+ navigator.serviceWorker.controller.scriptURL);
     document.getElementById('iframe_sw').src = 'demo_iframe.html';
-    var payload = { msg: 'Hi from /iframe service worker' };
 
-    // The delay is due to the sender being set in the service worker object after the scope starts.
-    // This won't be needed when service workers are wrapped with Promises.
-    setTimeout(function() {
-        navigator.serviceWorker.controller.postMessage(payload);
-    }, 1000);
+    navigator.serviceWorker.controller.postMessage({msg: 'Hey wake up service worker' });
+    navigator.serviceWorker.controller.postMessage({msg: 'I got a message for you' });
 
     function register_zero() {
         var reg = navigator.serviceWorker.register('sw.js', { 'scope': './' });

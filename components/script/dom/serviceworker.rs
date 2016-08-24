@@ -6,7 +6,7 @@ use dom::abstractworker::{SimpleWorkerErrorHandler, WorkerErrorHandler};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::ServiceWorkerBinding::{ServiceWorkerMethods, ServiceWorkerState, Wrap};
-use dom::bindings::error::ErrorResult;
+use dom::bindings::error::{ErrorResult, Error};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
@@ -17,11 +17,10 @@ use dom::bindings::structuredclone::StructuredCloneData;
 use dom::errorevent::ErrorEvent;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
-use ipc_channel::ipc::IpcSender;
 use js::jsapi::{HandleValue, JSContext};
 use js::jsval::UndefinedValue;
 use script_thread::Runnable;
-use script_traits::DOMMessage;
+use script_traits::ScriptMsg;
 use std::cell::Cell;
 use url::Url;
 
@@ -32,8 +31,6 @@ pub struct ServiceWorker {
     eventtarget: EventTarget,
     script_url: DOMRefCell<String>,
     state: Cell<ServiceWorkerState>,
-    #[ignore_heap_size_of = "Defined in std"]
-    msg_sender: DOMRefCell<Option<IpcSender<DOMMessage>>>,
     skip_waiting: Cell<bool>
 }
 
@@ -44,8 +41,7 @@ impl ServiceWorker {
             eventtarget: EventTarget::new_inherited(),
             script_url: DOMRefCell::new(String::from(script_url)),
             state: Cell::new(ServiceWorkerState::Installing),
-            skip_waiting: Cell::new(skip_waiting),
-            msg_sender: DOMRefCell::new(None)
+            skip_waiting: Cell::new(skip_waiting)
         }
     }
 
@@ -88,13 +84,6 @@ impl ServiceWorker {
                            script_url.as_str(),
                            skip_waiting)
     }
-
-    pub fn store_sender(trusted_worker: TrustedServiceWorkerAddress, sender: IpcSender<DOMMessage>) {
-        let worker = trusted_worker.root();
-        // This channel is used for sending message from the ServiceWorker object to its
-        // corresponding ServiceWorkerGlobalScope
-        *worker.msg_sender.borrow_mut() = Some(sender);
-    }
 }
 
 impl ServiceWorkerMethods for ServiceWorker {
@@ -110,13 +99,16 @@ impl ServiceWorkerMethods for ServiceWorker {
 
     // https://slightlyoff.github.io/ServiceWorker/spec/service_worker/#service-worker-postmessage
     fn PostMessage(&self, cx: *mut JSContext, message: HandleValue) -> ErrorResult {
-        let data = try!(StructuredCloneData::write(cx, message));
-        let msg_vec = DOMMessage(data.move_to_arraybuffer());
-        if let Some(ref sender) = *self.msg_sender.borrow() {
-            let _ = sender.send(msg_vec);
-        } else {
-            warn!("Could not communicate message to ServiceWorkerGlobalScope");
+        // Step 1
+        if let ServiceWorkerState::Redundant = self.state.get() {
+            return Err(Error::InvalidState);
         }
+        // Step 7
+        let data = try!(StructuredCloneData::write(cx, message));
+        let msg_vec = data.move_to_arraybuffer();
+        // Backup the message in service worker manager and send when sw scope starts.
+        let script_url = Url::parse(&*self.script_url.borrow()).unwrap();
+        let _ = self.global().r().constellation_chan().send(ScriptMsg::ForwardDOMMessage(msg_vec, script_url));
         Ok(())
     }
 
