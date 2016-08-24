@@ -830,10 +830,8 @@ impl Document {
                         *self.last_click_info.borrow_mut() = ClickInfo(Some((Instant::now(), new_pos)))
                 }
             }
-            
         }
     
-
         self.window.reflow(ReflowGoal::ForDisplay,
                            ReflowQueryType::NoQuery,
                            ReflowReason::MouseEvent);
