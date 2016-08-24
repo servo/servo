@@ -117,7 +117,7 @@ class CheckTidiness(unittest.TestCase):
         self.assertNoMoreErrors(errors)
 
     def test_toml(self):
-        errors = tidy.collect_errors_for_files(iterFile('test.toml'), [tidy.check_toml], [], print_text=False)
+        errors = tidy.collect_errors_for_files(iterFile('Cargo.toml'), [tidy.check_toml], [], print_text=False)
         self.assertEqual('found asterisk instead of minimum version number', errors.next()[2])
         self.assertEqual('.toml file should contain a valid license.', errors.next()[2])
         self.assertNoMoreErrors(errors)
