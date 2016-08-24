@@ -875,7 +875,7 @@ impl LayoutThread {
     fn solve_constraints(layout_root: &mut FlowRef,
                          shared_layout_context: &SharedLayoutContext) {
         let _scope = layout_debug_scope!("solve_constraints");
-        sequential::traverse_flow_tree_preorder(layout_root, shared_layout_context);
+        sequential::traverse_flow_tree_preorder(flow_ref::deref_mut(layout_root), shared_layout_context);
     }
 
     /// Performs layout constraint solving in parallel.
@@ -892,7 +892,7 @@ impl LayoutThread {
 
         // NOTE: this currently computes borders, so any pruning should separate that
         // operation out.
-        parallel::traverse_flow_tree_preorder(layout_root,
+        parallel::traverse_flow_tree_preorder(flow_ref::deref_mut(layout_root),
                                               profiler_metadata,
                                               time_profiler_chan,
                                               shared_layout_context,
