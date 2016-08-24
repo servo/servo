@@ -27,7 +27,7 @@
 
 use app_units::Au;
 use block::{BlockFlow, FormattingContextType};
-use context::LayoutContext;
+use context::{LayoutContext, SharedLayoutContext};
 use display_list_builder::DisplayListBuildState;
 use euclid::{Point2D, Rect, Size2D};
 use floats::{Floats, SpeculatedFloatPlacement};
@@ -318,7 +318,7 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
     }
 
     /// Phase 4 of reflow: computes absolute positions.
-    fn compute_absolute_position(&mut self, _: &LayoutContext) {
+    fn compute_absolute_position(&mut self, _: &SharedLayoutContext) {
         // The default implementation is a no-op.
     }
 

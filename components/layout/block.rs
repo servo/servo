@@ -28,7 +28,7 @@
 #![deny(unsafe_code)]
 
 use app_units::{Au, MAX_AU};
-use context::LayoutContext;
+use context::{LayoutContext, SharedLayoutContext};
 use display_list_builder::BlockFlowDisplayListBuilding;
 use display_list_builder::{BorderPaintingMode, DisplayListBuildState, FragmentDisplayListBuilding};
 use euclid::{Point2D, Rect, Size2D};
@@ -1834,7 +1834,7 @@ impl Flow for BlockFlow {
         }
     }
 
-    fn compute_absolute_position(&mut self, layout_context: &LayoutContext) {
+    fn compute_absolute_position(&mut self, layout_context: &SharedLayoutContext) {
         if self.base.flags.contains(NEEDS_LAYER) {
             self.fragment.flags.insert(HAS_LAYER)
         }
@@ -1969,12 +1969,12 @@ impl Flow for BlockFlow {
         let stacking_relative_position_of_display_port_for_children =
             if is_stacking_context || self.is_root() {
                 let visible_rect =
-                    match layout_context.shared.visible_rects.get(&self.layer_id()) {
+                    match layout_context.visible_rects.get(&self.layer_id()) {
                         Some(visible_rect) => *visible_rect,
-                        None => Rect::new(Point2D::zero(), layout_context.shared_context().viewport_size),
+                        None => Rect::new(Point2D::zero(), layout_context.style_context.viewport_size),
                     };
 
-                let viewport_size = layout_context.shared_context().viewport_size;
+                let viewport_size = layout_context.style_context.viewport_size;
                 visible_rect.inflate(viewport_size.width * DISPLAY_PORT_SIZE_FACTOR,
                                      viewport_size.height * DISPLAY_PORT_SIZE_FACTOR)
             } else if is_stacking_context {

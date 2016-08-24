@@ -8,7 +8,7 @@
 
 use app_units::Au;
 use block::{BlockFlow, ISizeAndMarginsComputer};
-use context::LayoutContext;
+use context::{LayoutContext, SharedLayoutContext};
 use cssparser::{Color, RGBA};
 use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode, DisplayListBuildState};
 use euclid::Point2D;
@@ -413,7 +413,7 @@ impl Flow for TableRowFlow {
         self.assign_block_size_table_row_base(layout_context);
     }
 
-    fn compute_absolute_position(&mut self, layout_context: &LayoutContext) {
+    fn compute_absolute_position(&mut self, layout_context: &SharedLayoutContext) {
         self.block_flow.compute_absolute_position(layout_context)
     }
 
