@@ -872,10 +872,10 @@ impl LayoutThread {
     /// This corresponds to `Reflow()` in Gecko and `layout()` in WebKit/Blink and should be
     /// benchmarked against those two. It is marked `#[inline(never)]` to aid profiling.
     #[inline(never)]
-    fn solve_constraints(layout_root: &mut FlowRef,
+    fn solve_constraints(layout_root: &mut Flow,
                          shared_layout_context: &SharedLayoutContext) {
         let _scope = layout_debug_scope!("solve_constraints");
-        sequential::traverse_flow_tree_preorder(flow_ref::deref_mut(layout_root), shared_layout_context);
+        sequential::traverse_flow_tree_preorder(layout_root, shared_layout_context);
     }
 
     /// Performs layout constraint solving in parallel.
@@ -884,7 +884,7 @@ impl LayoutThread {
     /// benchmarked against those two. It is marked `#[inline(never)]` to aid profiling.
     #[inline(never)]
     fn solve_constraints_parallel(traversal: &mut WorkQueue<SharedLayoutContext, WorkQueueData>,
-                                  layout_root: &mut FlowRef,
+                                  layout_root: &mut Flow,
                                   profiler_metadata: Option<TimerMetadata>,
                                   time_profiler_chan: time::ProfilerChan,
                                   shared_layout_context: &SharedLayoutContext) {
@@ -892,7 +892,7 @@ impl LayoutThread {
 
         // NOTE: this currently computes borders, so any pruning should separate that
         // operation out.
-        parallel::traverse_flow_tree_preorder(flow_ref::deref_mut(layout_root),
+        parallel::traverse_flow_tree_preorder(layout_root,
                                               profiler_metadata,
                                               time_profiler_chan,
                                               shared_layout_context,
@@ -1463,15 +1463,15 @@ impl LayoutThread {
                     match self.parallel_traversal {
                         None => {
                             // Sequential mode.
-                            LayoutThread::solve_constraints(&mut root_flow, &layout_context)
+                            LayoutThread::solve_constraints(flow_ref::deref_mut(&mut root_flow), &layout_context)
                         }
                         Some(ref mut parallel) => {
                             // Parallel mode.
                             LayoutThread::solve_constraints_parallel(parallel,
-                                                                   &mut root_flow,
-                                                                   profiler_metadata,
-                                                                   self.time_profiler_chan.clone(),
-                                                                   &*layout_context);
+                                                                     flow_ref::deref_mut(&mut root_flow),
+                                                                     profiler_metadata,
+                                                                     self.time_profiler_chan.clone(),
+                                                                     &*layout_context);
                         }
                     }
                 });
