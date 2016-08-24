@@ -25,7 +25,8 @@ use gecko_bindings::bindings::{Gecko_LocalName, Gecko_Namespace, Gecko_NodeIsEle
 use gecko_bindings::bindings::{RawGeckoDocument, RawGeckoElement, RawGeckoNode};
 use gecko_bindings::structs::{NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO, NODE_IS_DIRTY_FOR_SERVO};
 use gecko_bindings::structs::{nsIAtom, nsChangeHint, nsStyleContext};
-use gecko_bindings::sugar::ownership::FFIArcHelpers;
+use gecko_bindings::sugar::ownership::Borrowed;
+use gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI, FFIArcHelpers};
 use gecko_string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
 use glue::GeckoDeclarationBlock;
 use libc::uintptr_t;
@@ -53,8 +54,19 @@ use style::selector_matching::DeclarationBlock;
 use style::sink::Push;
 use url::Url;
 
-pub type NonOpaqueStyleData = RefCell<PrivateStyleData>;
-pub type NonOpaqueStyleDataPtr = *mut NonOpaqueStyleData;
+pub struct NonOpaqueStyleData(RefCell<PrivateStyleData>);
+
+unsafe impl HasFFI for NonOpaqueStyleData {
+    type FFIType = ServoNodeData;
+}
+unsafe impl HasSimpleFFI for NonOpaqueStyleData {}
+unsafe impl HasBoxFFI for NonOpaqueStyleData {}
+
+impl NonOpaqueStyleData {
+    pub fn new() -> Self {
+        NonOpaqueStyleData(RefCell::new(PrivateStyleData::new()))
+    }
+}
 
 // Important: We don't currently refcount the DOM, because the wrapper lifetime
 // magic guarantees that our LayoutFoo references won't outlive the root, and
@@ -79,17 +91,18 @@ impl<'ln> GeckoNode<'ln> {
         GeckoNode::from_raw(n as *const RawGeckoNode as *mut RawGeckoNode)
     }
 
-    fn get_node_data(&self) -> NonOpaqueStyleDataPtr {
+    fn get_node_data(&self) -> Borrowed<NonOpaqueStyleData> {
         unsafe {
-            Gecko_GetNodeData(self.node) as NonOpaqueStyleDataPtr
+            // XXXManishearth should GeckoNode just contain an &'ln RawGeckoNode?
+            Borrowed::from_ffi(Gecko_GetNodeData(&*self.node))
         }
     }
 
     pub fn initialize_data(self) {
         unsafe {
             if self.get_node_data().is_null() {
-                let ptr: NonOpaqueStyleDataPtr = Box::into_raw(Box::new(RefCell::new(PrivateStyleData::new())));
-                Gecko_SetNodeData(self.node, ptr as *mut ServoNodeData);
+                let ptr = Box::new(NonOpaqueStyleData::new());
+                Gecko_SetNodeData(&mut *self.node, ptr.into_ffi().maybe());
             }
         }
     }
@@ -212,7 +225,7 @@ impl<'ln> TNode for GeckoNode<'ln> {
     fn is_dirty(&self) -> bool {
         // Return true unconditionally if we're not yet styled. This is a hack
         // and should go away soon.
-        if unsafe { Gecko_GetNodeData(self.node) }.is_null() {
+        if self.get_node_data().is_null() {
             return true;
         }
 
@@ -231,7 +244,7 @@ impl<'ln> TNode for GeckoNode<'ln> {
     fn has_dirty_descendants(&self) -> bool {
         // Return true unconditionally if we're not yet styled. This is a hack
         // and should go away soon.
-        if unsafe { Gecko_GetNodeData(self.node) }.is_null() {
+        if self.get_node_data().is_null() {
             return true;
         }
         let flags = unsafe { Gecko_GetNodeFlags(self.node) };
@@ -259,21 +272,18 @@ impl<'ln> TNode for GeckoNode<'ln> {
 
     #[inline(always)]
     unsafe fn borrow_data_unchecked(&self) -> Option<*const PrivateStyleData> {
-        self.get_node_data().as_ref().map(|d| d.as_unsafe_cell().get() as *const PrivateStyleData)
+        self.get_node_data().borrow_opt().map(|d| d.0.as_unsafe_cell().get()
+                                                  as *const PrivateStyleData)
     }
 
     #[inline(always)]
     fn borrow_data(&self) -> Option<Ref<PrivateStyleData>> {
-        unsafe {
-            self.get_node_data().as_ref().map(|d| d.borrow())
-        }
+        self.get_node_data().borrow_opt().map(|d| d.0.borrow())
     }
 
     #[inline(always)]
     fn mutate_data(&self) -> Option<RefMut<PrivateStyleData>> {
-        unsafe {
-            self.get_node_data().as_ref().map(|d| d.borrow_mut())
-        }
+        self.get_node_data().borrow_opt().map(|d| d.0.borrow_mut())
     }
 
     fn restyle_damage(self) -> Self::ConcreteRestyleDamage {

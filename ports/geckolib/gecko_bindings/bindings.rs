@@ -14,6 +14,12 @@ pub type ServoDeclarationBlockBorrowed<'a> = ::sugar::ownership::Borrowed<'a, Se
 pub type RawServoStyleSetBorrowed<'a> = &'a RawServoStyleSet;
 pub type RawServoStyleSetBorrowedMut<'a> = &'a mut RawServoStyleSet;
 pub type RawServoStyleSetOwned = ::sugar::ownership::Owned<RawServoStyleSet>;
+pub type RawGeckoNodeBorrowed<'a> = &'a RawGeckoNode;
+pub type RawGeckoNodeBorrowedMut<'a> = &'a mut RawGeckoNode;
+pub type RawGeckoNodeOwned = ::sugar::ownership::Owned<RawGeckoNode>;
+pub type ServoNodeDataBorrowed<'a> = ::sugar::ownership::Borrowed<'a, ServoNodeData>;
+pub type ServoNodeDataBorrowedMut<'a> = ::sugar::ownership::BorrowedMut<'a, ServoNodeData>;
+pub type ServoNodeDataOwned = ::sugar::ownership::MaybeOwned<ServoNodeData>;
 use structs::nsStyleFont;
 unsafe impl Send for nsStyleFont {}
 unsafe impl Sync for nsStyleFont {}
@@ -267,9 +273,10 @@ extern "C" {
      -> u32;
     pub fn Gecko_GetServoDeclarationBlock(element: *mut RawGeckoElement)
      -> ServoDeclarationBlockBorrowed;
-    pub fn Gecko_GetNodeData(node: *mut RawGeckoNode) -> *mut ServoNodeData;
-    pub fn Gecko_SetNodeData(node: *mut RawGeckoNode,
-                             data: *mut ServoNodeData);
+    pub fn Gecko_GetNodeData(node: RawGeckoNodeBorrowed)
+     -> ServoNodeDataBorrowed;
+    pub fn Gecko_SetNodeData(node: RawGeckoNodeBorrowedMut,
+                             data: ServoNodeDataOwned);
     pub fn Gecko_Atomize(aString: *const ::std::os::raw::c_char, aLength: u32)
      -> *mut nsIAtom;
     pub fn Gecko_AddRefAtom(aAtom: *mut nsIAtom);
@@ -459,7 +466,7 @@ extern "C" {
     pub fn Gecko_CopyConstruct_nsStyleEffects(ptr: *mut nsStyleEffects,
                                               other: *const nsStyleEffects);
     pub fn Gecko_Destroy_nsStyleEffects(ptr: *mut nsStyleEffects);
-    pub fn Servo_NodeData_Drop(data: *mut ServoNodeData);
+    pub fn Servo_NodeData_Drop(data: ServoNodeDataOwned);
     pub fn Servo_StyleSheet_FromUTF8Bytes(bytes: *const u8, length: u32,
                                           parsing_mode: SheetParsingMode,
                                           base_bytes: *const u8,
