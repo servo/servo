@@ -70,21 +70,19 @@ pub type NonNullJSNative =
 
 /// Defines constants on `obj`.
 /// Fails on JSAPI failure.
-fn define_constants(
+unsafe fn define_constants(
         cx: *mut JSContext,
         obj: HandleObject,
         constants: &[ConstantSpec]) {
     for spec in constants {
         rooted!(in(cx) let value = spec.get_value());
-        unsafe {
-            assert!(JS_DefineProperty(cx,
-                                      obj,
-                                      spec.name.as_ptr() as *const libc::c_char,
-                                      value.handle(),
-                                      JSPROP_ENUMERATE | JSPROP_READONLY | JSPROP_PERMANENT,
-                                      None,
-                                      None));
-        }
+        assert!(JS_DefineProperty(cx,
+                                  obj,
+                                  spec.name.as_ptr() as *const libc::c_char,
+                                  value.handle(),
+                                  JSPROP_ENUMERATE | JSPROP_READONLY | JSPROP_PERMANENT,
+                                  None,
+                                  None));
     }
 }
 
