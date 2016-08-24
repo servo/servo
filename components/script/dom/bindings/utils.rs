@@ -29,7 +29,7 @@ use js::jsapi::{JS_GetProperty, JS_GetPrototype, JS_GetReservedSlot, JS_HasPrope
 use js::jsapi::{JS_HasPropertyById, JS_IsExceptionPending, JS_IsGlobalObject};
 use js::jsapi::{JS_ResolveStandardClass, JS_SetProperty, ToWindowProxyIfWindow};
 use js::jsapi::{JS_StringHasLatin1Chars, MutableHandleValue, ObjectOpResult};
-use js::jsval::{JSVal, ObjectValue, UndefinedValue};
+use js::jsval::{JSVal, UndefinedValue};
 use js::rust::{GCMethods, ToString};
 use libc;
 use std::ffi::CString;
@@ -129,6 +129,7 @@ pub type ProtoOrIfaceArray = [*mut JSObject; PROTO_OR_IFACE_LENGTH];
 /// Returns false on JSAPI failure.
 pub unsafe fn get_property_on_prototype(cx: *mut JSContext,
                                         proxy: HandleObject,
+                                        receiver: HandleValue,
                                         id: HandleId,
                                         found: *mut bool,
                                         vp: MutableHandleValue)
@@ -148,8 +149,7 @@ pub unsafe fn get_property_on_prototype(cx: *mut JSContext,
         return true;
     }
 
-    rooted!(in(cx) let receiver = ObjectValue(&*proxy.get()));
-    JS_ForwardGetPropertyTo(cx, proto.handle(), id, receiver.handle(), vp)
+    JS_ForwardGetPropertyTo(cx, proto.handle(), id, receiver, vp)
 }
 
 /// Get an array index from the given `jsid`. Returns `None` if the given

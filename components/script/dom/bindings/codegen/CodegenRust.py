@@ -5050,7 +5050,7 @@ if !expando.is_null() {
 
 %s
 let mut found = false;
-if !get_property_on_prototype(cx, proxy, id, &mut found, vp) {
+if !get_property_on_prototype(cx, proxy, receiver, id, &mut found, vp) {
     return false;
 }
 
