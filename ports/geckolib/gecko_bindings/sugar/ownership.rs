@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::marker::PhantomData;
-use std::mem::{forget, transmute};
+use std::mem::{forget, transmute, transmute_copy};
 use std::ops::{Deref, DerefMut};
 use std::ptr;
 use std::sync::Arc;

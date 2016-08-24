@@ -9,12 +9,14 @@ use data::{NUM_THREADS, PerDocumentStyleData};
 use env_logger;
 use euclid::Size2D;
 use gecko_bindings::bindings::{RawGeckoDocument, RawGeckoElement, RawGeckoNode};
+use gecko_bindings::bindings::RawGeckoDocumentBorrowed;
+use gecko_bindings::bindings::{RawGeckoElementBorrowed, RawGeckoNodeBorrowed};
 use gecko_bindings::bindings::{RawServoStyleSet, RawServoStyleSetBorrowedMut};
-use gecko_bindings::bindings::{RawServoStyleSetOwned, ServoNodeDataOwned};
-use gecko_bindings::bindings::{RawServoStyleSheetBorrowed, ServoComputedValuesBorrowed};
+use gecko_bindings::bindings::{RawServoStyleSetOwned, ServoNodeDataMaybeOwned};
+use gecko_bindings::bindings::{RawServoStyleSheetMaybeBorrowed, ServoComputedValuesMaybeBorrowed};
 use gecko_bindings::bindings::{RawServoStyleSheetStrong, ServoComputedValuesStrong};
 use gecko_bindings::bindings::{ServoDeclarationBlock, ThreadSafePrincipalHolder};
-use gecko_bindings::bindings::{ServoDeclarationBlockBorrowed, ServoDeclarationBlockStrong};
+use gecko_bindings::bindings::{ServoDeclarationBlockMaybeBorrowed, ServoDeclarationBlockStrong};
 use gecko_bindings::bindings::{ThreadSafeURIHolder, nsHTMLCSSStyleSheet};
 use gecko_bindings::ptr::{GeckoArcPrincipal, GeckoArcURI};
 use gecko_bindings::structs::ServoElementSnapshot;
@@ -114,15 +116,15 @@ fn restyle_subtree(node: GeckoNode, raw_data: RawServoStyleSetBorrowedMut) {
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_RestyleSubtree(node: *mut RawGeckoNode,
+pub extern "C" fn Servo_RestyleSubtree(node: RawGeckoNodeBorrowed,
                                        raw_data: RawServoStyleSetBorrowedMut) -> () {
-    let node = unsafe { GeckoNode::from_raw(node) };
+    let node = GeckoNode(node);
     restyle_subtree(node, raw_data);
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_RestyleDocument(doc: *mut RawGeckoDocument, raw_data: RawServoStyleSetBorrowedMut) -> () {
-    let document = unsafe { GeckoDocument::from_raw(doc) };
+pub extern "C" fn Servo_RestyleDocument(doc: RawGeckoDocumentBorrowed, raw_data: RawServoStyleSetBorrowedMut) -> () {
+    let document = unsafe { GeckoDocument(doc) };
     let node = match document.root_node() {
         Some(x) => x,
         None => return,
@@ -136,7 +138,7 @@ pub extern "C" fn Servo_StyleWorkerThreadCount() -> u32 {
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_NodeData_Drop(data: ServoNodeDataOwned) -> () {
+pub extern "C" fn Servo_NodeData_Drop(data: ServoNodeDataMaybeOwned) -> () {
     let _ = data.into_box_opt::<NonOpaqueStyleData>();
 }
 
@@ -174,7 +176,7 @@ pub extern "C" fn Servo_StyleSheet_FromUTF8Bytes(bytes: *const u8,
 
 #[no_mangle]
 pub extern "C" fn Servo_StyleSet_AppendStyleSheet(raw_data: RawServoStyleSetBorrowedMut,
-                                                  raw_sheet: RawServoStyleSheetBorrowed) {
+                                                  raw_sheet: RawServoStyleSheetMaybeBorrowed) {
     let data = PerDocumentStyleData::from_ffi_mut(raw_data);
     let sheet = raw_sheet.as_arc();
     data.stylesheets.retain(|x| !arc_ptr_eq(x, sheet));
@@ -184,7 +186,7 @@ pub extern "C" fn Servo_StyleSet_AppendStyleSheet(raw_data: RawServoStyleSetBorr
 
 #[no_mangle]
 pub extern "C" fn Servo_StyleSet_PrependStyleSheet(raw_data: RawServoStyleSetBorrowedMut,
-                                                   raw_sheet: RawServoStyleSheetBorrowed) {
+                                                   raw_sheet: RawServoStyleSheetMaybeBorrowed) {
     let data = PerDocumentStyleData::from_ffi_mut(raw_data);
     let sheet = raw_sheet.as_arc();
     data.stylesheets.retain(|x| !arc_ptr_eq(x, sheet));
@@ -194,8 +196,8 @@ pub extern "C" fn Servo_StyleSet_PrependStyleSheet(raw_data: RawServoStyleSetBor
 
 #[no_mangle]
 pub extern "C" fn Servo_StyleSet_InsertStyleSheetBefore(raw_data: RawServoStyleSetBorrowedMut,
-                                                        raw_sheet: RawServoStyleSheetBorrowed,
-                                                        raw_reference: RawServoStyleSheetBorrowed) {
+                                                        raw_sheet: RawServoStyleSheetMaybeBorrowed,
+                                                        raw_reference: RawServoStyleSheetMaybeBorrowed) {
     let data = PerDocumentStyleData::from_ffi_mut(raw_data);
     let sheet = raw_sheet.as_arc();
     let reference = raw_reference.as_arc();
@@ -207,7 +209,7 @@ pub extern "C" fn Servo_StyleSet_InsertStyleSheetBefore(raw_data: RawServoStyleS
 
 #[no_mangle]
 pub extern "C" fn Servo_StyleSet_RemoveStyleSheet(raw_data: RawServoStyleSetBorrowedMut,
-                                                  raw_sheet: RawServoStyleSheetBorrowed) {
+                                                  raw_sheet: RawServoStyleSheetMaybeBorrowed) {
     let data = PerDocumentStyleData::from_ffi_mut(raw_data);
     let sheet = raw_sheet.as_arc();
     data.stylesheets.retain(|x| !arc_ptr_eq(x, sheet));
@@ -215,24 +217,24 @@ pub extern "C" fn Servo_StyleSet_RemoveStyleSheet(raw_data: RawServoStyleSetBorr
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_StyleSheet_HasRules(raw_sheet: RawServoStyleSheetBorrowed) -> bool {
+pub extern "C" fn Servo_StyleSheet_HasRules(raw_sheet: RawServoStyleSheetMaybeBorrowed) -> bool {
     !raw_sheet.as_arc::<Stylesheet>().rules.is_empty()
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_StyleSheet_AddRef(sheet: RawServoStyleSheetBorrowed) -> () {
+pub extern "C" fn Servo_StyleSheet_AddRef(sheet: RawServoStyleSheetMaybeBorrowed) -> () {
     unsafe { Stylesheet::addref(sheet) };
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_StyleSheet_Release(sheet: RawServoStyleSheetBorrowed) -> () {
+pub extern "C" fn Servo_StyleSheet_Release(sheet: RawServoStyleSheetMaybeBorrowed) -> () {
     unsafe { Stylesheet::release(sheet) };
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_ComputedValues_Get(node: *mut RawGeckoNode)
+pub extern "C" fn Servo_ComputedValues_Get(node: RawGeckoNodeBorrowed)
      -> ServoComputedValuesStrong {
-    let node = unsafe { GeckoNode::from_raw(node) };
+    let node = unsafe { GeckoNode(node) };
     let arc_cv = match node.borrow_data().map_or(None, |data| data.style.clone()) {
         Some(style) => style,
         None => {
@@ -248,7 +250,7 @@ pub extern "C" fn Servo_ComputedValues_Get(node: *mut RawGeckoNode)
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_ComputedValues_GetForAnonymousBox(parent_style_or_null: ServoComputedValuesBorrowed,
+pub extern "C" fn Servo_ComputedValues_GetForAnonymousBox(parent_style_or_null: ServoComputedValuesMaybeBorrowed,
                                                          pseudo_tag: *mut nsIAtom,
                                                          raw_data: RawServoStyleSetBorrowedMut)
      -> ServoComputedValuesStrong {
@@ -266,13 +268,13 @@ pub extern "C" fn Servo_ComputedValues_GetForAnonymousBox(parent_style_or_null: 
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_ComputedValues_GetForPseudoElement(parent_style: ServoComputedValuesBorrowed,
-                                                          match_element: *mut RawGeckoElement,
+pub extern "C" fn Servo_ComputedValues_GetForPseudoElement(parent_style: ServoComputedValuesMaybeBorrowed,
+                                                          match_element: RawGeckoElementBorrowed,
                                                           pseudo_tag: *mut nsIAtom,
                                                           raw_data: RawServoStyleSetBorrowedMut,
                                                           is_probe: bool)
      -> ServoComputedValuesStrong {
-    debug_assert!(!match_element.is_null());
+    debug_assert!(!(match_element as *const _).is_null());
 
     let parent_or_null = || {
         if is_probe {
@@ -289,7 +291,7 @@ pub extern "C" fn Servo_ComputedValues_GetForPseudoElement(parent_style: ServoCo
     let data = PerDocumentStyleData::from_ffi_mut(raw_data);
     data.flush_stylesheets();
 
-    let element = unsafe { GeckoElement::from_raw(match_element) };
+    let element = unsafe { GeckoElement(match_element) };
 
 
     match GeckoSelectorImpl::pseudo_element_cascade_type(&pseudo) {
@@ -315,7 +317,7 @@ pub extern "C" fn Servo_ComputedValues_GetForPseudoElement(parent_style: ServoCo
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_ComputedValues_Inherit(parent_style: ServoComputedValuesBorrowed)
+pub extern "C" fn Servo_ComputedValues_Inherit(parent_style: ServoComputedValuesMaybeBorrowed)
      -> ServoComputedValuesStrong {
     let style = if parent_style.is_null() {
         Arc::new(ComputedValues::initial_values().clone())
@@ -326,12 +328,12 @@ pub extern "C" fn Servo_ComputedValues_Inherit(parent_style: ServoComputedValues
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_ComputedValues_AddRef(ptr: ServoComputedValuesBorrowed) -> () {
+pub extern "C" fn Servo_ComputedValues_AddRef(ptr: ServoComputedValuesMaybeBorrowed) -> () {
     unsafe { ComputedValues::addref(ptr) };
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_ComputedValues_Release(ptr: ServoComputedValuesBorrowed) -> () {
+pub extern "C" fn Servo_ComputedValues_Release(ptr: ServoComputedValuesMaybeBorrowed) -> () {
     unsafe { ComputedValues::release(ptr) };
 }
 
@@ -376,28 +378,28 @@ pub extern "C" fn Servo_ParseStyleAttribute(bytes: *const u8, length: u32,
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_DeclarationBlock_AddRef(declarations: ServoDeclarationBlockBorrowed) {
+pub extern "C" fn Servo_DeclarationBlock_AddRef(declarations: ServoDeclarationBlockMaybeBorrowed) {
     unsafe { GeckoDeclarationBlock::addref(declarations) };
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_DeclarationBlock_Release(declarations: ServoDeclarationBlockBorrowed) {
+pub extern "C" fn Servo_DeclarationBlock_Release(declarations: ServoDeclarationBlockMaybeBorrowed) {
     unsafe { GeckoDeclarationBlock::release(declarations) };
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_DeclarationBlock_GetCache(declarations: ServoDeclarationBlockBorrowed)
+pub extern "C" fn Servo_DeclarationBlock_GetCache(declarations: ServoDeclarationBlockMaybeBorrowed)
                                                  -> *mut nsHTMLCSSStyleSheet {
     declarations.as_arc::<GeckoDeclarationBlock>().cache.load(Ordering::Relaxed)
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_DeclarationBlock_SetImmutable(declarations: ServoDeclarationBlockBorrowed) {
+pub extern "C" fn Servo_DeclarationBlock_SetImmutable(declarations: ServoDeclarationBlockMaybeBorrowed) {
     declarations.as_arc::<GeckoDeclarationBlock>().immutable.store(true, Ordering::Relaxed)
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_DeclarationBlock_ClearCachePointer(declarations: ServoDeclarationBlockBorrowed) {
+pub extern "C" fn Servo_DeclarationBlock_ClearCachePointer(declarations: ServoDeclarationBlockMaybeBorrowed) {
     declarations.as_arc::<GeckoDeclarationBlock>().cache.store(ptr::null_mut(), Ordering::Relaxed)
 }
 
@@ -417,12 +419,12 @@ pub extern "C" fn Servo_CSSSupports(property: *const u8, property_length: u32,
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_ComputeRestyleHint(element: *mut RawGeckoElement,
+pub extern "C" fn Servo_ComputeRestyleHint(element: RawGeckoElementBorrowed,
                                            snapshot: *mut ServoElementSnapshot,
-                                           raw_data: *mut RawServoStyleSet) -> nsRestyleHint {
-    let per_doc_data = unsafe { &mut *(raw_data as *mut PerDocumentStyleData) };
+                                           raw_data: RawServoStyleSetBorrowedMut) -> nsRestyleHint {
+    let per_doc_data = PerDocumentStyleData::from_ffi_mut(raw_data);
     let snapshot = unsafe { GeckoElementSnapshot::from_raw(snapshot) };
-    let element = unsafe { GeckoElement::from_raw(element) };
+    let element = unsafe { GeckoElement(element) };
 
     // NB: This involves an FFI call, we can get rid of it easily if needed.
     let current_state = element.get_state();
