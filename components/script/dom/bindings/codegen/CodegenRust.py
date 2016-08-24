@@ -2513,12 +2513,13 @@ class CGWrapGlobalMethod(CGAbstractMethod):
 let raw = Box::into_raw(object);
 let _rt = RootedTraceable::new(&*raw);
 
-rooted!(in(cx) let obj =
-    create_global_object(
-        cx,
-        &*(&Class.base as *const js::jsapi::Class as *const _),
-        raw as *const libc::c_void,
-        _trace));
+rooted!(in(cx) let mut obj = ptr::null_mut());
+create_global_object(
+    cx,
+    &*(&Class.base as *const js::jsapi::Class as *const _),
+    raw as *const libc::c_void,
+    _trace,
+    obj.handle_mut());
 assert!(!obj.is_null());
 
 (*raw).init_reflector(obj.get());
