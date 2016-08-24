@@ -2375,9 +2375,9 @@ class CGConstructorEnabled(CGAbstractMethod):
 
 
 def CreateBindingJSObject(descriptor, parent=None):
+    assert not descriptor.isGlobal()
     create = "let raw = Box::into_raw(object);\nlet _rt = RootedTraceable::new(&*raw);\n"
     if descriptor.proxy:
-        assert not descriptor.isGlobal()
         create += """
 let handler = RegisterBindings::proxy_handlers[PrototypeList::Proxies::%s as usize];
 rooted!(in(cx) let private = PrivateValue(raw as *const libc::c_void));
@@ -2388,15 +2388,6 @@ let obj = NewProxyObject(cx, handler,
 assert!(!obj.is_null());
 rooted!(in(cx) let obj = obj);\
 """ % (descriptor.name, parent)
-    elif descriptor.isGlobal():
-        create += ("rooted!(in(cx) let obj =\n"
-                   "    create_dom_global(\n"
-                   "        cx,\n"
-                   "        &Class.base as *const js::jsapi::Class as *const JSClass,\n"
-                   "        raw as *const libc::c_void,\n"
-                   "        Some(%s))\n"
-                   ");\n"
-                   "assert!(!obj.is_null());" % TRACE_HOOK_NAME)
     else:
         create += ("rooted!(in(cx) let obj = JS_NewObjectWithGivenProto(\n"
                    "    cx, &Class.base as *const js::jsapi::Class as *const JSClass, proto.handle()));\n"
@@ -2475,21 +2466,17 @@ class CGWrapMethod(CGAbstractMethod):
     """
     def __init__(self, descriptor):
         assert not descriptor.interface.isCallback()
-        if not descriptor.isGlobal():
-            args = [Argument('*mut JSContext', 'cx'), Argument('GlobalRef', 'scope'),
-                    Argument("Box<%s>" % descriptor.concreteType, 'object')]
-        else:
-            args = [Argument('*mut JSContext', 'cx'),
-                    Argument("Box<%s>" % descriptor.concreteType, 'object')]
+        assert not descriptor.isGlobal()
+        args = [Argument('*mut JSContext', 'cx'), Argument('GlobalRef', 'scope'),
+                Argument("Box<%s>" % descriptor.concreteType, 'object')]
         retval = 'Root<%s>' % descriptor.concreteType
         CGAbstractMethod.__init__(self, descriptor, 'Wrap', retval, args,
                                   pub=True, unsafe=True)
 
     def definition_body(self):
         unforgeable = CopyUnforgeablePropertiesToInstance(self.descriptor)
-        if not self.descriptor.isGlobal():
-            create = CreateBindingJSObject(self.descriptor, "scope")
-            return CGGeneric("""\
+        create = CreateBindingJSObject(self.descriptor, "scope")
+        return CGGeneric("""\
 let scope = scope.reflector().get_jsobject();
 assert!(!scope.get().is_null());
 assert!(((*JS_GetClass(scope.get())).flags & JSCLASS_IS_GLOBAL) != 0);
@@ -2505,10 +2492,35 @@ assert!(!proto.is_null());
 (*raw).init_reflector(obj.get());
 
 Root::from_ref(&*raw)""" % {'copyUnforgeable': unforgeable, 'createObject': create})
-        else:
-            create = CreateBindingJSObject(self.descriptor)
-            return CGGeneric("""\
-%(createObject)s
+
+
+class CGWrapGlobalMethod(CGAbstractMethod):
+    """
+    Class that generates the FooBinding::Wrap function for global interfaces.
+    """
+    def __init__(self, descriptor):
+        assert not descriptor.interface.isCallback()
+        assert descriptor.isGlobal()
+        args = [Argument('*mut JSContext', 'cx'),
+                Argument("Box<%s>" % descriptor.concreteType, 'object')]
+        retval = 'Root<%s>' % descriptor.concreteType
+        CGAbstractMethod.__init__(self, descriptor, 'Wrap', retval, args,
+                                  pub=True, unsafe=True)
+
+    def definition_body(self):
+        unforgeable = CopyUnforgeablePropertiesToInstance(self.descriptor)
+        return CGGeneric("""\
+let raw = Box::into_raw(object);
+let _rt = RootedTraceable::new(&*raw);
+
+rooted!(in(cx) let obj =
+    create_dom_global(
+        cx,
+        &Class.base as *const js::jsapi::Class as *const _,
+        raw as *const libc::c_void,
+        Some(_trace)));
+assert!(!obj.is_null());
+
 (*raw).init_reflector(obj.get());
 
 let _ac = JSAutoCompartment::new(cx, obj.get());
@@ -2519,7 +2531,7 @@ JS_SplicePrototype(cx, obj.handle(), proto.handle());
 %(copyUnforgeable)s
 
 Root::from_ref(&*raw)\
-""" % {'copyUnforgeable': unforgeable, 'createObject': create})
+""" % {'copyUnforgeable': unforgeable})
 
 
 class CGIDLInterface(CGThing):
@@ -5466,7 +5478,10 @@ class CGDescriptor(CGThing):
                 cgThings.append(CGDOMJSClass(descriptor))
                 pass
 
-            cgThings.append(CGWrapMethod(descriptor))
+            if descriptor.isGlobal():
+                cgThings.append(CGWrapGlobalMethod(descriptor))
+            else:
+                cgThings.append(CGWrapMethod(descriptor))
             reexports.append('Wrap')
 
         haveUnscopables = False
