@@ -23,7 +23,7 @@ use util::opts;
 
 pub use style::sequential::traverse_dom;
 
-pub fn resolve_generated_content(root: &mut FlowRef, shared_layout_context: &SharedLayoutContext) {
+pub fn resolve_generated_content(root: &mut Flow, shared_layout_context: &SharedLayoutContext) {
     fn doit(flow: &mut Flow, level: u32, traversal: &mut ResolveGeneratedContent) {
         if !traversal.should_process(flow) {
             return
@@ -38,7 +38,7 @@ pub fn resolve_generated_content(root: &mut FlowRef, shared_layout_context: &Sha
 
     let layout_context = LayoutContext::new(shared_layout_context);
     let mut traversal = ResolveGeneratedContent::new(&layout_context);
-    doit(flow_ref::deref_mut(root), 0, &mut traversal)
+    doit(root, 0, &mut traversal)
 }
 
 pub fn traverse_flow_tree_preorder(root: &mut FlowRef,

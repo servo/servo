@@ -1446,7 +1446,7 @@ impl LayoutThread {
             profile(time::ProfilerCategory::LayoutGeneratedContent,
                     self.profiler_metadata(),
                     self.time_profiler_chan.clone(),
-                    || sequential::resolve_generated_content(&mut root_flow, &layout_context));
+                    || sequential::resolve_generated_content(flow_ref::deref_mut(&mut root_flow), &layout_context));
 
             // Guess float placement.
             profile(time::ProfilerCategory::LayoutFloatPlacementSpeculation,
