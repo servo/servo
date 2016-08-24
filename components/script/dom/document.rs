@@ -822,7 +822,6 @@ impl Document {
                         event.fire(target);
 
                         *self.last_click_info.borrow_mut() = ClickInfo(None);
-                        // *info = ClickInfo(DOMRefCell::new(None))
                     } else {
                         *self.last_click_info.borrow_mut() = ClickInfo(Some((Instant::now(), new_pos)))
                     }
