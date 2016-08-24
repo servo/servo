@@ -2516,7 +2516,7 @@ let _rt = RootedTraceable::new(&*raw);
 rooted!(in(cx) let obj =
     create_global_object(
         cx,
-        &Class.base as *const js::jsapi::Class as *const _,
+        &*(&Class.base as *const js::jsapi::Class as *const _),
         raw as *const libc::c_void,
         _trace));
 assert!(!obj.is_null());
