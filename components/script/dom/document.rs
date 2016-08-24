@@ -119,6 +119,7 @@ use std::mem;
 use std::ptr;
 use std::rc::Rc;
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 use string_cache::{Atom, QualName};
 use style::attr::AttrValue;
 use style::context::ReflowGoal;
@@ -243,6 +244,29 @@ pub struct Document {
     referrer: Option<String>,
     /// https://html.spec.whatwg.org/multipage/#target-element
     target_element: MutNullableHeap<JS<Element>>,
+    /// https://w3c.github.io/uievents/#event-type-dblclick
+    #[ignore_heap_size_of = ""]
+    last_click_info: DOMRefCell<ClickInfo>,
+}
+
+no_jsmanaged_fields!(Instant);
+
+#[derive(JSTraceable)]
+#[must_root]
+struct ClickInfo(DOMRefCell<Option<(JS<Node>, Instant, Point2D<i32>)>>);
+
+impl ClickInfo {
+    fn take(&self) -> Option<(Root<Node>, Instant, Point2D<i32>)> {
+        let ClickInfo(ref opt) = *self;
+        match *opt.borrow_mut() {
+            Some((ref js_node, instant, point)) => {
+                Some((Root::from_ref(js_node), instant, point))
+            },
+            _ => {
+                None
+            }
+        }
+    }
 }
 
 #[derive(JSTraceable, HeapSizeOf)]
@@ -766,7 +790,110 @@ impl Document {
         if let MouseEventType::Click = mouse_event_type {
             self.commit_focus_transaction(FocusType::Element);
         }
-        self.window.reflow(ReflowGoal::ForDisplay,
+
+        // https://w3c.github.io/uievents/#event-type-dblclick
+        let DBL_CLICK_TIMEOUT = Duration::from_millis(PREFS.get("dom.document.dblclick_timeout").as_u64().unwrap()); // Clicks within 300ms of each other can be considered for double clicks
+        let DBL_CLICK_DIST_THRESHOLD = 100 as f64;
+        if let MouseEventType::Click = mouse_event_type {
+            let opt = self.last_click_info.borrow_mut().take();
+            match opt {
+                Some((last_el, last_time, last_pos)) => {
+                    let dist = ((((client_x - last_pos.x) as f64).powi(2)) + (((client_y - last_pos.y) as f64).powi(2))).sqrt();
+                    if Instant::now().duration_since(last_time) < DBL_CLICK_TIMEOUT && dist < DBL_CLICK_DIST_THRESHOLD {
+                        let evt_node = match node.common_ancestor_with(last_el.upcast::<Node>()) {
+                            Some(ancestor_node) => ancestor_node,
+                            None => panic!("Clicks were in different documents"),
+                        };
+
+                        {
+                            let el_name = el.get_string_attribute(&atom!("name"));
+                            println!("SERVO: dblclick on {}", el_name);
+                        }
+                        let event = MouseEvent::new(&self.window,
+                                    DOMString::from("dblclick".to_owned()),
+                                    EventBubbles::Bubbles,
+                                    EventCancelable::Cancelable,
+                                    Some(&self.window),
+                                    clickCount,
+                                    client_x,
+                                    client_y,
+                                    client_x,
+                                    client_y,
+                                    false,
+                                    false,
+                                    false,
+                                    false,
+                                    0i16,
+                                    None);
+                        let target = evt_node.upcast();
+                        let event = event.upcast::<Event>();
+                        event.fire(target);
+
+
+                        *self.last_click_info.borrow_mut() = ClickInfo(DOMRefCell::new(None));
+                        // *info = ClickInfo(DOMRefCell::new(None))
+                    } else {
+                        *self.last_click_info.borrow_mut() = ClickInfo(DOMRefCell::new(Some((JS::from_ref(node), Instant::now(), Point2D::new(client_x, client_y)))))
+                    }
+                },
+                _ => {
+                        *self.last_click_info.borrow_mut() = ClickInfo(DOMRefCell::new(Some((JS::from_ref(node), Instant::now(), Point2D::new(client_x, client_y)))))
+                }
+            }
+           /* let opt = self.last_click_info.borrow_mut().take();
+            match opt {
+                Some(ref last_click_info) => { // The case there is a previous click which can be 'double clicked'
+                    let last_pos = last_click_info.pos;
+                    let dist = ((((client_x - last_pos.x) as f64).powi(2)) + (((client_y - last_pos.y) as f64).powi(2))).sqrt();
+
+                    if Instant::now().duration_since(last_click_info.time) < DBL_CLICK_TIMEOUT && dist < DBL_CLICK_DIST_THRESHOLD {
+                        // The case that a double click event should be fired
+                        // We must determine which element to fire the event on
+                        let last_click_node = last_click_info.el.get();
+
+                        let evtNode = match el.upcast::<Node>().common_ancestor_with(last_click_node.r()) {
+                            Some(node) => node,
+                            None => panic!("Clicks were in different documents")
+                        };
+
+                        let event = MouseEvent::new(&self.window,
+                                    DOMString::from("dblclick".to_owned()),
+                                    EventBubbles::Bubbles,
+                                    EventCancelable::Cancelable,
+                                    Some(&self.window),
+                                    clickCount,
+                                    client_x,
+                                    client_y,
+                                    client_x,
+                                    client_y,
+                                    false,
+                                    false,
+                                    false,
+                                    false,
+                                    0i16,
+                                    None);
+                        let target = evtNode.upcast();
+                        let event = event.upcast::<Event>();
+                        event.fire(target);
+                        // {
+                        // *self.last_click_info.borrow_mut() = None;
+                        // }
+                    } else {
+                       // {
+                       //  *self.last_click_info.borrow_mut() = Some(ClickInfo{time: Instant::now(), pos: Point2D::new(client_x, client_y), el: MutHeap::new(el.upcast::<Node>()),});
+                       //  }
+                    }
+
+                },
+                _ => {
+                     *self.last_click_info.borrow_mut() = Some(ClickInfo{time: Instant::now(), pos: Point2D::new(client_x, client_y), el: MutHeap::new(el.upcast::<Node>()),});
+                },
+            }*/
+            
+        }
+    
+
+    self.window.reflow(ReflowGoal::ForDisplay,
                            ReflowQueryType::NoQuery,
                            ReflowReason::MouseEvent);
     }
@@ -1737,6 +1864,7 @@ impl Document {
             referrer: referrer,
             referrer_policy: Cell::new(referrer_policy),
             target_element: MutNullableHeap::new(None),
+            last_click_info: DOMRefCell::new(ClickInfo(DOMRefCell::new(Option::None))),
         }
     }
 

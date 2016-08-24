@@ -1,5 +1,6 @@
 {
   "dom.bluetooth.enabled": false,
+  "dom.document.dblclick_timeout": 1000,
   "dom.forcetouch.enabled": false,
   "dom.mouseevent.which.enabled": false,
   "dom.mozbrowser.enabled": false,

@@ -894,6 +894,15 @@ impl Node {
         element.upcast::<Node>().remove_self();
         Ok(())
     }
+
+    pub fn common_ancestor_with(&self, other: &Node) -> Option<Root<Node>> {
+        for ancestor in self.inclusive_ancestors() {
+            if ancestor.is_inclusive_ancestor_of(other) {
+                return Some(ancestor);
+            }
+        }
+        None
+    }
 }
 
 
