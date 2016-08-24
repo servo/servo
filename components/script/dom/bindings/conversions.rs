@@ -104,15 +104,14 @@ impl<T: Float + FromJSValConvertible<Config=()>> FromJSValConvertible for Finite
 impl <T: Reflectable + IDLInterface> FromJSValConvertible for Root<T> {
     type Config = ();
 
-    unsafe fn from_jsval(cx: *mut JSContext,
+    unsafe fn from_jsval(_cx: *mut JSContext,
                          value: HandleValue,
                          _config: Self::Config)
                          -> Result<ConversionResult<Root<T>>, ()> {
-        let result = root_from_handlevalue(value);
-        if let Err(()) = result {
-            throw_type_error(cx, "value is not an object");
-        }
-        result.map(ConversionResult::Success)
+        Ok(match root_from_handlevalue(value) {
+            Ok(result) => ConversionResult::Success(result),
+            Err(()) => ConversionResult::Failure("value is not an object".into()),
+        })
     }
 }
 

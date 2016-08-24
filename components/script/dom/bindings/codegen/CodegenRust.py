@@ -3953,7 +3953,8 @@ class CGUnionConversionStruct(CGThing):
         method = CGWrapper(
             CGIndenter(CGList(conversions, "\n\n")),
             pre="unsafe fn from_jsval(cx: *mut JSContext,\n"
-                "                     value: HandleValue, _option: ())"
+                "                     value: HandleValue,\n"
+                "                     _option: ())\n"
                 "                     -> Result<ConversionResult<%s>, ()> {\n" % self.type,
             post="\n}")
         return CGWrapper(
