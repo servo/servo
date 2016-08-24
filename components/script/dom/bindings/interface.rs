@@ -218,35 +218,33 @@ pub unsafe fn create_global_object(
         cx: *mut JSContext,
         class: &'static JSClass,
         private: *const libc::c_void,
-        trace: TraceHook)
-        -> *mut JSObject {
+        trace: TraceHook,
+        rval: MutableHandleObject) {
+    assert!(rval.is_null());
+
     let mut options = CompartmentOptions::default();
     options.behaviors_.version_ = JSVersion::JSVERSION_ECMA_5;
     options.creationOptions_.traceGlobal_ = Some(trace);
     options.creationOptions_.sharedMemoryAndAtomics_ = true;
 
-    rooted!(in(cx) let obj =
-        JS_NewGlobalObject(cx,
-                           class,
-                           ptr::null_mut(),
-                           OnNewGlobalHookOption::DontFireOnNewGlobalHook,
-                           &options));
-    if obj.is_null() {
-        return ptr::null_mut();
-    }
+    rval.set(JS_NewGlobalObject(cx,
+                                class,
+                                ptr::null_mut(),
+                                OnNewGlobalHookOption::DontFireOnNewGlobalHook,
+                                &options));
+    assert!(!rval.is_null());
 
     // Initialize the reserved slots before doing anything that can GC, to
     // avoid getting trace hooks called on a partially initialized object.
-    JS_SetReservedSlot(obj.get(), DOM_OBJECT_SLOT, PrivateValue(private));
+    JS_SetReservedSlot(rval.get(), DOM_OBJECT_SLOT, PrivateValue(private));
     let proto_array: Box<ProtoOrIfaceArray> =
         box [0 as *mut JSObject; PrototypeList::PROTO_OR_IFACE_LENGTH];
-    JS_SetReservedSlot(obj.get(),
+    JS_SetReservedSlot(rval.get(),
                        DOM_PROTOTYPE_SLOT,
                        PrivateValue(Box::into_raw(proto_array) as *const libc::c_void));
 
-    let _ac = JSAutoCompartment::new(cx, obj.get());
-    JS_FireOnNewGlobalObject(cx, obj.handle());
-    obj.get()
+    let _ac = JSAutoCompartment::new(cx, rval.get());
+    JS_FireOnNewGlobalObject(cx, rval.handle());
 }
 
 /// Create and define the interface object of a callback interface.
