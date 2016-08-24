@@ -156,10 +156,14 @@ COMPILATION_TARGETS = {
         ],
         "servo_owned_types": [
             "RawServoStyleSet",
-            "RawGeckoNode",
         ],
         "servo_maybe_owned_types": [
             "ServoNodeData",
+        ],
+        "servo_immutable_borrow_types": [
+            "RawGeckoNode",
+            "RawGeckoElement",
+            "RawGeckoDocument",
         ],
     },
 
@@ -329,9 +333,19 @@ def build(objdir, target_name, debug, debugger, kind_name=None,
             flags.append("--raw-line")
             flags.append("pub type {0}Strong = ::sugar::ownership::Strong<{0}>;".format(ty))
             flags.append("--blacklist-type")
+            flags.append("{}MaybeBorrowed".format(ty))
+            flags.append("-raw-line")
+            flags.append("pub type {0}MaybeBorrowed<'a> = ::sugar::ownership::Borrowed<'a, {0}>;".format(ty))
+    if "servo_immutable_borrow_types" in current_target:
+        for ty in current_target["servo_immutable_borrow_types"]:
+            flags.append("-blacklist-type")
             flags.append("{}Borrowed".format(ty))
             flags.append("--raw-line")
-            flags.append("pub type {0}Borrowed<'a> = ::sugar::ownership::Borrowed<'a, {0}>;".format(ty))
+            flags.append("pub type {0}Borrowed<'a> = &'a {0};".format(ty))
+            flags.append("--blacklist-type")
+            flags.append("{}MaybeBorrowed".format(ty))
+            flags.append("--raw-line")
+            flags.append("pub type {0}MaybeBorrowed<'a> = ::sugar::ownership::Borrowed<'a, {0}>;".format(ty))
     if "servo_owned_types" in current_target:
         for ty in current_target["servo_owned_types"]:
             flags.append("--blacklist-type")
@@ -349,19 +363,19 @@ def build(objdir, target_name, debug, debugger, kind_name=None,
     if "servo_maybe_owned_types" in current_target:
         for ty in current_target["servo_maybe_owned_types"]:
             flags.append("--blacklist-type")
-            flags.append("{}Borrowed".format(ty))
+            flags.append("{}MaybeBorrowed".format(ty))
             flags.append("--raw-line")
-            flags.append("pub type {0}Borrowed<'a> = ::sugar::ownership::Borrowed<'a, {0}>;"
+            flags.append("pub type {0}MaybeBorrowed<'a> = ::sugar::ownership::Borrowed<'a, {0}>;"
                          .format(ty))
             flags.append("--blacklist-type")
-            flags.append("{}BorrowedMut".format(ty))
+            flags.append("{}MaybeBorrowedMut".format(ty))
             flags.append("--raw-line")
-            flags.append("pub type {0}BorrowedMut<'a> = ::sugar::ownership::BorrowedMut<'a, {0}>;"
+            flags.append("pub type {0}MaybeBorrowedMut<'a> = ::sugar::ownership::BorrowedMut<'a, {0}>;"
                          .format(ty))
             flags.append("--blacklist-type")
-            flags.append("{}Owned".format(ty))
+            flags.append("{}MaybeOwned".format(ty))
             flags.append("--raw-line")
-            flags.append("pub type {0}Owned = ::sugar::ownership::MaybeOwned<{0}>;".format(ty))
+            flags.append("pub type {0}MaybeOwned = ::sugar::ownership::MaybeOwned<{0}>;".format(ty))
     if "structs_types" in current_target:
         for ty in current_target["structs_types"]:
             ty_fragments = ty.split("::")
