@@ -12,7 +12,6 @@ use floats::SpeculatedFloatPlacement;
 use flow::IS_ABSOLUTELY_POSITIONED;
 use flow::{PostorderFlowTraversal, PreorderFlowTraversal};
 use flow::{self, Flow, ImmutableFlowUtils, InorderFlowTraversal, MutableFlowUtils};
-use flow_ref::{self, FlowRef};
 use fragment::FragmentBorderBoxIterator;
 use generated_content::ResolveGeneratedContent;
 use gfx::display_list::{DisplayItem, StackingContext};
@@ -75,11 +74,10 @@ pub fn traverse_flow_tree_preorder(root: &mut Flow,
     doit(root, assign_inline_sizes, assign_block_sizes);
 }
 
-pub fn build_display_list_for_subtree(root: &mut FlowRef,
+pub fn build_display_list_for_subtree(flow_root: &mut Flow,
                                       root_stacking_context: &mut StackingContext,
                                       shared_layout_context: &SharedLayoutContext)
                                       -> Vec<DisplayItem> {
-    let flow_root = flow_ref::deref_mut(root);
     flow_root.traverse_preorder(&ComputeAbsolutePositions { layout_context: shared_layout_context });
     let mut children = vec![];
     flow_root.collect_stacking_contexts(root_stacking_context.id,
@@ -87,9 +85,9 @@ pub fn build_display_list_for_subtree(root: &mut FlowRef,
     root_stacking_context.add_children(children);
     let mut build_display_list = BuildDisplayList {
         state: DisplayListBuildState::new(shared_layout_context,
-                                          flow::base(&*flow_root).stacking_context_id),
+                                          flow::base(flow_root).stacking_context_id),
     };
-    build_display_list.traverse(&mut *flow_root);
+    build_display_list.traverse(flow_root);
     build_display_list.state.items
 }
 

@@ -933,7 +933,7 @@ impl LayoutThread {
                                                                      None);
 
                 let display_list_entries =
-                    sequential::build_display_list_for_subtree(layout_root,
+                    sequential::build_display_list_for_subtree(flow_ref::deref_mut(layout_root),
                                                                &mut root_stacking_context,
                                                                shared_layout_context);
 
