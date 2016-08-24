@@ -834,7 +834,7 @@ impl Document {
         }
     
 
-    self.window.reflow(ReflowGoal::ForDisplay,
+        self.window.reflow(ReflowGoal::ForDisplay,
                            ReflowQueryType::NoQuery,
                            ReflowReason::MouseEvent);
     }
