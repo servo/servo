@@ -37232,6 +37232,12 @@
             "path": "html/semantics/tabular-data/the-table-element/remove-row.html",
             "url": "/html/semantics/tabular-data/the-table-element/remove-row.html"
           }
+        ],
+        "html/semantics/text-level-semantics/the-data-element/data.value-001.html": [
+          {
+            "path": "html/semantics/text-level-semantics/the-data-element/data.value-001.html",
+            "url": "/html/semantics/text-level-semantics/the-data-element/data.value-001.html"
+          }
         ]
       }
     },

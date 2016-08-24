@@ -36,9 +36,9 @@ impl HTMLDataElement {
 }
 
 impl HTMLDataElementMethods for HTMLDataElement {
-    // https://html.spec.whatwg.org/multipage/semantics.html#dom-data-value
+    // https://html.spec.whatwg.org/multipage/#dom-data-value
     make_getter!(Value, "value");
 
-    // https://html.spec.whatwg.org/multipage/semantics.html#dom-data-value
+    // https://html.spec.whatwg.org/multipage/#dom-data-value
     make_setter!(SetValue, "value");
 }
