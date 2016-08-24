@@ -154,11 +154,6 @@ impl Event {
     }
 
     #[inline]
-    pub fn clear_current_target(&self) {
-        self.current_target.set(None);
-    }
-
-    #[inline]
     pub fn set_current_target(&self, val: &EventTarget) {
         self.current_target.set(Some(val));
     }
@@ -199,8 +194,22 @@ impl Event {
     }
 
     #[inline]
-    pub fn set_dispatching(&self, val: bool) {
-        self.dispatching.set(val)
+    // https://dom.spec.whatwg.org/#concept-event-dispatch Step 1.
+    pub fn mark_as_dispatching(&self) {
+        assert!(!self.dispatching.get());
+        self.dispatching.set(true);
+    }
+
+    #[inline]
+    // https://dom.spec.whatwg.org/#concept-event-dispatch Steps 10-12.
+    pub fn clear_dispatching_flags(&self) {
+        assert!(self.dispatching.get());
+
+        self.dispatching.set(false);
+        self.stop_propagation.set(false);
+        self.stop_immediate.set(false);
+        self.set_phase(EventPhase::None);
+        self.current_target.set(None);
     }
 
     #[inline]
