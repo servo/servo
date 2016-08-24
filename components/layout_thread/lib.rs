@@ -901,23 +901,23 @@ impl LayoutThread {
 
     fn compute_abs_pos_and_build_display_list(&mut self,
                                               data: &Reflow,
-                                              layout_root: &mut FlowRef,
+                                              layout_root: &mut Flow,
                                               shared_layout_context: &mut SharedLayoutContext,
                                               rw_data: &mut LayoutThreadData) {
-        let writing_mode = flow::base(&**layout_root).writing_mode;
+        let writing_mode = flow::base(layout_root).writing_mode;
         let (metadata, sender) = (self.profiler_metadata(), self.time_profiler_chan.clone());
         profile(time::ProfilerCategory::LayoutDispListBuild,
                 metadata.clone(),
                 sender.clone(),
                 || {
-            flow::mut_base(flow_ref::deref_mut(layout_root)).stacking_relative_position =
+            flow::mut_base(layout_root).stacking_relative_position =
                 LogicalPoint::zero(writing_mode).to_physical(writing_mode,
                                                              self.viewport_size);
 
-            flow::mut_base(flow_ref::deref_mut(layout_root)).clip =
+            flow::mut_base(layout_root).clip =
                 ClippingRegion::from_rect(&data.page_clip_rect);
 
-            if flow::base(&**layout_root).restyle_damage.contains(REPAINT) ||
+            if flow::base(layout_root).restyle_damage.contains(REPAINT) ||
                     rw_data.display_list.is_none() {
                 let mut root_stacking_context = StackingContext::new(StackingContextId::new(0),
                                                                      StackingContextType::Real,
@@ -933,16 +933,15 @@ impl LayoutThread {
                                                                      None);
 
                 let display_list_entries =
-                    sequential::build_display_list_for_subtree(flow_ref::deref_mut(layout_root),
+                    sequential::build_display_list_for_subtree(layout_root,
                                                                &mut root_stacking_context,
                                                                shared_layout_context);
 
                 debug!("Done building display list.");
 
-                let root_background_color = get_root_flow_background_color(
-                    flow_ref::deref_mut(layout_root));
+                let root_background_color = get_root_flow_background_color(layout_root);
                 let root_size = {
-                    let root_flow = flow::base(&**layout_root);
+                    let root_flow = flow::base(layout_root);
                     if rw_data.stylist.viewport_constraints().is_some() {
                         root_flow.position.size.to_physical(root_flow.writing_mode)
                     } else {
@@ -992,8 +991,7 @@ impl LayoutThread {
                         epoch,
                         Some(root_scroll_layer_id),
                         &mut frame_builder);
-                    let root_background_color = get_root_flow_background_color(
-                        flow_ref::deref_mut(layout_root));
+                    let root_background_color = get_root_flow_background_color(layout_root);
                     let root_background_color =
                         webrender_traits::ColorF::new(root_background_color.r,
                                                       root_background_color.g,
@@ -1499,7 +1497,7 @@ impl LayoutThread {
         // Build the display list if necessary, and send it to the painter.
         if let Some(mut root_flow) = self.root_flow.clone() {
             self.compute_abs_pos_and_build_display_list(data,
-                                                        &mut root_flow,
+                                                        flow_ref::deref_mut(&mut root_flow),
                                                         &mut *layout_context,
                                                         rw_data);
             self.first_reflow = false;
