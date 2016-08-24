@@ -10,10 +10,10 @@ use env_logger;
 use euclid::Size2D;
 use gecko_bindings::bindings::{RawGeckoDocument, RawGeckoElement, RawGeckoNode};
 use gecko_bindings::bindings::{RawServoStyleSet, RawServoStyleSetBorrowedMut};
-use gecko_bindings::bindings::RawServoStyleSetOwned;
+use gecko_bindings::bindings::{RawServoStyleSetOwned, ServoNodeDataOwned};
 use gecko_bindings::bindings::{RawServoStyleSheetBorrowed, ServoComputedValuesBorrowed};
 use gecko_bindings::bindings::{RawServoStyleSheetStrong, ServoComputedValuesStrong};
-use gecko_bindings::bindings::{ServoDeclarationBlock, ServoNodeData, ThreadSafePrincipalHolder};
+use gecko_bindings::bindings::{ServoDeclarationBlock, ThreadSafePrincipalHolder};
 use gecko_bindings::bindings::{ServoDeclarationBlockBorrowed, ServoDeclarationBlockStrong};
 use gecko_bindings::bindings::{ThreadSafeURIHolder, nsHTMLCSSStyleSheet};
 use gecko_bindings::ptr::{GeckoArcPrincipal, GeckoArcURI};
@@ -136,10 +136,8 @@ pub extern "C" fn Servo_StyleWorkerThreadCount() -> u32 {
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_NodeData_Drop(data: *mut ServoNodeData) -> () {
-    unsafe {
-        let _ = Box::<NonOpaqueStyleData>::from_raw(data as *mut NonOpaqueStyleData);
-    }
+pub extern "C" fn Servo_NodeData_Drop(data: ServoNodeDataOwned) -> () {
+    let _ = data.into_box_opt::<NonOpaqueStyleData>();
 }
 
 #[no_mangle]
