@@ -216,7 +216,7 @@ pub type TraceHook =
 /// Create a global object with the given class.
 pub unsafe fn create_global_object(
         cx: *mut JSContext,
-        class: *const JSClass,
+        class: &'static JSClass,
         private: *const libc::c_void,
         trace: TraceHook)
         -> *mut JSObject {
