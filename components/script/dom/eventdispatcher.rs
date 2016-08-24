@@ -123,7 +123,7 @@ pub fn dispatch_event(target: &EventTarget,
     }
 
     // Step 1. Postponed here for the reason stated above.
-    event.set_dispatching(true);
+    event.mark_as_dispatching();
 
     // Step 3. The "invoke" algorithm is only used on `target` separately,
     // so we don't put it in the path.
@@ -158,14 +158,8 @@ pub fn dispatch_event(target: &EventTarget,
         None => {}
     }
 
-    // Step 10.
-    event.set_dispatching(false);
-
-    // Step 11.
-    event.set_phase(EventPhase::None);
-
-    // Step 12.
-    event.clear_current_target();
+    // Step 10-12.
+    event.clear_dispatching_flags();
 
     // Step 13.
     !event.DefaultPrevented()
