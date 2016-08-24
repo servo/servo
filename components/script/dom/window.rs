@@ -946,7 +946,7 @@ impl<'a, T: Reflectable> ScriptHelpers for &'a T {
                 let filename = CString::new(filename).unwrap();
 
                 let _ac = JSAutoCompartment::new(cx, globalhandle.get());
-                let options = CompileOptionsWrapper::new(cx, filename.as_ptr(), 0);
+                let options = CompileOptionsWrapper::new(cx, filename.as_ptr(), 1);
                 unsafe {
                     if !Evaluate2(cx, options.ptr, code.as_ptr(),
                                   code.len() as libc::size_t,
