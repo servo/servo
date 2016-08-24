@@ -894,17 +894,7 @@ impl Node {
         element.upcast::<Node>().remove_self();
         Ok(())
     }
-
-    pub fn common_ancestor_with(&self, other: &Node) -> Option<Root<Node>> {
-        for ancestor in self.inclusive_ancestors() {
-            if ancestor.is_inclusive_ancestor_of(other) {
-                return Some(ancestor);
-            }
-        }
-        None
-    }
 }
-
 
 /// Iterate through `nodes` until we find a `Node` that is not in `not_in`
 fn first_node_not_in<I>(mut nodes: I, not_in: &[NodeOrString]) -> Option<Root<Node>>
