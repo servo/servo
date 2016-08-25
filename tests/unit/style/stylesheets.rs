@@ -65,11 +65,11 @@ fn test_parse_stylesheet() {
         media: None,
         dirty_on_viewport_size_change: false,
         rules: vec![
-            CSSRule::Namespace(NamespaceRule {
+            CSSRule::Namespace(Arc::new(NamespaceRule {
                 prefix: None,
                 url: NsAtom(Atom::from("http://www.w3.org/1999/xhtml"))
-            }),
-            CSSRule::Style(StyleRule {
+            })),
+            CSSRule::Style(Arc::new(StyleRule {
                 selectors: vec![
                     Selector {
                         complex_selector: Arc::new(ComplexSelector {
@@ -97,7 +97,7 @@ fn test_parse_stylesheet() {
                         specificity: (0 << 20) + (1 << 10) + (1 << 0),
                     },
                 ],
-                declarations: PropertyDeclarationBlock {
+                declarations: Arc::new(PropertyDeclarationBlock {
                     declarations: Arc::new(vec![
                         (PropertyDeclaration::Display(DeclaredValue::Value(
                             longhands::display::SpecifiedValue::none)),
@@ -106,9 +106,9 @@ fn test_parse_stylesheet() {
                          Importance::Important),
                     ]),
                     important_count: 2,
-                },
-            }),
-            CSSRule::Style(StyleRule {
+                }),
+            })),
+            CSSRule::Style(Arc::new(StyleRule {
                 selectors: vec![
                     Selector {
                         complex_selector: Arc::new(ComplexSelector {
@@ -145,16 +145,16 @@ fn test_parse_stylesheet() {
                         specificity: (0 << 20) + (0 << 10) + (1 << 0),
                     },
                 ],
-                declarations: PropertyDeclarationBlock {
+                declarations: Arc::new(PropertyDeclarationBlock {
                     declarations: Arc::new(vec![
                         (PropertyDeclaration::Display(DeclaredValue::Value(
                             longhands::display::SpecifiedValue::block)),
                          Importance::Normal),
                     ]),
                     important_count: 0,
-                },
-            }),
-            CSSRule::Style(StyleRule {
+                }),
+            })),
+            CSSRule::Style(Arc::new(StyleRule {
                 selectors: vec![
                     Selector {
                         complex_selector: Arc::new(ComplexSelector {
@@ -180,7 +180,7 @@ fn test_parse_stylesheet() {
                         specificity: (1 << 20) + (1 << 10) + (0 << 0),
                     },
                 ],
-                declarations: PropertyDeclarationBlock {
+                declarations: Arc::new(PropertyDeclarationBlock {
                     declarations: Arc::new(vec![
                         (PropertyDeclaration::BackgroundColor(DeclaredValue::Value(
                             longhands::background_color::SpecifiedValue {
@@ -228,12 +228,12 @@ fn test_parse_stylesheet() {
                          Importance::Normal),
                     ]),
                     important_count: 0,
-                },
-            }),
-            CSSRule::Keyframes(KeyframesRule {
+                }),
+            })),
+            CSSRule::Keyframes(Arc::new(KeyframesRule {
                 name: "foo".into(),
                 keyframes: vec![
-                    Keyframe {
+                    Arc::new(Keyframe {
                         selector: KeyframeSelector::new_for_unit_testing(
                                       vec![KeyframePercentage::new(0.)]),
                         declarations: Arc::new(vec![
@@ -241,8 +241,8 @@ fn test_parse_stylesheet() {
                                 LengthOrPercentageOrAuto::Percentage(Percentage(0.)))),
                              Importance::Normal),
                         ]),
-                    },
-                    Keyframe {
+                    }),
+                    Arc::new(Keyframe {
                         selector: KeyframeSelector::new_for_unit_testing(
                                       vec![KeyframePercentage::new(1.)]),
                         declarations: Arc::new(vec![
@@ -254,9 +254,9 @@ fn test_parse_stylesheet() {
                                     vec![animation_play_state::SingleSpecifiedValue::running]))),
                              Importance::Normal),
                         ]),
-                    },
+                    }),
                 ]
-            })
+            }))
 
         ],
     });
