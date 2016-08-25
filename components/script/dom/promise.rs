@@ -7,13 +7,14 @@ use dom::bindings::codegen::Bindings::PromiseBinding::AnyCallback;
 use dom::bindings::conversions::root_from_object;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
+use dom::bindings::js::MutHeapJSVal;
 use dom::bindings::reflector::{Reflectable, MutReflectable, Reflector};
 use dom::promisenativehandler::PromiseNativeHandler;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::{CallOriginalPromiseResolve, CallOriginalPromiseReject, CallOriginalPromiseThen};
 use js::jsapi::{JSAutoCompartment, CallArgs, JS_GetFunctionObject, JS_NewFunction};
 use js::jsapi::{JSContext, HandleValue, HandleObject, IsPromiseObject, GetFunctionNativeReserved};
-use js::jsapi::{JS_ClearPendingException, JSObject};
+use js::jsapi::{JS_ClearPendingException, JSObject, AddRawValueRoot, RemoveRawValueRoot};
 use js::jsapi::{MutableHandleObject, NewPromiseObject, ResolvePromise, RejectPromise};
 use js::jsapi::{SetFunctionNativeReserved, NewFunctionWithReserved, AddPromiseReactions};
 use js::jsval::{JSVal, UndefinedValue, ObjectValue, Int32Value};
@@ -23,6 +24,34 @@ use std::rc::Rc;
 #[dom_struct]
 pub struct Promise {
     reflector: Reflector,
+    #[ignore_heap_size_of = "SM handles JS values"]
+    root: MutHeapJSVal,
+}
+
+trait PromiseHelper {
+    #[allow(unsafe_code)]
+    unsafe fn initialize(&self, cx: *mut JSContext);
+}
+
+impl PromiseHelper for Rc<Promise> {
+    #[allow(unsafe_code)]
+    unsafe fn initialize(&self, cx: *mut JSContext) {
+        let obj = self.reflector().get_jsobject();
+        self.root.set(ObjectValue(&**obj));
+        assert!(AddRawValueRoot(cx,
+                                self.root.get_unsafe(),
+                                b"Promise::root\0" as *const _ as *const _));
+    }
+}
+
+impl Drop for Promise {
+    #[allow(unsafe_code)]
+    fn drop(&mut self) {
+        let cx = self.global().r().get_cx();
+        unsafe {
+            RemoveRawValueRoot(cx, self.root.get_unsafe());
+        }
+    }
 }
 
 impl Promise {
@@ -32,20 +61,21 @@ impl Promise {
         rooted!(in(cx) let mut obj = ptr::null_mut());
         unsafe {
             Promise::create_js_promise(cx, HandleObject::null(), obj.handle_mut());
+            Promise::new_with_js_promise(obj.handle(), cx)
         }
-        Promise::new_with_js_promise(obj.handle())
     }
 
     #[allow(unsafe_code, unrooted_must_root)]
-    fn new_with_js_promise(obj: HandleObject) -> Rc<Promise> {
-        unsafe {
-            assert!(IsPromiseObject(obj));
-        }
+    unsafe fn new_with_js_promise(obj: HandleObject, cx: *mut JSContext) -> Rc<Promise> {
+        assert!(IsPromiseObject(obj));
         let mut promise = Promise {
             reflector: Reflector::new(),
+            root: MutHeapJSVal::new(),
         };
         promise.init_reflector(obj.get());
-        Rc::new(promise)
+        let promise = Rc::new(promise);
+        promise.initialize(cx);
+        promise
     }
 
     #[allow(unsafe_code)]
@@ -66,7 +96,9 @@ impl Promise {
         let _ac = JSAutoCompartment::new(cx, global.reflector().get_jsobject().get());
         rooted!(in(cx) let p = unsafe { CallOriginalPromiseResolve(cx, value) });
         assert!(!p.handle().is_null());
-        Ok(Promise::new_with_js_promise(p.handle()))
+        unsafe {
+            Ok(Promise::new_with_js_promise(p.handle(), cx))
+        }
     }
 
     #[allow(unrooted_must_root, unsafe_code)]
@@ -76,7 +108,9 @@ impl Promise {
         let _ac = JSAutoCompartment::new(cx, global.reflector().get_jsobject().get());
         rooted!(in(cx) let p = unsafe { CallOriginalPromiseReject(cx, value) });
         assert!(!p.handle().is_null());
-        Ok(Promise::new_with_js_promise(p.handle()))
+        unsafe {
+            Ok(Promise::new_with_js_promise(p.handle(), cx))
+        }
     }
 
     #[allow(unsafe_code)]
