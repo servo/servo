@@ -67,11 +67,7 @@ pub enum CSSRule {
     // No Charset here, CSSCharsetRule has been removed from CSSOM
     // https://drafts.csswg.org/cssom/#changes-from-5-december-2013
 
-    Namespace {
-        /// `None` for the default Namespace
-        prefix: Option<Atom>,
-        url: Namespace,
-    },
+    Namespace(NamespaceRule),
     Style(StyleRule),
     Media(MediaRule),
     FontFace(FontFaceRule),
@@ -79,6 +75,14 @@ pub enum CSSRule {
     Keyframes(KeyframesRule),
 }
 
+
+#[derive(Debug, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub struct NamespaceRule {
+    /// `None` for the default Namespace
+    pub prefix: Option<Atom>,
+    pub url: Namespace,
+}
 
 #[derive(Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -156,13 +160,13 @@ impl Stylesheet {
             while let Some(result) = iter.next() {
                 match result {
                     Ok(rule) => {
-                        if let CSSRule::Namespace { ref prefix, ref url } = rule {
-                            if let Some(prefix) = prefix.as_ref() {
+                        if let CSSRule::Namespace(ref rule) = rule {
+                            if let Some(ref prefix) = rule.prefix {
                                 iter.parser.context.selector_context.namespace_prefixes.insert(
-                                    prefix.clone(), url.clone());
+                                    prefix.clone(), rule.url.clone());
                             } else {
                                 iter.parser.context.selector_context.default_namespace =
-                                    Some(url.clone());
+                                    Some(rule.url.clone());
                             }
                         }
 
@@ -440,10 +444,10 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
 
                     let prefix = input.try(|input| input.expect_ident()).ok().map(|p| p.into());
                     let url = Namespace(Atom::from(try!(input.expect_url_or_string())));
-                    return Ok(AtRuleType::WithoutBlock(CSSRule::Namespace {
+                    return Ok(AtRuleType::WithoutBlock(CSSRule::Namespace(NamespaceRule {
                         prefix: prefix,
                         url: url,
-                    }))
+                    })))
                 } else {
                     return Err(())  // "@namespace must be before any rule but @charset and @import"
                 }

@@ -15,7 +15,7 @@ use style::parser::ParserContextExtraData;
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, DeclaredValue, longhands};
 use style::properties::Importance;
 use style::properties::longhands::animation_play_state;
-use style::stylesheets::{Stylesheet, CSSRule, StyleRule, KeyframesRule, Origin};
+use style::stylesheets::{Stylesheet, NamespaceRule, CSSRule, StyleRule, KeyframesRule, Origin};
 use style::values::specified::{LengthOrPercentageOrAuto, Percentage};
 use url::Url;
 
@@ -65,10 +65,10 @@ fn test_parse_stylesheet() {
         media: None,
         dirty_on_viewport_size_change: false,
         rules: vec![
-            CSSRule::Namespace {
+            CSSRule::Namespace(NamespaceRule {
                 prefix: None,
                 url: NsAtom(Atom::from("http://www.w3.org/1999/xhtml"))
-            },
+            }),
             CSSRule::Style(StyleRule {
                 selectors: vec![
                     Selector {
