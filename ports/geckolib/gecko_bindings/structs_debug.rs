@@ -2111,6 +2111,13 @@ fn bindgen_test_layout_QITableEntry() {
     assert_eq!(::std::mem::align_of::<QITableEntry>() , 8usize);
 }
 pub enum TileClient { }
+pub enum SerializedStructuredCloneBuffer { }
+pub enum StructuredCloneData { }
+pub enum ClonedMessageData { }
+pub enum MessagePortMessage { }
+pub enum StructuredCloneReadInfo { }
+pub enum SerializedStructuredCloneReadInfo { }
+pub enum ObjectStoreCursorResponse { }
 #[repr(C)]
 #[derive(Debug, Copy)]
 pub struct nsTArrayFallibleResult {
@@ -2762,6 +2769,14 @@ pub struct nsTHashtable<EntryType> {
 pub struct nsTHashtable_Iterator<EntryType> {
     pub _base: PLDHashTable_Iterator,
     pub _phantom0: ::std::marker::PhantomData<EntryType>,
+}
+#[repr(C)]
+#[derive(Debug, Copy)]
+pub struct VoidPtrHashKey {
+    pub _base: [u64; 2usize],
+}
+impl ::std::clone::Clone for VoidPtrHashKey {
+    fn clone(&self) -> Self { *self }
 }
 #[repr(C)]
 pub struct nsDataHashtable;

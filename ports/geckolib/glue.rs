@@ -264,7 +264,7 @@ pub extern "C" fn Servo_ComputedValues_GetForAnonymousBox(parent_style_or_null: 
 
     let maybe_parent = parent_style_or_null.as_arc_opt();
     let new_computed = data.stylist.precomputed_values_for_pseudo(&pseudo, maybe_parent);
-    new_computed.map_or(Strong::null_strong(), |c| c.into_strong())
+    new_computed.map_or(Strong::null(), |c| c.into_strong())
 }
 
 #[no_mangle]
@@ -278,7 +278,7 @@ pub extern "C" fn Servo_ComputedValues_GetForPseudoElement(parent_style: ServoCo
 
     let parent_or_null = || {
         if is_probe {
-            Strong::null_strong()
+            Strong::null()
         } else {
             parent_style.as_arc::<ComputedValues>().clone().into_strong()
         }

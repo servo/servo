@@ -282,6 +282,22 @@ def build(objdir, target_name, debug, debugger, kind_name=None,
     flags = []
     flags.extend(platform_dependent_defines())
 
+    # This makes an FFI-safe void type that can't be matched on
+    # &VoidType is UB to have, because you can match on it
+    # to produce a reachable unreachable. If it's wrapped in
+    # a struct as a private field it becomes okay again
+    #
+    # Not 100% sure of how safe this is, but it's what we're using
+    # in the XPCOM ffi too
+    # https://github.com/nikomatsakis/rust-memory-model/issues/2
+    def zero_size_type(ty, flags):
+        flags.append("-blacklist-type")
+        flags.append(ty)
+        flags.append("-raw-line")
+        flags.append("pub enum {0}Void{{ }}".format(ty))
+        flags.append("-raw-line")
+        flags.append("pub struct {0}({0}Void);".format(ty))
+
     if "flags" in current_target:
         flags.extend(current_target["flags"])
 
@@ -328,6 +344,7 @@ def build(objdir, target_name, debug, debugger, kind_name=None,
             flags.append("{}MaybeBorrowed".format(ty))
             flags.append("-raw-line")
             flags.append("pub type {0}MaybeBorrowed<'a> = ::sugar::ownership::Borrowed<'a, {0}>;".format(ty))
+            zero_size_type(ty, flags)
     if "servo_immutable_borrow_types" in current_target:
         for ty in current_target["servo_immutable_borrow_types"]:
             flags.append("-blacklist-type")
@@ -338,6 +355,7 @@ def build(objdir, target_name, debug, debugger, kind_name=None,
             flags.append("{}MaybeBorrowed".format(ty))
             flags.append("-raw-line")
             flags.append("pub type {0}MaybeBorrowed<'a> = ::sugar::ownership::Borrowed<'a, {0}>;".format(ty))
+            zero_size_type(ty, flags)
     if "servo_owned_types" in current_target:
         for ty in current_target["servo_owned_types"]:
             flags.append("-blacklist-type")
@@ -352,6 +370,7 @@ def build(objdir, target_name, debug, debugger, kind_name=None,
             flags.append("{}Owned".format(ty))
             flags.append("-raw-line")
             flags.append("pub type {0}Owned = ::sugar::ownership::Owned<{0}>;".format(ty))
+            zero_size_type(ty, flags)
     if "servo_maybe_owned_types" in current_target:
         for ty in current_target["servo_maybe_owned_types"]:
             flags.append("-blacklist-type")
@@ -368,6 +387,7 @@ def build(objdir, target_name, debug, debugger, kind_name=None,
             flags.append("{}MaybeOwned".format(ty))
             flags.append("-raw-line")
             flags.append("pub type {0}MaybeOwned = ::sugar::ownership::MaybeOwned<{0}>;".format(ty))
+            zero_size_type(ty, flags)
     if "structs_types" in current_target:
         for ty in current_target["structs_types"]:
             ty_fragments = ty.split("::")
