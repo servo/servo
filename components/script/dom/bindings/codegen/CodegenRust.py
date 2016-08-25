@@ -2494,12 +2494,11 @@ assert!(!proto.is_null());
 Root::from_ref(&*raw)""" % {'copyUnforgeable': unforgeable, 'createObject': create})
 
 
-
 class CGWrapGlobalMethod(CGAbstractMethod):
     """
     Class that generates the FooBinding::Wrap function for global interfaces.
     """
-    def __init__(self, descriptor):
+    def __init__(self, descriptor, properties):
         assert not descriptor.interface.isCallback()
         assert descriptor.isGlobal()
         args = [Argument('*mut JSContext', 'cx'),
@@ -2507,9 +2506,28 @@ class CGWrapGlobalMethod(CGAbstractMethod):
         retval = 'Root<%s>' % descriptor.concreteType
         CGAbstractMethod.__init__(self, descriptor, 'Wrap', retval, args,
                                   pub=True, unsafe=True)
+        self.properties = properties
 
     def definition_body(self):
-        unforgeable = CopyUnforgeablePropertiesToInstance(self.descriptor)
+        values = {
+            "unforgeable": CopyUnforgeablePropertiesToInstance(self.descriptor)
+        }
+
+        defineAttrs = "define_guarded_properties(cx, obj.handle(), %s);"
+        defineMethods = "define_guarded_methods(cx, obj.handle(), %s);"
+        defineConstants = "define_guarded_constants(cx, obj.handle(), %s);"
+
+        pairs = [
+            (defineAttrs, self.properties.attrs),
+            (defineMethods, self.properties.methods),
+            (defineConstants, self.properties.consts)
+        ]
+        members = []
+        for template, array in pairs:
+            if array.length() > 0:
+                members.append(CGGeneric(template % array.variableName()))
+        values["members"] = CGList(members, "\n").define()
+
         return CGGeneric("""\
 let raw = Box::into_raw(object);
 let _rt = RootedTraceable::new(&*raw);
@@ -2530,10 +2548,12 @@ rooted!(in(cx) let mut proto = ptr::null_mut());
 GetProtoObject(cx, obj.handle(), proto.handle_mut());
 JS_SplicePrototype(cx, obj.handle(), proto.handle());
 
-%(copyUnforgeable)s
+%(members)s
+
+%(unforgeable)s
 
 Root::from_ref(&*raw)\
-""" % {'copyUnforgeable': unforgeable})
+""" % values)
 
 
 class CGIDLInterface(CGThing):
@@ -2677,6 +2697,18 @@ assert!(!prototype_proto.is_null());""" % getPrototypeProto)]
             else:
                 properties[arrayName] = "&[]"
 
+        if self.descriptor.isGlobal():
+            assert not self.haveUnscopables
+            proto_properties = {
+                "attrs": "&[]",
+                "consts": "&[]",
+                "id": name,
+                "methods": "&[]",
+                "unscopables": "&[]",
+            }
+        else:
+            proto_properties = properties
+
         code.append(CGGeneric("""
 rooted!(in(cx) let mut prototype = ptr::null_mut());
 create_interface_prototype_object(cx,
@@ -2693,7 +2725,7 @@ assert!((*cache)[PrototypeList::ID::%(id)s as usize].is_null());
 <*mut JSObject>::post_barrier((*cache).as_mut_ptr().offset(PrototypeList::ID::%(id)s as isize),
                               ptr::null_mut(),
                               prototype.get());
-""" % properties))
+""" % proto_properties))
 
         if self.descriptor.interface.hasInterfaceObject():
             properties["name"] = str_to_const_array(name)
@@ -5300,8 +5332,8 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'dom::bindings::interface::{NonCallbackInterfaceObjectClass, NonNullJSNative}',
         'dom::bindings::interface::{create_callback_interface_object, create_global_object}',
         'dom::bindings::interface::{create_interface_prototype_object, create_named_constructors}',
-        'dom::bindings::interface::{create_noncallback_interface_object, define_guarded_methods}',
-        'dom::bindings::interface::{define_guarded_properties, is_exposed_in}',
+        'dom::bindings::interface::{create_noncallback_interface_object, define_guarded_constants}',
+        'dom::bindings::interface::{define_guarded_methods, define_guarded_properties, is_exposed_in}',
         'dom::bindings::interface::ConstantVal::{IntVal, UintVal}',
         'dom::bindings::iterable::{IteratorType, Iterable}',
         'dom::bindings::js::{JS, Root, RootedReference}',
@@ -5451,6 +5483,8 @@ class CGDescriptor(CGThing):
         if descriptor.proxy:
             cgThings.append(CGDefineProxyHandler(descriptor))
 
+        properties = PropertyArrays(descriptor)
+
         if descriptor.concrete:
             if descriptor.proxy:
                 # cgThings.append(CGProxyIsProxy(descriptor))
@@ -5481,7 +5515,7 @@ class CGDescriptor(CGThing):
                 pass
 
             if descriptor.isGlobal():
-                cgThings.append(CGWrapGlobalMethod(descriptor))
+                cgThings.append(CGWrapGlobalMethod(descriptor, properties))
             else:
                 cgThings.append(CGWrapMethod(descriptor))
             reexports.append('Wrap')
@@ -5506,7 +5540,6 @@ class CGDescriptor(CGThing):
             if descriptor.weakReferenceable:
                 cgThings.append(CGWeakReferenceableTrait(descriptor))
 
-        properties = PropertyArrays(descriptor)
         cgThings.append(CGGeneric(str(properties)))
         cgThings.append(CGCreateInterfaceObjectsMethod(descriptor, properties, haveUnscopables))
 
