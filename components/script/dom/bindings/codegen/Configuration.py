@@ -233,7 +233,8 @@ class Descriptor(DescriptorProvider):
         # them as having a concrete descendant.
         self.concrete = (not self.interface.isCallback() and
                          not self.interface.isNamespace() and
-                         not self.interface.getExtendedAttribute("Abstract"))
+                         not self.interface.getExtendedAttribute("Abstract") and
+                         not spiderMonkeyInterface)
         self.hasUnforgeableMembers = (self.concrete and
                                       any(MemberIsUnforgeable(m, self) for m in
                                           self.interface.members))

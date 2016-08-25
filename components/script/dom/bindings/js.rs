@@ -270,6 +270,12 @@ impl MutHeapJSVal {
         debug_assert!(thread_state::get().is_script());
         unsafe { (*self.val.get()).get() }
     }
+
+    /// Get the underlying unsafe pointer to the contained value.
+    pub unsafe fn get_unsafe(&self) -> *mut JSVal {
+        debug_assert!(thread_state::get().is_script());
+        (*self.val.get()).get_unsafe()
+    }
 }
 
 

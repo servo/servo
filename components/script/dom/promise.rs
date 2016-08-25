@@ -2,18 +2,28 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+//! Native representation of JS Promise values.
+//!
+//! This implementation differs from the traditional Rust DOM object, because the reflector
+//! is provided by SpiderMonkey and has no knowledge of an associated native representation
+//! (ie. dom::Promise). This means that native instances use native reference counting (Rc)
+//! to ensure that no memory is leaked, which means that there can be multiple instances of
+//! native Promise values that refer to the same JS value yet are distinct native objects
+//! (ie. address equality for the native objects is meaningless).
+
 use dom::bindings::callback::CallbackContainer;
 use dom::bindings::codegen::Bindings::PromiseBinding::AnyCallback;
 use dom::bindings::conversions::root_from_object;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
+use dom::bindings::js::MutHeapJSVal;
 use dom::bindings::reflector::{Reflectable, MutReflectable, Reflector};
 use dom::promisenativehandler::PromiseNativeHandler;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::{CallOriginalPromiseResolve, CallOriginalPromiseReject, CallOriginalPromiseThen};
 use js::jsapi::{JSAutoCompartment, CallArgs, JS_GetFunctionObject, JS_NewFunction};
 use js::jsapi::{JSContext, HandleValue, HandleObject, IsPromiseObject, GetFunctionNativeReserved};
-use js::jsapi::{JS_ClearPendingException, JSObject};
+use js::jsapi::{JS_ClearPendingException, JSObject, AddRawValueRoot, RemoveRawValueRoot};
 use js::jsapi::{MutableHandleObject, NewPromiseObject, ResolvePromise, RejectPromise};
 use js::jsapi::{SetFunctionNativeReserved, NewFunctionWithReserved, AddPromiseReactions};
 use js::jsval::{JSVal, UndefinedValue, ObjectValue, Int32Value};
@@ -23,6 +33,39 @@ use std::rc::Rc;
 #[dom_struct]
 pub struct Promise {
     reflector: Reflector,
+    /// Since Promise values are natively reference counted without the knowledge of
+    /// the SpiderMonkey GC, an explicit root for the reflector is stored while any
+    /// native instance exists. This ensures that the reflector will never be GCed
+    /// while native code could still interact with its native representation.
+    #[ignore_heap_size_of = "SM handles JS values"]
+    permanent_js_root: MutHeapJSVal,
+}
+
+/// Private helper to enable adding new methods to Rc<Promise>.
+trait PromiseHelper {
+    #[allow(unsafe_code)]
+    unsafe fn initialize(&self, cx: *mut JSContext);
+}
+
+impl PromiseHelper for Rc<Promise> {
+    #[allow(unsafe_code)]
+    unsafe fn initialize(&self, cx: *mut JSContext) {
+        let obj = self.reflector().get_jsobject();
+        self.permanent_js_root.set(ObjectValue(&**obj));
+        assert!(AddRawValueRoot(cx,
+                                self.permanent_js_root.get_unsafe(),
+                                b"Promise::root\0" as *const _ as *const _));
+    }
+}
+
+impl Drop for Promise {
+    #[allow(unsafe_code)]
+    fn drop(&mut self) {
+        let cx = self.global().r().get_cx();
+        unsafe {
+            RemoveRawValueRoot(cx, self.permanent_js_root.get_unsafe());
+        }
+    }
 }
 
 impl Promise {
@@ -32,20 +75,21 @@ impl Promise {
         rooted!(in(cx) let mut obj = ptr::null_mut());
         unsafe {
             Promise::create_js_promise(cx, HandleObject::null(), obj.handle_mut());
+            Promise::new_with_js_promise(obj.handle(), cx)
         }
-        Promise::new_with_js_promise(obj.handle())
     }
 
     #[allow(unsafe_code, unrooted_must_root)]
-    fn new_with_js_promise(obj: HandleObject) -> Rc<Promise> {
-        unsafe {
-            assert!(IsPromiseObject(obj));
-        }
+    unsafe fn new_with_js_promise(obj: HandleObject, cx: *mut JSContext) -> Rc<Promise> {
+        assert!(IsPromiseObject(obj));
         let mut promise = Promise {
             reflector: Reflector::new(),
+            permanent_js_root: MutHeapJSVal::new(),
         };
         promise.init_reflector(obj.get());
-        Rc::new(promise)
+        let promise = Rc::new(promise);
+        promise.initialize(cx);
+        promise
     }
 
     #[allow(unsafe_code)]
@@ -66,7 +110,9 @@ impl Promise {
         let _ac = JSAutoCompartment::new(cx, global.reflector().get_jsobject().get());
         rooted!(in(cx) let p = unsafe { CallOriginalPromiseResolve(cx, value) });
         assert!(!p.handle().is_null());
-        Ok(Promise::new_with_js_promise(p.handle()))
+        unsafe {
+            Ok(Promise::new_with_js_promise(p.handle(), cx))
+        }
     }
 
     #[allow(unrooted_must_root, unsafe_code)]
@@ -76,7 +122,9 @@ impl Promise {
         let _ac = JSAutoCompartment::new(cx, global.reflector().get_jsobject().get());
         rooted!(in(cx) let p = unsafe { CallOriginalPromiseReject(cx, value) });
         assert!(!p.handle().is_null());
-        Ok(Promise::new_with_js_promise(p.handle()))
+        unsafe {
+            Ok(Promise::new_with_js_promise(p.handle(), cx))
+        }
     }
 
     #[allow(unsafe_code)]
