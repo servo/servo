@@ -103,11 +103,11 @@ fn restyle_subtree(node: GeckoNode, raw_data: *mut RawServoStyleSet) {
 
     // We ensure this is true before calling Servo_RestyleSubtree()
     debug_assert!(node.is_dirty() || node.has_dirty_descendants());
-    if per_doc_data.num_threads == 1 {
+    if per_doc_data.num_threads == 1 || per_doc_data.work_queue.is_none() {
         sequential::traverse_dom::<GeckoNode, RecalcStyleOnly>(node, &shared_style_context);
     } else {
         parallel::traverse_dom::<GeckoNode, RecalcStyleOnly>(node, &shared_style_context,
-                                                             &mut per_doc_data.work_queue);
+                                                             per_doc_data.work_queue.as_mut().unwrap());
     }
 }
 
