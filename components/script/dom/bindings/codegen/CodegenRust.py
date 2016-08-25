@@ -2540,7 +2540,10 @@ assert!(!obj.is_null());
 let _ac = JSAutoCompartment::new(cx, obj.get());
 rooted!(in(cx) let mut proto = ptr::null_mut());
 GetProtoObject(cx, obj.handle(), proto.handle_mut());
-JS_SplicePrototype(cx, obj.handle(), proto.handle());
+assert!(JS_SplicePrototype(cx, obj.handle(), proto.handle()));
+let mut immutable = false;
+assert!(JS_SetImmutablePrototype(cx, obj.handle(), &mut immutable));
+assert!(immutable);
 
 %(members)s
 
@@ -5289,26 +5292,26 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::{JS_CALLEE, JSCLASS_GLOBAL_SLOT_COUNT}',
         'js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL, JSCLASS_RESERVED_SLOTS_MASK}',
         'js::error::throw_type_error',
-        'js::jsapi::{JSJitInfo_AliasSet, JSJitInfo_ArgType, AutoIdVector, CallArgs, FreeOp}',
-        'js::jsapi::{JSITER_SYMBOLS, JSPROP_ENUMERATE, JSPROP_PERMANENT, JSPROP_READONLY, JSPROP_SHARED}',
-        'js::jsapi::{JSCLASS_RESERVED_SLOTS_SHIFT, JSITER_HIDDEN, JSITER_OWNONLY}',
-        'js::jsapi::{GetPropertyKeys, Handle, Call, GetWellKnownSymbol}',
-        'js::jsapi::{HandleId, HandleObject, HandleValue, HandleValueArray}',
-        'js::jsapi::{INTERNED_STRING_TO_JSID, IsCallable, JS_CallFunctionValue}',
-        'js::jsapi::{JS_CopyPropertiesFrom, JS_ForwardGetPropertyTo}',
-        'js::jsapi::{JS_GetClass, JS_GetErrorPrototype, JS_GetFunctionPrototype}',
-        'js::jsapi::{JS_GetGlobalForObject, JS_GetObjectPrototype, JS_GetProperty}',
-        'js::jsapi::{JS_GetPropertyById, JS_GetPropertyDescriptorById, JS_GetReservedSlot}',
-        'js::jsapi::{JS_HasProperty, JS_HasPropertyById, JS_InitializePropertiesFromCompatibleNativeObject}',
-        'js::jsapi::{JS_AtomizeAndPinString, JS_NewObject, JS_NewObjectWithGivenProto}',
-        'js::jsapi::{JS_NewObjectWithoutMetadata, JS_SetProperty, JS_DefinePropertyById2}',
-        'js::jsapi::{JS_SplicePrototype, JS_SetReservedSlot, JSAutoCompartment}',
-        'js::jsapi::{JSContext, JSClass, JSFreeOp, JSFunctionSpec, JS_GetIteratorPrototype}',
-        'js::jsapi::{JSJitGetterCallArgs, JSJitInfo, JSJitMethodCallArgs, JSJitSetterCallArgs}',
-        'js::jsapi::{JSNative, JSObject, JSNativeWrapper, JSPropertySpec}',
-        'js::jsapi::{JSString, JSTracer, JSType, JSTypedMethodJitInfo, JSValueType}',
-        'js::jsapi::{ObjectOpResult, JSJitInfo_OpType, MutableHandle, MutableHandleObject}',
-        'js::jsapi::{MutableHandleValue, PropertyDescriptor, RootedObject}',
+        'js::jsapi::{AutoIdVector, Call, CallArgs, FreeOp, GetPropertyKeys, GetWellKnownSymbol}',
+        'js::jsapi::{Handle, HandleId, HandleObject, HandleValue, HandleValueArray}',
+        'js::jsapi::{INTERNED_STRING_TO_JSID, IsCallable, JS_AtomizeAndPinString}',
+        'js::jsapi::{JS_CallFunctionValue, JS_CopyPropertiesFrom, JS_DefinePropertyById2}',
+        'js::jsapi::{JS_ForwardGetPropertyTo, JS_GetClass, JS_GetErrorPrototype}',
+        'js::jsapi::{JS_GetFunctionPrototype, JS_GetGlobalForObject, JS_GetIteratorPrototype}',
+        'js::jsapi::{JS_GetObjectPrototype, JS_GetProperty, JS_GetPropertyById}',
+        'js::jsapi::{JS_GetPropertyDescriptorById, JS_GetReservedSlot, JS_HasProperty}',
+        'js::jsapi::{JS_HasPropertyById, JS_InitializePropertiesFromCompatibleNativeObject}',
+        'js::jsapi::{JS_NewObject, JS_NewObjectWithGivenProto, JS_NewObjectWithoutMetadata}',
+        'js::jsapi::{JS_SetImmutablePrototype, JS_SetProperty, JS_SetReservedSlot}',
+        'js::jsapi::{JS_SplicePrototype, JSAutoCompartment, JSCLASS_RESERVED_SLOTS_SHIFT}',
+        'js::jsapi::{JSClass, JSContext, JSFreeOp, JSFunctionSpec, JSITER_HIDDEN}',
+        'js::jsapi::{JSITER_OWNONLY, JSITER_SYMBOLS, JSJitGetterCallArgs, JSJitInfo}',
+        'js::jsapi::{JSJitInfo_AliasSet, JSJitInfo_ArgType, JSJitInfo_OpType}',
+        'js::jsapi::{JSJitMethodCallArgs, JSJitSetterCallArgs, JSNative, JSNativeWrapper}',
+        'js::jsapi::{JSObject, JSPROP_ENUMERATE, JSPROP_PERMANENT, JSPROP_READONLY}',
+        'js::jsapi::{JSPROP_SHARED, JSPropertySpec, JSString, JSTracer, JSType}',
+        'js::jsapi::{JSTypedMethodJitInfo, JSValueType, MutableHandle, MutableHandleObject}',
+        'js::jsapi::{MutableHandleValue, ObjectOpResult, PropertyDescriptor, RootedObject}',
         'js::jsapi::{SymbolCode, jsid}',
         'js::jsval::JSVal',
         'js::jsval::{ObjectValue, ObjectOrNullValue, PrivateValue}',
