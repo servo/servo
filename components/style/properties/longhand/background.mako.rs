@@ -84,7 +84,7 @@ ${helpers.predefined_type("background-color", "CSSColor",
         use std::fmt;
         use values::LocalToCss;
         use values::HasViewportPercentage;
-        use values::specified::position::Position;
+        use values::specified::position::{Keyword, Position};
 
         pub mod computed_value {
             use values::computed::position::Position;
@@ -107,8 +107,10 @@ ${helpers.predefined_type("background-color", "CSSColor",
         pub fn get_initial_specified_value() -> SpecifiedValue {
             use values::specified::Percentage;
             Position {
-                horizontal: specified::LengthOrPercentage::Percentage(Percentage(0.0)),
-                vertical: specified::LengthOrPercentage::Percentage(Percentage(0.0)),
+                horiz_keyword: Keyword::Left,
+                horiz_position: specified::LengthOrPercentage::Percentage(Percentage(0.0)),
+                vert_keyword: Keyword::Top,
+                vert_position: specified::LengthOrPercentage::Percentage(Percentage(0.0)),
             }
         }
 
