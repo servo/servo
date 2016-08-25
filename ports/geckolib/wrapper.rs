@@ -23,7 +23,6 @@ use gecko_bindings::bindings::{Gecko_IsLink, Gecko_IsRootElement, Gecko_IsTextNo
 use gecko_bindings::bindings::{Gecko_IsUnvisitedLink, Gecko_IsVisitedLink};
 use gecko_bindings::bindings::{Gecko_LocalName, Gecko_Namespace, Gecko_NodeIsElement, Gecko_SetNodeData};
 use gecko_bindings::bindings::{RawGeckoDocument, RawGeckoElement, RawGeckoNode};
-use gecko_bindings::bindings::RawGeckoDocumentBorrowed;
 use gecko_bindings::bindings::{RawGeckoElementBorrowed, RawGeckoNodeBorrowed};
 use gecko_bindings::structs::{NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO, NODE_IS_DIRTY_FOR_SERVO};
 use gecko_bindings::structs::{nsIAtom, nsChangeHint, nsStyleContext};
@@ -89,7 +88,7 @@ impl<'ln> GeckoNode<'ln> {
         unsafe {
             if self.get_node_data().is_null() {
                 let ptr = Box::new(NonOpaqueStyleData::new());
-                Gecko_SetNodeData(self.0, ptr.into_ffi().maybe());
+                Gecko_SetNodeData(self.0, ptr.into_ffi());
             }
         }
     }
@@ -165,8 +164,8 @@ impl<'ln> TNode for GeckoNode<'ln> {
 
     fn children(self) -> GeckoChildrenIterator<'ln> {
         let maybe_iter = unsafe { Gecko_MaybeCreateStyleChildrenIterator(self.0) };
-        if !maybe_iter.is_null() {
-            GeckoChildrenIterator::GeckoIterator(maybe_iter)
+        if let Some(iter) = maybe_iter.into_owned_opt() {
+            GeckoChildrenIterator::GeckoIterator(iter)
         } else {
             GeckoChildrenIterator::Current(self.first_child())
         }
@@ -346,14 +345,14 @@ impl<'ln> TNode for GeckoNode<'ln> {
 // (heavier-weight) Gecko-implemented iterator.
 pub enum GeckoChildrenIterator<'a> {
     Current(Option<GeckoNode<'a>>),
-    GeckoIterator(*mut bindings::StyleChildrenIterator),
+    GeckoIterator(bindings::StyleChildrenIteratorOwned),
 }
 
 impl<'a> Drop for GeckoChildrenIterator<'a> {
     fn drop(&mut self) {
-        if let GeckoChildrenIterator::GeckoIterator(it) = *self {
+        if let GeckoChildrenIterator::GeckoIterator(ref it) = *self {
             unsafe {
-                Gecko_DropStyleChildrenIterator(it);
+                Gecko_DropStyleChildrenIterator(ptr::read(it as *const _));
             }
         }
     }
@@ -368,8 +367,8 @@ impl<'a> Iterator for GeckoChildrenIterator<'a> {
                 *self = GeckoChildrenIterator::Current(next);
                 curr
             },
-            GeckoChildrenIterator::GeckoIterator(it) => unsafe {
-                Gecko_GetNextStyleChild(it).as_ref().map(|n| GeckoNode::from_ref(n))
+            GeckoChildrenIterator::GeckoIterator(ref it) => unsafe {
+                Gecko_GetNextStyleChild(&it).borrow_opt().map(GeckoNode)
             }
         }
     }

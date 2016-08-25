@@ -6,23 +6,56 @@ pub enum nsIDocument {}
 pub enum nsIPrincipal {}
 pub enum nsIURI {}
 pub type ServoComputedValuesStrong = ::sugar::ownership::Strong<ServoComputedValues>;
-pub type ServoComputedValuesMaybeBorrowed<'a> = ::sugar::ownership::Borrowed<'a, ServoComputedValues>;
+pub type ServoComputedValuesBorrowedOrNull<'a> = ::sugar::ownership::Borrowed<'a, ServoComputedValues>;
+pub type ServoComputedValuesBorrowed<'a> = &'a ServoComputedValues;
+enum ServoComputedValuesVoid{ }
+pub struct ServoComputedValues(ServoComputedValuesVoid);
 pub type RawServoStyleSheetStrong = ::sugar::ownership::Strong<RawServoStyleSheet>;
-pub type RawServoStyleSheetMaybeBorrowed<'a> = ::sugar::ownership::Borrowed<'a, RawServoStyleSheet>;
+pub type RawServoStyleSheetBorrowedOrNull<'a> = ::sugar::ownership::Borrowed<'a, RawServoStyleSheet>;
+pub type RawServoStyleSheetBorrowed<'a> = &'a RawServoStyleSheet;
+enum RawServoStyleSheetVoid{ }
+pub struct RawServoStyleSheet(RawServoStyleSheetVoid);
 pub type ServoDeclarationBlockStrong = ::sugar::ownership::Strong<ServoDeclarationBlock>;
-pub type ServoDeclarationBlockMaybeBorrowed<'a> = ::sugar::ownership::Borrowed<'a, ServoDeclarationBlock>;
+pub type ServoDeclarationBlockBorrowedOrNull<'a> = ::sugar::ownership::Borrowed<'a, ServoDeclarationBlock>;
+pub type ServoDeclarationBlockBorrowed<'a> = &'a ServoDeclarationBlock;
+enum ServoDeclarationBlockVoid{ }
+pub struct ServoDeclarationBlock(ServoDeclarationBlockVoid);
 pub type RawGeckoNodeBorrowed<'a> = &'a RawGeckoNode;
-pub type RawGeckoNodeMaybeBorrowed<'a> = ::sugar::ownership::Borrowed<'a, RawGeckoNode>;
+pub type RawGeckoNodeBorrowedOrNull<'a> = ::sugar::ownership::Borrowed<'a, RawGeckoNode>;
+enum RawGeckoNodeVoid{ }
+pub struct RawGeckoNode(RawGeckoNodeVoid);
 pub type RawGeckoElementBorrowed<'a> = &'a RawGeckoElement;
-pub type RawGeckoElementMaybeBorrowed<'a> = ::sugar::ownership::Borrowed<'a, RawGeckoElement>;
+pub type RawGeckoElementBorrowedOrNull<'a> = ::sugar::ownership::Borrowed<'a, RawGeckoElement>;
+enum RawGeckoElementVoid{ }
+pub struct RawGeckoElement(RawGeckoElementVoid);
 pub type RawGeckoDocumentBorrowed<'a> = &'a RawGeckoDocument;
-pub type RawGeckoDocumentMaybeBorrowed<'a> = ::sugar::ownership::Borrowed<'a, RawGeckoDocument>;
+pub type RawGeckoDocumentBorrowedOrNull<'a> = ::sugar::ownership::Borrowed<'a, RawGeckoDocument>;
+enum RawGeckoDocumentVoid{ }
+pub struct RawGeckoDocument(RawGeckoDocumentVoid);
 pub type RawServoStyleSetBorrowed<'a> = &'a RawServoStyleSet;
 pub type RawServoStyleSetBorrowedMut<'a> = &'a mut RawServoStyleSet;
 pub type RawServoStyleSetOwned = ::sugar::ownership::Owned<RawServoStyleSet>;
-pub type ServoNodeDataMaybeBorrowed<'a> = ::sugar::ownership::Borrowed<'a, ServoNodeData>;
-pub type ServoNodeDataMaybeBorrowedMut<'a> = ::sugar::ownership::BorrowedMut<'a, ServoNodeData>;
-pub type ServoNodeDataMaybeOwned = ::sugar::ownership::MaybeOwned<ServoNodeData>;
+pub type RawServoStyleSetBorrowedOrNull<'a> = ::sugar::ownership::Borrowed<'a, RawServoStyleSet>;
+pub type RawServoStyleSetBorrowedMutOrNull<'a> = ::sugar::ownership::BorrowedMut<'a, RawServoStyleSet>;
+pub type RawServoStyleSetOwnedOrNull = ::sugar::ownership::OwnedOrNull<RawServoStyleSet>;
+enum RawServoStyleSetVoid{ }
+pub struct RawServoStyleSet(RawServoStyleSetVoid);
+pub type ServoNodeDataBorrowed<'a> = &'a ServoNodeData;
+pub type ServoNodeDataBorrowedMut<'a> = &'a mut ServoNodeData;
+pub type ServoNodeDataOwned = ::sugar::ownership::Owned<ServoNodeData>;
+pub type ServoNodeDataBorrowedOrNull<'a> = ::sugar::ownership::Borrowed<'a, ServoNodeData>;
+pub type ServoNodeDataBorrowedMutOrNull<'a> = ::sugar::ownership::BorrowedMut<'a, ServoNodeData>;
+pub type ServoNodeDataOwnedOrNull = ::sugar::ownership::OwnedOrNull<ServoNodeData>;
+enum ServoNodeDataVoid{ }
+pub struct ServoNodeData(ServoNodeDataVoid);
+pub type StyleChildrenIteratorBorrowed<'a> = &'a StyleChildrenIterator;
+pub type StyleChildrenIteratorBorrowedMut<'a> = &'a mut StyleChildrenIterator;
+pub type StyleChildrenIteratorOwned = ::sugar::ownership::Owned<StyleChildrenIterator>;
+pub type StyleChildrenIteratorBorrowedOrNull<'a> = ::sugar::ownership::Borrowed<'a, StyleChildrenIterator>;
+pub type StyleChildrenIteratorBorrowedMutOrNull<'a> = ::sugar::ownership::BorrowedMut<'a, StyleChildrenIterator>;
+pub type StyleChildrenIteratorOwnedOrNull = ::sugar::ownership::OwnedOrNull<StyleChildrenIterator>;
+enum StyleChildrenIteratorVoid{ }
+pub struct StyleChildrenIterator(StyleChildrenIteratorVoid);
 use structs::nsStyleFont;
 unsafe impl Send for nsStyleFont {}
 unsafe impl Sync for nsStyleFont {}
@@ -171,51 +204,42 @@ use structs::StyleBasicShapeType;
 use structs::StyleBasicShape;
 use structs::nsCSSShadowArray;
 
-pub type RawGeckoNode = nsINode;
 pub enum Element { }
-pub type RawGeckoElement = Element;
-pub type RawGeckoDocument = nsIDocument;
-pub enum ServoNodeData { }
-pub enum ServoComputedValues { }
-pub enum RawServoStyleSheet { }
-pub enum RawServoStyleSet { }
 pub enum nsHTMLCSSStyleSheet { }
-pub enum ServoDeclarationBlock { }
-pub enum StyleChildrenIterator { }
 pub type ThreadSafePrincipalHolder = nsMainThreadPtrHolder<nsIPrincipal>;
 pub type ThreadSafeURIHolder = nsMainThreadPtrHolder<nsIURI>;
 extern "C" {
     pub fn Gecko_ChildrenCount(node: RawGeckoNodeBorrowed) -> u32;
     pub fn Gecko_NodeIsElement(node: RawGeckoNodeBorrowed) -> bool;
     pub fn Gecko_GetParentNode(node: RawGeckoNodeBorrowed)
-     -> RawGeckoNodeMaybeBorrowed;
+     -> RawGeckoNodeBorrowedOrNull;
     pub fn Gecko_GetFirstChild(node: RawGeckoNodeBorrowed)
-     -> RawGeckoNodeMaybeBorrowed;
+     -> RawGeckoNodeBorrowedOrNull;
     pub fn Gecko_GetLastChild(node: RawGeckoNodeBorrowed)
-     -> RawGeckoNodeMaybeBorrowed;
+     -> RawGeckoNodeBorrowedOrNull;
     pub fn Gecko_GetPrevSibling(node: RawGeckoNodeBorrowed)
-     -> RawGeckoNodeMaybeBorrowed;
+     -> RawGeckoNodeBorrowedOrNull;
     pub fn Gecko_GetNextSibling(node: RawGeckoNodeBorrowed)
-     -> RawGeckoNodeMaybeBorrowed;
+     -> RawGeckoNodeBorrowedOrNull;
     pub fn Gecko_GetParentElement(element: RawGeckoElementBorrowed)
-     -> RawGeckoElementMaybeBorrowed;
+     -> RawGeckoElementBorrowedOrNull;
     pub fn Gecko_GetFirstChildElement(element: RawGeckoElementBorrowed)
-     -> RawGeckoElementMaybeBorrowed;
+     -> RawGeckoElementBorrowedOrNull;
     pub fn Gecko_GetLastChildElement(element: RawGeckoElementBorrowed)
-     -> RawGeckoElementMaybeBorrowed;
+     -> RawGeckoElementBorrowedOrNull;
     pub fn Gecko_GetPrevSiblingElement(element: RawGeckoElementBorrowed)
-     -> RawGeckoElementMaybeBorrowed;
+     -> RawGeckoElementBorrowedOrNull;
     pub fn Gecko_GetNextSiblingElement(element: RawGeckoElementBorrowed)
-     -> RawGeckoElementMaybeBorrowed;
+     -> RawGeckoElementBorrowedOrNull;
     pub fn Gecko_GetDocumentElement(document: RawGeckoDocumentBorrowed)
-     -> RawGeckoElementMaybeBorrowed;
+     -> RawGeckoElementBorrowedOrNull;
     pub fn Gecko_MaybeCreateStyleChildrenIterator(node: RawGeckoNodeBorrowed)
-     -> *mut StyleChildrenIterator;
-    pub fn Gecko_DropStyleChildrenIterator(it: *mut StyleChildrenIterator);
-    pub fn Gecko_GetNextStyleChild(it: *mut StyleChildrenIterator)
-     -> *mut RawGeckoNode;
-    pub fn Gecko_ElementState(element: *mut RawGeckoElement) -> u8;
-    pub fn Gecko_IsHTMLElementInHTMLDocument(element: *mut RawGeckoElement)
+     -> StyleChildrenIteratorOwnedOrNull;
+    pub fn Gecko_DropStyleChildrenIterator(it: StyleChildrenIteratorOwned);
+    pub fn Gecko_GetNextStyleChild(it: StyleChildrenIteratorBorrowed)
+     -> RawGeckoNodeBorrowedOrNull;
+    pub fn Gecko_ElementState(element: RawGeckoElementBorrowed) -> u8;
+    pub fn Gecko_IsHTMLElementInHTMLDocument(element: RawGeckoElementBorrowed)
      -> bool;
     pub fn Gecko_IsLink(element: RawGeckoElementBorrowed) -> bool;
     pub fn Gecko_IsTextNode(node: RawGeckoNodeBorrowed) -> bool;
@@ -282,11 +306,11 @@ extern "C" {
                                           classList: *mut *mut *mut nsIAtom)
      -> u32;
     pub fn Gecko_GetServoDeclarationBlock(element: RawGeckoElementBorrowed)
-     -> ServoDeclarationBlockMaybeBorrowed;
+     -> ServoDeclarationBlockBorrowedOrNull;
     pub fn Gecko_GetNodeData(node: RawGeckoNodeBorrowed)
-     -> ServoNodeDataMaybeBorrowed;
+     -> ServoNodeDataBorrowedOrNull;
     pub fn Gecko_SetNodeData(node: RawGeckoNodeBorrowed,
-                             data: ServoNodeDataMaybeOwned);
+                             data: ServoNodeDataOwned);
     pub fn Gecko_Atomize(aString: *const ::std::os::raw::c_char, aLength: u32)
      -> *mut nsIAtom;
     pub fn Gecko_AddRefAtom(aAtom: *mut nsIAtom);
@@ -337,8 +361,7 @@ extern "C" {
                                  aPseudoTagOrNull: *mut nsIAtom)
      -> *mut nsStyleContext;
     pub fn Gecko_CalcStyleDifference(oldstyle: *mut nsStyleContext,
-                                     newstyle:
-                                         ServoComputedValuesMaybeBorrowed)
+                                     newstyle: ServoComputedValuesBorrowed)
      -> nsChangeHint;
     pub fn Gecko_StoreStyleDifference(node: RawGeckoNodeBorrowed,
                                       change: nsChangeHint);
@@ -477,7 +500,7 @@ extern "C" {
     pub fn Gecko_CopyConstruct_nsStyleEffects(ptr: *mut nsStyleEffects,
                                               other: *const nsStyleEffects);
     pub fn Gecko_Destroy_nsStyleEffects(ptr: *mut nsStyleEffects);
-    pub fn Servo_NodeData_Drop(data: ServoNodeDataMaybeOwned);
+    pub fn Servo_NodeData_Drop(data: ServoNodeDataOwned);
     pub fn Servo_StyleSheet_FromUTF8Bytes(bytes: *const u8, length: u32,
                                           parsing_mode: SheetParsingMode,
                                           base_bytes: *const u8,
@@ -487,143 +510,129 @@ extern "C" {
                                           principal:
                                               *mut ThreadSafePrincipalHolder)
      -> RawServoStyleSheetStrong;
-    pub fn Servo_StyleSheet_AddRef(sheet: RawServoStyleSheetMaybeBorrowed);
-    pub fn Servo_StyleSheet_Release(sheet: RawServoStyleSheetMaybeBorrowed);
-    pub fn Servo_StyleSheet_HasRules(sheet: RawServoStyleSheetMaybeBorrowed)
+    pub fn Servo_StyleSheet_AddRef(sheet: RawServoStyleSheetBorrowed);
+    pub fn Servo_StyleSheet_Release(sheet: RawServoStyleSheetBorrowed);
+    pub fn Servo_StyleSheet_HasRules(sheet: RawServoStyleSheetBorrowed)
      -> bool;
     pub fn Servo_StyleSet_Init() -> RawServoStyleSetOwned;
     pub fn Servo_StyleSet_Drop(set: RawServoStyleSetOwned);
     pub fn Servo_StyleSet_AppendStyleSheet(set: RawServoStyleSetBorrowedMut,
-                                           sheet: RawServoStyleSheetMaybeBorrowed);
+                                           sheet: RawServoStyleSheetBorrowed);
     pub fn Servo_StyleSet_PrependStyleSheet(set: RawServoStyleSetBorrowedMut,
                                             sheet:
-                                                RawServoStyleSheetMaybeBorrowed);
+                                                RawServoStyleSheetBorrowed);
     pub fn Servo_StyleSet_RemoveStyleSheet(set: RawServoStyleSetBorrowedMut,
-                                           sheet: RawServoStyleSheetMaybeBorrowed);
-    pub fn Servo_StyleSet_InsertStyleSheetBefore(set: RawServoStyleSetBorrowedMut,
+                                           sheet: RawServoStyleSheetBorrowed);
+    pub fn Servo_StyleSet_InsertStyleSheetBefore(set:
+                                                     RawServoStyleSetBorrowedMut,
                                                  sheet:
-                                                     RawServoStyleSheetMaybeBorrowed,
+                                                     RawServoStyleSheetBorrowed,
                                                  reference:
-                                                     RawServoStyleSheetMaybeBorrowed);
+                                                     RawServoStyleSheetBorrowed);
     pub fn Servo_ParseStyleAttribute(bytes: *const u8, length: u32,
                                      cache: *mut nsHTMLCSSStyleSheet)
      -> ServoDeclarationBlockStrong;
     pub fn Servo_DeclarationBlock_AddRef(declarations:
-                                             ServoDeclarationBlockMaybeBorrowed);
+                                             ServoDeclarationBlockBorrowed);
     pub fn Servo_DeclarationBlock_Release(declarations:
-                                              ServoDeclarationBlockMaybeBorrowed);
+                                              ServoDeclarationBlockBorrowed);
     pub fn Servo_DeclarationBlock_GetCache(declarations:
-                                               ServoDeclarationBlockMaybeBorrowed)
+                                               ServoDeclarationBlockBorrowed)
      -> *mut nsHTMLCSSStyleSheet;
     pub fn Servo_DeclarationBlock_SetImmutable(declarations:
-                                                   ServoDeclarationBlockMaybeBorrowed);
+                                                   ServoDeclarationBlockBorrowed);
     pub fn Servo_DeclarationBlock_ClearCachePointer(declarations:
-                                                        ServoDeclarationBlockMaybeBorrowed);
+                                                        ServoDeclarationBlockBorrowed);
     pub fn Servo_CSSSupports(name: *const u8, name_length: u32,
                              value: *const u8, value_length: u32) -> bool;
     pub fn Servo_ComputedValues_Get(node: RawGeckoNodeBorrowed)
      -> ServoComputedValuesStrong;
     pub fn Servo_ComputedValues_GetForAnonymousBox(parent_style_or_null:
-                                                       ServoComputedValuesMaybeBorrowed,
+                                                       ServoComputedValuesBorrowedOrNull,
                                                    pseudoTag: *mut nsIAtom,
-                                                   set: RawServoStyleSetBorrowedMut)
+                                                   set:
+                                                       RawServoStyleSetBorrowedMut)
      -> ServoComputedValuesStrong;
     pub fn Servo_ComputedValues_GetForPseudoElement(parent_style:
-                                                        ServoComputedValuesMaybeBorrowed,
+                                                        ServoComputedValuesBorrowed,
                                                     match_element:
-                                                        *mut RawGeckoElement,
+                                                        RawGeckoElementBorrowed,
                                                     pseudo_tag: *mut nsIAtom,
                                                     set:
                                                         RawServoStyleSetBorrowedMut,
                                                     is_probe: bool)
      -> ServoComputedValuesStrong;
     pub fn Servo_ComputedValues_Inherit(parent_style:
-                                            ServoComputedValuesMaybeBorrowed)
+                                            ServoComputedValuesBorrowedOrNull)
      -> ServoComputedValuesStrong;
     pub fn Servo_ComputedValues_AddRef(computed_values:
-                                           ServoComputedValuesMaybeBorrowed);
+                                           ServoComputedValuesBorrowed);
     pub fn Servo_ComputedValues_Release(computed_values:
-                                            ServoComputedValuesMaybeBorrowed);
+                                            ServoComputedValuesBorrowed);
     pub fn Servo_Initialize();
     pub fn Servo_Shutdown();
     pub fn Servo_ComputeRestyleHint(element: *mut RawGeckoElement,
                                     snapshot: *mut ServoElementSnapshot,
-                                    set: RawServoStyleSetBorrowedMut)
+                                    set: RawServoStyleSetBorrowed)
      -> nsRestyleHint;
     pub fn Servo_RestyleDocument(doc: RawGeckoDocumentBorrowed,
                                  set: RawServoStyleSetBorrowedMut);
     pub fn Servo_RestyleSubtree(node: RawGeckoNodeBorrowed,
                                 set: RawServoStyleSetBorrowedMut);
-    pub fn Servo_GetStyleFont(computed_values:
-                                  ServoComputedValuesMaybeBorrowed)
+    pub fn Servo_GetStyleFont(computed_values: ServoComputedValuesBorrowed)
      -> *const nsStyleFont;
-    pub fn Servo_GetStyleColor(computed_values:
-                                   ServoComputedValuesMaybeBorrowed)
+    pub fn Servo_GetStyleColor(computed_values: ServoComputedValuesBorrowed)
      -> *const nsStyleColor;
-    pub fn Servo_GetStyleList(computed_values:
-                                  ServoComputedValuesMaybeBorrowed)
+    pub fn Servo_GetStyleList(computed_values: ServoComputedValuesBorrowed)
      -> *const nsStyleList;
-    pub fn Servo_GetStyleText(computed_values:
-                                  ServoComputedValuesMaybeBorrowed)
+    pub fn Servo_GetStyleText(computed_values: ServoComputedValuesBorrowed)
      -> *const nsStyleText;
     pub fn Servo_GetStyleVisibility(computed_values:
-                                        ServoComputedValuesMaybeBorrowed)
+                                        ServoComputedValuesBorrowed)
      -> *const nsStyleVisibility;
     pub fn Servo_GetStyleUserInterface(computed_values:
-                                           ServoComputedValuesMaybeBorrowed)
+                                           ServoComputedValuesBorrowed)
      -> *const nsStyleUserInterface;
     pub fn Servo_GetStyleTableBorder(computed_values:
-                                         ServoComputedValuesMaybeBorrowed)
+                                         ServoComputedValuesBorrowed)
      -> *const nsStyleTableBorder;
-    pub fn Servo_GetStyleSVG(computed_values:
-                                 ServoComputedValuesMaybeBorrowed)
+    pub fn Servo_GetStyleSVG(computed_values: ServoComputedValuesBorrowed)
      -> *const nsStyleSVG;
     pub fn Servo_GetStyleVariables(computed_values:
-                                       ServoComputedValuesMaybeBorrowed)
+                                       ServoComputedValuesBorrowed)
      -> *const nsStyleVariables;
     pub fn Servo_GetStyleBackground(computed_values:
-                                        ServoComputedValuesMaybeBorrowed)
+                                        ServoComputedValuesBorrowed)
      -> *const nsStyleBackground;
     pub fn Servo_GetStylePosition(computed_values:
-                                      ServoComputedValuesMaybeBorrowed)
+                                      ServoComputedValuesBorrowed)
      -> *const nsStylePosition;
     pub fn Servo_GetStyleTextReset(computed_values:
-                                       ServoComputedValuesMaybeBorrowed)
+                                       ServoComputedValuesBorrowed)
      -> *const nsStyleTextReset;
-    pub fn Servo_GetStyleDisplay(computed_values:
-                                     ServoComputedValuesMaybeBorrowed)
+    pub fn Servo_GetStyleDisplay(computed_values: ServoComputedValuesBorrowed)
      -> *const nsStyleDisplay;
-    pub fn Servo_GetStyleContent(computed_values:
-                                     ServoComputedValuesMaybeBorrowed)
+    pub fn Servo_GetStyleContent(computed_values: ServoComputedValuesBorrowed)
      -> *const nsStyleContent;
-    pub fn Servo_GetStyleUIReset(computed_values:
-                                     ServoComputedValuesMaybeBorrowed)
+    pub fn Servo_GetStyleUIReset(computed_values: ServoComputedValuesBorrowed)
      -> *const nsStyleUIReset;
-    pub fn Servo_GetStyleTable(computed_values:
-                                   ServoComputedValuesMaybeBorrowed)
+    pub fn Servo_GetStyleTable(computed_values: ServoComputedValuesBorrowed)
      -> *const nsStyleTable;
-    pub fn Servo_GetStyleMargin(computed_values:
-                                    ServoComputedValuesMaybeBorrowed)
+    pub fn Servo_GetStyleMargin(computed_values: ServoComputedValuesBorrowed)
      -> *const nsStyleMargin;
-    pub fn Servo_GetStylePadding(computed_values:
-                                     ServoComputedValuesMaybeBorrowed)
+    pub fn Servo_GetStylePadding(computed_values: ServoComputedValuesBorrowed)
      -> *const nsStylePadding;
-    pub fn Servo_GetStyleBorder(computed_values:
-                                    ServoComputedValuesMaybeBorrowed)
+    pub fn Servo_GetStyleBorder(computed_values: ServoComputedValuesBorrowed)
      -> *const nsStyleBorder;
-    pub fn Servo_GetStyleOutline(computed_values:
-                                     ServoComputedValuesMaybeBorrowed)
+    pub fn Servo_GetStyleOutline(computed_values: ServoComputedValuesBorrowed)
      -> *const nsStyleOutline;
-    pub fn Servo_GetStyleXUL(computed_values:
-                                 ServoComputedValuesMaybeBorrowed)
+    pub fn Servo_GetStyleXUL(computed_values: ServoComputedValuesBorrowed)
      -> *const nsStyleXUL;
     pub fn Servo_GetStyleSVGReset(computed_values:
-                                      ServoComputedValuesMaybeBorrowed)
+                                      ServoComputedValuesBorrowed)
      -> *const nsStyleSVGReset;
-    pub fn Servo_GetStyleColumn(computed_values:
-                                    ServoComputedValuesMaybeBorrowed)
+    pub fn Servo_GetStyleColumn(computed_values: ServoComputedValuesBorrowed)
      -> *const nsStyleColumn;
-    pub fn Servo_GetStyleEffects(computed_values:
-                                     ServoComputedValuesMaybeBorrowed)
+    pub fn Servo_GetStyleEffects(computed_values: ServoComputedValuesBorrowed)
      -> *const nsStyleEffects;
 }

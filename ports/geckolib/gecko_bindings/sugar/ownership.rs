@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::marker::PhantomData;
-use std::mem::{forget, transmute, transmute_copy};
+use std::mem::{forget, transmute};
 use std::ops::{Deref, DerefMut};
 use std::ptr;
 use std::sync::Arc;
@@ -71,18 +71,41 @@ pub unsafe trait HasBoxFFI : HasSimpleFFI {
 pub unsafe trait HasArcFFI : HasFFI {
     // these methods can't be on Borrowed because it leads to an unspecified
     // impl parameter
-    /// Artificially increments the refcount of a borrowed Arc over FFI.
-    unsafe fn addref(ptr: Borrowed<Self::FFIType>) {
-        forget(ptr.as_arc::<Self>().clone())
+    /// Artificially increments the refcount of a (possibly null) borrowed Arc over FFI.
+    unsafe fn addref_opt(ptr: Borrowed<Self::FFIType>) {
+        forget(ptr.as_arc_opt::<Self>().clone())
     }
 
     /// Given a (possibly null) borrowed FFI reference, decrements the refcount.
     /// Unsafe since it doesn't consume the backing Arc. Run it only when you
     /// know that a strong reference to the backing Arc is disappearing
     /// (usually on the C++ side) without running the Arc destructor.
-    unsafe fn release(ptr: Borrowed<Self::FFIType>) {
+    unsafe fn release_opt(ptr: Borrowed<Self::FFIType>) {
         if let Some(arc) = ptr.as_arc_opt::<Self>() {
             let _: Arc<_> = ptr::read(arc as *const Arc<_>);
+        }
+    }
+
+    /// Artificially increments the refcount of a borrowed Arc over FFI.
+    unsafe fn addref(ptr: &Self::FFIType) {
+        forget(Self::as_arc(&ptr).clone())
+    }
+
+    /// Given a non-null borrowed FFI reference, decrements the refcount.
+    /// Unsafe since it doesn't consume the backing Arc. Run it only when you
+    /// know that a strong reference to the backing Arc is disappearing
+    /// (usually on the C++ side) without running the Arc destructor.
+    unsafe fn release(ptr: &Self::FFIType) {
+        let _: Arc<_> = ptr::read(Self::as_arc(&ptr) as *const Arc<_>);
+    }
+    #[inline]
+    /// Converts a borrowed FFI reference to a borrowed Arc.
+    ///
+    /// &GeckoType -> &Arc<ServoType>
+    fn as_arc<'a>(ptr: &'a &Self::FFIType) -> &'a Arc<Self> {
+        debug_assert!(!(ptr as *const _).is_null());
+        unsafe {
+            transmute::<&&Self::FFIType, &Arc<Self>>(ptr)
         }
     }
 }
@@ -113,7 +136,7 @@ impl<'a, T> Clone for Borrowed<'a, T> {
 
 impl<'a, T> Borrowed<'a, T> {
     #[inline]
-    pub fn is_null(&self) -> bool {
+    pub fn is_null(self) -> bool {
         self.ptr == ptr::null()
     }
 
@@ -150,7 +173,7 @@ impl<'a, T> Borrowed<'a, T> {
 
     #[inline]
     /// Borrowed<ServoType> -> Borrowed<GeckoType>
-    pub fn as_ffi(&self) -> Borrowed<<Self as HasFFI>::FFIType> where Self: HasSimpleFFI {
+    pub fn as_ffi(self) -> Borrowed<'a, <Self as HasFFI>::FFIType> where Self: HasSimpleFFI {
         unsafe { transmute(self) }
     }
 
@@ -164,6 +187,13 @@ impl<'a, T> Borrowed<'a, T> {
     /// Borrowed<GeckoType> -> &ServoType
     pub fn as_servo_ref<U>(self) -> Option<&'a U> where U: HasSimpleFFI<FFIType = T> {
         self.borrow_opt().map(HasSimpleFFI::from_ffi)
+    }
+
+    pub fn null() -> Borrowed<'static, T> {
+        Borrowed {
+            ptr: ptr::null_mut(),
+            _marker: PhantomData
+        }
     }
 }
 
@@ -196,9 +226,17 @@ impl<'a, T> BorrowedMut<'a, T> {
     pub fn as_servo_mut_ref<U>(self) -> Option<&'a mut U> where U: HasSimpleFFI<FFIType = T> {
         self.borrow_mut_opt().map(HasSimpleFFI::from_ffi_mut)
     }
+
+    pub fn null_mut() -> BorrowedMut<'static, T> {
+        BorrowedMut {
+            ptr: ptr::null_mut(),
+            _marker: PhantomData
+        }
+    }
 }
 
-// technically not
+// technically not how we're supposed to use
+// Deref, but that's a minor style issue
 impl<'a, T> Deref for BorrowedMut<'a, T> {
     type Target = Borrowed<'a, T>;
     fn deref(&self) -> &Self::Target {
@@ -209,6 +247,8 @@ impl<'a, T> Deref for BorrowedMut<'a, T> {
 #[repr(C)]
 /// Gecko-FFI-safe Arc (T is an ArcInner).
 /// This can be null.
+/// Leaks on drop. Please don't drop this.
+/// TODO: Add destructor bomb once drop flags are gone
 pub struct Strong<T> {
     ptr: *const T,
     _marker: PhantomData<T>,
@@ -227,13 +267,26 @@ impl<T> Strong<T> {
     ///
     /// Strong<GeckoType> -> Arc<ServoType>
     pub fn into_arc<U>(self) -> Arc<U> where U: HasArcFFI<FFIType = T> {
-        assert!(!self.is_null());
-        unsafe { transmute(self) }
+        self.into_arc_opt().unwrap()
+    }
+
+    #[inline]
+    /// Given a strong FFI reference,
+    /// converts it into a servo-side Arc
+    /// Returns None on null.
+    ///
+    /// Strong<GeckoType> -> Arc<ServoType>
+    pub fn into_arc_opt<U>(self) -> Option<Arc<U>> where U: HasArcFFI<FFIType = T> {
+        if self.is_null() {
+            None
+        } else {
+            unsafe { Some(transmute(self)) }
+        }
     }
 
     #[inline]
     /// Produces a null strong FFI reference
-    pub fn null_strong() -> Self {
+    pub fn null() -> Self {
         unsafe { transmute(ptr::null::<T>()) }
     }
 }
@@ -244,10 +297,14 @@ pub unsafe trait FFIArcHelpers {
     ///
     /// Arc<ServoType> -> Strong<GeckoType>
     fn into_strong(self) -> Strong<<Self::Inner as HasFFI>::FFIType>;
-    /// Produces a borrowed FFI reference by borrowing an Arc.
+    /// Produces a (nullable) borrowed FFI reference by borrowing an Arc.
     ///
     /// &Arc<ServoType> -> Borrowed<GeckoType>
-    fn as_borrowed(&self) -> Borrowed<<Self::Inner as HasFFI>::FFIType>;
+    fn as_borrowed_opt(&self) -> Borrowed<<Self::Inner as HasFFI>::FFIType>;
+    /// Produces a borrowed FFI reference by borrowing an Arc.
+    ///
+    /// &Arc<ServoType> -> &GeckoType
+    fn as_borrowed(&self) -> &<Self::Inner as HasFFI>::FFIType;
 }
 
 unsafe impl<T: HasArcFFI> FFIArcHelpers for Arc<T> {
@@ -257,8 +314,13 @@ unsafe impl<T: HasArcFFI> FFIArcHelpers for Arc<T> {
         unsafe { transmute(self) }
     }
     #[inline]
-    fn as_borrowed(&self) -> Borrowed<T::FFIType> {
+    fn as_borrowed_opt(&self) -> Borrowed<T::FFIType> {
         let borrowedptr = self as *const Arc<T> as *const Borrowed<T::FFIType>;
+        unsafe { ptr::read(borrowedptr) }
+    }
+    #[inline]
+    fn as_borrowed(&self) -> &T::FFIType {
+        let borrowedptr = self as *const Arc<T> as *const & T::FFIType;
         unsafe { ptr::read(borrowedptr) }
     }
 }
@@ -266,6 +328,7 @@ unsafe impl<T: HasArcFFI> FFIArcHelpers for Arc<T> {
 #[repr(C)]
 /// Gecko-FFI-safe owned pointer
 /// Cannot be null
+/// Leaks on drop. Please don't drop this.
 pub struct Owned<T> {
     ptr: *mut T,
     _marker: PhantomData<T>,
@@ -276,7 +339,7 @@ impl<T> Owned<T> {
     pub fn into_box<U>(self) -> Box<T> where U: HasBoxFFI<FFIType = T> {
         unsafe { transmute(self) }
     }
-    pub fn maybe(self) -> MaybeOwned<T> {
+    pub fn maybe(self) -> OwnedOrNull<T> {
         unsafe { transmute(self) }
     }
 }
@@ -297,17 +360,26 @@ impl<T> DerefMut for Owned<T> {
 #[repr(C)]
 /// Gecko-FFI-safe owned pointer
 /// Can be null
-pub struct MaybeOwned<T> {
+pub struct OwnedOrNull<T> {
     ptr: *mut T,
     _marker: PhantomData<T>,
 }
 
-impl<T> MaybeOwned<T> {
+impl<T> OwnedOrNull<T> {
     pub fn is_null(&self) -> bool {
         self.ptr == ptr::null_mut()
     }
-    /// MaybeOwned<GeckoType> -> Option<Box<ServoType>>
+    /// OwnedOrNull<GeckoType> -> Option<Box<ServoType>>
     pub fn into_box_opt<U>(self) -> Option<Box<T>> where U: HasBoxFFI<FFIType = T> {
+        if self.is_null() {
+            None
+        } else {
+            Some(unsafe { transmute(self) })
+        }
+    }
+
+    /// OwnedOrNull<GeckoType> -> Option<Owned<GeckoType>>
+    pub fn into_owned_opt(self) -> Option<Owned<T>> {
         if self.is_null() {
             None
         } else {
