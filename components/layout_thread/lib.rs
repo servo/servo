@@ -399,7 +399,7 @@ impl LayoutThread {
             MediaType::Screen,
             opts::get().initial_window_size.to_f32() * ScaleFactor::new(1.0));
         let parallel_traversal = if layout_threads != 1 {
-            Some(WorkQueue::new("LayoutWorker", thread_state::LAYOUT, layout_threads))
+            WorkQueue::new("LayoutWorker", thread_state::LAYOUT, layout_threads).ok()
         } else {
             None
         };

@@ -38,7 +38,7 @@ pub struct PerDocumentStyleData {
     pub expired_animations: Arc<RwLock<HashMap<OpaqueNode, Vec<Animation>>>>,
 
     // FIXME(bholley): This shouldn't be per-document.
-    pub work_queue: WorkQueue<SharedStyleContext, WorkQueueData>,
+    pub work_queue: Option<WorkQueue<SharedStyleContext, WorkQueueData>>,
 
     pub num_threads: usize,
 }
@@ -68,7 +68,7 @@ impl PerDocumentStyleData {
             new_animations_receiver: new_anims_receiver,
             running_animations: Arc::new(RwLock::new(HashMap::new())),
             expired_animations: Arc::new(RwLock::new(HashMap::new())),
-            work_queue: WorkQueue::new("StyleWorker", thread_state::LAYOUT, *NUM_THREADS),
+            work_queue: WorkQueue::new("StyleWorker", thread_state::LAYOUT, *NUM_THREADS).ok(),
             num_threads: *NUM_THREADS,
         }
     }
@@ -91,6 +91,8 @@ impl PerDocumentStyleData {
 
 impl Drop for PerDocumentStyleData {
     fn drop(&mut self) {
-        self.work_queue.shutdown();
+        if let Some(ref mut queue) = self.work_queue {
+            queue.shutdown();
+        }
     }
 }
