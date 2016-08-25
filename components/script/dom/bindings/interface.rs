@@ -257,11 +257,7 @@ pub unsafe fn create_callback_interface_object(
     assert!(!constants.is_empty());
     rval.set(JS_NewObject(cx, ptr::null()));
     assert!(!rval.ptr.is_null());
-    for guard in constants {
-        if let Some(specs) = guard.expose(cx, rval.handle()) {
-            define_constants(cx, rval.handle(), specs);
-        }
-    }
+    define_guarded_constants(cx, rval.handle(), constants);
     define_name(cx, rval.handle(), name);
     define_on_global_object(cx, global, name, rval.handle());
 }
@@ -421,11 +417,7 @@ unsafe fn create_object(
     assert!(!rval.ptr.is_null());
     define_guarded_methods(cx, rval.handle(), methods);
     define_guarded_properties(cx, rval.handle(), properties);
-    for guard in constants {
-        if let Some(specs) = guard.expose(cx, rval.handle()) {
-            define_constants(cx, rval.handle(), specs);
-        }
-    }
+    define_guarded_constants(cx, rval.handle(), constants);
 }
 
 unsafe fn create_unscopable_object(
@@ -441,6 +433,18 @@ unsafe fn create_unscopable_object(
         assert!(JS_DefineProperty(
             cx, rval.handle(), name.as_ptr() as *const libc::c_char, TrueHandleValue,
             JSPROP_READONLY, None, None));
+    }
+}
+
+/// Conditionally define constants on an object.
+pub unsafe fn define_guarded_constants(
+        cx: *mut JSContext,
+        obj: HandleObject,
+        constants: &[Guard<&[ConstantSpec]>]) {
+    for guard in constants {
+        if let Some(specs) = guard.expose(cx, obj) {
+            define_constants(cx, obj, specs);
+        }
     }
 }
 
