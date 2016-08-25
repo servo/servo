@@ -1209,14 +1209,15 @@ impl LayoutThread {
                                                      &mut shared_layout_context);
 
         if let Some(mut root_flow) = self.root_flow.clone() {
+            let root_flow = flow_ref::deref_mut(&mut root_flow);
             match data.query_type {
                 ReflowQueryType::ContentBoxQuery(node) => {
                     let node = unsafe { ServoLayoutNode::new(&node) };
-                    rw_data.content_box_response = process_content_box_request(node, &mut root_flow);
+                    rw_data.content_box_response = process_content_box_request(node, root_flow);
                 },
                 ReflowQueryType::ContentBoxesQuery(node) => {
                     let node = unsafe { ServoLayoutNode::new(&node) };
-                    rw_data.content_boxes_response = process_content_boxes_request(node, &mut root_flow);
+                    rw_data.content_boxes_response = process_content_boxes_request(node, root_flow);
                 },
                 ReflowQueryType::HitTestQuery(translated_point, client_point, update_cursor) => {
                     let translated_point =
@@ -1237,11 +1238,11 @@ impl LayoutThread {
                 },
                 ReflowQueryType::NodeGeometryQuery(node) => {
                     let node = unsafe { ServoLayoutNode::new(&node) };
-                    rw_data.client_rect_response = process_node_geometry_request(node, &mut root_flow);
+                    rw_data.client_rect_response = process_node_geometry_request(node, root_flow);
                 },
                 ReflowQueryType::NodeScrollGeometryQuery(node) => {
                     let node = unsafe { ServoLayoutNode::new(&node) };
-                    rw_data.scroll_area_response = process_node_scroll_area_request(node, &mut root_flow);
+                    rw_data.scroll_area_response = process_node_scroll_area_request(node, root_flow);
                 },
                 ReflowQueryType::NodeOverflowQuery(node) => {
                     let node = unsafe { ServoLayoutNode::new(&node) };
@@ -1259,11 +1260,11 @@ impl LayoutThread {
                                                        &layout_context,
                                                        pseudo,
                                                        property,
-                                                       &mut root_flow);
+                                                       root_flow);
                 },
                 ReflowQueryType::OffsetParentQuery(node) => {
                     let node = unsafe { ServoLayoutNode::new(&node) };
-                    rw_data.offset_parent_response = process_offset_parent_query(node, &mut root_flow);
+                    rw_data.offset_parent_response = process_offset_parent_query(node, root_flow);
                 },
                 ReflowQueryType::MarginStyleQuery(node) => {
                     let node = unsafe { ServoLayoutNode::new(&node) };
