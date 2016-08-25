@@ -2375,9 +2375,9 @@ class CGConstructorEnabled(CGAbstractMethod):
 
 
 def CreateBindingJSObject(descriptor, parent=None):
+    assert not descriptor.isGlobal()
     create = "let raw = Box::into_raw(object);\nlet _rt = RootedTraceable::new(&*raw);\n"
     if descriptor.proxy:
-        assert not descriptor.isGlobal()
         create += """
 let handler = RegisterBindings::proxy_handlers[PrototypeList::Proxies::%s as usize];
 rooted!(in(cx) let private = PrivateValue(raw as *const libc::c_void));
@@ -2388,15 +2388,6 @@ let obj = NewProxyObject(cx, handler,
 assert!(!obj.is_null());
 rooted!(in(cx) let obj = obj);\
 """ % (descriptor.name, parent)
-    elif descriptor.isGlobal():
-        create += ("rooted!(in(cx) let obj =\n"
-                   "    create_dom_global(\n"
-                   "        cx,\n"
-                   "        &Class.base as *const js::jsapi::Class as *const JSClass,\n"
-                   "        raw as *const libc::c_void,\n"
-                   "        Some(%s))\n"
-                   ");\n"
-                   "assert!(!obj.is_null());" % TRACE_HOOK_NAME)
     else:
         create += ("rooted!(in(cx) let obj = JS_NewObjectWithGivenProto(\n"
                    "    cx, &Class.base as *const js::jsapi::Class as *const JSClass, proto.handle()));\n"
@@ -2475,21 +2466,17 @@ class CGWrapMethod(CGAbstractMethod):
     """
     def __init__(self, descriptor):
         assert not descriptor.interface.isCallback()
-        if not descriptor.isGlobal():
-            args = [Argument('*mut JSContext', 'cx'), Argument('GlobalRef', 'scope'),
-                    Argument("Box<%s>" % descriptor.concreteType, 'object')]
-        else:
-            args = [Argument('*mut JSContext', 'cx'),
-                    Argument("Box<%s>" % descriptor.concreteType, 'object')]
+        assert not descriptor.isGlobal()
+        args = [Argument('*mut JSContext', 'cx'), Argument('GlobalRef', 'scope'),
+                Argument("Box<%s>" % descriptor.concreteType, 'object')]
         retval = 'Root<%s>' % descriptor.concreteType
         CGAbstractMethod.__init__(self, descriptor, 'Wrap', retval, args,
                                   pub=True, unsafe=True)
 
     def definition_body(self):
         unforgeable = CopyUnforgeablePropertiesToInstance(self.descriptor)
-        if not self.descriptor.isGlobal():
-            create = CreateBindingJSObject(self.descriptor, "scope")
-            return CGGeneric("""\
+        create = CreateBindingJSObject(self.descriptor, "scope")
+        return CGGeneric("""\
 let scope = scope.reflector().get_jsobject();
 assert!(!scope.get().is_null());
 assert!(((*JS_GetClass(scope.get())).flags & JSCLASS_IS_GLOBAL) != 0);
@@ -2505,21 +2492,65 @@ assert!(!proto.is_null());
 (*raw).init_reflector(obj.get());
 
 Root::from_ref(&*raw)""" % {'copyUnforgeable': unforgeable, 'createObject': create})
-        else:
-            create = CreateBindingJSObject(self.descriptor)
-            return CGGeneric("""\
-%(createObject)s
+
+
+class CGWrapGlobalMethod(CGAbstractMethod):
+    """
+    Class that generates the FooBinding::Wrap function for global interfaces.
+    """
+    def __init__(self, descriptor, properties):
+        assert not descriptor.interface.isCallback()
+        assert descriptor.isGlobal()
+        args = [Argument('*mut JSContext', 'cx'),
+                Argument("Box<%s>" % descriptor.concreteType, 'object')]
+        retval = 'Root<%s>' % descriptor.concreteType
+        CGAbstractMethod.__init__(self, descriptor, 'Wrap', retval, args,
+                                  pub=True, unsafe=True)
+        self.properties = properties
+
+    def definition_body(self):
+        values = {
+            "unforgeable": CopyUnforgeablePropertiesToInstance(self.descriptor)
+        }
+
+        pairs = [
+            ("define_guarded_properties", self.properties.attrs),
+            ("define_guarded_methods", self.properties.methods),
+            ("define_guarded_constants", self.properties.consts)
+        ]
+        members = ["%s(cx, obj.handle(), %s);" % (function, array.variableName())
+                   for (function, array) in pairs if array.length() > 0]
+        values["members"] = "\n".join(members)
+
+        return CGGeneric("""\
+let raw = Box::into_raw(object);
+let _rt = RootedTraceable::new(&*raw);
+
+rooted!(in(cx) let mut obj = ptr::null_mut());
+create_global_object(
+    cx,
+    &*(&Class.base as *const js::jsapi::Class as *const _),
+    raw as *const libc::c_void,
+    _trace,
+    obj.handle_mut());
+assert!(!obj.is_null());
+
 (*raw).init_reflector(obj.get());
 
 let _ac = JSAutoCompartment::new(cx, obj.get());
 rooted!(in(cx) let mut proto = ptr::null_mut());
 GetProtoObject(cx, obj.handle(), proto.handle_mut());
-JS_SplicePrototype(cx, obj.handle(), proto.handle());
+assert!(JS_SplicePrototype(cx, obj.handle(), proto.handle()));
+let mut immutable = false;
+assert!(JS_SetImmutablePrototype(cx, obj.handle(), &mut immutable));
+assert!(immutable);
 
-%(copyUnforgeable)s
+%(members)s
+
+%(unforgeable)s
 
 Root::from_ref(&*raw)\
-""" % {'copyUnforgeable': unforgeable, 'createObject': create})
+""" % values)
 
 
 class CGIDLInterface(CGThing):
@@ -2663,6 +2694,18 @@ assert!(!prototype_proto.is_null());""" % getPrototypeProto)]
             else:
                 properties[arrayName] = "&[]"
 
+        if self.descriptor.isGlobal():
+            assert not self.haveUnscopables
+            proto_properties = {
+                "attrs": "&[]",
+                "consts": "&[]",
+                "id": name,
+                "methods": "&[]",
+                "unscopables": "&[]",
+            }
+        else:
+            proto_properties = properties
+
         code.append(CGGeneric("""
 rooted!(in(cx) let mut prototype = ptr::null_mut());
 create_interface_prototype_object(cx,
@@ -2679,7 +2722,7 @@ assert!((*cache)[PrototypeList::ID::%(id)s as usize].is_null());
 <*mut JSObject>::post_barrier((*cache).as_mut_ptr().offset(PrototypeList::ID::%(id)s as isize),
                               ptr::null_mut(),
                               prototype.get());
-""" % properties))
+""" % proto_properties))
 
         if self.descriptor.interface.hasInterfaceObject():
             properties["name"] = str_to_const_array(name)
@@ -5249,26 +5292,26 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::{JS_CALLEE, JSCLASS_GLOBAL_SLOT_COUNT}',
         'js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL, JSCLASS_RESERVED_SLOTS_MASK}',
         'js::error::throw_type_error',
-        'js::jsapi::{JSJitInfo_AliasSet, JSJitInfo_ArgType, AutoIdVector, CallArgs, FreeOp}',
-        'js::jsapi::{JSITER_SYMBOLS, JSPROP_ENUMERATE, JSPROP_PERMANENT, JSPROP_READONLY, JSPROP_SHARED}',
-        'js::jsapi::{JSCLASS_RESERVED_SLOTS_SHIFT, JSITER_HIDDEN, JSITER_OWNONLY}',
-        'js::jsapi::{GetPropertyKeys, Handle, Call, GetWellKnownSymbol}',
-        'js::jsapi::{HandleId, HandleObject, HandleValue, HandleValueArray}',
-        'js::jsapi::{INTERNED_STRING_TO_JSID, IsCallable, JS_CallFunctionValue}',
-        'js::jsapi::{JS_CopyPropertiesFrom, JS_ForwardGetPropertyTo}',
-        'js::jsapi::{JS_GetClass, JS_GetErrorPrototype, JS_GetFunctionPrototype}',
-        'js::jsapi::{JS_GetGlobalForObject, JS_GetObjectPrototype, JS_GetProperty}',
-        'js::jsapi::{JS_GetPropertyById, JS_GetPropertyDescriptorById, JS_GetReservedSlot}',
-        'js::jsapi::{JS_HasProperty, JS_HasPropertyById, JS_InitializePropertiesFromCompatibleNativeObject}',
-        'js::jsapi::{JS_AtomizeAndPinString, JS_NewObject, JS_NewObjectWithGivenProto}',
-        'js::jsapi::{JS_NewObjectWithoutMetadata, JS_SetProperty, JS_DefinePropertyById2}',
-        'js::jsapi::{JS_SplicePrototype, JS_SetReservedSlot, JSAutoCompartment}',
-        'js::jsapi::{JSContext, JSClass, JSFreeOp, JSFunctionSpec, JS_GetIteratorPrototype}',
-        'js::jsapi::{JSJitGetterCallArgs, JSJitInfo, JSJitMethodCallArgs, JSJitSetterCallArgs}',
-        'js::jsapi::{JSNative, JSObject, JSNativeWrapper, JSPropertySpec}',
-        'js::jsapi::{JSString, JSTracer, JSType, JSTypedMethodJitInfo, JSValueType}',
-        'js::jsapi::{ObjectOpResult, JSJitInfo_OpType, MutableHandle, MutableHandleObject}',
-        'js::jsapi::{MutableHandleValue, PropertyDescriptor, RootedObject}',
+        'js::jsapi::{AutoIdVector, Call, CallArgs, FreeOp, GetPropertyKeys, GetWellKnownSymbol}',
+        'js::jsapi::{Handle, HandleId, HandleObject, HandleValue, HandleValueArray}',
+        'js::jsapi::{INTERNED_STRING_TO_JSID, IsCallable, JS_AtomizeAndPinString}',
+        'js::jsapi::{JS_CallFunctionValue, JS_CopyPropertiesFrom, JS_DefinePropertyById2}',
+        'js::jsapi::{JS_ForwardGetPropertyTo, JS_GetClass, JS_GetErrorPrototype}',
+        'js::jsapi::{JS_GetFunctionPrototype, JS_GetGlobalForObject, JS_GetIteratorPrototype}',
+        'js::jsapi::{JS_GetObjectPrototype, JS_GetProperty, JS_GetPropertyById}',
+        'js::jsapi::{JS_GetPropertyDescriptorById, JS_GetReservedSlot, JS_HasProperty}',
+        'js::jsapi::{JS_HasPropertyById, JS_InitializePropertiesFromCompatibleNativeObject}',
+        'js::jsapi::{JS_NewObject, JS_NewObjectWithGivenProto, JS_NewObjectWithoutMetadata}',
+        'js::jsapi::{JS_SetImmutablePrototype, JS_SetProperty, JS_SetReservedSlot}',
+        'js::jsapi::{JS_SplicePrototype, JSAutoCompartment, JSCLASS_RESERVED_SLOTS_SHIFT}',
+        'js::jsapi::{JSClass, JSContext, JSFreeOp, JSFunctionSpec, JSITER_HIDDEN}',
+        'js::jsapi::{JSITER_OWNONLY, JSITER_SYMBOLS, JSJitGetterCallArgs, JSJitInfo}',
+        'js::jsapi::{JSJitInfo_AliasSet, JSJitInfo_ArgType, JSJitInfo_OpType}',
+        'js::jsapi::{JSJitMethodCallArgs, JSJitSetterCallArgs, JSNative, JSNativeWrapper}',
+        'js::jsapi::{JSObject, JSPROP_ENUMERATE, JSPROP_PERMANENT, JSPROP_READONLY}',
+        'js::jsapi::{JSPROP_SHARED, JSPropertySpec, JSString, JSTracer, JSType}',
+        'js::jsapi::{JSTypedMethodJitInfo, JSValueType, MutableHandle, MutableHandleObject}',
+        'js::jsapi::{MutableHandleValue, ObjectOpResult, PropertyDescriptor, RootedObject}',
         'js::jsapi::{SymbolCode, jsid}',
         'js::jsval::JSVal',
         'js::jsval::{ObjectValue, ObjectOrNullValue, PrivateValue}',
@@ -5282,26 +5325,26 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'dom::bindings',
         'dom::bindings::codegen::InterfaceObjectMap',
         'dom::bindings::global::{GlobalRef, global_root_from_object, global_root_from_reflector}',
-        'dom::bindings::interface::{InterfaceConstructorBehavior, NonCallbackInterfaceObjectClass}',
-        'dom::bindings::interface::{create_callback_interface_object, create_interface_prototype_object}',
-        'dom::bindings::interface::{create_named_constructors, create_noncallback_interface_object}',
-        'dom::bindings::interface::{define_guarded_methods, define_guarded_properties}',
-        'dom::bindings::interface::{ConstantSpec, NonNullJSNative}',
+        'dom::bindings::interface::{ConstantSpec, InterfaceConstructorBehavior}',
+        'dom::bindings::interface::{NonCallbackInterfaceObjectClass, NonNullJSNative}',
+        'dom::bindings::interface::{create_callback_interface_object, create_global_object}',
+        'dom::bindings::interface::{create_interface_prototype_object, create_named_constructors}',
+        'dom::bindings::interface::{create_noncallback_interface_object, define_guarded_constants}',
+        'dom::bindings::interface::{define_guarded_methods, define_guarded_properties, is_exposed_in}',
         'dom::bindings::interface::ConstantVal::{IntVal, UintVal}',
-        'dom::bindings::interface::is_exposed_in',
         'dom::bindings::iterable::{IteratorType, Iterable}',
         'dom::bindings::js::{JS, Root, RootedReference}',
         'dom::bindings::js::{OptionalRootedReference}',
         'dom::bindings::reflector::{Reflectable}',
         'dom::bindings::utils::{DOMClass, DOMJSClass}',
         'dom::bindings::utils::{DOM_PROTO_UNFORGEABLE_HOLDER_SLOT, JSCLASS_DOM_GLOBAL}',
-        'dom::bindings::utils::{ProtoOrIfaceArray, create_dom_global}',
-        'dom::bindings::utils::{enumerate_global, finalize_global, find_enum_string_index}',
-        'dom::bindings::utils::{generic_getter, generic_lenient_getter, generic_lenient_setter}',
-        'dom::bindings::utils::{generic_method, generic_setter, get_array_index_from_id}',
-        'dom::bindings::utils::{get_dictionary_property, get_property_on_prototype}',
-        'dom::bindings::utils::{get_proto_or_iface_array, has_property_on_prototype}',
-        'dom::bindings::utils::{is_platform_object, resolve_global, set_dictionary_property, trace_global}',
+        'dom::bindings::utils::{ProtoOrIfaceArray, enumerate_global, finalize_global}',
+        'dom::bindings::utils::{find_enum_string_index, generic_getter, generic_lenient_getter}',
+        'dom::bindings::utils::{generic_lenient_setter, generic_method, generic_setter}',
+        'dom::bindings::utils::{get_array_index_from_id, get_dictionary_property}',
+        'dom::bindings::utils::{get_property_on_prototype, get_proto_or_iface_array}',
+        'dom::bindings::utils::{has_property_on_prototype, is_platform_object}',
+        'dom::bindings::utils::{resolve_global, set_dictionary_property, trace_global}',
         'dom::bindings::trace::{JSTraceable, RootedTraceable}',
         'dom::bindings::callback::{CallbackContainer,CallbackInterface,CallbackFunction}',
         'dom::bindings::callback::{CallSetup,ExceptionHandling}',
@@ -5437,6 +5480,8 @@ class CGDescriptor(CGThing):
         if descriptor.proxy:
             cgThings.append(CGDefineProxyHandler(descriptor))
 
+        properties = PropertyArrays(descriptor)
+
         if descriptor.concrete:
             if descriptor.proxy:
                 # cgThings.append(CGProxyIsProxy(descriptor))
@@ -5466,7 +5511,10 @@ class CGDescriptor(CGThing):
                 cgThings.append(CGDOMJSClass(descriptor))
                 pass
 
-            cgThings.append(CGWrapMethod(descriptor))
+            if descriptor.isGlobal():
+                cgThings.append(CGWrapGlobalMethod(descriptor, properties))
+            else:
+                cgThings.append(CGWrapMethod(descriptor))
             reexports.append('Wrap')
 
         haveUnscopables = False
@@ -5489,7 +5537,6 @@ class CGDescriptor(CGThing):
             if descriptor.weakReferenceable:
                 cgThings.append(CGWeakReferenceableTrait(descriptor))
 
-        properties = PropertyArrays(descriptor)
         cgThings.append(CGGeneric(str(properties)))
         cgThings.append(CGCreateInterfaceObjectsMethod(descriptor, properties, haveUnscopables))
 
