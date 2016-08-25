@@ -29,7 +29,7 @@ use js::jsapi::{JS_GetProperty, JS_GetPrototype, JS_GetReservedSlot, JS_HasPrope
 use js::jsapi::{JS_HasPropertyById, JS_IsExceptionPending, JS_IsGlobalObject};
 use js::jsapi::{JS_ResolveStandardClass, JS_SetProperty, ToWindowProxyIfWindow};
 use js::jsapi::{JS_StringHasLatin1Chars, MutableHandleValue, ObjectOpResult};
-use js::jsval::{JSVal, ObjectValue, UndefinedValue};
+use js::jsval::{JSVal, UndefinedValue};
 use js::rust::{GCMethods, ToString};
 use libc;
 use std::ffi::CString;
@@ -127,32 +127,29 @@ pub type ProtoOrIfaceArray = [*mut JSObject; PROTO_OR_IFACE_LENGTH];
 /// set to true and `*vp` to the value, otherwise `*found` is set to false.
 ///
 /// Returns false on JSAPI failure.
-pub fn get_property_on_prototype(cx: *mut JSContext,
-                                 proxy: HandleObject,
-                                 id: HandleId,
-                                 found: *mut bool,
-                                 vp: MutableHandleValue)
-                                 -> bool {
-    unsafe {
-        // let proto = GetObjectProto(proxy);
-        rooted!(in(cx) let mut proto = ptr::null_mut());
-        if !JS_GetPrototype(cx, proxy, proto.handle_mut()) || proto.is_null() {
-            *found = false;
-            return true;
-        }
-        let mut has_property = false;
-        if !JS_HasPropertyById(cx, proto.handle(), id, &mut has_property) {
-            return false;
-        }
-        *found = has_property;
-        let no_output = vp.ptr.is_null();
-        if !has_property || no_output {
-            return true;
-        }
-
-        rooted!(in(cx) let receiver = ObjectValue(&*proxy.get()));
-        JS_ForwardGetPropertyTo(cx, proto.handle(), id, receiver.handle(), vp)
+pub unsafe fn get_property_on_prototype(cx: *mut JSContext,
+                                        proxy: HandleObject,
+                                        receiver: HandleValue,
+                                        id: HandleId,
+                                        found: *mut bool,
+                                        vp: MutableHandleValue)
+                                        -> bool {
+    rooted!(in(cx) let mut proto = ptr::null_mut());
+    if !JS_GetPrototype(cx, proxy, proto.handle_mut()) || proto.is_null() {
+        *found = false;
+        return true;
     }
+    let mut has_property = false;
+    if !JS_HasPropertyById(cx, proto.handle(), id, &mut has_property) {
+        return false;
+    }
+    *found = has_property;
+    let no_output = vp.ptr.is_null();
+    if !has_property || no_output {
+        return true;
+    }
+
+    JS_ForwardGetPropertyTo(cx, proto.handle(), id, receiver, vp)
 }
 
 /// Get an array index from the given `jsid`. Returns `None` if the given
@@ -285,12 +282,17 @@ pub fn set_dictionary_property(cx: *mut JSContext,
 }
 
 /// Returns whether `proxy` has a property `id` on its prototype.
-pub fn has_property_on_prototype(cx: *mut JSContext, proxy: HandleObject, id: HandleId) -> bool {
-    // MOZ_ASSERT(js::IsProxy(proxy) && js::GetProxyHandler(proxy) == handler);
-    let mut found = false;
-    !get_property_on_prototype(cx, proxy, id, &mut found, unsafe {
-        MutableHandleValue::from_marked_location(ptr::null_mut())
-    }) || found
+pub unsafe fn has_property_on_prototype(cx: *mut JSContext,
+                                        proxy: HandleObject,
+                                        id: HandleId,
+                                        found: &mut bool)
+                                        -> bool {
+    rooted!(in(cx) let mut proto = ptr::null_mut());
+    if !JS_GetPrototype(cx, proxy, proto.handle_mut()) {
+        return false;
+    }
+    assert!(!proto.is_null());
+    JS_HasPropertyById(cx, proto.handle(), id, found)
 }
 
 /// Drop the resources held by reserved slots of a global object
