@@ -265,8 +265,10 @@ impl Circle {
         } else {
             // Defaults to origin
             Position {
-                horizontal: LengthOrPercentage::Percentage(Percentage(0.5)),
-                vertical: LengthOrPercentage::Percentage(Percentage(0.5)),
+                horiz_keyword: None,
+                horiz_position: Some(LengthOrPercentage::Percentage(Percentage(0.5))),
+                vert_keyword: None,
+                vert_position: Some(LengthOrPercentage::Percentage(Percentage(0.5))),
             }
         };
         Ok(Circle {
@@ -329,8 +331,10 @@ impl Ellipse {
         } else {
             // Defaults to origin
             Position {
-                horizontal: LengthOrPercentage::Percentage(Percentage(0.5)),
-                vertical: LengthOrPercentage::Percentage(Percentage(0.5)),
+                horiz_keyword: None,
+                horiz_position: Some(LengthOrPercentage::Percentage(Percentage(0.5))),
+                vert_keyword: None,
+                vert_position: Some(LengthOrPercentage::Percentage(Percentage(0.5))),
             }
         };
         Ok(Ellipse {
