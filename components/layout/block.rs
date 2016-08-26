@@ -763,7 +763,7 @@ impl BlockFlow {
     /// When `fragmentation_context` is given (not `None`), this should fit as much of the content
     /// as possible within the available block size.
     /// If there is more content (that doesn’t fit), this flow is *fragmented*
-    /// with the extra content moved to another fragment (a flow like this one) which is returrned.
+    /// with the extra content moved to another fragment (a flow like this one) which is returned.
     /// See `Flow::fragment`.
     ///
     /// The return value is always `None` when `fragmentation_context` is `None`.
