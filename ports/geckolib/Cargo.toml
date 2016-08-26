@@ -7,7 +7,7 @@ license = "MPL-2.0"
 [lib]
 name = "geckoservo"
 path = "lib.rs"
-crate-type = ["staticlib"]
+crate-type = ["staticlib", "rlib"]
 
 [dependencies]
 app_units = "0.3"
