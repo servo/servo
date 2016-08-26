@@ -1,7 +1,7 @@
 diff --git a/components/script/dom/bindings/codegen/parser/WebIDL.py b/components/script/dom/bindings/codegen/parser/WebIDL.py
 index da32340..81c52b7 100644
---- a/components/script/dom/bindings/codegen/parser/WebIDL.py
-+++ b/components/script/dom/bindings/codegen/parser/WebIDL.py
+--- WebIDL.py
++++ WebIDL.py
 @@ -2170,7 +2170,7 @@ class IDLUnresolvedType(IDLType):
              return typedefType.complete(scope)
          elif obj.isCallback() and not obj.isInterface():
