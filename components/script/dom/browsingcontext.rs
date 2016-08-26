@@ -18,11 +18,13 @@ use dom::window::Window;
 use js::JSCLASS_IS_GLOBAL;
 use js::glue::{CreateWrapperProxyHandler, ProxyTraps, NewWindowProxy};
 use js::glue::{GetProxyPrivate, SetProxyExtra, GetProxyExtra};
-use js::jsapi::{Handle, HandleId, HandleObject, HandleValue, JSAutoCompartment};
-use js::jsapi::{JSContext, JSPROP_READONLY, JSErrNum, JSObject, PropertyDescriptor, JS_DefinePropertyById};
-use js::jsapi::{JS_ForwardGetPropertyTo, JS_ForwardSetPropertyTo, JS_GetClass, JSTracer, FreeOp};
-use js::jsapi::{JS_GetOwnPropertyDescriptorById, JS_HasPropertyById, MutableHandle};
-use js::jsapi::{MutableHandleObject, MutableHandleValue, ObjectOpResult};
+use js::jsapi::{Handle, HandleId, HandleObject, HandleValue};
+use js::jsapi::{JSAutoCompartment, JSContext, JSErrNum, JSFreeOp, JSObject};
+use js::jsapi::{JSPROP_READONLY, JSTracer, JS_DefinePropertyById};
+use js::jsapi::{JS_ForwardGetPropertyTo, JS_ForwardSetPropertyTo, JS_GetClass};
+use js::jsapi::{JS_GetOwnPropertyDescriptorById, JS_HasPropertyById};
+use js::jsapi::{MutableHandle, MutableHandleObject, MutableHandleValue};
+use js::jsapi::{ObjectOpResult, PropertyDescriptor};
 use js::jsval::{UndefinedValue, PrivateValue};
 use msg::constellation_msg::{PipelineId, SubpageId};
 use std::cell::Cell;
@@ -409,7 +411,7 @@ static PROXY_HANDLER: ProxyTraps = ProxyTraps {
 };
 
 #[allow(unsafe_code)]
-unsafe extern fn finalize(_fop: *mut FreeOp, obj: *mut JSObject) {
+unsafe extern fn finalize(_fop: *mut JSFreeOp, obj: *mut JSObject) {
     let this = GetProxyExtra(obj, 0).to_private() as *mut BrowsingContext;
     assert!(!this.is_null());
     let _ = Box::from_raw(this);

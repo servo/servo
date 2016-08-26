@@ -1995,7 +1995,7 @@ class CGDOMJSClass(CGThing):
         elif self.descriptor.weakReferenceable:
             args["slots"] = "2"
         return """\
-static CLASS_OPS: js::jsapi::ClassOps = js::jsapi::ClassOps {
+static CLASS_OPS: js::jsapi::JSClassOps = js::jsapi::JSClassOps {
     addProperty: None,
     delProperty: None,
     getProperty: None,
@@ -2011,15 +2011,13 @@ static CLASS_OPS: js::jsapi::ClassOps = js::jsapi::ClassOps {
 };
 
 static Class: DOMJSClass = DOMJSClass {
-    base: js::jsapi::Class {
+    base: js::jsapi::JSClass {
         name: %(name)s as *const u8 as *const libc::c_char,
         flags: JSCLASS_IS_DOMJSCLASS | %(flags)s |
                (((%(slots)s) & JSCLASS_RESERVED_SLOTS_MASK) << JSCLASS_RESERVED_SLOTS_SHIFT)
                /* JSCLASS_HAS_RESERVED_SLOTS(%(slots)s) */,
         cOps: &CLASS_OPS,
-        spec: ptr::null(),
-        ext: ptr::null(),
-        oOps: ptr::null(),
+        reserved: [0 as *mut _; 3],
     },
     dom_class: %(domClass)s
 };""" % args
@@ -2391,7 +2389,7 @@ rooted!(in(cx) let obj = obj);\
 """ % (descriptor.name, parent)
     else:
         create += ("rooted!(in(cx) let obj = JS_NewObjectWithGivenProto(\n"
-                   "    cx, &Class.base as *const js::jsapi::Class as *const JSClass, proto.handle()));\n"
+                   "    cx, &Class.base as *const JSClass, proto.handle()));\n"
                    "assert!(!obj.is_null());\n"
                    "\n"
                    "JS_SetReservedSlot(obj.get(), DOM_OBJECT_SLOT,\n"
@@ -2530,7 +2528,7 @@ let _rt = RootedTraceable::new(&*raw);
 rooted!(in(cx) let mut obj = ptr::null_mut());
 create_global_object(
     cx,
-    &*(&Class.base as *const js::jsapi::Class as *const _),
+    &Class.base,
     raw as *const libc::c_void,
     _trace,
     obj.handle_mut());
@@ -2842,7 +2840,7 @@ assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
                 holderClass = "ptr::null()"
                 holderProto = "HandleObject::null()"
             else:
-                holderClass = "&Class.base as *const js::jsapi::Class as *const JSClass"
+                holderClass = "&Class.base as *const JSClass"
                 holderProto = "prototype.handle()"
             code.append(CGGeneric("""
 rooted!(in(cx) let mut unforgeable_holder = ptr::null_mut());
@@ -5205,7 +5203,7 @@ class CGClassFinalizeHook(CGAbstractClassHook):
     A hook for finalize, used to release our native object.
     """
     def __init__(self, descriptor):
-        args = [Argument('*mut FreeOp', '_fop'), Argument('*mut JSObject', 'obj')]
+        args = [Argument('*mut JSFreeOp', '_fop'), Argument('*mut JSObject', 'obj')]
         CGAbstractClassHook.__init__(self, descriptor, FINALIZE_HOOK_NAME,
                                      'void', args)
 
@@ -5326,7 +5324,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::{JS_CALLEE, JSCLASS_GLOBAL_SLOT_COUNT}',
         'js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL, JSCLASS_RESERVED_SLOTS_MASK}',
         'js::error::throw_type_error',
-        'js::jsapi::{AutoIdVector, Call, CallArgs, FreeOp, GetPropertyKeys}',
+        'js::jsapi::{AutoIdVector, Call, CallArgs, GetPropertyKeys}',
         'js::jsapi::{GetWellKnownSymbol, Handle, HandleId, HandleObject, HandleValue}',
         'js::jsapi::{HandleValueArray, INTERNED_STRING_TO_JSID, IsCallable}',
         'js::jsapi::{JS_AtomizeAndPinString, JS_CallFunctionValue, JS_CopyPropertiesFrom}',
