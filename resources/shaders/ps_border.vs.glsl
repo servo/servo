@@ -109,11 +109,17 @@ void main(void) {
     // x1 - x0 is the width of the corner / line.
     float width = x1 - x0;
     float height = y1 - y0;
+
+    // The fragment shader needs to calculate the distance from the bisecting line
+    // to properly mix border colors. For transformed borders, we calculate this distance
+    // in the fragment shader itself. For non-transformed borders, we can use the
+    // interpolator.
 #ifdef WR_FEATURE_TRANSFORM
-    vSizeInfo = vec4(x0, y0, width, height);
+    vPieceRect = vec4(x0, y0, width, height);
+    vPieceRectHypotenuseLength = sqrt(pow(width, 2) + pow(height, 2));
 #else
-    // This is just a weighting of the pixel colors it seems?
-    vF = (vi.local_clamped_pos.x - x0) * height - (vi.local_clamped_pos.y - y0) * width;
+    vDistanceFromMixLine = (vi.local_clamped_pos.x - x0) * height -
+                           (vi.local_clamped_pos.y - y0) * width;
 
     // These are in device space
     vDevicePos = vi.global_clamped_pos;
