@@ -952,7 +952,7 @@ impl<'a, T: Reflectable> ScriptHelpers for &'a T {
                                   code.len() as libc::size_t,
                                   rval) {
                         debug!("error evaluating JS string");
-                        report_pending_exception(cx, globalhandle.get());
+                        report_pending_exception(cx);
                     }
                 }
 

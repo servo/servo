@@ -13,9 +13,7 @@ use dom::bindings::str::USVString;
 use dom::domexception::{DOMErrorName, DOMException};
 use js::error::{throw_range_error, throw_type_error};
 use js::jsapi::HandleObject;
-use js::jsapi::JSAutoCompartment;
 use js::jsapi::JSContext;
-use js::jsapi::JSObject;
 use js::jsapi::JS_ClearPendingException;
 use js::jsapi::JS_ErrorFromException;
 use js::jsapi::JS_GetPendingException;
@@ -194,9 +192,8 @@ impl ErrorInfo {
 }
 
 /// Report a pending exception, thereby clearing it.
-pub unsafe fn report_pending_exception(cx: *mut JSContext, obj: *mut JSObject) {
+pub unsafe fn report_pending_exception(cx: *mut JSContext) {
     if JS_IsExceptionPending(cx) {
-        let _ac = JSAutoCompartment::new(cx, obj);
         rooted!(in(cx) let mut value = UndefinedValue());
         if !JS_GetPendingException(cx, value.handle_mut()) {
             JS_ClearPendingException(cx);
