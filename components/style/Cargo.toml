@@ -14,7 +14,7 @@ path = "lib.rs"
 [features]
 gecko = ["gecko_bindings", "gecko_string_cache"]
 servo = ["serde", "serde/unstable", "serde_macros", "heapsize", "heapsize_plugin",
-         "style_traits/servo", "app_units/plugins",
+         "style_traits/servo", "app_units/plugins", "ipc-channel", "script_traits",
          "cssparser/heap_size", "cssparser/serde-serialization",
          "selectors/heap_size", "selectors/unstable", "string_cache",
          "url/heap_size", "plugins"]
@@ -31,7 +31,7 @@ gecko_bindings = {path = "../../ports/geckolib/gecko_bindings", optional = true}
 gecko_string_cache = {path = "../../ports/geckolib/string_cache", optional = true}
 heapsize = {version = "0.3.0", optional = true}
 heapsize_plugin = {version = "0.1.2", optional = true}
-ipc-channel = "0.5"
+ipc-channel = {version = "0.5", optional = true}
 lazy_static = "0.2"
 log = "0.3.5"
 matches = "0.1"
@@ -41,7 +41,7 @@ ordered-float = "0.2.2"
 quickersort = "2.0.0"
 rand = "0.3"
 rustc-serialize = "0.3"
-script_traits = {path = "../script_traits"}
+script_traits = {path = "../script_traits", optional = true}
 selectors = "0.12"
 serde = {version = "0.8", optional = true}
 serde_macros = {version = "0.8", optional = true}

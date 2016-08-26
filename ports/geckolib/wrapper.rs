@@ -41,7 +41,7 @@ use std::ptr;
 use std::sync::Arc;
 use style::data::PrivateStyleData;
 use style::dom::{OpaqueNode, PresentationalHintsSynthetizer};
-use style::dom::{TDocument, TElement, TNode, TRestyleDamage, UnsafeNode};
+use style::dom::{TDocument, TElement, TNode, TRestyleDamage};
 use style::element_state::ElementState;
 use style::error_reporting::StdoutErrorReporter;
 use style::gecko_selector_impl::{GeckoSelectorImpl, NonTSPseudoClass, PseudoElement};
@@ -52,6 +52,7 @@ use style::refcell::{Ref, RefCell, RefMut};
 use style::selector_impl::ElementExt;
 use style::selector_matching::DeclarationBlock;
 use style::sink::Push;
+use style_traits::UnsafeNode;
 use url::Url;
 
 pub type NonOpaqueStyleData = RefCell<PrivateStyleData>;

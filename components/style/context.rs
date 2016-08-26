@@ -9,9 +9,9 @@ use app_units::Au;
 use dom::OpaqueNode;
 use error_reporting::ParseErrorReporter;
 use euclid::Size2D;
-use ipc_channel::ipc::IpcSender;
+#[cfg(feature = "servo")] use ipc_channel::ipc::IpcSender;
 use matching::{ApplicableDeclarationsCache, StyleSharingCandidateCache};
-use script_traits::ConstellationControlMsg;
+#[cfg(feature = "servo")] use script_traits::ConstellationControlMsg;
 use selector_matching::Stylist;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -20,16 +20,32 @@ use std::sync::{Arc, Mutex, RwLock};
 use timer::Timer;
 
 /// This structure is used to create a local style context from a shared one.
+#[cfg(feature = "servo")]
 pub struct LocalStyleContextCreationInfo {
     new_animations_sender: Sender<Animation>,
     script_chan: IpcSender<ConstellationControlMsg>,
 }
 
+#[cfg(feature = "servo")]
 impl LocalStyleContextCreationInfo {
     pub fn new(animations_sender: Sender<Animation>, script_chan: IpcSender<ConstellationControlMsg>) -> Self {
         LocalStyleContextCreationInfo {
             new_animations_sender: animations_sender,
             script_chan: script_chan,
+        }
+    }
+}
+/// This structure is used to create a local style context from a shared one.
+#[cfg(feature = "gecko")]
+pub struct LocalStyleContextCreationInfo {
+    new_animations_sender: Sender<Animation>,
+}
+
+#[cfg(feature = "gecko")]
+impl LocalStyleContextCreationInfo {
+    pub fn new(animations_sender: Sender<Animation>) -> Self {
+        LocalStyleContextCreationInfo {
+            new_animations_sender: animations_sender,
         }
     }
 }
@@ -68,6 +84,7 @@ pub struct SharedStyleContext {
     pub timer: Timer,
 }
 
+#[cfg(feature = "servo")]
 pub struct LocalStyleContext {
     pub applicable_declarations_cache: RefCell<ApplicableDeclarationsCache>,
     pub style_sharing_candidate_cache: RefCell<StyleSharingCandidateCache>,
@@ -79,6 +96,16 @@ pub struct LocalStyleContext {
     pub script_chan: IpcSender<ConstellationControlMsg>,
 }
 
+#[cfg(feature = "gecko")]
+pub struct LocalStyleContext {
+    pub applicable_declarations_cache: RefCell<ApplicableDeclarationsCache>,
+    pub style_sharing_candidate_cache: RefCell<StyleSharingCandidateCache>,
+    /// A channel on which new animations that have been triggered by style
+    /// recalculation can be sent.
+    pub new_animations_sender: Sender<Animation>,
+}
+
+#[cfg(feature = "servo")]
 impl LocalStyleContext {
     pub fn new(local_context_creation_data: &LocalStyleContextCreationInfo) -> Self {
         LocalStyleContext {
@@ -86,6 +113,17 @@ impl LocalStyleContext {
             style_sharing_candidate_cache: RefCell::new(StyleSharingCandidateCache::new()),
             new_animations_sender: local_context_creation_data.new_animations_sender.clone(),
             script_chan: local_context_creation_data.script_chan.clone(),
+        }
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl LocalStyleContext {
+    pub fn new(local_context_creation_data: &LocalStyleContextCreationInfo) -> Self {
+        LocalStyleContext {
+            applicable_declarations_cache: RefCell::new(ApplicableDeclarationsCache::new()),
+            style_sharing_candidate_cache: RefCell::new(StyleSharingCandidateCache::new()),
+            new_animations_sender: local_context_creation_data.new_animations_sender.clone(),
         }
     }
 }

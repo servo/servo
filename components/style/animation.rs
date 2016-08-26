@@ -16,7 +16,7 @@ use properties::longhands::animation_play_state::computed_value::AnimationPlaySt
 use properties::longhands::transition_timing_function::computed_value::StartEnd;
 use properties::longhands::transition_timing_function::computed_value::TransitionTimingFunction;
 use properties::{self, ComputedValues, Importance};
-use script_traits::ConstellationControlMsg;
+#[cfg(feature = "servo")] use script_traits::ConstellationControlMsg;
 use selector_matching::DeclarationBlock;
 use std::sync::Arc;
 use std::sync::mpsc::Sender;
@@ -665,6 +665,7 @@ pub fn update_style_for_animation(context: &SharedStyleContext,
 }
 
 /// Update the style in the node when it finishes.
+#[cfg(feature = "servo")]
 pub fn complete_expired_transitions(node: OpaqueNode, unsafe_node: UnsafeNode, style: &mut Arc<ComputedValues>,
                                     context: &StyleContext) -> bool {
     let had_animations_to_expire;
@@ -683,6 +684,32 @@ pub fn complete_expired_transitions(node: OpaqueNode, unsafe_node: UnsafeNode, s
                                                                          frame.duration);
                         let _ = context.local_context().script_chan.send(msg);
                     }
+                }
+            }
+        }
+    }
+
+    if had_animations_to_expire {
+        context.shared_context().expired_animations.write().unwrap().remove(&node);
+    }
+
+    had_animations_to_expire
+}
+
+/// Update the style in the node when it finishes.
+#[cfg(feature = "gecko")]
+pub fn complete_expired_transitions(node: OpaqueNode, _unsafe_node: UnsafeNode, style: &mut Arc<ComputedValues>,
+                                    context: &StyleContext) -> bool {
+    let had_animations_to_expire;
+    {
+        let all_expired_animations = context.shared_context().expired_animations.read().unwrap();
+        let animations_to_expire = all_expired_animations.get(&node);
+        had_animations_to_expire = animations_to_expire.is_some();
+        if let Some(ref animations) = animations_to_expire {
+            for animation in *animations {
+                // TODO: support animation-fill-mode
+                if let Animation::Transition(_, _, ref frame, _) = *animation {
+                    frame.property_animation.update(Arc::make_mut(style), 1.0);
                 }
             }
         }
