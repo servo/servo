@@ -1670,7 +1670,8 @@ class AttrDefiner(PropertyDefiner):
                        "native": accessor})
 
         def setter(attr):
-            if attr.readonly and not attr.getExtendedAttribute("PutForwards"):
+            if (attr.readonly and not attr.getExtendedAttribute("PutForwards")
+                    and not attr.getExtendedAttribute("Replaceable")):
                 return "JSNativeWrapper { op: None, info: 0 as *const JSJitInfo }"
 
             if self.static:
@@ -3496,6 +3497,23 @@ JS_SetProperty(cx, target_obj.handle(), %s as *const u8 as *const libc::c_char, 
 """ % (str_to_const_array(attrName), attrName, str_to_const_array(forwardToAttrName)))
 
 
+class CGSpecializedReplaceableSetter(CGSpecializedSetter):
+    """
+    A class for generating the code for an IDL replaceable attribute setter.
+    """
+    def __init__(self, descriptor, attr):
+        CGSpecializedSetter.__init__(self, descriptor, attr)
+
+    def definition_body(self):
+        assert self.attr.readonly
+        name = str_to_const_array(self.attr.identifier.name)
+        # JS_DefineProperty can only deal with ASCII.
+        assert all(ord(c) < 128 for c in name)
+        return CGGeneric("""\
+JS_DefineProperty(cx, obj, %s as *const u8 as *const libc::c_char,
+                  args.get(0), JSPROP_ENUMERATE, None, None)""" % name)
+
+
 class CGMemberJITInfo(CGThing):
     """
     A class for generating the JITInfo for a property that points to
@@ -3608,7 +3626,8 @@ class CGMemberJITInfo(CGThing):
                                         isAlwaysInSlot, isLazilyCachedInSlot,
                                         slotIndex,
                                         [self.member.type], None)
-            if (not self.member.readonly or self.member.getExtendedAttribute("PutForwards")):
+            if (not self.member.readonly or self.member.getExtendedAttribute("PutForwards")
+                    or self.member.getExtendedAttribute("Replaceable")):
                 setterinfo = ("%s_setterinfo" % internalMemberName)
                 setter = ("set_%s" % internalMemberName)
                 # Setters are always fallible, since they have to do a typed unwrap.
@@ -5307,12 +5326,13 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::{JS_CALLEE, JSCLASS_GLOBAL_SLOT_COUNT}',
         'js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL, JSCLASS_RESERVED_SLOTS_MASK}',
         'js::error::throw_type_error',
-        'js::jsapi::{AutoIdVector, Call, CallArgs, FreeOp, GetPropertyKeys, GetWellKnownSymbol}',
-        'js::jsapi::{Handle, HandleId, HandleObject, HandleValue, HandleValueArray}',
-        'js::jsapi::{INTERNED_STRING_TO_JSID, IsCallable, JS_AtomizeAndPinString}',
-        'js::jsapi::{JS_CallFunctionValue, JS_CopyPropertiesFrom, JS_DefinePropertyById2}',
-        'js::jsapi::{JS_ForwardGetPropertyTo, JS_GetClass, JS_GetErrorPrototype}',
-        'js::jsapi::{JS_GetFunctionPrototype, JS_GetGlobalForObject, JS_GetIteratorPrototype}',
+        'js::jsapi::{AutoIdVector, Call, CallArgs, FreeOp, GetPropertyKeys}',
+        'js::jsapi::{GetWellKnownSymbol, Handle, HandleId, HandleObject, HandleValue}',
+        'js::jsapi::{HandleValueArray, INTERNED_STRING_TO_JSID, IsCallable}',
+        'js::jsapi::{JS_AtomizeAndPinString, JS_CallFunctionValue, JS_CopyPropertiesFrom}',
+        'js::jsapi::{JS_DefineProperty, JS_DefinePropertyById2, JS_ForwardGetPropertyTo}',
+        'js::jsapi::{JS_GetClass, JS_GetErrorPrototype, JS_GetFunctionPrototype}',
+        'js::jsapi::{JS_GetGlobalForObject, JS_GetIteratorPrototype}',
         'js::jsapi::{JS_GetObjectPrototype, JS_GetProperty, JS_GetPropertyById}',
         'js::jsapi::{JS_GetPropertyDescriptorById, JS_GetReservedSlot, JS_HasProperty}',
         'js::jsapi::{JS_HasPropertyById, JS_InitializePropertiesFromCompatibleNativeObject}',
@@ -5460,6 +5480,8 @@ class CGDescriptor(CGThing):
                         cgThings.append(CGSpecializedSetter(descriptor, m))
                 elif m.getExtendedAttribute("PutForwards"):
                     cgThings.append(CGSpecializedForwardingSetter(descriptor, m))
+                elif m.getExtendedAttribute("Replaceable"):
+                    cgThings.append(CGSpecializedReplaceableSetter(descriptor, m))
 
                 if (not m.isStatic() and not descriptor.interface.isCallback()):
                     cgThings.append(CGMemberJITInfo(descriptor, m))
