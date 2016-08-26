@@ -247,8 +247,7 @@ pub struct CefValue {
 impl Clone for CefValue {
   fn clone(&self) -> CefValue{
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefValue {
@@ -261,8 +260,7 @@ impl Clone for CefValue {
 impl Drop for CefValue {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -277,8 +275,7 @@ impl CefValue {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_value_t) -> CefValue {
-    if !c_object.is_null() &&
-        c_object as usize != mem::POST_DROP_USIZE {
+    if !c_object.is_null() {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefValue {
@@ -292,8 +289,7 @@ impl CefValue {
 
   pub fn c_object_addrefed(&self) -> *mut cef_value_t {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -301,10 +297,10 @@ impl CefValue {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
+    self.c_object.is_null()
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
+    !self.c_object.is_null()
   }
 
   //
@@ -316,8 +312,7 @@ impl CefValue {
   // invalid.
   //
   pub fn is_valid(&self) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -331,8 +326,7 @@ impl CefValue {
   // Returns true (1) if the underlying data is owned by another object.
   //
   pub fn is_owned(&self) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -347,8 +341,7 @@ impl CefValue {
   // read-only objects.
   //
   pub fn is_read_only(&self) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -364,8 +357,7 @@ impl CefValue {
   // object and vice-versa.
   //
   pub fn is_same(&self, that: interfaces::CefValue) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -381,8 +373,7 @@ impl CefValue {
   // underlying value but are not necessarily the same object.
   //
   pub fn is_equal(&self, that: interfaces::CefValue) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -397,8 +388,7 @@ impl CefValue {
   // Returns a copy of this object. The underlying data will also be copied.
   //
   pub fn copy(&self) -> interfaces::CefValue {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -412,8 +402,7 @@ impl CefValue {
   // Returns the underlying value type.
   //
   pub fn get_type(&self) -> interfaces::CefValueType {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -427,8 +416,7 @@ impl CefValue {
   // Returns the underlying value as type bool.
   //
   pub fn get_bool(&self) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -442,8 +430,7 @@ impl CefValue {
   // Returns the underlying value as type int.
   //
   pub fn get_int(&self) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -457,8 +444,7 @@ impl CefValue {
   // Returns the underlying value as type double.
   //
   pub fn get_double(&self) -> libc::c_double {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -473,8 +459,7 @@ impl CefValue {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_string(&self) -> String {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -493,8 +478,7 @@ impl CefValue {
   // set_binary().
   //
   pub fn get_binary(&self) -> interfaces::CefBinaryValue {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -513,8 +497,7 @@ impl CefValue {
   // set_dictionary().
   //
   pub fn get_dictionary(&self) -> interfaces::CefDictionaryValue {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -533,8 +516,7 @@ impl CefValue {
   // set_list().
   //
   pub fn get_list(&self) -> interfaces::CefListValue {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -549,8 +531,7 @@ impl CefValue {
   // set successfully.
   //
   pub fn set_null(&self) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -565,8 +546,7 @@ impl CefValue {
   // set successfully.
   //
   pub fn set_bool(&self, value: libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -582,8 +562,7 @@ impl CefValue {
   // set successfully.
   //
   pub fn set_int(&self, value: libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -599,8 +578,7 @@ impl CefValue {
   // set successfully.
   //
   pub fn set_double(&self, value: libc::c_double) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -616,8 +594,7 @@ impl CefValue {
   // set successfully.
   //
   pub fn set_string(&self, value: &[u16]) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -634,8 +611,7 @@ impl CefValue {
   // the underlying data remains unchanged.
   //
   pub fn set_binary(&self, value: interfaces::CefBinaryValue) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -653,8 +629,7 @@ impl CefValue {
   //
   pub fn set_dictionary(&self,
       value: interfaces::CefDictionaryValue) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -671,8 +646,7 @@ impl CefValue {
   // the underlying data remains unchanged.
   //
   pub fn set_list(&self, value: interfaces::CefListValue) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -711,8 +685,7 @@ impl CefWrap<*mut cef_value_t> for Option<CefValue> {
     }
   }
   unsafe fn to_rust(c_object: *mut cef_value_t) -> Option<CefValue> {
-    if c_object.is_null() &&
-       c_object as usize != mem::POST_DROP_USIZE {
+    if c_object.is_null() {
       None
     } else {
       Some(CefValue::from_c_object_addref(c_object))
@@ -804,8 +777,7 @@ pub struct CefBinaryValue {
 impl Clone for CefBinaryValue {
   fn clone(&self) -> CefBinaryValue{
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefBinaryValue {
@@ -818,8 +790,7 @@ impl Clone for CefBinaryValue {
 impl Drop for CefBinaryValue {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -834,8 +805,7 @@ impl CefBinaryValue {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_binary_value_t) -> CefBinaryValue {
-    if !c_object.is_null() &&
-        c_object as usize != mem::POST_DROP_USIZE {
+    if !c_object.is_null() {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefBinaryValue {
@@ -849,8 +819,7 @@ impl CefBinaryValue {
 
   pub fn c_object_addrefed(&self) -> *mut cef_binary_value_t {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -858,10 +827,10 @@ impl CefBinaryValue {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
+    self.c_object.is_null()
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
+    !self.c_object.is_null()
   }
 
   //
@@ -871,8 +840,7 @@ impl CefBinaryValue {
   // functions if this function returns false (0).
   //
   pub fn is_valid(&self) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -886,8 +854,7 @@ impl CefBinaryValue {
   // Returns true (1) if this object is currently owned by another object.
   //
   pub fn is_owned(&self) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -902,8 +869,7 @@ impl CefBinaryValue {
   // data.
   //
   pub fn is_same(&self, that: interfaces::CefBinaryValue) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -919,8 +885,7 @@ impl CefBinaryValue {
   // underlying value but are not necessarily the same object.
   //
   pub fn is_equal(&self, that: interfaces::CefBinaryValue) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -935,8 +900,7 @@ impl CefBinaryValue {
   // Returns a copy of this object. The data in this object will also be copied.
   //
   pub fn copy(&self) -> interfaces::CefBinaryValue {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -950,8 +914,7 @@ impl CefBinaryValue {
   // Returns the data size.
   //
   pub fn get_size(&self) -> libc::size_t {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -967,8 +930,7 @@ impl CefBinaryValue {
   //
   pub fn get_data(&self, buffer: &mut (), buffer_size: libc::size_t,
       data_offset: libc::size_t) -> libc::size_t {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -1012,8 +974,7 @@ impl CefWrap<*mut cef_binary_value_t> for Option<CefBinaryValue> {
     }
   }
   unsafe fn to_rust(c_object: *mut cef_binary_value_t) -> Option<CefBinaryValue> {
-    if c_object.is_null() &&
-       c_object as usize != mem::POST_DROP_USIZE {
+    if c_object.is_null() {
       None
     } else {
       Some(CefBinaryValue::from_c_object_addref(c_object))
@@ -1278,8 +1239,7 @@ pub struct CefDictionaryValue {
 impl Clone for CefDictionaryValue {
   fn clone(&self) -> CefDictionaryValue{
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefDictionaryValue {
@@ -1292,8 +1252,7 @@ impl Clone for CefDictionaryValue {
 impl Drop for CefDictionaryValue {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -1308,8 +1267,7 @@ impl CefDictionaryValue {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_dictionary_value_t) -> CefDictionaryValue {
-    if !c_object.is_null() &&
-        c_object as usize != mem::POST_DROP_USIZE {
+    if !c_object.is_null() {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefDictionaryValue {
@@ -1323,8 +1281,7 @@ impl CefDictionaryValue {
 
   pub fn c_object_addrefed(&self) -> *mut cef_dictionary_value_t {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -1332,10 +1289,10 @@ impl CefDictionaryValue {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
+    self.c_object.is_null()
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
+    !self.c_object.is_null()
   }
 
   //
@@ -1345,8 +1302,7 @@ impl CefDictionaryValue {
   // functions if this function returns false (0).
   //
   pub fn is_valid(&self) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -1360,8 +1316,7 @@ impl CefDictionaryValue {
   // Returns true (1) if this object is currently owned by another object.
   //
   pub fn is_owned(&self) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -1376,8 +1331,7 @@ impl CefDictionaryValue {
   // expose read-only objects.
   //
   pub fn is_read_only(&self) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -1393,8 +1347,7 @@ impl CefDictionaryValue {
   // object and vice-versa.
   //
   pub fn is_same(&self, that: interfaces::CefDictionaryValue) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -1410,8 +1363,7 @@ impl CefDictionaryValue {
   // underlying value but are not necessarily the same object.
   //
   pub fn is_equal(&self, that: interfaces::CefDictionaryValue) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -1428,8 +1380,7 @@ impl CefDictionaryValue {
   //
   pub fn copy(&self,
       exclude_empty_children: libc::c_int) -> interfaces::CefDictionaryValue {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -1444,8 +1395,7 @@ impl CefDictionaryValue {
   // Returns the number of values.
   //
   pub fn get_size(&self) -> libc::size_t {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -1459,8 +1409,7 @@ impl CefDictionaryValue {
   // Removes all values. Returns true (1) on success.
   //
   pub fn clear(&self) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -1474,8 +1423,7 @@ impl CefDictionaryValue {
   // Returns true (1) if the current dictionary has a value for the given key.
   //
   pub fn has_key(&self, key: &[u16]) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -1490,8 +1438,7 @@ impl CefDictionaryValue {
   // Reads all keys for this dictionary into the specified vector.
   //
   pub fn get_keys(&self, keys: &Vec<String>) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -1507,8 +1454,7 @@ impl CefDictionaryValue {
   // removed successfully.
   //
   pub fn remove(&self, key: &[u16]) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -1523,8 +1469,7 @@ impl CefDictionaryValue {
   // Returns the value type for the specified key.
   //
   pub fn get_type(&self, key: &[u16]) -> interfaces::CefValueType {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -1543,8 +1488,7 @@ impl CefDictionaryValue {
   // this object.
   //
   pub fn get_value(&self, key: &[u16]) -> interfaces::CefValue {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -1559,8 +1503,7 @@ impl CefDictionaryValue {
   // Returns the value at the specified key as type bool.
   //
   pub fn get_bool(&self, key: &[u16]) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -1575,8 +1518,7 @@ impl CefDictionaryValue {
   // Returns the value at the specified key as type int.
   //
   pub fn get_int(&self, key: &[u16]) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -1591,8 +1533,7 @@ impl CefDictionaryValue {
   // Returns the value at the specified key as type double.
   //
   pub fn get_double(&self, key: &[u16]) -> libc::c_double {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -1608,8 +1549,7 @@ impl CefDictionaryValue {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_string(&self, key: &[u16]) -> String {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -1625,8 +1565,7 @@ impl CefDictionaryValue {
   // will reference existing data.
   //
   pub fn get_binary(&self, key: &[u16]) -> interfaces::CefBinaryValue {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -1643,8 +1582,7 @@ impl CefDictionaryValue {
   // modify this object.
   //
   pub fn get_dictionary(&self, key: &[u16]) -> interfaces::CefDictionaryValue {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -1661,8 +1599,7 @@ impl CefDictionaryValue {
   // this object.
   //
   pub fn get_list(&self, key: &[u16]) -> interfaces::CefListValue {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -1683,8 +1620,7 @@ impl CefDictionaryValue {
   //
   pub fn set_value(&self, key: &[u16],
       value: interfaces::CefValue) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -1701,8 +1637,7 @@ impl CefDictionaryValue {
   // value was set successfully.
   //
   pub fn set_null(&self, key: &[u16]) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -1718,8 +1653,7 @@ impl CefDictionaryValue {
   // value was set successfully.
   //
   pub fn set_bool(&self, key: &[u16], value: libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -1736,8 +1670,7 @@ impl CefDictionaryValue {
   // value was set successfully.
   //
   pub fn set_int(&self, key: &[u16], value: libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -1754,8 +1687,7 @@ impl CefDictionaryValue {
   // value was set successfully.
   //
   pub fn set_double(&self, key: &[u16], value: libc::c_double) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -1772,8 +1704,7 @@ impl CefDictionaryValue {
   // value was set successfully.
   //
   pub fn set_string(&self, key: &[u16], value: &[u16]) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -1794,8 +1725,7 @@ impl CefDictionaryValue {
   //
   pub fn set_binary(&self, key: &[u16],
       value: interfaces::CefBinaryValue) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -1816,8 +1746,7 @@ impl CefDictionaryValue {
   //
   pub fn set_dictionary(&self, key: &[u16],
       value: interfaces::CefDictionaryValue) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -1838,8 +1767,7 @@ impl CefDictionaryValue {
   //
   pub fn set_list(&self, key: &[u16],
       value: interfaces::CefListValue) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -1879,8 +1807,7 @@ impl CefWrap<*mut cef_dictionary_value_t> for Option<CefDictionaryValue> {
     }
   }
   unsafe fn to_rust(c_object: *mut cef_dictionary_value_t) -> Option<CefDictionaryValue> {
-    if c_object.is_null() &&
-       c_object as usize != mem::POST_DROP_USIZE {
+    if c_object.is_null() {
       None
     } else {
       Some(CefDictionaryValue::from_c_object_addref(c_object))
@@ -2133,8 +2060,7 @@ pub struct CefListValue {
 impl Clone for CefListValue {
   fn clone(&self) -> CefListValue{
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefListValue {
@@ -2147,8 +2073,7 @@ impl Clone for CefListValue {
 impl Drop for CefListValue {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -2163,8 +2088,7 @@ impl CefListValue {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_list_value_t) -> CefListValue {
-    if !c_object.is_null() &&
-        c_object as usize != mem::POST_DROP_USIZE {
+    if !c_object.is_null() {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefListValue {
@@ -2178,8 +2102,7 @@ impl CefListValue {
 
   pub fn c_object_addrefed(&self) -> *mut cef_list_value_t {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -2187,10 +2110,10 @@ impl CefListValue {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
+    self.c_object.is_null()
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
+    !self.c_object.is_null()
   }
 
   //
@@ -2200,8 +2123,7 @@ impl CefListValue {
   // functions if this function returns false (0).
   //
   pub fn is_valid(&self) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -2215,8 +2137,7 @@ impl CefListValue {
   // Returns true (1) if this object is currently owned by another object.
   //
   pub fn is_owned(&self) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -2231,8 +2152,7 @@ impl CefListValue {
   // expose read-only objects.
   //
   pub fn is_read_only(&self) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -2248,8 +2168,7 @@ impl CefListValue {
   // object and vice-versa.
   //
   pub fn is_same(&self, that: interfaces::CefListValue) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -2265,8 +2184,7 @@ impl CefListValue {
   // underlying value but are not necessarily the same object.
   //
   pub fn is_equal(&self, that: interfaces::CefListValue) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -2281,8 +2199,7 @@ impl CefListValue {
   // Returns a writable copy of this object.
   //
   pub fn copy(&self) -> interfaces::CefListValue {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -2297,8 +2214,7 @@ impl CefListValue {
   // value slots will default to type null. Returns true (1) on success.
   //
   pub fn set_size(&self, size: libc::size_t) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -2313,8 +2229,7 @@ impl CefListValue {
   // Returns the number of values.
   //
   pub fn get_size(&self) -> libc::size_t {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -2328,8 +2243,7 @@ impl CefListValue {
   // Removes all values. Returns true (1) on success.
   //
   pub fn clear(&self) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -2343,8 +2257,7 @@ impl CefListValue {
   // Removes the value at the specified index.
   //
   pub fn remove(&self, index: libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -2359,8 +2272,7 @@ impl CefListValue {
   // Returns the value type at the specified index.
   //
   pub fn get_type(&self, index: libc::c_int) -> interfaces::CefValueType {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -2379,8 +2291,7 @@ impl CefListValue {
   // will modify this object.
   //
   pub fn get_value(&self, index: libc::c_int) -> interfaces::CefValue {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -2395,8 +2306,7 @@ impl CefListValue {
   // Returns the value at the specified index as type bool.
   //
   pub fn get_bool(&self, index: libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -2411,8 +2321,7 @@ impl CefListValue {
   // Returns the value at the specified index as type int.
   //
   pub fn get_int(&self, index: libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -2427,8 +2336,7 @@ impl CefListValue {
   // Returns the value at the specified index as type double.
   //
   pub fn get_double(&self, index: libc::c_int) -> libc::c_double {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -2444,8 +2352,7 @@ impl CefListValue {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_string(&self, index: libc::c_int) -> String {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -2461,8 +2368,7 @@ impl CefListValue {
   // will reference existing data.
   //
   pub fn get_binary(&self, index: libc::c_int) -> interfaces::CefBinaryValue {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -2480,8 +2386,7 @@ impl CefListValue {
   //
   pub fn get_dictionary(&self,
       index: libc::c_int) -> interfaces::CefDictionaryValue {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -2498,8 +2403,7 @@ impl CefListValue {
   // this object.
   //
   pub fn get_list(&self, index: libc::c_int) -> interfaces::CefListValue {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -2520,8 +2424,7 @@ impl CefListValue {
   //
   pub fn set_value(&self, index: libc::c_int,
       value: interfaces::CefValue) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -2538,8 +2441,7 @@ impl CefListValue {
   // value was set successfully.
   //
   pub fn set_null(&self, index: libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -2556,8 +2458,7 @@ impl CefListValue {
   //
   pub fn set_bool(&self, index: libc::c_int,
       value: libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -2574,8 +2475,7 @@ impl CefListValue {
   // value was set successfully.
   //
   pub fn set_int(&self, index: libc::c_int, value: libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -2593,8 +2493,7 @@ impl CefListValue {
   //
   pub fn set_double(&self, index: libc::c_int,
       value: libc::c_double) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -2611,8 +2510,7 @@ impl CefListValue {
   // the value was set successfully.
   //
   pub fn set_string(&self, index: libc::c_int, value: &[u16]) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -2633,8 +2531,7 @@ impl CefListValue {
   //
   pub fn set_binary(&self, index: libc::c_int,
       value: interfaces::CefBinaryValue) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -2655,8 +2552,7 @@ impl CefListValue {
   //
   pub fn set_dictionary(&self, index: libc::c_int,
       value: interfaces::CefDictionaryValue) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -2677,8 +2573,7 @@ impl CefListValue {
   //
   pub fn set_list(&self, index: libc::c_int,
       value: interfaces::CefListValue) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -2718,8 +2613,7 @@ impl CefWrap<*mut cef_list_value_t> for Option<CefListValue> {
     }
   }
   unsafe fn to_rust(c_object: *mut cef_list_value_t) -> Option<CefListValue> {
-    if c_object.is_null() &&
-       c_object as usize != mem::POST_DROP_USIZE {
+    if c_object.is_null() {
       None
     } else {
       Some(CefListValue::from_c_object_addref(c_object))

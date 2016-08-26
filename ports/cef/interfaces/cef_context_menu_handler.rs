@@ -122,8 +122,7 @@ pub struct CefContextMenuHandler {
 impl Clone for CefContextMenuHandler {
   fn clone(&self) -> CefContextMenuHandler{
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefContextMenuHandler {
@@ -136,8 +135,7 @@ impl Clone for CefContextMenuHandler {
 impl Drop for CefContextMenuHandler {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -152,8 +150,7 @@ impl CefContextMenuHandler {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_context_menu_handler_t) -> CefContextMenuHandler {
-    if !c_object.is_null() &&
-        c_object as usize != mem::POST_DROP_USIZE {
+    if !c_object.is_null() {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefContextMenuHandler {
@@ -167,8 +164,7 @@ impl CefContextMenuHandler {
 
   pub fn c_object_addrefed(&self) -> *mut cef_context_menu_handler_t {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -176,10 +172,10 @@ impl CefContextMenuHandler {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
+    self.c_object.is_null()
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
+    !self.c_object.is_null()
   }
 
   //
@@ -192,8 +188,7 @@ impl CefContextMenuHandler {
   pub fn on_before_context_menu(&self, browser: interfaces::CefBrowser,
       frame: interfaces::CefFrame, params: interfaces::CefContextMenuParams,
       model: interfaces::CefMenuModel) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -220,8 +215,7 @@ impl CefContextMenuHandler {
       frame: interfaces::CefFrame, params: interfaces::CefContextMenuParams,
       command_id: libc::c_int,
       event_flags: types::cef_event_flags_t) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -242,8 +236,7 @@ impl CefContextMenuHandler {
   //
   pub fn on_context_menu_dismissed(&self, browser: interfaces::CefBrowser,
       frame: interfaces::CefFrame) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -272,8 +265,7 @@ impl CefWrap<*mut cef_context_menu_handler_t> for Option<CefContextMenuHandler> 
     }
   }
   unsafe fn to_rust(c_object: *mut cef_context_menu_handler_t) -> Option<CefContextMenuHandler> {
-    if c_object.is_null() &&
-       c_object as usize != mem::POST_DROP_USIZE {
+    if c_object.is_null() {
       None
     } else {
       Some(CefContextMenuHandler::from_c_object_addref(c_object))
@@ -450,8 +442,7 @@ pub struct CefContextMenuParams {
 impl Clone for CefContextMenuParams {
   fn clone(&self) -> CefContextMenuParams{
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefContextMenuParams {
@@ -464,8 +455,7 @@ impl Clone for CefContextMenuParams {
 impl Drop for CefContextMenuParams {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -480,8 +470,7 @@ impl CefContextMenuParams {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_context_menu_params_t) -> CefContextMenuParams {
-    if !c_object.is_null() &&
-        c_object as usize != mem::POST_DROP_USIZE {
+    if !c_object.is_null() {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefContextMenuParams {
@@ -495,8 +484,7 @@ impl CefContextMenuParams {
 
   pub fn c_object_addrefed(&self) -> *mut cef_context_menu_params_t {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -504,10 +492,10 @@ impl CefContextMenuParams {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
+    self.c_object.is_null()
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
+    !self.c_object.is_null()
   }
 
   //
@@ -515,8 +503,7 @@ impl CefContextMenuParams {
   // Coords are relative to the associated RenderView's origin.
   //
   pub fn get_xcoord(&self) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -531,8 +518,7 @@ impl CefContextMenuParams {
   // Coords are relative to the associated RenderView's origin.
   //
   pub fn get_ycoord(&self) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -547,8 +533,7 @@ impl CefContextMenuParams {
   // invoked on.
   //
   pub fn get_type_flags(&self) -> types::cef_context_menu_type_flags_t {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -564,8 +549,7 @@ impl CefContextMenuParams {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_link_url(&self) -> String {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -581,8 +565,7 @@ impl CefContextMenuParams {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_unfiltered_link_url(&self) -> String {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -598,8 +581,7 @@ impl CefContextMenuParams {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_source_url(&self) -> String {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -614,8 +596,7 @@ impl CefContextMenuParams {
   // NULL contents.
   //
   pub fn has_image_contents(&self) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -630,8 +611,7 @@ impl CefContextMenuParams {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_page_url(&self) -> String {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -646,8 +626,7 @@ impl CefContextMenuParams {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_frame_url(&self) -> String {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -663,8 +642,7 @@ impl CefContextMenuParams {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_frame_charset(&self) -> String {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -678,8 +656,7 @@ impl CefContextMenuParams {
   // Returns the type of context node that the context menu was invoked on.
   //
   pub fn get_media_type(&self) -> types::cef_context_menu_media_type_t {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -695,8 +672,7 @@ impl CefContextMenuParams {
   //
   pub fn get_media_state_flags(
       &self) -> types::cef_context_menu_media_state_flags_t {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -712,8 +688,7 @@ impl CefContextMenuParams {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_selection_text(&self) -> String {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -729,8 +704,7 @@ impl CefContextMenuParams {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_misspelled_word(&self) -> String {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -747,8 +721,7 @@ impl CefContextMenuParams {
   //
   pub fn get_dictionary_suggestions(&self,
       suggestions: &Vec<String>) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -763,8 +736,7 @@ impl CefContextMenuParams {
   // Returns true (1) if the context menu was invoked on an editable node.
   //
   pub fn is_editable(&self) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -779,8 +751,7 @@ impl CefContextMenuParams {
   // spell-check is enabled.
   //
   pub fn is_spell_check_enabled(&self) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -796,8 +767,7 @@ impl CefContextMenuParams {
   //
   pub fn get_edit_state_flags(
       &self) -> types::cef_context_menu_edit_state_flags_t {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -824,8 +794,7 @@ impl CefWrap<*mut cef_context_menu_params_t> for Option<CefContextMenuParams> {
     }
   }
   unsafe fn to_rust(c_object: *mut cef_context_menu_params_t) -> Option<CefContextMenuParams> {
-    if c_object.is_null() &&
-       c_object as usize != mem::POST_DROP_USIZE {
+    if c_object.is_null() {
       None
     } else {
       Some(CefContextMenuParams::from_c_object_addref(c_object))

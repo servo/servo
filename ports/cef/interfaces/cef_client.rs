@@ -179,8 +179,7 @@ pub struct CefClient {
 impl Clone for CefClient {
   fn clone(&self) -> CefClient{
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefClient {
@@ -193,8 +192,7 @@ impl Clone for CefClient {
 impl Drop for CefClient {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -209,8 +207,7 @@ impl CefClient {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_client_t) -> CefClient {
-    if !c_object.is_null() &&
-        c_object as usize != mem::POST_DROP_USIZE {
+    if !c_object.is_null() {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefClient {
@@ -224,8 +221,7 @@ impl CefClient {
 
   pub fn c_object_addrefed(&self) -> *mut cef_client_t {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -233,10 +229,10 @@ impl CefClient {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
+    self.c_object.is_null()
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
+    !self.c_object.is_null()
   }
 
   //
@@ -244,8 +240,7 @@ impl CefClient {
   // implementation will be used.
   //
   pub fn get_context_menu_handler(&self) -> interfaces::CefContextMenuHandler {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -260,8 +255,7 @@ impl CefClient {
   // implementation will be used.
   //
   pub fn get_dialog_handler(&self) -> interfaces::CefDialogHandler {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -275,8 +269,7 @@ impl CefClient {
   // Return the handler for browser display state events.
   //
   pub fn get_display_handler(&self) -> interfaces::CefDisplayHandler {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -291,8 +284,7 @@ impl CefClient {
   // will not be allowed.
   //
   pub fn get_download_handler(&self) -> interfaces::CefDownloadHandler {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -306,8 +298,7 @@ impl CefClient {
   // Return the handler for drag events.
   //
   pub fn get_drag_handler(&self) -> interfaces::CefDragHandler {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -321,8 +312,7 @@ impl CefClient {
   // Return the handler for find result events.
   //
   pub fn get_find_handler(&self) -> interfaces::CefFindHandler {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -336,8 +326,7 @@ impl CefClient {
   // Return the handler for focus events.
   //
   pub fn get_focus_handler(&self) -> interfaces::CefFocusHandler {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -352,8 +341,7 @@ impl CefClient {
   // provided geolocation access will be denied by default.
   //
   pub fn get_geolocation_handler(&self) -> interfaces::CefGeolocationHandler {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -368,8 +356,7 @@ impl CefClient {
   // default implementation will be used.
   //
   pub fn get_jsdialog_handler(&self) -> interfaces::CefJSDialogHandler {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -383,8 +370,7 @@ impl CefClient {
   // Return the handler for keyboard events.
   //
   pub fn get_keyboard_handler(&self) -> interfaces::CefKeyboardHandler {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -398,8 +384,7 @@ impl CefClient {
   // Return the handler for browser life span events.
   //
   pub fn get_life_span_handler(&self) -> interfaces::CefLifeSpanHandler {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -413,8 +398,7 @@ impl CefClient {
   // Return the handler for browser load status events.
   //
   pub fn get_load_handler(&self) -> interfaces::CefLoadHandler {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -428,8 +412,7 @@ impl CefClient {
   // Return the handler for off-screen rendering events.
   //
   pub fn get_render_handler(&self) -> interfaces::CefRenderHandler {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -443,8 +426,7 @@ impl CefClient {
   // Return the handler for browser request events.
   //
   pub fn get_request_handler(&self) -> interfaces::CefRequestHandler {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -462,8 +444,7 @@ impl CefClient {
   pub fn on_process_message_received(&self, browser: interfaces::CefBrowser,
       source_process: interfaces::CefProcessId,
       message: interfaces::CefProcessMessage) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -493,8 +474,7 @@ impl CefWrap<*mut cef_client_t> for Option<CefClient> {
     }
   }
   unsafe fn to_rust(c_object: *mut cef_client_t) -> Option<CefClient> {
-    if c_object.is_null() &&
-       c_object as usize != mem::POST_DROP_USIZE {
+    if c_object.is_null() {
       None
     } else {
       Some(CefClient::from_c_object_addref(c_object))

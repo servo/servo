@@ -94,8 +94,7 @@ pub struct CefAuthCallback {
 impl Clone for CefAuthCallback {
   fn clone(&self) -> CefAuthCallback{
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefAuthCallback {
@@ -108,8 +107,7 @@ impl Clone for CefAuthCallback {
 impl Drop for CefAuthCallback {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -124,8 +122,7 @@ impl CefAuthCallback {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_auth_callback_t) -> CefAuthCallback {
-    if !c_object.is_null() &&
-        c_object as usize != mem::POST_DROP_USIZE {
+    if !c_object.is_null() {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefAuthCallback {
@@ -139,8 +136,7 @@ impl CefAuthCallback {
 
   pub fn c_object_addrefed(&self) -> *mut cef_auth_callback_t {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -148,18 +144,17 @@ impl CefAuthCallback {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
+    self.c_object.is_null()
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
+    !self.c_object.is_null()
   }
 
   //
   // Continue the authentication request.
   //
   pub fn cont(&self, username: &[u16], password: &[u16]) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -175,8 +170,7 @@ impl CefAuthCallback {
   // Cancel the authentication request.
   //
   pub fn cancel(&self) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -203,8 +197,7 @@ impl CefWrap<*mut cef_auth_callback_t> for Option<CefAuthCallback> {
     }
   }
   unsafe fn to_rust(c_object: *mut cef_auth_callback_t) -> Option<CefAuthCallback> {
-    if c_object.is_null() &&
-       c_object as usize != mem::POST_DROP_USIZE {
+    if c_object.is_null() {
       None
     } else {
       Some(CefAuthCallback::from_c_object_addref(c_object))
