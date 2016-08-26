@@ -95,8 +95,7 @@ pub struct CefFindHandler {
 impl Clone for CefFindHandler {
   fn clone(&self) -> CefFindHandler{
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefFindHandler {
@@ -109,8 +108,7 @@ impl Clone for CefFindHandler {
 impl Drop for CefFindHandler {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -125,8 +123,7 @@ impl CefFindHandler {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_find_handler_t) -> CefFindHandler {
-    if !c_object.is_null() &&
-        c_object as usize != mem::POST_DROP_USIZE {
+    if !c_object.is_null() {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefFindHandler {
@@ -140,8 +137,7 @@ impl CefFindHandler {
 
   pub fn c_object_addrefed(&self) -> *mut cef_find_handler_t {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -149,10 +145,10 @@ impl CefFindHandler {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
+    self.c_object.is_null()
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
+    !self.c_object.is_null()
   }
 
   //
@@ -167,8 +163,7 @@ impl CefFindHandler {
       identifier: libc::c_int, count: libc::c_int,
       selectionRect: &types::cef_rect_t, activeMatchOrdinal: libc::c_int,
       finalUpdate: libc::c_int) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -201,8 +196,7 @@ impl CefWrap<*mut cef_find_handler_t> for Option<CefFindHandler> {
     }
   }
   unsafe fn to_rust(c_object: *mut cef_find_handler_t) -> Option<CefFindHandler> {
-    if c_object.is_null() &&
-       c_object as usize != mem::POST_DROP_USIZE {
+    if c_object.is_null() {
       None
     } else {
       Some(CefFindHandler::from_c_object_addref(c_object))

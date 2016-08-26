@@ -86,8 +86,7 @@ pub struct CefStringVisitor {
 impl Clone for CefStringVisitor {
   fn clone(&self) -> CefStringVisitor{
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefStringVisitor {
@@ -100,8 +99,7 @@ impl Clone for CefStringVisitor {
 impl Drop for CefStringVisitor {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -116,8 +114,7 @@ impl CefStringVisitor {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_string_visitor_t) -> CefStringVisitor {
-    if !c_object.is_null() &&
-        c_object as usize != mem::POST_DROP_USIZE {
+    if !c_object.is_null() {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefStringVisitor {
@@ -131,8 +128,7 @@ impl CefStringVisitor {
 
   pub fn c_object_addrefed(&self) -> *mut cef_string_visitor_t {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -140,18 +136,17 @@ impl CefStringVisitor {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
+    self.c_object.is_null()
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
+    !self.c_object.is_null()
   }
 
   //
   // Method that will be executed.
   //
   pub fn visit(&self, string: &[u16]) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -179,8 +174,7 @@ impl CefWrap<*mut cef_string_visitor_t> for Option<CefStringVisitor> {
     }
   }
   unsafe fn to_rust(c_object: *mut cef_string_visitor_t) -> Option<CefStringVisitor> {
-    if c_object.is_null() &&
-       c_object as usize != mem::POST_DROP_USIZE {
+    if c_object.is_null() {
       None
     } else {
       Some(CefStringVisitor::from_c_object_addref(c_object))

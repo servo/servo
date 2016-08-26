@@ -710,7 +710,7 @@ dependencies = [
  "servo-fontconfig 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "simd 0.1.1 (git+https://github.com/huonw/simd)",
  "smallvec 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
- "string_cache 0.2.24 (registry+https://github.com/rust-lang/crates.io-index)",
+ "string_cache 0.2.25 (registry+https://github.com/rust-lang/crates.io-index)",
  "style 0.0.1",
  "style_traits 0.0.1",
  "time 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -867,8 +867,8 @@ dependencies = [
  "phf 0.7.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "phf_codegen 0.7.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
- "string_cache 0.2.24 (registry+https://github.com/rust-lang/crates.io-index)",
- "tendril 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "string_cache 0.2.25 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tendril 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -994,7 +994,7 @@ dependencies = [
 [[package]]
 name = "js"
 version = "0.1.3"
-source = "git+https://github.com/servo/rust-mozjs#9a200eab19b0035a0a1634ef527058be4738a0f6"
+source = "git+https://github.com/servo/rust-mozjs#f06428fab33a6ae633584a1a7e1bf4e3ef7914b3"
 dependencies = [
  "cmake 0.1.17 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1075,7 +1075,7 @@ dependencies = [
  "selectors 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_macros 0.8.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "smallvec 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
- "string_cache 0.2.24 (registry+https://github.com/rust-lang/crates.io-index)",
+ "string_cache 0.2.25 (registry+https://github.com/rust-lang/crates.io-index)",
  "style 0.0.1",
  "style_traits 0.0.1",
  "unicode-bidi 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1790,7 +1790,7 @@ dependencies = [
  "selectors 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.8.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "smallvec 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
- "string_cache 0.2.24 (registry+https://github.com/rust-lang/crates.io-index)",
+ "string_cache 0.2.25 (registry+https://github.com/rust-lang/crates.io-index)",
  "style 0.0.1",
  "time 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)",
  "tinyfiledialogs 0.1.0 (git+https://github.com/jdm/tinyfiledialogs)",
@@ -1824,7 +1824,7 @@ dependencies = [
  "range 0.0.1",
  "script_traits 0.0.1",
  "selectors 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "string_cache 0.2.24 (registry+https://github.com/rust-lang/crates.io-index)",
+ "string_cache 0.2.25 (registry+https://github.com/rust-lang/crates.io-index)",
  "style 0.0.1",
  "url 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
@@ -1873,7 +1873,7 @@ dependencies = [
  "matches 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "quickersort 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "smallvec 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
- "string_cache 0.2.24 (registry+https://github.com/rust-lang/crates.io-index)",
+ "string_cache 0.2.25 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -2091,7 +2091,7 @@ dependencies = [
 
 [[package]]
 name = "string_cache"
-version = "0.2.24"
+version = "0.2.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "debug_unreachable 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2131,7 +2131,7 @@ dependencies = [
  "serde 0.8.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_macros 0.8.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "smallvec 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
- "string_cache 0.2.24 (registry+https://github.com/rust-lang/crates.io-index)",
+ "string_cache 0.2.25 (registry+https://github.com/rust-lang/crates.io-index)",
  "style_traits 0.0.1",
  "time 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2189,7 +2189,7 @@ dependencies = [
 
 [[package]]
 name = "tendril"
-version = "0.2.2"
+version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "encoding 0.2.32 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2574,8 +2574,8 @@ dependencies = [
  "phf 0.7.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "phf_codegen 0.7.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
- "string_cache 0.2.24 (registry+https://github.com/rust-lang/crates.io-index)",
- "tendril 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "string_cache 0.2.25 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tendril 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
