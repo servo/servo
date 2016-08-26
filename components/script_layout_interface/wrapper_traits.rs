@@ -80,7 +80,60 @@ pub trait LayoutNode: TNode {
 
     fn init_style_and_layout_data(&self, data: OpaqueStyleAndLayoutData);
     fn get_style_and_layout_data(&self) -> Option<OpaqueStyleAndLayoutData>;
+
+    fn rev_children(self) -> ReverseChildrenIterator<Self> {
+        ReverseChildrenIterator {
+            current: self.last_child(),
+        }
+    }
+
+    fn traverse_preorder(self) -> TreeIterator<Self> {
+        TreeIterator::new(self)
+    }
 }
+
+pub struct ReverseChildrenIterator<ConcreteNode> where ConcreteNode: TNode {
+    current: Option<ConcreteNode>,
+}
+
+impl<ConcreteNode> Iterator for ReverseChildrenIterator<ConcreteNode>
+                            where ConcreteNode: TNode {
+    type Item = ConcreteNode;
+    fn next(&mut self) -> Option<ConcreteNode> {
+        let node = self.current;
+        self.current = node.and_then(|node| node.prev_sibling());
+        node
+    }
+}
+
+pub struct TreeIterator<ConcreteNode> where ConcreteNode: TNode {
+    stack: Vec<ConcreteNode>,
+}
+
+impl<ConcreteNode> TreeIterator<ConcreteNode> where ConcreteNode: LayoutNode {
+    fn new(root: ConcreteNode) -> TreeIterator<ConcreteNode> {
+        let mut stack = vec![];
+        stack.push(root);
+        TreeIterator {
+            stack: stack,
+        }
+    }
+
+    pub fn next_skipping_children(&mut self) -> Option<ConcreteNode> {
+        self.stack.pop()
+    }
+}
+
+impl<ConcreteNode> Iterator for TreeIterator<ConcreteNode>
+                            where ConcreteNode: LayoutNode {
+    type Item = ConcreteNode;
+    fn next(&mut self) -> Option<ConcreteNode> {
+        let ret = self.stack.pop();
+        ret.map(|node| self.stack.extend(node.rev_children()));
+        ret
+    }
+}
+
 
 /// A thread-safe version of `LayoutNode`, used during flow construction. This type of layout
 /// node does not allow any parents or siblings of nodes to be accessed, to avoid races.

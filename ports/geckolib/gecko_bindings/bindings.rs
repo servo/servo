@@ -168,6 +168,7 @@ pub enum RawServoStyleSheet { }
 pub enum RawServoStyleSet { }
 pub enum nsHTMLCSSStyleSheet { }
 pub enum ServoDeclarationBlock { }
+pub enum StyleChildrenIterator { }
 pub type ThreadSafePrincipalHolder = nsMainThreadPtrHolder<nsIPrincipal>;
 pub type ThreadSafeURIHolder = nsMainThreadPtrHolder<nsIURI>;
 extern "C" {
@@ -190,6 +191,11 @@ extern "C" {
      -> *mut RawGeckoElement;
     pub fn Gecko_GetDocumentElement(document: *mut RawGeckoDocument)
      -> *mut RawGeckoElement;
+    pub fn Gecko_MaybeCreateStyleChildrenIterator(node: *mut RawGeckoNode)
+     -> *mut StyleChildrenIterator;
+    pub fn Gecko_DropStyleChildrenIterator(it: *mut StyleChildrenIterator);
+    pub fn Gecko_GetNextStyleChild(it: *mut StyleChildrenIterator)
+     -> *mut RawGeckoNode;
     pub fn Gecko_ElementState(element: *mut RawGeckoElement) -> u8;
     pub fn Gecko_IsHTMLElementInHTMLDocument(element: *mut RawGeckoElement)
      -> bool;

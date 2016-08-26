@@ -5,16 +5,16 @@
 #![allow(unsafe_code)]
 
 use gecko_bindings::bindings;
-use gecko_bindings::bindings::Gecko_ChildrenCount;
 use gecko_bindings::bindings::Gecko_ClassOrClassList;
 use gecko_bindings::bindings::Gecko_GetNodeData;
 use gecko_bindings::bindings::Gecko_GetStyleContext;
 use gecko_bindings::bindings::ServoNodeData;
 use gecko_bindings::bindings::{Gecko_CalcStyleDifference, Gecko_StoreStyleDifference};
+use gecko_bindings::bindings::{Gecko_DropStyleChildrenIterator, Gecko_MaybeCreateStyleChildrenIterator};
 use gecko_bindings::bindings::{Gecko_ElementState, Gecko_GetDocumentElement};
 use gecko_bindings::bindings::{Gecko_GetFirstChild, Gecko_GetFirstChildElement};
 use gecko_bindings::bindings::{Gecko_GetLastChild, Gecko_GetLastChildElement};
-use gecko_bindings::bindings::{Gecko_GetNextSibling, Gecko_GetNextSiblingElement};
+use gecko_bindings::bindings::{Gecko_GetNextSibling, Gecko_GetNextSiblingElement, Gecko_GetNextStyleChild};
 use gecko_bindings::bindings::{Gecko_GetNodeFlags, Gecko_SetNodeFlags, Gecko_UnsetNodeFlags};
 use gecko_bindings::bindings::{Gecko_GetParentElement, Gecko_GetParentNode};
 use gecko_bindings::bindings::{Gecko_GetPrevSibling, Gecko_GetPrevSiblingElement};
@@ -134,6 +134,7 @@ impl<'ln> TNode for GeckoNode<'ln> {
     type ConcreteDocument = GeckoDocument<'ln>;
     type ConcreteElement = GeckoElement<'ln>;
     type ConcreteRestyleDamage = GeckoRestyleDamage;
+    type ConcreteChildrenIterator = GeckoChildrenIterator<'ln>;
 
     fn to_unsafe(&self) -> UnsafeNode {
         (self.node as usize, 0)
@@ -163,6 +164,15 @@ impl<'ln> TNode for GeckoNode<'ln> {
         unimplemented!()
     }
 
+    fn children(self) -> GeckoChildrenIterator<'ln> {
+        let maybe_iter = unsafe { Gecko_MaybeCreateStyleChildrenIterator(self.node) };
+        if !maybe_iter.is_null() {
+            GeckoChildrenIterator::GeckoIterator(maybe_iter)
+        } else {
+            GeckoChildrenIterator::Current(self.first_child())
+        }
+    }
+
     fn opaque(&self) -> OpaqueNode {
         let ptr: uintptr_t = self.node as uintptr_t;
         OpaqueNode(ptr)
@@ -178,12 +188,6 @@ impl<'ln> TNode for GeckoNode<'ln> {
 
     fn debug_id(self) -> usize {
         unimplemented!()
-    }
-
-    fn children_count(&self) -> u32 {
-        unsafe {
-            Gecko_ChildrenCount(self.node)
-        }
     }
 
     fn as_element(&self) -> Option<GeckoElement<'ln>> {
@@ -339,6 +343,40 @@ impl<'ln> TNode for GeckoNode<'ln> {
 
     // TODO(shinglyu): implement this in Gecko: https://github.com/servo/servo/pull/11890
     unsafe fn set_dirty_on_viewport_size_changed(&self) {}
+}
+
+// We generally iterate children by traversing the siblings of the first child
+// like Servo does. However, for nodes with anonymous children, we use a custom
+// (heavier-weight) Gecko-implemented iterator.
+pub enum GeckoChildrenIterator<'a> {
+    Current(Option<GeckoNode<'a>>),
+    GeckoIterator(*mut bindings::StyleChildrenIterator),
+}
+
+impl<'a> Drop for GeckoChildrenIterator<'a> {
+    fn drop(&mut self) {
+        if let GeckoChildrenIterator::GeckoIterator(it) = *self {
+            unsafe {
+                Gecko_DropStyleChildrenIterator(it);
+            }
+        }
+    }
+}
+
+impl<'a> Iterator for GeckoChildrenIterator<'a> {
+    type Item = GeckoNode<'a>;
+    fn next(&mut self) -> Option<GeckoNode<'a>> {
+        match *self {
+            GeckoChildrenIterator::Current(curr) => {
+                let next = curr.and_then(|node| node.next_sibling());
+                *self = GeckoChildrenIterator::Current(next);
+                curr
+            },
+            GeckoChildrenIterator::GeckoIterator(it) => unsafe {
+                Gecko_GetNextStyleChild(it).as_ref().map(|n| GeckoNode::from_ref(n))
+            }
+        }
+    }
 }
 
 #[derive(Clone, Copy)]
