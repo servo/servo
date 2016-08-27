@@ -171,7 +171,7 @@ impl Iterable for URLSearchParams {
     type Value = USVString;
 
     fn get_iterable_length(&self) -> u32 {
-        self.list.borrow().iter().count() as u32
+        self.list.borrow().len() as u32
     }
 
     fn get_value_at_index(&self, n: u32) -> USVString {
