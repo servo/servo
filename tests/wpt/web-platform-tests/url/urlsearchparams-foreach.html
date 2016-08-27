@@ -23,6 +23,19 @@ test(function() {
         }
     });
 }, "ForEach Check");
+
+test(function(){
+    let a=new URL("http://a.b/c?a=1&b=2&c=3&d=4");
+    let b = a.searchParams;
+    var c = [];
+    for (i of b) {
+        a.search="x=1&y=2&z=3";
+        c.push(i);
+    }
+    assert_array_equals(c[0],["a","1"]);
+    assert_array_equals(c[1],["y","2"]);
+    assert_array_equals(c[2],["z","3"]);
+}, "For-of Check");
 </script>
 </head>
 </html>
