@@ -12,7 +12,7 @@ Servo Page Load Time Test
 * Clone this repo
 * Download [tp5n.zip](http://people.mozilla.org/~jmaher/taloszips/zips/tp5n.zip), extract it to `page_load_test/tp5n`
 * Run `prepare_manifest.sh` to transform the tp5n manifest to our format
-* Install the Python3 `treeherder-client` package. For example, to install it in a virtualenv: `python3 -m virtualenv venv; source venv/bin/activate; pip install treeherder-client`
+* Install the Python3 `treeherder-client` package. For example, to install it in a virtualenv: `python3 -m virtualenv venv; source venv/bin/activate; pip install "treeherder-client>=3.0.0"`
 * Setup your Treeherder client ID and secret as environment variables `TREEHERDER_CLIENT_ID` and `TREEHERDER_CLIENT_SECRET`
 
 ## Build Servo

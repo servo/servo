@@ -317,8 +317,7 @@ def submit(perf_data, failures, revision, summary, engine):
         'secret': os.environ['TREEHERDER_CLIENT_SECRET']
     }
 
-    client = TreeherderClient(protocol='https',
-                              host='treeherder.allizom.org',
+    client = TreeherderClient(server_url='https://treeherder.mozilla.org',
                               client_id=cred['client_id'],
                               secret=cred['secret'])
 
@@ -331,7 +330,7 @@ def submit(perf_data, failures, revision, summary, engine):
 def main():
     parser = argparse.ArgumentParser(
         description=("Submit Servo performance data to Perfherder. "
-                     "Remember to set your Treeherder credentail as environment"
+                     "Remember to set your Treeherder credential as environment"
                      " variable \'TREEHERDER_CLIENT_ID\' and "
                      "\'TREEHERDER_CLIENT_SECRET\'"))
     parser.add_argument("perf_json",
