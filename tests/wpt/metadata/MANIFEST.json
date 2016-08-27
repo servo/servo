@@ -30010,6 +30010,10 @@
         "url": "/url/urlsearchparams-stringifier.html"
       },
       {
+          "path": "url/urlsearchparams-foreach.html",
+          "url": "/url/urlsearchparams-foreach.html"
+      },
+      {
         "path": "user-timing/idlharness.html",
         "url": "/user-timing/idlharness.html"
       },
