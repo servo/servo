@@ -2201,7 +2201,7 @@ fn shut_down_layout(context_tree: &BrowsingContext) {
         let chan = window.layout_chan().clone();
         if chan.send(message::Msg::PrepareToExit(response_chan)).is_ok() {
             channels.push(chan);
-            response_port.recv().unwrap();
+            let _ = response_port.recv();
         }
     }
 
