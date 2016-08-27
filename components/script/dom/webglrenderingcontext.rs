@@ -61,6 +61,38 @@ macro_rules! handle_potential_webgl_error {
     };
 }
 
+// From the GLES 2.0.25 spec, page 85:
+//
+//     "If a texture that is currently bound to one of the targets
+//      TEXTURE_2D, or TEXTURE_CUBE_MAP is deleted, it is as though
+//      BindTexture had been executed with the same target and texture
+//      zero."
+//
+// and similar text occurs for other object types.
+macro_rules! handle_object_deletion {
+    ($binding:expr, $object:ident) => {
+        if let Some(bound_object) = $binding.get() {
+            if bound_object.id() == $object.id() {
+                $binding.set(None);
+            }
+        }
+    };
+}
+
+macro_rules! object_binding_to_js_or_null {
+    ($cx: expr, $binding:expr) => {
+        {
+            rooted!(in($cx) let mut rval = NullValue());
+            if let Some(bound_object) = $binding.get() {
+                unsafe {
+                    bound_object.to_jsval($cx, rval.handle_mut());
+                }
+            }
+            rval.get()
+        }
+    };
+}
+
 /// Set of bitflags for texture unpacking (texImage2d, etc...)
 bitflags! {
     #[derive(HeapSizeOf, JSTraceable)]
@@ -83,6 +115,7 @@ pub struct WebGLRenderingContext {
     last_error: Cell<Option<WebGLError>>,
     texture_unpacking_settings: Cell<TextureUnpacking>,
     bound_framebuffer: MutNullableHeap<JS<WebGLFramebuffer>>,
+    bound_renderbuffer: MutNullableHeap<JS<WebGLRenderbuffer>>,
     bound_texture_2d: MutNullableHeap<JS<WebGLTexture>>,
     bound_texture_cube_map: MutNullableHeap<JS<WebGLTexture>>,
     bound_buffer_array: MutNullableHeap<JS<WebGLBuffer>>,
@@ -117,6 +150,7 @@ impl WebGLRenderingContext {
                 bound_texture_cube_map: MutNullableHeap::new(None),
                 bound_buffer_array: MutNullableHeap::new(None),
                 bound_buffer_element_array: MutNullableHeap::new(None),
+                bound_renderbuffer: MutNullableHeap::new(None),
                 current_program: MutNullableHeap::new(None),
                 current_vertex_attrib_0: Cell::new((0f32, 0f32, 0f32, 1f32)),
             }
@@ -513,19 +547,22 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn GetParameter(&self, cx: *mut JSContext, parameter: u32) -> JSVal {
-        // Handle the GL_FRAMEBUFFER_BINDING without going all the way
+        // Handle the GL_*_BINDING without going all the way
         // to the GL, since we would just need to map back from GL's
-        // returned ID to the WebGLFramebuffer we're tracking.
+        // returned ID to the WebGL* object we're tracking.
         match parameter {
-            constants::FRAMEBUFFER_BINDING => {
-                rooted!(in(cx) let mut rval = NullValue());
-                if let Some(bound_fb) = self.bound_framebuffer.get() {
-                    unsafe {
-                        bound_fb.to_jsval(cx, rval.handle_mut());
-                    }
-                }
-                return rval.get()
-            }
+            constants::ARRAY_BUFFER_BINDING =>
+                return object_binding_to_js_or_null!(cx, &self.bound_buffer_array),
+            constants::ELEMENT_ARRAY_BUFFER_BINDING =>
+                return object_binding_to_js_or_null!(cx, &self.bound_buffer_element_array),
+            constants::FRAMEBUFFER_BINDING =>
+                return object_binding_to_js_or_null!(cx, &self.bound_framebuffer),
+            constants::RENDERBUFFER_BINDING =>
+                return object_binding_to_js_or_null!(cx, &self.bound_renderbuffer),
+            constants::TEXTURE_BINDING_2D =>
+                return object_binding_to_js_or_null!(cx, &self.bound_texture_2d),
+            constants::TEXTURE_BINDING_CUBE_MAP =>
+                return object_binding_to_js_or_null!(cx, &self.bound_texture_cube_map),
             _ => {}
         }
 
@@ -705,13 +742,19 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return self.webgl_error(InvalidEnum);
         }
 
-        if let Some(renderbuffer) = renderbuffer {
-            renderbuffer.bind(target)
-        } else {
-            // Unbind the currently bound renderbuffer
-            self.ipc_renderer
-                .send(CanvasMsg::WebGL(WebGLCommand::BindRenderbuffer(target, None)))
-                .unwrap()
+        match renderbuffer {
+            // Implementations differ on what to do in the deleted
+            // case: Chromium currently unbinds, and Gecko silently
+            // returns.  The conformance tests don't cover this case.
+            Some(renderbuffer) if !renderbuffer.is_deleted() => {
+                renderbuffer.bind(target)
+            }
+            _ => {
+                // Unbind the currently bound renderbuffer
+                self.ipc_renderer
+                    .send(CanvasMsg::WebGL(WebGLCommand::BindRenderbuffer(target, None)))
+                    .unwrap()
+            }
         }
     }
 
@@ -1095,6 +1138,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     fn DeleteBuffer(&self, buffer: Option<&WebGLBuffer>) {
         if let Some(buffer) = buffer {
+            handle_object_deletion!(self.bound_buffer_array, buffer);
+            handle_object_deletion!(self.bound_buffer_element_array, buffer);
             buffer.delete()
         }
     }
@@ -1102,11 +1147,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
     fn DeleteFramebuffer(&self, framebuffer: Option<&WebGLFramebuffer>) {
         if let Some(framebuffer) = framebuffer {
-            if let Some(bound_fb) = self.bound_framebuffer.get() {
-                if bound_fb.id() == framebuffer.id() {
-                    self.bound_framebuffer.set(None);
-                }
-            }
+            handle_object_deletion!(self.bound_framebuffer, framebuffer);
             framebuffer.delete()
         }
     }
@@ -1114,6 +1155,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7
     fn DeleteRenderbuffer(&self, renderbuffer: Option<&WebGLRenderbuffer>) {
         if let Some(renderbuffer) = renderbuffer {
+            handle_object_deletion!(self.bound_renderbuffer, renderbuffer);
             renderbuffer.delete()
         }
     }
@@ -1121,6 +1163,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
     fn DeleteTexture(&self, texture: Option<&WebGLTexture>) {
         if let Some(texture) = texture {
+            handle_object_deletion!(self.bound_texture_2d, texture);
+            handle_object_deletion!(self.bound_texture_cube_map, texture);
             texture.delete()
         }
     }
@@ -1128,6 +1172,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn DeleteProgram(&self, program: Option<&WebGLProgram>) {
         if let Some(program) = program {
+            handle_object_deletion!(self.current_program, program);
             program.delete()
         }
     }
