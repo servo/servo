@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::cell::DOMRefCell;
-use dom::bindings::codegen::Bindings::URLSearchParamsBinding;
 use dom::bindings::codegen::Bindings::URLSearchParamsBinding::URLSearchParamsMethods;
 use dom::bindings::codegen::Bindings::URLSearchParamsBinding::URLSearchParamsWrap;
 use dom::bindings::codegen::UnionTypes::USVStringOrURLSearchParams;
@@ -166,21 +165,6 @@ impl URLSearchParams {
     }
 }
 
-impl URLSearchParams {
-    pub fn sort_list(&self) -> Vec<(String, String)> {
-        let borrowed_list = self.list.borrow();
-        let URLSearchParams_iter = borrowed_list.iter();
-        let mut URLSearchParam_vec = vec![];
-        for URLSearchParam in URLSearchParams_iter {
-            let name = URLSearchParam.0.to_string();
-            let value = URLSearchParam.1.to_string();
-            let name_value = (name, value);
-            URLSearchParam_vec.push(name_value);
-        }
-        URLSearchParam_vec.sort();
-        URLSearchParam_vec
-    }
-}
 
 impl Iterable for URLSearchParams {
     type Key = USVString;
@@ -191,14 +175,12 @@ impl Iterable for URLSearchParams {
     }
 
     fn get_value_at_index(&self, n: u32) -> USVString {
-        let sorted_URLSearchParam_vec = self.sort_list();
-        let value = sorted_URLSearchParam_vec[n as usize].1.clone();
+        let value = self.list.borrow()[n as usize].1.clone();
         USVString(value)
     }
 
     fn get_key_at_index(&self, n: u32) -> USVString {
-        let sorted_URLSearchParam_vec = self.sort_list();
-        let key = sorted_URLSearchParam_vec[n as usize].0.clone();
+        let key = self.list.borrow()[n as usize].0.clone();
         USVString(key)
     }
 }
