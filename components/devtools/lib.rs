@@ -535,10 +535,13 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                 for stream in &accepted_connections {
                     connections.push(stream.try_clone().unwrap());
                 }
-                //TODO: Get pipeline_id from NetworkEventMessage after fixing the send in http_loader
-                // For now, the id of the first pipeline is passed
+
+                let pipeline_id = match network_event {
+                    NetworkEvent::HttpResponse(ref response) => response.pipeline_id,
+                    NetworkEvent::HttpRequest(ref request) => request.pipeline_id,
+                };
                 handle_network_event(actors.clone(), connections, &actor_pipelines, &mut actor_requests,
-                                     &actor_workers, PipelineId::fake_root_pipeline_id(), request_id, network_event);
+                                     &actor_workers, pipeline_id, request_id, network_event);
             },
             DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::ServerExitMsg) => break
         }
