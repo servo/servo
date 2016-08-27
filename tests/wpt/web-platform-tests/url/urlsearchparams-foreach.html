@@ -36,6 +36,16 @@ test(function(){
     assert_array_equals(c[1],["y","2"]);
     assert_array_equals(c[2],["z","3"]);
 }, "For-of Check");
+
+test(function(){
+    let a=new URL("http://a.b/c");
+    let b = a.searchParams;
+    var c = [];
+    for (i of b) {
+        c.push(i);
+    }
+    assert_equals(c.length,0);
+},"empty");
 </script>
 </head>
 </html>
