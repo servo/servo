@@ -16,7 +16,7 @@ use std::f32::consts::PI;
 use std::fmt;
 use std::ops::Mul;
 use style_traits::values::specified::AllowedNumericType;
-use super::computed::{Context, ToComputedValue};
+use super::computed::{self, Context, ToComputedValue};
 use super::{CSSFloat, FONT_MEDIUM_PX, HasViewportPercentage, LocalToCss, NoViewportPercentage};
 use url::Url;
 
@@ -749,6 +749,37 @@ impl CalcLengthOrPercentage {
             (Some(angle), None) => Ok(Angle(angle)),
             (None, Some(value)) if value == 0. => Ok(Angle(0.)),
             _ => Err(())
+        }
+    }
+
+    pub fn compute_from_viewport_and_font_size(&self,
+                                               viewport_size: Size2D<Au>,
+                                               font_size: Au,
+                                               root_font_size: Au)
+                                               -> computed::CalcLengthOrPercentage
+    {
+        let mut length = None;
+
+        if let Some(absolute) = self.absolute {
+            length = Some(length.unwrap_or(Au(0)) + absolute);
+        }
+
+        for val in &[self.vw, self.vh, self.vmin, self.vmax] {
+            if let Some(val) = *val {
+                length = Some(length.unwrap_or(Au(0)) +
+                    val.to_computed_value(viewport_size));
+            }
+        }
+        for val in &[self.ch, self.em, self.ex, self.rem] {
+            if let Some(val) = *val {
+                length = Some(length.unwrap_or(Au(0)) + val.to_computed_value(
+                    font_size, root_font_size));
+            }
+        }
+
+        computed::CalcLengthOrPercentage {
+            length: length,
+            percentage: self.percentage.map(|p| p.0)
         }
     }
 }
