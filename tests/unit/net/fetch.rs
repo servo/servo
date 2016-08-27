@@ -19,7 +19,7 @@ use hyper::server::{Handler, Listening, Server};
 use hyper::server::{Request as HyperRequest, Response as HyperResponse};
 use hyper::status::StatusCode;
 use hyper::uri::RequestUri;
-use msg::constellation_msg::PipelineId;
+use msg::constellation_msg::{PipelineId, ReferrerPolicy};
 use net::fetch::cors_cache::CORSCache;
 use net::fetch::methods::{FetchContext, fetch, fetch_with_cors_cache};
 use net::http_loader::HttpState;
@@ -213,15 +213,20 @@ fn test_cors_preflight_fetch() {
     };
     let (mut server, url) = make_server(handler);
 
+    let target_url = url.clone().join("a.html").unwrap();
+    let desired_response_url = url.clone();
+
     let origin = Origin::Origin(UrlOrigin::new_opaque());
     let mut request = Request::new(url, Some(origin), false, None);
-    *request.referer.borrow_mut() = Referer::NoReferer;
+    *request.referer.borrow_mut() = Referer::RefererUrl(target_url);
+    *request.referrer_policy.get_mut() = Some(ReferrerPolicy::Origin);
     request.use_cors_preflight = true;
     request.mode = RequestMode::CORSMode;
     let fetch_response = fetch_sync(request, None);
     let _ = server.close();
 
     assert!(!fetch_response.is_network_error());
+    assert_eq!(desired_response_url, fetch_response.url.unwrap());
 
     match *fetch_response.body.lock().unwrap() {
         ResponseBody::Done(ref body) => assert_eq!(&**body, ACK),
