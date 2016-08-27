@@ -29990,6 +29990,10 @@
         "url": "/url/urlsearchparams-delete.html"
       },
       {
+        "path": "url/urlsearchparams-foreach.html",
+        "url": "/url/urlsearchparams-foreach.html"
+      },
+      {
         "path": "url/urlsearchparams-get.html",
         "url": "/url/urlsearchparams-get.html"
       },
@@ -30008,10 +30012,6 @@
       {
         "path": "url/urlsearchparams-stringifier.html",
         "url": "/url/urlsearchparams-stringifier.html"
-      },
-      {
-          "path": "url/urlsearchparams-foreach.html",
-          "url": "/url/urlsearchparams-foreach.html"
       },
       {
         "path": "user-timing/idlharness.html",

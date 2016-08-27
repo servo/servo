@@ -6,22 +6,6 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
-test(function() {
-    var params = new URLSearchParams('a=1&b=2&c=3');
-    for(var URLSearchParam in params){
-        switch (URLSearchParam) {
-            case 'a':
-                assert_equals('1', params[URLSearchParam]);
-                break;
-            case 'b':
-                assert_equals('2', params[URLSearchParam]);
-                break;
-            case 'c':
-                assert_equals('3', params[URLSearchParam]);
-                break;
-        }
-    }
-}, "For-in Check");
 
 test(function() {
     var params = new URLSearchParams('a=1&b=2&c=3');
