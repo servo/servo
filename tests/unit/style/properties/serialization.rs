@@ -728,8 +728,10 @@ mod shorthand_serialization {
 
             let position = single_vec_value_typedef!(position,
                 Position {
-                    horizontal: LengthOrPercentage::Length(Length::from_px(7f32)),
-                    vertical: LengthOrPercentage::Length(Length::from_px(4f32))
+                    horiz_keyword: None,
+                    horiz_position: Some(LengthOrPercentage::Length(Length::from_px(7f32))),
+                    vert_keyword: None,
+                    vert_position: Some(LengthOrPercentage::Length(Length::from_px(4f32)))
                 }
             );
 
@@ -781,8 +783,10 @@ mod shorthand_serialization {
 
             let position = single_vec_value_typedef!(position,
                 Position {
-                    horizontal: LengthOrPercentage::Length(Length::from_px(7f32)),
-                    vertical: LengthOrPercentage::Length(Length::from_px(4f32))
+                    horiz_keyword: None,
+                    horiz_position: Some(LengthOrPercentage::Length(Length::from_px(7f32))),
+                    vert_keyword: None,
+                    vert_position: Some(LengthOrPercentage::Length(Length::from_px(4f32)))
                 }
             );
 
@@ -833,8 +837,10 @@ mod shorthand_serialization {
 
              let position = single_vec_value_typedef!(position,
                 Position {
-                    horizontal: LengthOrPercentage::Length(Length::from_px(0f32)),
-                    vertical: LengthOrPercentage::Length(Length::from_px(0f32))
+                    horiz_keyword: None,
+                    horiz_position: Some(LengthOrPercentage::Length(Length::from_px(0f32))),
+                    vert_keyword: None,
+                    vert_position: Some(LengthOrPercentage::Length(Length::from_px(0f32)))
                 }
             );
 
