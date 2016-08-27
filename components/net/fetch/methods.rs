@@ -1106,7 +1106,7 @@ fn cors_preflight_fetch(request: Rc<Request>, cache: &mut CORSCache,
                         context: &FetchContext) -> Response {
     // Step 1
     let mut preflight = Request::new(request.current_url(), Some(request.origin.borrow().clone()),
-                                     false, request.pipeline_id.get());
+                                     request.is_service_worker_global_scope, request.pipeline_id.get());
     *preflight.method.borrow_mut() = Method::Options;
     preflight.initiator = request.initiator.clone();
     preflight.type_ = request.type_.clone();
