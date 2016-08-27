@@ -3,10 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::cell::DOMRefCell;
-use dom::bindings::codegen::Bindings::URLSearchParamsBinding;
 use dom::bindings::codegen::Bindings::URLSearchParamsBinding::URLSearchParamsMethods;
+use dom::bindings::codegen::Bindings::URLSearchParamsBinding::URLSearchParamsWrap;
 use dom::bindings::codegen::UnionTypes::USVStringOrURLSearchParams;
 use dom::bindings::error::Fallible;
+use dom::bindings::iterable::Iterable;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::{DOMString, USVString};
@@ -37,7 +38,7 @@ impl URLSearchParams {
 
     pub fn new(global: &GlobalScope, url: Option<&URL>) -> Root<URLSearchParams> {
         reflect_dom_object(box URLSearchParams::new_inherited(url), global,
-                           URLSearchParamsBinding::Wrap)
+                           URLSearchParamsWrap)
     }
 
     // https://url.spec.whatwg.org/#dom-urlsearchparams-urlsearchparams
@@ -161,5 +162,25 @@ impl URLSearchParams {
         if let Some(url) = self.url.root() {
             url.set_query_pairs(&self.list.borrow())
         }
+    }
+}
+
+
+impl Iterable for URLSearchParams {
+    type Key = USVString;
+    type Value = USVString;
+
+    fn get_iterable_length(&self) -> u32 {
+        self.list.borrow().len() as u32
+    }
+
+    fn get_value_at_index(&self, n: u32) -> USVString {
+        let value = self.list.borrow()[n as usize].1.clone();
+        USVString(value)
+    }
+
+    fn get_key_at_index(&self, n: u32) -> USVString {
+        let key = self.list.borrow()[n as usize].0.clone();
+        USVString(key)
     }
 }
