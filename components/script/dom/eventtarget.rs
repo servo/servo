@@ -427,7 +427,8 @@ impl EventTarget {
             // Step 1.8.2
             unsafe {
                 let _ac = JSAutoCompartment::new(cx, self.reflector().get_jsobject().get());
-                report_pending_exception(cx);
+                // FIXME(#13152): dispatch error event.
+                report_pending_exception(cx, false);
             }
             // Step 1.8.1 / 1.8.3
             return None;

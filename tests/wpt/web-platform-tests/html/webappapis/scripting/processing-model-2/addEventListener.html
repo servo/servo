@@ -11,9 +11,9 @@
     setup({allow_uncaught_exception:true});
     var t = async_test();
     var ran = false;
-    // spec doesn't say to fire an event so this should do nothing
     window.addEventListener('error', t.step_func(function(e){
         ran = true;
+        assert_true(e.isTrusted, 'isTrusted');
     }), false);
   </script>
   <script>
@@ -24,7 +24,7 @@
   </script>
   <script>
     t.step(function(){
-        assert_false(ran, 'ran');
+        assert_true(ran, 'ran');
         t.done();
     });
   </script>

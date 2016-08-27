@@ -191,7 +191,7 @@ impl<'a> Drop for CallSetup<'a> {
             JS_LeaveCompartment(self.cx, self.old_compartment);
             if self.handling == ExceptionHandling::Report {
                 let _ac = JSAutoCompartment::new(self.cx, *self.exception_compartment);
-                report_pending_exception(self.cx);
+                report_pending_exception(self.cx, true);
             }
         }
     }
