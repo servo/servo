@@ -23,9 +23,11 @@ COMPILATION_TARGETS = {
     # Flags common for all the targets.
     COMMON_BUILD_KEY: {
         "flags": [
+            "--allow-unknown-types", "--no-unstable-rust",
+            "--no-type-renaming", "--no-namespaced-constants",
+        ],
+        "clang_flags": [
             "-x", "c++", "-std=c++14",
-            "-allow-unknown-types", "-no-unstable-rust",
-            "-no-type-renaming", "-no-namespaced-constants",
             "-DTRACING=1", "-DIMPL_LIBXUL", "-DMOZ_STYLO_BINDINGS=1",
             "-DMOZILLA_INTERNAL_API", "-DRUST_BINDGEN",
         ],
@@ -43,8 +45,8 @@ COMPILATION_TARGETS = {
         "target_dir": "../gecko_bindings",
         "test": True,
         "flags": [
-            "-ignore-functions",
-            "-ignore-methods",
+            "--ignore-functions",
+            "--ignore-methods",
         ],
         "includes": [
             "{}/dist/include/nsThemeConstants.h",
@@ -56,7 +58,7 @@ COMPILATION_TARGETS = {
         ],
         "build_kinds": {
             "debug": {
-                "flags": [
+                "clang_flags": [
                     "-DDEBUG=1",
                     "-DJS_DEBUG=1",
                 ]
@@ -115,7 +117,7 @@ COMPILATION_TARGETS = {
             "use heapsize::HeapSizeOf;",
         ],
         "flags": [
-            "-ignore-methods",
+            "--ignore-methods",
         ],
         "match_headers": [
             "ServoBindingList.h",
@@ -269,61 +271,67 @@ def build(objdir, target_name, debug, debugger, kind_name=None,
     sys.stdout.flush()
 
     flags = []
-    flags.extend(platform_dependent_defines())
 
     if "flags" in current_target:
         flags.extend(current_target["flags"])
 
+    clang_flags = []
+
+    if "clang_flags" in current_target:
+        clang_flags.extend(current_target["clang_flags"])
+
+    clang_flags.extend(platform_dependent_defines())
+
     if "raw_lines" in current_target:
         for raw_line in current_target["raw_lines"]:
-            flags.append("-raw-line")
+            flags.append("--raw-line")
             flags.append(raw_line)
 
     if "search_dirs" in current_target:
         for dir_name in current_target["search_dirs"]:
-            flags.append("-I")
-            flags.append(dir_name.format(objdir))
+            clang_flags.append("-I")
+            clang_flags.append(dir_name.format(objdir))
 
     if "includes" in current_target:
         for file_name in current_target["includes"]:
-            flags.append("-include")
-            flags.append(file_name.format(objdir))
+            clang_flags.append("-include")
+            clang_flags.append(file_name.format(objdir))
 
     if "match_headers" in current_target:
         for header in current_target["match_headers"]:
-            flags.append("-match")
+            flags.append("--match")
             flags.append(header.format(objdir))
 
     if "blacklist" in current_target:
         for ty in current_target["blacklist"]:
-            flags.append("-blacklist-type")
+            flags.append("--blacklist-type")
             flags.append(ty)
 
     if "opaque_types" in current_target:
         for ty in current_target["opaque_types"]:
-            flags.append("-opaque-type")
+            flags.append("--opaque-type")
             flags.append(ty)
     if "void_types" in current_target:
         for ty in current_target["void_types"]:
-            flags.append("-raw-line")
+            flags.append("--raw-line")
             flags.append("pub enum {} {{}}".format(ty))
     if "servo_arc_types" in current_target:
         for ty in current_target["servo_arc_types"]:
-            flags.append("-blacklist-type")
+            flags.append("--blacklist-type")
             flags.append("{}Strong".format(ty))
-            flags.append("-raw-line")
+            flags.append("--raw-line")
             flags.append("pub type {0}Strong = ::sugar::refptr::Strong<{0}>;".format(ty))
             flags.append("-blacklist-type")
             flags.append("{}Borrowed".format(ty))
-            flags.append("-raw-line")
+            flags.append("--raw-line")
             flags.append("pub type {0}Borrowed<'a> = ::sugar::refptr::Borrowed<'a, {0}>;".format(ty))
     if "structs_types" in current_target:
         for ty in current_target["structs_types"]:
             ty_fragments = ty.split("::")
             mangled_name = ty.replace("::", "_")
-            flags.append("-blacklist-type")
+            flags.append("--blacklist-type")
             flags.append(ty_fragments[-1])
-            flags.append("-raw-line")
+            flags.append("--raw-line")
             if len(ty_fragments) > 1:
                 flags.append("use structs::{} as {};".format(mangled_name, ty_fragments[-1]))
             else:
@@ -332,11 +340,11 @@ def build(objdir, target_name, debug, debugger, kind_name=None,
             # hardcoding everything...
             if ty_fragments[-1].startswith("nsStyle"):
                 flags.extend([
-                    "-raw-line",
+                    "--raw-line",
                     "unsafe impl Send for {} {{}}".format(ty_fragments[-1]),
-                    "-raw-line",
+                    "--raw-line",
                     "unsafe impl Sync for {} {{}}".format(ty_fragments[-1]),
-                    "-raw-line",
+                    "--raw-line",
                     "impl HeapSizeOf for {} {{ fn heap_size_of_children(&self) -> usize {{ 0 }} }}"
                     .format(ty_fragments[-1])
                 ])
@@ -346,9 +354,9 @@ def build(objdir, target_name, debug, debugger, kind_name=None,
 
     # TODO: support more files, that's the whole point of this.
     assert len(current_target["files"]) == 1
-    flags.append(current_target["files"][0].format(objdir))
+    clang_flags.append(current_target["files"][0].format(objdir))
 
-    flags = bindgen + flags
+    flags = bindgen + flags + ["--"] + clang_flags
 
     output = ""
     try:
