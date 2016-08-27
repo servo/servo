@@ -78,6 +78,7 @@
 % endfor
 
 ${helpers.single_keyword("box-decoration-break", "slice clone",
+                         gecko_enum_prefix="StyleBoxDecorationBreak",
                          products="gecko", animatable=False)}
 
 ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",

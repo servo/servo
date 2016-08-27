@@ -217,21 +217,6 @@ pub const NS_STYLE_USER_MODIFY_WRITE_ONLY: ::std::os::raw::c_uint = 2;
 pub const NS_STYLE_WINDOW_DRAGGING_DEFAULT: ::std::os::raw::c_uint = 0;
 pub const NS_STYLE_WINDOW_DRAGGING_DRAG: ::std::os::raw::c_uint = 1;
 pub const NS_STYLE_WINDOW_DRAGGING_NO_DRAG: ::std::os::raw::c_uint = 2;
-pub const NS_STYLE_BOX_ALIGN_STRETCH: ::std::os::raw::c_uint = 0;
-pub const NS_STYLE_BOX_ALIGN_START: ::std::os::raw::c_uint = 1;
-pub const NS_STYLE_BOX_ALIGN_CENTER: ::std::os::raw::c_uint = 2;
-pub const NS_STYLE_BOX_ALIGN_BASELINE: ::std::os::raw::c_uint = 3;
-pub const NS_STYLE_BOX_ALIGN_END: ::std::os::raw::c_uint = 4;
-pub const NS_STYLE_BOX_PACK_START: ::std::os::raw::c_uint = 0;
-pub const NS_STYLE_BOX_PACK_CENTER: ::std::os::raw::c_uint = 1;
-pub const NS_STYLE_BOX_PACK_END: ::std::os::raw::c_uint = 2;
-pub const NS_STYLE_BOX_PACK_JUSTIFY: ::std::os::raw::c_uint = 3;
-pub const NS_STYLE_BOX_DECORATION_BREAK_SLICE: ::std::os::raw::c_uint = 0;
-pub const NS_STYLE_BOX_DECORATION_BREAK_CLONE: ::std::os::raw::c_uint = 1;
-pub const NS_STYLE_BOX_DIRECTION_NORMAL: ::std::os::raw::c_uint = 0;
-pub const NS_STYLE_BOX_DIRECTION_REVERSE: ::std::os::raw::c_uint = 1;
-pub const NS_STYLE_BOX_ORIENT_HORIZONTAL: ::std::os::raw::c_uint = 0;
-pub const NS_STYLE_BOX_ORIENT_VERTICAL: ::std::os::raw::c_uint = 1;
 pub const NS_STYLE_ORIENT_INLINE: ::std::os::raw::c_uint = 0;
 pub const NS_STYLE_ORIENT_BLOCK: ::std::os::raw::c_uint = 1;
 pub const NS_STYLE_ORIENT_HORIZONTAL: ::std::os::raw::c_uint = 2;
@@ -3967,6 +3952,27 @@ pub enum StyleBasicShapeType {
 }
 #[repr(i8)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub enum StyleBoxAlign {
+    Stretch = 0,
+    Start = 1,
+    Center = 2,
+    Baseline = 3,
+    End = 4,
+}
+#[repr(i8)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub enum StyleBoxDecorationBreak { Slice = 0, Clone = 1, }
+#[repr(i8)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub enum StyleBoxDirection { Normal = 0, Reverse = 1, }
+#[repr(i8)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub enum StyleBoxOrient { Horizontal = 0, Vertical = 1, }
+#[repr(i8)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub enum StyleBoxPack { Start = 0, Center = 1, End = 2, Justify = 3, }
+#[repr(i8)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum StyleBoxSizing { Content = 0, Border = 1, }
 #[repr(i8)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
@@ -5911,7 +5917,7 @@ pub struct nsStyleBorder {
     pub mBorderImageRepeatH: u8,
     pub mBorderImageRepeatV: u8,
     pub mFloatEdge: StyleFloatEdge,
-    pub mBoxDecorationBreak: u8,
+    pub mBoxDecorationBreak: StyleBoxDecorationBreak,
     pub mComputedBorder: nsMargin,
     pub mBorder: nsMargin,
     pub mBorderStyle: [u8; 4usize],
@@ -6640,10 +6646,10 @@ fn bindgen_test_layout_nsStyleUserInterface() {
 pub struct nsStyleXUL {
     pub mBoxFlex: f32,
     pub mBoxOrdinal: u32,
-    pub mBoxAlign: u8,
-    pub mBoxDirection: u8,
-    pub mBoxOrient: u8,
-    pub mBoxPack: u8,
+    pub mBoxAlign: StyleBoxAlign,
+    pub mBoxDirection: StyleBoxDirection,
+    pub mBoxOrient: StyleBoxOrient,
+    pub mBoxPack: StyleBoxPack,
     pub mStretchStack: bool,
 }
 #[test]
