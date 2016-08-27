@@ -37215,6 +37215,12 @@
     "deleted_reftests": {},
     "items": {
       "testharness": {
+        "dom/nodes/NodeList-Iterable.html": [
+          {
+            "path": "dom/nodes/NodeList-Iterable.html",
+            "url": "/dom/nodes/NodeList-Iterable.html"
+          }
+        ],
         "html/semantics/interactive-elements/the-dialog-element/dialog-open.html": [
           {
             "path": "html/semantics/interactive-elements/the-dialog-element/dialog-open.html",
