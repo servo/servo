@@ -87,11 +87,9 @@ class MachCommands(CommandBase):
             print("flag or update all packages with --all-packages (-a) flag")
             sys.exit(1)
 
-        for cargo_path in CARGO_PATHS:
-            with cd(cargo_path):
-                print(cargo_path)
-                call(["cargo", "update"] + params,
-                     env=self.build_env())
+        with cd(self.context.topdir):
+            call(["cargo", "update"] + params,
+                 env=self.build_env())
 
     @Command('clippy',
              description='Run Clippy',
