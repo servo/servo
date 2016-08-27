@@ -1112,7 +1112,7 @@ fn cors_preflight_fetch(request: Rc<Request>, cache: &mut CORSCache,
     preflight.type_ = request.type_.clone();
     preflight.destination = request.destination.clone();
     *preflight.referer.borrow_mut() = request.referer.borrow().clone();
-    preflight.referrer_policy.set(preflight.referrer_policy.get());
+    preflight.referrer_policy.set(request.referrer_policy.get());
 
     // Step 2
     preflight.headers.borrow_mut().set::<AccessControlRequestMethod>(

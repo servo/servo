@@ -11,7 +11,8 @@ use hyper::header::{Accept, AccessControlAllowCredentials, AccessControlAllowHea
 use hyper::header::{AccessControlAllowMethods, AccessControlMaxAge, AcceptLanguage, AcceptEncoding};
 use hyper::header::{AccessControlRequestHeaders, AccessControlRequestMethod, UserAgent, Date};
 use hyper::header::{CacheControl, ContentLanguage, ContentLength, ContentType, Expires, LastModified};
-use hyper::header::{Headers, HttpDate, Host, Location, SetCookie, Pragma, Encoding, qitem};
+use hyper::header::{Headers, HttpDate, Host, Referer as HyperReferer};
+use hyper::header::{Location, SetCookie, Pragma, Encoding, qitem};
 use hyper::http::RawStatus;
 use hyper::method::Method;
 use hyper::mime::{Mime, TopLevel, SubLevel};
@@ -19,7 +20,7 @@ use hyper::server::{Handler, Listening, Server};
 use hyper::server::{Request as HyperRequest, Response as HyperResponse};
 use hyper::status::StatusCode;
 use hyper::uri::RequestUri;
-use msg::constellation_msg::PipelineId;
+use msg::constellation_msg::{PipelineId, ReferrerPolicy};
 use net::fetch::cors_cache::CORSCache;
 use net::fetch::methods::{FetchContext, fetch, fetch_with_cors_cache};
 use net::http_loader::HttpState;
@@ -203,6 +204,7 @@ fn test_cors_preflight_fetch() {
         if request.method == Method::Options && state.clone().fetch_add(1, Ordering::SeqCst) == 0 {
             assert!(request.headers.has::<AccessControlRequestMethod>());
             assert!(request.headers.has::<AccessControlRequestHeaders>());
+            assert!(!request.headers.get::<HyperReferer>().unwrap().contains("a.html"));
             response.headers_mut().set(AccessControlAllowOrigin::Any);
             response.headers_mut().set(AccessControlAllowCredentials);
             response.headers_mut().set(AccessControlAllowMethods(vec![Method::Get]));
@@ -213,9 +215,12 @@ fn test_cors_preflight_fetch() {
     };
     let (mut server, url) = make_server(handler);
 
+    let target_url = url.clone().join("a.html").unwrap();
+
     let origin = Origin::Origin(UrlOrigin::new_opaque());
-    let mut request = Request::new(url, Some(origin), false, None);
-    *request.referer.borrow_mut() = Referer::NoReferer;
+    let mut request = Request::new(url.clone(), Some(origin), false, None);
+    *request.referer.borrow_mut() = Referer::RefererUrl(target_url);
+    *request.referrer_policy.get_mut() = Some(ReferrerPolicy::Origin);
     request.use_cors_preflight = true;
     request.mode = RequestMode::CORSMode;
     let fetch_response = fetch_sync(request, None);
