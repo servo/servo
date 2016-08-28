@@ -36,7 +36,7 @@ script_traits = {path = "../script_traits"}
 selectors = {version = "0.11", features = ["heap_size"]}
 serde_macros = "0.8"
 smallvec = "0.1"
-string_cache = {version = "0.2.25", features = ["heap_size"]}
+string_cache = {version = "0.2.26", features = ["heap_size"]}
 style = {path = "../style"}
 style_traits = {path = "../style_traits"}
 unicode-bidi = "0.2"

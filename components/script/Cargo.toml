@@ -65,7 +65,7 @@ script_traits = {path = "../script_traits"}
 selectors = {version = "0.11", features = ["heap_size"]}
 serde = "0.8"
 smallvec = "0.1"
-string_cache = {version = "0.2.25", features = ["heap_size", "unstable"]}
+string_cache = {version = "0.2.26", features = ["heap_size", "unstable"]}
 style = {path = "../style"}
 time = "0.1.12"
 url = {version = "1.2", features = ["heap_size", "query_encoding"]}
