@@ -403,7 +403,7 @@ class MachCommands(CommandBase):
         return run_globals["run_tests"](**kwargs)
 
     @Command('update-manifest',
-             description='run test-wpt --manifest-update SKIP_TESTS to regenerate MANIFEST.json',
+             description='Run test-wpt --manifest-update SKIP_TESTS to regenerate MANIFEST.json',
              category='testing',
              parser=create_parser_wpt)
     def update_manifest(self, **kwargs):
@@ -494,7 +494,7 @@ class MachCommands(CommandBase):
         return run_globals["update_tests"](**kwargs)
 
     @Command('compare_dromaeo',
-             description='compare outputs of two runs of ./mach test-dromaeo command',
+             description='Compare outputs of two runs of ./mach test-dromaeo command',
              category='testing')
     @CommandArgument('params', default=None, nargs="...",
                      help=" filepaths of output files of two runs of dromaeo test ")
