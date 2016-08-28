@@ -74,6 +74,9 @@ uuid = {version = "0.3.1", features = ["v4"]}
 websocket = "0.17"
 xml5ever = {version = "0.1.2", features = ["unstable"]}
 
+[dependencies.audio-video-metadata]
+git = "https://github.com/GuillaumeGomez/audio-video-metadata"
+
 [dependencies.webrender_traits]
 git = "https://github.com/servo/webrender"
 default_features = false

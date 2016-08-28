@@ -36,6 +36,7 @@ use string_cache::Atom;
 use task_source::TaskSource;
 use time::{self, Timespec, Duration};
 use url::Url;
+use audio_video_metadata;
 
 struct HTMLMediaElementContext {
     /// The element that initiated the request.
@@ -160,12 +161,24 @@ impl HTMLMediaElementContext {
     }
 
     fn check_metadata(&mut self, elem: &HTMLMediaElement) {
-        // Step 6.
-        //
-        // TODO: Properly implement once we have figured out the build and
-        // licensing ffmpeg issues.
-        elem.change_ready_state(HAVE_METADATA);
-        self.have_metadata = true;
+        match audio_video_metadata::get_format_from_slice(&self.data) {
+            Ok(audio_video_metadata::Metadata::Video(meta)) => {
+                let dur = meta.audio.duration.unwrap_or(::std::time::Duration::new(0, 0));
+                *elem.video.borrow_mut() = Some(VideoMedia {
+                    format: format!("{:?}", meta.format),
+                    duration: Duration::seconds(dur.as_secs() as i64) +
+                              Duration::nanoseconds(dur.subsec_nanos() as i64),
+                    width: meta.dimensions.width,
+                    height: meta.dimensions.height,
+                    video: meta.video.unwrap_or("".to_owned()),
+                    audio: meta.audio.audio,
+                });
+                // Step 6
+                elem.change_ready_state(HAVE_METADATA);
+                self.have_metadata = true;
+            }
+            _ => {}
+        }
     }
 }
 
