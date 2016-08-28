@@ -351,7 +351,7 @@ class MachCommands(CommandBase):
         ], env=self.build_env())
 
     @Command('test-wpt',
-             description='Run the web platform tests that the regular test suite',
+             description='Run the regular web platform test suite',
              category='testing',
              parser=create_parser_wpt)
     def test_wpt(self, **kwargs):
