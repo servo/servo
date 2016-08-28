@@ -37,6 +37,7 @@ impl ImageData {
         unsafe {
             let cx = global.get_cx();
             let js_object: *mut JSObject = JS_NewUint8ClampedArray(cx, width * height * 4);
+            assert!(!js_object.is_null());
 
             if let Some(vec) = data {
                 let mut is_shared = false;
@@ -58,6 +59,7 @@ impl ImageData {
             let mut is_shared = false;
             let data: *const uint8_t =
                 JS_GetUint8ClampedArrayData(self.Data(cx), &mut is_shared, ptr::null()) as *const uint8_t;
+            assert!(!data.is_null());
             assert!(!is_shared);
             let len = self.Width() * self.Height() * 4;
             slice::from_raw_parts(data, len as usize).to_vec()
@@ -82,6 +84,7 @@ impl ImageDataMethods for ImageData {
 
     // https://html.spec.whatwg.org/multipage/#dom-imagedata-data
     fn Data(&self, _: *mut JSContext) -> *mut JSObject {
+        assert!(!self.data.get().is_null());
         self.data.get()
     }
 }
