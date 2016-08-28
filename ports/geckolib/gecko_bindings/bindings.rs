@@ -157,6 +157,7 @@ impl HeapSizeOf for nsStyleContext { fn heap_size_of_children(&self) -> usize { 
 use structs::StyleClipPath;
 use structs::StyleBasicShapeType;
 use structs::StyleBasicShape;
+use structs::nsCSSShadowArray;
 
 pub type RawGeckoNode = nsINode;
 pub enum Element { }
@@ -345,6 +346,11 @@ extern "C" {
                                         max_len: u32);
     pub fn Gecko_AddRefCalcArbitraryThread(aPtr: *mut Calc);
     pub fn Gecko_ReleaseCalcArbitraryThread(aPtr: *mut Calc);
+    pub fn Gecko_NewCSSShadowArray(len: u32) -> *mut nsCSSShadowArray;
+    pub fn Gecko_AddRefCSSShadowArrayArbitraryThread(aPtr:
+                                                         *mut nsCSSShadowArray);
+    pub fn Gecko_ReleaseCSSShadowArrayArbitraryThread(aPtr:
+                                                          *mut nsCSSShadowArray);
     pub fn Gecko_Construct_nsStyleFont(ptr: *mut nsStyleFont);
     pub fn Gecko_CopyConstruct_nsStyleFont(ptr: *mut nsStyleFont,
                                            other: *const nsStyleFont);
