@@ -169,6 +169,16 @@ class MachCommands(CommandBase):
 
         return call(["cargo", "test"], env=env, cwd=path.join("ports", "geckolib"))
 
+    @Command('test-perf',
+             description='Run the page load performance test',
+             category='testing')
+    def test_perf(self):
+        self.ensure_bootstrapped()
+        env = self.build_env()
+        return call(["bash", "test_perf.sh"],
+                    env=env,
+                    cwd=path.join("etc", "ci", "performance"))
+
     @Command('test-unit',
              description='Run unit tests',
              category='testing')
