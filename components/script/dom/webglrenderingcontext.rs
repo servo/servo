@@ -305,8 +305,7 @@ impl WebGLRenderingContext {
         // complexity is worth it.
         let (pixels, size) = match source {
             ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement::ImageData(image_data) => {
-                let global = self.global();
-                (image_data.get_data_array(&global.r()), image_data.get_size())
+                (image_data.get_data_array(), image_data.get_size())
             },
             ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement::HTMLImageElement(image) => {
                 let img_url = match image.get_url() {

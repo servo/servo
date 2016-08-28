@@ -53,12 +53,12 @@ impl ImageData {
     }
 
     #[allow(unsafe_code)]
-    pub fn get_data_array(&self, global: &GlobalRef) -> Vec<u8> {
+    pub fn get_data_array(&self) -> Vec<u8> {
         unsafe {
-            let cx = global.get_cx();
             let mut is_shared = false;
+            assert!(!self.data.get().is_null());
             let data: *const uint8_t =
-                JS_GetUint8ClampedArrayData(self.Data(cx), &mut is_shared, ptr::null()) as *const uint8_t;
+                JS_GetUint8ClampedArrayData(self.data.get(), &mut is_shared, ptr::null()) as *const uint8_t;
             assert!(!data.is_null());
             assert!(!is_shared);
             let len = self.Width() * self.Height() * 4;
