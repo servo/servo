@@ -19,12 +19,14 @@ flat varying uint vBorderPart; // Which part of the border we're drawing.
 // These are in device space
 #ifdef WR_FEATURE_TRANSFORM
 varying vec3 vLocalPos;     // The clamped position in local space.
-flat varying vec4 vSizeInfo;
+flat varying vec4 vPieceRect;
+flat varying float vPieceRectHypotenuseLength;
 #else
 varying vec2 vLocalPos;     // The clamped position in local space.
 
 // These two are interpolated
-varying float vF;   // This is a weighting as we get closer to the bottom right corner?
+varying float vDistanceFromMixLine;  // This is the distance from the line where two colors
+                                     // meet in border corners.
 varying vec2 vDevicePos;    // The clamped position in device space.
 flat varying vec4 vBorders; // the rect of the border in (x, y, width, height) form
 #endif
