@@ -12,5 +12,5 @@ interface NodeList {
   getter Node? item(unsigned long index);
   [Pure]
   readonly attribute unsigned long length;
-  // iterable<Node>;
+  iterable<Node?>;
 };

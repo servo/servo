@@ -1,0 +1,33 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>NodeList Iterable Test</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+	<p>p1</p>
+	<p>p2</p>
+	<p>p3</p>
+	<p>p4</p>
+	<p>p5</p>
+<script>
+	function testIterable(nodes) {
+		var methods = [
+			'length',
+			'item',
+			Symbol.iterator
+		]
+
+		test(function() {
+			for(var method of methods)
+				assert_true(method in nodes);
+		}, "NodeList has " /*+ methods.join()*/ + " methods.");
+
+	}
+
+	var paragraphs, nothing;
+	setup(function() {
+		paragraphs = document.querySelectorAll('p');
+		nothing = document.querySelectorAll('span');
+	})
+	testIterable(paragraphs);
+	testIterable(nothing);
+</script>
