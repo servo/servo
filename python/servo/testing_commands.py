@@ -338,7 +338,7 @@ class MachCommands(CommandBase):
         return run_globals["run_tests"](tests, verbose)
 
     @Command('test-wpt-failure',
-             description='"Run the tests harness that verifies that the test failures are reported correctly',
+             description='Run the tests harness that verifies that the test failures are reported correctly',
              category='testing')
     def test_wpt_failure(self):
         self.ensure_bootstrapped()
