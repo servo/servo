@@ -42,7 +42,7 @@ def execute_test(url, command, timeout):
 
 def get_servo_command(url):
     ua_script_path = "{}/user-agent-js".format(os.getcwd())
-    return ["./servo/servo", url,
+    return ["../../../target/release/servo", url,
             " --userscripts", ua_script_path,
             "-x", "-o", "output.png"]
 
@@ -242,7 +242,7 @@ def main():
         testcases = load_manifest(args.tp5_manifest)
         results = []
         for testcase in testcases:
-            command = (["timeout", "{timeout}s".format(args.timeout)] +
+            command = (["timeout", "{timeout}s".format(timeout=args.timeout)] +
                        command_factory(testcase))
             for run in range(args.runs):
                 print("Running test {}/{} on {}".format(run + 1,
