@@ -77,10 +77,8 @@ impl HTMLFormControlsCollectionMethods for HTMLFormControlsCollection {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-htmlformcontrolscollection-nameditem
-    fn NamedGetter(&self, name: DOMString, found: &mut bool) -> Option<RadioNodeListOrElement> {
-        let maybe_elem = self.NamedItem(name);
-        *found = maybe_elem.is_some();
-        maybe_elem
+    fn NamedGetter(&self, name: DOMString) -> Option<RadioNodeListOrElement> {
+        self.NamedItem(name)
     }
 
     // https://html.spec.whatwg.org/multipage/#the-htmlformcontrolscollection-interface:supported-property-names
@@ -93,7 +91,7 @@ impl HTMLFormControlsCollectionMethods for HTMLFormControlsCollection {
     // https://github.com/servo/servo/issues/5875
     //
     // https://dom.spec.whatwg.org/#dom-htmlcollection-item
-    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Root<Element>> {
-        self.collection.IndexedGetter(index, found)
+    fn IndexedGetter(&self, index: u32) -> Option<Root<Element>> {
+        self.collection.IndexedGetter(index)
     }
 }

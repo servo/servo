@@ -42,9 +42,7 @@ impl TouchListMethods for TouchList {
     }
 
     /// https://w3c.github.io/touch-events/#widl-TouchList-item-getter-Touch-unsigned-long-index
-    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Root<Touch>> {
-        let item = self.Item(index);
-        *found = item.is_some();
-        item
+    fn IndexedGetter(&self, index: u32) -> Option<Root<Touch>> {
+        self.Item(index)
     }
 }

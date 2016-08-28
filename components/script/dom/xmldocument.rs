@@ -88,8 +88,7 @@ impl XMLDocumentMethods for XMLDocument {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:dom-document-nameditem-filter
-    fn NamedGetter(&self, _cx: *mut JSContext, name: DOMString, found: &mut bool)
-                   -> NonZero<*mut JSObject> {
-        self.upcast::<Document>().NamedGetter(_cx, name, found)
+    fn NamedGetter(&self, _cx: *mut JSContext, name: DOMString) -> Option<NonZero<*mut JSObject>> {
+        self.upcast::<Document>().NamedGetter(_cx, name)
     }
 }

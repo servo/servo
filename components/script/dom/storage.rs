@@ -136,10 +136,8 @@ impl StorageMethods for Storage {
     }
 
     // check-tidy: no specs after this line
-    fn NamedGetter(&self, name: DOMString, found: &mut bool) -> Option<DOMString> {
-        let item = self.GetItem(name);
-        *found = item.is_some();
-        item
+    fn NamedGetter(&self, name: DOMString) -> Option<DOMString> {
+        self.GetItem(name)
     }
 
     fn NamedSetter(&self, name: DOMString, value: DOMString) -> ErrorResult {

@@ -45,12 +45,12 @@ impl PluginMethods for Plugin {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-plugin-item
-    fn IndexedGetter(&self, _index: u32, _found: &mut bool) -> Option<Root<MimeType>> {
+    fn IndexedGetter(&self, _index: u32) -> Option<Root<MimeType>> {
         unreachable!()
     }
 
     // check-tidy: no specs after this line
-    fn NamedGetter(&self, _name: DOMString, _found: &mut bool) -> Option<Root<MimeType>> {
+    fn NamedGetter(&self, _name: DOMString) -> Option<Root<MimeType>> {
         unreachable!()
     }
 

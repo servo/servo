@@ -52,8 +52,7 @@ impl DOMRectListMethods for DOMRectList {
     }
 
     // check-tidy: no specs after this line
-    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Root<DOMRect>> {
-        *found = index < self.rects.len() as u32;
+    fn IndexedGetter(&self, index: u32) -> Option<Root<DOMRect>> {
         self.Item(index)
     }
 }

@@ -91,7 +91,7 @@ use euclid::point::Point2D;
 use html5ever::tree_builder::{LimitedQuirks, NoQuirks, Quirks, QuirksMode};
 use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::JS_GetRuntime;
-use js::jsapi::{JSContext, JSObject, JSRuntime, JS_NewPlainObject};
+use js::jsapi::{JSContext, JSObject, JSRuntime};
 use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState};
 use msg::constellation_msg::{PipelineId, ReferrerPolicy, SubpageId};
@@ -2691,8 +2691,7 @@ impl DocumentMethods for Document {
 
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:dom-document-nameditem-filter
-    fn NamedGetter(&self, cx: *mut JSContext, name: DOMString, found: &mut bool)
-                   -> NonZero<*mut JSObject> {
+    fn NamedGetter(&self, _cx: *mut JSContext, name: DOMString) -> Option<NonZero<*mut JSObject>> {
         #[derive(JSTraceable, HeapSizeOf)]
         struct NamedElementFilter {
             name: Atom,
@@ -2758,28 +2757,23 @@ impl DocumentMethods for Document {
                                    .peekable();
             if let Some(first) = elements.next() {
                 if elements.peek().is_none() {
-                    *found = true;
                     // TODO: Step 2.
                     // Step 3.
                     return unsafe {
-                        NonZero::new(first.reflector().get_jsobject().get())
+                        Some(NonZero::new(first.reflector().get_jsobject().get()))
                     };
                 }
             } else {
-                *found = false;
-                return unsafe {
-                    NonZero::new(JS_NewPlainObject(cx))
-                };
+                return None;
             }
         }
         // Step 4.
-        *found = true;
         let filter = NamedElementFilter {
             name: name,
         };
         let collection = HTMLCollection::create(self.window(), root, box filter);
         unsafe {
-            NonZero::new(collection.reflector().get_jsobject().get())
+            Some(NonZero::new(collection.reflector().get_jsobject().get()))
         }
     }
 

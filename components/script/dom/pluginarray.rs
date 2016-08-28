@@ -50,12 +50,12 @@ impl PluginArrayMethods for PluginArray {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-pluginarray-item
-    fn IndexedGetter(&self, _index: u32, _found: &mut bool) -> Option<Root<Plugin>> {
+    fn IndexedGetter(&self, _index: u32) -> Option<Root<Plugin>> {
         None
     }
 
     // check-tidy: no specs after this line
-    fn NamedGetter(&self, _name: DOMString, _found: &mut bool) -> Option<Root<Plugin>> {
+    fn NamedGetter(&self, _name: DOMString) -> Option<Root<Plugin>> {
         None
     }
 
