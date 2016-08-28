@@ -3,11 +3,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::cell::DOMRefCell;
-use dom::bindings::codegen::Bindings::FormDataBinding;
 use dom::bindings::codegen::Bindings::FormDataBinding::FormDataMethods;
+use dom::bindings::codegen::Bindings::FormDataBinding::FormDataWrap;
 use dom::bindings::codegen::UnionTypes::FileOrUSVString;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
+use dom::bindings::iterable::Iterable;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::{DOMString, USVString};
@@ -45,7 +46,7 @@ impl FormData {
 
     pub fn new(form: Option<&HTMLFormElement>, global: GlobalRef) -> Root<FormData> {
         reflect_dom_object(box FormData::new_inherited(form),
-                           global, FormDataBinding::Wrap)
+                           global, FormDataWrap)
     }
 
     pub fn Constructor(global: GlobalRef, form: Option<&HTMLFormElement>) -> Fallible<Root<FormData>> {
@@ -162,5 +163,36 @@ impl FormData {
         }
 
         ret
+    }
+
+    pub fn atoms(&self) -> Vec<Atom> {
+        let mut ret = vec![];
+        for (key, value) in self.data.borrow().iter() {
+            for _ in value {
+                ret.push(key.clone());
+            }
+        }
+
+        ret
+    }
+}
+
+impl Iterable for FormData {
+    type Key = USVString;
+    type Value = FileOrUSVString;
+
+    fn get_iterable_length(&self) -> u32 {
+        self.datums().len() as u32
+    }
+
+    fn get_value_at_index(&self, n: u32) -> FileOrUSVString {
+        match self.datums()[n as usize].value {
+            FormDatumValue::String(ref s) => FileOrUSVString::USVString(USVString(s.to_string())),
+            FormDatumValue::File(ref b) => FileOrUSVString::File(Root::from_ref(&*b)),
+        }
+    }
+
+    fn get_key_at_index(&self, n: u32) -> USVString {
+        USVString(self.atoms()[n as usize].clone().to_string())
     }
 }

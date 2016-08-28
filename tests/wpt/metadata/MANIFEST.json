@@ -12670,6 +12670,10 @@
         "url": "/XMLHttpRequest/formdata-delete.htm"
       },
       {
+        "path": "XMLHttpRequest/formdata-foreach.html",
+        "url": "/XMLHttpRequest/formdata-foreach.html"
+      },
+      {
         "path": "XMLHttpRequest/formdata-get.htm",
         "url": "/XMLHttpRequest/formdata-get.htm"
       },
