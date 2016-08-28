@@ -12,10 +12,10 @@ while (( "${#}" ))
 do
 case "${1}" in
   --servo)
-    engine="--engine servo"
+    engine="--engine=servo"
     ;;
   --gecko)
-    engine="--engine gecko"
+    engine="--engine=gecko"
     ;;
   --submit)
     submit=1
@@ -40,7 +40,7 @@ python3 -m http.server > /dev/null 2>&1 &
 # MANIFEST="page_load_test/test.manifest"
 MANIFEST="page_load_test/tp5n/20160509.manifest" # A manifest that excludes
                                                  # timeout test cases
-PERF_FILE="output/perf-$(date --iso-8601=seconds).json"
+PERF_FILE="output/perf-$(date +%s).json"
 
 echo "Running tests"
 python3 runner.py ${engine} --runs 3 "${MANIFEST}" "${PERF_FILE}"
