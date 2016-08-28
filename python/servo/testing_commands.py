@@ -338,7 +338,7 @@ class MachCommands(CommandBase):
         return run_globals["run_tests"](tests, verbose)
 
     @Command('test-wpt-failure',
-             description='Run the small test harness that verifies that failures in tests are reported correctly',
+             description='Run the small web platform failure test',
              category='testing')
     def test_wpt_failure(self):
         self.ensure_bootstrapped()
@@ -463,7 +463,7 @@ class MachCommands(CommandBase):
         return self.jquery_test_runner("update", release, dev)
 
     @Command('test-css',
-             description='Run the css tests',
+             description='Run the web platform CSS tests',
              category='testing',
              parser=create_parser_wpt)
     def test_css(self, **kwargs):
@@ -475,7 +475,7 @@ class MachCommands(CommandBase):
         return self.wptrunner(run_file, **kwargs)
 
     @Command('update-css',
-             description='Update the css tests',
+             description='Update the web platform CSS test',
              category='testing',
              parser=updatecommandline.create_parser())
     @CommandArgument('--patch', action='store_true', default=False,
