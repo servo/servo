@@ -1403,6 +1403,11 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         frame_buffer.map_or(false, |buf| buf.target().is_some() && !buf.is_deleted())
     }
 
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    fn IsProgram(&self, program: Option<&WebGLProgram>) -> bool {
+        program.map_or(false, |p| !p.is_deleted())
+    }
+
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7
     fn IsRenderbuffer(&self, render_buffer: Option<&WebGLRenderbuffer>) -> bool {
         render_buffer.map_or(false, |buf| buf.ever_bound() && !buf.is_deleted())
