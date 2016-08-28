@@ -19,5 +19,5 @@ interface FormData {
   boolean has(USVString name);
   void set(USVString name, USVString value);
   void set(USVString name, Blob value, optional USVString filename);
-  // iterable<USVString, FormDataEntryValue>;
+  iterable<USVString, FormDataEntryValue>;
 };
