@@ -44,7 +44,7 @@ selectors = "0.11"
 serde = {version = "0.8", optional = true}
 serde_macros = {version = "0.8", optional = true}
 smallvec = "0.1"
-string_cache = {version = "0.2.24", features = ["heap_size"], optional = true}
+string_cache = {version = "0.2.25", features = ["heap_size"], optional = true}
 style_traits = {path = "../style_traits"}
 time = "0.1"
 url = "1.2"

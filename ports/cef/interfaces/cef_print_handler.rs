@@ -92,8 +92,7 @@ pub struct CefPrintDialogCallback {
 impl Clone for CefPrintDialogCallback {
   fn clone(&self) -> CefPrintDialogCallback{
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefPrintDialogCallback {
@@ -106,8 +105,7 @@ impl Clone for CefPrintDialogCallback {
 impl Drop for CefPrintDialogCallback {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -122,8 +120,7 @@ impl CefPrintDialogCallback {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_print_dialog_callback_t) -> CefPrintDialogCallback {
-    if !c_object.is_null() &&
-        c_object as usize != mem::POST_DROP_USIZE {
+    if !c_object.is_null() {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefPrintDialogCallback {
@@ -137,8 +134,7 @@ impl CefPrintDialogCallback {
 
   pub fn c_object_addrefed(&self) -> *mut cef_print_dialog_callback_t {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -146,18 +142,17 @@ impl CefPrintDialogCallback {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
+    self.c_object.is_null()
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
+    !self.c_object.is_null()
   }
 
   //
   // Continue printing with the specified |settings|.
   //
   pub fn cont(&self, settings: interfaces::CefPrintSettings) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -172,8 +167,7 @@ impl CefPrintDialogCallback {
   // Cancel the printing.
   //
   pub fn cancel(&self) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -200,8 +194,7 @@ impl CefWrap<*mut cef_print_dialog_callback_t> for Option<CefPrintDialogCallback
     }
   }
   unsafe fn to_rust(c_object: *mut cef_print_dialog_callback_t) -> Option<CefPrintDialogCallback> {
-    if c_object.is_null() &&
-       c_object as usize != mem::POST_DROP_USIZE {
+    if c_object.is_null() {
       None
     } else {
       Some(CefPrintDialogCallback::from_c_object_addref(c_object))
@@ -249,8 +242,7 @@ pub struct CefPrintJobCallback {
 impl Clone for CefPrintJobCallback {
   fn clone(&self) -> CefPrintJobCallback{
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefPrintJobCallback {
@@ -263,8 +255,7 @@ impl Clone for CefPrintJobCallback {
 impl Drop for CefPrintJobCallback {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -279,8 +270,7 @@ impl CefPrintJobCallback {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_print_job_callback_t) -> CefPrintJobCallback {
-    if !c_object.is_null() &&
-        c_object as usize != mem::POST_DROP_USIZE {
+    if !c_object.is_null() {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefPrintJobCallback {
@@ -294,8 +284,7 @@ impl CefPrintJobCallback {
 
   pub fn c_object_addrefed(&self) -> *mut cef_print_job_callback_t {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -303,18 +292,17 @@ impl CefPrintJobCallback {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
+    self.c_object.is_null()
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
+    !self.c_object.is_null()
   }
 
   //
   // Indicate completion of the print job.
   //
   pub fn cont(&self) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -341,8 +329,7 @@ impl CefWrap<*mut cef_print_job_callback_t> for Option<CefPrintJobCallback> {
     }
   }
   unsafe fn to_rust(c_object: *mut cef_print_job_callback_t) -> Option<CefPrintJobCallback> {
-    if c_object.is_null() &&
-       c_object as usize != mem::POST_DROP_USIZE {
+    if c_object.is_null() {
       None
     } else {
       Some(CefPrintJobCallback::from_c_object_addref(c_object))
@@ -428,8 +415,7 @@ pub struct CefPrintHandler {
 impl Clone for CefPrintHandler {
   fn clone(&self) -> CefPrintHandler{
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefPrintHandler {
@@ -442,8 +428,7 @@ impl Clone for CefPrintHandler {
 impl Drop for CefPrintHandler {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -458,8 +443,7 @@ impl CefPrintHandler {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_print_handler_t) -> CefPrintHandler {
-    if !c_object.is_null() &&
-        c_object as usize != mem::POST_DROP_USIZE {
+    if !c_object.is_null() {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefPrintHandler {
@@ -473,8 +457,7 @@ impl CefPrintHandler {
 
   pub fn c_object_addrefed(&self) -> *mut cef_print_handler_t {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -482,10 +465,10 @@ impl CefPrintHandler {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
+    self.c_object.is_null()
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
+    !self.c_object.is_null()
   }
 
   //
@@ -495,8 +478,7 @@ impl CefPrintHandler {
   //
   pub fn on_print_settings(&self, settings: interfaces::CefPrintSettings,
       get_defaults: libc::c_int) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -515,8 +497,7 @@ impl CefPrintHandler {
   //
   pub fn on_print_dialog(&self, has_selection: libc::c_int,
       callback: interfaces::CefPrintDialogCallback) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -535,8 +516,7 @@ impl CefPrintHandler {
   //
   pub fn on_print_job(&self, document_name: &[u16], pdf_file_path: &[u16],
       callback: interfaces::CefPrintJobCallback) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -553,8 +533,7 @@ impl CefPrintHandler {
   // Reset client state related to printing.
   //
   pub fn on_print_reset(&self) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -570,8 +549,7 @@ impl CefPrintHandler {
   //
   pub fn get_pdf_paper_size(&self,
       device_units_per_inch: libc::c_int) -> types::cef_size_t {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -599,8 +577,7 @@ impl CefWrap<*mut cef_print_handler_t> for Option<CefPrintHandler> {
     }
   }
   unsafe fn to_rust(c_object: *mut cef_print_handler_t) -> Option<CefPrintHandler> {
-    if c_object.is_null() &&
-       c_object as usize != mem::POST_DROP_USIZE {
+    if c_object.is_null() {
       None
     } else {
       Some(CefPrintHandler::from_c_object_addref(c_object))

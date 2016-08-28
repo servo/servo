@@ -113,8 +113,7 @@ pub struct CefProcessMessage {
 impl Clone for CefProcessMessage {
   fn clone(&self) -> CefProcessMessage{
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefProcessMessage {
@@ -127,8 +126,7 @@ impl Clone for CefProcessMessage {
 impl Drop for CefProcessMessage {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -143,8 +141,7 @@ impl CefProcessMessage {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_process_message_t) -> CefProcessMessage {
-    if !c_object.is_null() &&
-        c_object as usize != mem::POST_DROP_USIZE {
+    if !c_object.is_null() {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefProcessMessage {
@@ -158,8 +155,7 @@ impl CefProcessMessage {
 
   pub fn c_object_addrefed(&self) -> *mut cef_process_message_t {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -167,10 +163,10 @@ impl CefProcessMessage {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
+    self.c_object.is_null()
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
+    !self.c_object.is_null()
   }
 
   //
@@ -178,8 +174,7 @@ impl CefProcessMessage {
   // if this function returns false (0).
   //
   pub fn is_valid(&self) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -194,8 +189,7 @@ impl CefProcessMessage {
   // expose read-only objects.
   //
   pub fn is_read_only(&self) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -209,8 +203,7 @@ impl CefProcessMessage {
   // Returns a writable copy of this object.
   //
   pub fn copy(&self) -> interfaces::CefProcessMessage {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -225,8 +218,7 @@ impl CefProcessMessage {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_name(&self) -> String {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -240,8 +232,7 @@ impl CefProcessMessage {
   // Returns the list of arguments.
   //
   pub fn get_argument_list(&self) -> interfaces::CefListValue {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -279,8 +270,7 @@ impl CefWrap<*mut cef_process_message_t> for Option<CefProcessMessage> {
     }
   }
   unsafe fn to_rust(c_object: *mut cef_process_message_t) -> Option<CefProcessMessage> {
-    if c_object.is_null() &&
-       c_object as usize != mem::POST_DROP_USIZE {
+    if c_object.is_null() {
       None
     } else {
       Some(CefProcessMessage::from_c_object_addref(c_object))

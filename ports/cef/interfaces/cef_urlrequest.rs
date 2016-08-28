@@ -127,8 +127,7 @@ pub struct CefURLRequest {
 impl Clone for CefURLRequest {
   fn clone(&self) -> CefURLRequest{
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefURLRequest {
@@ -141,8 +140,7 @@ impl Clone for CefURLRequest {
 impl Drop for CefURLRequest {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -157,8 +155,7 @@ impl CefURLRequest {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_urlrequest_t) -> CefURLRequest {
-    if !c_object.is_null() &&
-        c_object as usize != mem::POST_DROP_USIZE {
+    if !c_object.is_null() {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefURLRequest {
@@ -172,8 +169,7 @@ impl CefURLRequest {
 
   pub fn c_object_addrefed(&self) -> *mut cef_urlrequest_t {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -181,10 +177,10 @@ impl CefURLRequest {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
+    self.c_object.is_null()
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
+    !self.c_object.is_null()
   }
 
   //
@@ -192,8 +188,7 @@ impl CefURLRequest {
   // object is read-only and should not be modified.
   //
   pub fn get_request(&self) -> interfaces::CefRequest {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -207,8 +202,7 @@ impl CefURLRequest {
   // Returns the client.
   //
   pub fn get_client(&self) -> interfaces::CefURLRequestClient {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -222,8 +216,7 @@ impl CefURLRequest {
   // Returns the request status.
   //
   pub fn get_request_status(&self) -> types::cef_urlrequest_status_t {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -238,8 +231,7 @@ impl CefURLRequest {
   // otherwise.
   //
   pub fn get_request_error(&self) -> types::cef_errorcode_t {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -255,8 +247,7 @@ impl CefURLRequest {
   // The returned object is read-only and should not be modified.
   //
   pub fn get_response(&self) -> interfaces::CefResponse {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -270,8 +261,7 @@ impl CefURLRequest {
   // Cancel the request.
   //
   pub fn cancel(&self) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -325,8 +315,7 @@ impl CefWrap<*mut cef_urlrequest_t> for Option<CefURLRequest> {
     }
   }
   unsafe fn to_rust(c_object: *mut cef_urlrequest_t) -> Option<CefURLRequest> {
-    if c_object.is_null() &&
-       c_object as usize != mem::POST_DROP_USIZE {
+    if c_object.is_null() {
       None
     } else {
       Some(CefURLRequest::from_c_object_addref(c_object))
@@ -427,8 +416,7 @@ pub struct CefURLRequestClient {
 impl Clone for CefURLRequestClient {
   fn clone(&self) -> CefURLRequestClient{
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefURLRequestClient {
@@ -441,8 +429,7 @@ impl Clone for CefURLRequestClient {
 impl Drop for CefURLRequestClient {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -457,8 +444,7 @@ impl CefURLRequestClient {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_urlrequest_client_t) -> CefURLRequestClient {
-    if !c_object.is_null() &&
-        c_object as usize != mem::POST_DROP_USIZE {
+    if !c_object.is_null() {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefURLRequestClient {
@@ -472,8 +458,7 @@ impl CefURLRequestClient {
 
   pub fn c_object_addrefed(&self) -> *mut cef_urlrequest_client_t {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -481,10 +466,10 @@ impl CefURLRequestClient {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
+    self.c_object.is_null()
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
+    !self.c_object.is_null()
   }
 
   //
@@ -493,8 +478,7 @@ impl CefURLRequestClient {
   // successful or not.
   //
   pub fn on_request_complete(&self, request: interfaces::CefURLRequest) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -513,8 +497,7 @@ impl CefURLRequestClient {
   //
   pub fn on_upload_progress(&self, request: interfaces::CefURLRequest,
       current: i64, total: i64) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -534,8 +517,7 @@ impl CefURLRequestClient {
   //
   pub fn on_download_progress(&self, request: interfaces::CefURLRequest,
       current: i64, total: i64) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -555,8 +537,7 @@ impl CefURLRequestClient {
   //
   pub fn on_download_data(&self, request: interfaces::CefURLRequest, data: &(),
       data_length: libc::size_t) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -581,8 +562,7 @@ impl CefURLRequestClient {
   pub fn get_auth_credentials(&self, isProxy: libc::c_int, host: &[u16],
       port: libc::c_int, realm: &[u16], scheme: &[u16],
       callback: interfaces::CefAuthCallback) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -615,8 +595,7 @@ impl CefWrap<*mut cef_urlrequest_client_t> for Option<CefURLRequestClient> {
     }
   }
   unsafe fn to_rust(c_object: *mut cef_urlrequest_client_t) -> Option<CefURLRequestClient> {
-    if c_object.is_null() &&
-       c_object as usize != mem::POST_DROP_USIZE {
+    if c_object.is_null() {
       None
     } else {
       Some(CefURLRequestClient::from_c_object_addref(c_object))

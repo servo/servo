@@ -145,8 +145,7 @@ pub struct CefResponse {
 impl Clone for CefResponse {
   fn clone(&self) -> CefResponse{
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefResponse {
@@ -159,8 +158,7 @@ impl Clone for CefResponse {
 impl Drop for CefResponse {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -175,8 +173,7 @@ impl CefResponse {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_response_t) -> CefResponse {
-    if !c_object.is_null() &&
-        c_object as usize != mem::POST_DROP_USIZE {
+    if !c_object.is_null() {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefResponse {
@@ -190,8 +187,7 @@ impl CefResponse {
 
   pub fn c_object_addrefed(&self) -> *mut cef_response_t {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -199,18 +195,17 @@ impl CefResponse {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
+    self.c_object.is_null()
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
+    !self.c_object.is_null()
   }
 
   //
   // Returns true (1) if this object is read-only.
   //
   pub fn is_read_only(&self) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -224,8 +219,7 @@ impl CefResponse {
   // Get the response status code.
   //
   pub fn get_status(&self) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -239,8 +233,7 @@ impl CefResponse {
   // Set the response status code.
   //
   pub fn set_status(&self, status: libc::c_int) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -256,8 +249,7 @@ impl CefResponse {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_status_text(&self) -> String {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -271,8 +263,7 @@ impl CefResponse {
   // Set the response status text.
   //
   pub fn set_status_text(&self, statusText: &[u16]) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -288,8 +279,7 @@ impl CefResponse {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_mime_type(&self) -> String {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -303,8 +293,7 @@ impl CefResponse {
   // Set the response mime type.
   //
   pub fn set_mime_type(&self, mimeType: &[u16]) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -320,8 +309,7 @@ impl CefResponse {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_header(&self, name: &[u16]) -> String {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -336,8 +324,7 @@ impl CefResponse {
   // Get all response header fields.
   //
   pub fn get_header_map(&self, headerMap: HashMap<String,Vec<String>>) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -352,8 +339,7 @@ impl CefResponse {
   // Set all response header fields.
   //
   pub fn set_header_map(&self, headerMap: HashMap<String,Vec<String>>) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -392,8 +378,7 @@ impl CefWrap<*mut cef_response_t> for Option<CefResponse> {
     }
   }
   unsafe fn to_rust(c_object: *mut cef_response_t) -> Option<CefResponse> {
-    if c_object.is_null() &&
-       c_object as usize != mem::POST_DROP_USIZE {
+    if c_object.is_null() {
       None
     } else {
       Some(CefResponse::from_c_object_addref(c_object))

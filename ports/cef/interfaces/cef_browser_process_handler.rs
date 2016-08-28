@@ -127,8 +127,7 @@ pub struct CefBrowserProcessHandler {
 impl Clone for CefBrowserProcessHandler {
   fn clone(&self) -> CefBrowserProcessHandler{
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefBrowserProcessHandler {
@@ -141,8 +140,7 @@ impl Clone for CefBrowserProcessHandler {
 impl Drop for CefBrowserProcessHandler {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -157,8 +155,7 @@ impl CefBrowserProcessHandler {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_browser_process_handler_t) -> CefBrowserProcessHandler {
-    if !c_object.is_null() &&
-        c_object as usize != mem::POST_DROP_USIZE {
+    if !c_object.is_null() {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefBrowserProcessHandler {
@@ -172,8 +169,7 @@ impl CefBrowserProcessHandler {
 
   pub fn c_object_addrefed(&self) -> *mut cef_browser_process_handler_t {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -181,10 +177,10 @@ impl CefBrowserProcessHandler {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
+    self.c_object.is_null()
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
+    !self.c_object.is_null()
   }
 
   //
@@ -192,8 +188,7 @@ impl CefBrowserProcessHandler {
   // has been initialized.
   //
   pub fn on_context_initialized(&self) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -212,8 +207,7 @@ impl CefBrowserProcessHandler {
   //
   pub fn on_before_child_process_launch(&self,
       command_line: interfaces::CefCommandLine) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -233,8 +227,7 @@ impl CefBrowserProcessHandler {
   //
   pub fn on_render_process_thread_created(&self,
       extra_info: interfaces::CefListValue) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -250,8 +243,7 @@ impl CefBrowserProcessHandler {
   // provided then printing will not be supported on the Linux platform.
   //
   pub fn get_print_handler(&self) -> interfaces::CefPrintHandler {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -266,8 +258,7 @@ impl CefBrowserProcessHandler {
   // called from a thread.
   //
   pub fn on_work_available(&self) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -294,8 +285,7 @@ impl CefWrap<*mut cef_browser_process_handler_t> for Option<CefBrowserProcessHan
     }
   }
   unsafe fn to_rust(c_object: *mut cef_browser_process_handler_t) -> Option<CefBrowserProcessHandler> {
-    if c_object.is_null() &&
-       c_object as usize != mem::POST_DROP_USIZE {
+    if c_object.is_null() {
       None
     } else {
       Some(CefBrowserProcessHandler::from_c_object_addref(c_object))
