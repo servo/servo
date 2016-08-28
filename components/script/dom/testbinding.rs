@@ -4,6 +4,7 @@
 
 // check-tidy: no specs after this line
 
+use core::nonzero::NonZero;
 use dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::TestBindingBinding;
@@ -139,21 +140,21 @@ impl TestBindingMethods for TestBinding {
     }
     fn SetUnion9Attribute(&self, _: ByteStringOrLong) {}
     #[allow(unsafe_code)]
-    fn ArrayAttribute(&self, cx: *mut JSContext) -> *mut JSObject {
+    fn ArrayAttribute(&self, cx: *mut JSContext) -> NonZero<*mut JSObject> {
         unsafe {
             rooted!(in(cx) let array = JS_NewUint8ClampedArray(cx, 16));
             assert!(!array.is_null());
-            array.get()
+            NonZero::new(array.get())
         }
     }
     fn AnyAttribute(&self, _: *mut JSContext) -> JSVal { NullValue() }
     fn SetAnyAttribute(&self, _: *mut JSContext, _: HandleValue) {}
     #[allow(unsafe_code)]
-    fn ObjectAttribute(&self, cx: *mut JSContext) -> *mut JSObject {
+    fn ObjectAttribute(&self, cx: *mut JSContext) -> NonZero<*mut JSObject> {
         unsafe {
             rooted!(in(cx) let obj = JS_NewPlainObject(cx));
             assert!(!obj.is_null());
-            obj.get()
+            NonZero::new(obj.get())
         }
     }
     fn SetObjectAttribute(&self, _: *mut JSContext, _: *mut JSObject) {}
@@ -208,7 +209,7 @@ impl TestBindingMethods for TestBinding {
     fn SetInterfaceAttributeWeak(&self, url: Option<&URL>) {
         self.url.set(url);
     }
-    fn GetObjectAttributeNullable(&self, _: *mut JSContext) -> *mut JSObject { ptr::null_mut() }
+    fn GetObjectAttributeNullable(&self, _: *mut JSContext) -> Option<NonZero<*mut JSObject>> { None }
     fn SetObjectAttributeNullable(&self, _: *mut JSContext, _: *mut JSObject) {}
     fn GetUnionAttributeNullable(&self) -> Option<HTMLElementOrLong> {
         Some(HTMLElementOrLong::Long(0))
@@ -257,7 +258,7 @@ impl TestBindingMethods for TestBinding {
         Blob::new(self.global().r(), BlobImpl::new_from_bytes(vec![]), "".to_owned())
     }
     fn ReceiveAny(&self, _: *mut JSContext) -> JSVal { NullValue() }
-    fn ReceiveObject(&self, cx: *mut JSContext) -> *mut JSObject {
+    fn ReceiveObject(&self, cx: *mut JSContext) -> NonZero<*mut JSObject> {
         self.ObjectAttribute(cx)
     }
     fn ReceiveUnion(&self) -> HTMLElementOrLong { HTMLElementOrLong::Long(0) }
@@ -300,7 +301,7 @@ impl TestBindingMethods for TestBinding {
     fn ReceiveNullableInterface(&self) -> Option<Root<Blob>> {
         Some(Blob::new(self.global().r(), BlobImpl::new_from_bytes(vec![]), "".to_owned()))
     }
-    fn ReceiveNullableObject(&self, cx: *mut JSContext) -> *mut JSObject {
+    fn ReceiveNullableObject(&self, cx: *mut JSContext) -> Option<NonZero<*mut JSObject>> {
         self.GetObjectAttributeNullable(cx)
     }
     fn ReceiveNullableUnion(&self) -> Option<HTMLElementOrLong> {

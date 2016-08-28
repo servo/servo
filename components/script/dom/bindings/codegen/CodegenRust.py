@@ -1349,7 +1349,10 @@ def getRetvalDeclarationForType(returnType, descriptorProvider):
     if returnType.isAny():
         return CGGeneric("JSVal")
     if returnType.isObject() or returnType.isSpiderMonkeyInterface():
-        return CGGeneric("*mut JSObject")
+        result = CGGeneric("NonZero<*mut JSObject>")
+        if returnType.nullable():
+            result = CGWrapper(result, pre="Option<", post=">")
+        return result
     if returnType.isSequence():
         result = getRetvalDeclarationForType(innerSequenceType(returnType), descriptorProvider)
         result = CGWrapper(result, pre="Vec<", post=">")
@@ -5323,6 +5326,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         enums = []
 
     return CGImports(cgthings, descriptors, callbacks, dictionaries, enums, [
+        'core::nonzero::NonZero',
         'js',
         'js::JSCLASS_GLOBAL_SLOT_COUNT',
         'js::JSCLASS_IS_DOMJSCLASS',

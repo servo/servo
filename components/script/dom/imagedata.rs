@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use core::nonzero::NonZero;
 use dom::bindings::codegen::Bindings::ImageDataBinding;
 use dom::bindings::codegen::Bindings::ImageDataBinding::ImageDataMethods;
 use dom::bindings::global::GlobalRef;
@@ -82,9 +83,10 @@ impl ImageDataMethods for ImageData {
         self.height
     }
 
+    #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-imagedata-data
-    fn Data(&self, _: *mut JSContext) -> *mut JSObject {
+    fn Data(&self, _: *mut JSContext) -> NonZero<*mut JSObject> {
         assert!(!self.data.get().is_null());
-        self.data.get()
+        unsafe { NonZero::new(self.data.get()) }
     }
 }

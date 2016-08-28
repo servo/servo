@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use core::nonzero::NonZero;
 use document_loader::{DocumentLoader, LoadType};
 use dom::activation::{ActivationSource, synthetic_click_activation};
 use dom::attr::Attr;
@@ -90,7 +91,7 @@ use euclid::point::Point2D;
 use html5ever::tree_builder::{LimitedQuirks, NoQuirks, Quirks, QuirksMode};
 use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::JS_GetRuntime;
-use js::jsapi::{JSContext, JSObject, JSRuntime};
+use js::jsapi::{JSContext, JSObject, JSRuntime, JS_NewPlainObject};
 use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState};
 use msg::constellation_msg::{PipelineId, ReferrerPolicy, SubpageId};
@@ -116,7 +117,6 @@ use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::default::Default;
 use std::iter::once;
 use std::mem;
-use std::ptr;
 use std::rc::Rc;
 use std::sync::Arc;
 use string_cache::{Atom, QualName};
@@ -2689,8 +2689,10 @@ impl DocumentMethods for Document {
         self.set_body_attribute(&atom!("text"), value)
     }
 
+    #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:dom-document-nameditem-filter
-    fn NamedGetter(&self, _cx: *mut JSContext, name: DOMString, found: &mut bool) -> *mut JSObject {
+    fn NamedGetter(&self, cx: *mut JSContext, name: DOMString, found: &mut bool)
+                   -> NonZero<*mut JSObject> {
         #[derive(JSTraceable, HeapSizeOf)]
         struct NamedElementFilter {
             name: Atom,
@@ -2759,11 +2761,15 @@ impl DocumentMethods for Document {
                     *found = true;
                     // TODO: Step 2.
                     // Step 3.
-                    return first.reflector().get_jsobject().get();
+                    return unsafe {
+                        NonZero::new(first.reflector().get_jsobject().get())
+                    };
                 }
             } else {
                 *found = false;
-                return ptr::null_mut();
+                return unsafe {
+                    NonZero::new(JS_NewPlainObject(cx))
+                };
             }
         }
         // Step 4.
@@ -2772,7 +2778,9 @@ impl DocumentMethods for Document {
             name: name,
         };
         let collection = HTMLCollection::create(self.window(), root, box filter);
-        collection.reflector().get_jsobject().get()
+        unsafe {
+            NonZero::new(collection.reflector().get_jsobject().get())
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:supported-property-names
