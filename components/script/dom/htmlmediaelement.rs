@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use audio_video_metadata;
 use document_loader::LoadType;
 use dom::attr::Attr;
 use dom::bindings::cell::DOMRefCell;
@@ -160,12 +161,24 @@ impl HTMLMediaElementContext {
     }
 
     fn check_metadata(&mut self, elem: &HTMLMediaElement) {
-        // Step 6.
-        //
-        // TODO: Properly implement once we have figured out the build and
-        // licensing ffmpeg issues.
-        elem.change_ready_state(HAVE_METADATA);
-        self.have_metadata = true;
+        match audio_video_metadata::get_format_from_slice(&self.data) {
+            Ok(audio_video_metadata::Metadata::Video(meta)) => {
+                let dur = meta.audio.duration.unwrap_or(::std::time::Duration::new(0, 0));
+                *elem.video.borrow_mut() = Some(VideoMedia {
+                    format: format!("{:?}", meta.format),
+                    duration: Duration::seconds(dur.as_secs() as i64) +
+                              Duration::nanoseconds(dur.subsec_nanos() as i64),
+                    width: meta.dimensions.width,
+                    height: meta.dimensions.height,
+                    video: meta.video.unwrap_or("".to_owned()),
+                    audio: meta.audio.audio,
+                });
+                // Step 6
+                elem.change_ready_state(HAVE_METADATA);
+                self.have_metadata = true;
+            }
+            _ => {}
+        }
     }
 }
 
