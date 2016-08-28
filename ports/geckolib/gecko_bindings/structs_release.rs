@@ -5895,14 +5895,13 @@ fn bindgen_test_layout_nsCSSShadowItem() {
 #[repr(C)]
 #[derive(Debug)]
 pub struct nsCSSShadowArray {
-    pub mRefCnt: nsAutoRefCnt,
-    pub _mOwningThread: nsAutoOwningThread,
+    pub mRefCnt: ThreadSafeAutoRefCnt,
     pub mLength: u32,
     pub mArray: [nsCSSShadowItem; 1usize],
 }
 #[test]
 fn bindgen_test_layout_nsCSSShadowArray() {
-    assert_eq!(::std::mem::size_of::<nsCSSShadowArray>() , 48usize);
+    assert_eq!(::std::mem::size_of::<nsCSSShadowArray>() , 40usize);
     assert_eq!(::std::mem::align_of::<nsCSSShadowArray>() , 8usize);
 }
 #[repr(C)]
