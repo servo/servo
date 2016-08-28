@@ -41,7 +41,7 @@ use inline::InlineFlow;
 use model::{CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo};
 use multicol::MulticolFlow;
 use parallel::FlowParallelInfo;
-use rustc_serialize::{Encodable, Encoder};
+use rustc_serialize::{Encodable, Encoder, json};
 use script_layout_interface::restyle_damage::{RECONSTRUCT_FLOW, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, RestyleDamage};
 use script_layout_interface::wrapper_traits::{PseudoElementType, ThreadSafeLayoutNode};
 use std::iter::Zip;
@@ -508,7 +508,7 @@ pub trait ImmutableFlowUtils {
     fn print(self, title: String);
 
     /// Dumps the flow tree for debugging into the given PrintTree.
-    fn print_with_tree(self, print_tree: &mut PrintTree);
+    fn print_with_tree(self, title: String);
 
     /// Returns true if floats might flow through this flow, as determined by the float placement
     /// speculation pass.
@@ -1372,18 +1372,18 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
 
     /// Dumps the flow tree for debugging.
     fn print(self, title: String) {
-        let mut print_tree = PrintTree::new(title);
-        self.print_with_tree(&mut print_tree);
+        self.print_with_tree(title);
     }
 
     /// Dumps the flow tree for debugging into the given PrintTree.
-    fn print_with_tree(self, print_tree: &mut PrintTree) {
-        print_tree.new_level(format!("{:?}", self));
-        self.print_extra_flow_children(print_tree);
-        for kid in child_iter(self) {
-            kid.print_with_tree(print_tree);
-        }
-        print_tree.end_level();
+    // doesn't make for print_extra_flow_children function ->
+    // self.print_extra_flow_children(print_tree);
+    fn print_with_tree(self, title: String) {
+        let flow_trace = json::encode(&base(&*self)).unwrap();
+        println!("{}", title);
+        println!("========================================");
+        println!("{}", flow_trace.replace("\\\"", "\""));
+        println!("========================================");
     }
 
     fn floats_might_flow_through(self) -> bool {
