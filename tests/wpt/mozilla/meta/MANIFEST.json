@@ -71,6 +71,18 @@
             "url": "/_mozilla/css/absolute_content_height.html"
           }
         ],
+        "css/absolute_css_width.html": [
+          {
+            "path": "css/absolute_css_width.html",
+            "references": [
+              [
+                "/_mozilla/css/absolute_css_width_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/absolute_css_width.html"
+          }
+        ],
         "css/absolute_hypothetical_float.html": [
           {
             "path": "css/absolute_hypothetical_float.html",
@@ -9385,6 +9397,18 @@
             ]
           ],
           "url": "/_mozilla/css/absolute_content_height.html"
+        }
+      ],
+      "css/absolute_css_width.html": [
+        {
+          "path": "css/absolute_css_width.html",
+          "references": [
+            [
+              "/_mozilla/css/absolute_css_width_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/absolute_css_width.html"
         }
       ],
       "css/absolute_hypothetical_float.html": [
