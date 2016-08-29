@@ -5,6 +5,8 @@
 //! Restyle hints: an optimization to avoid unnecessarily matching selectors.
 
 use element_state::*;
+#[cfg(feature = "servo")]
+use heapsize::HeapSizeOf;
 use selector_impl::{ElementExt, TheSelectorImpl, NonTSPseudoClass, AttrValue};
 use selectors::matching::StyleRelations;
 use selectors::matching::matches_complex_selector;
@@ -31,6 +33,11 @@ bitflags! {
         #[doc = "Rerun selector matching on all later siblings of the element and all of their descendants."]
         const RESTYLE_LATER_SIBLINGS = 0x08,
     }
+}
+
+#[cfg(feature = "servo")]
+impl HeapSizeOf for RestyleHint {
+    fn heap_size_of_children(&self) -> usize { 0 }
 }
 
 /// In order to compute restyle hints, we perform a selector match against a
@@ -330,11 +337,14 @@ impl Sensitivities {
 /// This allows us to quickly scan through the dependency sites of all style
 /// rules and determine the maximum effect that a given state or attribute
 /// change may have on the style of elements in the document.
+///
+/// Note that there are measurable perf wins from storing them separately, and
+/// its also not a big deal to do it, since the dependencies are per-document.
 #[derive(Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 struct Dependency {
     selector: Arc<ComplexSelector<TheSelectorImpl>>,
-    combinator: Option<Combinator>,
+    hint: RestyleHint,
     sensitivities: Sensitivities,
 }
 
@@ -389,7 +399,7 @@ impl DependencySet {
             if !sensitivities.is_empty() {
                 self.add_dependency(Dependency {
                     selector: cur.clone(),
-                    combinator: combinator,
+                    hint: combinator_to_restyle_hint(combinator),
                     sensitivities: sensitivities,
                 });
             }
@@ -411,27 +421,36 @@ impl DependencySet {
     }
 }
 
-impl DependencySet {
-    fn test_dependency<E>(&self,
-                          dep: &Dependency,
-                          element: &E,
-                          snapshot: &ElementWrapper<E>,
-                          state_changes: &ElementState,
-                          attrs_changed: bool,
-                          hint: &mut RestyleHint)
-        where E: ElementExt
-    {
-        if state_changes.intersects(dep.sensitivities.states) || (attrs_changed && dep.sensitivities.attrs) {
+fn test_dependencies<E>(deps: &[Dependency],
+                        element: &E,
+                        snapshot: &ElementWrapper<E>,
+                        state_changes: &ElementState,
+                        attrs_changed: bool,
+                        hint: &mut RestyleHint)
+    where E: ElementExt
+{
+    for dep in deps {
+        debug_assert!(state_changes.intersects(dep.sensitivities.states) ||
+                      attrs_changed && dep.sensitivities.attrs,
+                      "Testing a completely ineffective dependency?");
+        if !hint.intersects(dep.hint) {
             let matched_then =
-                matches_complex_selector(&dep.selector, snapshot, None, &mut StyleRelations::empty());
+                matches_complex_selector(&dep.selector, snapshot, None,
+                                         &mut StyleRelations::empty());
             let matches_now =
-                matches_complex_selector(&dep.selector, element, None, &mut StyleRelations::empty());
+                matches_complex_selector(&dep.selector, element, None,
+                                         &mut StyleRelations::empty());
             if matched_then != matches_now {
-                hint.insert(combinator_to_restyle_hint(dep.combinator));
+                hint.insert(dep.hint);
             }
         }
+        if hint.is_all() {
+            break;
+        }
     }
+}
 
+impl DependencySet {
     pub fn compute_hint<E>(&self, el: &E,
                            snapshot: &E::Snapshot,
                            current_state: ElementState)
@@ -441,7 +460,8 @@ impl DependencySet {
         debug!("About to calculate restyle hint for element. Deps: {}",
                self.len());
 
-        let state_changes = snapshot.state().map_or_else(ElementState::empty, |old_state| current_state ^ old_state);
+        let state_changes = snapshot.state()
+                                    .map_or_else(ElementState::empty, |old_state| current_state ^ old_state);
         let attrs_changed = snapshot.has_attrs();
 
         if state_changes.is_empty() && !attrs_changed {
@@ -450,32 +470,18 @@ impl DependencySet {
 
         let mut hint = RestyleHint::empty();
         let snapshot = ElementWrapper::new_with_snapshot(el.clone(), snapshot);
-        for dep in &self.common_deps {
-            self.test_dependency(dep, el, &snapshot, &state_changes,
-                                 attrs_changed, &mut hint);
-            if hint.is_all() {
-                return hint;
-            }
+
+        test_dependencies(&self.common_deps, el, &snapshot, &state_changes,
+                          attrs_changed, &mut hint);
+
+        if !state_changes.is_empty() && !hint.is_all() {
+            test_dependencies(&self.state_deps, el, &snapshot, &state_changes,
+                              attrs_changed, &mut hint);
         }
 
-        if !state_changes.is_empty() {
-            for dep in &self.state_deps {
-                self.test_dependency(dep, el, &snapshot, &state_changes,
-                                     attrs_changed, &mut hint);
-                if hint.is_all() {
-                    return hint;
-                }
-            }
-        }
-
-        if attrs_changed {
-            for dep in &self.attr_deps {
-                self.test_dependency(dep, el, &snapshot, &state_changes,
-                                     attrs_changed, &mut hint);
-                if hint.is_all() {
-                    return hint;
-                }
-            }
+        if attrs_changed && !hint.is_all() {
+            test_dependencies(&self.attr_deps, el, &snapshot, &state_changes,
+                              attrs_changed, &mut hint);
         }
 
         hint
