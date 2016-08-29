@@ -15,8 +15,8 @@ use url::Url;
 use values::computed::basic_shape as computed_basic_shape;
 use values::computed::{Context, ToComputedValue, ComputedValueAsSpecified};
 use values::specified::UrlExtraData;
-use values::specified::position::Position;
-use values::specified::{BorderRadiusSize, LengthOrPercentage, Percentage};
+use values::specified::position::{Keyword, Position};
+use values::specified::{BorderRadiusSize, LengthOrPercentage};
 
 /// A shape source, for some reference box
 ///
@@ -265,8 +265,10 @@ impl Circle {
         } else {
             // Defaults to origin
             Position {
-                horizontal: LengthOrPercentage::Percentage(Percentage(0.5)),
-                vertical: LengthOrPercentage::Percentage(Percentage(0.5)),
+                horiz_keyword: Some(Keyword::Center),
+                horiz_position: None,
+                vert_keyword: Some(Keyword::Center),
+                vert_position: None,
             }
         };
         Ok(Circle {
@@ -329,8 +331,10 @@ impl Ellipse {
         } else {
             // Defaults to origin
             Position {
-                horizontal: LengthOrPercentage::Percentage(Percentage(0.5)),
-                vertical: LengthOrPercentage::Percentage(Percentage(0.5)),
+                horiz_keyword: Some(Keyword::Center),
+                horiz_position: None,
+                vert_keyword: Some(Keyword::Center),
+                vert_position: None,
             }
         };
         Ok(Ellipse {
