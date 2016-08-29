@@ -321,7 +321,7 @@ def build(objdir, target_name, debug, debugger, kind_name=None,
             flags.append("{}Strong".format(ty))
             flags.append("--raw-line")
             flags.append("pub type {0}Strong = ::sugar::refptr::Strong<{0}>;".format(ty))
-            flags.append("-blacklist-type")
+            flags.append("--blacklist-type")
             flags.append("{}Borrowed".format(ty))
             flags.append("--raw-line")
             flags.append("pub type {0}Borrowed<'a> = ::sugar::refptr::Borrowed<'a, {0}>;".format(ty))
