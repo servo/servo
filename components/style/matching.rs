@@ -18,7 +18,7 @@ use properties::{ComputedValues, cascade};
 use selector_impl::{TheSelectorImpl, PseudoElement};
 use selector_matching::{DeclarationBlock, Stylist};
 use selectors::bloom::BloomFilter;
-use selectors::matching::{StyleRelations, AFFECTED_BY_PSEUDO_ELEMENTS};
+use selectors::matching::StyleRelations;
 use selectors::{Element, MatchAttr};
 use sink::ForgetfulSink;
 use smallvec::SmallVec;
@@ -650,7 +650,10 @@ pub trait ElementMatchMethods : TElement {
                      parent_bf: Option<&BloomFilter>,
                      applicable_declarations: &mut ApplicableDeclarations)
                      -> StyleRelations {
+        use element_flags::ElementFlags;
+        use selectors::matching::AFFECTED_BY_PSEUDO_ELEMENTS;
         use traversal::relations_are_shareable;
+
         let style_attribute = self.style_attribute().as_ref();
 
         let mut relations =
@@ -675,6 +678,20 @@ pub trait ElementMatchMethods : TElement {
 
         if has_pseudos {
             relations |= AFFECTED_BY_PSEUDO_ELEMENTS;
+        }
+
+        // Now we might need to update the parent flags regarding which
+        // selectors are matched.
+        let (child_flags, parent_flags) = ElementFlags::from_relations(relations);
+        if !child_flags.is_empty() {
+            // FIXME(emilio): This doesn't need to be atomic.
+            self.insert_selector_flags(child_flags);
+        }
+
+        if !parent_flags.is_empty() {
+            if let Some(parent) = self.parent_element() {
+                parent.insert_selector_flags(parent_flags);
+            }
         }
 
         relations

@@ -471,8 +471,12 @@ impl<'le> TElement for ServoLayoutElement<'le> {
         self.get_attr(namespace, attr).map_or(false, |x| x == val)
     }
 
-    fn insert_flags(&self, flags: ElementFlags) {
+    fn insert_selector_flags(&self, flags: ElementFlags) {
         self.element.insert_atomic_flags(flags);
+    }
+
+    fn clear_selector_flags(&self) {
+        self.element.clear_atomic_flags();
     }
 }
 

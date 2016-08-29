@@ -6,7 +6,7 @@
 
 use animation;
 use context::{LocalStyleContext, SharedStyleContext, StyleContext};
-use dom::{OpaqueNode, TNode, TRestyleDamage, UnsafeNode};
+use dom::{OpaqueNode, TElement, TNode, TRestyleDamage, UnsafeNode};
 use matching::{ApplicableDeclarations, ElementMatchMethods, MatchMethods, StyleSharingResult};
 use selectors::bloom::BloomFilter;
 use selectors::matching::StyleRelations;
@@ -311,11 +311,20 @@ pub fn recalc_style_at<'a, N, C>(context: &'a C,
             node.unstyle();
         }
 
+        // NOTE: This works now because we know we're running selector matching
+        // on all the children, but if that changes, this will need to be
+        // adjusted, and only cleared when we're completely sure of that!
+        let node_as_element = node.as_element();
+
+        if let Some(element) = node_as_element {
+            element.clear_selector_flags();
+        }
+
         // Check to see whether we can share a style with someone.
         let style_sharing_candidate_cache =
             &mut context.local_context().style_sharing_candidate_cache.borrow_mut();
 
-        let sharing_result = match node.as_element() {
+        let sharing_result = match node_as_element {
             Some(element) => {
                 unsafe {
                     element.share_style_if_possible(style_sharing_candidate_cache,
@@ -332,7 +341,7 @@ pub fn recalc_style_at<'a, N, C>(context: &'a C,
                 let mut applicable_declarations = ApplicableDeclarations::new();
 
                 let relations;
-                let shareable_element = match node.as_element() {
+                let shareable_element = match node_as_element {
                     Some(element) => {
                         if opts::get().style_sharing_stats {
                             STYLE_SHARING_CACHE_MISSES.fetch_add(1, Ordering::Relaxed);

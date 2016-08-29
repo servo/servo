@@ -200,8 +200,18 @@ pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + Pre
     fn has_attr(&self, namespace: &Namespace, attr: &Atom) -> bool;
     fn attr_equals(&self, namespace: &Namespace, attr: &Atom, value: &Atom) -> bool;
 
-    // TODO: Implement this for geckolib.
-    fn insert_flags(&self, _flags: ElementFlags) {}
+    /// Insert selector-related flags (ElementFlags) into the element.
+    /// This needs to be atomic, since they're inserted while we're processing
+    /// children.
+    fn insert_selector_flags(&self, _flags: ElementFlags) {
+        // TODO(emilio): Implement this for geckolib.
+    }
+
+    /// Clear selector-related flags (ElementFlags) from the element.
+    ///
+    /// This is only called with exclusive access to the element, so it's not
+    /// required to be atomic.
+    fn clear_selector_flags(&self) {}
 
     /// Properly marks nodes as dirty in response to restyle hints.
     fn note_restyle_hint(&self, hint: RestyleHint) {

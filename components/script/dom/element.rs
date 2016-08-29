@@ -305,6 +305,7 @@ pub trait LayoutElementHelpers {
     fn get_indeterminate_state_for_layout(&self) -> bool;
     fn get_state_for_layout(&self) -> ElementState;
     fn insert_atomic_flags(&self, flags: ElementFlags);
+    fn clear_atomic_flags(&self);
 }
 
 impl LayoutElementHelpers for LayoutJS<Element> {
@@ -673,6 +674,14 @@ impl LayoutElementHelpers for LayoutJS<Element> {
     fn insert_atomic_flags(&self, flags: ElementFlags) {
         unsafe {
             (*self.unsafe_get()).atomic_flags.insert(flags);
+        }
+    }
+
+    #[inline]
+    #[allow(unsafe_code)]
+    fn clear_atomic_flags(&self) {
+        unsafe {
+            (*self.unsafe_get()).atomic_flags.clear();
         }
     }
 }
@@ -2693,6 +2702,10 @@ impl AtomicElementFlags {
 
     fn get(&self) -> ElementFlags {
         ElementFlags::from_bits_truncate(self.0.load(Ordering::Relaxed) as u8)
+    }
+
+    fn clear(&self) {
+        self.0.store(0, Ordering::SeqCst)
     }
 
     fn insert(&self, flags: ElementFlags) {
