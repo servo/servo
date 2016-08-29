@@ -8,6 +8,7 @@
 
 use context::SharedStyleContext;
 use data::PrivateStyleData;
+use element_flags::ElementFlags;
 use element_state::ElementState;
 use properties::{ComputedValues, PropertyDeclarationBlock};
 use refcell::{Ref, RefMut};
@@ -198,6 +199,9 @@ pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + Pre
 
     fn has_attr(&self, namespace: &Namespace, attr: &Atom) -> bool;
     fn attr_equals(&self, namespace: &Namespace, attr: &Atom, value: &Atom) -> bool;
+
+    // TODO: Implement this for geckolib.
+    fn insert_flags(&self, _flags: ElementFlags) {}
 
     /// Properly marks nodes as dirty in response to restyle hints.
     fn note_restyle_hint(&self, hint: RestyleHint) {

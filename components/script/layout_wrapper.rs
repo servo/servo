@@ -47,7 +47,6 @@ use script_layout_interface::wrapper_traits::{DangerousThreadSafeLayoutNode, Lay
 use script_layout_interface::wrapper_traits::{ThreadSafeLayoutNode, ThreadSafeLayoutElement};
 use script_layout_interface::{HTMLCanvasData, LayoutNodeType, TrustedNodeAddress};
 use script_layout_interface::{OpaqueStyleAndLayoutData, PartialStyleAndLayoutData};
-use selectors::matching::ElementFlags;
 use selectors::parser::{AttrSelector, NamespaceConstraint};
 use std::fmt;
 use std::marker::PhantomData;
@@ -59,6 +58,7 @@ use style::computed_values::display;
 use style::context::SharedStyleContext;
 use style::data::PrivateStyleData;
 use style::dom::{PresentationalHintsSynthetizer, OpaqueNode, TDocument, TElement, TNode, UnsafeNode};
+use style::element_flags::ElementFlags;
 use style::element_state::*;
 use style::properties::{ComputedValues, PropertyDeclarationBlock};
 use style::refcell::{Ref, RefCell, RefMut};
@@ -470,6 +470,10 @@ impl<'le> TElement for ServoLayoutElement<'le> {
     fn attr_equals(&self, namespace: &Namespace, attr: &Atom, val: &Atom) -> bool {
         self.get_attr(namespace, attr).map_or(false, |x| x == val)
     }
+
+    fn insert_flags(&self, flags: ElementFlags) {
+        self.element.insert_atomic_flags(flags);
+    }
 }
 
 impl<'le> PartialEq for ServoLayoutElement<'le> {
@@ -661,10 +665,6 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
         unsafe {
             self.element.html_element_in_html_document_for_layout()
         }
-    }
-
-    fn insert_flags(&self, flags: ElementFlags) {
-        self.element.insert_atomic_flags(flags);
     }
 }
 
