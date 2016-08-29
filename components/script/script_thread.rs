@@ -31,7 +31,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root, RootCollection};
 use dom::bindings::js::{RootCollectionPtr, RootedReference};
-use dom::bindings::refcounted::{LiveDOMReferences, Trusted};
+use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::Reflectable;
 use dom::bindings::str::DOMString;
 use dom::bindings::trace::JSTraceable;
@@ -948,8 +948,6 @@ impl ScriptThread {
                     runnable.handler()
                 }
             }
-            MainThreadScriptMsg::Common(CommonScriptMsg::RefcountCleanup(addr)) =>
-                LiveDOMReferences::cleanup(addr),
             MainThreadScriptMsg::Common(CommonScriptMsg::CollectReports(reports_chan)) =>
                 self.collect_reports(reports_chan),
             MainThreadScriptMsg::DOMManipulation(task) =>
