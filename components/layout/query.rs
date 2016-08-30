@@ -447,7 +447,6 @@ struct ParentBorderBoxInfo {
 
 struct ParentOffsetBorderBoxIterator {
     node_address: OpaqueNode,
-    last_level: i32,
     has_found_node: bool,
     node_border_box: Rect<Au>,
     parent_nodes: Vec<Option<ParentBorderBoxInfo>>,
@@ -457,7 +456,6 @@ impl ParentOffsetBorderBoxIterator {
     fn new(node_address: OpaqueNode) -> ParentOffsetBorderBoxIterator {
         ParentOffsetBorderBoxIterator {
             node_address: node_address,
-            last_level: -1,
             has_found_node: false,
             node_border_box: Rect::zero(),
             parent_nodes: Vec::new(),
@@ -536,6 +534,10 @@ impl FragmentBorderBoxIterator for UnioningFragmentScrollAreaIterator {
 // https://drafts.csswg.org/cssom-view/#extensions-to-the-htmlelement-interface
 impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
     fn process(&mut self, fragment: &Fragment, level: i32, border_box: &Rect<Au>) {
+        // Remove all nodes at this level or higher, as they can't be parents of this node.
+        self.parent_nodes.truncate(level as usize);
+        assert!(self.parent_nodes.len() == level as usize);
+
         if fragment.node == self.node_address {
             // Found the fragment in the flow tree that matches the
             // DOM node being looked for.
@@ -546,11 +548,11 @@ impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
             if fragment.style.get_box().position == computed_values::position::T::fixed {
                 self.parent_nodes.clear();
             }
-        } else if level > self.last_level {
+        } else {
             // TODO(gw): Is there a less fragile way of checking whether this
             // fragment is the body element, rather than just checking that
-            // the parent nodes stack contains the root node only?
-            let is_body_element = self.parent_nodes.len() == 1;
+            // it's at level 1 (above the root node)?
+            let is_body_element = level == 1;
 
             let is_valid_parent = match (is_body_element,
                                          fragment.style.get_box().position,
@@ -580,8 +582,6 @@ impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
             };
 
             self.parent_nodes.push(parent_info);
-        } else if level < self.last_level {
-            self.parent_nodes.pop();
         }
     }
 
