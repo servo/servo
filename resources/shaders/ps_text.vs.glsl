@@ -6,7 +6,7 @@
 struct Glyph {
     PrimitiveInfo info;
     vec4 color;
-    ivec4 uv_rect;
+    vec4 uv_rect;
 };
 
 layout(std140) uniform Items {

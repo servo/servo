@@ -3,15 +3,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#define PST_INVALID      uint(0)
-#define PST_TOP_LEFT     uint(1)
-#define PST_TOP_RIGHT    uint(2)
-#define PST_BOTTOM_LEFT  uint(3)
-#define PST_BOTTOM_RIGHT uint(4)
-#define PST_TOP          uint(5)
-#define PST_LEFT         uint(6)
-#define PST_BOTTOM       uint(7)
-#define PST_RIGHT        uint(8)
+#define PST_TOP_LEFT     uint(0)
+#define PST_TOP_RIGHT    uint(1)
+#define PST_BOTTOM_LEFT  uint(2)
+#define PST_BOTTOM_RIGHT uint(3)
+#define PST_TOP          uint(4)
+#define PST_LEFT         uint(5)
+#define PST_BOTTOM       uint(6)
+#define PST_RIGHT        uint(7)
 
 // Border styles as defined in webrender_traits/types.rs
 #define BORDER_STYLE_NONE         uint(0)
@@ -38,8 +37,8 @@ layout(std140) uniform Layers {
 };
 
 struct Tile {
-    uvec4 actual_rect;
-    uvec4 target_rect;
+    vec4 actual_rect;
+    vec4 target_rect;
 };
 
 layout(std140) uniform Tiles {
@@ -47,7 +46,7 @@ layout(std140) uniform Tiles {
 };
 
 struct PrimitiveInfo {
-    uvec4 layer_tile_part;
+    uvec4 layer_tile;
     vec4 local_clip_rect;
     vec4 local_rect;
 };
@@ -111,8 +110,8 @@ struct VertexInfo {
 };
 
 VertexInfo write_vertex(PrimitiveInfo info) {
-    Layer layer = layers[info.layer_tile_part.x];
-    Tile tile = tiles[info.layer_tile_part.y];
+    Layer layer = layers[info.layer_tile.x];
+    Tile tile = tiles[info.layer_tile.y];
 
     vec2 p0 = floor(0.5 + info.local_rect.xy * uDevicePixelRatio) / uDevicePixelRatio;
     vec2 p1 = floor(0.5 + (info.local_rect.xy + info.local_rect.zw) * uDevicePixelRatio) / uDevicePixelRatio;
@@ -153,8 +152,8 @@ struct TransformVertexInfo {
 };
 
 TransformVertexInfo write_transform_vertex(PrimitiveInfo info) {
-    Layer layer = layers[info.layer_tile_part.x];
-    Tile tile = tiles[info.layer_tile_part.y];
+    Layer layer = layers[info.layer_tile.x];
+    Tile tile = tiles[info.layer_tile.y];
 
     vec2 lp0 = info.local_rect.xy;
     vec2 lp1 = info.local_rect.xy + info.local_rect.zw;
@@ -198,7 +197,7 @@ TransformVertexInfo write_transform_vertex(PrimitiveInfo info) {
                            max_pos_clamped,
                            aPosition.xy);
 
-    vec3 layer_pos = get_layer_pos(clamped_pos / uDevicePixelRatio, info.layer_tile_part.x);
+    vec3 layer_pos = get_layer_pos(clamped_pos / uDevicePixelRatio, info.layer_tile.x);
 
     vec2 final_pos = clamped_pos + vec2(tile.target_rect.xy) - vec2(tile.actual_rect.xy);
 

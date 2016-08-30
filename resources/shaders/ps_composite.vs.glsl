@@ -4,11 +4,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 struct Composite {
-    uvec4 src0;
-    uvec4 src1;
-    uvec4 target_rect;
-    ivec4 info;
-    vec4 amount;
+    vec4 src0;
+    vec4 src1;
+    vec4 target_rect;
+    vec4 info_amount;
 };
 
 layout(std140) uniform Items {
@@ -30,8 +29,8 @@ void main(void) {
     st1 = vec2(composite.src1.xy + composite.src1.zw) / 2048.0;
     vUv1 = mix(st0, st1, aPosition.xy);
 
-    vInfo = composite.info.xy;
-    vAmount = composite.amount.x;
+    vInfo = ivec2(composite.info_amount.xy);
+    vAmount = composite.info_amount.z;
 
     gl_Position = uTransform * vec4(local_pos, 0, 1);
 }

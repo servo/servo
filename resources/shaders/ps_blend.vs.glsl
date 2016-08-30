@@ -4,8 +4,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 struct Blend {
-    uvec4 target_rect;
-    uvec4 src_rect;
+    vec4 target_rect;
+    vec4 src_rect;
     vec4 opacity;
 };
 
