@@ -157,7 +157,7 @@ impl AsyncResponseListener for ScriptContext {
 
         let status_code = self.metadata.as_ref().and_then(|m| {
             match m.status {
-                Some((c, _)) => Some((c)),
+                Some((c, _)) => Some(c),
                 _ => None,
             }
         }).unwrap_or(0);

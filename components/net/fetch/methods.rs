@@ -973,8 +973,8 @@ fn http_network_fetch(request: Rc<Request>,
         Ok((res, msg)) => {
             response.url = Some(url.clone());
             response.status = Some(res.response.status);
-            let response_status = res.response.status_raw().clone();
-            response.raw_status = Some((response_status.0, response_status.1.into_owned().as_bytes().to_vec()));
+            response.raw_status = Some((res.response.status_raw().0,
+                                        res.response.status_raw().1.as_bytes().to_vec()));
                         response.headers = res.response.headers.clone();
 
             let res_body = response.body.clone();

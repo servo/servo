@@ -14,7 +14,7 @@ use url::Url;
 use {Metadata, NetworkError};
 
 /// [Response type](https://fetch.spec.whatwg.org/#concept-response-type)
-#[derive(Clone, PartialEq, Copy, Debug, Deserialize, Serialize)]
+#[derive(Clone, PartialEq, Copy, Debug, Deserialize, Serialize, HeapSizeOf)]
 pub enum ResponseType {
     Basic,
     CORS,
@@ -25,7 +25,7 @@ pub enum ResponseType {
 }
 
 /// [Response termination reason](https://fetch.spec.whatwg.org/#concept-response-termination-reason)
-#[derive(Clone, Copy, Deserialize, Serialize)]
+#[derive(Clone, Copy, Deserialize, Serialize, HeapSizeOf)]
 pub enum TerminationReason {
     EndUserAbort,
     Fatal,
@@ -34,7 +34,7 @@ pub enum TerminationReason {
 
 /// The response body can still be pushed to after fetch
 /// This provides a way to store unfinished response bodies
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, HeapSizeOf)]
 pub enum ResponseBody {
     Empty, // XXXManishearth is this necessary, or is Done(vec![]) enough?
     Receiving(Vec<u8>),
@@ -52,7 +52,7 @@ impl ResponseBody {
 
 
 /// [Cache state](https://fetch.spec.whatwg.org/#concept-response-cache-state)
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, HeapSizeOf)]
 pub enum CacheState {
     None,
     Local,
@@ -75,16 +75,19 @@ pub enum ResponseMsg {
 }
 
 /// A [Response](https://fetch.spec.whatwg.org/#concept-response) as defined by the Fetch spec
-#[derive(Clone)]
+#[derive(Clone, HeapSizeOf)]
 pub struct Response {
     pub response_type: ResponseType,
     pub termination_reason: Option<TerminationReason>,
     pub url: Option<Url>,
     pub url_list: RefCell<Vec<Url>>,
     /// `None` can be considered a StatusCode of `0`.
+    #[ignore_heap_size_of = "Defined in hyper"]
     pub status: Option<StatusCode>,
     pub raw_status: Option<(u16, Vec<u8>)>,
+    #[ignore_heap_size_of = "Defined in hyper"]
     pub headers: Headers,
+    #[ignore_heap_size_of = "Mutex heap size undefined"]
     pub body: Arc<Mutex<ResponseBody>>,
     pub cache_state: CacheState,
     pub https_state: HttpsState,
@@ -241,5 +244,52 @@ impl Response {
         metadata.status = self.raw_status.clone();
         metadata.https_state = self.https_state;
         return Ok(metadata);
+    }
+
+    // https://fetch.spec.whatwg.org/#concept-response-clone
+    pub fn clone_for_dom_response(&self) -> Response {
+        // Step 1
+        // https://fetch.spec.whatwg.org/#concept-filtered-response
+        if self.response_type != ResponseType::Error && self.internal_response.is_some() {
+            return Response {
+                response_type: self.response_type.clone(),
+                termination_reason: None,
+                url: None,
+                url_list: RefCell::new(Vec::new()),
+                status: Some(StatusCode::Ok),
+                raw_status: Some((200, "OK".as_bytes().to_vec())),
+                headers: Headers::new(),
+                body: Arc::new(Mutex::new(ResponseBody::Empty)),
+                cache_state: CacheState::None,
+                https_state: HttpsState::None,
+                internal_response: self.internal_response.clone(),
+                return_internal: Cell::new(true)
+            };
+        }
+
+        // Step 2
+        let new_response = Response {
+            response_type: self.response_type.clone(),
+            termination_reason: self.termination_reason.clone(),
+            url: self.url.clone(),
+            url_list: self.url_list.clone(),
+            status: self.status.clone(),
+            raw_status: self.raw_status.clone(),
+            headers: self.headers.clone(),
+            body: Arc::new(Mutex::new(ResponseBody::Empty)),
+            cache_state: self.cache_state.clone(),
+            https_state: self.https_state.clone(),
+            internal_response: self.internal_response.clone(),
+            return_internal: self.return_internal.clone()
+        };
+
+        // Step 3
+        if *self.body.lock().unwrap() != ResponseBody::Empty {
+            *new_response.body.lock().unwrap() =
+                self.body.lock().unwrap().clone();
+        }
+
+        // Step 4
+        new_response
     }
 }

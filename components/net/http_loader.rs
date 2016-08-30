@@ -1081,8 +1081,8 @@ pub fn load<A, B>(load_data: &LoadData,
             None => None
         });
         metadata.headers = Some(Serde(adjusted_headers));
-        let response_status = response.status_raw().clone();
-        metadata.status = Some((response_status.0, response_status.1.into_owned().as_bytes().to_vec()));
+        metadata.status = Some((response.status_raw().0,
+                                response.status_raw().1.as_bytes().to_vec()));
         metadata.https_state = if doc_url.scheme() == "https" {
             HttpsState::Modern
         } else {

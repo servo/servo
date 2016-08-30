@@ -363,14 +363,10 @@ impl NetworkEventActor {
 
     pub fn add_response(&mut self, response: DevtoolsHttpResponse) {
         self.response.headers = response.headers.clone();
-        self.response.status = match response.status {
-            Some((s, ref st)) => {
-                let status_text = UTF_8.decode(st,
-                                               DecoderTrap::Replace).unwrap();
-                Some(RawStatus(s, Cow::from(status_text)))
-            },
-            None => None,
-        };
+        self.response.status = response.status.as_ref().map(|&(s, ref st)| {
+            let status_text = UTF_8.decode(st, DecoderTrap::Replace).unwrap();
+            RawStatus(s, Cow::from(status_text))
+        });
         self.response.body = response.body.clone();
      }
 

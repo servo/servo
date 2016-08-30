@@ -41,7 +41,7 @@ pub struct Request {
     request: DOMRefCell<NetTraitsRequest>,
     body_used: Cell<bool>,
     headers: MutNullableHeap<JS<Headers>>,
-    mime_type: DOMRefCell<ByteString>,
+    mime_type: DOMRefCell<Vec<u8>>,
 }
 
 impl Request {
@@ -56,7 +56,7 @@ impl Request {
                                         is_service_worker_global_scope)),
             body_used: Cell::new(false),
             headers: Default::default(),
-            mime_type: DOMRefCell::new(ByteString::new(b"".to_vec())),
+            mime_type: DOMRefCell::new("".to_string().into_bytes()),
         }
     }
 

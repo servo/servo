@@ -22,8 +22,8 @@
       var redirectStatus = [301, 302, 303, 307, 308];
       redirectStatus.forEach(function(status) {
         test(function() {
-      redirectResponse = Response.redirect(url, status);
-      assert_equals(redirectResponse.status, status, "Redirect status is " + status);
+        redirectResponse = Response.redirect(url, status);
+        assert_equals(redirectResponse.status, status, "Redirect status is " + status);
         }, "Check response returned by static method redirect(), status = " + status);
       });
 

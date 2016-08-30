@@ -34,6 +34,4 @@ dictionary ResponseInit {
 
 enum ResponseType { "basic", "cors", "default", "error", "opaque", "opaqueredirect" };
 
-// TODO: BodyInit is already defined in XMLHttpRequest, so compiler complains if we include it here
-// typedef (Blob /*or BufferSource*/ or FormData or URLSearchParams or USVString) BodyInit;
 // typedef (BodyInit or ReadableStream) ResponseBodyInit;
