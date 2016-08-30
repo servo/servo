@@ -6,7 +6,7 @@
 
 use dom::bindings::trace::JSTraceable;
 use js::jsapi::JSTracer;
-use std::cell::{BorrowError, BorrowMutError, Ref, RefCell, RefMut};
+use style::refcell::{BorrowError, BorrowMutError, Ref, RefCell, RefMut};
 use style::thread_state;
 use style::thread_state::SCRIPT;
 

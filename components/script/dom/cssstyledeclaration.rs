@@ -14,12 +14,12 @@ use dom::element::Element;
 use dom::node::{Node, NodeDamage, window_from_node};
 use dom::window::Window;
 use std::ascii::AsciiExt;
-use std::cell::Ref;
 use std::slice;
 use string_cache::Atom;
 use style::parser::ParserContextExtraData;
 use style::properties::{PropertyDeclaration, Shorthand, Importance};
 use style::properties::{is_supported_property, parse_one_declaration, parse_style_attribute};
+use style::refcell::Ref;
 use style::selector_impl::PseudoElement;
 
 // http://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface

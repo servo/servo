@@ -70,13 +70,12 @@ use html5ever::serialize::SerializeOpts;
 use html5ever::serialize::TraversalScope;
 use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
 use html5ever::tree_builder::{LimitedQuirks, NoQuirks, Quirks};
-use ref_filter_map::ref_filter_map;
 use selectors::matching::{ElementFlags, matches};
 use selectors::matching::{HAS_SLOW_SELECTOR, HAS_EDGE_CHILD_SELECTOR, HAS_SLOW_SELECTOR_LATER_SIBLINGS};
 use selectors::parser::{AttrSelector, NamespaceConstraint, parse_author_origin_selector_list_from_str};
 use std::ascii::AsciiExt;
 use std::borrow::Cow;
-use std::cell::{Cell, Ref};
+use std::cell::Cell;
 use std::convert::TryFrom;
 use std::default::Default;
 use std::fmt;
@@ -90,6 +89,7 @@ use style::parser::ParserContextExtraData;
 use style::properties::longhands::{self, background_image, border_spacing, font_family, overflow_x, font_size};
 use style::properties::{DeclaredValue, Importance};
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, parse_style_attribute};
+use style::refcell::Ref;
 use style::selector_impl::{NonTSPseudoClass, ServoSelectorImpl};
 use style::selector_matching::DeclarationBlock;
 use style::sink::Push;
@@ -871,7 +871,7 @@ impl Element {
     pub fn get_inline_style_declaration(&self,
                                         property: &Atom)
                                         -> Option<Ref<(PropertyDeclaration, Importance)>> {
-        ref_filter_map(self.style_attribute.borrow(), |inline_declarations| {
+        Ref::filter_map(self.style_attribute.borrow(), |inline_declarations| {
             inline_declarations.as_ref().and_then(|declarations| {
                 declarations.declarations
                             .iter()
