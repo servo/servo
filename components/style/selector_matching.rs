@@ -165,28 +165,26 @@ impl Stylist {
         // Take apart the StyleRule into individual Rules and insert
         // them into the SelectorMap of that priority.
         macro_rules! append(
-            ($style_rule: ident, $priority: ident, $importance: expr, $count: expr) => {
-                if $count > 0 {
-                    for selector in &$style_rule.selectors {
-                        let map = if let Some(ref pseudo) = selector.pseudo_element {
-                            self.pseudos_map
-                                .entry(pseudo.clone())
-                                .or_insert_with(PerPseudoElementSelectorMap::new)
-                                .borrow_for_origin(&stylesheet.origin)
-                        } else {
-                            self.element_map.borrow_for_origin(&stylesheet.origin)
-                        };
+            ($style_rule: ident, $priority: ident, $importance: expr) => {
+                for selector in &$style_rule.selectors {
+                    let map = if let Some(ref pseudo) = selector.pseudo_element {
+                        self.pseudos_map
+                            .entry(pseudo.clone())
+                            .or_insert_with(PerPseudoElementSelectorMap::new)
+                            .borrow_for_origin(&stylesheet.origin)
+                    } else {
+                        self.element_map.borrow_for_origin(&stylesheet.origin)
+                    };
 
-                        map.$priority.insert(Rule {
-                            selector: selector.complex_selector.clone(),
-                            declarations: DeclarationBlock {
-                                specificity: selector.specificity,
-                                mixed_declarations: $style_rule.declarations.clone(),
-                                importance: $importance,
-                                source_order: rules_source_order,
-                            },
-                        });
-                    }
+                    map.$priority.insert(Rule {
+                        selector: selector.complex_selector.clone(),
+                        declarations: DeclarationBlock {
+                            specificity: selector.specificity,
+                            mixed_declarations: $style_rule.declarations.clone(),
+                            importance: $importance,
+                            source_order: rules_source_order,
+                        },
+                    });
                 }
             };
         );
@@ -194,10 +192,8 @@ impl Stylist {
         for rule in stylesheet.effective_rules(&self.device) {
             match *rule {
                 CSSRule::Style(ref style_rule) => {
-                    let important_count = style_rule.declarations.important_count;
-                    let normal_count = style_rule.declarations.declarations.len() as u32 - important_count;
-                    append!(style_rule, normal, Importance::Normal, normal_count);
-                    append!(style_rule, important, Importance::Important, important_count);
+                    append!(style_rule, normal, Importance::Normal);
+                    append!(style_rule, important, Importance::Important);
                     rules_source_order += 1;
 
                     for selector in &style_rule.selectors {
@@ -373,7 +369,8 @@ impl Stylist {
         map.user_agent.normal.get_all_matching_rules(element,
                                                      parent_bf,
                                                      applicable_declarations,
-                                                     &mut relations);
+                                                     &mut relations,
+                                                     Importance::Normal);
         debug!("UA normal: {:?}", relations);
 
         // Step 2: Presentational hints.
@@ -389,17 +386,19 @@ impl Stylist {
         map.user.normal.get_all_matching_rules(element,
                                                parent_bf,
                                                applicable_declarations,
-                                               &mut relations);
+                                               &mut relations,
+                                               Importance::Normal);
         debug!("user normal: {:?}", relations);
         map.author.normal.get_all_matching_rules(element,
                                                  parent_bf,
                                                  applicable_declarations,
-                                                 &mut relations);
+                                                 &mut relations,
+                                                 Importance::Normal);
         debug!("author normal: {:?}", relations);
 
         // Step 4: Normal style attributes.
         if let Some(sa)  = style_attribute {
-            if sa.declarations.len() as u32 - sa.important_count > 0 {
+            if sa.declarations.len() > sa.important_count as usize {
                 relations |= AFFECTED_BY_STYLE_ATTRIBUTE;
                 Push::push(
                     applicable_declarations,
@@ -413,7 +412,8 @@ impl Stylist {
         map.author.important.get_all_matching_rules(element,
                                                     parent_bf,
                                                     applicable_declarations,
-                                                    &mut relations);
+                                                    &mut relations,
+                                                    Importance::Important);
 
         debug!("author important: {:?}", relations);
 
@@ -433,14 +433,16 @@ impl Stylist {
         map.user.important.get_all_matching_rules(element,
                                                   parent_bf,
                                                   applicable_declarations,
-                                                  &mut relations);
+                                                  &mut relations,
+                                                  Importance::Important);
 
         debug!("user important: {:?}", relations);
 
         map.user_agent.important.get_all_matching_rules(element,
                                                         parent_bf,
                                                         applicable_declarations,
-                                                        &mut relations);
+                                                        &mut relations,
+                                                        Importance::Important);
 
         debug!("UA important: {:?}", relations);
 
@@ -647,7 +649,8 @@ impl SelectorMap {
                                         element: &E,
                                         parent_bf: Option<&BloomFilter>,
                                         matching_rules_list: &mut V,
-                                        relations: &mut StyleRelations)
+                                        relations: &mut StyleRelations,
+                                        importance: Importance)
         where E: Element<Impl=TheSelectorImpl>,
               V: VecLike<DeclarationBlock>
     {
@@ -663,7 +666,8 @@ impl SelectorMap {
                                                       &self.id_hash,
                                                       &id,
                                                       matching_rules_list,
-                                                      relations)
+                                                      relations,
+                                                      importance)
         }
 
         element.each_class(|class| {
@@ -672,7 +676,8 @@ impl SelectorMap {
                                                       &self.class_hash,
                                                       class,
                                                       matching_rules_list,
-                                                      relations);
+                                                      relations,
+                                                      importance);
         });
 
         let local_name_hash = if element.is_html_element_in_html_document() {
@@ -685,13 +690,15 @@ impl SelectorMap {
                                                   local_name_hash,
                                                   element.get_local_name(),
                                                   matching_rules_list,
-                                                  relations);
+                                                  relations,
+                                                  importance);
 
         SelectorMap::get_matching_rules(element,
                                         parent_bf,
                                         &self.other_rules,
                                         matching_rules_list,
-                                        relations);
+                                        relations,
+                                        importance);
 
         // Sort only the rules we just added.
         sort_by_key(&mut matching_rules_list[init_len..],
@@ -727,7 +734,8 @@ impl SelectorMap {
         hash: &FnvHashMap<Str, Vec<Rule>>,
         key: &BorrowedStr,
         matching_rules: &mut Vector,
-        relations: &mut StyleRelations)
+        relations: &mut StyleRelations,
+        importance: Importance)
         where E: Element<Impl=TheSelectorImpl>,
               Str: Borrow<BorrowedStr> + Eq + Hash,
               BorrowedStr: Eq + Hash,
@@ -738,7 +746,8 @@ impl SelectorMap {
                                             parent_bf,
                                             rules,
                                             matching_rules,
-                                            relations)
+                                            relations,
+                                            importance)
         }
     }
 
@@ -747,12 +756,20 @@ impl SelectorMap {
                                 parent_bf: Option<&BloomFilter>,
                                 rules: &[Rule],
                                 matching_rules: &mut V,
-                                relations: &mut StyleRelations)
+                                relations: &mut StyleRelations,
+                                importance: Importance)
         where E: Element<Impl=TheSelectorImpl>,
               V: VecLike<DeclarationBlock>
     {
         for rule in rules.iter() {
-            if matches_complex_selector(&*rule.selector,
+            let block = &rule.declarations.mixed_declarations;
+            let any_declaration_for_importance = if importance.important() {
+                block.important_count > 0
+            } else {
+                block.declarations.len() > block.important_count as usize
+            };
+            if any_declaration_for_importance &&
+               matches_complex_selector(&*rule.selector,
                                          element, parent_bf, relations) {
                 matching_rules.push(rule.declarations.clone());
             }
