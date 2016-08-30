@@ -145,7 +145,7 @@ COMPILATION_TARGETS = {
             "nsChangeHint", "SheetParsingMode", "nsMainThreadPtrHandle",
             "nsMainThreadPtrHolder", "nscolor", "nsFont", "FontFamilyList",
             "FontFamilyType", "nsIAtom", "nsStyleContext", "StyleClipPath",
-            "StyleBasicShapeType", "StyleBasicShape"
+            "StyleBasicShapeType", "StyleBasicShape", "nsCSSShadowArray",
         ],
         "void_types": [
             "nsINode", "nsIDocument", "nsIPrincipal", "nsIURI",
