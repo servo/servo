@@ -4,6 +4,7 @@
 
 use cssparser::{AtRuleParser, Parser, QualifiedRuleParser, RuleListParser};
 use cssparser::{DeclarationListParser, DeclarationParser};
+use domrefcell::DOMRefCell;
 use parser::{ParserContext, log_css_error};
 use properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock};
 use properties::PropertyDeclarationParseResult;
@@ -78,7 +79,7 @@ pub struct Keyframe {
     /// But including them enables `compute_style_for_animation_step` to create a `ApplicableDeclarationBlock`
     /// by cloning an `Arc<_>` (incrementing a reference count) rather than re-creating a `Vec<_>`.
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
-    pub block: Arc<PropertyDeclarationBlock>,
+    pub block: Arc<DOMRefCell<PropertyDeclarationBlock>>,
 }
 
 /// A keyframes step value. This can be a synthetised keyframes animation, that
@@ -89,7 +90,7 @@ pub struct Keyframe {
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum KeyframesStepValue {
     /// See `Keyframe::declarations`’s docs about the presence of `Importance`.
-    Declarations(Arc<PropertyDeclarationBlock>),
+    Declarations(Arc<DOMRefCell<PropertyDeclarationBlock>>),
     ComputedValues,
 }
 
@@ -110,12 +111,14 @@ pub struct KeyframesStep {
 }
 
 impl KeyframesStep {
+    #[allow(unsafe_code)]
     #[inline]
     fn new(percentage: KeyframePercentage,
            value: KeyframesStepValue) -> Self {
         let declared_timing_function = match value {
             KeyframesStepValue::Declarations(ref block) => {
-                block.declarations.iter().any(|&(ref prop_decl, _)| {
+                // FIXME: Is this thread-safe?
+                unsafe { block.borrow_for_layout() }.declarations.iter().any(|&(ref prop_decl, _)| {
                     match *prop_decl {
                         PropertyDeclaration::AnimationTimingFunction(..) => true,
                         _ => false,
@@ -151,11 +154,13 @@ pub struct KeyframesAnimation {
 ///
 /// In practice, browsers seem to try to do their best job at it, so we might
 /// want to go through all the actual keyframes and deduplicate properties.
+#[allow(unsafe_code)]
 fn get_animated_properties(keyframe: &Keyframe) -> Vec<TransitionProperty> {
     let mut ret = vec![];
     // NB: declarations are already deduplicated, so we don't have to check for
     // it here.
-    for &(ref declaration, _) in keyframe.block.declarations.iter() {
+    // FIXME: Is this thread-safe?
+    for &(ref declaration, _) in unsafe { keyframe.block.borrow_for_layout() }.declarations.iter() {
         if let Some(property) = TransitionProperty::from_declaration(declaration) {
             ret.push(property);
         }
@@ -266,10 +271,10 @@ impl<'a> QualifiedRuleParser for KeyframeListParser<'a> {
         }
         Ok(Arc::new(Keyframe {
             selector: prelude,
-            block: Arc::new(PropertyDeclarationBlock {
+            block: Arc::new(DOMRefCell::new(PropertyDeclarationBlock {
                 declarations: declarations,
                 important_count: 0,
-            }),
+            })),
         }))
     }
 }
