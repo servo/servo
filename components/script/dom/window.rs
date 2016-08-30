@@ -1200,9 +1200,11 @@ impl Window {
         if !for_display || self.Document().needs_reflow() {
             issued_reflow = self.force_reflow(goal, query_type, reason);
 
-            // If window_size is `None`, we don't reflow, so the document stays dirty.
-            // Otherwise, we shouldn't need a reflow immediately after a reflow.
+            // If window_size is `None`, we don't reflow, so the document stays
+            // dirty. Otherwise, we shouldn't need a reflow immediately after a
+            // reflow, except if we're waiting for a deferred paint.
             assert!(!self.Document().needs_reflow() ||
+                    (!for_display && self.Document().needs_paint()) ||
                     self.window_size.get().is_none() ||
                     self.suppress_reflow.get());
         } else {

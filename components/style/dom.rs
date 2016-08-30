@@ -179,6 +179,9 @@ pub trait TDocument : Sized + Copy + Clone {
 
     fn drain_modified_elements(&self) -> Vec<(Self::ConcreteElement,
                                               <Self::ConcreteElement as ElementExt>::Snapshot)>;
+
+    fn needs_paint_from_layout(&self);
+    fn will_paint(&self);
 }
 
 pub trait PresentationalHintsSynthetizer {
