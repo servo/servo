@@ -786,20 +786,22 @@ impl Document {
 
         if let MouseEventType::Click = mouse_event_type {
             self.commit_focus_transaction(FocusType::Element);
-        }
 
-        // https://w3c.github.io/uievents/#event-type-dblclick
-        let DBL_CLICK_TIMEOUT = Duration::from_millis(PREFS.get("dom.document.dblclick_timeout").as_u64().unwrap());
-        let DBL_CLICK_DIST_THRESHOLD = PREFS.get("dom.document.dblclick_dist").as_u64().unwrap();
-        
-        if let MouseEventType::Click = mouse_event_type {
-            let opt = self.last_click_info.borrow_mut().take();
+            // https://w3c.github.io/uievents/#event-type-dblclick
+            let DBL_CLICK_TIMEOUT = Duration::from_millis(PREFS.get("dom.document.dblclick_timeout").as_u64().unwrap());
+            let DBL_CLICK_DIST_THRESHOLD = PREFS.get("dom.document.dblclick_dist").as_u64().unwrap();
+            
             let new_pos = Point2D::new(client_x, client_y);
-            match opt {
+            let now = Instant::now();
+            let opt = self.last_click_info.borrow_mut().take();
+            
+            *self.last_click_info.borrow_mut() = match opt {
                 Some((last_time, last_pos)) => {
                     let line = new_pos - last_pos;
                     let dist = (line.dot(line) as f64).sqrt();
-                    if Instant::now().duration_since(last_time) < DBL_CLICK_TIMEOUT && dist < DBL_CLICK_DIST_THRESHOLD as f64 {
+                    if now.duration_since(last_time) < DBL_CLICK_TIMEOUT 
+                        && dist < DBL_CLICK_DIST_THRESHOLD as f64 {
+                        // A double click has occured
                         let evt_node = node;
                         let event = MouseEvent::new(&self.window,
                                     DOMString::from("dblclick".to_owned()),
@@ -817,21 +819,22 @@ impl Document {
                                     false,
                                     0i16,
                                     None);
+
                         let target = evt_node.upcast();
                         let event = event.upcast::<Event>();
                         event.fire(target);
 
-                        *self.last_click_info.borrow_mut() = ClickInfo(None);
+                        ClickInfo(None)
                     } else {
-                        *self.last_click_info.borrow_mut() = ClickInfo(Some((Instant::now(), new_pos)))
+                        ClickInfo(Some((now, new_pos)))
                     }
                 },
                 _ => {
-                        *self.last_click_info.borrow_mut() = ClickInfo(Some((Instant::now(), new_pos)))
+                    ClickInfo(Some((now, new_pos)))
                 }
             }
         }
-    
+
         self.window.reflow(ReflowGoal::ForDisplay,
                            ReflowQueryType::NoQuery,
                            ReflowReason::MouseEvent);
