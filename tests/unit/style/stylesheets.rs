@@ -236,24 +236,30 @@ fn test_parse_stylesheet() {
                     Arc::new(Keyframe {
                         selector: KeyframeSelector::new_for_unit_testing(
                                       vec![KeyframePercentage::new(0.)]),
-                        declarations: Arc::new(vec![
-                            (PropertyDeclaration::Width(DeclaredValue::Value(
-                                LengthOrPercentageOrAuto::Percentage(Percentage(0.)))),
-                             Importance::Normal),
-                        ]),
+                        block: Arc::new(PropertyDeclarationBlock {
+                            declarations: Arc::new(vec![
+                                (PropertyDeclaration::Width(DeclaredValue::Value(
+                                    LengthOrPercentageOrAuto::Percentage(Percentage(0.)))),
+                                 Importance::Normal),
+                            ]),
+                            important_count: 0,
+                        })
                     }),
                     Arc::new(Keyframe {
                         selector: KeyframeSelector::new_for_unit_testing(
                                       vec![KeyframePercentage::new(1.)]),
-                        declarations: Arc::new(vec![
-                            (PropertyDeclaration::Width(DeclaredValue::Value(
-                                LengthOrPercentageOrAuto::Percentage(Percentage(1.)))),
-                             Importance::Normal),
-                            (PropertyDeclaration::AnimationPlayState(DeclaredValue::Value(
-                                animation_play_state::SpecifiedValue(
-                                    vec![animation_play_state::SingleSpecifiedValue::running]))),
-                             Importance::Normal),
-                        ]),
+                        block: Arc::new(PropertyDeclarationBlock {
+                            declarations: Arc::new(vec![
+                                (PropertyDeclaration::Width(DeclaredValue::Value(
+                                    LengthOrPercentageOrAuto::Percentage(Percentage(1.)))),
+                                 Importance::Normal),
+                                (PropertyDeclaration::AnimationPlayState(DeclaredValue::Value(
+                                    animation_play_state::SpecifiedValue(
+                                        vec![animation_play_state::SingleSpecifiedValue::running]))),
+                                 Importance::Normal),
+                            ]),
+                            important_count: 0,
+                        }),
                     }),
                 ]
             }))

@@ -282,7 +282,7 @@ impl Importance {
 
 /// Overridden declarations are skipped.
 // FIXME (https://github.com/servo/servo/issues/3426)
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct PropertyDeclarationBlock {
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "#7038")]

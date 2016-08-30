@@ -14,7 +14,7 @@ use context::{StyleContext, SharedStyleContext};
 use data::PrivateStyleData;
 use dom::{TElement, TNode, TRestyleDamage, UnsafeNode};
 use properties::longhands::display::computed_value as display;
-use properties::{ComputedValues, cascade};
+use properties::{ComputedValues, cascade, PropertyDeclarationBlock};
 use selector_impl::{TheSelectorImpl, PseudoElement};
 use selector_matching::{DeclarationBlock, Stylist};
 use selectors::bloom::BloomFilter;
@@ -139,7 +139,7 @@ impl<'a> Hash for ApplicableDeclarationsCacheQuery<'a> {
         for declaration in self.declarations {
             // Each declaration contians an Arc, which is a stable
             // pointer; we use that for hashing and equality.
-            let ptr: *const Vec<_> = &*declaration.mixed_declarations;
+            let ptr: *const PropertyDeclarationBlock = &*declaration.mixed_declarations;
             ptr.hash(state);
             declaration.importance.hash(state);
         }
@@ -651,7 +651,7 @@ pub trait ElementMatchMethods : TElement {
                      applicable_declarations: &mut ApplicableDeclarations)
                      -> StyleRelations {
         use traversal::relations_are_shareable;
-        let style_attribute = self.style_attribute().as_ref();
+        let style_attribute = self.style_attribute();
 
         let mut relations =
             stylist.push_applicable_declarations(self,

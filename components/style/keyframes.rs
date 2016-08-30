@@ -7,7 +7,7 @@ use cssparser::{DeclarationListParser, DeclarationParser};
 use parser::{ParserContext, log_css_error};
 use properties::PropertyDeclarationParseResult;
 use properties::animated_properties::TransitionProperty;
-use properties::{PropertyDeclaration, Importance};
+use properties::{PropertyDeclaration, PropertyDeclarationBlock, Importance};
 use std::sync::Arc;
 
 /// A number from 1 to 100, indicating the percentage of the animation where
@@ -77,7 +77,7 @@ pub struct Keyframe {
     /// so the second value of these tuples is always `Importance::Normal`.
     /// But including them enables `compute_style_for_animation_step` to create a `DeclarationBlock`
     /// by cloning an `Arc<_>` (incrementing a reference count) rather than re-creating a `Vec<_>`.
-    pub declarations: Arc<Vec<(PropertyDeclaration, Importance)>>,
+    pub block: Arc<PropertyDeclarationBlock>,
 }
 
 /// A keyframes step value. This can be a synthetised keyframes animation, that
@@ -88,7 +88,7 @@ pub struct Keyframe {
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum KeyframesStepValue {
     /// See `Keyframe::declarations`’s docs about the presence of `Importance`.
-    Declarations(Arc<Vec<(PropertyDeclaration, Importance)>>),
+    Declarations(Arc<PropertyDeclarationBlock>),
     ComputedValues,
 }
 
@@ -113,8 +113,8 @@ impl KeyframesStep {
     fn new(percentage: KeyframePercentage,
            value: KeyframesStepValue) -> Self {
         let declared_timing_function = match value {
-            KeyframesStepValue::Declarations(ref declarations) => {
-                declarations.iter().any(|&(ref prop_decl, _)| {
+            KeyframesStepValue::Declarations(ref block) => {
+                block.declarations.iter().any(|&(ref prop_decl, _)| {
                     match *prop_decl {
                         PropertyDeclaration::AnimationTimingFunction(..) => true,
                         _ => false,
@@ -154,7 +154,7 @@ fn get_animated_properties(keyframe: &Keyframe) -> Vec<TransitionProperty> {
     let mut ret = vec![];
     // NB: declarations are already deduplicated, so we don't have to check for
     // it here.
-    for &(ref declaration, _) in keyframe.declarations.iter() {
+    for &(ref declaration, _) in keyframe.block.declarations.iter() {
         if let Some(property) = TransitionProperty::from_declaration(declaration) {
             ret.push(property);
         }
@@ -179,7 +179,7 @@ impl KeyframesAnimation {
         for keyframe in keyframes {
             for percentage in keyframe.selector.0.iter() {
                 steps.push(KeyframesStep::new(*percentage,
-                                              KeyframesStepValue::Declarations(keyframe.declarations.clone())));
+                                              KeyframesStepValue::Declarations(keyframe.block.clone())));
             }
         }
 
@@ -265,7 +265,10 @@ impl<'a> QualifiedRuleParser for KeyframeListParser<'a> {
         }
         Ok(Arc::new(Keyframe {
             selector: prelude,
-            declarations: Arc::new(declarations),
+            block: Arc::new(PropertyDeclarationBlock {
+                declarations: Arc::new(declarations),
+                important_count: 0,
+            }),
         }))
     }
 }

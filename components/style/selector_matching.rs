@@ -181,7 +181,7 @@ impl Stylist {
                             selector: selector.complex_selector.clone(),
                             declarations: DeclarationBlock {
                                 specificity: selector.specificity,
-                                mixed_declarations: $style_rule.declarations.declarations.clone(),
+                                mixed_declarations: $style_rule.declarations.clone(),
                                 importance: $importance,
                                 source_order: rules_source_order,
                             },
@@ -346,7 +346,7 @@ impl Stylist {
                                         &self,
                                         element: &E,
                                         parent_bf: Option<&BloomFilter>,
-                                        style_attribute: Option<&PropertyDeclarationBlock>,
+                                        style_attribute: Option<&Arc<PropertyDeclarationBlock>>,
                                         pseudo_element: Option<&PseudoElement>,
                                         applicable_declarations: &mut V) -> StyleRelations
         where E: Element<Impl=TheSelectorImpl> +
@@ -398,14 +398,12 @@ impl Stylist {
         debug!("author normal: {:?}", relations);
 
         // Step 4: Normal style attributes.
-        if let Some(ref sa)  = style_attribute {
+        if let Some(sa)  = style_attribute {
             if sa.declarations.len() as u32 - sa.important_count > 0 {
                 relations |= AFFECTED_BY_STYLE_ATTRIBUTE;
                 Push::push(
                     applicable_declarations,
-                    DeclarationBlock::from_declarations(
-                        sa.declarations.clone(),
-                        Importance::Normal));
+                    DeclarationBlock::from_declarations(sa.clone(), Importance::Normal));
             }
         }
 
@@ -420,14 +418,12 @@ impl Stylist {
         debug!("author important: {:?}", relations);
 
         // Step 6: `!important` style attributes.
-        if let Some(ref sa) = style_attribute {
+        if let Some(sa) = style_attribute {
             if sa.important_count > 0 {
                 relations |= AFFECTED_BY_STYLE_ATTRIBUTE;
                 Push::push(
                     applicable_declarations,
-                    DeclarationBlock::from_declarations(
-                        sa.declarations.clone(),
-                        Importance::Important));
+                    DeclarationBlock::from_declarations(sa.clone(), Importance::Important));
             }
         }
 
@@ -845,7 +841,7 @@ pub struct Rule {
 pub struct DeclarationBlock {
     /// Contains declarations of either importance, but only those of self.importance are relevant.
     /// Use DeclarationBlock::iter
-    pub mixed_declarations: Arc<Vec<(PropertyDeclaration, Importance)>>,
+    pub mixed_declarations: Arc<PropertyDeclarationBlock>,
     pub importance: Importance,
     pub source_order: usize,
     pub specificity: u32,
@@ -853,7 +849,7 @@ pub struct DeclarationBlock {
 
 impl DeclarationBlock {
     #[inline]
-    pub fn from_declarations(declarations: Arc<Vec<(PropertyDeclaration, Importance)>>,
+    pub fn from_declarations(declarations: Arc<PropertyDeclarationBlock>,
                              importance: Importance)
                              -> Self {
         DeclarationBlock {
@@ -866,7 +862,7 @@ impl DeclarationBlock {
 
     pub fn iter(&self) -> DeclarationBlockIter {
         DeclarationBlockIter {
-            iter: self.mixed_declarations.iter(),
+            iter: self.mixed_declarations.declarations.iter(),
             importance: self.importance,
         }
     }
