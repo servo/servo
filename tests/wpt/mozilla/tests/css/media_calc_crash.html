@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Don't crash when a media query with calc() is found.</title>
+<style>
+  @media (min-width: calc(60px)) {
+    pease-do {
+      not: crash;
+    }
+  }
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  assert_true(true, "Reached here without crashing");
+})
+</script>
