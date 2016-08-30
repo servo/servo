@@ -11,11 +11,18 @@ use thread_state;
 ///
 /// This extends the API of `core::cell::RefCell` to allow unsafe access in
 /// certain situations, with dynamic checking in debug builds.
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct DOMRefCell<T> {
     value: RefCell<T>,
 }
+
+// FIXME: These two impls make promises that are not quite true,
+// but maybe the debug_assert! makes it close enough.
+#[allow(unsafe_code)]
+unsafe impl<T: Send> Send for DOMRefCell<T> {}
+#[allow(unsafe_code)]
+unsafe impl<T: Sync> Sync for DOMRefCell<T> {}
 
 // Functionality specific to Servo's `DOMRefCell` type
 // ===================================================

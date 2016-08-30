@@ -8,6 +8,7 @@
 
 use atomic_refcell::{AtomicRef, AtomicRefMut};
 use data::PersistentStyleData;
+use domrefcell::DOMRefCell;
 use element_state::ElementState;
 use properties::{ComputedValues, PropertyDeclarationBlock};
 use restyle_hints::{RESTYLE_DESCENDANTS, RESTYLE_LATER_SIBLINGS, RESTYLE_SELF, RestyleHint};
@@ -202,7 +203,7 @@ pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + Pre
 
     fn as_node(&self) -> Self::ConcreteNode;
 
-    fn style_attribute(&self) -> Option<&Arc<PropertyDeclarationBlock>>;
+    fn style_attribute(&self) -> Option<&Arc<DOMRefCell<PropertyDeclarationBlock>>>;
 
     fn get_state(&self) -> ElementState;
 
