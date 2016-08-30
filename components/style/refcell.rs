@@ -633,3 +633,35 @@ impl<'b, T: ?Sized> DerefMut for RefMut<'b, T> {
         self.value
     }
 }
+
+
+// Imported from src/libcore/fmt/mod.rs
+
+impl<T: ?Sized + Debug> Debug for RefCell<T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self.borrow_state() {
+            BorrowState::Unused | BorrowState::Reading => {
+                f.debug_struct("RefCell")
+                    .field("value", &self.borrow())
+                    .finish()
+            }
+            BorrowState::Writing => {
+                f.debug_struct("RefCell")
+                    .field("value", &"<borrowed>")
+                    .finish()
+            }
+        }
+    }
+}
+
+impl<'b, T: ?Sized + Debug> Debug for Ref<'b, T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        Debug::fmt(&**self, f)
+    }
+}
+
+impl<'b, T: ?Sized + Debug> Debug for RefMut<'b, T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        Debug::fmt(&*(self.deref()), f)
+    }
+}
