@@ -6,6 +6,7 @@
 
 use cssparser::{AtRuleParser, Parser, QualifiedRuleParser, decode_stylesheet_bytes};
 use cssparser::{AtRuleType, RuleListParser, Token};
+use domrefcell::DOMRefCell;
 use encoding::EncodingRef;
 use error_reporting::ParseErrorReporter;
 use font_face::{FontFaceRule, parse_font_face_block};
@@ -111,7 +112,7 @@ impl MediaRule {
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct StyleRule {
     pub selectors: Vec<Selector<TheSelectorImpl>>,
-    pub declarations: Arc<PropertyDeclarationBlock>,
+    pub block: Arc<DOMRefCell<PropertyDeclarationBlock>>,
 }
 
 
@@ -562,7 +563,7 @@ impl<'a, 'b> QualifiedRuleParser for NestedRuleParser<'a, 'b> {
     fn parse_block(&self, prelude: Vec<Selector<TheSelectorImpl>>, input: &mut Parser) -> Result<CSSRule, ()> {
         Ok(CSSRule::Style(Arc::new(StyleRule {
             selectors: prelude,
-            declarations: Arc::new(parse_property_declaration_list(self.context, input))
+            block: Arc::new(DOMRefCell::new(parse_property_declaration_list(self.context, input)))
         })))
     }
 }

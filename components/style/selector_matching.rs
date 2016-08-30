@@ -5,6 +5,7 @@
 //! Selector matching.
 
 use dom::PresentationalHintsSynthetizer;
+use domrefcell::DOMRefCell;
 use element_state::*;
 use error_reporting::StdoutErrorReporter;
 use keyframes::KeyframesAnimation;
@@ -176,7 +177,7 @@ impl Stylist {
 
                         map.insert(Rule {
                             selector: selector.complex_selector.clone(),
-                            declarations: style_rule.declarations.clone(),
+                            declarations: style_rule.block.clone(),
                             specificity: selector.specificity,
                             source_order: rules_source_order,
                         });
@@ -325,11 +326,12 @@ impl Stylist {
     /// that is, whether the matched selectors are simple enough to allow the
     /// matching logic to be reduced to the logic in
     /// `css::matching::PrivateMatchMethods::candidate_element_allows_for_style_sharing`.
+    #[allow(unsafe_code)]
     pub fn push_applicable_declarations<E, V>(
                                         &self,
                                         element: &E,
                                         parent_bf: Option<&BloomFilter>,
-                                        style_attribute: Option<&Arc<PropertyDeclarationBlock>>,
+                                        style_attribute: Option<&Arc<DOMRefCell<PropertyDeclarationBlock>>>,
                                         pseudo_element: Option<&PseudoElement>,
                                         applicable_declarations: &mut V,
                                         reason: MatchingReason) -> StyleRelations
@@ -388,8 +390,9 @@ impl Stylist {
         debug!("author normal: {:?}", relations);
 
         // Step 4: Normal style attributes.
-        if let Some(sa)  = style_attribute {
-            if sa.any_normal() {
+        if let Some(sa) = style_attribute {
+            // FIXME: Is this thread-safe?
+            if unsafe { sa.borrow_for_layout() }.any_normal() {
                 relations |= AFFECTED_BY_STYLE_ATTRIBUTE;
                 Push::push(
                     applicable_declarations,
@@ -411,7 +414,8 @@ impl Stylist {
 
         // Step 6: `!important` style attributes.
         if let Some(sa) = style_attribute {
-            if sa.any_important() {
+            // FIXME: Is this thread-safe?
+            if unsafe { sa.borrow_for_layout() }.any_important() {
                 relations |= AFFECTED_BY_STYLE_ATTRIBUTE;
                 Push::push(
                     applicable_declarations,
@@ -689,6 +693,7 @@ impl SelectorMap {
 
     /// Append to `rule_list` all universal Rules (rules with selector `*|*`) in
     /// `self` sorted by specifity and source order.
+    #[allow(unsafe_code)]
     pub fn get_universal_rules<V>(&self,
                                   matching_rules_list: &mut V)
         where V: VecLike<ApplicableDeclarationBlock>
@@ -702,11 +707,13 @@ impl SelectorMap {
         for rule in self.other_rules.iter() {
             if rule.selector.compound_selector.is_empty() &&
                rule.selector.next.is_none() {
-                if rule.declarations.any_normal() {
+                // FIXME: Is this thread-safe?
+                let block = unsafe { rule.declarations.borrow_for_layout() };
+                if block.any_normal() {
                     matching_rules_list.push(
                         rule.to_applicable_declaration_block(Importance::Normal));
                 }
-                if rule.declarations.any_important() {
+                if block.any_important() {
                     matching_rules_list.push(
                         rule.to_applicable_declaration_block(Importance::Important));
                 }
@@ -743,6 +750,7 @@ impl SelectorMap {
     }
 
     /// Adds rules in `rules` that match `element` to the `matching_rules` list.
+    #[allow(unsafe_code)]
     fn get_matching_rules<E, V>(element: &E,
                                 parent_bf: Option<&BloomFilter>,
                                 rules: &[Rule],
@@ -754,7 +762,8 @@ impl SelectorMap {
               V: VecLike<ApplicableDeclarationBlock>
     {
         for rule in rules.iter() {
-            let block = &rule.declarations;
+            // FIXME: Is this thread-safe?
+            let block = unsafe { rule.declarations.borrow_for_layout() };
             let any_declaration_for_importance = if importance.important() {
                 block.any_important()
             } else {
@@ -840,7 +849,7 @@ pub struct Rule {
     // that it matches. Selector contains an owned vector (through
     // ComplexSelector) and we want to avoid the allocation.
     pub selector: Arc<ComplexSelector<TheSelectorImpl>>,
-    pub declarations: Arc<PropertyDeclarationBlock>,
+    pub declarations: Arc<DOMRefCell<PropertyDeclarationBlock>>,
     pub source_order: usize,
     pub specificity: u32,
 }
@@ -864,7 +873,7 @@ impl Rule {
 pub struct ApplicableDeclarationBlock {
     /// Contains declarations of either importance, but only those of self.importance are relevant.
     /// Use ApplicableDeclarationBlock::iter
-    pub mixed_declarations: Arc<PropertyDeclarationBlock>,
+    pub mixed_declarations: Arc<DOMRefCell<PropertyDeclarationBlock>>,
     pub importance: Importance,
     pub source_order: usize,
     pub specificity: u32,
@@ -872,7 +881,7 @@ pub struct ApplicableDeclarationBlock {
 
 impl ApplicableDeclarationBlock {
     #[inline]
-    pub fn from_declarations(declarations: Arc<PropertyDeclarationBlock>,
+    pub fn from_declarations(declarations: Arc<DOMRefCell<PropertyDeclarationBlock>>,
                              importance: Importance)
                              -> Self {
         ApplicableDeclarationBlock {
@@ -883,9 +892,11 @@ impl ApplicableDeclarationBlock {
         }
     }
 
+    #[allow(unsafe_code)]
     pub fn iter(&self) -> ApplicableDeclarationBlockIter {
         ApplicableDeclarationBlockIter {
-            iter: self.mixed_declarations.declarations.iter(),
+            // FIXME: Is this thread-safe?
+            iter: unsafe { self.mixed_declarations.borrow_for_layout() }.declarations.iter(),
             importance: self.importance,
         }
     }
