@@ -286,22 +286,24 @@ impl Length {
     }
 
     #[inline]
-    fn parse_internal(input: &mut Parser, context: &AllowedNumericType) -> Result<Length, ()> {
+    fn parse_internal(input: &mut Parser, context: AllowedNumericType) -> Result<Length, ()> {
         match try!(input.next()) {
             Token::Dimension(ref value, ref unit) if context.is_ok(value.value) =>
                 Length::parse_dimension(value.value, unit),
             Token::Number(ref value) if value.value == 0. =>
                 Ok(Length::Absolute(Au(0))),
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") =>
-                input.parse_nested_block(CalcLengthOrPercentage::parse_length),
+                input.parse_nested_block(|input| {
+                    CalcLengthOrPercentage::parse_length(input, context)
+                }),
             _ => Err(())
         }
     }
     pub fn parse(input: &mut Parser) -> Result<Length, ()> {
-        Length::parse_internal(input, &AllowedNumericType::All)
+        Length::parse_internal(input, AllowedNumericType::All)
     }
     pub fn parse_non_negative(input: &mut Parser) -> Result<Length, ()> {
-        Length::parse_internal(input, &AllowedNumericType::NonNegative)
+        Length::parse_internal(input, AllowedNumericType::NonNegative)
     }
     pub fn parse_dimension(value: CSSFloat, unit: &str) -> Result<Length, ()> {
         match_ignore_ascii_case! { unit,
@@ -467,6 +469,8 @@ pub struct CalcLengthOrPercentage {
     pub ch: Option<FontRelativeLength>,
     pub rem: Option<FontRelativeLength>,
     pub percentage: Option<Percentage>,
+    /// Whether the value returned can be negative at computed value time.
+    pub allowed_numeric_type: AllowedNumericType,
 }
 
 impl CalcLengthOrPercentage {
@@ -617,15 +621,19 @@ impl CalcLengthOrPercentage {
         }
     }
 
-    fn parse_length(input: &mut Parser) -> Result<Length, ()> {
-        CalcLengthOrPercentage::parse(input, CalcUnit::Length).map(Length::Calc)
+    fn parse_length(input: &mut Parser,
+                    context: AllowedNumericType) -> Result<Length, ()> {
+        CalcLengthOrPercentage::parse(input, CalcUnit::Length, context).map(Length::Calc)
     }
 
-    fn parse_length_or_percentage(input: &mut Parser) -> Result<CalcLengthOrPercentage, ()> {
-        CalcLengthOrPercentage::parse(input, CalcUnit::LengthOrPercentage)
+    fn parse_length_or_percentage(input: &mut Parser,
+                                  context: AllowedNumericType) -> Result<CalcLengthOrPercentage, ()> {
+        CalcLengthOrPercentage::parse(input, CalcUnit::LengthOrPercentage, context)
     }
 
-    fn parse(input: &mut Parser, expected_unit: CalcUnit) -> Result<CalcLengthOrPercentage, ()> {
+    fn parse(input: &mut Parser,
+             expected_unit: CalcUnit,
+             context: AllowedNumericType) -> Result<CalcLengthOrPercentage, ()> {
         let ast = try!(CalcLengthOrPercentage::parse_sum(input, expected_unit));
 
         let mut simplified = Vec::new();
@@ -692,6 +700,7 @@ impl CalcLengthOrPercentage {
             ch: ch.map(FontRelativeLength::Ch),
             rem: rem.map(FontRelativeLength::Rem),
             percentage: percentage.map(Percentage),
+            allowed_numeric_type: context,
         })
     }
 
@@ -770,6 +779,7 @@ impl CalcLengthOrPercentage {
                     val.to_computed_value(viewport_size));
             }
         }
+
         for val in &[self.ch, self.em, self.ex, self.rem] {
             if let Some(val) = *val {
                 length = Some(length.unwrap_or(Au(0)) + val.to_computed_value(
@@ -777,9 +787,23 @@ impl CalcLengthOrPercentage {
             }
         }
 
+        // https://drafts.csswg.org/css-values/#calc-range
+        let mut percentage = self.percentage.map(|p| p.0);
+        if let AllowedNumericType::NonNegative = self.allowed_numeric_type {
+            if let Some(ref mut length) = length {
+                *length = cmp::max(*length, Au(0));
+            }
+
+            if let Some(ref mut percentage) = percentage {
+                if *percentage < 0. {
+                    *percentage = 0.;
+                }
+            }
+        }
+
         computed::CalcLengthOrPercentage {
             length: length,
-            percentage: self.percentage.map(|p| p.0)
+            percentage: percentage,
         }
     }
 }
@@ -884,7 +908,7 @@ impl LengthOrPercentage {
         LengthOrPercentage::Length(Length::Absolute(Au(0)))
     }
 
-    fn parse_internal(input: &mut Parser, context: &AllowedNumericType)
+    fn parse_internal(input: &mut Parser, context: AllowedNumericType)
                       -> Result<LengthOrPercentage, ()>
     {
         match try!(input.next()) {
@@ -895,7 +919,9 @@ impl LengthOrPercentage {
             Token::Number(ref value) if value.value == 0. =>
                 Ok(LengthOrPercentage::Length(Length::Absolute(Au(0)))),
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-                let calc = try!(input.parse_nested_block(CalcLengthOrPercentage::parse_length_or_percentage));
+                let calc = try!(input.parse_nested_block(|input| {
+                    CalcLengthOrPercentage::parse_length_or_percentage(input, context)
+                }));
                 Ok(LengthOrPercentage::Calc(calc))
             },
             _ => Err(())
@@ -903,11 +929,11 @@ impl LengthOrPercentage {
     }
     #[inline]
     pub fn parse(input: &mut Parser) -> Result<LengthOrPercentage, ()> {
-        LengthOrPercentage::parse_internal(input, &AllowedNumericType::All)
+        LengthOrPercentage::parse_internal(input, AllowedNumericType::All)
     }
     #[inline]
     pub fn parse_non_negative(input: &mut Parser) -> Result<LengthOrPercentage, ()> {
-        LengthOrPercentage::parse_internal(input, &AllowedNumericType::NonNegative)
+        LengthOrPercentage::parse_internal(input, AllowedNumericType::NonNegative)
     }
 }
 
@@ -942,7 +968,7 @@ impl ToCss for LengthOrPercentageOrAuto {
 }
 
 impl LengthOrPercentageOrAuto {
-    fn parse_internal(input: &mut Parser, context: &AllowedNumericType)
+    fn parse_internal(input: &mut Parser, context: AllowedNumericType)
                       -> Result<LengthOrPercentageOrAuto, ()>
     {
         match try!(input.next()) {
@@ -955,7 +981,9 @@ impl LengthOrPercentageOrAuto {
             Token::Ident(ref value) if value.eq_ignore_ascii_case("auto") =>
                 Ok(LengthOrPercentageOrAuto::Auto),
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-                let calc = try!(input.parse_nested_block(CalcLengthOrPercentage::parse_length_or_percentage));
+                let calc = try!(input.parse_nested_block(|input| {
+                    CalcLengthOrPercentage::parse_length_or_percentage(input, context)
+                }));
                 Ok(LengthOrPercentageOrAuto::Calc(calc))
             },
             _ => Err(())
@@ -963,11 +991,11 @@ impl LengthOrPercentageOrAuto {
     }
     #[inline]
     pub fn parse(input: &mut Parser) -> Result<LengthOrPercentageOrAuto, ()> {
-        LengthOrPercentageOrAuto::parse_internal(input, &AllowedNumericType::All)
+        LengthOrPercentageOrAuto::parse_internal(input, AllowedNumericType::All)
     }
     #[inline]
     pub fn parse_non_negative(input: &mut Parser) -> Result<LengthOrPercentageOrAuto, ()> {
-        LengthOrPercentageOrAuto::parse_internal(input, &AllowedNumericType::NonNegative)
+        LengthOrPercentageOrAuto::parse_internal(input, AllowedNumericType::NonNegative)
     }
 }
 
@@ -1001,7 +1029,7 @@ impl ToCss for LengthOrPercentageOrNone {
     }
 }
 impl LengthOrPercentageOrNone {
-    fn parse_internal(input: &mut Parser, context: &AllowedNumericType)
+    fn parse_internal(input: &mut Parser, context: AllowedNumericType)
                       -> Result<LengthOrPercentageOrNone, ()>
     {
         match try!(input.next()) {
@@ -1012,7 +1040,9 @@ impl LengthOrPercentageOrNone {
             Token::Number(ref value) if value.value == 0. =>
                 Ok(LengthOrPercentageOrNone::Length(Length::Absolute(Au(0)))),
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-                let calc = try!(input.parse_nested_block(CalcLengthOrPercentage::parse_length_or_percentage));
+                let calc = try!(input.parse_nested_block(|input| {
+                    CalcLengthOrPercentage::parse_length_or_percentage(input, context)
+                }));
                 Ok(LengthOrPercentageOrNone::Calc(calc))
             },
             Token::Ident(ref value) if value.eq_ignore_ascii_case("none") =>
@@ -1022,11 +1052,11 @@ impl LengthOrPercentageOrNone {
     }
     #[inline]
     pub fn parse(input: &mut Parser) -> Result<LengthOrPercentageOrNone, ()> {
-        LengthOrPercentageOrNone::parse_internal(input, &AllowedNumericType::All)
+        LengthOrPercentageOrNone::parse_internal(input, AllowedNumericType::All)
     }
     #[inline]
     pub fn parse_non_negative(input: &mut Parser) -> Result<LengthOrPercentageOrNone, ()> {
-        LengthOrPercentageOrNone::parse_internal(input, &AllowedNumericType::NonNegative)
+        LengthOrPercentageOrNone::parse_internal(input, AllowedNumericType::NonNegative)
     }
 }
 
@@ -1055,7 +1085,7 @@ impl ToCss for LengthOrNone {
     }
 }
 impl LengthOrNone {
-    fn parse_internal(input: &mut Parser, context: &AllowedNumericType)
+    fn parse_internal(input: &mut Parser, context: AllowedNumericType)
                       -> Result<LengthOrNone, ()>
     {
         match try!(input.next()) {
@@ -1064,7 +1094,9 @@ impl LengthOrNone {
             Token::Number(ref value) if value.value == 0. =>
                 Ok(LengthOrNone::Length(Length::Absolute(Au(0)))),
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") =>
-                input.parse_nested_block(CalcLengthOrPercentage::parse_length).map(LengthOrNone::Length),
+                input.parse_nested_block(|input| {
+                    CalcLengthOrPercentage::parse_length(input, context)
+                }).map(LengthOrNone::Length),
             Token::Ident(ref value) if value.eq_ignore_ascii_case("none") =>
                 Ok(LengthOrNone::None),
             _ => Err(())
@@ -1072,11 +1104,11 @@ impl LengthOrNone {
     }
     #[inline]
     pub fn parse(input: &mut Parser) -> Result<LengthOrNone, ()> {
-        LengthOrNone::parse_internal(input, &AllowedNumericType::All)
+        LengthOrNone::parse_internal(input, AllowedNumericType::All)
     }
     #[inline]
     pub fn parse_non_negative(input: &mut Parser) -> Result<LengthOrNone, ()> {
-        LengthOrNone::parse_internal(input, &AllowedNumericType::NonNegative)
+        LengthOrNone::parse_internal(input, AllowedNumericType::NonNegative)
     }
 }
 
@@ -1127,7 +1159,9 @@ impl LengthOrPercentageOrAutoOrContent {
             Token::Ident(ref value) if value.eq_ignore_ascii_case("content") =>
                 Ok(LengthOrPercentageOrAutoOrContent::Content),
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-                let calc = try!(input.parse_nested_block(CalcLengthOrPercentage::parse_length_or_percentage));
+                let calc = try!(input.parse_nested_block(|input| {
+                    CalcLengthOrPercentage::parse_length_or_percentage(input, context)
+                }));
                 Ok(LengthOrPercentageOrAutoOrContent::Calc(calc))
             },
             _ => Err(())
