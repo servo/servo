@@ -30,6 +30,7 @@
 
 #![allow(unsafe_code)]
 
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::inheritance::{CharacterDataTypeId, ElementTypeId};
 use dom::bindings::inheritance::{HTMLElementTypeId, NodeTypeId};
 use dom::bindings::js::LayoutJS;
@@ -458,7 +459,7 @@ impl<'le> TElement for ServoLayoutElement<'le> {
         ServoLayoutNode::from_layout_js(self.element.upcast())
     }
 
-    fn style_attribute(&self) -> Option<&Arc<PropertyDeclarationBlock>> {
+    fn style_attribute(&self) -> Option<&Arc<DOMRefCell<PropertyDeclarationBlock>>> {
         unsafe {
             (*self.element.style_attribute()).as_ref()
         }

@@ -5,6 +5,7 @@
 //! Selector matching.
 
 use dom::PresentationalHintsSynthetizer;
+use domrefcell::DOMRefCell;
 use element_state::*;
 use error_reporting::StdoutErrorReporter;
 use keyframes::KeyframesAnimation;
@@ -180,7 +181,7 @@ impl Stylist {
                         selector: selector.complex_selector.clone(),
                         declarations: DeclarationBlock {
                             specificity: selector.specificity,
-                            mixed_declarations: $style_rule.declarations.clone(),
+                            mixed_declarations: $style_rule.block.clone(),
                             importance: $importance,
                             source_order: rules_source_order,
                         },
@@ -339,11 +340,12 @@ impl Stylist {
     /// that is, whether the matched selectors are simple enough to allow the
     /// matching logic to be reduced to the logic in
     /// `css::matching::PrivateMatchMethods::candidate_element_allows_for_style_sharing`.
+    #[allow(unsafe_code)]
     pub fn push_applicable_declarations<E, V>(
                                         &self,
                                         element: &E,
                                         parent_bf: Option<&BloomFilter>,
-                                        style_attribute: Option<&Arc<PropertyDeclarationBlock>>,
+                                        style_attribute: Option<&Arc<DOMRefCell<PropertyDeclarationBlock>>>,
                                         pseudo_element: Option<&PseudoElement>,
                                         applicable_declarations: &mut V,
                                         reason: MatchingReason) -> StyleRelations
@@ -402,8 +404,9 @@ impl Stylist {
         debug!("author normal: {:?}", relations);
 
         // Step 4: Normal style attributes.
-        if let Some(sa)  = style_attribute {
-            if sa.any_normal() {
+        if let Some(sa) = style_attribute {
+            // FIXME: Is this thread-safe?
+            if unsafe { sa.borrow_for_layout() }.any_normal() {
                 relations |= AFFECTED_BY_STYLE_ATTRIBUTE;
                 Push::push(
                     applicable_declarations,
@@ -425,7 +428,8 @@ impl Stylist {
 
         // Step 6: `!important` style attributes.
         if let Some(sa) = style_attribute {
-            if sa.any_important() {
+            // FIXME: Is this thread-safe?
+            if unsafe { sa.borrow_for_layout() }.any_important() {
                 relations |= AFFECTED_BY_STYLE_ATTRIBUTE;
                 Push::push(
                     applicable_declarations,
@@ -771,6 +775,7 @@ impl SelectorMap {
     }
 
     /// Adds rules in `rules` that match `element` to the `matching_rules` list.
+    #[allow(unsafe_code)]
     fn get_matching_rules<E, V>(element: &E,
                                 parent_bf: Option<&BloomFilter>,
                                 rules: &[Rule],
@@ -782,7 +787,8 @@ impl SelectorMap {
               V: VecLike<DeclarationBlock>
     {
         for rule in rules.iter() {
-            let block = &rule.declarations.mixed_declarations;
+            // FIXME: Is this thread-safe?
+            let block = unsafe { rule.declarations.mixed_declarations.borrow_for_layout() };
             let any_declaration_for_importance = if importance.important() {
                 block.any_important()
             } else {
@@ -878,7 +884,7 @@ pub struct Rule {
 pub struct DeclarationBlock {
     /// Contains declarations of either importance, but only those of self.importance are relevant.
     /// Use DeclarationBlock::iter
-    pub mixed_declarations: Arc<PropertyDeclarationBlock>,
+    pub mixed_declarations: Arc<DOMRefCell<PropertyDeclarationBlock>>,
     pub importance: Importance,
     pub source_order: usize,
     pub specificity: u32,
@@ -886,7 +892,7 @@ pub struct DeclarationBlock {
 
 impl DeclarationBlock {
     #[inline]
-    pub fn from_declarations(declarations: Arc<PropertyDeclarationBlock>,
+    pub fn from_declarations(declarations: Arc<DOMRefCell<PropertyDeclarationBlock>>,
                              importance: Importance)
                              -> Self {
         DeclarationBlock {
@@ -897,9 +903,11 @@ impl DeclarationBlock {
         }
     }
 
+    #[allow(unsafe_code)]
     pub fn iter(&self) -> DeclarationBlockIter {
         DeclarationBlockIter {
-            iter: self.mixed_declarations.declarations.iter(),
+            // FIXME: Is this thread-safe?
+            iter: unsafe { self.mixed_declarations.borrow_for_layout() }.declarations.iter(),
             importance: self.importance,
         }
     }

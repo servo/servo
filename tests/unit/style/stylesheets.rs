@@ -9,6 +9,7 @@ use std::borrow::ToOwned;
 use std::sync::Arc;
 use std::sync::Mutex;
 use string_cache::{Atom, Namespace as NsAtom};
+use style::domrefcell::DOMRefCell;
 use style::error_reporting::ParseErrorReporter;
 use style::keyframes::{Keyframe, KeyframeSelector, KeyframePercentage};
 use style::parser::ParserContextExtraData;
@@ -97,7 +98,7 @@ fn test_parse_stylesheet() {
                         specificity: (0 << 20) + (1 << 10) + (1 << 0),
                     },
                 ],
-                declarations: Arc::new(PropertyDeclarationBlock {
+                block: Arc::new(DOMRefCell::new(PropertyDeclarationBlock {
                     declarations: vec![
                         (PropertyDeclaration::Display(DeclaredValue::Value(
                             longhands::display::SpecifiedValue::none)),
@@ -106,7 +107,7 @@ fn test_parse_stylesheet() {
                          Importance::Important),
                     ],
                     important_count: 2,
-                }),
+                })),
             })),
             CSSRule::Style(Arc::new(StyleRule {
                 selectors: vec![
@@ -145,14 +146,14 @@ fn test_parse_stylesheet() {
                         specificity: (0 << 20) + (0 << 10) + (1 << 0),
                     },
                 ],
-                declarations: Arc::new(PropertyDeclarationBlock {
+                block: Arc::new(DOMRefCell::new(PropertyDeclarationBlock {
                     declarations: vec![
                         (PropertyDeclaration::Display(DeclaredValue::Value(
                             longhands::display::SpecifiedValue::block)),
                          Importance::Normal),
                     ],
                     important_count: 0,
-                }),
+                })),
             })),
             CSSRule::Style(Arc::new(StyleRule {
                 selectors: vec![
@@ -180,7 +181,7 @@ fn test_parse_stylesheet() {
                         specificity: (1 << 20) + (1 << 10) + (0 << 0),
                     },
                 ],
-                declarations: Arc::new(PropertyDeclarationBlock {
+                block: Arc::new(DOMRefCell::new(PropertyDeclarationBlock {
                     declarations: vec![
                         (PropertyDeclaration::BackgroundColor(DeclaredValue::Value(
                             longhands::background_color::SpecifiedValue {
@@ -228,7 +229,7 @@ fn test_parse_stylesheet() {
                          Importance::Normal),
                     ],
                     important_count: 0,
-                }),
+                })),
             })),
             CSSRule::Keyframes(Arc::new(KeyframesRule {
                 name: "foo".into(),
@@ -236,19 +237,19 @@ fn test_parse_stylesheet() {
                     Arc::new(Keyframe {
                         selector: KeyframeSelector::new_for_unit_testing(
                                       vec![KeyframePercentage::new(0.)]),
-                        block: Arc::new(PropertyDeclarationBlock {
+                        block: Arc::new(DOMRefCell::new(PropertyDeclarationBlock {
                             declarations: vec![
                                 (PropertyDeclaration::Width(DeclaredValue::Value(
                                     LengthOrPercentageOrAuto::Percentage(Percentage(0.)))),
                                  Importance::Normal),
                             ],
                             important_count: 0,
-                        })
+                        }))
                     }),
                     Arc::new(Keyframe {
                         selector: KeyframeSelector::new_for_unit_testing(
                                       vec![KeyframePercentage::new(1.)]),
-                        block: Arc::new(PropertyDeclarationBlock {
+                        block: Arc::new(DOMRefCell::new(PropertyDeclarationBlock {
                             declarations: vec![
                                 (PropertyDeclaration::Width(DeclaredValue::Value(
                                     LengthOrPercentageOrAuto::Percentage(Percentage(1.)))),
@@ -259,7 +260,7 @@ fn test_parse_stylesheet() {
                                  Importance::Normal),
                             ],
                             important_count: 0,
-                        }),
+                        })),
                     }),
                 ]
             }))
