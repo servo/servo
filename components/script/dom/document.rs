@@ -790,13 +790,16 @@ impl Document {
             // https://w3c.github.io/uievents/#event-type-dblclick
             let DBL_CLICK_TIMEOUT = Duration::from_millis(PREFS.get("dom.document.dblclick_timeout").as_u64().unwrap());
             let DBL_CLICK_DIST_THRESHOLD = PREFS.get("dom.document.dblclick_dist").as_u64().unwrap();
+
             let new_pos = Point2D::new(client_x, client_y);
             let now = Instant::now();
             let opt = self.last_click_info.borrow_mut().take();
+
             *self.last_click_info.borrow_mut() = match opt {
                 Some((last_time, last_pos)) => {
                     let line = new_pos - last_pos;
                     let dist = (line.dot(line) as f64).sqrt();
+
                     if now.duration_since(last_time) < DBL_CLICK_TIMEOUT &&
                         dist < DBL_CLICK_DIST_THRESHOLD as f64 {
                         // A double click has occured
