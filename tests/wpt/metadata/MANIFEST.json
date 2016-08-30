@@ -37215,6 +37215,12 @@
     "deleted_reftests": {},
     "items": {
       "testharness": {
+        "html/semantics/forms/the-option-element/option-form.html": [
+          {
+            "path": "html/semantics/forms/the-option-element/option-form.html",
+            "url": "/html/semantics/forms/the-option-element/option-form.html"
+          }
+        ],
         "html/semantics/interactive-elements/the-dialog-element/dialog-open.html": [
           {
             "path": "html/semantics/interactive-elements/the-dialog-element/dialog-open.html",
