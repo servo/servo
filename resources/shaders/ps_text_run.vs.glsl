@@ -5,7 +5,7 @@
 
 struct TextRunGlyph {
     vec4 local_rect;
-    ivec4 uv_rect;
+    vec4 uv_rect;
 };
 
 struct TextRun {
@@ -22,7 +22,7 @@ void main(void) {
     TextRun text_run = text_runs[gl_InstanceID / WR_GLYPHS_PER_TEXT_RUN];
     TextRunGlyph glyph = text_run.glyphs[gl_InstanceID % WR_GLYPHS_PER_TEXT_RUN];
     text_run.info.local_rect = glyph.local_rect;
-    ivec4 uv_rect = glyph.uv_rect;
+    vec4 uv_rect = glyph.uv_rect;
 
 #ifdef WR_FEATURE_TRANSFORM
     TransformVertexInfo vi = write_transform_vertex(text_run.info);

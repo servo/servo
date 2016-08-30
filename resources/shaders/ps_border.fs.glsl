@@ -19,6 +19,39 @@ vec4 get_fragment_color(float distanceFromMixLine, float pixelsPerFragment) {
   return mix(vHorizontalColor, vVerticalColor, colorMix);
 }
 
+float alpha_for_solid_border(float distance_from_ref,
+                             float inner_radius,
+                             float outer_radius,
+                             float pixels_per_fragment) {
+  // We want to start anti-aliasing one pixel in from the border.
+  float nudge = 1 * pixels_per_fragment;
+  inner_radius += nudge;
+  outer_radius -= nudge;
+
+  if ((distance_from_ref < outer_radius && distance_from_ref > inner_radius)) {
+    return 1.0;
+  }
+
+  float distance_from_border = max(distance_from_ref - outer_radius,
+                                   inner_radius - distance_from_ref);
+
+  // Move the distance back into pixels.
+  distance_from_border /= pixels_per_fragment;
+
+  // Apply a more gradual fade out to transparent.
+  distance_from_border -= 0.5;
+
+  return smoothstep(1.0, 0, distance_from_border);
+}
+
+float alpha_for_solid_border_corner(vec2 local_pos,
+                                    float inner_radius,
+                                    float outer_radius,
+                                    float pixels_per_fragment) {
+  float distance_from_ref = distance(vRefPoint, local_pos);
+  return alpha_for_solid_border(distance_from_ref, inner_radius, outer_radius, pixels_per_fragment);
+}
+
 #ifdef WR_FEATURE_TRANSFORM
 
 #else
@@ -74,57 +107,6 @@ vec4 draw_dotted_edge() {
   // See if we should draw a circle or not
   vec4 circleColor = drawCircle(finalPosition, tileCenter, radius, vVerticalColor.xyz);
   return mix(white, circleColor, circleColor.a);
-}
-
-vec4 draw_double_edge(float pos, float len) {
-  // Devided border to 3 parts, draw color on first and third part,
-  // leave second part blank.
-  float one_third_len = len / 3.0;
-
-  float in_first_part = step(pos, one_third_len);
-  float in_third_part = step(len - one_third_len, pos);
-
-  // The result of this should be 1.0 if we're in the 1st or 3rd part.
-  // And 0.0 for the blank part.
-  float should_fill = in_first_part + in_third_part;
-
-  // This is the conversion factor for transformations and device pixel scaling.
-  float pixels_per_fragment = length(fwidth(vLocalPos.xy));
-  vec4 white = vec4(1.0, 1.0, 1.0, 1.0);
-  return mix(white, get_fragment_color(vDistanceFromMixLine, pixels_per_fragment), should_fill);
-}
-
-vec4 draw_double_edge_vertical() {
-  // Get our position within this specific segment
-  float position = vLocalPos.x - vLocalRect.x;
-  return draw_double_edge(position, vLocalRect.z);
-}
-
-vec4 draw_double_edge_horizontal() {
-  // Get our position within this specific segment
-  float position = vLocalPos.y - vLocalRect.y;
-  return draw_double_edge(position, vLocalRect.w);
-}
-
-vec4 draw_double_edge_with_radius() {
-  // Get our position within this specific segment
-  float position = distance(vRefPoint, vLocalPos) - vRadii.z;
-  float len = vRadii.x - vRadii.z;
-  return draw_double_edge(position, len);
-}
-
-vec4 draw_double_edge_corner() {
-  if (vRadii.x > 0) {
-    return draw_double_edge_with_radius();
-  }
-
-  bool is_vertical = (vBorderPart == PST_TOP_LEFT) ? vDistanceFromMixLine < 0 :
-                                                     vDistanceFromMixLine >= 0;
-  if (is_vertical) {
-    return draw_double_edge_vertical();
-  } else {
-    return draw_double_edge_horizontal();
-  }
 }
 
 // Our current edge calculation is based only on
@@ -215,7 +197,82 @@ void draw_dashed_border(void) {
   }
 }
 
-void draw_double_border(void) {
+#endif
+
+vec4 draw_double_edge(float pos,
+                      float len,
+                      float distance_from_mix_line,
+                      float pixels_per_fragment) {
+  float total_border_width = len;
+  float one_third_width = total_border_width / 3.0;
+
+  // Contribution of the outer border segment.
+  float alpha = alpha_for_solid_border(pos,
+                                       total_border_width - one_third_width,
+                                       total_border_width,
+                                       pixels_per_fragment);
+
+  // Contribution of the inner border segment.
+  alpha += alpha_for_solid_border(pos, 0, one_third_width, pixels_per_fragment);
+  return get_fragment_color(distance_from_mix_line, pixels_per_fragment) * vec4(1, 1, 1, alpha);
+}
+
+vec4 draw_double_edge_vertical(vec2 local_pos,
+                               float distance_from_mix_line,
+                               float pixels_per_fragment) {
+  // Get our position within this specific segment
+  float position = local_pos.x - vLocalRect.x;
+  return draw_double_edge(position, vLocalRect.z, distance_from_mix_line, pixels_per_fragment);
+}
+
+vec4 draw_double_edge_horizontal(vec2 local_pos,
+                                 float distance_from_mix_line,
+                                 float pixels_per_fragment) {
+  // Get our position within this specific segment
+  float position = local_pos.y - vLocalRect.y;
+  return draw_double_edge(position, vLocalRect.w, distance_from_mix_line, pixels_per_fragment);
+}
+
+vec4 draw_double_edge_corner_with_radius(vec2 local_pos,
+                                         float distance_from_mix_line,
+                                         float pixels_per_fragment) {
+  float total_border_width = vRadii.x - vRadii.z;
+  float one_third_width = total_border_width / 3.0;
+
+  // Contribution of the outer border segment.
+  float alpha = alpha_for_solid_border_corner(local_pos,
+                                              vRadii.x - one_third_width,
+                                              vRadii.x,
+                                              pixels_per_fragment);
+
+  // Contribution of the inner border segment.
+  alpha += alpha_for_solid_border_corner(local_pos,
+                                         vRadii.z,
+                                         vRadii.z + one_third_width,
+                                         pixels_per_fragment);
+  return get_fragment_color(distance_from_mix_line, pixels_per_fragment) * vec4(1, 1, 1, alpha);
+}
+
+vec4 draw_double_edge_corner(vec2 local_pos,
+                             float distance_from_mix_line,
+                             float pixels_per_fragment) {
+  if (vRadii.x > 0) {
+      return draw_double_edge_corner_with_radius(local_pos,
+                                                 distance_from_mix_line,
+                                                 pixels_per_fragment);
+  }
+
+  bool is_vertical = (vBorderPart == PST_TOP_LEFT) ? distance_from_mix_line < 0 :
+                                                     distance_from_mix_line >= 0;
+  if (is_vertical) {
+    return draw_double_edge_vertical(local_pos, distance_from_mix_line, pixels_per_fragment);
+  } else {
+    return draw_double_edge_horizontal(local_pos, distance_from_mix_line, pixels_per_fragment);
+  }
+}
+
+void draw_double_border(float distance_from_mix_line, vec2 local_pos) {
+  float pixels_per_fragment = length(fwidth(local_pos.xy));
   switch (vBorderPart) {
     // These are the layer tile part PrimitivePart as uploaded by the tiling.rs
     case PST_TOP_LEFT:
@@ -223,48 +280,25 @@ void draw_double_border(void) {
     case PST_BOTTOM_LEFT:
     case PST_BOTTOM_RIGHT:
     {
-      oFragColor = draw_double_edge_corner();
+      oFragColor = draw_double_edge_corner(local_pos, distance_from_mix_line, pixels_per_fragment);
       break;
     }
     case PST_BOTTOM:
     case PST_TOP:
     {
-      oFragColor = draw_double_edge_horizontal();
+      oFragColor = draw_double_edge_horizontal(local_pos,
+                                               distance_from_mix_line,
+                                               pixels_per_fragment);
       break;
     }
     case PST_LEFT:
     case PST_RIGHT:
     {
-      oFragColor = draw_double_edge_vertical();
+      oFragColor = draw_double_edge_vertical(local_pos,
+                                             distance_from_mix_line,
+                                             pixels_per_fragment);
       break;
     }
-  }
-}
-
-#endif
-
-void draw_antialiased_solid_border_corner(vec2 local_pos, float pixelsPerFragment) {
-  if (vRadii.x <= 0.0) {
-    return;
-  }
-
-  float distanceFromRef = distance(vRefPoint, local_pos);
-
-  // We want to start anti-aliasing one pixel in from the border.
-  float nudge = 1 * pixelsPerFragment;
-  float innerRadius = vRadii.z + nudge;
-  float outerRadius = vRadii.x - nudge;
-
-  if (vRadii.x > 0.0 && (distanceFromRef > outerRadius || distanceFromRef < innerRadius)) {
-    float distanceFromBorder = max(distanceFromRef - outerRadius,
-                                   innerRadius - distanceFromRef);
-    // Move the distance back into pixels.
-    distanceFromBorder /= pixelsPerFragment;
-
-    // Apply a more gradual fade out to transparent.
-    distanceFromBorder -= 0.5;
-
-    oFragColor = oFragColor * vec4(1, 1, 1, smoothstep(1.0, 0, distanceFromBorder));
   }
 }
 
@@ -277,7 +311,12 @@ void draw_solid_border(float distanceFromMixLine, vec2 localPos) {
       // This is the conversion factor for transformations and device pixel scaling.
       float pixelsPerFragment = length(fwidth(localPos.xy));
       oFragColor = get_fragment_color(distanceFromMixLine, pixelsPerFragment);
-      draw_antialiased_solid_border_corner(localPos, pixelsPerFragment);
+
+      if (vRadii.x > 0.0) {
+        float alpha = alpha_for_solid_border_corner(localPos, vRadii.z, vRadii.x, pixelsPerFragment);
+        oFragColor *= vec4(1, 1, 1, alpha);
+      }
+
       break;
     }
     default:
@@ -285,7 +324,6 @@ void draw_solid_border(float distanceFromMixLine, vec2 localPos) {
       discard_pixels_in_rounded_borders(localPos);
   }
 }
-
 
 // TODO: Investigate performance of this shader and see
 //       if it's worthwhile splitting it / removing branches etc.
@@ -302,9 +340,25 @@ void main(void) {
     float distance_from_mix_line = (local_pos.x - vPieceRect.x) * vPieceRect.w -
                                    (local_pos.y - vPieceRect.y) * vPieceRect.z;
     distance_from_mix_line /= vPieceRectHypotenuseLength;
-    draw_solid_border(distance_from_mix_line, local_pos);
-    oFragColor *= vec4(1, 1, 1, alpha);
 
+    switch (vBorderStyle) {
+        case BORDER_STYLE_DASHED:
+        case BORDER_STYLE_DOTTED:
+        case BORDER_STYLE_OUTSET:
+        case BORDER_STYLE_INSET:
+        case BORDER_STYLE_SOLID:
+        case BORDER_STYLE_NONE:
+          draw_solid_border(distance_from_mix_line, local_pos);
+          break;
+        case BORDER_STYLE_DOUBLE:
+          draw_double_border(distance_from_mix_line, local_pos);
+          break;
+        default:
+          discard;
+
+    }
+
+    oFragColor *= vec4(1, 1, 1, alpha);
 #else
     switch (vBorderStyle) {
         case BORDER_STYLE_DASHED:
@@ -322,8 +376,7 @@ void main(void) {
             draw_solid_border(vDistanceFromMixLine, local_pos);
             break;
         case BORDER_STYLE_DOUBLE:
-            discard_pixels_in_rounded_borders(local_pos);
-            draw_double_border();
+            draw_double_border(vDistanceFromMixLine, local_pos);
             break;
         default:
             discard;

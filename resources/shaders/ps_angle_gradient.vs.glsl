@@ -6,7 +6,7 @@
 struct AngleGradient {
     PrimitiveInfo info;
     vec4 start_end_point;
-    uvec4 stop_count;
+    vec4 stop_count;
     vec4 colors[MAX_STOPS_PER_ANGLE_GRADIENT];
     vec4 offsets[MAX_STOPS_PER_ANGLE_GRADIENT/4];
 };

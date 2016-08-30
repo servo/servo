@@ -10,7 +10,7 @@ struct Gradient {
     PrimitiveInfo info;
     vec4 color0;
     vec4 color1;
-    uvec4 dir;
+    vec4 dir;
     Clip clip;
 };
 
@@ -32,7 +32,7 @@ void main(void) {
     vPos = vi.local_clamped_pos;
 #endif
 
-    switch (gradient.dir.x) {
+    switch (uint(gradient.dir.x)) {
         case DIR_HORIZONTAL:
             vF = f.x;
             break;
