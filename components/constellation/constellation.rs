@@ -1842,7 +1842,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         if let Some(pipeline) = self.pipelines.get_mut(&pipeline_id) {
             pipeline.is_pending = false;
         }
-        // If the pending pipeline is in the current state, this means that a traversal has not
+        // If the pending pipeline is in the current entry, this means that a traversal has not
         // occurred and we should focus the new pipeline if needed, fire location change events,
         // and update the frame tree.
         if is_current {
@@ -1989,6 +1989,13 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                                                parent_info.0,
                                                parent_info.1));
                 }
+            }
+        }
+
+        // If this pipeline has already matured, do not try to activate it again.
+        if let Some(pipeline) = self.pipelines.get(&pipeline_id) {
+            if !pipeline.is_pending {
+                return;
             }
         }
 
