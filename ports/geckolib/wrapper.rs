@@ -414,6 +414,8 @@ impl<'ld> TDocument for GeckoDocument<'ld> {
         let elements =  unsafe { self.document.drain_modified_elements() };
         elements.into_iter().map(|(el, snapshot)| (ServoLayoutElement::from_layout_js(el), snapshot)).collect()*/
     }
+    fn will_paint(&self) { unimplemented!() }
+    fn needs_paint_from_layout(&self) { unimplemented!() }
 }
 
 #[derive(Clone, Copy)]

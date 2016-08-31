@@ -1356,6 +1356,18 @@
             "url": "/_mozilla/css/data_img_a.html"
           }
         ],
+        "css/deferred-paint.html": [
+          {
+            "path": "css/deferred-paint.html",
+            "references": [
+              [
+                "/_mozilla/css/deferred-paint-ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/deferred-paint.html"
+          }
+        ],
         "css/direction_style_caching.html": [
           {
             "path": "css/direction_style_caching.html",
@@ -10688,6 +10700,30 @@
             ]
           ],
           "url": "/_mozilla/css/data_img_a.html"
+        }
+      ],
+      "css/deferred-paint-ref.html": [
+        {
+          "path": "css/deferred-paint-ref.html",
+          "references": [
+            [
+              "/_mozilla/css/deferred-paint-ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/deferred-paint-ref.html"
+        }
+      ],
+      "css/deferred-paint.html": [
+        {
+          "path": "css/deferred-paint.html",
+          "references": [
+            [
+              "/_mozilla/css/deferred-paint-ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/deferred-paint.html"
         }
       ],
       "css/direction_style_caching.html": [
