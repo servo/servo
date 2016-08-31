@@ -524,7 +524,7 @@ class CommandBase(object):
 
         # Always check if all needed MSVC dependencies are installed
         if "msvc" in target_platform:
-            Registrar.dispatch("bootstrap-msvc", context=self.context)
+            Registrar.dispatch("bootstrap", context=self.context)
 
         if not (self.config['tools']['system-rust'] or (rustc_binary_exists and target_exists)):
             print("looking for rustc at %s" % (rustc_path))
