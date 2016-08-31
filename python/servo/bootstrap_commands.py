@@ -21,7 +21,6 @@ import StringIO
 import tarfile
 import zipfile
 import urllib2
-from distutils import spawn
 
 from mach.decorators import (
     CommandArgument,
@@ -29,7 +28,7 @@ from mach.decorators import (
     Command,
 )
 
-from servo.command_base import CommandBase, host_triple, BIN_SUFFIX, is_windows
+from servo.command_base import CommandBase, host_triple, BIN_SUFFIX
 
 
 def download(desc, src, writer, start_byte=0):
@@ -131,78 +130,23 @@ class MachCommands(CommandBase):
         else:
             print("export LD_LIBRARY_PATH=%s" % env["LD_LIBRARY_PATH"])
 
-    @Command('bootstrap-msvc',
-             description='Download the Windows MSVC dependencies',
+    @Command('bootstrap',
+             description='Install required packages for building.',
              category='bootstrap')
+    @CommandArgument('--interactive', "-i",
+                     action='store_true',
+                     help='Need to answer any (Y/n) interactive prompts.')
+    @CommandArgument('--android',
+                     action='store_true',
+                     help='Install required packages for Android')
     @CommandArgument('--force', '-f',
                      action='store_true',
-                     help='Force download even if a copy already exists')
-    def bootstrap_msvc(self, force=False):
-        # Don't download MSVC dependencies on non-Windows platform
-        if not is_windows():
-            return print("Unsupported platform.")
+                     help='Force reinstall packages')
+    def bootstrap(self, android=False, interactive=False, force=False):
+        from servo.bootstrapper.bootstrap import Bootstrapper
 
-        msvc_deps_dir = path.join(self.context.sharedir, "msvc-dependencies")
-        msvc_deps_url = "https://dl.dropboxusercontent.com/u/25971865/msvc-deps/"
-        first_run = True
-
-        if force:
-            if path.isdir(msvc_deps_dir):
-                shutil.rmtree(msvc_deps_dir)
-
-        if not path.isdir(msvc_deps_dir):
-            os.makedirs(msvc_deps_dir)
-
-        # Read MSVC dependencies from ./support/windows/msvc-dependencies.txt
-        msvc_deps_list = path.join(self.context.topdir, "support", "windows", "msvc-dependencies.txt")
-        deps = []
-        for line in open(msvc_deps_list):
-            line = line.strip()
-            if line and not line.startswith("#"):
-                deps += [line]
-
-        # Read file with installed dependencies, if exist
-        installed_deps_file = msvc_deps_dir + "/installed-dependencies.txt"
-        if path.exists(installed_deps_file):
-            installed_deps = [l.rstrip('\n') for l in open(installed_deps_file)]
-        else:
-            installed_deps = []
-
-        # list of dependencies that need to be updated
-        update_deps = list(set(deps) - set(installed_deps))
-
-        for dep in deps:
-            dep_split = dep.split('=')
-            dep_name = dep_split[0]
-            dep_version = dep_split[1]
-            dep_full_name = dep_name + " " + dep_version
-
-            # Don't download CMake if already exists in PATH
-            if dep_name == "cmake":
-                if spawn.find_executable(dep_name):
-                    continue
-
-            dep_dir = path.join(msvc_deps_dir, dep_name)
-            # if not installed or need to be updated
-            if not path.exists(dep_dir) or (set([dep]) & set(update_deps)):
-                if first_run:
-                    print("Installing missing MSVC dependencies...")
-                    first_run = False
-                dep_zip = "%s-%s.zip" % (dep_name, dep_version)
-                dep_url = msvc_deps_url + dep_zip
-                dep_version_dir = dep_dir + "-%s" % dep_version
-                download_file(dep_full_name, dep_url, dep_version_dir + ".zip")
-                print("Extracting %s..." % dep_full_name, end="\r")
-                extract(dep_version_dir + ".zip", msvc_deps_dir)
-                print("Extracting %s...done" % dep_full_name)
-                # Delete directory if exist
-                if path.exists(dep_dir):
-                    shutil.rmtree(dep_dir)
-                os.rename(dep_version_dir, dep_dir)
-
-        with open(msvc_deps_dir + "/installed-dependencies.txt", 'w') as installed_file:
-            for line in deps:
-                installed_file.write(line + "\n")
+        bootstrapper = Bootstrapper()
+        bootstrapper.bootstrap(android=android, interactive=interactive, force=force)
 
     @Command('bootstrap-rust',
              description='Download the Rust compiler',
