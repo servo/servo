@@ -40,7 +40,7 @@ ordered-float = "0.2.2"
 quickersort = "2.0.0"
 rand = "0.3"
 rustc-serialize = "0.3"
-selectors = "0.12"
+selectors = "0.13"
 serde = {version = "0.8", optional = true}
 serde_macros = {version = "0.8", optional = true}
 smallvec = "0.1"

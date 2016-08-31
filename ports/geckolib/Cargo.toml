@@ -19,7 +19,7 @@ lazy_static = "0.2"
 libc = "0.2"
 log = {version = "0.3.5", features = ["release_max_level_info"]}
 num_cpus = "0.2.2"
-selectors = "0.12"
+selectors = "0.13"
 style = {path = "../../components/style", features = ["gecko"]}
 style_traits = {path = "../../components/style_traits"}
 url = "1.2"
