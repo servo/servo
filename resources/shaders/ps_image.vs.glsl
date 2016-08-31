@@ -5,8 +5,8 @@
 
 struct Image {
     PrimitiveInfo info;
-    vec4 st_rect;       // Location of the image texture in the texture atlas.
-    vec4 stretch_size;  // Size of the actual image.
+    vec4 st_rect;               // Location of the image texture in the texture atlas.
+    vec4 stretch_size_uvkind;   // Size of the actual image.
 };
 
 layout(std140) uniform Items {
@@ -20,13 +20,27 @@ void main(void) {
     TransformVertexInfo vi = write_transform_vertex(image.info);
     vLocalRect = vi.clipped_local_rect;
     vLocalPos = vi.local_pos;
-    vStretchSize = image.stretch_size.xy;
+    vStretchSize = image.stretch_size_uvkind.xy;
 #else
     VertexInfo vi = write_vertex(image.info);
-    vUv = (vi.local_clamped_pos - vi.local_rect.p0) / image.stretch_size.xy;
+    vUv = (vi.local_clamped_pos - vi.local_rect.p0) / image.stretch_size_uvkind.xy;
 #endif
 
     // vUv will contain how many times this image has wrapped around the image size.
-    vTextureSize = image.st_rect.zw - image.st_rect.xy;
-    vTextureOffset = image.st_rect.xy;
+    vec2 st0 = image.st_rect.xy;
+    vec2 st1 = image.st_rect.zw;
+
+    switch (uint(image.stretch_size_uvkind.z)) {
+        case UV_NORMALIZED:
+            break;
+        case UV_PIXEL: {
+                vec2 texture_size = textureSize(sDiffuse, 0);
+                st0 /= texture_size;
+                st1 /= texture_size;
+            }
+            break;
+    }
+
+    vTextureSize = st1 - st0;
+    vTextureOffset = st0;
 }
