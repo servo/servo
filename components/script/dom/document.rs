@@ -246,25 +246,10 @@ pub struct Document {
     target_element: MutNullableHeap<JS<Element>>,
     /// https://w3c.github.io/uievents/#event-type-dblclick
     #[ignore_heap_size_of = ""]
-    last_click_info: DOMRefCell<ClickInfo>,
+    last_click_info: DOMRefCell<Option<(Instant, Point2D<i32>)>>,
 }
 
-no_jsmanaged_fields!(ClickInfo);
-struct ClickInfo(Option<(Instant, Point2D<i32>)>);
-
-impl ClickInfo {
-    fn take(&self) -> Option<(Instant, Point2D<i32>)> {
-        let ClickInfo(opt) = *self;
-        match opt {
-            Some((instant, point)) => {
-                Some((instant, point))
-            },
-            _ => {
-                None
-            }
-        }
-    }
-}
+no_jsmanaged_fields!(Instant);
 
 #[derive(JSTraceable, HeapSizeOf)]
 struct ImagesFilter;
@@ -793,9 +778,9 @@ impl Document {
 
             let new_pos = Point2D::new(client_x, client_y);
             let now = Instant::now();
-            let opt = self.last_click_info.borrow_mut().take();
+            let mut opt = self.last_click_info.borrow_mut();
 
-            *self.last_click_info.borrow_mut() = match opt {
+            *opt = match *opt {
                 Some((last_time, last_pos)) => {
                     let line = new_pos - last_pos;
                     let dist = (line.dot(line) as f64).sqrt();
@@ -805,7 +790,7 @@ impl Document {
                         // A double click has occured
                         let evt_node = node;
                         let event = MouseEvent::new(&self.window,
-                                    DOMString::from("dblclick".to_owned()),
+                                    DOMString::from("dblclick"),
                                     EventBubbles::Bubbles,
                                     EventCancelable::Cancelable,
                                     Some(&self.window),
@@ -821,17 +806,14 @@ impl Document {
                                     0i16,
                                     None);
 
-                        let target = evt_node.upcast();
-                        let event = event.upcast::<Event>();
-                        event.fire(target);
-
-                        ClickInfo(None)
+                        event.upcast::<Event>().fire(evt_node.upcast());
+                        None
                     } else {
-                        ClickInfo(Some((now, new_pos)))
+                        Some((now, new_pos))
                     }
                 },
                 _ => {
-                    ClickInfo(Some((now, new_pos)))
+                    Some((now, new_pos))
                 }
             }
         }
@@ -1807,7 +1789,7 @@ impl Document {
             referrer: referrer,
             referrer_policy: Cell::new(referrer_policy),
             target_element: MutNullableHeap::new(None),
-            last_click_info: DOMRefCell::new(ClickInfo(None)),
+            last_click_info: DOMRefCell::new(None),
         }
     }
 
