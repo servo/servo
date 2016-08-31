@@ -473,7 +473,7 @@ impl<'le> TElement for GeckoElement<'le> {
             None
         } else {
             let opt_ptr = GeckoDeclarationBlock::with(declarations, |declarations| {
-                // Use a raw poointer to extend the lifetime
+                // Use a raw pointer to extend the lifetime
                 declarations.declarations.as_ref().map(|r| r as *const Arc<_>)
             });
             opt_ptr.map(|ptr| unsafe { &*ptr })

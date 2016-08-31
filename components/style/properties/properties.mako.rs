@@ -292,6 +292,26 @@ pub struct PropertyDeclarationBlock {
     pub important_count: u32,
 }
 
+impl PropertyDeclarationBlock {
+    /// Returns wheather this block contains any declaration with `!important`.
+    ///
+    /// This is based on the `important_count` counter,
+    /// which should be maintained whenever `declarations` is changed.
+    // FIXME: make fields private and maintain it here in methods?
+    pub fn any_important(&self) -> bool {
+        self.important_count > 0
+    }
+
+    /// Returns wheather this block contains any declaration without `!important`.
+    ///
+    /// This is based on the `important_count` counter,
+    /// which should be maintained whenever `declarations` is changed.
+    // FIXME: make fields private and maintain it here in methods?
+    pub fn any_normal(&self) -> bool {
+        self.declarations.len() > self.important_count as usize
+    }
+}
+
 impl ToCss for PropertyDeclarationBlock {
     // https://drafts.csswg.org/cssom/#serialize-a-css-declaration-block
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {

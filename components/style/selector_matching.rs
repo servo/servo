@@ -398,7 +398,7 @@ impl Stylist {
 
         // Step 4: Normal style attributes.
         if let Some(sa)  = style_attribute {
-            if sa.declarations.len() > sa.important_count as usize {
+            if sa.any_normal() {
                 relations |= AFFECTED_BY_STYLE_ATTRIBUTE;
                 Push::push(
                     applicable_declarations,
@@ -419,7 +419,7 @@ impl Stylist {
 
         // Step 6: `!important` style attributes.
         if let Some(sa) = style_attribute {
-            if sa.important_count > 0 {
+            if sa.any_important() {
                 relations |= AFFECTED_BY_STYLE_ATTRIBUTE;
                 Push::push(
                     applicable_declarations,
@@ -764,9 +764,9 @@ impl SelectorMap {
         for rule in rules.iter() {
             let block = &rule.declarations.mixed_declarations;
             let any_declaration_for_importance = if importance.important() {
-                block.important_count > 0
+                block.any_important()
             } else {
-                block.declarations.len() > block.important_count as usize
+                block.any_normal()
             };
             if any_declaration_for_importance &&
                matches_complex_selector(&*rule.selector,
