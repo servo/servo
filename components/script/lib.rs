@@ -17,7 +17,6 @@
 #![feature(slice_patterns)]
 #![feature(stmt_expr_attributes)]
 #![feature(question_mark)]
-#![feature(try_borrow)]
 #![feature(try_from)]
 
 #![deny(unsafe_code)]
@@ -69,7 +68,6 @@ extern crate phf;
 extern crate profile_traits;
 extern crate rand;
 extern crate range;
-extern crate ref_filter_map;
 extern crate ref_slice;
 extern crate regex;
 extern crate rustc_serialize;

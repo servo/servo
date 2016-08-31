@@ -15,7 +15,7 @@ use style::parser::ParserContextExtraData;
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, DeclaredValue, longhands};
 use style::properties::Importance;
 use style::properties::longhands::animation_play_state;
-use style::stylesheets::{Stylesheet, CSSRule, StyleRule, KeyframesRule, Origin};
+use style::stylesheets::{Stylesheet, NamespaceRule, CSSRule, StyleRule, KeyframesRule, Origin};
 use style::values::specified::{LengthOrPercentageOrAuto, Percentage};
 use url::Url;
 
@@ -65,11 +65,11 @@ fn test_parse_stylesheet() {
         media: None,
         dirty_on_viewport_size_change: false,
         rules: vec![
-            CSSRule::Namespace {
+            CSSRule::Namespace(Arc::new(NamespaceRule {
                 prefix: None,
                 url: NsAtom(Atom::from("http://www.w3.org/1999/xhtml"))
-            },
-            CSSRule::Style(StyleRule {
+            })),
+            CSSRule::Style(Arc::new(StyleRule {
                 selectors: vec![
                     Selector {
                         complex_selector: Arc::new(ComplexSelector {
@@ -97,18 +97,18 @@ fn test_parse_stylesheet() {
                         specificity: (0 << 20) + (1 << 10) + (1 << 0),
                     },
                 ],
-                declarations: PropertyDeclarationBlock {
-                    declarations: Arc::new(vec![
+                declarations: Arc::new(PropertyDeclarationBlock {
+                    declarations: vec![
                         (PropertyDeclaration::Display(DeclaredValue::Value(
                             longhands::display::SpecifiedValue::none)),
                          Importance::Important),
                         (PropertyDeclaration::Custom(Atom::from("a"), DeclaredValue::Inherit),
                          Importance::Important),
-                    ]),
+                    ],
                     important_count: 2,
-                },
-            }),
-            CSSRule::Style(StyleRule {
+                }),
+            })),
+            CSSRule::Style(Arc::new(StyleRule {
                 selectors: vec![
                     Selector {
                         complex_selector: Arc::new(ComplexSelector {
@@ -145,16 +145,16 @@ fn test_parse_stylesheet() {
                         specificity: (0 << 20) + (0 << 10) + (1 << 0),
                     },
                 ],
-                declarations: PropertyDeclarationBlock {
-                    declarations: Arc::new(vec![
+                declarations: Arc::new(PropertyDeclarationBlock {
+                    declarations: vec![
                         (PropertyDeclaration::Display(DeclaredValue::Value(
                             longhands::display::SpecifiedValue::block)),
                          Importance::Normal),
-                    ]),
+                    ],
                     important_count: 0,
-                },
-            }),
-            CSSRule::Style(StyleRule {
+                }),
+            })),
+            CSSRule::Style(Arc::new(StyleRule {
                 selectors: vec![
                     Selector {
                         complex_selector: Arc::new(ComplexSelector {
@@ -180,8 +180,8 @@ fn test_parse_stylesheet() {
                         specificity: (1 << 20) + (1 << 10) + (0 << 0),
                     },
                 ],
-                declarations: PropertyDeclarationBlock {
-                    declarations: Arc::new(vec![
+                declarations: Arc::new(PropertyDeclarationBlock {
+                    declarations: vec![
                         (PropertyDeclaration::BackgroundColor(DeclaredValue::Value(
                             longhands::background_color::SpecifiedValue {
                                 authored: Some("blue".to_owned()),
@@ -226,37 +226,43 @@ fn test_parse_stylesheet() {
                             vec![longhands::background_clip::single_value
                                                        ::get_initial_specified_value()]))),
                          Importance::Normal),
-                    ]),
+                    ],
                     important_count: 0,
-                },
-            }),
-            CSSRule::Keyframes(KeyframesRule {
+                }),
+            })),
+            CSSRule::Keyframes(Arc::new(KeyframesRule {
                 name: "foo".into(),
                 keyframes: vec![
-                    Keyframe {
+                    Arc::new(Keyframe {
                         selector: KeyframeSelector::new_for_unit_testing(
                                       vec![KeyframePercentage::new(0.)]),
-                        declarations: Arc::new(vec![
-                            (PropertyDeclaration::Width(DeclaredValue::Value(
-                                LengthOrPercentageOrAuto::Percentage(Percentage(0.)))),
-                             Importance::Normal),
-                        ]),
-                    },
-                    Keyframe {
+                        block: Arc::new(PropertyDeclarationBlock {
+                            declarations: vec![
+                                (PropertyDeclaration::Width(DeclaredValue::Value(
+                                    LengthOrPercentageOrAuto::Percentage(Percentage(0.)))),
+                                 Importance::Normal),
+                            ],
+                            important_count: 0,
+                        })
+                    }),
+                    Arc::new(Keyframe {
                         selector: KeyframeSelector::new_for_unit_testing(
                                       vec![KeyframePercentage::new(1.)]),
-                        declarations: Arc::new(vec![
-                            (PropertyDeclaration::Width(DeclaredValue::Value(
-                                LengthOrPercentageOrAuto::Percentage(Percentage(1.)))),
-                             Importance::Normal),
-                            (PropertyDeclaration::AnimationPlayState(DeclaredValue::Value(
-                                animation_play_state::SpecifiedValue(
-                                    vec![animation_play_state::SingleSpecifiedValue::running]))),
-                             Importance::Normal),
-                        ]),
-                    },
+                        block: Arc::new(PropertyDeclarationBlock {
+                            declarations: vec![
+                                (PropertyDeclaration::Width(DeclaredValue::Value(
+                                    LengthOrPercentageOrAuto::Percentage(Percentage(1.)))),
+                                 Importance::Normal),
+                                (PropertyDeclaration::AnimationPlayState(DeclaredValue::Value(
+                                    animation_play_state::SpecifiedValue(
+                                        vec![animation_play_state::SingleSpecifiedValue::running]))),
+                                 Importance::Normal),
+                            ],
+                            important_count: 0,
+                        }),
+                    }),
                 ]
-            })
+            }))
 
         ],
     });

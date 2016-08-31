@@ -14,12 +14,13 @@ use dom::element::Element;
 use dom::node::{Node, NodeDamage, window_from_node};
 use dom::window::Window;
 use std::ascii::AsciiExt;
-use std::cell::Ref;
 use std::slice;
+use std::sync::Arc;
 use string_cache::Atom;
 use style::parser::ParserContextExtraData;
 use style::properties::{PropertyDeclaration, Shorthand, Importance};
 use style::properties::{is_supported_property, parse_one_declaration, parse_style_attribute};
+use style::refcell::Ref;
 use style::selector_impl::PseudoElement;
 
 // http://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface
@@ -365,7 +366,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         *element.style_attribute().borrow_mut() = if decl_block.declarations.is_empty() {
             None // Step 2
         } else {
-            Some(decl_block)
+            Some(Arc::new(decl_block))
         };
         element.sync_property_with_attrs_style();
         let node = element.upcast::<Node>();

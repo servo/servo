@@ -35,7 +35,6 @@ use snapshot::GeckoElementSnapshot;
 use snapshot_helpers;
 use std::fmt;
 use std::marker::PhantomData;
-use std::mem::transmute;
 use std::ops::BitOr;
 use std::ptr;
 use std::sync::Arc;
@@ -462,8 +461,6 @@ lazy_static! {
     };
 }
 
-static NO_STYLE_ATTRIBUTE: Option<PropertyDeclarationBlock> = None;
-
 impl<'le> TElement for GeckoElement<'le> {
     type ConcreteNode = GeckoNode<'le>;
     type ConcreteDocument = GeckoDocument<'le>;
@@ -472,14 +469,16 @@ impl<'le> TElement for GeckoElement<'le> {
         unsafe { GeckoNode::from_raw(self.element as *mut RawGeckoNode) }
     }
 
-    fn style_attribute(&self) -> &Option<PropertyDeclarationBlock> {
+    fn style_attribute(&self) -> Option<&Arc<PropertyDeclarationBlock>> {
         let declarations = unsafe { Gecko_GetServoDeclarationBlock(self.element) };
         if declarations.is_null() {
-            &NO_STYLE_ATTRIBUTE
+            None
         } else {
-            GeckoDeclarationBlock::with(declarations, |declarations| {
-                unsafe { transmute(&declarations.declarations) }
-            })
+            let opt_ptr = GeckoDeclarationBlock::with(declarations, |declarations| {
+                // Use a raw pointer to extend the lifetime
+                declarations.declarations.as_ref().map(|r| r as *const Arc<_>)
+            });
+            opt_ptr.map(|ptr| unsafe { &*ptr })
         }
     }
 

@@ -70,13 +70,12 @@ use html5ever::serialize::SerializeOpts;
 use html5ever::serialize::TraversalScope;
 use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
 use html5ever::tree_builder::{LimitedQuirks, NoQuirks, Quirks};
-use ref_filter_map::ref_filter_map;
 use selectors::matching::{ElementFlags, matches};
 use selectors::matching::{HAS_SLOW_SELECTOR, HAS_EDGE_CHILD_SELECTOR, HAS_SLOW_SELECTOR_LATER_SIBLINGS};
 use selectors::parser::{AttrSelector, NamespaceConstraint, parse_author_origin_selector_list_from_str};
 use std::ascii::AsciiExt;
 use std::borrow::Cow;
-use std::cell::{Cell, Ref};
+use std::cell::Cell;
 use std::convert::TryFrom;
 use std::default::Default;
 use std::fmt;
@@ -90,6 +89,7 @@ use style::parser::ParserContextExtraData;
 use style::properties::longhands::{self, background_image, border_spacing, font_family, overflow_x, font_size};
 use style::properties::{DeclaredValue, Importance};
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, parse_style_attribute};
+use style::refcell::Ref;
 use style::selector_impl::{NonTSPseudoClass, ServoSelectorImpl};
 use style::selector_matching::DeclarationBlock;
 use style::sink::Push;
@@ -109,7 +109,7 @@ pub struct Element {
     prefix: Option<DOMString>,
     attrs: DOMRefCell<Vec<JS<Attr>>>,
     id_attribute: DOMRefCell<Option<Atom>>,
-    style_attribute: DOMRefCell<Option<PropertyDeclarationBlock>>,
+    style_attribute: DOMRefCell<Option<Arc<PropertyDeclarationBlock>>>,
     attr_list: MutNullableHeap<JS<NamedNodeMap>>,
     class_list: MutNullableHeap<JS<DOMTokenList>>,
     state: Cell<ElementState>,
@@ -297,7 +297,7 @@ pub trait LayoutElementHelpers {
     #[allow(unsafe_code)]
     unsafe fn html_element_in_html_document_for_layout(&self) -> bool;
     fn id_attribute(&self) -> *const Option<Atom>;
-    fn style_attribute(&self) -> *const Option<PropertyDeclarationBlock>;
+    fn style_attribute(&self) -> *const Option<Arc<PropertyDeclarationBlock>>;
     fn local_name(&self) -> &Atom;
     fn namespace(&self) -> &Namespace;
     fn get_checked_state_for_layout(&self) -> bool;
@@ -329,7 +329,10 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         #[inline]
         fn from_declaration(rule: PropertyDeclaration) -> DeclarationBlock {
             DeclarationBlock::from_declarations(
-                Arc::new(vec![(rule, Importance::Normal)]),
+                Arc::new(PropertyDeclarationBlock {
+                    declarations: vec![(rule, Importance::Normal)],
+                    important_count: 0,
+                }),
                 Importance::Normal)
         }
 
@@ -615,7 +618,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
     }
 
     #[allow(unsafe_code)]
-    fn style_attribute(&self) -> *const Option<PropertyDeclarationBlock> {
+    fn style_attribute(&self) -> *const Option<Arc<PropertyDeclarationBlock>> {
         unsafe {
             (*self.unsafe_get()).style_attribute.borrow_for_layout()
         }
@@ -704,7 +707,7 @@ impl Element {
         self.attrs.borrow()
     }
 
-    pub fn style_attribute(&self) -> &DOMRefCell<Option<PropertyDeclarationBlock>> {
+    pub fn style_attribute(&self) -> &DOMRefCell<Option<Arc<PropertyDeclarationBlock>>> {
         &self.style_attribute
     }
 
@@ -774,7 +777,8 @@ impl Element {
                     matching
                 });
                 if let Some(index) = index {
-                    Arc::make_mut(&mut declarations.declarations).remove(index);
+                    let declarations = Arc::make_mut(declarations);
+                    declarations.declarations.remove(index);
                     if importance.unwrap().important() {
                         declarations.important_count -= 1;
                     }
@@ -796,7 +800,8 @@ impl Element {
                 {
                     // Usually, the reference count will be 1 here. But transitions could make it greater
                     // than that.
-                    let existing_declarations = Arc::make_mut(&mut declaration_block.declarations);
+                    let declaration_block = Arc::make_mut(declaration_block);
+                    let existing_declarations = &mut declaration_block.declarations;
 
                     'outer: for incoming_declaration in declarations {
                         for existing_declaration in &mut *existing_declarations {
@@ -829,10 +834,10 @@ impl Element {
                 0
             };
 
-            *inline_declarations = Some(PropertyDeclarationBlock {
-                declarations: Arc::new(declarations.into_iter().map(|d| (d, importance)).collect()),
+            *inline_declarations = Some(Arc::new(PropertyDeclarationBlock {
+                declarations: declarations.into_iter().map(|d| (d, importance)).collect(),
                 important_count: important_count,
-            });
+            }));
         }
 
         update(self, declarations, importance);
@@ -847,7 +852,8 @@ impl Element {
             if let &mut Some(ref mut block) = &mut *inline_declarations {
                 // Usually, the reference counts of `from` and `to` will be 1 here. But transitions
                 // could make them greater than that.
-                let declarations = Arc::make_mut(&mut block.declarations);
+                let block = Arc::make_mut(block);
+                let declarations = &mut block.declarations;
                 for &mut (ref declaration, ref mut importance) in declarations {
                     if properties.iter().any(|p| declaration.name() == **p) {
                         match (*importance, new_importance) {
@@ -871,7 +877,7 @@ impl Element {
     pub fn get_inline_style_declaration(&self,
                                         property: &Atom)
                                         -> Option<Ref<(PropertyDeclaration, Importance)>> {
-        ref_filter_map(self.style_attribute.borrow(), |inline_declarations| {
+        Ref::filter_map(self.style_attribute.borrow(), |inline_declarations| {
             inline_declarations.as_ref().and_then(|declarations| {
                 declarations.declarations
                             .iter()
@@ -2102,8 +2108,11 @@ impl VirtualMethods for Element {
                 *self.style_attribute.borrow_mut() =
                     mutation.new_value(attr).map(|value| {
                         let win = window_from_node(self);
-                        parse_style_attribute(&value, &doc.base_url(), win.css_error_reporter(),
-                                              ParserContextExtraData::default())
+                        Arc::new(parse_style_attribute(
+                            &value,
+                            &doc.base_url(),
+                            win.css_error_reporter(),
+                            ParserContextExtraData::default()))
                     });
                 if node.is_in_doc() {
                     node.dirty(NodeDamage::NodeStyleDamaged);
