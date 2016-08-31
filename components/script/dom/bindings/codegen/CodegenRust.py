@@ -18,6 +18,7 @@ from WebIDL import (
     BuiltinTypes,
     IDLBuiltinType,
     IDLNullValue,
+    IDLNullableType,
     IDLType,
     IDLInterfaceMember,
     IDLUndefinedValue,
@@ -1349,7 +1350,10 @@ def getRetvalDeclarationForType(returnType, descriptorProvider):
     if returnType.isAny():
         return CGGeneric("JSVal")
     if returnType.isObject() or returnType.isSpiderMonkeyInterface():
-        return CGGeneric("*mut JSObject")
+        result = CGGeneric("NonZero<*mut JSObject>")
+        if returnType.nullable():
+            result = CGWrapper(result, pre="Option<", post=">")
+        return result
     if returnType.isSequence():
         result = getRetvalDeclarationForType(innerSequenceType(returnType), descriptorProvider)
         result = CGWrapper(result, pre="Vec<", post=">")
@@ -4552,6 +4556,8 @@ class CGProxySpecialOperation(CGPerSignatureCall):
         signature = operation.signatures()[0]
 
         (returnType, arguments) = signature
+        if operation.isGetter() and not returnType.nullable():
+            returnType = IDLNullableType(returnType.location, returnType)
 
         # We pass len(arguments) as the final argument so that the
         # CGPerSignatureCall won't do any argument conversion of its own.
@@ -4574,8 +4580,6 @@ class CGProxySpecialOperation(CGPerSignatureCall):
             self.cgRoot.prepend(instantiateJSToNativeConversionTemplate(
                 template, templateValues, declType, argument.identifier.name))
             self.cgRoot.prepend(CGGeneric("rooted!(in(cx) let value = desc.value);"))
-        elif operation.isGetter():
-            self.cgRoot.prepend(CGGeneric("let mut found = false;"))
 
     def getArguments(self):
         def process(arg):
@@ -4584,10 +4588,6 @@ class CGProxySpecialOperation(CGPerSignatureCall):
                 argVal += ".r()"
             return argVal
         args = [(a, process(a)) for a in self.arguments]
-        if self.idlNode.isGetter():
-            args.append((FakeArgument(BuiltinTypes[IDLBuiltinType.Types.boolean],
-                                      self.idlNode),
-                         "&mut found"))
         return args
 
     def wrap_return_value(self):
@@ -4595,7 +4595,7 @@ class CGProxySpecialOperation(CGPerSignatureCall):
             return ""
 
         wrap = CGGeneric(wrapForType(**self.templateValues))
-        wrap = CGIfWrapper("found", wrap)
+        wrap = CGIfWrapper("let Some(result) = result", wrap)
         return "\n" + wrap.define()
 
 
@@ -4971,7 +4971,7 @@ class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
                        "    let this = UnwrapProxy(proxy);\n" +
                        "    let this = &*this;\n" +
                        CGIndenter(CGProxyIndexedGetter(self.descriptor)).define() + "\n" +
-                       "    *bp = found;\n" +
+                       "    *bp = result.is_some();\n" +
                        "    return true;\n" +
                        "}\n\n")
         else:
@@ -4987,7 +4987,7 @@ if RUST_JSID_IS_STRING(id) {
     }
     if !has_on_proto {
         %s
-        *bp = found;
+        *bp = result.is_some();
         return true;
     }
 }
@@ -5271,7 +5271,9 @@ class CGInterfaceTrait(CGThing):
 
                     infallible = 'infallible' in descriptor.getExtendedAttributes(operation)
                     if operation.isGetter():
-                        arguments = method_arguments(descriptor, rettype, arguments, trailing=("found", "&mut bool"))
+                        if not rettype.nullable():
+                            rettype = IDLNullableType(rettype.location, rettype)
+                        arguments = method_arguments(descriptor, rettype, arguments)
 
                         # If this interface 'supports named properties', then we
                         # should be able to access 'supported property names'
@@ -5323,6 +5325,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         enums = []
 
     return CGImports(cgthings, descriptors, callbacks, dictionaries, enums, [
+        'core::nonzero::NonZero',
         'js',
         'js::JSCLASS_GLOBAL_SLOT_COUNT',
         'js::JSCLASS_IS_DOMJSCLASS',

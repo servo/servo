@@ -100,18 +100,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-item
     fn Item(&self, index: u32) -> DOMString {
-        let index = index as usize;
-        let elem = self.owner.upcast::<Element>();
-        let style_attribute = elem.style_attribute().borrow();
-        style_attribute.as_ref().and_then(|declarations| {
-            declarations.declarations.get(index)
-        }).map(|&(ref declaration, importance)| {
-            let mut css = declaration.to_css_string();
-            if importance.important() {
-                css += " !important";
-            }
-            DOMString::from(css)
-        }).unwrap_or_else(DOMString::new)
+        self.IndexedGetter(index).unwrap_or_default()
     }
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertyvalue
@@ -333,10 +322,19 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
     }
 
     // https://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface
-    fn IndexedGetter(&self, index: u32, found: &mut bool) -> DOMString {
-        let rval = self.Item(index);
-        *found = index < self.Length();
-        rval
+    fn IndexedGetter(&self, index: u32) -> Option<DOMString> {
+        let index = index as usize;
+        let elem = self.owner.upcast::<Element>();
+        let style_attribute = elem.style_attribute().borrow();
+        style_attribute.as_ref().and_then(|declarations| {
+            declarations.declarations.get(index)
+        }).map(|&(ref declaration, importance)| {
+            let mut css = declaration.to_css_string();
+            if importance.important() {
+                css += " !important";
+            }
+            DOMString::from(css)
+        })
     }
 
     // https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-csstext

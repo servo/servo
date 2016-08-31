@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use canvas_traits::{CanvasCommonMsg, CanvasMsg, byte_swap};
+use core::nonzero::NonZero;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{self, WebGLContextAttributes};
@@ -305,8 +306,7 @@ impl WebGLRenderingContext {
         // complexity is worth it.
         let (pixels, size) = match source {
             ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement::ImageData(image_data) => {
-                let global = self.global();
-                (image_data.get_data_array(&global.r()), image_data.get_size())
+                (image_data.get_data_array(), image_data.get_size())
             },
             ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement::HTMLImageElement(image) => {
                 let img_url = match image.get_url() {
@@ -632,8 +632,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.14
-    fn GetExtension(&self, _cx: *mut JSContext, _name: DOMString) -> *mut JSObject {
-        0 as *mut JSObject
+    fn GetExtension(&self, _cx: *mut JSContext, _name: DOMString)
+                    -> Option<NonZero<*mut JSObject>> {
+        None
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3

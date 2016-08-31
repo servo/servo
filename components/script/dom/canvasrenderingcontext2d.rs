@@ -1100,7 +1100,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
                      dirtyY: Finite<f64>,
                      dirtyWidth: Finite<f64>,
                      dirtyHeight: Finite<f64>) {
-        let data = imagedata.get_data_array(&self.global().r());
+        let data = imagedata.get_data_array();
         let offset = Point2D::new(*dx, *dy);
         let image_data_size = Size2D::new(imagedata.Width() as f64, imagedata.Height() as f64);
 

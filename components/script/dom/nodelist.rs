@@ -75,10 +75,8 @@ impl NodeListMethods for NodeList {
     }
 
     // https://dom.spec.whatwg.org/#dom-nodelist-item
-    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Root<Node>> {
-        let item = self.Item(index);
-        *found = item.is_some();
-        item
+    fn IndexedGetter(&self, index: u32) -> Option<Root<Node>> {
+        self.Item(index)
     }
 }
 
