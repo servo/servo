@@ -37244,6 +37244,12 @@
             "path": "html/semantics/text-level-semantics/the-data-element/data.value-001.html",
             "url": "/html/semantics/text-level-semantics/the-data-element/data.value-001.html"
           }
+        ],
+        "html/webappapis/scripting/events/invalid-uncompiled-raw-handler-compiled-late.html": [
+          {
+            "path": "html/webappapis/scripting/events/invalid-uncompiled-raw-handler-compiled-late.html",
+            "url": "/html/webappapis/scripting/events/invalid-uncompiled-raw-handler-compiled-late.html"
+          }
         ]
       }
     },
