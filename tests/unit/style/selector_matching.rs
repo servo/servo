@@ -20,7 +20,7 @@ fn get_mock_rules(css_selectors: &[&str]) -> Vec<Vec<Rule>> {
                 selector: s.complex_selector.clone(),
                 declarations: DeclarationBlock {
                     mixed_declarations: Arc::new(PropertyDeclarationBlock {
-                        declarations: Arc::new(Vec::new()),
+                        declarations: Vec::new(),
                         important_count: 0,
                     }),
                     importance: Importance::Normal,

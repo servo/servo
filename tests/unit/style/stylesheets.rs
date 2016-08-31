@@ -98,13 +98,13 @@ fn test_parse_stylesheet() {
                     },
                 ],
                 declarations: Arc::new(PropertyDeclarationBlock {
-                    declarations: Arc::new(vec![
+                    declarations: vec![
                         (PropertyDeclaration::Display(DeclaredValue::Value(
                             longhands::display::SpecifiedValue::none)),
                          Importance::Important),
                         (PropertyDeclaration::Custom(Atom::from("a"), DeclaredValue::Inherit),
                          Importance::Important),
-                    ]),
+                    ],
                     important_count: 2,
                 }),
             })),
@@ -146,11 +146,11 @@ fn test_parse_stylesheet() {
                     },
                 ],
                 declarations: Arc::new(PropertyDeclarationBlock {
-                    declarations: Arc::new(vec![
+                    declarations: vec![
                         (PropertyDeclaration::Display(DeclaredValue::Value(
                             longhands::display::SpecifiedValue::block)),
                          Importance::Normal),
-                    ]),
+                    ],
                     important_count: 0,
                 }),
             })),
@@ -181,7 +181,7 @@ fn test_parse_stylesheet() {
                     },
                 ],
                 declarations: Arc::new(PropertyDeclarationBlock {
-                    declarations: Arc::new(vec![
+                    declarations: vec![
                         (PropertyDeclaration::BackgroundColor(DeclaredValue::Value(
                             longhands::background_color::SpecifiedValue {
                                 authored: Some("blue".to_owned()),
@@ -226,7 +226,7 @@ fn test_parse_stylesheet() {
                             vec![longhands::background_clip::single_value
                                                        ::get_initial_specified_value()]))),
                          Importance::Normal),
-                    ]),
+                    ],
                     important_count: 0,
                 }),
             })),
@@ -237,11 +237,11 @@ fn test_parse_stylesheet() {
                         selector: KeyframeSelector::new_for_unit_testing(
                                       vec![KeyframePercentage::new(0.)]),
                         block: Arc::new(PropertyDeclarationBlock {
-                            declarations: Arc::new(vec![
+                            declarations: vec![
                                 (PropertyDeclaration::Width(DeclaredValue::Value(
                                     LengthOrPercentageOrAuto::Percentage(Percentage(0.)))),
                                  Importance::Normal),
-                            ]),
+                            ],
                             important_count: 0,
                         })
                     }),
@@ -249,7 +249,7 @@ fn test_parse_stylesheet() {
                         selector: KeyframeSelector::new_for_unit_testing(
                                       vec![KeyframePercentage::new(1.)]),
                         block: Arc::new(PropertyDeclarationBlock {
-                            declarations: Arc::new(vec![
+                            declarations: vec![
                                 (PropertyDeclaration::Width(DeclaredValue::Value(
                                     LengthOrPercentageOrAuto::Percentage(Percentage(1.)))),
                                  Importance::Normal),
@@ -257,7 +257,7 @@ fn test_parse_stylesheet() {
                                     animation_play_state::SpecifiedValue(
                                         vec![animation_play_state::SingleSpecifiedValue::running]))),
                                  Importance::Normal),
-                            ]),
+                            ],
                             important_count: 0,
                         }),
                     }),

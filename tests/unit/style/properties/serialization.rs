@@ -45,8 +45,7 @@ fn property_declaration_block_should_serialize_correctly() {
     ];
 
     let block = PropertyDeclarationBlock {
-        declarations: Arc::new(declarations),
-
+        declarations: declarations,
         important_count: 0,
     };
 
@@ -63,8 +62,7 @@ mod shorthand_serialization {
 
     pub fn shorthand_properties_to_string(properties: Vec<PropertyDeclaration>) -> String {
         let block = PropertyDeclarationBlock {
-            declarations: Arc::new(properties.into_iter().map(|d| (d, Importance::Normal)).collect()),
-
+            declarations: properties.into_iter().map(|d| (d, Importance::Normal)).collect(),
             important_count: 0,
         };
 

@@ -266,7 +266,7 @@ impl<'a> QualifiedRuleParser for KeyframeListParser<'a> {
         Ok(Arc::new(Keyframe {
             selector: prelude,
             block: Arc::new(PropertyDeclarationBlock {
-                declarations: Arc::new(declarations),
+                declarations: declarations,
                 important_count: 0,
             }),
         }))

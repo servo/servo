@@ -330,7 +330,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         fn from_declaration(rule: PropertyDeclaration) -> DeclarationBlock {
             DeclarationBlock::from_declarations(
                 Arc::new(PropertyDeclarationBlock {
-                    declarations: Arc::new(vec![(rule, Importance::Normal)]),
+                    declarations: vec![(rule, Importance::Normal)],
                     important_count: 0,
                 }),
                 Importance::Normal)
@@ -778,7 +778,7 @@ impl Element {
                 });
                 if let Some(index) = index {
                     let declarations = Arc::make_mut(declarations);
-                    Arc::make_mut(&mut declarations.declarations).remove(index);
+                    declarations.declarations.remove(index);
                     if importance.unwrap().important() {
                         declarations.important_count -= 1;
                     }
@@ -801,7 +801,7 @@ impl Element {
                     // Usually, the reference count will be 1 here. But transitions could make it greater
                     // than that.
                     let declaration_block = Arc::make_mut(declaration_block);
-                    let existing_declarations = Arc::make_mut(&mut declaration_block.declarations);
+                    let existing_declarations = &mut declaration_block.declarations;
 
                     'outer: for incoming_declaration in declarations {
                         for existing_declaration in &mut *existing_declarations {
@@ -835,7 +835,7 @@ impl Element {
             };
 
             *inline_declarations = Some(Arc::new(PropertyDeclarationBlock {
-                declarations: Arc::new(declarations.into_iter().map(|d| (d, importance)).collect()),
+                declarations: declarations.into_iter().map(|d| (d, importance)).collect(),
                 important_count: important_count,
             }));
         }
@@ -853,7 +853,7 @@ impl Element {
                 // Usually, the reference counts of `from` and `to` will be 1 here. But transitions
                 // could make them greater than that.
                 let block = Arc::make_mut(block);
-                let declarations = Arc::make_mut(&mut block.declarations);
+                let declarations = &mut block.declarations;
                 for &mut (ref declaration, ref mut importance) in declarations {
                     if properties.iter().any(|p| declaration.name() == **p) {
                         match (*importance, new_importance) {
