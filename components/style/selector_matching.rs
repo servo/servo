@@ -16,7 +16,7 @@ use selector_impl::{ElementExt, TheSelectorImpl, PseudoElement};
 use selectors::Element;
 use selectors::bloom::BloomFilter;
 use selectors::matching::{AFFECTED_BY_STYLE_ATTRIBUTE, AFFECTED_BY_PRESENTATIONAL_HINTS};
-use selectors::matching::{StyleRelations, matches_complex_selector};
+use selectors::matching::{MatchingReason, StyleRelations, matches_complex_selector};
 use selectors::parser::{Selector, SimpleSelector, LocalName, ComplexSelector};
 use sink::Push;
 use smallvec::VecLike;
@@ -293,7 +293,8 @@ impl Stylist {
                                           None,
                                           None,
                                           Some(pseudo),
-                                          &mut declarations);
+                                          &mut declarations,
+                                          MatchingReason::ForStyling);
 
         let (computed, _) =
             properties::cascade(self.device.au_viewport_size(),
@@ -344,7 +345,8 @@ impl Stylist {
                                         parent_bf: Option<&BloomFilter>,
                                         style_attribute: Option<&Arc<PropertyDeclarationBlock>>,
                                         pseudo_element: Option<&PseudoElement>,
-                                        applicable_declarations: &mut V) -> StyleRelations
+                                        applicable_declarations: &mut V,
+                                        reason: MatchingReason) -> StyleRelations
         where E: Element<Impl=TheSelectorImpl> +
                  fmt::Debug +
                  PresentationalHintsSynthetizer,
@@ -370,6 +372,7 @@ impl Stylist {
                                                      parent_bf,
                                                      applicable_declarations,
                                                      &mut relations,
+                                                     reason,
                                                      Importance::Normal);
         debug!("UA normal: {:?}", relations);
 
@@ -387,12 +390,14 @@ impl Stylist {
                                                parent_bf,
                                                applicable_declarations,
                                                &mut relations,
+                                               reason,
                                                Importance::Normal);
         debug!("user normal: {:?}", relations);
         map.author.normal.get_all_matching_rules(element,
                                                  parent_bf,
                                                  applicable_declarations,
                                                  &mut relations,
+                                                 reason,
                                                  Importance::Normal);
         debug!("author normal: {:?}", relations);
 
@@ -413,6 +418,7 @@ impl Stylist {
                                                     parent_bf,
                                                     applicable_declarations,
                                                     &mut relations,
+                                                    reason,
                                                     Importance::Important);
 
         debug!("author important: {:?}", relations);
@@ -434,6 +440,7 @@ impl Stylist {
                                                   parent_bf,
                                                   applicable_declarations,
                                                   &mut relations,
+                                                  reason,
                                                   Importance::Important);
 
         debug!("user important: {:?}", relations);
@@ -442,6 +449,7 @@ impl Stylist {
                                                         parent_bf,
                                                         applicable_declarations,
                                                         &mut relations,
+                                                        reason,
                                                         Importance::Important);
 
         debug!("UA important: {:?}", relations);
@@ -468,19 +476,22 @@ impl Stylist {
     {
         use selectors::matching::StyleRelations;
         use selectors::matching::matches_complex_selector;
-        // XXX we can probably do better, the candidate should already know what
-        // rules it matches.
+        // TODO(emilio): we can probably do better, the candidate should already
+        // know what rules it matches. Also, we should only match until we find
+        // a descendant combinator, the rest should be ok, since the parent is
+        // the same.
         //
-        // XXX Could the bloom filter help here? Should be available.
+        // TODO(emilio): Use the bloom filter, since they contain the element's
+        // ancestor chain and it's correct for the candidate too.
         for ref selector in self.non_common_style_affecting_attributes_selectors.iter() {
-            let element_matches = matches_complex_selector(&selector.complex_selector,
-                                                           element,
-                                                           None,
-                                                           &mut StyleRelations::empty());
-            let candidate_matches = matches_complex_selector(&selector.complex_selector,
-                                                             candidate,
-                                                             None,
-                                                             &mut StyleRelations::empty());
+            let element_matches =
+                matches_complex_selector(&selector.complex_selector, element,
+                                         None, &mut StyleRelations::empty(),
+                                         MatchingReason::Other);
+            let candidate_matches =
+                matches_complex_selector(&selector.complex_selector, candidate,
+                                         None, &mut StyleRelations::empty(),
+                                         MatchingReason::Other);
 
             if element_matches != candidate_matches {
                 return false;
@@ -497,20 +508,21 @@ impl Stylist {
     {
         use selectors::matching::StyleRelations;
         use selectors::matching::matches_complex_selector;
-        // XXX we can probably do better, the candidate should already know what
-        // rules it matches.
+        // TODO(emilio): we can probably do better, the candidate should already
+        // know what rules it matches.
         //
-        // XXX The bloom filter would help here, and should be available.
+        // TODO(emilio): Use the bloom filter, since they contain the element's
+        // ancestor chain and it's correct for the candidate too.
         for ref selector in self.sibling_affecting_selectors.iter() {
-            let element_matches = matches_complex_selector(&selector.complex_selector,
-                                                           element,
-                                                           None,
-                                                           &mut StyleRelations::empty());
+            let element_matches =
+                matches_complex_selector(&selector.complex_selector, element,
+                                         None, &mut StyleRelations::empty(),
+                                         MatchingReason::Other);
 
-            let candidate_matches = matches_complex_selector(&selector.complex_selector,
-                                                             candidate,
-                                                             None,
-                                                             &mut StyleRelations::empty());
+            let candidate_matches =
+                matches_complex_selector(&selector.complex_selector, candidate,
+                                         None, &mut StyleRelations::empty(),
+                                         MatchingReason::Other);
 
             if element_matches != candidate_matches {
                 debug!("match_same_sibling_affecting_rules: Failure due to {:?}",
@@ -650,6 +662,7 @@ impl SelectorMap {
                                         parent_bf: Option<&BloomFilter>,
                                         matching_rules_list: &mut V,
                                         relations: &mut StyleRelations,
+                                        reason: MatchingReason,
                                         importance: Importance)
         where E: Element<Impl=TheSelectorImpl>,
               V: VecLike<DeclarationBlock>
@@ -667,6 +680,7 @@ impl SelectorMap {
                                                       &id,
                                                       matching_rules_list,
                                                       relations,
+                                                      reason,
                                                       importance)
         }
 
@@ -677,6 +691,7 @@ impl SelectorMap {
                                                       class,
                                                       matching_rules_list,
                                                       relations,
+                                                      reason,
                                                       importance);
         });
 
@@ -691,6 +706,7 @@ impl SelectorMap {
                                                   element.get_local_name(),
                                                   matching_rules_list,
                                                   relations,
+                                                  reason,
                                                   importance);
 
         SelectorMap::get_matching_rules(element,
@@ -698,6 +714,7 @@ impl SelectorMap {
                                         &self.other_rules,
                                         matching_rules_list,
                                         relations,
+                                        reason,
                                         importance);
 
         // Sort only the rules we just added.
@@ -735,6 +752,7 @@ impl SelectorMap {
         key: &BorrowedStr,
         matching_rules: &mut Vector,
         relations: &mut StyleRelations,
+        reason: MatchingReason,
         importance: Importance)
         where E: Element<Impl=TheSelectorImpl>,
               Str: Borrow<BorrowedStr> + Eq + Hash,
@@ -747,6 +765,7 @@ impl SelectorMap {
                                             rules,
                                             matching_rules,
                                             relations,
+                                            reason,
                                             importance)
         }
     }
@@ -757,6 +776,7 @@ impl SelectorMap {
                                 rules: &[Rule],
                                 matching_rules: &mut V,
                                 relations: &mut StyleRelations,
+                                reason: MatchingReason,
                                 importance: Importance)
         where E: Element<Impl=TheSelectorImpl>,
               V: VecLike<DeclarationBlock>
@@ -769,8 +789,8 @@ impl SelectorMap {
                 block.any_normal()
             };
             if any_declaration_for_importance &&
-               matches_complex_selector(&*rule.selector,
-                                         element, parent_bf, relations) {
+               matches_complex_selector(&*rule.selector, element, parent_bf,
+                                        relations, reason) {
                 matching_rules.push(rule.declarations.clone());
             }
         }
