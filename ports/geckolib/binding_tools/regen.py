@@ -426,7 +426,7 @@ def build(objdir, target_name, debug, debugger, kind_name=None,
 
     # TODO: support more files, that's the whole point of this.
     assert len(current_target["files"]) == 1
-    clang_flags.append(current_target["files"][0].format(objdir))
+    flags.append(current_target["files"][0].format(objdir))
 
     flags = bindgen + flags + ["--"] + clang_flags
 
