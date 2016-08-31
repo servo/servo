@@ -111,12 +111,13 @@ void main(void) {
     float width = x1 - x0;
     float height = y1 - y0;
 
+    vPieceRect = vec4(x0, y0, width, height);
+
     // The fragment shader needs to calculate the distance from the bisecting line
     // to properly mix border colors. For transformed borders, we calculate this distance
     // in the fragment shader itself. For non-transformed borders, we can use the
     // interpolator.
 #ifdef WR_FEATURE_TRANSFORM
-    vPieceRect = vec4(x0, y0, width, height);
     vPieceRectHypotenuseLength = sqrt(pow(width, 2) + pow(height, 2));
 #else
     vDistanceFromMixLine = (vi.local_clamped_pos.x - x0) * height -

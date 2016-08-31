@@ -5,8 +5,8 @@
 
 struct Image {
     PrimitiveInfo info;
-    vec4 st_rect;       // Location of the image texture in the texture atlas.
-    vec4 stretch_size;  // Size of the actual image.
+    vec4 st_rect;               // Location of the image texture in the texture atlas.
+    vec4 stretch_size_uvkind;   // Size of the actual image.
     Clip clip;
 };
 
@@ -26,7 +26,22 @@ void main(void) {
     vPos = vi.local_clamped_pos;
 
     // vUv will contain how many times this image has wrapped around the image size.
-    vUv = (vi.local_clamped_pos - image.info.local_rect.xy) / image.stretch_size.xy;
-    vTextureSize = image.st_rect.zw - image.st_rect.xy;
-    vTextureOffset = image.st_rect.xy;
+    vUv = (vi.local_clamped_pos - image.info.local_rect.xy) / image.stretch_size_uvkind.xy;
+
+    vec2 st0 = image.st_rect.xy;
+    vec2 st1 = image.st_rect.zw;
+
+    switch (uint(image.stretch_size_uvkind.z)) {
+        case UV_NORMALIZED:
+            break;
+        case UV_PIXEL: {
+                vec2 texture_size = textureSize(sDiffuse, 0);
+                st0 /= texture_size;
+                st1 /= texture_size;
+            }
+            break;
+    }
+
+    vTextureSize = st1 - st0;
+    vTextureOffset = st0;
 }

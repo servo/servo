@@ -109,46 +109,6 @@ vec4 draw_dotted_edge() {
   return mix(white, circleColor, circleColor.a);
 }
 
-// Our current edge calculation is based only on
-// the size of the border-size, but we need to draw
-// the dashes in the center of the segment we're drawing.
-// This calculates how much to nudge and which axis to nudge on.
-vec2 get_dashed_nudge_factor(vec2 dash_size, bool is_corner) {
-  if (is_corner) {
-    return vec2(0.0, 0.0);
-  }
-
-  bool xAxisFudge = vBorders.z > vBorders.w;
-  if (xAxisFudge) {
-    return vec2(dash_size.x / 2.0, 0);
-  }
-
-  return vec2(0.0, dash_size.y / 2.0);
-}
-
-vec4 draw_dashed_edge(bool is_corner) {
-  // Everything here should be in device pixels.
-  // We want the dot to be roughly the size of the whole border spacing
-  // 5.5 here isn't a magic number, it's just what mostly looks like FF/Chrome
-  // TODO: Investigate exactly what FF does.
-  float dash_interval = min(vBorders.w, vBorders.z) * 5.5;
-  vec2 edge_size = vec2(vBorders.z, vBorders.w);
-  vec2 dash_size = vec2(dash_interval / 2.0, dash_interval / 2.0);
-  vec2 position = vDevicePos - vBorders.xy;
-
-  vec2 dash_count = floor(edge_size/ dash_interval);
-  vec2 dist_between_dashes = edge_size / dash_count;
-
-  vec2 target_rect_index = floor(position / dist_between_dashes);
-  vec2 target_rect_loc = target_rect_index * dist_between_dashes;
-  target_rect_loc += get_dashed_nudge_factor(dash_size, is_corner);
-  vec4 target_rect = vec4(target_rect_loc, dash_size);
-
-  vec4 white = vec4(1.0, 1.0, 1.0, 1.0);
-  vec4 target_colored_rect = drawRect(position, target_rect, vVerticalColor.xyz);
-  return mix(white, target_colored_rect, target_colored_rect.a);
-}
-
 void draw_dotted_border(void) {
   switch (vBorderPart) {
     // These are the layer tile part PrimitivePart as uploaded by the tiling.rs
@@ -172,7 +132,19 @@ void draw_dotted_border(void) {
   }
 }
 
-void draw_dashed_border(void) {
+#endif
+
+vec4 draw_dashed_edge(float position, float border_width) {
+  // TODO: Investigate exactly what FF does.
+  float size = border_width * 3;
+  float segment = floor(position / size) + 2;
+  return mix(vec4(0, 0, 0, 0), vHorizontalColor, mod(segment, 2));
+}
+
+void draw_dashed_border(vec2 local_pos, float distance_from_mix_line) {
+  // This is the conversion factor for transformations and device pixel scaling.
+  float pixels_per_fragment = length(fwidth(local_pos.xy));
+
   switch (vBorderPart) {
     // These are the layer tile part PrimitivePart as uploaded by the tiling.rs
     case PST_TOP_LEFT:
@@ -180,24 +152,31 @@ void draw_dashed_border(void) {
     case PST_BOTTOM_LEFT:
     case PST_BOTTOM_RIGHT:
     {
-      // TODO: Fix for corners with a border-radius
-      bool is_corner = true;
-      oFragColor = draw_dashed_edge(is_corner);
+      oFragColor = get_fragment_color(distance_from_mix_line, pixels_per_fragment);
+      if (vRadii.x > 0.0) {
+        oFragColor *= vec4(1, 1, 1, alpha_for_solid_border_corner(local_pos,
+                                                                  vRadii.z,
+                                                                  vRadii.x,
+                                                                  pixels_per_fragment));
+      }
+
       break;
     }
     case PST_BOTTOM:
     case PST_TOP:
+    {
+      oFragColor = draw_dashed_edge(vLocalPos.x - vPieceRect.x, vPieceRect.w);
+      break;
+    }
     case PST_LEFT:
     case PST_RIGHT:
     {
-      bool is_corner = false;
-      oFragColor = draw_dashed_edge(is_corner);
+      oFragColor = draw_dashed_edge(vLocalPos.y - vPieceRect.y, vPieceRect.z);
       break;
     }
   }
 }
 
-#endif
 
 vec4 draw_double_edge(float pos,
                       float len,
@@ -343,6 +322,8 @@ void main(void) {
 
     switch (vBorderStyle) {
         case BORDER_STYLE_DASHED:
+          draw_dashed_border(local_pos, distance_from_mix_line);
+          break;
         case BORDER_STYLE_DOTTED:
         case BORDER_STYLE_OUTSET:
         case BORDER_STYLE_INSET:
@@ -362,8 +343,7 @@ void main(void) {
 #else
     switch (vBorderStyle) {
         case BORDER_STYLE_DASHED:
-            discard_pixels_in_rounded_borders(local_pos);
-            draw_dashed_border();
+            draw_dashed_border(local_pos, vDistanceFromMixLine);
             break;
         case BORDER_STYLE_DOTTED:
             discard_pixels_in_rounded_borders(local_pos);

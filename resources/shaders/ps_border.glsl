@@ -16,10 +16,11 @@ flat varying vec2 vRefPoint;
 flat varying uint vBorderStyle;
 flat varying uint vBorderPart; // Which part of the border we're drawing.
 
+flat varying vec4 vPieceRect;
+
 // These are in device space
 #ifdef WR_FEATURE_TRANSFORM
 varying vec3 vLocalPos;     // The clamped position in local space.
-flat varying vec4 vPieceRect;
 flat varying float vPieceRectHypotenuseLength;
 #else
 varying vec2 vLocalPos;     // The clamped position in local space.

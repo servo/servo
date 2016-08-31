@@ -12,6 +12,9 @@
 #define PST_BOTTOM       uint(6)
 #define PST_RIGHT        uint(7)
 
+#define UV_NORMALIZED    uint(0)
+#define UV_PIXEL         uint(1)
+
 // Border styles as defined in webrender_traits/types.rs
 #define BORDER_STYLE_NONE         uint(0)
 #define BORDER_STYLE_SOLID        uint(1)
