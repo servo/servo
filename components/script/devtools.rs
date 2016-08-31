@@ -188,7 +188,7 @@ pub fn handle_get_cached_messages(_pipeline_id: PipelineId,
         // TODO: make script error reporter pass all reported errors
         //      to devtools and cache them for returning here.
         let msg = PageError {
-            type_: "PageError".to_owned(),
+            _type: "PageError".to_owned(),
             errorMessage: "page error test".to_owned(),
             sourceName: String::new(),
             lineText: String::new(),
@@ -207,7 +207,7 @@ pub fn handle_get_cached_messages(_pipeline_id: PipelineId,
     if message_types.contains(CONSOLE_API) {
         // TODO: do for real
         let msg = ConsoleAPI {
-            type_: "ConsoleAPI".to_owned(),
+            _type: "ConsoleAPI".to_owned(),
             level: "error".to_owned(),
             filename: "http://localhost/~mihai/mozilla/test.html".to_owned(),
             lineNumber: 0,
