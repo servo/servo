@@ -249,8 +249,6 @@ pub struct Document {
     last_click_info: DOMRefCell<Option<(Instant, Point2D<i32>)>>,
 }
 
-no_jsmanaged_fields!(Instant);
-
 #[derive(JSTraceable, HeapSizeOf)]
 struct ImagesFilter;
 impl CollectionFilter for ImagesFilter {
@@ -778,43 +776,38 @@ impl Document {
 
             let new_pos = Point2D::new(client_x, client_y);
             let now = Instant::now();
-            let mut opt = self.last_click_info.borrow_mut();
 
-            *opt = match *opt {
-                Some((last_time, last_pos)) => {
-                    let line = new_pos - last_pos;
-                    let dist = (line.dot(line) as f64).sqrt();
+            if let Some((last_time, last_pos)) = self.last_click_info.borrow_mut().take() {
+                let line = new_pos - last_pos;
+                let dist = (line.dot(line) as f64).sqrt();
 
-                    if now.duration_since(last_time) < DBL_CLICK_TIMEOUT &&
-                        dist < DBL_CLICK_DIST_THRESHOLD as f64 {
-                        // A double click has occured
-                        let evt_node = node;
-                        let event = MouseEvent::new(&self.window,
-                                    DOMString::from("dblclick"),
-                                    EventBubbles::Bubbles,
-                                    EventCancelable::Cancelable,
-                                    Some(&self.window),
-                                    clickCount,
-                                    client_x,
-                                    client_y,
-                                    client_x,
-                                    client_y,
-                                    false,
-                                    false,
-                                    false,
-                                    false,
-                                    0i16,
-                                    None);
+                if now.duration_since(last_time) < DBL_CLICK_TIMEOUT &&
+                    dist < DBL_CLICK_DIST_THRESHOLD as f64 {
+                    // A double click has occured
+                    let evt_node = node;
+                    let event = MouseEvent::new(&self.window,
+                                                DOMString::from("dblclick"),
+                                                EventBubbles::Bubbles,
+                                                EventCancelable::Cancelable,
+                                                Some(&self.window),
+                                                clickCount,
+                                                client_x,
+                                                client_y,
+                                                client_x,
+                                                client_y,
+                                                false,
+                                                false,
+                                                false,
+                                                false,
+                                                0i16,
+                                                None);
 
-                        event.upcast::<Event>().fire(evt_node.upcast());
-                        None
-                    } else {
-                        Some((now, new_pos))
-                    }
-                },
-                _ => {
-                    Some((now, new_pos))
+                    event.upcast::<Event>().fire(evt_node.upcast());
+                } else {
+                    *self.last_click_info.borrow_mut() = Some((now, new_pos));
                 }
+            } else {
+                *self.last_click_info.borrow_mut() = Some((now, new_pos));
             }
         }
 
