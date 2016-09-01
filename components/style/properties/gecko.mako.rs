@@ -35,7 +35,7 @@ use logical_geometry::WritingMode;
 use properties::CascadePropertyFn;
 use properties::longhands;
 use std::fmt::{self, Debug};
-use std::mem::{transmute, uninitialized, zeroed};
+use std::mem::{transmute, zeroed};
 use std::ptr;
 use std::sync::atomic::{ATOMIC_USIZE_INIT, AtomicUsize, Ordering};
 use std::sync::Arc;
@@ -1133,7 +1133,7 @@ fn static_assert() {
                             }
                         }
 
-                        let mut coord: nsStyleCoord = unsafe { uninitialized() };
+                        let mut coord: nsStyleCoord = nsStyleCoord::null();
                         for (index, stop) in gradient.stops.iter().enumerate() {
                             // NB: stops are guaranteed to be none in the gecko side by
                             // default.
