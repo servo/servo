@@ -3,18 +3,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-struct Blend {
-    vec4 target_rect;
-    vec4 src_rect;
-    vec4 opacity;
-};
-
-layout(std140) uniform Items {
-    Blend blends[WR_MAX_PRIM_ITEMS];
-};
-
 void main(void) {
-    Blend blend = blends[gl_InstanceID];
+    Blend blend = fetch_blend(gl_InstanceID);
 
     vec2 local_pos = mix(vec2(blend.target_rect.xy),
                          vec2(blend.target_rect.xy + blend.target_rect.zw),

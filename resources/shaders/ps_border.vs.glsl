@@ -3,19 +3,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-struct Border {
-    PrimitiveInfo info;
-    vec4 verticalColor;
-    vec4 horizontalColor;
-    vec4 radii;
-    vec4 border_style_trbl;
-    vec4 part;
-};
-
-layout(std140) uniform Items {
-    Border borders[WR_MAX_PRIM_ITEMS];
-};
-
 float get_border_style(Border a_border, uint a_edge) {
   switch (a_edge) {
     case PST_TOP:
@@ -34,7 +21,7 @@ float get_border_style(Border a_border, uint a_edge) {
 }
 
 void main(void) {
-    Border border = borders[gl_InstanceID];
+    Border border = fetch_border(gl_InstanceID);
 #ifdef WR_FEATURE_TRANSFORM
     TransformVertexInfo vi = write_transform_vertex(border.info);
     vLocalPos = vi.local_pos;

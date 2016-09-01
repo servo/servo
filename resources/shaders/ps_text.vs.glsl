@@ -3,18 +3,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-struct Glyph {
-    PrimitiveInfo info;
-    vec4 color;
-    vec4 uv_rect;
-};
-
-layout(std140) uniform Items {
-    Glyph glyphs[WR_MAX_PRIM_ITEMS];
-};
-
 void main(void) {
-    Glyph glyph = glyphs[gl_InstanceID];
+    Glyph glyph = fetch_glyph(gl_InstanceID);
 
 #ifdef WR_FEATURE_TRANSFORM
     TransformVertexInfo vi = write_transform_vertex(glyph.info);
