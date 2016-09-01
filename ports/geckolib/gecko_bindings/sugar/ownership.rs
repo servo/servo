@@ -71,8 +71,8 @@ pub unsafe trait HasBoxFFI : HasSimpleFFI {
 pub unsafe trait HasArcFFI : HasFFI {
     // these methods can't be on Borrowed because it leads to an unspecified
     // impl parameter
-    /// Artificially increments the refcount of a borrowed Arc over FFI.
-    unsafe fn addref(ptr: Borrowed<Self::FFIType>) {
+    /// Artificially increments the refcount of a (possibly null) borrowed Arc over FFI.
+    unsafe fn addref_opt(ptr: Borrowed<Self::FFIType>) {
         forget(ptr.as_arc_opt::<Self>().clone())
     }
 
@@ -80,9 +80,32 @@ pub unsafe trait HasArcFFI : HasFFI {
     /// Unsafe since it doesn't consume the backing Arc. Run it only when you
     /// know that a strong reference to the backing Arc is disappearing
     /// (usually on the C++ side) without running the Arc destructor.
-    unsafe fn release(ptr: Borrowed<Self::FFIType>) {
+    unsafe fn release_opt(ptr: Borrowed<Self::FFIType>) {
         if let Some(arc) = ptr.as_arc_opt::<Self>() {
             let _: Arc<_> = ptr::read(arc as *const Arc<_>);
+        }
+    }
+
+    /// Artificially increments the refcount of a borrowed Arc over FFI.
+    unsafe fn addref(ptr: &Self::FFIType) {
+        forget(Self::as_arc(&ptr).clone())
+    }
+
+    /// Given a non-null borrowed FFI reference, decrements the refcount.
+    /// Unsafe since it doesn't consume the backing Arc. Run it only when you
+    /// know that a strong reference to the backing Arc is disappearing
+    /// (usually on the C++ side) without running the Arc destructor.
+    unsafe fn release(ptr: &Self::FFIType) {
+        let _: Arc<_> = ptr::read(Self::as_arc(&ptr) as *const Arc<_>);
+    }
+    #[inline]
+    /// Converts a borrowed FFI reference to a borrowed Arc.
+    ///
+    /// &GeckoType -> &Arc<ServoType>
+    fn as_arc<'a>(ptr: &'a &Self::FFIType) -> &'a Arc<Self> {
+        debug_assert!(!(ptr as *const _).is_null());
+        unsafe {
+            transmute::<&&Self::FFIType, &Arc<Self>>(ptr)
         }
     }
 }

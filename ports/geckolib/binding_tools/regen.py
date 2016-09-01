@@ -353,6 +353,10 @@ def build(objdir, target_name, debug, debugger, kind_name=None,
             flags.append("{}BorrowedOrNull".format(ty))
             flags.append("--raw-line")
             flags.append("pub type {0}BorrowedOrNull<'a> = ::sugar::ownership::Borrowed<'a, {0}>;".format(ty))
+            flags.append("--blacklist-type")
+            flags.append("{}Borrowed".format(ty))
+            flags.append("--raw-line")
+            flags.append("pub type {0}Borrowed<'a> = &'a {0};".format(ty))
             zero_size_type(ty, flags)
     if "servo_immutable_borrow_types" in current_target:
         for ty in current_target["servo_immutable_borrow_types"]:
