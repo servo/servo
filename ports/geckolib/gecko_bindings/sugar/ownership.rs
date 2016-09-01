@@ -307,7 +307,7 @@ impl<T> Owned<T> {
     pub fn into_box<U>(self) -> Box<T> where U: HasBoxFFI<FFIType = T> {
         unsafe { transmute(self) }
     }
-    pub fn maybe(self) -> MaybeOwned<T> {
+    pub fn maybe(self) -> OwnedOrNull<T> {
         unsafe { transmute(self) }
     }
 }
@@ -328,16 +328,16 @@ impl<T> DerefMut for Owned<T> {
 #[repr(C)]
 /// Gecko-FFI-safe owned pointer
 /// Can be null
-pub struct MaybeOwned<T> {
+pub struct OwnedOrNull<T> {
     ptr: *mut T,
     _marker: PhantomData<T>,
 }
 
-impl<T> MaybeOwned<T> {
+impl<T> OwnedOrNull<T> {
     pub fn is_null(&self) -> bool {
         self.ptr == ptr::null_mut()
     }
-    /// MaybeOwned<GeckoType> -> Option<Box<ServoType>>
+    /// OwnedOrNull<GeckoType> -> Option<Box<ServoType>>
     pub fn into_box_opt<U>(self) -> Option<Box<T>> where U: HasBoxFFI<FFIType = T> {
         if self.is_null() {
             None

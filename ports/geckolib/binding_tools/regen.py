@@ -150,14 +150,14 @@ COMPILATION_TARGETS = {
         "void_types": [
             "nsINode", "nsIDocument", "nsIPrincipal", "nsIURI",
         ],
-        "servo_maybe_arc_types": [
+        "servo_nullable_arc_types": [
             "ServoComputedValues", "RawServoStyleSheet",
             "ServoDeclarationBlock"
         ],
         "servo_owned_types": [
             "RawServoStyleSet",
         ],
-        "servo_maybe_owned_types": [
+        "servo_nullable_owned_types": [
             "ServoNodeData",
         ],
         "servo_immutable_borrow_types": [
@@ -343,16 +343,16 @@ def build(objdir, target_name, debug, debugger, kind_name=None,
         for ty in current_target["void_types"]:
             flags.append("--raw-line")
             flags.append("pub enum {} {{}}".format(ty))
-    if "servo_maybe_arc_types" in current_target:
-        for ty in current_target["servo_maybe_arc_types"]:
+    if "servo_nullable_arc_types" in current_target:
+        for ty in current_target["servo_nullable_arc_types"]:
             flags.append("--blacklist-type")
             flags.append("{}Strong".format(ty))
             flags.append("--raw-line")
             flags.append("pub type {0}Strong = ::sugar::ownership::Strong<{0}>;".format(ty))
             flags.append("--blacklist-type")
-            flags.append("{}MaybeBorrowed".format(ty))
+            flags.append("{}BorrowedOrNull".format(ty))
             flags.append("--raw-line")
-            flags.append("pub type {0}MaybeBorrowed<'a> = ::sugar::ownership::Borrowed<'a, {0}>;".format(ty))
+            flags.append("pub type {0}BorrowedOrNull<'a> = ::sugar::ownership::Borrowed<'a, {0}>;".format(ty))
             zero_size_type(ty, flags)
     if "servo_immutable_borrow_types" in current_target:
         for ty in current_target["servo_immutable_borrow_types"]:
@@ -361,9 +361,9 @@ def build(objdir, target_name, debug, debugger, kind_name=None,
             flags.append("--raw-line")
             flags.append("pub type {0}Borrowed<'a> = &'a {0};".format(ty))
             flags.append("--blacklist-type")
-            flags.append("{}MaybeBorrowed".format(ty))
+            flags.append("{}BorrowedOrNull".format(ty))
             flags.append("--raw-line")
-            flags.append("pub type {0}MaybeBorrowed<'a> = ::sugar::ownership::Borrowed<'a, {0}>;".format(ty))
+            flags.append("pub type {0}BorrowedOrNull<'a> = ::sugar::ownership::Borrowed<'a, {0}>;".format(ty))
             zero_size_type(ty, flags)
     if "servo_owned_types" in current_target:
         for ty in current_target["servo_owned_types"]:
@@ -380,22 +380,22 @@ def build(objdir, target_name, debug, debugger, kind_name=None,
             flags.append("--raw-line")
             flags.append("pub type {0}Owned = ::sugar::ownership::Owned<{0}>;".format(ty))
             zero_size_type(ty, flags)
-    if "servo_maybe_owned_types" in current_target:
-        for ty in current_target["servo_maybe_owned_types"]:
+    if "servo_nullable_owned_types" in current_target:
+        for ty in current_target["servo_nullable_owned_types"]:
             flags.append("--blacklist-type")
-            flags.append("{}MaybeBorrowed".format(ty))
+            flags.append("{}BorrowedOrNull".format(ty))
             flags.append("--raw-line")
-            flags.append("pub type {0}MaybeBorrowed<'a> = ::sugar::ownership::Borrowed<'a, {0}>;"
+            flags.append("pub type {0}BorrowedOrNull<'a> = ::sugar::ownership::Borrowed<'a, {0}>;"
                          .format(ty))
             flags.append("--blacklist-type")
-            flags.append("{}MaybeBorrowedMut".format(ty))
+            flags.append("{}BorrowedMutOrNull".format(ty))
             flags.append("--raw-line")
-            flags.append("pub type {0}MaybeBorrowedMut<'a> = ::sugar::ownership::BorrowedMut<'a, {0}>;"
+            flags.append("pub type {0}BorrowedMutOrNull<'a> = ::sugar::ownership::BorrowedMut<'a, {0}>;"
                          .format(ty))
             flags.append("--blacklist-type")
-            flags.append("{}MaybeOwned".format(ty))
+            flags.append("{}OwnedOrNull".format(ty))
             flags.append("--raw-line")
-            flags.append("pub type {0}MaybeOwned = ::sugar::ownership::MaybeOwned<{0}>;".format(ty))
+            flags.append("pub type {0}OwnedOrNull = ::sugar::ownership::OwnedOrNull<{0}>;".format(ty))
             zero_size_type(ty, flags)
     if "structs_types" in current_target:
         for ty in current_target["structs_types"]:
