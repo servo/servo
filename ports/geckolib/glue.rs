@@ -12,7 +12,7 @@ use gecko_bindings::bindings::RawGeckoDocumentBorrowed;
 use gecko_bindings::bindings::{RawGeckoDocument, RawGeckoElement, RawGeckoNode};
 use gecko_bindings::bindings::{RawGeckoElementBorrowed, RawGeckoNodeBorrowed};
 use gecko_bindings::bindings::{RawServoStyleSet, RawServoStyleSetBorrowedMut};
-use gecko_bindings::bindings::{RawServoStyleSetOwned, ServoNodeDataOwnedOrNull};
+use gecko_bindings::bindings::{RawServoStyleSetOwned, ServoNodeDataOwned};
 use gecko_bindings::bindings::{RawServoStyleSheetBorrowed, ServoComputedValuesBorrowed};
 use gecko_bindings::bindings::{RawServoStyleSheetStrong, ServoComputedValuesStrong};
 use gecko_bindings::bindings::{ServoComputedValuesBorrowedOrNull, ServoDeclarationBlock};
@@ -138,8 +138,8 @@ pub extern "C" fn Servo_StyleWorkerThreadCount() -> u32 {
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_NodeData_Drop(data: ServoNodeDataOwnedOrNull) -> () {
-    let _ = data.into_box_opt::<NonOpaqueStyleData>();
+pub extern "C" fn Servo_NodeData_Drop(data: ServoNodeDataOwned) -> () {
+    let _ = data.into_box::<NonOpaqueStyleData>();
 }
 
 #[no_mangle]
@@ -421,8 +421,8 @@ pub extern "C" fn Servo_CSSSupports(property: *const u8, property_length: u32,
 #[no_mangle]
 pub extern "C" fn Servo_ComputeRestyleHint(element: RawGeckoElementBorrowed,
                                            snapshot: *mut ServoElementSnapshot,
-                                           raw_data: RawServoStyleSetBorrowedMut) -> nsRestyleHint {
-    let per_doc_data = PerDocumentStyleData::from_ffi_mut(raw_data);
+                                           raw_data: RawServoStyleSetBorrowed) -> nsRestyleHint {
+    let per_doc_data = PerDocumentStyleData::from_ffi(raw_data);
     let snapshot = unsafe { GeckoElementSnapshot::from_raw(snapshot) };
     let element = unsafe { GeckoElement(element) };
 

@@ -156,15 +156,13 @@ COMPILATION_TARGETS = {
         ],
         "servo_owned_types": [
             "RawServoStyleSet",
-        ],
-        "servo_nullable_owned_types": [
             "ServoNodeData",
+            "StyleChildrenIterator",
         ],
         "servo_immutable_borrow_types": [
             "RawGeckoNode",
             "RawGeckoElement",
             "RawGeckoDocument",
-            "StyleChildrenIterator",
         ],
     },
 
@@ -383,9 +381,6 @@ def build(objdir, target_name, debug, debugger, kind_name=None,
             flags.append("{}Owned".format(ty))
             flags.append("--raw-line")
             flags.append("pub type {0}Owned = ::sugar::ownership::Owned<{0}>;".format(ty))
-            zero_size_type(ty, flags)
-    if "servo_nullable_owned_types" in current_target:
-        for ty in current_target["servo_nullable_owned_types"]:
             flags.append("--blacklist-type")
             flags.append("{}BorrowedOrNull".format(ty))
             flags.append("--raw-line")
