@@ -232,8 +232,7 @@ pub unsafe fn report_pending_exception(cx: *mut JSContext, dispatch_event: bool)
                     }
                 },
                 _ => {
-                    error!("Uncaught exception: failed to stringify primitive");
-                    return;
+                    panic!("Uncaught exception: failed to stringify primitive");
                 },
             }
         };
