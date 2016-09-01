@@ -62,15 +62,6 @@ vec4 drawCircle(vec2 aPixel, vec2 aDesiredPos, float aRadius, vec3 aColor) {
   return vec4(aColor, pixelInCircle);
 }
 
-// Draw a rectangle at aRect fill it with aColor. Only works on non-rotated
-// rects.
-vec4 drawRect(vec2 aPixel, vec4 aRect, vec3 aColor) {
-   // GLSL origin is bottom left, positive Y is up
-   bool inRect = (aRect.x <= aPixel.x) && (aPixel.x <= aRect.x + aRect.z) &&
-            (aPixel.y >= aRect.y) && (aPixel.y <= aRect.y + aRect.w);
-   return vec4(aColor, float(inRect));
-}
-
 vec4 draw_dotted_edge() {
   // Everything here should be in device pixels.
   // We want the dot to be roughly the size of the whole border spacing
@@ -134,11 +125,21 @@ void draw_dotted_border(void) {
 
 #endif
 
-vec4 draw_dashed_edge(float position, float border_width) {
+vec4 draw_dashed_edge(float position, float border_width, float pixels_per_fragment) {
   // TODO: Investigate exactly what FF does.
   float size = border_width * 3;
-  float segment = floor(position / size) + 2;
-  return mix(vec4(0, 0, 0, 0), vHorizontalColor, mod(segment, 2));
+  float segment = floor(position / size);
+
+  float alpha = alpha_for_solid_border(position,
+                                       segment * size,
+                                       (segment + 1) * size,
+                                       pixels_per_fragment);
+
+  if (mod(segment + 2, 2) == 0) {
+    return vHorizontalColor * vec4(1, 1, 1, 1 - alpha);
+  } else {
+    return vHorizontalColor * vec4(1, 1, 1, alpha);
+  }
 }
 
 void draw_dashed_border(vec2 local_pos, float distance_from_mix_line) {
@@ -165,13 +166,13 @@ void draw_dashed_border(vec2 local_pos, float distance_from_mix_line) {
     case PST_BOTTOM:
     case PST_TOP:
     {
-      oFragColor = draw_dashed_edge(vLocalPos.x - vPieceRect.x, vPieceRect.w);
+      oFragColor = draw_dashed_edge(vLocalPos.x - vPieceRect.x, vPieceRect.w, pixels_per_fragment);
       break;
     }
     case PST_LEFT:
     case PST_RIGHT:
     {
-      oFragColor = draw_dashed_edge(vLocalPos.y - vPieceRect.y, vPieceRect.z);
+      oFragColor = draw_dashed_edge(vLocalPos.y - vPieceRect.y, vPieceRect.z, pixels_per_fragment);
       break;
     }
   }

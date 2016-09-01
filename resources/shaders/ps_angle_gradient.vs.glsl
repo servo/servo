@@ -3,20 +3,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-struct AngleGradient {
-    PrimitiveInfo info;
-    vec4 start_end_point;
-    vec4 stop_count;
-    vec4 colors[MAX_STOPS_PER_ANGLE_GRADIENT];
-    vec4 offsets[MAX_STOPS_PER_ANGLE_GRADIENT/4];
-};
-
-layout(std140) uniform Items {
-    AngleGradient gradients[WR_MAX_PRIM_ITEMS];
-};
-
 void main(void) {
-    AngleGradient gradient = gradients[gl_InstanceID];
+    AngleGradient gradient = fetch_angle_gradient(gl_InstanceID);
     VertexInfo vi = write_vertex(gradient.info);
 
     vStopCount = int(gradient.stop_count.x);

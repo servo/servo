@@ -3,19 +3,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-struct Composite {
-    vec4 src0;
-    vec4 src1;
-    vec4 target_rect;
-    vec4 info_amount;
-};
-
-layout(std140) uniform Items {
-    Composite composites[WR_MAX_PRIM_ITEMS];
-};
-
 void main(void) {
-    Composite composite = composites[gl_InstanceID];
+    Composite composite = fetch_composite(gl_InstanceID);
 
     vec2 local_pos = mix(vec2(composite.target_rect.xy),
                          vec2(composite.target_rect.xy + composite.target_rect.zw),

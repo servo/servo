@@ -3,18 +3,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-struct Image {
-    PrimitiveInfo info;
-    vec4 st_rect;               // Location of the image texture in the texture atlas.
-    vec4 stretch_size_uvkind;   // Size of the actual image.
-};
-
-layout(std140) uniform Items {
-    Image images[WR_MAX_PRIM_ITEMS];
-};
-
 void main(void) {
-    Image image = images[gl_InstanceID];
+    Image image = fetch_image(gl_InstanceID);
 
 #ifdef WR_FEATURE_TRANSFORM
     TransformVertexInfo vi = write_transform_vertex(image.info);

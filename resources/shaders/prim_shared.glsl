@@ -27,6 +27,8 @@
 #define BORDER_STYLE_INSET        uint(8)
 #define BORDER_STYLE_OUTSET       uint(9)
 
+#define MAX_STOPS_PER_ANGLE_GRADIENT 8
+
 #ifdef WR_VERTEX_SHADER
 struct Layer {
     mat4 transform;
@@ -35,29 +37,88 @@ struct Layer {
     vec4 screen_vertices[4];
 };
 
-layout(std140) uniform Layers {
-    Layer layers[WR_MAX_PRIM_LAYERS];
+layout(std140) uniform Data {
+    vec4 data[WR_MAX_UBO_VECTORS];
 };
+
+layout(std140) uniform Tiles {
+    vec4 tiles[WR_MAX_UBO_VECTORS];
+};
+
+layout(std140) uniform Layers {
+    vec4 layers[WR_MAX_UBO_VECTORS];
+};
+
+Layer fetch_layer(int index) {
+    Layer layer;
+
+    int offset = index * 13;
+
+    layer.transform[0] = layers[offset + 0];
+    layer.transform[1] = layers[offset + 1];
+    layer.transform[2] = layers[offset + 2];
+    layer.transform[3] = layers[offset + 3];
+
+    layer.inv_transform[0] = layers[offset + 4];
+    layer.inv_transform[1] = layers[offset + 5];
+    layer.inv_transform[2] = layers[offset + 6];
+    layer.inv_transform[3] = layers[offset + 7];
+
+    layer.local_clip_rect = layers[offset + 8];
+
+    layer.screen_vertices[0] = layers[offset + 9];
+    layer.screen_vertices[1] = layers[offset + 10];
+    layer.screen_vertices[2] = layers[offset + 11];
+    layer.screen_vertices[3] = layers[offset + 12];
+
+    return layer;
+}
 
 struct Tile {
     vec4 actual_rect;
     vec4 target_rect;
 };
 
-layout(std140) uniform Tiles {
-    Tile tiles[WR_MAX_PRIM_TILES];
-};
+Tile fetch_tile(int index) {
+    Tile tile;
+
+    int offset = index * 2;
+
+    tile.actual_rect = tiles[offset + 0];
+    tile.target_rect = tiles[offset + 1];
+
+    return tile;
+}
 
 struct PrimitiveInfo {
-    uvec4 layer_tile;
+    vec4 layer_tile;
     vec4 local_clip_rect;
     vec4 local_rect;
 };
+
+PrimitiveInfo unpack_prim_info(int offset) {
+    PrimitiveInfo info;
+
+    info.layer_tile = data[offset + 0];
+    info.local_clip_rect = data[offset + 1];
+    info.local_rect = data[offset + 2];
+
+    return info;
+}
 
 struct ClipCorner {
     vec4 rect;
     vec4 outer_inner_radius;
 };
+
+ClipCorner unpack_clip_corner(int offset) {
+    ClipCorner corner;
+
+    corner.rect = data[offset + 0];
+    corner.outer_inner_radius = data[offset + 1];
+
+    return corner;
+}
 
 struct Clip {
     vec4 rect;
@@ -66,6 +127,18 @@ struct Clip {
     ClipCorner bottom_left;
     ClipCorner bottom_right;
 };
+
+Clip unpack_clip(int offset) {
+    Clip clip;
+
+    clip.rect = data[offset + 0];
+    clip.top_left = unpack_clip_corner(offset + 1);
+    clip.top_right = unpack_clip_corner(offset + 3);
+    clip.bottom_left = unpack_clip_corner(offset + 5);
+    clip.bottom_right = unpack_clip_corner(offset + 7);
+
+    return clip;
+}
 
 bool ray_plane(vec3 normal, vec3 point, vec3 ray_origin, vec3 ray_dir, out float t)
 {
@@ -91,8 +164,7 @@ vec4 untransform(vec2 ref, vec3 n, vec3 a, mat4 inv_transform) {
     return r;
 }
 
-vec3 get_layer_pos(vec2 pos, uint layer_index) {
-    Layer layer = layers[layer_index];
+vec3 get_layer_pos(vec2 pos, Layer layer) {
     vec3 a = layer.screen_vertices[0].xyz / layer.screen_vertices[0].w;
     vec3 b = layer.screen_vertices[3].xyz / layer.screen_vertices[3].w;
     vec3 c = layer.screen_vertices[2].xyz / layer.screen_vertices[2].w;
@@ -113,8 +185,8 @@ struct VertexInfo {
 };
 
 VertexInfo write_vertex(PrimitiveInfo info) {
-    Layer layer = layers[info.layer_tile.x];
-    Tile tile = tiles[info.layer_tile.y];
+    Layer layer = fetch_layer(int(info.layer_tile.x));
+    Tile tile = fetch_tile(int(info.layer_tile.y));
 
     vec2 p0 = floor(0.5 + info.local_rect.xy * uDevicePixelRatio) / uDevicePixelRatio;
     vec2 p1 = floor(0.5 + (info.local_rect.xy + info.local_rect.zw) * uDevicePixelRatio) / uDevicePixelRatio;
@@ -155,8 +227,8 @@ struct TransformVertexInfo {
 };
 
 TransformVertexInfo write_transform_vertex(PrimitiveInfo info) {
-    Layer layer = layers[info.layer_tile.x];
-    Tile tile = tiles[info.layer_tile.y];
+    Layer layer = fetch_layer(int(info.layer_tile.x));
+    Tile tile = fetch_tile(int(info.layer_tile.y));
 
     vec2 lp0 = info.local_rect.xy;
     vec2 lp1 = info.local_rect.xy + info.local_rect.zw;
@@ -200,13 +272,264 @@ TransformVertexInfo write_transform_vertex(PrimitiveInfo info) {
                            max_pos_clamped,
                            aPosition.xy);
 
-    vec3 layer_pos = get_layer_pos(clamped_pos / uDevicePixelRatio, info.layer_tile.x);
+    vec3 layer_pos = get_layer_pos(clamped_pos / uDevicePixelRatio, layer);
 
     vec2 final_pos = clamped_pos + vec2(tile.target_rect.xy) - vec2(tile.actual_rect.xy);
 
     gl_Position = uTransform * vec4(final_pos, 0, 1);
 
     return TransformVertexInfo(layer_pos, clipped_local_rect);
+}
+
+struct Rectangle {
+    PrimitiveInfo info;
+    vec4 color;
+};
+
+Rectangle fetch_rectangle(int index) {
+    Rectangle rect;
+
+    int offset = index * 4;
+
+    rect.info = unpack_prim_info(offset);
+    rect.color = data[offset + 3];
+
+    return rect;
+}
+
+struct RectangleClip {
+    PrimitiveInfo info;
+    vec4 color;
+    Clip clip;
+};
+
+RectangleClip fetch_rectangle_clip(int index) {
+    RectangleClip rect;
+
+    int offset = index * 13;
+
+    rect.info = unpack_prim_info(offset);
+    rect.color = data[offset + 3];
+    rect.clip = unpack_clip(offset + 4);
+
+    return rect;
+}
+
+struct Glyph {
+    PrimitiveInfo info;
+    vec4 color;
+    vec4 uv_rect;
+};
+
+Glyph fetch_glyph(int index) {
+    Glyph glyph;
+
+    int offset = index * 5;
+
+    glyph.info = unpack_prim_info(offset);
+    glyph.color = data[offset + 3];
+    glyph.uv_rect = data[offset + 4];
+
+    return glyph;
+}
+
+struct TextRunGlyph {
+    vec4 local_rect;
+    vec4 uv_rect;
+};
+
+struct TextRun {
+    PrimitiveInfo info;
+    vec4 color;
+    TextRunGlyph glyphs[WR_GLYPHS_PER_TEXT_RUN];
+};
+
+PrimitiveInfo fetch_text_run_glyph(int index, out vec4 color, out vec4 uv_rect) {
+    int offset = 20 * (index / WR_GLYPHS_PER_TEXT_RUN);
+    int glyph_index = index % WR_GLYPHS_PER_TEXT_RUN;
+    int glyph_offset = offset + 4 + 2 * glyph_index;
+
+    PrimitiveInfo info;
+    info.layer_tile = data[offset + 0];
+    info.local_clip_rect = data[offset + 1];
+    info.local_rect = data[glyph_offset + 0];
+
+    color = data[offset + 3];
+    uv_rect = data[glyph_offset + 1];
+
+    return info;
+}
+
+struct Image {
+    PrimitiveInfo info;
+    vec4 st_rect;               // Location of the image texture in the texture atlas.
+    vec4 stretch_size_uvkind;   // Size of the actual image.
+};
+
+Image fetch_image(int index) {
+    Image image;
+
+    int offset = index * 5;
+
+    image.info = unpack_prim_info(offset);
+    image.st_rect = data[offset + 3];
+    image.stretch_size_uvkind = data[offset + 4];
+
+    return image;
+}
+
+struct ImageClip {
+    PrimitiveInfo info;
+    vec4 st_rect;               // Location of the image texture in the texture atlas.
+    vec4 stretch_size_uvkind;   // Size of the actual image.
+    Clip clip;
+};
+
+ImageClip fetch_image_clip(int index) {
+    ImageClip image;
+
+    int offset = index * 14;
+
+    image.info = unpack_prim_info(offset);
+    image.st_rect = data[offset + 3];
+    image.stretch_size_uvkind = data[offset + 4];
+    image.clip = unpack_clip(offset + 5);
+
+    return image;
+}
+
+struct Border {
+    PrimitiveInfo info;
+    vec4 verticalColor;
+    vec4 horizontalColor;
+    vec4 radii;
+    vec4 border_style_trbl;
+    vec4 part;
+};
+
+Border fetch_border(int index) {
+    Border border;
+
+    int offset = index * 8;
+
+    border.info = unpack_prim_info(offset);
+    border.verticalColor = data[offset + 3];
+    border.horizontalColor = data[offset + 4];
+    border.radii = data[offset + 5];
+    border.border_style_trbl = data[offset + 6];
+    border.part = data[offset + 7];
+
+    return border;
+}
+
+struct BoxShadow {
+    PrimitiveInfo info;
+    vec4 color;
+    vec4 border_radii_blur_radius_inverted;
+    vec4 bs_rect;
+    vec4 src_rect;
+};
+
+BoxShadow fetch_boxshadow(int index) {
+    BoxShadow bs;
+
+    int offset = index * 7;
+
+    bs.info = unpack_prim_info(offset);
+    bs.color = data[offset + 3];
+    bs.border_radii_blur_radius_inverted = data[offset + 4];
+    bs.bs_rect = data[offset + 5];
+    bs.src_rect = data[offset + 6];
+
+    return bs;
+}
+
+struct AlignedGradient {
+    PrimitiveInfo info;
+    vec4 color0;
+    vec4 color1;
+    vec4 dir;
+    Clip clip;
+};
+
+AlignedGradient fetch_aligned_gradient(int index) {
+    AlignedGradient gradient;
+
+    int offset = index * 15;
+
+    gradient.info = unpack_prim_info(offset);
+    gradient.color0 = data[offset + 3];
+    gradient.color1 = data[offset + 4];
+    gradient.dir = data[offset + 5];
+    gradient.clip = unpack_clip(offset + 6);
+
+    return gradient;
+}
+
+struct AngleGradient {
+    PrimitiveInfo info;
+    vec4 start_end_point;
+    vec4 stop_count;
+    vec4 colors[MAX_STOPS_PER_ANGLE_GRADIENT];
+    vec4 offsets[MAX_STOPS_PER_ANGLE_GRADIENT/4];
+};
+
+AngleGradient fetch_angle_gradient(int index) {
+    AngleGradient gradient;
+
+    int offset = index * 15;
+
+    gradient.info = unpack_prim_info(offset);
+    gradient.start_end_point = data[offset + 3];
+    gradient.stop_count = data[offset + 4];
+
+    for (int i=0 ; i < MAX_STOPS_PER_ANGLE_GRADIENT ; ++i) {
+        gradient.colors[i] = data[offset + 5 + i];
+    }
+
+    for (int i=0 ; i < MAX_STOPS_PER_ANGLE_GRADIENT/4 ; ++i) {
+        gradient.offsets[i] = data[offset + 5 + MAX_STOPS_PER_ANGLE_GRADIENT + i];
+    }
+
+    return gradient;
+}
+
+struct Blend {
+    vec4 target_rect;
+    vec4 src_rect;
+    vec4 opacity;
+};
+
+Blend fetch_blend(int index) {
+    Blend blend;
+
+    int offset = index * 3;
+
+    blend.target_rect = data[offset + 0];
+    blend.src_rect = data[offset + 1];
+    blend.opacity = data[offset + 2];
+
+    return blend;
+}
+
+struct Composite {
+    vec4 src0;
+    vec4 src1;
+    vec4 target_rect;
+    vec4 info_amount;
+};
+
+Composite fetch_composite(int index) {
+    Composite composite;
+
+    int offset = index * 4;
+
+    composite.src0 = data[offset + 0];
+    composite.src1 = data[offset + 1];
+    composite.target_rect = data[offset + 2];
+    composite.info_amount = data[offset + 3];
+
+    return composite;
 }
 #endif
 
