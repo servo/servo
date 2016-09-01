@@ -3,8 +3,20 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use bindings::{Gecko_ResetStyleCoord, Gecko_SetStyleCoordCalcValue, Gecko_AddRefCalcArbitraryThread};
+use std::mem;
 use structs::{nsStyleCoord_Calc, nsStyleUnit, nsStyleUnion, nsStyleCoord, nsStyleSides, nsStyleCorners};
 use structs::{nsStyleCoord_CalcValue, nscoord};
+
+impl nsStyleCoord {
+    #[inline]
+    pub fn null() -> Self {
+        // can't construct directly because it has private
+        // fields
+        let mut coord: Self = unsafe { mem::zeroed() };
+        coord.leaky_set_null();
+        coord
+    }
+}
 
 impl CoordData for nsStyleCoord {
     #[inline]
