@@ -8,8 +8,8 @@ use element_state::*;
 #[cfg(feature = "servo")]
 use heapsize::HeapSizeOf;
 use selector_impl::{ElementExt, TheSelectorImpl, NonTSPseudoClass, AttrValue};
-use selectors::matching::StyleRelations;
 use selectors::matching::matches_complex_selector;
+use selectors::matching::{MatchingReason, StyleRelations};
 use selectors::parser::{AttrSelector, Combinator, ComplexSelector, SimpleSelector, SelectorImpl};
 use selectors::{Element, MatchAttr};
 use std::clone::Clone;
@@ -476,10 +476,12 @@ impl DependencySet {
             if (attrs_changed || state_changes.intersects(dep.sensitivities.states)) && !hint.intersects(dep.hint) {
                 let matched_then =
                     matches_complex_selector(&dep.selector, snapshot, None,
-                                             &mut StyleRelations::empty());
+                                             &mut StyleRelations::empty(),
+                                             MatchingReason::Other);
                 let matches_now =
                     matches_complex_selector(&dep.selector, element, None,
-                                             &mut StyleRelations::empty());
+                                             &mut StyleRelations::empty(),
+                                             MatchingReason::Other);
                 if matched_then != matches_now {
                     hint.insert(dep.hint);
                 }

@@ -70,7 +70,7 @@ use html5ever::serialize::SerializeOpts;
 use html5ever::serialize::TraversalScope;
 use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
 use html5ever::tree_builder::{LimitedQuirks, NoQuirks, Quirks};
-use selectors::matching::{ElementFlags, matches};
+use selectors::matching::{ElementFlags, MatchingReason, matches};
 use selectors::matching::{HAS_SLOW_SELECTOR, HAS_EDGE_CHILD_SELECTOR, HAS_SLOW_SELECTOR_LATER_SIBLINGS};
 use selectors::parser::{AttrSelector, NamespaceConstraint, parse_author_origin_selector_list_from_str};
 use std::ascii::AsciiExt;
@@ -2006,7 +2006,7 @@ impl ElementMethods for Element {
         match parse_author_origin_selector_list_from_str(&selectors) {
             Err(()) => Err(Error::Syntax),
             Ok(ref selectors) => {
-                Ok(matches(selectors, &Root::from_ref(self), None))
+                Ok(matches(selectors, &Root::from_ref(self), None, MatchingReason::Other))
             }
         }
     }
@@ -2024,7 +2024,7 @@ impl ElementMethods for Element {
                 let root = self.upcast::<Node>();
                 for element in root.inclusive_ancestors() {
                     if let Some(element) = Root::downcast::<Element>(element) {
-                        if matches(selectors, &element, None) {
+                        if matches(selectors, &element, None, MatchingReason::Other) {
                             return Ok(Some(element));
                         }
                     }

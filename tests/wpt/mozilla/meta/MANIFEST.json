@@ -4636,6 +4636,18 @@
             "url": "/_mozilla/css/removeproperty.html"
           }
         ],
+        "css/restyle-nth-child.html": [
+          {
+            "path": "css/restyle-nth-child.html",
+            "references": [
+              [
+                "/_mozilla/css/restyle-nth-child-ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/restyle-nth-child.html"
+          }
+        ],
         "css/restyle_hints_attr.html": [
           {
             "path": "css/restyle_hints_attr.html",
@@ -14004,6 +14016,18 @@
             ]
           ],
           "url": "/_mozilla/css/removeproperty.html"
+        }
+      ],
+      "css/restyle-nth-child.html": [
+        {
+          "path": "css/restyle-nth-child.html",
+          "references": [
+            [
+              "/_mozilla/css/restyle-nth-child-ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/restyle-nth-child.html"
         }
       ],
       "css/restyle_hints_attr.html": [

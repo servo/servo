@@ -18,7 +18,7 @@ use properties::{ComputedValues, cascade, PropertyDeclarationBlock};
 use selector_impl::{TheSelectorImpl, PseudoElement};
 use selector_matching::{DeclarationBlock, Stylist};
 use selectors::bloom::BloomFilter;
-use selectors::matching::{StyleRelations, AFFECTED_BY_PSEUDO_ELEMENTS};
+use selectors::matching::{MatchingReason, StyleRelations, AFFECTED_BY_PSEUDO_ELEMENTS};
 use selectors::{Element, MatchAttr};
 use sink::ForgetfulSink;
 use smallvec::SmallVec;
@@ -658,7 +658,8 @@ pub trait ElementMatchMethods : TElement {
                                                  parent_bf,
                                                  style_attribute,
                                                  None,
-                                                 &mut applicable_declarations.normal);
+                                                 &mut applicable_declarations.normal,
+                                                 MatchingReason::ForStyling);
 
         applicable_declarations.normal_shareable = relations_are_shareable(&relations);
 
@@ -667,7 +668,8 @@ pub trait ElementMatchMethods : TElement {
                                                  parent_bf,
                                                  None,
                                                  Some(&pseudo.clone()),
-                                                 applicable_declarations.per_pseudo.entry(pseudo).or_insert(vec![]));
+                                                 applicable_declarations.per_pseudo.entry(pseudo).or_insert(vec![]),
+                                                 MatchingReason::ForStyling);
         });
 
         let has_pseudos =
