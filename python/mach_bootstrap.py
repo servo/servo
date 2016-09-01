@@ -77,10 +77,10 @@ CATEGORIES = {
 }
 
 
-def _get_exec(*names):
+def _get_exec(names, is_valid_path=lambda _path: True):
     for name in names:
         path = find_executable(name)
-        if path is not None:
+        if path and is_valid_path(path):
             return path
     return None
 
@@ -100,14 +100,15 @@ PIP_NAMES = ["pip-2.7", "pip2.7", "pip2", "pip"]
 
 def _activate_virtualenv(topdir):
     virtualenv_path = os.path.join(topdir, "python", "_virtualenv")
-    python = _get_exec(*PYTHON_NAMES)
+    check_exec_path = lambda path: path.startswith(virtualenv_path)
+    python = _get_exec(PYTHON_NAMES)
     if python is None:
         sys.exit("Python is not installed. Please install it prior to running mach.")
 
     script_dir = _get_virtualenv_script_dir()
     activate_path = os.path.join(virtualenv_path, script_dir, "activate_this.py")
     if not (os.path.exists(virtualenv_path) and os.path.exists(activate_path)):
-        virtualenv = _get_exec(*VIRTUALENV_NAMES)
+        virtualenv = _get_exec(VIRTUALENV_NAMES)
         if virtualenv is None:
             sys.exit("Python virtualenv is not installed. Please install it prior to running mach.")
 
@@ -122,8 +123,8 @@ def _activate_virtualenv(topdir):
 
     execfile(activate_path, dict(__file__=activate_path))
 
-    python = find_executable("python")
-    if python is None or not python.startswith(virtualenv_path):
+    python = _get_exec(PYTHON_NAMES, is_valid_path=check_exec_path)
+    if python is None:
         sys.exit("Python virtualenv failed to activate.")
 
     # TODO: Right now, we iteratively install all the requirements by invoking
@@ -148,7 +149,7 @@ def _activate_virtualenv(topdir):
         except OSError:
             pass
 
-        pip = _get_exec(*PIP_NAMES)
+        pip = _get_exec(PIP_NAMES, is_valid_path=check_exec_path)
         if pip is None:
             sys.exit("Python pip is not installed. Please install it prior to running mach.")
 
