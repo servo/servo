@@ -77,7 +77,6 @@ fn test_border_radius() {
 
 #[test]
 fn test_circle() {
-    /*
     assert_roundtrip_basicshape!(Circle::parse, "circle(at center)", "circle(at 50% 50%)");
     assert_roundtrip_basicshape!(Circle::parse, "circle()", "circle(at 50% 50%)");
     assert_roundtrip_basicshape!(Circle::parse, "circle(at left bottom)", "circle(at 0% 100%)");
@@ -97,14 +96,24 @@ fn test_circle() {
     assert_roundtrip_basicshape!(Circle::parse, "circle(calc(1px + 50%) at center)",
                                                 "circle(calc(1px + 50%) at 50% 50%)");
 
-    assert!(parse(Circle::parse, "circle(at top 40%)").is_err());
-    */
+    assert_roundtrip_basicshape!(Circle::parse, "circle(at right 5px bottom 10px)",
+                                                "circle(at right 5px bottom 10px)");
+    assert_roundtrip_basicshape!(Circle::parse, "circle(at bottom 5px right 10px)",
+                                                "circle(at right 10px bottom 5px)");
+    assert_roundtrip_basicshape!(Circle::parse, "circle(at right 5% top 0px)",
+                                                "circle(at 95% 0%)");
+    assert_roundtrip_basicshape!(Circle::parse, "circle(at right 5% bottom 0px)",
+                                                "circle(at 95% 100%)");
+    assert_roundtrip_basicshape!(Circle::parse, "circle(at right 5% bottom 1px)",
+                                                "circle(at right 5% bottom 1px)");
+    assert_roundtrip_basicshape!(Circle::parse, "circle(at 5% bottom 1px)",
+                                                "circle(at left 5% bottom 1px)");
 
+    assert!(parse(Circle::parse, "circle(at top 40%)").is_err());
 }
 
 #[test]
 fn test_ellipse() {
-    /*
     assert_roundtrip_basicshape!(Ellipse::parse, "ellipse(at center)", "ellipse(at 50% 50%)");
     assert_roundtrip_basicshape!(Ellipse::parse, "ellipse()", "ellipse(at 50% 50%)");
     assert_roundtrip_basicshape!(Ellipse::parse, "ellipse(at left bottom)", "ellipse(at 0% 100%)");
@@ -118,7 +127,6 @@ fn test_ellipse() {
     assert_roundtrip_basicshape!(Ellipse::parse, "ellipse(20px 10% at center)", "ellipse(20px 10% at 50% 50%)");
     assert_roundtrip_basicshape!(Ellipse::parse, "ellipse(calc(1px + 50%) 10px at center)",
                                                  "ellipse(calc(1px + 50%) 10px at 50% 50%)");
-    */
 }
 
 #[test]
