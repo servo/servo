@@ -63,6 +63,8 @@ macro_rules! __define_css_keyword_enum__actual {
 
 
 pub mod specified {
+    #[repr(u8)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
     pub enum AllowedNumericType {
         All,
