@@ -14,6 +14,7 @@ Navigator implements NavigatorLanguage;
 //Navigator implements NavigatorContentUtils;
 //Navigator implements NavigatorStorageUtils;
 Navigator implements NavigatorPlugins;
+Navigator implements NavigatorCookies;
 
 // https://html.spec.whatwg.org/multipage/#navigatorid
 [NoInterfaceObject, Exposed=(Window,Worker)]
@@ -51,4 +52,10 @@ interface NavigatorPlugins {
   [SameObject] readonly attribute PluginArray plugins;
   [SameObject] readonly attribute MimeTypeArray mimeTypes;
   boolean javaEnabled();
+};
+
+// https://html.spec.whatwg.org/multipage/#navigatorcookies
+[NoInterfaceObject, Exposed=(Window,Worker)]
+interface NavigatorCookies {
+  readonly attribute boolean cookieEnabled;
 };

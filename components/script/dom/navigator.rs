@@ -107,4 +107,10 @@ impl NavigatorMethods for Navigator {
     fn ServiceWorker(&self) -> Root<ServiceWorkerContainer> {
         self.serviceWorker.or_init(|| ServiceWorkerContainer::new(self.global().r()))
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-navigator-cookieenabled
+    fn CookieEnabled(&self) -> bool {
+        true
+    }
+
 }
