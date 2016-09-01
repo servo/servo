@@ -40,11 +40,12 @@ impl Range<specified::Length> {
                     => value.to_computed_value(initial_font_size, initial_font_size),
                 specified::Length::ViewportPercentage(value)
                     => value.to_computed_value(viewport_size),
-                specified::Length::Calc(val)
-                    => val.compute_from_viewport_and_font_size(viewport_size,
-                                                               initial_font_size,
-                                                               initial_font_size)
-                          .length(),
+                specified::Length::Calc(val, range)
+                    => range.clamp(
+                        val.compute_from_viewport_and_font_size(viewport_size,
+                                                                initial_font_size,
+                                                                initial_font_size)
+                           .length()),
                 specified::Length::ServoCharacterWidth(..)
                     => unreachable!(),
             }

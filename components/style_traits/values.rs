@@ -63,6 +63,8 @@ macro_rules! __define_css_keyword_enum__actual {
 
 
 pub mod specified {
+    use app_units::Au;
+
     #[repr(u8)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -77,6 +79,15 @@ pub mod specified {
             match *self {
                 AllowedNumericType::All => true,
                 AllowedNumericType::NonNegative => value >= 0.,
+            }
+        }
+
+        #[inline]
+        pub fn clamp(&self, val: Au) -> Au {
+            use std::cmp;
+            match *self {
+                AllowedNumericType::All => val,
+                AllowedNumericType::NonNegative => cmp::max(Au(0), val),
             }
         }
     }

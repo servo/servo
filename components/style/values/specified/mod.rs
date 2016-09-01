@@ -190,14 +190,14 @@ pub enum Length {
     /// `Stylist::synthesize_rules_for_legacy_attributes()`.
     ServoCharacterWidth(CharacterWidth),
 
-    Calc(CalcLengthOrPercentage),
+    Calc(CalcLengthOrPercentage, AllowedNumericType),
 }
 
 impl HasViewportPercentage for Length {
     fn has_viewport_percentage(&self) -> bool {
         match *self {
             Length::ViewportPercentage(_) => true,
-            Length::Calc(ref calc) => calc.has_viewport_percentage(),
+            Length::Calc(ref calc, _) => calc.has_viewport_percentage(),
             _ => false
         }
     }
@@ -209,7 +209,7 @@ impl ToCss for Length {
             Length::Absolute(length) => write!(dest, "{}px", length.to_f32_px()),
             Length::FontRelative(length) => length.to_css(dest),
             Length::ViewportPercentage(length) => length.to_css(dest),
-            Length::Calc(ref calc) => calc.to_css(dest),
+            Length::Calc(ref calc, _) => calc.to_css(dest),
             Length::ServoCharacterWidth(_)
             => panic!("internal CSS values should never be serialized"),
         }
@@ -225,7 +225,7 @@ impl Mul<CSSFloat> for Length {
             Length::Absolute(Au(v)) => Length::Absolute(Au(((v as f32) * scalar) as i32)),
             Length::FontRelative(v) => Length::FontRelative(v * scalar),
             Length::ViewportPercentage(v) => Length::ViewportPercentage(v * scalar),
-            Length::Calc(_) => panic!("Can't multiply Calc!"),
+            Length::Calc(..) => panic!("Can't multiply Calc!"),
             Length::ServoCharacterWidth(_) => panic!("Can't multiply ServoCharacterWidth!"),
         }
     }
@@ -469,8 +469,6 @@ pub struct CalcLengthOrPercentage {
     pub ch: Option<FontRelativeLength>,
     pub rem: Option<FontRelativeLength>,
     pub percentage: Option<Percentage>,
-    /// Whether the value returned can be negative at computed value time.
-    pub allowed_numeric_type: AllowedNumericType,
 }
 
 impl CalcLengthOrPercentage {
@@ -623,17 +621,17 @@ impl CalcLengthOrPercentage {
 
     fn parse_length(input: &mut Parser,
                     context: AllowedNumericType) -> Result<Length, ()> {
-        CalcLengthOrPercentage::parse(input, CalcUnit::Length, context).map(Length::Calc)
+        CalcLengthOrPercentage::parse(input, CalcUnit::Length).map(|calc| {
+            Length::Calc(calc, context)
+        })
     }
 
-    fn parse_length_or_percentage(input: &mut Parser,
-                                  context: AllowedNumericType) -> Result<CalcLengthOrPercentage, ()> {
-        CalcLengthOrPercentage::parse(input, CalcUnit::LengthOrPercentage, context)
+    fn parse_length_or_percentage(input: &mut Parser) -> Result<CalcLengthOrPercentage, ()> {
+        CalcLengthOrPercentage::parse(input, CalcUnit::LengthOrPercentage)
     }
 
     fn parse(input: &mut Parser,
-             expected_unit: CalcUnit,
-             context: AllowedNumericType) -> Result<CalcLengthOrPercentage, ()> {
+             expected_unit: CalcUnit) -> Result<CalcLengthOrPercentage, ()> {
         let ast = try!(CalcLengthOrPercentage::parse_sum(input, expected_unit));
 
         let mut simplified = Vec::new();
@@ -700,7 +698,6 @@ impl CalcLengthOrPercentage {
             ch: ch.map(FontRelativeLength::Ch),
             rem: rem.map(FontRelativeLength::Rem),
             percentage: percentage.map(Percentage),
-            allowed_numeric_type: context,
         })
     }
 
@@ -787,23 +784,9 @@ impl CalcLengthOrPercentage {
             }
         }
 
-        // https://drafts.csswg.org/css-values/#calc-range
-        let mut percentage = self.percentage.map(|p| p.0);
-        if let AllowedNumericType::NonNegative = self.allowed_numeric_type {
-            if let Some(ref mut length) = length {
-                *length = cmp::max(*length, Au(0));
-            }
-
-            if let Some(ref mut percentage) = percentage {
-                if *percentage < 0. {
-                    *percentage = 0.;
-                }
-            }
-        }
-
         computed::CalcLengthOrPercentage {
             length: length,
-            percentage: percentage,
+            percentage: self.percentage.map(|p| p.0),
         }
     }
 }
@@ -919,9 +902,7 @@ impl LengthOrPercentage {
             Token::Number(ref value) if value.value == 0. =>
                 Ok(LengthOrPercentage::Length(Length::Absolute(Au(0)))),
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-                let calc = try!(input.parse_nested_block(|input| {
-                    CalcLengthOrPercentage::parse_length_or_percentage(input, context)
-                }));
+                let calc = try!(input.parse_nested_block(CalcLengthOrPercentage::parse_length_or_percentage));
                 Ok(LengthOrPercentage::Calc(calc))
             },
             _ => Err(())
@@ -981,9 +962,7 @@ impl LengthOrPercentageOrAuto {
             Token::Ident(ref value) if value.eq_ignore_ascii_case("auto") =>
                 Ok(LengthOrPercentageOrAuto::Auto),
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-                let calc = try!(input.parse_nested_block(|input| {
-                    CalcLengthOrPercentage::parse_length_or_percentage(input, context)
-                }));
+                let calc = try!(input.parse_nested_block(CalcLengthOrPercentage::parse_length_or_percentage));
                 Ok(LengthOrPercentageOrAuto::Calc(calc))
             },
             _ => Err(())
@@ -1040,9 +1019,7 @@ impl LengthOrPercentageOrNone {
             Token::Number(ref value) if value.value == 0. =>
                 Ok(LengthOrPercentageOrNone::Length(Length::Absolute(Au(0)))),
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-                let calc = try!(input.parse_nested_block(|input| {
-                    CalcLengthOrPercentage::parse_length_or_percentage(input, context)
-                }));
+                let calc = try!(input.parse_nested_block(CalcLengthOrPercentage::parse_length_or_percentage));
                 Ok(LengthOrPercentageOrNone::Calc(calc))
             },
             Token::Ident(ref value) if value.eq_ignore_ascii_case("none") =>
@@ -1159,9 +1136,7 @@ impl LengthOrPercentageOrAutoOrContent {
             Token::Ident(ref value) if value.eq_ignore_ascii_case("content") =>
                 Ok(LengthOrPercentageOrAutoOrContent::Content),
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
-                let calc = try!(input.parse_nested_block(|input| {
-                    CalcLengthOrPercentage::parse_length_or_percentage(input, context)
-                }));
+                let calc = try!(input.parse_nested_block(CalcLengthOrPercentage::parse_length_or_percentage));
                 Ok(LengthOrPercentageOrAutoOrContent::Calc(calc))
             },
             _ => Err(())

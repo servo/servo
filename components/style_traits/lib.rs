@@ -16,6 +16,7 @@
 #![cfg_attr(feature = "servo", plugin(serde_macros))]
 #![cfg_attr(feature = "servo", plugin(heapsize_plugin))]
 
+extern crate app_units;
 #[macro_use]
 extern crate cssparser;
 extern crate euclid;
