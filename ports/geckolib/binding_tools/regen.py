@@ -296,7 +296,7 @@ def build(objdir, target_name, debug, debugger, kind_name=None,
         flags.append("--blacklist-type")
         flags.append(ty)
         flags.append("--raw-line")
-        flags.append("pub enum {0}Void{{ }}".format(ty))
+        flags.append("enum {0}Void{{ }}".format(ty))
         flags.append("--raw-line")
         flags.append("pub struct {0}({0}Void);".format(ty))
 

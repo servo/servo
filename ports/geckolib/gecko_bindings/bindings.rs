@@ -8,43 +8,43 @@ pub enum nsIURI {}
 pub type ServoComputedValuesStrong = ::sugar::ownership::Strong<ServoComputedValues>;
 pub type ServoComputedValuesBorrowedOrNull<'a> = ::sugar::ownership::Borrowed<'a, ServoComputedValues>;
 pub type ServoComputedValuesBorrowed<'a> = &'a ServoComputedValues;
-pub enum ServoComputedValuesVoid{ }
+enum ServoComputedValuesVoid{ }
 pub struct ServoComputedValues(ServoComputedValuesVoid);
 pub type RawServoStyleSheetStrong = ::sugar::ownership::Strong<RawServoStyleSheet>;
 pub type RawServoStyleSheetBorrowedOrNull<'a> = ::sugar::ownership::Borrowed<'a, RawServoStyleSheet>;
 pub type RawServoStyleSheetBorrowed<'a> = &'a RawServoStyleSheet;
-pub enum RawServoStyleSheetVoid{ }
+enum RawServoStyleSheetVoid{ }
 pub struct RawServoStyleSheet(RawServoStyleSheetVoid);
 pub type ServoDeclarationBlockStrong = ::sugar::ownership::Strong<ServoDeclarationBlock>;
 pub type ServoDeclarationBlockBorrowedOrNull<'a> = ::sugar::ownership::Borrowed<'a, ServoDeclarationBlock>;
 pub type ServoDeclarationBlockBorrowed<'a> = &'a ServoDeclarationBlock;
-pub enum ServoDeclarationBlockVoid{ }
+enum ServoDeclarationBlockVoid{ }
 pub struct ServoDeclarationBlock(ServoDeclarationBlockVoid);
 pub type RawGeckoNodeBorrowed<'a> = &'a RawGeckoNode;
 pub type RawGeckoNodeBorrowedOrNull<'a> = ::sugar::ownership::Borrowed<'a, RawGeckoNode>;
-pub enum RawGeckoNodeVoid{ }
+enum RawGeckoNodeVoid{ }
 pub struct RawGeckoNode(RawGeckoNodeVoid);
 pub type RawGeckoElementBorrowed<'a> = &'a RawGeckoElement;
 pub type RawGeckoElementBorrowedOrNull<'a> = ::sugar::ownership::Borrowed<'a, RawGeckoElement>;
-pub enum RawGeckoElementVoid{ }
+enum RawGeckoElementVoid{ }
 pub struct RawGeckoElement(RawGeckoElementVoid);
 pub type RawGeckoDocumentBorrowed<'a> = &'a RawGeckoDocument;
 pub type RawGeckoDocumentBorrowedOrNull<'a> = ::sugar::ownership::Borrowed<'a, RawGeckoDocument>;
-pub enum RawGeckoDocumentVoid{ }
+enum RawGeckoDocumentVoid{ }
 pub struct RawGeckoDocument(RawGeckoDocumentVoid);
 pub type StyleChildrenIteratorBorrowed<'a> = &'a StyleChildrenIterator;
 pub type StyleChildrenIteratorBorrowedOrNull<'a> = ::sugar::ownership::Borrowed<'a, StyleChildrenIterator>;
-pub enum StyleChildrenIteratorVoid{ }
+enum StyleChildrenIteratorVoid{ }
 pub struct StyleChildrenIterator(StyleChildrenIteratorVoid);
 pub type RawServoStyleSetBorrowed<'a> = &'a RawServoStyleSet;
 pub type RawServoStyleSetBorrowedMut<'a> = &'a mut RawServoStyleSet;
 pub type RawServoStyleSetOwned = ::sugar::ownership::Owned<RawServoStyleSet>;
-pub enum RawServoStyleSetVoid{ }
+enum RawServoStyleSetVoid{ }
 pub struct RawServoStyleSet(RawServoStyleSetVoid);
 pub type ServoNodeDataBorrowedOrNull<'a> = ::sugar::ownership::Borrowed<'a, ServoNodeData>;
 pub type ServoNodeDataBorrowedMutOrNull<'a> = ::sugar::ownership::BorrowedMut<'a, ServoNodeData>;
 pub type ServoNodeDataOwnedOrNull = ::sugar::ownership::OwnedOrNull<ServoNodeData>;
-pub enum ServoNodeDataVoid{ }
+enum ServoNodeDataVoid{ }
 pub struct ServoNodeData(ServoNodeDataVoid);
 use structs::nsStyleFont;
 unsafe impl Send for nsStyleFont {}
