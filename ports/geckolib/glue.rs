@@ -82,7 +82,7 @@ fn restyle_subtree(node: GeckoNode, raw_data: *mut RawServoStyleSet) {
     ComputedValues::initial_values();
 
     // The stylist consumes stylesheets lazily.
-    let per_doc_data = unsafe { &mut *(raw_data as *mut PerDocumentStyleData) };
+    let per_doc_data = PerDocumentStyleData::borrow_mut_from_raw(raw_data);
     per_doc_data.flush_stylesheets();
 
     let local_context_data =
