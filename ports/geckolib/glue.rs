@@ -12,7 +12,7 @@ use gecko_bindings::bindings::RawGeckoDocumentBorrowed;
 use gecko_bindings::bindings::{RawGeckoDocument, RawGeckoElement, RawGeckoNode};
 use gecko_bindings::bindings::{RawGeckoElementBorrowed, RawGeckoNodeBorrowed};
 use gecko_bindings::bindings::{RawServoStyleSet, RawServoStyleSetBorrowedMut};
-use gecko_bindings::bindings::{RawServoStyleSetOwned, ServoNodeDataOwnedOrNull};
+use gecko_bindings::bindings::{RawServoStyleSetOwned, ServoNodeDataOwned};
 use gecko_bindings::bindings::{RawServoStyleSheetBorrowed, ServoComputedValuesBorrowed};
 use gecko_bindings::bindings::{RawServoStyleSheetStrong, ServoComputedValuesStrong};
 use gecko_bindings::bindings::{ServoComputedValuesBorrowedOrNull, ServoDeclarationBlock};
@@ -138,8 +138,8 @@ pub extern "C" fn Servo_StyleWorkerThreadCount() -> u32 {
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_NodeData_Drop(data: ServoNodeDataOwnedOrNull) -> () {
-    let _ = data.into_box_opt::<NonOpaqueStyleData>();
+pub extern "C" fn Servo_NodeData_Drop(data: ServoNodeDataOwned) -> () {
+    let _ = data.into_box::<NonOpaqueStyleData>();
 }
 
 #[no_mangle]

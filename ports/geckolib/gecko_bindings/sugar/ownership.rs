@@ -297,10 +297,14 @@ pub unsafe trait FFIArcHelpers {
     ///
     /// Arc<ServoType> -> Strong<GeckoType>
     fn into_strong(self) -> Strong<<Self::Inner as HasFFI>::FFIType>;
-    /// Produces a borrowed FFI reference by borrowing an Arc.
+    /// Produces a (nullable) borrowed FFI reference by borrowing an Arc.
     ///
     /// &Arc<ServoType> -> Borrowed<GeckoType>
-    fn as_borrowed(&self) -> Borrowed<<Self::Inner as HasFFI>::FFIType>;
+    fn as_borrowed_opt(&self) -> Borrowed<<Self::Inner as HasFFI>::FFIType>;
+    /// Produces a borrowed FFI reference by borrowing an Arc.
+    ///
+    /// &Arc<ServoType> -> &GeckoType
+    fn as_borrowed(&self) -> &<Self::Inner as HasFFI>::FFIType;
 }
 
 unsafe impl<T: HasArcFFI> FFIArcHelpers for Arc<T> {
@@ -310,8 +314,13 @@ unsafe impl<T: HasArcFFI> FFIArcHelpers for Arc<T> {
         unsafe { transmute(self) }
     }
     #[inline]
-    fn as_borrowed(&self) -> Borrowed<T::FFIType> {
+    fn as_borrowed_opt(&self) -> Borrowed<T::FFIType> {
         let borrowedptr = self as *const Arc<T> as *const Borrowed<T::FFIType>;
+        unsafe { ptr::read(borrowedptr) }
+    }
+    #[inline]
+    fn as_borrowed(&self) -> &T::FFIType {
+        let borrowedptr = self as *const Arc<T> as *const & T::FFIType;
         unsafe { ptr::read(borrowedptr) }
     }
 }
@@ -362,6 +371,15 @@ impl<T> OwnedOrNull<T> {
     }
     /// OwnedOrNull<GeckoType> -> Option<Box<ServoType>>
     pub fn into_box_opt<U>(self) -> Option<Box<T>> where U: HasBoxFFI<FFIType = T> {
+        if self.is_null() {
+            None
+        } else {
+            Some(unsafe { transmute(self) })
+        }
+    }
+
+    /// OwnedOrNull<GeckoType> -> Option<Owned<GeckoType>>
+    pub fn into_owned_opt(self) -> Option<Owned<T>> {
         if self.is_null() {
             None
         } else {

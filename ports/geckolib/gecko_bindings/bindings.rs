@@ -32,20 +32,30 @@ pub type RawGeckoDocumentBorrowed<'a> = &'a RawGeckoDocument;
 pub type RawGeckoDocumentBorrowedOrNull<'a> = ::sugar::ownership::Borrowed<'a, RawGeckoDocument>;
 enum RawGeckoDocumentVoid{ }
 pub struct RawGeckoDocument(RawGeckoDocumentVoid);
-pub type StyleChildrenIteratorBorrowed<'a> = &'a StyleChildrenIterator;
-pub type StyleChildrenIteratorBorrowedOrNull<'a> = ::sugar::ownership::Borrowed<'a, StyleChildrenIterator>;
-enum StyleChildrenIteratorVoid{ }
-pub struct StyleChildrenIterator(StyleChildrenIteratorVoid);
 pub type RawServoStyleSetBorrowed<'a> = &'a RawServoStyleSet;
 pub type RawServoStyleSetBorrowedMut<'a> = &'a mut RawServoStyleSet;
 pub type RawServoStyleSetOwned = ::sugar::ownership::Owned<RawServoStyleSet>;
+pub type RawServoStyleSetBorrowedOrNull<'a> = ::sugar::ownership::Borrowed<'a, RawServoStyleSet>;
+pub type RawServoStyleSetBorrowedMutOrNull<'a> = ::sugar::ownership::BorrowedMut<'a, RawServoStyleSet>;
+pub type RawServoStyleSetOwnedOrNull = ::sugar::ownership::OwnedOrNull<RawServoStyleSet>;
 enum RawServoStyleSetVoid{ }
 pub struct RawServoStyleSet(RawServoStyleSetVoid);
+pub type ServoNodeDataBorrowed<'a> = &'a ServoNodeData;
+pub type ServoNodeDataBorrowedMut<'a> = &'a mut ServoNodeData;
+pub type ServoNodeDataOwned = ::sugar::ownership::Owned<ServoNodeData>;
 pub type ServoNodeDataBorrowedOrNull<'a> = ::sugar::ownership::Borrowed<'a, ServoNodeData>;
 pub type ServoNodeDataBorrowedMutOrNull<'a> = ::sugar::ownership::BorrowedMut<'a, ServoNodeData>;
 pub type ServoNodeDataOwnedOrNull = ::sugar::ownership::OwnedOrNull<ServoNodeData>;
 enum ServoNodeDataVoid{ }
 pub struct ServoNodeData(ServoNodeDataVoid);
+pub type StyleChildrenIteratorBorrowed<'a> = &'a StyleChildrenIterator;
+pub type StyleChildrenIteratorBorrowedMut<'a> = &'a mut StyleChildrenIterator;
+pub type StyleChildrenIteratorOwned = ::sugar::ownership::Owned<StyleChildrenIterator>;
+pub type StyleChildrenIteratorBorrowedOrNull<'a> = ::sugar::ownership::Borrowed<'a, StyleChildrenIterator>;
+pub type StyleChildrenIteratorBorrowedMutOrNull<'a> = ::sugar::ownership::BorrowedMut<'a, StyleChildrenIterator>;
+pub type StyleChildrenIteratorOwnedOrNull = ::sugar::ownership::OwnedOrNull<StyleChildrenIterator>;
+enum StyleChildrenIteratorVoid{ }
+pub struct StyleChildrenIterator(StyleChildrenIteratorVoid);
 use structs::nsStyleFont;
 unsafe impl Send for nsStyleFont {}
 unsafe impl Sync for nsStyleFont {}
@@ -196,7 +206,6 @@ use structs::nsCSSShadowArray;
 
 pub enum Element { }
 pub enum nsHTMLCSSStyleSheet { }
-pub type StyleChildrenIteratorBorrowedMut = *mut StyleChildrenIterator;
 pub type ThreadSafePrincipalHolder = nsMainThreadPtrHolder<nsIPrincipal>;
 pub type ThreadSafeURIHolder = nsMainThreadPtrHolder<nsIURI>;
 extern "C" {
@@ -225,8 +234,8 @@ extern "C" {
     pub fn Gecko_GetDocumentElement(document: RawGeckoDocumentBorrowed)
      -> RawGeckoElementBorrowedOrNull;
     pub fn Gecko_MaybeCreateStyleChildrenIterator(node: RawGeckoNodeBorrowed)
-     -> StyleChildrenIteratorBorrowedOrNull;
-    pub fn Gecko_DropStyleChildrenIterator(it: *mut StyleChildrenIterator);
+     -> StyleChildrenIteratorOwnedOrNull;
+    pub fn Gecko_DropStyleChildrenIterator(it: StyleChildrenIteratorOwned);
     pub fn Gecko_GetNextStyleChild(it: StyleChildrenIteratorBorrowed)
      -> RawGeckoNodeBorrowedOrNull;
     pub fn Gecko_ElementState(element: RawGeckoElementBorrowed) -> u8;
@@ -301,7 +310,7 @@ extern "C" {
     pub fn Gecko_GetNodeData(node: RawGeckoNodeBorrowed)
      -> ServoNodeDataBorrowedOrNull;
     pub fn Gecko_SetNodeData(node: RawGeckoNodeBorrowed,
-                             data: ServoNodeDataOwnedOrNull);
+                             data: ServoNodeDataOwned);
     pub fn Gecko_Atomize(aString: *const ::std::os::raw::c_char, aLength: u32)
      -> *mut nsIAtom;
     pub fn Gecko_AddRefAtom(aAtom: *mut nsIAtom);
@@ -352,8 +361,7 @@ extern "C" {
                                  aPseudoTagOrNull: *mut nsIAtom)
      -> *mut nsStyleContext;
     pub fn Gecko_CalcStyleDifference(oldstyle: *mut nsStyleContext,
-                                     newstyle:
-                                         ServoComputedValuesBorrowedOrNull)
+                                     newstyle: ServoComputedValuesBorrowed)
      -> nsChangeHint;
     pub fn Gecko_StoreStyleDifference(node: RawGeckoNodeBorrowed,
                                       change: nsChangeHint);
@@ -492,7 +500,7 @@ extern "C" {
     pub fn Gecko_CopyConstruct_nsStyleEffects(ptr: *mut nsStyleEffects,
                                               other: *const nsStyleEffects);
     pub fn Gecko_Destroy_nsStyleEffects(ptr: *mut nsStyleEffects);
-    pub fn Servo_NodeData_Drop(data: ServoNodeDataOwnedOrNull);
+    pub fn Servo_NodeData_Drop(data: ServoNodeDataOwned);
     pub fn Servo_StyleSheet_FromUTF8Bytes(bytes: *const u8, length: u32,
                                           parsing_mode: SheetParsingMode,
                                           base_bytes: *const u8,

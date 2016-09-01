@@ -88,7 +88,7 @@ impl<'ln> GeckoNode<'ln> {
         unsafe {
             if self.get_node_data().is_null() {
                 let ptr = Box::new(NonOpaqueStyleData::new());
-                Gecko_SetNodeData(self.0, ptr.into_ffi().maybe());
+                Gecko_SetNodeData(self.0, ptr.into_ffi());
             }
         }
     }
@@ -164,7 +164,7 @@ impl<'ln> TNode for GeckoNode<'ln> {
 
     fn children(self) -> GeckoChildrenIterator<'ln> {
         let maybe_iter = unsafe { Gecko_MaybeCreateStyleChildrenIterator(self.0) };
-        if let Some(iter) = maybe_iter.borrow_opt() {
+        if let Some(iter) = maybe_iter.into_owned_opt() {
             GeckoChildrenIterator::GeckoIterator(iter)
         } else {
             GeckoChildrenIterator::Current(self.first_child())
@@ -345,14 +345,14 @@ impl<'ln> TNode for GeckoNode<'ln> {
 // (heavier-weight) Gecko-implemented iterator.
 pub enum GeckoChildrenIterator<'a> {
     Current(Option<GeckoNode<'a>>),
-    GeckoIterator(bindings::StyleChildrenIteratorBorrowed<'a>),
+    GeckoIterator(bindings::StyleChildrenIteratorOwned),
 }
 
 impl<'a> Drop for GeckoChildrenIterator<'a> {
     fn drop(&mut self) {
         if let GeckoChildrenIterator::GeckoIterator(ref it) = *self {
             unsafe {
-                Gecko_DropStyleChildrenIterator(*it as *const _ as *mut _);
+                Gecko_DropStyleChildrenIterator(ptr::read(it as *const _));
             }
         }
     }
@@ -367,8 +367,8 @@ impl<'a> Iterator for GeckoChildrenIterator<'a> {
                 *self = GeckoChildrenIterator::Current(next);
                 curr
             },
-            GeckoChildrenIterator::GeckoIterator(it) => unsafe {
-                Gecko_GetNextStyleChild(it).borrow_opt().map(GeckoNode)
+            GeckoChildrenIterator::GeckoIterator(ref it) => unsafe {
+                Gecko_GetNextStyleChild(&it).borrow_opt().map(GeckoNode)
             }
         }
     }
