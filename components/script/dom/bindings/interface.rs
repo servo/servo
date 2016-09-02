@@ -30,10 +30,6 @@ use js::rust::{define_methods, define_properties};
 use libc;
 use std::ptr;
 
-/// A JSNative that cannot be null.
-pub type NonNullJSNative =
-    unsafe extern "C" fn (arg1: *mut JSContext, arg2: libc::c_uint, arg3: *mut JSVal) -> bool;
-
 unsafe extern "C" fn fun_to_string_hook(cx: *mut JSContext,
                                         obj: HandleObject,
                                         _indent: u32)
@@ -261,7 +257,7 @@ pub unsafe fn create_noncallback_interface_object(
 pub unsafe fn create_named_constructors(
         cx: *mut JSContext,
         global: HandleObject,
-        named_constructors: &[(NonNullJSNative, &[u8], u32)],
+        named_constructors: &[(ConstructorClassHook, &[u8], u32)],
         interface_prototype_object: HandleObject) {
     rooted!(in(cx) let mut constructor = ptr::null_mut());
 

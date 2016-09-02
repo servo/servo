@@ -2817,13 +2817,13 @@ assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
 
         constructors = self.descriptor.interface.namedConstructors
         if constructors:
-            decl = "let named_constructors: [(NonNullJSNative, &'static [u8], u32); %d]" % len(constructors)
+            decl = "let named_constructors: [(ConstructorClassHook, &'static [u8], u32); %d]" % len(constructors)
             specs = []
             for constructor in constructors:
                 hook = CONSTRUCT_HOOK_NAME + "_" + constructor.identifier.name
                 name = str_to_const_array(constructor.identifier.name)
                 length = methodLength(constructor)
-                specs.append(CGGeneric("(%s as NonNullJSNative, %s, %d)" % (hook, name, length)))
+                specs.append(CGGeneric("(%s as ConstructorClassHook, %s, %d)" % (hook, name, length)))
             values = CGIndenter(CGList(specs, "\n"), 4)
             code.append(CGWrapper(values, pre="%s = [\n" % decl, post="\n];"))
             code.append(CGGeneric("create_named_constructors(cx, global, &named_constructors, prototype.handle());"))
@@ -5434,9 +5434,9 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'dom::bindings::global::GlobalRef',
         'dom::bindings::global::global_root_from_object',
         'dom::bindings::global::global_root_from_reflector',
+        'dom::bindings::interface::ConstructorClassHook',
         'dom::bindings::interface::InterfaceConstructorBehavior',
         'dom::bindings::interface::NonCallbackInterfaceObjectClass',
-        'dom::bindings::interface::NonNullJSNative',
         'dom::bindings::interface::create_callback_interface_object',
         'dom::bindings::interface::create_global_object',
         'dom::bindings::interface::create_interface_prototype_object',
