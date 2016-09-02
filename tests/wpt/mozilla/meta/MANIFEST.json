@@ -3648,6 +3648,18 @@
             "url": "/_mozilla/css/multiple_css_class_a.html"
           }
         ],
+        "css/negative-calc-cv.html": [
+          {
+            "path": "css/negative-calc-cv.html",
+            "references": [
+              [
+                "/_mozilla/css/negative-calc-cv-ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/negative-calc-cv.html"
+          }
+        ],
         "css/negative_margin_uncle_a.html": [
           {
             "path": "css/negative_margin_uncle_a.html",
@@ -13028,6 +13040,18 @@
             ]
           ],
           "url": "/_mozilla/css/multiple_css_class_a.html"
+        }
+      ],
+      "css/negative-calc-cv.html": [
+        {
+          "path": "css/negative-calc-cv.html",
+          "references": [
+            [
+              "/_mozilla/css/negative-calc-cv-ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/negative-calc-cv.html"
         }
       ],
       "css/negative_margin_uncle_a.html": [

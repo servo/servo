@@ -71,7 +71,7 @@ impl ToComputedValue for specified::Length {
     fn to_computed_value(&self, context: &Context) -> Au {
         match *self {
             specified::Length::Absolute(length) => length,
-            specified::Length::Calc(calc) => calc.to_computed_value(context).length(),
+            specified::Length::Calc(calc, range) => range.clamp(calc.to_computed_value(context).length()),
             specified::Length::FontRelative(length) =>
                 length.to_computed_value(context.style().get_font().clone_font_size(),
                                          context.style().root_font_size()),
@@ -480,8 +480,8 @@ impl ToComputedValue for specified::LengthOrNone {
     #[inline]
     fn to_computed_value(&self, context: &Context) -> LengthOrNone {
         match *self {
-            specified::LengthOrNone::Length(specified::Length::Calc(calc)) => {
-                LengthOrNone::Length(calc.to_computed_value(context).length())
+            specified::LengthOrNone::Length(specified::Length::Calc(calc, range)) => {
+                LengthOrNone::Length(range.clamp(calc.to_computed_value(context).length()))
             }
             specified::LengthOrNone::Length(value) => {
                 LengthOrNone::Length(value.to_computed_value(context))
