@@ -13,7 +13,7 @@ use js::error::throw_type_error;
 use js::glue::{RUST_SYMBOL_TO_JSID, UncheckedUnwrapObject};
 use js::jsapi::{Class, ClassOps, CompartmentOptions, GetGlobalForObjectCrossCompartment};
 use js::jsapi::{GetWellKnownSymbol, HandleObject, HandleValue, JSAutoCompartment};
-use js::jsapi::{JSClass, JSContext, JSFUN_CONSTRUCTOR, JSFunctionSpec, JSNative, JSObject};
+use js::jsapi::{JSClass, JSContext, JSFUN_CONSTRUCTOR, JSFunctionSpec, JSObject};
 use js::jsapi::{JSPROP_ENUMERATE, JSPROP_PERMANENT, JSPROP_READONLY, JSPROP_RESOLVING};
 use js::jsapi::{JSPropertySpec, JSString, JSTracer, JSVersion, JS_AtomizeAndPinString};
 use js::jsapi::{JS_DefineProperty, JS_DefineProperty1, JS_DefineProperty2};
@@ -133,27 +133,8 @@ pub struct NonCallbackInterfaceObjectClass {
 unsafe impl Sync for NonCallbackInterfaceObjectClass {}
 
 impl NonCallbackInterfaceObjectClass {
-    /// Create `ClassOps` for a `NonCallbackInterfaceObjectClass`.
-    pub const fn ops(constructor_behavior: InterfaceConstructorBehavior)
-                     -> ClassOps {
-        ClassOps {
-            addProperty: None,
-            delProperty: None,
-            getProperty: None,
-            setProperty: None,
-            enumerate: None,
-            resolve: None,
-            mayResolve: None,
-            finalize: None,
-            call: constructor_behavior.call,
-            construct: constructor_behavior.construct,
-            hasInstance: Some(has_instance_hook),
-            trace: None,
-        }
-    }
-
     /// Create a new `NonCallbackInterfaceObjectClass` structure.
-    pub const fn new(ops: &'static ClassOps,
+    pub const fn new(constructor_behavior: &'static InterfaceConstructorBehavior,
                      string_rep: &'static [u8],
                      proto_id: PrototypeList::ID,
                      proto_depth: u16)
@@ -162,7 +143,7 @@ impl NonCallbackInterfaceObjectClass {
             class: Class {
                 name: b"Function\0" as *const _ as *const libc::c_char,
                 flags: 0,
-                cOps: ops,
+                cOps: &constructor_behavior.0,
                 spec: ptr::null(),
                 ext: ptr::null(),
                 oOps: &OBJECT_OPS,
@@ -186,26 +167,43 @@ pub type ConstructorClassHook =
     unsafe extern "C" fn(cx: *mut JSContext, argc: u32, vp: *mut Value) -> bool;
 
 /// The constructor behavior of a non-callback interface object.
-pub struct InterfaceConstructorBehavior {
-    call: JSNative,
-    construct: JSNative,
-}
+pub struct InterfaceConstructorBehavior(ClassOps);
 
 impl InterfaceConstructorBehavior {
     /// An interface constructor that unconditionally throws a type error.
-    pub const fn throw() -> InterfaceConstructorBehavior {
-        InterfaceConstructorBehavior {
+    pub const fn throw() -> Self {
+        InterfaceConstructorBehavior(ClassOps {
+            addProperty: None,
+            delProperty: None,
+            getProperty: None,
+            setProperty: None,
+            enumerate: None,
+            resolve: None,
+            mayResolve: None,
+            finalize: None,
             call: Some(invalid_constructor),
             construct: Some(invalid_constructor),
-        }
+            hasInstance: Some(has_instance_hook),
+            trace: None,
+        })
     }
 
     /// An interface constructor that calls a native Rust function.
-    pub const fn call(hook: ConstructorClassHook) -> InterfaceConstructorBehavior {
-        InterfaceConstructorBehavior {
+    pub const fn call(hook: ConstructorClassHook) -> Self {
+        InterfaceConstructorBehavior(ClassOps {
+            addProperty: None,
+            delProperty: None,
+            getProperty: None,
+            setProperty: None,
+            enumerate: None,
+            resolve: None,
+            mayResolve: None,
+            finalize: None,
             call: Some(non_new_constructor),
             construct: Some(hook),
-        }
+            hasInstance: Some(has_instance_hook),
+            trace: None,
+        })
     }
 }
 

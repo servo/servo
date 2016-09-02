@@ -2072,12 +2072,9 @@ class CGInterfaceObjectJSClass(CGThing):
             "depth": self.descriptor.prototypeDepth
         }
         return """\
-static INTERFACE_OBJECT_OPS: js::jsapi::ClassOps =
-    NonCallbackInterfaceObjectClass::ops(%(constructorBehavior)s);
-
 static InterfaceObjectClass: NonCallbackInterfaceObjectClass =
     NonCallbackInterfaceObjectClass::new(
-        &INTERFACE_OBJECT_OPS,
+        &%(constructorBehavior)s,
         %(representation)s,
         PrototypeList::ID::%(id)s,
         %(depth)s);
