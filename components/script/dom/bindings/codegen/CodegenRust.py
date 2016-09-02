@@ -2072,7 +2072,7 @@ class CGInterfaceObjectJSClass(CGThing):
             "depth": self.descriptor.prototypeDepth
         }
         return """\
-static InterfaceObjectClass: NonCallbackInterfaceObjectClass =
+static INTERFACE_OBJECT_CLASS: NonCallbackInterfaceObjectClass =
     NonCallbackInterfaceObjectClass::new(
         &%(constructorBehavior)s,
         %(representation)s,
@@ -2748,7 +2748,7 @@ rooted!(in(cx) let mut interface = ptr::null_mut());
 create_noncallback_interface_object(cx,
                                     global,
                                     interface_proto.handle(),
-                                    &InterfaceObjectClass,
+                                    &INTERFACE_OBJECT_CLASS,
                                     %(static_methods)s,
                                     %(static_attrs)s,
                                     %(consts)s,
