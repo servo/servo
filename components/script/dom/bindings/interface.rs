@@ -30,34 +30,6 @@ use js::rust::{define_methods, define_properties};
 use libc;
 use std::ptr;
 
-unsafe extern "C" fn fun_to_string_hook(cx: *mut JSContext,
-                                        obj: HandleObject,
-                                        _indent: u32)
-                                        -> *mut JSString {
-    let js_class = JS_GetClass(obj.get());
-    assert!(!js_class.is_null());
-    let repr = (*(js_class as *const NonCallbackInterfaceObjectClass)).representation;
-    assert!(!repr.is_empty());
-    let ret = JS_NewStringCopyN(cx, repr.as_ptr() as *const libc::c_char, repr.len());
-    assert!(!ret.is_null());
-    ret
-}
-
-const OBJECT_OPS: ObjectOps = ObjectOps {
-    lookupProperty: None,
-    defineProperty: None,
-    hasProperty: None,
-    getProperty: None,
-    setProperty: None,
-    getOwnPropertyDescriptor: None,
-    deleteProperty: None,
-    watch: None,
-    unwatch: None,
-    getElements: None,
-    enumerate: None,
-    funToString: Some(fun_to_string_hook),
-};
-
 /// The class of a non-callback interface object.
 #[derive(Copy, Clone)]
 pub struct NonCallbackInterfaceObjectClass {
@@ -285,6 +257,107 @@ pub unsafe fn create_named_constructors(
     }
 }
 
+unsafe fn create_object(
+        cx: *mut JSContext,
+        proto: HandleObject,
+        class: &'static JSClass,
+        methods: &[Guard<&'static [JSFunctionSpec]>],
+        properties: &[Guard<&'static [JSPropertySpec]>],
+        constants: &[Guard<&[ConstantSpec]>],
+        rval: MutableHandleObject) {
+    rval.set(JS_NewObjectWithUniqueType(cx, class, proto));
+    assert!(!rval.ptr.is_null());
+    define_guarded_methods(cx, rval.handle(), methods);
+    define_guarded_properties(cx, rval.handle(), properties);
+    define_guarded_constants(cx, rval.handle(), constants);
+}
+
+/// Conditionally define constants on an object.
+pub unsafe fn define_guarded_constants(
+        cx: *mut JSContext,
+        obj: HandleObject,
+        constants: &[Guard<&[ConstantSpec]>]) {
+    for guard in constants {
+        if let Some(specs) = guard.expose(cx, obj) {
+            define_constants(cx, obj, specs);
+        }
+    }
+}
+
+/// Conditionally define methods on an object.
+pub unsafe fn define_guarded_methods(
+        cx: *mut JSContext,
+        obj: HandleObject,
+        methods: &[Guard<&'static [JSFunctionSpec]>]) {
+    for guard in methods {
+        if let Some(specs) = guard.expose(cx, obj) {
+            define_methods(cx, obj, specs).unwrap();
+        }
+    }
+}
+
+/// Conditionally define properties on an object.
+pub unsafe fn define_guarded_properties(
+        cx: *mut JSContext,
+        obj: HandleObject,
+        properties: &[Guard<&'static [JSPropertySpec]>]) {
+    for guard in properties {
+        if let Some(specs) = guard.expose(cx, obj) {
+            define_properties(cx, obj, specs).unwrap();
+        }
+    }
+}
+
+/// Returns whether an interface with exposure set given by `globals` should
+/// be exposed in the global object `obj`.
+pub unsafe fn is_exposed_in(object: HandleObject, globals: Globals) -> bool {
+    let unwrapped = UncheckedUnwrapObject(object.get(), /* stopAtWindowProxy = */ 0);
+    let dom_class = get_dom_class(unwrapped).unwrap();
+    globals.contains(dom_class.global)
+}
+
+unsafe fn define_on_global_object(
+        cx: *mut JSContext,
+        global: HandleObject,
+        name: &[u8],
+        obj: HandleObject) {
+    assert!(*name.last().unwrap() == b'\0');
+    assert!(JS_DefineProperty1(cx,
+                               global,
+                               name.as_ptr() as *const libc::c_char,
+                               obj,
+                               JSPROP_RESOLVING,
+                               None, None));
+}
+
+const OBJECT_OPS: ObjectOps = ObjectOps {
+    lookupProperty: None,
+    defineProperty: None,
+    hasProperty: None,
+    getProperty: None,
+    setProperty: None,
+    getOwnPropertyDescriptor: None,
+    deleteProperty: None,
+    watch: None,
+    unwatch: None,
+    getElements: None,
+    enumerate: None,
+    funToString: Some(fun_to_string_hook),
+};
+
+unsafe extern "C" fn fun_to_string_hook(cx: *mut JSContext,
+                                        obj: HandleObject,
+                                        _indent: u32)
+                                        -> *mut JSString {
+    let js_class = JS_GetClass(obj.get());
+    assert!(!js_class.is_null());
+    let repr = (*(js_class as *const NonCallbackInterfaceObjectClass)).representation;
+    assert!(!repr.is_empty());
+    let ret = JS_NewStringCopyN(cx, repr.as_ptr() as *const libc::c_char, repr.len());
+    assert!(!ret.is_null());
+    ret
+}
+
 /// Hook for instanceof on interface objects.
 unsafe extern "C" fn has_instance_hook(cx: *mut JSContext,
         obj: HandleObject,
@@ -344,21 +417,6 @@ unsafe fn has_instance(
     Err(())
 }
 
-unsafe fn create_object(
-        cx: *mut JSContext,
-        proto: HandleObject,
-        class: &'static JSClass,
-        methods: &[Guard<&'static [JSFunctionSpec]>],
-        properties: &[Guard<&'static [JSPropertySpec]>],
-        constants: &[Guard<&[ConstantSpec]>],
-        rval: MutableHandleObject) {
-    rval.set(JS_NewObjectWithUniqueType(cx, class, proto));
-    assert!(!rval.ptr.is_null());
-    define_guarded_methods(cx, rval.handle(), methods);
-    define_guarded_properties(cx, rval.handle(), properties);
-    define_guarded_constants(cx, rval.handle(), constants);
-}
-
 unsafe fn create_unscopable_object(
         cx: *mut JSContext,
         names: &[&[u8]],
@@ -372,42 +430,6 @@ unsafe fn create_unscopable_object(
         assert!(JS_DefineProperty(
             cx, rval.handle(), name.as_ptr() as *const libc::c_char, TrueHandleValue,
             JSPROP_READONLY, None, None));
-    }
-}
-
-/// Conditionally define constants on an object.
-pub unsafe fn define_guarded_constants(
-        cx: *mut JSContext,
-        obj: HandleObject,
-        constants: &[Guard<&[ConstantSpec]>]) {
-    for guard in constants {
-        if let Some(specs) = guard.expose(cx, obj) {
-            define_constants(cx, obj, specs);
-        }
-    }
-}
-
-/// Conditionally define methods on an object.
-pub unsafe fn define_guarded_methods(
-        cx: *mut JSContext,
-        obj: HandleObject,
-        methods: &[Guard<&'static [JSFunctionSpec]>]) {
-    for guard in methods {
-        if let Some(specs) = guard.expose(cx, obj) {
-            define_methods(cx, obj, specs).unwrap();
-        }
-    }
-}
-
-/// Conditionally define properties on an object.
-pub unsafe fn define_guarded_properties(
-        cx: *mut JSContext,
-        obj: HandleObject,
-        properties: &[Guard<&'static [JSPropertySpec]>]) {
-    for guard in properties {
-        if let Some(specs) = guard.expose(cx, obj) {
-            define_properties(cx, obj, specs).unwrap();
-        }
     }
 }
 
@@ -432,20 +454,6 @@ unsafe fn define_length(cx: *mut JSContext, obj: HandleObject, length: u32) {
                                None, None));
 }
 
-unsafe fn define_on_global_object(
-        cx: *mut JSContext,
-        global: HandleObject,
-        name: &[u8],
-        obj: HandleObject) {
-    assert!(*name.last().unwrap() == b'\0');
-    assert!(JS_DefineProperty1(cx,
-                               global,
-                               name.as_ptr() as *const libc::c_char,
-                               obj,
-                               JSPROP_RESOLVING,
-                               None, None));
-}
-
 unsafe extern "C" fn invalid_constructor(
         cx: *mut JSContext,
         _argc: libc::c_uint,
@@ -462,12 +470,4 @@ unsafe extern "C" fn non_new_constructor(
         -> bool {
     throw_type_error(cx, "This constructor needs to be called with `new`.");
     false
-}
-
-/// Returns whether an interface with exposure set given by `globals` should
-/// be exposed in the global object `obj`.
-pub unsafe fn is_exposed_in(object: HandleObject, globals: Globals) -> bool {
-    let unwrapped = UncheckedUnwrapObject(object.get(), /* stopAtWindowProxy = */ 0);
-    let dom_class = get_dom_class(unwrapped).unwrap();
-    globals.contains(dom_class.global)
 }
