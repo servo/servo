@@ -6,6 +6,7 @@
 
 use dom::bindings::codegen::InterfaceObjectMap::Globals;
 use dom::bindings::codegen::PrototypeList;
+use dom::bindings::constant::{ConstantSpec, define_constants};
 use dom::bindings::conversions::{DOM_OBJECT_SLOT, get_dom_class};
 use dom::bindings::guard::Guard;
 use dom::bindings::utils::{DOM_PROTOTYPE_SLOT, ProtoOrIfaceArray, get_proto_or_iface_array};
@@ -14,7 +15,7 @@ use js::glue::{RUST_SYMBOL_TO_JSID, UncheckedUnwrapObject};
 use js::jsapi::{Class, ClassOps, CompartmentOptions, GetGlobalForObjectCrossCompartment};
 use js::jsapi::{GetWellKnownSymbol, HandleObject, HandleValue, JSAutoCompartment};
 use js::jsapi::{JSClass, JSContext, JSFUN_CONSTRUCTOR, JSFunctionSpec, JSObject};
-use js::jsapi::{JSPROP_ENUMERATE, JSPROP_PERMANENT, JSPROP_READONLY, JSPROP_RESOLVING};
+use js::jsapi::{JSPROP_PERMANENT, JSPROP_READONLY, JSPROP_RESOLVING};
 use js::jsapi::{JSPropertySpec, JSString, JSTracer, JSVersion, JS_AtomizeAndPinString};
 use js::jsapi::{JS_DefineProperty, JS_DefineProperty1, JS_DefineProperty2};
 use js::jsapi::{JS_DefineProperty4, JS_DefinePropertyById3, JS_FireOnNewGlobalObject};
@@ -24,70 +25,14 @@ use js::jsapi::{JS_NewObject, JS_NewObjectWithUniqueType, JS_NewPlainObject};
 use js::jsapi::{JS_NewStringCopyN, JS_SetReservedSlot, MutableHandleObject};
 use js::jsapi::{MutableHandleValue, ObjectOps, OnNewGlobalHookOption, SymbolCode};
 use js::jsapi::{TrueHandleValue, Value};
-use js::jsval::{BooleanValue, DoubleValue, Int32Value, JSVal, NullValue};
-use js::jsval::{PrivateValue, UInt32Value};
+use js::jsval::{JSVal, PrivateValue};
 use js::rust::{define_methods, define_properties};
 use libc;
 use std::ptr;
 
-/// Representation of an IDL constant value.
-#[derive(Clone)]
-pub enum ConstantVal {
-    /// `long` constant.
-    IntVal(i32),
-    /// `unsigned long` constant.
-    UintVal(u32),
-    /// `double` constant.
-    DoubleVal(f64),
-    /// `boolean` constant.
-    BoolVal(bool),
-    /// `null` constant.
-    NullVal,
-}
-
-/// Representation of an IDL constant.
-#[derive(Clone)]
-pub struct ConstantSpec {
-    /// name of the constant.
-    pub name: &'static [u8],
-    /// value of the constant.
-    pub value: ConstantVal,
-}
-
-impl ConstantSpec {
-    /// Returns a `JSVal` that represents the value of this `ConstantSpec`.
-    pub fn get_value(&self) -> JSVal {
-        match self.value {
-            ConstantVal::NullVal => NullValue(),
-            ConstantVal::IntVal(i) => Int32Value(i),
-            ConstantVal::UintVal(u) => UInt32Value(u),
-            ConstantVal::DoubleVal(d) => DoubleValue(d),
-            ConstantVal::BoolVal(b) => BooleanValue(b),
-        }
-    }
-}
-
 /// A JSNative that cannot be null.
 pub type NonNullJSNative =
     unsafe extern "C" fn (arg1: *mut JSContext, arg2: libc::c_uint, arg3: *mut JSVal) -> bool;
-
-/// Defines constants on `obj`.
-/// Fails on JSAPI failure.
-unsafe fn define_constants(
-        cx: *mut JSContext,
-        obj: HandleObject,
-        constants: &[ConstantSpec]) {
-    for spec in constants {
-        rooted!(in(cx) let value = spec.get_value());
-        assert!(JS_DefineProperty(cx,
-                                  obj,
-                                  spec.name.as_ptr() as *const libc::c_char,
-                                  value.handle(),
-                                  JSPROP_ENUMERATE | JSPROP_READONLY | JSPROP_PERMANENT,
-                                  None,
-                                  None));
-    }
-}
 
 unsafe extern "C" fn fun_to_string_hook(cx: *mut JSContext,
                                         obj: HandleObject,

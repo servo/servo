@@ -1136,20 +1136,20 @@ def instantiateJSToNativeConversionTemplate(templateBody, replacements,
 
 def convertConstIDLValueToJSVal(value):
     if isinstance(value, IDLNullValue):
-        return "NullVal"
+        return "ConstantVal::NullVal"
     tag = value.type.tag()
     if tag in [IDLType.Tags.int8, IDLType.Tags.uint8, IDLType.Tags.int16,
                IDLType.Tags.uint16, IDLType.Tags.int32]:
-        return "IntVal(%s)" % (value.value)
+        return "ConstantVal::IntVal(%s)" % (value.value)
     if tag == IDLType.Tags.uint32:
-        return "UintVal(%s)" % (value.value)
+        return "ConstantVal::UintVal(%s)" % (value.value)
     if tag in [IDLType.Tags.int64, IDLType.Tags.uint64]:
-        return "DoubleVal(%s)" % (value.value)
+        return "ConstantVal::DoubleVal(%s)" % (value.value)
     if tag == IDLType.Tags.bool:
-        return "BoolVal(true)" if value.value else "BoolVal(false)"
+        return "ConstantVal::BoolVal(true)" if value.value else "ConstantVal::BoolVal(false)"
     if tag in [IDLType.Tags.unrestricted_float, IDLType.Tags.float,
                IDLType.Tags.unrestricted_double, IDLType.Tags.double]:
-        return "DoubleVal(%s)" % (value.value)
+        return "ConstantVal::DoubleVal(%s)" % (value.value)
     raise TypeError("Const value of unhandled type: " + value.type)
 
 
@@ -5429,12 +5429,11 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'dom',
         'dom::bindings',
         'dom::bindings::codegen::InterfaceObjectMap',
+        'dom::bindings::constant::ConstantSpec',
+        'dom::bindings::constant::ConstantVal',
         'dom::bindings::global::GlobalRef',
         'dom::bindings::global::global_root_from_object',
         'dom::bindings::global::global_root_from_reflector',
-        'dom::bindings::interface::ConstantSpec',
-        'dom::bindings::interface::ConstantVal::IntVal',
-        'dom::bindings::interface::ConstantVal::UintVal',
         'dom::bindings::interface::InterfaceConstructorBehavior',
         'dom::bindings::interface::NonCallbackInterfaceObjectClass',
         'dom::bindings::interface::NonNullJSNative',
