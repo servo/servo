@@ -1152,7 +1152,12 @@ impl PropertyDeclaration {
                 },
             % endfor
 
-            _ => PropertyDeclarationParseResult::UnknownProperty
+            _ => {
+                if cfg!(all(debug_assertions, feature = "gecko")) && !name.starts_with('-') {
+                    println!("stylo: Unimplemented property setter: {}", name);
+                }
+                PropertyDeclarationParseResult::UnknownProperty
+            }
         }
     }
 

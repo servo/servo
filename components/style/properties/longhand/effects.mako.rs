@@ -175,7 +175,7 @@ ${helpers.predefined_type("opacity",
 </%helpers:vector_longhand>
 
 // FIXME: This prop should be animatable
-<%helpers:longhand name="clip" animatable="False">
+<%helpers:longhand name="clip" products="servo" animatable="False">
     use cssparser::ToCss;
     use std::fmt;
     use values::LocalToCss;
@@ -185,6 +185,7 @@ ${helpers.predefined_type("opacity",
 
     pub mod computed_value {
         use app_units::Au;
+        use properties::animated_properties::Interpolate;
 
         #[derive(Clone, PartialEq, Eq, Copy, Debug)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -198,6 +199,20 @@ ${helpers.predefined_type("opacity",
         #[derive(Debug, Clone, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T(pub Option<ClipRect>);
+
+
+        /// https://drafts.csswg.org/css-transitions/#animtype-rect
+        impl Interpolate for ClipRect {
+            #[inline]
+            fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
+                Ok(ClipRect {
+                    top: try!(self.top.interpolate(&other.top, time)),
+                    right: try!(self.right.interpolate(&other.right, time)),
+                    bottom: try!(self.bottom.interpolate(&other.bottom, time)),
+                    left: try!(self.left.interpolate(&other.left, time)),
+                })
+            }
+        }
     }
 
     impl ToCss for computed_value::T {
@@ -364,7 +379,7 @@ ${helpers.predefined_type("opacity",
 </%helpers:longhand>
 
 // FIXME: This prop should be animatable
-<%helpers:longhand name="filter" animatable="False">
+<%helpers:longhand name="filter" products="servo" animatable="False">
     //pub use self::computed_value::T as SpecifiedValue;
     use cssparser::ToCss;
     use std::fmt;
@@ -617,7 +632,7 @@ ${helpers.predefined_type("opacity",
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="transform" animatable="True">
+<%helpers:longhand name="transform" products="servo" animatable="True">
     use app_units::Au;
     use values::CSSFloat;
     use values::HasViewportPercentage;
@@ -1196,7 +1211,7 @@ ${helpers.single_keyword("transform-style",
                          "auto flat preserve-3d",
                          animatable=False)}
 
-<%helpers:longhand name="transform-origin" animatable="True">
+<%helpers:longhand name="transform-origin" products="servo" animatable="True">
     use app_units::Au;
     use values::LocalToCss;
     use values::HasViewportPercentage;
@@ -1206,6 +1221,7 @@ ${helpers.single_keyword("transform-style",
     use std::fmt;
 
     pub mod computed_value {
+        use properties::animated_properties::Interpolate;
         use values::computed::{Length, LengthOrPercentage};
 
         #[derive(Clone, Copy, Debug, PartialEq)]
@@ -1214,6 +1230,16 @@ ${helpers.single_keyword("transform-style",
             pub horizontal: LengthOrPercentage,
             pub vertical: LengthOrPercentage,
             pub depth: Length,
+        }
+
+        impl Interpolate for T {
+            fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
+                Ok(T {
+                    horizontal: try!(self.horizontal.interpolate(&other.horizontal, time)),
+                    vertical: try!(self.vertical.interpolate(&other.vertical, time)),
+                    depth: try!(self.depth.interpolate(&other.depth, time)),
+                })
+            }
         }
     }
 
@@ -1288,10 +1314,11 @@ ${helpers.single_keyword("transform-style",
 ${helpers.predefined_type("perspective",
                           "LengthOrNone",
                           "computed::LengthOrNone::None",
+                          products="servo",
                           animatable=True)}
 
 // FIXME: This prop should be animatable
-<%helpers:longhand name="perspective-origin" animatable="False">
+<%helpers:longhand name="perspective-origin" products="servo" animatable="False">
     use values::HasViewportPercentage;
     use values::specified::{LengthOrPercentage, Percentage};
 

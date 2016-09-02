@@ -153,7 +153,7 @@
 </%helpers:longhand>
 
 // FIXME: This prop should be animatable.
-<%helpers:longhand name="column-gap" experimental="True" animatable="False">
+<%helpers:longhand name="column-gap" experimental="True" products="servo" animatable="False">
     use cssparser::ToCss;
     use std::fmt;
     use values::LocalToCss;

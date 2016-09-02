@@ -78,4 +78,4 @@ ${helpers.predefined_type("outline-color", "CSSColor", "::cssparser::Color::Curr
                               animatable=False)}
 % endfor
 
-${helpers.predefined_type("outline-offset", "Length", "Au(0)", animatable=True)}
+${helpers.predefined_type("outline-offset", "Length", "Au(0)", products="servo", animatable=True)}

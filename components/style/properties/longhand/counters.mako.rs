@@ -173,7 +173,7 @@
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="counter-increment" animatable="False">
+<%helpers:longhand name="counter-increment" products="servo" animatable="False">
     use std::fmt;
     use super::content;
     use values::NoViewportPercentage;
@@ -245,7 +245,7 @@
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="counter-reset" animatable="False">
+<%helpers:longhand name="counter-reset" products="servo" animatable="False">
     pub use super::counter_increment::{SpecifiedValue, computed_value, get_initial_value};
     use super::counter_increment::{parse_common};
 

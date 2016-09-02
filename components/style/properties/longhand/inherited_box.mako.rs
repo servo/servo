@@ -40,7 +40,7 @@ ${helpers.single_keyword("color-adjust",
                          "economy exact", products="gecko",
                          animatable=False)}
 
-<%helpers:longhand name="image-rendering" animatable="False">
+<%helpers:longhand name="image-rendering" products="servo" animatable="False">
     pub mod computed_value {
         use cssparser::ToCss;
         use std::fmt;
