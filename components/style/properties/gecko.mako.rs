@@ -1159,6 +1159,7 @@ fn static_assert() {
         use gecko_bindings::structs::nsStyleCoord;
         use values::computed::Image;
         use values::specified::AngleOrCorner;
+        use values::specified::{HorizontalDirection, VerticalDirection};
         use cssparser::Color as CSSColor;
 
         unsafe {
@@ -1195,10 +1196,31 @@ fn static_assert() {
                                                  stop_count as u32)
                         };
 
-                        // TODO: figure out what gecko does in the `corner` case.
-                        if let AngleOrCorner::Angle(angle) = gradient.angle_or_corner {
-                            unsafe {
-                                (*gecko_gradient).mAngle.set(angle);
+                        match gradient.angle_or_corner {
+                            AngleOrCorner::Angle(angle) => {
+                                unsafe {
+                                    (*gecko_gradient).mAngle.set(angle);
+                                    (*gecko_gradient).mBgPosX.set_value(CoordDataValue::None);
+                                    (*gecko_gradient).mBgPosY.set_value(CoordDataValue::None);
+                                }
+                            }
+                            AngleOrCorner::Corner(horiz, vert) => {
+                                let percent_x = match horiz {
+                                    HorizontalDirection::Left => 0.0,
+                                    HorizontalDirection::Right => 1.0,
+                                };
+                                let percent_y = match vert {
+                                    VerticalDirection::Top => 0.0,
+                                    VerticalDirection::Bottom => 1.0,
+                                };
+
+                                unsafe {
+                                    (*gecko_gradient).mAngle.set_value(CoordDataValue::None);
+                                    (*gecko_gradient).mBgPosX
+                                                     .set_value(CoordDataValue::Percent(percent_x));
+                                    (*gecko_gradient).mBgPosY
+                                                     .set_value(CoordDataValue::Percent(percent_y));
+                                }
                             }
                         }
 
