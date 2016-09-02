@@ -15,7 +15,7 @@ use dom::bindings::str::{ByteString, USVString};
 use dom::headers::{Headers, Guard};
 use dom::headers::{is_vchar, is_obs_text};
 use hyper::status::StatusCode;
-use net_traits::response::{Response as NetTraitsResponse, ResponseType as NetTraitsResponseType};
+use net_traits::response::{ResponseBody as NetTraitsResponseBody};
 use std::str::FromStr;
 use url::Position;
 use url::Url;
@@ -23,22 +23,34 @@ use url::Url;
 #[dom_struct]
 pub struct Response {
     reflector_: Reflector,
-    response: DOMRefCell<NetTraitsResponse>,
-    //TODO: Figure out what the spec means by "A Response object's body is its response's body."
     headers_reflector: MutNullableHeap<JS<Headers>>,
     mime_type: DOMRefCell<Vec<u8>>,
     body_used: Cell<bool>,
+    /// `None` can be considered a StatusCode of `0`.
+    #[ignore_heap_size_of = "Defined in hyper"]
+    status: DOMRefCell<Option<StatusCode>>,
+    raw_status: DOMRefCell<Option<(u16, Vec<u8>)>>,
+    response_type: DOMRefCell<DOMResponseType>,
+    url: DOMRefCell<Option<Url>>,
+    url_list: DOMRefCell<Vec<Url>>,
+    // For now use the existing NetTraitsResponseBody enum, until body
+    // is implemented.
+    body: DOMRefCell<NetTraitsResponseBody>,
 }
 
 impl Response {
     pub fn new_inherited() -> Response {
         Response {
             reflector_: Reflector::new(),
-            response: DOMRefCell::new(NetTraitsResponse::new()),
-            // TODO: associate headers_reflector with response's header list?
             headers_reflector: Default::default(),
             mime_type: DOMRefCell::new("".to_string().into_bytes()),
             body_used: Cell::new(false),
+            status: DOMRefCell::new(Some(StatusCode::Ok)),
+            raw_status: DOMRefCell::new(Some((200, b"OK".to_vec()))),
+            response_type: DOMRefCell::new(DOMResponseType::Default),
+            url: DOMRefCell::new(None),
+            url_list: DOMRefCell::new(vec![]),
+            body: DOMRefCell::new(NetTraitsResponseBody::Empty),
         }
     }
 
@@ -66,10 +78,10 @@ impl Response {
         let r = Response::new(global);
 
         // Step 4
-        r.response.borrow_mut().status = Some(StatusCode::from_u16(init.status));
+        *r.status.borrow_mut() = Some(StatusCode::from_u16(init.status));
 
         // Step 5
-        r.response.borrow_mut().raw_status = Some((init.status, init.statusText.clone().into()));
+        *r.raw_status.borrow_mut() = Some((init.status, init.statusText.clone().into()));
 
         // Step 6
         if let Some(ref headers_member) = init.headers {
@@ -123,9 +135,9 @@ impl Response {
     // https://fetch.spec.whatwg.org/#dom-response-error
     pub fn Error(global: GlobalRef) -> Root<Response> {
         let r = Response::new(global);
-        r.response.borrow_mut().response_type = NetTraitsResponseType::Error;
+        *r.response_type.borrow_mut() = DOMResponseType::Error;
         r.Headers().set_guard(Guard::Immutable);
-        r.response.borrow_mut().raw_status = Some((0, b"".to_vec()));
+        *r.raw_status.borrow_mut() = Some((0, b"".to_vec()));
         r
     }
 
@@ -152,8 +164,8 @@ impl Response {
         let r = Response::new(global);
 
         // Step 5
-        r.response.borrow_mut().status = Some(StatusCode::from_u16(status));
-        r.response.borrow_mut().raw_status = Some((status, b"".to_vec()));
+        *r.status.borrow_mut() = Some(StatusCode::from_u16(status));
+        *r.raw_status.borrow_mut() = Some((status, b"".to_vec()));
 
         // Step 6
         let url_bytestring = ByteString::from_str(url.as_str()).unwrap_or(ByteString::new(b"".to_vec()));
@@ -192,34 +204,31 @@ fn is_null_body_status(status: u16) -> bool {
 impl ResponseMethods for Response {
     // https://fetch.spec.whatwg.org/#dom-response-type
     fn Type(&self) -> DOMResponseType {
-        self.response.borrow().response_type.into()
+        *self.response_type.borrow()//into()
     }
 
     // https://fetch.spec.whatwg.org/#dom-response-url
     fn Url(&self) -> USVString {
-        let response = self.response.borrow();
-        USVString(String::from(response.url.as_ref().map(|u| serialize_without_fragment(u)).unwrap_or("")))
+        USVString(String::from((*self.url.borrow()).as_ref().map(|u| serialize_without_fragment(u)).unwrap_or("")))
     }
 
     // https://fetch.spec.whatwg.org/#dom-response-redirected
     fn Redirected(&self) -> bool {
-        let response = self.response.borrow();
-        let url_list_len = response.url_list.borrow().len();
+        let url_list_len = self.url_list.borrow().len();
         url_list_len > 1
     }
 
     // https://fetch.spec.whatwg.org/#dom-response-status
     fn Status(&self) -> u16 {
-        let ref raw_status = self.response.borrow().raw_status;
-        match raw_status {
-            &Some((s, _)) => s,
-            &None => 0,
+        match *self.raw_status.borrow() {
+            Some((s, _)) => s,
+            None => 0,
         }
     }
 
     // https://fetch.spec.whatwg.org/#dom-response-ok
     fn Ok(&self) -> bool {
-        match self.response.borrow().status {
+        match *self.status.borrow() {
             Some(s) => {
                 let status_num = s.to_u16();
                 return status_num >= 200 && status_num <= 299;
@@ -230,10 +239,9 @@ impl ResponseMethods for Response {
 
     // https://fetch.spec.whatwg.org/#dom-response-statustext
     fn StatusText(&self) -> ByteString {
-        let ref raw_status = self.response.borrow().raw_status;
-        match raw_status {
-            &Some((_, ref st)) => ByteString::new(st.clone()),
-            &None => ByteString::new(b"OK".to_vec()),
+        match *self.raw_status.borrow() {
+            Some((_, ref st)) => ByteString::new(st.clone()),
+            None => ByteString::new(b"OK".to_vec()),
         }
     }
 
@@ -248,10 +256,30 @@ impl ResponseMethods for Response {
         // TODO: This step relies on body and stream, which are still unimplemented.
 
         // Step 2
-        let response_response_clone = self.response.borrow().clone_for_dom_response();
         let new_response = Response::new(self.global().r());
-        *new_response.response.borrow_mut() = response_response_clone;
         new_response.Headers().set_guard(self.Headers().get_guard());
+
+        // https://fetch.spec.whatwg.org/#concept-response-clone
+        // This deviates from the spec a little, because there is no
+        // internally stored response (just top-level fields)
+        // Step 2.1
+        if *self.response_type.borrow() != DOMResponseType::Error {
+            *new_response.response_type.borrow_mut() = self.response_type.borrow().clone();
+            // TODO: How to deal with internal_response
+        } else {
+            // Step 2.2
+            *new_response.response_type.borrow_mut() = self.response_type.borrow().clone();
+            *new_response.status.borrow_mut() = self.status.borrow().clone();
+            *new_response.raw_status.borrow_mut() = self.raw_status.borrow().clone();
+            *new_response.url.borrow_mut() = self.url.borrow().clone();
+            *new_response.url_list.borrow_mut() = self.url_list.borrow().clone();
+            *new_response.body.borrow_mut() = self.body.borrow().clone();
+
+            // Step 2.3
+            if *self.body.borrow() != NetTraitsResponseBody::Empty {
+                *new_response.body.borrow_mut() = self.body.borrow().clone();
+            }
+        }
 
         // Step 3
         // TODO: This step relies on promises, which are still unimplemented.
@@ -263,19 +291,6 @@ impl ResponseMethods for Response {
     // https://fetch.spec.whatwg.org/#dom-body-bodyused
     fn BodyUsed(&self) -> bool {
         self.body_used.get()
-    }
-}
-
-impl Into<DOMResponseType> for NetTraitsResponseType {
-    fn into(self) -> DOMResponseType {
-        match self {
-            NetTraitsResponseType::Basic => DOMResponseType::Basic,
-            NetTraitsResponseType::CORS => DOMResponseType::Cors,
-            NetTraitsResponseType::Default => DOMResponseType::Default,
-            NetTraitsResponseType::Error => DOMResponseType::Error,
-            NetTraitsResponseType::Opaque => DOMResponseType::Opaque,
-            NetTraitsResponseType::OpaqueRedirect => DOMResponseType::Opaqueredirect,
-        }
     }
 }
 
