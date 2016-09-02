@@ -2,6 +2,7 @@ version: 1.0.{build}
 
 environment:
   RUST_BACKTRACE: 1
+  HOME: '%APPVEYOR_BUILD_FOLDER%'
   # The appveyor image we use has a pretty huge set of things installed... we make the
   # initial PATH something sane so we know what to expect
   PATH: "C:\\windows\\system32;\
@@ -45,26 +46,6 @@ cache:
 install:
   - if %TARGET:*-msvc=msvc%==msvc set BUILD_ENV=msvc
   - if %TARGET:*-gnu=gnu%==gnu set BUILD_ENV=gnu
-  - ps: 'if ($env:BUILD_ENV -eq "msvc") {
-           Start-FileDownload "http://servo-rust.s3.amazonaws.com/build/openssl-and-ffmpeg.zip" -ErrorAction Stop ;
-           Start-FileDownload "http://servo-rust.s3.amazonaws.com/build/ninja.zip" -ErrorAction Stop ;
-           Start-FileDownload "http://servo-rust.s3.amazonaws.com/build/MozillaBuildSetup-2.2.0.exe" -ErrorAction Stop ;
-           .\MozillaBuildSetup-2.2.0.exe /S | Out-Null ;
-           7z x openssl-and-ffmpeg.zip | Out-Null ;
-           7z x ninja.zip | Out-Null ;
-           Copy-Item C:\mozilla-build\yasm\yasm.exe C:\mozilla-build\msys\bin ;
-           Copy-Item C:\mozilla-build\mozmake\mozmake.exe C:\mozilla-build\msys\bin ;
-           $env:MOZTOOLS_PATH="C:\mozilla-build\msys\bin" ;
-           $env:NATIVE_WIN32_PYTHON="C:/Python27/python.exe" ;
-           $env:PATH="$pwd\ninja;$env:PATH" ;
-           $env:OPENSSL_INCLUDE_DIR="$pwd\openssl-bin\openssl-1.0.1t-vs2015\include" ;
-           $env:OPENSSL_LIB_DIR="$pwd\openssl-bin\openssl-1.0.1t-vs2015\lib64" ;
-           $env:OPENSSL_LIBS="ssleay32MD:libeay32MD" ;
-           $env:FFMPEG_INCLUDE_DIR="$pwd\ffmpeg-bin\include" ;
-           $env:FFMPEG_LIB_DIR="$pwd\ffmpeg-bin\lib" ;
-           $env:FFMPEG_LIBS="avformat:avcodec:avutil" ;
-        }'
-  - if %BUILD_ENV%==msvc call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin\amd64\vcvars64.bat"
   - if %BUILD_ENV%==gnu  set PATH=C:\msys64\mingw64\bin;C:\msys64\usr\bin\;%PATH%
   - if %BUILD_ENV%==gnu  set MSYSTEM=MINGW64
   - if %BUILD_ENV%==gnu  set MSYS=winsymlinks=lnk
@@ -87,10 +68,7 @@ install:
 #  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 
 build_script:
-  - echo PATH %PATH%
-  - echo VSINSTALLDIR %VSINSTALLDIR%
-  - echo MOZTOOLS_PATH %MOZTOOLS_PATH%
-  - if %BUILD_ENV%==msvc cd %APPVEYOR_BUILD_FOLDER% && mach build -d -v && mach test-unit
-  - if %BUILD_ENV%==gnu  bash -lc "cd $APPVEYOR_BUILD_FOLDER; ./mach build -d -v && ./mach test-unit"
+  - if %BUILD_ENV%==msvc mach build -d -v && mach test-unit
+  - if %BUILD_ENV%==gnu  bash -lc "./mach build -d -v && ./mach test-unit"
 
 test: off
