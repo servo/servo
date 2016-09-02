@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::DOMExceptionBinding::DOMExceptionMethods;
 use dom::bindings::codegen::PrototypeList::proto_id_to_name;
 use dom::bindings::conversions::root_from_object;
 use dom::bindings::conversions::{ConversionResult, FromJSValConvertible, ToJSValConvertible};
-use dom::bindings::global::GlobalRef;
+use dom::bindings::global::{GlobalRef, global_root_from_context};
 use dom::bindings::str::USVString;
 use dom::domexception::{DOMErrorName, DOMException};
 use js::error::{throw_range_error, throw_type_error};
@@ -132,11 +132,16 @@ pub unsafe fn throw_dom_exception(cx: *mut JSContext, global: GlobalRef, result:
     JS_SetPendingException(cx, thrown.handle());
 }
 
-struct ErrorInfo {
-    filename: String,
-    message: String,
-    lineno: c_uint,
-    column: c_uint,
+/// A struct encapsulating information about a runtime script error.
+pub struct ErrorInfo {
+    /// The error message.
+    pub message: String,
+    /// The file name.
+    pub filename: String,
+    /// The line number.
+    pub lineno: c_uint,
+    /// The column number.
+    pub column: c_uint,
 }
 
 impl ErrorInfo {
@@ -192,7 +197,10 @@ impl ErrorInfo {
 }
 
 /// Report a pending exception, thereby clearing it.
-pub unsafe fn report_pending_exception(cx: *mut JSContext) {
+///
+/// The `dispatch_event` argument is temporary and non-standard; passing false
+/// prevents dispatching the `error` event.
+pub unsafe fn report_pending_exception(cx: *mut JSContext, dispatch_event: bool) {
     if JS_IsExceptionPending(cx) {
         rooted!(in(cx) let mut value = UndefinedValue());
         if !JS_GetPendingException(cx, value.handle_mut()) {
@@ -202,22 +210,30 @@ pub unsafe fn report_pending_exception(cx: *mut JSContext) {
         }
 
         JS_ClearPendingException(cx);
-        if !value.is_object() {
-            match USVString::from_jsval(cx, value.handle(), ()) {
-                Ok(ConversionResult::Success(USVString(string))) => error!("Uncaught exception: {}", string),
-                _ => error!("Uncaught exception: failed to stringify primitive"),
+        let error_info = if value.is_object() {
+            rooted!(in(cx) let object = value.to_object());
+            let error_info = ErrorInfo::from_native_error(cx, object.handle())
+                .or_else(|| ErrorInfo::from_dom_exception(object.handle()));
+            match error_info {
+                Some(error_info) => error_info,
+                None => {
+                    error!("Uncaught exception: failed to extract information");
+                    return;
+                }
             }
-            return;
-        }
-
-        rooted!(in(cx) let object = value.to_object());
-        let error_info = ErrorInfo::from_native_error(cx, object.handle())
-            .or_else(|| ErrorInfo::from_dom_exception(object.handle()));
-        let error_info = match error_info {
-            Some(error_info) => error_info,
-            None => {
-                error!("Uncaught exception: failed to extract information");
-                return;
+        } else {
+            match USVString::from_jsval(cx, value.handle(), ()) {
+                Ok(ConversionResult::Success(USVString(string))) => {
+                    ErrorInfo {
+                        message: format!("uncaught exception: {}", string),
+                        filename: String::new(),
+                        lineno: 0,
+                        column: 0,
+                    }
+                },
+                _ => {
+                    panic!("Uncaught exception: failed to stringify primitive");
+                },
             }
         };
 
@@ -226,6 +242,13 @@ pub unsafe fn report_pending_exception(cx: *mut JSContext) {
                error_info.lineno,
                error_info.column,
                error_info.message);
+
+        if dispatch_event {
+            let global = global_root_from_context(cx);
+            if let GlobalRef::Window(window) = global.r() {
+                window.report_an_error(error_info, value.handle());
+            }
+        }
     }
 }
 
