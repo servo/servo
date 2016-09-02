@@ -4,19 +4,15 @@
 
 import os
 import sys
-import yaml
 import shutil
 from distutils import spawn
 
 from base import BaseBootstrapper
-from servo.bootstrap_commands import extract, download_file
+from packages import WINDOWS_MSVC as deps
 
 
 class WindowsMsvcBootstrapper(BaseBootstrapper):
     '''Bootstrapper for MSVC building on Windows.'''
-
-    deps_file = yaml.load(open("./servo-dependencies.yml").read())
-    deps = deps_file.get("windows-msvc", [])
 
     def __init__(self, **kwargs):
         BaseBootstrapper.__init__(self, **kwargs)
@@ -25,6 +21,8 @@ class WindowsMsvcBootstrapper(BaseBootstrapper):
         self.install_packages()
 
     def install_packages(self, packages=deps):
+        from servo.bootstrap_commands import extract, download_file
+
         msvc_deps_dir = os.path.join(".servo", "msvc-dependencies")
         msvc_deps_url = "https://dl.dropboxusercontent.com/u/25971865/msvc-deps/"
         first_run = True

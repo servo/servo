@@ -4,16 +4,13 @@
 
 import sys
 import subprocess
-import yaml
 
 from base import BaseBootstrapper
+from packages import WINDOWS_GNU as deps
 
 
 class WindowsGnuBootstrapper(BaseBootstrapper):
     '''Bootstrapper for msys2 based environments for building in Windows.'''
-
-    deps_file = yaml.load(open("./servo-dependencies.yml").read())
-    deps = deps_file.get("windows-gnu", [])
 
     def __init__(self, **kwargs):
         BaseBootstrapper.__init__(self, **kwargs)
@@ -24,7 +21,7 @@ class WindowsGnuBootstrapper(BaseBootstrapper):
 
     def check_installed_packages(self):
         install_packages = []
-        for p in self.deps:
+        for p in deps:
             command = ['pacman', '-Qs', p]
             if self.run_check(command):
                 install_packages += [p]
