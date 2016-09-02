@@ -46,12 +46,12 @@ impl MimeTypeArrayMethods for MimeTypeArray {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-mimetypearray-item
-    fn IndexedGetter(&self, _index: u32, _found: &mut bool) -> Option<Root<MimeType>> {
+    fn IndexedGetter(&self, _index: u32) -> Option<Root<MimeType>> {
         None
     }
 
     // check-tidy: no specs after this line
-    fn NamedGetter(&self, _name: DOMString, _found: &mut bool) -> Option<Root<MimeType>> {
+    fn NamedGetter(&self, _name: DOMString) -> Option<Root<MimeType>> {
         None
     }
 

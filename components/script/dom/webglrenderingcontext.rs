@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use canvas_traits::{CanvasCommonMsg, CanvasMsg, byte_swap};
+use core::nonzero::NonZero;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{self, WebGLContextAttributes};
@@ -305,8 +306,7 @@ impl WebGLRenderingContext {
         // complexity is worth it.
         let (pixels, size) = match source {
             ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement::ImageData(image_data) => {
-                let global = self.global();
-                (image_data.get_data_array(&global.r()), image_data.get_size())
+                (image_data.get_data_array(), image_data.get_size())
             },
             ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement::HTMLImageElement(image) => {
                 let img_url = match image.get_url() {
@@ -632,8 +632,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.14
-    fn GetExtension(&self, _cx: *mut JSContext, _name: DOMString) -> *mut JSObject {
-        0 as *mut JSObject
+    fn GetExtension(&self, _cx: *mut JSContext, _name: DOMString)
+                    -> Option<NonZero<*mut JSObject>> {
+        None
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
@@ -1403,6 +1404,11 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         frame_buffer.map_or(false, |buf| buf.target().is_some() && !buf.is_deleted())
     }
 
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    fn IsProgram(&self, program: Option<&WebGLProgram>) -> bool {
+        program.map_or(false, |p| !p.is_deleted())
+    }
+
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7
     fn IsRenderbuffer(&self, render_buffer: Option<&WebGLRenderbuffer>) -> bool {
         render_buffer.map_or(false, |buf| buf.ever_bound() && !buf.is_deleted())
@@ -1526,6 +1532,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.4
     fn Scissor(&self, x: i32, y: i32, width: i32, height: i32) {
+        if width < 0 || height < 0 {
+            return self.webgl_error(InvalidValue)
+        }
+
         self.ipc_renderer
             .send(CanvasMsg::WebGL(WebGLCommand::Scissor(x, y, width, height)))
             .unwrap()
@@ -1938,6 +1948,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.4
     fn Viewport(&self, x: i32, y: i32, width: i32, height: i32) {
+        if width < 0 || height < 0 {
+            return self.webgl_error(InvalidValue)
+        }
+
         self.ipc_renderer
             .send(CanvasMsg::WebGL(WebGLCommand::Viewport(x, y, width, height)))
             .unwrap()

@@ -89,8 +89,7 @@ pub struct CefJSDialogCallback {
 impl Clone for CefJSDialogCallback {
   fn clone(&self) -> CefJSDialogCallback{
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefJSDialogCallback {
@@ -103,8 +102,7 @@ impl Clone for CefJSDialogCallback {
 impl Drop for CefJSDialogCallback {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -119,8 +117,7 @@ impl CefJSDialogCallback {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_jsdialog_callback_t) -> CefJSDialogCallback {
-    if !c_object.is_null() &&
-        c_object as usize != mem::POST_DROP_USIZE {
+    if !c_object.is_null() {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefJSDialogCallback {
@@ -134,8 +131,7 @@ impl CefJSDialogCallback {
 
   pub fn c_object_addrefed(&self) -> *mut cef_jsdialog_callback_t {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -143,10 +139,10 @@ impl CefJSDialogCallback {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
+    self.c_object.is_null()
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
+    !self.c_object.is_null()
   }
 
   //
@@ -154,8 +150,7 @@ impl CefJSDialogCallback {
   // was pressed. The |user_input| value should be specified for prompt dialogs.
   //
   pub fn cont(&self, success: libc::c_int, user_input: &[u16]) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -184,8 +179,7 @@ impl CefWrap<*mut cef_jsdialog_callback_t> for Option<CefJSDialogCallback> {
     }
   }
   unsafe fn to_rust(c_object: *mut cef_jsdialog_callback_t) -> Option<CefJSDialogCallback> {
-    if c_object.is_null() &&
-       c_object as usize != mem::POST_DROP_USIZE {
+    if c_object.is_null() {
       None
     } else {
       Some(CefJSDialogCallback::from_c_object_addref(c_object))
@@ -284,8 +278,7 @@ pub struct CefJSDialogHandler {
 impl Clone for CefJSDialogHandler {
   fn clone(&self) -> CefJSDialogHandler{
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefJSDialogHandler {
@@ -298,8 +291,7 @@ impl Clone for CefJSDialogHandler {
 impl Drop for CefJSDialogHandler {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -314,8 +306,7 @@ impl CefJSDialogHandler {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_jsdialog_handler_t) -> CefJSDialogHandler {
-    if !c_object.is_null() &&
-        c_object as usize != mem::POST_DROP_USIZE {
+    if !c_object.is_null() {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefJSDialogHandler {
@@ -329,8 +320,7 @@ impl CefJSDialogHandler {
 
   pub fn c_object_addrefed(&self) -> *mut cef_jsdialog_handler_t {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -338,10 +328,10 @@ impl CefJSDialogHandler {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
+    self.c_object.is_null()
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
+    !self.c_object.is_null()
   }
 
   //
@@ -364,8 +354,7 @@ impl CefJSDialogHandler {
       message_text: &[u16], default_prompt_text: &[u16],
       callback: interfaces::CefJSDialogCallback,
       suppress_message: &mut libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -394,8 +383,7 @@ impl CefJSDialogHandler {
   pub fn on_before_unload_dialog(&self, browser: interfaces::CefBrowser,
       message_text: &[u16], is_reload: libc::c_int,
       callback: interfaces::CefJSDialogCallback) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -415,8 +403,7 @@ impl CefJSDialogHandler {
   // dialogs are currently pending.
   //
   pub fn on_reset_dialog_state(&self, browser: interfaces::CefBrowser) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -431,8 +418,7 @@ impl CefJSDialogHandler {
   // Called when the default implementation dialog is closed.
   //
   pub fn on_dialog_closed(&self, browser: interfaces::CefBrowser) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -460,8 +446,7 @@ impl CefWrap<*mut cef_jsdialog_handler_t> for Option<CefJSDialogHandler> {
     }
   }
   unsafe fn to_rust(c_object: *mut cef_jsdialog_handler_t) -> Option<CefJSDialogHandler> {
-    if c_object.is_null() &&
-       c_object as usize != mem::POST_DROP_USIZE {
+    if c_object.is_null() {
       None
     } else {
       Some(CefJSDialogHandler::from_c_object_addref(c_object))

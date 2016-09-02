@@ -88,6 +88,7 @@ use std::sync::mpsc::{Receiver, Sender};
 use std::time::SystemTime;
 use string_cache::{Atom, Namespace, QualName};
 use style::attr::{AttrIdentifier, AttrValue, LengthOrPercentageOrAuto};
+use style::domrefcell::DOMRefCell;
 use style::element_state::*;
 use style::properties::PropertyDeclarationBlock;
 use style::selector_impl::{PseudoElement, ElementSnapshot};
@@ -172,6 +173,13 @@ impl<T: JSTraceable> JSTraceable for UnsafeCell<T> {
     }
 }
 
+impl<T: JSTraceable> JSTraceable for DOMRefCell<T> {
+    fn trace(&self, trc: *mut JSTracer) {
+        unsafe {
+            (*self).borrow_for_gc_trace().trace(trc)
+        }
+    }
+}
 
 impl JSTraceable for Heap<*mut JSObject> {
     fn trace(&self, trc: *mut JSTracer) {

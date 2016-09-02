@@ -171,9 +171,7 @@ impl DOMTokenListMethods for DOMTokenList {
     }
 
     // check-tidy: no specs after this line
-    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<DOMString> {
-        let item = self.Item(index);
-        *found = item.is_some();
-        item
+    fn IndexedGetter(&self, index: u32) -> Option<DOMString> {
+        self.Item(index)
     }
 }

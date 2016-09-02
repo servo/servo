@@ -282,14 +282,34 @@ impl Importance {
 
 /// Overridden declarations are skipped.
 // FIXME (https://github.com/servo/servo/issues/3426)
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct PropertyDeclarationBlock {
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "#7038")]
-    pub declarations: Arc<Vec<(PropertyDeclaration, Importance)>>,
+    pub declarations: Vec<(PropertyDeclaration, Importance)>,
 
     /// The number of entries in `self.declaration` with `Importance::Important`
     pub important_count: u32,
+}
+
+impl PropertyDeclarationBlock {
+    /// Returns wheather this block contains any declaration with `!important`.
+    ///
+    /// This is based on the `important_count` counter,
+    /// which should be maintained whenever `declarations` is changed.
+    // FIXME: make fields private and maintain it here in methods?
+    pub fn any_important(&self) -> bool {
+        self.important_count > 0
+    }
+
+    /// Returns wheather this block contains any declaration without `!important`.
+    ///
+    /// This is based on the `important_count` counter,
+    /// which should be maintained whenever `declarations` is changed.
+    // FIXME: make fields private and maintain it here in methods?
+    pub fn any_normal(&self) -> bool {
+        self.declarations.len() > self.important_count as usize
+    }
 }
 
 impl ToCss for PropertyDeclarationBlock {
@@ -567,7 +587,7 @@ pub fn parse_property_declaration_list(context: &ParserContext, input: &mut Pars
         }
     }
     let mut block = PropertyDeclarationBlock {
-        declarations: Arc::new(declarations),
+        declarations: declarations,
         important_count: important_count,
     };
     deduplicate_property_declarations(&mut block);
@@ -583,8 +603,7 @@ fn deduplicate_property_declarations(block: &mut PropertyDeclarationBlock) {
     let mut seen_custom_normal = Vec::new();
     let mut seen_custom_important = Vec::new();
 
-    let declarations = Arc::get_mut(&mut block.declarations).unwrap();
-    for (declaration, importance) in declarations.drain(..).rev() {
+    for (declaration, importance) in block.declarations.drain(..).rev() {
         match declaration {
             % for property in data.longhands:
                 PropertyDeclaration::${property.camel_case}(..) => {
@@ -636,7 +655,7 @@ fn deduplicate_property_declarations(block: &mut PropertyDeclarationBlock) {
         deduplicated.push((declaration, importance))
     }
     deduplicated.reverse();
-    *declarations = deduplicated;
+    block.declarations = deduplicated;
 }
 
 #[inline]

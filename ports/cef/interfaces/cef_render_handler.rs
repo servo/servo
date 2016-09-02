@@ -213,8 +213,7 @@ pub struct CefRenderHandler {
 impl Clone for CefRenderHandler {
   fn clone(&self) -> CefRenderHandler{
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefRenderHandler {
@@ -227,8 +226,7 @@ impl Clone for CefRenderHandler {
 impl Drop for CefRenderHandler {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -243,8 +241,7 @@ impl CefRenderHandler {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_render_handler_t) -> CefRenderHandler {
-    if !c_object.is_null() &&
-        c_object as usize != mem::POST_DROP_USIZE {
+    if !c_object.is_null() {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefRenderHandler {
@@ -258,8 +255,7 @@ impl CefRenderHandler {
 
   pub fn c_object_addrefed(&self) -> *mut cef_render_handler_t {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -267,10 +263,10 @@ impl CefRenderHandler {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
+    self.c_object.is_null()
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
+    !self.c_object.is_null()
   }
 
   //
@@ -279,8 +275,7 @@ impl CefRenderHandler {
   //
   pub fn get_root_screen_rect(&self, browser: interfaces::CefBrowser,
       rect: &mut types::cef_rect_t) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -298,8 +293,7 @@ impl CefRenderHandler {
   //
   pub fn get_view_rect(&self, browser: interfaces::CefBrowser,
       rect: &mut types::cef_rect_t) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -318,8 +312,7 @@ impl CefRenderHandler {
   pub fn get_screen_point(&self, browser: interfaces::CefBrowser,
       viewX: libc::c_int, viewY: libc::c_int, screenX: &mut libc::c_int,
       screenY: &mut libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -345,8 +338,7 @@ impl CefRenderHandler {
   //
   pub fn get_screen_info(&self, browser: interfaces::CefBrowser,
       screen_info: &mut interfaces::CefScreenInfo) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -364,8 +356,7 @@ impl CefRenderHandler {
   //
   pub fn on_popup_show(&self, browser: interfaces::CefBrowser,
       show: libc::c_int) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -383,8 +374,7 @@ impl CefRenderHandler {
   //
   pub fn on_popup_size(&self, browser: interfaces::CefBrowser,
       rect: &types::cef_rect_t) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -410,8 +400,7 @@ impl CefRenderHandler {
       ty: types::cef_paint_element_type_t, dirtyRects_count: libc::size_t,
       dirtyRects: *const types::cef_rect_t, buffer: &(), width: libc::c_int,
       height: libc::c_int) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -435,8 +424,7 @@ impl CefRenderHandler {
   pub fn on_cursor_change(&self, browser: interfaces::CefBrowser,
       cursor: types::cef_cursor_handle_t, ty: types::cef_cursor_type_t,
       custom_cursor_info: &interfaces::CefCursorInfo) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -468,8 +456,7 @@ impl CefRenderHandler {
       drag_data: interfaces::CefDragData,
       allowed_ops: types::cef_drag_operations_mask_t, x: libc::c_int,
       y: libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -491,8 +478,7 @@ impl CefRenderHandler {
   //
   pub fn update_drag_cursor(&self, browser: interfaces::CefBrowser,
       operation: types::cef_drag_operations_mask_t) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -509,8 +495,7 @@ impl CefRenderHandler {
   //
   pub fn on_scroll_offset_changed(&self, browser: interfaces::CefBrowser,
       x: libc::c_double, y: libc::c_double) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -531,8 +516,7 @@ impl CefRenderHandler {
   //
   pub fn get_backing_rect(&self, browser: interfaces::CefBrowser,
       rect: &mut types::cef_rect_t) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -549,8 +533,7 @@ impl CefRenderHandler {
   // flip). This is called only during accelerated compositing.
   //
   pub fn on_present(&self, browser: interfaces::CefBrowser) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -578,8 +561,7 @@ impl CefWrap<*mut cef_render_handler_t> for Option<CefRenderHandler> {
     }
   }
   unsafe fn to_rust(c_object: *mut cef_render_handler_t) -> Option<CefRenderHandler> {
-    if c_object.is_null() &&
-       c_object as usize != mem::POST_DROP_USIZE {
+    if c_object.is_null() {
       None
     } else {
       Some(CefRenderHandler::from_c_object_addref(c_object))

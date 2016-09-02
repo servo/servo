@@ -22,7 +22,7 @@ servo = ["serde", "serde/unstable", "serde_macros", "heapsize", "heapsize_plugin
 [dependencies]
 app_units = "0.3"
 bitflags = "0.7"
-cssparser = "0.5.7"
+cssparser = "0.6"
 deque = "0.3.1"
 encoding = "0.2"
 euclid = "0.10.1"
@@ -40,11 +40,11 @@ ordered-float = "0.2.2"
 quickersort = "2.0.0"
 rand = "0.3"
 rustc-serialize = "0.3"
-selectors = "0.11"
+selectors = "0.13"
 serde = {version = "0.8", optional = true}
 serde_macros = {version = "0.8", optional = true}
 smallvec = "0.1"
-string_cache = {version = "0.2.24", features = ["heap_size"], optional = true}
+string_cache = {version = "0.2.26", features = ["heap_size"], optional = true}
 style_traits = {path = "../style_traits"}
 time = "0.1"
 url = "1.2"

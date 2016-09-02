@@ -1210,12 +1210,106 @@ fn static_assert() {
 
 </%self:impl_trait>
 
+<%self:impl_trait style_struct_name="Effects"
+                  skip_longhands="box-shadow">
+    pub fn set_box_shadow(&mut self, v: longhands::box_shadow::computed_value::T) {
+        use cssparser::Color;
+
+        self.gecko.mBoxShadow.replace_with_new(v.0.len() as u32);
+
+        for (servo, gecko_shadow) in v.0.into_iter()
+                                      .zip(self.gecko.mBoxShadow.iter_mut()) {
+
+            gecko_shadow.mXOffset = servo.offset_x.0;
+            gecko_shadow.mYOffset = servo.offset_y.0;
+            gecko_shadow.mRadius = servo.blur_radius.0;
+            gecko_shadow.mSpread = servo.spread_radius.0;
+            gecko_shadow.mSpread = servo.spread_radius.0;
+            gecko_shadow.mInset = servo.inset;
+            gecko_shadow.mColor = match servo.color {
+                Color::RGBA(rgba) => {
+                    gecko_shadow.mHasColor = true;
+                    convert_rgba_to_nscolor(&rgba)
+                },
+                // TODO handle currentColor
+                // https://bugzilla.mozilla.org/show_bug.cgi?id=760345
+                Color::CurrentColor => 0,
+            }
+
+        }
+    }
+
+    pub fn copy_box_shadow_from(&mut self, other: &Self) {
+        self.gecko.mBoxShadow.copy_from(&other.gecko.mBoxShadow);
+    }
+
+    pub fn clone_box_shadow(&self) -> longhands::box_shadow::computed_value::T {
+        use cssparser::Color;
+
+        let buf = self.gecko.mBoxShadow.iter().map(|shadow| {
+            longhands::box_shadow::single_value::computed_value::T {
+                offset_x: Au(shadow.mXOffset),
+                offset_y: Au(shadow.mYOffset),
+                blur_radius: Au(shadow.mRadius),
+                spread_radius: Au(shadow.mSpread),
+                inset: shadow.mInset,
+                color: Color::RGBA(convert_nscolor_to_rgba(shadow.mColor)),
+            }
+        }).collect();
+        longhands::box_shadow::computed_value::T(buf)
+    }
+</%self:impl_trait>
+
+
 <%self:impl_trait style_struct_name="InheritedText"
-                  skip_longhands="text-align line-height word-spacing">
+                  skip_longhands="text-align text-shadow line-height word-spacing">
 
     <% text_align_keyword = Keyword("text-align", "start end left right center justify -moz-center -moz-left " +
                                                   "-moz-right match-parent") %>
     ${impl_keyword('text_align', 'mTextAlign', text_align_keyword, need_clone=False)}
+
+    pub fn set_text_shadow(&mut self, v: longhands::text_shadow::computed_value::T) {
+        use cssparser::Color;
+        self.gecko.mTextShadow.replace_with_new(v.0.len() as u32);
+
+        for (servo, gecko_shadow) in v.0.into_iter()
+                                      .zip(self.gecko.mTextShadow.iter_mut()) {
+
+            gecko_shadow.mXOffset = servo.offset_x.0;
+            gecko_shadow.mYOffset = servo.offset_y.0;
+            gecko_shadow.mRadius = servo.blur_radius.0;
+            gecko_shadow.mHasColor = false;
+            gecko_shadow.mColor = match servo.color {
+                Color::RGBA(rgba) => {
+                    gecko_shadow.mHasColor = true;
+                    convert_rgba_to_nscolor(&rgba)
+                },
+                // TODO handle currentColor
+                // https://bugzilla.mozilla.org/show_bug.cgi?id=760345
+                Color::CurrentColor => 0,
+            }
+
+        }
+    }
+
+    pub fn copy_text_shadow_from(&mut self, other: &Self) {
+        self.gecko.mTextShadow.copy_from(&other.gecko.mTextShadow);
+    }
+
+    pub fn clone_text_shadow(&self) -> longhands::text_shadow::computed_value::T {
+        use cssparser::Color;
+
+        let buf = self.gecko.mTextShadow.iter().map(|shadow| {
+            longhands::text_shadow::computed_value::TextShadow {
+                offset_x: Au(shadow.mXOffset),
+                offset_y: Au(shadow.mYOffset),
+                blur_radius: Au(shadow.mRadius),
+                color: Color::RGBA(convert_nscolor_to_rgba(shadow.mColor)),
+            }
+
+        }).collect();
+        longhands::text_shadow::computed_value::T(buf)
+    }
 
     pub fn set_line_height(&mut self, v: longhands::line_height::computed_value::T) {
         use properties::longhands::line_height::computed_value::T;

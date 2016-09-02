@@ -72,7 +72,7 @@ impl ServiceWorkerManager {
             }
         }
 
-        if let Some(ref scope_url) = scope_url {
+        if let Some(scope_url) = scope_url {
             if self.active_workers.contains_key(&scope_url) {
                 // do not run the same worker if already active.
                 warn!("Service worker for {:?} already active", scope_url);
@@ -100,7 +100,7 @@ impl ServiceWorkerManager {
                                                                               self.own_sender.clone(),
                                                                               scope_url.clone());
                 // We store the activated worker
-                self.active_workers.insert(scope_url.clone(), scope_things.clone());
+                self.active_workers.insert(scope_url, scope_things.clone());
                 return Some(sender);
             } else {
                 warn!("Unable to activate service worker");

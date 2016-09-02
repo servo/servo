@@ -405,6 +405,14 @@ impl<'ld> TDocument for ServoLayoutDocument<'ld> {
         let elements =  unsafe { self.document.drain_modified_elements() };
         elements.into_iter().map(|(el, snapshot)| (ServoLayoutElement::from_layout_js(el), snapshot)).collect()
     }
+
+    fn needs_paint_from_layout(&self) {
+        unsafe { self.document.needs_paint_from_layout(); }
+    }
+
+    fn will_paint(&self) {
+        unsafe { self.document.will_paint(); }
+    }
 }
 
 impl<'ld> ServoLayoutDocument<'ld> {
@@ -451,9 +459,9 @@ impl<'le> TElement for ServoLayoutElement<'le> {
         ServoLayoutNode::from_layout_js(self.element.upcast())
     }
 
-    fn style_attribute(&self) -> &Option<PropertyDeclarationBlock> {
+    fn style_attribute(&self) -> Option<&Arc<PropertyDeclarationBlock>> {
         unsafe {
-            &*self.element.style_attribute()
+            (*self.element.style_attribute()).as_ref()
         }
     }
 

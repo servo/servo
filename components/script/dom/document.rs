@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use core::nonzero::NonZero;
 use document_loader::{DocumentLoader, LoadType};
 use dom::activation::{ActivationSource, synthetic_click_activation};
 use dom::attr::Attr;
@@ -110,18 +111,18 @@ use script_traits::{TouchEventType, TouchId};
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
-use std::cell::{Cell, Ref, RefMut};
+use std::cell::Cell;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::default::Default;
 use std::iter::once;
 use std::mem;
-use std::ptr;
 use std::rc::Rc;
 use std::sync::Arc;
 use string_cache::{Atom, QualName};
 use style::attr::AttrValue;
 use style::context::ReflowGoal;
+use style::refcell::{Ref, RefMut};
 use style::selector_impl::ElementSnapshot;
 use style::str::{split_html_space_chars, str_join};
 use style::stylesheets::Stylesheet;
@@ -221,6 +222,9 @@ pub struct Document {
     /// For each element that has had a state or attribute change since the last restyle,
     /// track the original condition of the element.
     modified_elements: DOMRefCell<HashMap<JS<Element>, ElementSnapshot>>,
+    /// This flag will be true if layout suppressed a reflow attempt that was
+    /// needed in order for the page to be painted.
+    needs_paint: Cell<bool>,
     /// http://w3c.github.io/touch-events/#dfn-active-touch-point
     active_touch_points: DOMRefCell<Vec<JS<Touch>>>,
     /// Navigation Timing properties:
@@ -376,6 +380,10 @@ impl Document {
         }
     }
 
+    pub fn needs_paint(&self) -> bool {
+        self.needs_paint.get()
+    }
+
     pub fn needs_reflow(&self) -> bool {
         // FIXME: This should check the dirty bit on the document,
         // not the document element. Needs some layout changes to make
@@ -384,7 +392,8 @@ impl Document {
             Some(root) => {
                 root.upcast::<Node>().is_dirty() ||
                 root.upcast::<Node>().has_dirty_descendants() ||
-                !self.modified_elements.borrow().is_empty()
+                !self.modified_elements.borrow().is_empty() ||
+                self.needs_paint()
             }
             None => false,
         }
@@ -1602,6 +1611,8 @@ pub enum DocumentSource {
 pub trait LayoutDocumentHelpers {
     unsafe fn is_html_document_for_layout(&self) -> bool;
     unsafe fn drain_modified_elements(&self) -> Vec<(LayoutJS<Element>, ElementSnapshot)>;
+    unsafe fn needs_paint_from_layout(&self);
+    unsafe fn will_paint(&self);
 }
 
 #[allow(unsafe_code)]
@@ -1617,6 +1628,16 @@ impl LayoutDocumentHelpers for LayoutJS<Document> {
         let mut elements = (*self.unsafe_get()).modified_elements.borrow_mut_for_layout();
         let result = elements.drain().map(|(k, v)| (k.to_layout(), v)).collect();
         result
+    }
+
+    #[inline]
+    unsafe fn needs_paint_from_layout(&self) {
+        (*self.unsafe_get()).needs_paint.set(true)
+    }
+
+    #[inline]
+    unsafe fn will_paint(&self) {
+        (*self.unsafe_get()).needs_paint.set(false)
     }
 }
 
@@ -1723,6 +1744,7 @@ impl Document {
             base_element: Default::default(),
             appropriate_template_contents_owner_document: Default::default(),
             modified_elements: DOMRefCell::new(HashMap::new()),
+            needs_paint: Cell::new(false),
             active_touch_points: DOMRefCell::new(Vec::new()),
             dom_loading: Cell::new(Default::default()),
             dom_interactive: Cell::new(Default::default()),
@@ -2689,8 +2711,9 @@ impl DocumentMethods for Document {
         self.set_body_attribute(&atom!("text"), value)
     }
 
+    #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:dom-document-nameditem-filter
-    fn NamedGetter(&self, _cx: *mut JSContext, name: DOMString, found: &mut bool) -> *mut JSObject {
+    fn NamedGetter(&self, _cx: *mut JSContext, name: DOMString) -> Option<NonZero<*mut JSObject>> {
         #[derive(JSTraceable, HeapSizeOf)]
         struct NamedElementFilter {
             name: Atom,
@@ -2756,23 +2779,24 @@ impl DocumentMethods for Document {
                                    .peekable();
             if let Some(first) = elements.next() {
                 if elements.peek().is_none() {
-                    *found = true;
                     // TODO: Step 2.
                     // Step 3.
-                    return first.reflector().get_jsobject().get();
+                    return unsafe {
+                        Some(NonZero::new(first.reflector().get_jsobject().get()))
+                    };
                 }
             } else {
-                *found = false;
-                return ptr::null_mut();
+                return None;
             }
         }
         // Step 4.
-        *found = true;
         let filter = NamedElementFilter {
             name: name,
         };
         let collection = HTMLCollection::create(self.window(), root, box filter);
-        collection.reflector().get_jsobject().get()
+        unsafe {
+            Some(NonZero::new(collection.reflector().get_jsobject().get()))
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:supported-property-names

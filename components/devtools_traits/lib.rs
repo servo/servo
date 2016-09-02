@@ -252,7 +252,7 @@ bitflags! {
 
 #[derive(Deserialize, Serialize)]
 pub struct PageError {
-    #[serde(rename = "type")]
+    #[serde(rename = "_type")]
     pub type_: String,
     pub errorMessage: String,
     pub sourceName: String,
@@ -270,7 +270,7 @@ pub struct PageError {
 
 #[derive(Deserialize, Serialize)]
 pub struct ConsoleAPI {
-    #[serde(rename = "type")]
+    #[serde(rename = "_type")]
     pub type_: String,
     pub level: String,
     pub filename: String,

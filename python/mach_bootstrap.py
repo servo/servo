@@ -6,9 +6,9 @@ from __future__ import print_function, unicode_literals
 
 import os
 import platform
-import subprocess
 import sys
 from distutils.spawn import find_executable
+from subprocess import PIPE, Popen
 
 SEARCH_PATHS = [
     os.path.join("python", "tidy"),
@@ -25,7 +25,6 @@ MACH_MODULES = [
     os.path.join('python', 'servo', 'package_commands.py'),
     os.path.join('python', 'servo', 'devenv_commands.py'),
 ]
-
 
 CATEGORIES = {
     'bootstrap': {
@@ -76,55 +75,53 @@ CATEGORIES = {
     }
 }
 
+# Possible names of executables
+PYTHON_NAMES = ["python-2.7", "python2.7", "python2", "python"]
+VIRTUALENV_NAMES = ["virtualenv-2.7", "virtualenv2.7", "virtualenv2", "virtualenv"]
+PIP_NAMES = ["pip-2.7", "pip2.7", "pip2", "pip"]
 
-def _get_exec(*names):
+
+def _get_exec_path(names, is_valid_path=lambda _path: True):
     for name in names:
         path = find_executable(name)
-        if path is not None:
+        if path and is_valid_path(path):
             return path
     return None
 
 
 def _get_virtualenv_script_dir():
     # Virtualenv calls its scripts folder "bin" on linux/OSX/MSYS64 but "Scripts" on Windows
-    if os.name == "nt" and os.path.sep != "/":
+    if os.name == "nt" and os.sep != "/":
         return "Scripts"
     return "bin"
 
 
-# Possible names of executables, sorted from most to least specific
-PYTHON_NAMES = ["python-2.7", "python2.7", "python2", "python"]
-VIRTUALENV_NAMES = ["virtualenv-2.7", "virtualenv2.7", "virtualenv2", "virtualenv"]
-PIP_NAMES = ["pip-2.7", "pip2.7", "pip2", "pip"]
-
-
 def _activate_virtualenv(topdir):
     virtualenv_path = os.path.join(topdir, "python", "_virtualenv")
-    python = _get_exec(*PYTHON_NAMES)
-    if python is None:
-        sys.exit("Python is not installed. Please install it prior to running mach.")
+    check_exec_path = lambda path: path.startswith(virtualenv_path)
+    python = _get_exec_path(PYTHON_NAMES)   # If there was no python, mach wouldn't have run at all!
+    if not python:
+        sys.exit('Failed to find python executable for starting virtualenv.')
 
     script_dir = _get_virtualenv_script_dir()
     activate_path = os.path.join(virtualenv_path, script_dir, "activate_this.py")
     if not (os.path.exists(virtualenv_path) and os.path.exists(activate_path)):
-        virtualenv = _get_exec(*VIRTUALENV_NAMES)
-        if virtualenv is None:
+        virtualenv = _get_exec_path(VIRTUALENV_NAMES)
+        if not virtualenv:
             sys.exit("Python virtualenv is not installed. Please install it prior to running mach.")
 
-        process = subprocess.Popen(
-            [virtualenv, "-p", python, virtualenv_path],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE)
+        process = Popen([virtualenv, "-p", python, virtualenv_path], stdout=PIPE, stderr=PIPE)
         process.wait()
         if process.returncode:
-            sys.exit("Python virtualenv failed to execute properly: {}"
-                     .format(process.communicate()[1]))
+            out, err = process.communicate()
+            print('Python virtualenv failed to execute properly:')
+            sys.exit('Output: %s\nError: %s' % (out, err))
 
     execfile(activate_path, dict(__file__=activate_path))
 
-    python = find_executable("python")
-    if python is None or not python.startswith(virtualenv_path):
-        sys.exit("Python virtualenv failed to activate.")
+    python = _get_exec_path(PYTHON_NAMES, is_valid_path=check_exec_path)
+    if not python:
+        sys.exit("Python executable in virtualenv failed to activate.")
 
     # TODO: Right now, we iteratively install all the requirements by invoking
     # `pip install` each time. If it were the case that there were conflicting
@@ -138,28 +135,28 @@ def _activate_virtualenv(topdir):
         os.path.join("tests", "wpt", "harness", "requirements_firefox.txt"),
         os.path.join("tests", "wpt", "harness", "requirements_servo.txt"),
     ]
+
     for req_rel_path in requirements_paths:
         req_path = os.path.join(topdir, req_rel_path)
         marker_file = req_rel_path.replace(os.path.sep, '-')
         marker_path = os.path.join(virtualenv_path, marker_file)
+
         try:
             if os.path.getmtime(req_path) + 10 < os.path.getmtime(marker_path):
                 continue
         except OSError:
             pass
 
-        pip = _get_exec(*PIP_NAMES)
-        if pip is None:
-            sys.exit("Python pip is not installed. Please install it prior to running mach.")
+        pip = _get_exec_path(PIP_NAMES, is_valid_path=check_exec_path)
+        if not pip:
+            sys.exit("Python pip is either not installed or not found in virtualenv.")
 
-        process = subprocess.Popen(
-            [pip, "install", "-q", "-r", req_path],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE)
+        process = Popen([pip, "install", "-q", "-r", req_path], stdout=PIPE, stderr=PIPE)
         process.wait()
         if process.returncode:
-            sys.exit("Pip failed to execute properly: {}"
-                     .format(process.communicate()[1]))
+            out, err = process.communicate()
+            print('Pip failed to execute properly:')
+            sys.exit('Output: %s\nError: %s' % (out, err))
 
         open(marker_path, 'w').close()
 
@@ -199,8 +196,7 @@ def bootstrap(topdir):
         sys.exit(1)
 
     # Ensure we are running Python 2.7+. We put this check here so we generate a
-    # user-friendly error message rather than a cryptic stack trace on module
-    # import.
+    # user-friendly error message rather than a cryptic stack trace on module import.
     if not (3, 0) > sys.version_info >= (2, 7):
         print('Python 2.7 or above (but not Python 3) is required to run mach.')
         print('You are running Python', platform.python_version())
@@ -221,8 +217,7 @@ def bootstrap(topdir):
     mach.populate_context_handler = populate_context
 
     for category, meta in CATEGORIES.items():
-        mach.define_category(category, meta['short'], meta['long'],
-                             meta['priority'])
+        mach.define_category(category, meta['short'], meta['long'], meta['priority'])
 
     for path in MACH_MODULES:
         mach.load_commands_from_file(os.path.join(topdir, path))

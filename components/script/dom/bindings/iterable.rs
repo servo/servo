@@ -6,6 +6,7 @@
 
 //! Implementation of `iterable<...>` and `iterable<..., ...>` WebIDL declarations.
 
+use core::nonzero::NonZero;
 use dom::bindings::codegen::Bindings::IterableIteratorBinding::IterableKeyAndValueResult;
 use dom::bindings::codegen::Bindings::IterableIteratorBinding::IterableKeyOrValueResult;
 use dom::bindings::error::Fallible;
@@ -95,38 +96,41 @@ impl<T: Reflectable + JSTraceable + Iterable> IterableIterator<T> {
 
     /// Return the next value from the iterable object.
     #[allow(non_snake_case)]
-    pub fn Next(&self, cx: *mut JSContext) -> Fallible<*mut JSObject> {
+    pub fn Next(&self, cx: *mut JSContext) -> Fallible<NonZero<*mut JSObject>> {
         let index = self.index.get();
         rooted!(in(cx) let mut value = UndefinedValue());
         rooted!(in(cx) let mut rval = ptr::null_mut());
-        if index >= self.iterable.get_iterable_length() {
-            return dict_return(cx, rval.handle_mut(), true, value.handle())
-                .map(|_| rval.handle().get());
-        }
-        let result = match self.type_ {
-            IteratorType::Keys => {
-                unsafe {
-                    self.iterable.get_key_at_index(index).to_jsval(cx, value.handle_mut());
+        let result = if index >= self.iterable.get_iterable_length() {
+            dict_return(cx, rval.handle_mut(), true, value.handle())
+        } else {
+            match self.type_ {
+                IteratorType::Keys => {
+                    unsafe {
+                        self.iterable.get_key_at_index(index).to_jsval(cx, value.handle_mut());
+                    }
+                    dict_return(cx, rval.handle_mut(), false, value.handle())
                 }
-                dict_return(cx, rval.handle_mut(), false, value.handle())
-            }
-            IteratorType::Values => {
-                unsafe {
-                    self.iterable.get_value_at_index(index).to_jsval(cx, value.handle_mut());
+                IteratorType::Values => {
+                    unsafe {
+                        self.iterable.get_value_at_index(index).to_jsval(cx, value.handle_mut());
+                    }
+                    dict_return(cx, rval.handle_mut(), false, value.handle())
                 }
-                dict_return(cx, rval.handle_mut(), false, value.handle())
-            }
-            IteratorType::Entries => {
-                rooted!(in(cx) let mut key = UndefinedValue());
-                unsafe {
-                    self.iterable.get_key_at_index(index).to_jsval(cx, key.handle_mut());
-                    self.iterable.get_value_at_index(index).to_jsval(cx, value.handle_mut());
+                IteratorType::Entries => {
+                    rooted!(in(cx) let mut key = UndefinedValue());
+                    unsafe {
+                        self.iterable.get_key_at_index(index).to_jsval(cx, key.handle_mut());
+                        self.iterable.get_value_at_index(index).to_jsval(cx, value.handle_mut());
+                    }
+                    key_and_value_return(cx, rval.handle_mut(), key.handle(), value.handle())
                 }
-                key_and_value_return(cx, rval.handle_mut(), key.handle(), value.handle())
             }
         };
         self.index.set(index + 1);
-        result.map(|_| rval.handle().get())
+        result.map(|_| {
+            assert!(!rval.is_null());
+            unsafe { NonZero::new(rval.get()) }
+        })
     }
 }
 

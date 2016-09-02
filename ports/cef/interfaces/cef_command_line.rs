@@ -229,8 +229,7 @@ pub struct CefCommandLine {
 impl Clone for CefCommandLine {
   fn clone(&self) -> CefCommandLine{
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefCommandLine {
@@ -243,8 +242,7 @@ impl Clone for CefCommandLine {
 impl Drop for CefCommandLine {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -259,8 +257,7 @@ impl CefCommandLine {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_command_line_t) -> CefCommandLine {
-    if !c_object.is_null() &&
-        c_object as usize != mem::POST_DROP_USIZE {
+    if !c_object.is_null() {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefCommandLine {
@@ -274,8 +271,7 @@ impl CefCommandLine {
 
   pub fn c_object_addrefed(&self) -> *mut cef_command_line_t {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -283,10 +279,10 @@ impl CefCommandLine {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
+    self.c_object.is_null()
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
+    !self.c_object.is_null()
   }
 
   //
@@ -294,8 +290,7 @@ impl CefCommandLine {
   // if this function returns false (0).
   //
   pub fn is_valid(&self) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -310,8 +305,7 @@ impl CefCommandLine {
   // expose read-only objects.
   //
   pub fn is_read_only(&self) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -325,8 +319,7 @@ impl CefCommandLine {
   // Returns a writable copy of this object.
   //
   pub fn copy(&self) -> interfaces::CefCommandLine {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -342,8 +335,7 @@ impl CefCommandLine {
   // supported on non-Windows platforms.
   //
   pub fn init_from_argv(&self, argc: libc::c_int, argv: &&str) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -360,8 +352,7 @@ impl CefCommandLine {
   // GetCommandLineW(). This function is only supported on Windows.
   //
   pub fn init_from_string(&self, command_line: &[u16]) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -377,8 +368,7 @@ impl CefCommandLine {
   // component unchanged.
   //
   pub fn reset(&self) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -393,8 +383,7 @@ impl CefCommandLine {
   // array: { program, [(--|-|/)switch[=value]]*, [--], [argument]* }
   //
   pub fn get_argv(&self, argv: &Vec<String>) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -411,8 +400,7 @@ impl CefCommandLine {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_command_line_string(&self) -> String {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -427,8 +415,7 @@ impl CefCommandLine {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_program(&self) -> String {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -442,8 +429,7 @@ impl CefCommandLine {
   // Set the program part of the command line string (the first item).
   //
   pub fn set_program(&self, program: &[u16]) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -458,8 +444,7 @@ impl CefCommandLine {
   // Returns true (1) if the command line has switches.
   //
   pub fn has_switches(&self) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -473,8 +458,7 @@ impl CefCommandLine {
   // Returns true (1) if the command line contains the given switch.
   //
   pub fn has_switch(&self, name: &[u16]) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -491,8 +475,7 @@ impl CefCommandLine {
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
   pub fn get_switch_value(&self, name: &[u16]) -> String {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -508,8 +491,7 @@ impl CefCommandLine {
   // NULL string is returned.
   //
   pub fn get_switches(&self, switches: HashMap<String,String>) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -525,8 +507,7 @@ impl CefCommandLine {
   // pass an NULL value string.
   //
   pub fn append_switch(&self, name: &[u16]) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -541,8 +522,7 @@ impl CefCommandLine {
   // Add a switch with the specified value to the end of the command line.
   //
   pub fn append_switch_with_value(&self, name: &[u16], value: &[u16]) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -558,8 +538,7 @@ impl CefCommandLine {
   // True if there are remaining command line arguments.
   //
   pub fn has_arguments(&self) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -573,8 +552,7 @@ impl CefCommandLine {
   // Get the remaining command line arguments.
   //
   pub fn get_arguments(&self, arguments: &Vec<String>) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -589,8 +567,7 @@ impl CefCommandLine {
   // Add an argument to the end of the command line.
   //
   pub fn append_argument(&self, argument: &[u16]) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -606,8 +583,7 @@ impl CefCommandLine {
   // "valgrind" or "gdb --args".
   //
   pub fn prepend_wrapper(&self, wrapper: &[u16]) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -658,8 +634,7 @@ impl CefWrap<*mut cef_command_line_t> for Option<CefCommandLine> {
     }
   }
   unsafe fn to_rust(c_object: *mut cef_command_line_t) -> Option<CefCommandLine> {
-    if c_object.is_null() &&
-       c_object as usize != mem::POST_DROP_USIZE {
+    if c_object.is_null() {
       None
     } else {
       Some(CefCommandLine::from_c_object_addref(c_object))

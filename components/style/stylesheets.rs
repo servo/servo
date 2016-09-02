@@ -19,6 +19,7 @@ use smallvec::SmallVec;
 use std::cell::Cell;
 use std::iter::Iterator;
 use std::slice;
+use std::sync::Arc;
 use string_cache::{Atom, Namespace};
 use url::Url;
 use viewport::ViewportRule;
@@ -64,31 +65,37 @@ pub struct UserAgentStylesheets {
 #[derive(Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum CSSRule {
-    Charset(String),
-    Namespace {
-        /// `None` for the default Namespace
-        prefix: Option<Atom>,
-        url: Namespace,
-    },
-    Style(StyleRule),
-    Media(MediaRule),
-    FontFace(FontFaceRule),
-    Viewport(ViewportRule),
-    Keyframes(KeyframesRule),
+    // No Charset here, CSSCharsetRule has been removed from CSSOM
+    // https://drafts.csswg.org/cssom/#changes-from-5-december-2013
+
+    Namespace(Arc<NamespaceRule>),
+    Style(Arc<StyleRule>),
+    Media(Arc<MediaRule>),
+    FontFace(Arc<FontFaceRule>),
+    Viewport(Arc<ViewportRule>),
+    Keyframes(Arc<KeyframesRule>),
 }
 
+
+#[derive(Debug, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub struct NamespaceRule {
+    /// `None` for the default Namespace
+    pub prefix: Option<Atom>,
+    pub url: Namespace,
+}
 
 #[derive(Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct KeyframesRule {
     pub name: Atom,
-    pub keyframes: Vec<Keyframe>,
+    pub keyframes: Vec<Arc<Keyframe>>,
 }
 
 #[derive(Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct MediaRule {
-    pub media_queries: MediaQueryList,
+    pub media_queries: Arc<MediaQueryList>,
     pub rules: Vec<CSSRule>,
 }
 
@@ -104,7 +111,7 @@ impl MediaRule {
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct StyleRule {
     pub selectors: Vec<Selector<TheSelectorImpl>>,
-    pub declarations: PropertyDeclarationBlock,
+    pub declarations: Arc<PropertyDeclarationBlock>,
 }
 
 
@@ -154,13 +161,13 @@ impl Stylesheet {
             while let Some(result) = iter.next() {
                 match result {
                     Ok(rule) => {
-                        if let CSSRule::Namespace { ref prefix, ref url } = rule {
-                            if let Some(prefix) = prefix.as_ref() {
+                        if let CSSRule::Namespace(ref rule) = rule {
+                            if let Some(ref prefix) = rule.prefix {
                                 iter.parser.context.selector_context.namespace_prefixes.insert(
-                                    prefix.clone(), url.clone());
+                                    prefix.clone(), rule.url.clone());
                             } else {
                                 iter.parser.context.selector_context.default_namespace =
-                                    Some(url.clone());
+                                    Some(rule.url.clone());
                             }
                         }
 
@@ -408,7 +415,7 @@ enum AtRulePrelude {
     /// A @font-face rule prelude.
     FontFace,
     /// A @media rule prelude, with its media queries.
-    Media(MediaQueryList),
+    Media(Arc<MediaQueryList>),
     /// A @viewport rule prelude.
     Viewport,
     /// A @keyframes rule, with its animation name.
@@ -423,16 +430,6 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
     fn parse_prelude(&self, name: &str, input: &mut Parser)
                      -> Result<AtRuleType<AtRulePrelude, CSSRule>, ()> {
         match_ignore_ascii_case! { name,
-            "charset" => {
-                if self.state.get() <= State::Start {
-                    // Valid @charset rules are just ignored
-                    self.state.set(State::Imports);
-                    let charset = try!(input.expect_string()).into_owned();
-                    return Ok(AtRuleType::WithoutBlock(CSSRule::Charset(charset)))
-                } else {
-                    return Err(())  // "@charset must be the first rule"
-                }
-            },
             "import" => {
                 if self.state.get() <= State::Imports {
                     self.state.set(State::Imports);
@@ -448,14 +445,17 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
 
                     let prefix = input.try(|input| input.expect_ident()).ok().map(|p| p.into());
                     let url = Namespace(Atom::from(try!(input.expect_url_or_string())));
-                    return Ok(AtRuleType::WithoutBlock(CSSRule::Namespace {
+                    return Ok(AtRuleType::WithoutBlock(CSSRule::Namespace(Arc::new(NamespaceRule {
                         prefix: prefix,
                         url: url,
-                    }))
+                    }))))
                 } else {
                     return Err(())  // "@namespace must be before any rule but @charset and @import"
                 }
             },
+            // @charset is removed by rust-cssparser if it’s the first rule in the stylesheet
+            // anything left is invalid.
+            "charset" => return Err(()), // (insert appropriate error message)
             _ => {}
         }
 
@@ -502,7 +502,7 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
         match_ignore_ascii_case! { name,
             "media" => {
                 let media_queries = parse_media_query_list(input);
-                Ok(AtRuleType::WithBlock(AtRulePrelude::Media(media_queries)))
+                Ok(AtRuleType::WithBlock(AtRulePrelude::Media(Arc::new(media_queries))))
             },
             "font-face" => {
                 Ok(AtRuleType::WithBlock(AtRulePrelude::FontFace))
@@ -530,22 +530,22 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
     fn parse_block(&self, prelude: AtRulePrelude, input: &mut Parser) -> Result<CSSRule, ()> {
         match prelude {
             AtRulePrelude::FontFace => {
-                parse_font_face_block(self.context, input).map(CSSRule::FontFace)
+                Ok(CSSRule::FontFace(Arc::new(try!(parse_font_face_block(self.context, input)))))
             }
             AtRulePrelude::Media(media_queries) => {
-                Ok(CSSRule::Media(MediaRule {
+                Ok(CSSRule::Media(Arc::new(MediaRule {
                     media_queries: media_queries,
                     rules: parse_nested_rules(self.context, input),
-                }))
+                })))
             }
             AtRulePrelude::Viewport => {
-                ViewportRule::parse(input, self.context).map(CSSRule::Viewport)
+                Ok(CSSRule::Viewport(Arc::new(try!(ViewportRule::parse(input, self.context)))))
             }
             AtRulePrelude::Keyframes(name) => {
-                Ok(CSSRule::Keyframes(KeyframesRule {
+                Ok(CSSRule::Keyframes(Arc::new(KeyframesRule {
                     name: name,
                     keyframes: parse_keyframe_list(&self.context, input),
-                }))
+                })))
             }
         }
     }
@@ -560,9 +560,9 @@ impl<'a, 'b> QualifiedRuleParser for NestedRuleParser<'a, 'b> {
     }
 
     fn parse_block(&self, prelude: Vec<Selector<TheSelectorImpl>>, input: &mut Parser) -> Result<CSSRule, ()> {
-        Ok(CSSRule::Style(StyleRule {
+        Ok(CSSRule::Style(Arc::new(StyleRule {
             selectors: prelude,
-            declarations: parse_property_declaration_list(self.context, input)
-        }))
+            declarations: Arc::new(parse_property_declaration_list(self.context, input))
+        })))
     }
 }

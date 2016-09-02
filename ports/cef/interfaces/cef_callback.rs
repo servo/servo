@@ -90,8 +90,7 @@ pub struct CefCallback {
 impl Clone for CefCallback {
   fn clone(&self) -> CefCallback{
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefCallback {
@@ -104,8 +103,7 @@ impl Clone for CefCallback {
 impl Drop for CefCallback {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -120,8 +118,7 @@ impl CefCallback {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_callback_t) -> CefCallback {
-    if !c_object.is_null() &&
-        c_object as usize != mem::POST_DROP_USIZE {
+    if !c_object.is_null() {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefCallback {
@@ -135,8 +132,7 @@ impl CefCallback {
 
   pub fn c_object_addrefed(&self) -> *mut cef_callback_t {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -144,18 +140,17 @@ impl CefCallback {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
+    self.c_object.is_null()
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
+    !self.c_object.is_null()
   }
 
   //
   // Continue processing.
   //
   pub fn cont(&self) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -169,8 +164,7 @@ impl CefCallback {
   // Cancel processing.
   //
   pub fn cancel(&self) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -197,8 +191,7 @@ impl CefWrap<*mut cef_callback_t> for Option<CefCallback> {
     }
   }
   unsafe fn to_rust(c_object: *mut cef_callback_t) -> Option<CefCallback> {
-    if c_object.is_null() &&
-       c_object as usize != mem::POST_DROP_USIZE {
+    if c_object.is_null() {
       None
     } else {
       Some(CefCallback::from_c_object_addref(c_object))
@@ -247,8 +240,7 @@ pub struct CefCompletionCallback {
 impl Clone for CefCompletionCallback {
   fn clone(&self) -> CefCompletionCallback{
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefCompletionCallback {
@@ -261,8 +253,7 @@ impl Clone for CefCompletionCallback {
 impl Drop for CefCompletionCallback {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -277,8 +268,7 @@ impl CefCompletionCallback {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_completion_callback_t) -> CefCompletionCallback {
-    if !c_object.is_null() &&
-        c_object as usize != mem::POST_DROP_USIZE {
+    if !c_object.is_null() {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefCompletionCallback {
@@ -292,8 +282,7 @@ impl CefCompletionCallback {
 
   pub fn c_object_addrefed(&self) -> *mut cef_completion_callback_t {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -301,18 +290,17 @@ impl CefCompletionCallback {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
+    self.c_object.is_null()
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
+    !self.c_object.is_null()
   }
 
   //
   // Method that will be called once the task is complete.
   //
   pub fn on_complete(&self) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -339,8 +327,7 @@ impl CefWrap<*mut cef_completion_callback_t> for Option<CefCompletionCallback> {
     }
   }
   unsafe fn to_rust(c_object: *mut cef_completion_callback_t) -> Option<CefCompletionCallback> {
-    if c_object.is_null() &&
-       c_object as usize != mem::POST_DROP_USIZE {
+    if c_object.is_null() {
       None
     } else {
       Some(CefCompletionCallback::from_c_object_addref(c_object))

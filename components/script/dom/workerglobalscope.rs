@@ -20,7 +20,7 @@ use dom::window::{base64_atob, base64_btoa};
 use dom::workerlocation::WorkerLocation;
 use dom::workernavigator::WorkerNavigator;
 use ipc_channel::ipc::IpcSender;
-use js::jsapi::{HandleValue, JSContext, JSRuntime};
+use js::jsapi::{HandleValue, JSAutoCompartment, JSContext, JSRuntime};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use msg::constellation_msg::{PipelineId, ReferrerPolicy};
@@ -382,8 +382,9 @@ impl WorkerGlobalScope {
                     // https://github.com/servo/servo/issues/6422
                     println!("evaluate_script failed");
                     unsafe {
-                        report_pending_exception(
-                            self.runtime.cx(), self.reflector().get_jsobject().get());
+                        let _ac = JSAutoCompartment::new(self.runtime.cx(),
+                                                         self.reflector().get_jsobject().get());
+                        report_pending_exception(self.runtime.cx());
                     }
                 }
             }

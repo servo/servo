@@ -179,6 +179,9 @@ pub trait TDocument : Sized + Copy + Clone {
 
     fn drain_modified_elements(&self) -> Vec<(Self::ConcreteElement,
                                               <Self::ConcreteElement as ElementExt>::Snapshot)>;
+
+    fn needs_paint_from_layout(&self);
+    fn will_paint(&self);
 }
 
 pub trait PresentationalHintsSynthetizer {
@@ -192,7 +195,7 @@ pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + Pre
 
     fn as_node(&self) -> Self::ConcreteNode;
 
-    fn style_attribute(&self) -> &Option<PropertyDeclarationBlock>;
+    fn style_attribute(&self) -> Option<&Arc<PropertyDeclarationBlock>>;
 
     fn get_state(&self) -> ElementState;
 

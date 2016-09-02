@@ -34,10 +34,8 @@ impl TestBindingIterable {
 impl TestBindingIterableMethods for TestBindingIterable {
     fn Add(&self, v: DOMString) { self.vals.borrow_mut().push(v); }
     fn Length(&self) -> u32 { self.vals.borrow().len() as u32 }
-    fn GetItem(&self, n: u32) -> DOMString { self.vals.borrow().get(n as usize).unwrap().clone() }
-    fn IndexedGetter(&self, n: u32, found: &mut bool) -> DOMString {
-        let s = self.GetItem(n);
-        *found = true;
-        s
+    fn GetItem(&self, n: u32) -> DOMString { self.IndexedGetter(n).unwrap_or_default() }
+    fn IndexedGetter(&self, n: u32) -> Option<DOMString> {
+        self.vals.borrow().get(n as usize).cloned()
     }
 }

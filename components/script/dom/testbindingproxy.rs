@@ -23,10 +23,10 @@ impl TestBindingProxyMethods for TestBindingProxy {
     fn SetItem(&self, _: u32, _: DOMString) -> () {}
     fn RemoveItem(&self, _: DOMString) -> () {}
     fn Stringifier(&self) -> DOMString { DOMString::new() }
-    fn IndexedGetter(&self, _: u32, _: &mut bool) -> DOMString { DOMString::new() }
+    fn IndexedGetter(&self, _: u32) -> Option<DOMString> { None }
     fn NamedDeleter(&self, _: DOMString) -> () {}
     fn IndexedSetter(&self, _: u32, _: DOMString) -> () {}
     fn NamedSetter(&self, _: DOMString, _: DOMString) -> () {}
-    fn NamedGetter(&self, _: DOMString, _: &mut bool) -> DOMString { DOMString::new() }
+    fn NamedGetter(&self, _: DOMString) -> Option<DOMString> { None }
 
 }

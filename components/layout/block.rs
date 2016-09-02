@@ -1336,10 +1336,10 @@ impl BlockFlow {
         };
         let parent_container_size = self.explicit_block_containing_size(shared_context);
         // https://drafts.csswg.org/css-ui-3/#box-sizing
-        let explicit_content_size = self
+        let mut explicit_content_size = self
                                     .explicit_block_size(parent_container_size)
                                     .map(|x| if x < box_border { Au(0) } else { x - box_border });
-
+        if self.is_root() { explicit_content_size = max(parent_container_size, explicit_content_size); }
         // Calculate containing block inline size.
         let containing_block_size = if flags.contains(IS_ABSOLUTELY_POSITIONED) {
             self.containing_block_size(&shared_context.viewport_size, opaque_self).inline

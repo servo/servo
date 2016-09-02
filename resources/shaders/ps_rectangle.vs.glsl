@@ -3,17 +3,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-struct Rectangle {
-    PrimitiveInfo info;
-    vec4 color;
-};
-
-layout(std140) uniform Items {
-    Rectangle rects[WR_MAX_PRIM_ITEMS];
-};
-
 void main(void) {
-    Rectangle rect = rects[gl_InstanceID];
+    Rectangle rect = fetch_rectangle(gl_InstanceID);
     vColor = rect.color;
 #ifdef WR_FEATURE_TRANSFORM
     TransformVertexInfo vi = write_transform_vertex(rect.info);

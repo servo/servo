@@ -3,20 +3,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-struct BoxShadow {
-    PrimitiveInfo info;
-    vec4 color;
-    vec4 border_radii_blur_radius_inverted;
-    vec4 bs_rect;
-    vec4 src_rect;
-};
-
-layout(std140) uniform Items {
-    BoxShadow boxshadows[WR_MAX_PRIM_ITEMS];
-};
-
 void main(void) {
-    BoxShadow bs = boxshadows[gl_InstanceID];
+    BoxShadow bs = fetch_boxshadow(gl_InstanceID);
     VertexInfo vi = write_vertex(bs.info);
 
     vPos = vi.local_clamped_pos;

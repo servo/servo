@@ -739,6 +739,9 @@ def collect_errors_for_files(files_to_check, checking_functions, line_checking_f
             continue
         with open(filename, "r") as f:
             contents = f.read()
+            if not contents.strip():
+                yield filename, 0, "file is empty"
+                continue
             for check in checking_functions:
                 for error in check(filename, contents):
                     # the result will be: `(filename, line, message)`

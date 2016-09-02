@@ -92,8 +92,7 @@ pub struct CefRequestContextHandler {
 impl Clone for CefRequestContextHandler {
   fn clone(&self) -> CefRequestContextHandler{
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefRequestContextHandler {
@@ -106,8 +105,7 @@ impl Clone for CefRequestContextHandler {
 impl Drop for CefRequestContextHandler {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -122,8 +120,7 @@ impl CefRequestContextHandler {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_request_context_handler_t) -> CefRequestContextHandler {
-    if !c_object.is_null() &&
-        c_object as usize != mem::POST_DROP_USIZE {
+    if !c_object.is_null() {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefRequestContextHandler {
@@ -137,8 +134,7 @@ impl CefRequestContextHandler {
 
   pub fn c_object_addrefed(&self) -> *mut cef_request_context_handler_t {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -146,10 +142,10 @@ impl CefRequestContextHandler {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
+    self.c_object.is_null()
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
+    !self.c_object.is_null()
   }
 
   //
@@ -158,8 +154,7 @@ impl CefRequestContextHandler {
   // cef_request_tContext::get_default_cookie_manager() will be used.
   //
   pub fn get_cookie_manager(&self) -> interfaces::CefCookieManager {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -186,8 +181,7 @@ impl CefWrap<*mut cef_request_context_handler_t> for Option<CefRequestContextHan
     }
   }
   unsafe fn to_rust(c_object: *mut cef_request_context_handler_t) -> Option<CefRequestContextHandler> {
-    if c_object.is_null() &&
-       c_object as usize != mem::POST_DROP_USIZE {
+    if c_object.is_null() {
       None
     } else {
       Some(CefRequestContextHandler::from_c_object_addref(c_object))
