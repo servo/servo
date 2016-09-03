@@ -20,6 +20,7 @@ use properties::longhands::visibility::computed_value::T as Visibility;
 use properties::longhands::z_index::computed_value::T as ZIndex;
 use std::cmp;
 use std::fmt;
+use string_cache::Atom;
 use super::ComputedValues;
 use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 use values::computed::{BorderRadiusSize, LengthOrNone};
@@ -101,6 +102,16 @@ pub enum AnimatedProperty {
 }
 
 impl AnimatedProperty {
+    pub fn name(&self) -> Atom {
+        match *self {
+            % for prop in data.longhands:
+                % if prop.animatable:
+                    AnimatedProperty::${prop.camel_case}(..) => atom!("${prop.name}"),
+                % endif
+            % endfor
+        }
+    }
+
     pub fn does_animate(&self) -> bool {
         match *self {
             % for prop in data.longhands:

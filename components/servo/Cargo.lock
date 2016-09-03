@@ -2006,6 +2006,7 @@ dependencies = [
  "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.8.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_macros 0.8.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "string_cache 0.2.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "style_traits 0.0.1",
  "time 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
