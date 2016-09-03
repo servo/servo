@@ -16,6 +16,7 @@ use dom::dompoint::DOMPoint;
 use euclid::{Matrix4D, Point4D, Radians};
 use std::cell::Cell;
 use std::f64;
+use style::refcell::Ref;
 
 #[dom_struct]
 pub struct DOMMatrixReadOnly {
@@ -41,10 +42,7 @@ impl DOMMatrixReadOnly {
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-dommatrixreadonly
     pub fn Constructor(global: GlobalRef) -> Fallible<Root<Self>> {
-        entries_to_matrix(&[1.0, 0.0, 0.0, 1.0, 0.0, 0.0])
-            .map(|(is2D, matrix)| {
-                Self::new(global, is2D, matrix)
-            })
+        Ok(Self::new(global, true, Matrix4D::identity()))
     }
 
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-dommatrixreadonly-numbersequence
@@ -63,8 +61,8 @@ impl DOMMatrixReadOnly {
             })
     }
 
-    pub fn matrix(&self) -> Matrix4D<f64> {
-        self.matrix.borrow().clone()
+    pub fn matrix(&self) -> Ref<Matrix4D<f64>> {
+        self.matrix.borrow()
     }
 
     pub fn is_2d(&self) -> bool {
