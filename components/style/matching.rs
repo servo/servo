@@ -569,6 +569,7 @@ trait PrivateMatchMethods: TNode {
                     animation::start_transitions_if_applicable(
                         new_animations_sender,
                         this_opaque,
+                        self.to_unsafe(),
                         &**style,
                         &mut this_style,
                         &shared_context.timer);

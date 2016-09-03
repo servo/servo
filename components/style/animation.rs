@@ -6,7 +6,7 @@
 
 use bezier::Bezier;
 use context::SharedStyleContext;
-use dom::OpaqueNode;
+use dom::{OpaqueNode, UnsafeNode};
 use euclid::point::Point2D;
 use keyframes::{KeyframesStep, KeyframesStepValue};
 use properties::{self, ComputedValues, Importance};
@@ -186,7 +186,7 @@ pub enum Animation {
     /// the f64 field is the start time as returned by `time::precise_time_s()`.
     ///
     /// The `bool` field is werther this animation should no longer run.
-    Transition(OpaqueNode, f64, AnimationFrame, bool),
+    Transition(OpaqueNode, UnsafeNode, f64, AnimationFrame, bool),
     /// A keyframes animation is identified by a name, and can have a
     /// node-dependent state (i.e. iteration count, etc.).
     Keyframes(OpaqueNode, Atom, KeyframesAnimationState),
@@ -197,7 +197,7 @@ impl Animation {
     pub fn mark_as_expired(&mut self) {
         debug_assert!(!self.is_expired());
         match *self {
-            Animation::Transition(_, _, _, ref mut expired) => *expired = true,
+            Animation::Transition(_, _, _, _, ref mut expired) => *expired = true,
             Animation::Keyframes(_, _, ref mut state) => state.expired = true,
         }
     }
@@ -205,7 +205,7 @@ impl Animation {
     #[inline]
     pub fn is_expired(&self) -> bool {
         match *self {
-            Animation::Transition(_, _, _, expired) => expired,
+            Animation::Transition(_, _, _, _, expired) => expired,
             Animation::Keyframes(_, _, ref state) => state.expired,
         }
     }
@@ -213,7 +213,7 @@ impl Animation {
     #[inline]
     pub fn node(&self) -> &OpaqueNode {
         match *self {
-            Animation::Transition(ref node, _, _, _) => node,
+            Animation::Transition(ref node, _, _, _, _) => node,
             Animation::Keyframes(ref node, _, _) => node,
         }
     }
@@ -246,6 +246,10 @@ pub struct PropertyAnimation {
 }
 
 impl PropertyAnimation {
+    pub fn property_name(&self) -> String {
+        self.property.name()
+    }
+
     /// Creates a new property animation for the given transition index and old and new styles.
     /// Any number of animations may be returned, from zero (if the property did not animate) to
     /// one (for a single transition property) to arbitrarily many (for `all`).
@@ -341,7 +345,8 @@ impl PropertyAnimation {
 // TODO(emilio): Take rid of this mutex splitting SharedLayoutContex into a
 // cloneable part and a non-cloneable part..
 pub fn start_transitions_if_applicable(new_animations_sender: &Sender<Animation>,
-                                       node: OpaqueNode,
+                                       opaque_node: OpaqueNode,
+                                       unsafe_node: UnsafeNode,
                                        old_style: &ComputedValues,
                                        new_style: &mut Arc<ComputedValues>,
                                        timer: &Timer)
@@ -362,7 +367,7 @@ pub fn start_transitions_if_applicable(new_animations_sender: &Sender<Animation>
             let start_time =
                 now + (box_style.transition_delay_mod(i).seconds() as f64);
             new_animations_sender
-                .send(Animation::Transition(node, start_time, AnimationFrame {
+                .send(Animation::Transition(opaque_node, unsafe_node, start_time, AnimationFrame {
                     duration: box_style.transition_duration_mod(i).seconds() as f64,
                     property_animation: property_animation,
                 }, /* is_expired = */ false)).unwrap();
@@ -499,7 +504,7 @@ pub fn update_style_for_animation(context: &SharedStyleContext,
     debug_assert!(!animation.is_expired());
 
     match *animation {
-        Animation::Transition(_, start_time, ref frame, _) => {
+        Animation::Transition(_, _, start_time, ref frame, _) => {
             debug!("update_style_for_animation: transition found");
             let now = context.timer.seconds();
             let mut new_style = (*style).clone();
@@ -673,7 +678,7 @@ pub fn complete_expired_transitions(node: OpaqueNode, style: &mut Arc<ComputedVa
         if let Some(ref animations) = animations_to_expire {
             for animation in *animations {
                 // TODO: support animation-fill-mode
-                if let Animation::Transition(_, _, ref frame, _) = *animation {
+                if let Animation::Transition(_, _, _, ref frame, _) = *animation {
                     frame.property_animation.update(Arc::make_mut(style), 1.0);
                 }
             }
