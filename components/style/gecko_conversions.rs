@@ -11,17 +11,19 @@
 use app_units::Au;
 use gecko_bindings::bindings::{RawServoStyleSheet, ServoComputedValues};
 use gecko_bindings::structs::nsStyleCoord_CalcValue;
-use gecko_bindings::sugar::refptr::HasArcFFI;
+use gecko_bindings::sugar::ownership::{HasArcFFI, HasFFI};
 use properties::ComputedValues;
 use stylesheets::Stylesheet;
 use values::computed::{CalcLengthOrPercentage, LengthOrPercentage};
 
-unsafe impl HasArcFFI for Stylesheet {
+unsafe impl HasFFI for Stylesheet {
     type FFIType = RawServoStyleSheet;
 }
-unsafe impl HasArcFFI for ComputedValues {
+unsafe impl HasArcFFI for Stylesheet {}
+unsafe impl HasFFI for ComputedValues {
     type FFIType = ServoComputedValues;
 }
+unsafe impl HasArcFFI for ComputedValues {}
 
 impl From<CalcLengthOrPercentage> for nsStyleCoord_CalcValue {
     fn from(other: CalcLengthOrPercentage) -> nsStyleCoord_CalcValue {

@@ -4,6 +4,7 @@
 
 use euclid::size::TypedSize2D;
 use gecko_bindings::bindings::RawServoStyleSet;
+use gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
 use num_cpus;
 use std::cmp;
 use std::collections::HashMap;
@@ -77,10 +78,6 @@ impl PerDocumentStyleData {
         }
     }
 
-    pub fn borrow_mut_from_raw<'a>(data: *mut RawServoStyleSet) -> &'a mut Self {
-        unsafe { &mut *(data as *mut PerDocumentStyleData) }
-    }
-
     pub fn flush_stylesheets(&mut self) {
         // The stylist wants to be flushed if either the stylesheets change or the
         // device dimensions change. When we add support for media queries, we'll
@@ -92,6 +89,12 @@ impl PerDocumentStyleData {
         }
     }
 }
+
+unsafe impl HasFFI for PerDocumentStyleData {
+    type FFIType = RawServoStyleSet;
+}
+unsafe impl HasSimpleFFI for PerDocumentStyleData {}
+unsafe impl HasBoxFFI for PerDocumentStyleData {}
 
 impl Drop for PerDocumentStyleData {
     fn drop(&mut self) {

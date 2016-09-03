@@ -150,10 +150,20 @@ COMPILATION_TARGETS = {
         "void_types": [
             "nsINode", "nsIDocument", "nsIPrincipal", "nsIURI",
         ],
-        "servo_arc_types": [
+        "servo_nullable_arc_types": [
             "ServoComputedValues", "RawServoStyleSheet",
             "ServoDeclarationBlock"
-        ]
+        ],
+        "servo_owned_types": [
+            "RawServoStyleSet",
+            "ServoNodeData",
+            "StyleChildrenIterator",
+        ],
+        "servo_immutable_borrow_types": [
+            "RawGeckoNode",
+            "RawGeckoElement",
+            "RawGeckoDocument",
+        ],
     },
 
     "atoms": {
@@ -272,6 +282,22 @@ def build(objdir, target_name, debug, debugger, kind_name=None,
 
     flags = []
 
+    # This makes an FFI-safe void type that can't be matched on
+    # &VoidType is UB to have, because you can match on it
+    # to produce a reachable unreachable. If it's wrapped in
+    # a struct as a private field it becomes okay again
+    #
+    # Not 100% sure of how safe this is, but it's what we're using
+    # in the XPCOM ffi too
+    # https://github.com/nikomatsakis/rust-memory-model/issues/2
+    def zero_size_type(ty, flags):
+        flags.append("--blacklist-type")
+        flags.append(ty)
+        flags.append("--raw-line")
+        flags.append("enum {0}Void{{ }}".format(ty))
+        flags.append("--raw-line")
+        flags.append("pub struct {0}({0}Void);".format(ty))
+
     if "flags" in current_target:
         flags.extend(current_target["flags"])
 
@@ -315,16 +341,61 @@ def build(objdir, target_name, debug, debugger, kind_name=None,
         for ty in current_target["void_types"]:
             flags.append("--raw-line")
             flags.append("pub enum {} {{}}".format(ty))
-    if "servo_arc_types" in current_target:
-        for ty in current_target["servo_arc_types"]:
+    if "servo_nullable_arc_types" in current_target:
+        for ty in current_target["servo_nullable_arc_types"]:
             flags.append("--blacklist-type")
             flags.append("{}Strong".format(ty))
             flags.append("--raw-line")
-            flags.append("pub type {0}Strong = ::sugar::refptr::Strong<{0}>;".format(ty))
+            flags.append("pub type {0}Strong = ::sugar::ownership::Strong<{0}>;".format(ty))
+            flags.append("--blacklist-type")
+            flags.append("{}BorrowedOrNull".format(ty))
+            flags.append("--raw-line")
+            flags.append("pub type {0}BorrowedOrNull<'a> = ::sugar::ownership::Borrowed<'a, {0}>;".format(ty))
             flags.append("--blacklist-type")
             flags.append("{}Borrowed".format(ty))
             flags.append("--raw-line")
-            flags.append("pub type {0}Borrowed<'a> = ::sugar::refptr::Borrowed<'a, {0}>;".format(ty))
+            flags.append("pub type {0}Borrowed<'a> = &'a {0};".format(ty))
+            zero_size_type(ty, flags)
+    if "servo_immutable_borrow_types" in current_target:
+        for ty in current_target["servo_immutable_borrow_types"]:
+            flags.append("--blacklist-type")
+            flags.append("{}Borrowed".format(ty))
+            flags.append("--raw-line")
+            flags.append("pub type {0}Borrowed<'a> = &'a {0};".format(ty))
+            flags.append("--blacklist-type")
+            flags.append("{}BorrowedOrNull".format(ty))
+            flags.append("--raw-line")
+            flags.append("pub type {0}BorrowedOrNull<'a> = ::sugar::ownership::Borrowed<'a, {0}>;".format(ty))
+            zero_size_type(ty, flags)
+    if "servo_owned_types" in current_target:
+        for ty in current_target["servo_owned_types"]:
+            flags.append("--blacklist-type")
+            flags.append("{}Borrowed".format(ty))
+            flags.append("--raw-line")
+            flags.append("pub type {0}Borrowed<'a> = &'a {0};".format(ty))
+            flags.append("--blacklist-type")
+            flags.append("{}BorrowedMut".format(ty))
+            flags.append("--raw-line")
+            flags.append("pub type {0}BorrowedMut<'a> = &'a mut {0};".format(ty))
+            flags.append("--blacklist-type")
+            flags.append("{}Owned".format(ty))
+            flags.append("--raw-line")
+            flags.append("pub type {0}Owned = ::sugar::ownership::Owned<{0}>;".format(ty))
+            flags.append("--blacklist-type")
+            flags.append("{}BorrowedOrNull".format(ty))
+            flags.append("--raw-line")
+            flags.append("pub type {0}BorrowedOrNull<'a> = ::sugar::ownership::Borrowed<'a, {0}>;"
+                         .format(ty))
+            flags.append("--blacklist-type")
+            flags.append("{}BorrowedMutOrNull".format(ty))
+            flags.append("--raw-line")
+            flags.append("pub type {0}BorrowedMutOrNull<'a> = ::sugar::ownership::BorrowedMut<'a, {0}>;"
+                         .format(ty))
+            flags.append("--blacklist-type")
+            flags.append("{}OwnedOrNull".format(ty))
+            flags.append("--raw-line")
+            flags.append("pub type {0}OwnedOrNull = ::sugar::ownership::OwnedOrNull<{0}>;".format(ty))
+            zero_size_type(ty, flags)
     if "structs_types" in current_target:
         for ty in current_target["structs_types"]:
             ty_fragments = ty.split("::")
@@ -354,7 +425,7 @@ def build(objdir, target_name, debug, debugger, kind_name=None,
 
     # TODO: support more files, that's the whole point of this.
     assert len(current_target["files"]) == 1
-    clang_flags.append(current_target["files"][0].format(objdir))
+    flags.append(current_target["files"][0].format(objdir))
 
     flags = bindgen + flags + ["--"] + clang_flags
 

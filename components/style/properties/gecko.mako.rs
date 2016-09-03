@@ -24,10 +24,9 @@ use gecko_bindings::bindings::{Gecko_EnsureImageLayersLength, Gecko_CreateGradie
 use gecko_bindings::bindings::{Gecko_CopyImageValueFrom, Gecko_CopyFontFamilyFrom};
 use gecko_bindings::bindings::{Gecko_FontFamilyList_AppendGeneric, Gecko_FontFamilyList_AppendNamed};
 use gecko_bindings::bindings::{Gecko_FontFamilyList_Clear, Gecko_InitializeImageLayer};
-use gecko_bindings::bindings::ServoComputedValuesBorrowed;
+use gecko_bindings::bindings::ServoComputedValuesBorrowedOrNull;
 use gecko_bindings::structs;
 use gecko_bindings::sugar::ns_style_coord::{CoordDataValue, CoordData, CoordDataMut};
-use gecko_bindings::sugar::refptr::HasArcFFI;
 use gecko_values::{StyleCoordHelpers, GeckoStyleCoordConvertible, convert_nscolor_to_rgba};
 use gecko_values::convert_rgba_to_nscolor;
 use gecko_values::round_border_to_device_pixels;
@@ -1744,10 +1743,10 @@ fn static_assert() {
 <%def name="define_ffi_struct_accessor(style_struct)">
 #[no_mangle]
 #[allow(non_snake_case, unused_variables)]
-pub extern "C" fn Servo_GetStyle${style_struct.gecko_name}(computed_values: ServoComputedValuesBorrowed)
-  -> *const ${style_struct.gecko_ffi_name} {
-    ComputedValues::with(computed_values, |values| values.get_${style_struct.name_lower}().get_gecko()
-                                                as *const ${style_struct.gecko_ffi_name})
+pub extern "C" fn Servo_GetStyle${style_struct.gecko_name}(computed_values:
+        ServoComputedValuesBorrowedOrNull) -> *const ${style_struct.gecko_ffi_name} {
+    computed_values.as_arc::<ComputedValues>().get_${style_struct.name_lower}().get_gecko()
+        as *const ${style_struct.gecko_ffi_name}
 }
 </%def>
 
