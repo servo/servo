@@ -16,7 +16,7 @@ ${helpers.single_keyword("caption-side", "top bottom",
                          extra_gecko_values="right left top-outside bottom-outside",
                          animatable=False)}
 
-<%helpers:longhand name="border-spacing" animatable="False">
+<%helpers:longhand name="border-spacing" products="servo" animatable="False">
     use app_units::Au;
     use values::LocalToCss;
     use values::HasViewportPercentage;
@@ -26,12 +26,24 @@ ${helpers.single_keyword("caption-side", "top bottom",
 
     pub mod computed_value {
         use app_units::Au;
+        use properties::animated_properties::Interpolate;
 
         #[derive(Clone, Copy, Debug, PartialEq, RustcEncodable)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T {
             pub horizontal: Au,
             pub vertical: Au,
+        }
+
+        /// https://drafts.csswg.org/css-transitions/#animtype-simple-list
+        impl Interpolate for T {
+            #[inline]
+            fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
+                Ok(T {
+                    horizontal: try!(self.horizontal.interpolate(&other.horizontal, time)),
+                    vertical: try!(self.vertical.interpolate(&other.vertical, time)),
+                })
+            }
         }
     }
 

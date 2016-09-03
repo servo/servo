@@ -110,7 +110,7 @@ ${helpers.single_keyword("align-self", "auto stretch flex-start flex-end center 
                          animatable=False)}
 
 // https://drafts.csswg.org/css-flexbox/#propdef-order
-<%helpers:longhand name="order" animatable="True">
+<%helpers:longhand name="order" products="servo" animatable="True">
     use values::computed::ComputedValueAsSpecified;
 
     impl ComputedValueAsSpecified for SpecifiedValue {}

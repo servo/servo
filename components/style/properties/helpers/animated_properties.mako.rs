@@ -9,18 +9,12 @@ use properties::PropertyDeclaration;
 use properties::longhands;
 use properties::longhands::background_position::computed_value::T as BackgroundPosition;
 use properties::longhands::background_size::computed_value::T as BackgroundSize;
-use properties::longhands::border_spacing::computed_value::T as BorderSpacing;
-use properties::longhands::clip::computed_value::ClipRect;
 use properties::longhands::font_weight::computed_value::T as FontWeight;
 use properties::longhands::line_height::computed_value::T as LineHeight;
 use properties::longhands::text_shadow::computed_value::T as TextShadowList;
 use properties::longhands::text_shadow::computed_value::TextShadow;
 use properties::longhands::box_shadow::computed_value::T as BoxShadowList;
 use properties::longhands::box_shadow::single_value::computed_value::T as BoxShadow;
-use properties::longhands::transform::computed_value::ComputedMatrix;
-use properties::longhands::transform::computed_value::ComputedOperation as TransformOperation;
-use properties::longhands::transform::computed_value::T as TransformList;
-use properties::longhands::transform_origin::computed_value::T as TransformOrigin;
 use properties::longhands::vertical_align::computed_value::T as VerticalAlign;
 use properties::longhands::visibility::computed_value::T as Visibility;
 use properties::longhands::z_index::computed_value::T as ZIndex;
@@ -31,6 +25,8 @@ use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone
 use values::computed::{BorderRadiusSize, LengthOrNone};
 use values::computed::{CalcLengthOrPercentage, LengthOrPercentage};
 use values::computed::position::Position;
+
+
 
 // NB: This needs to be here because it needs all the longhands generated
 // beforehand.
@@ -296,18 +292,6 @@ impl Interpolate for VerticalAlign {
         }
     }
 }
-
-/// https://drafts.csswg.org/css-transitions/#animtype-simple-list
-impl Interpolate for BorderSpacing {
-    #[inline]
-    fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
-        Ok(BorderSpacing {
-            horizontal: try!(self.horizontal.interpolate(&other.horizontal, time)),
-            vertical: try!(self.vertical.interpolate(&other.vertical, time)),
-        })
-    }
-}
-
 impl Interpolate for BackgroundSize {
     #[inline]
     fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
@@ -492,19 +476,6 @@ impl Interpolate for FontWeight {
     }
 }
 
-/// https://drafts.csswg.org/css-transitions/#animtype-rect
-impl Interpolate for ClipRect {
-    #[inline]
-    fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
-        Ok(ClipRect {
-            top: try!(self.top.interpolate(&other.top, time)),
-            right: try!(self.right.interpolate(&other.right, time)),
-            bottom: try!(self.bottom.interpolate(&other.bottom, time)),
-            left: try!(self.left.interpolate(&other.left, time)),
-        })
-    }
-}
-
 /// https://drafts.csswg.org/css-transitions/#animtype-simple-list
 impl Interpolate for Position {
     #[inline]
@@ -573,138 +544,6 @@ impl Interpolate for TextShadowList {
     }
 }
 
-/// Check if it's possible to do a direct numerical interpolation
-/// between these two transform lists.
-/// http://dev.w3.org/csswg/css-transforms/#transform-transform-animation
-fn can_interpolate_list(from_list: &[TransformOperation],
-                        to_list: &[TransformOperation]) -> bool {
-    // Lists must be equal length
-    if from_list.len() != to_list.len() {
-        return false;
-    }
-
-    // Each transform operation must match primitive type in other list
-    for (from, to) in from_list.iter().zip(to_list) {
-        match (from, to) {
-            (&TransformOperation::Matrix(..), &TransformOperation::Matrix(..)) |
-            (&TransformOperation::Skew(..), &TransformOperation::Skew(..)) |
-            (&TransformOperation::Translate(..), &TransformOperation::Translate(..)) |
-            (&TransformOperation::Scale(..), &TransformOperation::Scale(..)) |
-            (&TransformOperation::Rotate(..), &TransformOperation::Rotate(..)) |
-            (&TransformOperation::Perspective(..), &TransformOperation::Perspective(..)) => {}
-            _ => {
-                return false;
-            }
-        }
-    }
-
-    true
-}
-
-/// Interpolate two transform lists.
-/// http://dev.w3.org/csswg/css-transforms/#interpolation-of-transforms
-fn interpolate_transform_list(from_list: &[TransformOperation],
-                              to_list: &[TransformOperation],
-                              time: f64) -> TransformList {
-    let mut result = vec![];
-
-    if can_interpolate_list(from_list, to_list) {
-        for (from, to) in from_list.iter().zip(to_list) {
-            match (from, to) {
-                (&TransformOperation::Matrix(from),
-                 &TransformOperation::Matrix(_to)) => {
-                    // TODO(gw): Implement matrix decomposition and interpolation
-                    result.push(TransformOperation::Matrix(from));
-                }
-                (&TransformOperation::Skew(fx, fy),
-                 &TransformOperation::Skew(tx, ty)) => {
-                    let ix = fx.interpolate(&tx, time).unwrap();
-                    let iy = fy.interpolate(&ty, time).unwrap();
-                    result.push(TransformOperation::Skew(ix, iy));
-                }
-                (&TransformOperation::Translate(fx, fy, fz),
-                 &TransformOperation::Translate(tx, ty, tz)) => {
-                    let ix = fx.interpolate(&tx, time).unwrap();
-                    let iy = fy.interpolate(&ty, time).unwrap();
-                    let iz = fz.interpolate(&tz, time).unwrap();
-                    result.push(TransformOperation::Translate(ix, iy, iz));
-                }
-                (&TransformOperation::Scale(fx, fy, fz),
-                 &TransformOperation::Scale(tx, ty, tz)) => {
-                    let ix = fx.interpolate(&tx, time).unwrap();
-                    let iy = fy.interpolate(&ty, time).unwrap();
-                    let iz = fz.interpolate(&tz, time).unwrap();
-                    result.push(TransformOperation::Scale(ix, iy, iz));
-                }
-                (&TransformOperation::Rotate(fx, fy, fz, fa),
-                 &TransformOperation::Rotate(tx, ty, tz, ta)) => {
-                    let norm_f = ((fx * fx) + (fy * fy) + (fz * fz)).sqrt();
-                    let norm_t = ((tx * tx) + (ty * ty) + (tz * tz)).sqrt();
-                    let (fx, fy, fz) = (fx / norm_f, fy / norm_f, fz / norm_f);
-                    let (tx, ty, tz) = (tx / norm_t, ty / norm_t, tz / norm_t);
-                    if fx == tx && fy == ty && fz == tz {
-                        let ia = fa.interpolate(&ta, time).unwrap();
-                        result.push(TransformOperation::Rotate(fx, fy, fz, ia));
-                    } else {
-                        // TODO(gw): Implement matrix decomposition and interpolation
-                        result.push(TransformOperation::Rotate(fx, fy, fz, fa));
-                    }
-                }
-                (&TransformOperation::Perspective(fd),
-                 &TransformOperation::Perspective(_td)) => {
-                    // TODO(gw): Implement matrix decomposition and interpolation
-                    result.push(TransformOperation::Perspective(fd));
-                }
-                _ => {
-                    // This should be unreachable due to the can_interpolate_list() call.
-                    unreachable!();
-                }
-            }
-        }
-    } else {
-        // TODO(gw): Implement matrix decomposition and interpolation
-        result.extend_from_slice(from_list);
-    }
-
-    TransformList(Some(result))
-}
-
-/// Build an equivalent 'identity transform function list' based
-/// on an existing transform list.
-/// http://dev.w3.org/csswg/css-transforms/#none-transform-animation
-fn build_identity_transform_list(list: &[TransformOperation]) -> Vec<TransformOperation> {
-    let mut result = vec!();
-
-    for operation in list {
-        match *operation {
-            TransformOperation::Matrix(..) => {
-                let identity = ComputedMatrix::identity();
-                result.push(TransformOperation::Matrix(identity));
-            }
-            TransformOperation::Skew(..) => {
-                result.push(TransformOperation::Skew(Angle(0.0), Angle(0.0)));
-            }
-            TransformOperation::Translate(..) => {
-                result.push(TransformOperation::Translate(LengthOrPercentage::zero(),
-                                                          LengthOrPercentage::zero(),
-                                                          Au(0)));
-            }
-            TransformOperation::Scale(..) => {
-                result.push(TransformOperation::Scale(1.0, 1.0, 1.0));
-            }
-            TransformOperation::Rotate(..) => {
-                result.push(TransformOperation::Rotate(0.0, 0.0, 1.0, Angle(0.0)));
-            }
-            TransformOperation::Perspective(..) => {
-                // http://dev.w3.org/csswg/css-transforms/#identity-transform-function
-                let identity = ComputedMatrix::identity();
-                result.push(TransformOperation::Matrix(identity));
-            }
-        }
-    }
-
-    result
-}
 
 impl Interpolate for BoxShadowList {
     #[inline]
@@ -780,42 +619,173 @@ impl Interpolate for LengthOrNone {
     }
 }
 
-impl Interpolate for TransformOrigin {
-    fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
-        Ok(TransformOrigin {
-            horizontal: try!(self.horizontal.interpolate(&other.horizontal, time)),
-            vertical: try!(self.vertical.interpolate(&other.vertical, time)),
-            depth: try!(self.depth.interpolate(&other.depth, time)),
-        })
-    }
-}
+% if product == "servo":
+    use properties::longhands::transform::computed_value::ComputedMatrix;
+    use properties::longhands::transform::computed_value::ComputedOperation as TransformOperation;
+    use properties::longhands::transform::computed_value::T as TransformList;
 
-/// https://drafts.csswg.org/css-transforms/#interpolation-of-transforms
-impl Interpolate for TransformList {
-    #[inline]
-    fn interpolate(&self, other: &TransformList, time: f64) -> Result<Self, ()> {
-        // http://dev.w3.org/csswg/css-transforms/#interpolation-of-transforms
-        let result = match (&self.0, &other.0) {
-            (&Some(ref from_list), &Some(ref to_list)) => {
-                // Two lists of transforms
-                interpolate_transform_list(from_list, &to_list, time)
-            }
-            (&Some(ref from_list), &None) => {
-                // http://dev.w3.org/csswg/css-transforms/#none-transform-animation
-                let to_list = build_identity_transform_list(from_list);
-                interpolate_transform_list(from_list, &to_list, time)
-            }
-            (&None, &Some(ref to_list)) => {
-                // http://dev.w3.org/csswg/css-transforms/#none-transform-animation
-                let from_list = build_identity_transform_list(to_list);
-                interpolate_transform_list(&from_list, to_list, time)
-            }
-            _ => {
-                // http://dev.w3.org/csswg/css-transforms/#none-none-animation
-                TransformList(None)
-            }
-        };
+    /// Check if it's possible to do a direct numerical interpolation
+    /// between these two transform lists.
+    /// http://dev.w3.org/csswg/css-transforms/#transform-transform-animation
+    fn can_interpolate_list(from_list: &[TransformOperation],
+                            to_list: &[TransformOperation]) -> bool {
+        // Lists must be equal length
+        if from_list.len() != to_list.len() {
+            return false;
+        }
 
-        Ok(result)
+        // Each transform operation must match primitive type in other list
+        for (from, to) in from_list.iter().zip(to_list) {
+            match (from, to) {
+                (&TransformOperation::Matrix(..), &TransformOperation::Matrix(..)) |
+                (&TransformOperation::Skew(..), &TransformOperation::Skew(..)) |
+                (&TransformOperation::Translate(..), &TransformOperation::Translate(..)) |
+                (&TransformOperation::Scale(..), &TransformOperation::Scale(..)) |
+                (&TransformOperation::Rotate(..), &TransformOperation::Rotate(..)) |
+                (&TransformOperation::Perspective(..), &TransformOperation::Perspective(..)) => {}
+                _ => {
+                    return false;
+                }
+            }
+        }
+
+        true
     }
-}
+
+    /// Build an equivalent 'identity transform function list' based
+    /// on an existing transform list.
+    /// http://dev.w3.org/csswg/css-transforms/#none-transform-animation
+    fn build_identity_transform_list(list: &[TransformOperation]) -> Vec<TransformOperation> {
+        let mut result = vec!();
+
+        for operation in list {
+            match *operation {
+                TransformOperation::Matrix(..) => {
+                    let identity = ComputedMatrix::identity();
+                    result.push(TransformOperation::Matrix(identity));
+                }
+                TransformOperation::Skew(..) => {
+                    result.push(TransformOperation::Skew(Angle(0.0), Angle(0.0)));
+                }
+                TransformOperation::Translate(..) => {
+                    result.push(TransformOperation::Translate(LengthOrPercentage::zero(),
+                                                              LengthOrPercentage::zero(),
+                                                              Au(0)));
+                }
+                TransformOperation::Scale(..) => {
+                    result.push(TransformOperation::Scale(1.0, 1.0, 1.0));
+                }
+                TransformOperation::Rotate(..) => {
+                    result.push(TransformOperation::Rotate(0.0, 0.0, 1.0, Angle(0.0)));
+                }
+                TransformOperation::Perspective(..) => {
+                    // http://dev.w3.org/csswg/css-transforms/#identity-transform-function
+                    let identity = ComputedMatrix::identity();
+                    result.push(TransformOperation::Matrix(identity));
+                }
+            }
+        }
+
+        result
+    }
+
+    /// Interpolate two transform lists.
+    /// http://dev.w3.org/csswg/css-transforms/#interpolation-of-transforms
+    fn interpolate_transform_list(from_list: &[TransformOperation],
+                                  to_list: &[TransformOperation],
+                                  time: f64) -> TransformList {
+        let mut result = vec![];
+
+        if can_interpolate_list(from_list, to_list) {
+            for (from, to) in from_list.iter().zip(to_list) {
+                match (from, to) {
+                    (&TransformOperation::Matrix(from),
+                     &TransformOperation::Matrix(_to)) => {
+                        // TODO(gw): Implement matrix decomposition and interpolation
+                        result.push(TransformOperation::Matrix(from));
+                    }
+                    (&TransformOperation::Skew(fx, fy),
+                     &TransformOperation::Skew(tx, ty)) => {
+                        let ix = fx.interpolate(&tx, time).unwrap();
+                        let iy = fy.interpolate(&ty, time).unwrap();
+                        result.push(TransformOperation::Skew(ix, iy));
+                    }
+                    (&TransformOperation::Translate(fx, fy, fz),
+                     &TransformOperation::Translate(tx, ty, tz)) => {
+                        let ix = fx.interpolate(&tx, time).unwrap();
+                        let iy = fy.interpolate(&ty, time).unwrap();
+                        let iz = fz.interpolate(&tz, time).unwrap();
+                        result.push(TransformOperation::Translate(ix, iy, iz));
+                    }
+                    (&TransformOperation::Scale(fx, fy, fz),
+                     &TransformOperation::Scale(tx, ty, tz)) => {
+                        let ix = fx.interpolate(&tx, time).unwrap();
+                        let iy = fy.interpolate(&ty, time).unwrap();
+                        let iz = fz.interpolate(&tz, time).unwrap();
+                        result.push(TransformOperation::Scale(ix, iy, iz));
+                    }
+                    (&TransformOperation::Rotate(fx, fy, fz, fa),
+                     &TransformOperation::Rotate(tx, ty, tz, ta)) => {
+                        let norm_f = ((fx * fx) + (fy * fy) + (fz * fz)).sqrt();
+                        let norm_t = ((tx * tx) + (ty * ty) + (tz * tz)).sqrt();
+                        let (fx, fy, fz) = (fx / norm_f, fy / norm_f, fz / norm_f);
+                        let (tx, ty, tz) = (tx / norm_t, ty / norm_t, tz / norm_t);
+                        if fx == tx && fy == ty && fz == tz {
+                            let ia = fa.interpolate(&ta, time).unwrap();
+                            result.push(TransformOperation::Rotate(fx, fy, fz, ia));
+                        } else {
+                            // TODO(gw): Implement matrix decomposition and interpolation
+                            result.push(TransformOperation::Rotate(fx, fy, fz, fa));
+                        }
+                    }
+                    (&TransformOperation::Perspective(fd),
+                     &TransformOperation::Perspective(_td)) => {
+                        // TODO(gw): Implement matrix decomposition and interpolation
+                        result.push(TransformOperation::Perspective(fd));
+                    }
+                    _ => {
+                        // This should be unreachable due to the can_interpolate_list() call.
+                        unreachable!();
+                    }
+                }
+            }
+        } else {
+            // TODO(gw): Implement matrix decomposition and interpolation
+            result.extend_from_slice(from_list);
+        }
+
+        TransformList(Some(result))
+    }
+
+    /// https://drafts.csswg.org/css-transforms/#interpolation-of-transforms
+    impl Interpolate for TransformList {
+        #[inline]
+        fn interpolate(&self, other: &TransformList, time: f64) -> Result<Self, ()> {
+            // http://dev.w3.org/csswg/css-transforms/#interpolation-of-transforms
+            let result = match (&self.0, &other.0) {
+                (&Some(ref from_list), &Some(ref to_list)) => {
+                    // Two lists of transforms
+                    interpolate_transform_list(from_list, &to_list, time)
+                }
+                (&Some(ref from_list), &None) => {
+                    // http://dev.w3.org/csswg/css-transforms/#none-transform-animation
+                    let to_list = build_identity_transform_list(from_list);
+                    interpolate_transform_list(from_list, &to_list, time)
+                }
+                (&None, &Some(ref to_list)) => {
+                    // http://dev.w3.org/csswg/css-transforms/#none-transform-animation
+                    let from_list = build_identity_transform_list(to_list);
+                    interpolate_transform_list(&from_list, to_list, time)
+                }
+                _ => {
+                    // http://dev.w3.org/csswg/css-transforms/#none-none-animation
+                    TransformList(None)
+                }
+            };
+
+            Ok(result)
+        }
+    }
+% endif
+
+
