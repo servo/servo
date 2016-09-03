@@ -104,7 +104,7 @@ impl HTMLIFrameElement {
         (subpage_id, old_subpage_id)
     }
 
-    pub fn navigate_or_reload_child_browsing_context(&self, load_data: Option<LoadData>) {
+    pub fn navigate_or_reload_child_browsing_context(&self, load_data: Option<LoadData>, replace: bool) {
         let sandboxed = if self.is_sandboxed() {
             IFrameSandboxed
         } else {
@@ -140,6 +140,7 @@ impl HTMLIFrameElement {
             sandbox: sandboxed,
             is_private: private_iframe,
             frame_type: frame_type,
+            replace: replace,
         };
         window.constellation_chan()
               .send(ConstellationMsg::ScriptLoadedURLInIFrame(load_info))
@@ -156,7 +157,7 @@ impl HTMLIFrameElement {
 
         let document = document_from_node(self);
         self.navigate_or_reload_child_browsing_context(
-            Some(LoadData::new(url, document.get_referrer_policy(), Some(document.url().clone()))));
+            Some(LoadData::new(url, document.get_referrer_policy(), Some(document.url().clone()))), false);
     }
 
     #[allow(unsafe_code)]
@@ -508,7 +509,7 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
     fn Reload(&self, _hardReload: bool) -> ErrorResult {
         if self.Mozbrowser() {
             if self.upcast::<Node>().is_in_doc() {
-                self.navigate_or_reload_child_browsing_context(None);
+                self.navigate_or_reload_child_browsing_context(None, true);
             }
             Ok(())
         } else {
