@@ -27,6 +27,10 @@ extern crate rustc_serialize;
 #[cfg(feature = "servo")] extern crate serde;
 #[cfg(feature = "servo")] #[macro_use] extern crate serde_derive;
 
+/// Opaque type stored in type-unsafe work queues for parallel layout.
+/// Must be transmutable to and from TNode.
+pub type UnsafeNode = (usize, usize);
+
 /// One CSS "px" in the coordinate system of the "initial viewport":
 /// http://www.w3.org/TR/css-device-adapt/#initial-viewport
 ///

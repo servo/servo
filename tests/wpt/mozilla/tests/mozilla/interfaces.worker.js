@@ -101,6 +101,7 @@ test_interfaces([
   "Touch",
   "TouchEvent",
   "TouchList",
+  "TransitionEvent",
   "TreeWalker",
   "UIEvent",
   "URL",
