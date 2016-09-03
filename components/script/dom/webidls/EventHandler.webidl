@@ -89,6 +89,11 @@ interface GlobalEventHandlers {
            attribute EventHandler onwaiting;
 };
 
+// https://drafts.csswg.org/css-transitions/#interface-globaleventhandlers-idl
+partial interface GlobalEventHandlers {
+           attribute EventHandler ontransitionend;
+};
+
 // https://html.spec.whatwg.org/multipage/#windoweventhandlers
 [NoInterfaceObject, Exposed=(Window,Worker)]
 interface WindowEventHandlers {

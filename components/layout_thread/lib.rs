@@ -1477,6 +1477,7 @@ impl LayoutThread {
         if let Some(mut root_flow) = self.root_flow.clone() {
             // Kick off animations if any were triggered, expire completed ones.
             animation::update_animation_state(&self.constellation_chan,
+                                              &self.script_chan,
                                               &mut *self.running_animations.write().unwrap(),
                                               &mut *self.expired_animations.write().unwrap(),
                                               &self.new_animations_receiver,
