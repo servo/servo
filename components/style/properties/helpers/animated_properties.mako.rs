@@ -101,6 +101,16 @@ pub enum AnimatedProperty {
 }
 
 impl AnimatedProperty {
+    pub fn name(&self) -> String {
+        match *self {
+            % for prop in data.longhands:
+                % if prop.animatable:
+                    AnimatedProperty::${prop.camel_case}(..) => "${prop.name}".to_owned(),
+                % endif
+            % endfor
+        }
+    }
+
     pub fn does_animate(&self) -> bool {
         match *self {
             % for prop in data.longhands:

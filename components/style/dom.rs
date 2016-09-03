@@ -19,9 +19,7 @@ use std::ops::BitOr;
 use std::sync::Arc;
 use string_cache::{Atom, Namespace};
 
-/// Opaque type stored in type-unsafe work queues for parallel layout.
-/// Must be transmutable to and from TNode.
-pub type UnsafeNode = (usize, usize);
+pub use style_traits::UnsafeNode;
 
 /// An opaque handle to a node, which, unlike UnsafeNode, cannot be transformed
 /// back into a non-opaque representation. The only safe operation that can be
