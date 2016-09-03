@@ -588,5 +588,5 @@ fn follow_hyperlink(subject: &Element, hyperlink_suffix: Option<String>) {
 
     debug!("following hyperlink to {}", url);
     let window = document.window();
-    window.load_url(url);
+    window.load_url(url, false);
 }

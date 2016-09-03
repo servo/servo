@@ -179,7 +179,7 @@ pub enum ConstellationControlMsg {
     NotifyVisibilityChange(PipelineId, PipelineId, bool),
     /// Notifies script thread that a url should be loaded in this iframe.
     /// First PipelineId is for the parent, second PipelineId is for the actual pipeline.
-    Navigate(PipelineId, PipelineId, LoadData),
+    Navigate(PipelineId, PipelineId, LoadData, bool),
     /// Requests the script thread forward a mozbrowser event to an iframe it owns,
     /// or to the window if no child pipeline id is provided.
     /// First PipelineId is for the parent, second PipelineId is for the actual pipeline.
@@ -459,6 +459,8 @@ pub struct IFrameLoadInfo {
     pub is_private: bool,
     /// Whether this iframe is a mozbrowser iframe
     pub frame_type: FrameType,
+    /// Wether this load should replace the current entry (reload)
+    pub replace: bool,
 }
 
 // https://developer.mozilla.org/en-US/docs/Web/API/Using_the_Browser_API#Events
