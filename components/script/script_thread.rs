@@ -228,8 +228,9 @@ pub enum MainThreadScriptMsg {
     /// should be closed (only dispatched to ScriptThread).
     ExitWindow(PipelineId),
     /// Begins a content-initiated load on the specified pipeline (only
-    /// dispatched to ScriptThread).
-    Navigate(PipelineId, LoadData),
+    /// dispatched to ScriptThread). Allows for a replace bool to be passed. If true,
+    /// the current entry will be replaced instead of a new entry being added.
+    Navigate(PipelineId, LoadData, bool),
     /// Tasks that originate from the DOM manipulation task source
     DOMManipulation(DOMManipulationTask),
     /// Tasks that originate from the user interaction task source
@@ -877,8 +878,8 @@ impl ScriptThread {
 
     fn handle_msg_from_constellation(&self, msg: ConstellationControlMsg) {
         match msg {
-            ConstellationControlMsg::Navigate(parent_pipeline_id, pipeline_id, load_data) =>
-                self.handle_navigate(parent_pipeline_id, Some(pipeline_id), load_data),
+            ConstellationControlMsg::Navigate(parent_pipeline_id, pipeline_id, load_data, replace) =>
+                self.handle_navigate(parent_pipeline_id, Some(pipeline_id), load_data, replace),
             ConstellationControlMsg::SendEvent(id, event) =>
                 self.handle_event(id, event),
             ConstellationControlMsg::ResizeInactive(id, new_size) =>
@@ -933,8 +934,8 @@ impl ScriptThread {
 
     fn handle_msg_from_script(&self, msg: MainThreadScriptMsg) {
         match msg {
-            MainThreadScriptMsg::Navigate(parent_pipeline_id, load_data) =>
-                self.handle_navigate(parent_pipeline_id, None, load_data),
+            MainThreadScriptMsg::Navigate(parent_pipeline_id, load_data, replace) =>
+                self.handle_navigate(parent_pipeline_id, None, load_data, replace),
             MainThreadScriptMsg::ExitWindow(id) =>
                 self.handle_exit_window_msg(id),
             MainThreadScriptMsg::DocumentLoadsComplete(id) =>
@@ -2000,7 +2001,10 @@ impl ScriptThread {
     /// https://html.spec.whatwg.org/multipage/#navigating-across-documents
     /// The entry point for content to notify that a new load has been requested
     /// for the given pipeline (specifically the "navigate" algorithm).
-    fn handle_navigate(&self, parent_pipeline_id: PipelineId, pipeline_id: Option<PipelineId>, load_data: LoadData) {
+    fn handle_navigate(&self, parent_pipeline_id: PipelineId,
+                              pipeline_id: Option<PipelineId>,
+                              load_data: LoadData,
+                              replace: bool) {
         // Step 7.
         {
             let nurl = &load_data.url;
@@ -2026,12 +2030,12 @@ impl ScriptThread {
                     doc.find_iframe(pipeline_id)
                 });
                 if let Some(iframe) = iframe.r() {
-                    iframe.navigate_or_reload_child_browsing_context(Some(load_data));
+                    iframe.navigate_or_reload_child_browsing_context(Some(load_data), replace);
                 }
             }
             None => {
                 self.constellation_chan
-                    .send(ConstellationMsg::LoadUrl(parent_pipeline_id, load_data))
+                    .send(ConstellationMsg::LoadUrl(parent_pipeline_id, load_data, replace))
                     .unwrap();
             }
         }
