@@ -878,21 +878,29 @@ pub trait MatchMethods : TNode {
             None => None,
         };
 
-        let mut applicable_declarations_cache =
-            context.local_context().applicable_declarations_cache.borrow_mut();
 
-        let (damage, restyle_result) = if self.is_text_node() {
+        // In the case we're styling a text node, we don't need to compute the
+        // restyle damage, since it's a subset of the restyle damage of the
+        // parent.
+        //
+        // In Gecko, we're done, we don't need anything else from text nodes.
+        //
+        // In Servo, this is also true, since text nodes generate UnscannedText
+        // fragments, which aren't repairable by incremental layout.
+        if self.is_text_node() {
             let mut data_ref = self.mutate_data().unwrap();
             let mut data = &mut *data_ref;
             let cloned_parent_style = ComputedValues::style_for_child_text_node(parent_style.unwrap());
 
-            let damage =
-                self.compute_restyle_damage(data.style.as_ref(), &cloned_parent_style, None);
-
             data.style = Some(cloned_parent_style);
 
-            (damage, RestyleResult::Continue)
-        } else {
+            return RestyleResult::Continue;
+        }
+
+        let mut applicable_declarations_cache =
+            context.local_context().applicable_declarations_cache.borrow_mut();
+
+        let (damage, restyle_result) = {
             let mut data_ref = self.mutate_data().unwrap();
             let mut data = &mut *data_ref;
             let final_style =
