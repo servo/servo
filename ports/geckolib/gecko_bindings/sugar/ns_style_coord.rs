@@ -40,6 +40,16 @@ impl CoordDataMut for nsStyleCoord {
     }
 }
 
+impl nsStyleCoord_CalcValue {
+    pub fn new() -> Self {
+        nsStyleCoord_CalcValue {
+            mLength: 0,
+            mPercent: 0.0,
+            mHasPercent: false,
+        }
+    }
+}
+
 impl nsStyleSides {
     #[inline]
     pub fn data_at(&self, index: usize) -> SidesData {

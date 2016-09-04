@@ -14,7 +14,7 @@ use gecko_bindings::structs::nsStyleCoord_CalcValue;
 use gecko_bindings::sugar::ownership::{HasArcFFI, HasFFI};
 use properties::ComputedValues;
 use stylesheets::Stylesheet;
-use values::computed::{CalcLengthOrPercentage, LengthOrPercentage};
+use values::computed::{CalcLengthOrPercentage, LengthOrPercentage, LengthOrPercentageOrAuto};
 
 unsafe impl HasFFI for Stylesheet {
     type FFIType = RawServoStyleSheet;
@@ -68,6 +68,29 @@ impl From<LengthOrPercentage> for nsStyleCoord_CalcValue {
                 }
             },
             LengthOrPercentage::Calc(calc) => calc.into(),
+        }
+    }
+}
+
+impl LengthOrPercentageOrAuto {
+    pub fn to_calc_value(&self) -> Option<nsStyleCoord_CalcValue> {
+        match *self {
+            LengthOrPercentageOrAuto::Length(au) => {
+                Some(nsStyleCoord_CalcValue {
+                    mLength: au.0,
+                    mPercent: 0.0,
+                    mHasPercent: false,
+                })
+            },
+            LengthOrPercentageOrAuto::Percentage(pc) => {
+                Some(nsStyleCoord_CalcValue {
+                    mLength: 0,
+                    mPercent: pc,
+                    mHasPercent: true,
+                })
+            },
+            LengthOrPercentageOrAuto::Calc(calc) => Some(calc.into()),
+            LengthOrPercentageOrAuto::Auto => None,
         }
     }
 }
