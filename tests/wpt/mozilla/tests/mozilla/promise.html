@@ -23,18 +23,25 @@
 
   promise_test(function(test) {
       var t = new TestBinding;
+      var resolved;
       var p = t.promiseNativeHandler(function(v) {
-          assert_equals(v, 'success');
+          resolved = v;
       }, null);
-      return Promise.resolve('success').then(p);
+      t.promiseResolveNative(p, 'success');
+      return p.then(function() {
+          assert_equals(resolved, 'success')
+      });
   }, 'Native resolve callback gets argument');
 
   promise_test(function(test) {
       var t = new TestBinding;
+      var rejected;
       var p = t.promiseNativeHandler(null, function(v) {
-          assert_equals(v, 'success');
+          rejected = v;
       });
-      p.then(test.unreached_func());
-      return Promise.resolve('success').then(p);
-  }, 'Native resolve callback gets argument');
+      t.promiseRejectNative(p, 'success');
+      return p.catch(function() {
+          assert_equals(rejected, 'success')
+      });
+  }, 'Native reject callback gets argument');
 </script>
