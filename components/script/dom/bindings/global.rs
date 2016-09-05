@@ -25,7 +25,7 @@ use js::jsapi::HandleValue;
 use msg::constellation_msg::PipelineId;
 use net_traits::{CoreResourceThread, IpcSend, ResourceThreads};
 use profile_traits::{mem, time};
-use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
+use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, EnqueuedPromiseCallback};
 use script_thread::{MainThreadScriptChan, RunnableWrapper, ScriptThread};
 use script_traits::{MsDuration, ScriptMsg as ConstellationMsg, TimerEventRequest};
 use task_source::dom_manipulation::DOMManipulationTaskSource;
@@ -287,6 +287,23 @@ impl<'a> GlobalRef<'a> {
         match *self {
             GlobalRef::Window(ref window) => window.get_runnable_wrapper(),
             GlobalRef::Worker(ref worker) => worker.get_runnable_wrapper(),
+        }
+    }
+
+    /// Enqueue a promise callback for subsequent execution.
+    pub fn enqueue_promise_job(&self, job: EnqueuedPromiseCallback) {
+        match *self {
+            GlobalRef::Window(_) => ScriptThread::enqueue_promise_job(job, *self),
+            GlobalRef::Worker(ref worker) => worker.enqueue_promise_job(job),
+        }
+    }
+
+    /// Start the process of executing the pending promise callbacks. They will be invoked
+    /// in FIFO order, synchronously, at some point in the future.
+    pub fn flush_promise_jobs(&self) {
+        match *self {
+            GlobalRef::Window(_) => ScriptThread::flush_promise_jobs(*self),
+            GlobalRef::Worker(ref worker) => worker.flush_promise_jobs(),
         }
     }
 

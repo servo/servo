@@ -7,9 +7,10 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::OnErrorEventHandlerNo
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
 use dom::bindings::error::{Error, ErrorResult, Fallible, report_pending_exception, ErrorInfo};
-use dom::bindings::global::GlobalRef;
+use dom::bindings::global::{GlobalRef, GlobalRoot};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
+use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::Reflectable;
 use dom::bindings::str::DOMString;
 use dom::console::TimerSet;
@@ -29,7 +30,8 @@ use net_traits::{IpcSend, LoadOrigin};
 use net_traits::{LoadContext, ResourceThreads, load_whole_resource};
 use profile_traits::{mem, time};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, maybe_take_panic_result};
-use script_thread::RunnableWrapper;
+use script_runtime::{ScriptThreadEventCategory, PromiseJobQueue, EnqueuedPromiseCallback};
+use script_thread::{Runnable, RunnableWrapper};
 use script_traits::{MsDuration, TimerEvent, TimerEventId, TimerEventRequest, TimerSource};
 use script_traits::ScriptMsg as ConstellationMsg;
 use script_traits::WorkerGlobalScopeInit;
@@ -112,6 +114,8 @@ pub struct WorkerGlobalScope {
 
     /// Timers used by the Console API.
     console_timers: TimerSet,
+
+    promise_job_queue: PromiseJobQueue,
 }
 
 impl WorkerGlobalScope {
@@ -143,6 +147,7 @@ impl WorkerGlobalScope {
             constellation_chan: init.constellation_chan,
             scheduler_chan: init.scheduler_chan,
             console_timers: TimerSet::new(),
+            promise_job_queue: PromiseJobQueue::new(),
         }
     }
 
@@ -227,6 +232,25 @@ impl WorkerGlobalScope {
         RunnableWrapper {
             cancelled: self.closing.clone().unwrap(),
         }
+    }
+
+    pub fn enqueue_promise_job(&self, job: EnqueuedPromiseCallback) {
+        self.promise_job_queue.enqueue(job, GlobalRef::Worker(self));
+    }
+
+    pub fn flush_promise_jobs(&self) {
+        self.script_chan().send(CommonScriptMsg::RunnableMsg(
+            ScriptThreadEventCategory::WorkerEvent,
+            box FlushPromiseJobs {
+                global: Trusted::new(self),
+            })).unwrap();
+    }
+
+    fn do_flush_promise_jobs(&self) {
+        self.promise_job_queue.flush_promise_jobs(|id| {
+            assert_eq!(self.pipeline_id(), id);
+            Some(GlobalRoot::Worker(Root::from_ref(self)))
+        });
     }
 }
 
@@ -464,5 +488,16 @@ impl WorkerGlobalScope {
         self.downcast::<DedicatedWorkerGlobalScope>()
             .expect("Should implement report_an_error for this worker")
             .report_an_error(error_info, value);
+    }
+}
+
+struct FlushPromiseJobs {
+    global: Trusted<WorkerGlobalScope>,
+}
+
+impl Runnable for FlushPromiseJobs {
+    fn handler(self: Box<FlushPromiseJobs>) {
+        let global = self.global.root();
+        global.do_flush_promise_jobs();
     }
 }
