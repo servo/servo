@@ -21,6 +21,7 @@ use properties::longhands::z_index::computed_value::T as ZIndex;
 use std::cmp;
 use std::fmt;
 use super::ComputedValues;
+use values::CSSFloat;
 use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 use values::computed::{BorderRadiusSize, LengthOrNone};
 use values::computed::{CalcLengthOrPercentage, LengthOrPercentage};
@@ -755,6 +756,92 @@ impl Interpolate for LengthOrNone {
         }
 
         TransformList(Some(result))
+    }
+
+    #[derive(Clone, Copy, Debug)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub struct DecomposedMatrix {
+        pub m11: CSSFloat, pub m12: CSSFloat,
+        pub m21: CSSFloat, pub m22: CSSFloat,
+    }
+
+    #[derive(Clone, Copy, Debug)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub struct Translate2D(f32, f32);
+
+    #[derive(Clone, Copy, Debug)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub struct Scale2D(f32, f32);
+
+    #[derive(Clone, Copy, Debug)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub struct MatrixDecomposed2D {
+        pub translate: Translate2D,
+        pub scale: Scale2D,
+        pub angle: f32,
+        pub matrix: DecomposedMatrix,
+    }
+
+    /// Decompose a matrix.
+    /// https://drafts.csswg.org/css-transforms/#decomposing-a-2d-matrix
+    fn decompose_matrix(matrix: ComputedMatrix) -> MatrixDecomposed2D {
+        let mut row0x = matrix.m11;
+        let mut row0y = matrix.m12;
+        let mut row1x = matrix.m21;
+        let mut row1y = matrix.m22;
+
+        let translate = Translate2D(matrix.m41, matrix.m42);
+        let mut scale = Scale2D((row0x * row0x + row0y * row0y).sqrt(),
+                                (row1x * row1x + row1y * row1y).sqrt());
+
+        // If determinant is negative, one axis was flipped.
+        let determinant = row0x * row1y - row0y * row1x;
+        if determinant < 0. {
+            if row0x < row1y {
+                scale.0 = -scale.0;
+            } else {
+                scale.1 = -scale.1;
+            }
+        }
+
+        // Renormalize matrix to remove scale.
+        if scale.0 != 0.0 {
+            row0x *= 1. / scale.0;
+            row0y *= 1. / scale.0;
+        }
+        if scale.1 != 0.0 {
+            row1x *= 1. / scale.1;
+            row1y *= 1. / scale.1;
+        }
+
+        // Compute rotation and renormalize matrix.
+        let mut angle = row0y.atan2(row0x);
+        if angle != 0.0 {
+            let sn = -row0y;
+            let cs = row0x;
+            let m11 = row0x;
+            let m12 = row0y;
+            let m21 = row1x;
+            let m22 = row1y;
+            row0x = cs * m11 + sn * m21;
+            row0y = cs * m12 + sn * m22;
+            row1x = -sn * m11 + cs * m21;
+            row1y = -sn * m12 + cs * m22;
+        }
+
+        let m = DecomposedMatrix {
+            m11: row0x, m12: row0y,
+            m21: row1x, m22: row1y,
+        };
+
+        // Convert into degrees because our rotation functions expect it.
+        angle = angle.to_degrees();
+        MatrixDecomposed2D {
+            translate: translate,
+            scale: scale,
+            angle: angle,
+            matrix: m,
+        }
     }
 
     /// https://drafts.csswg.org/css-transforms/#interpolation-of-transforms
