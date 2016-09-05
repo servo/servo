@@ -51,7 +51,7 @@ use selectors::matching::ElementFlags;
 use selectors::parser::{AttrSelector, NamespaceConstraint};
 use std::fmt;
 use std::marker::PhantomData;
-use std::mem::{transmute, transmute_copy};
+use std::mem::transmute;
 use std::sync::Arc;
 use string_cache::{Atom, Namespace};
 use style::attr::AttrValue;
@@ -119,8 +119,7 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
 
     fn to_unsafe(&self) -> UnsafeNode {
         unsafe {
-            let ptr: usize = transmute_copy(self);
-            (ptr, 0)
+            (self.node.unsafe_get() as usize, 0)
         }
     }
 

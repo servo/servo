@@ -126,7 +126,10 @@ impl<T: Castable> LayoutJS<T> {
               T: DerivedFrom<U>
     {
         debug_assert!(thread_state::get().is_layout());
-        unsafe { mem::transmute_copy(self) }
+        let ptr: *const T = *self.ptr;
+        LayoutJS {
+            ptr: unsafe { NonZero::new(ptr as *const U) },
+        }
     }
 
     /// Cast a DOM object downwards to one of the interfaces it might implement.
@@ -136,7 +139,10 @@ impl<T: Castable> LayoutJS<T> {
         debug_assert!(thread_state::get().is_layout());
         unsafe {
             if (*self.unsafe_get()).is::<U>() {
-                Some(mem::transmute_copy(self))
+                let ptr: *const T = *self.ptr;
+                Some(LayoutJS {
+                    ptr: NonZero::new(ptr as *const U),
+                })
             } else {
                 None
             }
