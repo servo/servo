@@ -22,14 +22,12 @@ use devtools_traits::CSSError;
 use devtools_traits::{DevtoolScriptControlMsg, DevtoolsPageInfo};
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use document_loader::DocumentLoader;
-use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
 use dom::bindings::codegen::Bindings::LocationBinding::LocationMethods;
-use dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::{ConversionResult, FromJSValConvertible, StringificationBehavior};
-use dom::bindings::global::{GlobalRef, global_root_from_object};
+use dom::bindings::global::{GlobalRef, GlobalRoot};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root, RootCollection};
 use dom::bindings::js::{RootCollectionPtr, RootedReference};
@@ -61,8 +59,8 @@ use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::glue::GetWindowProxyClass;
-use js::jsapi::{JSAutoCompartment, JSContext, JS_SetWrapObjectCallbacks, HandleObject};
-use js::jsapi::{JSTracer, SetWindowProxyClass, SetEnqueuePromiseJobCallback};
+use js::jsapi::{JSAutoCompartment, JSContext, JS_SetWrapObjectCallbacks};
+use js::jsapi::{JSTracer, SetWindowProxyClass};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use mem::heap_size_of_self_and_children;
@@ -79,8 +77,8 @@ use parse::xml::{self, parse_xml};
 use profile_traits::mem::{self, OpaqueSender, Report, ReportKind, ReportsChan};
 use profile_traits::time::{self, ProfilerCategory, profile};
 use script_layout_interface::message::{self, NewLayoutThreadInfo, ReflowQueryType};
-use script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
-use script_runtime::{ScriptPort, StackRootTLS, new_rt_and_cx, get_reports};
+use script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory, EnqueuedPromiseCallback};
+use script_runtime::{ScriptPort, StackRootTLS, new_rt_and_cx, get_reports, PromiseJobQueue};
 use script_traits::CompositorEvent::{KeyEvent, MouseButtonEvent, MouseMoveEvent, ResizeEvent};
 use script_traits::CompositorEvent::{TouchEvent, TouchpadPressureEvent};
 use script_traits::webdriver_msg::WebDriverScriptCommand;
@@ -93,7 +91,6 @@ use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::collections::{HashMap, HashSet};
 use std::option::Option;
-use std::os::raw::c_void;
 use std::ptr;
 use std::rc::Rc;
 use std::result::Result;
@@ -317,18 +314,6 @@ impl OpaqueSender<CommonScriptMsg> for Sender<MainThreadScriptMsg> {
     }
 }
 
-#[allow(unsafe_code)]
-unsafe extern "C" fn enqueue_job(_cx: *mut JSContext,
-                                 job: HandleObject,
-                                 _allocation_site: HandleObject,
-                                 _data: *mut c_void) -> bool {
-    SCRIPT_THREAD_ROOT.with(|root| {
-        let script_thread = &*root.get().unwrap();
-        script_thread.enqueue_promise_job(job);
-    });
-    true
-}
-
 /// Information for an entire page. Pages are top-level browsing contexts and can contain multiple
 /// frames.
 #[derive(JSTraceable)]
@@ -409,15 +394,7 @@ pub struct ScriptThread {
 
     content_process_shutdown_chan: IpcSender<()>,
 
-    flushing_job_queue: DOMRefCell<Vec<EnqueuedPromiseCallback>>,
-    promise_job_queue: DOMRefCell<Vec<EnqueuedPromiseCallback>>,
-    pending_promise_job_runnable: Cell<bool>,
-}
-
-#[derive(JSTraceable)]
-struct EnqueuedPromiseCallback {
-    callback: Rc<PromiseJobCallback>,
-    pipeline: PipelineId,
+    promise_job_queue: PromiseJobQueue,
 }
 
 /// In the event of thread panic, all data on the stack runs its destructor. However, there
@@ -565,7 +542,6 @@ impl ScriptThread {
             JS_SetWrapObjectCallbacks(runtime.rt(),
                                       &WRAP_CALLBACKS);
             SetWindowProxyClass(runtime.rt(), GetWindowProxyClass());
-            SetEnqueuePromiseJobCallback(runtime.rt(), Some(enqueue_job), ptr::null_mut());
         }
 
         // Ask the router to proxy IPC messages from the devtools to us.
@@ -625,9 +601,7 @@ impl ScriptThread {
 
             content_process_shutdown_chan: state.content_process_shutdown_chan,
 
-            promise_job_queue: DOMRefCell::new(vec![]),
-            flushing_job_queue: DOMRefCell::new(vec![]),
-            pending_promise_job_runnable: Cell::new(false),
+            promise_job_queue: PromiseJobQueue::new(),
         }
     }
 
@@ -2208,38 +2182,31 @@ impl ScriptThread {
         }
     }
 
-    fn enqueue_promise_job(&self, job: HandleObject) {
-        let global = unsafe { global_root_from_object(job.get()) };
-        let pipeline = global.r().pipeline();
-        self.promise_job_queue.borrow_mut().push(EnqueuedPromiseCallback {
-            callback: PromiseJobCallback::new(job.get()),
-            pipeline: pipeline,
+    pub fn enqueue_promise_job(job: EnqueuedPromiseCallback, global: GlobalRef) {
+        SCRIPT_THREAD_ROOT.with(|root| {
+            let script_thread = unsafe { &*root.get().unwrap() };
+            script_thread.promise_job_queue.enqueue(job, global);
         });
-        if !self.pending_promise_job_runnable.get() {
-            self.pending_promise_job_runnable.set(true);
-            let _ = self.dom_manipulation_task_source.queue(box FlushPromiseJobs, global.r());
-        }
     }
 
-    fn flush_promise_jobs(&self) {
-        self.pending_promise_job_runnable.set(false);
-        {
-            let mut pending_queue = self.promise_job_queue.borrow_mut();
-            *self.flushing_job_queue.borrow_mut() = pending_queue.drain(..).collect();
-        }
-        for job in &*self.flushing_job_queue.borrow() {
-            if let Some(context) = self.find_child_context(job.pipeline) {
-                let _ = job.callback.Call_(&*context.active_window(), ExceptionHandling::Report);
-            }
-        }
-        self.flushing_job_queue.borrow_mut().clear();
+    pub fn flush_promise_jobs(global: GlobalRef) {
+        SCRIPT_THREAD_ROOT.with(|root| {
+            let script_thread = unsafe { &*root.get().unwrap() };
+            let _ = script_thread.dom_manipulation_task_source.queue(box FlushPromiseJobs, global);
+        })
+    }
+
+    fn do_flush_promise_jobs(&self) {
+        self.promise_job_queue.flush_promise_jobs(|id| {
+            self.find_child_context(id).map(|context| GlobalRoot::Window(context.active_window()))
+        });
     }
 }
 
 struct FlushPromiseJobs;
 impl Runnable for FlushPromiseJobs {
     fn main_thread_handler(self: Box<FlushPromiseJobs>, script_thread: &ScriptThread) {
-        script_thread.flush_promise_jobs();
+        script_thread.do_flush_promise_jobs();
     }
 }
 

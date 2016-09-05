@@ -5,18 +5,23 @@
 //! The script runtime contains common traits and structs commonly used by the
 //! script thread, the dom, and the worker threads.
 
+use dom::bindings::callback::ExceptionHandling;
+use dom::bindings::cell::DOMRefCell;
+use dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
+use dom::bindings::global::{global_root_from_object, GlobalRoot, GlobalRef};
 use dom::bindings::js::{RootCollection, RootCollectionPtr, trace_roots};
 use dom::bindings::refcounted::{LiveDOMReferences, trace_refcounted_objects};
 use dom::bindings::trace::trace_traceables;
 use dom::bindings::utils::DOM_CALLBACKS;
 use js::glue::CollectServoSizes;
-use js::jsapi::{DisableIncrementalGC, GCDescription, GCProgress};
+use js::jsapi::{DisableIncrementalGC, GCDescription, GCProgress, HandleObject};
 use js::jsapi::{JSContext, JS_GetRuntime, JSRuntime, JSTracer, SetDOMCallbacks, SetGCSliceCallback};
 use js::jsapi::{JSGCInvocationKind, JSGCStatus, JS_AddExtraGCRootsTracer, JS_SetGCCallback};
 use js::jsapi::{JSGCMode, JSGCParamKey, JS_SetGCParameter, JS_SetGlobalJitCompilerOption};
 use js::jsapi::{JSJitCompilerOption, JS_SetOffthreadIonCompilationEnabled, JS_SetParallelParsingEnabled};
-use js::jsapi::{JSObject, RuntimeOptionsRef, SetPreserveWrapperCallback};
+use js::jsapi::{JSObject, RuntimeOptionsRef, SetPreserveWrapperCallback, SetEnqueuePromiseJobCallback};
 use js::rust::Runtime;
+use msg::constellation_msg::PipelineId;
 use profile_traits::mem::{Report, ReportKind, ReportsChan};
 use script_thread::{Runnable, STACK_ROOTS, trace_thread};
 use std::any::Any;
@@ -24,7 +29,9 @@ use std::cell::{RefCell, Cell};
 use std::io::{Write, stdout};
 use std::marker::PhantomData;
 use std::os;
+use std::os::raw::c_void;
 use std::ptr;
+use std::rc::Rc;
 use style::thread_state;
 use time::{Tm, now};
 use util::opts;
@@ -95,6 +102,68 @@ impl<'a> Drop for StackRootTLS<'a> {
     }
 }
 
+#[derive(JSTraceable, HeapSizeOf)]
+pub struct EnqueuedPromiseCallback {
+    #[ignore_heap_size_of = "Rc has unclear ownership"]
+    callback: Rc<PromiseJobCallback>,
+    pipeline: PipelineId,
+}
+
+#[derive(JSTraceable, HeapSizeOf)]
+pub struct PromiseJobQueue {
+    flushing_job_queue: DOMRefCell<Vec<EnqueuedPromiseCallback>>,
+    promise_job_queue: DOMRefCell<Vec<EnqueuedPromiseCallback>>,
+    pending_promise_job_runnable: Cell<bool>,
+}
+
+impl PromiseJobQueue {
+    pub fn new() -> PromiseJobQueue {
+        PromiseJobQueue {
+            promise_job_queue: DOMRefCell::new(vec![]),
+            flushing_job_queue: DOMRefCell::new(vec![]),
+            pending_promise_job_runnable: Cell::new(false),
+        }
+    }
+
+    pub fn enqueue(&self, job: EnqueuedPromiseCallback, global: GlobalRef) {
+        self.promise_job_queue.borrow_mut().push(job);
+        if !self.pending_promise_job_runnable.get() {
+            self.pending_promise_job_runnable.set(true);
+            global.flush_promise_jobs();
+        }
+    }
+
+    pub fn flush_promise_jobs<F>(&self, target_provider: F)
+        where F: Fn(PipelineId) -> Option<GlobalRoot>
+    {
+        self.pending_promise_job_runnable.set(false);
+        {
+            let mut pending_queue = self.promise_job_queue.borrow_mut();
+            *self.flushing_job_queue.borrow_mut() = pending_queue.drain(..).collect();
+        }
+        for job in &*self.flushing_job_queue.borrow() {
+            if let Some(target) = target_provider(job.pipeline) {
+                let _ = job.callback.Call_(&target.r(), ExceptionHandling::Report);
+            }
+        }
+        self.flushing_job_queue.borrow_mut().clear();
+    }
+}
+
+#[allow(unsafe_code)]
+unsafe extern "C" fn enqueue_job(_cx: *mut JSContext,
+                                 job: HandleObject,
+                                 _allocation_site: HandleObject,
+                                 _data: *mut c_void) -> bool {
+    let global = global_root_from_object(job.get());
+    let pipeline = global.r().pipeline();
+    global.r().enqueue_promise_job(EnqueuedPromiseCallback {
+        callback: PromiseJobCallback::new(job.get()),
+        pipeline: pipeline,
+    });
+    true
+}
+
 #[allow(unsafe_code)]
 pub unsafe fn new_rt_and_cx() -> Runtime {
     LiveDOMReferences::initialize();
@@ -117,6 +186,8 @@ pub unsafe fn new_rt_and_cx() -> Runtime {
     SetPreserveWrapperCallback(runtime.rt(), Some(empty_wrapper_callback));
     // Pre barriers aren't working correctly at the moment
     DisableIncrementalGC(runtime.rt());
+
+    SetEnqueuePromiseJobCallback(runtime.rt(), Some(enqueue_job), ptr::null_mut());
 
     set_gc_zeal_options(runtime.rt());
 
