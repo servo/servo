@@ -629,6 +629,14 @@ impl TestBindingMethods for TestBinding {
         Promise::Reject(self.global().r(), cx, v)
     }
 
+    fn PromiseResolveNative(&self, cx: *mut JSContext, p: &Promise, v: HandleValue) {
+        p.maybe_resolve(cx, v);
+    }
+
+    fn PromiseRejectNative(&self, cx: *mut JSContext, p: &Promise, v: HandleValue) {
+        p.maybe_reject(cx, v);
+    }
+
     #[allow(unrooted_must_root)]
     fn PromiseNativeHandler(&self,
                             resolve: Option<Rc<SimpleCallback>>,
