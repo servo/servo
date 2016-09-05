@@ -17,8 +17,8 @@ case "${1}" in
   --gecko)
     engine="--engine gecko"
     ;;
-  --local)
-    local=1
+  --submit)
+    submit=1
     ;;
   *)
     echo "Unknown option ${1}."
@@ -45,7 +45,7 @@ PERF_FILE="output/perf-$(date --iso-8601=seconds).json"
 echo "Running tests"
 python3 runner.py ${engine} --runs 3 "${MANIFEST}" "${PERF_FILE}"
 
-if [[ -z "${local:-}" ]];
+if [[ "${submit:-}" ]];
 then
     echo "Submitting to Perfherder"
     # Perfherder SSL check will fail if time is not accurate,
