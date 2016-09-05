@@ -298,7 +298,13 @@ impl<'a> Iterator for FrameTreeIterator<'a> {
                 },
             };
             let pipeline = match self.pipelines.get(&frame.current.pipeline_id) {
-                Some(pipeline) => pipeline,
+                Some(pipeline) => {
+                    // Pending pipelines are not included in the current frame tree
+                    if pipeline.is_pending {
+                        continue;
+                    }
+                    pipeline
+                },
                 None => {
                     warn!("Pipeline {:?} iterated after closure.", frame.current.pipeline_id);
                     continue;
@@ -2361,10 +2367,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
 
         for frame in self.current_frame_tree_iter(self.root_frame_id) {
-            self.pipelines.get(&frame.current.pipeline_id).map(|pipeline| {
-                assert!(!pipeline.is_pending);
-                pipeline.grant_paint_permission()
-            });
+            self.pipelines.get(&frame.current.pipeline_id).map(|pipeline| pipeline.grant_paint_permission());
         }
     }
 
