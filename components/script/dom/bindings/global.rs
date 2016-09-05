@@ -10,11 +10,13 @@
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::root_from_object;
+use dom::bindings::error::ErrorInfo;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflectable, Reflector};
 use dom::window::{self, ScriptHelpers};
 use dom::workerglobalscope::WorkerGlobalScope;
 use ipc_channel::ipc::IpcSender;
+use js::jsapi::HandleValue;
 use js::jsapi::{CurrentGlobalOrNull, GetGlobalForObjectCrossCompartment};
 use js::jsapi::{JSContext, JSObject, JS_GetClass, MutableHandleValue};
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
@@ -283,6 +285,14 @@ impl<'a> GlobalRef<'a> {
         match *self {
             GlobalRef::Window(ref window) => window.get_runnable_wrapper(),
             GlobalRef::Worker(ref worker) => worker.get_runnable_wrapper(),
+        }
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#report-the-error
+    pub fn report_an_error(&self, error_info: ErrorInfo, value: HandleValue) {
+        match *self {
+            GlobalRef::Window(ref window) => window.report_an_error(error_info, value),
+            GlobalRef::Worker(_) => (),
         }
     }
 }
