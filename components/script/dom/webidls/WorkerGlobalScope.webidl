@@ -9,7 +9,7 @@ interface WorkerGlobalScope : EventTarget {
   readonly attribute WorkerLocation location;
 
   //void close();
-  //         attribute OnErrorEventHandler onerror;
+  attribute OnErrorEventHandler onerror;
   //         attribute EventHandler onlanguagechange;
   //         attribute EventHandler onoffline;
   //         attribute EventHandler ononline;
