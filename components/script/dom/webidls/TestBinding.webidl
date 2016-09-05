@@ -516,6 +516,8 @@ interface TestBinding {
   void acceptPromise(Promise<DOMString> string);
   void acceptNullablePromise(Promise<DOMString>? string);
   Promise<any> promiseNativeHandler(SimpleCallback? resolve, SimpleCallback? reject);
+  void promiseResolveNative(Promise<any> p, any value);
+  void promiseRejectNative(Promise<any> p, any value);
 
   void panic();
 };
