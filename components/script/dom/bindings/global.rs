@@ -284,7 +284,7 @@ impl<'a> GlobalRef<'a> {
     pub fn report_an_error(&self, error_info: ErrorInfo, value: HandleValue) {
         match *self {
             GlobalRef::Window(ref window) => window.report_an_error(error_info, value),
-            GlobalRef::Worker(_) => (),
+            GlobalRef::Worker(ref worker) => worker.report_an_error(error_info, value),
         }
     }
 }
