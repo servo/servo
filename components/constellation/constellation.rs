@@ -1618,7 +1618,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         let result = match self.pipelines.get(&pipeline_id) {
             None => return self.compositor_proxy.send(ToCompositorMsg::ChangePageTitle(pipeline_id, None)),
             Some(pipeline) => {
-                assert!(!pipeline.is_pending);
                 if !pipeline.is_pending {
                     pipeline.script_chan.send(ConstellationControlMsg::GetTitle(pipeline_id))
                 } else {
@@ -2362,7 +2361,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
 
         for frame in self.current_frame_tree_iter(self.root_frame_id) {
-            self.pipelines.get(&frame.current.pipeline_id).map(|pipeline| pipeline.grant_paint_permission());
+            self.pipelines.get(&frame.current.pipeline_id).map(|pipeline| {
+                assert!(!pipeline.is_pending);
+                pipeline.grant_paint_permission()
+            });
         }
     }
 
