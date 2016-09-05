@@ -1,0 +1,37 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>NodeList Iterable Test</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+    <p id="1"></p>
+    <p id="2"></p>
+    <p id="3"></p>
+    <p id="4"></p>
+    <p id="5"></p>
+<script>
+    var paragraphs;
+    setup(function() {
+        paragraphs = document.querySelectorAll('p');
+    })
+    test(function() {
+        assert_true('length' in paragraphs);
+    }, 'NodeList has length method.');
+    test(function() {
+        assert_true('values' in paragraphs);
+    }, 'NodeList has values method.');
+    test(function() {
+        assert_true('entries' in paragraphs);
+    }, 'NodeList has entries method.');
+    test(function() {
+        assert_true('forEach' in paragraphs);
+    }, 'NodeList has forEach method.');
+    test(function() {
+        assert_true(Symbol.iterator in paragraphs);
+    }, 'NodeList has Symbol.iterator.');
+    test(function() {
+        var ids = "12345", idx=0;
+        for(var node of paragraphs){
+            assert_equals(node.getAttribute('id'), ids[idx++]);
+        }
+    }, 'NodeList is iterable via for-of loop.');
+</script>
