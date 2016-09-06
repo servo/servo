@@ -6,8 +6,9 @@ use cssparser::Parser;
 use selectors::parser::{LocalName, ParserContext, parse_selector_list};
 use std::sync::Arc;
 use string_cache::Atom;
-use style::properties::{Importance, PropertyDeclarationBlock};
-use style::selector_matching::{DeclarationBlock, Rule, SelectorMap};
+use style::properties::{PropertyDeclarationBlock, PropertyDeclaration, DeclaredValue};
+use style::properties::{longhands, Importance};
+use style::selector_matching::{Rule, SelectorMap};
 
 /// Helper method to get some Rules from selector strings.
 /// Each sublist of the result contains the Rules for one StyleRule.
@@ -18,15 +19,16 @@ fn get_mock_rules(css_selectors: &[&str]) -> Vec<Vec<Rule>> {
         .unwrap().into_iter().map(|s| {
             Rule {
                 selector: s.complex_selector.clone(),
-                declarations: DeclarationBlock {
-                    mixed_declarations: Arc::new(PropertyDeclarationBlock {
-                        declarations: Vec::new(),
-                        important_count: 0,
-                    }),
-                    importance: Importance::Normal,
-                    specificity: s.specificity,
-                    source_order: i,
-                }
+                declarations: Arc::new(PropertyDeclarationBlock {
+                    declarations: vec![
+                        (PropertyDeclaration::Display(DeclaredValue::Value(
+                            longhands::display::SpecifiedValue::block)),
+                         Importance::Normal),
+                    ],
+                    important_count: 0,
+                }),
+                specificity: s.specificity,
+                source_order: i,
             }
         }).collect()
     }).collect()
@@ -48,8 +50,8 @@ fn get_mock_map(selectors: &[&str]) -> SelectorMap {
 #[test]
 fn test_rule_ordering_same_specificity() {
     let rules_list = get_mock_rules(&["a.intro", "img.sidebar"]);
-    let a = &rules_list[0][0].declarations;
-    let b = &rules_list[1][0].declarations;
+    let a = &rules_list[0][0];
+    let b = &rules_list[1][0];
     assert!((a.specificity, a.source_order) < ((b.specificity, b.source_order)),
             "The rule that comes later should win.");
 }
@@ -89,9 +91,9 @@ fn test_insert() {
     let rules_list = get_mock_rules(&[".intro.foo", "#top"]);
     let mut selector_map = SelectorMap::new();
     selector_map.insert(rules_list[1][0].clone());
-    assert_eq!(1, selector_map.id_hash.get(&atom!("top")).unwrap()[0].declarations.source_order);
+    assert_eq!(1, selector_map.id_hash.get(&atom!("top")).unwrap()[0].source_order);
     selector_map.insert(rules_list[0][0].clone());
-    assert_eq!(0, selector_map.class_hash.get(&Atom::from("intro")).unwrap()[0].declarations.source_order);
+    assert_eq!(0, selector_map.class_hash.get(&Atom::from("intro")).unwrap()[0].source_order);
     assert!(selector_map.class_hash.get(&Atom::from("foo")).is_none());
 }
 

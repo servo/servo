@@ -38,8 +38,7 @@ pub type FnvHashMap<K, V> = HashMap<K, V, BuildHasherDefault<::fnv::FnvHasher>>;
 /// for a given document. The selectors are converted into `Rule`s
 /// (defined in rust-selectors), and introduced in a `SelectorMap`
 /// depending on the pseudo-element (see `PerPseudoElementSelectorMap`),
-/// stylesheet origin (see `PerOriginSelectorMap`), and priority
-/// (see the `normal` and `important` fields in `PerOriginSelectorMap`).
+/// and stylesheet origin (see the fields of `PerPseudoElementSelectorMap`).
 ///
 /// This structure is effectively created once per pipeline, in the
 /// LayoutThread corresponding to that pipeline.
@@ -71,7 +70,7 @@ pub struct Stylist {
     /// Applicable declarations for a given non-eagerly cascaded pseudo-element.
     /// These are eagerly computed once, and then used to resolve the new
     /// computed values on the fly on layout.
-    precomputed_pseudo_element_decls: FnvHashMap<PseudoElement, Vec<DeclarationBlock>>,
+    precomputed_pseudo_element_decls: FnvHashMap<PseudoElement, Vec<ApplicableDeclarationBlock>>,
 
     rules_source_order: usize,
 
@@ -162,38 +161,26 @@ impl Stylist {
         }
         let mut rules_source_order = self.rules_source_order;
 
-        // Take apart the StyleRule into individual Rules and insert
-        // them into the SelectorMap of that priority.
-        macro_rules! append(
-            ($style_rule: ident, $priority: ident, $importance: expr) => {
-                for selector in &$style_rule.selectors {
-                    let map = if let Some(ref pseudo) = selector.pseudo_element {
-                        self.pseudos_map
-                            .entry(pseudo.clone())
-                            .or_insert_with(PerPseudoElementSelectorMap::new)
-                            .borrow_for_origin(&stylesheet.origin)
-                    } else {
-                        self.element_map.borrow_for_origin(&stylesheet.origin)
-                    };
-
-                    map.$priority.insert(Rule {
-                        selector: selector.complex_selector.clone(),
-                        declarations: DeclarationBlock {
-                            specificity: selector.specificity,
-                            mixed_declarations: $style_rule.declarations.clone(),
-                            importance: $importance,
-                            source_order: rules_source_order,
-                        },
-                    });
-                }
-            };
-        );
-
         for rule in stylesheet.effective_rules(&self.device) {
             match *rule {
                 CSSRule::Style(ref style_rule) => {
-                    append!(style_rule, normal, Importance::Normal);
-                    append!(style_rule, important, Importance::Important);
+                    for selector in &style_rule.selectors {
+                        let map = if let Some(ref pseudo) = selector.pseudo_element {
+                            self.pseudos_map
+                                .entry(pseudo.clone())
+                                .or_insert_with(PerPseudoElementSelectorMap::new)
+                                .borrow_for_origin(&stylesheet.origin)
+                        } else {
+                            self.element_map.borrow_for_origin(&stylesheet.origin)
+                        };
+
+                        map.insert(Rule {
+                            selector: selector.complex_selector.clone(),
+                            declarations: style_rule.declarations.clone(),
+                            specificity: selector.specificity,
+                            source_order: rules_source_order,
+                        });
+                    }
                     rules_source_order += 1;
 
                     for selector in &style_rule.selectors {
@@ -242,8 +229,7 @@ impl Stylist {
             if let Some(map) = self.pseudos_map.remove(&pseudo) {
                 let mut declarations = vec![];
 
-                map.user_agent.normal.get_universal_rules(&mut declarations);
-                map.user_agent.important.get_universal_rules(&mut declarations);
+                map.user_agent.get_universal_rules(&mut declarations);
 
                 self.precomputed_pseudo_element_decls.insert(pseudo, declarations);
             }
@@ -350,7 +336,7 @@ impl Stylist {
         where E: Element<Impl=TheSelectorImpl> +
                  fmt::Debug +
                  PresentationalHintsSynthetizer,
-              V: Push<DeclarationBlock> + VecLike<DeclarationBlock>
+              V: Push<ApplicableDeclarationBlock> + VecLike<ApplicableDeclarationBlock>
     {
         assert!(!self.is_device_dirty);
         assert!(style_attribute.is_none() || pseudo_element.is_none(),
@@ -368,12 +354,12 @@ impl Stylist {
 
         debug!("Determining if style is shareable: pseudo: {}", pseudo_element.is_some());
         // Step 1: Normal user-agent rules.
-        map.user_agent.normal.get_all_matching_rules(element,
-                                                     parent_bf,
-                                                     applicable_declarations,
-                                                     &mut relations,
-                                                     reason,
-                                                     Importance::Normal);
+        map.user_agent.get_all_matching_rules(element,
+                                              parent_bf,
+                                              applicable_declarations,
+                                              &mut relations,
+                                              reason,
+                                              Importance::Normal);
         debug!("UA normal: {:?}", relations);
 
         // Step 2: Presentational hints.
@@ -386,19 +372,19 @@ impl Stylist {
         debug!("preshints: {:?}", relations);
 
         // Step 3: User and author normal rules.
-        map.user.normal.get_all_matching_rules(element,
-                                               parent_bf,
-                                               applicable_declarations,
-                                               &mut relations,
-                                               reason,
-                                               Importance::Normal);
+        map.user.get_all_matching_rules(element,
+                                        parent_bf,
+                                        applicable_declarations,
+                                        &mut relations,
+                                        reason,
+                                        Importance::Normal);
         debug!("user normal: {:?}", relations);
-        map.author.normal.get_all_matching_rules(element,
-                                                 parent_bf,
-                                                 applicable_declarations,
-                                                 &mut relations,
-                                                 reason,
-                                                 Importance::Normal);
+        map.author.get_all_matching_rules(element,
+                                          parent_bf,
+                                          applicable_declarations,
+                                          &mut relations,
+                                          reason,
+                                          Importance::Normal);
         debug!("author normal: {:?}", relations);
 
         // Step 4: Normal style attributes.
@@ -407,19 +393,19 @@ impl Stylist {
                 relations |= AFFECTED_BY_STYLE_ATTRIBUTE;
                 Push::push(
                     applicable_declarations,
-                    DeclarationBlock::from_declarations(sa.clone(), Importance::Normal));
+                    ApplicableDeclarationBlock::from_declarations(sa.clone(), Importance::Normal));
             }
         }
 
         debug!("style attr: {:?}", relations);
 
         // Step 5: Author-supplied `!important` rules.
-        map.author.important.get_all_matching_rules(element,
-                                                    parent_bf,
-                                                    applicable_declarations,
-                                                    &mut relations,
-                                                    reason,
-                                                    Importance::Important);
+        map.author.get_all_matching_rules(element,
+                                          parent_bf,
+                                          applicable_declarations,
+                                          &mut relations,
+                                          reason,
+                                          Importance::Important);
 
         debug!("author important: {:?}", relations);
 
@@ -429,28 +415,28 @@ impl Stylist {
                 relations |= AFFECTED_BY_STYLE_ATTRIBUTE;
                 Push::push(
                     applicable_declarations,
-                    DeclarationBlock::from_declarations(sa.clone(), Importance::Important));
+                    ApplicableDeclarationBlock::from_declarations(sa.clone(), Importance::Important));
             }
         }
 
         debug!("style attr important: {:?}", relations);
 
         // Step 7: User and UA `!important` rules.
-        map.user.important.get_all_matching_rules(element,
-                                                  parent_bf,
-                                                  applicable_declarations,
-                                                  &mut relations,
-                                                  reason,
-                                                  Importance::Important);
+        map.user.get_all_matching_rules(element,
+                                        parent_bf,
+                                        applicable_declarations,
+                                        &mut relations,
+                                        reason,
+                                        Importance::Important);
 
         debug!("user important: {:?}", relations);
 
-        map.user_agent.important.get_all_matching_rules(element,
-                                                        parent_bf,
-                                                        applicable_declarations,
-                                                        &mut relations,
-                                                        reason,
-                                                        Importance::Important);
+        map.user_agent.get_all_matching_rules(element,
+                                              parent_bf,
+                                              applicable_declarations,
+                                              &mut relations,
+                                              reason,
+                                              Importance::Important);
 
         debug!("UA important: {:?}", relations);
 
@@ -549,51 +535,30 @@ impl Stylist {
 }
 
 
-/// Map that contains the CSS rules for a given origin.
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-struct PerOriginSelectorMap {
-    /// Rules that contains at least one property declaration with
-    /// normal importance.
-    normal: SelectorMap,
-    /// Rules that contains at least one property declaration with
-    /// !important.
-    important: SelectorMap,
-}
-
-impl PerOriginSelectorMap {
-    #[inline]
-    fn new() -> Self {
-        PerOriginSelectorMap {
-            normal: SelectorMap::new(),
-            important: SelectorMap::new(),
-        }
-    }
-}
-
 /// Map that contains the CSS rules for a specific PseudoElement
 /// (or lack of PseudoElement).
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 struct PerPseudoElementSelectorMap {
     /// Rules from user agent stylesheets
-    user_agent: PerOriginSelectorMap,
+    user_agent: SelectorMap,
     /// Rules from author stylesheets
-    author: PerOriginSelectorMap,
+    author: SelectorMap,
     /// Rules from user stylesheets
-    user: PerOriginSelectorMap,
+    user: SelectorMap,
 }
 
 impl PerPseudoElementSelectorMap {
     #[inline]
     fn new() -> Self {
         PerPseudoElementSelectorMap {
-            user_agent: PerOriginSelectorMap::new(),
-            author: PerOriginSelectorMap::new(),
-            user: PerOriginSelectorMap::new(),
+            user_agent: SelectorMap::new(),
+            author: SelectorMap::new(),
+            user: SelectorMap::new(),
         }
     }
 
     #[inline]
-    fn borrow_for_origin(&mut self, origin: &Origin) -> &mut PerOriginSelectorMap {
+    fn borrow_for_origin(&mut self, origin: &Origin) -> &mut SelectorMap {
         match *origin {
             Origin::UserAgent => &mut self.user_agent,
             Origin::Author => &mut self.author,
@@ -665,7 +630,7 @@ impl SelectorMap {
                                         reason: MatchingReason,
                                         importance: Importance)
         where E: Element<Impl=TheSelectorImpl>,
-              V: VecLike<DeclarationBlock>
+              V: VecLike<ApplicableDeclarationBlock>
     {
         if self.empty {
             return
@@ -726,7 +691,7 @@ impl SelectorMap {
     /// `self` sorted by specifity and source order.
     pub fn get_universal_rules<V>(&self,
                                   matching_rules_list: &mut V)
-        where V: VecLike<DeclarationBlock>
+        where V: VecLike<ApplicableDeclarationBlock>
     {
         if self.empty {
             return
@@ -737,7 +702,14 @@ impl SelectorMap {
         for rule in self.other_rules.iter() {
             if rule.selector.compound_selector.is_empty() &&
                rule.selector.next.is_none() {
-                matching_rules_list.push(rule.declarations.clone());
+                if rule.declarations.any_normal() {
+                    matching_rules_list.push(
+                        rule.to_applicable_declaration_block(Importance::Normal));
+                }
+                if rule.declarations.any_important() {
+                    matching_rules_list.push(
+                        rule.to_applicable_declaration_block(Importance::Important));
+                }
             }
         }
 
@@ -757,7 +729,7 @@ impl SelectorMap {
         where E: Element<Impl=TheSelectorImpl>,
               Str: Borrow<BorrowedStr> + Eq + Hash,
               BorrowedStr: Eq + Hash,
-              Vector: VecLike<DeclarationBlock>
+              Vector: VecLike<ApplicableDeclarationBlock>
     {
         if let Some(rules) = hash.get(key) {
             SelectorMap::get_matching_rules(element,
@@ -779,10 +751,10 @@ impl SelectorMap {
                                 reason: MatchingReason,
                                 importance: Importance)
         where E: Element<Impl=TheSelectorImpl>,
-              V: VecLike<DeclarationBlock>
+              V: VecLike<ApplicableDeclarationBlock>
     {
         for rule in rules.iter() {
-            let block = &rule.declarations.mixed_declarations;
+            let block = &rule.declarations;
             let any_declaration_for_importance = if importance.important() {
                 block.any_important()
             } else {
@@ -791,7 +763,7 @@ impl SelectorMap {
             if any_declaration_for_importance &&
                matches_complex_selector(&*rule.selector, element, parent_bf,
                                         relations, reason) {
-                matching_rules.push(rule.declarations.clone());
+                matching_rules.push(rule.to_applicable_declaration_block(importance));
             }
         }
     }
@@ -868,28 +840,42 @@ pub struct Rule {
     // that it matches. Selector contains an owned vector (through
     // ComplexSelector) and we want to avoid the allocation.
     pub selector: Arc<ComplexSelector<TheSelectorImpl>>,
-    pub declarations: DeclarationBlock,
+    pub declarations: Arc<PropertyDeclarationBlock>,
+    pub source_order: usize,
+    pub specificity: u32,
+}
+
+impl Rule {
+    fn to_applicable_declaration_block(&self, importance: Importance)
+                                       -> ApplicableDeclarationBlock {
+        ApplicableDeclarationBlock {
+            mixed_declarations: self.declarations.clone(),
+            importance: importance,
+            source_order: self.source_order,
+            specificity: self.specificity,
+        }
+    }
 }
 
 /// A property declaration together with its precedence among rules of equal specificity so that
 /// we can sort them.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Debug, Clone)]
-pub struct DeclarationBlock {
+pub struct ApplicableDeclarationBlock {
     /// Contains declarations of either importance, but only those of self.importance are relevant.
-    /// Use DeclarationBlock::iter
+    /// Use ApplicableDeclarationBlock::iter
     pub mixed_declarations: Arc<PropertyDeclarationBlock>,
     pub importance: Importance,
     pub source_order: usize,
     pub specificity: u32,
 }
 
-impl DeclarationBlock {
+impl ApplicableDeclarationBlock {
     #[inline]
     pub fn from_declarations(declarations: Arc<PropertyDeclarationBlock>,
                              importance: Importance)
                              -> Self {
-        DeclarationBlock {
+        ApplicableDeclarationBlock {
             mixed_declarations: declarations,
             importance: importance,
             source_order: 0,
@@ -897,20 +883,20 @@ impl DeclarationBlock {
         }
     }
 
-    pub fn iter(&self) -> DeclarationBlockIter {
-        DeclarationBlockIter {
+    pub fn iter(&self) -> ApplicableDeclarationBlockIter {
+        ApplicableDeclarationBlockIter {
             iter: self.mixed_declarations.declarations.iter(),
             importance: self.importance,
         }
     }
 }
 
-pub struct DeclarationBlockIter<'a> {
+pub struct ApplicableDeclarationBlockIter<'a> {
     iter: slice::Iter<'a, (PropertyDeclaration, Importance)>,
     importance: Importance,
 }
 
-impl<'a> Iterator for DeclarationBlockIter<'a> {
+impl<'a> Iterator for ApplicableDeclarationBlockIter<'a> {
     type Item = &'a PropertyDeclaration;
 
     #[inline]
@@ -924,7 +910,7 @@ impl<'a> Iterator for DeclarationBlockIter<'a> {
     }
 }
 
-impl<'a> DoubleEndedIterator for DeclarationBlockIter<'a> {
+impl<'a> DoubleEndedIterator for ApplicableDeclarationBlockIter<'a> {
     #[inline]
     fn next_back(&mut self) -> Option<Self::Item> {
         while let Some(&(ref declaration, importance)) = self.iter.next_back() {
