@@ -174,7 +174,7 @@ You will want to add your own logs. Luckily, many structures [implement the `fmt
 println!("foobar: {:?}", foobar)
 ```
 
-usually just works. If it doesn't, maybe foobar's properties implement the right trait.
+usually just works. If it doesn't, maybe some of foobar's properties don't implement the right trait.
 
 ### Debugger
 
