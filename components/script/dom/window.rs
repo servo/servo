@@ -25,7 +25,7 @@ use dom::bindings::str::DOMString;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::utils::{GlobalStaticData, WindowProxyHandler};
 use dom::browsingcontext::BrowsingContext;
-use dom::console::Console;
+use dom::console::{Console, TimerSet};
 use dom::crypto::Crypto;
 use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration};
 use dom::document::Document;
@@ -276,7 +276,10 @@ pub struct Window {
     scroll_offsets: DOMRefCell<HashMap<UntrustedNodeAddress, Point2D<f32>>>,
 
     /// https://html.spec.whatwg.org/multipage/#in-error-reporting-mode
-    in_error_reporting_mode: Cell<bool>
+    in_error_reporting_mode: Cell<bool>,
+
+    /// Timers used by the Console API.
+    console_timers: TimerSet,
 }
 
 impl Window {
@@ -1747,10 +1750,16 @@ impl Window {
             error_reporter: error_reporter,
             scroll_offsets: DOMRefCell::new(HashMap::new()),
             in_error_reporting_mode: Cell::new(false),
+            console_timers: TimerSet::new(),
         };
 
         WindowBinding::Wrap(runtime.cx(), win)
     }
+
+    pub fn console_timers(&self) -> &TimerSet {
+        &self.console_timers
+    }
+
     pub fn live_devtools_updates(&self) -> bool {
         return self.devtools_wants_updates.get();
     }

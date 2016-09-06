@@ -11,7 +11,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::reflector::Reflectable;
 use dom::bindings::str::DOMString;
-use dom::console::Console;
+use dom::console::{Console, TimerSet};
 use dom::crypto::Crypto;
 use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use dom::eventtarget::EventTarget;
@@ -109,6 +109,9 @@ pub struct WorkerGlobalScope {
 
     #[ignore_heap_size_of = "Defined in std"]
     scheduler_chan: IpcSender<TimerEventRequest>,
+
+    /// Timers used by the Console API.
+    console_timers: TimerSet,
 }
 
 impl WorkerGlobalScope {
@@ -140,7 +143,12 @@ impl WorkerGlobalScope {
             devtools_wants_updates: Cell::new(false),
             constellation_chan: init.constellation_chan,
             scheduler_chan: init.scheduler_chan,
+            console_timers: TimerSet::new(),
         }
+    }
+
+    pub fn console_timers(&self) -> &TimerSet {
+        &self.console_timers
     }
 
     pub fn mem_profiler_chan(&self) -> &mem::ProfilerChan {
