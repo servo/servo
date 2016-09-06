@@ -7,7 +7,6 @@ use rustc::hir::intravisit as visit;
 use rustc::hir::map as ast_map;
 use rustc::lint::{LateContext, LintPass, LintArray, LateLintPass, LintContext};
 use rustc::ty;
-use syntax::attr::AttrMetaMethods;
 use syntax::{ast, codemap};
 use utils::{match_def_path, in_derive_expn};
 
