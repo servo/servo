@@ -6508,7 +6508,8 @@ class CallbackMethod(CallbackMember):
     def getCall(self):
         replacements = {
             "thisObj": self.getThisObj(),
-            "getCallable": self.getCallableDecl()
+            "getCallable": self.getCallableDecl(),
+            "callGuard": self.getCallGuard(),
         }
         if self.argCount > 0:
             replacements["argv"] = "argv.as_ptr()"
@@ -6519,7 +6520,7 @@ class CallbackMethod(CallbackMember):
         return string.Template(
             "${getCallable}"
             "rooted!(in(cx) let rootedThis = ${thisObj});\n"
-            "let ok = JS_CallFunctionValue(\n"
+            "let ok = ${callGuard}JS_CallFunctionValue(\n"
             "    cx, rootedThis.handle(), callable.handle(),\n"
             "    &HandleValueArray {\n"
             "        length_: ${argc} as ::libc::size_t,\n"
@@ -6535,6 +6536,7 @@ class CallbackMethod(CallbackMember):
 
 class CallCallback(CallbackMethod):
     def __init__(self, callback, descriptorProvider):
+        self.callback = callback
         CallbackMethod.__init__(self, callback.signatures()[0], "Call",
                                 descriptorProvider, needThisHandling=True)
 
@@ -6543,6 +6545,11 @@ class CallCallback(CallbackMethod):
 
     def getCallableDecl(self):
         return "rooted!(in(cx) let callable = ObjectValue(&*self.parent.callback()));\n"
+
+    def getCallGuard(self):
+        if self.callback._treatNonObjectAsNull:
+            return "!IsCallable(self.parent.callback()) || "
+        return ""
 
 
 class CallbackOperationBase(CallbackMethod):
@@ -6578,6 +6585,9 @@ class CallbackOperationBase(CallbackMethod):
                 CGIfElseWrapper('isCallable',
                                 CGGeneric('ObjectValue(&*self.parent.callback())'),
                                 CGGeneric(getCallableFromProp))).define() + ');\n')
+
+    def getCallGuard(self):
+        return ""
 
 
 class CallbackOperation(CallbackOperationBase):
