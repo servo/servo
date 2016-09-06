@@ -16,7 +16,7 @@ use dom::{TElement, TNode, TRestyleDamage, UnsafeNode};
 use properties::longhands::display::computed_value as display;
 use properties::{ComputedValues, cascade, PropertyDeclarationBlock};
 use selector_impl::{TheSelectorImpl, PseudoElement};
-use selector_matching::{DeclarationBlock, Stylist};
+use selector_matching::{ApplicableDeclarationBlock, Stylist};
 use selectors::bloom::BloomFilter;
 use selectors::matching::{MatchingReason, StyleRelations, AFFECTED_BY_PSEUDO_ELEMENTS};
 use selectors::{Element, MatchAttr};
@@ -51,9 +51,9 @@ fn create_common_style_affecting_attributes_from_element<E: TElement>(element: &
 }
 
 pub struct ApplicableDeclarations {
-    pub normal: SmallVec<[DeclarationBlock; 16]>,
+    pub normal: SmallVec<[ApplicableDeclarationBlock; 16]>,
     pub per_pseudo: HashMap<PseudoElement,
-                            Vec<DeclarationBlock>,
+                            Vec<ApplicableDeclarationBlock>,
                             BuildHasherDefault<::fnv::FnvHasher>>,
 
     /// Whether the `normal` declarations are shareable with other nodes.
@@ -78,11 +78,11 @@ impl ApplicableDeclarations {
 
 #[derive(Clone)]
 pub struct ApplicableDeclarationsCacheEntry {
-    pub declarations: Vec<DeclarationBlock>,
+    pub declarations: Vec<ApplicableDeclarationBlock>,
 }
 
 impl ApplicableDeclarationsCacheEntry {
-    fn new(declarations: Vec<DeclarationBlock>) -> ApplicableDeclarationsCacheEntry {
+    fn new(declarations: Vec<ApplicableDeclarationBlock>) -> ApplicableDeclarationsCacheEntry {
         ApplicableDeclarationsCacheEntry {
             declarations: declarations,
         }
@@ -105,11 +105,11 @@ impl Hash for ApplicableDeclarationsCacheEntry {
 }
 
 struct ApplicableDeclarationsCacheQuery<'a> {
-    declarations: &'a [DeclarationBlock],
+    declarations: &'a [ApplicableDeclarationBlock],
 }
 
 impl<'a> ApplicableDeclarationsCacheQuery<'a> {
-    fn new(declarations: &'a [DeclarationBlock]) -> ApplicableDeclarationsCacheQuery<'a> {
+    fn new(declarations: &'a [ApplicableDeclarationBlock]) -> ApplicableDeclarationsCacheQuery<'a> {
         ApplicableDeclarationsCacheQuery {
             declarations: declarations,
         }
@@ -159,14 +159,14 @@ impl ApplicableDeclarationsCache {
         }
     }
 
-    pub fn find(&self, declarations: &[DeclarationBlock]) -> Option<Arc<ComputedValues>> {
+    pub fn find(&self, declarations: &[ApplicableDeclarationBlock]) -> Option<Arc<ComputedValues>> {
         match self.cache.find(&ApplicableDeclarationsCacheQuery::new(declarations)) {
             None => None,
             Some(ref values) => Some((*values).clone()),
         }
     }
 
-    pub fn insert(&mut self, declarations: Vec<DeclarationBlock>, style: Arc<ComputedValues>) {
+    pub fn insert(&mut self, declarations: Vec<ApplicableDeclarationBlock>, style: Arc<ComputedValues>) {
         self.cache.insert(ApplicableDeclarationsCacheEntry::new(declarations), style)
     }
 
@@ -493,7 +493,7 @@ trait PrivateMatchMethods: TNode {
     fn cascade_node_pseudo_element<'a, Ctx>(&self,
                                             context: &Ctx,
                                             parent_style: Option<&Arc<ComputedValues>>,
-                                            applicable_declarations: &[DeclarationBlock],
+                                            applicable_declarations: &[ApplicableDeclarationBlock],
                                             mut old_style: Option<&mut Arc<ComputedValues>>,
                                             applicable_declarations_cache:
                                              &mut ApplicableDeclarationsCache,

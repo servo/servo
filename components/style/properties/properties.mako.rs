@@ -29,7 +29,7 @@ use computed_values;
 #[cfg(feature = "servo")] use logical_geometry::{LogicalMargin, PhysicalSide};
 use logical_geometry::WritingMode;
 use parser::{ParserContext, ParserContextExtraData, log_css_error};
-use selector_matching::DeclarationBlock;
+use selector_matching::ApplicableDeclarationBlock;
 use stylesheets::Origin;
 use values::LocalToCss;
 use values::HasViewportPercentage;
@@ -1718,7 +1718,7 @@ mod lazy_static_module {
 #[allow(unused_mut, unused_imports)]
 fn cascade_with_cached_declarations(
         viewport_size: Size2D<Au>,
-        applicable_declarations: &[DeclarationBlock],
+        applicable_declarations: &[ApplicableDeclarationBlock],
         shareable: bool,
         parent_style: &ComputedValues,
         cached_style: &ComputedValues,
@@ -1863,7 +1863,7 @@ static CASCADE_PROPERTY: [CascadePropertyFn; ${len(data.longhands)}] = [
 ///
 /// Returns the computed values and a boolean indicating whether the result is cacheable.
 pub fn cascade(viewport_size: Size2D<Au>,
-               applicable_declarations: &[DeclarationBlock],
+               applicable_declarations: &[ApplicableDeclarationBlock],
                shareable: bool,
                parent_style: Option<<&ComputedValues>,
                cached_style: Option<<&ComputedValues>,

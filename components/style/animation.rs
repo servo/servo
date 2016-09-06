@@ -16,7 +16,7 @@ use properties::longhands::animation_play_state::computed_value::AnimationPlaySt
 use properties::longhands::transition_timing_function::computed_value::StartEnd;
 use properties::longhands::transition_timing_function::computed_value::TransitionTimingFunction;
 use properties::{self, ComputedValues, Importance};
-use selector_matching::DeclarationBlock;
+use selector_matching::ApplicableDeclarationBlock;
 use std::sync::Arc;
 use std::sync::mpsc::Sender;
 use string_cache::Atom;
@@ -384,7 +384,7 @@ fn compute_style_for_animation_step(context: &SharedStyleContext,
         // an Arc in the below (more common case).
         KeyframesStepValue::ComputedValues => style_from_cascade.clone(),
         KeyframesStepValue::Declarations(ref declarations) => {
-            let declaration_block = DeclarationBlock {
+            let declaration_block = ApplicableDeclarationBlock {
                 mixed_declarations: declarations.clone(),
                 importance: Importance::Normal,
                 source_order: 0,

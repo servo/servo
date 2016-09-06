@@ -7,7 +7,7 @@ use selectors::parser::{LocalName, ParserContext, parse_selector_list};
 use std::sync::Arc;
 use string_cache::Atom;
 use style::properties::{Importance, PropertyDeclarationBlock};
-use style::selector_matching::{DeclarationBlock, Rule, SelectorMap};
+use style::selector_matching::{ApplicableDeclarationBlock, Rule, SelectorMap};
 
 /// Helper method to get some Rules from selector strings.
 /// Each sublist of the result contains the Rules for one StyleRule.
@@ -18,7 +18,7 @@ fn get_mock_rules(css_selectors: &[&str]) -> Vec<Vec<Rule>> {
         .unwrap().into_iter().map(|s| {
             Rule {
                 selector: s.complex_selector.clone(),
-                declarations: DeclarationBlock {
+                declarations: ApplicableDeclarationBlock {
                     mixed_declarations: Arc::new(PropertyDeclarationBlock {
                         declarations: Vec::new(),
                         important_count: 0,

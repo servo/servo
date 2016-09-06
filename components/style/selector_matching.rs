@@ -71,7 +71,7 @@ pub struct Stylist {
     /// Applicable declarations for a given non-eagerly cascaded pseudo-element.
     /// These are eagerly computed once, and then used to resolve the new
     /// computed values on the fly on layout.
-    precomputed_pseudo_element_decls: FnvHashMap<PseudoElement, Vec<DeclarationBlock>>,
+    precomputed_pseudo_element_decls: FnvHashMap<PseudoElement, Vec<ApplicableDeclarationBlock>>,
 
     rules_source_order: usize,
 
@@ -178,7 +178,7 @@ impl Stylist {
 
                     map.$priority.insert(Rule {
                         selector: selector.complex_selector.clone(),
-                        declarations: DeclarationBlock {
+                        declarations: ApplicableDeclarationBlock {
                             specificity: selector.specificity,
                             mixed_declarations: $style_rule.declarations.clone(),
                             importance: $importance,
@@ -350,7 +350,7 @@ impl Stylist {
         where E: Element<Impl=TheSelectorImpl> +
                  fmt::Debug +
                  PresentationalHintsSynthetizer,
-              V: Push<DeclarationBlock> + VecLike<DeclarationBlock>
+              V: Push<ApplicableDeclarationBlock> + VecLike<ApplicableDeclarationBlock>
     {
         assert!(!self.is_device_dirty);
         assert!(style_attribute.is_none() || pseudo_element.is_none(),
@@ -407,7 +407,7 @@ impl Stylist {
                 relations |= AFFECTED_BY_STYLE_ATTRIBUTE;
                 Push::push(
                     applicable_declarations,
-                    DeclarationBlock::from_declarations(sa.clone(), Importance::Normal));
+                    ApplicableDeclarationBlock::from_declarations(sa.clone(), Importance::Normal));
             }
         }
 
@@ -429,7 +429,7 @@ impl Stylist {
                 relations |= AFFECTED_BY_STYLE_ATTRIBUTE;
                 Push::push(
                     applicable_declarations,
-                    DeclarationBlock::from_declarations(sa.clone(), Importance::Important));
+                    ApplicableDeclarationBlock::from_declarations(sa.clone(), Importance::Important));
             }
         }
 
@@ -665,7 +665,7 @@ impl SelectorMap {
                                         reason: MatchingReason,
                                         importance: Importance)
         where E: Element<Impl=TheSelectorImpl>,
-              V: VecLike<DeclarationBlock>
+              V: VecLike<ApplicableDeclarationBlock>
     {
         if self.empty {
             return
@@ -726,7 +726,7 @@ impl SelectorMap {
     /// `self` sorted by specifity and source order.
     pub fn get_universal_rules<V>(&self,
                                   matching_rules_list: &mut V)
-        where V: VecLike<DeclarationBlock>
+        where V: VecLike<ApplicableDeclarationBlock>
     {
         if self.empty {
             return
@@ -757,7 +757,7 @@ impl SelectorMap {
         where E: Element<Impl=TheSelectorImpl>,
               Str: Borrow<BorrowedStr> + Eq + Hash,
               BorrowedStr: Eq + Hash,
-              Vector: VecLike<DeclarationBlock>
+              Vector: VecLike<ApplicableDeclarationBlock>
     {
         if let Some(rules) = hash.get(key) {
             SelectorMap::get_matching_rules(element,
@@ -779,7 +779,7 @@ impl SelectorMap {
                                 reason: MatchingReason,
                                 importance: Importance)
         where E: Element<Impl=TheSelectorImpl>,
-              V: VecLike<DeclarationBlock>
+              V: VecLike<ApplicableDeclarationBlock>
     {
         for rule in rules.iter() {
             let block = &rule.declarations.mixed_declarations;
@@ -868,28 +868,28 @@ pub struct Rule {
     // that it matches. Selector contains an owned vector (through
     // ComplexSelector) and we want to avoid the allocation.
     pub selector: Arc<ComplexSelector<TheSelectorImpl>>,
-    pub declarations: DeclarationBlock,
+    pub declarations: ApplicableDeclarationBlock,
 }
 
 /// A property declaration together with its precedence among rules of equal specificity so that
 /// we can sort them.
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Debug, Clone)]
-pub struct DeclarationBlock {
+pub struct ApplicableDeclarationBlock {
     /// Contains declarations of either importance, but only those of self.importance are relevant.
-    /// Use DeclarationBlock::iter
+    /// Use ApplicableDeclarationBlock::iter
     pub mixed_declarations: Arc<PropertyDeclarationBlock>,
     pub importance: Importance,
     pub source_order: usize,
     pub specificity: u32,
 }
 
-impl DeclarationBlock {
+impl ApplicableDeclarationBlock {
     #[inline]
     pub fn from_declarations(declarations: Arc<PropertyDeclarationBlock>,
                              importance: Importance)
                              -> Self {
-        DeclarationBlock {
+        ApplicableDeclarationBlock {
             mixed_declarations: declarations,
             importance: importance,
             source_order: 0,
@@ -897,20 +897,20 @@ impl DeclarationBlock {
         }
     }
 
-    pub fn iter(&self) -> DeclarationBlockIter {
-        DeclarationBlockIter {
+    pub fn iter(&self) -> ApplicableDeclarationBlockIter {
+        ApplicableDeclarationBlockIter {
             iter: self.mixed_declarations.declarations.iter(),
             importance: self.importance,
         }
     }
 }
 
-pub struct DeclarationBlockIter<'a> {
+pub struct ApplicableDeclarationBlockIter<'a> {
     iter: slice::Iter<'a, (PropertyDeclaration, Importance)>,
     importance: Importance,
 }
 
-impl<'a> Iterator for DeclarationBlockIter<'a> {
+impl<'a> Iterator for ApplicableDeclarationBlockIter<'a> {
     type Item = &'a PropertyDeclaration;
 
     #[inline]
@@ -924,7 +924,7 @@ impl<'a> Iterator for DeclarationBlockIter<'a> {
     }
 }
 
-impl<'a> DoubleEndedIterator for DeclarationBlockIter<'a> {
+impl<'a> DoubleEndedIterator for ApplicableDeclarationBlockIter<'a> {
     #[inline]
     fn next_back(&mut self) -> Option<Self::Item> {
         while let Some(&(ref declaration, importance)) = self.iter.next_back() {

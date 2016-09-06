@@ -13,7 +13,7 @@ use properties::{ComputedValues, PropertyDeclarationBlock};
 use refcell::{Ref, RefMut};
 use restyle_hints::{RESTYLE_DESCENDANTS, RESTYLE_LATER_SIBLINGS, RESTYLE_SELF, RestyleHint};
 use selector_impl::{ElementExt, PseudoElement};
-use selector_matching::DeclarationBlock;
+use selector_matching::ApplicableDeclarationBlock;
 use sink::Push;
 use std::fmt::Debug;
 use std::ops::BitOr;
@@ -186,7 +186,7 @@ pub trait TDocument : Sized + Copy + Clone {
 
 pub trait PresentationalHintsSynthetizer {
     fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, hints: &mut V)
-        where V: Push<DeclarationBlock>;
+        where V: Push<ApplicableDeclarationBlock>;
 }
 
 pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + PresentationalHintsSynthetizer {

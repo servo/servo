@@ -91,7 +91,7 @@ use style::properties::{DeclaredValue, Importance};
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, parse_style_attribute};
 use style::refcell::Ref;
 use style::selector_impl::{NonTSPseudoClass, ServoSelectorImpl};
-use style::selector_matching::DeclarationBlock;
+use style::selector_matching::ApplicableDeclarationBlock;
 use style::sink::Push;
 use style::values::CSSFloat;
 use style::values::specified::{self, CSSColor, CSSRGBA, LengthOrPercentage};
@@ -291,7 +291,7 @@ pub trait LayoutElementHelpers {
 
     #[allow(unsafe_code)]
     unsafe fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, &mut V)
-        where V: Push<DeclarationBlock>;
+        where V: Push<ApplicableDeclarationBlock>;
     #[allow(unsafe_code)]
     unsafe fn get_colspan(self) -> u32;
     #[allow(unsafe_code)]
@@ -324,11 +324,11 @@ impl LayoutElementHelpers for LayoutJS<Element> {
 
     #[allow(unsafe_code)]
     unsafe fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, hints: &mut V)
-        where V: Push<DeclarationBlock>
+        where V: Push<ApplicableDeclarationBlock>
     {
         #[inline]
-        fn from_declaration(rule: PropertyDeclaration) -> DeclarationBlock {
-            DeclarationBlock::from_declarations(
+        fn from_declaration(rule: PropertyDeclaration) -> ApplicableDeclarationBlock {
+            ApplicableDeclarationBlock::from_declarations(
                 Arc::new(PropertyDeclarationBlock {
                     declarations: vec![(rule, Importance::Normal)],
                     important_count: 0,
