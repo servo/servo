@@ -65,6 +65,7 @@ use style::dom::{LayoutIterator, NodeInfo, OpaqueNode, PresentationalHintsSynthe
 use style::dom::{TRestyleDamage, UnsafeNode};
 use style::element_state::*;
 use style::properties::{ComputedValues, PropertyDeclarationBlock};
+use style::rule_tree::StrongRuleNode;
 use style::selector_impl::{ElementSnapshot, NonTSPseudoClass, PseudoElement, ServoSelectorImpl};
 use style::selector_matching::ApplicableDeclarationBlock;
 use style::sink::Push;
@@ -236,7 +237,7 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
         data
     }
 
-    fn style_text_node(&self, style: Arc<ComputedValues>) {
+    fn style_text_node(&self, style: (Arc<ComputedValues>, StrongRuleNode)) {
         debug_assert!(self.is_text_node());
         let mut data = self.get_partial_layout_data().unwrap().borrow_mut();
         data.style_data.style_text_node(style);

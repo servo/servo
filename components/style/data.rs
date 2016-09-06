@@ -5,6 +5,7 @@
 //! Per-node data used in style calculation.
 
 use properties::ComputedValues;
+use rule_tree::StrongRuleNode;
 use selector_impl::PseudoElement;
 use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
@@ -12,7 +13,7 @@ use std::mem;
 use std::ops::{Deref, DerefMut};
 use std::sync::Arc;
 
-type PseudoStylesInner = HashMap<PseudoElement, Arc<ComputedValues>,
+type PseudoStylesInner = HashMap<PseudoElement, (Arc<ComputedValues>, StrongRuleNode),
                                  BuildHasherDefault<::fnv::FnvHasher>>;
 #[derive(Clone, Debug)]
 pub struct PseudoStyles(PseudoStylesInner);
@@ -39,14 +40,18 @@ pub struct NodeStyles {
     /// The results of CSS styling for this node.
     pub primary: Arc<ComputedValues>,
 
+    /// The rule node representing the last rule matched for this node.
+    pub rule_node: StrongRuleNode,
+
     /// The results of CSS styling for each pseudo-element (if any).
     pub pseudos: PseudoStyles,
 }
 
 impl NodeStyles {
-    pub fn new(primary: Arc<ComputedValues>) -> Self {
+    pub fn new(primary: Arc<ComputedValues>, rule_node: StrongRuleNode) -> Self {
         NodeStyles {
             primary: primary,
+            rule_node: rule_node,
             pseudos: PseudoStyles::empty(),
         }
     }
@@ -186,9 +191,9 @@ impl NodeData {
         }
     }
 
-    pub fn style_text_node(&mut self, style: Arc<ComputedValues>) {
+    pub fn style_text_node(&mut self, style: (Arc<ComputedValues>, StrongRuleNode)) {
         debug_assert!(self.restyle.is_none());
-        self.styles = NodeDataStyles::Current(NodeStyles::new(style));
+        self.styles = NodeDataStyles::Current(NodeStyles::new(style.0, style.1));
     }
 
     pub fn finish_styling(&mut self, styles: NodeStyles) {

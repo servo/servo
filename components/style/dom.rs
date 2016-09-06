@@ -12,6 +12,7 @@ use element_state::ElementState;
 use parking_lot::RwLock;
 use properties::{ComputedValues, PropertyDeclarationBlock};
 use restyle_hints::{RESTYLE_DESCENDANTS, RESTYLE_LATER_SIBLINGS, RESTYLE_SELF, RestyleHint};
+use rule_tree::StrongRuleNode;
 use selector_impl::{ElementExt, PseudoElement};
 use selector_matching::ApplicableDeclarationBlock;
 use sink::Push;
@@ -148,7 +149,7 @@ pub trait TNode : Sized + Copy + Clone + NodeInfo {
 
     /// Set the style directly for a text node. This skips various unnecessary
     /// steps from begin_styling like computing the previous style.
-    fn style_text_node(&self, style: Arc<ComputedValues>);
+    fn style_text_node(&self, style: (Arc<ComputedValues>, StrongRuleNode));
 
     /// Immutable borrows the NodeData.
     fn borrow_data(&self) -> Option<AtomicRef<NodeData>>;
