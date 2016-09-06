@@ -24,10 +24,3 @@ partial interface WorkerGlobalScope { // not obsolete
 };
 WorkerGlobalScope implements WindowTimers;
 WorkerGlobalScope implements WindowBase64;
-
-// Proprietary
-[Exposed=Worker]
-partial interface WorkerGlobalScope {
-  [Replaceable]
-  readonly attribute Console console;
-};

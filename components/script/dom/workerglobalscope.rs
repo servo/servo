@@ -11,7 +11,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::reflector::Reflectable;
 use dom::bindings::str::DOMString;
-use dom::console::{Console, TimerSet};
+use dom::console::TimerSet;
 use dom::crypto::Crypto;
 use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use dom::eventtarget::EventTarget;
@@ -79,7 +79,6 @@ pub struct WorkerGlobalScope {
     resource_threads: ResourceThreads,
     location: MutNullableHeap<JS<WorkerLocation>>,
     navigator: MutNullableHeap<JS<WorkerNavigator>>,
-    console: MutNullableHeap<JS<Console>>,
     crypto: MutNullableHeap<JS<Crypto>>,
     timers: OneshotTimers,
 
@@ -132,7 +131,6 @@ impl WorkerGlobalScope {
             resource_threads: init.resource_threads,
             location: Default::default(),
             navigator: Default::default(),
-            console: Default::default(),
             crypto: Default::default(),
             timers: OneshotTimers::new(timer_event_chan, init.scheduler_chan.clone()),
             mem_profiler_chan: init.mem_profiler_chan,
@@ -301,11 +299,6 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
     // https://html.spec.whatwg.org/multipage/#dom-worker-navigator
     fn Navigator(&self) -> Root<WorkerNavigator> {
         self.navigator.or_init(|| WorkerNavigator::new(self))
-    }
-
-    // https://developer.mozilla.org/en-US/docs/Web/API/WorkerGlobalScope/console
-    fn Console(&self) -> Root<Console> {
-        self.console.or_init(|| Console::new(GlobalRef::Worker(self)))
     }
 
     // https://html.spec.whatwg.org/multipage/#dfn-Crypto

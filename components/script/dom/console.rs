@@ -4,38 +4,17 @@
 
 use devtools_traits::{ConsoleMessage, LogLevel, ScriptToDevtoolsControlMsg};
 use dom::bindings::cell::DOMRefCell;
-use dom::bindings::codegen::Bindings::ConsoleBinding;
-use dom::bindings::codegen::Bindings::ConsoleBinding::ConsoleMethods;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::Root;
-use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use time::{Timespec, get_time};
 
 // https://developer.mozilla.org/en-US/docs/Web/API/Console
-#[dom_struct]
-pub struct Console {
-    reflector_: Reflector,
-}
+pub struct Console(());
 
 impl Console {
-    fn new_inherited() -> Console {
-        Console {
-            reflector_: Reflector::new(),
-        }
-    }
-
-    pub fn new(global: GlobalRef) -> Root<Console> {
-        reflect_dom_object(box Console::new_inherited(),
-                           global,
-                           ConsoleBinding::Wrap)
-    }
-
-    fn send_to_devtools(&self, level: LogLevel, message: DOMString) {
-        let global = self.global();
-        let global = global.r();
+    fn send_to_devtools(global: GlobalRef, level: LogLevel, message: DOMString) {
         if let Some(chan) = global.devtools_chan() {
             let console_message = prepare_message(level, message);
             let devtools_message = ScriptToDevtoolsControlMsg::ConsoleAPI(
@@ -47,75 +26,73 @@ impl Console {
     }
 }
 
-impl ConsoleMethods for Console {
+impl Console {
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/log
-    fn Log(&self, messages: Vec<DOMString>) {
+    pub fn Log(global: GlobalRef, messages: Vec<DOMString>) {
         for message in messages {
             println!("{}", message);
-            self.send_to_devtools(LogLevel::Log, message);
+            Self::send_to_devtools(global, LogLevel::Log, message);
         }
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console
-    fn Debug(&self, messages: Vec<DOMString>) {
+    pub fn Debug(global: GlobalRef, messages: Vec<DOMString>) {
         for message in messages {
             println!("{}", message);
-            self.send_to_devtools(LogLevel::Debug, message);
+            Self::send_to_devtools(global, LogLevel::Debug, message);
         }
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/info
-    fn Info(&self, messages: Vec<DOMString>) {
+    pub fn Info(global: GlobalRef, messages: Vec<DOMString>) {
         for message in messages {
             println!("{}", message);
-            self.send_to_devtools(LogLevel::Info, message);
+            Self::send_to_devtools(global, LogLevel::Info, message);
         }
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/warn
-    fn Warn(&self, messages: Vec<DOMString>) {
+    pub fn Warn(global: GlobalRef, messages: Vec<DOMString>) {
         for message in messages {
             println!("{}", message);
-            self.send_to_devtools(LogLevel::Warn, message);
+            Self::send_to_devtools(global, LogLevel::Warn, message);
         }
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/error
-    fn Error(&self, messages: Vec<DOMString>) {
+    pub fn Error(global: GlobalRef, messages: Vec<DOMString>) {
         for message in messages {
             println!("{}", message);
-            self.send_to_devtools(LogLevel::Error, message);
+            Self::send_to_devtools(global, LogLevel::Error, message);
         }
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/assert
-    fn Assert(&self, condition: bool, message: Option<DOMString>) {
+    pub fn Assert(global: GlobalRef, condition: bool, message: Option<DOMString>) {
         if !condition {
             let message = message.unwrap_or_else(|| DOMString::from("no message"));
             println!("Assertion failed: {}", message);
-            self.send_to_devtools(LogLevel::Error, message);
+            Self::send_to_devtools(global, LogLevel::Error, message);
         }
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/time
-    fn Time(&self, label: DOMString) {
-        let global = self.global();
-        if let Ok(()) = global.r().console_timers().time(label.clone()) {
+    pub fn Time(global: GlobalRef, label: DOMString) {
+        if let Ok(()) = global.console_timers().time(label.clone()) {
             let message = DOMString::from(format!("{}: timer started", label));
             println!("{}", message);
-            self.send_to_devtools(LogLevel::Log, message);
+            Self::send_to_devtools(global, LogLevel::Log, message);
         }
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/timeEnd
-    fn TimeEnd(&self, label: DOMString) {
-        let global = self.global();
-        if let Ok(delta) = global.r().console_timers().time_end(&label) {
+    pub fn TimeEnd(global: GlobalRef, label: DOMString) {
+        if let Ok(delta) = global.console_timers().time_end(&label) {
             let message = DOMString::from(
                 format!("{}: {}ms", label, delta)
             );
             println!("{}", message);
-            self.send_to_devtools(LogLevel::Log, message);
+            Self::send_to_devtools(global, LogLevel::Log, message);
         };
     }
 }

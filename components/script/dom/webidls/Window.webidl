@@ -161,7 +161,6 @@ partial interface Window {
 
 // Proprietary extensions.
 partial interface Window {
-  readonly attribute Console console;
   void debug(DOMString arg);
   void gc();
   void trap();

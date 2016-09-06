@@ -25,7 +25,7 @@ use dom::bindings::str::DOMString;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::utils::{GlobalStaticData, WindowProxyHandler};
 use dom::browsingcontext::BrowsingContext;
-use dom::console::{Console, TimerSet};
+use dom::console::TimerSet;
 use dom::crypto::Crypto;
 use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration};
 use dom::document::Document;
@@ -157,7 +157,6 @@ pub struct Window {
     history_traversal_task_source: HistoryTraversalTaskSource,
     #[ignore_heap_size_of = "task sources are hard"]
     file_reading_task_source: FileReadingTaskSource,
-    console: MutNullableHeap<JS<Console>>,
     crypto: MutNullableHeap<JS<Crypto>>,
     navigator: MutNullableHeap<JS<Navigator>>,
     #[ignore_heap_size_of = "channels are hard"]
@@ -509,11 +508,6 @@ impl WindowMethods for Window {
     // https://html.spec.whatwg.org/multipage/#dom-localstorage
     fn LocalStorage(&self) -> Root<Storage> {
         self.local_storage.or_init(|| Storage::new(&GlobalRef::Window(self), StorageType::Local))
-    }
-
-    // https://developer.mozilla.org/en-US/docs/Web/API/Console
-    fn Console(&self) -> Root<Console> {
-        self.console.or_init(|| Console::new(GlobalRef::Window(self)))
     }
 
     // https://dvcs.w3.org/hg/webcrypto-api/raw-file/tip/spec/Overview.html#dfn-GlobalCrypto
@@ -1704,7 +1698,6 @@ impl Window {
             history_traversal_task_source: history_task_source,
             file_reading_task_source: file_task_source,
             image_cache_chan: image_cache_chan,
-            console: Default::default(),
             crypto: Default::default(),
             navigator: Default::default(),
             image_cache_thread: image_cache_thread,
