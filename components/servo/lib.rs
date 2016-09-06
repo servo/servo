@@ -28,6 +28,7 @@ pub extern crate canvas;
 pub extern crate canvas_traits;
 pub extern crate compositing;
 pub extern crate constellation;
+pub extern crate debugger;
 pub extern crate devtools;
 pub extern crate devtools_traits;
 pub extern crate euclid;
@@ -125,6 +126,9 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
         let time_profiler_chan = profile_time::Profiler::create(&opts.time_profiling,
                                                                 opts.time_profiler_trace_path.clone());
         let mem_profiler_chan = profile_mem::Profiler::create(opts.mem_profiler_period);
+        if let Some(port) = opts.debugger_port {
+            debugger::start_server(port)
+        }
         let devtools_chan = opts.devtools_port.map(|port| {
             devtools::start_server(port)
         });
