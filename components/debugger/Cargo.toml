@@ -1,0 +1,15 @@
+[package]
+name = "debugger"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+publish = false
+
+[lib]
+name = "debugger"
+path = "lib.rs"
+crate_type = ["rlib"]
+
+[dependencies]
+util = { path = "../util" }
+websocket = "0.17.1"
