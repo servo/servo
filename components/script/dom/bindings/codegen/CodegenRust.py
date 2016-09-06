@@ -3045,7 +3045,7 @@ class CGCallGenerator(CGThing):
     exception from the native code, or None if no error reporting is needed.
     """
     def __init__(self, errorResult, arguments, argsPre, returnType,
-                 extendedAttributes, descriptorProvider, nativeMethodName,
+                 extendedAttributes, descriptor, nativeMethodName,
                  static, object="this"):
         CGThing.__init__(self)
 
@@ -3053,7 +3053,7 @@ class CGCallGenerator(CGThing):
 
         isFallible = errorResult is not None
 
-        result = getRetvalDeclarationForType(returnType, descriptorProvider)
+        result = getRetvalDeclarationForType(returnType, descriptor)
         if isFallible:
             result = CGWrapper(result, pre="Result<", post=", Error>")
 
@@ -3074,7 +3074,7 @@ class CGCallGenerator(CGThing):
 
         call = CGGeneric(nativeMethodName)
         if static:
-            call = CGWrapper(call, pre="%s::" % descriptorProvider.interface.identifier.name)
+            call = CGWrapper(call, pre="%s::" % descriptor.interface.identifier.name)
         else:
             call = CGWrapper(call, pre="%s." % object)
         call = CGList([call, CGWrapper(args, pre="(", post=")")])
