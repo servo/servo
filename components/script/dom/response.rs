@@ -14,7 +14,9 @@ use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::{ByteString, USVString};
 use dom::headers::{Headers, Guard};
 use dom::headers::{is_vchar, is_obs_text};
+use hyper::header::Headers as HyperHeaders;
 use hyper::status::StatusCode;
+use hyper_serde::Serde;
 use net_traits::response::{ResponseBody as NetTraitsResponseBody};
 use std::str::FromStr;
 use url::Position;
@@ -287,4 +289,25 @@ impl ResponseMethods for Response {
 
 fn serialize_without_fragment(url: &Url) -> &str {
     &url[..Position::AfterQuery]
+}
+
+impl Response {
+    pub fn set_type(&self, new_response_type: DOMResponseType) {
+        *self.response_type.borrow_mut() = new_response_type;
+    }
+
+    pub fn set_headers(&self, option_hyper_headers: Option<Serde<HyperHeaders>>) {
+        self.Headers().set_headers(match option_hyper_headers {
+            Some(hyper_headers) => hyper_headers.into_inner(),
+            None => HyperHeaders::new(),
+        });
+    }
+
+    pub fn set_raw_status(&self, status: Option<(u16, Vec<u8>)>) {
+        *self.raw_status.borrow_mut() = status;
+    }
+
+    pub fn set_final_url(&self, final_url: Url) {
+        *self.url.borrow_mut() = Some(final_url);
+    }
 }

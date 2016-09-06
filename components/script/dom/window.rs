@@ -12,8 +12,10 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::OnBeforeUnloadEventHa
 use dom::bindings::codegen::Bindings::EventHandlerBinding::OnErrorEventHandlerNonNull;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use dom::bindings::codegen::Bindings::RequestBinding::RequestInit;
 use dom::bindings::codegen::Bindings::WindowBinding::{self, FrameRequestCallback, WindowMethods};
 use dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOptions};
+use dom::bindings::codegen::UnionTypes::RequestOrUSVString;
 use dom::bindings::error::{Error, ErrorInfo, ErrorResult, Fallible, report_pending_exception};
 use dom::bindings::global::{GlobalRef, global_root_from_object};
 use dom::bindings::inheritance::Castable;
@@ -40,9 +42,11 @@ use dom::messageevent::MessageEvent;
 use dom::navigator::Navigator;
 use dom::node::{Node, from_untrusted_node_address, window_from_node};
 use dom::performance::Performance;
+use dom::promise::Promise;
 use dom::screen::Screen;
 use dom::storage::Storage;
 use euclid::{Point2D, Rect, Size2D};
+use fetch;
 use gfx_traits::LayerId;
 use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{Evaluate2, HandleObject, HandleValue, JSAutoCompartment, JSContext};
@@ -901,6 +905,12 @@ impl WindowMethods for Window {
             Ok(_) => Ok(()),
             Err(e) => Err(Error::Type(format!("Couldn't open URL: {}", e))),
         }
+    }
+
+    #[allow(unrooted_must_root)]
+    // https://fetch.spec.whatwg.org/#fetch-method
+    fn Fetch(&self, input: RequestOrUSVString, init: &RequestInit) -> Rc<Promise> {
+        fetch::Fetch(self.global().r(), input, init)
     }
 }
 
