@@ -1178,7 +1178,180 @@ fn static_assert() {
             }).collect()
         )
     }
+
+
+    pub fn copy_${shorthand}_image_from(&mut self, other: &Self) {
+        unsafe {
+            Gecko_CopyImageValueFrom(&mut self.gecko.${image_layers_field}.mLayers.mFirstElement.mImage,
+                                     &other.gecko.${image_layers_field}.mLayers.mFirstElement.mImage);
+        }
+    }
+
+    pub fn set_${shorthand}_image(&mut self,
+                                  images: longhands::${shorthand}_image::computed_value::T) {
+        use gecko_bindings::structs::nsStyleImage;
+        use gecko_bindings::structs::nsStyleImageLayers_LayerType as LayerType;
+        use gecko_bindings::structs::{NS_STYLE_GRADIENT_SHAPE_LINEAR, NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER};
+        use gecko_bindings::structs::nsStyleCoord;
+        use values::computed::{Image, LinearGradient};
+        use values::specified::AngleOrCorner;
+        use values::specified::{HorizontalDirection, VerticalDirection};
+        use cssparser::Color as CSSColor;
+
+        fn set_linear_gradient(gradient: LinearGradient, geckoimage: &mut nsStyleImage) {
+            let stop_count = gradient.stops.len();
+            if stop_count >= ::std::u32::MAX as usize {
+                warn!("stylo: Prevented overflow due to too many gradient stops");
+                return;
+            }
+
+            let gecko_gradient = unsafe {
+                Gecko_CreateGradient(NS_STYLE_GRADIENT_SHAPE_LINEAR as u8,
+                                     NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER as u8,
+                                     /* repeating = */ false,
+                                     /* legacy_syntax = */ false,
+                                     stop_count as u32)
+            };
+
+            match gradient.angle_or_corner {
+                AngleOrCorner::Angle(angle) => {
+                    unsafe {
+                        (*gecko_gradient).mAngle.set(angle);
+                        (*gecko_gradient).mBgPosX.set_value(CoordDataValue::None);
+                        (*gecko_gradient).mBgPosY.set_value(CoordDataValue::None);
+                    }
+                }
+                AngleOrCorner::Corner(horiz, vert) => {
+                    let percent_x = match horiz {
+                        HorizontalDirection::Left => 0.0,
+                        HorizontalDirection::Right => 1.0,
+                    };
+                    let percent_y = match vert {
+                        VerticalDirection::Top => 0.0,
+                        VerticalDirection::Bottom => 1.0,
+                    };
+
+                    unsafe {
+                        (*gecko_gradient).mAngle.set_value(CoordDataValue::None);
+                        (*gecko_gradient).mBgPosX
+                                         .set_value(CoordDataValue::Percent(percent_x));
+                        (*gecko_gradient).mBgPosY
+                                         .set_value(CoordDataValue::Percent(percent_y));
+                    }
+                }
+            }
+
+            let mut coord: nsStyleCoord = nsStyleCoord::null();
+            for (index, stop) in gradient.stops.iter().enumerate() {
+                // NB: stops are guaranteed to be none in the gecko side by
+                // default.
+                coord.set(stop.position);
+                let color = match stop.color {
+                    CSSColor::CurrentColor => {
+                        // TODO(emilio): gecko just stores an nscolor,
+                        // and it doesn't seem to support currentColor
+                        // as value in a gradient.
+                        //
+                        // Double-check it and either remove
+                        // currentColor for servo or see how gecko
+                        // handles this.
+                        0
+                    },
+                    CSSColor::RGBA(ref rgba) => convert_rgba_to_nscolor(rgba),
+                };
+
+                let mut stop = unsafe {
+                    &mut (*gecko_gradient).mStops[index]
+                };
+
+                stop.mColor = color;
+                stop.mIsInterpolationHint = false;
+                stop.mLocation.copy_from(&coord);
+            }
+
+            unsafe {
+                Gecko_SetGradientImageValue(geckoimage, gecko_gradient);
+            }
+        }
+
+        unsafe {
+            // Prevent leaking of the last elements we did set
+            for image in &mut self.gecko.${image_layers_field}.mLayers {
+                Gecko_SetNullImageValue(&mut image.mImage)
+            }
+            // XXXManishearth clear mSourceURI for masks
+            Gecko_EnsureImageLayersLength(&mut self.gecko.${image_layers_field}, images.0.len());
+            for image in &mut self.gecko.${image_layers_field}.mLayers {
+                Gecko_InitializeImageLayer(image, LayerType::${shorthand.title()});
+            }
+        }
+
+        self.gecko.${image_layers_field}.mImageCount = images.0.len() as u32;
+
+        for (image, geckoimage) in images.0.into_iter().zip(self.gecko.${image_layers_field}
+                                                                .mLayers.iter_mut()) {
+            % if shorthand == "background":
+                if let Some(image) = image.0 {
+                    match image {
+                        Image::LinearGradient(gradient) => {
+                            set_linear_gradient(gradient, &mut geckoimage.mImage)
+                        },
+                        Image::Url(..) => {
+                            // let utf8_bytes = url.as_bytes();
+                            // Gecko_SetUrlImageValue(&mut self.gecko.mImage.mLayers.mFirstElement,
+                            //                        utf8_bytes.as_ptr() as *const _,
+                            //                        utf8_bytes.len());
+                            warn!("stylo: imgRequestProxies are not threadsafe in gecko, \
+                                   background-image: url() not yet implemented");
+                        }
+                    }
+                }
+            % else:
+                use properties::longhands::mask_image::single_value::computed_value::T;
+                match image {
+                    T::Image(image) => match image {
+                        Image::LinearGradient(gradient) => {
+                            set_linear_gradient(gradient, &mut geckoimage.mImage)
+                        }
+                        _ => () // we need to support image values
+                    },
+                    _ => () // we need to support url valeus
+                }
+            % endif
+
+        }
+    }
+
+    <%
+        fill_fields = "mRepeat mClip mOrigin mPositionX mPositionY mImage"
+        if shorthand == "background":
+            fill_fields += " mAttachment"
+        else:
+            # mSourceURI uses mImageCount
+            fill_fields += " mMaskMode mComposite"
+    %>
+    pub fn fill_arrays(&mut self) {
+        use gecko_bindings::bindings::Gecko_FillAll${shorthand.title()}Lists;
+        use std::cmp;
+        let mut max_len = 1;
+        % for member in fill_fields.split():
+            max_len = cmp::max(max_len, self.gecko.${image_layers_field}.${member}Count);
+        % endfor
+
+        // XXXManishearth Gecko does an optimization here where it only
+        // fills things in if any of the properties have been set
+
+        unsafe {
+            // While we could do this manually, we'd need to also manually
+            // run all the copy constructors, so we just delegate to gecko
+            Gecko_FillAll${shorthand.title()}Lists(&mut self.gecko.${image_layers_field}, max_len);
+        }
+    }
 </%def>
+
+// TODO: Gecko accepts lists in most background-related properties. We just use
+// the first element (which is the common case), but at some point we want to
+// add support for parsing these lists in servo and pushing to nsTArray's.
 <% skip_background_longhands = """background-color background-repeat
                                   background-image background-clip
                                   background-origin background-attachment
@@ -1199,146 +1372,6 @@ fn static_assert() {
             T::local => structs::NS_STYLE_IMAGELAYER_ATTACHMENT_LOCAL as u8,
         }
     </%self:simple_image_array_property>
-
-    pub fn copy_background_image_from(&mut self, other: &Self) {
-        unsafe {
-            Gecko_CopyImageValueFrom(&mut self.gecko.mImage.mLayers.mFirstElement.mImage,
-                                     &other.gecko.mImage.mLayers.mFirstElement.mImage);
-        }
-    }
-
-    pub fn set_background_image(&mut self, images: longhands::background_image::computed_value::T) {
-        use gecko_bindings::structs::nsStyleImageLayers_LayerType as LayerType;
-        use gecko_bindings::structs::{NS_STYLE_GRADIENT_SHAPE_LINEAR, NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER};
-        use gecko_bindings::structs::nsStyleCoord;
-        use values::computed::Image;
-        use values::specified::AngleOrCorner;
-        use values::specified::{HorizontalDirection, VerticalDirection};
-        use cssparser::Color as CSSColor;
-
-        unsafe {
-            // Prevent leaking of the last element we did set
-            for image in &mut self.gecko.mImage.mLayers {
-                Gecko_SetNullImageValue(&mut image.mImage)
-            }
-            Gecko_EnsureImageLayersLength(&mut self.gecko.mImage, images.0.len());
-            for image in &mut self.gecko.mImage.mLayers {
-                Gecko_InitializeImageLayer(image, LayerType::Background);
-            }
-        }
-
-        self.gecko.mImage.mImageCount = cmp::max(self.gecko.mImage.mLayers.len() as u32,
-                                                 self.gecko.mImage.mImageCount);
-
-        for (image, geckoimage) in images.0.into_iter().zip(self.gecko.mImage.mLayers.iter_mut()) {
-            if let Some(image) = image.0 {
-                match image {
-                    Image::LinearGradient(ref gradient) => {
-                        let stop_count = gradient.stops.len();
-                        if stop_count >= ::std::u32::MAX as usize {
-                            warn!("stylo: Prevented overflow due to too many gradient stops");
-                            return;
-                        }
-
-                        let gecko_gradient = unsafe {
-                            Gecko_CreateGradient(NS_STYLE_GRADIENT_SHAPE_LINEAR as u8,
-                                                 NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER as u8,
-                                                 /* repeating = */ false,
-                                                 /* legacy_syntax = */ false,
-                                                 stop_count as u32)
-                        };
-
-                        match gradient.angle_or_corner {
-                            AngleOrCorner::Angle(angle) => {
-                                unsafe {
-                                    (*gecko_gradient).mAngle.set(angle);
-                                    (*gecko_gradient).mBgPosX.set_value(CoordDataValue::None);
-                                    (*gecko_gradient).mBgPosY.set_value(CoordDataValue::None);
-                                }
-                            }
-                            AngleOrCorner::Corner(horiz, vert) => {
-                                let percent_x = match horiz {
-                                    HorizontalDirection::Left => 0.0,
-                                    HorizontalDirection::Right => 1.0,
-                                };
-                                let percent_y = match vert {
-                                    VerticalDirection::Top => 0.0,
-                                    VerticalDirection::Bottom => 1.0,
-                                };
-
-                                unsafe {
-                                    (*gecko_gradient).mAngle.set_value(CoordDataValue::None);
-                                    (*gecko_gradient).mBgPosX
-                                                     .set_value(CoordDataValue::Percent(percent_x));
-                                    (*gecko_gradient).mBgPosY
-                                                     .set_value(CoordDataValue::Percent(percent_y));
-                                }
-                            }
-                        }
-
-                        let mut coord: nsStyleCoord = nsStyleCoord::null();
-                        for (index, stop) in gradient.stops.iter().enumerate() {
-                            // NB: stops are guaranteed to be none in the gecko side by
-                            // default.
-                            coord.set(stop.position);
-                            let color = match stop.color {
-                                CSSColor::CurrentColor => {
-                                    // TODO(emilio): gecko just stores an nscolor,
-                                    // and it doesn't seem to support currentColor
-                                    // as value in a gradient.
-                                    //
-                                    // Double-check it and either remove
-                                    // currentColor for servo or see how gecko
-                                    // handles this.
-                                    0
-                                },
-                                CSSColor::RGBA(ref rgba) => convert_rgba_to_nscolor(rgba),
-                            };
-
-                            let mut stop = unsafe {
-                                &mut (*gecko_gradient).mStops[index]
-                            };
-
-                            stop.mColor = color;
-                            stop.mIsInterpolationHint = false;
-                            stop.mLocation.copy_from(&coord);
-                        }
-
-                        unsafe {
-                            Gecko_SetGradientImageValue(&mut geckoimage.mImage, gecko_gradient);
-                        }
-                    },
-                    Image::Url(..) => {
-                        // let utf8_bytes = url.as_bytes();
-                        // Gecko_SetUrlImageValue(&mut self.gecko.mImage.mLayers.mFirstElement,
-                        //                        utf8_bytes.as_ptr() as *const _,
-                        //                        utf8_bytes.len());
-                        warn!("stylo: imgRequestProxies are not threadsafe in gecko, \
-                               background-image: url() not yet implemented");
-                    }
-                }
-            }
-
-        }
-    }
-
-    pub fn fill_arrays(&mut self) {
-        use gecko_bindings::bindings::Gecko_FillAllBackgroundLists;
-        use std::cmp;
-        let mut max_len = 1;
-        % for member in "mRepeat mClip mOrigin mAttachment mPositionX mPositionY mImage".split():
-            max_len = cmp::max(max_len, self.gecko.mImage.${member}Count);
-        % endfor
-
-        // XXXManishearth Gecko does an optimization here where it only
-        // fills things in if any of the properties have been set
-
-        unsafe {
-            // While we could do this manually, we'd need to also manually
-            // run all the copy constructors, so we just delegate to gecko
-            Gecko_FillAllBackgroundLists(&mut self.gecko.mImage, max_len);
-        }
-    }
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="List" skip_longhands="list-style-type" skip_additionals="*">
@@ -1543,7 +1576,7 @@ fn static_assert() {
 
 <% skip_svg_longhands = """
 flood-color lighting-color stop-color
-mask-mode mask-repeat mask-clip mask-origin mask-composite mask-position mask-size
+mask-mode mask-repeat mask-clip mask-origin mask-composite mask-position mask-size mask-image
 clip-path
 """
 %>

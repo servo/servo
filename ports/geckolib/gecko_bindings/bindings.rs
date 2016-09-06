@@ -388,6 +388,8 @@ extern "C" {
      -> *mut StyleBasicShape;
     pub fn Gecko_FillAllBackgroundLists(layers: *mut nsStyleImageLayers,
                                         max_len: u32);
+    pub fn Gecko_FillAllMaskLists(layers: *mut nsStyleImageLayers,
+                                  max_len: u32);
     pub fn Gecko_AddRefCalcArbitraryThread(aPtr: *mut Calc);
     pub fn Gecko_ReleaseCalcArbitraryThread(aPtr: *mut Calc);
     pub fn Gecko_NewCSSShadowArray(len: u32) -> *mut nsCSSShadowArray;
