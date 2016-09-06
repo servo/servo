@@ -264,12 +264,12 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Sized + PartialEq {
                                 .style_data
                                 .per_pseudo.contains_key(&style_pseudo) {
                             let mut data = self.get_style_data().unwrap().borrow_mut();
-                            let new_style =
+                            let new_style_and_rule_node =
                                 context.stylist
                                        .precomputed_values_for_pseudo(&style_pseudo,
                                                                       data.style_data.style.as_ref());
                             data.style_data.per_pseudo
-                                .insert(style_pseudo.clone(), new_style.unwrap());
+                                .insert(style_pseudo.clone(), new_style_and_rule_node.unwrap());
                         }
                     }
                     PseudoElementCascadeType::Lazy => {
@@ -293,7 +293,7 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Sized + PartialEq {
                 }
 
                 Ref::map(self.get_style_data().unwrap().borrow(), |data| {
-                    data.style_data.per_pseudo.get(&style_pseudo).unwrap()
+                    &data.style_data.per_pseudo.get(&style_pseudo).unwrap().0
                 })
             }
         }
@@ -313,7 +313,7 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Sized + PartialEq {
                 PseudoElementType::Normal
                     => data.style_data.style.as_ref().unwrap(),
                 other
-                    => data.style_data.per_pseudo.get(&other.style_pseudo_element()).unwrap(),
+                    => &data.style_data.per_pseudo.get(&other.style_pseudo_element()).unwrap().0,
             }
         })
     }
@@ -323,6 +323,7 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Sized + PartialEq {
         Ref::map(self.get_style_data().unwrap().borrow(), |data| {
             data.style_data.per_pseudo
                 .get(&PseudoElement::Selection)
+                .map(|&(ref cv, _)| cv)
                 .unwrap_or(data.style_data.style.as_ref().unwrap())
         })
     }

@@ -5,6 +5,7 @@
 //! Per-node data used in style calculation.
 
 use properties::ComputedValues;
+use rule_tree::StrongRuleNode;
 use selector_impl::PseudoElement;
 use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
@@ -15,8 +16,13 @@ pub struct PrivateStyleData {
     /// The results of CSS styling for this node.
     pub style: Option<Arc<ComputedValues>>,
 
-    /// The results of CSS styling for each pseudo-element (if any).
-    pub per_pseudo: HashMap<PseudoElement, Arc<ComputedValues>,
+    /// The rule node associated with this node.
+    pub rule_node: Option<StrongRuleNode>,
+
+    /// The results of CSS styling for each pseudo-element (if any), with the
+    /// corresponding rule node if appropriate.
+    pub per_pseudo: HashMap<PseudoElement,
+                            (Arc<ComputedValues>, StrongRuleNode),
                             BuildHasherDefault<::fnv::FnvHasher>>,
 
     /// Information needed during parallel traversals.
@@ -27,6 +33,7 @@ impl PrivateStyleData {
     pub fn new() -> Self {
         PrivateStyleData {
             style: None,
+            rule_node: None,
             per_pseudo: HashMap::with_hasher(Default::default()),
             parallel: DomParallelInfo::new(),
         }

@@ -19,6 +19,7 @@ use std::fmt::Debug;
 use std::ops::BitOr;
 use std::sync::Arc;
 use string_cache::{Atom, Namespace};
+use stylesheets::StyleRule;
 
 /// Opaque type stored in type-unsafe work queues for parallel layout.
 /// Must be transmutable to and from TNode.
@@ -195,7 +196,7 @@ pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + Pre
 
     fn as_node(&self) -> Self::ConcreteNode;
 
-    fn style_attribute(&self) -> Option<&Arc<PropertyDeclarationBlock>>;
+    fn style_attribute(&self) -> Option<&Arc<StyleRule>>;
 
     fn get_state(&self) -> ElementState;
 

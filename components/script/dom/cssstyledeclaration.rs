@@ -22,6 +22,7 @@ use style::properties::{PropertyDeclaration, Shorthand, Importance};
 use style::properties::{is_supported_property, parse_one_declaration, parse_style_attribute};
 use style::refcell::Ref;
 use style::selector_impl::PseudoElement;
+use style::stylesheets::StyleRule;
 
 // http://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface
 #[dom_struct]
@@ -93,7 +94,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
     fn Length(&self) -> u32 {
         let elem = self.owner.upcast::<Element>();
         let len = match *elem.style_attribute().borrow() {
-            Some(ref declarations) => declarations.declarations.len(),
+            Some(ref rule) => rule.block.declarations.len(),
             None => 0,
         };
         len as u32
@@ -327,8 +328,8 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         let index = index as usize;
         let elem = self.owner.upcast::<Element>();
         let style_attribute = elem.style_attribute().borrow();
-        style_attribute.as_ref().and_then(|declarations| {
-            declarations.declarations.get(index)
+        style_attribute.as_ref().and_then(|rule| {
+            rule.block.declarations.get(index)
         }).map(|&(ref declaration, importance)| {
             let mut css = declaration.to_css_string();
             if importance.important() {
@@ -343,8 +344,8 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         let elem = self.owner.upcast::<Element>();
         let style_attribute = elem.style_attribute().borrow();
 
-        if let Some(declarations) = style_attribute.as_ref() {
-            DOMString::from(declarations.to_css_string())
+        if let Some(rule) = style_attribute.as_ref() {
+            DOMString::from(rule.block.to_css_string())
         } else {
             DOMString::new()
         }
@@ -366,7 +367,10 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         *element.style_attribute().borrow_mut() = if decl_block.declarations.is_empty() {
             None // Step 2
         } else {
-            Some(Arc::new(decl_block))
+            Some(Arc::new(StyleRule {
+                selectors: vec![],
+                block: decl_block
+            }))
         };
         element.sync_property_with_attrs_style();
         let node = element.upcast::<Node>();

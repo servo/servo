@@ -107,11 +107,11 @@ impl MediaRule {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct StyleRule {
     pub selectors: Vec<Selector<TheSelectorImpl>>,
-    pub declarations: Arc<PropertyDeclarationBlock>,
+    pub block: PropertyDeclarationBlock,
 }
 
 
@@ -563,7 +563,7 @@ impl<'a, 'b> QualifiedRuleParser for NestedRuleParser<'a, 'b> {
                    -> Result<CSSRule, ()> {
         Ok(CSSRule::Style(Arc::new(StyleRule {
             selectors: prelude,
-            declarations: Arc::new(parse_property_declaration_list(self.context, input))
+            block: parse_property_declaration_list(self.context, input)
         })))
     }
 }

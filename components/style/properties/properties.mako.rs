@@ -518,7 +518,8 @@ pub fn parse_style_attribute(input: &str, base_url: &Url, error_reporter: StdBox
     parse_property_declaration_list(&context, &mut Parser::new(input))
 }
 
-pub fn parse_one_declaration(name: &str, input: &str, base_url: &Url, error_reporter: StdBox<ParseErrorReporter + Send>,
+pub fn parse_one_declaration(name: &str, input: &str, base_url: &Url,
+                             error_reporter: StdBox<ParseErrorReporter + Send>,
                              extra_data: ParserContextExtraData)
                              -> Result<Vec<PropertyDeclaration>, ()> {
     let context = ParserContext::new_with_extra_data(Origin::Author, base_url, error_reporter, extra_data);
