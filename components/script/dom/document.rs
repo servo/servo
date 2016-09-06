@@ -249,8 +249,8 @@ pub struct Document {
     /// https://html.spec.whatwg.org/multipage/#target-element
     target_element: MutNullableHeap<JS<Element>>,
     /// https://w3c.github.io/uievents/#event-type-dblclick
-    #[ignore_heap_size_of = "Defined in std"]
-    last_click_info: DOMRefCell<Option<(Instant, Point2D<f32>)>>,
+    #[ignore_heap_size_of = ""]
+    last_click_info: DOMRefCell<Option<(Instant, Point2D<i32>)>>,
 }
 
 #[derive(JSTraceable, HeapSizeOf)]
@@ -778,7 +778,52 @@ impl Document {
 
         if let MouseEventType::Click = mouse_event_type {
             self.commit_focus_transaction(FocusType::Element);
+<<<<<<< HEAD
             self.maybe_fire_dblclick(client_point, node);
+=======
+
+            // https://w3c.github.io/uievents/#event-type-dblclick
+            let DBL_CLICK_TIMEOUT = Duration::from_millis(PREFS.get("dom.document.dblclick_timeout").as_u64().unwrap());
+            let DBL_CLICK_DIST_THRESHOLD = PREFS.get("dom.document.dblclick_dist").as_u64().unwrap();
+
+            let new_pos = Point2D::new(client_x, client_y);
+            let now = Instant::now();
+
+            let opt = self.last_click_info.borrow_mut().take();
+
+            if let Some((last_time, last_pos)) = opt {
+                let line = new_pos - last_pos;
+                let dist = (line.dot(line) as f64).sqrt();
+
+                if now.duration_since(last_time) < DBL_CLICK_TIMEOUT &&
+                     dist < DBL_CLICK_DIST_THRESHOLD as f64 {
+                      // A double click has occured
+                       let evt_node = node;
+                       let event = MouseEvent::new(&self.window,
+                                                   DOMString::from("dblclick"),
+                                                   EventBubbles::Bubbles,
+                                                   EventCancelable::Cancelable,
+                                                   Some(&self.window),
+                                                   clickCount,
+                                                   client_x,
+                                                   client_y,
+                                                   client_x,
+                                                   client_y,
+                                                   false,
+                                                   false,
+                                                   false,
+                                                   false,
+                                                   0i16,
+                                                   None);
+
+                    event.upcast::<Event>().fire(evt_node.upcast());
+                } else {
+                    *self.last_click_info.borrow_mut() = Some((now, new_pos));
+                }
+            } else {
+                *self.last_click_info.borrow_mut() = Some((now, new_pos));
+            }
+>>>>>>> master
         }
 
         self.window.reflow(ReflowGoal::ForDisplay,
