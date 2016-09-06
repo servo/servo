@@ -17,7 +17,6 @@
 #![feature(slice_patterns)]
 #![feature(stmt_expr_attributes)]
 #![feature(question_mark)]
-#![feature(try_borrow)]
 #![feature(try_from)]
 
 #![deny(unsafe_code)]
@@ -69,7 +68,6 @@ extern crate phf;
 extern crate profile_traits;
 extern crate rand;
 extern crate range;
-extern crate ref_filter_map;
 extern crate ref_slice;
 extern crate regex;
 extern crate rustc_serialize;
@@ -114,10 +112,10 @@ mod unpremultiplytable;
 mod webdriver_handlers;
 
 use dom::bindings::codegen::RegisterBindings;
-use js::jsapi::{Handle, JSContext, JSObject, SetDOMProxyInformation};
+use dom::bindings::proxyhandler;
+use js::jsapi::{Handle, JSContext, JSObject};
 use script_traits::SWManagerSenders;
 use serviceworker_manager::ServiceWorkerManager;
-use std::ptr;
 use util::opts;
 
 #[cfg(target_os = "linux")]
@@ -164,7 +162,7 @@ fn perform_platform_specific_initialization() {}
 #[allow(unsafe_code)]
 pub fn init(sw_senders: SWManagerSenders) {
     unsafe {
-        SetDOMProxyInformation(ptr::null(), 0, Some(script_thread::shadow_check_callback));
+        proxyhandler::init();
     }
 
     // Spawn the service worker manager passing the constellation sender

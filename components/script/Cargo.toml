@@ -27,7 +27,7 @@ bitflags = "0.7"
 canvas_traits = {path = "../canvas_traits"}
 caseless = "0.1.0"
 cookie = {version = "0.2.5", features = ["serialize-rustc"]}
-cssparser = {version = "0.5.7", features = ["heap_size", "serde-serialization"]}
+cssparser = {version = "0.6", features = ["heap_size", "serde-serialization"]}
 devtools_traits = {path = "../devtools_traits"}
 encoding = "0.2"
 euclid = "0.10.1"
@@ -56,16 +56,15 @@ plugins = {path = "../plugins"}
 profile_traits = {path = "../profile_traits"}
 rand = "0.3"
 range = {path = "../range"}
-ref_filter_map = "1.0"
 ref_slice = "1.0"
 regex = "0.1.43"
 rustc-serialize = "0.3"
 script_layout_interface = {path = "../script_layout_interface"}
 script_traits = {path = "../script_traits"}
-selectors = {version = "0.11", features = ["heap_size"]}
+selectors = {version = "0.13", features = ["heap_size"]}
 serde = "0.8"
 smallvec = "0.1"
-string_cache = {version = "0.2.23", features = ["heap_size", "unstable"]}
+string_cache = {version = "0.2.26", features = ["heap_size", "unstable"]}
 style = {path = "../style"}
 time = "0.1.12"
 url = {version = "1.2", features = ["heap_size", "query_encoding"]}

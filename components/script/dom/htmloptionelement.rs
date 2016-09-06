@@ -6,6 +6,7 @@ use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
 use dom::bindings::codegen::Bindings::HTMLOptionElementBinding;
 use dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptionElementMethods;
+use dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementBinding::HTMLSelectElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
@@ -14,6 +15,8 @@ use dom::characterdata::CharacterData;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
 use dom::htmlelement::HTMLElement;
+use dom::htmlformelement::HTMLFormElement;
+use dom::htmloptgroupelement::HTMLOptGroupElement;
 use dom::htmlscriptelement::HTMLScriptElement;
 use dom::htmlselectelement::HTMLSelectElement;
 use dom::node::{Node, UnbindContext};
@@ -108,6 +111,19 @@ impl HTMLOptionElementMethods for HTMLOptionElement {
     // https://html.spec.whatwg.org/multipage/#dom-option-text
     fn SetText(&self, value: DOMString) {
         self.upcast::<Node>().SetTextContent(Some(value))
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-option-form
+    fn GetForm(&self) -> Option<Root<HTMLFormElement>> {
+        let parent = self.upcast::<Node>().GetParentNode().and_then(|p|
+            if p.is::<HTMLOptGroupElement>() {
+                p.upcast::<Node>().GetParentNode()
+            } else {
+                Some(p)
+            }
+        );
+
+        parent.and_then(|p| p.downcast::<HTMLSelectElement>().and_then(|s| s.GetForm()))
     }
 
     // https://html.spec.whatwg.org/multipage/#attr-option-value

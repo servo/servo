@@ -8,6 +8,9 @@
     FIXME(pcwalton): This is currently offset by -2px in block and inline directions because we
     don't correctly handle collapsed borders when calculating `table_border_padding` in
     `table_wrapper.rs`.
+
+    FIXME(gpoesia): This test does not behave exactly like Gecko yet, because cell5's
+    height is currently 2px smaller in Servo.
 -->
 <link rel=match href=border_collapse_simple_ref.html>
 <style>
@@ -19,7 +22,7 @@ html {
 }
 body {
     /* See `FIXME` above. */
-    padding: 2px;
+    padding-top: 2px;
 }
 table {
     border-collapse: collapse;
@@ -28,14 +31,20 @@ table {
 td {
     border: 2px solid black;
     padding: 16px;
-    width: 32px;
+    width: 30px;
     height: 32px;
 }
 td.cell5 {
     border: 30px solid black;
+    width: 32px;
 }
 td.cell6 {
     border: 4px solid black;
+    width: 32px;
+}
+
+#row1 td {
+    height: 32px;
 }
 </style>
 </head>

@@ -87,6 +87,10 @@ impl WebGLProgram {
         }
     }
 
+    pub fn is_deleted(&self) -> bool {
+        self.is_deleted.get()
+    }
+
     /// glLinkProgram
     pub fn link(&self) {
         self.linked.set(false);

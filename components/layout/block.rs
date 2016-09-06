@@ -763,7 +763,7 @@ impl BlockFlow {
     /// When `fragmentation_context` is given (not `None`), this should fit as much of the content
     /// as possible within the available block size.
     /// If there is more content (that doesn’t fit), this flow is *fragmented*
-    /// with the extra content moved to another fragment (a flow like this one) which is returrned.
+    /// with the extra content moved to another fragment (a flow like this one) which is returned.
     /// See `Flow::fragment`.
     ///
     /// The return value is always `None` when `fragmentation_context` is `None`.
@@ -1336,10 +1336,10 @@ impl BlockFlow {
         };
         let parent_container_size = self.explicit_block_containing_size(shared_context);
         // https://drafts.csswg.org/css-ui-3/#box-sizing
-        let explicit_content_size = self
+        let mut explicit_content_size = self
                                     .explicit_block_size(parent_container_size)
                                     .map(|x| if x < box_border { Au(0) } else { x - box_border });
-
+        if self.is_root() { explicit_content_size = max(parent_container_size, explicit_content_size); }
         // Calculate containing block inline size.
         let containing_block_size = if flags.contains(IS_ABSOLUTELY_POSITIONED) {
             self.containing_block_size(&shared_context.viewport_size, opaque_self).inline

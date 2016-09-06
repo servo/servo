@@ -88,8 +88,7 @@ pub struct CefGeolocationCallback {
 impl Clone for CefGeolocationCallback {
   fn clone(&self) -> CefGeolocationCallback{
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefGeolocationCallback {
@@ -102,8 +101,7 @@ impl Clone for CefGeolocationCallback {
 impl Drop for CefGeolocationCallback {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -118,8 +116,7 @@ impl CefGeolocationCallback {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_geolocation_callback_t) -> CefGeolocationCallback {
-    if !c_object.is_null() &&
-        c_object as usize != mem::POST_DROP_USIZE {
+    if !c_object.is_null() {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefGeolocationCallback {
@@ -133,8 +130,7 @@ impl CefGeolocationCallback {
 
   pub fn c_object_addrefed(&self) -> *mut cef_geolocation_callback_t {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -142,18 +138,17 @@ impl CefGeolocationCallback {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
+    self.c_object.is_null()
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
+    !self.c_object.is_null()
   }
 
   //
   // Call to allow or deny geolocation access.
   //
   pub fn cont(&self, allow: libc::c_int) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null(){
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -181,8 +176,7 @@ impl CefWrap<*mut cef_geolocation_callback_t> for Option<CefGeolocationCallback>
     }
   }
   unsafe fn to_rust(c_object: *mut cef_geolocation_callback_t) -> Option<CefGeolocationCallback> {
-    if c_object.is_null() &&
-       c_object as usize != mem::POST_DROP_USIZE {
+    if c_object.is_null() {
       None
     } else {
       Some(CefGeolocationCallback::from_c_object_addref(c_object))
@@ -254,8 +248,7 @@ pub struct CefGeolocationHandler {
 impl Clone for CefGeolocationHandler {
   fn clone(&self) -> CefGeolocationHandler{
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefGeolocationHandler {
@@ -268,8 +261,7 @@ impl Clone for CefGeolocationHandler {
 impl Drop for CefGeolocationHandler {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -284,8 +276,7 @@ impl CefGeolocationHandler {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_geolocation_handler_t) -> CefGeolocationHandler {
-    if !c_object.is_null() &&
-        c_object as usize != mem::POST_DROP_USIZE {
+    if !c_object.is_null() {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefGeolocationHandler {
@@ -299,8 +290,7 @@ impl CefGeolocationHandler {
 
   pub fn c_object_addrefed(&self) -> *mut cef_geolocation_handler_t {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -308,10 +298,10 @@ impl CefGeolocationHandler {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
+    self.c_object.is_null()
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
+    !self.c_object.is_null()
   }
 
   //
@@ -326,8 +316,7 @@ impl CefGeolocationHandler {
       browser: interfaces::CefBrowser, requesting_url: &[u16],
       request_id: libc::c_int,
       callback: interfaces::CefGeolocationCallback) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null(){
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -349,8 +338,7 @@ impl CefGeolocationHandler {
   pub fn on_cancel_geolocation_permission(&self,
       browser: interfaces::CefBrowser, requesting_url: &[u16],
       request_id: libc::c_int) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null(){
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -380,8 +368,7 @@ impl CefWrap<*mut cef_geolocation_handler_t> for Option<CefGeolocationHandler> {
     }
   }
   unsafe fn to_rust(c_object: *mut cef_geolocation_handler_t) -> Option<CefGeolocationHandler> {
-    if c_object.is_null() &&
-       c_object as usize != mem::POST_DROP_USIZE {
+    if c_object.is_null() {
       None
     } else {
       Some(CefGeolocationHandler::from_c_object_addref(c_object))

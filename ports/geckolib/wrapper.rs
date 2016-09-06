@@ -5,16 +5,16 @@
 #![allow(unsafe_code)]
 
 use gecko_bindings::bindings;
-use gecko_bindings::bindings::Gecko_ChildrenCount;
 use gecko_bindings::bindings::Gecko_ClassOrClassList;
 use gecko_bindings::bindings::Gecko_GetNodeData;
 use gecko_bindings::bindings::Gecko_GetStyleContext;
 use gecko_bindings::bindings::ServoNodeData;
 use gecko_bindings::bindings::{Gecko_CalcStyleDifference, Gecko_StoreStyleDifference};
+use gecko_bindings::bindings::{Gecko_DropStyleChildrenIterator, Gecko_MaybeCreateStyleChildrenIterator};
 use gecko_bindings::bindings::{Gecko_ElementState, Gecko_GetDocumentElement};
 use gecko_bindings::bindings::{Gecko_GetFirstChild, Gecko_GetFirstChildElement};
 use gecko_bindings::bindings::{Gecko_GetLastChild, Gecko_GetLastChildElement};
-use gecko_bindings::bindings::{Gecko_GetNextSibling, Gecko_GetNextSiblingElement};
+use gecko_bindings::bindings::{Gecko_GetNextSibling, Gecko_GetNextSiblingElement, Gecko_GetNextStyleChild};
 use gecko_bindings::bindings::{Gecko_GetNodeFlags, Gecko_SetNodeFlags, Gecko_UnsetNodeFlags};
 use gecko_bindings::bindings::{Gecko_GetParentElement, Gecko_GetParentNode};
 use gecko_bindings::bindings::{Gecko_GetPrevSibling, Gecko_GetPrevSiblingElement};
@@ -35,7 +35,6 @@ use snapshot::GeckoElementSnapshot;
 use snapshot_helpers;
 use std::fmt;
 use std::marker::PhantomData;
-use std::mem::transmute;
 use std::ops::BitOr;
 use std::ptr;
 use std::sync::Arc;
@@ -134,6 +133,7 @@ impl<'ln> TNode for GeckoNode<'ln> {
     type ConcreteDocument = GeckoDocument<'ln>;
     type ConcreteElement = GeckoElement<'ln>;
     type ConcreteRestyleDamage = GeckoRestyleDamage;
+    type ConcreteChildrenIterator = GeckoChildrenIterator<'ln>;
 
     fn to_unsafe(&self) -> UnsafeNode {
         (self.node as usize, 0)
@@ -163,6 +163,15 @@ impl<'ln> TNode for GeckoNode<'ln> {
         unimplemented!()
     }
 
+    fn children(self) -> GeckoChildrenIterator<'ln> {
+        let maybe_iter = unsafe { Gecko_MaybeCreateStyleChildrenIterator(self.node) };
+        if !maybe_iter.is_null() {
+            GeckoChildrenIterator::GeckoIterator(maybe_iter)
+        } else {
+            GeckoChildrenIterator::Current(self.first_child())
+        }
+    }
+
     fn opaque(&self) -> OpaqueNode {
         let ptr: uintptr_t = self.node as uintptr_t;
         OpaqueNode(ptr)
@@ -178,12 +187,6 @@ impl<'ln> TNode for GeckoNode<'ln> {
 
     fn debug_id(self) -> usize {
         unimplemented!()
-    }
-
-    fn children_count(&self) -> u32 {
-        unsafe {
-            Gecko_ChildrenCount(self.node)
-        }
     }
 
     fn as_element(&self) -> Option<GeckoElement<'ln>> {
@@ -341,6 +344,40 @@ impl<'ln> TNode for GeckoNode<'ln> {
     unsafe fn set_dirty_on_viewport_size_changed(&self) {}
 }
 
+// We generally iterate children by traversing the siblings of the first child
+// like Servo does. However, for nodes with anonymous children, we use a custom
+// (heavier-weight) Gecko-implemented iterator.
+pub enum GeckoChildrenIterator<'a> {
+    Current(Option<GeckoNode<'a>>),
+    GeckoIterator(*mut bindings::StyleChildrenIterator),
+}
+
+impl<'a> Drop for GeckoChildrenIterator<'a> {
+    fn drop(&mut self) {
+        if let GeckoChildrenIterator::GeckoIterator(it) = *self {
+            unsafe {
+                Gecko_DropStyleChildrenIterator(it);
+            }
+        }
+    }
+}
+
+impl<'a> Iterator for GeckoChildrenIterator<'a> {
+    type Item = GeckoNode<'a>;
+    fn next(&mut self) -> Option<GeckoNode<'a>> {
+        match *self {
+            GeckoChildrenIterator::Current(curr) => {
+                let next = curr.and_then(|node| node.next_sibling());
+                *self = GeckoChildrenIterator::Current(next);
+                curr
+            },
+            GeckoChildrenIterator::GeckoIterator(it) => unsafe {
+                Gecko_GetNextStyleChild(it).as_ref().map(|n| GeckoNode::from_ref(n))
+            }
+        }
+    }
+}
+
 #[derive(Clone, Copy)]
 pub struct GeckoDocument<'ld> {
     document: *mut RawGeckoDocument,
@@ -376,6 +413,8 @@ impl<'ld> TDocument for GeckoDocument<'ld> {
         let elements =  unsafe { self.document.drain_modified_elements() };
         elements.into_iter().map(|(el, snapshot)| (ServoLayoutElement::from_layout_js(el), snapshot)).collect()*/
     }
+    fn will_paint(&self) { unimplemented!() }
+    fn needs_paint_from_layout(&self) { unimplemented!() }
 }
 
 #[derive(Clone, Copy)]
@@ -422,8 +461,6 @@ lazy_static! {
     };
 }
 
-static NO_STYLE_ATTRIBUTE: Option<PropertyDeclarationBlock> = None;
-
 impl<'le> TElement for GeckoElement<'le> {
     type ConcreteNode = GeckoNode<'le>;
     type ConcreteDocument = GeckoDocument<'le>;
@@ -432,14 +469,16 @@ impl<'le> TElement for GeckoElement<'le> {
         unsafe { GeckoNode::from_raw(self.element as *mut RawGeckoNode) }
     }
 
-    fn style_attribute(&self) -> &Option<PropertyDeclarationBlock> {
+    fn style_attribute(&self) -> Option<&Arc<PropertyDeclarationBlock>> {
         let declarations = unsafe { Gecko_GetServoDeclarationBlock(self.element) };
         if declarations.is_null() {
-            &NO_STYLE_ATTRIBUTE
+            None
         } else {
-            GeckoDeclarationBlock::with(declarations, |declarations| {
-                unsafe { transmute(&declarations.declarations) }
-            })
+            let opt_ptr = GeckoDeclarationBlock::with(declarations, |declarations| {
+                // Use a raw pointer to extend the lifetime
+                declarations.declarations.as_ref().map(|r| r as *const Arc<_>)
+            });
+            opt_ptr.map(|ptr| unsafe { &*ptr })
         }
     }
 

@@ -63,7 +63,7 @@ use script_layout_interface::message::Msg;
 use script_layout_interface::{HTMLCanvasData, OpaqueStyleAndLayoutData};
 use script_layout_interface::{LayoutNodeType, LayoutElementType, TrustedNodeAddress};
 use script_traits::UntrustedNodeAddress;
-use selectors::matching::matches;
+use selectors::matching::{MatchingReason, matches};
 use selectors::parser::Selector;
 use selectors::parser::parse_author_origin_selector_list_from_str;
 use std::borrow::ToOwned;
@@ -319,7 +319,7 @@ impl<'a> Iterator for QuerySelectorIterator {
         // (instead of passing `None`)? Probably.
         self.iterator.by_ref().filter_map(|node| {
             if let Some(element) = Root::downcast(node) {
-                if matches(selectors, &element, None) {
+                if matches(selectors, &element, None, MatchingReason::Other) {
                     return Some(Root::upcast(element));
                 }
             }
@@ -711,7 +711,7 @@ impl Node {
             // Step 3.
             Ok(ref selectors) => {
                 Ok(self.traverse_preorder().filter_map(Root::downcast).find(|element| {
-                    matches(selectors, element, None)
+                    matches(selectors, element, None, MatchingReason::Other)
                 }))
             }
         }

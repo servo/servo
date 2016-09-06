@@ -5,9 +5,11 @@
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HeadersBinding;
 use dom::bindings::codegen::Bindings::HeadersBinding::HeadersMethods;
+use dom::bindings::codegen::Bindings::HeadersBinding::HeadersWrap;
 use dom::bindings::codegen::UnionTypes::HeadersOrByteStringSequenceSequence;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
+use dom::bindings::iterable::Iterable;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::{ByteString, is_token};
@@ -45,7 +47,7 @@ impl Headers {
     }
 
     pub fn new(global: GlobalRef) -> Root<Headers> {
-        reflect_dom_object(box Headers::new_inherited(), global, HeadersBinding::Wrap)
+        reflect_dom_object(box Headers::new_inherited(), global, HeadersWrap)
     }
 
     // https://fetch.spec.whatwg.org/#dom-headers
@@ -222,6 +224,41 @@ impl Headers {
     // https://fetch.spec.whatwg.org/#concept-header-extract-mime-type
     pub fn extract_mime_type(&self) -> Vec<u8> {
         self.header_list.borrow().get_raw("content-type").map_or(vec![], |v| v[0].clone())
+    }
+
+    pub fn sort_header_list(&self) -> Vec<(String, String)> {
+        let borrowed_header_list = self.header_list.borrow();
+        let headers_iter = borrowed_header_list.iter();
+        let mut header_vec = vec![];
+        for header in headers_iter {
+            let name = header.name().to_string();
+            let value = header.value_string();
+            let name_value = (name, value);
+            header_vec.push(name_value);
+        }
+        header_vec.sort();
+        header_vec
+    }
+}
+
+impl Iterable for Headers {
+    type Key = ByteString;
+    type Value = ByteString;
+
+    fn get_iterable_length(&self) -> u32 {
+        self.header_list.borrow().iter().count() as u32
+    }
+
+    fn get_value_at_index(&self, n: u32) -> ByteString {
+        let sorted_header_vec = self.sort_header_list();
+        let value = sorted_header_vec[n as usize].1.clone();
+        ByteString::new(value.into_bytes().to_vec())
+    }
+
+    fn get_key_at_index(&self, n: u32) -> ByteString {
+        let sorted_header_vec = self.sort_header_list();
+        let key = sorted_header_vec[n as usize].0.clone();
+        ByteString::new(key.into_bytes().to_vec())
     }
 }
 

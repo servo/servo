@@ -197,8 +197,7 @@ pub struct CefRenderProcessHandler {
 impl Clone for CefRenderProcessHandler {
   fn clone(&self) -> CefRenderProcessHandler{
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefRenderProcessHandler {
@@ -211,8 +210,7 @@ impl Clone for CefRenderProcessHandler {
 impl Drop for CefRenderProcessHandler {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -227,8 +225,7 @@ impl CefRenderProcessHandler {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_render_process_handler_t) -> CefRenderProcessHandler {
-    if !c_object.is_null() &&
-        c_object as usize != mem::POST_DROP_USIZE {
+    if !c_object.is_null() {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefRenderProcessHandler {
@@ -242,8 +239,7 @@ impl CefRenderProcessHandler {
 
   pub fn c_object_addrefed(&self) -> *mut cef_render_process_handler_t {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -251,10 +247,10 @@ impl CefRenderProcessHandler {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
+    self.c_object.is_null()
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
+    !self.c_object.is_null()
   }
 
   //
@@ -265,8 +261,7 @@ impl CefRenderProcessHandler {
   //
   pub fn on_render_thread_created(&self,
       extra_info: interfaces::CefListValue) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -281,8 +276,7 @@ impl CefRenderProcessHandler {
   // Called after WebKit has been initialized.
   //
   pub fn on_web_kit_initialized(&self) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -298,8 +292,7 @@ impl CefRenderProcessHandler {
   // destroyed.
   //
   pub fn on_browser_created(&self, browser: interfaces::CefBrowser) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -314,8 +307,7 @@ impl CefRenderProcessHandler {
   // Called before a browser is destroyed.
   //
   pub fn on_browser_destroyed(&self, browser: interfaces::CefBrowser) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -330,8 +322,7 @@ impl CefRenderProcessHandler {
   // Return the handler for browser load status events.
   //
   pub fn get_load_handler(&self) -> interfaces::CefLoadHandler {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -350,8 +341,7 @@ impl CefRenderProcessHandler {
       frame: interfaces::CefFrame, request: interfaces::CefRequest,
       navigation_type: types::cef_navigation_type_t,
       is_redirect: libc::c_int) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -376,8 +366,7 @@ impl CefRenderProcessHandler {
   //
   pub fn on_context_created(&self, browser: interfaces::CefBrowser,
       frame: interfaces::CefFrame, context: interfaces::CefV8Context) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -396,8 +385,7 @@ impl CefRenderProcessHandler {
   //
   pub fn on_context_released(&self, browser: interfaces::CefBrowser,
       frame: interfaces::CefFrame, context: interfaces::CefV8Context) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -419,8 +407,7 @@ impl CefRenderProcessHandler {
       frame: interfaces::CefFrame, context: interfaces::CefV8Context,
       exception: interfaces::CefV8Exception,
       stackTrace: interfaces::CefV8StackTrace) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -445,8 +432,7 @@ impl CefRenderProcessHandler {
   //
   pub fn on_focused_node_changed(&self, browser: interfaces::CefBrowser,
       frame: interfaces::CefFrame, node: interfaces::CefDOMNode) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -467,8 +453,7 @@ impl CefRenderProcessHandler {
   pub fn on_process_message_received(&self, browser: interfaces::CefBrowser,
       source_process: interfaces::CefProcessId,
       message: interfaces::CefProcessMessage) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -498,8 +483,7 @@ impl CefWrap<*mut cef_render_process_handler_t> for Option<CefRenderProcessHandl
     }
   }
   unsafe fn to_rust(c_object: *mut cef_render_process_handler_t) -> Option<CefRenderProcessHandler> {
-    if c_object.is_null() &&
-       c_object as usize != mem::POST_DROP_USIZE {
+    if c_object.is_null() {
       None
     } else {
       Some(CefRenderProcessHandler::from_c_object_addref(c_object))

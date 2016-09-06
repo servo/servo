@@ -82,14 +82,15 @@ impl From<nsStyleCoord_CalcValue> for LengthOrPercentage {
 
 pub mod basic_shape {
     use euclid::size::Size2D;
+    use gecko_bindings::structs;
     use gecko_bindings::structs::StyleClipPathGeometryBox;
     use gecko_bindings::structs::{StyleBasicShape, StyleBasicShapeType, StyleFillRule};
-    use gecko_bindings::structs::{nsStyleCoord, nsStyleCorners, nsStyleImageLayers_Position};
+    use gecko_bindings::structs::{nsStyleCoord, nsStyleCorners};
     use gecko_bindings::sugar::ns_style_coord::{CoordDataMut, CoordDataValue};
     use gecko_values::GeckoStyleCoordConvertible;
     use std::borrow::Borrow;
     use values::computed::basic_shape::*;
-    use values::computed::position::Position;
+    use values::computed::position;
     use values::computed::{BorderRadiusSize, LengthOrPercentage};
 
     // using Borrow so that we can have a non-moving .into()
@@ -196,10 +197,10 @@ pub mod basic_shape {
     }
 
     // Can't be a From impl since we need to set an existing
-    // nsStyleImageLayers_Position, not create a new one
-    impl From<Position> for nsStyleImageLayers_Position {
-        fn from(other: Position) -> Self {
-            nsStyleImageLayers_Position {
+    // Position, not create a new one
+    impl From<position::Position> for structs::Position {
+        fn from(other: position::Position) -> Self {
+            structs::Position {
                 mXPosition: other.horizontal.into(),
                 mYPosition: other.vertical.into()
             }
@@ -214,10 +215,10 @@ pub mod basic_shape {
         }
     }
 
-    impl<T: Borrow<nsStyleImageLayers_Position>> From<T> for Position {
+    impl<T: Borrow<structs::Position>> From<T> for position::Position {
         fn from(other: T) -> Self {
             let other = other.borrow();
-            Position {
+            position::Position {
                 horizontal: other.mXPosition.into(),
                 vertical: other.mYPosition.into(),
             }

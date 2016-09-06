@@ -85,17 +85,13 @@ impl NamedNodeMapMethods for NamedNodeMap {
     }
 
     // https://dom.spec.whatwg.org/#dom-namednodemap-item
-    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Root<Attr>> {
-        let item = self.Item(index);
-        *found = item.is_some();
-        item
+    fn IndexedGetter(&self, index: u32) -> Option<Root<Attr>> {
+        self.Item(index)
     }
 
     // check-tidy: no specs after this line
-    fn NamedGetter(&self, name: DOMString, found: &mut bool) -> Option<Root<Attr>> {
-        let item = self.GetNamedItem(name);
-        *found = item.is_some();
-        item
+    fn NamedGetter(&self, name: DOMString) -> Option<Root<Attr>> {
+        self.GetNamedItem(name)
     }
 
     // https://heycam.github.io/webidl/#dfn-supported-property-names

@@ -81,6 +81,7 @@ pub mod context;
 pub mod custom_properties;
 pub mod data;
 pub mod dom;
+pub mod domrefcell;
 pub mod element_state;
 pub mod error_reporting;
 pub mod font_face;

@@ -273,11 +273,10 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
         // Step 3.
         let raw_data = match *self.context.borrow() {
             Some(CanvasContext::Context2d(ref context)) => {
-                let window = window_from_node(self);
                 let image_data = try!(context.GetImageData(Finite::wrap(0f64), Finite::wrap(0f64),
                                                            Finite::wrap(self.Width() as f64),
                                                            Finite::wrap(self.Height() as f64)));
-                image_data.get_data_array(&GlobalRef::Window(window.r()))
+                image_data.get_data_array()
             }
             None => {
                 // Each pixel is fully-transparent black.

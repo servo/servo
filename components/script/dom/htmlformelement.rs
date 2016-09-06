@@ -230,9 +230,9 @@ impl HTMLFormElementMethods for HTMLFormElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-form-item
-    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Root<Element>> {
+    fn IndexedGetter(&self, index: u32) -> Option<Root<Element>> {
         let elements = self.Elements();
-        elements.IndexedGetter(index, found)
+        elements.IndexedGetter(index)
     }
 }
 

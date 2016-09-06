@@ -316,3 +316,17 @@ def WebIDLTest(parser, harness):
     harness.ok(results[0].members[3].getExtendedAttribute("SecureContext") is None,
                "Methods copied from non-[SecureContext] interface should not be [SecureContext]")
  
+    # Test SecureContext and NoInterfaceObject
+    parser = parser.reset()
+    parser.parse("""
+        [NoInterfaceObject, SecureContext]
+        interface TestSecureContextNoInterfaceObject {
+          void testSecureMethod(byte foo);
+        };
+    """)
+    results = parser.finish()
+    harness.check(len(results[0].members), 1, "TestSecureContextNoInterfaceObject should have only one member")
+    harness.ok(results[0].getExtendedAttribute("SecureContext"),
+      "Interface should have [SecureContext] extended attribute")
+    harness.ok(results[0].members[0].getExtendedAttribute("SecureContext"),
+      "Interface member should have [SecureContext] extended attribute")

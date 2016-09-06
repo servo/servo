@@ -39,6 +39,11 @@ class CheckTidiness(unittest.TestCase):
         self.assertEqual('no newline at EOF', errors.next()[2])
         self.assertNoMoreErrors(errors)
 
+    def test_empty_file(self):
+        errors = tidy.collect_errors_for_files(iterFile('empty_file.rs'), [], [tidy.check_by_line], print_text=False)
+        self.assertEqual('file is empty', errors.next()[2])
+        self.assertNoMoreErrors(errors)
+
     def test_long_line(self):
         errors = tidy.collect_errors_for_files(iterFile('long_line.rs'), [], [tidy.check_by_line], print_text=False)
         self.assertEqual('Line is longer than 120 characters', errors.next()[2])
@@ -117,7 +122,7 @@ class CheckTidiness(unittest.TestCase):
         self.assertNoMoreErrors(errors)
 
     def test_toml(self):
-        errors = tidy.collect_errors_for_files(iterFile('test.toml'), [tidy.check_toml], [], print_text=False)
+        errors = tidy.collect_errors_for_files(iterFile('Cargo.toml'), [tidy.check_toml], [], print_text=False)
         self.assertEqual('found asterisk instead of minimum version number', errors.next()[2])
         self.assertEqual('.toml file should contain a valid license.', errors.next()[2])
         self.assertNoMoreErrors(errors)

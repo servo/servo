@@ -30,18 +30,23 @@ pub enum Range<T> {
 
 impl Range<specified::Length> {
     fn to_computed_range(&self, viewport_size: Size2D<Au>) -> Range<Au> {
+        // http://dev.w3.org/csswg/mediaqueries3/#units
+        // em units are relative to the initial font-size.
+        let initial_font_size = longhands::font_size::get_initial_value();
         let compute_width = |&width| {
             match width {
                 specified::Length::Absolute(value) => value,
-                specified::Length::FontRelative(value) => {
-                    // http://dev.w3.org/csswg/mediaqueries3/#units
-                    // em units are relative to the initial font-size.
-                    let initial_font_size = longhands::font_size::get_initial_value();
-                    value.to_computed_value(initial_font_size, initial_font_size)
-                }
-                specified::Length::ViewportPercentage(value) =>
-                    value.to_computed_value(viewport_size),
-                _ => unreachable!()
+                specified::Length::FontRelative(value)
+                    => value.to_computed_value(initial_font_size, initial_font_size),
+                specified::Length::ViewportPercentage(value)
+                    => value.to_computed_value(viewport_size),
+                specified::Length::Calc(val)
+                    => val.compute_from_viewport_and_font_size(viewport_size,
+                                                               initial_font_size,
+                                                               initial_font_size)
+                          .length(),
+                specified::Length::ServoCharacterWidth(..)
+                    => unreachable!(),
             }
         };
 

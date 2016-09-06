@@ -2,7 +2,7 @@
 +++ WebIDL.py
 @@ -1239,12 +1239,6 @@ class IDLInterface(IDLObjectWithScope, IDLExposureMixins):
                                                alias,
-                                               [member.location, m.location])
+                                               [member.location, m.location]) 
  
 -        if (self.getExtendedAttribute("Pref") and
 -            self._exposureGlobalNames != set([self.parentScope.primaryGlobalName])):
@@ -10,9 +10,9 @@
 -                              self.parentScope.primaryGlobalName,
 -                              [self.location])
 -
-         for attribute in ["CheckAnyPermissions", "CheckAllPermissions"]:
-             if (self.getExtendedAttribute(attribute) and
-                 self._exposureGlobalNames != set([self.parentScope.primaryGlobalName])):
+         # Conditional exposure makes no sense for interfaces with no
+         # interface object, unless they're navigator properties.
+         # And SecureContext makes sense for interfaces with no interface object,
 @@ -3459,12 +3453,6 @@ class IDLInterfaceMember(IDLObjectWithIdentifier, IDLExposureMixins):
          IDLExposureMixins.finish(self, scope)
  
@@ -23,6 +23,6 @@
 -                              "%s-only" % self._globalScope.primaryGlobalName,
 -                              [self.location])
 -
-         for attribute in ["CheckAnyPermissions", "CheckAllPermissions"]:
-             if (self.getExtendedAttribute(attribute) and
-                 self.exposureSet != set([self._globalScope.primaryGlobalName])):
+         if self.isAttr() or self.isMethod():
+             if self.affects == "Everything" and self.dependsOn != "Everything":
+                 raise WebIDLError("Interface member is flagged as affecting "

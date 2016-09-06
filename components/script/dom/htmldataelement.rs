@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::HTMLDataElementBinding;
+use dom::bindings::codegen::Bindings::HTMLDataElementBinding::HTMLDataElementMethods;
 use dom::bindings::js::Root;
 use dom::bindings::str::DOMString;
 use dom::document::Document;
@@ -32,4 +33,12 @@ impl HTMLDataElement {
                            document,
                            HTMLDataElementBinding::Wrap)
     }
+}
+
+impl HTMLDataElementMethods for HTMLDataElement {
+    // https://html.spec.whatwg.org/multipage/#dom-data-value
+    make_getter!(Value, "value");
+
+    // https://html.spec.whatwg.org/multipage/#dom-data-value
+    make_setter!(SetValue, "value");
 }

@@ -45,8 +45,7 @@ fn property_declaration_block_should_serialize_correctly() {
     ];
 
     let block = PropertyDeclarationBlock {
-        declarations: Arc::new(declarations),
-
+        declarations: declarations,
         important_count: 0,
     };
 
@@ -63,8 +62,7 @@ mod shorthand_serialization {
 
     pub fn shorthand_properties_to_string(properties: Vec<PropertyDeclaration>) -> String {
         let block = PropertyDeclarationBlock {
-            declarations: Arc::new(properties.into_iter().map(|d| (d, Importance::Normal)).collect()),
-
+            declarations: properties.into_iter().map(|d| (d, Importance::Normal)).collect(),
             important_count: 0,
         };
 
@@ -728,8 +726,10 @@ mod shorthand_serialization {
 
             let position = single_vec_value_typedef!(position,
                 Position {
-                    horizontal: LengthOrPercentage::Length(Length::from_px(7f32)),
-                    vertical: LengthOrPercentage::Length(Length::from_px(4f32))
+                    horiz_keyword: None,
+                    horiz_position: Some(LengthOrPercentage::Length(Length::from_px(7f32))),
+                    vert_keyword: None,
+                    vert_position: Some(LengthOrPercentage::Length(Length::from_px(4f32)))
                 }
             );
 
@@ -781,8 +781,10 @@ mod shorthand_serialization {
 
             let position = single_vec_value_typedef!(position,
                 Position {
-                    horizontal: LengthOrPercentage::Length(Length::from_px(7f32)),
-                    vertical: LengthOrPercentage::Length(Length::from_px(4f32))
+                    horiz_keyword: None,
+                    horiz_position: Some(LengthOrPercentage::Length(Length::from_px(7f32))),
+                    vert_keyword: None,
+                    vert_position: Some(LengthOrPercentage::Length(Length::from_px(4f32)))
                 }
             );
 
@@ -833,8 +835,10 @@ mod shorthand_serialization {
 
              let position = single_vec_value_typedef!(position,
                 Position {
-                    horizontal: LengthOrPercentage::Length(Length::from_px(0f32)),
-                    vertical: LengthOrPercentage::Length(Length::from_px(0f32))
+                    horiz_keyword: None,
+                    horiz_position: Some(LengthOrPercentage::Length(Length::from_px(0f32))),
+                    vert_keyword: None,
+                    vert_position: Some(LengthOrPercentage::Length(Length::from_px(0f32)))
                 }
             );
 

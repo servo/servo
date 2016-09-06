@@ -14,7 +14,7 @@ servo = ["heapsize", "heapsize_plugin", "serde", "serde_macros",
          "cssparser/heap_size", "cssparser/serde-serialization"]
 
 [dependencies]
-cssparser = "0.5.7"
+cssparser = "0.6"
 euclid = "0.10.1"
 heapsize = {version = "0.3.0", optional = true}
 heapsize_plugin = {version = "0.1.2", optional = true}

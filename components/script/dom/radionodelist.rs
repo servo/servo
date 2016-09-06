@@ -105,7 +105,7 @@ impl RadioNodeListMethods for RadioNodeList {
     // https://github.com/servo/servo/issues/5875
     //
     // https://dom.spec.whatwg.org/#dom-nodelist-item
-    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Root<Node>> {
-        self.node_list.IndexedGetter(index, found)
+    fn IndexedGetter(&self, index: u32) -> Option<Root<Node>> {
+        self.node_list.IndexedGetter(index)
     }
 }

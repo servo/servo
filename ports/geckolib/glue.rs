@@ -103,11 +103,11 @@ fn restyle_subtree(node: GeckoNode, raw_data: *mut RawServoStyleSet) {
 
     // We ensure this is true before calling Servo_RestyleSubtree()
     debug_assert!(node.is_dirty() || node.has_dirty_descendants());
-    if per_doc_data.num_threads == 1 {
+    if per_doc_data.num_threads == 1 || per_doc_data.work_queue.is_none() {
         sequential::traverse_dom::<GeckoNode, RecalcStyleOnly>(node, &shared_style_context);
     } else {
         parallel::traverse_dom::<GeckoNode, RecalcStyleOnly>(node, &shared_style_context,
-                                                             &mut per_doc_data.work_queue);
+                                                             per_doc_data.work_queue.as_mut().unwrap());
     }
 }
 
@@ -356,7 +356,7 @@ pub extern "C" fn Servo_StyleSet_Drop(data: *mut RawServoStyleSet) -> () {
 }
 
 pub struct GeckoDeclarationBlock {
-    pub declarations: Option<PropertyDeclarationBlock>,
+    pub declarations: Option<Arc<PropertyDeclarationBlock>>,
     // XXX The following two fields are made atomic to work around the
     // ownership system so that they can be changed inside a shared
     // instance. It wouldn't provide safety as Rust usually promises,
@@ -377,7 +377,7 @@ pub extern "C" fn Servo_ParseStyleAttribute(bytes: *const u8, length: u32,
                                             -> ServoDeclarationBlockStrong {
     let value = unsafe { from_utf8_unchecked(slice::from_raw_parts(bytes, length as usize)) };
     GeckoDeclarationBlock::from_arc(Arc::new(GeckoDeclarationBlock {
-        declarations: GeckoElement::parse_style_attribute(value),
+        declarations: GeckoElement::parse_style_attribute(value).map(Arc::new),
         cache: AtomicPtr::new(cache),
         immutable: AtomicBool::new(false),
     }))

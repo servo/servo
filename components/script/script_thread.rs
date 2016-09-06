@@ -31,7 +31,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root, RootCollection};
 use dom::bindings::js::{RootCollectionPtr, RootedReference};
-use dom::bindings::refcounted::{LiveDOMReferences, Trusted};
+use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::Reflectable;
 use dom::bindings::str::DOMString;
 use dom::bindings::trace::JSTraceable;
@@ -59,7 +59,6 @@ use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::glue::GetWindowProxyClass;
-use js::jsapi::{DOMProxyShadowsResult, HandleId, HandleObject};
 use js::jsapi::{JSAutoCompartment, JSContext, JS_SetWrapObjectCallbacks};
 use js::jsapi::{JSTracer, SetWindowProxyClass};
 use js::jsval::UndefinedValue;
@@ -482,12 +481,6 @@ impl ScriptThreadFactory for ScriptThread {
 
         (sender, receiver)
     }
-}
-
-pub unsafe extern "C" fn shadow_check_callback(_cx: *mut JSContext,
-    _object: HandleObject, _id: HandleId) -> DOMProxyShadowsResult {
-    // XXX implement me
-    DOMProxyShadowsResult::ShadowCheckFailed
 }
 
 impl ScriptThread {
@@ -955,8 +948,6 @@ impl ScriptThread {
                     runnable.handler()
                 }
             }
-            MainThreadScriptMsg::Common(CommonScriptMsg::RefcountCleanup(addr)) =>
-                LiveDOMReferences::cleanup(addr),
             MainThreadScriptMsg::Common(CommonScriptMsg::CollectReports(reports_chan)) =>
                 self.collect_reports(reports_chan),
             MainThreadScriptMsg::DOMManipulation(task) =>
@@ -2208,7 +2199,7 @@ fn shut_down_layout(context_tree: &BrowsingContext) {
         let chan = window.layout_chan().clone();
         if chan.send(message::Msg::PrepareToExit(response_chan)).is_ok() {
             channels.push(chan);
-            response_port.recv().unwrap();
+            let _ = response_port.recv();
         }
     }
 

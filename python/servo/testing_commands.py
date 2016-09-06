@@ -338,7 +338,7 @@ class MachCommands(CommandBase):
         return run_globals["run_tests"](tests, verbose)
 
     @Command('test-wpt-failure',
-             description='Run the web platform tests',
+             description='Run the tests harness that verifies that the test failures are reported correctly',
              category='testing')
     def test_wpt_failure(self):
         self.ensure_bootstrapped()
@@ -351,7 +351,7 @@ class MachCommands(CommandBase):
         ], env=self.build_env())
 
     @Command('test-wpt',
-             description='Run the web platform tests',
+             description='Run the regular web platform test suite',
              category='testing',
              parser=create_parser_wpt)
     def test_wpt(self, **kwargs):
@@ -403,7 +403,7 @@ class MachCommands(CommandBase):
         return run_globals["run_tests"](**kwargs)
 
     @Command('update-manifest',
-             description='run test-wpt --manifest-update SKIP_TESTS to regenerate MANIFEST.json',
+             description='Run test-wpt --manifest-update SKIP_TESTS to regenerate MANIFEST.json',
              category='testing',
              parser=create_parser_wpt)
     def update_manifest(self, **kwargs):
@@ -463,7 +463,7 @@ class MachCommands(CommandBase):
         return self.jquery_test_runner("update", release, dev)
 
     @Command('test-css',
-             description='Run the web platform tests',
+             description='Run the web platform CSS tests',
              category='testing',
              parser=create_parser_wpt)
     def test_css(self, **kwargs):
@@ -475,7 +475,7 @@ class MachCommands(CommandBase):
         return self.wptrunner(run_file, **kwargs)
 
     @Command('update-css',
-             description='Update the web platform tests',
+             description='Update the web platform CSS tests',
              category='testing',
              parser=updatecommandline.create_parser())
     @CommandArgument('--patch', action='store_true', default=False,
@@ -494,7 +494,7 @@ class MachCommands(CommandBase):
         return run_globals["update_tests"](**kwargs)
 
     @Command('compare_dromaeo',
-             description='compare outputs of two runs of ./mach test-dromaeo command',
+             description='Compare outputs of two runs of ./mach test-dromaeo command',
              category='testing')
     @CommandArgument('params', default=None, nargs="...",
                      help=" filepaths of output files of two runs of dromaeo test ")

@@ -3,19 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-struct Border {
-    PrimitiveInfo info;
-    vec4 verticalColor;
-    vec4 horizontalColor;
-    vec4 radii;
-    uvec4 border_style_trbl;
-};
-
-layout(std140) uniform Items {
-    Border borders[WR_MAX_PRIM_ITEMS];
-};
-
-uint get_border_style(Border a_border, uint a_edge) {
+float get_border_style(Border a_border, uint a_edge) {
   switch (a_edge) {
     case PST_TOP:
     case PST_TOP_LEFT:
@@ -33,7 +21,7 @@ uint get_border_style(Border a_border, uint a_edge) {
 }
 
 void main(void) {
-    Border border = borders[gl_InstanceID];
+    Border border = fetch_border(gl_InstanceID);
 #ifdef WR_FEATURE_TRANSFORM
     TransformVertexInfo vi = write_transform_vertex(border.info);
     vLocalPos = vi.local_pos;
@@ -56,7 +44,7 @@ void main(void) {
     vRadii = border.radii;
 
     float x0, y0, x1, y1;
-    vBorderPart = border.info.layer_tile_part.z;
+    vBorderPart = uint(border.part.x);
     switch (vBorderPart) {
         // These are the layer tile part PrimitivePart as uploaded by the tiling.rs
         case PST_TOP_LEFT:
@@ -103,17 +91,24 @@ void main(void) {
             break;
     }
 
-    vBorderStyle = get_border_style(border, vBorderPart);
+    vBorderStyle = uint(get_border_style(border, vBorderPart));
 
     // y1 - y0 is the height of the corner / line
     // x1 - x0 is the width of the corner / line.
     float width = x1 - x0;
     float height = y1 - y0;
+
+    vPieceRect = vec4(x0, y0, width, height);
+
+    // The fragment shader needs to calculate the distance from the bisecting line
+    // to properly mix border colors. For transformed borders, we calculate this distance
+    // in the fragment shader itself. For non-transformed borders, we can use the
+    // interpolator.
 #ifdef WR_FEATURE_TRANSFORM
-    vSizeInfo = vec4(x0, y0, width, height);
+    vPieceRectHypotenuseLength = sqrt(pow(width, 2) + pow(height, 2));
 #else
-    // This is just a weighting of the pixel colors it seems?
-    vF = (vi.local_clamped_pos.x - x0) * height - (vi.local_clamped_pos.y - y0) * width;
+    vDistanceFromMixLine = (vi.local_clamped_pos.x - x0) * height -
+                           (vi.local_clamped_pos.y - y0) * width;
 
     // These are in device space
     vDevicePos = vi.global_clamped_pos;

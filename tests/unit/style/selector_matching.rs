@@ -6,7 +6,7 @@ use cssparser::Parser;
 use selectors::parser::{LocalName, ParserContext, parse_selector_list};
 use std::sync::Arc;
 use string_cache::Atom;
-use style::properties::Importance;
+use style::properties::{Importance, PropertyDeclarationBlock};
 use style::selector_matching::{DeclarationBlock, Rule, SelectorMap};
 
 /// Helper method to get some Rules from selector strings.
@@ -19,7 +19,10 @@ fn get_mock_rules(css_selectors: &[&str]) -> Vec<Vec<Rule>> {
             Rule {
                 selector: s.complex_selector.clone(),
                 declarations: DeclarationBlock {
-                    mixed_declarations: Arc::new(Vec::new()),
+                    mixed_declarations: Arc::new(PropertyDeclarationBlock {
+                        declarations: Vec::new(),
+                        important_count: 0,
+                    }),
                     importance: Importance::Normal,
                     specificity: s.specificity,
                     source_order: i,

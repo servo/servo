@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use core::nonzero::NonZero;
 use dom::bindings::codegen::Bindings::ImageDataBinding;
 use dom::bindings::codegen::Bindings::ImageDataBinding::ImageDataMethods;
 use dom::bindings::global::GlobalRef;
@@ -37,6 +38,7 @@ impl ImageData {
         unsafe {
             let cx = global.get_cx();
             let js_object: *mut JSObject = JS_NewUint8ClampedArray(cx, width * height * 4);
+            assert!(!js_object.is_null());
 
             if let Some(vec) = data {
                 let mut is_shared = false;
@@ -52,12 +54,13 @@ impl ImageData {
     }
 
     #[allow(unsafe_code)]
-    pub fn get_data_array(&self, global: &GlobalRef) -> Vec<u8> {
+    pub fn get_data_array(&self) -> Vec<u8> {
         unsafe {
-            let cx = global.get_cx();
             let mut is_shared = false;
+            assert!(!self.data.get().is_null());
             let data: *const uint8_t =
-                JS_GetUint8ClampedArrayData(self.Data(cx), &mut is_shared, ptr::null()) as *const uint8_t;
+                JS_GetUint8ClampedArrayData(self.data.get(), &mut is_shared, ptr::null()) as *const uint8_t;
+            assert!(!data.is_null());
             assert!(!is_shared);
             let len = self.Width() * self.Height() * 4;
             slice::from_raw_parts(data, len as usize).to_vec()
@@ -80,8 +83,10 @@ impl ImageDataMethods for ImageData {
         self.height
     }
 
+    #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-imagedata-data
-    fn Data(&self, _: *mut JSContext) -> *mut JSObject {
-        self.data.get()
+    fn Data(&self, _: *mut JSContext) -> NonZero<*mut JSObject> {
+        assert!(!self.data.get().is_null());
+        unsafe { NonZero::new(self.data.get()) }
     }
 }

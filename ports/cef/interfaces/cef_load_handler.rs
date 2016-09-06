@@ -132,8 +132,7 @@ pub struct CefLoadHandler {
 impl Clone for CefLoadHandler {
   fn clone(&self) -> CefLoadHandler{
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefLoadHandler {
@@ -146,8 +145,7 @@ impl Clone for CefLoadHandler {
 impl Drop for CefLoadHandler {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -162,8 +160,7 @@ impl CefLoadHandler {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_load_handler_t) -> CefLoadHandler {
-    if !c_object.is_null() &&
-        c_object as usize != mem::POST_DROP_USIZE {
+    if !c_object.is_null() {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefLoadHandler {
@@ -177,8 +174,7 @@ impl CefLoadHandler {
 
   pub fn c_object_addrefed(&self) -> *mut cef_load_handler_t {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -186,10 +182,10 @@ impl CefLoadHandler {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
+    self.c_object.is_null()
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
+    !self.c_object.is_null()
   }
 
   //
@@ -201,8 +197,7 @@ impl CefLoadHandler {
   pub fn on_loading_state_change(&self, browser: interfaces::CefBrowser,
       isLoading: libc::c_int, canGoBack: libc::c_int,
       canGoForward: libc::c_int) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -227,8 +222,7 @@ impl CefLoadHandler {
   //
   pub fn on_load_start(&self, browser: interfaces::CefBrowser,
       frame: interfaces::CefFrame) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -250,8 +244,7 @@ impl CefLoadHandler {
   //
   pub fn on_load_end(&self, browser: interfaces::CefBrowser,
       frame: interfaces::CefFrame, httpStatusCode: libc::c_int) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -273,8 +266,7 @@ impl CefLoadHandler {
   pub fn on_load_error(&self, browser: interfaces::CefBrowser,
       frame: interfaces::CefFrame, errorCode: types::cef_errorcode_t,
       errorText: &[u16], failedUrl: &[u16]) -> () {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -306,8 +298,7 @@ impl CefWrap<*mut cef_load_handler_t> for Option<CefLoadHandler> {
     }
   }
   unsafe fn to_rust(c_object: *mut cef_load_handler_t) -> Option<CefLoadHandler> {
-    if c_object.is_null() &&
-       c_object as usize != mem::POST_DROP_USIZE {
+    if c_object.is_null() {
       None
     } else {
       Some(CefLoadHandler::from_c_object_addref(c_object))

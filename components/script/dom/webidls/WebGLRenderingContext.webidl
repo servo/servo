@@ -605,7 +605,7 @@ interface WebGLRenderingContextBase
     [WebGLHandlesContextLoss] GLboolean isBuffer(WebGLBuffer? buffer);
     //[WebGLHandlesContextLoss] GLboolean isEnabled(GLenum cap);
     [WebGLHandlesContextLoss] GLboolean isFramebuffer(WebGLFramebuffer? framebuffer);
-    //[WebGLHandlesContextLoss] GLboolean isProgram(WebGLProgram? program);
+    [WebGLHandlesContextLoss] GLboolean isProgram(WebGLProgram? program);
     [WebGLHandlesContextLoss] GLboolean isRenderbuffer(WebGLRenderbuffer? renderbuffer);
     [WebGLHandlesContextLoss] GLboolean isShader(WebGLShader? shader);
     [WebGLHandlesContextLoss] GLboolean isTexture(WebGLTexture? texture);

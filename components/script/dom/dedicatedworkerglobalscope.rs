@@ -14,7 +14,6 @@ use dom::bindings::error::ErrorResult;
 use dom::bindings::global::{GlobalRef, global_root_from_context};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{Root, RootCollection};
-use dom::bindings::refcounted::LiveDOMReferences;
 use dom::bindings::reflector::Reflectable;
 use dom::bindings::str::DOMString;
 use dom::bindings::structuredclone::StructuredCloneData;
@@ -297,9 +296,6 @@ impl DedicatedWorkerGlobalScope {
             },
             WorkerScriptMsg::Common(CommonScriptMsg::RunnableMsg(_, runnable)) => {
                 runnable.handler()
-            },
-            WorkerScriptMsg::Common(CommonScriptMsg::RefcountCleanup(addr)) => {
-                LiveDOMReferences::cleanup(addr);
             },
             WorkerScriptMsg::Common(CommonScriptMsg::CollectReports(reports_chan)) => {
                 let scope = self.upcast::<WorkerGlobalScope>();

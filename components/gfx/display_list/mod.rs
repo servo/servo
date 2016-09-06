@@ -719,28 +719,32 @@ impl StackingContext {
         geometry::f32_rect_to_au_rect(overflow)
     }
 
-    pub fn hit_test<'a>(&self,
-                        traversal: &mut DisplayListTraversal<'a>,
-                        translated_point: &Point2D<Au>,
-                        client_point: &Point2D<Au>,
-                        scroll_offsets: &ScrollOffsetMap,
-                        result: &mut Vec<DisplayItemMetadata>) {
+    fn hit_test<'a>(&self,
+                    traversal: &mut DisplayListTraversal<'a>,
+                    translated_point: &Point2D<Au>,
+                    client_point: &Point2D<Au>,
+                    scroll_offsets: &ScrollOffsetMap,
+                    result: &mut Vec<DisplayItemMetadata>) {
         let is_fixed = match self.layer_info {
             Some(ref layer_info) => layer_info.scroll_policy == ScrollPolicy::FixedPosition,
             None => false,
         };
 
-        let effective_point = if is_fixed { client_point } else { translated_point };
-
-        // Convert the point into stacking context local transform space.
-        let mut point = if self.context_type == StackingContextType::Real {
-            let point = *effective_point - self.bounds.origin;
+        // Convert the parent translated point into stacking context local
+        // transform space if the stacking context isn't fixed.
+        //
+        // If it's fixed, we need to use the client point anyway, and if it's a
+        // pseudo-stacking context, our parent's is enough.
+        let mut translated_point = if is_fixed {
+            *client_point
+        } else if self.context_type == StackingContextType::Real {
+            let point = *translated_point - self.bounds.origin;
             let inv_transform = self.transform.inverse().unwrap();
             let frac_point = inv_transform.transform_point(&Point2D::new(point.x.to_f32_px(),
                                                                          point.y.to_f32_px()));
             Point2D::new(Au::from_f32_px(frac_point.x), Au::from_f32_px(frac_point.y))
         } else {
-            *effective_point
+            *translated_point
         };
 
         // Adjust the translated point to account for the scroll offset if
@@ -751,22 +755,23 @@ impl StackingContext {
         // `Window::hit_test_query()`) by now.
         if !is_fixed && self.id != StackingContextId::root() {
             if let Some(scroll_offset) = scroll_offsets.get(&self.id) {
-                point.x -= Au::from_f32_px(scroll_offset.x);
-                point.y -= Au::from_f32_px(scroll_offset.y);
+                translated_point.x -= Au::from_f32_px(scroll_offset.x);
+                translated_point.y -= Au::from_f32_px(scroll_offset.y);
             }
         }
 
         for child in self.children() {
             while let Some(item) = traversal.advance(self) {
-                if let Some(meta) = item.hit_test(point) {
+                if let Some(meta) = item.hit_test(translated_point) {
                     result.push(meta);
                 }
             }
-            child.hit_test(traversal, translated_point, client_point, scroll_offsets, result);
+            child.hit_test(traversal, &translated_point, client_point,
+                           scroll_offsets, result);
         }
 
         while let Some(item) = traversal.advance(self) {
-            if let Some(meta) = item.hit_test(point) {
+            if let Some(meta) = item.hit_test(translated_point) {
                 result.push(meta);
             }
         }

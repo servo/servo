@@ -6,20 +6,8 @@
 #define DIR_HORIZONTAL      uint(0)
 #define DIR_VERTICAL        uint(1)
 
-struct Gradient {
-    PrimitiveInfo info;
-    vec4 color0;
-    vec4 color1;
-    uvec4 dir;
-    Clip clip;
-};
-
-layout(std140) uniform Items {
-    Gradient gradients[WR_MAX_PRIM_ITEMS];
-};
-
 void main(void) {
-    Gradient gradient = gradients[gl_InstanceID];
+    AlignedGradient gradient = fetch_aligned_gradient(gl_InstanceID);
 
 #ifdef WR_FEATURE_TRANSFORM
     TransformVertexInfo vi = write_transform_vertex(gradient.info);
@@ -32,7 +20,7 @@ void main(void) {
     vPos = vi.local_clamped_pos;
 #endif
 
-    switch (gradient.dir.x) {
+    switch (uint(gradient.dir.x)) {
         case DIR_HORIZONTAL:
             vF = f.x;
             break;

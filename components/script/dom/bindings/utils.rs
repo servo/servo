@@ -7,8 +7,7 @@
 use dom::bindings::codegen::InterfaceObjectMap;
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::codegen::PrototypeList::{MAX_PROTO_CHAIN_LENGTH, PROTO_OR_IFACE_LENGTH};
-use dom::bindings::conversions::{DOM_OBJECT_SLOT, is_dom_class};
-use dom::bindings::conversions::{jsstring_to_str, private_from_proto_check};
+use dom::bindings::conversions::{is_dom_class, jsstring_to_str, private_from_proto_check};
 use dom::bindings::error::throw_invalid_this;
 use dom::bindings::inheritance::TopTypeId;
 use dom::bindings::str::DOMString;
@@ -21,20 +20,18 @@ use js::glue::{CallJitGetterOp, CallJitMethodOp, CallJitSetterOp, IsWrapper};
 use js::glue::{GetCrossCompartmentWrapper, WrapperNew};
 use js::glue::{RUST_FUNCTION_VALUE_TO_JITINFO, RUST_JSID_IS_INT, RUST_JSID_IS_STRING};
 use js::glue::{RUST_JSID_TO_INT, RUST_JSID_TO_STRING, UnwrapObject};
-use js::jsapi::{CallArgs, CompartmentOptions, DOMCallbacks, GetGlobalForObjectCrossCompartment};
-use js::jsapi::{HandleId, HandleObject, HandleValue, Heap, JSAutoCompartment, JSClass, JSContext};
-use js::jsapi::{JSJitInfo, JSObject, JSTraceOp, JSTracer, JSVersion, JSWrapObjectCallbacks};
-use js::jsapi::{JS_DeletePropertyById, JS_EnumerateStandardClasses, JS_FireOnNewGlobalObject};
+use js::jsapi::{CallArgs, DOMCallbacks, GetGlobalForObjectCrossCompartment};
+use js::jsapi::{HandleId, HandleObject, HandleValue, Heap, JSAutoCompartment, JSContext};
+use js::jsapi::{JSJitInfo, JSObject, JSTracer, JSWrapObjectCallbacks};
+use js::jsapi::{JS_DeletePropertyById, JS_EnumerateStandardClasses};
 use js::jsapi::{JS_ForwardGetPropertyTo, JS_GetClass, JS_GetLatin1StringCharsAndLength};
 use js::jsapi::{JS_GetProperty, JS_GetPrototype, JS_GetReservedSlot, JS_HasProperty};
-use js::jsapi::{JS_HasPropertyById, JS_IsExceptionPending, JS_IsGlobalObject, JS_NewGlobalObject};
+use js::jsapi::{JS_HasPropertyById, JS_IsExceptionPending, JS_IsGlobalObject};
 use js::jsapi::{JS_ResolveStandardClass, JS_SetProperty, ToWindowProxyIfWindow};
-use js::jsapi::{JS_SetReservedSlot, JS_StringHasLatin1Chars, MutableHandleValue};
-use js::jsapi::{ObjectOpResult, OnNewGlobalHookOption};
-use js::jsval::{JSVal, ObjectValue, PrivateValue, UndefinedValue};
+use js::jsapi::{JS_StringHasLatin1Chars, MutableHandleValue, ObjectOpResult};
+use js::jsval::{JSVal, UndefinedValue};
 use js::rust::{GCMethods, ToString};
 use libc;
-use std::default::Default;
 use std::ffi::CString;
 use std::os::raw::c_void;
 use std::ptr;
@@ -103,7 +100,7 @@ unsafe impl Sync for DOMClass {}
 #[derive(Copy)]
 pub struct DOMJSClass {
     /// The actual JSClass.
-    pub base: js::jsapi::Class,
+    pub base: js::jsapi::JSClass,
     /// Associated data for DOM object reflectors.
     pub dom_class: DOMClass,
 }
@@ -130,32 +127,29 @@ pub type ProtoOrIfaceArray = [*mut JSObject; PROTO_OR_IFACE_LENGTH];
 /// set to true and `*vp` to the value, otherwise `*found` is set to false.
 ///
 /// Returns false on JSAPI failure.
-pub fn get_property_on_prototype(cx: *mut JSContext,
-                                 proxy: HandleObject,
-                                 id: HandleId,
-                                 found: *mut bool,
-                                 vp: MutableHandleValue)
-                                 -> bool {
-    unsafe {
-        // let proto = GetObjectProto(proxy);
-        rooted!(in(cx) let mut proto = ptr::null_mut());
-        if !JS_GetPrototype(cx, proxy, proto.handle_mut()) || proto.is_null() {
-            *found = false;
-            return true;
-        }
-        let mut has_property = false;
-        if !JS_HasPropertyById(cx, proto.handle(), id, &mut has_property) {
-            return false;
-        }
-        *found = has_property;
-        let no_output = vp.ptr.is_null();
-        if !has_property || no_output {
-            return true;
-        }
-
-        rooted!(in(cx) let receiver = ObjectValue(&*proxy.get()));
-        JS_ForwardGetPropertyTo(cx, proto.handle(), id, receiver.handle(), vp)
+pub unsafe fn get_property_on_prototype(cx: *mut JSContext,
+                                        proxy: HandleObject,
+                                        receiver: HandleValue,
+                                        id: HandleId,
+                                        found: *mut bool,
+                                        vp: MutableHandleValue)
+                                        -> bool {
+    rooted!(in(cx) let mut proto = ptr::null_mut());
+    if !JS_GetPrototype(cx, proxy, proto.handle_mut()) || proto.is_null() {
+        *found = false;
+        return true;
     }
+    let mut has_property = false;
+    if !JS_HasPropertyById(cx, proto.handle(), id, &mut has_property) {
+        return false;
+    }
+    *found = has_property;
+    let no_output = vp.ptr.is_null();
+    if !has_property || no_output {
+        return true;
+    }
+
+    JS_ForwardGetPropertyTo(cx, proto.handle(), id, receiver, vp)
 }
 
 /// Get an array index from the given `jsid`. Returns `None` if the given
@@ -288,49 +282,17 @@ pub fn set_dictionary_property(cx: *mut JSContext,
 }
 
 /// Returns whether `proxy` has a property `id` on its prototype.
-pub fn has_property_on_prototype(cx: *mut JSContext, proxy: HandleObject, id: HandleId) -> bool {
-    // MOZ_ASSERT(js::IsProxy(proxy) && js::GetProxyHandler(proxy) == handler);
-    let mut found = false;
-    !get_property_on_prototype(cx, proxy, id, &mut found, unsafe {
-        MutableHandleValue::from_marked_location(ptr::null_mut())
-    }) || found
-}
-
-/// Create a DOM global object with the given class.
-pub fn create_dom_global(cx: *mut JSContext,
-                         class: *const JSClass,
-                         private: *const libc::c_void,
-                         trace: JSTraceOp)
-                         -> *mut JSObject {
-    unsafe {
-        let mut options = CompartmentOptions::default();
-        options.behaviors_.version_ = JSVersion::JSVERSION_ECMA_5;
-        options.creationOptions_.traceGlobal_ = trace;
-        options.creationOptions_.sharedMemoryAndAtomics_ = true;
-
-        rooted!(in(cx) let obj =
-            JS_NewGlobalObject(cx,
-                               class,
-                               ptr::null_mut(),
-                               OnNewGlobalHookOption::DontFireOnNewGlobalHook,
-                               &options));
-        if obj.is_null() {
-            return ptr::null_mut();
-        }
-
-        // Initialize the reserved slots before doing amything that can GC, to
-        // avoid getting trace hooks called on a partially initialized object.
-        JS_SetReservedSlot(obj.get(), DOM_OBJECT_SLOT, PrivateValue(private));
-        let proto_array: Box<ProtoOrIfaceArray> =
-            box [0 as *mut JSObject; PROTO_OR_IFACE_LENGTH];
-        JS_SetReservedSlot(obj.get(),
-                           DOM_PROTOTYPE_SLOT,
-                           PrivateValue(Box::into_raw(proto_array) as *const libc::c_void));
-
-        let _ac = JSAutoCompartment::new(cx, obj.get());
-        JS_FireOnNewGlobalObject(cx, obj.handle());
-        obj.get()
+pub unsafe fn has_property_on_prototype(cx: *mut JSContext,
+                                        proxy: HandleObject,
+                                        id: HandleId,
+                                        found: &mut bool)
+                                        -> bool {
+    rooted!(in(cx) let mut proto = ptr::null_mut());
+    if !JS_GetPrototype(cx, proxy, proto.handle_mut()) {
+        return false;
     }
+    assert!(!proto.is_null());
+    JS_HasPropertyById(cx, proto.handle(), id, found)
 }
 
 /// Drop the resources held by reserved slots of a global object

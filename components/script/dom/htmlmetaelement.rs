@@ -79,7 +79,7 @@ impl HTMLMetaElement {
             if !content.is_empty() {
                 if let Some(translated_rule) = ViewportRule::from_meta(&**content) {
                     *self.stylesheet.borrow_mut() = Some(Arc::new(Stylesheet {
-                        rules: vec![CSSRule::Viewport(translated_rule)],
+                        rules: vec![CSSRule::Viewport(Arc::new(translated_rule))],
                         origin: Origin::Author,
                         media: None,
                         // Viewport constraints are always recomputed on resize; they don't need to

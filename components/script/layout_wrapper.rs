@@ -115,6 +115,7 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
     type ConcreteElement = ServoLayoutElement<'ln>;
     type ConcreteDocument = ServoLayoutDocument<'ln>;
     type ConcreteRestyleDamage = RestyleDamage;
+    type ConcreteChildrenIterator = ServoChildrenIterator<'ln>;
 
     fn to_unsafe(&self) -> UnsafeNode {
         unsafe {
@@ -147,6 +148,12 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
         self.dump_style_indent(0);
     }
 
+    fn children(self) -> ServoChildrenIterator<'ln> {
+        ServoChildrenIterator {
+            current: self.first_child(),
+        }
+    }
+
     fn opaque(&self) -> OpaqueNode {
         unsafe { self.get_jsmanaged().opaque() }
     }
@@ -161,10 +168,6 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
 
     fn debug_id(self) -> usize {
         self.opaque().0
-    }
-
-    fn children_count(&self) -> u32 {
-        unsafe { self.node.children_count() }
     }
 
     fn as_element(&self) -> Option<ServoLayoutElement<'ln>> {
@@ -280,6 +283,19 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
     }
 }
 
+pub struct ServoChildrenIterator<'a> {
+    current: Option<ServoLayoutNode<'a>>,
+}
+
+impl<'a> Iterator for ServoChildrenIterator<'a> {
+    type Item = ServoLayoutNode<'a>;
+    fn next(&mut self) -> Option<ServoLayoutNode<'a>> {
+        let node = self.current;
+        self.current = node.and_then(|node| node.next_sibling());
+        node
+    }
+}
+
 impl<'ln> LayoutNode for ServoLayoutNode<'ln> {
     type ConcreteThreadSafeLayoutNode = ServoThreadSafeLayoutNode<'ln>;
 
@@ -389,6 +405,14 @@ impl<'ld> TDocument for ServoLayoutDocument<'ld> {
         let elements =  unsafe { self.document.drain_modified_elements() };
         elements.into_iter().map(|(el, snapshot)| (ServoLayoutElement::from_layout_js(el), snapshot)).collect()
     }
+
+    fn needs_paint_from_layout(&self) {
+        unsafe { self.document.needs_paint_from_layout(); }
+    }
+
+    fn will_paint(&self) {
+        unsafe { self.document.will_paint(); }
+    }
 }
 
 impl<'ld> ServoLayoutDocument<'ld> {
@@ -435,9 +459,9 @@ impl<'le> TElement for ServoLayoutElement<'le> {
         ServoLayoutNode::from_layout_js(self.element.upcast())
     }
 
-    fn style_attribute(&self) -> &Option<PropertyDeclarationBlock> {
+    fn style_attribute(&self) -> Option<&Arc<PropertyDeclarationBlock>> {
         unsafe {
-            &*self.element.style_attribute()
+            (*self.element.style_attribute()).as_ref()
         }
     }
 

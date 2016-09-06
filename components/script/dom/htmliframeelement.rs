@@ -355,7 +355,7 @@ unsafe fn build_mozbrowser_event_detail(event: MozBrowserEvent,
                 type_: Some(DOMString::from(error_type.name())),
                 description: Some(DOMString::from(description)),
                 report: Some(DOMString::from(report)),
-                version: Some(DOMString::from_string(servo_version().into())),
+                version: Some(DOMString::from_string(servo_version())),
             }.to_jsval(cx, rval);
         },
         MozBrowserEvent::SecurityChange(https_state) => {

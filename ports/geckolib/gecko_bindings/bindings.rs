@@ -157,6 +157,7 @@ impl HeapSizeOf for nsStyleContext { fn heap_size_of_children(&self) -> usize { 
 use structs::StyleClipPath;
 use structs::StyleBasicShapeType;
 use structs::StyleBasicShape;
+use structs::nsCSSShadowArray;
 
 pub type RawGeckoNode = nsINode;
 pub enum Element { }
@@ -168,6 +169,7 @@ pub enum RawServoStyleSheet { }
 pub enum RawServoStyleSet { }
 pub enum nsHTMLCSSStyleSheet { }
 pub enum ServoDeclarationBlock { }
+pub enum StyleChildrenIterator { }
 pub type ThreadSafePrincipalHolder = nsMainThreadPtrHolder<nsIPrincipal>;
 pub type ThreadSafeURIHolder = nsMainThreadPtrHolder<nsIURI>;
 extern "C" {
@@ -190,6 +192,11 @@ extern "C" {
      -> *mut RawGeckoElement;
     pub fn Gecko_GetDocumentElement(document: *mut RawGeckoDocument)
      -> *mut RawGeckoElement;
+    pub fn Gecko_MaybeCreateStyleChildrenIterator(node: *mut RawGeckoNode)
+     -> *mut StyleChildrenIterator;
+    pub fn Gecko_DropStyleChildrenIterator(it: *mut StyleChildrenIterator);
+    pub fn Gecko_GetNextStyleChild(it: *mut StyleChildrenIterator)
+     -> *mut RawGeckoNode;
     pub fn Gecko_ElementState(element: *mut RawGeckoElement) -> u8;
     pub fn Gecko_IsHTMLElementInHTMLDocument(element: *mut RawGeckoElement)
      -> bool;
@@ -336,9 +343,14 @@ extern "C" {
     pub fn Gecko_NewBasicShape(type_: StyleBasicShapeType)
      -> *mut StyleBasicShape;
     pub fn Gecko_FillAllBackgroundLists(layers: *mut nsStyleImageLayers,
-                                        maxLen: u32);
+                                        max_len: u32);
     pub fn Gecko_AddRefCalcArbitraryThread(aPtr: *mut Calc);
     pub fn Gecko_ReleaseCalcArbitraryThread(aPtr: *mut Calc);
+    pub fn Gecko_NewCSSShadowArray(len: u32) -> *mut nsCSSShadowArray;
+    pub fn Gecko_AddRefCSSShadowArrayArbitraryThread(aPtr:
+                                                         *mut nsCSSShadowArray);
+    pub fn Gecko_ReleaseCSSShadowArrayArbitraryThread(aPtr:
+                                                          *mut nsCSSShadowArray);
     pub fn Gecko_Construct_nsStyleFont(ptr: *mut nsStyleFont);
     pub fn Gecko_CopyConstruct_nsStyleFont(ptr: *mut nsStyleFont,
                                            other: *const nsStyleFont);

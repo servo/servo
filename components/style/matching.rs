@@ -14,11 +14,11 @@ use context::{StyleContext, SharedStyleContext};
 use data::PrivateStyleData;
 use dom::{TElement, TNode, TRestyleDamage, UnsafeNode};
 use properties::longhands::display::computed_value as display;
-use properties::{ComputedValues, cascade};
+use properties::{ComputedValues, cascade, PropertyDeclarationBlock};
 use selector_impl::{TheSelectorImpl, PseudoElement};
 use selector_matching::{DeclarationBlock, Stylist};
 use selectors::bloom::BloomFilter;
-use selectors::matching::{StyleRelations, AFFECTED_BY_PSEUDO_ELEMENTS};
+use selectors::matching::{MatchingReason, StyleRelations, AFFECTED_BY_PSEUDO_ELEMENTS};
 use selectors::{Element, MatchAttr};
 use sink::ForgetfulSink;
 use smallvec::SmallVec;
@@ -139,7 +139,7 @@ impl<'a> Hash for ApplicableDeclarationsCacheQuery<'a> {
         for declaration in self.declarations {
             // Each declaration contians an Arc, which is a stable
             // pointer; we use that for hashing and equality.
-            let ptr: *const Vec<_> = &*declaration.mixed_declarations;
+            let ptr: *const PropertyDeclarationBlock = &*declaration.mixed_declarations;
             ptr.hash(state);
             declaration.importance.hash(state);
         }
@@ -388,7 +388,7 @@ fn have_same_class<E: TElement>(element: &E,
         candidate.class_attributes = Some(attrs)
     }
 
-    element_class_attributes == candidate.class_attributes.clone().unwrap()
+    element_class_attributes == *candidate.class_attributes.as_ref().unwrap()
 }
 
 // TODO: These re-match the candidate every time, which is suboptimal.
@@ -651,14 +651,15 @@ pub trait ElementMatchMethods : TElement {
                      applicable_declarations: &mut ApplicableDeclarations)
                      -> StyleRelations {
         use traversal::relations_are_shareable;
-        let style_attribute = self.style_attribute().as_ref();
+        let style_attribute = self.style_attribute();
 
         let mut relations =
             stylist.push_applicable_declarations(self,
                                                  parent_bf,
                                                  style_attribute,
                                                  None,
-                                                 &mut applicable_declarations.normal);
+                                                 &mut applicable_declarations.normal,
+                                                 MatchingReason::ForStyling);
 
         applicable_declarations.normal_shareable = relations_are_shareable(&relations);
 
@@ -667,7 +668,8 @@ pub trait ElementMatchMethods : TElement {
                                                  parent_bf,
                                                  None,
                                                  Some(&pseudo.clone()),
-                                                 applicable_declarations.per_pseudo.entry(pseudo).or_insert(vec![]));
+                                                 applicable_declarations.per_pseudo.entry(pseudo).or_insert(vec![]),
+                                                 MatchingReason::ForStyling);
         });
 
         let has_pseudos =

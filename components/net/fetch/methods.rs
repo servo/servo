@@ -1106,13 +1106,13 @@ fn cors_preflight_fetch(request: Rc<Request>, cache: &mut CORSCache,
                         context: &FetchContext) -> Response {
     // Step 1
     let mut preflight = Request::new(request.current_url(), Some(request.origin.borrow().clone()),
-                                     false, request.pipeline_id.get());
+                                     request.is_service_worker_global_scope, request.pipeline_id.get());
     *preflight.method.borrow_mut() = Method::Options;
     preflight.initiator = request.initiator.clone();
     preflight.type_ = request.type_.clone();
     preflight.destination = request.destination.clone();
     *preflight.referer.borrow_mut() = request.referer.borrow().clone();
-    preflight.referrer_policy.set(preflight.referrer_policy.get());
+    preflight.referrer_policy.set(request.referrer_policy.get());
 
     // Step 2
     preflight.headers.borrow_mut().set::<AccessControlRequestMethod>(

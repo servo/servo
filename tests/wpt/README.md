@@ -121,7 +121,7 @@ use the following:
 
     ./mach create-wpt --reftest tests/wpt/path/to/new/reftest.html --reference tests/wpt/path/to/reference.html
 
-`reference.html` will be created if it doesn't not exist, and `reftest.html`
+`reference.html` will be created if it does not exist, and `reftest.html`
 will be created using the WPT reftest template. These new tests can then
 be run in the following manner like any other WPT test:
 

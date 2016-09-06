@@ -105,8 +105,7 @@ pub struct CefResourceBundleHandler {
 impl Clone for CefResourceBundleHandler {
   fn clone(&self) -> CefResourceBundleHandler{
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.add_ref.unwrap())(&mut (*self.c_object).base);
       }
       CefResourceBundleHandler {
@@ -119,8 +118,7 @@ impl Clone for CefResourceBundleHandler {
 impl Drop for CefResourceBundleHandler {
   fn drop(&mut self) {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         ((*self.c_object).base.release.unwrap())(&mut (*self.c_object).base);
       }
     }
@@ -135,8 +133,7 @@ impl CefResourceBundleHandler {
   }
 
   pub unsafe fn from_c_object_addref(c_object: *mut cef_resource_bundle_handler_t) -> CefResourceBundleHandler {
-    if !c_object.is_null() &&
-        c_object as usize != mem::POST_DROP_USIZE {
+    if !c_object.is_null() {
       ((*c_object).base.add_ref.unwrap())(&mut (*c_object).base);
     }
     CefResourceBundleHandler {
@@ -150,8 +147,7 @@ impl CefResourceBundleHandler {
 
   pub fn c_object_addrefed(&self) -> *mut cef_resource_bundle_handler_t {
     unsafe {
-      if !self.c_object.is_null() &&
-          self.c_object as usize != mem::POST_DROP_USIZE {
+      if !self.c_object.is_null() {
         eutil::add_ref(self.c_object as *mut types::cef_base_t);
       }
       self.c_object
@@ -159,10 +155,10 @@ impl CefResourceBundleHandler {
   }
 
   pub fn is_null_cef_object(&self) -> bool {
-    self.c_object.is_null() || self.c_object as usize == mem::POST_DROP_USIZE
+    self.c_object.is_null()
   }
   pub fn is_not_null_cef_object(&self) -> bool {
-    !self.c_object.is_null() && self.c_object as usize != mem::POST_DROP_USIZE
+    !self.c_object.is_null()
   }
 
   //
@@ -173,8 +169,7 @@ impl CefResourceBundleHandler {
   //
   pub fn get_localized_string(&self, message_id: libc::c_int,
       string: *mut types::cef_string_t) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -197,8 +192,7 @@ impl CefResourceBundleHandler {
   pub fn get_data_resource(&self, resource_id: libc::c_int,
       data: &mut *mut libc::c_void,
       data_size: &mut libc::size_t) -> libc::c_int {
-    if self.c_object.is_null() ||
-       self.c_object as usize == mem::POST_DROP_USIZE {
+    if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
     unsafe {
@@ -228,8 +222,7 @@ impl CefWrap<*mut cef_resource_bundle_handler_t> for Option<CefResourceBundleHan
     }
   }
   unsafe fn to_rust(c_object: *mut cef_resource_bundle_handler_t) -> Option<CefResourceBundleHandler> {
-    if c_object.is_null() &&
-       c_object as usize != mem::POST_DROP_USIZE {
+    if c_object.is_null() {
       None
     } else {
       Some(CefResourceBundleHandler::from_c_object_addref(c_object))
