@@ -487,6 +487,7 @@ interface TestBinding {
   Promise<any> promiseNativeHandler(SimpleCallback? resolve, SimpleCallback? reject);
   void promiseResolveNative(Promise<any> p, any value);
   void promiseRejectNative(Promise<any> p, any value);
+  void promiseRejectWithTypeError(Promise<any> p, USVString message);
 
   void panic();
 };

@@ -18,7 +18,7 @@ use dom::bindings::codegen::UnionTypes::{EventOrUSVString, HTMLElementOrLong};
 use dom::bindings::codegen::UnionTypes::{HTMLElementOrUnsignedLongOrStringOrBoolean, LongSequenceOrBoolean};
 use dom::bindings::codegen::UnionTypes::{StringOrLongSequence, StringOrStringSequence, StringSequenceOrUnsignedLong};
 use dom::bindings::codegen::UnionTypes::{StringOrUnsignedLong, StringOrBoolean, UnsignedLongOrBoolean};
-use dom::bindings::error::Fallible;
+use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::{GlobalRef, global_root_from_context};
 use dom::bindings::js::Root;
 use dom::bindings::num::Finite;
@@ -635,6 +635,10 @@ impl TestBindingMethods for TestBinding {
 
     fn PromiseRejectNative(&self, cx: *mut JSContext, p: &Promise, v: HandleValue) {
         p.maybe_reject(cx, v);
+    }
+
+    fn PromiseRejectWithTypeError(&self, p: &Promise, s: USVString) {
+        p.maybe_reject_error(self.global().r().get_cx(), Error::Type(s.0));
     }
 
     #[allow(unrooted_must_root)]
