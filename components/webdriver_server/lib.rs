@@ -15,6 +15,8 @@ extern crate euclid;
 extern crate hyper;
 extern crate image;
 extern crate ipc_channel;
+#[macro_use]
+extern crate log;
 extern crate msg;
 extern crate regex;
 extern crate rustc_serialize;
@@ -78,10 +80,6 @@ fn cookie_msg_to_cookie(cookie: cookie_rs::Cookie) -> Cookie {
             Some(time) => Nullable::Value(Date::new(time.to_timespec().sec as u64)),
             None => Nullable::Null
         },
-        maxAge: match cookie.max_age {
-            Some(time) => Nullable::Value(Date::new(time)),
-            None => Nullable::Null
-        },
         secure: cookie.secure,
         httpOnly: cookie.httponly,
     }
@@ -91,8 +89,10 @@ pub fn start_server(port: u16, constellation_chan: Sender<ConstellationMsg>) {
     let handler = Handler::new(constellation_chan);
     spawn_named("WebdriverHttpServer".to_owned(), move || {
         let address = SocketAddrV4::new("0.0.0.0".parse().unwrap(), port);
-        server::start(SocketAddr::V4(address), handler,
-                      extension_routes());
+        match server::start(SocketAddr::V4(address), handler, extension_routes()) {
+            Ok(listening) => info!("WebDriver server listening on {}", listening.socket),
+            Err(_) => panic!("Unable to start WebDriver HTTPD server"),
+         }
     });
 }
 
@@ -847,18 +847,18 @@ impl Handler {
 impl WebDriverHandler<ServoExtensionRoute> for Handler {
     fn handle_command(&mut self,
                       _session: &Option<Session>,
-                      msg: &WebDriverMessage<ServoExtensionRoute>) -> WebDriverResult<WebDriverResponse> {
+                      msg: WebDriverMessage<ServoExtensionRoute>) -> WebDriverResult<WebDriverResponse> {
         // Unless we are trying to create a new session, we need to ensure that a
         // session has previously been created
         match msg.command {
-            WebDriverCommand::NewSession => {},
+            WebDriverCommand::NewSession(_) => {},
             _ => {
                 try!(self.session());
             }
         }
 
         match msg.command {
-            WebDriverCommand::NewSession => self.handle_new_session(),
+            WebDriverCommand::NewSession(_) => self.handle_new_session(),
             WebDriverCommand::DeleteSession => self.handle_delete_session(),
             WebDriverCommand::AddCookie(ref parameters) => self.handle_add_cookie(parameters),
             WebDriverCommand::Get(ref parameters) => self.handle_get(parameters),
