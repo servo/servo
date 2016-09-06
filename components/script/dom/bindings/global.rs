@@ -18,8 +18,8 @@ use ipc_channel::ipc::IpcSender;
 use js::jsapi::{CurrentGlobalOrNull, GetGlobalForObjectCrossCompartment};
 use js::jsapi::{JSContext, JSObject, JS_GetClass, MutableHandleValue};
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
-use msg::constellation_msg::PipelineId;
-use net_traits::{ResourceThreads, CoreResourceThread, IpcSend};
+use msg::constellation_msg::{PipelineId, ReferrerPolicy};
+use net_traits::{LoadOrigin, ResourceThreads, CoreResourceThread, IpcSend};
 use profile_traits::{mem, time};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
 use script_thread::{MainThreadScriptChan, ScriptThread, RunnableWrapper};
@@ -283,6 +283,14 @@ impl<'a> GlobalRef<'a> {
         match *self {
             GlobalRef::Window(ref window) => window.get_runnable_wrapper(),
             GlobalRef::Worker(ref worker) => worker.get_runnable_wrapper(),
+        }
+    }
+
+    /// Returns the referrer policy for this global scope.
+    pub fn referrer_policy(&self) -> Option<ReferrerPolicy> {
+        match *self {
+            GlobalRef::Window(ref window) => window.Document().get_referrer_policy(),
+            GlobalRef::Worker(ref worker) => worker.referrer_policy(),
         }
     }
 }
