@@ -1136,20 +1136,20 @@ def instantiateJSToNativeConversionTemplate(templateBody, replacements,
 
 def convertConstIDLValueToJSVal(value):
     if isinstance(value, IDLNullValue):
-        return "NullVal"
+        return "ConstantVal::NullVal"
     tag = value.type.tag()
     if tag in [IDLType.Tags.int8, IDLType.Tags.uint8, IDLType.Tags.int16,
                IDLType.Tags.uint16, IDLType.Tags.int32]:
-        return "IntVal(%s)" % (value.value)
+        return "ConstantVal::IntVal(%s)" % (value.value)
     if tag == IDLType.Tags.uint32:
-        return "UintVal(%s)" % (value.value)
+        return "ConstantVal::UintVal(%s)" % (value.value)
     if tag in [IDLType.Tags.int64, IDLType.Tags.uint64]:
-        return "DoubleVal(%s)" % (value.value)
+        return "ConstantVal::DoubleVal(%s)" % (value.value)
     if tag == IDLType.Tags.bool:
-        return "BoolVal(true)" if value.value else "BoolVal(false)"
+        return "ConstantVal::BoolVal(true)" if value.value else "ConstantVal::BoolVal(false)"
     if tag in [IDLType.Tags.unrestricted_float, IDLType.Tags.float,
                IDLType.Tags.unrestricted_double, IDLType.Tags.double]:
-        return "DoubleVal(%s)" % (value.value)
+        return "ConstantVal::DoubleVal(%s)" % (value.value)
     raise TypeError("Const value of unhandled type: " + value.type)
 
 
@@ -2072,12 +2072,9 @@ class CGInterfaceObjectJSClass(CGThing):
             "depth": self.descriptor.prototypeDepth
         }
         return """\
-static INTERFACE_OBJECT_OPS: js::jsapi::ClassOps =
-    NonCallbackInterfaceObjectClass::ops(%(constructorBehavior)s);
-
-static InterfaceObjectClass: NonCallbackInterfaceObjectClass =
+static INTERFACE_OBJECT_CLASS: NonCallbackInterfaceObjectClass =
     NonCallbackInterfaceObjectClass::new(
-        &INTERFACE_OBJECT_OPS,
+        &%(constructorBehavior)s,
         %(representation)s,
         PrototypeList::ID::%(id)s,
         %(depth)s);
@@ -2751,7 +2748,7 @@ rooted!(in(cx) let mut interface = ptr::null_mut());
 create_noncallback_interface_object(cx,
                                     global,
                                     interface_proto.handle(),
-                                    &InterfaceObjectClass,
+                                    &INTERFACE_OBJECT_CLASS,
                                     %(static_methods)s,
                                     %(static_attrs)s,
                                     %(consts)s,
@@ -2820,13 +2817,13 @@ assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
 
         constructors = self.descriptor.interface.namedConstructors
         if constructors:
-            decl = "let named_constructors: [(NonNullJSNative, &'static [u8], u32); %d]" % len(constructors)
+            decl = "let named_constructors: [(ConstructorClassHook, &'static [u8], u32); %d]" % len(constructors)
             specs = []
             for constructor in constructors:
                 hook = CONSTRUCT_HOOK_NAME + "_" + constructor.identifier.name
                 name = str_to_const_array(constructor.identifier.name)
                 length = methodLength(constructor)
-                specs.append(CGGeneric("(%s as NonNullJSNative, %s, %d)" % (hook, name, length)))
+                specs.append(CGGeneric("(%s as ConstructorClassHook, %s, %d)" % (hook, name, length)))
             values = CGIndenter(CGList(specs, "\n"), 4)
             code.append(CGWrapper(values, pre="%s = [\n" % decl, post="\n];"))
             code.append(CGGeneric("create_named_constructors(cx, global, &named_constructors, prototype.handle());"))
@@ -5432,15 +5429,14 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'dom',
         'dom::bindings',
         'dom::bindings::codegen::InterfaceObjectMap',
+        'dom::bindings::constant::ConstantSpec',
+        'dom::bindings::constant::ConstantVal',
         'dom::bindings::global::GlobalRef',
         'dom::bindings::global::global_root_from_object',
         'dom::bindings::global::global_root_from_reflector',
-        'dom::bindings::interface::ConstantSpec',
-        'dom::bindings::interface::ConstantVal::IntVal',
-        'dom::bindings::interface::ConstantVal::UintVal',
+        'dom::bindings::interface::ConstructorClassHook',
         'dom::bindings::interface::InterfaceConstructorBehavior',
         'dom::bindings::interface::NonCallbackInterfaceObjectClass',
-        'dom::bindings::interface::NonNullJSNative',
         'dom::bindings::interface::create_callback_interface_object',
         'dom::bindings::interface::create_global_object',
         'dom::bindings::interface::create_interface_prototype_object',
