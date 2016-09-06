@@ -249,7 +249,7 @@ pub struct Document {
     /// https://html.spec.whatwg.org/multipage/#target-element
     target_element: MutNullableHeap<JS<Element>>,
     /// https://w3c.github.io/uievents/#event-type-dblclick
-    #[ignore_heap_size_of = ""]
+    #[ignore_heap_size_of = "Defined in std"]
     last_click_info: DOMRefCell<Option<(Instant, Point2D<i32>)>>,
 }
 
