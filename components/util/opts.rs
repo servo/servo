@@ -159,6 +159,9 @@ pub struct Opts {
     /// Dumps the DOM after restyle.
     pub dump_style_tree: bool,
 
+    /// Dumps the rule tree.
+    pub dump_rule_tree: bool,
+
     /// Dumps the flow tree after a layout.
     pub dump_flow_tree: bool,
 
@@ -243,6 +246,9 @@ pub struct DebugOptions {
 
     /// Print the DOM after each restyle.
     pub dump_style_tree: bool,
+
+    /// Dumps the rule tree.
+    pub dump_rule_tree: bool,
 
     /// Print the flow tree after each layout.
     pub dump_flow_tree: bool,
@@ -339,6 +345,7 @@ impl DebugOptions {
                 "disable-text-aa" => debug_options.disable_text_aa = true,
                 "disable-canvas-aa" => debug_options.disable_text_aa = true,
                 "dump-style-tree" => debug_options.dump_style_tree = true,
+                "dump-rule-tree" => debug_options.dump_rule_tree = true,
                 "dump-flow-tree" => debug_options.dump_flow_tree = true,
                 "dump-display-list" => debug_options.dump_display_list = true,
                 "dump-display-list-json" => debug_options.dump_display_list_json = true,
@@ -521,6 +528,7 @@ pub fn default_opts() -> Opts {
         random_pipeline_closure_seed: None,
         sandbox: false,
         dump_style_tree: false,
+        dump_rule_tree: false,
         dump_flow_tree: false,
         dump_display_list: false,
         dump_display_list_json: false,
@@ -824,6 +832,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         enable_text_antialiasing: !debug_options.disable_text_aa,
         enable_canvas_antialiasing: !debug_options.disable_canvas_aa,
         dump_style_tree: debug_options.dump_style_tree,
+        dump_rule_tree: debug_options.dump_rule_tree,
         dump_flow_tree: debug_options.dump_flow_tree,
         dump_display_list: debug_options.dump_display_list,
         dump_display_list_json: debug_options.dump_display_list_json,

@@ -328,10 +328,10 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         where V: Push<ApplicableDeclarationBlock>
     {
         #[inline]
-        fn from_declaration(rule: PropertyDeclaration) -> ApplicableDeclarationBlock {
+        fn from_declaration(declaration: PropertyDeclaration) -> ApplicableDeclarationBlock {
             ApplicableDeclarationBlock::from_declarations(
                 Arc::new(RwLock::new(PropertyDeclarationBlock {
-                    declarations: vec![(rule, Importance::Normal)],
+                    declarations: vec![(declaration, Importance::Normal)],
                     important_count: 0,
                 })),
                 Importance::Normal)
@@ -814,10 +814,7 @@ impl Element {
         }
         None
     }
-}
 
-
-impl Element {
     pub fn is_focusable_area(&self) -> bool {
         if self.is_actually_disabled() {
             return false;
@@ -856,10 +853,7 @@ impl Element {
             _ => false,
         }
     }
-}
 
-
-impl Element {
     pub fn push_new_attribute(&self,
                               local_name: LocalName,
                               value: AttrValue,

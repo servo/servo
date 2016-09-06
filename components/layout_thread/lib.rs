@@ -1170,6 +1170,16 @@ impl LayoutThread {
             node.dump_style();
         }
 
+        if opts::get().dump_rule_tree {
+            shared_layout_context.style_context.stylist.rule_tree.dump_stdout();
+        }
+
+        // GC The rule tree.
+        //
+        // FIXME(emilio): The whole point of the free list is not always freeing
+        // the list, find a good heuristic here for that.
+        unsafe { shared_layout_context.style_context.stylist.rule_tree.gc() }
+
         // Perform post-style recalculation layout passes.
         self.perform_post_style_recalc_layout_passes(&data.reflow_info,
                                                      Some(&data.query_type),
