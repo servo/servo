@@ -55,52 +55,49 @@ float alpha_for_solid_border_corner(vec2 local_pos,
 #ifdef WR_FEATURE_TRANSFORM
 
 #else
-// draw a circle at position aDesiredPos with a aRadius
-vec4 drawCircle(vec2 aPixel, vec2 aDesiredPos, float aRadius, vec3 aColor) {
-  float farFromCenter = length(aDesiredPos - aPixel) - aRadius;
-  float pixelInCircle = 1.00 - clamp(farFromCenter, 0.0, 1.0);
-  return vec4(aColor, pixelInCircle);
+vec4 draw_dotted_edge(vec2 position, vec2 edge_size, float pixels_per_fragment) {
+  float two_pixels = 2 * pixels_per_fragment;
+
+  // Circle diameter is stroke width, minus a couple pixels to account for anti-aliasing.
+  float circle_diameter = max(edge_size.x - two_pixels, min(edge_size.x, two_pixels));
+
+  //// Divide the edge into segments which are the size of the circle diameter.
+  float segments_in_edge = floor(edge_size.y / circle_diameter);
+
+  // Every other segment has a circle.
+  float number_of_circles = floor(segments_in_edge / 2);
+  if (number_of_circles <= 0)
+    return vec4(0, 0, 0, 0);
+
+  // Spread the circles throughout the edge, to distribute the extra space evenly. We want
+  // to ensure that we have at last two pixels of space for each circle so that they aren't
+  // touching.
+  float space_for_each_circle = ceil(max(edge_size.y / number_of_circles, two_pixels));
+
+  // Find the circle index. We adjust the y position here because the first circle is a
+  // half circle at the edge of this border side.
+  float circle_index = floor((position.y + (space_for_each_circle / 2)) / space_for_each_circle);
+
+  // Find the center of the circle that is closest to our position. We will then calculate
+  // the distance from the edge of the circle.
+  vec2 circle_center = vec2(edge_size.x / 2, circle_index * space_for_each_circle);
+  float distance_from_circle_edge = length(circle_center - position) - (circle_diameter / 2);
+
+  // Don't anti-alias if the circle diameter is small to avoid a blur of color.
+  if (circle_diameter < two_pixels && distance_from_circle_edge > 0)
+    return vec4(0, 0, 0, 0);
+
+  // Move the distance back into pixels.
+  distance_from_circle_edge /= pixels_per_fragment;
+
+  float alpha = smoothstep(1.0, 0.0, min(1.0, max(0, distance_from_circle_edge)));
+  return vHorizontalColor * vec4(1, 1, 1, alpha);
 }
 
-vec4 draw_dotted_edge() {
-  // Everything here should be in device pixels.
-  // We want the dot to be roughly the size of the whole border spacing
-  float border_spacing = min(vBorders.w, vBorders.z);
-  float radius = floor(border_spacing / 2.0);
-  float diameter = radius * 2.0;
-  // The amount of space between dots. 2.2 was chosen because it looks kind of
-  // like firefox.
-  float circleSpacing = diameter * 2.2;
+void draw_dotted_border(vec2 local_pos, float distance_from_mix_line) {
+  // This is the conversion factor for transformations and device pixel scaling.
+  float pixels_per_fragment = length(fwidth(local_pos.xy));
 
-  vec2 size = vBorders.zw;
-  // Get our position within this specific segment
-  vec2 position = vDevicePos - vBorders.xy;
-
-  // Break our position into square tiles with circles in them.
-  vec2 circleCount = floor(size / circleSpacing);
-  circleCount = max(circleCount, 1.0);
-
-  vec2 distBetweenCircles = size / circleCount;
-  vec2 circleCenter = distBetweenCircles / 2.0;
-
-  // Find out which tile this pixel belongs to.
-  vec2 destTile = floor(position / distBetweenCircles);
-  destTile = destTile * distBetweenCircles;
-
-  // Where we want to draw the actual circle.
-  vec2 tileCenter = destTile + circleCenter;
-
-  // Find the position within the tile
-  vec2 positionInTile = mod(position, distBetweenCircles);
-  vec2 finalPosition = positionInTile + destTile;
-
-  vec4 white = vec4(1.0, 1.0, 1.0, 1.0);
-  // See if we should draw a circle or not
-  vec4 circleColor = drawCircle(finalPosition, tileCenter, radius, vVerticalColor.xyz);
-  return mix(white, circleColor, circleColor.a);
-}
-
-void draw_dotted_border(void) {
   switch (vBorderPart) {
     // These are the layer tile part PrimitivePart as uploaded by the tiling.rs
     case PST_TOP_LEFT:
@@ -108,16 +105,27 @@ void draw_dotted_border(void) {
     case PST_BOTTOM_LEFT:
     case PST_BOTTOM_RIGHT:
     {
-      // TODO: Fix for corners with a border-radius
-      oFragColor = draw_dotted_edge();
+      oFragColor = get_fragment_color(distance_from_mix_line, pixels_per_fragment);
+      if (vRadii.x > 0.0) {
+        oFragColor *= vec4(1, 1, 1, alpha_for_solid_border_corner(local_pos,
+                                                                  vRadii.z,
+                                                                  vRadii.x,
+                                                                  pixels_per_fragment));
+      }
+
       break;
     }
     case PST_BOTTOM:
-    case PST_TOP:
+    case PST_TOP: {
+      vec2 piece_relative_position = vLocalPos - vPieceRect.xy;
+      oFragColor = draw_dotted_edge(piece_relative_position.yx, vPieceRect.wz, pixels_per_fragment);
+      break;
+    }
     case PST_LEFT:
     case PST_RIGHT:
     {
-      oFragColor = draw_dotted_edge();
+      vec2 piece_relative_position = vLocalPos - vPieceRect.xy;
+      oFragColor = draw_dotted_edge(piece_relative_position.xy, vPieceRect.zw, pixels_per_fragment);
       break;
     }
   }
@@ -347,8 +355,7 @@ void main(void) {
             draw_dashed_border(local_pos, vDistanceFromMixLine);
             break;
         case BORDER_STYLE_DOTTED:
-            discard_pixels_in_rounded_borders(local_pos);
-            draw_dotted_border();
+            draw_dotted_border(local_pos, vDistanceFromMixLine);
             break;
         case BORDER_STYLE_OUTSET:
         case BORDER_STYLE_INSET:
