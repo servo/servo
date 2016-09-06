@@ -445,6 +445,10 @@ impl Request {
         r_clone.Headers().set_guard(headers_guard);
         r_clone
     }
+
+    pub fn get_request(&self) -> NetTraitsRequest {
+        self.request.borrow().clone()
+    }
 }
 
 fn net_request_from_global(global: GlobalRef,

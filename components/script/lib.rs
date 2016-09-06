@@ -98,6 +98,7 @@ mod devtools;
 pub mod document_loader;
 #[macro_use]
 pub mod dom;
+pub mod fetch;
 pub mod layout_wrapper;
 mod mem;
 mod network_listener;
