@@ -5,7 +5,7 @@
 use dom::bindings::callback::CallbackContainer;
 use dom::bindings::codegen::Bindings::PromiseBinding::AnyCallback;
 use dom::bindings::conversions::root_from_object;
-use dom::bindings::error::Fallible;
+use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::MutHeapJSVal;
 use dom::bindings::reflector::{Reflectable, MutReflectable, Reflector};
@@ -138,6 +138,15 @@ impl Promise {
         rooted!(in(cx) let mut v = UndefinedValue());
         unsafe {
             val.to_jsval(cx, v.handle_mut());
+        }
+        self.maybe_reject(cx, v.handle());
+    }
+
+    #[allow(unsafe_code)]
+    pub fn maybe_reject_error(&self, cx: *mut JSContext, error: Error) {
+        rooted!(in(cx) let mut v = UndefinedValue());
+        unsafe {
+            error.to_jsval(cx, self.global().r(), v.handle_mut());
         }
         self.maybe_reject(cx, v.handle());
     }

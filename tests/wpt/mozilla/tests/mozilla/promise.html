@@ -23,6 +23,13 @@
 
   promise_test(function(test) {
       var t = new TestBinding;
+      var p = new Promise(function() {});
+      t.promiseRejectWithTypeError(p, "success");
+      return promise_rejects(test, new TypeError("success"), p, "TypeError should be instantiated");
+  }, 'Native code rejects with exception');
+
+  promise_test(function(test) {
+      var t = new TestBinding;
       var resolved;
       var p = t.promiseNativeHandler(function(v) {
           resolved = v;
