@@ -135,6 +135,15 @@ class PackageCommands(CommandBase):
 
             target_dir = path.dirname(binary_path)
             output_apk = "{}.apk".format(binary_path)
+            blurdroid_path = find_dep_path_newest('blurdroid', binary_path)
+            if blurdroid_path is None:
+                print("Could not find blurdroid package; perhaps you haven't built Servo.")
+                return 1
+            else:
+                dir_to_libs = path.join("support", "android", "apk", "libs")
+                if not path.exists(dir_to_libs):
+                    os.makedirs(dir_to_libs)
+                shutil.copy2(blurdroid_path + '/out/blurdroid.jar', dir_to_libs)
             try:
                 with cd(path.join("support", "android", "build-apk")):
                     subprocess.check_call(["cargo", "run", "--", dev_flag, "-o", output_apk, "-t", target_dir,

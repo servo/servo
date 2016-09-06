@@ -13,6 +13,7 @@ public class MainActivity extends android.app.NativeActivity {
     private static final String LOGTAG="servo_wrapper";
     static {
         Log.i(LOGTAG, "Loading the NativeActivity");
+        System.loadLibrary("main");
     }
 
     private void set_url(String url) {
