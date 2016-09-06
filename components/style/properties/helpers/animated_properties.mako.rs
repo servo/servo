@@ -919,6 +919,50 @@ impl Interpolate for LengthOrNone {
         }
     }
 
+    /// https://drafts.csswg.org/css-transforms/#recomposing-to-a-2d-matrix
+    fn recompose_matrix(decomposed: MatrixDecomposed2D) -> ComputedMatrix {
+        let mut computed_matrix = ComputedMatrix::identity();
+        computed_matrix.m11 = decomposed.matrix.m11;
+        computed_matrix.m12 = decomposed.matrix.m12;
+        computed_matrix.m21 = decomposed.matrix.m21;
+        computed_matrix.m22 = decomposed.matrix.m22;
+
+        // Translate matrix.
+        computed_matrix.m41 = decomposed.translate.0 * decomposed.matrix.m11 +
+                              decomposed.translate.1 * decomposed.matrix.m21;
+        computed_matrix.m42 = decomposed.translate.0 * decomposed.matrix.m11 +
+                              decomposed.translate.1 * decomposed.matrix.m21;
+
+        // Rotate matrix.
+        let angle = decomposed.angle.to_radians();
+        let cos_angle = angle.cos();
+        let sin_angle = angle.sin();
+
+        let mut rotate_matrix = ComputedMatrix::identity();
+        rotate_matrix.m11 = cos_angle;
+        rotate_matrix.m12 = sin_angle;
+        rotate_matrix.m21 = -sin_angle;
+        rotate_matrix.m22 = cos_angle;
+
+        let matrix_clone = computed_matrix.clone();
+        // Multiplication of computed_matrix and rotate_matrix
+        % for i in range(1, 5):
+            % for j in range(1, 5):
+                computed_matrix.m${i}${j} = (matrix_clone.m${i}1 * rotate_matrix.m1${j}) +
+                                            (matrix_clone.m${i}2 *rotate_matrix.m2${j}) +
+                                            (matrix_clone.m${i}3 * rotate_matrix.m3${j}) +
+                                            (matrix_clone.m${i}4 * rotate_matrix.m4${j});
+            % endfor
+        % endfor
+
+        // Scale matrix.
+        computed_matrix.m11 *= decomposed.scale.0;
+        computed_matrix.m12 *= decomposed.scale.0;
+        computed_matrix.m21 *= decomposed.scale.1;
+        computed_matrix.m22 *= decomposed.scale.1;
+        computed_matrix
+    }
+
     /// https://drafts.csswg.org/css-transforms/#interpolation-of-transforms
     impl Interpolate for TransformList {
         #[inline]
