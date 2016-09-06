@@ -702,8 +702,11 @@ impl Interpolate for LengthOrNone {
                 match (from, to) {
                     (&TransformOperation::Matrix(from),
                      &TransformOperation::Matrix(_to)) => {
-                        // TODO(gw): Implement matrix decomposition and interpolation
-                        result.push(TransformOperation::Matrix(from));
+                        let decomposed_from = MatrixDecomposed2D::from(from);
+                        let decomposed_to = MatrixDecomposed2D::from(from);
+                        let interpolated = decomposed_from.interpolate(&decomposed_to, time).unwrap();
+                        let recomposed_matrix = ComputedMatrix::from(interpolated);
+                        result.push(TransformOperation::Matrix(recomposed_matrix));
                     }
                     (&TransformOperation::Skew(fx, fy),
                      &TransformOperation::Skew(tx, ty)) => {
@@ -735,14 +738,28 @@ impl Interpolate for LengthOrNone {
                             let ia = fa.interpolate(&ta, time).unwrap();
                             result.push(TransformOperation::Rotate(fx, fy, fz, ia));
                         } else {
-                            // TODO(gw): Implement matrix decomposition and interpolation
-                            result.push(TransformOperation::Rotate(fx, fy, fz, fa));
+                            let matrix_f = rotate_to_matrix(fx, fy, fz, fa);
+                            let matrix_t = rotate_to_matrix(tx, ty, tz, ta);
+
+                            let decomposed_f = MatrixDecomposed2D::from(matrix_f);
+                            let decomposed_t = MatrixDecomposed2D::from(matrix_t);
+                            let interpolated = decomposed_f.interpolate(&decomposed_t, time).unwrap();
+                            let recomposed_matrix = ComputedMatrix::from(interpolated);
+
+                            result.push(TransformOperation::Matrix(recomposed_matrix));
                         }
                     }
                     (&TransformOperation::Perspective(fd),
                      &TransformOperation::Perspective(_td)) => {
-                        // TODO(gw): Implement matrix decomposition and interpolation
-                        result.push(TransformOperation::Perspective(fd));
+                        let mut fd_matrix = ComputedMatrix::identity();
+                        let mut td_matrix = ComputedMatrix::identity();
+                        fd_matrix.m43 = -1. / fd.0 as f32;
+                        td_matrix.m43 = -1. / _td.0 as f32;
+                        let decomposed_fd = MatrixDecomposed2D::from(fd_matrix);
+                        let decomposed_td = MatrixDecomposed2D::from(td_matrix);
+                        let interpolated = decomposed_fd.interpolate(&decomposed_td, time).unwrap();
+                        let recomposed_matrix = ComputedMatrix::from(interpolated);
+                        result.push(TransformOperation::Matrix(recomposed_matrix));
                     }
                     _ => {
                         // This should be unreachable due to the can_interpolate_list() call.
@@ -752,10 +769,24 @@ impl Interpolate for LengthOrNone {
             }
         } else {
             // TODO(gw): Implement matrix decomposition and interpolation
+            // TODO(canaltinova): Do I need to interpolate each item of the list?
             result.extend_from_slice(from_list);
         }
 
         TransformList(Some(result))
+    }
+
+    fn rotate_to_matrix(x: f32, y: f32, z: f32, a: Au) -> ComputedMatrix {
+        let rad = fa.radians();
+        let sc = (rad / 2.0).sin() * (rad / 2.0).cos();
+        let sq = 1.0 / 2.0 * (1.0 - (rad).cos());
+
+        ComputedMatrix {
+            m11: 1.0 - 2.0 * sq, m12: 2.0 * (-sc), m13: 0.0, m14: 0.0,
+            m21: 2.0 * sc, m22: 1.0 - 2.0 * sq, m23: 0.0, m24: 0.0,
+            m31: 0.0, m32: 0.0, m33: 1.0, m34: 0.0,
+            m41: 0.0, m42: 0.0, m43: 0.0, m44: 1.0
+        }
     }
 
     #[derive(Clone, Copy, Debug)]
@@ -785,10 +816,10 @@ impl Interpolate for LengthOrNone {
     impl Interpolate for DecomposedMatrix {
         fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
             Ok(DecomposedMatrix {
-                m11: self.m11.interpolate(&other.m11, time).unwrap(),
-                m12: self.m12.interpolate(&other.m12, time).unwrap(),
-                m21: self.m21.interpolate(&other.m21, time).unwrap(),
-                m22: self.m22.interpolate(&other.m22, time).unwrap(),
+                m11: try!(self.m11.interpolate(&other.m11, time)),
+                m12: try!(self.m12.interpolate(&other.m12, time)),
+                m21: try!(self.m21.interpolate(&other.m21, time)),
+                m22: try!(self.m22.interpolate(&other.m22, time)),
             })
         }
     }
@@ -796,8 +827,8 @@ impl Interpolate for LengthOrNone {
     impl Interpolate for Translate2D {
         fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
             Ok(Translate2D(
-                self.0.interpolate(&other.0, time).unwrap(),
-                self.1.interpolate(&other.1, time).unwrap()
+                try!(self.0.interpolate(&other.0, time)),
+                try!(self.1.interpolate(&other.1, time))
             ))
         }
     }
@@ -805,8 +836,8 @@ impl Interpolate for LengthOrNone {
     impl Interpolate for Scale2D {
         fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
             Ok(Scale2D(
-                self.0.interpolate(&other.0, time).unwrap(),
-                self.1.interpolate(&other.1, time).unwrap()
+                try!(self.0.interpolate(&other.0, time)),
+                try!(self.1.interpolate(&other.1, time))
             ))
         }
     }
@@ -843,124 +874,129 @@ impl Interpolate for LengthOrNone {
             }
 
             // Interpolate all values.
-            let translate = self.translate.interpolate(&other.translate, time);
-            let scale = scale.interpolate(&other.scale, time);
-            let angle = angle.interpolate(&other_angle, time);
-            let matrix = self.matrix.interpolate(&other.matrix, time);
+            let translate = try!(self.translate.interpolate(&other.translate, time));
+            let scale = try!(scale.interpolate(&other.scale, time));
+            let angle = try!(angle.interpolate(&other_angle, time));
+            let matrix = try!(self.matrix.interpolate(&other.matrix, time));
 
             Ok(MatrixDecomposed2D {
-                translate: translate.unwrap(),
-                scale: scale.unwrap(),
-                angle: angle.unwrap(),
-                matrix: matrix.unwrap(),
+                translate: translate,
+                scale: scale,
+                angle: angle,
+                matrix: matrix,
             })
         }
     }
 
-    /// Decompose a matrix.
-    /// https://drafts.csswg.org/css-transforms/#decomposing-a-2d-matrix
-    fn decompose_matrix(matrix: ComputedMatrix) -> MatrixDecomposed2D {
-        let mut row0x = matrix.m11;
-        let mut row0y = matrix.m12;
-        let mut row1x = matrix.m21;
-        let mut row1y = matrix.m22;
+    impl From<ComputedMatrix> for MatrixDecomposed2D {
+        /// Decompose a matrix.
+        /// https://drafts.csswg.org/css-transforms/#decomposing-a-2d-matrix
+        fn from(matrix: ComputedMatrix) -> MatrixDecomposed2D {
+            let mut row0x = matrix.m11;
+            let mut row0y = matrix.m12;
+            let mut row1x = matrix.m21;
+            let mut row1y = matrix.m22;
 
-        let translate = Translate2D(matrix.m41, matrix.m42);
-        let mut scale = Scale2D((row0x * row0x + row0y * row0y).sqrt(),
-                                (row1x * row1x + row1y * row1y).sqrt());
+            let translate = Translate2D(matrix.m41, matrix.m42);
+            let mut scale = Scale2D((row0x * row0x + row0y * row0y).sqrt(),
+                                    (row1x * row1x + row1y * row1y).sqrt());
 
-        // If determinant is negative, one axis was flipped.
-        let determinant = row0x * row1y - row0y * row1x;
-        if determinant < 0. {
-            if row0x < row1y {
-                scale.0 = -scale.0;
-            } else {
-                scale.1 = -scale.1;
+            // If determinant is negative, one axis was flipped.
+            let determinant = row0x * row1y - row0y * row1x;
+            if determinant < 0. {
+                if row0x < row1y {
+                    scale.0 = -scale.0;
+                } else {
+                    scale.1 = -scale.1;
+                }
             }
-        }
 
-        // Renormalize matrix to remove scale.
-        if scale.0 != 0.0 {
-            row0x *= 1. / scale.0;
-            row0y *= 1. / scale.0;
-        }
-        if scale.1 != 0.0 {
-            row1x *= 1. / scale.1;
-            row1y *= 1. / scale.1;
-        }
+            // Renormalize matrix to remove scale.
+            if scale.0 != 0.0 {
+                row0x *= 1. / scale.0;
+                row0y *= 1. / scale.0;
+            }
+            if scale.1 != 0.0 {
+                row1x *= 1. / scale.1;
+                row1y *= 1. / scale.1;
+            }
 
-        // Compute rotation and renormalize matrix.
-        let mut angle = row0y.atan2(row0x);
-        if angle != 0.0 {
-            let sn = -row0y;
-            let cs = row0x;
-            let m11 = row0x;
-            let m12 = row0y;
-            let m21 = row1x;
-            let m22 = row1y;
-            row0x = cs * m11 + sn * m21;
-            row0y = cs * m12 + sn * m22;
-            row1x = -sn * m11 + cs * m21;
-            row1y = -sn * m12 + cs * m22;
-        }
+            // Compute rotation and renormalize matrix.
+            let mut angle = row0y.atan2(row0x);
+            if angle != 0.0 {
+                let sn = -row0y;
+                let cs = row0x;
+                let m11 = row0x;
+                let m12 = row0y;
+                let m21 = row1x;
+                let m22 = row1y;
+                row0x = cs * m11 + sn * m21;
+                row0y = cs * m12 + sn * m22;
+                row1x = -sn * m11 + cs * m21;
+                row1y = -sn * m12 + cs * m22;
+            }
 
-        let m = DecomposedMatrix {
-            m11: row0x, m12: row0y,
-            m21: row1x, m22: row1y,
-        };
+            let m = DecomposedMatrix {
+                m11: row0x, m12: row0y,
+                m21: row1x, m22: row1y,
+            };
 
-        // Convert into degrees because our rotation functions expect it.
-        angle = angle.to_degrees();
-        MatrixDecomposed2D {
-            translate: translate,
-            scale: scale,
-            angle: angle,
-            matrix: m,
+            // Convert into degrees because our rotation functions expect it.
+            angle = angle.to_degrees();
+            MatrixDecomposed2D {
+                translate: translate,
+                scale: scale,
+                angle: angle,
+                matrix: m,
+            }
         }
     }
 
-    /// https://drafts.csswg.org/css-transforms/#recomposing-to-a-2d-matrix
-    fn recompose_matrix(decomposed: MatrixDecomposed2D) -> ComputedMatrix {
-        let mut computed_matrix = ComputedMatrix::identity();
-        computed_matrix.m11 = decomposed.matrix.m11;
-        computed_matrix.m12 = decomposed.matrix.m12;
-        computed_matrix.m21 = decomposed.matrix.m21;
-        computed_matrix.m22 = decomposed.matrix.m22;
+    impl From<MatrixDecomposed2D> for ComputedMatrix {
+        /// Recompose a matrix.
+        /// https://drafts.csswg.org/css-transforms/#recomposing-to-a-2d-matrix
+        fn from(decomposed: MatrixDecomposed2D) -> ComputedMatrix {
+            let mut computed_matrix = ComputedMatrix::identity();
+            computed_matrix.m11 = decomposed.matrix.m11;
+            computed_matrix.m12 = decomposed.matrix.m12;
+            computed_matrix.m21 = decomposed.matrix.m21;
+            computed_matrix.m22 = decomposed.matrix.m22;
 
-        // Translate matrix.
-        computed_matrix.m41 = decomposed.translate.0 * decomposed.matrix.m11 +
-                              decomposed.translate.1 * decomposed.matrix.m21;
-        computed_matrix.m42 = decomposed.translate.0 * decomposed.matrix.m11 +
-                              decomposed.translate.1 * decomposed.matrix.m21;
+            // Translate matrix.
+            computed_matrix.m41 = decomposed.translate.0 * decomposed.matrix.m11 +
+                                  decomposed.translate.1 * decomposed.matrix.m21;
+            computed_matrix.m42 = decomposed.translate.0 * decomposed.matrix.m11 +
+                                  decomposed.translate.1 * decomposed.matrix.m21;
 
-        // Rotate matrix.
-        let angle = decomposed.angle.to_radians();
-        let cos_angle = angle.cos();
-        let sin_angle = angle.sin();
+            // Rotate matrix.
+            let angle = decomposed.angle.to_radians();
+            let cos_angle = angle.cos();
+            let sin_angle = angle.sin();
 
-        let mut rotate_matrix = ComputedMatrix::identity();
-        rotate_matrix.m11 = cos_angle;
-        rotate_matrix.m12 = sin_angle;
-        rotate_matrix.m21 = -sin_angle;
-        rotate_matrix.m22 = cos_angle;
+            let mut rotate_matrix = ComputedMatrix::identity();
+            rotate_matrix.m11 = cos_angle;
+            rotate_matrix.m12 = sin_angle;
+            rotate_matrix.m21 = -sin_angle;
+            rotate_matrix.m22 = cos_angle;
 
-        let matrix_clone = computed_matrix.clone();
-        // Multiplication of computed_matrix and rotate_matrix
-        % for i in range(1, 5):
-            % for j in range(1, 5):
-                computed_matrix.m${i}${j} = (matrix_clone.m${i}1 * rotate_matrix.m1${j}) +
-                                            (matrix_clone.m${i}2 *rotate_matrix.m2${j}) +
-                                            (matrix_clone.m${i}3 * rotate_matrix.m3${j}) +
-                                            (matrix_clone.m${i}4 * rotate_matrix.m4${j});
+            let matrix_clone = computed_matrix.clone();
+            // Multiplication of computed_matrix and rotate_matrix
+            % for i in range(1, 5):
+                % for j in range(1, 5):
+                    computed_matrix.m${i}${j} = (matrix_clone.m${i}1 * rotate_matrix.m1${j}) +
+                                                (matrix_clone.m${i}2 * rotate_matrix.m2${j}) +
+                                                (matrix_clone.m${i}3 * rotate_matrix.m3${j}) +
+                                                (matrix_clone.m${i}4 * rotate_matrix.m4${j});
+                % endfor
             % endfor
-        % endfor
 
-        // Scale matrix.
-        computed_matrix.m11 *= decomposed.scale.0;
-        computed_matrix.m12 *= decomposed.scale.0;
-        computed_matrix.m21 *= decomposed.scale.1;
-        computed_matrix.m22 *= decomposed.scale.1;
-        computed_matrix
+            // Scale matrix.
+            computed_matrix.m11 *= decomposed.scale.0;
+            computed_matrix.m12 *= decomposed.scale.0;
+            computed_matrix.m21 *= decomposed.scale.1;
+            computed_matrix.m22 *= decomposed.scale.1;
+            computed_matrix
+        }
     }
 
     /// https://drafts.csswg.org/css-transforms/#interpolation-of-transforms
