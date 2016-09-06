@@ -19,6 +19,7 @@ use js::jsapi::JS_ErrorFromException;
 use js::jsapi::JS_GetPendingException;
 use js::jsapi::JS_IsExceptionPending;
 use js::jsapi::JS_SetPendingException;
+use js::jsapi::MutableHandleValue;
 use js::jsval::UndefinedValue;
 use libc::c_uint;
 use std::slice::from_raw_parts;
@@ -265,4 +266,15 @@ pub unsafe fn throw_invalid_this(cx: *mut JSContext, proto_id: u16) {
     let error = format!("\"this\" object does not implement interface {}.",
                         proto_id_to_name(proto_id));
     throw_type_error(cx, &error);
+}
+
+impl Error {
+    /// Convert this error value to a JS value, consuming it in the process.
+    pub unsafe fn to_jsval(self, cx: *mut JSContext, global: GlobalRef, rval: MutableHandleValue) {
+        assert!(!JS_IsExceptionPending(cx));
+        throw_dom_exception(cx, global, self);
+        assert!(JS_IsExceptionPending(cx));
+        assert!(JS_GetPendingException(cx, rval));
+        JS_ClearPendingException(cx);
+    }
 }
