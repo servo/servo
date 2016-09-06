@@ -43,6 +43,7 @@ pub fn expand_jstraceable(cx: &mut ExtCtxt, span: Span, mitem: &MetaItem, item: 
         path: ty::Path::new(vec!("dom", "bindings", "trace", "JSTraceable")),
         additional_bounds: Vec::new(),
         generics: ty::LifetimeBounds::empty(),
+        supports_unions: true,
         methods: vec![
             MethodDef {
                 name: "trace",
