@@ -782,6 +782,81 @@ impl Interpolate for LengthOrNone {
         pub matrix: DecomposedMatrix,
     }
 
+    impl Interpolate for DecomposedMatrix {
+        fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
+            Ok(DecomposedMatrix {
+                m11: self.m11.interpolate(&other.m11, time).unwrap(),
+                m12: self.m12.interpolate(&other.m12, time).unwrap(),
+                m21: self.m21.interpolate(&other.m21, time).unwrap(),
+                m22: self.m22.interpolate(&other.m22, time).unwrap(),
+            })
+        }
+    }
+
+    impl Interpolate for Translate2D {
+        fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
+            Ok(Translate2D(
+                self.0.interpolate(&other.0, time).unwrap(),
+                self.1.interpolate(&other.1, time).unwrap()
+            ))
+        }
+    }
+
+    impl Interpolate for Scale2D {
+        fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
+            Ok(Scale2D(
+                self.0.interpolate(&other.0, time).unwrap(),
+                self.1.interpolate(&other.1, time).unwrap()
+            ))
+        }
+    }
+
+    impl Interpolate for MatrixDecomposed2D {
+        /// https://drafts.csswg.org/css-transforms/#interpolation-of-decomposed-2d-matrix-values
+        fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
+            // If x-axis of one is flipped, and y-axis of the other,
+            // convert to an unflipped rotation.
+            let mut scale = self.scale.clone();
+            let mut angle = self.angle.clone();
+            let mut other_angle = other.angle.clone();
+            if (scale.0 < 0.0 && other.scale.1 < 0.0) || (scale.1 < 0.0 && other.scale.0 < 0.0) {
+                scale.0 = -scale.0;
+                scale.1 = -scale.1;
+                angle += if angle < 0.0 {180.} else {-180.};
+            }
+
+            // Don't rotate the long way around.
+            if angle == 0.0 {
+                angle = 360.
+            }
+            if other_angle == 0.0 {
+                other_angle = 360.
+            }
+
+            if (angle - other_angle).abs() > 180. {
+                if angle > other_angle {
+                    angle -= 360.
+                }
+                else{
+                    other_angle -= 360.
+                }
+            }
+
+            // Interpolate all values.
+            let translate = self.translate.interpolate(&other.translate, time);
+            let scale = scale.interpolate(&other.scale, time);
+            let angle = angle.interpolate(&other_angle, time);
+            let matrix = self.matrix.interpolate(&other.matrix, time);
+
+            Ok(MatrixDecomposed2D {
+                translate: translate.unwrap(),
+                scale: scale.unwrap(),
+                angle: angle.unwrap(),
+                matrix: matrix.unwrap(),
+            })
+        }
+    }
+
     /// Decompose a matrix.
     /// https://drafts.csswg.org/css-transforms/#decomposing-a-2d-matrix
     fn decompose_matrix(matrix: ComputedMatrix) -> MatrixDecomposed2D {
