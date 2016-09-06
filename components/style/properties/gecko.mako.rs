@@ -501,6 +501,8 @@ impl Debug for ${style_struct.gecko_struct_name} {
                    "column-count", # column
                    ]
 
+    force_stub += ["mask-position", "mask-size"]
+
     # Types used with predefined_type()-defined properties that we can auto-generate.
     predefined_types = {
        "LengthOrPercentage": impl_style_coord,
@@ -968,26 +970,34 @@ fn static_assert() {
 
 </%self:impl_trait>
 
-<%def name="simple_background_array_property(name, field_name)">
-    pub fn copy_background_${name}_from(&mut self, other: &Self) {
+<%def name="simple_image_array_property(name, shorthand, field_name)">
+    <%
+        image_layers_field = "mImage" if shorthand == "background" else "mMask"
+    %>
+    pub fn copy_${shorthand}_${name}_from(&mut self, other: &Self) {
         unsafe {
-            Gecko_EnsureImageLayersLength(&mut self.gecko.mImage, other.gecko.mImage.mLayers.len());
+            Gecko_EnsureImageLayersLength(&mut self.gecko.${image_layers_field},
+                                          other.gecko.${image_layers_field}.mLayers.len());
         }
-        for (layer, other) in self.gecko.mImage.mLayers.iter_mut()
-                                  .zip(other.gecko.mImage.mLayers.iter())
-                                  .take(other.gecko.mImage.${field_name}Count as usize) {
+        for (layer, other) in self.gecko.${image_layers_field}.mLayers.iter_mut()
+                                  .zip(other.gecko.${image_layers_field}.mLayers.iter())
+                                  .take(other.gecko.${image_layers_field}
+                                                   .${field_name}Count as usize) {
             layer.${field_name} = other.${field_name};
         }
-        self.gecko.mImage.${field_name}Count = other.gecko.mImage.${field_name}Count;
+        self.gecko.${image_layers_field}.${field_name}Count =
+            other.gecko.${image_layers_field}.${field_name}Count;
     }
 
-    pub fn set_background_${name}(&mut self, v: longhands::background_${name}::computed_value::T) {
+    pub fn set_${shorthand}_${name}(&mut self,
+                                    v: longhands::${shorthand}_${name}::computed_value::T) {
         unsafe {
-          Gecko_EnsureImageLayersLength(&mut self.gecko.mImage, v.0.len());
+          Gecko_EnsureImageLayersLength(&mut self.gecko.${image_layers_field}, v.0.len());
         }
 
-        self.gecko.mImage.${field_name}Count = v.0.len() as u32;
-        for (servo, geckolayer) in v.0.into_iter().zip(self.gecko.mImage.mLayers.iter_mut()) {
+        self.gecko.${image_layers_field}.${field_name}Count = v.0.len() as u32;
+        for (servo, geckolayer) in v.0.into_iter()
+                                    .zip(self.gecko.${image_layers_field}.mLayers.iter_mut()) {
             geckolayer.${field_name} = {
                 ${caller.body()}
             };
@@ -1007,7 +1017,7 @@ fn static_assert() {
 
     <% impl_color("background_color", "mBackgroundColor", need_clone=True) %>
 
-    <%self:simple_background_array_property name="repeat" field_name="mRepeat">
+    <%self:simple_image_array_property name="repeat" shorthand="background" field_name="mRepeat">
         use properties::longhands::background_repeat::single_value::computed_value::T;
         use gecko_bindings::structs::nsStyleImageLayers_Repeat;
         use gecko_bindings::structs::NS_STYLE_IMAGELAYER_REPEAT_REPEAT;
@@ -1027,9 +1037,9 @@ fn static_assert() {
               mXRepeat: repeat_x as u8,
               mYRepeat: repeat_y as u8,
         }
-    </%self:simple_background_array_property>
+    </%self:simple_image_array_property>
 
-    <%self:simple_background_array_property name="clip" field_name="mClip">
+    <%self:simple_image_array_property name="clip" shorthand="background" field_name="mClip">
         use properties::longhands::background_clip::single_value::computed_value::T;
 
         match servo {
@@ -1037,9 +1047,9 @@ fn static_assert() {
             T::padding_box => structs::NS_STYLE_IMAGELAYER_CLIP_PADDING as u8,
             T::content_box => structs::NS_STYLE_IMAGELAYER_CLIP_CONTENT as u8,
         }
-    </%self:simple_background_array_property>
+    </%self:simple_image_array_property>
 
-    <%self:simple_background_array_property name="origin" field_name="mOrigin">
+    <%self:simple_image_array_property name="origin" shorthand="background" field_name="mOrigin">
         use properties::longhands::background_origin::single_value::computed_value::T;
 
         match servo {
@@ -1047,9 +1057,9 @@ fn static_assert() {
             T::padding_box => structs::NS_STYLE_IMAGELAYER_ORIGIN_PADDING as u8,
             T::content_box => structs::NS_STYLE_IMAGELAYER_ORIGIN_CONTENT as u8,
         }
-    </%self:simple_background_array_property>
+    </%self:simple_image_array_property>
 
-    <%self:simple_background_array_property name="attachment" field_name="mAttachment">
+    <%self:simple_image_array_property name="attachment" shorthand="background" field_name="mAttachment">
         use properties::longhands::background_attachment::single_value::computed_value::T;
 
         match servo {
@@ -1057,9 +1067,9 @@ fn static_assert() {
             T::fixed => structs::NS_STYLE_IMAGELAYER_ATTACHMENT_FIXED as u8,
             T::local => structs::NS_STYLE_IMAGELAYER_ATTACHMENT_LOCAL as u8,
         }
-    </%self:simple_background_array_property>
+    </%self:simple_image_array_property>
 
-    <%self:simple_background_array_property name="size" field_name="mSize">
+    <%self:simple_image_array_property name="size" shorthand="background" field_name="mSize">
         use gecko_bindings::structs::nsStyleImageLayers_Size_Dimension;
         use gecko_bindings::structs::nsStyleImageLayers_Size_DimensionType;
         use gecko_bindings::structs::{nsStyleCoord_CalcValue, nsStyleImageLayers_Size};
@@ -1095,7 +1105,7 @@ fn static_assert() {
             mWidthType: w_type as u8,
             mHeightType: h_type as u8,
         }
-    </%self:simple_background_array_property>
+    </%self:simple_image_array_property>
 
     pub fn clone_background_size(&self) -> longhands::background_size::computed_value::T {
         use gecko_bindings::structs::nsStyleCoord_CalcValue as CalcValue;
@@ -1523,8 +1533,14 @@ fn static_assert() {
     }
 </%self:impl_trait>
 
+<% skip_svg_longhands = """
+flood-color lighting-color stop-color
+mask-mode mask-repeat mask-clip mask-origin mask-composite
+clip-path
+"""
+%>
 <%self:impl_trait style_struct_name="SVG"
-                  skip_longhands="flood-color lighting-color stop-color clip-path"
+                  skip_longhands="${skip_svg_longhands}"
                   skip_additionals="*">
 
     <% impl_color("flood_color", "mFloodColor") %>
@@ -1533,6 +1549,64 @@ fn static_assert() {
 
     <% impl_color("stop_color", "mStopColor") %>
 
+    <%self:simple_image_array_property name="mode" shorthand="mask" field_name="mMaskMode">
+        use properties::longhands::mask_mode::single_value::computed_value::T;
+
+        match servo {
+          T::alpha => structs::NS_STYLE_MASK_MODE_ALPHA as u8,
+          T::luminance => structs::NS_STYLE_MASK_MODE_LUMINANCE as u8,
+          T::match_source => structs::NS_STYLE_MASK_MODE_MATCH_SOURCE as u8,
+        }
+    </%self:simple_image_array_property>
+    <%self:simple_image_array_property name="repeat" shorthand="mask" field_name="mRepeat">
+        use properties::longhands::mask_repeat::single_value::computed_value::T;
+        use gecko_bindings::structs::nsStyleImageLayers_Repeat;
+        use gecko_bindings::structs::NS_STYLE_IMAGELAYER_REPEAT_NO_REPEAT;
+        use gecko_bindings::structs::NS_STYLE_IMAGELAYER_REPEAT_REPEAT;
+
+        let (repeat_x, repeat_y) = match servo {
+          T::repeat_x => (NS_STYLE_IMAGELAYER_REPEAT_REPEAT,
+                          NS_STYLE_IMAGELAYER_REPEAT_NO_REPEAT),
+          T::repeat_y => (NS_STYLE_IMAGELAYER_REPEAT_NO_REPEAT,
+                          NS_STYLE_IMAGELAYER_REPEAT_REPEAT),
+          T::repeat => (NS_STYLE_IMAGELAYER_REPEAT_REPEAT,
+                        NS_STYLE_IMAGELAYER_REPEAT_REPEAT),
+          T::no_repeat => (NS_STYLE_IMAGELAYER_REPEAT_NO_REPEAT,
+                           NS_STYLE_IMAGELAYER_REPEAT_NO_REPEAT),
+        };
+        nsStyleImageLayers_Repeat {
+              mXRepeat: repeat_x as u8,
+              mYRepeat: repeat_y as u8,
+        }
+    </%self:simple_image_array_property>
+    <%self:simple_image_array_property name="clip" shorthand="mask" field_name="mClip">
+        use properties::longhands::mask_clip::single_value::computed_value::T;
+
+        match servo {
+            T::border_box => structs::NS_STYLE_IMAGELAYER_CLIP_BORDER as u8,
+            T::padding_box => structs::NS_STYLE_IMAGELAYER_CLIP_PADDING as u8,
+            T::content_box => structs::NS_STYLE_IMAGELAYER_CLIP_CONTENT as u8,
+        }
+    </%self:simple_image_array_property>
+    <%self:simple_image_array_property name="origin" shorthand="mask" field_name="mOrigin">
+        use properties::longhands::mask_origin::single_value::computed_value::T;
+
+        match servo {
+            T::border_box => structs::NS_STYLE_IMAGELAYER_CLIP_BORDER as u8,
+            T::padding_box => structs::NS_STYLE_IMAGELAYER_CLIP_PADDING as u8,
+            T::content_box => structs::NS_STYLE_IMAGELAYER_CLIP_CONTENT as u8,
+        }
+    </%self:simple_image_array_property>
+    <%self:simple_image_array_property name="composite" shorthand="mask" field_name="mComposite">
+        use properties::longhands::mask_composite::single_value::computed_value::T;
+
+        match servo {
+            T::add => structs::NS_STYLE_MASK_COMPOSITE_ADD as u8,
+            T::subtract => structs::NS_STYLE_MASK_COMPOSITE_SUBTRACT as u8,
+            T::intersect => structs::NS_STYLE_MASK_COMPOSITE_INTERSECT as u8,
+            T::exclude => structs::NS_STYLE_MASK_COMPOSITE_EXCLUDE as u8,
+        }
+    </%self:simple_image_array_property>
     pub fn set_clip_path(&mut self, v: longhands::clip_path::computed_value::T) {
         use gecko_bindings::bindings::{Gecko_NewBasicShape, Gecko_DestroyClipPath};
         use gecko_bindings::structs::StyleClipPathGeometryBox;

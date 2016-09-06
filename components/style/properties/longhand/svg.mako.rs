@@ -77,3 +77,73 @@ ${helpers.single_keyword("mask-type", "luminance alpha",
 
     impl NoViewportPercentage for SpecifiedValue {}
 </%helpers:longhand>
+
+${helpers.single_keyword("mask-mode",
+                         "alpha luminance match-source",
+                         vector=True,
+                         products="gecko",
+                         animatable=False)}
+
+// TODO implement all of repeat-style for background and mask
+// https://drafts.csswg.org/css-backgrounds-3/#repeat-style
+${helpers.single_keyword("mask-repeat",
+                         "repeat repeat-x repeat-y no-repeat",
+                         vector=True,
+                         products="gecko",
+                         animatable=False)}
+
+<%helpers:longhand name="mask-position" products="gecko" animatable="True">
+    use properties::longhands::background_position;
+    pub mod computed_value {
+        pub type T = ::properties::longhands::background_position::computed_value::T;
+    }
+    pub type SpecifiedValue = background_position::SpecifiedValue;
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        background_position::get_initial_value()
+    }
+
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        background_position::parse(context, input)
+    }
+</%helpers:longhand>
+
+// missing: margin-box fill-box stroke-box view-box no-clip
+// (gecko doesn't implement these)
+${helpers.single_keyword("mask-clip",
+                         "content-box padding-box border-box",
+                         vector=True,
+                         products="gecko",
+                         animatable=False)}
+
+// missing: margin-box fill-box stroke-box view-box
+// (gecko doesn't implement these)
+${helpers.single_keyword("mask-origin",
+                         "content-box padding-box border-box",
+                         vector=True,
+                         products="gecko",
+                         animatable=False)}
+
+<%helpers:longhand name="mask-size" products="gecko" animatable="True">
+    use properties::longhands::background_size;
+    pub mod computed_value {
+        pub type T = ::properties::longhands::background_size::computed_value::T;
+    }
+    pub type SpecifiedValue = background_size::SpecifiedValue;
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        background_size::get_initial_value()
+    }
+
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+        background_size::parse(context, input)
+    }
+</%helpers:longhand>
+
+${helpers.single_keyword("mask-composite",
+                         "add subtract intersect exclude",
+                         vector=True,
+                         products="gecko",
+                         animatable=False)}
