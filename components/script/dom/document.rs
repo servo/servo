@@ -119,6 +119,7 @@ use std::iter::once;
 use std::mem;
 use std::rc::Rc;
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 use string_cache::{Atom, QualName};
 use style::attr::AttrValue;
 use style::context::ReflowGoal;
@@ -247,6 +248,9 @@ pub struct Document {
     referrer: Option<String>,
     /// https://html.spec.whatwg.org/multipage/#target-element
     target_element: MutNullableHeap<JS<Element>>,
+    /// https://w3c.github.io/uievents/#event-type-dblclick
+    #[ignore_heap_size_of = "Defined in std"]
+    last_click_info: DOMRefCell<Option<(Instant, Point2D<f32>)>>,
 }
 
 #[derive(JSTraceable, HeapSizeOf)]
@@ -774,10 +778,62 @@ impl Document {
 
         if let MouseEventType::Click = mouse_event_type {
             self.commit_focus_transaction(FocusType::Element);
+            self.maybe_fire_dblclick(client_point, node);
         }
+
         self.window.reflow(ReflowGoal::ForDisplay,
                            ReflowQueryType::NoQuery,
                            ReflowReason::MouseEvent);
+    }
+
+    fn maybe_fire_dblclick(&self, click_pos: Point2D<f32>, target: &Node) {
+        // https://w3c.github.io/uievents/#event-type-dblclick
+        let now = Instant::now();
+
+        let opt = self.last_click_info.borrow_mut().take();
+
+        if let Some((last_time, last_pos)) = opt {
+            let DBL_CLICK_TIMEOUT = Duration::from_millis(PREFS.get("dom.document.dblclick_timeout").as_u64()
+                                                                                                    .unwrap_or(300));
+            let DBL_CLICK_DIST_THRESHOLD = PREFS.get("dom.document.dblclick_dist").as_u64().unwrap_or(1);
+
+            // Calculate distance between this click and the previous click.
+            let line = click_pos - last_pos;
+            let dist = (line.dot(line) as f64).sqrt();
+
+            if  now.duration_since(last_time) < DBL_CLICK_TIMEOUT &&
+                dist < DBL_CLICK_DIST_THRESHOLD as f64 {
+                // A double click has occurred if this click is within a certain time and dist. of previous click.
+                let clickCount = 2;
+                let client_x = click_pos.x as i32;
+                let client_y = click_pos.y as i32;
+
+                let event = MouseEvent::new(&self.window,
+                                            DOMString::from("dblclick"),
+                                            EventBubbles::Bubbles,
+                                            EventCancelable::Cancelable,
+                                            Some(&self.window),
+                                            clickCount,
+                                            client_x,
+                                            client_y,
+                                            client_x,
+                                            client_y,
+                                            false,
+                                            false,
+                                            false,
+                                            false,
+                                            0i16,
+                                            None);
+                event.upcast::<Event>().fire(target.upcast());
+
+                // When a double click occurs, self.last_click_info is left as None so that a
+                // third sequential click will not cause another double click.
+                return;
+            }
+        }
+
+        // Update last_click_info with the time and position of the click.
+        *self.last_click_info.borrow_mut() = Some((now, click_pos));
     }
 
     pub fn handle_touchpad_pressure_event(&self,
@@ -1759,6 +1815,7 @@ impl Document {
             referrer: referrer,
             referrer_policy: Cell::new(referrer_policy),
             target_element: MutNullableHeap::new(None),
+            last_click_info: DOMRefCell::new(None),
         }
     }
 
