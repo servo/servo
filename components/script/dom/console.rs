@@ -11,20 +11,19 @@ use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 use time::{Timespec, get_time};
 
 // https://developer.mozilla.org/en-US/docs/Web/API/Console
 #[dom_struct]
 pub struct Console {
     reflector_: Reflector,
-    timers: DOMRefCell<HashMap<DOMString, u64>>,
 }
 
 impl Console {
     fn new_inherited() -> Console {
         Console {
             reflector_: Reflector::new(),
-            timers: DOMRefCell::new(HashMap::new()),
         }
     }
 
@@ -100,28 +99,20 @@ impl ConsoleMethods for Console {
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/time
     fn Time(&self, label: DOMString) {
-        let mut timers = self.timers.borrow_mut();
-        if timers.contains_key(&label) {
-            // Timer already started
-            return;
+        let global = self.global();
+        if let Ok(()) = global.r().console_timers().time(label.clone()) {
+            let message = DOMString::from(format!("{}: timer started", label));
+            println!("{}", message);
+            self.send_to_devtools(LogLevel::Log, message);
         }
-        if timers.len() >= 10000 {
-            // Too many timers on page
-            return;
-        }
-
-        timers.insert(label.clone(), timestamp_in_ms(get_time()));
-        let message = DOMString::from(format!("{}: timer started", label));
-        println!("{}", message);
-        self.send_to_devtools(LogLevel::Log, message);
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/timeEnd
     fn TimeEnd(&self, label: DOMString) {
-        let mut timers = self.timers.borrow_mut();
-        if let Some(start) = timers.remove(&label) {
+        let global = self.global();
+        if let Ok(delta) = global.r().console_timers().time_end(&label) {
             let message = DOMString::from(
-                format!("{}: {}ms", label, timestamp_in_ms(get_time()) - start)
+                format!("{}: {}ms", label, delta)
             );
             println!("{}", message);
             self.send_to_devtools(LogLevel::Log, message);
@@ -141,5 +132,34 @@ fn prepare_message(logLevel: LogLevel, message: DOMString) -> ConsoleMessage {
         filename: "test".to_owned(),
         lineNumber: 1,
         columnNumber: 1,
+    }
+}
+
+#[derive(HeapSizeOf, JSTraceable)]
+pub struct TimerSet(DOMRefCell<HashMap<DOMString, u64>>);
+
+impl TimerSet {
+    pub fn new() -> Self {
+        TimerSet(DOMRefCell::new(Default::default()))
+    }
+
+    fn time(&self, label: DOMString) -> Result<(), ()> {
+        let mut timers = self.0.borrow_mut();
+        if timers.len() >= 10000 {
+            return Err(());
+        }
+        match timers.entry(label) {
+            Entry::Vacant(entry) => {
+                entry.insert(timestamp_in_ms(get_time()));
+                Ok(())
+            },
+            Entry::Occupied(_) => Err(()),
+        }
+    }
+
+    fn time_end(&self, label: &str) -> Result<u64, ()> {
+        self.0.borrow_mut().remove(label).ok_or(()).map(|start| {
+            timestamp_in_ms(get_time()) - start
+        })
     }
 }

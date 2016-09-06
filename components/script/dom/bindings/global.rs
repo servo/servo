@@ -12,6 +12,7 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::root_from_object;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflectable, Reflector};
+use dom::console::TimerSet;
 use dom::window::{self, ScriptHelpers};
 use dom::workerglobalscope::WorkerGlobalScope;
 use ipc_channel::ipc::IpcSender;
@@ -274,6 +275,14 @@ impl<'a> GlobalRef<'a> {
         match *self {
             GlobalRef::Window(ref window) => window.reflector(),
             GlobalRef::Worker(ref worker) => worker.reflector(),
+        }
+    }
+
+    /// Returns the global's timers for the Console API.
+    pub fn console_timers(&self) -> &TimerSet {
+        match *self {
+            GlobalRef::Window(ref window) => window.console_timers(),
+            GlobalRef::Worker(ref worker) => worker.console_timers(),
         }
     }
 
