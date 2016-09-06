@@ -85,17 +85,20 @@ impl BluetoothThreadFactory for IpcSender<BluetoothMethodMsg> {
     }
 }
 
+// https://webbluetoothcg.github.io/web-bluetooth/#matches-a-filter
 fn matches_filter(device: &BluetoothDevice, filter: &BluetoothScanfilter) -> bool {
     if filter.is_empty_or_invalid() {
         return false;
     }
 
+    // Step 1.
     if !filter.get_name().is_empty() {
         if device.get_name().ok() != Some(filter.get_name().to_string()) {
             return false;
         }
     }
 
+    // Step 2.
     if !filter.get_name_prefix().is_empty() {
         if let Ok(device_name) = device.get_name() {
             if !device_name.starts_with(filter.get_name_prefix()) {
@@ -106,6 +109,7 @@ fn matches_filter(device: &BluetoothDevice, filter: &BluetoothScanfilter) -> boo
         }
     }
 
+    // Step 3.
     if !filter.get_services().is_empty() {
         if let Ok(device_uuids) = device.get_uuids() {
             for service in filter.get_services() {
@@ -115,6 +119,24 @@ fn matches_filter(device: &BluetoothDevice, filter: &BluetoothScanfilter) -> boo
             }
         }
     }
+
+// Step 4.
+// TODO: Implement get_manufacturer_data in device crate.
+//    if let Some(manufacturer_id) = filter.get_manufacturer_id() {
+//        if !device.get_manufacturer_data().contains_key(manufacturer_id) {
+//            return false;
+//        }
+//    }
+//
+// Step 5.
+// TODO: Implement get_device_data in device crate.
+//    if !filter.get_service_data_uuid().is_empty() {
+//        if !device.get_service_data().contains_key(filter.get_service_data_uuid()) {
+//            return false;
+//        }
+//    }
+
+    // Step 6.
     return true;
 }
 
@@ -428,6 +450,7 @@ impl BluetoothManager {
 
     // Methods
 
+    // https://webbluetoothcg.github.io/web-bluetooth/#request-bluetooth-devices
     fn request_device(&mut self,
                       options: RequestDeviceoptions,
                       sender: IpcSender<BluetoothResult<BluetoothDeviceMsg>>) {
@@ -438,10 +461,19 @@ impl BluetoothManager {
             }
             let _ = session.stop_discovery();
         }
-        let devices = self.get_and_cache_devices(&mut adapter);
-        let matched_devices: Vec<BluetoothDevice> = devices.into_iter()
-                                                           .filter(|d| matches_filters(d, options.get_filters()))
-                                                           .collect();
+
+        // Step 6.
+        // Note: There is no requiredServiceUUIDS, we scan for all devices.
+        let mut matched_devices = self.get_and_cache_devices(&mut adapter);
+
+        // Step 7.
+        if !options.is_accepting_all_services() {
+            matched_devices = matched_devices.into_iter()
+                                             .filter(|d| matches_filters(d, options.get_filters()))
+                                             .collect();
+        }
+
+        // Step 8.
         if let Some(address) = self.select_device(matched_devices) {
             let device_id = match self.address_to_id.get(&address) {
                 Some(id) => id.clone(),

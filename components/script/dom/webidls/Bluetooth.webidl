@@ -4,24 +4,31 @@
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetooth
 
-dictionary BluetoothScanFilter {
+dictionary BluetoothRequestDeviceFilter {
   sequence<BluetoothServiceUUID> services;
   DOMString name;
   DOMString namePrefix;
+  unsigned short manufacturerId;
+  BluetoothServiceUUID serviceDataUUID;
 };
 
 dictionary RequestDeviceOptions {
-  required sequence<BluetoothScanFilter> filters;
+  sequence<BluetoothRequestDeviceFilter> filters;
   sequence<BluetoothServiceUUID> optionalServices /*= []*/;
+  boolean acceptAllDevices = false;
 };
 
 [Pref="dom.bluetooth.enabled", Exposed=(Window,Worker)]
 interface Bluetooth {
-    // Promise<BluetoothDevice> requestDevice(RequestDeviceOptions options);
-    [Throws]
-    BluetoothDevice requestDevice(RequestDeviceOptions options);
+//  [SecureContext]
+//  readonly attribute BluetoothDevice? referringDevice;
+//  [SecureContext]
+//  Promise<BluetoothDevice> requestDevice(RequestDeviceOptions options);
+  [Throws]
+  BluetoothDevice requestDevice(optional RequestDeviceOptions options);
 };
 
 // Bluetooth implements EventTarget;
+// Bluetooth implements BluetoothDeviceEventHandlers;
 // Bluetooth implements CharacteristicEventHandlers;
 // Bluetooth implements ServiceEventHandlers;
