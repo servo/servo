@@ -28,8 +28,7 @@ def execute_test(url, command, timeout):
     print(' '.join(command))
     print("Timeout:{}".format(timeout))
     try:
-        return subprocess.check_output(command, stderr=subprocess.STDOUT,
-                                       shell=True, timeout=timeout)
+        return subprocess.check_output(command, stderr=subprocess.STDOUT, timeout=timeout)
     except subprocess.CalledProcessError as e:
         print("Unexpected Fail:")
         print(e)
@@ -43,7 +42,7 @@ def execute_test(url, command, timeout):
 def get_servo_command(url):
     ua_script_path = "{}/user-agent-js".format(os.getcwd())
     return ["./servo/servo", url,
-            " --userscripts", ua_script_path,
+            "--userscripts", ua_script_path,
             "-x", "-o", "output.png"]
 
 
@@ -67,7 +66,7 @@ def parse_log(log, testcase=None):
             copy = False
             blocks.append(block)
             block = []
-        elif copy:
+        elif copy and line.strip().startswith("[PERF]"):
             block.append(line)
 
     # We need to still include the failed tests, otherwise Treeherder will
@@ -113,21 +112,19 @@ def parse_log(log, testcase=None):
                 print('-----')
                 return placeholder
 
-            if key == "testcase":
+            if key == "testcase" or key == "title":
                 timing[key] = value
             else:
                 timing[key] = None if (value == "undefined") else int(value)
 
-        if testcase is not None and timing['testcase'] != testcase:
-            print('[DEBUG] log:')
-            print('-----')
-            print(log)
-            print('-----')
-            return placeholder
-
         return timing
 
-    if len(blocks) == 0:
+    def valid_timing(timing):
+        return (timing.get('title') != 'Error response') and (testcase is None or timing.get('testcase') == testcase)
+
+    timings = list(filter(valid_timing, map(parse_block, blocks)))
+
+    if len(timings) == 0:
         print("Didn't find any perf data in the log, test timeout?")
         print("Fillng in a dummy perf data")
         print('[DEBUG] log:')
@@ -137,7 +134,7 @@ def parse_log(log, testcase=None):
 
         return [placeholder]
     else:
-        return map(parse_block, blocks)
+        return timings
 
 
 def filter_result_by_manifest(result_json, manifest):
@@ -242,7 +239,7 @@ def main():
         testcases = load_manifest(args.tp5_manifest)
         results = []
         for testcase in testcases:
-            command = (["timeout", "{timeout}s".format(args.timeout)] +
+            command = (["timeout", "{}s".format(args.timeout)] +
                        command_factory(testcase))
             for run in range(args.runs):
                 print("Running test {}/{} on {}".format(run + 1,
