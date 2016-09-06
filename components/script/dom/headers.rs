@@ -217,12 +217,20 @@ impl Headers {
         self.guard.set(new_guard)
     }
 
+    pub fn set_guard_immutable(&self) {
+        self.guard.set(Guard::Immutable)
+    }
+
     pub fn get_guard(&self) -> Guard {
         self.guard.get()
     }
 
     pub fn empty_header_list(&self) {
         *self.header_list.borrow_mut() = HyperHeaders::new();
+    }
+
+    pub fn set_headers(&self, hyper_headers: HyperHeaders) {
+        *self.header_list.borrow_mut() = hyper_headers;
     }
 
     // https://fetch.spec.whatwg.org/#concept-header-extract-mime-type
