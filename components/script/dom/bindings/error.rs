@@ -245,9 +245,7 @@ pub unsafe fn report_pending_exception(cx: *mut JSContext, dispatch_event: bool)
 
         if dispatch_event {
             let global = global_root_from_context(cx);
-            if let GlobalRef::Window(window) = global.r() {
-                window.report_an_error(error_info, value.handle());
-            }
+            global.r().report_an_error(error_info, value.handle());
         }
     }
 }

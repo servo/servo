@@ -4,7 +4,7 @@
 
 use devtools_traits::{ScriptToDevtoolsControlMsg, DevtoolsPageInfo};
 use dom::abstractworker::WorkerScriptMsg;
-use dom::abstractworker::{SimpleWorkerErrorHandler, SharedRt, WorkerErrorHandler};
+use dom::abstractworker::{SimpleWorkerErrorHandler, SharedRt};
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::WorkerBinding;
 use dom::bindings::codegen::Bindings::WorkerBinding::WorkerMethods;
@@ -17,8 +17,6 @@ use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
-use dom::errorevent::ErrorEvent;
-use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
 use dom::messageevent::MessageEvent;
 use dom::workerglobalscope::prepare_workerscope_init;
@@ -139,22 +137,6 @@ impl Worker {
         let worker = address.root();
         worker.upcast().fire_simple_event("error");
     }
-
-    pub fn handle_error_message(address: TrustedWorkerAddress, message: DOMString,
-                                filename: DOMString, lineno: u32, colno: u32) {
-        let worker = address.root();
-
-        if worker.is_terminated() {
-            return;
-        }
-
-        let global = worker.r().global();
-        rooted!(in(global.r().get_cx()) let error = UndefinedValue());
-        let errorevent = ErrorEvent::new(global.r(), atom!("error"),
-                                         EventBubbles::Bubbles, EventCancelable::Cancelable,
-                                         message, filename, lineno, colno, error.handle());
-        errorevent.upcast::<Event>().fire(worker.upcast());
-    }
 }
 
 impl WorkerMethods for Worker {
@@ -218,13 +200,5 @@ impl Runnable for SimpleWorkerErrorHandler<Worker> {
     fn handler(self: Box<SimpleWorkerErrorHandler<Worker>>) {
         let this = *self;
         Worker::dispatch_simple_error(this.addr);
-    }
-}
-
-impl Runnable for WorkerErrorHandler<Worker> {
-    #[allow(unrooted_must_root)]
-    fn handler(self: Box<WorkerErrorHandler<Worker>>) {
-        let this = *self;
-        Worker::handle_error_message(this.addr, this.msg, this.file_name, this.line_num, this.col_num);
     }
 }
