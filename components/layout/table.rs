@@ -335,13 +335,17 @@ impl Flow for TableFlow {
         let containing_block_inline_size = self.block_flow.base.block_container_inline_size;
 
         let mut num_unspecified_inline_sizes = 0;
+        let mut num_percentage_inline_sizes = 0;
         let mut total_column_inline_size = Au(0);
+        let mut total_column_percentage_size = 0.0;
         for column_inline_size in &self.column_intrinsic_inline_sizes {
-            if column_inline_size.constrained {
-                total_column_inline_size = total_column_inline_size +
-                    column_inline_size.minimum_length
+            if column_inline_size.percentage != 0.0 {
+                total_column_percentage_size += column_inline_size.percentage;
+                num_percentage_inline_sizes += 1;
+            } else if column_inline_size.constrained {
+                total_column_inline_size += column_inline_size.minimum_length;
             } else {
-                num_unspecified_inline_sizes += 1
+                num_unspecified_inline_sizes += 1;
             }
         }
 
@@ -364,20 +368,12 @@ impl Flow for TableFlow {
             TableLayout::Fixed => {
                 // In fixed table layout, we distribute extra space among the unspecified columns
                 // if there are any, or among all the columns if all are specified.
+                // See: https://drafts.csswg.org/css-tables-3/#distributing-width-to-columns (infobox)
                 self.column_computed_inline_sizes.clear();
-                if num_unspecified_inline_sizes == 0 {
-                    let ratio = content_inline_size.to_f32_px() /
-                        total_column_inline_size.to_f32_px();
-                    for column_inline_size in &self.column_intrinsic_inline_sizes {
-                        self.column_computed_inline_sizes.push(ColumnComputedInlineSize {
-                            size: column_inline_size.minimum_length.scale_by(ratio),
-                        });
-                    }
-                } else if num_unspecified_inline_sizes != 0 {
+                if num_unspecified_inline_sizes != 0 {
                     let extra_column_inline_size = content_inline_size - total_column_inline_size;
                     for column_inline_size in &self.column_intrinsic_inline_sizes {
-                        if !column_inline_size.constrained &&
-                                column_inline_size.percentage == 0.0 {
+                        if !column_inline_size.constrained {
                             self.column_computed_inline_sizes.push(ColumnComputedInlineSize {
                                 size: extra_column_inline_size / num_unspecified_inline_sizes,
                             });
@@ -386,6 +382,23 @@ impl Flow for TableFlow {
                                 size: column_inline_size.minimum_length,
                             });
                         }
+                    }
+                } else if num_percentage_inline_sizes != 0 {
+                    let extra_column_inline_size = content_inline_size - total_column_inline_size;
+                    let ratio = content_inline_size.to_f32_px() /
+                        total_column_percentage_size;
+                    for column_inline_size in &self.column_intrinsic_inline_sizes {
+                        self.column_computed_inline_sizes.push(ColumnComputedInlineSize {
+                            size: extra_column_inline_size.scale_by(ratio * column_inline_size.percentage),
+                        });
+                    }
+                } else {
+                    let ratio = content_inline_size.to_f32_px() /
+                        total_column_inline_size.to_f32_px();
+                    for column_inline_size in &self.column_intrinsic_inline_sizes {
+                        self.column_computed_inline_sizes.push(ColumnComputedInlineSize {
+                            size: column_inline_size.minimum_length.scale_by(ratio),
+                        });
                     }
                 }
             }
