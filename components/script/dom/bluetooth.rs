@@ -15,13 +15,13 @@ use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::bluetoothadvertisingdata::BluetoothAdvertisingData;
 use dom::bluetoothdevice::BluetoothDevice;
-use dom::bluetoothuuid::BluetoothUUID;
+use dom::bluetoothuuid::{BluetoothServiceUUID, BluetoothUUID};
 use ipc_channel::ipc::{self, IpcSender};
 use net_traits::bluetooth_scanfilter::{BluetoothScanfilter, BluetoothScanfilterSequence};
 use net_traits::bluetooth_scanfilter::{RequestDeviceoptions, ServiceUUIDSequence};
 use net_traits::bluetooth_thread::{BluetoothError, BluetoothMethodMsg};
 
-const FILTER_EMPTY_ERROR: &'static str = "'filters' member must be non - empty to find any devices.";
+const FILTER_EMPTY_ERROR: &'static str = "'filters' member must be nonempty to find any devices.";
 const FILTER_ERROR: &'static str = "A filter must restrict the devices in some way.";
 const FILTER_NAME_TOO_LONG_ERROR: &'static str = "A 'name' or 'namePrefix' can't be longer then 29 bytes.";
 // 248 is the maximum number of UTF-8 code units in a Bluetooth Device Name.
@@ -31,7 +31,7 @@ const MAX_DEVICE_NAME_LENGTH: usize = 248;
 // The length and identifier of the length field take 2 bytes.
 // That leaves 29 bytes for the name.
 const MAX_FILTER_NAME_LENGTH: usize = 29;
-const NAME_PREFIX_ERROR: &'static str = "'namePrefix', if present, must be non - empty.";
+const NAME_PREFIX_ERROR: &'static str = "'namePrefix', if present, must be nonempty.";
 const NAME_TOO_LONG_ERROR: &'static str = "A device name can't be longer than 248 bytes.";
 const SERVICE_ERROR: &'static str = "'services', if present, must contain at least one service.";
 
@@ -59,99 +59,14 @@ impl Bluetooth {
         let global_ref = global_root.r();
         global_ref.as_window().bluetooth_thread()
     }
-}
 
-fn canonicalize_filter(filter: &BluetoothScanFilter, global: GlobalRef) -> Fallible<BluetoothScanfilter> {
-    if filter.services.is_none() && filter.name.is_none() && filter.namePrefix.is_none() {
-        return Err(Type(FILTER_ERROR.to_owned()));
-    }
-
-    let mut services_vec = vec!();
-    if let Some(ref services) = filter.services {
-        if services.is_empty() {
-            return Err(Type(SERVICE_ERROR.to_owned()));
-        }
-        for service in services {
-            let uuid = try!(BluetoothUUID::GetService(global, service.clone())).to_string();
-            if uuid_is_blacklisted(uuid.as_ref(), Blacklist::All) {
-                return Err(Security)
-            }
-            services_vec.push(uuid);
-        }
-    }
-
-    let mut name = String::new();
-    if let Some(ref filter_name) = filter.name {
-        //NOTE: DOMString::len() gives back the size in bytes
-        if filter_name.len() > MAX_DEVICE_NAME_LENGTH {
-            return Err(Type(NAME_TOO_LONG_ERROR.to_owned()));
-        }
-        if filter_name.len() > MAX_FILTER_NAME_LENGTH {
-            return Err(Type(FILTER_NAME_TOO_LONG_ERROR.to_owned()));
-        }
-        name = filter_name.to_string();
-    }
-
-    let mut name_prefix = String::new();
-    if let Some(ref filter_name_prefix) = filter.namePrefix {
-        if filter_name_prefix.is_empty() {
-            return Err(Type(NAME_PREFIX_ERROR.to_owned()));
-        }
-        if filter_name_prefix.len() > MAX_DEVICE_NAME_LENGTH {
-            return Err(Type(NAME_TOO_LONG_ERROR.to_owned()));
-        }
-        if filter_name_prefix.len() > MAX_FILTER_NAME_LENGTH {
-            return Err(Type(FILTER_NAME_TOO_LONG_ERROR.to_owned()));
-        }
-        name_prefix = filter_name_prefix.to_string();
-    }
-
-    Ok(BluetoothScanfilter::new(name, name_prefix, services_vec))
-}
-
-fn convert_request_device_options(options: &RequestDeviceOptions,
-                                  global: GlobalRef)
-                                  -> Fallible<RequestDeviceoptions> {
-    if options.filters.is_empty() {
-        return Err(Type(FILTER_EMPTY_ERROR.to_owned()));
-    }
-
-    let mut filters = vec!();
-    for filter in &options.filters {
-        filters.push(try!(canonicalize_filter(&filter, global)));
-    }
-
-    let mut optional_services = vec!();
-    if let Some(ref opt_services) = options.optionalServices {
-        for opt_service in opt_services {
-            let uuid = try!(BluetoothUUID::GetService(global, opt_service.clone())).to_string();
-            if !uuid_is_blacklisted(uuid.as_ref(), Blacklist::All) {
-                optional_services.push(uuid);
-            }
-        }
-    }
-
-    Ok(RequestDeviceoptions::new(BluetoothScanfilterSequence::new(filters),
-                                 ServiceUUIDSequence::new(optional_services)))
-}
-
-impl From<BluetoothError> for Error {
-    fn from(error: BluetoothError) -> Self {
-        match error {
-            BluetoothError::Type(message) => Error::Type(message),
-            BluetoothError::Network => Error::Network,
-            BluetoothError::NotFound => Error::NotFound,
-            BluetoothError::NotSupported => Error::NotSupported,
-            BluetoothError::Security => Error::Security,
-        }
-    }
-}
-
-impl BluetoothMethods for Bluetooth {
-    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-requestdevice
-    fn RequestDevice(&self, option: &RequestDeviceOptions) -> Fallible<Root<BluetoothDevice>> {
+    // https://webbluetoothcg.github.io/web-bluetooth/#request-bluetooth-devices
+    fn request_bluetooth_devices(&self,
+                                 filters: &[BluetoothScanFilter],
+                                 optional_services: &Option<Vec<BluetoothServiceUUID>>)
+                                 -> Fallible<Root<BluetoothDevice>> {
+        let option = try!(convert_request_device_options(self.global().r(), filters, optional_services));
         let (sender, receiver) = ipc::channel().unwrap();
-        let option = try!(convert_request_device_options(option, self.global().r()));
         self.get_bluetooth_thread().send(BluetoothMethodMsg::RequestDevice(option, sender)).unwrap();
         let device = receiver.recv().unwrap();
         match device {
@@ -169,5 +84,107 @@ impl BluetoothMethods for Bluetooth {
                 Err(Error::from(error))
             },
         }
+    }
+}
+
+fn convert_request_device_options(global: GlobalRef,
+                                  filters: &[BluetoothScanFilter],
+                                  optional_services: &Option<Vec<BluetoothServiceUUID>>)
+                                  -> Fallible<RequestDeviceoptions> {
+    if filters.is_empty() {
+        return Err(Type(FILTER_EMPTY_ERROR.to_owned()));
+    }
+
+    let mut filters_vec = vec!();
+    for filter in filters {
+        filters_vec.push(try!(canonicalize_filter(&filter, global)));
+    }
+
+    let mut optional_services_vec = vec!();
+    if let &Some(ref opt_services) = optional_services {
+        for opt_service in opt_services {
+            let uuid = try!(BluetoothUUID::GetService(global, opt_service.clone())).to_string();
+            if !uuid_is_blacklisted(uuid.as_ref(), Blacklist::All) {
+                optional_services_vec.push(uuid);
+            }
+        }
+    }
+
+    Ok(RequestDeviceoptions::new(BluetoothScanfilterSequence::new(filters_vec),
+                                 ServiceUUIDSequence::new(optional_services_vec)))
+}
+
+fn canonicalize_filter(filter: &BluetoothScanFilter, global: GlobalRef) -> Fallible<BluetoothScanfilter> {
+    if filter.services.is_none() && filter.name.is_none() && filter.namePrefix.is_none() {
+        return Err(Type(FILTER_ERROR.to_owned()));
+    }
+
+    let services_vec = match filter.services {
+        Some(ref services) => {
+            if services.is_empty() {
+                return Err(Type(SERVICE_ERROR.to_owned()));
+            }
+            let mut services_vec = vec!();
+            for service in services {
+                let uuid = try!(BluetoothUUID::GetService(global, service.clone())).to_string();
+                if uuid_is_blacklisted(uuid.as_ref(), Blacklist::All) {
+                    return Err(Security)
+                }
+                services_vec.push(uuid);
+            }
+            services_vec
+        },
+        None => vec!(),
+    };
+
+    let name = match filter.name {
+        Some(ref name) => {
+            // Note: DOMString::len() gives back the size in bytes.
+            if name.len() > MAX_DEVICE_NAME_LENGTH {
+                return Err(Type(NAME_TOO_LONG_ERROR.to_owned()));
+            }
+            if name.len() > MAX_FILTER_NAME_LENGTH {
+                return Err(Type(FILTER_NAME_TOO_LONG_ERROR.to_owned()));
+            }
+            name.to_string()
+        },
+        None => String::new(),
+    };
+
+    let name_prefix = match filter.namePrefix {
+        Some(ref name_prefix) => {
+            if name_prefix.is_empty() {
+                return Err(Type(NAME_PREFIX_ERROR.to_owned()));
+            }
+            if name_prefix.len() > MAX_DEVICE_NAME_LENGTH {
+                return Err(Type(NAME_TOO_LONG_ERROR.to_owned()));
+            }
+            if name_prefix.len() > MAX_FILTER_NAME_LENGTH {
+                return Err(Type(FILTER_NAME_TOO_LONG_ERROR.to_owned()));
+            }
+            name_prefix.to_string()
+        },
+        None => String::new(),
+    };
+
+    Ok(BluetoothScanfilter::new(name, name_prefix, services_vec))
+}
+
+impl From<BluetoothError> for Error {
+    fn from(error: BluetoothError) -> Self {
+        match error {
+            BluetoothError::Type(message) => Error::Type(message),
+            BluetoothError::Network => Error::Network,
+            BluetoothError::NotFound => Error::NotFound,
+            BluetoothError::NotSupported => Error::NotSupported,
+            BluetoothError::Security => Error::Security,
+        }
+    }
+}
+
+impl BluetoothMethods for Bluetooth {
+    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-requestdevice
+    fn RequestDevice(&self, option: &RequestDeviceOptions) -> Fallible<Root<BluetoothDevice>> {
+        self.request_bluetooth_devices(&option.filters, &option.optionalServices)
     }
 }
