@@ -11,7 +11,7 @@ doctest = false
 
 [dependencies]
 app_units = "0.3"
-cssparser = {version = "0.6", features = ["heap_size"]}
+cssparser = {version = "0.7", features = ["heap_size"]}
 euclid = "0.10.1"
 rustc-serialize = "0.3"
 selectors = {version = "0.13", features = ["heap_size"]}

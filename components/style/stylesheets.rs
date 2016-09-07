@@ -427,7 +427,7 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
     type Prelude = AtRulePrelude;
     type AtRule = CSSRule;
 
-    fn parse_prelude(&self, name: &str, input: &mut Parser)
+    fn parse_prelude(&mut self, name: &str, input: &mut Parser)
                      -> Result<AtRuleType<AtRulePrelude, CSSRule>, ()> {
         match_ignore_ascii_case! { name,
             "import" => {
@@ -460,12 +460,12 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
         }
 
         self.state.set(State::Body);
-        AtRuleParser::parse_prelude(&NestedRuleParser { context: &self.context }, name, input)
+        AtRuleParser::parse_prelude(&mut NestedRuleParser { context: &self.context }, name, input)
     }
 
     #[inline]
-    fn parse_block(&self, prelude: AtRulePrelude, input: &mut Parser) -> Result<CSSRule, ()> {
-        AtRuleParser::parse_block(&NestedRuleParser { context: &self.context }, prelude, input)
+    fn parse_block(&mut self, prelude: AtRulePrelude, input: &mut Parser) -> Result<CSSRule, ()> {
+        AtRuleParser::parse_block(&mut NestedRuleParser { context: &self.context }, prelude, input)
     }
 }
 
@@ -475,14 +475,15 @@ impl<'a> QualifiedRuleParser for TopLevelRuleParser<'a> {
     type QualifiedRule = CSSRule;
 
     #[inline]
-    fn parse_prelude(&self, input: &mut Parser) -> Result<Vec<Selector<TheSelectorImpl>>, ()> {
+    fn parse_prelude(&mut self, input: &mut Parser) -> Result<Vec<Selector<TheSelectorImpl>>, ()> {
         self.state.set(State::Body);
-        QualifiedRuleParser::parse_prelude(&NestedRuleParser { context: &self.context }, input)
+        QualifiedRuleParser::parse_prelude(&mut NestedRuleParser { context: &self.context }, input)
     }
 
     #[inline]
-    fn parse_block(&self, prelude: Vec<Selector<TheSelectorImpl>>, input: &mut Parser) -> Result<CSSRule, ()> {
-        QualifiedRuleParser::parse_block(&NestedRuleParser { context: &self.context },
+    fn parse_block(&mut self, prelude: Vec<Selector<TheSelectorImpl>>, input: &mut Parser)
+                   -> Result<CSSRule, ()> {
+        QualifiedRuleParser::parse_block(&mut NestedRuleParser { context: &self.context },
                                          prelude, input)
     }
 }
@@ -497,7 +498,7 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
     type Prelude = AtRulePrelude;
     type AtRule = CSSRule;
 
-    fn parse_prelude(&self, name: &str, input: &mut Parser)
+    fn parse_prelude(&mut self, name: &str, input: &mut Parser)
                      -> Result<AtRuleType<AtRulePrelude, CSSRule>, ()> {
         match_ignore_ascii_case! { name,
             "media" => {
@@ -527,7 +528,7 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
         }
     }
 
-    fn parse_block(&self, prelude: AtRulePrelude, input: &mut Parser) -> Result<CSSRule, ()> {
+    fn parse_block(&mut self, prelude: AtRulePrelude, input: &mut Parser) -> Result<CSSRule, ()> {
         match prelude {
             AtRulePrelude::FontFace => {
                 Ok(CSSRule::FontFace(Arc::new(try!(parse_font_face_block(self.context, input)))))
@@ -555,11 +556,12 @@ impl<'a, 'b> QualifiedRuleParser for NestedRuleParser<'a, 'b> {
     type Prelude = Vec<Selector<TheSelectorImpl>>;
     type QualifiedRule = CSSRule;
 
-    fn parse_prelude(&self, input: &mut Parser) -> Result<Vec<Selector<TheSelectorImpl>>, ()> {
+    fn parse_prelude(&mut self, input: &mut Parser) -> Result<Vec<Selector<TheSelectorImpl>>, ()> {
         parse_selector_list(&self.context.selector_context, input)
     }
 
-    fn parse_block(&self, prelude: Vec<Selector<TheSelectorImpl>>, input: &mut Parser) -> Result<CSSRule, ()> {
+    fn parse_block(&mut self, prelude: Vec<Selector<TheSelectorImpl>>, input: &mut Parser)
+                   -> Result<CSSRule, ()> {
         Ok(CSSRule::Style(Arc::new(StyleRule {
             selectors: prelude,
             declarations: Arc::new(parse_property_declaration_list(self.context, input))

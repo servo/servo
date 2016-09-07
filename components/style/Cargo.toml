@@ -22,7 +22,7 @@ servo = ["serde", "serde/unstable", "serde_macros", "heapsize", "heapsize_plugin
 [dependencies]
 app_units = "0.3"
 bitflags = "0.7"
-cssparser = "0.6"
+cssparser = "0.7"
 deque = "0.3.1"
 encoding = "0.2"
 euclid = "0.10.1"

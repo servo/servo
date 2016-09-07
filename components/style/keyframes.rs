@@ -232,7 +232,7 @@ impl<'a> QualifiedRuleParser for KeyframeListParser<'a> {
     type Prelude = KeyframeSelector;
     type QualifiedRule = Arc<Keyframe>;
 
-    fn parse_prelude(&self, input: &mut Parser) -> Result<Self::Prelude, ()> {
+    fn parse_prelude(&mut self, input: &mut Parser) -> Result<Self::Prelude, ()> {
         let start = input.position();
         match input.parse_comma_separated(|input| KeyframePercentage::parse(input)) {
             Ok(percentages) => Ok(KeyframeSelector(percentages)),
@@ -244,7 +244,7 @@ impl<'a> QualifiedRuleParser for KeyframeListParser<'a> {
         }
     }
 
-    fn parse_block(&self, prelude: Self::Prelude, input: &mut Parser)
+    fn parse_block(&mut self, prelude: Self::Prelude, input: &mut Parser)
                    -> Result<Self::QualifiedRule, ()> {
         let mut declarations = Vec::new();
         let parser = KeyframeDeclarationParser {
@@ -286,7 +286,7 @@ impl<'a, 'b> AtRuleParser for KeyframeDeclarationParser<'a, 'b> {
 impl<'a, 'b> DeclarationParser for KeyframeDeclarationParser<'a, 'b> {
     type Declaration = Vec<PropertyDeclaration>;
 
-    fn parse_value(&self, name: &str, input: &mut Parser) -> Result<Vec<PropertyDeclaration>, ()> {
+    fn parse_value(&mut self, name: &str, input: &mut Parser) -> Result<Vec<PropertyDeclaration>, ()> {
         let mut results = Vec::new();
         match PropertyDeclaration::parse(name, self.context, input, &mut results, true) {
             PropertyDeclarationParseResult::ValidOrIgnoredDeclaration => {}
