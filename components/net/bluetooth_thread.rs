@@ -114,7 +114,8 @@ fn matches_filter(device: &BluetoothDevice, filter: &BluetoothScanfilter) -> boo
             }
         }
     }
-    return true;
+
+    true
 }
 
 fn matches_filters(device: &BluetoothDevice, filters: &BluetoothScanfilterSequence) -> bool {
@@ -437,10 +438,14 @@ impl BluetoothManager {
             }
             let _ = session.stop_discovery();
         }
-        let devices = self.get_and_cache_devices(&mut adapter);
-        let matched_devices: Vec<BluetoothDevice> = devices.into_iter()
-                                                           .filter(|d| matches_filters(d, options.get_filters()))
-                                                           .collect();
+
+        let mut matched_devices = self.get_and_cache_devices(&mut adapter);
+        if !options.is_accepting_all_devices() {
+            matched_devices = matched_devices.into_iter()
+                                             .filter(|d| matches_filters(d, options.get_filters()))
+                                             .collect();
+        }
+
         if let Some(address) = self.select_device(matched_devices) {
             let device_id = match self.address_to_id.get(&address) {
                 Some(id) => id.clone(),

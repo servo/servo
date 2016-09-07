@@ -4,8 +4,7 @@
 
 use bluetooth_blacklist::{Blacklist, uuid_is_blacklisted};
 use core::clone::Clone;
-use dom::bindings::codegen::Bindings::BluetoothBinding;
-use dom::bindings::codegen::Bindings::BluetoothBinding::{BluetoothMethods, BluetoothScanFilter};
+use dom::bindings::codegen::Bindings::BluetoothBinding::{self, BluetoothMethods, BluetoothRequestDeviceFilter};
 use dom::bindings::codegen::Bindings::BluetoothBinding::RequestDeviceOptions;
 use dom::bindings::error::Error::{self, Security, Type};
 use dom::bindings::error::Fallible;
@@ -21,7 +20,7 @@ use net_traits::bluetooth_scanfilter::{BluetoothScanfilter, BluetoothScanfilterS
 use net_traits::bluetooth_scanfilter::{RequestDeviceoptions, ServiceUUIDSequence};
 use net_traits::bluetooth_thread::{BluetoothError, BluetoothMethodMsg};
 
-const FILTER_EMPTY_ERROR: &'static str = "'filters' member must be nonempty to find any devices.";
+const FILTER_EMPTY_ERROR: &'static str = "'filters' member, if present, must be nonempty to find any devices.";
 const FILTER_ERROR: &'static str = "A filter must restrict the devices in some way.";
 const FILTER_NAME_TOO_LONG_ERROR: &'static str = "A 'name' or 'namePrefix' can't be longer then 29 bytes.";
 // 248 is the maximum number of UTF-8 code units in a Bluetooth Device Name.
@@ -34,6 +33,8 @@ const MAX_FILTER_NAME_LENGTH: usize = 29;
 const NAME_PREFIX_ERROR: &'static str = "'namePrefix', if present, must be nonempty.";
 const NAME_TOO_LONG_ERROR: &'static str = "A device name can't be longer than 248 bytes.";
 const SERVICE_ERROR: &'static str = "'services', if present, must contain at least one service.";
+const OPTIONS_ERROR: &'static str = "Fields of 'options' conflict with each other.
+ Either 'acceptAllDevices' member must be true, or 'filters' member must be set to a value.";
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetooth
 #[dom_struct]
@@ -62,7 +63,7 @@ impl Bluetooth {
 
     // https://webbluetoothcg.github.io/web-bluetooth/#request-bluetooth-devices
     fn request_bluetooth_devices(&self,
-                                 filters: &[BluetoothScanFilter],
+                                 filters: &Option<Vec<BluetoothRequestDeviceFilter>>,
                                  optional_services: &Option<Vec<BluetoothServiceUUID>>)
                                  -> Fallible<Root<BluetoothDevice>> {
         let option = try!(convert_request_device_options(self.global().r(), filters, optional_services));
@@ -84,39 +85,46 @@ impl Bluetooth {
                 Err(Error::from(error))
             },
         }
+
     }
 }
 
 fn convert_request_device_options(global: GlobalRef,
-                                  filters: &[BluetoothScanFilter],
+                                  filters: &Option<Vec<BluetoothRequestDeviceFilter>>,
                                   optional_services: &Option<Vec<BluetoothServiceUUID>>)
                                   -> Fallible<RequestDeviceoptions> {
-    if filters.is_empty() {
-        return Err(Type(FILTER_EMPTY_ERROR.to_owned()));
+    let mut uuid_filters = vec!();
+    if let &Some(ref filters) = filters {
+        if filters.is_empty()  {
+            return Err(Type(FILTER_EMPTY_ERROR.to_owned()));
+        }
+        for filter in filters {
+            uuid_filters.push(try!(canonicalize_filter(&filter, global)));
+        }
     }
 
-    let mut filters_vec = vec!();
-    for filter in filters {
-        filters_vec.push(try!(canonicalize_filter(&filter, global)));
-    }
-
-    let mut optional_services_vec = vec!();
+    let mut optional_services_uuids = vec!();
     if let &Some(ref opt_services) = optional_services {
         for opt_service in opt_services {
             let uuid = try!(BluetoothUUID::GetService(global, opt_service.clone())).to_string();
+
             if !uuid_is_blacklisted(uuid.as_ref(), Blacklist::All) {
-                optional_services_vec.push(uuid);
+                optional_services_uuids.push(uuid);
             }
         }
     }
 
-    Ok(RequestDeviceoptions::new(BluetoothScanfilterSequence::new(filters_vec),
-                                 ServiceUUIDSequence::new(optional_services_vec)))
+    Ok(RequestDeviceoptions::new(BluetoothScanfilterSequence::new(uuid_filters),
+                                 ServiceUUIDSequence::new(optional_services_uuids)))
 }
 
-fn canonicalize_filter(filter: &BluetoothScanFilter, global: GlobalRef) -> Fallible<BluetoothScanfilter> {
-    if filter.services.is_none() && filter.name.is_none() && filter.namePrefix.is_none() {
-        return Err(Type(FILTER_ERROR.to_owned()));
+fn canonicalize_filter(filter: &BluetoothRequestDeviceFilter, global: GlobalRef) -> Fallible<BluetoothScanfilter> {
+    if filter.services.is_none() &&
+       filter.name.is_none() &&
+       filter.namePrefix.is_none() &&
+       filter.manufacturerId.is_none() &&
+       filter.serviceDataUUID.is_none() {
+           return Err(Type(FILTER_ERROR.to_owned()));
     }
 
     let services_vec = match filter.services {
@@ -167,7 +175,24 @@ fn canonicalize_filter(filter: &BluetoothScanFilter, global: GlobalRef) -> Falli
         None => String::new(),
     };
 
-    Ok(BluetoothScanfilter::new(name, name_prefix, services_vec))
+    let manufacturer_id = filter.manufacturerId;
+
+    let service_data_uuid = match filter.serviceDataUUID {
+        Some(ref service_data_uuid) => {
+            let uuid = try!(BluetoothUUID::GetService(global, service_data_uuid.clone())).to_string();
+            if uuid_is_blacklisted(uuid.as_ref(), Blacklist::All) {
+                return Err(Security)
+            }
+            uuid
+        },
+        None => String::new(),
+    };
+
+    Ok(BluetoothScanfilter::new(name,
+                                name_prefix,
+                                services_vec,
+                                manufacturer_id,
+                                service_data_uuid))
 }
 
 impl From<BluetoothError> for Error {
@@ -185,6 +210,15 @@ impl From<BluetoothError> for Error {
 impl BluetoothMethods for Bluetooth {
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-requestdevice
     fn RequestDevice(&self, option: &RequestDeviceOptions) -> Fallible<Root<BluetoothDevice>> {
-        self.request_bluetooth_devices(&option.filters, &option.optionalServices)
+        if (option.filters.is_some() && option.acceptAllDevices) ||
+           (option.filters.is_none() && !option.acceptAllDevices) {
+            return Err(Type(OPTIONS_ERROR.to_owned()));
+        }
+
+        if !option.acceptAllDevices {
+            return self.request_bluetooth_devices(&option.filters, &option.optionalServices);
+        }
+
+        self.request_bluetooth_devices(&None, &option.optionalServices)
     }
 }
