@@ -30,6 +30,8 @@
 #define MAX_STOPS_PER_ANGLE_GRADIENT 8
 
 #ifdef WR_VERTEX_SHADER
+uniform sampler2D sLayers;
+
 struct Layer {
     mat4 transform;
     mat4 inv_transform;
@@ -45,31 +47,32 @@ layout(std140) uniform Tiles {
     vec4 tiles[WR_MAX_UBO_VECTORS];
 };
 
-layout(std140) uniform Layers {
-    vec4 layers[WR_MAX_UBO_VECTORS];
-};
-
 Layer fetch_layer(int index) {
     Layer layer;
 
-    int offset = index * 13;
+    // Create a UV base coord for each 8 texels.
+    // This is required because trying to use an offset
+    // of more than 8 texels doesn't work on some versions
+    // of OSX.
+    ivec2 uv0 = ivec2(0, index);
+    ivec2 uv1 = ivec2(8, index);
 
-    layer.transform[0] = layers[offset + 0];
-    layer.transform[1] = layers[offset + 1];
-    layer.transform[2] = layers[offset + 2];
-    layer.transform[3] = layers[offset + 3];
+    layer.transform[0] = texelFetchOffset(sLayers, uv0, 0, ivec2(0, 0));
+    layer.transform[1] = texelFetchOffset(sLayers, uv0, 0, ivec2(1, 0));
+    layer.transform[2] = texelFetchOffset(sLayers, uv0, 0, ivec2(2, 0));
+    layer.transform[3] = texelFetchOffset(sLayers, uv0, 0, ivec2(3, 0));
 
-    layer.inv_transform[0] = layers[offset + 4];
-    layer.inv_transform[1] = layers[offset + 5];
-    layer.inv_transform[2] = layers[offset + 6];
-    layer.inv_transform[3] = layers[offset + 7];
+    layer.inv_transform[0] = texelFetchOffset(sLayers, uv0, 0, ivec2(4, 0));
+    layer.inv_transform[1] = texelFetchOffset(sLayers, uv0, 0, ivec2(5, 0));
+    layer.inv_transform[2] = texelFetchOffset(sLayers, uv0, 0, ivec2(6, 0));
+    layer.inv_transform[3] = texelFetchOffset(sLayers, uv0, 0, ivec2(7, 0));
 
-    layer.local_clip_rect = layers[offset + 8];
+    layer.local_clip_rect = texelFetchOffset(sLayers, uv1, 0, ivec2(0, 0));
 
-    layer.screen_vertices[0] = layers[offset + 9];
-    layer.screen_vertices[1] = layers[offset + 10];
-    layer.screen_vertices[2] = layers[offset + 11];
-    layer.screen_vertices[3] = layers[offset + 12];
+    layer.screen_vertices[0] = texelFetchOffset(sLayers, uv1, 0, ivec2(1, 0));
+    layer.screen_vertices[1] = texelFetchOffset(sLayers, uv1, 0, ivec2(2, 0));
+    layer.screen_vertices[2] = texelFetchOffset(sLayers, uv1, 0, ivec2(2, 0));
+    layer.screen_vertices[3] = texelFetchOffset(sLayers, uv1, 0, ivec2(3, 0));
 
     return layer;
 }
@@ -534,7 +537,7 @@ Composite fetch_composite(int index) {
 #endif
 
 #ifdef WR_FRAGMENT_SHADER
-void do_clip(vec2 pos, vec4 clip_rect, vec4 radius) {
+float do_clip(vec2 pos, vec4 clip_rect, vec4 radius) {
     vec2 ref_tl = clip_rect.xy + vec2( radius.x,  radius.x);
     vec2 ref_tr = clip_rect.zy + vec2(-radius.y,  radius.y);
     vec2 ref_br = clip_rect.zw + vec2(-radius.z, -radius.z);
@@ -545,15 +548,26 @@ void do_clip(vec2 pos, vec4 clip_rect, vec4 radius) {
     float d_br = distance(pos, ref_br);
     float d_bl = distance(pos, ref_bl);
 
-    bool out0 = pos.x < ref_tl.x && pos.y < ref_tl.y && d_tl > radius.x;
-    bool out1 = pos.x > ref_tr.x && pos.y < ref_tr.y && d_tr > radius.y;
-    bool out2 = pos.x > ref_br.x && pos.y > ref_br.y && d_br > radius.z;
-    bool out3 = pos.x < ref_bl.x && pos.y > ref_bl.y && d_bl > radius.w;
+    float pixels_per_fragment = length(fwidth(pos.xy));
+    float nudge = 0.5 * pixels_per_fragment;
 
-    // TODO(gw): Alpha anti-aliasing based on edge distance!
-    if (out0 || out1 || out2 || out3) {
-        discard;
-    }
+    bool out0 = pos.x < ref_tl.x && pos.y < ref_tl.y && d_tl > radius.x - nudge;
+    bool out1 = pos.x > ref_tr.x && pos.y < ref_tr.y && d_tr > radius.y - nudge;
+    bool out2 = pos.x > ref_br.x && pos.y > ref_br.y && d_br > radius.z - nudge;
+    bool out3 = pos.x < ref_bl.x && pos.y > ref_bl.y && d_bl > radius.w - nudge;
+
+    float distance_from_border = (float(out0) * (d_tl - radius.x + nudge)) +
+                                 (float(out1) * (d_tr - radius.y + nudge)) +
+                                 (float(out2) * (d_br - radius.z + nudge)) +
+                                 (float(out3) * (d_bl - radius.w + nudge));
+
+    // Move the distance back into pixels.
+    distance_from_border /= pixels_per_fragment;
+
+    // Apply a more gradual fade out to transparent.
+    //distance_from_border -= 0.5;
+
+    return smoothstep(1.0, 0, distance_from_border);
 }
 
 float squared_distance_from_rect(vec2 p, vec2 origin, vec2 size) {

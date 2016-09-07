@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 void main(void) {
-    do_clip(vPos, vClipRect, vClipRadius);
+    float alpha = do_clip(vPos, vClipRect, vClipRadius);
     vec2 st = vTextureOffset + vTextureSize * fract(vUv);
-    oFragColor = texture(sDiffuse, st);
+    oFragColor = texture(sDiffuse, st) * vec4(1, 1, 1, alpha);
 }

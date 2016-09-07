@@ -52,36 +52,43 @@ float alpha_for_solid_border_corner(vec2 local_pos,
   return alpha_for_solid_border(distance_from_ref, inner_radius, outer_radius, pixels_per_fragment);
 }
 
-#ifdef WR_FEATURE_TRANSFORM
-
-#else
-vec4 draw_dotted_edge(vec2 position, vec2 edge_size, float pixels_per_fragment) {
-  float two_pixels = 2 * pixels_per_fragment;
+vec4 draw_dotted_edge(vec2 local_pos, vec4 piece_rect, float pixels_per_fragment) {
+  // We don't use pixels_per_fragment here, since it can change along the edge
+  // of a transformed border edge. We want this calculation to be consistent
+  // across the entire edge so that the positioning of the dots stays the same.
+  float two_pixels = 2 * length(fwidth(vLocalPos.xy));
 
   // Circle diameter is stroke width, minus a couple pixels to account for anti-aliasing.
-  float circle_diameter = max(edge_size.x - two_pixels, min(edge_size.x, two_pixels));
+  float circle_diameter = max(piece_rect.z - two_pixels, min(piece_rect.z, two_pixels));
 
-  //// Divide the edge into segments which are the size of the circle diameter.
-  float segments_in_edge = floor(edge_size.y / circle_diameter);
+  // We want to spread the circles across the edge, but keep one circle diameter at the end
+  // reserved for two half-circles which connect to the corners.
+  float edge_available = piece_rect.w - (circle_diameter * 2);
+  float number_of_circles = floor(edge_available / (circle_diameter * 2));
 
-  // Every other segment has a circle.
-  float number_of_circles = floor(segments_in_edge / 2);
-  if (number_of_circles <= 0)
-    return vec4(0, 0, 0, 0);
+  // Here we are initializing the distance from the y coordinate of the center of the circle to
+  // the closest end half-circle.
+  vec2 relative_pos = local_pos - piece_rect.xy;
+  float y_distance = min(relative_pos.y, piece_rect.w - relative_pos.y);
 
-  // Spread the circles throughout the edge, to distribute the extra space evenly. We want
-  // to ensure that we have at last two pixels of space for each circle so that they aren't
-  // touching.
-  float space_for_each_circle = ceil(max(edge_size.y / number_of_circles, two_pixels));
+  if (number_of_circles > 0) {
+    // Spread the circles throughout the edge, to distribute the extra space evenly. We want
+    // to ensure that we have at last two pixels of space for each circle so that they aren't
+    // touching.
+    float space_for_each_circle = ceil(max(edge_available / number_of_circles, two_pixels));
 
-  // Find the circle index. We adjust the y position here because the first circle is a
-  // half circle at the edge of this border side.
-  float circle_index = floor((position.y + (space_for_each_circle / 2)) / space_for_each_circle);
+    float first_half_circle_space = circle_diameter;
 
-  // Find the center of the circle that is closest to our position. We will then calculate
-  // the distance from the edge of the circle.
-  vec2 circle_center = vec2(edge_size.x / 2, circle_index * space_for_each_circle);
-  float distance_from_circle_edge = length(circle_center - position) - (circle_diameter / 2);
+    float circle_index = (relative_pos.y - first_half_circle_space) / space_for_each_circle;
+    circle_index = floor(clamp(circle_index, 0, number_of_circles - 1));
+
+    float circle_y_pos =
+      circle_index * space_for_each_circle + (space_for_each_circle / 2) + circle_diameter;
+    y_distance = min(abs(circle_y_pos - relative_pos.y), y_distance);
+  }
+
+  float distance_from_circle_center = length(vec2(relative_pos.x - (piece_rect.z / 2), y_distance));
+  float distance_from_circle_edge = distance_from_circle_center - (circle_diameter / 2);
 
   // Don't anti-alias if the circle diameter is small to avoid a blur of color.
   if (circle_diameter < two_pixels && distance_from_circle_edge > 0)
@@ -94,7 +101,24 @@ vec4 draw_dotted_edge(vec2 position, vec2 edge_size, float pixels_per_fragment) 
   return vHorizontalColor * vec4(1, 1, 1, alpha);
 }
 
-void draw_dotted_border(vec2 local_pos, float distance_from_mix_line) {
+vec4 draw_dashed_edge(float position, float border_width, float pixels_per_fragment) {
+  // TODO: Investigate exactly what FF does.
+  float size = border_width * 3;
+  float segment = floor(position / size);
+
+  float alpha = alpha_for_solid_border(position,
+                                       segment * size,
+                                       (segment + 1) * size,
+                                       pixels_per_fragment);
+
+  if (mod(segment + 2, 2) == 0) {
+    return vHorizontalColor * vec4(1, 1, 1, 1 - alpha);
+  } else {
+    return vHorizontalColor * vec4(1, 1, 1, alpha);
+  }
+}
+
+void draw_dashed_or_dotted_border(vec2 local_pos, float distance_from_mix_line) {
   // This is the conversion factor for transformations and device pixel scaling.
   float pixels_per_fragment = length(fwidth(local_pos.xy));
 
@@ -117,75 +141,29 @@ void draw_dotted_border(vec2 local_pos, float distance_from_mix_line) {
     }
     case PST_BOTTOM:
     case PST_TOP: {
-      vec2 piece_relative_position = vLocalPos - vPieceRect.xy;
-      oFragColor = draw_dotted_edge(piece_relative_position.yx, vPieceRect.wz, pixels_per_fragment);
-      break;
-    }
-    case PST_LEFT:
-    case PST_RIGHT:
-    {
-      vec2 piece_relative_position = vLocalPos - vPieceRect.xy;
-      oFragColor = draw_dotted_edge(piece_relative_position.xy, vPieceRect.zw, pixels_per_fragment);
-      break;
-    }
-  }
-}
-
-#endif
-
-vec4 draw_dashed_edge(float position, float border_width, float pixels_per_fragment) {
-  // TODO: Investigate exactly what FF does.
-  float size = border_width * 3;
-  float segment = floor(position / size);
-
-  float alpha = alpha_for_solid_border(position,
-                                       segment * size,
-                                       (segment + 1) * size,
-                                       pixels_per_fragment);
-
-  if (mod(segment + 2, 2) == 0) {
-    return vHorizontalColor * vec4(1, 1, 1, 1 - alpha);
-  } else {
-    return vHorizontalColor * vec4(1, 1, 1, alpha);
-  }
-}
-
-void draw_dashed_border(vec2 local_pos, float distance_from_mix_line) {
-  // This is the conversion factor for transformations and device pixel scaling.
-  float pixels_per_fragment = length(fwidth(local_pos.xy));
-
-  switch (vBorderPart) {
-    // These are the layer tile part PrimitivePart as uploaded by the tiling.rs
-    case PST_TOP_LEFT:
-    case PST_TOP_RIGHT:
-    case PST_BOTTOM_LEFT:
-    case PST_BOTTOM_RIGHT:
-    {
-      oFragColor = get_fragment_color(distance_from_mix_line, pixels_per_fragment);
-      if (vRadii.x > 0.0) {
-        oFragColor *= vec4(1, 1, 1, alpha_for_solid_border_corner(local_pos,
-                                                                  vRadii.z,
-                                                                  vRadii.x,
-                                                                  pixels_per_fragment));
+      if (vBorderStyle == BORDER_STYLE_DASHED) {
+        oFragColor = draw_dashed_edge(vLocalPos.x - vPieceRect.x,
+                                      vPieceRect.w,
+                                      pixels_per_fragment);
+      } else {
+        oFragColor = draw_dotted_edge(local_pos.yx, vPieceRect.yxwz, pixels_per_fragment);
       }
-
-      break;
-    }
-    case PST_BOTTOM:
-    case PST_TOP:
-    {
-      oFragColor = draw_dashed_edge(vLocalPos.x - vPieceRect.x, vPieceRect.w, pixels_per_fragment);
       break;
     }
     case PST_LEFT:
     case PST_RIGHT:
     {
-      oFragColor = draw_dashed_edge(vLocalPos.y - vPieceRect.y, vPieceRect.z, pixels_per_fragment);
+      if (vBorderStyle == BORDER_STYLE_DASHED) {
+        oFragColor = draw_dashed_edge(vLocalPos.y - vPieceRect.y,
+                                      vPieceRect.z,
+                                      pixels_per_fragment);
+      } else {
+        oFragColor = draw_dotted_edge(local_pos.xy, vPieceRect.xyzw, pixels_per_fragment);
+      }
       break;
     }
   }
 }
-
 
 vec4 draw_double_edge(float pos,
                       float len,
@@ -328,46 +306,30 @@ void main(void) {
     float distance_from_mix_line = (local_pos.x - vPieceRect.x) * vPieceRect.w -
                                    (local_pos.y - vPieceRect.y) * vPieceRect.z;
     distance_from_mix_line /= vPieceRectHypotenuseLength;
+#else
+    float distance_from_mix_line = vDistanceFromMixLine;
+#endif
 
     switch (vBorderStyle) {
         case BORDER_STYLE_DASHED:
-          draw_dashed_border(local_pos, distance_from_mix_line);
-          break;
         case BORDER_STYLE_DOTTED:
+          draw_dashed_or_dotted_border(local_pos, distance_from_mix_line);
+          break;
+        case BORDER_STYLE_DOUBLE:
+          draw_double_border(distance_from_mix_line, local_pos);
+          break;
         case BORDER_STYLE_OUTSET:
         case BORDER_STYLE_INSET:
         case BORDER_STYLE_SOLID:
         case BORDER_STYLE_NONE:
           draw_solid_border(distance_from_mix_line, local_pos);
           break;
-        case BORDER_STYLE_DOUBLE:
-          draw_double_border(distance_from_mix_line, local_pos);
-          break;
         default:
           discard;
 
     }
 
+#ifdef WR_FEATURE_TRANSFORM
     oFragColor *= vec4(1, 1, 1, alpha);
-#else
-    switch (vBorderStyle) {
-        case BORDER_STYLE_DASHED:
-            draw_dashed_border(local_pos, vDistanceFromMixLine);
-            break;
-        case BORDER_STYLE_DOTTED:
-            draw_dotted_border(local_pos, vDistanceFromMixLine);
-            break;
-        case BORDER_STYLE_OUTSET:
-        case BORDER_STYLE_INSET:
-        case BORDER_STYLE_SOLID:
-        case BORDER_STYLE_NONE:
-            draw_solid_border(vDistanceFromMixLine, local_pos);
-            break;
-        case BORDER_STYLE_DOUBLE:
-            draw_double_border(vDistanceFromMixLine, local_pos);
-            break;
-        default:
-            discard;
-    }
 #endif
 }
