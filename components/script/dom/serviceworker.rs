@@ -11,13 +11,13 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::refcounted::Trusted;
-use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::str::USVString;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::eventtarget::EventTarget;
 use js::jsapi::{HandleValue, JSContext};
 use script_thread::Runnable;
-use script_traits::ScriptMsg;
+use script_traits::{ScriptMsg, DOMMessage};
 use std::cell::Cell;
 use url::Url;
 
@@ -27,7 +27,7 @@ pub type TrustedServiceWorkerAddress = Trusted<ServiceWorker>;
 pub struct ServiceWorker {
     eventtarget: EventTarget,
     script_url: DOMRefCell<String>,
-    scope_url: DOMRefCell<String>,
+    scope_url: Url,
     state: Cell<ServiceWorkerState>,
     skip_waiting: Cell<bool>
 }
@@ -35,21 +35,23 @@ pub struct ServiceWorker {
 impl ServiceWorker {
     fn new_inherited(script_url: &str,
                      skip_waiting: bool,
-                     scope_url: &str) -> ServiceWorker {
+                     scope_url: Url) -> ServiceWorker {
         ServiceWorker {
             eventtarget: EventTarget::new_inherited(),
             script_url: DOMRefCell::new(String::from(script_url)),
             state: Cell::new(ServiceWorkerState::Installing),
-            scope_url: DOMRefCell::new(String::from(scope_url)),
+            scope_url: scope_url,
             skip_waiting: Cell::new(skip_waiting)
         }
     }
 
-    pub fn new(global: GlobalRef,
-                script_url: &str,
-                scope_url: &str,
+    pub fn install_serviceworker(global: GlobalRef,
+                script_url: Url,
+                scope_url: Url,
                 skip_waiting: bool) -> Root<ServiceWorker> {
-        reflect_dom_object(box ServiceWorker::new_inherited(script_url, skip_waiting, scope_url), global, Wrap)
+        reflect_dom_object(box ServiceWorker::new_inherited(script_url.as_str(),
+                                                            skip_waiting,
+                                                            scope_url), global, Wrap)
     }
 
     pub fn dispatch_simple_error(address: TrustedServiceWorkerAddress) {
@@ -64,16 +66,6 @@ impl ServiceWorker {
 
     pub fn get_script_url(&self) -> Url {
         Url::parse(&self.script_url.borrow().clone()).unwrap()
-    }
-
-    pub fn install_serviceworker(global: GlobalRef,
-                                 script_url: Url,
-                                 scope_url: &str,
-                                 skip_waiting: bool) -> Root<ServiceWorker> {
-        ServiceWorker::new(global,
-                           script_url.as_str(),
-                           scope_url,
-                           skip_waiting)
     }
 }
 
@@ -96,9 +88,9 @@ impl ServiceWorkerMethods for ServiceWorker {
         }
         // Step 7
         let data = try!(StructuredCloneData::write(cx, message));
-        let msg_vec = data.move_to_arraybuffer();
-        let scope_url = Url::parse(&*self.scope_url.borrow()).unwrap();
-        let _ = self.global().r().constellation_chan().send(ScriptMsg::ForwardDOMMessage(msg_vec, scope_url));
+        let msg_vec = DOMMessage(data.move_to_arraybuffer());
+        let _ = self.global().r().constellation_chan().send(ScriptMsg::ForwardDOMMessage(msg_vec,
+                                                                                         self.scope_url.clone()));
         Ok(())
     }
 
