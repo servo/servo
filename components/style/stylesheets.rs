@@ -160,19 +160,7 @@ impl Stylesheet {
             let mut iter = RuleListParser::new_for_stylesheet(&mut input, rule_parser);
             while let Some(result) = iter.next() {
                 match result {
-                    Ok(rule) => {
-                        if let CSSRule::Namespace(ref rule) = rule {
-                            if let Some(ref prefix) = rule.prefix {
-                                iter.parser.context.selector_context.namespace_prefixes.insert(
-                                    prefix.clone(), rule.url.clone());
-                            } else {
-                                iter.parser.context.selector_context.default_namespace =
-                                    Some(rule.url.clone());
-                            }
-                        }
-
-                        rules.push(rule);
-                    }
+                    Ok(rule) => rules.push(rule),
                     Err(range) => {
                         let pos = range.start;
                         let message = format!("Invalid rule: '{}'", iter.input.slice(range));
@@ -443,10 +431,21 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
                 if self.state.get() <= State::Namespaces {
                     self.state.set(State::Namespaces);
 
-                    let prefix = input.try(|input| input.expect_ident()).ok().map(|p| p.into());
+                    let prefix_result = input.try(|input| input.expect_ident());
                     let url = Namespace(Atom::from(try!(input.expect_url_or_string())));
+
+                    let opt_prefix = if let Ok(prefix) = prefix_result {
+                        let prefix: Atom = prefix.into();
+                        self.context.selector_context.namespace_prefixes.insert(
+                            prefix.clone(), url.clone());
+                        Some(prefix)
+                    } else {
+                        self.context.selector_context.default_namespace = Some(url.clone());
+                        None
+                    };
+
                     return Ok(AtRuleType::WithoutBlock(CSSRule::Namespace(Arc::new(NamespaceRule {
-                        prefix: prefix,
+                        prefix: opt_prefix,
                         url: url,
                     }))))
                 } else {
