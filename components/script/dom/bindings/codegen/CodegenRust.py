@@ -5452,6 +5452,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'dom::bindings::js::OptionalRootedReference',
         'dom::bindings::js::Root',
         'dom::bindings::js::RootedReference',
+        'dom::bindings::reflector::MutReflectable',
         'dom::bindings::reflector::Reflectable',
         'dom::bindings::utils::DOMClass',
         'dom::bindings::utils::DOMJSClass',
