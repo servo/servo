@@ -23,19 +23,19 @@ class WindowsMsvcBootstrapper(BaseBootstrapper):
     def install_packages(self, packages=deps):
         from servo.bootstrap_commands import extract, download_file
 
-        msvc_deps_dir = os.path.join(".servo", "msvc-dependencies")
-        msvc_deps_url = "https://dl.dropboxusercontent.com/u/25971865/msvc-deps/"
+        deps_dir = os.path.join(".servo", "msvc-dependencies")
+        deps_url = "https://dl.dropboxusercontent.com/u/25971865/msvc-deps/"
         first_run = True
 
         if self.force:
-            if os.path.isdir(msvc_deps_dir):
-                shutil.rmtree(msvc_deps_dir)
+            if os.path.isdir(deps_dir):
+                shutil.rmtree(deps_dir)
 
-        if not os.path.isdir(msvc_deps_dir):
-            os.makedirs(msvc_deps_dir)
+        if not os.path.isdir(deps_dir):
+            os.makedirs(deps_dir)
 
         # Read file with installed dependencies, if exist
-        installed_deps_file = os.path.join(msvc_deps_dir, "installed-dependencies.txt")
+        installed_deps_file = os.path.join(deps_dir, "installed-dependencies.txt")
         if os.path.exists(installed_deps_file):
             installed_deps = [l.strip() for l in open(installed_deps_file)]
         else:
@@ -52,24 +52,24 @@ class WindowsMsvcBootstrapper(BaseBootstrapper):
                 if spawn.find_executable(dep_name):
                     continue
 
-            dep_dir = os.path.join(msvc_deps_dir, dep_name)
+            dep_dir = os.path.join(deps_dir, dep_name)
             # if not installed or need to be updated
             if not os.path.exists(dep_dir) or dep in update_deps:
                 if first_run:
                     print "Installing missing MSVC dependencies..."
                     first_run = False
 
-                dep_version_dir = os.path.join(msvc_deps_dir, dep)
+                dep_version_dir = os.path.join(deps_dir, dep)
 
                 if os.path.exists(dep_version_dir):
                     shutil.rmtree(dep_version_dir)
 
                 dep_zip = dep_version_dir + ".zip"
                 if not os.path.isfile(dep_zip):
-                    download_file(dep, "%s%s.zip" % (msvc_deps_url, dep), dep_zip)
+                    download_file(dep, "%s%s.zip" % (deps_url, dep), dep_zip)
 
                 print "Extracting %s..." % dep,
-                extract(dep_zip, msvc_deps_dir)
+                extract(dep_zip, deps_dir)
                 print "done"
 
                 # Delete directory if exist

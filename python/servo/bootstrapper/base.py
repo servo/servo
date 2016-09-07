@@ -15,11 +15,18 @@ class BaseBootstrapper(object):
         self.package_manager_updated = False
         self.interactive = interactive
 
+    def check_installed_packages(self):
+        '''
+        Check for missing packages.
+        '''
+        raise NotImplementedError('%s must implement check_installed_packages()' %
+                                  __name__)
+
     def install_packages(self):
         '''
         Install packages required to build Servo.
         '''
-        raise NotImplementedError('%s must implement install_system_packages()' %
+        raise NotImplementedError('%s must implement install_packages()' %
                                   __name__)
 
     def install_mobile_android_packages(self):

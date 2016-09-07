@@ -266,9 +266,6 @@ class MachCommands(CommandBase):
                     for ssl_lib in ["ssleay32md.dll", "libeay32md.dll"]:
                         shutil.copy(path.join(env['OPENSSL_LIB_DIR'], "../bin" + msvc_x64, ssl_lib),
                                     servo_exe_dir)
-                    # for ffmpeg_lib in ["avutil-55.dll", "avformat-57.dll", "avcodec-57.dll", "swresample-2.dll"]:
-                    #     shutil.copy(path.join(env['FFMPEG_LIB_DIR'], ffmpeg_lib),
-                    #                 servo_exe_dir)
 
                 elif sys.platform == "darwin":
                     # On the Mac, set a lovely icon. This makes it easier to pick out the Servo binary in tools

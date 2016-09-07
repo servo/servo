@@ -383,10 +383,6 @@ class CommandBase(object):
             env["OPENSSL_LIBS"] = "ssleay32MD:libeay32MD"
             # Link moztools
             env["MOZTOOLS_PATH"] = path.join(msvc_deps_dir, "moztools", "bin")
-            # Link ffmpeg
-            # env["FFMPEG_INCLUDE_DIR"] = path.join(msvc_deps_dir, "ffmpeg", "include")
-            # env["FFMPEG_LIB_DIR"] = path.join(msvc_deps_dir, "ffmpeg", "libs" + msvc_x64)
-            # env["FFMPEG_LIBS"] = "avformat:avcodec:avutil"
 
         if not self.config["tools"]["system-rust"] \
                 or self.config["tools"]["rust-root"]:
