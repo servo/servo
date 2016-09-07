@@ -180,7 +180,7 @@ pub enum ServiceWorkerMsg {
     RegisterServiceWorker(ScopeThings, Url),
     /// Timeout message sent by active service workers
     Timeout(Url),
-    /// Backup message
+    /// Message sent by constellation to forward to a running service worker
     ForwardDOMMessage(DOMMessage, Url),
     /// Exit the service worker manager
     Exit,

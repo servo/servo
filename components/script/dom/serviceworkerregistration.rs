@@ -39,7 +39,8 @@ impl ServiceWorkerRegistration {
                script_url: Url,
                scope: String,
                container: &Controllable) -> Root<ServiceWorkerRegistration> {
-        let active_worker = ServiceWorker::install_serviceworker(global, script_url.clone(), &scope, true);
+        let scope_url = Url::parse(&scope).unwrap();
+        let active_worker = ServiceWorker::install_serviceworker(global, script_url.clone(), scope_url, true);
         active_worker.set_transition_state(ServiceWorkerState::Installed);
         container.set_controller(&*active_worker.clone());
         reflect_dom_object(box ServiceWorkerRegistration::new_inherited(&*active_worker, scope), global, Wrap)

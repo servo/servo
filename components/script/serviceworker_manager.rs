@@ -123,9 +123,9 @@ impl ServiceWorkerManager {
         }
     }
 
-    #[inline(always)]
     fn forward_message(&self, msg: DOMMessage, sender: &Sender<ServiceWorkerScriptMsg>) {
-        let data = StructuredCloneData::make_structured_clone(msg);
+        let DOMMessage(data) = msg;
+        let data = StructuredCloneData::Vector(data);
         let _ = sender.send(ServiceWorkerScriptMsg::CommonWorker(WorkerScriptMsg::DOMMessage(data)));
     }
 
