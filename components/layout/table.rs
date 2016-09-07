@@ -381,6 +381,13 @@ impl Flow for TableFlow {
                             self.column_computed_inline_sizes.push(ColumnComputedInlineSize {
                                 size: extra_column_inline_size / num_unspecified_inline_sizes,
                             });
+                        } else if column_inline_size.percentage != 0.0 {
+                            self.column_computed_inline_sizes.push(ColumnComputedInlineSize {
+                                size: cmp::max(
+                                    extra_column_inline_size.scale_by(column_inline_size.percentage),
+                                    column_inline_size.minimum_length,
+                                )
+                            });
                         } else {
                             self.column_computed_inline_sizes.push(ColumnComputedInlineSize {
                                 size: column_inline_size.minimum_length,
