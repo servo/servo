@@ -271,14 +271,6 @@ impl<'a> GlobalRef<'a> {
         }
     }
 
-    /// Returns the receiver's reflector.
-    pub fn reflector(&self) -> &Reflector {
-        match *self {
-            GlobalRef::Window(ref window) => window.reflector(),
-            GlobalRef::Worker(ref worker) => worker.reflector(),
-        }
-    }
-
     /// Returns a wrapper for runnables to ensure they are cancelled if the global
     /// is being destroyed.
     pub fn get_runnable_wrapper(&self) -> RunnableWrapper {
@@ -293,6 +285,15 @@ impl<'a> GlobalRef<'a> {
         match *self {
             GlobalRef::Window(ref window) => window.report_an_error(error_info, value),
             GlobalRef::Worker(_) => (),
+        }
+    }
+}
+
+impl<'a> Reflectable for GlobalRef<'a> {
+    fn reflector(&self) -> &Reflector {
+        match *self {
+            GlobalRef::Window(ref window) => window.reflector(),
+            GlobalRef::Worker(ref worker) => worker.reflector(),
         }
     }
 }
