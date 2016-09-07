@@ -30,8 +30,6 @@
 #define MAX_STOPS_PER_ANGLE_GRADIENT 8
 
 #ifdef WR_VERTEX_SHADER
-uniform sampler2D sLayers;
-
 struct Layer {
     mat4 transform;
     mat4 inv_transform;
@@ -47,27 +45,31 @@ layout(std140) uniform Tiles {
     vec4 tiles[WR_MAX_UBO_VECTORS];
 };
 
+layout(std140) uniform Layers {
+    vec4 layers[WR_MAX_UBO_VECTORS];
+};
+
 Layer fetch_layer(int index) {
     Layer layer;
 
-    ivec2 uv = ivec2(0, index);
+    int offset = index * 13;
 
-    layer.transform[0] = texelFetchOffset(sLayers, uv, 0, ivec2(0, 0));
-    layer.transform[1] = texelFetchOffset(sLayers, uv, 0, ivec2(1, 0));
-    layer.transform[2] = texelFetchOffset(sLayers, uv, 0, ivec2(2, 0));
-    layer.transform[3] = texelFetchOffset(sLayers, uv, 0, ivec2(3, 0));
+    layer.transform[0] = layers[offset + 0];
+    layer.transform[1] = layers[offset + 1];
+    layer.transform[2] = layers[offset + 2];
+    layer.transform[3] = layers[offset + 3];
 
-    layer.inv_transform[0] = texelFetchOffset(sLayers, uv, 0, ivec2(4, 0));
-    layer.inv_transform[1] = texelFetchOffset(sLayers, uv, 0, ivec2(5, 0));
-    layer.inv_transform[2] = texelFetchOffset(sLayers, uv, 0, ivec2(6, 0));
-    layer.inv_transform[3] = texelFetchOffset(sLayers, uv, 0, ivec2(7, 0));
+    layer.inv_transform[0] = layers[offset + 4];
+    layer.inv_transform[1] = layers[offset + 5];
+    layer.inv_transform[2] = layers[offset + 6];
+    layer.inv_transform[3] = layers[offset + 7];
 
-    layer.local_clip_rect = texelFetchOffset(sLayers, uv, 0, ivec2(8, 0));
+    layer.local_clip_rect = layers[offset + 8];
 
-    layer.screen_vertices[0] = texelFetchOffset(sLayers, uv, 0, ivec2(9, 0));
-    layer.screen_vertices[1] = texelFetchOffset(sLayers, uv, 0, ivec2(10, 0));
-    layer.screen_vertices[2] = texelFetchOffset(sLayers, uv, 0, ivec2(11, 0));
-    layer.screen_vertices[3] = texelFetchOffset(sLayers, uv, 0, ivec2(12, 0));
+    layer.screen_vertices[0] = layers[offset + 9];
+    layer.screen_vertices[1] = layers[offset + 10];
+    layer.screen_vertices[2] = layers[offset + 11];
+    layer.screen_vertices[3] = layers[offset + 12];
 
     return layer;
 }
