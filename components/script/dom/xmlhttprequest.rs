@@ -1364,7 +1364,7 @@ impl XHRTimeoutCallback {
     }
 }
 
-trait Extractable {
+pub trait Extractable {
     fn extract(&self) -> (Vec<u8>, Option<DOMString>);
 }
 impl Extractable for BodyInit {

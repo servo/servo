@@ -2,11 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use body::{BodyOperations, BodyType, consume_body};
 use core::cell::Cell;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HeadersBinding::HeadersMethods;
 use dom::bindings::codegen::Bindings::ResponseBinding;
 use dom::bindings::codegen::Bindings::ResponseBinding::{ResponseMethods, ResponseType as DOMResponseType};
+use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::BodyInit;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
@@ -14,9 +16,14 @@ use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::{ByteString, USVString};
 use dom::headers::{Headers, Guard};
 use dom::headers::{is_vchar, is_obs_text};
+use dom::promise::Promise;
+use dom::xmlhttprequest::Extractable;
 use hyper::status::StatusCode;
 use net_traits::response::{ResponseBody as NetTraitsResponseBody};
+use std::mem;
+use std::rc::Rc;
 use std::str::FromStr;
+use style::refcell::Ref;
 use url::Position;
 use url::Url;
 
@@ -33,8 +40,7 @@ pub struct Response {
     response_type: DOMRefCell<DOMResponseType>,
     url: DOMRefCell<Option<Url>>,
     url_list: DOMRefCell<Vec<Url>>,
-    // For now use the existing NetTraitsResponseBody enum, until body
-    // is implemented.
+    // For now use the existing NetTraitsResponseBody enum
     body: DOMRefCell<NetTraitsResponseBody>,
 }
 
@@ -59,7 +65,7 @@ impl Response {
         reflect_dom_object(box Response::new_inherited(), global, ResponseBinding::Wrap)
     }
 
-    pub fn Constructor(global: GlobalRef, _body: Option<USVString>, init: &ResponseBinding::ResponseInit)
+    pub fn Constructor(global: GlobalRef, body: Option<BodyInit>, init: &ResponseBinding::ResponseInit)
                        -> Fallible<Root<Response>> {
         // Step 1
         if init.status < 200 || init.status > 599 {
@@ -86,11 +92,6 @@ impl Response {
         // Step 6
         if let Some(ref headers_member) = init.headers {
             // Step 6.1
-            // TODO: Figure out how/if we should make r's response's
-            // header list and r's Headers object the same thing. For
-            // now just working with r's Headers object. Also, the
-            // header list should already be empty so this step may be
-            // unnecessary.
             r.Headers().empty_header_list();
 
             // Step 6.2
@@ -98,23 +99,22 @@ impl Response {
         }
 
         // Step 7
-        if let Some(_) = _body {
+        if let Some(ref body) = body {
             // Step 7.1
             if is_null_body_status(init.status) {
                 return Err(Error::Type(
                     "Body is non-null but init's status member is a null body status".to_string()));
             };
 
-            // Step 7.2
-            let content_type: Option<ByteString> = None;
-
             // Step 7.3
-            // TODO: Extract body and implement step 7.3.
+            let (extracted_body, content_type) = body.extract();
+            *r.body.borrow_mut() = NetTraitsResponseBody::Done(extracted_body);
 
             // Step 7.4
             if let Some(content_type_contents) = content_type {
                 if !r.Headers().Has(ByteString::new(b"Content-Type".to_vec())).unwrap() {
-                    try!(r.Headers().Append(ByteString::new(b"Content-Type".to_vec()), content_type_contents));
+                    try!(r.Headers().Append(ByteString::new(b"Content-Type".to_vec()),
+                                            ByteString::new(content_type_contents.as_bytes().to_vec())));
                 }
             };
         }
@@ -177,6 +177,38 @@ impl Response {
 
         // Step 7
         Ok(r)
+    }
+
+    // https://fetch.spec.whatwg.org/#concept-body-locked
+    fn locked(&self) -> bool {
+        // TODO: ReadableStream is unimplemented. Just return false
+        // for now.
+        false
+    }
+}
+
+impl BodyOperations for Response {
+    fn get_body_used(&self) -> bool {
+        self.BodyUsed()
+    }
+
+    fn is_locked(&self) -> bool {
+        self.locked()
+    }
+
+    fn take_body(&self) -> Option<Vec<u8>> {
+        let body: NetTraitsResponseBody = mem::replace(&mut *self.body.borrow_mut(), NetTraitsResponseBody::Empty);
+        match body {
+            NetTraitsResponseBody::Done(bytes) | NetTraitsResponseBody::Receiving(bytes) => {
+                self.body_used.set(true);
+                Some(bytes)
+            },
+            _ => None,
+        }
+    }
+
+    fn get_mime_type(&self) -> Ref<Vec<u8>> {
+        self.mime_type.borrow()
     }
 }
 
@@ -282,6 +314,30 @@ impl ResponseMethods for Response {
     // https://fetch.spec.whatwg.org/#dom-body-bodyused
     fn BodyUsed(&self) -> bool {
         self.body_used.get()
+    }
+
+    #[allow(unrooted_must_root)]
+    // https://fetch.spec.whatwg.org/#dom-body-text
+    fn Text(&self) -> Rc<Promise> {
+        consume_body(self, BodyType::Text)
+    }
+
+    #[allow(unrooted_must_root)]
+    // https://fetch.spec.whatwg.org/#dom-body-blob
+    fn Blob(&self) -> Rc<Promise> {
+        consume_body(self, BodyType::Blob)
+    }
+
+    #[allow(unrooted_must_root)]
+    // https://fetch.spec.whatwg.org/#dom-body-formdata
+    fn FormData(&self) -> Rc<Promise> {
+        consume_body(self, BodyType::FormData)
+    }
+
+    #[allow(unrooted_must_root)]
+    // https://fetch.spec.whatwg.org/#dom-body-json
+    fn Json(&self) -> Rc<Promise> {
+        consume_body(self, BodyType::Json)
     }
 }
 
