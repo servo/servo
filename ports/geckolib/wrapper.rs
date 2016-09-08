@@ -19,7 +19,6 @@ use gecko_bindings::bindings::{Gecko_IsLink, Gecko_IsRootElement, Gecko_IsTextNo
 use gecko_bindings::bindings::{Gecko_IsUnvisitedLink, Gecko_IsVisitedLink};
 use gecko_bindings::bindings::{Gecko_LocalName, Gecko_Namespace, Gecko_NodeIsElement, Gecko_SetNodeData};
 use gecko_bindings::bindings::{RawGeckoDocument, RawGeckoElement, RawGeckoNode};
-use gecko_bindings::bindings::{RawGeckoElementBorrowed, RawGeckoNodeBorrowed};
 use gecko_bindings::bindings::Gecko_ClassOrClassList;
 use gecko_bindings::bindings::Gecko_GetNodeData;
 use gecko_bindings::bindings::Gecko_GetStyleContext;
@@ -36,7 +35,6 @@ use selectors::parser::{AttrSelector, NamespaceConstraint};
 use snapshot::GeckoElementSnapshot;
 use snapshot_helpers;
 use std::fmt;
-use std::marker::PhantomData;
 use std::ops::BitOr;
 use std::ptr;
 use std::sync::Arc;

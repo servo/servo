@@ -8,16 +8,14 @@ use app_units::Au;
 use data::{NUM_THREADS, PerDocumentStyleData};
 use env_logger;
 use euclid::Size2D;
-use gecko_bindings::bindings::{RawGeckoDocument, RawGeckoElement, RawGeckoNode};
 use gecko_bindings::bindings::{RawGeckoElementBorrowed, RawGeckoNodeBorrowed};
-use gecko_bindings::bindings::{RawServoStyleSet, RawServoStyleSetBorrowedMut};
 use gecko_bindings::bindings::{RawServoStyleSetBorrowed, RawServoStyleSetOwned, ServoNodeDataOwned};
+use gecko_bindings::bindings::{RawServoStyleSetBorrowedMut, RawGeckoDocumentBorrowed};
 use gecko_bindings::bindings::{RawServoStyleSheetBorrowed, ServoComputedValuesBorrowed};
 use gecko_bindings::bindings::{RawServoStyleSheetStrong, ServoComputedValuesStrong};
 use gecko_bindings::bindings::{ServoComputedValuesBorrowedOrNull, ServoDeclarationBlock};
 use gecko_bindings::bindings::{ServoDeclarationBlockBorrowed, ServoDeclarationBlockStrong};
 use gecko_bindings::bindings::{ThreadSafePrincipalHolder, ThreadSafeURIHolder, nsHTMLCSSStyleSheet};
-use gecko_bindings::bindings::RawGeckoDocumentBorrowed;
 use gecko_bindings::ptr::{GeckoArcPrincipal, GeckoArcURI};
 use gecko_bindings::structs::{SheetParsingMode, nsIAtom};
 use gecko_bindings::structs::ServoElementSnapshot;
@@ -234,7 +232,7 @@ pub extern "C" fn Servo_StyleSheet_Release(sheet: RawServoStyleSheetBorrowed) ->
 #[no_mangle]
 pub extern "C" fn Servo_ComputedValues_Get(node: RawGeckoNodeBorrowed)
      -> ServoComputedValuesStrong {
-    let node = unsafe { GeckoNode(node) };
+    let node = GeckoNode(node);
     let arc_cv = match node.borrow_data().map_or(None, |data| data.style.clone()) {
         Some(style) => style,
         None => {
@@ -291,7 +289,7 @@ pub extern "C" fn Servo_ComputedValues_GetForPseudoElement(parent_style: ServoCo
     let data = PerDocumentStyleData::from_ffi_mut(raw_data);
     data.flush_stylesheets();
 
-    let element = unsafe { GeckoElement(match_element) };
+    let element = GeckoElement(match_element);
 
 
     match GeckoSelectorImpl::pseudo_element_cascade_type(&pseudo) {
@@ -424,7 +422,7 @@ pub extern "C" fn Servo_ComputeRestyleHint(element: RawGeckoElementBorrowed,
                                            raw_data: RawServoStyleSetBorrowed) -> nsRestyleHint {
     let per_doc_data = PerDocumentStyleData::from_ffi(raw_data);
     let snapshot = unsafe { GeckoElementSnapshot::from_raw(snapshot) };
-    let element = unsafe { GeckoElement(element) };
+    let element = GeckoElement(element);
 
     // NB: This involves an FFI call, we can get rid of it easily if needed.
     let current_state = element.get_state();
