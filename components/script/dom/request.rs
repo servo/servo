@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use body::{BodyOperations, BodyType, consume_body};
 use dom::bindings::cell::DOMRefCell;
-use dom::bindings::codegen::Bindings::HeadersBinding::HeadersInit;
+use dom::bindings::codegen::Bindings::HeadersBinding::{HeadersInit, HeadersMethods};
 use dom::bindings::codegen::Bindings::RequestBinding;
 use dom::bindings::codegen::Bindings::RequestBinding::ReferrerPolicy;
 use dom::bindings::codegen::Bindings::RequestBinding::RequestCache;
@@ -21,6 +22,8 @@ use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::{ByteString, DOMString, USVString};
 use dom::headers::{Guard, Headers};
+use dom::promise::Promise;
+use dom::xmlhttprequest::Extractable;
 use hyper;
 use msg::constellation_msg::ReferrerPolicy as MsgReferrerPolicy;
 use net_traits::request::{Origin, Window};
@@ -33,6 +36,9 @@ use net_traits::request::Request as NetTraitsRequest;
 use net_traits::request::RequestMode as NetTraitsRequestMode;
 use net_traits::request::Type as NetTraitsRequestType;
 use std::cell::Cell;
+use std::mem;
+use std::rc::Rc;
+use style::refcell::Ref;
 use url::Url;
 
 #[dom_struct]
@@ -340,7 +346,7 @@ impl Request {
         try!(r.Headers().fill(Some(HeadersInit::Headers(headers_copy))));
 
         // Step 32
-        let input_body = if let RequestInfo::Request(ref input_request) = input {
+        let mut input_body = if let RequestInfo::Request(ref input_request) = input {
             let input_request_request = input_request.request.borrow();
             let body = input_request_request.body.borrow();
             body.clone()
@@ -365,6 +371,20 @@ impl Request {
 
         // Step 34
         // TODO: `ReadableStream` object is not implemented in Servo yet.
+        if let Some(Some(ref init_body)) = init.body {
+            // Step 34.2
+            let extracted_body_tmp = init_body.extract();
+            input_body = Some(extracted_body_tmp.0);
+            let content_type = extracted_body_tmp.1;
+
+            // Step 34.3
+            if let Some(contents) = content_type {
+                if !r.Headers().Has(ByteString::new(b"Content-Type".to_vec())).unwrap() {
+                    try!(r.Headers().Append(ByteString::new(b"Content-Type".to_vec()),
+                                            ByteString::new(contents.as_bytes().to_vec())));
+                }
+            }
+        }
 
         // Step 35
         {
@@ -381,6 +401,13 @@ impl Request {
 
         // Step 38
         Ok(r)
+    }
+
+    // https://fetch.spec.whatwg.org/#concept-body-locked
+    fn locked(&self) -> bool {
+        // TODO: ReadableStream is unimplemented. Just return false
+        // for now.
+        false
     }
 }
 
@@ -601,6 +628,56 @@ impl RequestMethods for Request {
 
         // Step 2
         Ok(Request::clone_from(self))
+    }
+
+    #[allow(unrooted_must_root)]
+    // https://fetch.spec.whatwg.org/#dom-body-text
+    fn Text(&self) -> Rc<Promise> {
+        consume_body(self, BodyType::Text)
+    }
+
+    #[allow(unrooted_must_root)]
+    // https://fetch.spec.whatwg.org/#dom-body-blob
+    fn Blob(&self) -> Rc<Promise> {
+        consume_body(self, BodyType::Blob)
+    }
+
+    #[allow(unrooted_must_root)]
+    // https://fetch.spec.whatwg.org/#dom-body-formdata
+    fn FormData(&self) -> Rc<Promise> {
+        consume_body(self, BodyType::FormData)
+    }
+
+    #[allow(unrooted_must_root)]
+    // https://fetch.spec.whatwg.org/#dom-body-json
+    fn Json(&self) -> Rc<Promise> {
+        consume_body(self, BodyType::Json)
+    }
+}
+
+impl BodyOperations for Request {
+    fn get_body_used(&self) -> bool {
+        self.BodyUsed()
+    }
+
+    fn is_locked(&self) -> bool {
+        self.locked()
+    }
+
+    fn take_body(&self) -> Option<Vec<u8>> {
+        let ref mut net_traits_req = *self.request.borrow_mut();
+        let body: Option<Vec<u8>> = mem::replace(&mut *net_traits_req.body.borrow_mut(), None);
+        match body {
+            Some(_) => {
+                self.body_used.set(true);
+                body
+            },
+            _ => None,
+        }
+    }
+
+    fn get_mime_type(&self) -> Ref<Vec<u8>> {
+        self.mime_type.borrow()
     }
 }
 
