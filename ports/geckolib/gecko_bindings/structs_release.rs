@@ -325,13 +325,6 @@ pub const NS_STYLE_BORDER_IMAGE_REPEAT_ROUND: ::std::os::raw::c_uint = 2;
 pub const NS_STYLE_BORDER_IMAGE_REPEAT_SPACE: ::std::os::raw::c_uint = 3;
 pub const NS_STYLE_BORDER_IMAGE_SLICE_NOFILL: ::std::os::raw::c_uint = 0;
 pub const NS_STYLE_BORDER_IMAGE_SLICE_FILL: ::std::os::raw::c_uint = 1;
-pub const NS_STYLE_CLEAR_NONE: ::std::os::raw::c_uint = 0;
-pub const NS_STYLE_CLEAR_LEFT: ::std::os::raw::c_uint = 1;
-pub const NS_STYLE_CLEAR_RIGHT: ::std::os::raw::c_uint = 2;
-pub const NS_STYLE_CLEAR_INLINE_START: ::std::os::raw::c_uint = 3;
-pub const NS_STYLE_CLEAR_INLINE_END: ::std::os::raw::c_uint = 4;
-pub const NS_STYLE_CLEAR_BOTH: ::std::os::raw::c_uint = 5;
-pub const NS_STYLE_CLEAR_LINE: ::std::os::raw::c_uint = 8;
 pub const NS_STYLE_CONTENT_OPEN_QUOTE: ::std::os::raw::c_uint = 0;
 pub const NS_STYLE_CONTENT_CLOSE_QUOTE: ::std::os::raw::c_uint = 1;
 pub const NS_STYLE_CONTENT_NO_OPEN_QUOTE: ::std::os::raw::c_uint = 2;
@@ -379,44 +372,6 @@ pub const NS_STYLE_WRITING_MODE_HORIZONTAL_TB: ::std::os::raw::c_uint = 0;
 pub const NS_STYLE_WRITING_MODE_VERTICAL_RL: ::std::os::raw::c_uint = 1;
 pub const NS_STYLE_WRITING_MODE_VERTICAL_LR: ::std::os::raw::c_uint = 3;
 pub const NS_STYLE_WRITING_MODE_SIDEWAYS_MASK: ::std::os::raw::c_uint = 4;
-pub const NS_STYLE_DISPLAY_NONE: ::std::os::raw::c_uint = 0;
-pub const NS_STYLE_DISPLAY_BLOCK: ::std::os::raw::c_uint = 1;
-pub const NS_STYLE_DISPLAY_INLINE: ::std::os::raw::c_uint = 2;
-pub const NS_STYLE_DISPLAY_INLINE_BLOCK: ::std::os::raw::c_uint = 3;
-pub const NS_STYLE_DISPLAY_LIST_ITEM: ::std::os::raw::c_uint = 4;
-pub const NS_STYLE_DISPLAY_TABLE: ::std::os::raw::c_uint = 8;
-pub const NS_STYLE_DISPLAY_INLINE_TABLE: ::std::os::raw::c_uint = 9;
-pub const NS_STYLE_DISPLAY_TABLE_ROW_GROUP: ::std::os::raw::c_uint = 10;
-pub const NS_STYLE_DISPLAY_TABLE_COLUMN: ::std::os::raw::c_uint = 11;
-pub const NS_STYLE_DISPLAY_TABLE_COLUMN_GROUP: ::std::os::raw::c_uint = 12;
-pub const NS_STYLE_DISPLAY_TABLE_HEADER_GROUP: ::std::os::raw::c_uint = 13;
-pub const NS_STYLE_DISPLAY_TABLE_FOOTER_GROUP: ::std::os::raw::c_uint = 14;
-pub const NS_STYLE_DISPLAY_TABLE_ROW: ::std::os::raw::c_uint = 15;
-pub const NS_STYLE_DISPLAY_TABLE_CELL: ::std::os::raw::c_uint = 16;
-pub const NS_STYLE_DISPLAY_TABLE_CAPTION: ::std::os::raw::c_uint = 17;
-pub const NS_STYLE_DISPLAY_BOX: ::std::os::raw::c_uint = 18;
-pub const NS_STYLE_DISPLAY_INLINE_BOX: ::std::os::raw::c_uint = 19;
-pub const NS_STYLE_DISPLAY_XUL_GRID: ::std::os::raw::c_uint = 20;
-pub const NS_STYLE_DISPLAY_INLINE_XUL_GRID: ::std::os::raw::c_uint = 21;
-pub const NS_STYLE_DISPLAY_XUL_GRID_GROUP: ::std::os::raw::c_uint = 22;
-pub const NS_STYLE_DISPLAY_XUL_GRID_LINE: ::std::os::raw::c_uint = 23;
-pub const NS_STYLE_DISPLAY_STACK: ::std::os::raw::c_uint = 24;
-pub const NS_STYLE_DISPLAY_INLINE_STACK: ::std::os::raw::c_uint = 25;
-pub const NS_STYLE_DISPLAY_DECK: ::std::os::raw::c_uint = 26;
-pub const NS_STYLE_DISPLAY_POPUP: ::std::os::raw::c_uint = 27;
-pub const NS_STYLE_DISPLAY_GROUPBOX: ::std::os::raw::c_uint = 28;
-pub const NS_STYLE_DISPLAY_FLEX: ::std::os::raw::c_uint = 29;
-pub const NS_STYLE_DISPLAY_INLINE_FLEX: ::std::os::raw::c_uint = 30;
-pub const NS_STYLE_DISPLAY_GRID: ::std::os::raw::c_uint = 31;
-pub const NS_STYLE_DISPLAY_INLINE_GRID: ::std::os::raw::c_uint = 32;
-pub const NS_STYLE_DISPLAY_RUBY: ::std::os::raw::c_uint = 33;
-pub const NS_STYLE_DISPLAY_RUBY_BASE: ::std::os::raw::c_uint = 34;
-pub const NS_STYLE_DISPLAY_RUBY_BASE_CONTAINER: ::std::os::raw::c_uint = 35;
-pub const NS_STYLE_DISPLAY_RUBY_TEXT: ::std::os::raw::c_uint = 36;
-pub const NS_STYLE_DISPLAY_RUBY_TEXT_CONTAINER: ::std::os::raw::c_uint = 37;
-pub const NS_STYLE_DISPLAY_CONTENTS: ::std::os::raw::c_uint = 38;
-pub const NS_STYLE_DISPLAY_WEBKIT_BOX: ::std::os::raw::c_uint = 39;
-pub const NS_STYLE_DISPLAY_WEBKIT_INLINE_BOX: ::std::os::raw::c_uint = 40;
 pub const NS_STYLE_CONTAIN_NONE: ::std::os::raw::c_uint = 0;
 pub const NS_STYLE_CONTAIN_STRICT: ::std::os::raw::c_uint = 1;
 pub const NS_STYLE_CONTAIN_LAYOUT: ::std::os::raw::c_uint = 2;
@@ -2547,6 +2502,41 @@ pub struct pair<_T1, _T2> {
     pub first: _T1,
     pub second: _T2,
 }
+pub enum nsIContentSecurityPolicy { }
+pub enum nsIDOMDocument { }
+#[repr(C)]
+pub struct nsIPrincipal {
+    pub _bindgen_opaque_blob: u64,
+}
+#[test]
+fn bindgen_test_layout_nsIPrincipal() {
+    assert_eq!(::std::mem::size_of::<nsIPrincipal>() , 8usize);
+    assert_eq!(::std::mem::align_of::<nsIPrincipal>() , 8usize);
+}
+#[repr(C)]
+#[derive(Debug, Copy)]
+pub struct nsIExpandedPrincipal {
+    pub _base: nsISupports,
+}
+#[repr(C)]
+pub struct _vftable_nsIExpandedPrincipal {
+    pub _base: _vftable_nsISupports,
+}
+impl ::std::clone::Clone for nsIExpandedPrincipal {
+    fn clone(&self) -> Self { *self }
+}
+#[repr(C)]
+#[derive(Debug, Copy)]
+pub struct nsIURI {
+    pub _base: nsISupports,
+}
+#[repr(C)]
+pub struct _vftable_nsIURI {
+    pub _base: _vftable_nsISupports,
+}
+impl ::std::clone::Clone for nsIURI {
+    fn clone(&self) -> Self { *self }
+}
 pub type PLDHashNumber = u32;
 #[repr(C)]
 #[derive(Debug, Copy)]
@@ -2743,41 +2733,6 @@ impl ::std::clone::Clone for VoidPtrHashKey {
 }
 #[repr(C)]
 pub struct nsDataHashtable;
-pub enum nsIContentSecurityPolicy { }
-pub enum nsIDOMDocument { }
-#[repr(C)]
-pub struct nsIPrincipal {
-    pub _bindgen_opaque_blob: u64,
-}
-#[test]
-fn bindgen_test_layout_nsIPrincipal() {
-    assert_eq!(::std::mem::size_of::<nsIPrincipal>() , 8usize);
-    assert_eq!(::std::mem::align_of::<nsIPrincipal>() , 8usize);
-}
-#[repr(C)]
-#[derive(Debug, Copy)]
-pub struct nsIExpandedPrincipal {
-    pub _base: nsISupports,
-}
-#[repr(C)]
-pub struct _vftable_nsIExpandedPrincipal {
-    pub _base: _vftable_nsISupports,
-}
-impl ::std::clone::Clone for nsIExpandedPrincipal {
-    fn clone(&self) -> Self { *self }
-}
-#[repr(C)]
-#[derive(Debug, Copy)]
-pub struct nsIURI {
-    pub _base: nsISupports,
-}
-#[repr(C)]
-pub struct _vftable_nsIURI {
-    pub _base: _vftable_nsISupports,
-}
-impl ::std::clone::Clone for nsIURI {
-    fn clone(&self) -> Self { *self }
-}
 pub type nsLoadFlags = u32;
 #[repr(C)]
 #[derive(Debug, Copy)]
@@ -3411,7 +3366,7 @@ pub enum nsAttrValue_ValueType {
    * EnumTable myTable[] = {
    *   { "string1", 1 },
    *   { "string2", 2 },
-   *   { 0 }
+   *   { nullptr, 0 }
    * }
    */
 #[repr(C)]
@@ -3979,6 +3934,18 @@ pub enum StyleBoxSizing { Content = 0, Border = 1, }
 pub enum StyleBoxShadowType { Inset = 0, }
 #[repr(i8)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub enum StyleClear {
+    None_ = 0,
+    Left = 1,
+    Right = 2,
+    InlineStart = 3,
+    InlineEnd = 4,
+    Both = 5,
+    Line = 8,
+    Max = 13,
+}
+#[repr(i8)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum StyleClipPathGeometryBox {
     NoBox = 0,
     Content = 1,
@@ -4041,6 +4008,48 @@ pub enum StyleUserSelect {
     Auto = 7,
     MozAll = 8,
     MozText = 9,
+}
+#[repr(i8)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub enum StyleDisplay {
+    None_ = 0,
+    Block = 1,
+    Inline = 2,
+    InlineBlock = 3,
+    ListItem = 4,
+    Table = 5,
+    InlineTable = 6,
+    TableRowGroup = 7,
+    TableColumn = 8,
+    TableColumnGroup = 9,
+    TableHeaderGroup = 10,
+    TableFooterGroup = 11,
+    TableRow = 12,
+    TableCell = 13,
+    TableCaption = 14,
+    Flex = 15,
+    InlineFlex = 16,
+    Grid = 17,
+    InlineGrid = 18,
+    Ruby = 19,
+    RubyBase = 20,
+    RubyBaseContainer = 21,
+    RubyText = 22,
+    RubyTextContainer = 23,
+    Contents = 24,
+    WebkitBox = 25,
+    WebkitInlineBox = 26,
+    Box = 27,
+    InlineBox = 28,
+    XulGrid = 29,
+    InlineXulGrid = 30,
+    XulGridGroup = 31,
+    XulGridLine = 32,
+    Stack = 33,
+    InlineStack = 34,
+    Deck = 35,
+    Groupbox = 36,
+    Popup = 37,
 }
 pub const eCSSProperty_COUNT_DUMMY: nsCSSPropertyID =
     nsCSSPropertyID::eCSSProperty_z_index;
@@ -4141,13 +4150,13 @@ pub enum nsCSSPropertyID {
     eCSSProperty_color_adjust = 80,
     eCSSProperty_color_interpolation = 81,
     eCSSProperty_color_interpolation_filters = 82,
-    eCSSProperty__moz_column_count = 83,
-    eCSSProperty__moz_column_fill = 84,
-    eCSSProperty__moz_column_gap = 85,
-    eCSSProperty__moz_column_rule_color = 86,
-    eCSSProperty__moz_column_rule_style = 87,
-    eCSSProperty__moz_column_rule_width = 88,
-    eCSSProperty__moz_column_width = 89,
+    eCSSProperty_column_count = 83,
+    eCSSProperty_column_fill = 84,
+    eCSSProperty_column_gap = 85,
+    eCSSProperty_column_rule_color = 86,
+    eCSSProperty_column_rule_style = 87,
+    eCSSProperty_column_rule_width = 88,
+    eCSSProperty_column_width = 89,
     eCSSProperty_contain = 90,
     eCSSProperty_content = 91,
     eCSSProperty__moz_control_character_visibility = 92,
@@ -4391,8 +4400,8 @@ pub enum nsCSSPropertyID {
     eCSSProperty_border_style = 330,
     eCSSProperty_border_top = 331,
     eCSSProperty_border_width = 332,
-    eCSSProperty__moz_column_rule = 333,
-    eCSSProperty__moz_columns = 334,
+    eCSSProperty_column_rule = 333,
+    eCSSProperty_columns = 334,
     eCSSProperty_flex = 335,
     eCSSProperty_flex_flow = 336,
     eCSSProperty_font = 337,
@@ -4623,29 +4632,29 @@ pub struct nsMainThreadPtrHandle<T> {
 pub enum CSSStyleSheet { }
 #[repr(C)]
 pub struct URLValueData {
-    pub _bindgen_opaque_blob: [u64; 5usize],
+    pub _bindgen_opaque_blob: [u64; 6usize],
 }
 #[test]
 fn bindgen_test_layout_URLValueData() {
-    assert_eq!(::std::mem::size_of::<URLValueData>() , 40usize);
+    assert_eq!(::std::mem::size_of::<URLValueData>() , 48usize);
     assert_eq!(::std::mem::align_of::<URLValueData>() , 8usize);
 }
 #[repr(C)]
 pub struct URLValue {
-    pub _bindgen_opaque_blob: [u64; 6usize],
+    pub _bindgen_opaque_blob: [u64; 7usize],
 }
 #[test]
 fn bindgen_test_layout_URLValue() {
-    assert_eq!(::std::mem::size_of::<URLValue>() , 48usize);
+    assert_eq!(::std::mem::size_of::<URLValue>() , 56usize);
     assert_eq!(::std::mem::align_of::<URLValue>() , 8usize);
 }
 #[repr(C)]
 pub struct ImageValue {
-    pub _bindgen_opaque_blob: [u64; 12usize],
+    pub _bindgen_opaque_blob: [u64; 13usize],
 }
 #[test]
 fn bindgen_test_layout_ImageValue() {
-    assert_eq!(::std::mem::size_of::<ImageValue>() , 96usize);
+    assert_eq!(::std::mem::size_of::<ImageValue>() , 104usize);
     assert_eq!(::std::mem::align_of::<ImageValue>() , 8usize);
 }
 #[repr(C)]
@@ -6434,14 +6443,14 @@ pub type StyleShapeOutside = StyleShapeSource<StyleShapeOutsideShapeBox>;
 #[repr(C)]
 pub struct nsStyleDisplay {
     pub mBinding: RefPtr<URLValue>,
-    pub mDisplay: u8,
-    pub mOriginalDisplay: u8,
+    pub mDisplay: StyleDisplay,
+    pub mOriginalDisplay: StyleDisplay,
     pub mContain: u8,
     pub mAppearance: u8,
     pub mPosition: u8,
     pub mFloat: StyleFloat,
     pub mOriginalFloat: StyleFloat,
-    pub mBreakType: u8,
+    pub mBreakType: StyleClear,
     pub mBreakInside: u8,
     pub mBreakBefore: bool,
     pub mBreakAfter: bool,
