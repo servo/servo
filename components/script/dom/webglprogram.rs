@@ -120,6 +120,11 @@ impl WebGLProgram {
         Ok(())
     }
 
+    /// glValidateProgram
+    pub fn validate(&self) {
+        self.renderer.send(CanvasMsg::WebGL(WebGLCommand::ValidateProgram(self.id))).unwrap();
+    }
+
     /// glAttachShader
     pub fn attach_shader(&self, shader: &WebGLShader) -> WebGLResult<()> {
         let shader_slot = match shader.gl_type() {
@@ -248,6 +253,13 @@ impl WebGLProgram {
             .send(CanvasMsg::WebGL(WebGLCommand::GetUniformLocation(self.id, String::from(name), sender)))
             .unwrap();
         Ok(receiver.recv().unwrap())
+    }
+
+    /// glGetProgramInfoLog
+    pub fn get_info_log(&self) -> String {
+        let (sender, receiver) = ipc::channel().unwrap();
+        self.renderer.send(CanvasMsg::WebGL(WebGLCommand::GetProgramInfoLog(self.id, sender))).unwrap();
+        receiver.recv().unwrap()
     }
 
     /// glGetProgramParameter
