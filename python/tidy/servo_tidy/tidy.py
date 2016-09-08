@@ -516,10 +516,13 @@ def check_rust(file_name, lines):
                 yield (idx + 1, "use statement spans multiple lines")
             # strip "use" from the begin and ";" from the end
             current_use = line[4:-1]
-            if indent == current_indent and prev_use and current_use < prev_use:
-                yield(idx + 1, decl_message.format("use statement")
-                      + decl_expected.format(prev_use)
-                      + decl_found.format(current_use))
+            if prev_use:
+                current_use_cut = current_use.replace("{self,", ".").replace("{", ".")
+                prev_use_cut = prev_use.replace("{self,", ".").replace("{", ".")
+                if indent == current_indent and current_use_cut < prev_use_cut:
+                    yield(idx + 1, decl_message.format("use statement")
+                          + decl_expected.format(prev_use)
+                          + decl_found.format(current_use))
             prev_use = current_use
             current_indent = indent
 
