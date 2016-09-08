@@ -7,6 +7,7 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HeadersBinding::HeadersMethods;
 use dom::bindings::codegen::Bindings::ResponseBinding;
 use dom::bindings::codegen::Bindings::ResponseBinding::{ResponseMethods, ResponseType as DOMResponseType};
+use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::BodyInit;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
@@ -14,8 +15,13 @@ use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::{ByteString, USVString};
 use dom::headers::{Headers, Guard};
 use dom::headers::{is_vchar, is_obs_text};
+use dom::promise::Promise;
+use dom::xmlhttprequest::Extractable;
+use encoding::all::UTF_8;
+use encoding::types::{DecoderTrap, Encoding};
 use hyper::status::StatusCode;
 use net_traits::response::{ResponseBody as NetTraitsResponseBody};
+use std::rc::Rc;
 use std::str::FromStr;
 use url::Position;
 use url::Url;
@@ -33,8 +39,7 @@ pub struct Response {
     response_type: DOMRefCell<DOMResponseType>,
     url: DOMRefCell<Option<Url>>,
     url_list: DOMRefCell<Vec<Url>>,
-    // For now use the existing NetTraitsResponseBody enum, until body
-    // is implemented.
+    // For now use the existing NetTraitsResponseBody enum
     body: DOMRefCell<NetTraitsResponseBody>,
 }
 
@@ -59,7 +64,7 @@ impl Response {
         reflect_dom_object(box Response::new_inherited(), global, ResponseBinding::Wrap)
     }
 
-    pub fn Constructor(global: GlobalRef, _body: Option<USVString>, init: &ResponseBinding::ResponseInit)
+    pub fn Constructor(global: GlobalRef, body: Option<BodyInit>, init: &ResponseBinding::ResponseInit)
                        -> Fallible<Root<Response>> {
         // Step 1
         if init.status < 200 || init.status > 599 {
@@ -86,11 +91,6 @@ impl Response {
         // Step 6
         if let Some(ref headers_member) = init.headers {
             // Step 6.1
-            // TODO: Figure out how/if we should make r's response's
-            // header list and r's Headers object the same thing. For
-            // now just working with r's Headers object. Also, the
-            // header list should already be empty so this step may be
-            // unnecessary.
             r.Headers().empty_header_list();
 
             // Step 6.2
@@ -98,23 +98,23 @@ impl Response {
         }
 
         // Step 7
-        if let Some(_) = _body {
+        if let Some(ref body) = body {
             // Step 7.1
             if is_null_body_status(init.status) {
                 return Err(Error::Type(
                     "Body is non-null but init's status member is a null body status".to_string()));
             };
 
-            // Step 7.2
-            let content_type: Option<ByteString> = None;
-
             // Step 7.3
-            // TODO: Extract body and implement step 7.3.
+            let extracted_body_tmp = body.extract();
+            *r.body.borrow_mut() = NetTraitsResponseBody::Done(extracted_body_tmp.0);
+            let content_type = extracted_body_tmp.1;
 
             // Step 7.4
             if let Some(content_type_contents) = content_type {
                 if !r.Headers().Has(ByteString::new(b"Content-Type".to_vec())).unwrap() {
-                    try!(r.Headers().Append(ByteString::new(b"Content-Type".to_vec()), content_type_contents));
+                    try!(r.Headers().Append(ByteString::new(b"Content-Type".to_vec()),
+                                            ByteString::new(content_type_contents.as_bytes().to_vec())));
                 }
             };
         }
@@ -178,6 +178,65 @@ impl Response {
         // Step 7
         Ok(r)
     }
+
+    // https://fetch.spec.whatwg.org/#concept-body-consume-body
+    #[allow(unrooted_must_root)]
+    fn consume_body(&self, body_type: BodyType) -> Fallible<Rc<Promise>> {
+        let promise = Promise::new(self.global().r());
+
+        // Step 1
+        if self.BodyUsed() || self.locked() {
+            promise.maybe_reject_error(promise.global().r().get_cx(), Error::Type(
+                "The response's stream is disturbed or locked".to_string()));
+            return Ok(promise);
+        }
+
+        // Steps 2-4
+        // TODO: Body does not yet have a stream.
+
+        // Step 5
+        let pkg_data_results: String = try!(self.run_package_data_algorithm(body_type));
+        let pkg_data_results: USVString = USVString(pkg_data_results);
+        promise.maybe_resolve_native(promise.global().r().get_cx(), &pkg_data_results);
+        Ok(promise)
+    }
+
+    // https://fetch.spec.whatwg.org/#concept-body-locked
+    fn locked(&self) -> bool {
+        // TODO: ReadableStream is unimplemented. Just return false
+        // for now.
+        false
+    }
+
+    // https://fetch.spec.whatwg.org/#concept-body-package-data
+    fn run_package_data_algorithm(&self, body_type: BodyType) -> Fallible<String> {
+        match body_type {
+            BodyType::Text => {
+                // return result of running utf-8 decode here
+                // using encoding crate on all bytes instead of
+                // individually processing each token
+                // TODO: also check NetTraitsResponseBody::Receiving(bytes) = *self.body.borrow()
+                if let NetTraitsResponseBody::Done(ref bytes) = *self.body.borrow() {
+                    self.body_used.set(true);
+                    let result: Result<String, Error> =
+                        UTF_8.decode(bytes, DecoderTrap::Replace).map_err(|e| Error::Type((&*e).to_owned()));
+                    *self.body.borrow_mut() = NetTraitsResponseBody::Empty;
+                    return result;
+                }
+                return Ok("".to_owned());
+            },
+            _ => Err(Error::Type(
+                "Unable to process bytes".to_string()))
+        }
+    }
+}
+
+pub enum BodyType {
+    ArrayBuffer,
+    Blob,
+    FormData,
+    Json,
+    Text
 }
 
 // https://fetch.spec.whatwg.org/#redirect-status
@@ -271,6 +330,7 @@ impl ResponseMethods for Response {
         if *self.body.borrow() != NetTraitsResponseBody::Empty {
             *new_response.body.borrow_mut() = self.body.borrow().clone();
         }
+        new_response.body_used.set(self.BodyUsed());
 
         // Step 3
         // TODO: This step relies on promises, which are still unimplemented.
@@ -282,6 +342,12 @@ impl ResponseMethods for Response {
     // https://fetch.spec.whatwg.org/#dom-body-bodyused
     fn BodyUsed(&self) -> bool {
         self.body_used.get()
+    }
+
+    #[allow(unrooted_must_root)]
+    // https://fetch.spec.whatwg.org/#dom-body-text
+    fn Text(&self) -> Fallible<Rc<Promise>> {
+        self.consume_body(BodyType::Text)
     }
 }
 

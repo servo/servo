@@ -10,10 +10,9 @@
 interface Body {
   readonly attribute boolean bodyUsed;
 
-  // Servo does not support Promise at this moment.
   // [NewObject] Promise<ArrayBuffer> arrayBuffer();
   // [NewObject] Promise<Blob> blob();
   // [NewObject] Promise<FormData> formData();
   // [NewObject] Promise<JSON> json();
-  // [NewObject] Promise<USVString> text();
+  [NewObject, Throws] Promise<USVString> text();
 };
