@@ -60,14 +60,14 @@ fn webdriver(port: u16, constellation: Sender<ConstellationMsg>) {
 #[cfg(not(feature = "webdriver"))]
 fn webdriver(_port: u16, _constellation: Sender<ConstellationMsg>) { }
 
+use compositing::{CompositorProxy, IOCompositor};
 use compositing::compositor_thread::InitialCompositorState;
 use compositing::windowing::WindowEvent;
 use compositing::windowing::WindowMethods;
-use compositing::{CompositorProxy, IOCompositor};
+use constellation::{Constellation, InitialConstellationState, UnprivilegedPipelineContent};
+use constellation::{FromCompositorLogger, FromScriptLogger};
 #[cfg(not(target_os = "windows"))]
 use constellation::content_process_sandbox_profile;
-use constellation::{Constellation, InitialConstellationState, UnprivilegedPipelineContent};
-use constellation::{FromScriptLogger, FromCompositorLogger};
 use env_logger::Logger as EnvLogger;
 #[cfg(not(target_os = "windows"))]
 use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
@@ -83,7 +83,7 @@ use profile::mem as profile_mem;
 use profile::time as profile_time;
 use profile_traits::mem;
 use profile_traits::time;
-use script_traits::{ConstellationMsg, ScriptMsg, SWManagerSenders};
+use script_traits::{ConstellationMsg, SWManagerSenders, ScriptMsg};
 use std::cmp::max;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;

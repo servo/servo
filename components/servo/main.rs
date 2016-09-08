@@ -288,9 +288,9 @@ mod android {
     unsafe impl Send for FilePtr {}
 
     fn redirect_output(file_no: c_int) {
+        use self::libc::{pipe, dup2};
         use self::libc::fdopen;
         use self::libc::fgets;
-        use self::libc::{pipe, dup2};
         use servo::util::thread::spawn_named;
         use std::ffi::CStr;
         use std::ffi::CString;

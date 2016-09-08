@@ -2,13 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use {PagePx, ViewportPx};
 use cssparser::{Parser, ToCss};
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
 use std::ascii::AsciiExt;
 use std::fmt;
 use values::specified::AllowedNumericType;
-use {PagePx, ViewportPx};
 
 define_css_keyword_enum!(UserZoom:
                          "zoom" => Zoom,

@@ -14,8 +14,8 @@ use display_list_builder::{DisplayListBuildState, ListItemFlowDisplayListBuildin
 use euclid::Point2D;
 use floats::FloatKind;
 use flow::{Flow, FlowClass, OpaqueFlow};
-use fragment::Overflow;
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, GeneratedContentInfo};
+use fragment::Overflow;
 use generated_content;
 use gfx::display_list::StackingContext;
 use gfx_traits::StackingContextId;

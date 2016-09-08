@@ -8,15 +8,15 @@
 //! [basic-shape]: https://drafts.csswg.org/css-shapes/#typedef-basic-shape
 
 use cssparser::{Parser, ToCss};
-use parser::{ParserContext, Parse};
+use parser::{Parse, ParserContext};
 use properties::shorthands::{parse_four_sides, serialize_four_sides};
 use std::fmt;
 use url::Url;
+use values::computed::{ComputedValueAsSpecified, Context, ToComputedValue};
 use values::computed::basic_shape as computed_basic_shape;
-use values::computed::{Context, ToComputedValue, ComputedValueAsSpecified};
+use values::specified::{BorderRadiusSize, LengthOrPercentage, Percentage};
 use values::specified::UrlExtraData;
 use values::specified::position::{Keyword, Position};
-use values::specified::{BorderRadiusSize, LengthOrPercentage, Percentage};
 
 /// A shape source, for some reference box
 ///

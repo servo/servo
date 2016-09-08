@@ -5,16 +5,16 @@
 use ipc_channel::ipc::IpcSender;
 use mime_guess::guess_mime_type_opt;
 use net_traits::blob_url_store::{BlobBuf, BlobURLStoreError};
-use net_traits::filemanager_thread::{FileManagerThreadMsg, FileManagerResult, FilterPattern, FileOrigin};
-use net_traits::filemanager_thread::{SelectedFile, RelativePos, FileManagerThreadError, ReadFileProgress};
+use net_traits::filemanager_thread::{FileManagerResult, FileManagerThreadMsg, FileOrigin, FilterPattern};
+use net_traits::filemanager_thread::{FileManagerThreadError, ReadFileProgress, RelativePos, SelectedFile};
 use resource_thread::CancellationListener;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{Read, Seek, SeekFrom};
 use std::ops::Index;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{self, AtomicUsize, AtomicBool, Ordering};
 use std::sync::{Arc, RwLock};
+use std::sync::atomic::{self, AtomicBool, AtomicUsize, Ordering};
 #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
 use tinyfiledialogs;
 use url::Url;

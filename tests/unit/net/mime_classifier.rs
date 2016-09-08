@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use net::mime_classifier::{ApacheBugFlag, MimeClassifier, Mp4Matcher, NoSniffFlag};
 use net::mime_classifier::as_string_option;
-use net::mime_classifier::{Mp4Matcher, MimeClassifier, ApacheBugFlag, NoSniffFlag};
 use net_traits::LoadContext;
 use std::env;
 use std::fs::File;
@@ -557,4 +557,3 @@ fn test_sniff_mp4_video_apache_flag_on() {
                           NoSniffFlag::OFF,
                           ApacheBugFlag::ON);
 }
-

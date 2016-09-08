@@ -7,10 +7,11 @@ use euclid::size::Size2D;
 use ordered_float::NotNaN;
 use properties::ComputedValues;
 use std::fmt;
+use super::{CSSFloat, specified};
 use super::LocalToCss;
 use super::specified::AngleOrCorner;
-use super::{CSSFloat, specified};
 use url::Url;
+
 pub use cssparser::Color as CSSColor;
 pub use super::specified::{Angle, BorderStyle, Time, UrlExtraData};
 

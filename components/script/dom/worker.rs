@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use devtools_traits::{ScriptToDevtoolsControlMsg, DevtoolsPageInfo};
+use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg};
+use dom::abstractworker::{SharedRt, SimpleWorkerErrorHandler};
 use dom::abstractworker::WorkerScriptMsg;
-use dom::abstractworker::{SimpleWorkerErrorHandler, SharedRt};
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::WorkerBinding;
 use dom::bindings::codegen::Bindings::WorkerBinding::WorkerMethods;
@@ -21,14 +21,14 @@ use dom::eventtarget::EventTarget;
 use dom::messageevent::MessageEvent;
 use dom::workerglobalscope::prepare_workerscope_init;
 use ipc_channel::ipc;
-use js::jsapi::{HandleValue, JSContext, JSAutoCompartment};
+use js::jsapi::{HandleValue, JSAutoCompartment, JSContext};
 use js::jsval::UndefinedValue;
 use script_thread::Runnable;
 use script_traits::WorkerScriptLoadOrigin;
 use std::cell::Cell;
+use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Sender, channel};
-use std::sync::{Arc, Mutex};
 
 pub type TrustedWorkerAddress = Trusted<Worker>;
 

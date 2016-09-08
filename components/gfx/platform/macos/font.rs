@@ -16,15 +16,15 @@ use core_foundation::string::UniChar;
 use core_graphics::font::CGGlyph;
 use core_graphics::geometry::CGRect;
 use core_text::font::CTFont;
-use core_text::font_descriptor::kCTFontDefaultOrientation;
 use core_text::font_descriptor::{SymbolicTraitAccessors, TraitAccessors};
-use font::{FontHandleMethods, FontMetrics, FontTableTag, FontTableMethods, FractionalPixel};
+use core_text::font_descriptor::kCTFontDefaultOrientation;
+use font::{FontHandleMethods, FontMetrics, FontTableMethods, FontTableTag, FractionalPixel};
 use font::{GPOS, GSUB, KERN};
 use platform::font_template::FontTemplateData;
 use platform::macos::font_context::FontContextHandle;
+use std::{fmt, ptr};
 use std::ops::Range;
 use std::sync::Arc;
-use std::{fmt, ptr};
 use style::computed_values::{font_stretch, font_weight};
 use text::glyph::GlyphId;
 

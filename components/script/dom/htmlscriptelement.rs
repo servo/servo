@@ -11,8 +11,8 @@ use dom::bindings::codegen::Bindings::HTMLScriptElementBinding::HTMLScriptElemen
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::RootedReference;
 use dom::bindings::js::{JS, Root};
+use dom::bindings::js::RootedReference;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::str::DOMString;
 use dom::document::Document;

@@ -8,11 +8,11 @@ extern crate hyper_serde;
 use hyper_serde::Serde;
 use ipc_channel::ipc;
 use msg::constellation_msg::{PipelineId, ReferrerPolicy};
+use net_traits::{LoadContext, LoadData, LoadOrigin, NetworkError};
 use net_traits::LoadConsumer::Channel;
-use net_traits::ProgressMsg::{Payload, Done};
-use net_traits::{LoadData, LoadContext, NetworkError, LoadOrigin};
+use net_traits::ProgressMsg::{Done, Payload};
 use self::hyper::header::ContentType;
-use self::hyper::mime::{Mime, TopLevel, SubLevel, Attr, Value};
+use self::hyper::mime::{Attr, Mime, SubLevel, TopLevel, Value};
 use url::Url;
 
 struct DataLoadTest;

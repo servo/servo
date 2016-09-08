@@ -29,14 +29,14 @@ use euclid::rect::Rect;
 use euclid::size::Size2D;
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
-use js::jsapi::{JSContext, HandleValue};
+use js::jsapi::{HandleValue, JSContext};
 use js::jsval::UndefinedValue;
 use msg::constellation_msg::PipelineId;
 use net_traits::CookieSource::{HTTP, NonHTTP};
 use net_traits::CoreResourceMsg::{GetCookiesDataForUrl, SetCookiesForUrlWithData};
 use net_traits::IpcSend;
-use script_traits::webdriver_msg::WebDriverCookieError;
 use script_traits::webdriver_msg::{WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue};
+use script_traits::webdriver_msg::WebDriverCookieError;
 use url::Url;
 
 fn find_node_by_unique_id(context: &BrowsingContext,

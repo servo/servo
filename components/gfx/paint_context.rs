@@ -5,6 +5,8 @@
 //! Painting of display lists using Moz2D/Azure.
 
 use app_units::Au;
+use azure::{AzDrawTargetFillGlyphs, struct__AzGlyphBuffer, struct__AzPoint};
+use azure::{AzFloat, struct__AzDrawOptions, struct__AzGlyph};
 use azure::azure::AzIntSize;
 use azure::azure_hl::{AntialiasMode, Color, ColorPattern, CompositionOp};
 use azure::azure_hl::{CapStyle, JoinStyle};
@@ -13,11 +15,9 @@ use azure::azure_hl::{Filter, FilterNode, GaussianBlurInput, GradientStop, Linea
 use azure::azure_hl::{GaussianBlurAttribute, StrokeOptions, SurfaceFormat};
 use azure::azure_hl::{Path, PathBuilder, Pattern, PatternRef, SurfacePattern};
 use azure::scaled_font::ScaledFont;
-use azure::{AzDrawTargetFillGlyphs, struct__AzGlyphBuffer, struct__AzPoint};
-use azure::{AzFloat, struct__AzDrawOptions, struct__AzGlyph};
-use display_list::TextOrientation::{SidewaysLeft, SidewaysRight, Upright};
 use display_list::{BLUR_INFLATION_FACTOR, BorderRadii, BoxShadowClipMode, ClippingRegion};
 use display_list::{TextDisplayItem, WebRenderImageInfo};
+use display_list::TextOrientation::{SidewaysLeft, SidewaysRight, Upright};
 use euclid::matrix2d::Matrix2D;
 use euclid::point::Point2D;
 use euclid::rect::{Rect, TypedRect};
@@ -26,16 +26,16 @@ use euclid::side_offsets::SideOffsets2D;
 use euclid::size::Size2D;
 use filters;
 use font_context::FontContext;
-use gfx_traits::{color, LayerKind};
+use gfx_traits::{LayerKind, color};
 use net_traits::image::base::PixelFormat;
 use range::Range;
-use std::default::Default;
 use std::{f32, mem, ptr};
+use std::default::Default;
 use style::computed_values::{border_style, filter, image_rendering, mix_blend_mode};
 use style_traits::PagePx;
 use text::TextRun;
 use text::glyph::ByteIndex;
-use util::geometry::{self, max_rect, ScreenPx};
+use util::geometry::{self, ScreenPx, max_rect};
 use util::opts;
 
 pub struct PaintContext<'a> {

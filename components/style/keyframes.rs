@@ -5,9 +5,9 @@
 use cssparser::{AtRuleParser, Parser, QualifiedRuleParser, RuleListParser};
 use cssparser::{DeclarationListParser, DeclarationParser};
 use parser::{ParserContext, log_css_error};
+use properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock};
 use properties::PropertyDeclarationParseResult;
 use properties::animated_properties::TransitionProperty;
-use properties::{PropertyDeclaration, PropertyDeclarationBlock, Importance};
 use std::sync::Arc;
 
 /// A number from 1 to 100, indicating the percentage of the animation where

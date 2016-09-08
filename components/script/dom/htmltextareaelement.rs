@@ -12,8 +12,8 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{LayoutJS, Root};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
-use dom::element::RawLayoutElementHelpers;
 use dom::element::{AttributeMutation, Element};
+use dom::element::RawLayoutElementHelpers;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::htmlelement::HTMLElement;
 use dom::htmlfieldsetelement::HTMLFieldSetElement;
@@ -31,7 +31,7 @@ use std::ops::Range;
 use string_cache::Atom;
 use style::attr::AttrValue;
 use style::element_state::*;
-use textinput::{KeyReaction, Lines, TextInput, SelectionDirection};
+use textinput::{KeyReaction, Lines, SelectionDirection, TextInput};
 
 #[dom_struct]
 pub struct HTMLTextAreaElement {

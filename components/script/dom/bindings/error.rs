@@ -6,8 +6,8 @@
 
 use dom::bindings::codegen::Bindings::DOMExceptionBinding::DOMExceptionMethods;
 use dom::bindings::codegen::PrototypeList::proto_id_to_name;
-use dom::bindings::conversions::root_from_object;
 use dom::bindings::conversions::{ConversionResult, FromJSValConvertible, ToJSValConvertible};
+use dom::bindings::conversions::root_from_object;
 use dom::bindings::global::{GlobalRef, global_root_from_context};
 use dom::bindings::str::USVString;
 use dom::domexception::{DOMErrorName, DOMException};

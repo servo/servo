@@ -5,9 +5,9 @@
 use bindings::Gecko_AddRefCSSShadowArrayArbitraryThread;
 use bindings::Gecko_NewCSSShadowArray;
 use bindings::Gecko_ReleaseCSSShadowArrayArbitraryThread;
-use std::ops::{Deref, DerefMut};
 use std::{ptr, slice};
-use structs::{nsCSSShadowArray, nsCSSShadowItem, RefPtr};
+use std::ops::{Deref, DerefMut};
+use structs::{RefPtr, nsCSSShadowArray, nsCSSShadowItem};
 
 impl RefPtr<nsCSSShadowArray> {
     pub fn replace_with_new(&mut self, len: u32) {

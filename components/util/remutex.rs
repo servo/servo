@@ -14,8 +14,8 @@ use core::nonzero::NonZero;
 use std::cell::{Cell, UnsafeCell};
 use std::mem;
 use std::ops::Deref;
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{LockResult, Mutex, MutexGuard, PoisonError, TryLockError, TryLockResult};
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 /// A type for thread ids.
 

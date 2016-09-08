@@ -6,8 +6,8 @@
 
 pub use dom::bindings::codegen::InheritTypes::*;
 
-use dom::bindings::conversions::get_dom_class;
 use dom::bindings::conversions::{DerivedFrom, IDLInterface};
+use dom::bindings::conversions::get_dom_class;
 use dom::bindings::reflector::Reflectable;
 use std::mem;
 

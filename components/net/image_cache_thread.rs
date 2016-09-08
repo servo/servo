@@ -3,15 +3,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use immeta::load_from_buf;
-use ipc_channel::ipc::{self, IpcSender, IpcReceiver};
+use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use msg::constellation_msg::{PipelineId, ReferrerPolicy};
-use net_traits::image::base::{Image, ImageMetadata, load_from_memory, PixelFormat};
-use net_traits::image_cache_thread::ImageResponder;
+use net_traits::{AsyncResponseTarget, CoreResourceMsg, CoreResourceThread, LoadConsumer, LoadData, LoadOrigin};
+use net_traits::{LoadContext, NetworkError, ResponseAction};
+use net_traits::image::base::{Image, ImageMetadata, PixelFormat, load_from_memory};
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheCommand, ImageCacheThread, ImageState};
 use net_traits::image_cache_thread::{ImageCacheResult, ImageOrMetadataAvailable, ImageResponse, UsePlaceholder};
-use net_traits::{AsyncResponseTarget, CoreResourceMsg, LoadConsumer, LoadData, CoreResourceThread, LoadOrigin};
-use net_traits::{ResponseAction, LoadContext, NetworkError};
+use net_traits::image_cache_thread::ImageResponder;
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
@@ -19,7 +19,7 @@ use std::fs::File;
 use std::io::{self, Read};
 use std::mem;
 use std::sync::Arc;
-use std::sync::mpsc::{Sender, Receiver, channel};
+use std::sync::mpsc::{Receiver, Sender, channel};
 use threadpool::ThreadPool;
 use url::Url;
 use util::resource_files::resources_dir_path;

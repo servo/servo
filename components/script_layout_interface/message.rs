@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use {OpaqueStyleAndLayoutData, TrustedNodeAddress};
 use app_units::Au;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
@@ -21,7 +22,6 @@ use style::selector_impl::PseudoElement;
 use style::stylesheets::Stylesheet;
 use url::Url;
 use util::ipc::OptionalOpaqueIpcSender;
-use {OpaqueStyleAndLayoutData, TrustedNodeAddress};
 
 /// Asynchronous messages that script can send to layout.
 pub enum Msg {

@@ -13,8 +13,8 @@ use matching::{ApplicableDeclarationsCache, StyleSharingCandidateCache};
 use selector_matching::Stylist;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex, RwLock};
+use std::sync::mpsc::Sender;
 use timer::Timer;
 
 /// This structure is used to create a local style context from a shared one.
