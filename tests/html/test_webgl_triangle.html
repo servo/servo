@@ -31,6 +31,8 @@ void main() {
 </script>
 <script type="text/javascript">
 
+(function() {
+
    var canvas;
    function initWebGL()
    {
@@ -41,6 +43,10 @@ void main() {
    }
 
    var gl = initWebGL();
+   if (!gl) {
+      alert("No webgl context found!");
+      return;
+   }
 
    // Setup Shaders:
    var v = document.getElementById("vertexshader").firstChild.nodeValue;
@@ -54,7 +60,8 @@ void main() {
    gl.compileShader(vs);
 
    if (!gl.getShaderParameter(vs, gl.COMPILE_STATUS)) {
-      alert(gl.getShaderInfoLog(vs));
+      alert("Shader failed to compile. Reason: " + gl.getShaderInfoLog(vs));
+      return;
    }
 
    var fs = gl.createShader(gl.FRAGMENT_SHADER);
@@ -62,7 +69,8 @@ void main() {
    gl.compileShader(fs);
 
    if (!gl.getShaderParameter(fs, gl.COMPILE_STATUS)) {
-       alert(gl.getShaderInfoLog(fs));
+       alert("Shader failed to compile. Reason: " + gl.getShaderInfoLog(fs));
+       return;
    }
 
    program = gl.createProgram();
@@ -70,8 +78,16 @@ void main() {
    gl.attachShader(program, fs);
    gl.linkProgram(program);
 
-   // if (!gl.getProgramParameter(program, gl.LINK_STATUS))
-   //     alert(gl.getProgramInfoLog(program));
+   if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        alert("Shader failed to link. Reason: " + gl.getProgramInfoLog(program));
+        return;
+   }
+
+   gl.validateProgram(program);
+   if (!gl.getProgramParameter( program, gl.VALIDATE_STATUS)) {
+      alert("Program failed to validate. Reason: " + gl.getProgramInfoLog(program));
+      return;
+   }
 
    // Setup Geometry
    var vertices = new Float32Array([
@@ -107,6 +123,8 @@ void main() {
 
    // Draw
    gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+})();
 </script>
 </body>
 </html>
