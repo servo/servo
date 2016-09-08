@@ -5,7 +5,6 @@
 //! The [Response](https://fetch.spec.whatwg.org/#responses) object
 //! resulting from a [fetch operation](https://fetch.spec.whatwg.org/#concept-fetch)
 use hyper::header::{AccessControlExposeHeaders, ContentType, Headers};
-use hyper::http::RawStatus;
 use hyper::status::StatusCode;
 use hyper_serde::Serde;
 use std::ascii::AsciiExt;
@@ -15,7 +14,7 @@ use url::Url;
 use {Metadata, NetworkError};
 
 /// [Response type](https://fetch.spec.whatwg.org/#concept-response-type)
-#[derive(Clone, PartialEq, Copy, Debug, Deserialize, Serialize)]
+#[derive(Clone, PartialEq, Copy, Debug, Deserialize, Serialize, HeapSizeOf)]
 pub enum ResponseType {
     Basic,
     CORS,
@@ -26,7 +25,7 @@ pub enum ResponseType {
 }
 
 /// [Response termination reason](https://fetch.spec.whatwg.org/#concept-response-termination-reason)
-#[derive(Clone, Copy, Deserialize, Serialize)]
+#[derive(Clone, Copy, Deserialize, Serialize, HeapSizeOf)]
 pub enum TerminationReason {
     EndUserAbort,
     Fatal,
@@ -35,7 +34,7 @@ pub enum TerminationReason {
 
 /// The response body can still be pushed to after fetch
 /// This provides a way to store unfinished response bodies
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, HeapSizeOf)]
 pub enum ResponseBody {
     Empty, // XXXManishearth is this necessary, or is Done(vec![]) enough?
     Receiving(Vec<u8>),
@@ -53,7 +52,7 @@ impl ResponseBody {
 
 
 /// [Cache state](https://fetch.spec.whatwg.org/#concept-response-cache-state)
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, HeapSizeOf)]
 pub enum CacheState {
     None,
     Local,
@@ -76,16 +75,19 @@ pub enum ResponseMsg {
 }
 
 /// A [Response](https://fetch.spec.whatwg.org/#concept-response) as defined by the Fetch spec
-#[derive(Clone)]
+#[derive(Clone, HeapSizeOf)]
 pub struct Response {
     pub response_type: ResponseType,
     pub termination_reason: Option<TerminationReason>,
     pub url: Option<Url>,
     pub url_list: RefCell<Vec<Url>>,
     /// `None` can be considered a StatusCode of `0`.
+    #[ignore_heap_size_of = "Defined in hyper"]
     pub status: Option<StatusCode>,
-    pub raw_status: Option<RawStatus>,
+    pub raw_status: Option<(u16, Vec<u8>)>,
+    #[ignore_heap_size_of = "Defined in hyper"]
     pub headers: Headers,
+    #[ignore_heap_size_of = "Mutex heap size undefined"]
     pub body: Arc<Mutex<ResponseBody>>,
     pub cache_state: CacheState,
     pub https_state: HttpsState,
@@ -104,7 +106,7 @@ impl Response {
             url: None,
             url_list: RefCell::new(Vec::new()),
             status: Some(StatusCode::Ok),
-            raw_status: Some(RawStatus(200, "OK".into())),
+            raw_status: Some((200, b"OK".to_vec())),
             headers: Headers::new(),
             body: Arc::new(Mutex::new(ResponseBody::Empty)),
             cache_state: CacheState::None,
@@ -239,7 +241,7 @@ impl Response {
             None => None
         });
         metadata.headers = Some(Serde(self.headers.clone()));
-        metadata.status = self.raw_status.clone().map(Serde);
+        metadata.status = self.raw_status.clone();
         metadata.https_state = self.https_state;
         return Ok(metadata);
     }

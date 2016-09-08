@@ -560,9 +560,8 @@ pub struct Metadata {
     /// Headers
     pub headers: Option<Serde<Headers>>,
 
-    #[ignore_heap_size_of = "Defined in hyper"]
     /// HTTP Status
-    pub status: Option<Serde<RawStatus>>,
+    pub status: Option<(u16, Vec<u8>)>,
 
     /// Is successful HTTPS connection
     pub https_state: HttpsState,
@@ -580,7 +579,7 @@ impl Metadata {
             charset:      None,
             headers: None,
             // https://fetch.spec.whatwg.org/#concept-response-status-message
-            status: Some(Serde(RawStatus(200, "OK".into()))),
+            status: Some((200, b"OK".to_vec())),
             https_state: HttpsState::None,
             referrer: None,
         }

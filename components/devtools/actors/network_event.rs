@@ -11,12 +11,15 @@ extern crate hyper;
 use actor::{Actor, ActorMessageStatus, ActorRegistry};
 use devtools_traits::HttpRequest as DevtoolsHttpRequest;
 use devtools_traits::HttpResponse as DevtoolsHttpResponse;
+use encoding::all::UTF_8;
+use encoding::types::{DecoderTrap, Encoding};
 use hyper::header::Headers;
 use hyper::header::{ContentType, Cookie};
 use hyper::http::RawStatus;
 use hyper::method::Method;
 use protocol::JsonPacketStream;
 use serde_json::Value;
+use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::net::TcpStream;
 use time;
@@ -360,7 +363,10 @@ impl NetworkEventActor {
 
     pub fn add_response(&mut self, response: DevtoolsHttpResponse) {
         self.response.headers = response.headers.clone();
-        self.response.status = response.status.clone();
+        self.response.status = response.status.as_ref().map(|&(s, ref st)| {
+            let status_text = UTF_8.decode(st, DecoderTrap::Replace).unwrap();
+            RawStatus(s, Cow::from(status_text))
+        });
         self.response.body = response.body.clone();
      }
 

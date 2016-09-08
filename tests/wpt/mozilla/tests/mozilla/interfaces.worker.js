@@ -90,6 +90,7 @@ test_interfaces([
   "RadioNodeList",
   "Range",
   "Request",
+  "Response",
   "Screen",
   "Storage",
   "StorageEvent",
