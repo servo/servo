@@ -160,19 +160,7 @@ impl Stylesheet {
             let mut iter = RuleListParser::new_for_stylesheet(&mut input, rule_parser);
             while let Some(result) = iter.next() {
                 match result {
-                    Ok(rule) => {
-                        if let CSSRule::Namespace(ref rule) = rule {
-                            if let Some(ref prefix) = rule.prefix {
-                                iter.parser.context.selector_context.namespace_prefixes.insert(
-                                    prefix.clone(), rule.url.clone());
-                            } else {
-                                iter.parser.context.selector_context.default_namespace =
-                                    Some(rule.url.clone());
-                            }
-                        }
-
-                        rules.push(rule);
-                    }
+                    Ok(rule) => rules.push(rule),
                     Err(range) => {
                         let pos = range.start;
                         let message = format!("Invalid rule: '{}'", iter.input.slice(range));
@@ -427,7 +415,7 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
     type Prelude = AtRulePrelude;
     type AtRule = CSSRule;
 
-    fn parse_prelude(&self, name: &str, input: &mut Parser)
+    fn parse_prelude(&mut self, name: &str, input: &mut Parser)
                      -> Result<AtRuleType<AtRulePrelude, CSSRule>, ()> {
         match_ignore_ascii_case! { name,
             "import" => {
@@ -443,10 +431,21 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
                 if self.state.get() <= State::Namespaces {
                     self.state.set(State::Namespaces);
 
-                    let prefix = input.try(|input| input.expect_ident()).ok().map(|p| p.into());
+                    let prefix_result = input.try(|input| input.expect_ident());
                     let url = Namespace(Atom::from(try!(input.expect_url_or_string())));
+
+                    let opt_prefix = if let Ok(prefix) = prefix_result {
+                        let prefix: Atom = prefix.into();
+                        self.context.selector_context.namespace_prefixes.insert(
+                            prefix.clone(), url.clone());
+                        Some(prefix)
+                    } else {
+                        self.context.selector_context.default_namespace = Some(url.clone());
+                        None
+                    };
+
                     return Ok(AtRuleType::WithoutBlock(CSSRule::Namespace(Arc::new(NamespaceRule {
-                        prefix: prefix,
+                        prefix: opt_prefix,
                         url: url,
                     }))))
                 } else {
@@ -460,12 +459,12 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
         }
 
         self.state.set(State::Body);
-        AtRuleParser::parse_prelude(&NestedRuleParser { context: &self.context }, name, input)
+        AtRuleParser::parse_prelude(&mut NestedRuleParser { context: &self.context }, name, input)
     }
 
     #[inline]
-    fn parse_block(&self, prelude: AtRulePrelude, input: &mut Parser) -> Result<CSSRule, ()> {
-        AtRuleParser::parse_block(&NestedRuleParser { context: &self.context }, prelude, input)
+    fn parse_block(&mut self, prelude: AtRulePrelude, input: &mut Parser) -> Result<CSSRule, ()> {
+        AtRuleParser::parse_block(&mut NestedRuleParser { context: &self.context }, prelude, input)
     }
 }
 
@@ -475,14 +474,15 @@ impl<'a> QualifiedRuleParser for TopLevelRuleParser<'a> {
     type QualifiedRule = CSSRule;
 
     #[inline]
-    fn parse_prelude(&self, input: &mut Parser) -> Result<Vec<Selector<TheSelectorImpl>>, ()> {
+    fn parse_prelude(&mut self, input: &mut Parser) -> Result<Vec<Selector<TheSelectorImpl>>, ()> {
         self.state.set(State::Body);
-        QualifiedRuleParser::parse_prelude(&NestedRuleParser { context: &self.context }, input)
+        QualifiedRuleParser::parse_prelude(&mut NestedRuleParser { context: &self.context }, input)
     }
 
     #[inline]
-    fn parse_block(&self, prelude: Vec<Selector<TheSelectorImpl>>, input: &mut Parser) -> Result<CSSRule, ()> {
-        QualifiedRuleParser::parse_block(&NestedRuleParser { context: &self.context },
+    fn parse_block(&mut self, prelude: Vec<Selector<TheSelectorImpl>>, input: &mut Parser)
+                   -> Result<CSSRule, ()> {
+        QualifiedRuleParser::parse_block(&mut NestedRuleParser { context: &self.context },
                                          prelude, input)
     }
 }
@@ -497,7 +497,7 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
     type Prelude = AtRulePrelude;
     type AtRule = CSSRule;
 
-    fn parse_prelude(&self, name: &str, input: &mut Parser)
+    fn parse_prelude(&mut self, name: &str, input: &mut Parser)
                      -> Result<AtRuleType<AtRulePrelude, CSSRule>, ()> {
         match_ignore_ascii_case! { name,
             "media" => {
@@ -527,7 +527,7 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
         }
     }
 
-    fn parse_block(&self, prelude: AtRulePrelude, input: &mut Parser) -> Result<CSSRule, ()> {
+    fn parse_block(&mut self, prelude: AtRulePrelude, input: &mut Parser) -> Result<CSSRule, ()> {
         match prelude {
             AtRulePrelude::FontFace => {
                 Ok(CSSRule::FontFace(Arc::new(try!(parse_font_face_block(self.context, input)))))
@@ -555,11 +555,12 @@ impl<'a, 'b> QualifiedRuleParser for NestedRuleParser<'a, 'b> {
     type Prelude = Vec<Selector<TheSelectorImpl>>;
     type QualifiedRule = CSSRule;
 
-    fn parse_prelude(&self, input: &mut Parser) -> Result<Vec<Selector<TheSelectorImpl>>, ()> {
+    fn parse_prelude(&mut self, input: &mut Parser) -> Result<Vec<Selector<TheSelectorImpl>>, ()> {
         parse_selector_list(&self.context.selector_context, input)
     }
 
-    fn parse_block(&self, prelude: Vec<Selector<TheSelectorImpl>>, input: &mut Parser) -> Result<CSSRule, ()> {
+    fn parse_block(&mut self, prelude: Vec<Selector<TheSelectorImpl>>, input: &mut Parser)
+                   -> Result<CSSRule, ()> {
         Ok(CSSRule::Style(Arc::new(StyleRule {
             selectors: prelude,
             declarations: Arc::new(parse_property_declaration_list(self.context, input))

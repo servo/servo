@@ -544,7 +544,7 @@ impl<'a, 'b> AtRuleParser for PropertyDeclarationParser<'a, 'b> {
 impl<'a, 'b> DeclarationParser for PropertyDeclarationParser<'a, 'b> {
     type Declaration = (Vec<PropertyDeclaration>, Importance);
 
-    fn parse_value(&self, name: &str, input: &mut Parser)
+    fn parse_value(&mut self, name: &str, input: &mut Parser)
                    -> Result<(Vec<PropertyDeclaration>, Importance), ()> {
         let mut results = vec![];
         try!(input.parse_until_before(Delimiter::Bang, |input| {

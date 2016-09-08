@@ -225,7 +225,7 @@ impl<'a, 'b> AtRuleParser for ViewportRuleParser<'a, 'b> {
 impl<'a, 'b> DeclarationParser for ViewportRuleParser<'a, 'b> {
     type Declaration = Vec<ViewportDescriptorDeclaration>;
 
-    fn parse_value(&self, name: &str, input: &mut Parser) -> Result<Vec<ViewportDescriptorDeclaration>, ()> {
+    fn parse_value(&mut self, name: &str, input: &mut Parser) -> Result<Vec<ViewportDescriptorDeclaration>, ()> {
         macro_rules! declaration {
             ($declaration:ident($parse:path)) => {
                 declaration!($declaration(value: try!($parse(input)),

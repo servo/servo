@@ -119,7 +119,7 @@ impl<'a, 'b> AtRuleParser for FontFaceRuleParser<'a, 'b> {
 impl<'a, 'b> DeclarationParser for FontFaceRuleParser<'a, 'b> {
     type Declaration = FontFaceDescriptorDeclaration;
 
-    fn parse_value(&self, name: &str, input: &mut Parser) -> Result<FontFaceDescriptorDeclaration, ()> {
+    fn parse_value(&mut self, name: &str, input: &mut Parser) -> Result<FontFaceDescriptorDeclaration, ()> {
         match_ignore_ascii_case! { name,
             "font-family" => {
                 Ok(FontFaceDescriptorDeclaration::Family(try!(
