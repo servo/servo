@@ -257,16 +257,14 @@ class MachCommands(CommandBase):
                 # On windows, copy in our manifest
                 shutil.copy(path.join(self.get_top_dir(), "components", "servo", "servo.exe.manifest"),
                             servo_exe_dir)
-                if "msvc" in host_triple():
+                if "msvc" in (target or host_triple()):
+                    msvc_x64 = "64" if "x86_64" in (target or host_triple()) else ""
                     # on msvc builds, use editbin to change the subsystem to windows
                     call(["editbin", "/nologo", "/subsystem:windows", path.join(servo_exe_dir, "servo.exe")],
                          verbose=verbose)
                     # on msvc, we need to copy in some DLLs in to the servo.exe dir
                     for ssl_lib in ["ssleay32md.dll", "libeay32md.dll"]:
-                        shutil.copy(path.join(os.getenv('OPENSSL_LIB_DIR'), "../bin64", ssl_lib),
-                                    servo_exe_dir)
-                    for ffmpeg_lib in ["avutil-55.dll", "avformat-57.dll", "avcodec-57.dll", "swresample-2.dll"]:
-                        shutil.copy(path.join(os.getenv('FFMPEG_LIB_DIR'), "../bin", ffmpeg_lib),
+                        shutil.copy(path.join(env['OPENSSL_LIB_DIR'], "../bin" + msvc_x64, ssl_lib),
                                     servo_exe_dir)
 
                 elif sys.platform == "darwin":

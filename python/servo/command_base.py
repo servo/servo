@@ -372,6 +372,18 @@ class CommandBase(object):
             env['PATH'] = env['PATH'].encode('ascii', 'ignore')
         extra_path = []
         extra_lib = []
+        if "msvc" in (target or host_triple()):
+            msvc_x64 = "64" if "x86_64" in (target or host_triple()) else ""
+            msvc_deps_dir = path.join(self.context.sharedir, "msvc-dependencies")
+            extra_path += [path.join(msvc_deps_dir, "cmake", "bin")]
+            extra_path += [path.join(msvc_deps_dir, "ninja", "bin")]
+            # Link openssl
+            env["OPENSSL_INCLUDE_DIR"] = path.join(msvc_deps_dir, "openssl", "include")
+            env["OPENSSL_LIB_DIR"] = path.join(msvc_deps_dir, "openssl", "lib" + msvc_x64)
+            env["OPENSSL_LIBS"] = "ssleay32MD:libeay32MD"
+            # Link moztools
+            env["MOZTOOLS_PATH"] = path.join(msvc_deps_dir, "moztools", "bin")
+
         if not self.config["tools"]["system-rust"] \
                 or self.config["tools"]["rust-root"]:
             env["RUST_ROOT"] = self.config["tools"]["rust-root"]
@@ -493,6 +505,8 @@ class CommandBase(object):
         if self.context.bootstrapped:
             return
 
+        target_platform = target or host_triple()
+
         rust_root = self.config["tools"]["rust-root"]
         rustc_path = path.join(
             rust_root, "rustc", "bin", "rustc" + BIN_SUFFIX
@@ -501,8 +515,12 @@ class CommandBase(object):
 
         base_target_path = path.join(rust_root, "rustc", "lib", "rustlib")
 
-        target_path = path.join(base_target_path, target or host_triple())
+        target_path = path.join(base_target_path, target_platform)
         target_exists = path.exists(target_path)
+
+        # Always check if all needed MSVC dependencies are installed
+        if "msvc" in target_platform:
+            Registrar.dispatch("bootstrap", context=self.context)
 
         if not (self.config['tools']['system-rust'] or (rustc_binary_exists and target_exists)):
             print("looking for rustc at %s" % (rustc_path))
