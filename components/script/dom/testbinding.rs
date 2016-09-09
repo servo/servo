@@ -12,8 +12,9 @@ use dom::bindings::codegen::Bindings::TestBindingBinding::{TestBindingMethods, T
 use dom::bindings::codegen::Bindings::TestBindingBinding::{TestDictionaryDefaults, TestEnum};
 use dom::bindings::codegen::UnionTypes::{BlobOrBoolean, BlobOrBlobSequence, LongOrLongSequenceSequence};
 use dom::bindings::codegen::UnionTypes::{BlobOrString, BlobOrUnsignedLong, EventOrString};
-use dom::bindings::codegen::UnionTypes::{ByteStringOrLong, ByteStringSequenceOrLongOrString, ByteStringSequenceOrLong};
-use dom::bindings::codegen::UnionTypes::{EventOrUSVString, HTMLElementOrLong};
+use dom::bindings::codegen::UnionTypes::{ByteStringOrLong, ByteStringSequenceOrLongOrString};
+use dom::bindings::codegen::UnionTypes::{ByteStringSequenceOrLong, DocumentOrTestTypedef};
+use dom::bindings::codegen::UnionTypes::{EventOrUSVString, HTMLElementOrLong, LongSequenceOrTestTypedef};
 use dom::bindings::codegen::UnionTypes::{HTMLElementOrUnsignedLongOrStringOrBoolean, LongSequenceOrBoolean};
 use dom::bindings::codegen::UnionTypes::{StringOrLongSequence, StringOrStringSequence, StringSequenceOrUnsignedLong};
 use dom::bindings::codegen::UnionTypes::{StringOrUnsignedLong, StringOrBoolean, UnsignedLongOrBoolean};
@@ -421,6 +422,8 @@ impl TestBindingMethods for TestBinding {
     fn PassUnion6(&self, _: UnsignedLongOrBoolean) {}
     fn PassUnion7(&self, _: StringSequenceOrUnsignedLong) {}
     fn PassUnion8(&self, _: ByteStringSequenceOrLong) {}
+    fn PassUnionWithTypedef(&self, _: DocumentOrTestTypedef) {}
+    fn PassUnionWithTypedef2(&self, _: LongSequenceOrTestTypedef) {}
     fn PassAny(&self, _: *mut JSContext, _: HandleValue) {}
     fn PassObject(&self, _: *mut JSContext, _: *mut JSObject) {}
     fn PassCallbackFunction(&self, _: Rc<Function>) {}
