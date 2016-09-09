@@ -393,6 +393,148 @@ impl<T: ClipboardProvider> TextInput<T> {
         self.perform_horizontal_adjustment(adjust, select);
     }
 
+    /// Adjust the editing point position to the (start|end) of the current line.
+    pub fn adjust_horizontal_to_end(&mut self, direction: Direction, select: Selection) {
+        if self.adjust_selection_for_horizontal_change(direction, select) {
+            return
+        }
+        let adjust = {
+            let current_line = &self.lines[self.edit_point.line];
+            match direction {
+                Direction::Forward => {
+                    let mut i = 0;
+
+                    // current_line[self.edit_point.index..].length() won't cut it here, as each
+                    // UTF-8 character has variable size.
+                    for ch in current_line[self.edit_point.index..].chars() {
+                        i = i + (ch.len_utf8() as isize);
+                    }
+
+                    i
+                }
+                Direction::Backward => {
+                    let mut i = 0;
+                    let mut iter = current_line[..self.edit_point.index].chars();
+
+                    loop {
+                        match iter.next_back() {
+                            Some(ch) => i = i - (ch.len_utf8() as isize),
+                            None => break,
+                        }
+                    }
+
+                    i
+                }
+            }
+        };
+        self.perform_horizontal_adjustment(adjust, select);
+    }
+
+    /// Returns the adjustment needed to move to the start of the previous or current word.
+    ///
+    /// "he<cursor>llo world\n\nhi" would be 2, since the cursor must move to the start of "hello".
+    /// "hello <cursor>world\n\nhi" would be 6, since the cursor must move to the start of "hello".
+    /// "hello world\n\n<cursor>hi" would be 7, since the cursor must move to the start of "world".
+    fn word_start_adjustment(&self) -> isize {
+        let mut adjust = 0;
+        let mut found_non_whitespace = false;
+        let mut edit_point_index = Some(self.edit_point.index);
+        let mut line_iter = self.lines[..(self.edit_point.line + 1)].iter();
+
+        'line: loop {
+            match line_iter.next_back() {
+                Some(line) => {
+                    let mut char_iter = match edit_point_index {
+                        Some(i) => line[..i].chars(),
+                        None => line.chars(),
+                    };
+
+                    'chars: loop {
+                        match char_iter.next_back() {
+                            Some(ch) => {
+                                let is_whitespace = ch.is_whitespace();
+
+                                // We want to ignore whitespace until we enter a word, then stop at
+                                // either the first whitespace we find or the end of the text.
+                                if is_whitespace && found_non_whitespace { break 'line; }
+                                // Ensure we record if we found a non whitespace char.  We may not,
+                                // in which case we have to jump to the next line.
+                                if !is_whitespace { found_non_whitespace = true; }
+
+                                adjust = adjust - (ch.len_utf8() as isize);
+                            },
+                            None => break 'chars,
+                        }
+                    }
+
+                    // If we've found some part of a word, we can stop at the end of the
+                    // current line.  Otherwise, we need to jump to the end of the first word
+                    // of the next line.
+                    if found_non_whitespace { break 'line; }
+
+                    adjust = adjust - 1; // Account for newline character
+                    edit_point_index = None;
+                },
+                None => break 'line,
+            }
+        }
+
+        adjust
+    }
+
+    /// Returns the adjustment needed to move to the end of the next or current word.
+    ///
+    /// "he<cursor>llo world\n\nhi" would be 3, since the cursor must move to the end of "hello".
+    /// "hello<cursor> world\n\nhi" would be 6, since the cursor must move to the end of "world".
+    /// "hello world<cursor>\n\nhi" would be 4, since the cursor must move to the end of "hi".
+    fn word_end_adjustment(&self) -> isize {
+        let mut adjust = 0;
+        let mut found_non_whitespace = false;
+        let mut edit_point_index = Some(self.edit_point.index);
+
+        'line: for line in self.lines[self.edit_point.line..].iter() {
+            let char_iter = match edit_point_index {
+                Some(i) => line[i..].chars(),
+                None => line.chars(),
+            };
+
+            'chars: for ch in char_iter {
+                let is_whitespace = ch.is_whitespace();
+
+                // We want to ignore whitespace until we enter a word, then stop at either the first
+                // whitespace we find or the end of the text.
+                if is_whitespace && found_non_whitespace { break 'line; }
+                // Ensure we record if we found a non whitespace char.  We may not, in which case
+                // we have to jump to the next line.
+                if !is_whitespace { found_non_whitespace = true; }
+
+                adjust = adjust + (ch.len_utf8() as isize);
+            }
+
+            // If we've found some part of a word, we can stop at the end of the
+            // current line.  Otherwise, we need to jump to the end of the first word
+            // of the next line.
+            if found_non_whitespace { break 'line; }
+
+            adjust = adjust + 1; // Account for newline character
+            edit_point_index = None;
+        }
+
+        adjust
+    }
+
+    /// Adjust the editing point position to the (start|end) of the (current|next|previous) word.
+    pub fn adjust_horizontal_by_word(&mut self, direction: Direction, select: Selection) {
+        if self.adjust_selection_for_horizontal_change(direction, select) {
+            return
+        }
+        let adjust = match direction {
+            Direction::Backward => self.word_start_adjustment(),
+            Direction::Forward => self.word_end_adjustment(),
+        };
+        self.perform_horizontal_adjustment(adjust, select);
+    }
+
     /// Return whether to cancel the caret move
     fn adjust_selection_for_horizontal_change(&mut self, adjust: Direction, select: Selection)
                                               -> bool {
@@ -480,8 +622,18 @@ impl<T: ClipboardProvider> TextInput<T> {
                               mods: KeyModifiers) -> KeyReaction {
         let maybe_select = if mods.contains(SHIFT) { Selection::Selected } else { Selection::NotSelected };
         match (printable, key) {
+            #[cfg(target_os = "macos")]
+            (Some('a'), _) if (mods == CONTROL) || (mods == CONTROL | SHIFT) => {
+                self.adjust_horizontal_to_end(Direction::Backward, maybe_select);
+                KeyReaction::RedrawSelection
+            },
             (Some('a'), _) if is_control_key(mods) => {
                 self.select_all();
+                KeyReaction::RedrawSelection
+            },
+            #[cfg(target_os = "macos")]
+            (Some('b'), _) if (mods == CONTROL | ALT) || (mods == CONTROL | ALT | SHIFT) => {
+                self.adjust_horizontal_by_word(Direction::Backward, maybe_select);
                 KeyReaction::RedrawSelection
             },
             (Some('c'), _) if is_control_key(mods) => {
@@ -489,6 +641,16 @@ impl<T: ClipboardProvider> TextInput<T> {
                     self.clipboard_provider.set_clipboard_contents(text);
                 }
                 KeyReaction::DispatchInput
+            },
+            #[cfg(target_os = "macos")]
+            (Some('e'), _) if (mods == CONTROL) || (mods == CONTROL | SHIFT) => {
+                self.adjust_horizontal_to_end(Direction::Forward, maybe_select);
+                KeyReaction::RedrawSelection
+            },
+            #[cfg(target_os = "macos")]
+            (Some('f'), _) if (mods == CONTROL | ALT) || (mods == CONTROL | ALT | SHIFT) => {
+                self.adjust_horizontal_by_word(Direction::Forward, maybe_select);
+                KeyReaction::RedrawSelection
             },
             (Some('v'), _) if is_control_key(mods) => {
                 let contents = self.clipboard_provider.clipboard_contents();
@@ -507,14 +669,34 @@ impl<T: ClipboardProvider> TextInput<T> {
                 self.delete_char(Direction::Backward);
                 KeyReaction::DispatchInput
             }
+            #[cfg(target_os = "macos")]
+            (None, Key::Left) if (mods == ALT) || (mods == ALT | SHIFT) => {
+                self.adjust_horizontal_by_word(Direction::Backward, maybe_select);
+                KeyReaction::RedrawSelection
+            },
+            #[cfg(target_os = "macos")]
+            (None, Key::Left) if is_control_key(mods) => {
+                self.adjust_horizontal_to_end(Direction::Backward, maybe_select);
+                KeyReaction::RedrawSelection
+            },
             (None, Key::Left) => {
                 self.adjust_horizontal_by_one(Direction::Backward, maybe_select);
                 KeyReaction::RedrawSelection
-            }
+            },
+            #[cfg(target_os = "macos")]
+            (None, Key::Right) if (mods == ALT) || (mods == ALT | SHIFT) => {
+                self.adjust_horizontal_by_word(Direction::Forward, maybe_select);
+                KeyReaction::RedrawSelection
+            },
+            #[cfg(target_os = "macos")]
+            (None, Key::Right) if is_control_key(mods) => {
+                self.adjust_horizontal_to_end(Direction::Forward, maybe_select);
+                KeyReaction::RedrawSelection
+            },
             (None, Key::Right) => {
                 self.adjust_horizontal_by_one(Direction::Forward, maybe_select);
                 KeyReaction::RedrawSelection
-            }
+            },
             (None, Key::Up) => {
                 self.adjust_vertical(-1, maybe_select);
                 KeyReaction::RedrawSelection
