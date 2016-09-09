@@ -310,6 +310,10 @@ impl PropertyDeclarationBlock {
     pub fn any_normal(&self) -> bool {
         self.declarations.len() > self.important_count as usize
     }
+
+    pub fn get(&self, property_name: &str) -> Option< &(PropertyDeclaration, Importance)> {
+        self.declarations.iter().find(|&&(ref decl, _)| decl.matches(property_name))
+    }
 }
 
 impl ToCss for PropertyDeclarationBlock {
@@ -740,7 +744,7 @@ impl Shorthand {
 
     /// Serializes possible shorthand value to String.
     pub fn serialize_shorthand_value_to_string<'a, I>(self, declarations: I, importance: Importance) -> String
-    where I: Iterator<Item=&'a PropertyDeclaration> + Clone {
+    where I: IntoIterator<Item=&'a PropertyDeclaration>, I::IntoIter: Clone {
         let appendable_value = self.get_shorthand_appendable_value(declarations).unwrap();
         let mut result = String::new();
         append_declaration_value(&mut result, appendable_value, importance).unwrap();
@@ -754,7 +758,7 @@ impl Shorthand {
                                                    declarations: I,
                                                    is_first_serialization: &mut bool)
                                                    -> Result<bool, fmt::Error>
-    where W: Write, I: Iterator<Item=&'a PropertyDeclaration> + Clone {
+    where W: Write, I: IntoIterator<Item=&'a PropertyDeclaration>, I::IntoIter: Clone {
         match self.get_shorthand_appendable_value(declarations) {
             None => Ok(false),
             Some(appendable_value) => {
@@ -771,8 +775,10 @@ impl Shorthand {
         }
     }
 
-    fn get_shorthand_appendable_value<'a, I>(self, declarations: I) -> Option<AppendableValue<'a, I>>
-        where I: Iterator<Item=&'a PropertyDeclaration> + Clone {
+    fn get_shorthand_appendable_value<'a, I>(self, declarations: I)
+                                             -> Option<AppendableValue<'a, I::IntoIter>>
+        where I: IntoIterator<Item=&'a PropertyDeclaration>, I::IntoIter: Clone {
+            let declarations = declarations.into_iter();
 
             // Only cloning iterators (a few pointers each) not declarations.
             let mut declarations2 = declarations.clone();

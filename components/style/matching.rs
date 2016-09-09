@@ -14,7 +14,7 @@ use context::{StyleContext, SharedStyleContext};
 use data::PrivateStyleData;
 use dom::{TElement, TNode, TRestyleDamage, UnsafeNode};
 use properties::longhands::display::computed_value as display;
-use properties::{ComputedValues, cascade, PropertyDeclarationBlock};
+use properties::{ComputedValues, cascade};
 use selector_impl::{TheSelectorImpl, PseudoElement};
 use selector_matching::{ApplicableDeclarationBlock, Stylist};
 use selectors::bloom::BloomFilter;
@@ -24,6 +24,7 @@ use sink::ForgetfulSink;
 use smallvec::SmallVec;
 use std::collections::HashMap;
 use std::hash::{BuildHasherDefault, Hash, Hasher};
+use std::ops::Deref;
 use std::slice::IterMut;
 use std::sync::Arc;
 use string_cache::Atom;
@@ -139,7 +140,7 @@ impl<'a> Hash for ApplicableDeclarationsCacheQuery<'a> {
         for declaration in self.declarations {
             // Each declaration contians an Arc, which is a stable
             // pointer; we use that for hashing and equality.
-            let ptr: *const PropertyDeclarationBlock = &*declaration.mixed_declarations;
+            let ptr: *const _ = Arc::deref(&declaration.mixed_declarations);
             ptr.hash(state);
             declaration.importance.hash(state);
         }

@@ -109,7 +109,7 @@ pub struct Element {
     prefix: Option<DOMString>,
     attrs: DOMRefCell<Vec<JS<Attr>>>,
     id_attribute: DOMRefCell<Option<Atom>>,
-    style_attribute: DOMRefCell<Option<Arc<PropertyDeclarationBlock>>>,
+    style_attribute: DOMRefCell<Option<Arc<DOMRefCell<PropertyDeclarationBlock>>>>,
     attr_list: MutNullableHeap<JS<NamedNodeMap>>,
     class_list: MutNullableHeap<JS<DOMTokenList>>,
     state: Cell<ElementState>,
@@ -297,7 +297,7 @@ pub trait LayoutElementHelpers {
     #[allow(unsafe_code)]
     unsafe fn html_element_in_html_document_for_layout(&self) -> bool;
     fn id_attribute(&self) -> *const Option<Atom>;
-    fn style_attribute(&self) -> *const Option<Arc<PropertyDeclarationBlock>>;
+    fn style_attribute(&self) -> *const Option<Arc<DOMRefCell<PropertyDeclarationBlock>>>;
     fn local_name(&self) -> &Atom;
     fn namespace(&self) -> &Namespace;
     fn get_checked_state_for_layout(&self) -> bool;
@@ -329,10 +329,10 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         #[inline]
         fn from_declaration(rule: PropertyDeclaration) -> ApplicableDeclarationBlock {
             ApplicableDeclarationBlock::from_declarations(
-                Arc::new(PropertyDeclarationBlock {
+                Arc::new(DOMRefCell::new(PropertyDeclarationBlock {
                     declarations: vec![(rule, Importance::Normal)],
                     important_count: 0,
-                }),
+                })),
                 Importance::Normal)
         }
 
@@ -618,7 +618,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
     }
 
     #[allow(unsafe_code)]
-    fn style_attribute(&self) -> *const Option<Arc<PropertyDeclarationBlock>> {
+    fn style_attribute(&self) -> *const Option<Arc<DOMRefCell<PropertyDeclarationBlock>>> {
         unsafe {
             (*self.unsafe_get()).style_attribute.borrow_for_layout()
         }
@@ -707,7 +707,7 @@ impl Element {
         self.attrs.borrow()
     }
 
-    pub fn style_attribute(&self) -> &DOMRefCell<Option<Arc<PropertyDeclarationBlock>>> {
+    pub fn style_attribute(&self) -> &DOMRefCell<Option<Arc<DOMRefCell<PropertyDeclarationBlock>>>> {
         &self.style_attribute
     }
 
@@ -737,7 +737,7 @@ impl Element {
     // therefore, it should not trigger subsequent mutation events
     pub fn sync_property_with_attrs_style(&self) {
         let style_str = if let &Some(ref declarations) = &*self.style_attribute().borrow() {
-            declarations.to_css_string()
+            declarations.borrow().to_css_string()
         } else {
             String::new()
         };
@@ -769,7 +769,7 @@ impl Element {
             let mut inline_declarations = element.style_attribute.borrow_mut();
             if let &mut Some(ref mut declarations) = &mut *inline_declarations {
                 let mut importance = None;
-                let index = declarations.declarations.iter().position(|&(ref decl, i)| {
+                let index = declarations.borrow().declarations.iter().position(|&(ref decl, i)| {
                     let matching = decl.matches(property);
                     if matching {
                         importance = Some(i)
@@ -777,7 +777,7 @@ impl Element {
                     matching
                 });
                 if let Some(index) = index {
-                    let declarations = Arc::make_mut(declarations);
+                    let mut declarations = Arc::make_mut(declarations).borrow_mut();
                     declarations.declarations.remove(index);
                     if importance.unwrap().important() {
                         declarations.important_count -= 1;
@@ -800,7 +800,8 @@ impl Element {
                 {
                     // Usually, the reference count will be 1 here. But transitions could make it greater
                     // than that.
-                    let declaration_block = Arc::make_mut(declaration_block);
+                    let mut declaration_block = Arc::make_mut(declaration_block).borrow_mut();
+                    let declaration_block = &mut *declaration_block;
                     let existing_declarations = &mut declaration_block.declarations;
 
                     'outer: for incoming_declaration in declarations {
@@ -834,10 +835,10 @@ impl Element {
                 0
             };
 
-            *inline_declarations = Some(Arc::new(PropertyDeclarationBlock {
+            *inline_declarations = Some(Arc::new(DOMRefCell::new(PropertyDeclarationBlock {
                 declarations: declarations.into_iter().map(|d| (d, importance)).collect(),
                 important_count: important_count,
-            }));
+            })));
         }
 
         update(self, declarations, importance);
@@ -852,7 +853,8 @@ impl Element {
             if let &mut Some(ref mut block) = &mut *inline_declarations {
                 // Usually, the reference counts of `from` and `to` will be 1 here. But transitions
                 // could make them greater than that.
-                let block = Arc::make_mut(block);
+                let mut block = Arc::make_mut(block).borrow_mut();
+                let block = &mut *block;
                 let declarations = &mut block.declarations;
                 for &mut (ref declaration, ref mut importance) in declarations {
                     if properties.iter().any(|p| declaration.name() == **p) {
@@ -874,16 +876,15 @@ impl Element {
         self.sync_property_with_attrs_style();
     }
 
-    pub fn get_inline_style_declaration(&self,
-                                        property: &Atom)
-                                        -> Option<Ref<(PropertyDeclaration, Importance)>> {
-        Ref::filter_map(self.style_attribute.borrow(), |inline_declarations| {
-            inline_declarations.as_ref().and_then(|declarations| {
-                declarations.declarations
-                            .iter()
-                            .find(|&&(ref decl, _)| decl.matches(&property))
-            })
-        })
+    pub fn get_inline_style_declaration<F, R>(&self, property: &str, f: F) -> R
+    where F: FnOnce(Option<&(PropertyDeclaration, Importance)>) -> R {
+        let style_attr = self.style_attribute.borrow();
+        if let Some(ref block) = *style_attr {
+            let block = block.borrow();
+            f(block.get(property))
+        } else {
+            f(None)
+        }
     }
 
     pub fn serialize(&self, traversal_scope: TraversalScope) -> Fallible<DOMString> {
@@ -2108,11 +2109,11 @@ impl VirtualMethods for Element {
                 *self.style_attribute.borrow_mut() =
                     mutation.new_value(attr).map(|value| {
                         let win = window_from_node(self);
-                        Arc::new(parse_style_attribute(
+                        Arc::new(DOMRefCell::new(parse_style_attribute(
                             &value,
                             &doc.base_url(),
                             win.css_error_reporter(),
-                            ParserContextExtraData::default()))
+                            ParserContextExtraData::default())))
                     });
                 if node.is_in_doc() {
                     node.dirty(NodeDamage::NodeStyleDamaged);
