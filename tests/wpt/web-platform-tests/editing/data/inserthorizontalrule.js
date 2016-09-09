@@ -103,7 +103,7 @@ var browserTests = [
     [["defaultparagraphseparator","div"],["inserthorizontalrule",""]],
     "<p>foo</p><hr>{}<p>baz</p>",
     [true,true],
-    {"defaultparagraphseparator":[false,false,"p",false,false,"div"],"inserthorizontalrule":[false,false,"",false,false,""]}],
+    {"defaultparagraphseparator":[false,false,"div",false,false,"div"],"inserthorizontalrule":[false,false,"",false,false,""]}],
 ["<p>foo<p>[bar]<p>baz",
     [["defaultparagraphseparator","p"],["inserthorizontalrule",""]],
     "<p>foo</p><hr>{}<p>baz</p>",

@@ -146,5 +146,5 @@ var elements = [
   ["video", "Video"],
   ["wbr", ""],
   ["xmp", "Pre"],
-  ["å-bar", "Unknown"], // not a valid custom element name
+  ["\u00E5-bar", "Unknown"], // not a valid custom element name
 ];

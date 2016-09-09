@@ -1,11 +1,14 @@
 <!DOCTYPE html>
-<title>dataset: should return 'undefined' for non-existent properties</title>
+<title>dataset: should exist and work on HTML and SVG elements, but not random elements</title>
 <link rel="author" title="Ms2ger" href="mailto:ms2ger@gmail.com">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <div id="log"></div>
 <script>
 var div = document.createElement("div");
+test(function() {
+  assert_true(div.dataset instanceof DOMStringMap);
+}, "HTML elements should have a .dataset");
 test(function() {
   assert_false("foo" in div.dataset);
   assert_equals(div.dataset.foo, undefined);
@@ -25,4 +28,11 @@ test(function() {
   assert_false("foo" in div.dataset);
   assert_equals(div.dataset.foo, undefined);
 }, "Should return 'undefined' after removing an attribute")
+test(function() {
+  assert_equals(document.createElementNS("test", "test").dataset, undefined);
+}, "Should not have a .dataset on random elements");
+test(function() {
+  var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg")
+  assert_true(svg.dataset instanceof DOMStringMap);
+}, "SVG elements should have a .dataset");
 </script>

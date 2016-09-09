@@ -1394,6 +1394,9 @@ IdlInterface.prototype.test_members = function()
             {
                 this.test_member_attribute(member);
             }
+            if (member.stringifier) {
+                this.test_member_stringifier(member);
+            }
             break;
 
         case "operation":

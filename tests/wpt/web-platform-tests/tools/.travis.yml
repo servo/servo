@@ -1,12 +1,35 @@
 language: python
-python:
-  - "2.7"
-  - "3.5"
+
+sudo: false
+
+cache:
+  directories:
+    - $HOME/.cache/pip
+
+matrix:
+  include:
+  - python: 2.7
+    env: TOXENV=py27
+  - python: 3.5
+    env: TOXENV=py35
+  - python: pypy
+    env: TOXENV=pypy
+
+# An ugly hack needed to make py.test believe our top level can be
+# imported (on Travis CI, we end up in a wpt-tools directory, and of
+# course you cannot import a name including a hyphen in Python, so it
+# ignores the fact we have a __init__.py at the top level).
+before_install:
+  - mv `pwd` /tmp/tools
+  - cd /tmp/tools
+  - export TRAVIS_BUILD_DIR=/tmp/tools
+
 install:
-  - pip install flake8
-  - pip install pytest
-  - pip install ./html5lib
-  - pip install pytest-travis-fold
+  - pip install -U tox codecov
+
 script:
-  - py.test manifest
-  - flake8
+  - tox
+
+after_success:
+  - coverage combine
+  - codecov

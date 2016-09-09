@@ -29,6 +29,7 @@ invalid = {
     "host-newline": "http://example.\norg",
     "host-cr": "http://example.\rorg",
     "host-square-brackets-port-contains-colon": "http://[1::2]:3:4",
+    "port-999999": "http://f:999999/c",
     "port-single-letter": "http://f:b/c",
     "port-multiple-letters": "http://f:fifty-two/c",
     "port-leading-colon": "http://2001::1",

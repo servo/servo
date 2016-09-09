@@ -1,0 +1,31 @@
+<!doctype html>
+<meta charset=utf-8>
+<title></title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+promise_test(function(t) {
+  var ac = new OfflineAudioContext(2, 2048, 44100);
+  var panner = ac.createPanner();
+  panner.positionX.value = -1;
+  panner.positionY.value = -1;
+  panner.positionZ.value = 1;
+  panner.positionX.setValueAtTime(1, 1024/ac.sampleRate);
+  var osc = ac.createOscillator();
+  osc.connect(panner);
+  panner.connect(ac.destination);
+  osc.start()
+  return ac.startRendering().then(function(buffer) {
+    var left = buffer.getChannelData(0);
+    var right = buffer.getChannelData(1);
+    for (var i = 0; i < 2048; ++i) {
+      if (i < 1024) {
+        assert_true(Math.abs(left[i]) >= Math.abs(right[i]), "index " + i + " should be on the left");
+      } else {
+        assert_true(Math.abs(left[i]) < Math.abs(right[i]), "index " + i + " should be on the right");
+      }
+    }
+  });
+}, "PannerNode AudioParam automation works properly");
+
+</script>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<!-- Copyright © 2016 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="mediasource-util.js"></script>
+<script>
+    function mediasource_detach_test(testFunction, description)
+    {
+        mediasource_test(function(test, mediaElement, mediaSource)
+        {
+            var segmentInfo = MediaSourceUtil.SEGMENT_INFO;
+            var sourceBuffer = mediaSource.addSourceBuffer(segmentInfo.type);
+
+            assert_equals(mediaElement.readyState, HTMLMediaElement.HAVE_NOTHING);
+            assert_equals(mediaSource.readyState, 'open');
+
+            mediaSource.addEventListener('sourceclose', test.step_func(function (event)
+            {
+                assert_equals(mediaSource.sourceBuffers.length, 0, 'sourceBuffers is empty');
+                assert_equals(mediaSource.activeSourceBuffers.length, 0, 'activeSourceBuffers is empty');
+                assert_equals(mediaSource.readyState, 'closed', 'readyState is "closed"');
+                assert_true(Number.isNaN(mediaSource.duration), 'duration is NaN');
+                test.done();
+            }));
+
+            MediaSourceUtil.loadBinaryData(test, segmentInfo.url, function(mediaData)
+            {
+                testFunction(test, mediaElement, mediaSource, sourceBuffer, mediaData);
+            });
+        }, description);
+    }
+
+    mediasource_detach_test(function(test, mediaElement, mediaSource, sourceBuffer, mediaData)
+    {
+        mediaElement.load();
+    }, 'Test media.load() before appending data will trigger MediaSource detaching from a media element.');
+
+    mediasource_detach_test(function(test, mediaElement, mediaSource, sourceBuffer, mediaData)
+    {
+        sourceBuffer.addEventListener('updateend', test.step_func(function (event)
+        {
+            assert_greater_than(mediaElement.readyState, HTMLMediaElement.HAVE_NOTHING, 'media readyState is greater than "HAVE_NOTHING"')
+            assert_false(sourceBuffer.updating, 'updating attribute is false');
+            mediaElement.load();
+        }));
+
+        sourceBuffer.appendBuffer(mediaData);
+    }, 'Test media.load() after appending data will trigger MediaSource detaching from a media element.');
+</script>

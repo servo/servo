@@ -462,6 +462,46 @@ ReflectionTests.typeMap = {
         "idlDomExpected": [null/*exception*/, 1, maxInt, null, null]
     },
     /**
+     * "If a reflecting IDL attribute has an unsigned integer type (unsigned
+     * long) that is limited to only non-negative numbers greater than zero
+     * with fallback, then the behaviour is similar to the previous case, but
+     * disallowed values are converted to the default value.  On getting, the
+     * content attribute must first be parsed according to the rules for
+     * parsing non-negative integers, and if that is successful, and the value
+     * is in the range 1 to 2147483647 inclusive, the resulting value must be
+     * returned.  If, on the other hand, it fails or returns an out of range
+     * value, or if the attribute is absent, the default value must be returned
+     * instead.  On setting, first, if the new value is in the range 1 to
+     * 2147483647, then let n be the new value, otherwise let n be the default
+     * value; then, n must be converted to the shortest possible string
+     * representing the number as a valid non-negative integer and that string
+     * must be used as the new content attribute value."
+     */
+    "limited unsigned long with fallback": {
+        "jsType": "number",
+            "domTests": [minInt - 1, minInt, -36,  -1,   0,    1, maxInt,
+                         maxInt + 1, maxUnsigned, maxUnsigned + 1, "", "-1", "-0", "0", "1",
+                         "\u00097", "\u000B7", "\u000C7", "\u00207", "\u00A07", "\uFEFF7",
+                         "\u000A7", "\u000D7", "\u20287", "\u20297", "\u16807", "\u180E7",
+                         "\u20007", "\u20017", "\u20027", "\u20037", "\u20047", "\u20057",
+                         "\u20067", "\u20077", "\u20087", "\u20097", "\u200A7", "\u202F7",
+                         "\u30007",
+                         " " + binaryString + " foo ", undefined, 1.5, true, false,
+                         {"test": 6}, NaN, +Infinity, -Infinity, "\0",
+                         {toString:function() {return 2;}, valueOf: null},
+                         {valueOf:function() {return 3;}}],
+            "domExpected": function(val) {
+                var parsed = ReflectionTests.parseNonneg(String(val));
+                // Note maxInt, not maxUnsigned.
+                if (parsed === false || parsed < 1 || parsed > maxInt) {
+                    return null;
+                }
+                return parsed;
+            },
+            "idlTests":       [0, 1, maxInt, maxInt + 1, maxUnsigned],
+            "idlDomExpected": [null, 1, maxInt, null, null]
+    },
+    /**
      * "If a reflecting IDL attribute is a floating point number type (double),
      * then, on getting, the content attribute must be parsed according to the
      * rules for parsing floating point number values, and if that is

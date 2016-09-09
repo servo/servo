@@ -3,7 +3,7 @@ var browserTests = [
     [["defaultparagraphseparator",""]],
     "foo[bar]baz",
     [false],
-    {"defaultparagraphseparator":[false,false,"p",false,false,"div"]}],
+    {"defaultparagraphseparator":[false,false,"div",false,false,"div"]}],
 ["foo[bar]baz",
     [["defaultparagraphseparator","div"]],
     "foo[bar]baz",

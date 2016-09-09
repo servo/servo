@@ -4,8 +4,8 @@
     <head>
         <title>setMediaKeys() multiple times with different MediaKeys.</title>
         <script src="encrypted-media-utils.js"></script>
-        <script src="../../resources/testharness.js"></script>
-        <script src="../../resources/testharnessreport.js"></script>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
     </head>
     <body>
         <video id="video"></video>
@@ -14,13 +14,14 @@
             promise_test(function(test)
             {
                 var video = document.getElementById('video');
+                var content = 'webm/test-encrypted.webm';
                 var keySystemAccess;
                 var mediaKeys1;
                 var mediaKeys2;
 
                 assert_equals(video.mediaKeys, null);
 
-                return navigator.requestMediaKeySystemAccess('org.w3.clearkey', [{}]).then(function(access) {
+                return navigator.requestMediaKeySystemAccess('org.w3.clearkey', getConfigurationForFile(content)).then(function(access) {
                     keySystemAccess = access;
                     // Create a mediaKeys.
                     return keySystemAccess.createMediaKeys();
@@ -49,7 +50,7 @@
                 }).then(function() {
                     assert_true(video.mediaKeys === mediaKeys1);
                     // Load the media element to create the WebMediaPlayer.
-                    video.src = '../content/test-encrypted.webm';
+                    video.src = content;
                     // Set mediaKeys2 on video (switching MediaKeys) not
                     // supported after WebMediaPlayer is created.
                     return video.setMediaKeys(mediaKeys2);

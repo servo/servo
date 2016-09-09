@@ -83,6 +83,7 @@ interface IDBDatabase : EventTarget {
     IDBTransaction transaction ((DOMString or sequence<DOMString>) storeNames, optional IDBTransactionMode mode = "readonly");
     void           close ();
                 attribute EventHandler       onabort;
+                attribute EventHandler       onclose;
                 attribute EventHandler       onerror;
                 attribute EventHandler       onversionchange;
 };

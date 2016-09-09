@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import argparse
 import json
 import sys
@@ -88,10 +90,10 @@ class HTML(object):
     e.g.
 
     h = HTML()
-    print h.html(
+    print(h.html(
         html.head(),
         html.body([html.h1("Hello World!")], class_="body-class")
-    )
+    ))
     Would give
     <!DOCTYPE html><html><head></head><body class="body-class"><h1>Hello World!</h1></body></html>"""
     def __getattr__(self, name):
@@ -299,7 +301,7 @@ def main(filenames):
 
 if __name__ == "__main__":
     if not sys.argv[1:]:
-        print """Please supply a list of UA name, filename pairs e.g.
+        print("""Please supply a list of UA name, filename pairs e.g.
 
-python report.py Firefox firefox.json Chrome chrome.json IE internet_explorer.json"""
-    print main(sys.argv[1:])
+python report.py Firefox firefox.json Chrome chrome.json IE internet_explorer.json""")
+    print(main(sys.argv[1:]))

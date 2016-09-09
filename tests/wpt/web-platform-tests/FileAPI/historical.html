@@ -36,13 +36,6 @@
             assert_false(prefixes[i]+'BlobBuilder' in window, prefixes[i]+'BlobBuilder');
         }
     }, 'BlobBuilder should not be supported.');
-
-    test(function() {
-        var reader = new FileReader();
-        assert_false('readAsBinaryString' in reader, 'should not be in reader');
-        assert_equals(reader.readAsBinaryString, undefined,
-                      'should be undefined on getting')
-    }, 'FileReader should not support readAsBinaryString');
   </script>
  </body>
 </html>

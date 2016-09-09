@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- Copyright © 2016 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
 <html>
     <head>
         <title>Test MediaSource behavior when seeking beyond the duration of the clip.</title>
@@ -62,6 +63,15 @@
                 {
                     assert_equals(mediaElement.duration, segmentInfo.duration);
                     assert_greater_than_equal(mediaElement.duration, 2.0, 'Duration is >2.0s.');
+
+                    test.expectEvent(sourceBuffer, "updateend");
+                    sourceBuffer.remove(1.5, Infinity);
+                    assert_true(sourceBuffer.updating, "updating");
+                });
+
+                test.waitForExpectedEvents(function()
+                {
+                    assert_false(sourceBuffer.updating, "updating");
                     test.waitForCurrentTimeChange(mediaElement, function()
                     {
                         // Update duration.

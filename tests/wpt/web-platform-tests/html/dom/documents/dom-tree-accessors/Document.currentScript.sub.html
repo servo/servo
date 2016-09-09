@@ -5,6 +5,7 @@
 <link rel=help href="https://html.spec.whatwg.org/multipage/#execute-the-script-block">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
 <div id="log"></div>
 <script>
 var data = {
@@ -215,7 +216,7 @@ function testLoadFail() {
 <script>
 var s = document.createElement("script");
 s.id = "cross-origin";
-s.src = "http://{{domains[www1]}}:{{ports[http][1]}}/html/dom/documents/dom-tree-accessors/cross-domain.js"
+s.src = get_host_info(). HTTP_REMOTE_ORIGIN + "/html/dom/documents/dom-tree-accessors/cross-domain.js"
 s.onload = function() {
   verify('cross-origin')
   finish('cross-origin');

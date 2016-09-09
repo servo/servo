@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- Copyright © 2016 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
 <html>
     <head>
         <title>SourceBuffer.timestampOffset test cases.</title>
@@ -15,6 +16,9 @@
               {
                   var segmentInfo = MediaSourceUtil.SEGMENT_INFO;
                   var sourceBuffer = mediaSource.addSourceBuffer(segmentInfo.type);
+
+                  assert_equals(sourceBuffer.timestampOffset, 0,
+                      "Initial timestampOffset of a SourceBuffer is 0");
 
                   if (expected == "TypeError")  {
                       assert_throws({name: "TypeError"},

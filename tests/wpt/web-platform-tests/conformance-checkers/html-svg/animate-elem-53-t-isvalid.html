@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+ <title>animate-elem-53-t-manual.svg</title>
+ <meta charset='utf-8'>
+</head>
+<body>
+ <h1>Source SVG: animate-elem-53-t-manual.svg</h1>
+<svg version="1.1" baseProfile="tiny" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  
+  <title id="test-title">$RCSfile: animate-elem-53-t.svg,v $</title>
+  <defs>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <defs>
+      <polygon id="p" points="0,0 30,0 30,30 0,30" fill="none" stroke="black"/>
+    </defs>
+    <g transform="translate(0,0)">
+      <use xlink:href="#p" x="10" y="10"/>
+      <text x="15" y="35" font-size="20">0s</text>
+      <use xlink:href="#p" x="10" y="50"/>
+      <text x="15" y="75" font-size="20">3s</text>
+      <use xlink:href="#p" x="10" y="130"/>
+      <text x="15" y="155" font-size="20">6s</text>
+      <rect x="10" y="130" width="58.28" height="58.28" fill="none" stroke="black"/>
+      <text x="45" y="185" font-size="20">9s</text>
+      <polygon id="LG" points="0,0 30,0 30,30 0,30" fill="none" stroke="green">
+        <animate attributeName="points" begin="0" dur="9" fill="freeze" values="10,10 40,10 40,40 10,40;                           10,50 40,50 40,80 10,80;                           10,130 40,130 40,160 10,160;                           10,130 68.28,130 68.28,188.28 10,188.28"/>
+      </polygon>
+      <g transform="translate(70,10)">
+        <polygon id="RG" points="0,0 30,0 30,30 0,30" fill="none" stroke="green">
+          <animateMotion values="0,0;0,40;0,120" begin="0" dur="6" calcMode="linear" fill="freeze"/>
+          <animateTransform attributeName="transform" type="scale" from="1" to="1.9428" begin="6" dur="3" fill="freeze"/>
+        </polygon>
+      </g>
+    </g>
+    <g transform="translate(120,0)">
+      <use xlink:href="#p" x="10" y="10"/>
+      <text x="15" y="35" font-size="20">0s</text>
+      <use xlink:href="#p" x="10" y="50"/>
+      <text x="15" y="75" font-size="20">2.22s</text>
+      <use xlink:href="#p" x="10" y="130"/>
+      <text x="15" y="155" font-size="20">6.66s</text>
+      <rect x="10" y="130" width="58.28" height="58.28" fill="none" stroke="black"/>
+      <text x="45" y="185" font-size="20">8s</text>
+      <polygon id="LR" points="10,10 40,10 40,40 10,40" fill="none" stroke="blue">
+        <animate attributeName="points" begin="0" dur="8" calcMode="paced" fill="freeze" values="10,10 40,10 40,40 10,40;                                         10,50 40,50 40,80 10,80;                                         10,130 40,130 40,160 10,160;                                         10,130 68.28,130 68.28,188.28 10,188.28"/>
+      </polygon>
+      <g transform="translate(70,10)">
+        <polygon id="RR" points="0,0 30,0 30,30 0,30" fill="none" stroke="blue">
+          <animateMotion values="0,0;0,40;0,120" begin="0" dur="6.66" fill="freeze"/>
+          <animateTransform attributeName="transform" type="scale" from="1" to="1.9428" begin="6.66" dur="1.34" fill="freeze"/>
+        </polygon>
+      </g>
+    </g>
+    <text x="5" y="225" font-size="26">Animation on: 'points' with 'calc-mode'.</text>
+    <text x="5" y="255" font-size="16">Coloblue and black squares should match at indicated time.</text>
+    <text x="5" y="275" font-size="16">Same coloblue squares (green and blue) should match at all times</text>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.7 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>
+</svg>
+</body>
+</html>

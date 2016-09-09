@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+ <title>text-tselect-03-f-manual.svg</title>
+ <meta charset='utf-8'>
+</head>
+<body>
+ <h1>Source SVG: text-tselect-03-f-manual.svg</h1>
+<svg version="1.1" baseProfile="full" onload="doSelection(0,0);" id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  SVG 1.1 2nd Edition Test Case                                     =-->
+  <!--======================================================================-->
+  <!--=  Copyright 2009 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  
+  <title id="test-title">$RCSfile: text-tselect-03-f.svg,v $</title>
+  <defs>
+    <style type="text/css">
+	@font-face {
+	    font-family: Ezra SIL SR;
+	    src: url(woffs/EzraSILSR.woff) format("woff");
+	}
+    </style>
+    <font-face font-family="SVGFreeSansASCII" unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+    <font-face font-family="SVGHebrew" unicode-range="U+000D-FEFF">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/Heb.svg#SVGHebrew"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <defs>
+      <script>
+        var startIndex = 0;
+        var numChars = 9;
+
+        function doSelection(indexDelta, numCharsDelta)
+        {
+        try
+        {
+        document.getElementById('text').selectSubString(startIndex+indexDelta, numChars+numCharsDelta);
+        }
+        catch(e)
+        {
+        if(e.code == DOMException.INDEX_SIZE_ERR)
+        {
+        // If there was an error, re-select the last range
+        document.getElementById('text').selectSubString(startIndex, numChars);
+        return;
+        }
+        }
+
+        startIndex += indexDelta;
+        numChars += numCharsDelta;
+
+        document.getElementById('info').firstChild.data = "StartIndex: " + startIndex + ". NumChars: " + numChars;
+        }
+      </script>
+    </defs>
+
+    <g transform="translate(0,60)">
+      <text id="info" font-size="16" x="10" y="70">StartIndex: 0 NumChars: 0</text>
+
+      <text id="text" font-size="48" y="128" x="10" font-family="SVGHebrew, 'Ezra SIL SR', serif">
+        abc אבג 123 דהו def
+      </text>
+
+      <g id="buttons">
+        <rect x="10" y="160" width="100" height="20" fill="blue" onclick="doSelection(1,0);"/>
+        <text x="60" y="175" text-anchor="middle" font-size="14" fill="white" pointer-events="none">startIndex++</text>
+
+        <rect x="120" y="160" width="100" height="20" fill="blue" onclick="doSelection(-1,0);"/>
+        <text x="170" y="175" text-anchor="middle" font-size="14" fill="white" pointer-events="none">startIndex--</text>
+
+        <rect x="230" y="160" width="100" height="20" fill="blue" onclick="doSelection(0,1);"/>
+        <text x="280" y="175" text-anchor="middle" font-size="14" fill="white" pointer-events="none">numChars++</text>
+
+        <rect x="340" y="160" width="100" height="20" fill="blue" onclick="doSelection(0,-1);"/>
+        <text x="390" y="175" text-anchor="middle" font-size="14" fill="white" pointer-events="none">numChars--</text>
+      </g>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.5 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <!--<g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>-->
+</svg>
+</body>
+</html>

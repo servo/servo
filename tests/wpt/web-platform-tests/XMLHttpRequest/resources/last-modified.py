@@ -4,4 +4,4 @@ def main(request, response):
     srcmoddt = datetime.datetime.fromtimestamp(os.path.getmtime(srcpath))
     response.headers.set("Last-Modified", srcmoddt.strftime("%a, %d %b %Y %H:%M:%S GMT"))
     response.headers.set("Content-Type", "application/xml")
-    return open(srcpath).read()
+    return open(srcpath, "r").read()

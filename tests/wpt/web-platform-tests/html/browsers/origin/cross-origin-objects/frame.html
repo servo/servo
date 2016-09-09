@@ -15,8 +15,12 @@
       windowReferences.push(parent[i]);
       locationReferences.push(parent[i].location);
     }
-    document.domain = document.domain.substring(document.domain.indexOf('.') + 1);
-    evt.source.postMessage('', '*');
+    try {
+      document.domain = document.domain.substring(document.domain.indexOf('.') + 1);
+      evt.source.postMessage('PASS', '*');
+    } catch (e) {
+      evt.source.postMessage('FAIL: cannot trim off document.domain: ' + e, '*');
+    }
   }
 
   function checkWindowReferences() {

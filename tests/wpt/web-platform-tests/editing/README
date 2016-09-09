@@ -1,9 +1,14 @@
-This suite tests conformance to the editing spec written long ago by Aryeh
-Gregor.  Nobody actually implements the spec, but the tests are still useful
-for regression testing.  The files in data/ were generated from a JavaScript
-implementation of the specification using a complex procedure that can't
-actually be replicated right now as-is.  Editing them manually is possible, but
-they're not really meant to be human-readable.  If anyone is interested, it
-would be possible for Aryeh to get the test generation procedure working again.
-Or you could look into the repository history and figure out how to do it
-yourself, if you're brave.
+Most of this directory tests conformance to the editing spec written long ago
+by Aryeh Gregor.  Nobody actually implements the spec, but the tests are still
+useful for regression testing.  The files in data/ were generated from a
+JavaScript implementation of the specification using a complex procedure that
+can't actually be replicated right now as-is.  Editing them manually is
+possible, but they're not really meant to be human-readable.  If anyone is
+interested, it would be possible for Aryeh to get the test generation procedure
+working again.  Or you could look into the repository history and figure out
+how to do it yourself, if you're brave.
+
+There is also a directory other/ that contains additional editor-related tests.
+They aren't necessarily based on any specification, but try to specify sensible
+behavior, and are meant to be helpful with regression testing for existing
+implementations and finding bugs in new implementations.

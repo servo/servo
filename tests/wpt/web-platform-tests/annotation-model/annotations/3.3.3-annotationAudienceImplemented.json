@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "3.3.3-annotationAudienceImplemented.json",
+  "assertionType": "may",
+  "expectedResult": "valid",
+  "onUnexpectedResult" : "passAndContinue",
+  "errorMessage": "audience key not found. An Annotation may have one or more audience values.",
+  "title": "Implements **_audience_ key** which has one or more values with each audience instance described using **[schema.org/Audience](http://schema.org/Audience) classes and properties** - [model 3.3.3](https://www.w3.org/TR/annotation-model/#intended-audience)",
+  "description": "True when the Annotation has an audience key (Section 3.3.3)",
+  "allOf":
+    [
+    {"$ref": "otherProperties.json#/definitions/audiencePropertyFound"}
+    ]
+}

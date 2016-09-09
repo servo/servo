@@ -669,5 +669,15 @@ gStepTimingFunctionTests.forEach(function(options) {
   }, options.description);
 });
 
+gInvalidEasingTests.forEach(function(options) {
+  test(function(t) {
+    var div = createDiv(t);
+    assert_throws({ name: 'TypeError' },
+                  function() {
+                    div.animate({ easing: options.easing }, 100 * MS_PER_SEC);
+                  });
+  }, 'Invalid keyframe easing value: \'' + options.easing + '\'');
+});
+
 </script>
 </body>

@@ -4639,7 +4639,7 @@ var defaultValues = {
     inserthtml: "ab<b>c</b>d",
     insertimage: "/img/lion.svg",
     inserttext: "a",
-    defaultparagraphseparator: "p",
+    defaultparagraphseparator: "div",
     stylewithcss: "true",
     usecss: "true",
 };

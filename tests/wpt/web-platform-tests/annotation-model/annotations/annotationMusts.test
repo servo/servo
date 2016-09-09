@@ -1,0 +1,23 @@
+{
+  "@context": "https://www.w3.org/ns/JSONtest-v1.jsonld",
+  "name": "Annotation has all required keys and all annotation keys used meet required value constraints",
+  "description": "Web Annotations: <ul> <li>MUST include certain properties (keys)</li> <li>MUST NOT have both body and bodyValue keys simultaneously</li> <li>MUST satisfy model constraints on values of required and any optional Annotation keys used</li> </ul> Note: Optional Annotation keys, optional constraints on key values, and optional and required details of body(ies) and target(s) checked by other tests.",
+  "testType": "manual",
+  "ref": "https://www.w3.org/TR/annotation-model/#annotations",
+  "assertions": [
+    "annotations/3.1-annotationContextValidated.json",
+    "annotations/3.1-annotationIdValidated.json",
+    "annotations/3.1-annotationTypeValidated.json",
+    "annotations/3.1-targetKeyFound.json",
+    "annotations/3.2-targetObjectsRecognized.json",
+    "annotations/3.2.5-notBodyBodyValue.json",
+    "annotations/3.2-bodyObjectsRecognized.json",
+    "annotations/3.2.5-bodyValueValidated.json",
+    "annotations/3.3.1-annotationCreatedValidated.json",
+    "annotations/3.3.1-annotationModifiedValidated.json",
+    "annotations/3.3.1-annotationGeneratedValidated.json",
+    "annotations/3.3.6-annotationRightsValidated.json",
+    "annotations/3.3.7-annotationCanonicalValidated.json",
+    "annotations/3.3.7-annotationViaValidated.json"
+  ]
+}

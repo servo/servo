@@ -1,6 +1,8 @@
 <!DOCTYPE html>
+<!-- Copyright © 2016 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
 <html>
     <head>
+        <meta  charset="utf-8">
         <title>SourceBuffer.remove() test cases.</title>
         <script src="/resources/testharness.js"></script>
         <script src="/resources/testharnessreport.js"></script>
@@ -13,7 +15,9 @@
           {
               var sourceBuffer = mediaSource.addSourceBuffer(MediaSourceUtil.AUDIO_VIDEO_TYPE);
 
-              assert_throws("InvalidAccessError", function()
+              mediaSource.duration = 10;
+
+              assert_throws(new TypeError(), function()
               {
                   sourceBuffer.remove(-1, 2);
               }, "remove");
@@ -24,6 +28,8 @@
           mediasource_test(function(test, mediaElement, mediaSource)
           {
               var sourceBuffer = mediaSource.addSourceBuffer(MediaSourceUtil.AUDIO_VIDEO_TYPE);
+
+              mediaSource.duration = 10;
 
               [ undefined, NaN, Infinity, -Infinity ].forEach(function(item)
               {
@@ -42,7 +48,7 @@
 
               mediaSource.duration = 10;
 
-              assert_throws("InvalidAccessError", function()
+              assert_throws(new TypeError(), function()
               {
                   sourceBuffer.remove(11, 12);
               }, "remove");
@@ -56,7 +62,7 @@
 
               mediaSource.duration = 10;
 
-              assert_throws("InvalidAccessError", function()
+              assert_throws(new TypeError(), function()
               {
                   sourceBuffer.remove(2, 1);
               }, "remove");
@@ -68,7 +74,9 @@
           {
               var sourceBuffer = mediaSource.addSourceBuffer(MediaSourceUtil.AUDIO_VIDEO_TYPE);
 
-              assert_throws("InvalidAccessError", function()
+              mediaSource.duration = 10;
+
+              assert_throws(new TypeError(), function()
               {
                   sourceBuffer.remove(0, Number.NEGATIVE_INFINITY);
               }, "remove");
@@ -80,7 +88,9 @@
           {
               var sourceBuffer = mediaSource.addSourceBuffer(MediaSourceUtil.AUDIO_VIDEO_TYPE);
 
-              assert_throws("InvalidAccessError", function()
+              mediaSource.duration = 10;
+
+              assert_throws(new TypeError(), function()
               {
                   sourceBuffer.remove(0, Number.NaN);
               }, "remove");
@@ -104,6 +114,20 @@
               test.done();
           }, "Test remove after SourceBuffer removed from mediaSource.");
 
+          mediasource_test(function(test, mediaElement, mediaSource)
+          {
+              var sourceBuffer = mediaSource.addSourceBuffer(MediaSourceUtil.AUDIO_VIDEO_TYPE);
+
+              assert_false(sourceBuffer.updating, "updating is false");
+              assert_equals(mediaSource.duration, NaN, "duration isn't set");
+
+              assert_throws(new TypeError(), function()
+              {
+                  sourceBuffer.remove(0, 0);
+              }, "remove");
+
+              test.done();
+          }, "Test remove with a NaN duration.");
 
           mediasource_test(function(test, mediaElement, mediaSource)
           {
@@ -136,15 +160,18 @@
               mediaSource.duration = 10;
 
               test.expectEvent(sourceBuffer, "updatestart");
-              test.expectEvent(sourceBuffer, "abort");
+              test.expectEvent(sourceBuffer, "update");
               test.expectEvent(sourceBuffer, "updateend");
               sourceBuffer.remove(1, 2);
 
               assert_true(sourceBuffer.updating, "updating");
 
-              sourceBuffer.abort();
+              assert_throws("InvalidStateError", function()
+              {
+                  sourceBuffer.abort();
+              }, "abort");
 
-              assert_false(sourceBuffer.updating, "updating");
+              assert_true(sourceBuffer.updating, "updating");
 
               test.waitForExpectedEvents(function()
               {
@@ -197,6 +224,7 @@
                   test.expectEvent(sourceBuffer, "updatestart");
                   test.expectEvent(sourceBuffer, "update");
                   test.expectEvent(sourceBuffer, "updateend");
+                  test.expectEvent(mediaSource, "sourceopen");
                   sourceBuffer.remove(1, 2);
 
                   assert_true(sourceBuffer.updating, "updating");
@@ -224,11 +252,12 @@
                       mediaSource.endOfStream();
                       assert_false(sourceBuffer.updating, "updating");
 
+                      var start = Math.max(segmentInfo.media[0].timev, segmentInfo.media[0].timea).toFixed(3);
                       var duration = mediaElement.duration.toFixed(3);
                       var subType = MediaSourceUtil.getSubType(segmentInfo.type);
 
-                      assertBufferedEquals(sourceBuffer, "{ [0.000, " + duration + ") }", "Initial buffered range.");
-                      callback(test, mediaSource, sourceBuffer, duration, subType);
+                      assertBufferedEquals(sourceBuffer, "{ [" + start + ", " + duration + ") }", "Initial buffered range.");
+                      callback(test, mediaSource, sourceBuffer, duration, subType, segmentInfo);
                   });
               }, description);
           };
@@ -249,16 +278,16 @@
               });
           }
 
-          removeAppendedDataTests(function(test, mediaSource, sourceBuffer, duration, subType)
+          removeAppendedDataTests(function(test, mediaSource, sourceBuffer, duration, subType, segmentInfo)
           {
               removeAndCheckBufferedRanges(test, mediaSource, sourceBuffer, 0, Number.POSITIVE_INFINITY, "{ }");
           }, "Test removing all appended data.");
 
-          removeAppendedDataTests(function(test, mediaSource, sourceBuffer, duration, subType)
+          removeAppendedDataTests(function(test, mediaSource, sourceBuffer, duration, subType, segmentInfo)
           {
               var expectations = {
                 webm: ("{ [3.187, " + duration + ") }"),
-                mp4: ("{ [3.154, " + duration + ") }"),
+                mp4: ("{ [3.187, " + duration + ") }"),
               };
 
               // Note: Range doesn't start exactly at the end of the remove range because there isn't
@@ -266,11 +295,12 @@
               removeAndCheckBufferedRanges(test, mediaSource, sourceBuffer, 0, 3, expectations[subType]);
           }, "Test removing beginning of appended data.");
 
-          removeAppendedDataTests(function(test, mediaSource, sourceBuffer, duration, subType)
+          removeAppendedDataTests(function(test, mediaSource, sourceBuffer, duration, subType, segmentInfo)
           {
+              var start = Math.max(segmentInfo.media[0].timev, segmentInfo.media[0].timea).toFixed(3);
               var expectations = {
-                webm: ("{ [0.000, 1.012) [3.187, " + duration + ") }"),
-                mp4: ("{ [0.000, 1.022) [3.154, " + duration + ") }"),
+                webm: ("{ [" + start + ", 1.012) [3.187, " + duration + ") }"),
+                mp4: ("{ [" + start + ", 0.996) [3.187, " + duration + ") }"),
               };
 
               // Note: The first resulting range ends slightly after start because the removal algorithm only removes
@@ -279,11 +309,12 @@
               removeAndCheckBufferedRanges(test, mediaSource, sourceBuffer, 1, 3, expectations[subType]);
           }, "Test removing the middle of appended data.");
 
-          removeAppendedDataTests(function(test, mediaSource, sourceBuffer, duration, subType)
+          removeAppendedDataTests(function(test, mediaSource, sourceBuffer, duration, subType, segmentInfo)
           {
+              var start = Math.max(segmentInfo.media[0].timev, segmentInfo.media[0].timea).toFixed(3);
               var expectations = {
-                webm: "{ [0.000, 1.012) }",
-                mp4: "{ [0.000, 1.029) }",
+                webm: "{ [" + start + ", 1.029) }",
+                mp4: "{ [" + start + ", 1.022) }",
               };
 
               removeAndCheckBufferedRanges(test, mediaSource, sourceBuffer, 1, Number.POSITIVE_INFINITY, expectations[subType]);

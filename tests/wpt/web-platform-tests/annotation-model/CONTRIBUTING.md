@@ -54,6 +54,7 @@ Context](JSONtest-v1.jsonld).  That context defines the following terms:
 |ref            | URI             | An optional reference to the portion of the specification to which the test relates
 |testType       | `automated`, `manual`, `ref` | The type of test - this informs [WPT](https://github.com/w3c/web-platform-tests) how the test should be controlled and presented
 |assertions     | list of URI, List @@@ATRISK@@@, or AssertionObject | The ordered collection of tests the input should be run against. See [JSON Schema Usage](#jsonSchema) for the structure of the objects.  URI is relative to the top level folder of the test collection if it has a slash; relative to the current directory if it does not. @@@@ATRISK@@@@ Lists can be nested to define groups of sub-tests.  Assertions / groups can be conditionally skipped.  See [Assertion Lists](#assertionLists) for more details.
+|content        | URI or object   | An object containing content to be checked against the referenced assertions, or a URI from which to retrieve that content
 
 Each test case has a suffix of `.test` and a shape like:
 
@@ -100,6 +101,14 @@ Each test case has a suffix of `.test` and a shape like:
 External references are used when the "assertion" is a common one that needs to
 be checked on many different test cases (e.g., that there is an @context in the
 supplied annotation).
+
+NOTE: The title property of an assertionObject can contain markdown.  This can
+help improve readability of the rendered assertions and debugging output.
+
+NOTE: The content property does not yet have a defined use.  One potential use would
+be to act as a pointer to a URI that can supply annotations from an implementation.
+In that case the URI would take a parameter with the test name as a way of telling
+the end point what test is running so it can deliver the right content.
 
 ### <a id="assertionLists">Assertion Lists</a> ###
 

@@ -1,3 +1,5 @@
+// Copyright © 2016 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang).
+
 (function(window) {
     var SEGMENT_INFO_LIST = [
         {
@@ -6,34 +8,34 @@
             duration: 6.0756,
             init: { offset: 0, size: 1197 },
             media: [
-                { offset: 1241, size: 17845, timecode: 0.000000 },
-                { offset: 19130, size: 5551, timecode: 0.464800 },
-                { offset: 24725, size: 10944, timecode: 0.763600 },
-                { offset: 35713, size: 7131, timecode: 0.863200 },
-                { offset: 42888, size: 2513, timecode: 1.128800 },
-                { offset: 45457, size: 3022, timecode: 1.261600 },
-                { offset: 48479, size: 815, timecode: 1.427600 },
-                { offset: 49338, size: 2818, timecode: 1.460800 },
-                { offset: 52200, size: 11581, timecode: 1.593600 },
-                { offset: 63825, size: 3003, timecode: 1.726400 },
-                { offset: 66872, size: 6390, timecode: 1.892400 },
-                { offset: 73306, size: 3740, timecode: 2.124800 },
-                { offset: 77102, size: 11779, timecode: 2.324000 },
-                { offset: 88881, size: 851, timecode: 2.490000 },
-                { offset: 89776, size: 4236, timecode: 2.523200 },
-                { offset: 94056, size: 9538, timecode: 2.755600 },
-                { offset: 103638, size: 13295, timecode: 3.154000 },
-                { offset: 116977, size: 309, timecode: 3.386400 },
-                { offset: 117330, size: 5806, timecode: 3.419600 },
-                { offset: 123180, size: 4392, timecode: 3.751600 },
-                { offset: 127616, size: 15408, timecode: 3.984000 },
-                { offset: 143068, size: 9899, timecode: 4.216400 },
-                { offset: 153011, size: 11562, timecode: 4.780800 },
-                { offset: 164617, size: 7398, timecode: 4.946800 },
-                { offset: 172059, size: 5698, timecode: 5.212400 },
-                { offset: 177801, size: 11682, timecode: 5.511200 },
-                { offset: 189527, size: 3023, timecode: 5.677200 },
-                { offset: 192594, size: 5726, timecode: 5.843200 },
+                { offset: 1241, size: 17845, timev: 0.033200, timea: 0, endtimev: 0.531200, endtimea: 0.510839 },
+                { offset: 19130, size: 5551, timev: 0.464800, timea: 0.510839, endtimev: 0.796800, endtimea: 0.812698 },
+                { offset: 24725, size: 10944, timev: 0.796800, timea: 0.812698, endtimev: 0.929600, endtimea: 0.905578 },
+                { offset: 35713, size: 7131, timev: 0.863200, timea: 0.905578, endtimev: 1.195200, endtimea: 1.184217 },
+                { offset: 42888, size: 2513, timev: 1.128800, timea: 1.184217, endtimev: 1.328000, endtimea: 1.300317 },
+                { offset: 45457, size: 3022, timev: 1.261600, timea: 1.300317, endtimev: 1.460800, endtimea: 1.509297 },
+                { offset: 48479, size: 815, timev: 1.494000, timea: 1.509297, endtimev: 1.527200, endtimea: 1.532517 },
+                { offset: 49338, size: 2818, timev: 1.460800, timea: 1.532517, endtimev: 1.626800, endtimea: 1.648616 },
+                { offset: 52200, size: 11581, timev: 1.626800, timea: 1.648616, endtimev: 1.792800, endtimea: 1.764716 },
+                { offset: 63825, size: 3003, timev: 1.726400, timea: 1.764716, endtimev: 1.925600, endtimea: 1.973696 },
+                { offset: 66872, size: 6390, timev: 1.925600, timea: 1.973696, endtimev: 2.191200, endtimea: 2.159455 },
+                { offset: 73306, size: 3740, timev: 2.124800, timea: 2.159455, endtimev: 2.390400, endtimea: 2.368435 },
+                { offset: 77102, size: 11779, timev: 2.324000, timea: 2.368435, endtimev: 2.523200, endtimea: 2.577414 },
+                { offset: 88881, size: 851, timev: 2.556400, timea: 2.577414, endtimev: 2.589600, endtimea: 2.600634 },
+                { offset: 89776, size: 4236, timev: 2.523200, timea: 2.600634, endtimev: 2.788800, endtimea: 2.832834 },
+                { offset: 94056, size: 9538, timev: 2.788800, timea: 2.832834, endtimev: 3.187200, endtimea: 3.204353 },
+                { offset: 103638, size: 13295, timev: 3.187200, timea: 3.204353, endtimev: 3.452800, endtimea: 3.436553 },
+                { offset: 116977, size: 309, timev: 3.386400, timea: 3.436553, endtimev: 3.419600, endtimea: 3.506213 },
+                { offset: 117330, size: 5806, timev: 3.452800, timea: 3.506213, endtimev: 3.784800, endtimea: 3.831292 },
+                { offset: 123180, size: 4392, timev: 3.784800, timea: 3.831292, endtimev: 4.017200, endtimea: 4.040272 },
+                { offset: 127616, size: 15408, timev: 4.017200, timea: 4.040272, endtimev: 4.249600, endtimea: 4.295691 },
+                { offset: 143068, size: 9899, timev: 4.249600, timea: 4.295691, endtimev: 4.814000, endtimea: 4.829750 },
+                { offset: 153011, size: 11562, timev: 4.814000, timea: 4.829750, endtimev: 4.980000, endtimea: 5.015510 },
+                { offset: 164617, size: 7398, timev: 4.980000, timea: 5.015510, endtimev: 5.245600, endtimea: 5.294149 },
+                { offset: 172059, size: 5698, timev: 5.245600, timea: 5.294149, endtimev: 5.577600, endtimea: 5.549569 },
+                { offset: 177801, size: 11682, timev: 5.511200, timea: 5.549569, endtimev: 5.710400, endtimea: 5.758548 },
+                { offset: 189527, size: 3023, timev: 5.710400, timea: 5.758548, endtimev: 5.909600, endtimea: 5.897868 },
+                { offset: 192594, size: 5726, timev: 5.843200, timea: 5.897868, endtimev: 6.075600, endtimea: 6.037188 },
             ]
         },
         {
@@ -42,22 +44,22 @@
             duration: 6.042,
             init: { offset: 0, size: 4357 },
             media: [
-                {  offset: 4357, size: 11830, timecode: 0 },
-                {  offset: 16187, size: 12588, timecode: 0.385 },
-                {  offset: 28775, size: 14588, timecode: 0.779 },
-                {  offset: 43363, size: 13023, timecode: 1.174 },
-                {  offset: 56386, size: 13127, timecode: 1.592 },
-                {  offset: 69513, size: 14456, timecode: 1.987 },
-                {  offset: 83969, size: 13458, timecode: 2.381 },
-                {  offset: 97427, size: 14566, timecode: 2.776 },
-                {  offset: 111993, size: 13201, timecode: 3.171 },
-                {  offset: 125194, size: 14061, timecode: 3.566 },
-                {  offset: 139255, size: 15353, timecode: 3.96 },
-                {  offset: 154608, size: 13618, timecode: 4.378 },
-                {  offset: 168226, size: 15094, timecode: 4.773 },
-                {  offset: 183320, size: 13069, timecode: 5.168 },
-                {  offset: 196389, size: 13788, timecode: 5.563 },
-                {  offset: 210177, size: 9009, timecode: 5.957 },
+                {  offset: 4357, size: 11830, timev: 0, timea: 0, endtimev: 0.398000, endtimea: 0.384000 },
+                {  offset: 16187, size: 12588, timev: 0.398000, timea: 0.385000, endtimev: 0.798000, endtimea: 0.779000 },
+                {  offset: 28775, size: 14588, timev: 0.797000, timea: 0.779000, endtimev: 1.195000, endtimea: 1.174000 },
+                {  offset: 43363, size: 13023, timev: 1.195000, timea: 1.174000, endtimev: 1.593000, endtimea: 1.592000 },
+                {  offset: 56386, size: 13127, timev: 1.594000, timea: 1.592000, endtimev: 1.992000, endtimea: 1.988000 },
+                {  offset: 69513, size: 14456, timev: 1.992000, timea: 1.987000, endtimev: 2.390000, endtimea: 2.381000 },
+                {  offset: 83969, size: 13458, timev: 2.390000, timea: 2.381000, endtimev: 2.790000, endtimea: 2.776000 },
+                {  offset: 97427, size: 14566, timev: 2.789000, timea: 2.776000, endtimev: 3.187000, endtimea: 3.171000 },
+                {  offset: 111993, size: 13201, timev: 3.187000, timea: 3.171000, endtimev: 3.585000, endtimea: 3.565000 },
+                {  offset: 125194, size: 14061, timev: 3.586000, timea: 3.566000, endtimev: 3.984000, endtimea: 3.960000 },
+                {  offset: 139255, size: 15353, timev: 3.984000, timea: 3.960000, endtimev: 4.382000, endtimea: 4.378000 },
+                {  offset: 154608, size: 13618, timev: 4.382000, timea: 4.378000, endtimev: 4.782000, endtimea: 4.773000 },
+                {  offset: 168226, size: 15094, timev: 4.781000, timea: 4.773000, endtimev: 5.179000, endtimea: 5.169000 },
+                {  offset: 183320, size: 13069, timev: 5.179000, timea: 5.168000, endtimev: 5.577000, endtimea: 5.562000 },
+                {  offset: 196389, size: 13788, timev: 5.578000, timea: 5.563000, endtimev: 5.976000, endtimea: 5.957000 },
+                {  offset: 210177, size: 9009, timev: 5.976000, timea: 5.957000, endtimev: 6.042000, endtimea: 6.050000 },
             ],
         }
     ];
@@ -85,8 +87,12 @@
             assert_equals(eventInfo.description, expected.description, "Descriptions match for '" +  event.type + "'.");
 
             expectations.shift(1);
-            if (t.waitCallbacks_.length > 0)
+            if (t.waitCallbacks_.length > 1)
                 setTimeout(waitHandler, 0);
+            else if (t.waitCallbacks_.length == 1) {
+                // Immediately call the callback.
+                waitHandler();
+            }
         });
         object.addEventListener(eventName, eventHandler);
     };
@@ -215,7 +221,8 @@
         var start = mediaInfo[0].offset;
         var numBytes = 0;
         var segmentIndex = 0;
-        while (segmentIndex < mediaInfo.length && mediaInfo[segmentIndex].timecode <= playbackTimeToAdd)
+        while (segmentIndex < mediaInfo.length
+               && Math.min(mediaInfo[segmentIndex].timev, mediaInfo[segmentIndex].timea) <= playbackTimeToAdd)
         {
           numBytes += mediaInfo[segmentIndex].size;
           ++segmentIndex;
@@ -296,11 +303,14 @@
 
         var i = startingIndex;
         var onAppendDone = function() {
-            if (eventFired)
+            if (eventFired || (i >= (segmentInfo.media.length - 1)))
                 return;
 
             i++;
-            MediaSourceUtil.append(test, sourceBuffer, MediaSourceUtil.extractSegmentData(mediaData, segmentInfo.media[i]), onAppendDone);
+            if (i < segmentInfo.media.length)
+            {
+                MediaSourceUtil.append(test, sourceBuffer, MediaSourceUtil.extractSegmentData(mediaData, segmentInfo.media[i]), onAppendDone);
+            }
         };
         MediaSourceUtil.append(test, sourceBuffer, MediaSourceUtil.extractSegmentData(mediaData, segmentInfo.media[i]), onAppendDone);
 
@@ -359,6 +369,9 @@
         return media_test(function(test)
         {
             var mediaTag = document.createElement("video");
+            if (!document.body) {
+                document.body = document.createElement("body");
+            }
             document.body.appendChild(mediaTag);
 
             test.removeMediaElement_ = true;

@@ -4,6 +4,7 @@
 <link rel="author" title="Intel" href="http://www.intel.com/" />
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
 <script>
 
 var t1 = async_test("The window's frameElement attribute must return its container element if it is a nested browsing context");
@@ -58,7 +59,7 @@ function on_load() {
   <script>
 
   setup(function () {
-    var src_base = "http://{{domains[www1]}}:{{ports[http][0]}}";
+    var src_base = get_host_info().HTTP_REMOTE_ORIGIN;
     src_base += document.location.pathname.substring(0, document.location.pathname.lastIndexOf("/") + 1);
     document.getElementById("fr2").src = src_base + "test.html";
     document.getElementById("fr5").src = src_base + "testcase3.html";

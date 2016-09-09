@@ -1,0 +1,2 @@
+Referrer-Policy: strict-origin-when-cross-origin
+Access-Control-Allow-Origin: *

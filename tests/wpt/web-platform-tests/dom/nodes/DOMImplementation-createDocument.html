@@ -15,6 +15,17 @@ var htmlNamespace = "http://www.w3.org/1999/xhtml"
 var svgNamespace = "http://www.w3.org/2000/svg"
 var mathMLNamespace = "http://www.w3.org/1998/Math/MathML"
 
+// Make DocumentTypes distinct
+function my_format_value(val) {
+  if (val instanceof DocumentType) {
+    return "DocumentType node <!DOCTYPE " + val.name
+      + (val.publicId ? " " + val.publicId : "")
+      + (val.systemId ? " " + val.systemId : "")
+      + ">";
+  }
+  return format_value(val);
+}
+
 test(function() {
   var tests = createElementNS_tests.map(function(t) {
     return [t[0], t[1], null, t[2]]
@@ -44,17 +55,17 @@ test(function() {
     [null, null, document.implementation.createDocumentType("foo", "", ""), null],
     [null, null, document.doctype, null], // This causes a horrible WebKit bug (now fixed in trunk).
     [null, null, function() {
-        var foo = document.implementation.createDocumentType("foo", "", "");
+        var foo = document.implementation.createDocumentType("bar", "", "");
         document.implementation.createDocument(null, null, foo);
         return foo;
      }(), null], // DOCTYPE already associated with a document.
     [null, null, function() {
         var bar = document.implementation.createDocument(null, null, null);
-        return bar.implementation.createDocumentType("bar", "", "");
+        return bar.implementation.createDocumentType("baz", "", "");
      }(), null], // DOCTYPE created by a different implementation.
     [null, null, function() {
         var bar = document.implementation.createDocument(null, null, null);
-        var magic = bar.implementation.createDocumentType("bar", "", "");
+        var magic = bar.implementation.createDocumentType("quz", "", "");
         bar.implementation.createDocument(null, null, magic);
         return magic;
      }(), null], // DOCTYPE created by a different implementation and already associated with a document.
@@ -116,7 +127,7 @@ test(function() {
         }
         assert_equals(doc.childNodes.length, !omitRootElement + !!doctype)
       }
-    }, "createDocument test " + i + ": " + t.map(function(el) { return format_value(el) }))
+    }, "createDocument test: " + t.map(my_format_value))
 
     if (expected === null) {
       test(function() {
@@ -130,7 +141,7 @@ test(function() {
         assert_equals(doc.documentURI, "about:blank")
         assert_equals(doc.createElement("DIV").localName, "DIV");
       }, "createDocument test " + i + ": metadata for " +
-      [namespace, qualifiedName, doctype].map(function(el) { return format_value(el) }))
+      [namespace, qualifiedName, doctype].map(my_format_value))
 
       test(function() {
         var doc = document.implementation.createDocument(namespace, qualifiedName, doctype)
@@ -138,7 +149,7 @@ test(function() {
         assert_equals(doc.charset, "UTF-8", "charset");
         assert_equals(doc.inputEncoding, "UTF-8", "inputEncoding");
       }, "createDocument test " + i + ": characterSet aliases for " +
-      [namespace, qualifiedName, doctype].map(function(el) { return format_value(el) }))
+      [namespace, qualifiedName, doctype].map(my_format_value))
     }
   })
 })

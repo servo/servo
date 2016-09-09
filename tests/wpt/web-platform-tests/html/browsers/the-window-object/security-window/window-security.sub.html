@@ -12,10 +12,9 @@
 <link rel="help" href="http://dev.w3.org/csswg/cssom-view/#extensions-to-the-window-interface" />
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
 <div id="log"></div>
-<iframe id="fr" src="http://{{domains[www1]}}:{{ports[http][0]}}/" onload="fr_load()" style="display:none"></iframe>
 <script>
-
 var t = async_test("Window Security testing");
 
 function fr_load() {
@@ -191,4 +190,14 @@ function fr_load() {
   t.done();
 }
 
+</script>
+<script>
+onload = function() {
+  var frame = document.createElement('iframe');
+  frame.id = "fr";
+  frame.setAttribute("style", "display:none");
+  frame.setAttribute('src', get_host_info().HTTP_REMOTE_ORIGIN + "/");
+  frame.setAttribute("onload", "fr_load()");
+  document.body.appendChild(frame);
+}
 </script>

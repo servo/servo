@@ -19,8 +19,11 @@
       });
     }
 
-    function checkBodyBlob(response, expectedBody) {
+    function checkBodyBlob(response, expectedBody, checkContentType) {
       return response.blob().then(function(bodyAsBlob) {
+        if (checkContentType)
+          assert_equals(bodyAsBlob.type, "text/plain", "Blob body type should be computed from the response Content-Type");
+
         var promise = new Promise( function (resolve, reject) {
           var reader = new FileReader();
           reader.onload = function(evt) {
@@ -62,7 +65,7 @@
 
     function checkResponseBody(body, bodyType, checkFunction) {
       promise_test(function(test) {
-        var response = new Response(body);
+        var response = new Response(body, { "headers": [["Content-Type", "text/PLAIN"]] });
         assert_false(response.bodyUsed, "bodyUsed is false at init");
         return checkFunction(response, body);
       }, "Consume response's body as " + bodyType);
@@ -74,7 +77,7 @@
     var blob = new Blob([textData], { "type" : "text/plain" });
 
     checkResponseBody(textData, "text", checkBodyText);
-    checkResponseBody(textData, "blob", checkBodyBlob);
+    checkResponseBody(textData, "blob", function(response, body) { checkBodyBlob(response, body, true); });
     checkResponseBody(textData, "arrayBuffer", checkBodyArrayBuffer);
     checkResponseBody(textData, "json", checkBodyJSON);
     checkResponseBody(formData, "formData", checkBodyFormData);
@@ -91,6 +94,37 @@
     checkBlobResponseBody(blob, textData, "text", checkBodyText);
     checkBlobResponseBody(blob, textData, "json", checkBodyJSON);
     checkBlobResponseBody(blob, textData, "arrayBuffer", checkBodyArrayBuffer);
+
+    function checkReadableStreamResponseBody(streamData, bodyType, checkFunction) {
+      promise_test(function(test) {
+        var stream = new ReadableStream({
+          start: function(controller) {
+            controller.enqueue((stringToArray(streamData)));
+            controller.close();
+          }
+        });
+        var response = new Response(stream);
+        assert_false(response.bodyUsed, "bodyUsed is false at init");
+        return checkFunction(response, streamData);
+      }, "Consume stream response's body as " + bodyType);
+    }
+
+    checkReadableStreamResponseBody(textData, "blob", checkBodyBlob);
+    checkReadableStreamResponseBody(textData, "text", checkBodyText);
+    checkReadableStreamResponseBody(textData, "json", checkBodyJSON);
+    checkReadableStreamResponseBody(textData, "arrayBuffer", checkBodyArrayBuffer);
+
+    function checkFetchedResponseBody(bodyType, checkFunction) {
+      return promise_test(function(test) {
+        return fetch("../resources/top.txt").then(function(response) {
+          assert_false(response.bodyUsed, "bodyUsed is false at init");
+          return checkFunction(response, "top");
+        });
+      }, "Consume fetched response's body as " + bodyType);
+    }
+    checkFetchedResponseBody("blob", checkBodyBlob);
+    checkFetchedResponseBody("text", checkBodyText);
+    checkFetchedResponseBody("arrayBuffer", checkBodyArrayBuffer);
 
     </script>
   </body>

@@ -4,8 +4,8 @@
     <head>
         <title>setMediaKeys</title>
         <script src="encrypted-media-utils.js"></script>
-        <script src="../../resources/testharness.js"></script>
-        <script src="../../resources/testharnessreport.js"></script>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
     </head>
     <body>
         <video id="video"></video>
@@ -34,7 +34,7 @@
                     assert_equals(error.name, 'TypeError');
 
                     // Create a MediaKeys object and assign it to video.
-                    return navigator.requestMediaKeySystemAccess('org.w3.clearkey', [{}]);
+                    return navigator.requestMediaKeySystemAccess('org.w3.clearkey', getSimpleConfiguration());
                 }).then(function(access) {
                     assert_equals(access.keySystem, 'org.w3.clearkey');
                     return access.createMediaKeys();

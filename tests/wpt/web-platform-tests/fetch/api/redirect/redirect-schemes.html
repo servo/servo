@@ -6,18 +6,18 @@
 <div id=log></div>
 <script>
   // All non-HTTP(S) schemes cannot survive redirects
-  var url = "../resources/redirect.py?location=",
-      tests = [
-    fetch(url + "mailto:a@a.com"),
-    fetch(url + "data:,HI"),
-    fetch(url + "facetime:a@a.org"),
-    fetch(url + "about:blank"),
-    fetch(url + "about:unicorn"),
-    fetch(url + "blob:djfksfjs")
+  var url = "../resources/redirect.py?location=";
+  var tests = [
+    url + "mailto:a@a.com",
+    url + "data:,HI",
+    url + "facetime:a@a.org",
+    url + "about:blank",
+    url + "about:unicorn",
+    url + "blob:djfksfjs"
   ];
-  tests.forEach(function(f) {
-    promise_test(function(t) {
-      return promise_rejects(t, new TypeError(), f)
+  tests.forEach(function(url) {
+    promise_test(function(test) {
+      return promise_rejects(test, new TypeError(), fetch(url))
     })
   })
 </script>

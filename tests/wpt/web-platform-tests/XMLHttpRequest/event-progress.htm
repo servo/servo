@@ -23,7 +23,7 @@
       if (client.readyState === 4)
         assert_unreached("onprogress not called.");
     });
-    client.open("GET", "resources/trickle.py");
+    client.open("GET", "resources/trickle.py?count=4&delay=150");
     client.send(null);
   });
 </script>

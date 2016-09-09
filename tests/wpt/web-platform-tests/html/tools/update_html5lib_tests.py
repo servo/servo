@@ -100,7 +100,7 @@ def write_test_file(script_dir, out_dir, tests, file_name, template_file_name):
     file_name = os.path.join(out_dir, file_name + ".html")
     short_name = os.path.split(file_name)[1]
 
-    with open(os.path.join(script_dir, template_file_name)) as f:
+    with open(os.path.join(script_dir, template_file_name), "r") as f:
         template = MarkupTemplate(f)
 
     stream = template.generate(file_name=short_name, tests=tests)

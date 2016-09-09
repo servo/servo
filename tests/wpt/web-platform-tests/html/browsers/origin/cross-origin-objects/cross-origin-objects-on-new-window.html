@@ -1,0 +1,25 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta name="timeout" content="long">
+<title>Cross-origin behavior of Window and Location on new Window</title>
+<link rel="author" title="Bobby Holley (:bholley)" href="bobbyholley@gmail.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#security-window">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#security-location">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+setup({explicit_done: true});
+
+window.addEventListener('message', function onmessage(evt) {
+  window.removeEventListener('message', onmessage);
+  test(function() {
+    var results = evt.data;
+    assert_true(results.length > 0, 'Need results');
+    results.forEach(function(r) { assert_true(r.pass, r.message); });
+  }, "Cross-origin object identity preserved across document.domain");
+  win.close();
+  done();
+});
+var win = window.open('win-documentdomain.sub.html');
+</script>

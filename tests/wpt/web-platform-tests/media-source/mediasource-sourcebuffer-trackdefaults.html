@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<!-- Copyright © 2016 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="mediasource-util.js"></script>
+<script>
+    function sourceBufferTrackDefaultsTest(callback, description)
+    {
+        mediasource_test(function(test, mediaElement, mediaSource)
+        {
+            var sourceBuffer = mediaSource.addSourceBuffer(MediaSourceUtil.AUDIO_VIDEO_TYPE);
+            assert_array_equals(sourceBuffer.trackDefaults, [], "Empty initial SourceBuffer.trackDefaults");
+            callback(test, mediaElement, mediaSource, sourceBuffer);
+        }, description);
+    };
+
+    sourceBufferTrackDefaultsTest(function(test, mediaElement, mediaSource, sourceBuffer)
+    {
+        var emptyList = new TrackDefaultList([]);
+        assert_not_equals(sourceBuffer.trackDefaults, emptyList, "Initial trackDefaults object differs from new empty list");
+
+        sourceBuffer.trackDefaults = emptyList;
+
+        assert_array_equals(sourceBuffer.trackDefaults, [], "Round-tripped empty trackDefaults");
+        assert_equals(sourceBuffer.trackDefaults, emptyList, "Round-tripped the empty TrackDefaultList object");
+        test.done();
+    }, "Test round-trip of empty SourceBuffer.trackDefaults");
+
+    sourceBufferTrackDefaultsTest(function(test, mediaElement, mediaSource, sourceBuffer)
+    {
+        var trackDefault = new TrackDefault("audio", "en-US", "audio label", ["main"], "1");
+        var trackDefaults = new TrackDefaultList([ trackDefault ]);
+
+        sourceBuffer.trackDefaults = trackDefaults;
+
+        assert_array_equals(sourceBuffer.trackDefaults, trackDefaults, "Round-tripped non-empty trackDefaults");
+        assert_equals(sourceBuffer.trackDefaults.length, 1, "Confirmed non-empty trackDefaults");
+        assert_equals(sourceBuffer.trackDefaults, trackDefaults, "Round-tripped the non-empty TrackDefaultList object");
+        test.done();
+    }, "Test round-trip of non-empty SourceBuffer.trackDefaults");
+
+    sourceBufferTrackDefaultsTest(function(test, mediaElement, mediaSource, sourceBuffer)
+    {
+        mediaSource.removeSourceBuffer(sourceBuffer);
+        assert_throws("InvalidStateError",
+                      function() { sourceBuffer.trackDefaults = new TrackDefaultList([]); },
+                      "Exception thrown when setting trackDefaults on SourceBuffer that is removed from MediaSource");
+        test.done();
+    }, "Test setting trackDefaults on an already-removed SourceBuffer");
+
+    mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
+    {
+        assert_array_equals(sourceBuffer.trackDefaults, [], "Empty initial SourceBuffer.trackDefaults");
+        test.expectEvent(sourceBuffer, "updateend", "Append ended");
+        sourceBuffer.appendBuffer(mediaData);
+        assert_true(sourceBuffer.updating, "SourceBuffer is updating");
+
+        assert_throws("InvalidStateError",
+                      function() { sourceBuffer.trackDefaults = new TrackDefaultList([]); },
+                      "Exception thrown when setting trackDefaults on SourceBuffer that is updating");
+
+        test.waitForExpectedEvents(function()
+        {
+            assert_false(sourceBuffer.updating, "SourceBuffer is not updating");
+            sourceBuffer.trackDefaults = new TrackDefaultList([]);
+            test.done();
+        });
+    }, "Test setting trackDefaults on a SourceBuffer that is updating");
+
+    sourceBufferTrackDefaultsTest(function(test, mediaElement, mediaSource, sourceBuffer)
+    {
+        assert_throws(new TypeError(),
+            function() { sourceBuffer.trackDefaults = null; },
+            "null should be disallowed by trackDefaults setter");
+        test.done();
+    }, "Test setting null SourceBuffer.trackDefaults");
+</script>

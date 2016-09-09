@@ -4,13 +4,18 @@
     <title>XMLHttpRequest: send() - non same-origin</title>
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
-    <base href="http://{{domains[www2]}}:{{ports[http][0]}}">
+    <base>
     <link rel="help" href="https://xhr.spec.whatwg.org/#cross-origin-request-steps" data-tested-assertations="/following::DL[2]/DT[1] /following::DL[2]/DD[1]" />
     <link rel="help" href="https://xhr.spec.whatwg.org/#cross-origin-request-event-rules" data-tested-assertations="/following::DL[1]/DT[2] /following::DL[1]/DD[2]" />
   </head>
   <body>
     <div id="log"></div>
+    <script src="/common/get-host-info.sub.js"></script>
     <script>
+      // Setting base URL before running the tests
+      var host_info = get_host_info();
+      document.getElementsByTagName("base")[0].setAttribute("href", host_info.HTTP_REMOTE_ORIGIN);
+
       function url(url) {
         test(function() {
           var client = new XMLHttpRequest()
@@ -20,7 +25,7 @@
       }
       url("mailto:test@example.org")
       url("tel:+31600000000")
-      url("http://{{domains[www2]}}:{{ports[http][0]}}/")
+      url(host_info.HTTP_REMOTE_ORIGIN)
       url("javascript:alert('FAIL')")
       url("folder.txt")
     </script>

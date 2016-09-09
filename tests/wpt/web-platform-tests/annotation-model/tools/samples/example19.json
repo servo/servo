@@ -1,0 +1,11 @@
+{
+  "@context": "http://www.w3.org/ns/anno.jsonld",
+  "id": "http://example.org/anno19",
+  "type": "Annotation",
+  "rights": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "body": {
+    "id": "http://example.net/review1",
+    "rights": "http://creativecommons.org/licenses/by-nc/4.0/"
+  },
+  "target": "http://example.com/product1"
+}

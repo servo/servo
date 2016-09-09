@@ -1,6 +1,6 @@
 if (this.document === undefined) {
   importScripts("/resources/testharness.js");
-  importScripts("../resources/utils.js");
+  importScripts("/common/get-host-info.sub.js")
 }
 
 function redirectMode(desc, redirectUrl, redirectLocation, redirectStatus, redirectMode) {
@@ -18,6 +18,7 @@ function redirectMode(desc, redirectUrl, redirectLocation, redirectStatus, redir
         assert_equals(resp.status, 0, "Response's status is 0");
         assert_equals(resp.type, "opaqueredirect", "Response's type is opaqueredirect");
         assert_equals(resp.statusText, "", "Response's statusText is \"\"");
+        assert_equals(resp.url, url + urlParameters, "Response URL should be the original one");
       });
     if (redirectMode === "follow")
       return fetch(url + urlParameters, requestInit).then(function(resp) {
@@ -28,7 +29,7 @@ function redirectMode(desc, redirectUrl, redirectLocation, redirectStatus, redir
   }, desc);
 }
 
-var redirUrl = RESOURCES_DIR + "redirect.py";
+var redirUrl = get_host_info().HTTP_ORIGIN + "/fetch/api/resources/redirect.py";
 var locationUrl = "top.txt";
 
 for (var statusCode of [301, 302, 303, 307, 308]) {
