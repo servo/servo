@@ -1545,7 +1545,7 @@ fn static_assert() {
         // clean up existing struct
         unsafe { Gecko_DestroyClipPath(clip_path) };
 
-        clip_path.mType = StyleShapeSourceType::None_;
+        clip_path.mType = StyleShapeSourceType::None;
 
         match v {
             ShapeSource::Url(..) => println!("stylo: clip-path: url() not yet implemented"),
@@ -1646,7 +1646,7 @@ fn static_assert() {
         let ref clip_path = self.gecko.mClipPath;
 
         match clip_path.mType {
-            StyleShapeSourceType::None_ => ShapeSource::None,
+            StyleShapeSourceType::None => ShapeSource::None,
             StyleShapeSourceType::Box => {
                 ShapeSource::Box(clip_path.mReferenceBox.into())
             }

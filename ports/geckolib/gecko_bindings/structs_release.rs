@@ -3935,7 +3935,7 @@ pub enum StyleBoxShadowType { Inset = 0, }
 #[repr(i8)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum StyleClear {
-    None_ = 0,
+    None = 0,
     Left = 1,
     Right = 2,
     InlineStart = 3,
@@ -3962,7 +3962,7 @@ pub enum StyleFillRule { Nonzero = 0, Evenodd = 1, }
 #[repr(i8)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum StyleFloat {
-    None_ = 0,
+    None = 0,
     Left = 1,
     Right = 2,
     InlineStart = 3,
@@ -3982,11 +3982,11 @@ pub enum StyleShapeOutsideShapeBox {
 }
 #[repr(i8)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
-pub enum StyleShapeSourceType { None_ = 0, URL = 1, Shape = 2, Box = 3, }
+pub enum StyleShapeSourceType { None = 0, URL = 1, Shape = 2, Box = 3, }
 #[repr(i8)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum StyleUserFocus {
-    None_ = 0,
+    None = 0,
     Ignore = 1,
     Normal = 2,
     SelectAll = 3,
@@ -3998,7 +3998,7 @@ pub enum StyleUserFocus {
 #[repr(i8)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum StyleUserSelect {
-    None_ = 0,
+    None = 0,
     Text = 1,
     Element = 2,
     Elements = 3,
@@ -4012,7 +4012,7 @@ pub enum StyleUserSelect {
 #[repr(i8)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum StyleDisplay {
-    None_ = 0,
+    None = 0,
     Block = 1,
     Inline = 2,
     InlineBlock = 3,

@@ -46,12 +46,9 @@ class Keyword(object):
 
     def gecko_constant(self, value):
         if self.gecko_enum_prefix:
-            if value == "none":
-                return self.gecko_enum_prefix + "::None_"
-            else:
-                parts = value.replace("-moz-", "").split("-")
-                parts = [p.title() for p in parts]
-                return self.gecko_enum_prefix + "::" + "".join(parts)
+            parts = value.replace("-moz-", "").split("-")
+            parts = [p.title() for p in parts]
+            return self.gecko_enum_prefix + "::" + "".join(parts)
         else:
             return self.gecko_constant_prefix + "_" + value.replace("-moz-", "").replace("-", "_").upper()
 
