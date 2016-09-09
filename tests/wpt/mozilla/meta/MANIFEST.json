@@ -1500,6 +1500,18 @@
             "url": "/_mozilla/css/first_of_type_pseudo_a.html"
           }
         ],
+        "css/fixed_percent.html": [
+          {
+            "path": "css/fixed_percent.html",
+            "references": [
+              [
+                "/_mozilla/css/fixed_percent_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/fixed_percent.html"
+          }
+        ],
         "css/fixed_width_overrides_child_intrinsic_width_a.html": [
           {
             "path": "css/fixed_width_overrides_child_intrinsic_width_a.html",
@@ -10892,6 +10904,18 @@
             ]
           ],
           "url": "/_mozilla/css/first_of_type_pseudo_a.html"
+        }
+      ],
+      "css/fixed_percent.html": [
+        {
+          "path": "css/fixed_percent.html",
+          "references": [
+            [
+              "/_mozilla/css/fixed_percent_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/fixed_percent.html"
         }
       ],
       "css/fixed_width_overrides_child_intrinsic_width_a.html": [
