@@ -8,7 +8,7 @@ use dom::abstractworker::WorkerScriptMsg;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::WorkerBinding;
 use dom::bindings::codegen::Bindings::WorkerBinding::WorkerMethods;
-use dom::bindings::error::{Error, ErrorResult, Fallible};
+use dom::bindings::error::{Error, ErrorResult, Fallible, ErrorInfo};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
@@ -17,11 +17,13 @@ use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
+use dom::errorevent::ErrorEvent;
+use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
 use dom::messageevent::MessageEvent;
 use dom::workerglobalscope::prepare_workerscope_init;
 use ipc_channel::ipc;
-use js::jsapi::{HandleValue, JSAutoCompartment, JSContext};
+use js::jsapi::{HandleValue, JSAutoCompartment, JSContext, NullHandleValue};
 use js::jsval::UndefinedValue;
 use script_thread::Runnable;
 use script_traits::WorkerScriptLoadOrigin;
@@ -137,6 +139,26 @@ impl Worker {
         let worker = address.root();
         worker.upcast().fire_simple_event("error");
     }
+
+    fn dispatch_error(&self, error_info: ErrorInfo) {
+        let global = self.global();
+        let event = ErrorEvent::new(global.r(),
+                                    atom!("error"),
+                                    EventBubbles::DoesNotBubble,
+                                    EventCancelable::Cancelable,
+                                    error_info.message.as_str().into(),
+                                    error_info.filename.as_str().into(),
+                                    error_info.lineno,
+                                    error_info.column,
+                                    NullHandleValue);
+
+        let handled = !event.upcast::<Event>().fire(self.upcast::<EventTarget>());
+        if handled {
+            return;
+        }
+
+        global.r().report_an_error(error_info, NullHandleValue);
+    }
 }
 
 impl WorkerMethods for Worker {
@@ -200,5 +222,26 @@ impl Runnable for SimpleWorkerErrorHandler<Worker> {
     fn handler(self: Box<SimpleWorkerErrorHandler<Worker>>) {
         let this = *self;
         Worker::dispatch_simple_error(this.addr);
+    }
+}
+
+pub struct WorkerErrorHandler {
+    address: Trusted<Worker>,
+    error_info: ErrorInfo,
+}
+
+impl WorkerErrorHandler {
+    pub fn new(address: Trusted<Worker>, error_info: ErrorInfo) -> WorkerErrorHandler {
+        WorkerErrorHandler {
+            address: address,
+            error_info: error_info,
+        }
+    }
+}
+
+impl Runnable for WorkerErrorHandler {
+    fn handler(self: Box<Self>) {
+        let this = *self;
+        this.address.root().dispatch_error(this.error_info);
     }
 }

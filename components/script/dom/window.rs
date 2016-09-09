@@ -1766,6 +1766,7 @@ impl Window {
         self.in_error_reporting_mode.set(true);
 
         // Steps 3-12.
+        // FIXME(#13195): muted errors.
         let event = ErrorEvent::new(GlobalRef::Window(self),
                                     atom!("error"),
                                     EventBubbles::DoesNotBubble,
