@@ -11,9 +11,9 @@ use cssparser::ToCss;
 use properties::shorthands::serialize_four_sides;
 use std::fmt;
 use url::Url;
+use values::computed::{BorderRadiusSize, LengthOrPercentage};
 use values::computed::UrlExtraData;
 use values::computed::position::Position;
-use values::computed::{BorderRadiusSize, LengthOrPercentage};
 
 pub use values::specified::basic_shape::{FillRule, GeometryBox, ShapeBox};
 

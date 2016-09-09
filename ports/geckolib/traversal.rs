@@ -6,8 +6,8 @@ use context::StandaloneStyleContext;
 use std::mem;
 use style::context::{LocalStyleContext, SharedStyleContext, StyleContext};
 use style::dom::OpaqueNode;
-use style::traversal::RestyleResult;
 use style::traversal::{DomTraversalContext, recalc_style_at};
+use style::traversal::RestyleResult;
 use wrapper::GeckoNode;
 
 pub struct RecalcStyleOnly<'lc> {

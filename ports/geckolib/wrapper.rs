@@ -5,10 +5,6 @@
 #![allow(unsafe_code)]
 
 use gecko_bindings::bindings;
-use gecko_bindings::bindings::Gecko_ClassOrClassList;
-use gecko_bindings::bindings::Gecko_GetNodeData;
-use gecko_bindings::bindings::Gecko_GetStyleContext;
-use gecko_bindings::bindings::ServoNodeData;
 use gecko_bindings::bindings::{Gecko_CalcStyleDifference, Gecko_StoreStyleDifference};
 use gecko_bindings::bindings::{Gecko_DropStyleChildrenIterator, Gecko_MaybeCreateStyleChildrenIterator};
 use gecko_bindings::bindings::{Gecko_ElementState, Gecko_GetDocumentElement};
@@ -24,10 +20,14 @@ use gecko_bindings::bindings::{Gecko_IsUnvisitedLink, Gecko_IsVisitedLink};
 use gecko_bindings::bindings::{Gecko_LocalName, Gecko_Namespace, Gecko_NodeIsElement, Gecko_SetNodeData};
 use gecko_bindings::bindings::{RawGeckoDocument, RawGeckoElement, RawGeckoNode};
 use gecko_bindings::bindings::{RawGeckoElementBorrowed, RawGeckoNodeBorrowed};
+use gecko_bindings::bindings::Gecko_ClassOrClassList;
+use gecko_bindings::bindings::Gecko_GetNodeData;
+use gecko_bindings::bindings::Gecko_GetStyleContext;
+use gecko_bindings::bindings::ServoNodeData;
 use gecko_bindings::structs::{NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO, NODE_IS_DIRTY_FOR_SERVO};
-use gecko_bindings::structs::{nsIAtom, nsChangeHint, nsStyleContext};
+use gecko_bindings::structs::{nsChangeHint, nsIAtom, nsStyleContext};
+use gecko_bindings::sugar::ownership::{FFIArcHelpers, HasBoxFFI, HasFFI, HasSimpleFFI};
 use gecko_bindings::sugar::ownership::Borrowed;
-use gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI, FFIArcHelpers};
 use gecko_string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
 use glue::GeckoDeclarationBlock;
 use libc::uintptr_t;
@@ -47,8 +47,8 @@ use style::element_state::ElementState;
 use style::error_reporting::StdoutErrorReporter;
 use style::gecko_selector_impl::{GeckoSelectorImpl, NonTSPseudoClass, PseudoElement};
 use style::parser::ParserContextExtraData;
-use style::properties::PropertyDeclarationBlock;
 use style::properties::{ComputedValues, parse_style_attribute};
+use style::properties::PropertyDeclarationBlock;
 use style::refcell::{Ref, RefCell, RefMut};
 use style::selector_impl::ElementExt;
 use style::selector_matching::ApplicableDeclarationBlock;

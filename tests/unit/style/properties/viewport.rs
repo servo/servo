@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use style::properties::longhands::border_top_width;
 use style::properties::{DeclaredValue, PropertyDeclaration};
+use style::properties::longhands::border_top_width;
 use style::values::HasViewportPercentage;
 use style::values::specified::{Length, ViewportPercentageLength};
 

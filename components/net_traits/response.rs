@@ -4,6 +4,7 @@
 
 //! The [Response](https://fetch.spec.whatwg.org/#responses) object
 //! resulting from a [fetch operation](https://fetch.spec.whatwg.org/#concept-fetch)
+use {Metadata, NetworkError};
 use hyper::header::{AccessControlExposeHeaders, ContentType, Headers};
 use hyper::status::StatusCode;
 use hyper_serde::Serde;
@@ -11,7 +12,6 @@ use std::ascii::AsciiExt;
 use std::cell::{Cell, RefCell};
 use std::sync::{Arc, Mutex};
 use url::Url;
-use {Metadata, NetworkError};
 
 /// [Response type](https://fetch.spec.whatwg.org/#concept-response-type)
 #[derive(Clone, PartialEq, Copy, Debug, Deserialize, Serialize, HeapSizeOf)]

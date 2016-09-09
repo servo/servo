@@ -8,8 +8,8 @@
 //! [meta]: https://drafts.csswg.org/css-device-adapt/#viewport-meta
 
 use app_units::Au;
-use cssparser::ToCss;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser, parse_important};
+use cssparser::ToCss;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::{Size2D, TypedSize2D};
 use parser::{ParserContext, log_css_error};

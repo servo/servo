@@ -10,9 +10,9 @@
 use cssparser::{Parser, ToCss, Token};
 use std::fmt;
 use values::HasViewportPercentage;
-use values::computed::position as computed_position;
 use values::computed::{CalcLengthOrPercentage, Context};
 use values::computed::{LengthOrPercentage as ComputedLengthOrPercentage, ToComputedValue};
+use values::computed::position as computed_position;
 use values::specified::{LengthOrPercentage, Percentage};
 
 #[derive(Debug, Clone, PartialEq, Copy)]

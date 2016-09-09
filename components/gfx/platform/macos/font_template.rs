@@ -7,8 +7,8 @@ use core_graphics::data_provider::CGDataProvider;
 use core_graphics::font::CGFont;
 use core_text;
 use core_text::font::CTFont;
-use serde::de::{Error, Visitor};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::de::{Error, Visitor};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::fs::File;
@@ -144,4 +144,3 @@ impl Deserialize for CachedCTFont {
         deserializer.deserialize_option(NoneOptionVisitor)
     }
 }
-

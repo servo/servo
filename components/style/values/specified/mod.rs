@@ -16,8 +16,8 @@ use std::f32::consts::PI;
 use std::fmt;
 use std::ops::Mul;
 use style_traits::values::specified::AllowedNumericType;
-use super::computed::{self, Context, ToComputedValue};
 use super::{CSSFloat, FONT_MEDIUM_PX, HasViewportPercentage, LocalToCss, NoViewportPercentage};
+use super::computed::{self, Context, ToComputedValue};
 use url::Url;
 
 pub mod basic_shape;

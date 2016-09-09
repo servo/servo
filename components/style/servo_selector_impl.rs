@@ -7,9 +7,9 @@ use cssparser::ToCss;
 use element_state::ElementState;
 use restyle_hints::ElementSnapshot;
 use selector_impl::{ElementExt, PseudoElementCascadeType, TheSelectorImpl};
-use selector_impl::{attr_exists_selector_is_shareable, attr_equals_selector_is_shareable};
-use selectors::parser::{AttrSelector, ParserContext, SelectorImpl};
+use selector_impl::{attr_equals_selector_is_shareable, attr_exists_selector_is_shareable};
 use selectors::{Element, MatchAttrGeneric};
+use selectors::parser::{AttrSelector, ParserContext, SelectorImpl};
 use std::fmt;
 use string_cache::{Atom, Namespace};
 

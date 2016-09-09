@@ -3,19 +3,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use filemanager_thread::{FileManager, UIProvider};
-use hyper::header::{DispositionType, ContentDisposition, DispositionParam};
-use hyper::header::{Headers, ContentType, ContentLength, Charset};
+use hyper::header::{Charset, ContentLength, ContentType, Headers};
+use hyper::header::{ContentDisposition, DispositionParam, DispositionType};
 use hyper_serde::Serde;
 use ipc_channel::ipc;
-use mime::{Mime, Attr};
+use mime::{Attr, Mime};
 use mime_classifier::MimeClassifier;
-use net_traits::ProgressMsg::{Payload, Done};
+use net_traits::{LoadConsumer, LoadData, Metadata, NetworkError};
+use net_traits::ProgressMsg::{Done, Payload};
 use net_traits::blob_url_store::parse_blob_url;
 use net_traits::filemanager_thread::{FileManagerThreadMsg, ReadFileProgress};
 use net_traits::response::HttpsState;
-use net_traits::{LoadConsumer, LoadData, Metadata, NetworkError};
+use resource_thread::{send_error, start_sending_sniffed_opt};
 use resource_thread::CancellationListener;
-use resource_thread::{start_sending_sniffed_opt, send_error};
 use std::boxed::FnBox;
 use std::sync::Arc;
 use util::thread::spawn_named;

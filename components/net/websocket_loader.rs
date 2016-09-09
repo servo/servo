@@ -5,15 +5,16 @@
 use cookie_storage::CookieStorage;
 use http_loader;
 use hyper::header::Host;
+use net_traits::{WebSocketCommunicate, WebSocketConnectData, WebSocketDomAction, WebSocketNetworkEvent};
 use net_traits::MessageData;
 use net_traits::hosts::replace_hosts;
 use net_traits::unwrap_websocket_protocol;
-use net_traits::{WebSocketCommunicate, WebSocketConnectData, WebSocketDomAction, WebSocketNetworkEvent};
 use std::ascii::AsciiExt;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, RwLock};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use util::thread::spawn_named;
+use websocket::{Client, Message};
 use websocket::client::request::Url;
 use websocket::header::{Headers, Origin, WebSocketProtocol};
 use websocket::message::Type;
@@ -24,7 +25,6 @@ use websocket::stream::WebSocketStream;
 use websocket::ws::receiver::Receiver as WSReceiver;
 use websocket::ws::sender::Sender as Sender_Object;
 use websocket::ws::util::url::parse_url;
-use websocket::{Client, Message};
 
 /// *Establish a WebSocket Connection* as defined in RFC 6455.
 fn establish_a_websocket_connection(resource_url: &Url, net_url: (Host, String, bool),

@@ -4,8 +4,8 @@
 
 use net_traits::{Action, AsyncResponseListener, FetchResponseListener};
 use net_traits::{FetchResponseMsg, ResponseAction};
-use script_runtime::ScriptThreadEventCategory::NetworkEvent;
 use script_runtime::{CommonScriptMsg, ScriptChan};
+use script_runtime::ScriptThreadEventCategory::NetworkEvent;
 use script_thread::{Runnable, RunnableWrapper};
 use std::sync::{Arc, Mutex};
 

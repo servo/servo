@@ -108,15 +108,15 @@ impl From<nsStyleCoord_CalcValue> for LengthOrPercentage {
 pub mod basic_shape {
     use euclid::size::Size2D;
     use gecko_bindings::structs;
-    use gecko_bindings::structs::StyleClipPathGeometryBox;
     use gecko_bindings::structs::{StyleBasicShape, StyleBasicShapeType, StyleFillRule};
     use gecko_bindings::structs::{nsStyleCoord, nsStyleCorners};
+    use gecko_bindings::structs::StyleClipPathGeometryBox;
     use gecko_bindings::sugar::ns_style_coord::{CoordDataMut, CoordDataValue};
     use gecko_values::GeckoStyleCoordConvertible;
     use std::borrow::Borrow;
+    use values::computed::{BorderRadiusSize, LengthOrPercentage};
     use values::computed::basic_shape::*;
     use values::computed::position;
-    use values::computed::{BorderRadiusSize, LengthOrPercentage};
 
     // using Borrow so that we can have a non-moving .into()
     impl<T: Borrow<StyleBasicShape>> From<T> for BasicShape {

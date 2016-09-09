@@ -5,8 +5,8 @@
 use bluetooth_blacklist::{Blacklist, uuid_is_blacklisted};
 use core::clone::Clone;
 use dom::bindings::codegen::Bindings::BluetoothBinding;
+use dom::bindings::codegen::Bindings::BluetoothBinding::{BluetoothMethods, BluetoothScanFilter};
 use dom::bindings::codegen::Bindings::BluetoothBinding::RequestDeviceOptions;
-use dom::bindings::codegen::Bindings::BluetoothBinding::{BluetoothScanFilter, BluetoothMethods};
 use dom::bindings::error::Error::{self, Security, Type};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;

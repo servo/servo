@@ -6,13 +6,13 @@
 
 use app_units::Au;
 use cssparser::RGBA;
-use gecko_bindings::structs::nsStyleCoord;
 use gecko_bindings::structs::{NS_RADIUS_CLOSEST_SIDE, NS_RADIUS_FARTHEST_SIDE};
-use gecko_bindings::sugar::ns_style_coord::{CoordDataValue, CoordData, CoordDataMut};
+use gecko_bindings::structs::nsStyleCoord;
+use gecko_bindings::sugar::ns_style_coord::{CoordData, CoordDataMut, CoordDataValue};
 use std::cmp::max;
+use values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 use values::computed::Angle;
 use values::computed::basic_shape::ShapeRadius;
-use values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 
 pub trait StyleCoordHelpers {
     fn set<T: GeckoStyleCoordConvertible>(&mut self, val: T);

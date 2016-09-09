@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use devtools_traits::TimelineMarkerType;
 use devtools_traits::{AutoMargins, CONSOLE_API, CachedConsoleMessage, CachedConsoleMessageTypes};
 use devtools_traits::{ComputedNodeLayout, ConsoleAPI, PageError, ScriptToDevtoolsControlMsg};
 use devtools_traits::{EvaluateJSReply, Modification, NodeInfo, PAGE_ERROR, TimelineMarker};
+use devtools_traits::TimelineMarkerType;
 use dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
@@ -28,8 +28,9 @@ use js::jsval::UndefinedValue;
 use msg::constellation_msg::PipelineId;
 use std::ffi::CStr;
 use std::str;
-use style::properties::longhands::{margin_top, margin_right, margin_bottom, margin_left};
+use style::properties::longhands::{margin_bottom, margin_left, margin_right, margin_top};
 use uuid::Uuid;
+
 
 #[allow(unsafe_code)]
 pub fn handle_evaluate_js(global: &GlobalRef, eval: String, reply: IpcSender<EvaluateJSReply>) {

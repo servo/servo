@@ -269,9 +269,9 @@ pub mod rule_filter {
     //! Specific `CSSRule` variant iterators.
 
     use std::marker::PhantomData;
+    use super::{CSSRule, KeyframesRule, MediaRule, StyleRule};
     use super::super::font_face::FontFaceRule;
     use super::super::viewport::ViewportRule;
-    use super::{CSSRule, KeyframesRule, MediaRule, StyleRule};
 
     macro_rules! rule_filter {
         ($variant:ident -> $value:ty) => {

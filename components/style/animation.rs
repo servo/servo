@@ -9,13 +9,13 @@ use context::SharedStyleContext;
 use dom::OpaqueNode;
 use euclid::point::Point2D;
 use keyframes::{KeyframesStep, KeyframesStepValue};
+use properties::{self, ComputedValues, Importance};
 use properties::animated_properties::{AnimatedProperty, TransitionProperty};
 use properties::longhands::animation_direction::computed_value::AnimationDirection;
 use properties::longhands::animation_iteration_count::computed_value::AnimationIterationCount;
 use properties::longhands::animation_play_state::computed_value::AnimationPlayState;
 use properties::longhands::transition_timing_function::computed_value::StartEnd;
 use properties::longhands::transition_timing_function::computed_value::TransitionTimingFunction;
-use properties::{self, ComputedValues, Importance};
 use selector_matching::ApplicableDeclarationBlock;
 use std::sync::Arc;
 use std::sync::mpsc::Sender;
@@ -686,4 +686,3 @@ pub fn complete_expired_transitions(node: OpaqueNode, style: &mut Arc<ComputedVa
 
     had_animations_to_expire
 }
-

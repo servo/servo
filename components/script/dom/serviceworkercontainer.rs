@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::ServiceWorkerContainerBinding::RegistrationOptions;
 use dom::bindings::codegen::Bindings::ServiceWorkerContainerBinding::{ServiceWorkerContainerMethods, Wrap};
+use dom::bindings::codegen::Bindings::ServiceWorkerContainerBinding::RegistrationOptions;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;

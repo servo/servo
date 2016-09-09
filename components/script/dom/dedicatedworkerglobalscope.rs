@@ -4,7 +4,7 @@
 
 use devtools;
 use devtools_traits::DevtoolScriptControlMsg;
-use dom::abstractworker::{WorkerScriptMsg, SharedRt , SimpleWorkerErrorHandler};
+use dom::abstractworker::{SharedRt, SimpleWorkerErrorHandler, WorkerScriptMsg};
 use dom::abstractworkerglobalscope::{SendableWorkerScriptChan, WorkerThreadWorkerChan};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding;
@@ -27,15 +27,15 @@ use js::jsapi::{JSAutoCompartment, JSContext};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use msg::constellation_msg::PipelineId;
-use net_traits::{LoadContext, load_whole_resource, IpcSend};
+use net_traits::{IpcSend, LoadContext, load_whole_resource};
 use rand::random;
-use script_runtime::ScriptThreadEventCategory::WorkerEvent;
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, StackRootTLS, get_reports, new_rt_and_cx};
-use script_traits::{TimerEvent, TimerSource, WorkerScriptLoadOrigin, WorkerGlobalScopeInit};
+use script_runtime::ScriptThreadEventCategory::WorkerEvent;
+use script_traits::{TimerEvent, TimerSource, WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
 use std::mem::replace;
+use std::sync::{Arc, Mutex};
 use std::sync::atomic::AtomicBool;
 use std::sync::mpsc::{Receiver, RecvError, Select, Sender, channel};
-use std::sync::{Arc, Mutex};
 use style::thread_state;
 use url::Url;
 use util::thread::spawn_named;

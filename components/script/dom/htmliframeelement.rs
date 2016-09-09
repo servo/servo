@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use document_loader::{LoadType, LoadBlocker};
+use document_loader::{LoadBlocker, LoadType};
 use dom::attr::Attr;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserElementErrorEventDetail;
@@ -20,7 +20,7 @@ use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, MutNullableHeap, Root, LayoutJS};
+use dom::bindings::js::{JS, LayoutJS, MutNullableHeap, Root};
 use dom::bindings::reflector::Reflectable;
 use dom::bindings::str::DOMString;
 use dom::browsingcontext::BrowsingContext;
@@ -31,18 +31,18 @@ use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
 use dom::event::Event;
 use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
-use dom::node::{Node, NodeDamage, UnbindContext, window_from_node, document_from_node};
+use dom::node::{Node, NodeDamage, UnbindContext, document_from_node, window_from_node};
 use dom::urlhelper::UrlHelper;
 use dom::virtualmethods::VirtualMethods;
 use dom::window::{ReflowReason, Window};
 use ipc_channel::ipc;
 use js::jsapi::{JSAutoCompartment, JSContext, MutableHandleValue};
-use js::jsval::{UndefinedValue, NullValue};
-use msg::constellation_msg::{FrameType, LoadData, TraversalDirection, PipelineId, SubpageId};
+use js::jsval::{NullValue, UndefinedValue};
+use msg::constellation_msg::{FrameType, LoadData, PipelineId, SubpageId, TraversalDirection};
 use net_traits::response::HttpsState;
 use script_layout_interface::message::ReflowQueryType;
-use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
 use script_traits::{IFrameLoadInfo, MozBrowserEvent, ScriptMsg as ConstellationMsg};
+use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
 use std::cell::Cell;
 use string_cache::Atom;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
