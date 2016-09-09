@@ -2203,7 +2203,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     continue;
                 }
             };
-            evicted_pipelines.extend_from_slice(&frame.remove_forward_entries());
+            evicted_pipelines.extend(frame.remove_forward_entries());
             for entry in frame.next.iter().chain(frame.prev.iter()).chain(once(&frame.current)) {
                 let pipeline = match self.pipelines.get(&entry.pipeline_id) {
                     Some(pipeline) => pipeline,
