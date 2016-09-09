@@ -120,7 +120,8 @@ ${helpers.single_keyword("position", "static absolute relative fixed",
 </%helpers:single_keyword_computed>
 
 ${helpers.single_keyword("clear", "none left right both",
-                         animatable=False, gecko_ffi_name="mBreakType")}
+                         animatable=False, gecko_ffi_name="mBreakType",
+                         gecko_enum_prefix="StyleClear")}
 
 <%helpers:longhand name="-servo-display-for-hypothetical-box"
                    animatable="False"
