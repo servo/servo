@@ -76,6 +76,16 @@ version = "0.26.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
+name = "audio-video-metadata"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "mp3-metadata 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mp4parse 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ogg_metadata 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "azure"
 version = "0.8.0"
 source = "git+https://github.com/servo/rust-azure#9fb666b2fc86b23761f9b0f877a3d42f182263a9"
@@ -1282,6 +1292,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "mp3-metadata"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "mp4parse"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "byteorder 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "msg"
 version = "0.0.1"
 dependencies = [
@@ -1470,6 +1493,23 @@ dependencies = [
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.8.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "x11 2.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "ogg"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "byteorder 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "ogg_metadata"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "byteorder 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ogg 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1749,6 +1789,7 @@ version = "0.0.1"
 dependencies = [
  "angle 0.1.1 (git+https://github.com/servo/angle?branch=servo)",
  "app_units 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "audio-video-metadata 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "canvas_traits 0.0.1",
  "caseless 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2589,6 +2630,7 @@ dependencies = [
 "checksum app_units 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "636ee56f12e31dbc11dc0a1ac6004f08b04e6e6595963716fc8130e90d4e04cf"
 "checksum arrayvec 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)" = "16e3bdb2f54b3ace0285975d59a97cf8ed3855294b2b6bc651fcf22a9c352975"
 "checksum aster 0.26.1 (registry+https://github.com/rust-lang/crates.io-index)" = "baa18cafee9499ac766e76117577b84efa98f43b81964cf167cd800b29176db3"
+"checksum audio-video-metadata 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "03da2550cb89fe3faf218c179261c26cf7891c4234707c15f5d09ebb32ae2400"
 "checksum azure 0.8.0 (git+https://github.com/servo/rust-azure)" = "<none>"
 "checksum backtrace 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "346d7644f0b5f9bc73082d3b2236b69a05fd35cce0cfa3724e184e6a5c9e2a2f"
 "checksum backtrace-sys 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)" = "ff73785ae8e06bb4a7b09e09f06d7434f9748b86d2f67bdf334b603354497e08"
@@ -2692,6 +2734,8 @@ dependencies = [
 "checksum mime_guess 1.8.0 (registry+https://github.com/rust-lang/crates.io-index)" = "e9a7d89cb3bce9145b0d0339a0588b044e3e3e3faa1dcd74822ebdc36bfac020"
 "checksum miniz-sys 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)" = "9d1f4d337a01c32e1f2122510fed46393d53ca35a7f429cb0450abaedfa3ed54"
 "checksum mozjs_sys 0.0.0 (git+https://github.com/servo/mozjs)" = "<none>"
+"checksum mp3-metadata 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "8ceb0f016543197868f060e560c0bd9fbdcf6fe4c7555e04b5d8b34ecd81e7aa"
+"checksum mp4parse 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)" = "1e3d4b79704ee1a9d307a92d2cb2c7186a8eb7e40bfca41e1c2fa9fcb152390a"
 "checksum net2 0.2.26 (registry+https://github.com/rust-lang/crates.io-index)" = "5edf9cb6be97212423aed9413dd4729d62b370b5e1c571750e882cebbbc1e3e2"
 "checksum nodrop 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)" = "4d9a22dbcebdeef7bf275cbf444d6521d4e7a2fee187b72d80dba0817120dd8f"
 "checksum num 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)" = "5a9699207fab8b02bd0e56f8f06fee3f26d640303130de548898b4c9704f6d01"
@@ -2704,6 +2748,8 @@ dependencies = [
 "checksum objc 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "7c9311aa5acd7bee14476afa0f0557f564e9d0d61218a8b833d9b1f871fa5fba"
 "checksum odds 0.2.15 (registry+https://github.com/rust-lang/crates.io-index)" = "e2adb44c4e3ae8c998874fa73ec4fd885fc7a3389ca44994217b19b8a7b1f269"
 "checksum offscreen_gl_context 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)" = "9145c0e9e9a303d5859ea38675c86a62f50b9eb4ed89b0f7bdec21920d7f006a"
+"checksum ogg 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)" = "972a5c8bd831a86820ad4d3ee51da412eefb9361d6c3e0640453f04e2df3c278"
+"checksum ogg_metadata 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "e755cc735fa6faa709cb23048433d9201d6caa85fa96215386ccdd5e9b40ad01"
 "checksum open 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "c228597177bc4a6876e278f7c7948ac033bfcb4d163ccdd5a009557c8fe5fa1e"
 "checksum openssl 0.7.14 (registry+https://github.com/rust-lang/crates.io-index)" = "c4117b6244aac42ed0150a6019b4d953d28247c5dd6ae6f46ae469b5f2318733"
 "checksum openssl-sys 0.7.17 (registry+https://github.com/rust-lang/crates.io-index)" = "89c47ee94c352eea9ddaf8e364be7f978a3bb6d66d73176572484238dd5a5c3f"
