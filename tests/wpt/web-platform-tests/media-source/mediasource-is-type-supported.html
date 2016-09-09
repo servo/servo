@@ -1,9 +1,11 @@
 <!DOCTYPE html>
+<!-- Copyright © 2016 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
 <html>
     <head>
         <title>MediaSource.isTypeSupported() test cases.</title>
         <script src="/resources/testharness.js"></script>
         <script src="/resources/testharnessreport.js"></script>
+        <script src="mediasource-util.js"></script>
     </head>
     <body>
         <div id="log"></div>
@@ -35,6 +37,12 @@
           ], false, 'Test invalid MIME format');
 
           test_type_support([
+              'xxx',
+              'text/html',
+              'image/jpeg'
+          ], false, 'Test invalid MSE MIME media type');
+
+          test_type_support([
               'audio/webm;codecs="vp8"',
               'audio/mp4;codecs="avc1.4d001e"',
           ], false, 'Test invalid mismatch between major type and codec ID');
@@ -45,7 +53,6 @@
               'video/mp4;codecs="vp8"',
               'video/webm;codecs="mp4a.40.2"',
               'video/mp4;codecs="vorbis"',
-              'video/webm;codecs="mp4a.40.2"',
           ], false, 'Test invalid mismatch between minor type and codec ID');
 
           test_type_support([

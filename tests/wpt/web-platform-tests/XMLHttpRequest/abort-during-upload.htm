@@ -4,6 +4,7 @@
     <title>XMLHttpRequest: abort() while sending data</title>
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
+    <script src="resources/xmlhttprequest-event-order.js"></script>
     <link rel="help" href="https://xhr.spec.whatwg.org/#the-abort()-method" data-tested-assertations="following-sibling::ol/li[4]/ol/li[7] following-sibling::ol/li[4]/ol/li[7]/ol/li[2] following-sibling::ol/li[4]/ol/li[7]/ol/li[3] following-sibling::ol/li[4]/ol/li[7]/ol/li[4]" />
     <link rel="help" href="https://xhr.spec.whatwg.org/#make-upload-progress-notifications" data-tested-assertations="following::ul[1]/li[1] following::ul[1]/li[2]/ol[1]/li[2] following::ul[1]/li[2]/ol[1]/li[3] following::ul[1]/li[2]/ol[1]/li[4]" />
   </head>
@@ -11,29 +12,16 @@
     <div id="log"></div>
     <script>
       var test = async_test(document.title, {timeout:1100})
-      var result = []
-      var expected = ['progress on XHR Upload', 'abort on XHR Upload', 'loadend on XHR Upload', 'progress on XHR', 'abort on XHR', 'loadend on XHR']
-      function logEvt (e) {
-        var str = e.type+' on '
-        str += e.target instanceof XMLHttpRequest ? 'XHR' : 'XHR Upload'
-        result.push(str)
-      }
       test.step(function() {
         var client = new XMLHttpRequest()
+        prepare_xhr_for_event_order_test(client);
         client.open("POST", "resources/delay.py?ms=1000")
-        client.addEventListener('progress', logEvt)
-        client.addEventListener('abort', logEvt)
-        client.addEventListener('loadend', function (e) {
-          logEvt(e)
+        client.addEventListener("loadend", function(e) {
           test.step(function() {
-            assert_equals(client.readyState, 4)
-            assert_array_equals(result, expected)
+            assert_xhr_event_order_matches([1, "loadstart(0,0,false)", "upload.loadstart(0,9999,true)", 4, "upload.progress(0,0,false)", "upload.abort(0,0,false)", "upload.loadend(0,0,false)", "progress(0,0,false)", "abort(0,0,false)", "loadend(0,0,false)"]);
             test.done()
           })
-        })
-        client.upload.addEventListener('loadend', logEvt)
-        client.upload.addEventListener('progress', logEvt)
-        client.upload.addEventListener('abort', logEvt)
+        });
         client.send((new Array(10000)).join('a'))
         client.abort()
       })

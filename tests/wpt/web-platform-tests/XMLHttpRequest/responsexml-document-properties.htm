@@ -45,7 +45,7 @@
 
       test(function() {
         var lastModified = Math.floor(new Date(client.responseXML.lastModified).getTime() / 1000);
-        var now = Math.floor(new Date().getTime() / 1000);
+        var now = Math.floor(new Date().getTime(new Date().getTime() + 2000) / 1000); // two seconds from now, in case there's clock drift
         assert_greater_than_equal(lastModified, timePreXHR);
         assert_less_than_equal(lastModified, now);
       }, 'lastModified set to time of response if no HTTP header provided')

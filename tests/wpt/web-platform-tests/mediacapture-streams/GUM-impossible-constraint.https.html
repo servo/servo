@@ -10,7 +10,7 @@
 <p class="instructions">When prompted, accept to share your video stream.</p>
 <h1 class="instructions">Description</h1>
 <p class="instructions">This test checks that setting an impossible mandatory
-constraint (width &gt;=infinity) in getUserMedia works</p>
+constraint (width &gt;=1G) in getUserMedia works</p>
 
 <div id='log'></div>
 <script src=/resources/testharness.js></script>
@@ -19,8 +19,10 @@ constraint (width &gt;=infinity) in getUserMedia works</p>
 <script>
 var t = async_test("Tests that setting an impossible constraint in getUserMedia fails", {timeout:10000});
 t.step(function() {
-  navigator.getUserMedia({video: {width: {min:Infinity}}}, t.step_func(function (stream) {
-    assert_unreached("a Video stream of infinite width cannot be created");
+  // Note - integer conversion is weird for +inf and numbers > 2^32, so we
+  // use a number less than 2^32 for testing.
+  navigator.getUserMedia({video: {width: {min:100000000}}}, t.step_func(function (stream) {
+    assert_unreached("a Video stream of width 100M cannot be created");
     t.done();
   }), t.step_func(function(error) {
     assert_equals(error.name, "ConstraintNotSatisfiedError", "An impossible constraint triggers a ConstraintNotSatisfiedError");

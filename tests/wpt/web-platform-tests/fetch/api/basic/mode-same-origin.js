@@ -1,6 +1,7 @@
 if (this.document === undefined) {
   importScripts("/resources/testharness.js");
   importScripts("../resources/utils.js");
+  importScripts("/common/get-host-info.sub.js")
 }
 
 function fetchSameOrigin(url, shouldPass) {
@@ -15,10 +16,19 @@ function fetchSameOrigin(url, shouldPass) {
   }, "Fetch "+ url + " with same-origin mode");
 }
 
+var host_info = get_host_info();
+
 fetchSameOrigin(RESOURCES_DIR + "top.txt", true);
-fetchSameOrigin("http://{{host}}:{{ports[http][0]}}/fetch/api/resources/top.txt", true);
-fetchSameOrigin("https://{{host}}:{{ports[https][0]}}/fetch/api/resources/top.txt", false);
-fetchSameOrigin("http://{{domains[www]}}:{{ports[http][0]}}/fetch/api/resources/top.txt", false);
+fetchSameOrigin(host_info.HTTP_ORIGIN + "/fetch/api/resources/top.txt", true);
+fetchSameOrigin(host_info.HTTPS_ORIGIN + "/fetch/api/resources/top.txt", false);
+fetchSameOrigin(host_info.HTTP_REMOTE_ORIGIN + "/fetch/api/resources/top.txt", false);
+
+var redirPath = dirname(location.pathname) + RESOURCES_DIR + "redirect.py?location=";
+
+fetchSameOrigin(redirPath + RESOURCES_DIR + "top.txt", true);
+fetchSameOrigin(redirPath + host_info.HTTP_ORIGIN + "/fetch/api/resources/top.txt", true);
+fetchSameOrigin(redirPath + host_info.HTTPS_ORIGIN + "/fetch/api/resources/top.txt", false);
+fetchSameOrigin(redirPath + host_info.HTTP_REMOTE_ORIGIN + "/fetch/api/resources/top.txt", false);
 
 done();
 

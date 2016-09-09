@@ -1,0 +1,126 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Payment Request interface IDL tests</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/WebIDLParser.js></script>
+<script src=/resources/idlharness.js></script>
+<script type=text/plain class=untested>
+interface EventHandler {};
+interface Event {};
+interface EventInit {};
+interface EventTarget {};
+</script>
+<script type=text/plain>
+[Constructor(sequence<PaymentMethodData> methodData, PaymentDetails details, optional PaymentOptions options), SecureContext]
+interface PaymentRequest : EventTarget {
+    Promise<PaymentResponse> show();
+    Promise<void>            abort();
+
+    readonly attribute PaymentAddress? shippingAddress;
+    readonly attribute DOMString?      shippingOption;
+
+    // Supports "shippingaddresschange" event
+             attribute EventHandler    onshippingaddresschange;
+
+    // Supports "shippingoptionchange" event
+             attribute EventHandler    onshippingoptionchange;
+};
+
+dictionary PaymentMethodData {
+    required sequence<DOMString> supportedMethods;
+             object              data;
+};
+
+dictionary PaymentCurrencyAmount {
+    required DOMString currency;
+    required DOMString value;
+};
+
+dictionary PaymentDetails {
+    PaymentItem                      total;
+    sequence<PaymentItem>            displayItems;
+    sequence<PaymentShippingOption>  shippingOptions;
+    sequence<PaymentDetailsModifier> modifiers;
+};
+
+dictionary PaymentDetailsModifier {
+    required sequence<DOMString>   supportedMethods;
+             PaymentItem           total;
+             sequence<PaymentItem> additionalDisplayItems;
+};
+
+dictionary PaymentOptions {
+    boolean requestPayerEmail = false;
+    boolean requestPayerPhone = false;
+    boolean requestShipping = false;
+};
+
+dictionary PaymentItem {
+    required DOMString             label;
+    required PaymentCurrencyAmount amount;
+};
+
+interface PaymentAddress {
+    readonly attribute DOMString              country;
+    readonly attribute FrozenArray<DOMString> addressLine;
+    readonly attribute DOMString              region;
+    readonly attribute DOMString              city;
+    readonly attribute DOMString              dependentLocality;
+    readonly attribute DOMString              postalCode;
+    readonly attribute DOMString              sortingCode;
+    readonly attribute DOMString              languageCode;
+    readonly attribute DOMString              organization;
+    readonly attribute DOMString              recipient;
+    readonly attribute DOMString              careOf;
+    readonly attribute DOMString              phone;
+};
+
+dictionary PaymentShippingOption {
+    required DOMString             id;
+    required DOMString             label;
+    required PaymentCurrencyAmount amount;
+             boolean               selected = false;
+};
+
+enum PaymentComplete {
+    "success",
+    "fail",
+    ""
+};
+
+interface PaymentResponse {
+    readonly attribute DOMString       methodName;
+    readonly attribute object          details;
+    readonly attribute PaymentAddress? shippingAddress;
+    readonly attribute DOMString?      shippingOption;
+    readonly attribute DOMString?      payerEmail;
+    readonly attribute DOMString?      payerPhone;
+
+    Promise<void> complete(optional PaymentComplete result = "");
+};
+
+[Constructor(DOMString type, optional PaymentRequestUpdateEventInit eventInitDict)]
+interface PaymentRequestUpdateEvent : Event {
+    void updateWith(Promise<PaymentDetails> d);
+};
+
+dictionary PaymentRequestUpdateEventInit : EventInit {
+};
+</script>
+
+<script>
+"use strict";
+var idlArray = new IdlArray();
+[].forEach.call(document.querySelectorAll("script[type=text\\/plain]"), function(node) {
+  if (node.className == "untested") {
+    idlArray.add_untested_idls(node.textContent);
+  } else {
+    idlArray.add_idls(node.textContent);
+  }
+});
+idlArray.add_objects({
+  PaymentRequest: ["new PaymentRequest([{supportedMethods: ['foo']}], {total: {label: 'bar', amount: {currency: 'BAZ', value: '0'}}})"]
+});
+idlArray.test();
+</script>

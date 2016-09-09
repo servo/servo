@@ -14,6 +14,9 @@ interface Element : Node {};
 interface HTMLElement : Element {};
 [PrimaryGlobal] interface Window {};
 
+// Just need to know that DOMStringMap exists; its details are tested elsewhere.
+interface DOMStringMap { };
+
 [TreatNonObjectAsNull]
 callback EventHandlerNonNull = any (Event event);
 typedef EventHandlerNonNull? EventHandler;
@@ -358,6 +361,7 @@ dictionary DOMMatrixInit {
 interface SVGElement : Element {
 
   [SameObject] readonly attribute SVGAnimatedString className;
+  [SameObject] readonly attribute DOMStringMap dataset;
 
   readonly attribute SVGSVGElement? ownerSVGElement;
   readonly attribute SVGElement? viewportElement;
@@ -569,7 +573,7 @@ interface SVGURIReference {
 };
 
 partial interface Document {
-  readonly attribute SVGSVGElement rootElement;
+  readonly attribute SVGSVGElement? rootElement;
 };
 
 interface SVGSVGElement : SVGGraphicsElement {

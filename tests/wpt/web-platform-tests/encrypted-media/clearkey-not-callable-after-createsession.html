@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <meta name="timeout" content="long">
+    <title>Encrypted Media Extensions: Test MediaKeySession not callable immediately after CreateSession().</title>
+    <link rel="help" href="https://w3c.github.io/encrypted-media/">
+
+    <!-- Web Platform Test Harness scripts -->
+    <script src=/resources/testharness.js></script>
+    <script src=/resources/testharnessreport.js></script>
+
+    <!-- Helper scripts for Encrypted Media Extensions tests  -->
+    <script src=/encrypted-media/util/utils.js></script>
+    <script src=/encrypted-media/util/utf8.js></script>
+    <script src=/encrypted-media/util/fetch.js></script>
+
+    <!-- Message handler for Clear Key -->
+    <script src=/encrypted-media/util/clearkey-messagehandler.js></script>
+
+    <!-- The script for this specific test -->
+    <script src=/encrypted-media/scripts/not-callable-after-createsession.js></script>
+
+  </head>
+  <body>
+    <div id='log'></div>
+
+    <script>
+        var config = {  keysystem:          'org.w3.clearkey'
+                     };
+
+        runTest(config);
+
+    </script>
+  </body>
+</html>

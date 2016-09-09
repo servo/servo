@@ -93,6 +93,38 @@ promise_test(function(t) {
   }, 'Register then Unregister then getRegistrations');
 
 promise_test(function(t) {
+    var scope = 'resources/scope/getregistrations/register-unregister-controlled';
+    var script = 'resources/empty-worker.js';
+    var registrations;
+    var frame;
+    return service_worker_unregister_and_register(t, script, scope)
+      .then(function(r) {
+          registration = r;
+          return wait_for_state(t, registration.installing, 'activated');
+        })
+      .then(function() {
+          return with_iframe(scope);
+        })
+      .then(function(f) {
+          frame = f;
+          return registration.unregister();
+        })
+      .then(function() {
+          return navigator.serviceWorker.getRegistrations();
+        })
+      .then(function(value) {
+          assert_array_equals(
+            value,
+            [],
+            'getRegistrations should resolve with an empty array.');
+          assert_equals(registration.installing, null);
+          assert_equals(registration.waiting, null);
+          assert_equals(registration.active.state, 'activated');
+          frame.remove();
+        });
+  }, 'Register then Unregister with controlled frame then getRegistrations');
+
+promise_test(function(t) {
     var host_info = get_host_info();
     // Rewrite the url to point to remote origin.
     var frame_same_origin_url = new URL("resources/frame-for-getregistrations.html", window.location);

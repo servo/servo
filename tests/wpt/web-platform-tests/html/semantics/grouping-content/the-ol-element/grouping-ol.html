@@ -169,17 +169,17 @@
         // check that "own" properties reversed, start, and type are present
         test(function () {
             testList = document.getElementById("basic");
-            assert_own_property(testList, "reversed");
+            assert_idl_attribute(testList, "reversed");
         }, "'reversed' property should be defined on OL.");
 
         test(function () {
             testList = document.getElementById("basic");
-            assert_own_property(testList, "start");
+            assert_idl_attribute(testList, "start");
         }, "'start' property should be defined on OL.");
 
         test(function () {
             testList = document.getElementById("basic");
-            assert_own_property(testList, "type");
+            assert_idl_attribute(testList, "type");
         }, "'type' property should be defined on OL.");
 
         // "The reversed, start, and type IDL attributes must reflect the respective content attributes of the same name."

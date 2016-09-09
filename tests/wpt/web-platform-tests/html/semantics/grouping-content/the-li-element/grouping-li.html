@@ -37,7 +37,7 @@
 
     <p>Unordered List</p>
     <ul id="unordered">
-        <li id="test_li">list item</li>
+        <li>list item</li>
         <li>list item</li>
         <li>list item</li>
     </ul>
@@ -116,23 +116,11 @@
     <script>
         "use strict";
 
-        var testLI = document.getElementById("test_li"), testList = [], i = 0;
-
-        // check that prototype matches spec's DOM interface
-        test(function() {
-            assert_equals(Object.getPrototypeOf(testLI), HTMLLIElement.prototype, "HTMLLIElement.prototype should be used for li");
-        }, "The prototype for li is HTMLLIElement.prototype");
-
-        // check that "own" property "value" is present
-        test(function() {
-            assert_own_property(testLI,"value", "li should have a 'value' attribute");
-        }, "li should have a 'value' attribute");
-
         // "The [value] attribute has no default value" so, per https://html.spec.whatwg.org/multipage/#reflect,
         // the default when unspecified is 0
-        testList = document.querySelectorAll("#unordered li, #basic li");
         test(function() {
-            for(i = 0; i < testList.length; i++) {
+            var testList = document.querySelectorAll("#unordered li, #basic li");
+            for (var i = 0; i < testList.length; i++) {
                 assert_equals(testList[i].value, 0, "Default (unspecified) value of value is 0.");
             }
         }, "Default (unspecified) value of value is 0.");
@@ -146,55 +134,55 @@
 
         // start2's first element has value of 2
         test(function() {
-            testLI = document.getElementById("start2").children[0];
+            var testLI = document.getElementById("start2").children[0];
             assert_equals(testLI.value, 2, "value of 2 -> value of 2");
         }, ".value property reflects content attribute - and both parse value of '2' correctly.");
 
         // negative's first element has value of -10
         test(function() {
-            testLI = document.getElementById("negative").children[0];
+            var testLI = document.getElementById("negative").children[0];
             assert_equals(testLI.value, -10, "value of -10 -> value of -10");
         }, "IDL and content attribute parse value of '-10' correctly.");
 
         // posFloatDown's first element has value of 4.03 which should return 4
         test(function() {
-            testLI = document.getElementById("posFloatDown").children[0];
+            var testLI = document.getElementById("posFloatDown").children[0];
             assert_equals(testLI.value, 4, "value of 4.03 -> 4");
         }, "IDL and content attribute parse value of '4.03' correctly.");
 
         // negFloatDown's first element has value of -4.03 which should return -4
         test(function() {
-            testLI = document.getElementById("negFloatDown").children[0];
+            var testLI = document.getElementById("negFloatDown").children[0];
             assert_equals(testLI.value, -4, "value of -4.03 -> -4");
         }, "IDL and content attribute parse value of '-4.03' correctly.");
 
         // posFloatUp's first element has value of 4.9 which should return 4
         test(function() {
-            testLI = document.getElementById("posFloatUp").children[0];
+            var testLI = document.getElementById("posFloatUp").children[0];
             assert_equals(testLI.value, 4, "value of 4.9 -> 4");
         }, "IDL and content attribute parse value of '4.9' correctly.");
 
         // negFloatUp's first element has value of -4.9 which should return -4
         test(function() {
-            testLI = document.getElementById("negFloatUp").children[0];
+            var testLI = document.getElementById("negFloatUp").children[0];
             assert_equals(testLI.value, -4, "value of -4.9 -> -4");
         }, "IDL and content attribute parse value of '-4.9' correctly.");
 
         // exponent's first element has value of 7e2 which should return 7
         test(function() {
-            testLI = document.getElementById("exponent").children[0];
+            var testLI = document.getElementById("exponent").children[0];
             assert_equals(testLI.value, 7, "value of 7e2 -> 7");
         }, "IDL and content attribute parse value of '7e2' correctly.");
 
         // decimal's first element has value of .5 which should return 0
         test(function() {
-            testLI = document.getElementById("decimal").children[0];
+            var testLI = document.getElementById("decimal").children[0];
             assert_equals(testLI.value, 0, "value of .5 -> 0 (default)");
         }, "IDL and content attribute parse value of '.5' correctly.");
 
         // letter's first element has value of A which should return 0
         test(function() {
-            testLI = document.getElementById("letter").children[0];
+            var testLI = document.getElementById("letter").children[0];
             assert_equals(testLI.value, 0, "value of A -> 0 (default)");
         }, "IDL and content attribute parse value of 'A' correctly.");
 

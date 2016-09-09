@@ -83,7 +83,6 @@ if (CSS.supports("display", "contents")) {
   testText("<div style='display:contents'>abc", "abc", "display:contents container");
   testText("<div><div style='display:contents'>abc", "abc", "display:contents container");
   testText("<div>123<span style='display:contents'>abc", "123abc", "display:contents rendered");
-  testText("<div>123<span style='display:contents'>abc", "123abc", "display:contents rendered");
   testText("<div style='display:contents'>   ", "", "display:contents not processed via textContent");
   testText("<div><div style='display:contents'>   ", "", "display:contents not processed via textContent");
 }
@@ -127,10 +126,10 @@ testText("<fieldset>abc", "abc", "<fieldset> contents preserved");
 testText("<fieldset><legend>abc", "abc", "<fieldset> <legend> contents preserved");
 testText("<input type='text' value='abc'>", "", "<input> contents ignored");
 testText("<textarea>abc", "", "<textarea> contents ignored");
-testText("<select size='1'><option>abc</option><option>def", "", "<select size='1'> contents ignored");
-testText("<select size='2'><option>abc</option><option>def", "", "<select size='2'> contents ignored");
-testText("<select size='1'><option id='target'>abc</option><option>def", "", "<select size='1'> contents ignored");
-testText("<select size='2'><option id='target'>abc</option><option>def", "", "<select size='2'> contents ignored");
+testText("<select size='1'><option>abc</option><option>def", "abc\ndef", "<select size='1'> contents of options preserved");
+testText("<select size='2'><option>abc</option><option>def", "abc\ndef", "<select size='2'> contents of options preserved");
+testText("<select size='1'><option id='target'>abc</option><option>def", "abc", "<select size='1'> contents of target option preserved");
+testText("<select size='2'><option id='target'>abc</option><option>def", "abc", "<select size='2'> contents of target option preserved");
 testText("<iframe>abc", "", "<iframe> contents ignored");
 testText("<iframe><div id='target'>abc", "", "<iframe> contents ignored");
 testText("<iframe src='data:text/html,abc'>", "","<iframe> subdocument ignored");
@@ -152,8 +151,8 @@ testText("<div><fieldset>abc", "abc", "<fieldset> contents preserved");
 testText("<div><fieldset><legend>abc", "abc", "<fieldset> <legend> contents preserved");
 testText("<div><input type='text' value='abc'>", "", "<input> contents ignored");
 testText("<div><textarea>abc", "", "<textarea> contents ignored");
-testText("<div><select size='1'><option>abc</option><option>def", "", "<select size='1'> contents ignored");
-testText("<div><select size='2'><option>abc</option><option>def", "", "<select size='2'> contents ignored");
+testText("<div><select size='1'><option>abc</option><option>def", "abc\ndef", "<select size='1'> contents of options preserved");
+testText("<div><select size='2'><option>abc</option><option>def", "abc\ndef", "<select size='2'> contents of options preserved");
 testText("<div><iframe>abc", "", "<iframe> contents ignored");
 testText("<div><iframe src='data:text/html,abc'>", ""," <iframe> subdocument ignored");
 testText("<div><audio>abc", "", "<audio> contents ignored");
@@ -260,6 +259,8 @@ testText("<div>abc<!--comment-->def", "abcdef", "comment ignored");
 /**** text-transform ****/
 
 testText("<div><div style='text-transform:uppercase'>abc", "ABC", "text-transform is applied");
+testText("<div><div style='text-transform:uppercase'>Ma\xDF", "MASS", "text-transform handles es-zet");
+testText("<div><div lang='tr' style='text-transform:uppercase'>i \u0131", "\u0130 I", "text-transform handles Turkish casing");
 
 /**** block-in-inline ****/
 

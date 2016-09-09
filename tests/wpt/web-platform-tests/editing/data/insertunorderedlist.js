@@ -73,7 +73,7 @@ var browserTests = [
     [["defaultparagraphseparator","div"],["insertunorderedlist",""]],
     "<p>foo</p><ul><li>[bar]</li></ul><p>baz</p>",
     [true,true],
-    {"defaultparagraphseparator":[false,false,"p",false,false,"div"],"insertunorderedlist":[false,false,"",false,true,""]}],
+    {"defaultparagraphseparator":[false,false,"div",false,false,"div"],"insertunorderedlist":[false,false,"",false,true,""]}],
 ["<p>foo<p>[bar]<p>baz",
     [["defaultparagraphseparator","p"],["insertunorderedlist",""]],
     "<p>foo</p><ul><li>[bar]</li></ul><p>baz</p>",

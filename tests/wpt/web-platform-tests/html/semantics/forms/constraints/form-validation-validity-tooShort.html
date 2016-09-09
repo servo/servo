@@ -24,7 +24,8 @@
         {conditions: {minLength: "4", value: "abcde"}, expected: false, name: "[target] Dirty value - value is greater than minLength", dirty: true},
         {conditions: {minLength: "4", value: "\u0041\u0041\u0041\u0041\u0041"}, expected: false, name: "[target] Dirty value - length of value(AAAAA) in unicode is greater than minLength", dirty: true},
         {conditions: {minLength: "4", value: "abcd"}, expected: false, name: "[target] Dirty value - value equals to minLength", dirty: true},
-        {conditions: {minLength: "4", value: "abc"}, expected: true, name: "[target] Dirty value - length of value is less than minLength", dirty: true}
+        // False due to lack of required interactive editing by the user
+        {conditions: {minLength: "4", value: "abc"}, expected: false, name: "[target] Dirty value - length of value is less than minLength", dirty: true}
       ]
     },
     {
@@ -41,7 +42,8 @@
         {conditions: {minLength: "4", value: "abcde"}, expected: false, name: "[target] Dirty value - value is less than minLength", dirty: true},
         {conditions: {minLength: "4", value: "\u000D\u000A\u000D\u000A\u000D\u000A"}, expected: false, name: "[target] Dirty value - length of value(LF, CRLF) in unicode is less than minLength", dirty: true},
         {conditions: {minLength: "4", value: "abcd"}, expected: false, name: "[target] Dirty value - length of value equals to minLength", dirty: true},
-        {conditions: {minLength: "4", value: "abc"}, expected: true, name: "[target] Dirty value - length of value is greater than minLength", dirty: true}
+        // False due to lack of required interactive editing by the user
+        {conditions: {minLength: "4", value: "abc"}, expected: false, name: "[target] Dirty value - length of value is greater than minLength", dirty: true}
       ]
     }
   ];

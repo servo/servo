@@ -5,7 +5,6 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../../testcommon.js"></script>
-<link rel="stylesheet" href="/resources/testharness.css">
 <body>
 <div id="log"></div>
 <script>
@@ -81,6 +80,24 @@ promise_test(function(t) {
                   'Effect value after attaching to font-size:20px parent');
   });
 }, 'Effect values reflect changes to font-size from reparenting');
+
+test(function(t) {
+  var divA = createDiv(t);
+  divA.style.fontSize = '10px';
+
+  var divB = createDiv(t);
+  divB.style.fontSize = '20px';
+
+  var animation = divA.animate([ { marginLeft: '10em' },
+                                 { marginLeft: '20em' } ], 1000);
+  animation.currentTime = 500;
+  assert_equals(getComputedStyle(divA).marginLeft, '150px',
+                'Effect value before updating target element');
+
+  animation.effect.target = divB;
+  assert_equals(getComputedStyle(divB).marginLeft, '300px',
+                'Effect value after updating target element');
+}, 'Effect values reflect changes to target element');
 
 </script>
 </body>

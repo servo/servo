@@ -17,13 +17,13 @@ test(function() {
   assert_throws(new TypeError(), function() { document.dispatchEvent(null) })
 }, "Calling dispatchEvent(null).")
 
-aliases.forEach(function(alias) {
+for (var alias in aliases) {
   test(function() {
-    var e = document.createEvent(alias[0])
+    var e = document.createEvent(alias)
     assert_equals(e.type, "", "Event type should be empty string before initialization")
     assert_throws("InvalidStateError", function() { document.dispatchEvent(e) })
-  }, "If the event's initialized flag is not set, an InvalidStateError must be thrown (" + alias [0] + ").")
-})
+  }, "If the event's initialized flag is not set, an InvalidStateError must be thrown (" + alias + ").")
+}
 
 var dispatch_dispatch = async_test("If the event's dispatch flag is set, an InvalidStateError must be thrown.")
 dispatch_dispatch.step(function() {

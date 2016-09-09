@@ -24,7 +24,7 @@ test_file_path_pattern = '%(spec_name)s/' + selection_pattern + \
 
 
 def get_template(basename):
-    with open(os.path.join(template_directory, basename)) as f:
+    with open(os.path.join(template_directory, basename), "r") as f:
         return f.read()
 
 
@@ -45,7 +45,7 @@ def load_spec_json(path_to_spec = None):
       path_to_spec = spec_filename
 
     re_error_location = re.compile('line ([0-9]+) column ([0-9]+)')
-    with open(path_to_spec) as f:
+    with open(path_to_spec, "r") as f:
         try:
           return json.load(f)
         except ValueError, ex:

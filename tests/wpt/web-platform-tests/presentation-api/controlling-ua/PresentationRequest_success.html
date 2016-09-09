@@ -7,23 +7,37 @@
 <script src="/resources/testharnessreport.js"></script>
 
 <script>
-
-    var client_id = String(new Date().getTime()) + String(Math.floor(Math.random() * 1e5));
-    //relative presentation URL
-    var presentation_url = "../receiving-ua/idlharness.html#__castAppId__=2334D33A/__castClientId__="+ client_id;
-
-    /**
-     *  Test if PresentationRequest constructor returns a SyntaxError() by missing presentation URL
-     */
-
     test(function() {
-        try{
-            var request = new PresentationRequest(presentation_url);
+        try {
+            var request = new PresentationRequest('presentation.html');
             assert_true(request instanceof PresentationRequest);
         }
-        catch (ex){
-            assert_unreached("Call PresentationRequest() constructor with valid presentation URL....????");
+        catch (ex) {
+            assert_unreached('PresentationRequest constructor threw an unexpected exception "' + ex.name + '"');
         }
-    }, 'Call PresentationRequest() constructor with valid presentation URL. No Exception expected.');
+    }, 'Call PresentationRequest constructor with a valid relative presentation URL. No Exception expected.');
+
+    test(function() {
+        try {
+            var request = new PresentationRequest('http://example.org/');
+            assert_true(request instanceof PresentationRequest);
+        }
+        catch (ex) {
+            assert_unreached('PresentationRequest constructor threw an unexpected exception "' + ex.name + '"');
+        }
+    }, 'Call PresentationRequest constructor with a valid absolute presentation URL. No Exception expected.');
+
+    test(function() {
+        try {
+            var request = new PresentationRequest([
+                'presentation.html',
+                'http://example.org/presentation/'
+            ]);
+            assert_true(request instanceof PresentationRequest);
+        }
+        catch (ex) {
+            assert_unreached('PresentationRequest constructor threw an unexpected exception "' + ex.name + '"');
+        }
+    }, 'Call PresentationRequest constructor with a set of valid presentation URLs. No Exception expected.');
 
 </script>

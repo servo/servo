@@ -19,9 +19,11 @@
         if (++loadCount == 4)
           go();
       }
-      Array.forEach(document.getElementsByTagName('iframe'), function(ifr) { ifr.onload = frameLoaded; });
+      var iframes = document.getElementsByTagName('iframe');
+      for (var i = 0; i < iframes.length; i++) {
+        iframes[i].onload = frameLoaded;
+      }
     }
-
 
     var results = [];
     function assert(cond, msg) {
@@ -29,13 +31,18 @@
     }
 
     function go() {
-      window.onmessage = function() {
-        assert(B.checkWindowReferences(), "B's Window references are still self-consistent after document.domain");
-        for (var i = 0; i < window.length; ++i) {
-          assert(window[i] === B.windowReferences[i],
-                 "Window reference " + i + " consistent between globals after document.domain");
-          assert(window[i].location === B.locationReferences[i],
-                 "Location reference " + i + " consistent between globals after document.domain");
+      window.onmessage = function(evt) {
+        try {
+          assert(evt.data == "PASS", "frame.html processing should be PASS but got " + evt.data);
+          assert(B.checkWindowReferences(), "B's Window references are still self-consistent after document.domain");
+          for (var i = 0; i < window.length; ++i) {
+            assert(window[i] === B.windowReferences[i],
+                   "Window reference " + i + " consistent between globals after document.domain");
+            assert(window[i].location === B.locationReferences[i],
+                   "Location reference " + i + " consistent between globals after document.domain");
+          }
+        } catch(e) {
+          assert(false, "Should not receive exception: " + e);
         }
         opener.postMessage(results, '*');
       };

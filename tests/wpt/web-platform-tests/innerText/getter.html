@@ -53,7 +53,7 @@ function textTextInContainer(cont, html, expectedPlain, msg) {
     }
     assert_equals(e.innerText, expectedPlain);
     cont.textContent = '';
-  }, msg);
+  }, msg + ' (' + format_value(html) + ')');
 }
 </script>
 <script src="getter-tests.js"></script>

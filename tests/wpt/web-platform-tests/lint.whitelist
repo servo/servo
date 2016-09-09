@@ -26,6 +26,7 @@ INDENT TABS: webaudio/*
 INDENT TABS: webvtt/*
 INDENT TABS: XMLHttpRequest/*
 INDENT TABS: encoding/legacy*/*
+INDENT TABS: encrypted-media/polyfill/Makefile
 
 TRAILING WHITESPACE: app-uri/*
 TRAILING WHITESPACE: battery-status/*
@@ -99,6 +100,7 @@ PARSE-FAILED:ext-xhtml-pubid/the-xhtml-syntax/parsing-xhtml-documents/xhtml-pubi
 
 # Test generation files containing print statements
 PRINT STATEMENT:dom/nodes/Document-createElement-namespace-tests/generate.py
+PRINT STATEMENT:encrypted-media/polyfill/make-polyfill-tests.py
 
 # Should probably be fixed.
 W3C-TEST.ORG:subresource-integrity/refresh-header.js.headers
@@ -112,6 +114,12 @@ CONSOLE:service-workers/service-worker/resources/clients-get-other-origin.html
 # use of console in a public library - annotation-model ensures
 # it is not actually used
 CONSOLE:annotation-model/scripts/ajv.min.js
+CONSOLE:annotation-model/scripts/showdown.min.js
+CR AT EOL: annotation-model/scripts/showdown.min.js
+
+# use of console in a public library - annotation-protocol ensures
+# it is not actually used
+CONSOLE:annotation-protocol/scripts/uuid.js
 
 # Lint doesn't know about sub.svg I guess
 PARSE-FAILED:content-security-policy/svg/including.sub.svg

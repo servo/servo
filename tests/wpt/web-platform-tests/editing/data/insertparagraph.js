@@ -3,7 +3,7 @@ var browserTests = [
     [["defaultparagraphseparator","div"],["insertparagraph",""]],
     "<div>foo</div><div>{}baz</div>",
     [true,true],
-    {"defaultparagraphseparator":[false,false,"p",false,false,"div"],"insertparagraph":[false,false,"",false,false,""]}],
+    {"defaultparagraphseparator":[false,false,"div",false,false,"div"],"insertparagraph":[false,false,"",false,false,""]}],
 ["foo[bar]baz",
     [["defaultparagraphseparator","p"],["insertparagraph",""]],
     "<p>foo</p><p>{}baz</p>",

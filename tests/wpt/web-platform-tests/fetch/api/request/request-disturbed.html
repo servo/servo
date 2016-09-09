@@ -50,6 +50,28 @@
         assert_true(bodyConsumed.bodyUsed , "bodyUsed is true when request is disturbed");
         return promise_rejects(test, new TypeError(), bodyConsumed.blob());
       }, "Check consuming a disturbed request");
+
+      test(function() {
+        var req = new Request(URL, {method: 'POST', body: 'hello'});
+        assert_false(req.bodyUsed,
+                     'Request should not be flagged as used if it has not been ' +
+                     'consumed.');
+        assert_throws(new TypeError(),
+          function() { new Request(req, {method: 'GET'}); },
+          'A get request may not have body.');
+
+        assert_false(req.bodyUsed, 'After the GET case');
+
+        assert_throws(new TypeError(),
+          function() { new Request(req, {method: 'CONNECT'}); },
+          'Request() with a forbidden method must throw.');
+
+        assert_false(req.bodyUsed, 'After the forbidden method case');
+
+        var req2 = new Request(req);
+        assert_true(req.bodyUsed,
+                    'Request should be flagged as used if it has been consumed.');
+      }, 'Request construction failure should not set "bodyUsed"');
     </script>
   </body>
 </html>

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+ <title>filters-conv-04-f-manual.svg</title>
+ <meta charset='utf-8'>
+</head>
+<body>
+ <h1>Source SVG: filters-conv-04-f-manual.svg</h1>
+<svg id="svg-root" width="100%" height="100%" 
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg" 
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--======================================================================-->
+  <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
+  <!--=  Institute of Technology, European Research Consortium for         =-->
+  <!--=  Informatics and Mathematics (ERCIM), Keio University).            =-->
+  <!--=  All Rights Reserved.                                              =-->
+  <!--=  See http://www.w3.org/Consortium/Legal/.                          =-->
+  <!--======================================================================-->
+  
+  <title id="test-title">$RCSfile: filters-conv-04-f.svg,v $</title>
+  <defs>
+    <font-face
+      font-family="SVGFreeSansASCII"
+      unicode-range="U+0-7F">
+      <font-face-src>
+        <font-face-uri xlink:href="../resources/SVGFreeSans.svg#ascii"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
+    <defs>
+      <filter id="convolve-without-bias" filterUnits="objectBoundingBox" x="0%" y="0%" width="100%" height="100%">
+        <feConvolveMatrix kernelMatrix="1 1 1 1 -7 1 1 1 1" preserveAlpha="false"/>
+      </filter>
+      <filter id="convolve-with-bias05" filterUnits="objectBoundingBox" x="0%" y="0%" width="100%" height="100%">
+        <feConvolveMatrix kernelMatrix="1 1 1 1 -7 1 1 1 1" preserveAlpha="false" bias="0.5"/>
+      </filter>
+      <filter id="convolve-with-bias1" filterUnits="objectBoundingBox" x="0%" y="0%" width="100%" height="100%">
+        <feConvolveMatrix kernelMatrix="1 1 1 1 -7 1 1 1 1" preserveAlpha="false" bias="1"/>
+      </filter>
+
+      <linearGradient id="test_linear_gradient" gradientUnits="objectBoundingBox" x1="0" x2="1" y1="0" y2="0">
+        <stop stop-color="#00FF00" stop-opacity="1" offset="0"/>
+        <stop stop-color="#00FF00" stop-opacity="0" offset="1"/>
+      </linearGradient>
+    </defs>
+
+    <g transform="translate(0, 20)">
+      <image x="12" y="1" width="97" height="98" xlink:href="../images/DisplaceChecker.png"/>
+      <image x="127" y="1" width="97" height="98" xlink:href="../images/DisplaceChecker.png"/>
+      <image x="242" y="1" width="97" height="98" xlink:href="../images/DisplaceChecker.png"/>
+      <image x="357" y="1" width="97" height="98" xlink:href="../images/DisplaceChecker.png"/>
+
+      <image x="10" y="0" width="100" height="100" xlink:href="../images/townsville.jpg" />
+      <image x="125" y="0" width="100" height="100" xlink:href="../images/townsville.jpg" filter="url(#convolve-without-bias)"/>
+      <image x="240" y="0" width="100" height="100" xlink:href="../images/townsville.jpg" filter="url(#convolve-with-bias05)"/>
+      <image x="355" y="0" width="100" height="100" xlink:href="../images/townsville.jpg" filter="url(#convolve-with-bias1)"/>
+    </g>
+
+    <g transform="translate(0, 110)">
+      <image x="11" y="51" width="98" height="98" xlink:href="../images/DisplaceChecker.png"/>
+      <image x="126" y="51" width="98" height="98" xlink:href="../images/DisplaceChecker.png"/>
+      <image x="241" y="51" width="98" height="98" xlink:href="../images/DisplaceChecker.png"/>
+      <image x="356" y="51" width="98" height="98" xlink:href="../images/DisplaceChecker.png"/>
+            
+      <rect fill="url(#test_linear_gradient)" stroke="black" x="10" y="50" width="100" height="100"/>
+      <rect fill="url(#test_linear_gradient)" stroke="black" x="125" y="50" width="100" height="100" filter="url(#convolve-without-bias)"/>
+      <rect fill="url(#test_linear_gradient)" stroke="black" x="240" y="50" width="100" height="100" filter="url(#convolve-with-bias05)"/>
+      <rect fill="url(#test_linear_gradient)" stroke="black" x="355" y="50" width="100" height="100" filter="url(#convolve-with-bias1)"/>
+    </g>
+  </g>
+  <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
+    <text id="revision" x="10" y="340" stroke="none"
+      fill="black">$Revision: 1.4 $</text>
+  </g>
+  <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
+  <!-- comment out this watermark once the test is approved -->
+  <g id="draft-watermark">
+    <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240" 
+      text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
+  </g>
+</svg>
+</body>
+</html>

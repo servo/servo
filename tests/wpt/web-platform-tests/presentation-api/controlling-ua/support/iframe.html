@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Presentation API - controlling ua - sandboxing</title>
+<link rel="author" title="Francois Daoust" href="https://www.w3.org/People/#fd">
+<link rel="help" href="http://w3c.github.io/presentation-api/#dom-presentationrequest-start">
+<script>
+    window.onmessage = function (ev) {
+      try {
+        var request = new PresentationRequest('presentation.html');;
+        if (ev.data === 'start') {
+          request.start()
+            .then(function () {
+              parent.window.postMessage('success', '*');
+            })
+            .catch(function (err) {
+              if ((err.name === 'NotFoundError') ||
+                  (err.name === 'NotAllowedError')) {
+                // These errors either mean that the user dismissed the dialog
+                // box or that the UA could not find any available or suitable
+                // screen. This is equivalent of succeeding for the purpose of
+                // iframe tests.
+                parent.window.postMessage('success', '*');
+              }
+              else {
+                parent.window.postMessage(err.name, '*');
+              }
+            });
+        }
+        else if (ev.data === 'reconnect') {
+          request.reconnect('someid')
+            .then(function () {
+              parent.window.postMessage('success', '*');
+            })
+            .catch(function (err) {
+              parent.window.postMessage(err.name, '*');
+            });
+        }
+        else if (ev.data === 'getAvailability') {
+          request.getAvailability()
+            .then(function () {
+              parent.window.postMessage('success', '*');
+            })
+            .catch(function (err) {
+              if (err.name === 'NotSupportedError') {
+                parent.window.postMessage('success', '*');
+              }
+              else {
+                parent.window.postMessage(err.name, '*');
+              }
+            });
+        }
+      }
+      catch (err) {
+        parent.window.postMessage('Could not create PresentationRequest', '*');
+      }
+    }
+    parent.window.postMessage('ready', '*');
+</script>
+

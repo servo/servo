@@ -7,7 +7,7 @@ def get_template(template_basename):
                                                       "template"))
     template_filename = os.path.join(template_directory, template_basename);
 
-    with open(template_filename) as f:
+    with open(template_filename, "r") as f:
         return f.read()
 
 # TODO(kristijanburnik): subdomain_prefix is a hardcoded value aligned with

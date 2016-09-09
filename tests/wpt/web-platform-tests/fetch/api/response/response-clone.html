@@ -54,13 +54,45 @@
       }, "Check cloned response's body");
 
       promise_test(function(test) {
-        var disturbedResponse = new Response();
+        var disturbedResponse = new Response("data");
         return disturbedResponse.text().then(function() {
             assert_true(disturbedResponse.bodyUsed, "response is disturbed");
             assert_throws(new TypeError() , function() { disturbedResponse.clone(); },
               "Expect TypeError exception");
         });
       }, "Cannot clone a disturbed response");
+
+    promise_test(function(t) {
+        var clone;
+        var result;
+        var response;
+        return fetch('../resources/trickle.py?count=2&delay=100').then(function(res) {
+            clone = res.clone();
+            response = res;
+            return clone.arrayBuffer();
+        }).then(function(r) {
+            assert_equals(r.byteLength, 26);
+            result = r;
+            return response.arrayBuffer();
+        }).then(function(r) {
+            assert_array_equals(r, result, "cloned responses should provide the same data");
+        });
+     }, 'Cloned responses should provide the same data');
+
+    promise_test(function(t) {
+        var clone;
+        return fetch('../resources/trickle.py?count=2&delay=100').then(function(res) {
+            clone = res.clone();
+            res.body.cancel();
+            assert_true(res.bodyUsed);
+            assert_false(clone.bodyUsed);
+            return clone.arrayBuffer();
+        }).then(function(r) {
+            assert_equals(r.byteLength, 26);
+            assert_true(clone.bodyUsed);
+        });
+    }, 'Cancelling stream should not affect cloned one');
+
     </script>
   </body>
 </html>

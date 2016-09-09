@@ -4,8 +4,8 @@
     <head>
         <title>Verify MediaKeySession.keyStatuses with multiple sessions</title>
         <script src="encrypted-media-utils.js"></script>
-        <script src="../../resources/testharness.js"></script>
-        <script src="../../resources/testharnessreport.js"></script>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
     </head>
     <body>
         <div id="log"></div>
@@ -89,11 +89,9 @@
                     test.done();
                 }
 
-                getSupportedInitDataType().then(function(type) {
-                    initDataType = type;
+                navigator.requestMediaKeySystemAccess('org.w3.clearkey', getSimpleConfiguration()).then(function(access) {
+                    initDataType = access.getConfiguration().initDataTypes[0];
                     initData = getInitData(initDataType);
-                    return navigator.requestMediaKeySystemAccess('org.w3.clearkey', [{}]);
-                }).then(function(access) {
                     return access.createMediaKeys();
                 }).then(function(mediaKeys) {
                     mediaKeySession1 = mediaKeys.createSession();

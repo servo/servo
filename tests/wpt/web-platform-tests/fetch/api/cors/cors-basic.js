@@ -1,17 +1,11 @@
 if (this.document === undefined) {
   importScripts("/resources/testharness.js");
   importScripts("../resources/utils.js");
+  importScripts("/common/get-host-info.sub.js");
 }
 
-function cors(desc, scheme, subdomain, port) {
-  if (!port)
-    port = location.port;
-  if (subdomain)
-    subdomain = subdomain + ".";
-  else
-    subdomain = "";
-
-  var url = scheme + "://" + subdomain + "{{host}}" + ":" + port + dirname(location.pathname);
+function cors(desc, origin) {
+  var url = origin + dirname(location.pathname);
   var urlParameters = "?pipe=header(Access-Control-Allow-Origin,*)";
 
   promise_test(function(test) {
@@ -19,13 +13,14 @@ function cors(desc, scheme, subdomain, port) {
       assert_equals(resp.status, 0, "Opaque filter: status is 0");
       assert_equals(resp.statusText, "", "Opaque filter: statusText is \"\"");
       assert_equals(resp.type , "opaque", "Opaque filter: response's type is opaque");
+      return resp.text().then(function(value) {
+        assert_equals(value, "", "Opaque response should have an empty body");
+      });
     });
   }, desc + " [no-cors mode]");
 
   promise_test(function(test) {
-    var testedPromise = fetch(url + RESOURCES_DIR + "top.txt", {"mode": "cors"} ).then(function(resp) {
-      return promise_rejects(test, new TypeError(), testedPromise);
-    });
+    return promise_rejects(test, new TypeError(), fetch(url + RESOURCES_DIR + "top.txt", {"mode": "cors"}));
   }, desc + " [server forbid CORS]");
 
   promise_test(function(test) {
@@ -36,10 +31,12 @@ function cors(desc, scheme, subdomain, port) {
   }, desc + " [cors mode]");
 }
 
-cors("Same domain different port", "http", undefined, "{{ports[http][1]}}");
-cors("Same domain different protocol different port", "https", undefined, "{{ports[https][0]}}");
-cors("Cross domain basic usage", "http", "www1");
-cors("Cross domain different port", "http", "www1", "{{ports[http][1]}}");
-cors("Cross domain different protocol", "https", "www1", "{{ports[https][0]}}");
+var host_info = get_host_info();
+
+cors("Same domain different port", host_info.HTTP_ORIGIN_WITH_DIFFERENT_PORT);
+cors("Same domain different protocol different port", host_info.HTTPS_ORIGIN);
+cors("Cross domain basic usage", host_info.HTTP_REMOTE_ORIGIN);
+cors("Cross domain different port", host_info.HTTP_REMOTE_ORIGIN_WITH_DIFFERENT_PORT);
+cors("Cross domain different protocol", host_info.HTTPS_REMOTE_ORIGIN);
 
 done();

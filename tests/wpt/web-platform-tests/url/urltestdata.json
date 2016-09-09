@@ -1289,6 +1289,21 @@
     "search": "",
     "hash": "#test"
   },
+  {
+    "input": "tel:1234567890",
+    "base": "http://example.org/foo/bar",
+    "href": "tel:1234567890",
+    "origin": "null",
+    "protocol": "tel:",
+    "username": "",
+    "password": "",
+    "host": "",
+    "hostname": "",
+    "port": "",
+    "pathname": "1234567890",
+    "search": "",
+    "hash": ""
+  },
   "# Based on http://trac.webkit.org/browser/trunk/LayoutTests/fast/url/file.html",
   {
     "input": "file:c:\\foo\\bar.html",

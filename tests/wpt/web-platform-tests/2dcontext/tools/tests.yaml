@@ -869,27 +869,29 @@
 # TODO: work out what security exception should be thrown
 # TODO: test same-origin vs same-host
 
-- name: security.drawImage.image.sub
+- name: security.drawImage.image
   desc: drawImage of different-origin image makes the canvas origin-unclean
   mozilla: { disabled } # relies on external resources
   testing:
     - security.drawImage.image
     - security.toDataURL
     - security.getImageData
-  images:
-    - http://{{domains[www2]}}:{{ports[http][0]}}/images/yellow.png
+  scripts:
+    - /common/get-host-info.sub.js
+    - data:text/javascript,addCrossOriginYellowImage()
   code: |
     ctx.drawImage(document.getElementById('yellow.png'), 0, 0);
     @assert throws SECURITY_ERR canvas.toDataURL();
     @assert throws SECURITY_ERR ctx.getImageData(0, 0, 1, 1);
 
-- name: security.drawImage.canvas.sub
+- name: security.drawImage.canvas
   desc: drawImage of unclean canvas makes the canvas origin-unclean
   mozilla: { disabled } # relies on external resources
   testing:
     - security.drawImage.canvas
-  images:
-    - http://{{domains[www2]}}:{{ports[http][0]}}/images/yellow.png
+  scripts:
+    - /common/get-host-info.sub.js
+    - data:text/javascript,addCrossOriginYellowImage()
   code: |
     var canvas2 = document.createElement('canvas');
     canvas2.width = 100;
@@ -900,26 +902,28 @@
     @assert throws SECURITY_ERR canvas.toDataURL();
     @assert throws SECURITY_ERR ctx.getImageData(0, 0, 1, 1);
 
-- name: security.pattern.create.sub
+- name: security.pattern.create
   desc: Creating an unclean pattern does not make the canvas origin-unclean
   mozilla: { disabled } # relies on external resources
   testing:
     - security.start
-  images:
-    - http://{{domains[www]}}:{{ports[http][0]}}/images/yellow.png
+  scripts:
+    - /common/get-host-info.sub.js
+    - data:text/javascript,addCrossOriginYellowImage()
   code: |
     var p = ctx.createPattern(document.getElementById('yellow.png'), 'repeat');
     canvas.toDataURL();
     ctx.getImageData(0, 0, 1, 1);
     @assert true; // okay if there was no exception
 
-- name: security.pattern.cross.sub
+- name: security.pattern.cross
   desc: Using an unclean pattern makes the target canvas origin-unclean, not the pattern canvas
   mozilla: { disabled } # relies on external resources
   testing:
     - security.start
-  images:
-    - http://{{domains[www2]}}:{{ports[http][0]}}/images/yellow.png
+  scripts:
+    - /common/get-host-info.sub.js
+    - data:text/javascript,addCrossOriginYellowImage()
   code: |
     var canvas2 = document.createElement('canvas');
     canvas2.width = 100;
@@ -933,15 +937,16 @@
     canvas2.toDataURL();
     ctx2.getImageData(0, 0, 1, 1);
 
-- name: security.pattern.canvas.timing.sub
+- name: security.pattern.canvas.timing
   desc: Pattern safety depends on whether the source was origin-clean, not on whether it still is clean
   notes: Disagrees with spec on "is" vs "was"
   mozilla: { disabled } # relies on external resources
   testing:
     - security.start
     - security.fillStyle.canvas
-  images:
-    - http://{{domains[www2]}}:{{ports[http][0]}}/images/yellow.png
+  scripts:
+    - /common/get-host-info.sub.js
+    - data:text/javascript,addCrossOriginYellowImage()
   code: |
     var canvas2 = document.createElement('canvas');
     canvas2.width = 100;
@@ -957,13 +962,14 @@
     ctx.getImageData(0, 0, 1, 1);
     @assert true; // okay if there was no exception
 
-- name: security.pattern.image.fillStyle.sub
+- name: security.pattern.image.fillStyle
   desc: Setting fillStyle to a pattern of a different-origin image makes the canvas origin-unclean
   mozilla: { disabled } # relies on external resources
   testing:
     - security.fillStyle.image
-  images:
-    - http://{{domains[www2]}}:{{ports[http][0]}}/images/yellow.png
+  scripts:
+    - /common/get-host-info.sub.js
+    - data:text/javascript,addCrossOriginYellowImage()
   code: |
     var p = ctx.createPattern(document.getElementById('yellow.png'), 'repeat');
     ctx.fillStyle = p;
@@ -971,13 +977,14 @@
     @assert throws SECURITY_ERR canvas.toDataURL();
     @assert throws SECURITY_ERR ctx.getImageData(0, 0, 1, 1);
 
-- name: security.pattern.canvas.fillStyle.sub
+- name: security.pattern.canvas.fillStyle
   desc: Setting fillStyle to a pattern of an unclean canvas makes the canvas origin-unclean
   mozilla: { bug: 354127, disabled } # relies on external resources
   testing:
     - security.fillStyle.canvas
-  images:
-    - http://{{domains[www2]}}:{{ports[http][0]}}/images/yellow.png
+  scripts:
+    - /common/get-host-info.sub.js
+    - data:text/javascript,addCrossOriginYellowImage()
   code: |
     var canvas2 = document.createElement('canvas');
     canvas2.width = 100;
@@ -990,13 +997,14 @@
     @assert throws SECURITY_ERR canvas.toDataURL();
     @assert throws SECURITY_ERR ctx.getImageData(0, 0, 1, 1);
 
-- name: security.pattern.image.strokeStyle.sub
+- name: security.pattern.image.strokeStyle
   desc: Setting strokeStyle to a pattern of a different-origin image makes the canvas origin-unclean
   mozilla: { disabled } # relies on external resources
   testing:
     - security.strokeStyle.image
-  images:
-    - http://{{domains[www2]}}:{{ports[http][0]}}/images/yellow.png
+  scripts:
+    - /common/get-host-info.sub.js
+    - data:text/javascript,addCrossOriginYellowImage()
   code: |
     var p = ctx.createPattern(document.getElementById('yellow.png'), 'repeat');
     ctx.strokeStyle = p;
@@ -1004,13 +1012,14 @@
     @assert throws SECURITY_ERR canvas.toDataURL();
     @assert throws SECURITY_ERR ctx.getImageData(0, 0, 1, 1);
 
-- name: security.pattern.canvas.strokeStyle.sub
+- name: security.pattern.canvas.strokeStyle
   desc: Setting strokeStyle to a pattern of an unclean canvas makes the canvas origin-unclean
   mozilla: { bug: 354127, disabled } # relies on external resources
   testing:
     - security.strokeStyle.canvas
-  images:
-    - http://{{domains[www2]}}:{{ports[http][0]}}/images/yellow.png
+  scripts:
+    - /common/get-host-info.sub.js
+    - data:text/javascript,addCrossOriginYellowImage()
   code: |
     var canvas2 = document.createElement('canvas');
     canvas2.width = 100;
@@ -1043,13 +1052,14 @@
     img.src = data;
   expected: green
 
-- name: security.reset.sub
+- name: security.reset
   desc: Resetting the canvas state does not reset the origin-clean flag
   mozilla: { disabled } # relies on external resources
   testing:
     - initial.reset
-  images:
-    - http://{{domains[www2]}}:{{ports[http][0]}}/images/yellow.png
+  scripts:
+    - /common/get-host-info.sub.js
+    - data:text/javascript,addCrossOriginYellowImage()
   code: |
     canvas.width = 50;
     ctx.drawImage(document.getElementById('yellow.png'), 0, 0);

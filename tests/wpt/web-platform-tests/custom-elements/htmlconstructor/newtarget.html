@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<title>Custom Elements: [HTMLConstructor] derives prototype from NewTarget</title>
+<meta name="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+<meta name="help" content="https://html.spec.whatwg.org/multipage/dom.html#htmlconstructor">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/custom-elements-helpers.js"></script>
+
+<script>
+"use strict";
+
+test_with_window(w => {
+  let afterDefinition = false;
+  const proto1 = { "proto": "number one" };
+  const proto2 = { "proto": "number two" };
+
+  const TestElement = (function () {
+    assert_throws({ name: "prototype throws" }, () => {
+      const o = Reflect.construct(w.HTMLElement, [], new.target);
+
+      assert_equals(Object.getPrototypeOf(o), proto2,
+        "Must use the value returned from new.target.prototype");
+      assert_not_equals(Object.getPrototypeOf(o), proto1,
+        "Must not use the prototype stored at definition time");
+    });
+  }).bind({});
+
+  Object.defineProperty(TestElement, "prototype", {
+    get() {
+      return beforeDefinition ? proto1 : proto2;
+    }
+  });
+
+  w.customElements.define("test-element", TestElement);
+
+  beforeDefinition = true;
+  new TestElement();
+
+}, "Use NewTarget's prototype, not the one stored at definition time");
+
+test_with_window(w => {
+  // We have to not throw during define(), but throw during super()
+  let throws = false;
+
+  const TestElement = (function () {
+    assert_throws({ name: "prototype throws" }, () => {
+      return Reflect.construct(w.HTMLElement, [], new.target);
+    });
+  }).bind({});
+
+  Object.defineProperty(TestElement, "prototype", {
+    get() {
+      if (throws) {
+        throw { name: "prototype throws" };
+      }
+      return {};
+    }
+  });
+
+  w.customElements.define("test-element", TestElement);
+
+  throws = true;
+  new TestElement();
+
+}, "Rethrow any exceptions thrown while getting the prototype");
+
+test_with_window(w => {
+  for (const notAnObject of [null, undefined, 5, "string"]) {
+    // We have to return an object during define(), but not during super()
+    let returnNotAnObject = false;
+
+    const TestElement = (function () {
+      const o = Reflect.construct(w.HTMLElement, [], new.target);
+
+      assert_equals(Object.getPrototypeOf(o), window.HTMLElement,
+        "Must use the HTMLElement from the realm of NewTarget");
+      assert_not_equals(Object.getPrototypeOf(o), w.HTMLElement,
+        "Must not use the HTMLElement from the realm of the active function object (w.HTMLElement)");
+
+      return o;
+    }).bind({});
+
+    Object.defineProperty(TestElement, "prototype", {
+      get() {
+        return returnNotAnObject ? notAnObject : {};
+      }
+    });
+
+    w.customElements.define("test-element", TestElement);
+
+    returnNotAnObject = true;
+    new TestElement();
+  }
+}, "If prototype is not object, derives the fallback from NewTarget's realm (autonomous custom elements)");
+
+test_with_window(w => {
+  for (const notAnObject of [null, undefined, 5, "string"]) {
+    // We have to return an object during define(), but not during super()
+    let returnNotAnObject = false;
+
+    const TestElement = (function () {
+      const o = Reflect.construct(w.HTMLParagraphElement, [], new.target);
+
+      assert_equals(Object.getPrototypeOf(o), window.HTMLParagraphElement,
+        "Must use the HTMLParagraphElement from the realm of NewTarget");
+      assert_not_equals(Object.getPrototypeOf(o), w.HTMLParagraphElement,
+        "Must not use the HTMLParagraphElement from the realm of the active function object (w.HTMLParagraphElement)");
+
+      return o;
+    }).bind({});
+
+    Object.defineProperty(TestElement, "prototype", {
+      get() {
+        return returnNotAnObject ? notAnObject : {};
+      }
+    });
+
+    w.customElements.define("test-element", TestElement, { extends: "p" });
+
+    returnNotAnObject = true;
+    new TestElement();
+  }
+}, "If prototype is not object, derives the fallback from NewTarget's realm (customized built-in elements)");
+</script>

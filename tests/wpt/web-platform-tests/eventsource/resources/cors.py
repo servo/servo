@@ -22,7 +22,7 @@ def main(request, response):
                    "cache-control"]:
         if handler == "cache-control":
             response.headers.set("Content-Type", "text/event-stream")
-            rv = open(os.path.join(request.doc_root, "eventsource", "resources", "cache-control.event_stream")).read()
+            rv = open(os.path.join(request.doc_root, "eventsource", "resources", "cache-control.event_stream"), "r").read()
             response.content = rv
             pipes.sub(request, response)
             return

@@ -21,7 +21,13 @@
           assert_false(pe.lengthComputable, "lengthComputable is false.");
           assert_equals(pe.total, 0, "total is zero.");
         });
-        xhr.onloadend = this.step_func_done();
+        xhr.onloadend = this.step_func(function(pe) {
+          assert_equals(pe.type, "loadend");
+          assert_equals(pe.loaded, 0, "loaded is zero.");
+          assert_false(pe.lengthComputable, "lengthComputable is false.");
+          assert_equals(pe.total, 0, "total is zero.");
+          this.done();
+        });
         xhr.open("GET", "http://{{host}}:{{ports[http][1]}}/XMLHttpRequest/resources/img.jpg", true);
         xhr.send(null);
       })

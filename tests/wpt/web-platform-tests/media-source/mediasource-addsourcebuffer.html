@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- Copyright © 2016 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
 <html>
     <head>
         <title>MediaSource.addSourceBuffer() test cases</title>
@@ -20,7 +21,7 @@
 
           mediasource_test(function(test, mediaElement, mediaSource)
           {
-              assert_throws("InvalidAccessError",
+              assert_throws(new TypeError(),
                           function() { mediaSource.addSourceBuffer(""); },
                           "addSourceBuffer() threw an exception when passed an empty string.");
               test.done();

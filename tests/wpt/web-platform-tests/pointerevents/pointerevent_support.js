@@ -12,10 +12,22 @@ var All_Pointer_Events = [
 
 // Check for conformance to PointerEvent interface
 // TA: 1.1, 1.2, 1.6, 1.7, 1.8, 1.9, 1.10, 1.11, 1.12, 1.13
-function check_PointerEvent(event) {
+function check_PointerEvent(event, testNamePrefix) {
+    if (testNamePrefix === undefined)
+        testNamePrefix = "";
+
+    // Use expectedPointerType if set otherwise just use the incoming event pointerType in the test name.
+    var pointerTestName = testNamePrefix + ' ' + (expectedPointerType == null ? event.pointerType : expectedPointerType) + ' ' + event.type;
+
+    if (expectedPointerType != null) {
+        test(function () {
+            assert_equals(event.pointerType, expectedPointerType, "pointerType should be the same as the requested device.");
+        }, pointerTestName + " event pointerType is correct.");
+    }
+
     test(function () {
-        assert_true(event instanceof PointerEvent, "event is a PointerEvent event");
-    }, event.type + " event is a PointerEvent event");
+        assert_true(event instanceof event.target.ownerDocument.defaultView.PointerEvent, "event is a PointerEvent event");
+    }, pointerTestName + " event is a PointerEvent event");
 
 
     // Check attributes for conformance to WebIDL:
@@ -37,31 +49,37 @@ function check_PointerEvent(event) {
         ["readonly", "long", "tiltX"],
         ["readonly", "long", "tiltY"],
         ["readonly", "string", "pointerType"],
-        ["readonly", "boolean", "isPrimary"]
+        ["readonly", "boolean", "isPrimary"],
+        ["readonly", "long", "detail", 0]
     ].forEach(function (attr) {
         var readonly = attr[0];
         var type = attr[1];
         var name = attr[2];
-
+        var value = attr[3];
 
         // existence check
         test(function () {
             assert_true(name in event, name + " attribute in " + event.type + " event");
-        }, event.type + "." + name + " attribute exists");
-
+        }, pointerTestName + "." + name + " attribute exists");
 
         // readonly check
         if (readonly === "readonly") {
             test(function () {
                 assert_readonly(event.type, name, event.type + "." + name + " cannot be changed");
-            }, event.type + "." + name + " is readonly");
+            }, pointerTestName + "." + name + " is readonly");
         }
-
 
         // type check
         test(function () {
             assert_true(idl_type_check[type](event[name]), name + " attribute of type " + type);
-        }, event.type + "." + name + " IDL type " + type + " (JS type was " + typeof event[name] + ")");
+        }, pointerTestName + "." + name + " IDL type " + type + " (JS type was " + typeof event[name] + ")");
+
+        // value check if defined
+        if (value != undefined) {
+            test(function () {
+                assert_equals(event[name], value, name + " attribute value");
+            }, pointerTestName + "." + name + " value is " + value + ".");
+        }
     });
 
 
@@ -81,17 +99,18 @@ function check_PointerEvent(event) {
                 assert_equals(event.pressure, 0.5, "pressure is 0.5 for mouse with a button pressed");
             }
         }
-    }, event.type + ".pressure value is valid");
-
+    }, pointerTestName + ".pressure value is valid");
 
     // Check mouse-specific properties
     if (event.pointerType === "mouse") {
         // TA: 1.9, 1.10, 1.13
         test(function () {
+            assert_equals(event.width, 1, "width of mouse should be 1");
+            assert_equals(event.height, 1, "height of mouse should be 1");
             assert_equals(event.tiltX, 0, event.type + ".tiltX is 0 for mouse");
             assert_equals(event.tiltY, 0, event.type + ".tiltY is 0 for mouse");
             assert_true(event.isPrimary, event.type + ".isPrimary is true for mouse");
-        }, event.type + " properties for pointerType = mouse");
+        }, pointerTestName + " properties for pointerType = mouse");
         // Check properties for pointers other than mouse
     }
 }
@@ -175,4 +194,47 @@ function rPointerCapture(e) {
     }
     catch(e) {
     }
+}
+
+var globalPointerEventTest = null;
+var expectedPointerType = null;
+var HOVERABLE_POINTERS = ['mouse', 'pen'];
+
+function MultiPointerTypeTest(testName, types) {
+    this.testName = testName;
+    this.types = types;
+    this.currentTypeIndex = 0;
+    this.currentTest = null;
+    this.createNextTest();
+}
+
+MultiPointerTypeTest.prototype.skip = function() {
+    var prevTest = this.currentTest;
+    this.createNextTest();
+    prevTest.timeout();
+}
+
+MultiPointerTypeTest.prototype.done = function() {
+    var prevTest = this.currentTest;
+    this.createNextTest();
+    if (prevTest != null)
+        prevTest.done();
+}
+
+MultiPointerTypeTest.prototype.createNextTest = function() {
+    if (this.currentTypeIndex < this.types.length) {
+        var pointerTypeDescription = document.getElementById('pointerTypeDescription');
+        document.getElementById('pointerTypeDescription').innerHTML = "Follow the test instructions with <span style='color: red'>" + this.types[this.currentTypeIndex] + "</span>. If you don't have the device <a href='javascript:;' onclick='globalPointerEventTest.skip()'>skip it</a>.";
+        this.currentTest = async_test(this.types[this.currentTypeIndex] + ' ' + this.testName);
+        expectedPointerType = this.types[this.currentTypeIndex];
+        this.currentTypeIndex++;
+    } else {
+        document.getElementById('pointerTypeDescription').innerHTML = "";
+    }
+    resetTestState();
+}
+
+
+function setup_pointerevent_test(testName, supportedPointerTypes) {
+   return globalPointerEventTest = new MultiPointerTypeTest(testName, supportedPointerTypes);
 }

@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- Copyright © 2016 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
 <meta charset="utf-8">
 <title>Checks setting/clearing the live seekable range and HTMLMediaElement.seekable</title>
 <script src="/resources/testharness.js"></script>
@@ -28,9 +29,9 @@ mediasource_test(function(test, mediaElement, mediaSource)
     var sourceBuffer = mediaSource.addSourceBuffer(mimetype);
     sourceBuffer.appendBuffer(new Uint8Array(0));
     assert_true(sourceBuffer.updating, "Updating set when a buffer is appended.");
-    assert_throws("InvalidStateError", function() { mediaSource.setLiveSeekableRange(0, 1); });
+    mediaSource.setLiveSeekableRange(0, 1);
     test.done();
-}, "setLiveSeekableRange throws an InvalidStateError exception if a SourceBuffer is updating");
+}, "setLiveSeekableRange does not restrict to not currently updating");
 
 
 mediasource_test(function(test, mediaElement, mediaSource)
@@ -40,9 +41,9 @@ mediasource_test(function(test, mediaElement, mediaSource)
     var sourceBuffer = mediaSource.addSourceBuffer(mimetype);
     sourceBuffer.appendBuffer(new Uint8Array(0));
     assert_true(sourceBuffer.updating, "Updating set when a buffer is appended.");
-    assert_throws("InvalidStateError", function() { mediaSource.clearLiveSeekableRange(); });
+    mediaSource.clearLiveSeekableRange();
     test.done();
-}, "clearLiveSeekableRange throws an InvalidStateError exception if a SourceBuffer is updating");
+}, "clearLiveSeekableRange does not restrict to not currently updating");
 
 
 mediasource_test(function(test, mediaElement, mediaSource)
