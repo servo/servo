@@ -9,14 +9,13 @@ use context::SharedStyleContext;
 use dom::OpaqueNode;
 use euclid::point::Point2D;
 use keyframes::{KeyframesStep, KeyframesStepValue};
-use properties::{self, ComputedValues, Importance};
+use properties::{self, ComputedValues, Importance, PropertyDeclaration};
 use properties::animated_properties::{AnimatedProperty, TransitionProperty};
 use properties::longhands::animation_direction::computed_value::AnimationDirection;
 use properties::longhands::animation_iteration_count::computed_value::AnimationIterationCount;
 use properties::longhands::animation_play_state::computed_value::AnimationPlayState;
 use properties::longhands::transition_timing_function::computed_value::StartEnd;
 use properties::longhands::transition_timing_function::computed_value::TransitionTimingFunction;
-use selector_matching::ApplicableDeclarationBlock;
 use std::sync::Arc;
 use std::sync::mpsc::Sender;
 use string_cache::Atom;
@@ -374,6 +373,32 @@ pub fn start_transitions_if_applicable(new_animations_sender: &Sender<Animation>
     had_animations
 }
 
+// FIXME(emilio): This is a hack to work around the fact that functions aren't
+// Clone.
+#[derive(Clone)]
+struct KeyframesDeclarationsIterator<'a> {
+    list: &'a [(PropertyDeclaration, Importance)],
+    index: usize,
+}
+
+impl<'a> Iterator for KeyframesDeclarationsIterator<'a> {
+    type Item = &'a PropertyDeclaration;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.index == self.list.len() {
+            return None;
+        }
+
+        let (ref decl, importance) =
+            self.list[self.list.len() - self.index - 1];
+
+        self.index += 1;
+
+        debug_assert!(importance == Importance::Normal);
+        Some(decl)
+    }
+}
+
 fn compute_style_for_animation_step(context: &SharedStyleContext,
                                     step: &KeyframesStep,
                                     previous_style: &ComputedValues,
@@ -383,17 +408,20 @@ fn compute_style_for_animation_step(context: &SharedStyleContext,
         // TODO: avoiding this spurious clone might involve having to create
         // an Arc in the below (more common case).
         KeyframesStepValue::ComputedValues => style_from_cascade.clone(),
-        KeyframesStepValue::Declarations(ref rule) => {
-            let declaration_block =
-                ApplicableDeclarationBlock::from_rule(rule.clone(),
-                                                      Importance::Normal);
-            let (computed, _) = properties::cascade(context.viewport_size,
-                                                    &[declaration_block],
-                                                    false,
-                                                    Some(previous_style),
-                                                    None,
-                                                    None,
-                                                    context.error_reporter.clone());
+        KeyframesStepValue::Declarations(ref block) => {
+            let iter = KeyframesDeclarationsIterator {
+                list: &*block.declarations,
+                index: 0,
+            };
+
+            let computed =
+                properties::apply_declarations(context.viewport_size,
+                                               /* is_root = */ false,
+                                               iter,
+                                               /* shareable = */ false,
+                                               previous_style,
+                                               /* cascade_info = */ None,
+                                               context.error_reporter.clone());
             computed
         }
     }

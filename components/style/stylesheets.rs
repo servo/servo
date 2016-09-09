@@ -107,7 +107,7 @@ impl MediaRule {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct StyleRule {
     pub selectors: Vec<Selector<TheSelectorImpl>>,

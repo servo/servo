@@ -13,9 +13,6 @@ fn create_or_get_local_context(shared: &SharedStyleContext) -> Rc<LocalStyleCont
     LOCAL_CONTEXT_KEY.with(|r| {
         let mut r = r.borrow_mut();
         if let Some(context) = r.clone() {
-            if shared.screen_size_changed {
-                context.applicable_declarations_cache.borrow_mut().evict_all();
-            }
             context
         } else {
             let context = Rc::new(LocalStyleContext::new(&shared.local_context_creation_data.lock().unwrap()));

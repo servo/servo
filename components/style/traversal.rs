@@ -280,7 +280,7 @@ fn ensure_node_styled_internal<'a, N, C>(node: N,
     }
 
     unsafe {
-        node.cascade_node(context, parent, &applicable_declarations);
+        node.cascade_node(context, parent, applicable_declarations);
     }
 }
 
@@ -366,7 +366,7 @@ pub fn recalc_style_at<'a, N, C>(context: &'a C,
                 unsafe {
                     restyle_result = node.cascade_node(context,
                                                        parent_opt,
-                                                       &applicable_declarations);
+                                                       applicable_declarations);
                 }
 
                 // Add ourselves to the LRU cache.

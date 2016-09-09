@@ -7,8 +7,9 @@
 use arc_ptr_eq;
 #[cfg(feature = "servo")]
 use heapsize::HeapSizeOf;
-use properties::{Importance, PropertyDeclarationBlock};
-use selector_matching::Rule;
+use properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock};
+use selector_impl::TheSelectorImpl;
+use selectors::parser::Selector;
 use std::io::{self, Write};
 use std::ptr;
 use std::sync::Arc;
@@ -19,6 +20,46 @@ use thread_state;
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct RuleTree {
     root: StrongRuleNode,
+}
+
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub enum StyleSource {
+    Style(Arc<StyleRule>),
+    Declarations(Arc<PropertyDeclarationBlock>),
+}
+
+impl StyleSource {
+    #[inline]
+    fn ptr_equals(&self, other: &Self) -> bool {
+        use self::StyleSource::*;
+        match (self, other) {
+            (&Style(ref one), &Style(ref other)) => arc_ptr_eq(one, other),
+            (&Declarations(ref one), &Declarations(ref other)) => arc_ptr_eq(one, other),
+            _ => false,
+        }
+    }
+
+    fn selectors(&self) -> Option<&[Selector<TheSelectorImpl>]> {
+        use self::StyleSource::*;
+        match *self {
+            Style(ref rule) => Some(&*rule.selectors),
+            Declarations(..) => None,
+        }
+    }
+
+    fn declarations(&self) -> &[(PropertyDeclaration, Importance)] {
+        &*self.declaration_block().declarations
+    }
+
+    #[inline]
+    pub fn declaration_block(&self) -> &PropertyDeclarationBlock {
+        use self::StyleSource::*;
+        match *self {
+            Style(ref rule) => &rule.block,
+            Declarations(ref block) => &*block,
+        }
+    }
 }
 
 /// This value exists here so a node that pushes itself to the list can know
@@ -48,67 +89,30 @@ impl RuleTree {
     }
 
     pub fn insert_ordered_rules<'a, I>(&self, iter: I) -> StrongRuleNode
-        where I: Iterator<Item=(&'a Arc<StyleRule>, Importance)>
+        where I: Iterator<Item=(StyleSource, Importance)>
     {
-        let root = self.root.clone();
         let mut current = self.root.clone();
-        for (rule, importance) in iter {
-            current = current.ensure_child(&root, rule, importance);
+        for (source, importance) in iter {
+            current = current.ensure_child(self.root.downgrade(), source, importance);
         }
         current
     }
 
-    unsafe fn pop_from_free_list(&self) -> Option<WeakRuleNode> {
-        debug_assert!(thread_state::get().is_layout() &&
-                      !thread_state::get().is_worker());
-
-        let current = self.root.get().next_free.load(Ordering::SeqCst);
-        if current == FREE_LIST_SENTINEL {
-            return None;
-        }
-
-        let current = WeakRuleNode { ptr: current };
-
-        let node = &*current.ptr();
-        let next = node.next_free.swap(ptr::null_mut(), Ordering::SeqCst);
-        self.root.get().next_free.store(next, Ordering::SeqCst);
-
-        debug!("Popping from free list: cur: {:?}, next: {:?}", current.ptr(), next);
-
-        Some(current)
-    }
-
     pub unsafe fn gc(&self) {
-        while let Some(weak) = self.pop_from_free_list() {
-            let needs_drop = {
-                let node = &*weak.ptr();
-                if node.refcount.load(Ordering::SeqCst) == 0 {
-                    node.remove_from_child_list();
-                    true
-                } else {
-                    false
-                }
-            };
-
-            debug!("GC'ing {:?}: {}", weak.ptr(), needs_drop);
-            if needs_drop {
-                let _ = Box::from_raw(weak.ptr());
-            }
-        }
-
-        debug_assert!(self.root.get().next_free.load(Ordering::SeqCst) == FREE_LIST_SENTINEL);
+        self.root.gc();
     }
 }
 
 struct RuleNode {
     /// The root node. Only the root has no root pointer, for obvious reasons.
-    root: Option<StrongRuleNode>,
+    root: Option<WeakRuleNode>,
 
     /// The parent rule node. Only the root has no parent.
     parent: Option<StrongRuleNode>,
 
-    /// The actual style rule that matched. Only the root has no declarations.
-    rule: Option<Arc<StyleRule>>,
+    /// The actual style source, either coming from a selector in a StyleRule,
+    /// or a raw property declaration block (like the style attribute).
+    source: Option<StyleSource>,
 
     /// The importance of the declarations relevant in the style rule,
     /// meaningless in the root node.
@@ -127,15 +131,15 @@ unsafe impl Sync for RuleTree {}
 unsafe impl Send for RuleTree {}
 
 impl RuleNode {
-    fn new(root: StrongRuleNode,
+    fn new(root: WeakRuleNode,
            parent: StrongRuleNode,
-           style_rule: Arc<StyleRule>,
+           source: StyleSource,
            importance: Importance) -> Self {
-        debug_assert!(root.get().parent.is_none());
+        debug_assert!(root.upgrade().parent().is_none());
         RuleNode {
             root: Some(root),
             parent: Some(parent),
-            rule: Some(style_rule),
+            source: Some(source),
             importance: importance,
             children: RuleChildrenList::new(),
             refcount: AtomicUsize::new(1),
@@ -149,7 +153,7 @@ impl RuleNode {
         RuleNode {
             root: None,
             parent: None,
-            rule: None,
+            source: None,
             importance: Importance::Normal,
             children: RuleChildrenList::new(),
             refcount: AtomicUsize::new(1),
@@ -157,6 +161,10 @@ impl RuleNode {
             prev: AtomicPtr::new(ptr::null_mut()),
             next_free: AtomicPtr::new(FREE_LIST_SENTINEL),
         }
+    }
+
+    fn is_root(&self) -> bool {
+        self.parent.is_none()
     }
 
     /// Remove this rule node from the child list.
@@ -202,10 +210,10 @@ impl RuleNode {
             let _ = write!(writer, " ");
         }
 
-        match self.rule {
-            Some(ref rule) => {
-                // let _ = write!(writer, "{:?}", rule);
-                let _ = write!(writer, "{:?}", rule.selectors);
+        match self.source {
+            Some(ref source) => {
+                let _ = write!(writer, "{:?}", source.selectors());
+                let _ = write!(writer, "  -> {:?}", source.declarations());
             }
             None => {
                 if indent != 0 {
@@ -214,7 +222,8 @@ impl RuleNode {
                 let _ = write!(writer, "(root)");
             }
         }
-        write!(writer, "\n");
+
+        let _ = write!(writer, "\n");
         for child in self.children.iter() {
             child.get().dump(writer, indent + INDENT_INCREMENT);
         }
@@ -238,7 +247,7 @@ impl HeapSizeOf for StrongRuleNode {
 
 impl StrongRuleNode {
     fn new(n: Box<RuleNode>) -> Self {
-        debug_assert!(n.parent.is_none() == n.rule.is_none());
+        debug_assert!(n.parent.is_none() == n.source.is_none());
 
         let ptr = Box::into_raw(n);
 
@@ -268,19 +277,19 @@ impl StrongRuleNode {
         }
     }
 
-    fn parent(&self) -> Option<StrongRuleNode> {
-        self.get().parent.clone()
+    fn parent(&self) -> Option<&StrongRuleNode> {
+        self.get().parent.as_ref()
     }
 
     fn ensure_child(&self,
-                    root: &StrongRuleNode,
-                    rule: &Arc<StyleRule>,
+                    root: WeakRuleNode,
+                    source: StyleSource,
                     importance: Importance) -> StrongRuleNode {
         let mut last = None;
         let mut iter = self.get().children.iter();
         while let Some(current) = iter.next() {
             if current.get().importance == importance &&
-               arc_ptr_eq(current.get().rule.as_ref().unwrap(), rule) {
+                current.get().source.as_ref().unwrap().ptr_equals(&source) {
                 return current;
             }
             last = Some(current);
@@ -288,7 +297,7 @@ impl StrongRuleNode {
 
         let node = Box::new(RuleNode::new(root.clone(),
                                           self.clone(),
-                                          rule.clone(),
+                                          source.clone(),
                                           importance));
         let new_ptr = &*node as *const _ as *mut RuleNode;
 
@@ -320,7 +329,7 @@ impl StrongRuleNode {
 
                 strong = WeakRuleNode { ptr: existing }.upgrade();
 
-                if arc_ptr_eq(strong.get().rule.as_ref().unwrap(), rule) {
+                if strong.get().source.as_ref().unwrap().ptr_equals(&source) {
                     // Some thread that was racing with as inserted the same rule
                     // node than us, so give up and just use that.
                     return strong;
@@ -341,6 +350,110 @@ impl StrongRuleNode {
             assert!(node.refcount.load(Ordering::SeqCst) > 0);
         }
         unsafe { &*self.ptr }
+    }
+
+    pub fn iter_declarations<'a>(&'a self) -> RuleTreeDeclarationsIterator<'a> {
+        RuleTreeDeclarationsIterator {
+            current: Some(self),
+            index: 0,
+        }
+    }
+
+    unsafe fn pop_from_free_list(&self) -> Option<WeakRuleNode> {
+        debug_assert!(thread_state::get().is_layout() &&
+                      !thread_state::get().is_worker());
+
+        let me = &*self.ptr;
+        debug_assert!(me.is_root());
+
+        let current = self.get().next_free.load(Ordering::SeqCst);
+        if current == FREE_LIST_SENTINEL {
+            return None;
+        }
+
+        let current = WeakRuleNode { ptr: current };
+
+        let node = &*current.ptr();
+        let next = node.next_free.swap(ptr::null_mut(), Ordering::SeqCst);
+        me.next_free.store(next, Ordering::SeqCst);
+
+        debug!("Popping from free list: cur: {:?}, next: {:?}", current.ptr(), next);
+
+        Some(current)
+    }
+
+    unsafe fn gc(&self) {
+        // NB: This can run from the root node destructor, so we can't use
+        // `get()`, since it asserts the refcount is bigger than zero.
+        let me = &*self.ptr;
+
+        debug_assert!(me.is_root(), "Can't call GC on a non-root node!");
+
+        while let Some(weak) = self.pop_from_free_list() {
+            let needs_drop = {
+                let node = &*weak.ptr();
+                if node.refcount.load(Ordering::SeqCst) == 0 {
+                    node.remove_from_child_list();
+                    true
+                } else {
+                    false
+                }
+            };
+
+            debug!("GC'ing {:?}: {}", weak.ptr(), needs_drop);
+            if needs_drop {
+                let _ = Box::from_raw(weak.ptr());
+            }
+        }
+
+        debug_assert!(me.next_free.load(Ordering::SeqCst) == FREE_LIST_SENTINEL);
+    }
+
+
+}
+
+#[derive(Clone)]
+pub struct RuleTreeDeclarationsIterator<'a> {
+    current: Option<&'a StrongRuleNode>,
+    index: usize,
+}
+
+impl<'a> Iterator for RuleTreeDeclarationsIterator<'a> {
+    type Item = &'a PropertyDeclaration;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            let node = match self.current.take() {
+                Some(node) => node,
+                None => return None,
+            };
+
+            let source = match node.get().source {
+                Some(ref source) => source,
+                None => {
+                    debug_assert!(node.parent().is_none());
+                    return None;
+                }
+            };
+
+            let declarations = source.declarations();
+            let declaration_count = declarations.len();
+
+            if self.index == declaration_count {
+                self.current = node.parent();
+                self.index = 0;
+                continue;
+            }
+
+            let (ref decl, importance) =
+                declarations[declaration_count - self.index - 1];
+
+            self.current = Some(node);
+            self.index += 1;
+            if importance == node.get().importance {
+                return Some(decl);
+            }
+        }
     }
 }
 
@@ -374,7 +487,10 @@ impl Drop for StrongRuleNode {
                              ptr::null_mut());
             if node.parent.is_none() {
                 debug!("Dropping root node!");
-                debug_assert!(node.next_free.load(Ordering::SeqCst) == FREE_LIST_SENTINEL);
+                // NOTE: Calling this is fine, because the rule tree root
+                // destructor needs to happen from the layout thread, where the
+                // stylist, and hence, the rule tree, is held.
+                unsafe { self.gc() };
                 let _ = unsafe { Box::from_raw(self.ptr()) };
                 return;
             }
@@ -384,9 +500,8 @@ impl Drop for StrongRuleNode {
                 return;
             }
 
-            let root = node.root.as_ref().unwrap();
-            let free_list = &root.get().next_free;
-
+            let free_list =
+                &unsafe { &*node.root.as_ref().unwrap().ptr() }.next_free;
             loop {
                 let next_free = free_list.load(Ordering::SeqCst);
                 debug_assert!(!next_free.is_null());
@@ -415,11 +530,6 @@ impl<'a> From<&'a StrongRuleNode> for WeakRuleNode {
 }
 
 impl WeakRuleNode {
-    fn has_strong_reference(&self) -> bool {
-        let node = unsafe { &*self.ptr };
-        node.refcount.load(Ordering::SeqCst) != 0
-    }
-
     fn upgrade(&self) -> StrongRuleNode {
         debug!("Upgrading weak node: 0x{:?}", self.ptr());
 
@@ -444,19 +554,6 @@ impl RuleChildrenList {
         RuleChildrenList {
             head: AtomicPtr::new(ptr::null_mut())
         }
-    }
-
-    fn contains(&self, weak: &WeakRuleNode) -> bool {
-        self.find(weak).is_some()
-    }
-
-    fn find(&self, weak_node: &WeakRuleNode) -> Option<StrongRuleNode> {
-        for node in self.iter() {
-            if node.ptr() == weak_node.ptr() {
-                return Some(node.clone())
-            }
-        }
-        None
     }
 
     fn iter(&self) -> RuleChildrenListIter {

@@ -12,7 +12,7 @@ use media_queries::{Device, MediaType};
 use properties::{self, PropertyDeclaration, PropertyDeclarationBlock, ComputedValues, Importance};
 use quickersort::sort_by;
 use restyle_hints::{RestyleHint, DependencySet};
-use rule_tree::{RuleTree, StrongRuleNode};
+use rule_tree::{RuleTree, StrongRuleNode, StyleSource};
 use selector_impl::{ElementExt, TheSelectorImpl, PseudoElement};
 use selectors::Element;
 use selectors::bloom::BloomFilter;
@@ -183,12 +183,12 @@ impl Stylist {
                             self.element_map.borrow_for_origin(&stylesheet.origin)
                         };
 
-                        map.insert(Arc::new(Rule {
+                        map.insert(Rule {
                             selector: selector.complex_selector.clone(),
                             style_rule: style_rule.clone(),
                             specificity: selector.specificity,
                             source_order: rules_source_order,
-                        }));
+                        });
                     }
                     rules_source_order += 1;
 
@@ -256,12 +256,11 @@ impl Stylist {
             // FIXME(emilio): When we've taken rid of the cascade we can just
             // use into_iter.
             let rule_node =
-                self.rule_tree.insert_ordered_rules(declarations.iter().map(|a| (&a.style_rule, a.importance)));
-            let (computed, _) =
+                self.rule_tree.insert_ordered_rules(declarations.iter().map(|a| (a.source.clone(), a.importance)));
+            let computed =
                 properties::cascade(self.device.au_viewport_size(),
-                                    &declarations, false,
+                                    &rule_node, false,
                                     parent.map(|p| &**p),
-                                    None,
                                     None,
                                     Box::new(StdoutErrorReporter));
             Some((Arc::new(computed), rule_node))
@@ -286,8 +285,6 @@ impl Stylist {
 
         let mut declarations = vec![];
 
-        // NB: This being cached could be worth it, maybe allow an optional
-        // ApplicableDeclarationsCache?.
         self.push_applicable_declarations(element,
                                           None,
                                           None,
@@ -296,12 +293,12 @@ impl Stylist {
                                           MatchingReason::ForStyling);
 
         let rule_node =
-            self.rule_tree.insert_ordered_rules(declarations.iter().map(|a| (&a.style_rule, a.importance)));
+            self.rule_tree.insert_ordered_rules(declarations.into_iter().map(|a| (a.source.clone(), a.importance)));
 
-        let (computed, _) =
+        let computed =
             properties::cascade(self.device.au_viewport_size(),
-                                &declarations, false,
-                                Some(&**parent), None, None,
+                                &rule_node, false,
+                                Some(&**parent), None,
                                 Box::new(StdoutErrorReporter));
 
 
@@ -345,7 +342,7 @@ impl Stylist {
                                         &self,
                                         element: &E,
                                         parent_bf: Option<&BloomFilter>,
-                                        style_attribute: Option<&Arc<StyleRule>>,
+                                        style_attribute: Option<&Arc<PropertyDeclarationBlock>>,
                                         pseudo_element: Option<&PseudoElement>,
                                         applicable_declarations: &mut V,
                                         reason: MatchingReason) -> StyleRelations
@@ -405,11 +402,11 @@ impl Stylist {
 
         // Step 4: Normal style attributes.
         if let Some(sa)  = style_attribute {
-            if sa.block.any_normal() {
+            if sa.any_normal() {
                 relations |= AFFECTED_BY_STYLE_ATTRIBUTE;
                 Push::push(
                     applicable_declarations,
-                    ApplicableDeclarationBlock::from_rule(sa.clone(), Importance::Normal));
+                    ApplicableDeclarationBlock::from_declarations(sa.clone(), Importance::Normal));
             }
         }
 
@@ -427,11 +424,11 @@ impl Stylist {
 
         // Step 6: `!important` style attributes.
         if let Some(sa) = style_attribute {
-            if sa.block.any_important() {
+            if sa.any_important() {
                 relations |= AFFECTED_BY_STYLE_ATTRIBUTE;
                 Push::push(
                     applicable_declarations,
-                    ApplicableDeclarationBlock::from_rule(sa.clone(), Importance::Normal));
+                    ApplicableDeclarationBlock::from_declarations(sa.clone(), Importance::Important));
             }
         }
 
@@ -605,14 +602,14 @@ impl PerPseudoElementSelectorMap {
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct SelectorMap {
     // TODO: Tune the initial capacity of the HashMap
-    pub id_hash: FnvHashMap<Atom, Vec<Arc<Rule>>>,
-    pub class_hash: FnvHashMap<Atom, Vec<Arc<Rule>>>,
-    pub local_name_hash: FnvHashMap<Atom, Vec<Arc<Rule>>>,
+    pub id_hash: FnvHashMap<Atom, Vec<Rule>>,
+    pub class_hash: FnvHashMap<Atom, Vec<Rule>>,
+    pub local_name_hash: FnvHashMap<Atom, Vec<Rule>>,
     /// Same as local_name_hash, but keys are lower-cased.
     /// For HTML elements in HTML documents.
-    pub lower_local_name_hash: FnvHashMap<Atom, Vec<Arc<Rule>>>,
+    pub lower_local_name_hash: FnvHashMap<Atom, Vec<Rule>>,
     /// Rules that don't have ID, class, or element selectors.
-    pub other_rules: Vec<Arc<Rule>>,
+    pub other_rules: Vec<Rule>,
     /// Whether this hash is empty.
     pub empty: bool,
 }
@@ -720,7 +717,7 @@ impl SelectorMap {
                rule.selector.next.is_none() {
                 if rule.style_rule.block.any_normal() {
                     matching_rules_list.push(ApplicableDeclarationBlock {
-                        style_rule: rule.style_rule.clone(),
+                        source: StyleSource::Style(rule.style_rule.clone()),
                         importance: Importance::Normal,
                         source_order: rule.source_order,
                         specificity: rule.specificity,
@@ -728,7 +725,7 @@ impl SelectorMap {
                 }
                 if rule.style_rule.block.any_important() {
                     matching_rules_list.push(ApplicableDeclarationBlock {
-                        style_rule: rule.style_rule.clone(),
+                        source: StyleSource::Style(rule.style_rule.clone()),
                         importance: Importance::Important,
                         source_order: rule.source_order,
                         specificity: rule.specificity,
@@ -744,7 +741,7 @@ impl SelectorMap {
     fn get_matching_rules_from_hash<E, Str, BorrowedStr: ?Sized, Vector>(
         element: &E,
         parent_bf: Option<&BloomFilter>,
-        hash: &FnvHashMap<Str, Vec<Arc<Rule>>>,
+        hash: &FnvHashMap<Str, Vec<Rule>>,
         key: &BorrowedStr,
         matching_rules: &mut Vector,
         relations: &mut StyleRelations,
@@ -769,7 +766,7 @@ impl SelectorMap {
     /// Adds rules in `rules` that match `element` to the `matching_rules` list.
     fn get_matching_rules<E, V>(element: &E,
                                 parent_bf: Option<&BloomFilter>,
-                                rules: &[Arc<Rule>],
+                                rules: &[Rule],
                                 matching_rules: &mut V,
                                 relations: &mut StyleRelations,
                                 reason: MatchingReason,
@@ -788,7 +785,7 @@ impl SelectorMap {
                matches_complex_selector(&*rule.selector, element, parent_bf,
                                         relations, reason) {
                 matching_rules.push(ApplicableDeclarationBlock {
-                    style_rule: rule.style_rule.clone(),
+                    source: StyleSource::Style(rule.style_rule.clone()),
                     importance: importance,
                     source_order: rule.source_order,
                     specificity: rule.specificity,
@@ -799,7 +796,7 @@ impl SelectorMap {
 
     /// Insert rule into the correct hash.
     /// Order in which to try: id_hash, class_hash, local_name_hash, other_rules.
-    pub fn insert(&mut self, rule: Arc<Rule>) {
+    pub fn insert(&mut self, rule: Rule) {
         self.empty = false;
 
         if let Some(id_name) = SelectorMap::get_id_name(&rule) {
@@ -879,7 +876,7 @@ pub struct Rule {
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Debug, Clone)]
 pub struct ApplicableDeclarationBlock {
-    pub style_rule: Arc<StyleRule>,
+    pub source: StyleSource,
     pub importance: Importance,
     pub source_order: usize,
     pub specificity: u32,
@@ -887,10 +884,10 @@ pub struct ApplicableDeclarationBlock {
 
 impl ApplicableDeclarationBlock {
     #[inline]
-    pub fn from_rule(rule: Arc<StyleRule>,
-                     importance: Importance) -> Self {
+    pub fn from_declarations(declarations: Arc<PropertyDeclarationBlock>,
+                             importance: Importance) -> Self {
         ApplicableDeclarationBlock {
-            style_rule: rule,
+            source: StyleSource::Declarations(declarations),
             source_order: 0,
             specificity: 0,
             importance: importance,
@@ -899,7 +896,7 @@ impl ApplicableDeclarationBlock {
 
     pub fn iter(&self) -> ApplicableDeclarationBlockIter {
         ApplicableDeclarationBlockIter {
-            iter: self.style_rule.block.declarations.iter(),
+            iter: self.source.declaration_block().declarations.iter(),
             importance: self.importance,
         }
     }
@@ -937,7 +934,7 @@ impl<'a> DoubleEndedIterator for ApplicableDeclarationBlockIter<'a> {
 }
 
 #[inline]
-fn find_push<Str: Eq + Hash>(map: &mut FnvHashMap<Str, Vec<Arc<Rule>>>, key: Str,
-                             value: Arc<Rule>) {
+fn find_push<Str: Eq + Hash>(map: &mut FnvHashMap<Str, Vec<Rule>>, key: Str,
+                             value: Rule) {
     map.entry(key).or_insert_with(Vec::new).push(value)
 }

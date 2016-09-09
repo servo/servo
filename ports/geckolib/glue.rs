@@ -261,7 +261,9 @@ pub extern "C" fn Servo_ComputedValues_GetForAnonymousBox(parent_style_or_null: 
 
 
     let maybe_parent = parent_style_or_null.as_arc_opt();
-    let new_computed = data.stylist.precomputed_values_for_pseudo(&pseudo, maybe_parent);
+    let new_computed =
+        data.stylist.precomputed_values_for_pseudo(&pseudo, maybe_parent)
+                    .map(|(computed, _rule_node)| computed);
     new_computed.map_or(Strong::null(), |c| c.into_strong())
 }
 
@@ -297,7 +299,9 @@ pub extern "C" fn Servo_ComputedValues_GetForPseudoElement(parent_style: ServoCo
             let node = element.as_node();
             let maybe_computed = node.borrow_data()
                                      .and_then(|data| {
-                                         data.per_pseudo.get(&pseudo).map(|c| c.clone())
+                                         data.per_pseudo
+                                             .get(&pseudo)
+                                             .map(|&(ref c, ref _rule_node)| c.clone())
                                      });
             maybe_computed.map_or_else(parent_or_null, FFIArcHelpers::into_strong)
         }
@@ -305,6 +309,7 @@ pub extern "C" fn Servo_ComputedValues_GetForPseudoElement(parent_style: ServoCo
             let parent = ComputedValues::as_arc(&parent_style);
             data.stylist
                 .lazily_compute_pseudo_element_style(&element, &pseudo, parent)
+                .map(|(c, _rule_node)| c)
                 .map_or_else(parent_or_null, FFIArcHelpers::into_strong)
         }
         PseudoElementCascadeType::Precomputed => {

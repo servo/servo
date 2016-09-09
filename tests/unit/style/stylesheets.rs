@@ -97,7 +97,7 @@ fn test_parse_stylesheet() {
                         specificity: (0 << 20) + (1 << 10) + (1 << 0),
                     },
                 ],
-                declarations: Arc::new(PropertyDeclarationBlock {
+                block: PropertyDeclarationBlock {
                     declarations: vec![
                         (PropertyDeclaration::Display(DeclaredValue::Value(
                             longhands::display::SpecifiedValue::none)),
@@ -106,7 +106,7 @@ fn test_parse_stylesheet() {
                          Importance::Important),
                     ],
                     important_count: 2,
-                }),
+                },
             })),
             CSSRule::Style(Arc::new(StyleRule {
                 selectors: vec![
@@ -145,14 +145,14 @@ fn test_parse_stylesheet() {
                         specificity: (0 << 20) + (0 << 10) + (1 << 0),
                     },
                 ],
-                declarations: Arc::new(PropertyDeclarationBlock {
+                block: PropertyDeclarationBlock {
                     declarations: vec![
                         (PropertyDeclaration::Display(DeclaredValue::Value(
                             longhands::display::SpecifiedValue::block)),
                          Importance::Normal),
                     ],
                     important_count: 0,
-                }),
+                },
             })),
             CSSRule::Style(Arc::new(StyleRule {
                 selectors: vec![
@@ -180,7 +180,7 @@ fn test_parse_stylesheet() {
                         specificity: (1 << 20) + (1 << 10) + (0 << 0),
                     },
                 ],
-                declarations: Arc::new(PropertyDeclarationBlock {
+                block: PropertyDeclarationBlock {
                     declarations: vec![
                         (PropertyDeclaration::BackgroundColor(DeclaredValue::Value(
                             longhands::background_color::SpecifiedValue {
@@ -228,7 +228,7 @@ fn test_parse_stylesheet() {
                          Importance::Normal),
                     ],
                     important_count: 0,
-                }),
+                },
             })),
             CSSRule::Keyframes(Arc::new(KeyframesRule {
                 name: "foo".into(),

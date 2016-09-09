@@ -60,13 +60,12 @@ use style::context::SharedStyleContext;
 use style::data::PrivateStyleData;
 use style::dom::{OpaqueNode, PresentationalHintsSynthetizer, TDocument, TElement, TNode, UnsafeNode};
 use style::element_state::*;
-use style::properties::ComputedValues;
+use style::properties::{ComputedValues, PropertyDeclarationBlock};
 use style::refcell::{Ref, RefCell, RefMut};
 use style::selector_impl::{ElementSnapshot, NonTSPseudoClass, PseudoElement, ServoSelectorImpl};
 use style::selector_matching::ApplicableDeclarationBlock;
 use style::sink::Push;
 use style::str::is_whitespace;
-use style::stylesheets::StyleRule;
 use url::Url;
 
 #[derive(Copy, Clone)]
@@ -459,7 +458,7 @@ impl<'le> TElement for ServoLayoutElement<'le> {
         ServoLayoutNode::from_layout_js(self.element.upcast())
     }
 
-    fn style_attribute(&self) -> Option<&Arc<StyleRule>> {
+    fn style_attribute(&self) -> Option<&Arc<PropertyDeclarationBlock>> {
         unsafe {
             (*self.element.style_attribute()).as_ref()
         }
