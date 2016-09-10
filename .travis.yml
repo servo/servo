@@ -12,10 +12,10 @@ matrix:
       dist: trusty
       script:
          - ./mach build -d --verbose
+         - ./mach test-compiletest
+         - ./mach test-unit
          - ./mach build-geckolib
          - ./mach test-geckolib
-         - ./mach test-unit
-         - ./mach test-compiletest
          - bash etc/ci/check_no_unwrap.sh
          - bash etc/ci/lockfile_changed.sh
          - bash etc/ci/manifest_changed.sh
@@ -28,18 +28,7 @@ matrix:
       addons:
         apt:
           packages:
-            - cmake
-            - freeglut3-dev
-            - gperf
-            - libosmesa6-dev
-            - libgles2-mesa-dev
-            - python-virtualenv
-            - xorg-dev
             - ccache
-            - libdbus-glib-1-dev
-            - libavformat-dev
-            - libavcodec-dev
-            - libavutil-dev
 
 branches:
   only:
