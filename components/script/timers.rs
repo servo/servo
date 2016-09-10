@@ -8,6 +8,7 @@ use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::reflector::Reflectable;
 use dom::bindings::str::DOMString;
+use dom::testbinding::TestBindingCallback;
 use dom::window::ScriptHelpers;
 use dom::xmlhttprequest::XHRTimeoutCallback;
 use euclid::length::Length;
@@ -68,6 +69,7 @@ struct OneshotTimer {
 pub enum OneshotTimerCallback {
     XhrTimeout(XHRTimeoutCallback),
     JsTimer(JsTimerTask),
+    TestBindingCallback(TestBindingCallback),
 }
 
 impl OneshotTimerCallback {
@@ -75,6 +77,7 @@ impl OneshotTimerCallback {
         match self {
             OneshotTimerCallback::XhrTimeout(callback) => callback.invoke(),
             OneshotTimerCallback::JsTimer(task) => task.invoke(this, js_timers),
+            OneshotTimerCallback::TestBindingCallback(callback) => callback.invoke(),
         }
     }
 }

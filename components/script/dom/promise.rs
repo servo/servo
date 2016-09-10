@@ -66,6 +66,14 @@ impl Promise {
     }
 
     #[allow(unsafe_code, unrooted_must_root)]
+    pub fn duplicate(&self) -> Rc<Promise> {
+        let cx = self.global().r().get_cx();
+        unsafe {
+            Promise::new_with_js_promise(self.reflector().get_jsobject(), cx)
+        }
+    }
+
+    #[allow(unsafe_code, unrooted_must_root)]
     unsafe fn new_with_js_promise(obj: HandleObject, cx: *mut JSContext) -> Rc<Promise> {
         assert!(IsPromiseObject(obj));
         let mut promise = Promise {
