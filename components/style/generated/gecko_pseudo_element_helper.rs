@@ -94,6 +94,9 @@
     pseudo_element!(":-moz-placeholder",
                     atom!(":-moz-placeholder"),
                     false);
+    pseudo_element!(":placeholder",
+                    atom!(":placeholder"),
+                    false);
     pseudo_element!(":-moz-color-swatch",
                     atom!(":-moz-color-swatch"),
                     false);

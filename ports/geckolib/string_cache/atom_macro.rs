@@ -582,6 +582,8 @@ pub enum nsICSSAnonBoxPseudo {}
             pub static nsGkAtoms_disableglobalhistory: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms14disablehistoryE"]
             pub static nsGkAtoms_disablehistory: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms17disablefullscreenE"]
+            pub static nsGkAtoms_disablefullscreen: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms7displayE"]
             pub static nsGkAtoms_display: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms11displayModeE"]
@@ -4812,6 +4814,8 @@ pub enum nsICSSAnonBoxPseudo {}
             pub static nsCSSPseudoElements_mozMeterBar: *mut nsICSSPseudoElement;
             #[link_name = "_ZN19nsCSSPseudoElements14mozPlaceholderE"]
             pub static nsCSSPseudoElements_mozPlaceholder: *mut nsICSSPseudoElement;
+            #[link_name = "_ZN19nsCSSPseudoElements11placeholderE"]
+            pub static nsCSSPseudoElements_placeholder: *mut nsICSSPseudoElement;
             #[link_name = "_ZN19nsCSSPseudoElements14mozColorSwatchE"]
             pub static nsCSSPseudoElements_mozColorSwatch: *mut nsICSSPseudoElement;
             #[link_name = "_ZN14nsCSSAnonBoxes7mozTextE"]
@@ -5497,6 +5501,8 @@ pub enum nsICSSAnonBoxPseudo {}
             pub static nsGkAtoms_disableglobalhistory: *mut nsIAtom;
             #[link_name = "?disablehistory@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_disablehistory: *mut nsIAtom;
+            #[link_name = "?disablefullscreen@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_disablefullscreen: *mut nsIAtom;
             #[link_name = "?display@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_display: *mut nsIAtom;
             #[link_name = "?displayMode@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -9727,6 +9733,8 @@ pub enum nsICSSAnonBoxPseudo {}
             pub static nsCSSPseudoElements_mozMeterBar: *mut nsICSSPseudoElement;
             #[link_name = "?mozPlaceholder@nsCSSPseudoElements@@2PEAVnsICSSPseudoElement@@EA"]
             pub static nsCSSPseudoElements_mozPlaceholder: *mut nsICSSPseudoElement;
+            #[link_name = "?placeholder@nsCSSPseudoElements@@2PEAVnsICSSPseudoElement@@EA"]
+            pub static nsCSSPseudoElements_placeholder: *mut nsICSSPseudoElement;
             #[link_name = "?mozColorSwatch@nsCSSPseudoElements@@2PEAVnsICSSPseudoElement@@EA"]
             pub static nsCSSPseudoElements_mozColorSwatch: *mut nsICSSPseudoElement;
             #[link_name = "?mozText@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
@@ -10412,6 +10420,8 @@ pub enum nsICSSAnonBoxPseudo {}
             pub static nsGkAtoms_disableglobalhistory: *mut nsIAtom;
             #[link_name = "\x01?disablehistory@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_disablehistory: *mut nsIAtom;
+            #[link_name = "\x01?disablefullscreen@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_disablefullscreen: *mut nsIAtom;
             #[link_name = "\x01?display@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_display: *mut nsIAtom;
             #[link_name = "\x01?displayMode@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -14642,6 +14652,8 @@ pub enum nsICSSAnonBoxPseudo {}
             pub static nsCSSPseudoElements_mozMeterBar: *mut nsICSSPseudoElement;
             #[link_name = "\x01?mozPlaceholder@nsCSSPseudoElements@@2PAVnsICSSPseudoElement@@A"]
             pub static nsCSSPseudoElements_mozPlaceholder: *mut nsICSSPseudoElement;
+            #[link_name = "\x01?placeholder@nsCSSPseudoElements@@2PAVnsICSSPseudoElement@@A"]
+            pub static nsCSSPseudoElements_placeholder: *mut nsICSSPseudoElement;
             #[link_name = "\x01?mozColorSwatch@nsCSSPseudoElements@@2PAVnsICSSPseudoElement@@A"]
             pub static nsCSSPseudoElements_mozColorSwatch: *mut nsICSSPseudoElement;
             #[link_name = "\x01?mozText@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
@@ -15049,6 +15061,7 @@ macro_rules! atom {
 ("disabled") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsGkAtoms_disabled as *mut _) };
 ("disableglobalhistory") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsGkAtoms_disableglobalhistory as *mut _) };
 ("disablehistory") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsGkAtoms_disablehistory as *mut _) };
+("disablefullscreen") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsGkAtoms_disablefullscreen as *mut _) };
 ("display") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsGkAtoms_display as *mut _) };
 ("display-mode") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsGkAtoms_displayMode as *mut _) };
 ("distinct") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsGkAtoms_distinct as *mut _) };
@@ -17164,6 +17177,7 @@ macro_rules! atom {
 (":-moz-range-thumb") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsCSSPseudoElements_mozRangeThumb as *mut _) };
 (":-moz-meter-bar") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsCSSPseudoElements_mozMeterBar as *mut _) };
 (":-moz-placeholder") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsCSSPseudoElements_mozPlaceholder as *mut _) };
+(":placeholder") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsCSSPseudoElements_placeholder as *mut _) };
 (":-moz-color-swatch") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsCSSPseudoElements_mozColorSwatch as *mut _) };
 (":-moz-text") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsCSSAnonBoxes_mozText as *mut _) };
 (":-moz-other-non-element") => { $crate::atom_macro::unsafe_atom_from_static($crate::atom_macro::nsCSSAnonBoxes_mozOtherNonElement as *mut _) };
