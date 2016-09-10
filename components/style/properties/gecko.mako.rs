@@ -497,7 +497,6 @@ impl Debug for ${style_struct.gecko_struct_name} {
                    "transition-duration", "transition-timing-function",
                    "transition-property", "transition-delay",
 
-                   "background-size", # background
                    "column-count", # column
                    ]
 
@@ -968,47 +967,47 @@ fn static_assert() {
 
 </%self:impl_trait>
 
-<%def name="simple_background_array_property(name, field_name)">
-    pub fn copy_background_${name}_from(&mut self, other: &Self) {
+<%def name="simple_image_array_property(name, shorthand, field_name)">
+    <%
+        image_layers_field = "mImage" if shorthand == "background" else "mMask"
+    %>
+    pub fn copy_${shorthand}_${name}_from(&mut self, other: &Self) {
         unsafe {
-            Gecko_EnsureImageLayersLength(&mut self.gecko.mImage, other.gecko.mImage.mLayers.len());
+            Gecko_EnsureImageLayersLength(&mut self.gecko.${image_layers_field},
+                                          other.gecko.${image_layers_field}.mLayers.len());
         }
-        for (layer, other) in self.gecko.mImage.mLayers.iter_mut()
-                                  .zip(other.gecko.mImage.mLayers.iter())
-                                  .take(other.gecko.mImage.${field_name}Count as usize) {
+        for (layer, other) in self.gecko.${image_layers_field}.mLayers.iter_mut()
+                                  .zip(other.gecko.${image_layers_field}.mLayers.iter())
+                                  .take(other.gecko.${image_layers_field}
+                                                   .${field_name}Count as usize) {
             layer.${field_name} = other.${field_name};
         }
-        self.gecko.mImage.${field_name}Count = other.gecko.mImage.${field_name}Count;
+        self.gecko.${image_layers_field}.${field_name}Count =
+            other.gecko.${image_layers_field}.${field_name}Count;
     }
 
-    pub fn set_background_${name}(&mut self, v: longhands::background_${name}::computed_value::T) {
+    pub fn set_${shorthand}_${name}(&mut self,
+                                    v: longhands::${shorthand}_${name}::computed_value::T) {
         unsafe {
-          Gecko_EnsureImageLayersLength(&mut self.gecko.mImage, v.0.len());
+          Gecko_EnsureImageLayersLength(&mut self.gecko.${image_layers_field}, v.0.len());
         }
 
-        self.gecko.mImage.${field_name}Count = v.0.len() as u32;
-        for (servo, geckolayer) in v.0.into_iter().zip(self.gecko.mImage.mLayers.iter_mut()) {
+        self.gecko.${image_layers_field}.${field_name}Count = v.0.len() as u32;
+        for (servo, geckolayer) in v.0.into_iter()
+                                    .zip(self.gecko.${image_layers_field}.mLayers.iter_mut()) {
             geckolayer.${field_name} = {
                 ${caller.body()}
             };
         }
     }
 </%def>
-// TODO: Gecko accepts lists in most background-related properties. We just use
-// the first element (which is the common case), but at some point we want to
-// add support for parsing these lists in servo and pushing to nsTArray's.
-<% skip_background_longhands = """background-color background-repeat
-                                  background-image background-clip
-                                  background-origin background-attachment
-                                  background-size background-position""" %>
-<%self:impl_trait style_struct_name="Background"
-                  skip_longhands="${skip_background_longhands}"
-                  skip_additionals="*">
+<%def name="impl_common_image_layer_properties(shorthand)">
+    <%
+        image_layers_field = "mImage" if shorthand == "background" else "mMask"
+    %>
 
-    <% impl_color("background_color", "mBackgroundColor", need_clone=True) %>
-
-    <%self:simple_background_array_property name="repeat" field_name="mRepeat">
-        use properties::longhands::background_repeat::single_value::computed_value::T;
+    <%self:simple_image_array_property name="repeat" shorthand="${shorthand}" field_name="mRepeat">
+        use properties::longhands::${shorthand}_repeat::single_value::computed_value::T;
         use gecko_bindings::structs::nsStyleImageLayers_Repeat;
         use gecko_bindings::structs::NS_STYLE_IMAGELAYER_REPEAT_REPEAT;
         use gecko_bindings::structs::NS_STYLE_IMAGELAYER_REPEAT_NO_REPEAT;
@@ -1027,39 +1026,88 @@ fn static_assert() {
               mXRepeat: repeat_x as u8,
               mYRepeat: repeat_y as u8,
         }
-    </%self:simple_background_array_property>
+    </%self:simple_image_array_property>
 
-    <%self:simple_background_array_property name="clip" field_name="mClip">
-        use properties::longhands::background_clip::single_value::computed_value::T;
+    <%self:simple_image_array_property name="clip" shorthand="${shorthand}" field_name="mClip">
+        use properties::longhands::${shorthand}_clip::single_value::computed_value::T;
 
         match servo {
             T::border_box => structs::NS_STYLE_IMAGELAYER_CLIP_BORDER as u8,
             T::padding_box => structs::NS_STYLE_IMAGELAYER_CLIP_PADDING as u8,
             T::content_box => structs::NS_STYLE_IMAGELAYER_CLIP_CONTENT as u8,
         }
-    </%self:simple_background_array_property>
+    </%self:simple_image_array_property>
 
-    <%self:simple_background_array_property name="origin" field_name="mOrigin">
-        use properties::longhands::background_origin::single_value::computed_value::T;
+    <%self:simple_image_array_property name="origin" shorthand="${shorthand}" field_name="mOrigin">
+        use properties::longhands::${shorthand}_origin::single_value::computed_value::T;
 
         match servo {
             T::border_box => structs::NS_STYLE_IMAGELAYER_ORIGIN_BORDER as u8,
             T::padding_box => structs::NS_STYLE_IMAGELAYER_ORIGIN_PADDING as u8,
             T::content_box => structs::NS_STYLE_IMAGELAYER_ORIGIN_CONTENT as u8,
         }
-    </%self:simple_background_array_property>
+    </%self:simple_image_array_property>
 
-    <%self:simple_background_array_property name="attachment" field_name="mAttachment">
-        use properties::longhands::background_attachment::single_value::computed_value::T;
-
-        match servo {
-            T::scroll => structs::NS_STYLE_IMAGELAYER_ATTACHMENT_SCROLL as u8,
-            T::fixed => structs::NS_STYLE_IMAGELAYER_ATTACHMENT_FIXED as u8,
-            T::local => structs::NS_STYLE_IMAGELAYER_ATTACHMENT_LOCAL as u8,
+    pub fn copy_${shorthand}_position_from(&mut self, other: &Self) {
+        self.gecko.${image_layers_field}.mPositionXCount
+                = cmp::min(1, other.gecko.${image_layers_field}.mPositionXCount);
+        self.gecko.${image_layers_field}.mPositionYCount
+                = cmp::min(1, other.gecko.${image_layers_field}.mPositionYCount);
+        self.gecko.${image_layers_field}.mLayers.mFirstElement.mPosition =
+            other.gecko.${image_layers_field}.mLayers.mFirstElement.mPosition;
+        unsafe {
+            Gecko_EnsureImageLayersLength(&mut self.gecko.${image_layers_field},
+                                          other.gecko.${image_layers_field}.mLayers.len());
         }
-    </%self:simple_background_array_property>
+        for (layer, other) in self.gecko.${image_layers_field}.mLayers.iter_mut()
+                                  .zip(other.gecko.${image_layers_field}.mLayers.iter())
+                                  .take(other.gecko.${image_layers_field}.mPositionXCount as usize) {
+            layer.mPosition.mXPosition
+                = other.mPosition.mXPosition;
+        }
+        for (layer, other) in self.gecko.${image_layers_field}.mLayers.iter_mut()
+                                  .zip(other.gecko.${image_layers_field}.mLayers.iter())
+                                  .take(other.gecko.${image_layers_field}.mPositionYCount as usize) {
+            layer.mPosition.mYPosition
+                = other.mPosition.mYPosition;
+        }
+        self.gecko.${image_layers_field}.mPositionXCount
+                = other.gecko.${image_layers_field}.mPositionXCount;
+        self.gecko.${image_layers_field}.mPositionYCount
+                = other.gecko.${image_layers_field}.mPositionYCount;
+    }
 
-    <%self:simple_background_array_property name="size" field_name="mSize">
+    pub fn clone_${shorthand}_position(&self)
+        -> longhands::${shorthand}_position::computed_value::T {
+        use values::computed::position::Position;
+        longhands::background_position::computed_value::T(
+            self.gecko.${image_layers_field}.mLayers.iter()
+                .take(self.gecko.${image_layers_field}.mPositionXCount as usize)
+                .take(self.gecko.${image_layers_field}.mPositionYCount as usize)
+                .map(|position| Position {
+                    horizontal: position.mPosition.mXPosition.into(),
+                    vertical: position.mPosition.mYPosition.into(),
+                })
+                .collect()
+        )
+    }
+
+    pub fn set_${shorthand}_position(&mut self,
+                                     v: longhands::${shorthand}_position::computed_value::T) {
+        unsafe {
+          Gecko_EnsureImageLayersLength(&mut self.gecko.${image_layers_field}, v.0.len());
+        }
+
+        self.gecko.${image_layers_field}.mPositionXCount = v.0.len() as u32;
+        self.gecko.${image_layers_field}.mPositionYCount = v.0.len() as u32;
+        for (servo, geckolayer) in v.0.into_iter().zip(self.gecko.${image_layers_field}
+                                                           .mLayers.iter_mut()) {
+            geckolayer.mPosition.mXPosition = servo.horizontal.into();
+            geckolayer.mPosition.mYPosition = servo.vertical.into();
+        }
+    }
+
+    <%self:simple_image_array_property name="size" shorthand="${shorthand}" field_name="mSize">
         use gecko_bindings::structs::nsStyleImageLayers_Size_Dimension;
         use gecko_bindings::structs::nsStyleImageLayers_Size_DimensionType;
         use gecko_bindings::structs::{nsStyleCoord_CalcValue, nsStyleImageLayers_Size};
@@ -1095,9 +1143,9 @@ fn static_assert() {
             mWidthType: w_type as u8,
             mHeightType: h_type as u8,
         }
-    </%self:simple_background_array_property>
+    </%self:simple_image_array_property>
 
-    pub fn clone_background_size(&self) -> longhands::background_size::computed_value::T {
+    pub fn clone_${shorthand}_size(&self) -> longhands::background_size::computed_value::T {
         use gecko_bindings::structs::nsStyleCoord_CalcValue as CalcValue;
         use gecko_bindings::structs::nsStyleImageLayers_Size_DimensionType as DimensionType;
         use properties::longhands::background_size::single_value::computed_value::{ExplicitSize, T};
@@ -1113,7 +1161,7 @@ fn static_assert() {
         }
 
         longhands::background_size::computed_value::T(
-            self.gecko.mImage.mLayers.iter().map(|ref layer| {
+            self.gecko.${image_layers_field}.mLayers.iter().map(|ref layer| {
                 if DimensionType::eCover as u8 == layer.mSize.mWidthType {
                     debug_assert!(layer.mSize.mHeightType == DimensionType::eCover as u8);
                     return T::Cover
@@ -1131,185 +1179,163 @@ fn static_assert() {
         )
     }
 
-    pub fn copy_background_position_from(&mut self, other: &Self) {
-        self.gecko.mImage.mPositionXCount = cmp::min(1, other.gecko.mImage.mPositionXCount);
-        self.gecko.mImage.mPositionYCount = cmp::min(1, other.gecko.mImage.mPositionYCount);
-        self.gecko.mImage.mLayers.mFirstElement.mPosition =
-            other.gecko.mImage.mLayers.mFirstElement.mPosition;
+
+    pub fn copy_${shorthand}_image_from(&mut self, other: &Self) {
         unsafe {
-            Gecko_EnsureImageLayersLength(&mut self.gecko.mImage, other.gecko.mImage.mLayers.len());
-        }
-        for (layer, other) in self.gecko.mImage.mLayers.iter_mut()
-                                  .zip(other.gecko.mImage.mLayers.iter())
-                                  .take(other.gecko.mImage.mPositionXCount as usize) {
-            layer.mPosition.mXPosition = other.mPosition.mXPosition;
-        }
-        for (layer, other) in self.gecko.mImage.mLayers.iter_mut()
-                                  .zip(other.gecko.mImage.mLayers.iter())
-                                  .take(other.gecko.mImage.mPositionYCount as usize) {
-            layer.mPosition.mYPosition = other.mPosition.mYPosition;
-        }
-        self.gecko.mImage.mPositionXCount = other.gecko.mImage.mPositionXCount;
-        self.gecko.mImage.mPositionYCount = other.gecko.mImage.mPositionYCount;
-    }
-
-    pub fn clone_background_position(&self) -> longhands::background_position::computed_value::T {
-        use values::computed::position::Position;
-        longhands::background_position::computed_value::T(
-            self.gecko.mImage.mLayers.iter()
-                .take(self.gecko.mImage.mPositionXCount as usize)
-                .take(self.gecko.mImage.mPositionYCount as usize)
-                .map(|position| Position {
-                    horizontal: position.mPosition.mXPosition.into(),
-                    vertical: position.mPosition.mYPosition.into(),
-                })
-                .collect()
-        )
-    }
-
-    pub fn set_background_position(&mut self, v: longhands::background_position::computed_value::T) {
-        unsafe {
-          Gecko_EnsureImageLayersLength(&mut self.gecko.mImage, v.0.len());
-        }
-
-        self.gecko.mImage.mPositionXCount = v.0.len() as u32;
-        self.gecko.mImage.mPositionYCount = v.0.len() as u32;
-        for (servo, geckolayer) in v.0.into_iter().zip(self.gecko.mImage.mLayers.iter_mut()) {
-            geckolayer.mPosition.mXPosition = servo.horizontal.into();
-            geckolayer.mPosition.mYPosition = servo.vertical.into();
+            Gecko_CopyImageValueFrom(&mut self.gecko.${image_layers_field}.mLayers.mFirstElement.mImage,
+                                     &other.gecko.${image_layers_field}.mLayers.mFirstElement.mImage);
         }
     }
 
-    pub fn copy_background_image_from(&mut self, other: &Self) {
-        unsafe {
-            Gecko_CopyImageValueFrom(&mut self.gecko.mImage.mLayers.mFirstElement.mImage,
-                                     &other.gecko.mImage.mLayers.mFirstElement.mImage);
-        }
-    }
-
-    pub fn set_background_image(&mut self, images: longhands::background_image::computed_value::T) {
+    pub fn set_${shorthand}_image(&mut self,
+                                  images: longhands::${shorthand}_image::computed_value::T) {
+        use gecko_bindings::structs::nsStyleImage;
         use gecko_bindings::structs::nsStyleImageLayers_LayerType as LayerType;
         use gecko_bindings::structs::{NS_STYLE_GRADIENT_SHAPE_LINEAR, NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER};
         use gecko_bindings::structs::nsStyleCoord;
-        use values::computed::Image;
+        use values::computed::{Image, LinearGradient};
         use values::specified::AngleOrCorner;
         use values::specified::{HorizontalDirection, VerticalDirection};
         use cssparser::Color as CSSColor;
 
-        unsafe {
-            // Prevent leaking of the last element we did set
-            for image in &mut self.gecko.mImage.mLayers {
-                Gecko_SetNullImageValue(&mut image.mImage)
+        fn set_linear_gradient(gradient: LinearGradient, geckoimage: &mut nsStyleImage) {
+            let stop_count = gradient.stops.len();
+            if stop_count >= ::std::u32::MAX as usize {
+                warn!("stylo: Prevented overflow due to too many gradient stops");
+                return;
             }
-            Gecko_EnsureImageLayersLength(&mut self.gecko.mImage, images.0.len());
-            for image in &mut self.gecko.mImage.mLayers {
-                Gecko_InitializeImageLayer(image, LayerType::Background);
-            }
-        }
 
-        self.gecko.mImage.mImageCount = cmp::max(self.gecko.mImage.mLayers.len() as u32,
-                                                 self.gecko.mImage.mImageCount);
+            let gecko_gradient = unsafe {
+                Gecko_CreateGradient(NS_STYLE_GRADIENT_SHAPE_LINEAR as u8,
+                                     NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER as u8,
+                                     /* repeating = */ false,
+                                     /* legacy_syntax = */ false,
+                                     stop_count as u32)
+            };
 
-        // TODO: pre-grow the nsTArray to the right capacity
-        // otherwise the below code won't work
-        for (image, geckoimage) in images.0.into_iter().zip(self.gecko.mImage.mLayers.iter_mut()) {
-            if let Some(image) = image.0 {
-                match image {
-                    Image::LinearGradient(ref gradient) => {
-                        let stop_count = gradient.stops.len();
-                        if stop_count >= ::std::u32::MAX as usize {
-                            warn!("stylo: Prevented overflow due to too many gradient stops");
-                            return;
-                        }
+            match gradient.angle_or_corner {
+                AngleOrCorner::Angle(angle) => {
+                    unsafe {
+                        (*gecko_gradient).mAngle.set(angle);
+                        (*gecko_gradient).mBgPosX.set_value(CoordDataValue::None);
+                        (*gecko_gradient).mBgPosY.set_value(CoordDataValue::None);
+                    }
+                }
+                AngleOrCorner::Corner(horiz, vert) => {
+                    let percent_x = match horiz {
+                        HorizontalDirection::Left => 0.0,
+                        HorizontalDirection::Right => 1.0,
+                    };
+                    let percent_y = match vert {
+                        VerticalDirection::Top => 0.0,
+                        VerticalDirection::Bottom => 1.0,
+                    };
 
-                        let gecko_gradient = unsafe {
-                            Gecko_CreateGradient(NS_STYLE_GRADIENT_SHAPE_LINEAR as u8,
-                                                 NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER as u8,
-                                                 /* repeating = */ false,
-                                                 /* legacy_syntax = */ false,
-                                                 stop_count as u32)
-                        };
-
-                        match gradient.angle_or_corner {
-                            AngleOrCorner::Angle(angle) => {
-                                unsafe {
-                                    (*gecko_gradient).mAngle.set(angle);
-                                    (*gecko_gradient).mBgPosX.set_value(CoordDataValue::None);
-                                    (*gecko_gradient).mBgPosY.set_value(CoordDataValue::None);
-                                }
-                            }
-                            AngleOrCorner::Corner(horiz, vert) => {
-                                let percent_x = match horiz {
-                                    HorizontalDirection::Left => 0.0,
-                                    HorizontalDirection::Right => 1.0,
-                                };
-                                let percent_y = match vert {
-                                    VerticalDirection::Top => 0.0,
-                                    VerticalDirection::Bottom => 1.0,
-                                };
-
-                                unsafe {
-                                    (*gecko_gradient).mAngle.set_value(CoordDataValue::None);
-                                    (*gecko_gradient).mBgPosX
-                                                     .set_value(CoordDataValue::Percent(percent_x));
-                                    (*gecko_gradient).mBgPosY
-                                                     .set_value(CoordDataValue::Percent(percent_y));
-                                }
-                            }
-                        }
-
-                        let mut coord: nsStyleCoord = nsStyleCoord::null();
-                        for (index, stop) in gradient.stops.iter().enumerate() {
-                            // NB: stops are guaranteed to be none in the gecko side by
-                            // default.
-                            coord.set(stop.position);
-                            let color = match stop.color {
-                                CSSColor::CurrentColor => {
-                                    // TODO(emilio): gecko just stores an nscolor,
-                                    // and it doesn't seem to support currentColor
-                                    // as value in a gradient.
-                                    //
-                                    // Double-check it and either remove
-                                    // currentColor for servo or see how gecko
-                                    // handles this.
-                                    0
-                                },
-                                CSSColor::RGBA(ref rgba) => convert_rgba_to_nscolor(rgba),
-                            };
-
-                            let mut stop = unsafe {
-                                &mut (*gecko_gradient).mStops[index]
-                            };
-
-                            stop.mColor = color;
-                            stop.mIsInterpolationHint = false;
-                            stop.mLocation.copy_from(&coord);
-                        }
-
-                        unsafe {
-                            Gecko_SetGradientImageValue(&mut geckoimage.mImage, gecko_gradient);
-                        }
-                    },
-                    Image::Url(..) => {
-                        // let utf8_bytes = url.as_bytes();
-                        // Gecko_SetUrlImageValue(&mut self.gecko.mImage.mLayers.mFirstElement,
-                        //                        utf8_bytes.as_ptr() as *const _,
-                        //                        utf8_bytes.len());
-                        warn!("stylo: imgRequestProxies are not threadsafe in gecko, \
-                               background-image: url() not yet implemented");
+                    unsafe {
+                        (*gecko_gradient).mAngle.set_value(CoordDataValue::None);
+                        (*gecko_gradient).mBgPosX
+                                         .set_value(CoordDataValue::Percent(percent_x));
+                        (*gecko_gradient).mBgPosY
+                                         .set_value(CoordDataValue::Percent(percent_y));
                     }
                 }
             }
 
+            let mut coord: nsStyleCoord = nsStyleCoord::null();
+            for (index, stop) in gradient.stops.iter().enumerate() {
+                // NB: stops are guaranteed to be none in the gecko side by
+                // default.
+                coord.set(stop.position);
+                let color = match stop.color {
+                    CSSColor::CurrentColor => {
+                        // TODO(emilio): gecko just stores an nscolor,
+                        // and it doesn't seem to support currentColor
+                        // as value in a gradient.
+                        //
+                        // Double-check it and either remove
+                        // currentColor for servo or see how gecko
+                        // handles this.
+                        0
+                    },
+                    CSSColor::RGBA(ref rgba) => convert_rgba_to_nscolor(rgba),
+                };
+
+                let mut stop = unsafe {
+                    &mut (*gecko_gradient).mStops[index]
+                };
+
+                stop.mColor = color;
+                stop.mIsInterpolationHint = false;
+                stop.mLocation.copy_from(&coord);
+            }
+
+            unsafe {
+                Gecko_SetGradientImageValue(geckoimage, gecko_gradient);
+            }
+        }
+
+        unsafe {
+            // Prevent leaking of the last elements we did set
+            for image in &mut self.gecko.${image_layers_field}.mLayers {
+                Gecko_SetNullImageValue(&mut image.mImage)
+            }
+            // XXXManishearth clear mSourceURI for masks
+            Gecko_EnsureImageLayersLength(&mut self.gecko.${image_layers_field}, images.0.len());
+            for image in &mut self.gecko.${image_layers_field}.mLayers {
+                Gecko_InitializeImageLayer(image, LayerType::${shorthand.title()});
+            }
+        }
+
+        self.gecko.${image_layers_field}.mImageCount = images.0.len() as u32;
+
+        for (image, geckoimage) in images.0.into_iter().zip(self.gecko.${image_layers_field}
+                                                                .mLayers.iter_mut()) {
+            % if shorthand == "background":
+                if let Some(image) = image.0 {
+                    match image {
+                        Image::LinearGradient(gradient) => {
+                            set_linear_gradient(gradient, &mut geckoimage.mImage)
+                        },
+                        Image::Url(..) => {
+                            // let utf8_bytes = url.as_bytes();
+                            // Gecko_SetUrlImageValue(&mut self.gecko.mImage.mLayers.mFirstElement,
+                            //                        utf8_bytes.as_ptr() as *const _,
+                            //                        utf8_bytes.len());
+                            warn!("stylo: imgRequestProxies are not threadsafe in gecko, \
+                                   background-image: url() not yet implemented");
+                        }
+                    }
+                }
+            % else:
+                use properties::longhands::mask_image::single_value::computed_value::T;
+                match image {
+                    T::Image(image) => match image {
+                        Image::LinearGradient(gradient) => {
+                            set_linear_gradient(gradient, &mut geckoimage.mImage)
+                        }
+                        _ => () // we need to support image values
+                    },
+                    _ => () // we need to support url valeus
+                }
+            % endif
+
         }
     }
 
+    <%
+        fill_fields = "mRepeat mClip mOrigin mPositionX mPositionY mImage"
+        if shorthand == "background":
+            fill_fields += " mAttachment"
+        else:
+            # mSourceURI uses mImageCount
+            fill_fields += " mMaskMode mComposite"
+    %>
     pub fn fill_arrays(&mut self) {
-        use gecko_bindings::bindings::Gecko_FillAllBackgroundLists;
+        use gecko_bindings::bindings::Gecko_FillAll${shorthand.title()}Lists;
         use std::cmp;
         let mut max_len = 1;
-        % for member in "mRepeat mClip mOrigin mAttachment mPositionX mPositionY mImage".split():
-            max_len = cmp::max(max_len, self.gecko.mImage.${member}Count);
+        % for member in fill_fields.split():
+            max_len = cmp::max(max_len, self.gecko.${image_layers_field}.${member}Count);
         % endfor
 
         // XXXManishearth Gecko does an optimization here where it only
@@ -1318,9 +1344,34 @@ fn static_assert() {
         unsafe {
             // While we could do this manually, we'd need to also manually
             // run all the copy constructors, so we just delegate to gecko
-            Gecko_FillAllBackgroundLists(&mut self.gecko.mImage, max_len);
+            Gecko_FillAll${shorthand.title()}Lists(&mut self.gecko.${image_layers_field}, max_len);
         }
     }
+</%def>
+
+// TODO: Gecko accepts lists in most background-related properties. We just use
+// the first element (which is the common case), but at some point we want to
+// add support for parsing these lists in servo and pushing to nsTArray's.
+<% skip_background_longhands = """background-color background-repeat
+                                  background-image background-clip
+                                  background-origin background-attachment
+                                  background-size background-position""" %>
+<%self:impl_trait style_struct_name="Background"
+                  skip_longhands="${skip_background_longhands}"
+                  skip_additionals="*">
+
+    <% impl_color("background_color", "mBackgroundColor", need_clone=True) %>
+
+    <% impl_common_image_layer_properties("background") %>
+
+    <%self:simple_image_array_property name="attachment" shorthand="background" field_name="mAttachment">
+        use properties::longhands::background_attachment::single_value::computed_value::T;
+        match servo {
+            T::scroll => structs::NS_STYLE_IMAGELAYER_ATTACHMENT_SCROLL as u8,
+            T::fixed => structs::NS_STYLE_IMAGELAYER_ATTACHMENT_FIXED as u8,
+            T::local => structs::NS_STYLE_IMAGELAYER_ATTACHMENT_LOCAL as u8,
+        }
+    </%self:simple_image_array_property>
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="List" skip_longhands="list-style-type" skip_additionals="*">
@@ -1523,8 +1574,14 @@ fn static_assert() {
     }
 </%self:impl_trait>
 
+<% skip_svg_longhands = """
+flood-color lighting-color stop-color
+mask-mode mask-repeat mask-clip mask-origin mask-composite mask-position mask-size mask-image
+clip-path
+"""
+%>
 <%self:impl_trait style_struct_name="SVG"
-                  skip_longhands="flood-color lighting-color stop-color clip-path"
+                  skip_longhands="${skip_svg_longhands}"
                   skip_additionals="*">
 
     <% impl_color("flood_color", "mFloodColor") %>
@@ -1533,6 +1590,27 @@ fn static_assert() {
 
     <% impl_color("stop_color", "mStopColor") %>
 
+    <% impl_common_image_layer_properties("mask") %>
+
+    <%self:simple_image_array_property name="mode" shorthand="mask" field_name="mMaskMode">
+        use properties::longhands::mask_mode::single_value::computed_value::T;
+
+        match servo {
+          T::alpha => structs::NS_STYLE_MASK_MODE_ALPHA as u8,
+          T::luminance => structs::NS_STYLE_MASK_MODE_LUMINANCE as u8,
+          T::match_source => structs::NS_STYLE_MASK_MODE_MATCH_SOURCE as u8,
+        }
+    </%self:simple_image_array_property>
+    <%self:simple_image_array_property name="composite" shorthand="mask" field_name="mComposite">
+        use properties::longhands::mask_composite::single_value::computed_value::T;
+
+        match servo {
+            T::add => structs::NS_STYLE_MASK_COMPOSITE_ADD as u8,
+            T::subtract => structs::NS_STYLE_MASK_COMPOSITE_SUBTRACT as u8,
+            T::intersect => structs::NS_STYLE_MASK_COMPOSITE_INTERSECT as u8,
+            T::exclude => structs::NS_STYLE_MASK_COMPOSITE_EXCLUDE as u8,
+        }
+    </%self:simple_image_array_property>
     pub fn set_clip_path(&mut self, v: longhands::clip_path::computed_value::T) {
         use gecko_bindings::bindings::{Gecko_NewBasicShape, Gecko_DestroyClipPath};
         use gecko_bindings::structs::StyleClipPathGeometryBox;

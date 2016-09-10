@@ -537,6 +537,18 @@ impl fmt::Debug for Image {
     }
 }
 
+impl ::cssparser::ToCss for Image {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        use values::LocalToCss;
+        match *self {
+            Image::Url(ref url, _) => {
+                url.to_css(dest)
+            }
+            Image::LinearGradient(ref gradient) => gradient.to_css(dest)
+        }
+    }
+}
+
 /// Computed values for a CSS linear gradient.
 #[derive(Clone, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]

@@ -28,9 +28,7 @@ ${helpers.predefined_type("background-color", "CSSColor",
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             match self.0 {
                 None => dest.write_str("none"),
-                Some(computed::Image::Url(ref url, ref _extra_data)) => url.to_css(dest),
-                Some(computed::Image::LinearGradient(ref gradient)) =>
-                    gradient.to_css(dest)
+                Some(ref image) => image.to_css(dest),
             }
         }
     }

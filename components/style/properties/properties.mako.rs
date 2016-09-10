@@ -2060,6 +2060,7 @@ pub fn cascade(viewport_size: Size2D<Au>,
 
     % if product == "gecko":
         style.mutate_background().fill_arrays();
+        style.mutate_svg().fill_arrays();
     % endif
 
     // The initial value of outline width may be changed at computed value time.
