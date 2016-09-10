@@ -79,3 +79,6 @@ class BaseBootstrapper(object):
 
         This should be defined in child classes.
         """
+
+    def install_virtualenv(self):
+        """Install virtualenv and pip packages"""

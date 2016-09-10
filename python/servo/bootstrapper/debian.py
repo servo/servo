@@ -43,6 +43,9 @@ class DebianBootstrapper(BaseBootstrapper):
     def install_mobile_android_packages(self):
         raise NotImplementedError('Bootstrap support for Android not yet available.')
 
+    def install_virtualenv(self):
+        self.apt_install(*["python-pip", self.virtualenv])
+
     def _update_package_manager(self):
         self.apt_update()
 

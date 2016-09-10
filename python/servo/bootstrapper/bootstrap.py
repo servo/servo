@@ -75,3 +75,8 @@ class Bootstrapper(object):
             self.instance.install_mobile_android_packages()
 
         print
+
+    def virtualenv(self):
+        self.instance.install_virtualenv()
+
+        print

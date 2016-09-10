@@ -32,6 +32,9 @@ class CentOSFedoraBootstrapper(BaseBootstrapper):
     def install_mobile_android_packages(self):
         raise NotImplementedError('Bootstrap support for Android not yet available.')
 
+    def install_virtualenv(self):
+        self.dnf_install(*["python-pip", "python-virtualenv"])
+
     def dnf_install(self, *packages):
         if self.which('dnf'):
             command = ['dnf', 'reinstall' if self.force else 'install']
