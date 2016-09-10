@@ -51,4 +51,17 @@
           assert_equals(rejected, 'success')
       });
   }, 'Native reject callback gets argument');
+
+  promise_test(function(test) {
+      var t = new TestBinding;
+      var resolved;
+      var p = new Promise(function() {});
+      var start = Date.now();
+      t.resolvePromiseDelayed(p, 'success', 100);
+      return p.then(function(v) {
+          var end = Date.now();
+          assert_true(end - start > 100);
+          assert_equals(v, 'success');
+      });
+  }, 'Native promise from async callback can be resolved');
 </script>

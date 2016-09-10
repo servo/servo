@@ -25,6 +25,7 @@ use dom::bindings::global::{GlobalRef, global_root_from_context};
 use dom::bindings::js::Root;
 use dom::bindings::mozmap::MozMap;
 use dom::bindings::num::Finite;
+use dom::bindings::refcounted::TrustedPromise;
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::{ByteString, DOMString, USVString};
 use dom::bindings::weakref::MutableWeakRef;
@@ -32,12 +33,14 @@ use dom::blob::{Blob, BlobImpl};
 use dom::promise::Promise;
 use dom::promisenativehandler::{PromiseNativeHandler, Callback};
 use dom::url::URL;
-use js::jsapi::{HandleObject, HandleValue, JSContext, JSObject};
+use js::jsapi::{HandleObject, HandleValue, JSContext, JSObject, JSAutoCompartment};
 use js::jsapi::{JS_NewPlainObject, JS_NewUint8ClampedArray};
 use js::jsval::{JSVal, NullValue};
+use script_traits::MsDuration;
 use std::borrow::ToOwned;
 use std::ptr;
 use std::rc::Rc;
+use timers::OneshotTimerCallback;
 use util::prefs::PREFS;
 
 #[dom_struct]
@@ -673,6 +676,17 @@ impl TestBindingMethods for TestBinding {
     }
 
     #[allow(unrooted_must_root)]
+    fn ResolvePromiseDelayed(&self, p: &Promise, value: DOMString, delay: u64) {
+        let promise = p.duplicate();
+        let cb = TestBindingCallback {
+            promise: TrustedPromise::new(promise),
+            value: value,
+        };
+        let _ = self.global().r().schedule_callback(OneshotTimerCallback::TestBindingCallback(cb),
+                                                    MsDuration::new(delay));
+    }
+
+    #[allow(unrooted_must_root)]
     fn PromiseNativeHandler(&self,
                             resolve: Option<Rc<SimpleCallback>>,
                             reject: Option<Rc<SimpleCallback>>) -> Rc<Promise> {
@@ -759,4 +773,21 @@ impl TestBinding {
 impl TestBinding {
     pub unsafe fn condition_satisfied(_: *mut JSContext, _: HandleObject) -> bool { true }
     pub unsafe fn condition_unsatisfied(_: *mut JSContext, _: HandleObject) -> bool { false }
+}
+
+#[derive(JSTraceable, HeapSizeOf)]
+pub struct TestBindingCallback {
+    #[ignore_heap_size_of = "unclear ownership semantics"]
+    promise: TrustedPromise,
+    value: DOMString,
+}
+
+impl TestBindingCallback {
+    #[allow(unrooted_must_root)]
+    pub fn invoke(self) {
+        let p = self.promise.root();
+        let cx = p.global().r().get_cx();
+        let _ac = JSAutoCompartment::new(cx, p.reflector().get_jsobject().get());
+        p.maybe_resolve_native(cx, &self.value);
+    }
 }

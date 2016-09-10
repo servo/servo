@@ -26,6 +26,7 @@ use core::nonzero::NonZero;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflectable, Reflector};
 use dom::bindings::trace::trace_reflector;
+use dom::promise::Promise;
 use js::jsapi::JSTracer;
 use libc;
 use std::cell::RefCell;
@@ -34,6 +35,7 @@ use std::collections::hash_map::HashMap;
 use std::hash::Hash;
 use std::marker::PhantomData;
 use std::os;
+use std::rc::Rc;
 use std::sync::{Arc, Weak};
 
 
@@ -55,6 +57,63 @@ unsafe impl Send for TrustedReference {}
 impl TrustedReference {
     fn new<T: Reflectable>(ptr: *const T) -> TrustedReference {
         TrustedReference(ptr as *const libc::c_void)
+    }
+}
+
+/// A safe wrapper around a DOM Promise object that can be shared among threads for use
+/// in asynchronous operations. The underlying DOM object is guaranteed to live at least
+/// as long as the last outstanding `TrustedPromise` instance. These values cannot be cloned,
+/// only created from existing Rc<Promise> values.
+pub struct TrustedPromise {
+    dom_object: *const Promise,
+    owner_thread: *const libc::c_void,
+}
+
+unsafe impl Send for TrustedPromise {}
+
+impl TrustedPromise {
+    /// Create a new `TrustedPromise` instance from an existing DOM object. The object will
+    /// be prevented from being GCed for the duration of the resulting `TrustedPromise` object's
+    /// lifetime.
+    #[allow(unrooted_must_root)]
+    pub fn new(promise: Rc<Promise>) -> TrustedPromise {
+        LIVE_REFERENCES.with(|ref r| {
+            let r = r.borrow();
+            let live_references = r.as_ref().unwrap();
+            let ptr = &*promise as *const Promise;
+            live_references.addref_promise(promise);
+            TrustedPromise {
+                dom_object: ptr,
+                owner_thread: (&*live_references) as *const _ as *const libc::c_void,
+            }
+        })
+    }
+
+    /// Obtain a usable DOM Promise from a pinned `TrustedPromise` value. Fails if used on
+    /// a different thread than the original value from which this `TrustedPromise` was
+    /// obtained.
+    #[allow(unrooted_must_root)]
+    pub fn root(self) -> Rc<Promise> {
+        LIVE_REFERENCES.with(|ref r| {
+            let r = r.borrow();
+            let live_references = r.as_ref().unwrap();
+            assert!(self.owner_thread == (&*live_references) as *const _ as *const libc::c_void);
+            // Borrow-check error requires the redundant `let promise = ...; promise` here.
+            let promise = match live_references.promise_table.borrow_mut().entry(self.dom_object) {
+                Occupied(mut entry) => {
+                    let promise = {
+                        let promises = entry.get_mut();
+                        promises.pop().expect("rooted promise list unexpectedly empty")
+                    };
+                    if entry.get().is_empty() {
+                        entry.remove();
+                    }
+                    promise
+                }
+                Vacant(_) => unreachable!(),
+            };
+            promise
+        })
     }
 }
 
@@ -117,9 +176,11 @@ impl<T: Reflectable> Clone for Trusted<T> {
 
 /// The set of live, pinned DOM objects that are currently prevented
 /// from being garbage collected due to outstanding references.
+#[allow(unrooted_must_root)]
 pub struct LiveDOMReferences {
     // keyed on pointer to Rust DOM object
-    table: RefCell<HashMap<*const libc::c_void, Weak<TrustedReference>>>,
+    reflectable_table: RefCell<HashMap<*const libc::c_void, Weak<TrustedReference>>>,
+    promise_table: RefCell<HashMap<*const Promise, Vec<Rc<Promise>>>>,
 }
 
 impl LiveDOMReferences {
@@ -127,13 +188,20 @@ impl LiveDOMReferences {
     pub fn initialize() {
         LIVE_REFERENCES.with(|ref r| {
             *r.borrow_mut() = Some(LiveDOMReferences {
-                table: RefCell::new(HashMap::new()),
+                reflectable_table: RefCell::new(HashMap::new()),
+                promise_table: RefCell::new(HashMap::new()),
             })
         });
     }
 
+    #[allow(unrooted_must_root)]
+    fn addref_promise(&self, promise: Rc<Promise>) {
+        let mut table = self.promise_table.borrow_mut();
+        table.entry(&*promise).or_insert(vec![]).push(promise)
+    }
+
     fn addref<T: Reflectable>(&self, ptr: *const T) -> Arc<TrustedReference> {
-        let mut table = self.table.borrow_mut();
+        let mut table = self.reflectable_table.borrow_mut();
         let capacity = table.capacity();
         let len = table.len();
         if (0 < capacity) && (capacity <= len) {
@@ -173,17 +241,27 @@ fn remove_nulls<K: Eq + Hash + Clone, V> (table: &mut HashMap<K, Weak<V>>) {
 }
 
 /// A JSTraceDataOp for tracing reflectors held in LIVE_REFERENCES
+#[allow(unrooted_must_root)]
 pub unsafe extern "C" fn trace_refcounted_objects(tracer: *mut JSTracer,
                                                   _data: *mut os::raw::c_void) {
     info!("tracing live refcounted references");
     LIVE_REFERENCES.with(|ref r| {
         let r = r.borrow();
         let live_references = r.as_ref().unwrap();
-        let mut table = live_references.table.borrow_mut();
-        remove_nulls(&mut table);
-        for obj in table.keys() {
-            let reflectable = &*(*obj as *const Reflector);
-            trace_reflector(tracer, "refcounted", reflectable);
+        {
+            let mut table = live_references.reflectable_table.borrow_mut();
+            remove_nulls(&mut table);
+            for obj in table.keys() {
+                let reflectable = &*(*obj as *const Reflector);
+                trace_reflector(tracer, "refcounted", reflectable);
+            }
+        }
+
+        {
+            let table = live_references.promise_table.borrow_mut();
+            for promise in table.keys() {
+                trace_reflector(tracer, "refcounted", (**promise).reflector());
+            }
         }
     });
 }
