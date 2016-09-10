@@ -4,6 +4,8 @@
 
 from __future__ import print_function, unicode_literals
 
+import os
+import sys
 import distutils
 import subprocess
 
@@ -43,6 +45,23 @@ class BaseBootstrapper(object):
         It returns the path of an executable or None if it couldn't be found.
         """
         return distutils.spawn.find_executable(name)
+
+    def run(self, command):
+        subprocess.check_call(command, stdin=sys.stdin)
+
+    def run_check(self, command):
+        return subprocess.call(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    def run_as_root(self, command):
+        if os.geteuid() != 0:
+            if self.which('sudo'):
+                command.insert(0, 'sudo')
+            else:
+                command = ['su', 'root', '-c', ' '.join(command)]
+
+        print('Executing as root:', subprocess.list2cmdline(command))
+
+        subprocess.check_call(command, stdin=sys.stdin)
 
     def check_output(self, *args, **kwargs):
         """Run subprocess.check_output."""
