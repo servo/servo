@@ -26,6 +26,7 @@ from WebIDL import (
 )
 
 from Configuration import (
+    MakeNativeName,
     MemberIsUnforgeable,
     getModuleFromObject,
     getTypesFromCallback,
@@ -80,7 +81,7 @@ def toStringBool(arg):
 
 
 def toBindingNamespace(arg):
-    return re.sub("((_workers)?$)", "Binding\\1", arg)
+    return re.sub("((_workers)?$)", "Binding\\1", MakeNativeName(arg))
 
 
 def stripTrailingWhitespace(text):
@@ -95,9 +96,6 @@ def innerSequenceType(type):
     assert type.isSequence()
     return type.inner.inner if type.nullable() else type.inner
 
-
-def MakeNativeName(name):
-    return name[0].upper() + name[1:]
 
 builtinNames = {
     IDLType.Tags.bool: 'bool',
@@ -1811,7 +1809,8 @@ class CGImports(CGWrapper):
 
         def isImportable(type):
             if not type.isType():
-                assert type.isInterface() or type.isDictionary() or type.isEnum()
+                assert (type.isInterface() or type.isDictionary() or
+                        type.isEnum() or type.isNamespace())
                 return True
             return not (type.builtin or type.isSequence() or type.isUnion())
 
@@ -1830,7 +1829,7 @@ class CGImports(CGWrapper):
                 if t.isCallback():
                     return t.callback.identifier
                 return t.identifier
-            assert t.isInterface() or t.isDictionary() or t.isEnum()
+            assert t.isInterface() or t.isDictionary() or t.isEnum() or t.isNamespace()
             return t.identifier
 
         def removeWrapperAndNullableTypes(types):
@@ -1881,7 +1880,7 @@ class CGImports(CGWrapper):
             # Importing these types in the same module that defines them is an error.
             if t in dictionaries or t in enums:
                 continue
-            if t.isInterface():
+            if t.isInterface() or t.isNamespace():
                 descriptor = descriptorProvider.getDescriptor(getIdentifier(t).name)
                 extras += [descriptor.path]
                 if descriptor.interface.parent:
@@ -2060,6 +2059,17 @@ class CGInterfaceObjectJSClass(CGThing):
         self.descriptor = descriptor
 
     def define(self):
+        if self.descriptor.interface.isNamespace():
+            classString = self.descriptor.interface.getExtendedAttribute("ClassString")
+            if classString:
+                classString = classString[0]
+            else:
+                classString = "Object"
+            return """\
+static NAMESPACE_OBJECT_CLASS: NamespaceObjectClass = unsafe {
+    NamespaceObjectClass::new(%s)
+};
+""" % str_to_const_array(classString)
         if self.descriptor.interface.ctor():
             constructorBehavior = "InterfaceConstructorBehavior::call(%s)" % CONSTRUCT_HOOK_NAME
         else:
@@ -2659,6 +2669,28 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
 
     def definition_body(self):
         name = self.descriptor.interface.identifier.name
+        if self.descriptor.interface.isNamespace():
+            if self.descriptor.interface.getExtendedAttribute("ProtoObjectHack"):
+                proto = "JS_GetObjectPrototype(cx, global)"
+            else:
+                proto = "JS_NewPlainObject(cx)"
+            if self.properties.static_methods.length():
+                methods = self.properties.static_methods.variableName()
+            else:
+                methods = "&[]"
+            return CGGeneric("""\
+rooted!(in(cx) let proto = %(proto)s);
+assert!(!proto.is_null());
+rooted!(in(cx) let mut namespace = ptr::null_mut());
+create_namespace_object(cx, global, proto.handle(), &NAMESPACE_OBJECT_CLASS,
+                        %(methods)s, %(name)s, namespace.handle_mut());
+assert!(!namespace.is_null());
+assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
+(*cache)[PrototypeList::Constructor::%(id)s as usize] = namespace.get();
+<*mut JSObject>::post_barrier((*cache).as_mut_ptr().offset(PrototypeList::Constructor::%(id)s as isize),
+                              ptr::null_mut(),
+                              namespace.get());
+""" % {"id": MakeNativeName(name), "methods": methods, "name": str_to_const_array(name), "proto": proto})
         if self.descriptor.interface.isCallback():
             assert not self.descriptor.interface.ctor() and self.descriptor.interface.hasConstants()
             return CGGeneric("""\
@@ -2873,7 +2905,7 @@ class CGGetPerInterfaceObject(CGAbstractMethod):
                 Argument('MutableHandleObject', 'rval')]
         CGAbstractMethod.__init__(self, descriptor, name,
                                   'void', args, pub=pub, unsafe=True)
-        self.id = idPrefix + "::" + self.descriptor.name
+        self.id = idPrefix + "::" + MakeNativeName(self.descriptor.name)
 
     def definition_body(self):
         return CGGeneric("""
@@ -3016,7 +3048,7 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
         return CGAbstractMethod.define(self)
 
     def definition_body(self):
-        if self.descriptor.interface.isCallback():
+        if self.descriptor.interface.isCallback() or self.descriptor.interface.isNamespace():
             function = "GetConstructorObject"
         else:
             function = "GetProtoObject"
@@ -3047,7 +3079,7 @@ class CGCallGenerator(CGThing):
     exception from the native code, or None if no error reporting is needed.
     """
     def __init__(self, errorResult, arguments, argsPre, returnType,
-                 extendedAttributes, descriptorProvider, nativeMethodName,
+                 extendedAttributes, descriptor, nativeMethodName,
                  static, object="this"):
         CGThing.__init__(self)
 
@@ -3055,7 +3087,7 @@ class CGCallGenerator(CGThing):
 
         isFallible = errorResult is not None
 
-        result = getRetvalDeclarationForType(returnType, descriptorProvider)
+        result = getRetvalDeclarationForType(returnType, descriptor)
         if isFallible:
             result = CGWrapper(result, pre="Result<", post=", Error>")
 
@@ -3076,7 +3108,7 @@ class CGCallGenerator(CGThing):
 
         call = CGGeneric(nativeMethodName)
         if static:
-            call = CGWrapper(call, pre="%s::" % descriptorProvider.interface.identifier.name)
+            call = CGWrapper(call, pre="%s::" % MakeNativeName(descriptor.interface.identifier.name))
         else:
             call = CGWrapper(call, pre="%s." % object)
         call = CGList([call, CGWrapper(args, pre="(", post=")")])
@@ -5454,6 +5486,8 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'dom::bindings::js::OptionalRootedReference',
         'dom::bindings::js::Root',
         'dom::bindings::js::RootedReference',
+        'dom::bindings::namespace::NamespaceObjectClass',
+        'dom::bindings::namespace::create_namespace_object',
         'dom::bindings::reflector::MutReflectable',
         'dom::bindings::reflector::Reflectable',
         'dom::bindings::utils::DOMClass',
@@ -5561,7 +5595,7 @@ class CGDescriptor(CGThing):
             return name
 
         cgThings = []
-        if not descriptor.interface.isCallback():
+        if not descriptor.interface.isCallback() and not descriptor.interface.isNamespace():
             cgThings.append(CGGetProtoObjectMethod(descriptor))
             reexports.append('GetProtoObject')
         if (descriptor.interface.hasInterfaceObject() and
@@ -5622,7 +5656,7 @@ class CGDescriptor(CGThing):
             if not descriptor.interface.isCallback():
                 cgThings.append(CGInterfaceObjectJSClass(descriptor))
 
-        if not descriptor.interface.isCallback():
+        if not descriptor.interface.isCallback() and not descriptor.interface.isNamespace():
             cgThings.append(CGPrototypeJSClass(descriptor))
 
         # If there are no constant members, don't make a module for constants
@@ -5679,7 +5713,7 @@ class CGDescriptor(CGThing):
             reexports.append('Wrap')
 
         haveUnscopables = False
-        if not descriptor.interface.isCallback():
+        if not descriptor.interface.isCallback() and not descriptor.interface.isNamespace():
             if unscopableNames:
                 haveUnscopables = True
                 cgThings.append(
@@ -5706,7 +5740,7 @@ class CGDescriptor(CGThing):
                                          cgThings, public=True),
                              post='\n')
         reexports = ', '.join(map(lambda name: reexportedName(name), reexports))
-        self.cgRoot = CGList([CGGeneric('pub use self::%sBinding::{%s};' % (descriptor.name, reexports)),
+        self.cgRoot = CGList([CGGeneric('pub use self::%s::{%s};' % (toBindingNamespace(descriptor.name), reexports)),
                               cgThings], '\n')
 
     def define(self):
@@ -6760,10 +6794,12 @@ class GlobalGenRoots():
     @staticmethod
     def PrototypeList(config):
         # Prototype ID enum.
-        interfaces = config.getDescriptors(isCallback=False)
+        interfaces = config.getDescriptors(isCallback=False, isNamespace=False)
         protos = [d.name for d in interfaces]
-        constructors = [d.name for d in config.getDescriptors(hasInterfaceObject=True)
-                        if d.shouldHaveGetConstructorObjectMethod()]
+        constructors = sorted([MakeNativeName(d.name)
+                               for d in config.getDescriptors(hasInterfaceObject=True)
+                               if d.shouldHaveGetConstructorObjectMethod()])
+
         proxies = [d.name for d in config.getDescriptors(proxy=True)]
 
         return CGList([
@@ -6800,10 +6836,13 @@ class GlobalGenRoots():
 
     @staticmethod
     def InterfaceTypes(config):
-        descriptors = [d.name for d in config.getDescriptors(register=True,
+        descriptors = sorted([MakeNativeName(d.name)
+                              for d in config.getDescriptors(register=True,
                                                              isCallback=False,
-                                                             isIteratorInterface=False)]
-        curr = CGList([CGGeneric("pub use dom::%s::%s;\n" % (name.lower(), name)) for name in descriptors])
+                                                             isIteratorInterface=False)])
+        curr = CGList([CGGeneric("pub use dom::%s::%s;\n" % (name.lower(),
+                                                             MakeNativeName(name)))
+                       for name in descriptors])
         curr = CGWrapper(curr, pre=AUTOGENERATED_WARNING_COMMENT)
         return curr
 
@@ -6814,7 +6853,7 @@ class GlobalGenRoots():
             return getModuleFromObject(d).split('::')[-1]
 
         descriptors = config.getDescriptors(register=True, isIteratorInterface=False)
-        descriptors = (set(d.name + "Binding" for d in descriptors) |
+        descriptors = (set(toBindingNamespace(d.name) for d in descriptors) |
                        set(leafModule(d) for d in config.callbacks) |
                        set(leafModule(d) for d in config.getDictionaries()))
         curr = CGList([CGGeneric("pub mod %s;\n" % name) for name in sorted(descriptors)])

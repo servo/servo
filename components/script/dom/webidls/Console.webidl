@@ -9,8 +9,10 @@
  * © Copyright 2014 Mozilla Foundation.
  */
 
-[Exposed=(Window,Worker)]
-interface Console {
+[ClassString="Console",
+ Exposed=(Window,Worker),
+ ProtoObjectHack]
+namespace console {
   // These should be DOMString message, DOMString message2, ...
   void log(DOMString... messages);
   void debug(DOMString... messages);

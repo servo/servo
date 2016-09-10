@@ -4,7 +4,7 @@
 
 import os
 
-from WebIDL import IDLExternalInterface, IDLInterface, IDLWrapperType, WebIDLError
+from WebIDL import IDLExternalInterface, IDLWrapperType, WebIDLError
 
 
 class Configuration:
@@ -30,10 +30,9 @@ class Configuration:
                 raise WebIDLError("Servo does not support external interfaces.",
                                   [thing.location])
 
-            # Some toplevel things are sadly types, and those have an
-            # isInterface that doesn't mean the same thing as IDLObject's
-            # isInterface()...
-            if not isinstance(thing, IDLInterface):
+            assert not thing.isType()
+
+            if not thing.isInterface() and not thing.isNamespace():
                 continue
 
             iface = thing
@@ -83,6 +82,8 @@ class Configuration:
                 getter = lambda x: x.interface.hasInterfaceObject()
             elif key == 'isCallback':
                 getter = lambda x: x.interface.isCallback()
+            elif key == 'isNamespace':
+                getter = lambda x: x.interface.isNamespace()
             elif key == 'isJSImplemented':
                 getter = lambda x: x.interface.isJSImplemented()
             elif key == 'isGlobal':
@@ -210,7 +211,7 @@ class Descriptor(DescriptorProvider):
             if self.interface.isIteratorInterface():
                 pathDefault = 'dom::bindings::iterable::IterableIterator'
             else:
-                pathDefault = 'dom::types::%s' % typeName
+                pathDefault = 'dom::types::%s' % MakeNativeName(typeName)
 
         self.concreteType = typeName
         self.register = desc.get('register', True)
@@ -223,6 +224,7 @@ class Descriptor(DescriptorProvider):
         # If we're concrete, we need to crawl our ancestor interfaces and mark
         # them as having a concrete descendant.
         self.concrete = (not self.interface.isCallback() and
+                         not self.interface.isNamespace() and
                          not self.interface.getExtendedAttribute("Abstract"))
         self.hasUnforgeableMembers = (self.concrete and
                                       any(MemberIsUnforgeable(m, self) for m in
@@ -381,7 +383,7 @@ class Descriptor(DescriptorProvider):
 
     def shouldHaveGetConstructorObjectMethod(self):
         assert self.interface.hasInterfaceObject()
-        return self.interface.isCallback() or self.hasDescendants()
+        return self.interface.isCallback() or self.interface.isNamespace() or self.hasDescendants()
 
     def isExposedConditionally(self):
         return self.interface.isExposedConditionally()
@@ -396,6 +398,12 @@ class Descriptor(DescriptorProvider):
 
 
 # Some utility methods
+
+
+def MakeNativeName(name):
+    return name[0].upper() + name[1:]
+
+
 def getModuleFromObject(object):
     return ('dom::bindings::codegen::Bindings::' +
             os.path.basename(object.location.filename()).split('.webidl')[0] + 'Binding')

@@ -23,7 +23,6 @@ test_interfaces([
   "DOMRect",
   "DOMRectReadOnly",
   "Comment",
-  "Console",
   "CustomEvent",
   "DedicatedWorkerGlobalScope",
   "Document",
@@ -129,6 +128,7 @@ test_interfaces([
   "XMLHttpRequest",
   "XMLHttpRequestEventTarget",
   "XMLHttpRequestUpload",
+  "console",
 ]);
 
 done();
