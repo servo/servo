@@ -1522,7 +1522,7 @@ impl LayoutThread {
             self.first_reflow = false;
 
             if opts::get().trace_layout {
-                layout_debug::end_trace();
+                layout_debug::end_trace(self.generation);
             }
 
             if opts::get().dump_flow_tree {
