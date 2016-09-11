@@ -74,6 +74,15 @@ ${helpers.predefined_type("background-color", "CSSColor",
                     computed_value::T(Some(image.to_computed_value(context))),
             }
         }
+
+        #[inline]
+        fn from_computed_value(computed: &computed_value::T) -> Self {
+            match *computed {
+                computed_value::T(None) => SpecifiedValue(None),
+                computed_value::T(Some(ref image)) =>
+                    SpecifiedValue(Some(ToComputedValue::from_computed_value(image))),
+            }
+        }
     }
 </%helpers:vector_longhand>
 
@@ -261,6 +270,19 @@ ${helpers.single_keyword("background-origin",
                 }
                 SpecifiedValue::Cover => computed_value::T::Cover,
                 SpecifiedValue::Contain => computed_value::T::Contain,
+            }
+        }
+        #[inline]
+        fn from_computed_value(computed: &computed_value::T) -> Self {
+            match *computed {
+                computed_value::T::Explicit(ref size) => {
+                    SpecifiedValue::Explicit(ExplicitSize {
+                        width: ToComputedValue::from_computed_value(&size.width),
+                        height: ToComputedValue::from_computed_value(&size.height),
+                    })
+                }
+                computed_value::T::Cover => SpecifiedValue::Cover,
+                computed_value::T::Contain => SpecifiedValue::Contain,
             }
         }
     }

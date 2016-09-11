@@ -115,6 +115,10 @@ ${helpers.single_keyword("position", "static absolute relative fixed",
                 *self
             }
         }
+        #[inline]
+        fn from_computed_value(computed: &computed_value::T) -> SpecifiedValue {
+          *computed
+        }
     }
 
 </%helpers:single_keyword_computed>
@@ -238,6 +242,20 @@ ${helpers.single_keyword("clear", "none left right both",
               % endfor
               SpecifiedValue::LengthOrPercentage(value) =>
                   computed_value::T::LengthOrPercentage(value.to_computed_value(context)),
+          }
+      }
+      #[inline]
+      fn from_computed_value(computed: &computed_value::T) -> Self {
+          match *computed {
+              % for keyword in vertical_align_keywords:
+                  computed_value::T::${to_rust_ident(keyword)} => {
+                      SpecifiedValue::${to_rust_ident(keyword)}
+                  }
+              % endfor
+              computed_value::T::LengthOrPercentage(value) =>
+                  SpecifiedValue::LengthOrPercentage(
+                    ToComputedValue::from_computed_value(&value)
+                  ),
           }
       }
   }

@@ -456,7 +456,7 @@ enum CalcUnit {
     Time,
 }
 
-#[derive(Clone, PartialEq, Copy, Debug)]
+#[derive(Clone, PartialEq, Copy, Debug, Default)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct CalcLengthOrPercentage {
     pub absolute: Option<Au>,
@@ -1565,6 +1565,11 @@ impl ToComputedValue for Number {
 
     #[inline]
     fn to_computed_value(&self, _: &Context) -> CSSFloat { self.0 }
+
+    #[inline]
+    fn from_computed_value(computed: &CSSFloat) -> Self {
+        Number(*computed)
+    }
 }
 
 impl ToCss for Number {
@@ -1597,6 +1602,11 @@ impl ToComputedValue for Opacity {
         } else {
             self.0
         }
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &CSSFloat) -> Self {
+        Opacity(*computed)
     }
 }
 

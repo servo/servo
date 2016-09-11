@@ -249,6 +249,15 @@ ${helpers.single_keyword("font-variant",
                 },
             }
         }
+
+        #[inline]
+        fn from_computed_value(computed: &computed_value::T) -> Self {
+            match *computed {
+                % for weight in range(100, 901, 100):
+                    computed_value::T::Weight${weight} => SpecifiedValue::Weight${weight},
+                % endfor
+            }
+        }
     }
 </%helpers:longhand>
 
@@ -309,6 +318,13 @@ ${helpers.single_keyword("font-variant",
                                            .scale_by(calc.percentage())
                 }
             }
+        }
+
+        #[inline]
+        fn from_computed_value(computed: &computed_value::T) -> Self {
+                SpecifiedValue(LengthOrPercentage::Length(
+                        ToComputedValue::from_computed_value(computed)
+                ))
         }
     }
     /// <length> | <percentage> | <absolute-size> | <relative-size>
