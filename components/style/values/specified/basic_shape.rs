@@ -12,7 +12,7 @@ use parser::{Parse, ParserContext};
 use properties::shorthands::{parse_four_sides, serialize_four_sides};
 use std::fmt;
 use url::Url;
-use values::computed::{ComputedValueAsSpecified, Context, ToComputedValue};
+use values::computed::{ComputedValueAsSpecified, Context, ToComputedValue, UncomputeContext};
 use values::computed::basic_shape as computed_basic_shape;
 use values::specified::{BorderRadiusSize, LengthOrPercentage, Percentage};
 use values::specified::UrlExtraData;
@@ -94,6 +94,7 @@ impl<T: Parse + PartialEq + Copy> ShapeSource<T> {
 
 impl<T: ToComputedValue> ToComputedValue for ShapeSource<T> {
     type ComputedValue = computed_basic_shape::ShapeSource<T::ComputedValue>;
+
     #[inline]
     fn to_computed_value(&self, cx: &Context) -> Self::ComputedValue {
         match *self {
@@ -109,6 +110,24 @@ impl<T: ToComputedValue> ToComputedValue for ShapeSource<T> {
                 computed_basic_shape::ShapeSource::Box(reference.to_computed_value(cx))
             }
             ShapeSource::None => computed_basic_shape::ShapeSource::None,
+        }
+    }
+
+    #[inline]
+    fn to_specified_value(computed: &Self::ComputedValue, cx: &UncomputeContext) -> Self {
+        match *computed {
+            computed_basic_shape::ShapeSource::Url(ref url, ref data) => {
+                ShapeSource::Url(url.clone(), data.clone())
+            }
+            computed_basic_shape::ShapeSource::Shape(ref shape, ref reference) => {
+                ShapeSource::Shape(
+                    ToComputedValue::to_specified_value(shape, cx),
+                    reference.as_ref().map(|r| ToComputedValue::to_specified_value(r, cx)))
+            }
+            computed_basic_shape::ShapeSource::Box(ref reference) => {
+                ShapeSource::Box(ToComputedValue::to_specified_value(reference, cx))
+            }
+            computed_basic_shape::ShapeSource::None => ShapeSource::None,
         }
     }
 }
@@ -167,6 +186,23 @@ impl ToComputedValue for BasicShape {
             BasicShape::Circle(circle) => computed_basic_shape::BasicShape::Circle(circle.to_computed_value(cx)),
             BasicShape::Ellipse(e) => computed_basic_shape::BasicShape::Ellipse(e.to_computed_value(cx)),
             BasicShape::Polygon(ref poly) => computed_basic_shape::BasicShape::Polygon(poly.to_computed_value(cx)),
+        }
+    }
+    #[inline]
+    fn to_specified_value(computed: &Self::ComputedValue, cx: &UncomputeContext) -> Self {
+        match *computed {
+            computed_basic_shape::BasicShape::Inset(ref rect) => {
+                BasicShape::Inset(ToComputedValue::to_specified_value(rect, cx))
+            }
+            computed_basic_shape::BasicShape::Circle(ref circle) => {
+                BasicShape::Circle(ToComputedValue::to_specified_value(circle, cx))
+            }
+            computed_basic_shape::BasicShape::Ellipse(ref e) => {
+                BasicShape::Ellipse(ToComputedValue::to_specified_value(e, cx))
+            }
+            computed_basic_shape::BasicShape::Polygon(ref poly) => {
+                BasicShape::Polygon(ToComputedValue::to_specified_value(poly, cx))
+            }
         }
     }
 }
@@ -237,6 +273,17 @@ impl ToComputedValue for InsetRect {
             bottom: self.bottom.to_computed_value(cx),
             left: self.left.to_computed_value(cx),
             round: self.round.map(|r| r.to_computed_value(cx)),
+        }
+    }
+
+    #[inline]
+    fn to_specified_value(computed: &Self::ComputedValue, cx: &UncomputeContext) -> Self {
+        InsetRect {
+            top: ToComputedValue::to_specified_value(&computed.top, cx),
+            right: ToComputedValue::to_specified_value(&computed.right, cx),
+            bottom: ToComputedValue::to_specified_value(&computed.bottom, cx),
+            left: ToComputedValue::to_specified_value(&computed.left, cx),
+            round: computed.round.map(|ref r| ToComputedValue::to_specified_value(r, cx)),
         }
     }
 }
@@ -384,6 +431,14 @@ impl ToComputedValue for Circle {
             position: self.position.to_computed_value(cx),
         }
     }
+
+    #[inline]
+    fn to_specified_value(computed: &Self::ComputedValue, cx: &UncomputeContext) -> Self {
+        Circle {
+            radius: ToComputedValue::to_specified_value(&computed.radius, cx),
+            position: ToComputedValue::to_specified_value(&computed.position, cx),
+        }
+    }
 }
 
 #[derive(Clone, PartialEq, Copy, Debug)]
@@ -452,6 +507,15 @@ impl ToComputedValue for Ellipse {
             semiaxis_x: self.semiaxis_x.to_computed_value(cx),
             semiaxis_y: self.semiaxis_y.to_computed_value(cx),
             position: self.position.to_computed_value(cx),
+        }
+    }
+
+    #[inline]
+    fn to_specified_value(computed: &Self::ComputedValue, cx: &UncomputeContext) -> Self {
+        Ellipse {
+            semiaxis_x: ToComputedValue::to_specified_value(&computed.semiaxis_x, cx),
+            semiaxis_y: ToComputedValue::to_specified_value(&computed.semiaxis_y, cx),
+            position: ToComputedValue::to_specified_value(&computed.position, cx),
         }
     }
 }
@@ -528,6 +592,19 @@ impl ToComputedValue for Polygon {
                                          .collect(),
         }
     }
+
+    #[inline]
+    fn to_specified_value(computed: &Self::ComputedValue, cx: &UncomputeContext) -> Self {
+        Polygon {
+            fill: ToComputedValue::to_specified_value(&computed.fill, cx),
+            coordinates: computed.coordinates.iter()
+                                         .map(|c| {
+                                            (ToComputedValue::to_specified_value(&c.0, cx),
+                                             ToComputedValue::to_specified_value(&c.1, cx))
+                                         })
+                                         .collect(),
+        }
+    }
 }
 
 /// https://drafts.csswg.org/css-shapes/#typedef-shape-radius
@@ -580,6 +657,17 @@ impl ToComputedValue for ShapeRadius {
             }
             ShapeRadius::ClosestSide => computed_basic_shape::ShapeRadius::ClosestSide,
             ShapeRadius::FarthestSide => computed_basic_shape::ShapeRadius::FarthestSide,
+        }
+    }
+
+    #[inline]
+    fn to_specified_value(computed: &Self::ComputedValue, cx: &UncomputeContext) -> Self {
+        match *computed {
+            computed_basic_shape::ShapeRadius::Length(ref lop) => {
+                ShapeRadius::Length(ToComputedValue::to_specified_value(lop, cx))
+            }
+            computed_basic_shape::ShapeRadius::ClosestSide => ShapeRadius::ClosestSide,
+            computed_basic_shape::ShapeRadius::FarthestSide => ShapeRadius::FarthestSide,
         }
     }
 }
@@ -672,6 +760,16 @@ impl ToComputedValue for BorderRadius {
             top_right: self.top_right.to_computed_value(cx),
             bottom_right: self.bottom_right.to_computed_value(cx),
             bottom_left: self.bottom_left.to_computed_value(cx),
+        }
+    }
+
+    #[inline]
+    fn to_specified_value(computed: &Self::ComputedValue, cx: &UncomputeContext) -> Self {
+        BorderRadius {
+            top_left: ToComputedValue::to_specified_value(&computed.top_left, cx),
+            top_right: ToComputedValue::to_specified_value(&computed.top_right, cx),
+            bottom_right: ToComputedValue::to_specified_value(&computed.bottom_right, cx),
+            bottom_left: ToComputedValue::to_specified_value(&computed.bottom_left, cx),
         }
     }
 }

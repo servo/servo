@@ -66,6 +66,11 @@ ${helpers.predefined_type("outline-color", "CSSColor", "::cssparser::Color::Curr
         fn to_computed_value(&self, context: &Context) -> computed_value::T {
             self.0.to_computed_value(context)
         }
+
+        #[inline]
+        fn to_specified_value(computed: &computed_value::T, context: &UncomputeContext) -> Self {
+            SpecifiedValue(ToComputedValue::to_specified_value(computed, context))
+        }
     }
 </%helpers:longhand>
 

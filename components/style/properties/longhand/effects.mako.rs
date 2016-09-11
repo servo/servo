@@ -111,6 +111,17 @@ ${helpers.predefined_type("opacity",
                 inset: self.inset,
             }
         }
+        #[inline]
+        fn to_specified_value(computed: &computed_value::T, context: &UncomputeContext) -> Self {
+            SpecifiedValue {
+                offset_x: ToComputedValue::to_specified_value(&computed.offset_x, context),
+                offset_y: ToComputedValue::to_specified_value(&computed.offset_y, context),
+                blur_radius: ToComputedValue::to_specified_value(&computed.blur_radius, context),
+                spread_radius: ToComputedValue::to_specified_value(&computed.spread_radius, context),
+                color: Some(ToComputedValue::to_specified_value(&computed.color, context)),
+                inset: computed.inset,
+            }
+        }
     }
 
     pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
@@ -327,6 +338,17 @@ ${helpers.predefined_type("opacity",
                 right: value.right.map(|right| right.to_computed_value(context)),
                 bottom: value.bottom.map(|bottom| bottom.to_computed_value(context)),
                 left: value.left.to_computed_value(context),
+            }))
+        }
+
+
+        #[inline]
+        fn to_specified_value(computed: &computed_value::T, context: &UncomputeContext) -> Self {
+            SpecifiedValue(computed.0.map(|value| SpecifiedClipRect {
+                top: ToComputedValue::to_specified_value(&value.top, context),
+                right: value.right.map(|right| ToComputedValue::to_specified_value(&right, context)),
+                bottom: value.bottom.map(|bottom| ToComputedValue::to_specified_value(&bottom, context)),
+                left: ToComputedValue::to_specified_value(&value.left, context),
             }))
         }
     }
@@ -628,6 +650,23 @@ ${helpers.predefined_type("opacity",
                     SpecifiedFilter::Sepia(factor) => computed_value::Filter::Sepia(factor),
                 }
             }).collect() }
+        }
+
+        fn to_specified_value(computed: &computed_value::T, context: &UncomputeContext) -> Self {
+            SpecifiedValue(computed.filters.iter().map(|value| {
+                match *value {
+                    computed_value::Filter::Blur(factor) =>
+                        SpecifiedFilter::Blur(ToComputedValue::to_specified_value(&factor, context)),
+                    computed_value::Filter::Brightness(factor) => SpecifiedFilter::Brightness(factor),
+                    computed_value::Filter::Contrast(factor) => SpecifiedFilter::Contrast(factor),
+                    computed_value::Filter::Grayscale(factor) => SpecifiedFilter::Grayscale(factor),
+                    computed_value::Filter::HueRotate(factor) => SpecifiedFilter::HueRotate(factor),
+                    computed_value::Filter::Invert(factor) => SpecifiedFilter::Invert(factor),
+                    computed_value::Filter::Opacity(factor) => SpecifiedFilter::Opacity(factor),
+                    computed_value::Filter::Saturate(factor) => SpecifiedFilter::Saturate(factor),
+                    computed_value::Filter::Sepia(factor) => SpecifiedFilter::Sepia(factor),
+                }
+            }).collect())
         }
     }
 </%helpers:longhand>
@@ -1112,6 +1151,40 @@ ${helpers.predefined_type("opacity",
 
             computed_value::T(Some(result))
         }
+        #[inline]
+        fn to_specified_value(computed: &computed_value::T, context: &UncomputeContext) -> Self {
+            SpecifiedValue(computed.0.as_ref().map(|computed| {
+                let mut result = vec!();
+                for operation in computed {
+                    match *operation {
+                        computed_value::ComputedOperation::Matrix(ref matrix) => {
+                            result.push(SpecifiedOperation::Matrix(*matrix));
+                        }
+                        computed_value::ComputedOperation::Translate(ref tx, ref ty, ref tz) => {
+                            result.push(SpecifiedOperation::Translate(TranslateKind::Translate,
+                                              ToComputedValue::to_specified_value(tx, context),
+                                              ToComputedValue::to_specified_value(ty, context),
+                                              ToComputedValue::to_specified_value(tz, context)));
+                        }
+                        computed_value::ComputedOperation::Scale(sx, sy, sz) => {
+                            result.push(SpecifiedOperation::Scale(sx, sy, sz));
+                        }
+                        computed_value::ComputedOperation::Rotate(ax, ay, az, theta) => {
+                            result.push(SpecifiedOperation::Rotate(ax, ay, az, theta));
+                        }
+                        computed_value::ComputedOperation::Skew(theta_x, theta_y) => {
+                            result.push(SpecifiedOperation::Skew(theta_x, theta_y));
+                        }
+                        computed_value::ComputedOperation::Perspective(ref d) => {
+                            result.push(SpecifiedOperation::Perspective(
+                                ToComputedValue::to_specified_value(d, context)
+                            ));
+                        }
+                    };
+                }
+                result
+            }).unwrap_or(Vec::new()))
+        }
     }
 </%helpers:longhand>
 
@@ -1308,6 +1381,15 @@ ${helpers.single_keyword("transform-style",
                 depth: self.depth.to_computed_value(context),
             }
         }
+
+        #[inline]
+        fn to_specified_value(computed: &computed_value::T, context: &UncomputeContext) -> Self {
+            SpecifiedValue {
+                horizontal: ToComputedValue::to_specified_value(&computed.horizontal, context),
+                vertical: ToComputedValue::to_specified_value(&computed.vertical, context),
+                depth: ToComputedValue::to_specified_value(&computed.depth, context),
+            }
+        }
     }
 </%helpers:longhand>
 
@@ -1392,6 +1474,14 @@ ${helpers.predefined_type("perspective",
             computed_value::T {
                 horizontal: self.horizontal.to_computed_value(context),
                 vertical: self.vertical.to_computed_value(context),
+            }
+        }
+
+        #[inline]
+        fn to_specified_value(computed: &computed_value::T, context: &UncomputeContext) -> Self {
+            SpecifiedValue {
+                horizontal: ToComputedValue::to_specified_value(&computed.horizontal, context),
+                vertical: ToComputedValue::to_specified_value(&computed.vertical, context),
             }
         }
     }

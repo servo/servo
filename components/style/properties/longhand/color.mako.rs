@@ -18,6 +18,15 @@
         fn to_computed_value(&self, _context: &Context) -> computed_value::T {
             self.parsed
         }
+
+        #[inline]
+        fn to_specified_value(computed: &computed_value::T,
+                     _context: &UncomputeContext) -> Self {
+            CSSRGBA {
+                parsed: *computed,
+                authored: None,
+            }
+        }
     }
 
     pub type SpecifiedValue = CSSRGBA;

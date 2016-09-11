@@ -81,6 +81,14 @@ ${helpers.single_keyword("list-style-type", """
                 SpecifiedValue::Url(ref url) => computed_value::T(Some(url.clone())),
             }
         }
+
+        #[inline]
+        fn to_specified_value(computed: &computed_value::T, _context: &UncomputeContext) -> Self {
+            match *computed {
+                computed_value::T(None) => SpecifiedValue::None,
+                computed_value::T(Some(ref url)) => SpecifiedValue::Url(url.clone()),
+            }
+        }
     }
 
     pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {

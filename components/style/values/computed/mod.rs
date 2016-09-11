@@ -28,6 +28,9 @@ pub struct Context<'a> {
     pub style: ComputedValues,
 }
 
+// empty type; helps keep the code for to_computed_value and to_specified_value the same
+pub struct UncomputeContext;
+
 impl<'a> Context<'a> {
     pub fn is_root_element(&self) -> bool { self.is_root_element }
     pub fn viewport_size(&self) -> Size2D<Au> { self.viewport_size }
@@ -41,6 +44,13 @@ pub trait ToComputedValue {
 
     #[inline]
     fn to_computed_value(&self, _context: &Context) -> Self::ComputedValue;
+
+    #[inline]
+    /// Convert a computed value to specified value form.
+    ///
+    /// This will be used for recascadeing during animation.
+    /// Such to_specified_valued values should recompute to the same value.
+    fn to_specified_value(computed: &Self::ComputedValue, context: &UncomputeContext) -> Self;
 }
 
 pub trait ComputedValueAsSpecified {}
@@ -52,6 +62,11 @@ impl<T> ToComputedValue for T where T: ComputedValueAsSpecified + Clone {
     fn to_computed_value(&self, _context: &Context) -> T {
         self.clone()
     }
+
+    #[inline]
+    fn to_specified_value(computed: &T, _: &UncomputeContext) -> Self {
+        computed.clone()
+    }
 }
 
 impl ToComputedValue for specified::CSSColor {
@@ -60,6 +75,14 @@ impl ToComputedValue for specified::CSSColor {
     #[inline]
     fn to_computed_value(&self, _context: &Context) -> CSSColor {
         self.parsed
+    }
+
+    #[inline]
+    fn to_specified_value(computed: &CSSColor, _context: &UncomputeContext) -> Self {
+        specified::CSSColor {
+            parsed: *computed,
+            authored: None,
+        }
     }
 }
 
@@ -81,6 +104,11 @@ impl ToComputedValue for specified::Length {
             specified::Length::ServoCharacterWidth(length) =>
                 length.to_computed_value(context.style().get_font().clone_font_size())
         }
+    }
+
+    #[inline]
+    fn to_specified_value(computed: &Au, _context: &UncomputeContext) -> Self {
+        specified::Length::Absolute(*computed)
     }
 }
 
@@ -170,6 +198,15 @@ impl ToComputedValue for specified::CalcLengthOrPercentage {
                                                  context.style().root_font_size())
 
     }
+
+    #[inline]
+    fn to_specified_value(computed: &CalcLengthOrPercentage, _: &UncomputeContext) -> Self {
+        specified::CalcLengthOrPercentage {
+            absolute: computed.length,
+            percentage: computed.percentage.map(specified::Percentage),
+            ..Default::default()
+        }
+    }
 }
 
 
@@ -191,6 +228,13 @@ impl ToComputedValue for specified::BorderRadiusSize {
         let w = self.0.width.to_computed_value(context);
         let h = self.0.height.to_computed_value(context);
         BorderRadiusSize(Size2D::new(w, h))
+    }
+
+    #[inline]
+    fn to_specified_value(computed: &BorderRadiusSize, context: &UncomputeContext) -> Self {
+        let w = ToComputedValue::to_specified_value(&computed.0.width, context);
+        let h = ToComputedValue::to_specified_value(&computed.0.height, context);
+        specified::BorderRadiusSize(Size2D::new(w, h))
     }
 }
 
@@ -264,6 +308,24 @@ impl ToComputedValue for specified::LengthOrPercentage {
             }
         }
     }
+
+    fn to_specified_value(computed: &LengthOrPercentage, context: &UncomputeContext) -> Self {
+        match *computed {
+            LengthOrPercentage::Length(value) => {
+                specified::LengthOrPercentage::Length(
+                    ToComputedValue::to_specified_value(&value, context)
+                )
+            }
+            LengthOrPercentage::Percentage(value) => {
+                specified::LengthOrPercentage::Percentage(specified::Percentage(value))
+            }
+            LengthOrPercentage::Calc(calc) => {
+                specified::LengthOrPercentage::Calc(
+                    ToComputedValue::to_specified_value(&calc, context)
+                )
+            }
+        }
+    }
 }
 
 impl ::cssparser::ToCss for LengthOrPercentage {
@@ -331,6 +393,26 @@ impl ToComputedValue for specified::LengthOrPercentageOrAuto {
             }
         }
     }
+
+    #[inline]
+    fn to_specified_value(computed: &LengthOrPercentageOrAuto, context: &UncomputeContext) -> Self {
+        match *computed {
+            LengthOrPercentageOrAuto::Auto => specified::LengthOrPercentageOrAuto::Auto,
+            LengthOrPercentageOrAuto::Length(value) => {
+                specified::LengthOrPercentageOrAuto::Length(
+                    ToComputedValue::to_specified_value(&value, context)
+                )
+            }
+            LengthOrPercentageOrAuto::Percentage(value) => {
+                specified::LengthOrPercentageOrAuto::Percentage(specified::Percentage(value))
+            }
+            LengthOrPercentageOrAuto::Calc(calc) => {
+                specified::LengthOrPercentageOrAuto::Calc(
+                    ToComputedValue::to_specified_value(&calc, context)
+                )
+            }
+        }
+    }
 }
 
 impl ::cssparser::ToCss for LengthOrPercentageOrAuto {
@@ -390,6 +472,33 @@ impl ToComputedValue for specified::LengthOrPercentageOrAutoOrContent {
             }
         }
     }
+
+
+    #[inline]
+    fn to_specified_value(computed: &LengthOrPercentageOrAutoOrContent,
+                          context: &UncomputeContext) -> Self {
+        match *computed {
+            LengthOrPercentageOrAutoOrContent::Auto => {
+                specified::LengthOrPercentageOrAutoOrContent::Auto
+            }
+            LengthOrPercentageOrAutoOrContent::Content => {
+                specified::LengthOrPercentageOrAutoOrContent::Content
+            }
+            LengthOrPercentageOrAutoOrContent::Length(value) => {
+                specified::LengthOrPercentageOrAutoOrContent::Length(
+                    ToComputedValue::to_specified_value(&value, context)
+                )
+            }
+            LengthOrPercentageOrAutoOrContent::Percentage(value) => {
+                specified::LengthOrPercentageOrAutoOrContent::Percentage(specified::Percentage(value))
+            }
+            LengthOrPercentageOrAutoOrContent::Calc(calc) => {
+                specified::LengthOrPercentageOrAutoOrContent::Calc(
+                    ToComputedValue::to_specified_value(&calc, context)
+                )
+            }
+        }
+    }
 }
 
 impl ::cssparser::ToCss for LengthOrPercentageOrAutoOrContent {
@@ -445,6 +554,26 @@ impl ToComputedValue for specified::LengthOrPercentageOrNone {
             }
         }
     }
+
+    #[inline]
+    fn to_specified_value(computed: &LengthOrPercentageOrNone, context: &UncomputeContext) -> Self {
+        match *computed {
+            LengthOrPercentageOrNone::None => specified::LengthOrPercentageOrNone::None,
+            LengthOrPercentageOrNone::Length(value) => {
+                specified::LengthOrPercentageOrNone::Length(
+                    ToComputedValue::to_specified_value(&value, context)
+                )
+            }
+            LengthOrPercentageOrNone::Percentage(value) => {
+                specified::LengthOrPercentageOrNone::Percentage(specified::Percentage(value))
+            }
+            LengthOrPercentageOrNone::Calc(calc) => {
+                specified::LengthOrPercentageOrNone::Calc(
+                    ToComputedValue::to_specified_value(&calc, context)
+                )
+            }
+        }
+    }
 }
 
 impl ::cssparser::ToCss for LengthOrPercentageOrNone {
@@ -492,6 +621,18 @@ impl ToComputedValue for specified::LengthOrNone {
             }
         }
     }
+
+    #[inline]
+    fn to_specified_value(computed: &LengthOrNone, context: &UncomputeContext) -> Self {
+        match *computed {
+            LengthOrNone::Length(au) => {
+                specified::LengthOrNone::Length(ToComputedValue::to_specified_value(&au, context))
+            }
+            LengthOrNone::None => {
+                specified::LengthOrNone::None
+            }
+        }
+    }
 }
 
 impl ::cssparser::ToCss for LengthOrNone {
@@ -514,6 +655,20 @@ impl ToComputedValue for specified::Image {
             },
             specified::Image::LinearGradient(ref linear_gradient) => {
                 Image::LinearGradient(linear_gradient.to_computed_value(context))
+            }
+        }
+    }
+
+    #[inline]
+    fn to_specified_value(computed: &Image, context: &UncomputeContext) -> Self {
+        match *computed {
+            Image::Url(ref url, ref extra_data) => {
+                specified::Image::Url(url.clone(), extra_data.clone())
+            },
+            Image::LinearGradient(ref linear_gradient) => {
+                specified::Image::LinearGradient(
+                    ToComputedValue::to_specified_value(linear_gradient, context)
+                )
             }
         }
     }
@@ -633,6 +788,25 @@ impl ToComputedValue for specified::LinearGradient {
                     position: match stop.position {
                         None => None,
                         Some(value) => Some(value.to_computed_value(context)),
+                    },
+                }
+            }).collect()
+        }
+    }
+    #[inline]
+    fn to_specified_value(computed: &LinearGradient, context: &UncomputeContext) -> Self {
+        let LinearGradient {
+            angle_or_corner,
+            ref stops
+        } = *computed;
+        specified::LinearGradient {
+            angle_or_corner: angle_or_corner,
+            stops: stops.iter().map(|stop| {
+                specified::ColorStop {
+                    color: ToComputedValue::to_specified_value(&stop.color, context),
+                    position: match stop.position {
+                        None => None,
+                        Some(value) => Some(ToComputedValue::to_specified_value(&value, context)),
                     },
                 }
             }).collect()

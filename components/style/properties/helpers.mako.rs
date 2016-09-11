@@ -64,7 +64,7 @@
                 use cssparser::Parser;
                 use parser::{ParserContext, ParserContextExtraData};
                 use properties::{CSSWideKeyword, DeclaredValue, Shorthand};
-                use values::computed::{Context, ToComputedValue};
+                use values::computed::{Context, ToComputedValue, UncomputeContext};
                 use values::{computed, specified};
                 ${caller.body()}
             }
@@ -147,6 +147,12 @@
                 fn to_computed_value(&self, context: &Context) -> computed_value::T {
                     computed_value::T(self.0.iter().map(|x| x.to_computed_value(context)).collect())
                 }
+                #[inline]
+                fn to_specified_value(computed: &computed_value::T, context: &UncomputeContext) -> Self {
+                    SpecifiedValue(computed.0.iter()
+                                       .map(|x| ToComputedValue::to_specified_value(x, context))
+                                       .collect())
+                }
             }
         % else:
             ${caller.body()}
@@ -176,7 +182,7 @@
         use std::boxed::Box as StdBox;
         use std::collections::HashMap;
         use std::sync::Arc;
-        use values::computed::{Context, ToComputedValue};
+        use values::computed::{Context, ToComputedValue, UncomputeContext};
         use values::{computed, specified};
         use string_cache::Atom;
         ${caller.body()}

@@ -238,5 +238,16 @@ ${helpers.single_keyword("mask-composite",
                     computed_value::T::Url(url.clone(), data.clone()),
             }
         }
+
+        #[inline]
+        fn to_specified_value(computed: &computed_value::T, context: &UncomputeContext) -> Self {
+            match *computed {
+                computed_value::T::None => SpecifiedValue::None,
+                computed_value::T::Image(ref image) =>
+                    SpecifiedValue::Image(ToComputedValue::to_specified_value(image, context)),
+                computed_value::T::Url(ref url, ref data) =>
+                    SpecifiedValue::Url(url.clone(), data.clone()),
+            }
+        }
     }
 </%helpers:vector_longhand>

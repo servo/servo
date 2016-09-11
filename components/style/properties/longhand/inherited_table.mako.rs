@@ -94,6 +94,14 @@ ${helpers.single_keyword("caption-side", "top bottom",
                 vertical: self.vertical.to_computed_value(context),
             }
         }
+
+        #[inline]
+        fn to_specified_value(computed: &computed_value::T, context: &UncomputeContext) -> Self {
+            SpecifiedValue {
+                horizontal: ToComputedValue::to_specified_value(&computed.horizontal, context),
+                vertical: ToComputedValue::to_specified_value(&computed.vertical, context),
+            }
+        }
     }
 
     pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {

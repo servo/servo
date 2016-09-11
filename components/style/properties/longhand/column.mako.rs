@@ -70,6 +70,14 @@
                     computed_value::T(Some(l.to_computed_value(context)))
             }
         }
+        #[inline]
+        fn to_specified_value(computed: &computed_value::T, context: &UncomputeContext) -> Self {
+            match *computed {
+                computed_value::T(None) => SpecifiedValue::Auto,
+                computed_value::T(Some(l)) =>
+                    SpecifiedValue::Specified(ToComputedValue::to_specified_value(&l, context))
+            }
+        }
     }
 
     pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
@@ -134,6 +142,15 @@
                 SpecifiedValue::Auto => computed_value::T(None),
                 SpecifiedValue::Specified(count) =>
                     computed_value::T(Some(count))
+            }
+        }
+
+        #[inline]
+        fn to_specified_value(computed: &computed_value::T, _context: &UncomputeContext) -> Self {
+            match *computed {
+                computed_value::T(None) => SpecifiedValue::Auto,
+                computed_value::T(Some(count)) =>
+                    SpecifiedValue::Specified(count)
             }
         }
     }
@@ -214,6 +231,14 @@
                 SpecifiedValue::Normal => computed_value::T(None),
                 SpecifiedValue::Specified(l) =>
                     computed_value::T(Some(l.to_computed_value(context)))
+            }
+        }
+        #[inline]
+        fn to_specified_value(computed: &computed_value::T, context: &UncomputeContext) -> Self {
+            match *computed {
+                computed_value::T(None) => SpecifiedValue::Normal,
+                computed_value::T(Some(l)) =>
+                    SpecifiedValue::Specified(ToComputedValue::to_specified_value(&l, context))
             }
         }
     }
