@@ -13,9 +13,10 @@ import subprocess
 class BaseBootstrapper(object):
     """Base class for system bootstrappers."""
 
-    def __init__(self, interactive=False):
+    def __init__(self, interactive=False, silent=False):
         self.package_manager_updated = False
         self.interactive = interactive
+        self.silent = silent
 
     def ensure_system_packages(self):
         '''
@@ -47,7 +48,11 @@ class BaseBootstrapper(object):
         return distutils.spawn.find_executable(name)
 
     def run(self, command):
-        subprocess.check_call(command, stdin=sys.stdin)
+        if self.silent:
+            FNULL = open(os.devnull, 'w')
+            subprocess.check_call(command, stdout=FNULL, stderr=subprocess.STDOUT)
+        else:
+            subprocess.check_call(command, stdin=sys.stdin)
 
     def run_check(self, command):
         return subprocess.call(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -61,7 +66,7 @@ class BaseBootstrapper(object):
 
         print('Executing as root:', subprocess.list2cmdline(command))
 
-        subprocess.check_call(command, stdin=sys.stdin)
+        self.run(command)
 
     def check_output(self, *args, **kwargs):
         """Run subprocess.check_output."""

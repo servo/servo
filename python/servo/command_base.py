@@ -520,7 +520,7 @@ class CommandBase(object):
 
         # Check for missing packages on supported platforms
         try:
-            Registrar.dispatch("bootstrap", context=self.context)
+            Registrar.dispatch("bootstrap", context=self.context, silent=True)
         except:
             pass
 

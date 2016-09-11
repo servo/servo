@@ -142,11 +142,14 @@ class MachCommands(CommandBase):
     @CommandArgument('--force', '-f',
                      action='store_true',
                      help='Force reinstall packages')
-    def bootstrap(self, android=False, interactive=False, force=False):
+    @CommandArgument('--silent', '-s',
+                     action='store_true',
+                     help='Run bootstrap without output')
+    def bootstrap(self, android=False, interactive=False, force=False, silent=False):
         from servo.bootstrapper.bootstrap import Bootstrapper
 
         bootstrapper = Bootstrapper()
-        bootstrapper.bootstrap(android=android, interactive=interactive, force=force)
+        bootstrapper.bootstrap(android=android, interactive=interactive, force=force, silent=silent)
 
     @Command('bootstrap-rust',
              description='Download the Rust compiler',

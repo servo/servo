@@ -2,6 +2,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
+# Based on Mozilla's Mozboot: https://dxr.mozilla.org/mozilla-central/source/python/mozboot
+
 from __future__ import print_function
 
 import platform
@@ -69,9 +71,10 @@ class Bootstrapper(object):
 
         self.instance = cls(**args)
 
-    def bootstrap(self, android=False, interactive=False, force=False):
+    def bootstrap(self, android, interactive, force, silent):
         self.instance.interactive = interactive
         self.instance.force = force
+        self.instance.silent = silent
 
         if force:
             self.instance.install_system_packages()
