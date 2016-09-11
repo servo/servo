@@ -48,6 +48,49 @@ FILE_PATTERNS_TO_CHECK = ["*.rs", "*.rc", "*.cpp", "*.c",
 # File patterns that are ignored for all tidy and lint checks.
 FILE_PATTERNS_TO_IGNORE = ["*.#*", "*.pyc"]
 
+# Files that are ignored for all tidy and lint checks.
+IGNORED_FILES = [
+    # Generated and upstream code combined with our own. Could use cleanup
+    os.path.join(".", "ports", "geckolib", "gecko_bindings", "bindings.rs"),
+    os.path.join(".", "ports", "geckolib", "gecko_bindings", "structs_debug.rs"),
+    os.path.join(".", "ports", "geckolib", "gecko_bindings", "structs_release.rs"),
+    os.path.join(".", "ports", "geckolib", "string_cache", "atom_macro.rs"),
+    os.path.join(".", "resources", "hsts_preload.json"),
+    os.path.join(".", "support", "windows", "windows.rc"),
+    os.path.join(".", "tests", "wpt", "metadata", "MANIFEST.json"),
+    os.path.join(".", "tests", "wpt", "metadata-css", "MANIFEST.json"),
+    os.path.join(".", "components", "script", "dom", "webidls", "ForceTouchEvent.webidl"),
+    # FIXME(pcwalton, #11679): This is a workaround for a tidy error on the quoted string
+    # `"__TEXT,_info_plist"` inside an attribute.
+    os.path.join(".", "components", "servo", "platform", "macos", "mod.rs"),
+    # Hidden files
+    os.path.join(".", "."),
+]
+
+# Directories that are ignored for the non-WPT tidy check.
+IGNORED_DIRS = [
+    # Upstream
+    os.path.join(".", "support", "android", "apk"),
+    os.path.join(".", "support", "rust-task_info"),
+    os.path.join(".", "tests", "wpt", "css-tests"),
+    os.path.join(".", "tests", "wpt", "harness"),
+    os.path.join(".", "tests", "wpt", "update"),
+    os.path.join(".", "tests", "wpt", "web-platform-tests"),
+    os.path.join(".", "tests", "wpt", "mozilla", "tests", "mozilla", "referrer-policy"),
+    os.path.join(".", "tests", "wpt", "sync"),
+    os.path.join(".", "tests", "wpt", "sync_css"),
+    os.path.join(".", "python", "mach"),
+    os.path.join(".", "python", "tidy", "servo_tidy_tests"),
+    os.path.join(".", "components", "script", "dom", "bindings", "codegen", "parser"),
+    os.path.join(".", "components", "script", "dom", "bindings", "codegen", "ply"),
+    os.path.join(".", "python", "_virtualenv"),
+    # Generated and upstream code combined with our own. Could use cleanup
+    os.path.join(".", "target"),
+    os.path.join(".", "ports", "cef"),
+    # Hidden directories
+    os.path.join(".", "."),
+]
+
 SPEC_BASE_PATH = "components/script/dom/"
 
 WEBIDL_STANDARDS = [

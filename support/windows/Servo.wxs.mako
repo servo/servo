@@ -40,10 +40,6 @@
                           Arguments="-w --pref dom.mozbrowser.enabled --pref shell.builtin-key-shortcuts.enabled=false browserhtml\index.html"
                           Advertise="yes"/>
               </File>
-              <File Id="ServoManifest"
-                    Name="servo.exe.manifest"
-                    Source="${windowize(exe_path)}\servo.exe.manifest"
-                    DiskId="1"/>
 
               <File Id="StdcxxDLL"
                     Name="libstdc++-6.dll"
