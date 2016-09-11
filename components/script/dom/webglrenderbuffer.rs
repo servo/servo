@@ -5,13 +5,14 @@
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use canvas_traits::CanvasMsg;
 use dom::bindings::codegen::Bindings::WebGLRenderbufferBinding;
+use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::globalscope::GlobalScope;
 use dom::webglobject::WebGLObject;
 use ipc_channel::ipc::{self, IpcSender};
 use std::cell::Cell;
-use webrender_traits::{WebGLCommand, WebGLRenderbufferId};
+use webrender_traits::{WebGLCommand, WebGLRenderbufferId, WebGLResult, WebGLError};
 
 #[dom_struct]
 pub struct WebGLRenderbuffer {
@@ -19,6 +20,7 @@ pub struct WebGLRenderbuffer {
     id: WebGLRenderbufferId,
     ever_bound: Cell<bool>,
     is_deleted: Cell<bool>,
+    internalformat: Cell<Option<u32>>,
     #[ignore_heap_size_of = "Defined in ipc-channel"]
     renderer: IpcSender<CanvasMsg>,
 }
@@ -33,6 +35,7 @@ impl WebGLRenderbuffer {
             ever_bound: Cell::new(false),
             is_deleted: Cell::new(false),
             renderer: renderer,
+            internalformat: Cell::new(None),
         }
     }
 
@@ -80,5 +83,29 @@ impl WebGLRenderbuffer {
 
     pub fn ever_bound(&self) -> bool {
         self.ever_bound.get()
+    }
+
+    pub fn storage(&self, internalformat: u32, width: i32, height: i32) -> WebGLResult<()> {
+        // Validate the internalformat, and save it for completeness
+        // validation.
+        match internalformat {
+            constants::RGBA4 |
+            constants::DEPTH_STENCIL |
+            constants::DEPTH_COMPONENT16 |
+            constants::STENCIL_INDEX8 =>
+                self.internalformat.set(Some(internalformat)),
+
+            _ => return Err(WebGLError::InvalidEnum),
+        };
+
+        // FIXME: Check that w/h are < MAX_RENDERBUFFER_SIZE
+
+        // FIXME: Invalidate completeness after the call
+
+        let msg = CanvasMsg::WebGL(WebGLCommand::RenderbufferStorage(constants::RENDERBUFFER,
+                                                                     internalformat, width, height));
+        self.renderer.send(msg).unwrap();
+
+        Ok(())
     }
 }

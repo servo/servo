@@ -2536,6 +2536,39 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             None => return constants::FRAMEBUFFER_COMPLETE,
         }
     }
+
+    fn RenderbufferStorage(&self, target: u32, internalformat: u32,
+                           width: i32, height: i32) {
+        // From the GLES 2.0.25 spec:
+        //
+        //    "target must be RENDERBUFFER."
+        if target != constants::RENDERBUFFER {
+            return self.webgl_error(InvalidOperation)
+        }
+
+        // From the GLES 2.0.25 spec:
+        //
+        //     "If either width or height is greater than the value of
+        //      MAX_RENDERBUFFER_SIZE , the error INVALID_VALUE is
+        //      generated."
+        //
+        // and we have to throw out negative-size values as well just
+        // like for TexImage.
+        //
+        // FIXME: Handle max_renderbuffer_size, which doesn't seem to
+        // be in limits.
+        if width < 0 || height < 0 {
+            return self.webgl_error(InvalidValue);
+        }
+
+        match self.bound_renderbuffer.get() {
+            Some(rb) => handle_potential_webgl_error!(self, rb.storage(internalformat, width, height)),
+            None => self.webgl_error(InvalidOperation),
+        };
+
+        // FIXME: We need to clear the renderbuffer before it can be
+        // accessed.  See https://github.com/servo/servo/issues/13710
+    }
 }
 
 pub trait LayoutCanvasWebGLRenderingContextHelpers {
