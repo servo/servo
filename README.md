@@ -49,7 +49,8 @@ Warning: Refusing to link: openssl
 followed by a compile error not being able to find one or more
 openssl/ include files, you may want to try:
 ```sh
-export DEP_OPENSSL_INCLUDE=/usr/local/include
+export OPENSSL_INCLUDE_DIR="$(brew --prefix openssl)/include"
+export OPENSSL_LIB_DIR="$(brew --prefix openssl)/lib"
 ./mach build ...
 ```
 
