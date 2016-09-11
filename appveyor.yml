@@ -2,7 +2,6 @@ version: 1.0.{build}
 
 environment:
   RUST_BACKTRACE: 1
-  HOME: '%APPVEYOR_BUILD_FOLDER%'
   # The appveyor image we use has a pretty huge set of things installed... we make the
   # initial PATH something sane so we know what to expect
   PATH: "C:\\windows\\system32;\
@@ -69,6 +68,6 @@ install:
 
 build_script:
   - if %BUILD_ENV%==msvc mach build -d -v && mach test-unit
-  - if %BUILD_ENV%==gnu  bash -lc "./mach build -d -v && ./mach test-unit"
+  - if %BUILD_ENV%==gnu  bash -lc "cd $APPVEYOR_BUILD_FOLDER; ./mach build -d -v && ./mach test-unit"
 
 test: off
