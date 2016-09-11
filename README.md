@@ -49,7 +49,7 @@ Warning: Refusing to link: openssl
 followed by a compile error not being able to find one or more
 openssl/ include files, you may want to try:
 ```sh
-export DEP_OPENSSL_INCLUDE=/usr/local/include
+export DEP_OPENSSL_INCLUDE=/usr/local/opt/openssl/include
 ./mach build ...
 ```
 
