@@ -88,5 +88,28 @@
       });
       document.body.appendChild(iframe);
     }, 'Minimum setTimeout of 1s when pipeline is invisible');
+
+    async_test(function(t) {
+      var iframe = document.createElement("iframe");
+      var destination = "helper.html";
+      iframe.src = "http://web-platform.test:8000/common/blank.html";
+      iframe.mozbrowser = true;
+      iframe.onload = t.step_func(function() {
+          iframe.addEventListener("mozbrowservisibilitychange", t.step_func(function() {
+              iframe.src = destination;
+          }));
+          if (iframe.src !== destination) {
+              iframe.setVisible(false);
+          } else {
+              var startTime = Date.now();
+              iframe.contentWindow.setTimeout(t.step_func(function() {
+                  assert_true(Date.now() - startTime >= 1000);
+                  t.done();
+              }), 1);
+          }
+      });
+      document.body.appendChild(iframe);
+    }, 'Minimum setTimeout of 1s persists after new page is loaded');
+
     </script>
 </body>

@@ -548,6 +548,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     fn new_pipeline(&mut self,
                     pipeline_id: PipelineId,
                     parent_info: Option<(PipelineId, FrameType)>,
+                    old_pipeline_id: Option<PipelineId>,
                     initial_window_size: Option<TypedSize2D<f32, PagePx>>,
                     script_channel: Option<IpcSender<ConstellationControlMsg>>,
                     load_data: LoadData,
@@ -560,7 +561,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             self.public_resource_threads.clone()
         };
 
-        let parent_visibility = if let Some((parent_pipeline_id, _)) = parent_info {
+        let prev_visibility = if let Some(id) = old_pipeline_id {
+            self.pipelines.get(&id).map(|pipeline| pipeline.visible)
+        } else if let Some((parent_pipeline_id, _)) = parent_info {
             self.pipelines.get(&parent_pipeline_id).map(|pipeline| pipeline.visible)
         } else {
             None
@@ -586,7 +589,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             load_data: load_data,
             device_pixel_ratio: self.window_size.device_pixel_ratio,
             pipeline_namespace_id: self.next_pipeline_namespace_id(),
-            parent_visibility: parent_visibility,
+            prev_visibility: prev_visibility,
             webrender_api_sender: self.webrender_api_sender.clone(),
             is_private: is_private,
         });
@@ -1146,7 +1149,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
             let new_pipeline_id = PipelineId::new();
             let load_data = LoadData::new(failure_url, None, None);
-            self.new_pipeline(new_pipeline_id, parent_info, window_size, None, load_data, false);
+            self.new_pipeline(new_pipeline_id, parent_info, Some(pipeline_id), window_size, None, load_data, false);
 
             self.push_pending_frame(new_pipeline_id, Some(pipeline_id));
 
@@ -1171,7 +1174,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         let window_size = self.window_size.visible_viewport;
         let root_pipeline_id = PipelineId::new();
         debug_assert!(PipelineId::fake_root_pipeline_id() == root_pipeline_id);
-        self.new_pipeline(root_pipeline_id, None, Some(window_size), None,
+        self.new_pipeline(root_pipeline_id, None, None, Some(window_size), None,
                           LoadData::new(url.clone(), None, None), false);
         self.handle_load_start_msg(root_pipeline_id);
         self.push_pending_frame(root_pipeline_id, None);
@@ -1290,6 +1293,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // Create the new pipeline, attached to the parent and push to pending frames
         self.new_pipeline(load_info.new_pipeline_id,
                           Some((load_info.parent_pipeline_id, load_info.frame_type)),
+                          load_info.old_pipeline_id,
                           window_size,
                           script_chan,
                           load_data,
@@ -1424,7 +1428,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 // Create the new pipeline
                 let window_size = self.pipelines.get(&source_id).and_then(|source| source.size);
                 let new_pipeline_id = PipelineId::new();
-                self.new_pipeline(new_pipeline_id, None, window_size, None, load_data, false);
+                self.new_pipeline(new_pipeline_id, None, None, window_size, None, load_data, false);
                 self.push_pending_frame(new_pipeline_id, Some(source_id));
 
                 // Send message to ScriptThread that will suspend all timers
@@ -1668,9 +1672,16 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     }
 
     fn handle_set_visible_msg(&mut self, pipeline_id: PipelineId, visible: bool) {
-        let frame_id = self.pipelines.get(&pipeline_id).and_then(|pipeline| pipeline.frame);
-        let child_pipeline_ids: Vec<PipelineId> = self.current_frame_tree_iter(frame_id)
-                                                      .map(|frame| frame.current.pipeline_id)
+        let frame_id = match self.pipelines.get(&pipeline_id).and_then(|pipeline| pipeline.frame) {
+            Some(id) => id,
+            None => return warn!("No frame associated with pipeline {:?}", pipeline_id),
+        };
+
+        let child_pipeline_ids: Vec<PipelineId> = self.full_frame_tree_iter(frame_id)
+                                                      .flat_map(|frame| frame.next.iter()
+                                                                .chain(frame.prev.iter())
+                                                                .chain(once(&frame.current)))
+                                                      .map(|state| state.pipeline_id)
                                                       .collect();
         for id in child_pipeline_ids {
             if let Some(pipeline) = self.pipelines.get_mut(&id) {
