@@ -703,7 +703,6 @@ impl Interpolate for LengthOrNone {
                 match (from, to) {
                     (&TransformOperation::Matrix(from),
                      &TransformOperation::Matrix(_to)) => {
-                        // TODO: It doesn't yet handle the case where one of the matrices are not 2D
                         let interpolated = from.interpolate(&_to, time).unwrap();
                         result.push(TransformOperation::Matrix(interpolated));
                     }
@@ -897,15 +896,22 @@ impl Interpolate for LengthOrNone {
 
     impl Interpolate for ComputedMatrix {
         fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
-            let decomposed_from = MatrixDecomposed2D::from(*self);
-            let decomposed_to = MatrixDecomposed2D::from(*other);
-            let interpolated = try!(decomposed_from.interpolate(&decomposed_to, time));
-            Ok(ComputedMatrix::from(interpolated))
+            if self.is_3d() || other.is_3d() {
+                let decomposed_from = MatrixDecomposed3D::from(*self);
+                let decomposed_to = MatrixDecomposed3D::from(*other);
+                let interpolated = try!(decomposed_from.interpolate(&decomposed_to, time));
+                Ok(ComputedMatrix::from(interpolated))
+            } else {
+                let decomposed_from = MatrixDecomposed2D::from(*self);
+                let decomposed_to = MatrixDecomposed2D::from(*other);
+                let interpolated = try!(decomposed_from.interpolate(&decomposed_to, time));
+                Ok(ComputedMatrix::from(interpolated))
+            }
         }
     }
 
     impl From<ComputedMatrix> for MatrixDecomposed2D {
-        /// Decompose a matrix.
+        /// Decompose a 2D matrix.
         /// https://drafts.csswg.org/css-transforms/#decomposing-a-2d-matrix
         fn from(matrix: ComputedMatrix) -> MatrixDecomposed2D {
             let mut row0x = matrix.m11;
@@ -969,7 +975,7 @@ impl Interpolate for LengthOrNone {
     }
 
     impl From<MatrixDecomposed2D> for ComputedMatrix {
-        /// Recompose a matrix.
+        /// Recompose a 2D matrix.
         /// https://drafts.csswg.org/css-transforms/#recomposing-to-a-2d-matrix
         fn from(decomposed: MatrixDecomposed2D) -> ComputedMatrix {
             let mut computed_matrix = ComputedMatrix::identity();
@@ -995,16 +1001,8 @@ impl Interpolate for LengthOrNone {
             rotate_matrix.m21 = -sin_angle;
             rotate_matrix.m22 = cos_angle;
 
-            let matrix_clone = computed_matrix;
             // Multiplication of computed_matrix and rotate_matrix
-            % for i in range(1, 5):
-                % for j in range(1, 5):
-                    computed_matrix.m${i}${j} = (matrix_clone.m${i}1 * rotate_matrix.m1${j}) +
-                                                (matrix_clone.m${i}2 * rotate_matrix.m2${j}) +
-                                                (matrix_clone.m${i}3 * rotate_matrix.m3${j}) +
-                                                (matrix_clone.m${i}4 * rotate_matrix.m4${j});
-                % endfor
-            % endfor
+            computed_matrix = multiply(computed_matrix, rotate_matrix);
 
             // Scale matrix.
             computed_matrix.m11 *= decomposed.scale.0;
@@ -1012,6 +1010,448 @@ impl Interpolate for LengthOrNone {
             computed_matrix.m21 *= decomposed.scale.1;
             computed_matrix.m22 *= decomposed.scale.1;
             computed_matrix
+        }
+    }
+
+    #[derive(Clone, Copy, Debug)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub struct Translate3D(f32, f32, f32);
+
+    #[derive(Clone, Copy, Debug)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub struct Scale3D(f32, f32, f32);
+
+    #[derive(Clone, Copy, Debug)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub struct Skew(f32, f32, f32);
+
+    #[derive(Clone, Copy, Debug)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub struct Perspective(f32, f32, f32, f32);
+
+    #[derive(Clone, Copy, Debug)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub struct Quaternion(f32, f32, f32, f32);
+
+    #[derive(Clone, Copy, Debug)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub struct MatrixDecomposed3D {
+        pub translate: Translate3D,
+        pub scale: Scale3D,
+        pub skew: Skew,
+        pub perspective: Perspective,
+        pub quaternion: Quaternion,
+    }
+
+    impl From<ComputedMatrix> for MatrixDecomposed3D {
+        /// Decompose a 3D matrix.
+        /// https://drafts.csswg.org/css-transforms/#decomposing-a-3d-matrix
+        fn from(matrix: ComputedMatrix) -> MatrixDecomposed3D {
+            let mut matrix = matrix;
+            // Normalize the matrix.
+            if matrix.m44 == 0.0 {
+                // TODO(canaltinova): return false here but from tait doesn't return Option or Result
+                // Find a way to do this.
+            }
+
+            % for i in range(1, 5):
+                % for j in range(1, 5):
+                    matrix.m${i}${j} /= matrix.m44;
+                % endfor
+            % endfor
+
+            // perspective_matrix is used to solve for perspective, but it also provides
+            // an easy way to test for singularity of the upper 3x3 component.
+            let mut perspective_matrix = matrix;
+
+            % for i in range(1, 4):
+                perspective_matrix.m${i}3 = 0.0;
+            % endfor
+            perspective_matrix.m33 = 1.0;
+
+            if perspective_matrix.determinant() == 0.0 {
+                // TODO(canaltinova): return false here but from tait doesn't return Option or Result
+                // Find a way to do this.
+            }
+
+            // First, isolate perspective.
+            let perspective = if matrix.m14 != 0.0 || matrix.m24 != 0.0 || matrix.m34 != 0.0 {
+                let right_hand_side: [f32; 4] = [
+                    matrix.m14,
+                    matrix.m24,
+                    matrix.m34,
+                    matrix.m44
+                ];
+
+                perspective_matrix = perspective_matrix.inverse().unwrap();
+
+                // Transpose perspective_matrix
+                perspective_matrix = ComputedMatrix {
+                    m11: perspective_matrix.m11, m12: perspective_matrix.m21,
+                    m13: perspective_matrix.m31, m14: perspective_matrix.m41,
+                    m21: perspective_matrix.m12, m22: perspective_matrix.m22,
+                    m23: perspective_matrix.m32, m24: perspective_matrix.m42,
+                    m31: perspective_matrix.m13, m32: perspective_matrix.m23,
+                    m33: perspective_matrix.m33, m34: perspective_matrix.m43,
+                    m41: perspective_matrix.m14, m42: perspective_matrix.m24,
+                    m43: perspective_matrix.m34, m44: perspective_matrix.m44,
+                };
+
+                let mut tmp: [f32; 4] = [0.0; 4];
+                % for i in range(1, 5):
+                    tmp[${i - 1}] = (right_hand_side[0] * perspective_matrix.m1${i}) +
+                                                  (right_hand_side[1] * perspective_matrix.m2${i}) +
+                                                  (right_hand_side[2] * perspective_matrix.m3${i}) +
+                                                  (right_hand_side[3] * perspective_matrix.m4${i});
+                % endfor
+
+                Perspective(tmp[0], tmp[1], tmp[2], tmp[3])
+            } else {
+                Perspective(0.0, 0.0, 0.0, 1.0)
+            };
+
+            // Next take care of translation
+            let translate = Translate3D (
+                matrix.m31,
+                matrix.m32,
+                matrix.m33
+            );
+
+            // Now get scale and shear. 'row' is a 3 element array of 3 component vectors
+            let mut row: [[f32; 3]; 3] = [[0.0; 3]; 3];
+            % for i in range(1, 4):
+                row[${i - 1}][0] = matrix.m${i}1;
+                row[${i - 1}][1] = matrix.m${i}2;
+                row[${i - 1}][2] = matrix.m${i}3;
+            % endfor
+
+            // Compute X scale factor and normalize first row.
+            // TODO(canaltinova): I'm not sure what is "length(row[0])" means in spec, is it true?
+            let row0len = (row[0][0] * row[0][0] + row[0][1] * row[0][1] + row[0][2] * row[0][2]).sqrt();
+            let mut scale = Scale3D(row0len, 0.0, 0.0);
+            row[0] = [row[0][0] / row0len, row[0][1] / row0len, row[0][2] / row0len];
+
+            // Compute XY shear factor and make 2nd row orthogonal to 1st.
+            let mut skew = Skew(dot(row[0], row[1]), 0.0, 0.0);
+            row[1] = combine(row[1], row[0], 1.0, -skew.0);
+
+            // Now, compute Y scale and normalize 2nd row.
+            let row1len = (row[0][0] * row[0][0] + row[0][1] * row[0][1] + row[0][2] * row[0][2]).sqrt();
+            scale.1 = row1len;
+            row[0] = [row[0][0] / row1len, row[0][1] / row1len, row[0][2] / row1len];
+            skew.0 /= scale.1;
+
+            // Compute XZ and YZ shears, orthogonalize 3rd row
+            skew.1 = dot(row[0], row[2]);
+            row[2] = combine(row[2], row[0], 1.0, -skew.1);
+            skew.2 = dot(row[1], row[2]);
+            row[2] = combine(row[2], row[1], 1.0, -skew.2);
+
+            // Next, get Z scale and normalize 3rd row.
+            let row2len = (row[2][0] * row[2][0] + row[2][1] * row[2][1] + row[2][2] * row[2][2]).sqrt();
+            scale.2 = row2len;
+            row[2] = [row[2][0] / row1len, row[2][1] / row1len, row[2][2] / row1len];
+            skew.1 /= scale.2;
+            skew.2 /= scale.2;
+
+            // At this point, the matrix (in rows) is orthonormal.
+            // Check for a coordinate system flip.  If the determinant
+            // is -1, then negate the matrix and the scaling factors.
+            let pdum3 = cross(row[1], row[2]);
+            if dot(row[0], pdum3) < 0.0 {
+                % for i in range(3):
+                    scale.${i} *= -1.0;
+                    row[${i}][0] *= -1.0;
+                    row[${i}][1] *= -1.0;
+                    row[${i}][2] *= -1.0;
+                % endfor
+            }
+
+            // Now, get the rotations out
+            let mut quaternion = Quaternion (
+                0.5 * ((1.0 + row[0][0] - row[1][1] - row[2][2]).max(0.0)).sqrt(),
+                0.5 * ((1.0 - row[0][0] + row[1][1] - row[2][2]).max(0.0)).sqrt(),
+                0.5 * ((1.0 - row[0][0] - row[1][1] + row[2][2]).max(0.0)).sqrt(),
+                0.5 * ((1.0 + row[0][0] + row[1][1] + row[2][2]).max(0.0)).sqrt()
+            );
+
+            if row[2][1] > row[1][2] {
+                quaternion.0 = -quaternion.0
+            }
+            if row[0][2] > row[2][0] {
+                quaternion.1 = -quaternion.1
+            }
+            if row[1][0] > row[0][1] {
+                quaternion.2 = -quaternion.2
+            }
+
+            MatrixDecomposed3D {
+                translate: translate,
+                scale: scale,
+                skew: skew,
+                perspective: perspective,
+                quaternion: quaternion
+            }
+        }
+    }
+
+    // Combine 2 point.
+    fn combine(a: [f32; 3], b: [f32; 3], ascl: f32, bscl: f32) -> [f32; 3] {
+        [
+            (ascl * a[0]) + (bscl * b[0]),
+            (ascl * a[1]) + (bscl * b[1]),
+            (ascl * a[2]) + (bscl * b[2])
+        ]
+    }
+
+    // Dot product.
+    fn dot(a: [f32; 3], b: [f32; 3]) -> f32 {
+        a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
+    }
+
+    // Cross product.
+    fn cross(row1: [f32; 3], row2: [f32; 3]) -> [f32; 3] {
+        [
+            row1[1] * row2[2] - row1[2] * row2[1],
+            row1[2] * row2[0] - row1[0] * row2[2],
+            row1[0] * row2[1] - row1[1] * row2[0]
+        ]
+    }
+
+    impl Interpolate for MatrixDecomposed3D {
+        /// https://drafts.csswg.org/css-transforms/#interpolation-of-decomposed-3d-matrix-values
+        fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
+            let dot = self.quaternion.0 * other.quaternion.0 +
+                          self.quaternion.1 * other.quaternion.1 +
+                          self.quaternion.2 * other.quaternion.2 +
+                          self.quaternion.3 * other.quaternion.3;
+            let mut product = dot;
+
+            // Clamp product to -1.0 <= product <= 1.0
+            product = product.max(1.0);
+            product = product.min(-1.0);
+
+            if product == 1.0 {
+                return Ok(*self);
+            }
+
+            // TODO(canaltinova): dot variable is not specified in spec. I assumed it is dot product at first.
+            let theta = dot.acos();
+            let w = (time as f32 * theta).sin() * 1.0 / (1.0 - product * product).sqrt();
+
+            let mut matrix = *self;
+            let mut a = *self;
+            let mut b = *other;
+            % for i in range(4):
+                a.quaternion.${i} *= (time as f32 * theta).cos() - product * w;
+                b.quaternion.${i} *= w;
+                matrix.quaternion.${i} = a.quaternion.${i} + b.quaternion.${i};
+            % endfor
+
+            Ok(matrix)
+        }
+    }
+
+    impl From<MatrixDecomposed3D> for ComputedMatrix {
+        /// Recompose a 3D matrix.
+        /// https://drafts.csswg.org/css-transforms/#recomposing-to-a-3d-matrix
+        fn from(decomposed: MatrixDecomposed3D) -> ComputedMatrix {
+            let mut matrix = ComputedMatrix {
+                m11: 0.0, m12: 0.0, m13: 0.0, m14: 0.0,
+                m21: 0.0, m22: 0.0, m23: 0.0, m24: 0.0,
+                m31: 0.0, m32: 0.0, m33: 0.0, m34: 0.0,
+                m41: 0.0, m42: 0.0, m43: 0.0, m44: 0.0
+            };
+
+            // Apply perspective
+            % for i in range(1, 5):
+                matrix.m${i}4 = decomposed.perspective.${i - 1};
+            % endfor
+
+            // Apply translation
+            % for i in range(1, 4):
+                % for j in range(1, 4):
+                    matrix.m3${i} += decomposed.translate.${i - 1} * matrix.m${j}${i};
+                % endfor
+            % endfor
+
+            // Apply rotation
+            let x = decomposed.quaternion.0;
+            let y = decomposed.quaternion.1;
+            let z = decomposed.quaternion.2;
+            let w = decomposed.quaternion.3;
+
+            // Construct a composite rotation matrix from the quaternion values
+            // rotationMatrix is a identity 4x4 matrix initially
+            let mut rotation_matrix = ComputedMatrix::identity();
+            rotation_matrix.m11 = 1.0 - 2.0 * (y * y + z * z);
+            rotation_matrix.m12 = 2.0 * (x * y - z * w);
+            rotation_matrix.m13 = 2.0 * (x * z + y * w);
+            rotation_matrix.m21 = 2.0 * (x * y + z * w);
+            rotation_matrix.m22 = 1.0 - 2.0 * (x * x + z * z);
+            rotation_matrix.m23 = 2.0 * (y * z - x * w);
+            rotation_matrix.m31 = 2.0 * (x * z - y * w);
+            rotation_matrix.m32 = 2.0 * (y * z + x * w);
+            rotation_matrix.m33 = 1.0 - 2.0 * (x * x + y * y);
+
+            matrix = multiply(matrix, rotation_matrix);
+
+            // Apply skew
+            let mut temp = ComputedMatrix::identity();
+            if decomposed.skew.2 != 0.0 {
+                temp.m32 = decomposed.skew.2;
+                matrix = multiply(matrix, temp);
+
+            }
+
+            if decomposed.skew.1 != 0.0 {
+                temp.m32 = 0.0;
+                temp.m31 = decomposed.skew.1;
+                matrix = multiply(matrix, temp);
+            }
+
+            if decomposed.skew.0 != 0.0 {
+                temp.m31 = 0.0;
+                temp.m21 = decomposed.skew.0;
+                matrix = multiply(matrix, temp);
+            }
+
+            // Apply scale
+            % for i in range(1, 4):
+                % for j in range(1, 4):
+                    matrix.m${i}${j} *= decomposed.scale.${i - 1};
+                % endfor
+            % endfor
+
+            matrix
+        }
+    }
+
+    // Multiplication of two 4x4 matrices.
+    fn multiply(a: ComputedMatrix, b: ComputedMatrix) -> ComputedMatrix {
+        let mut a_clone = a;
+        % for i in range(1, 5):
+            % for j in range(1, 5):
+                a_clone.m${i}${j} = (a.m${i}1 * b.m1${j}) +
+                                   (a.m${i}2 * b.m2${j}) +
+                                   (a.m${i}3 * b.m3${j}) +
+                                   (a.m${i}4 * b.m4${j});
+            % endfor
+        % endfor
+        a_clone
+    }
+
+    impl ComputedMatrix {
+        fn is_3d(&self) -> bool {
+            self.m13 != 0.0 || self.m14 != 0.0 ||
+            self.m23 != 0.0 || self.m24 != 0.0 ||
+            self.m31 != 0.0 || self.m32 != 0.0 || self.m33 != 1.0 || self.m34 != 0.0 ||
+            self.m43 != 0.0 || self.m44 != 1.0
+        }
+
+        pub fn determinant(&self) -> CSSFloat {
+            self.m14 * self.m23 * self.m32 * self.m41 -
+            self.m13 * self.m24 * self.m32 * self.m41 -
+            self.m14 * self.m22 * self.m33 * self.m41 +
+            self.m12 * self.m24 * self.m33 * self.m41 +
+            self.m13 * self.m22 * self.m34 * self.m41 -
+            self.m12 * self.m23 * self.m34 * self.m41 -
+            self.m14 * self.m23 * self.m31 * self.m42 +
+            self.m13 * self.m24 * self.m31 * self.m42 +
+            self.m14 * self.m21 * self.m33 * self.m42 -
+            self.m11 * self.m24 * self.m33 * self.m42 -
+            self.m13 * self.m21 * self.m34 * self.m42 +
+            self.m11 * self.m23 * self.m34 * self.m42 +
+            self.m14 * self.m22 * self.m31 * self.m43 -
+            self.m12 * self.m24 * self.m31 * self.m43 -
+            self.m14 * self.m21 * self.m32 * self.m43 +
+            self.m11 * self.m24 * self.m32 * self.m43 +
+            self.m12 * self.m21 * self.m34 * self.m43 -
+            self.m11 * self.m22 * self.m34 * self.m43 -
+            self.m13 * self.m22 * self.m31 * self.m44 +
+            self.m12 * self.m23 * self.m31 * self.m44 +
+            self.m13 * self.m21 * self.m32 * self.m44 -
+            self.m11 * self.m23 * self.m32 * self.m44 -
+            self.m12 * self.m21 * self.m33 * self.m44 +
+            self.m11 * self.m22 * self.m33 * self.m44
+        }
+
+        fn inverse(&self) -> Option<ComputedMatrix> {
+            let mut det = self.determinant();
+
+            if det == 0.0 {
+                return None;
+            }
+
+            det = 1.0 / det;
+            let x = ComputedMatrix {
+                m11: det *
+                (self.m23*self.m34*self.m42 - self.m24*self.m33*self.m42 +
+                 self.m24*self.m32*self.m43 - self.m22*self.m34*self.m43 -
+                 self.m23*self.m32*self.m44 + self.m22*self.m33*self.m44),
+                m12: det *
+                (self.m14*self.m33*self.m42 - self.m13*self.m34*self.m42 -
+                 self.m14*self.m32*self.m43 + self.m12*self.m34*self.m43 +
+                 self.m13*self.m32*self.m44 - self.m12*self.m33*self.m44),
+                m13: det *
+                (self.m13*self.m24*self.m42 - self.m14*self.m23*self.m42 +
+                 self.m14*self.m22*self.m43 - self.m12*self.m24*self.m43 -
+                 self.m13*self.m22*self.m44 + self.m12*self.m23*self.m44),
+                m14: det *
+                (self.m14*self.m23*self.m32 - self.m13*self.m24*self.m32 -
+                 self.m14*self.m22*self.m33 + self.m12*self.m24*self.m33 +
+                 self.m13*self.m22*self.m34 - self.m12*self.m23*self.m34),
+                m21: det *
+                (self.m24*self.m33*self.m41 - self.m23*self.m34*self.m41 -
+                 self.m24*self.m31*self.m43 + self.m21*self.m34*self.m43 +
+                 self.m23*self.m31*self.m44 - self.m21*self.m33*self.m44),
+                m22: det *
+                (self.m13*self.m34*self.m41 - self.m14*self.m33*self.m41 +
+                 self.m14*self.m31*self.m43 - self.m11*self.m34*self.m43 -
+                 self.m13*self.m31*self.m44 + self.m11*self.m33*self.m44),
+                m23: det *
+                (self.m14*self.m23*self.m41 - self.m13*self.m24*self.m41 -
+                 self.m14*self.m21*self.m43 + self.m11*self.m24*self.m43 +
+                 self.m13*self.m21*self.m44 - self.m11*self.m23*self.m44),
+                m24: det *
+                (self.m13*self.m24*self.m31 - self.m14*self.m23*self.m31 +
+                 self.m14*self.m21*self.m33 - self.m11*self.m24*self.m33 -
+                 self.m13*self.m21*self.m34 + self.m11*self.m23*self.m34),
+                m31: det *
+                (self.m22*self.m34*self.m41 - self.m24*self.m32*self.m41 +
+                 self.m24*self.m31*self.m42 - self.m21*self.m34*self.m42 -
+                 self.m22*self.m31*self.m44 + self.m21*self.m32*self.m44),
+                m32: det *
+                (self.m14*self.m32*self.m41 - self.m12*self.m34*self.m41 -
+                 self.m14*self.m31*self.m42 + self.m11*self.m34*self.m42 +
+                 self.m12*self.m31*self.m44 - self.m11*self.m32*self.m44),
+                m33: det *
+                (self.m12*self.m24*self.m41 - self.m14*self.m22*self.m41 +
+                 self.m14*self.m21*self.m42 - self.m11*self.m24*self.m42 -
+                 self.m12*self.m21*self.m44 + self.m11*self.m22*self.m44),
+                m34: det *
+                (self.m14*self.m22*self.m31 - self.m12*self.m24*self.m31 -
+                 self.m14*self.m21*self.m32 + self.m11*self.m24*self.m32 +
+                 self.m12*self.m21*self.m34 - self.m11*self.m22*self.m34),
+                m41: det *
+                (self.m23*self.m32*self.m41 - self.m22*self.m33*self.m41 -
+                 self.m23*self.m31*self.m42 + self.m21*self.m33*self.m42 +
+                 self.m22*self.m31*self.m43 - self.m21*self.m32*self.m43),
+                m42: det *
+                (self.m12*self.m33*self.m41 - self.m13*self.m32*self.m41 +
+                 self.m13*self.m31*self.m42 - self.m11*self.m33*self.m42 -
+                 self.m12*self.m31*self.m43 + self.m11*self.m32*self.m43),
+                m43: det *
+                (self.m13*self.m22*self.m41 - self.m12*self.m23*self.m41 -
+                 self.m13*self.m21*self.m42 + self.m11*self.m23*self.m42 +
+                 self.m12*self.m21*self.m43 - self.m11*self.m22*self.m43),
+                m44: det *
+                (self.m12*self.m23*self.m31 - self.m13*self.m22*self.m31 +
+                 self.m13*self.m21*self.m32 - self.m11*self.m23*self.m32 -
+                 self.m12*self.m21*self.m33 + self.m11*self.m22*self.m33),
+            };
+
+            Some(x)
         }
     }
 
