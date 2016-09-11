@@ -14,9 +14,9 @@
 #![feature(on_unimplemented)]
 #![feature(optin_builtin_traits)]
 #![feature(plugin)]
+#![feature(question_mark)]
 #![feature(slice_patterns)]
 #![feature(stmt_expr_attributes)]
-#![feature(question_mark)]
 #![feature(try_borrow)]
 #![feature(try_from)]
 
