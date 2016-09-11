@@ -9,6 +9,7 @@ import sys
 
 from centosfedora import CentOSFedoraBootstrapper
 from debian import DebianBootstrapper
+from osx import OSXBootstrapper
 from windows_gnu import WindowsGnuBootstrapper
 from windows_msvc import WindowsMsvcBootstrapper
 
@@ -50,6 +51,12 @@ class Bootstrapper(object):
 
             args['version'] = version
             args['dist_id'] = dist_id
+
+        elif sys.platform.startswith('darwin'):
+            osx_version = platform.mac_ver()[0]
+
+            cls = OSXBootstrapper
+            args['version'] = osx_version
 
         elif sys.platform.startswith('msys'):
             cls = WindowsGnuBootstrapper

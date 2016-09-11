@@ -59,6 +59,19 @@ DEBIAN = [
     "libdbus-1-dev",
 ]
 
+OSX_BREW = [
+    "automake",
+    "pkg-config",
+    "python",
+    "cmake",
+]
+
+OSX_PORT = [
+    "python27",
+    "py27-virtualenv",
+    "cmake",
+]
+
 WINDOWS_GNU = [
     "mingw-w64-x86_64-toolchain",
     "mingw-w64-x86_64-freetype",
