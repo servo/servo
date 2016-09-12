@@ -440,6 +440,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "debugger"
+version = "0.0.1"
+dependencies = [
+ "util 0.0.1",
+ "websocket 0.17.1 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "deque"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1971,6 +1979,7 @@ dependencies = [
  "canvas_traits 0.0.1",
  "compositing 0.0.1",
  "constellation 0.0.1",
+ "debugger 0.0.1",
  "devtools 0.0.1",
  "devtools_traits 0.0.1",
  "env_logger 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",

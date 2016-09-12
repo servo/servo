@@ -123,6 +123,10 @@ pub struct Opts {
     /// Enable all heartbeats for profiling.
     pub profile_heartbeats: bool,
 
+    /// `None` to disable debugger or `Some` with a port number to start a server to listen to
+    /// remote Firefox debugger connections.
+    pub debugger_port: Option<u16>,
+
     /// `None` to disable devtools or `Some` with a port number to start a server to listen to
     /// remote Firefox devtools connections.
     pub devtools_port: Option<u16>,
@@ -502,6 +506,7 @@ pub fn default_opts() -> Opts {
         enable_text_antialiasing: false,
         enable_canvas_antialiasing: false,
         trace_layout: false,
+        debugger_port: None,
         devtools_port: None,
         webdriver_port: None,
         initial_window_size: TypedSize2D::new(1024, 740),
@@ -562,6 +567,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     opts.optflag("z", "headless", "Headless mode");
     opts.optflag("f", "hard-fail", "Exit on thread failure instead of displaying about:failure");
     opts.optflag("F", "soft-fail", "Display about:failure on thread failure instead of exiting");
+    opts.optflagopt("", "remote-debugging-port", "Start remote debugger server on port", "2794");
     opts.optflagopt("", "devtools", "Start remote devtools server on port", "6000");
     opts.optflagopt("", "webdriver", "Start remote WebDriver server on port", "7000");
     opts.optopt("", "resolution", "Set window resolution.", "1024x740");
@@ -721,6 +727,11 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         bubble_inline_sizes_separately = true;
     }
 
+    let debugger_port = opt_match.opt_default("remote-debugging-port", "2794").map(|port| {
+        port.parse()
+            .unwrap_or_else(|err| args_fail(&format!("Error parsing option: --remote-debugging-port ({})", err)))
+    });
+
     let devtools_port = opt_match.opt_default("devtools", "6000").map(|port| {
         port.parse().unwrap_or_else(|err| args_fail(&format!("Error parsing option: --devtools ({})", err)))
     });
@@ -802,6 +813,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         profile_script_events: debug_options.profile_script_events,
         profile_heartbeats: debug_options.profile_heartbeats,
         trace_layout: debug_options.trace_layout,
+        debugger_port: debugger_port,
         devtools_port: devtools_port,
         webdriver_port: webdriver_port,
         initial_window_size: initial_window_size,
