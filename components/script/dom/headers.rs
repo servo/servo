@@ -87,7 +87,7 @@ impl HeadersMethods for Headers {
         let mut combined_value: Vec<u8> = vec![];
         if let Some(v) = self.header_list.borrow().get_raw(&valid_name) {
             combined_value = v[0].clone();
-            combined_value.push(b","[0]);
+            combined_value.push(b',');
         }
         combined_value.extend(valid_value.iter().cloned());
         self.header_list.borrow_mut().set_raw(valid_name, vec![combined_value]);
@@ -107,8 +107,6 @@ impl HeadersMethods for Headers {
             return Ok(());
         }
         // Step 4
-        // TODO: Requires clarification from the Fetch spec:
-        // ... https://github.com/whatwg/fetch/issues/372
         if self.guard.get() == Guard::RequestNoCors &&
             !is_cors_safelisted_request_header(&valid_name, &b"invalid".to_vec()) {
                 return Ok(());
