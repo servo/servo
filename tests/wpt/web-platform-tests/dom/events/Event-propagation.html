@@ -11,6 +11,9 @@ function testPropagationFlag(ev, expected, desc) {
   test(function() {
     var called = false;
     var callback = function() { called = true };
+    this.add_cleanup(function() {
+      document.head.removeEventListener("foo", callback)
+    });
     document.head.addEventListener("foo", callback);
     document.head.dispatchEvent(ev);
     assert_equals(called, expected, "Propagation flag");
@@ -18,7 +21,6 @@ function testPropagationFlag(ev, expected, desc) {
     // the event the second time around.
     document.head.dispatchEvent(ev);
     assert_equals(called, true, "Propagation flag after first dispatch");
-    document.head.removeEventListener("foo", callback);
   }, desc);
 }
 
