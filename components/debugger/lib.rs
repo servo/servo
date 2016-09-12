@@ -13,15 +13,35 @@ use websocket::message::Type;
 use websocket::server::Connection;
 
 enum DebuggerMessage {
+    ShutdownServer,
     ConnectionAccepted(Connection<WebSocketStream, WebSocketStream>)
 }
 
-pub fn start_server(port: u16) {
+pub enum DebuggerError {
+    SendError
+}
+
+pub struct DebuggerMessageSender(mpsc::Sender<DebuggerMessage>);
+
+pub fn start_server(port: u16) -> DebuggerMessageSender {
     println!("Starting debugger server.");
     let (sender, receiver) = channel();
-    spawn_named("debugger".to_owned(), move || {
-        run_server(port, sender, receiver)
-    });
+    {
+        let sender = sender.clone();
+        spawn_named("debugger".to_owned(), move || {
+            run_server(port, sender, receiver)
+        });
+    }
+    DebuggerMessageSender(sender)
+}
+
+pub fn shutdown_server(sender: &DebuggerMessageSender) -> Result<(), DebuggerError> {
+    println!("Shutting down debugger server.");
+    let &DebuggerMessageSender(ref sender) = sender;
+    if let Err(_) = sender.send(DebuggerMessage::ShutdownServer) {
+        return Err(DebuggerError::SendError)
+    }
+    Ok(())
 }
 
 fn run_server(port: u16, sender: mpsc::Sender<DebuggerMessage>, receiver: mpsc::Receiver<DebuggerMessage>) {
@@ -33,6 +53,9 @@ fn run_server(port: u16, sender: mpsc::Sender<DebuggerMessage>, receiver: mpsc::
     });
     while let Ok(message) = receiver.recv() {
         match message {
+            DebuggerMessage::ShutdownServer => {
+                break;
+            }
             DebuggerMessage::ConnectionAccepted(connection) => {
                 spawn_named("debugger-connection-handler".to_owned(), move || {
                     handle_connection(connection);
