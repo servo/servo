@@ -768,9 +768,9 @@ impl Interpolate for LengthOrNone {
 
     /// https://drafts.csswg.org/css-transforms/#Rotate3dDefined
     fn rotate_to_matrix(x: f32, y: f32, z: f32, a: SpecifiedAngle) -> ComputedMatrix {
-        let rad = a.radians();
-        let sc = (rad / 2.0).sin() * (rad / 2.0).cos();
-        let sq = 1.0 / 2.0 * (1.0 - (rad).cos());
+        let half_rad = a.radians() / 2.0;
+        let sc = (half_rad).sin() * (half_rad).cos();
+        let sq = (half_rad).sin().powi(2);
 
         ComputedMatrix {
             m11: 1.0 - 2.0 * (y * y + z * z) * sq,
@@ -786,8 +786,8 @@ impl Interpolate for LengthOrNone {
             m31: 2.0 * (x * z * sq - y * sc),
             m32: 2.0 * (y * z * sq + x * sc),
             m33: 1.0 - 2.0 * (x * x + y * y) * sq,
-
             m34: 0.0,
+
             m41: 0.0,
             m42: 0.0,
             m43: 0.0,
@@ -897,10 +897,18 @@ impl Interpolate for LengthOrNone {
     impl Interpolate for ComputedMatrix {
         fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
             if self.is_3d() || other.is_3d() {
-                let decomposed_from = MatrixDecomposed3D::from(*self);
-                let decomposed_to = MatrixDecomposed3D::from(*other);
-                let interpolated = try!(decomposed_from.interpolate(&decomposed_to, time));
-                Ok(ComputedMatrix::from(interpolated))
+                let decomposed_from = decompose_3d_matrix(*self);
+                let decomposed_to = decompose_3d_matrix(*other);
+                match (decomposed_from, decomposed_to) {
+                    (Ok(from), Ok(to)) => {
+                        let interpolated = try!(from.interpolate(&to, time));
+                        Ok(ComputedMatrix::from(interpolated))
+                    },
+                    _ => {
+                        let interpolated = if time < 0.5 {*self} else {*other};
+                        Ok(interpolated)
+                    }
+                }
             } else {
                 let decomposed_from = MatrixDecomposed2D::from(*self);
                 let decomposed_to = MatrixDecomposed2D::from(*other);
@@ -1043,156 +1051,149 @@ impl Interpolate for LengthOrNone {
         pub quaternion: Quaternion,
     }
 
-    impl From<ComputedMatrix> for MatrixDecomposed3D {
-        /// Decompose a 3D matrix.
-        /// https://drafts.csswg.org/css-transforms/#decomposing-a-3d-matrix
-        fn from(matrix: ComputedMatrix) -> MatrixDecomposed3D {
-            let mut matrix = matrix;
-            // Normalize the matrix.
-            if matrix.m44 == 0.0 {
-                // TODO(canaltinova): return false here but from tait doesn't return Option or Result
-                // Find a way to do this.
-            }
+    /// Decompose a 3D matrix.
+    /// https://drafts.csswg.org/css-transforms/#decomposing-a-3d-matrix
+    fn decompose_3d_matrix(mut matrix: ComputedMatrix) -> Result<MatrixDecomposed3D, ()> {
+        // Normalize the matrix.
+        if matrix.m44 == 0.0 {
+            return Err(());
+        }
 
-            % for i in range(1, 5):
-                % for j in range(1, 5):
-                    matrix.m${i}${j} /= matrix.m44;
-                % endfor
+        let scaling_factor = matrix.m44;
+        % for i in range(1, 5):
+            % for j in range(1, 5):
+                matrix.m${i}${j} /= scaling_factor;
             % endfor
+        % endfor
 
-            // perspective_matrix is used to solve for perspective, but it also provides
-            // an easy way to test for singularity of the upper 3x3 component.
-            let mut perspective_matrix = matrix;
+        // perspective_matrix is used to solve for perspective, but it also provides
+        // an easy way to test for singularity of the upper 3x3 component.
+        let mut perspective_matrix = matrix;
 
-            % for i in range(1, 4):
-                perspective_matrix.m${i}3 = 0.0;
-            % endfor
-            perspective_matrix.m33 = 1.0;
+        % for i in range(1, 4):
+            perspective_matrix.m${i}4 = 0.0;
+        % endfor
+        perspective_matrix.m44 = 1.0;
 
-            if perspective_matrix.determinant() == 0.0 {
-                // TODO(canaltinova): return false here but from tait doesn't return Option or Result
-                // Find a way to do this.
-            }
+        if perspective_matrix.determinant() == 0.0 {
+            return Err(());
+        }
 
-            // First, isolate perspective.
-            let perspective = if matrix.m14 != 0.0 || matrix.m24 != 0.0 || matrix.m34 != 0.0 {
-                let right_hand_side: [f32; 4] = [
-                    matrix.m14,
-                    matrix.m24,
-                    matrix.m34,
-                    matrix.m44
-                ];
+        // First, isolate perspective.
+        let perspective = if matrix.m14 != 0.0 || matrix.m24 != 0.0 || matrix.m34 != 0.0 {
+            let right_hand_side: [f32; 4] = [
+                matrix.m14,
+                matrix.m24,
+                matrix.m34,
+                matrix.m44
+            ];
 
-                perspective_matrix = perspective_matrix.inverse().unwrap();
+            perspective_matrix = perspective_matrix.inverse().unwrap();
 
-                // Transpose perspective_matrix
-                perspective_matrix = ComputedMatrix {
-                    m11: perspective_matrix.m11, m12: perspective_matrix.m21,
-                    m13: perspective_matrix.m31, m14: perspective_matrix.m41,
-                    m21: perspective_matrix.m12, m22: perspective_matrix.m22,
-                    m23: perspective_matrix.m32, m24: perspective_matrix.m42,
-                    m31: perspective_matrix.m13, m32: perspective_matrix.m23,
-                    m33: perspective_matrix.m33, m34: perspective_matrix.m43,
-                    m41: perspective_matrix.m14, m42: perspective_matrix.m24,
-                    m43: perspective_matrix.m34, m44: perspective_matrix.m44,
-                };
-
-                let mut tmp: [f32; 4] = [0.0; 4];
+            // Transpose perspective_matrix
+            perspective_matrix = ComputedMatrix {
                 % for i in range(1, 5):
-                    tmp[${i - 1}] = (right_hand_side[0] * perspective_matrix.m1${i}) +
-                                                  (right_hand_side[1] * perspective_matrix.m2${i}) +
-                                                  (right_hand_side[2] * perspective_matrix.m3${i}) +
-                                                  (right_hand_side[3] * perspective_matrix.m4${i});
+                    % for j in range(1, 5):
+                        m${i}${j}: perspective_matrix.m${j}${i},
+                    % endfor
                 % endfor
-
-                Perspective(tmp[0], tmp[1], tmp[2], tmp[3])
-            } else {
-                Perspective(0.0, 0.0, 0.0, 1.0)
             };
 
-            // Next take care of translation
-            let translate = Translate3D (
-                matrix.m31,
-                matrix.m32,
-                matrix.m33
-            );
-
-            // Now get scale and shear. 'row' is a 3 element array of 3 component vectors
-            let mut row: [[f32; 3]; 3] = [[0.0; 3]; 3];
-            % for i in range(1, 4):
-                row[${i - 1}][0] = matrix.m${i}1;
-                row[${i - 1}][1] = matrix.m${i}2;
-                row[${i - 1}][2] = matrix.m${i}3;
+            // Multiply right_hand_side with perspective_matrix
+            let mut tmp: [f32; 4] = [0.0; 4];
+            % for i in range(1, 5):
+                tmp[${i - 1}] = (right_hand_side[0] * perspective_matrix.m1${i}) +
+                                (right_hand_side[1] * perspective_matrix.m2${i}) +
+                                (right_hand_side[2] * perspective_matrix.m3${i}) +
+                                (right_hand_side[3] * perspective_matrix.m4${i});
             % endfor
 
-            // Compute X scale factor and normalize first row.
-            // TODO(canaltinova): I'm not sure what is "length(row[0])" means in spec, is it true?
-            let row0len = (row[0][0] * row[0][0] + row[0][1] * row[0][1] + row[0][2] * row[0][2]).sqrt();
-            let mut scale = Scale3D(row0len, 0.0, 0.0);
-            row[0] = [row[0][0] / row0len, row[0][1] / row0len, row[0][2] / row0len];
+            Perspective(tmp[0], tmp[1], tmp[2], tmp[3])
+        } else {
+            Perspective(0.0, 0.0, 0.0, 1.0)
+        };
 
-            // Compute XY shear factor and make 2nd row orthogonal to 1st.
-            let mut skew = Skew(dot(row[0], row[1]), 0.0, 0.0);
-            row[1] = combine(row[1], row[0], 1.0, -skew.0);
+        // Next take care of translation
+        let translate = Translate3D (
+            matrix.m41,
+            matrix.m42,
+            matrix.m43
+        );
 
-            // Now, compute Y scale and normalize 2nd row.
-            let row1len = (row[0][0] * row[0][0] + row[0][1] * row[0][1] + row[0][2] * row[0][2]).sqrt();
-            scale.1 = row1len;
-            row[0] = [row[0][0] / row1len, row[0][1] / row1len, row[0][2] / row1len];
-            skew.0 /= scale.1;
+        // Now get scale and shear. 'row' is a 3 element array of 3 component vectors
+        let mut row: [[f32; 3]; 3] = [[0.0; 3]; 3];
+        % for i in range(1, 4):
+            row[${i - 1}][0] = matrix.m${i}1;
+            row[${i - 1}][1] = matrix.m${i}2;
+            row[${i - 1}][2] = matrix.m${i}3;
+        % endfor
 
-            // Compute XZ and YZ shears, orthogonalize 3rd row
-            skew.1 = dot(row[0], row[2]);
-            row[2] = combine(row[2], row[0], 1.0, -skew.1);
-            skew.2 = dot(row[1], row[2]);
-            row[2] = combine(row[2], row[1], 1.0, -skew.2);
+        // Compute X scale factor and normalize first row.
+        let row0len = (row[0][0] * row[0][0] + row[0][1] * row[0][1] + row[0][2] * row[0][2]).sqrt();
+        let mut scale = Scale3D(row0len, 0.0, 0.0);
+        row[0] = [row[0][0] / row0len, row[0][1] / row0len, row[0][2] / row0len];
 
-            // Next, get Z scale and normalize 3rd row.
-            let row2len = (row[2][0] * row[2][0] + row[2][1] * row[2][1] + row[2][2] * row[2][2]).sqrt();
-            scale.2 = row2len;
-            row[2] = [row[2][0] / row1len, row[2][1] / row1len, row[2][2] / row1len];
-            skew.1 /= scale.2;
-            skew.2 /= scale.2;
+        // Compute XY shear factor and make 2nd row orthogonal to 1st.
+        let mut skew = Skew(dot(row[0], row[1]), 0.0, 0.0);
+        row[1] = combine(row[1], row[0], 1.0, -skew.0);
 
-            // At this point, the matrix (in rows) is orthonormal.
-            // Check for a coordinate system flip.  If the determinant
-            // is -1, then negate the matrix and the scaling factors.
-            let pdum3 = cross(row[1], row[2]);
-            if dot(row[0], pdum3) < 0.0 {
-                % for i in range(3):
-                    scale.${i} *= -1.0;
-                    row[${i}][0] *= -1.0;
-                    row[${i}][1] *= -1.0;
-                    row[${i}][2] *= -1.0;
-                % endfor
-            }
+        // Now, compute Y scale and normalize 2nd row.
+        let row1len = (row[0][0] * row[0][0] + row[0][1] * row[0][1] + row[0][2] * row[0][2]).sqrt();
+        scale.1 = row1len;
+        row[1] = [row[1][0] / row1len, row[1][1] / row1len, row[1][2] / row1len];
+        skew.0 /= scale.1;
 
-            // Now, get the rotations out
-            let mut quaternion = Quaternion (
-                0.5 * ((1.0 + row[0][0] - row[1][1] - row[2][2]).max(0.0)).sqrt(),
-                0.5 * ((1.0 - row[0][0] + row[1][1] - row[2][2]).max(0.0)).sqrt(),
-                0.5 * ((1.0 - row[0][0] - row[1][1] + row[2][2]).max(0.0)).sqrt(),
-                0.5 * ((1.0 + row[0][0] + row[1][1] + row[2][2]).max(0.0)).sqrt()
-            );
+        // Compute XZ and YZ shears, orthogonalize 3rd row
+        skew.1 = dot(row[0], row[2]);
+        row[2] = combine(row[2], row[0], 1.0, -skew.1);
+        skew.2 = dot(row[1], row[2]);
+        row[2] = combine(row[2], row[1], 1.0, -skew.2);
 
-            if row[2][1] > row[1][2] {
-                quaternion.0 = -quaternion.0
-            }
-            if row[0][2] > row[2][0] {
-                quaternion.1 = -quaternion.1
-            }
-            if row[1][0] > row[0][1] {
-                quaternion.2 = -quaternion.2
-            }
+        // Next, get Z scale and normalize 3rd row.
+        let row2len = (row[2][0] * row[2][0] + row[2][1] * row[2][1] + row[2][2] * row[2][2]).sqrt();
+        scale.2 = row2len;
+        row[2] = [row[2][0] / row2len, row[2][1] / row2len, row[2][2] / row2len];
+        skew.1 /= scale.2;
+        skew.2 /= scale.2;
 
-            MatrixDecomposed3D {
-                translate: translate,
-                scale: scale,
-                skew: skew,
-                perspective: perspective,
-                quaternion: quaternion
-            }
+        // At this point, the matrix (in rows) is orthonormal.
+        // Check for a coordinate system flip.  If the determinant
+        // is -1, then negate the matrix and the scaling factors.
+        let pdum3 = cross(row[1], row[2]);
+        if dot(row[0], pdum3) < 0.0 {
+            % for i in range(3):
+                scale.${i} *= -1.0;
+                row[${i}][0] *= -1.0;
+                row[${i}][1] *= -1.0;
+                row[${i}][2] *= -1.0;
+            % endfor
         }
+
+        // Now, get the rotations out
+        let mut quaternion = Quaternion (
+            0.5 * ((1.0 + row[0][0] - row[1][1] - row[2][2]).max(0.0)).sqrt(),
+            0.5 * ((1.0 - row[0][0] + row[1][1] - row[2][2]).max(0.0)).sqrt(),
+            0.5 * ((1.0 - row[0][0] - row[1][1] + row[2][2]).max(0.0)).sqrt(),
+            0.5 * ((1.0 + row[0][0] + row[1][1] + row[2][2]).max(0.0)).sqrt()
+        );
+
+        if row[2][1] > row[1][2] {
+            quaternion.0 = -quaternion.0
+        }
+        if row[0][2] > row[2][0] {
+            quaternion.1 = -quaternion.1
+        }
+        if row[1][0] > row[0][1] {
+            quaternion.2 = -quaternion.2
+        }
+
+        Ok(MatrixDecomposed3D {
+            translate: translate,
+            scale: scale,
+            skew: skew,
+            perspective: perspective,
+            quaternion: quaternion
+        })
     }
 
     // Combine 2 point.
@@ -1218,13 +1219,62 @@ impl Interpolate for LengthOrNone {
         ]
     }
 
+    impl Interpolate for Translate3D {
+        fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
+            Ok(Translate3D(
+                try!(self.0.interpolate(&other.0, time)),
+                try!(self.1.interpolate(&other.1, time)),
+                try!(self.2.interpolate(&other.2, time))
+            ))
+        }
+    }
+
+    impl Interpolate for Scale3D {
+        fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
+            Ok(Scale3D(
+                try!(self.0.interpolate(&other.0, time)),
+                try!(self.1.interpolate(&other.1, time)),
+                try!(self.2.interpolate(&other.2, time))
+            ))
+        }
+    }
+
+    impl Interpolate for Skew {
+        fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
+            Ok(Skew(
+                try!(self.0.interpolate(&other.0, time)),
+                try!(self.1.interpolate(&other.1, time)),
+                try!(self.2.interpolate(&other.2, time))
+            ))
+        }
+    }
+
+    impl Interpolate for Perspective {
+        fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
+            Ok(Perspective(
+                try!(self.0.interpolate(&other.0, time)),
+                try!(self.1.interpolate(&other.1, time)),
+                try!(self.2.interpolate(&other.2, time)),
+                try!(self.3.interpolate(&other.3, time))
+            ))
+        }
+    }
+
     impl Interpolate for MatrixDecomposed3D {
         /// https://drafts.csswg.org/css-transforms/#interpolation-of-decomposed-3d-matrix-values
         fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
+            let mut interpolated = *self;
+
+            // Interpolate translate, scale, skew and perspective components.
+            interpolated.translate = try!(self.translate.interpolate(&other.translate, time));
+            interpolated.scale = try!(self.scale.interpolate(&other.scale, time));
+            interpolated.perspective = try!(self.perspective.interpolate(&other.perspective, time));
+
+            // Interpolate quaternions using spherical linear interpolation (Slerp).
             let dot = self.quaternion.0 * other.quaternion.0 +
-                          self.quaternion.1 * other.quaternion.1 +
-                          self.quaternion.2 * other.quaternion.2 +
-                          self.quaternion.3 * other.quaternion.3;
+                      self.quaternion.1 * other.quaternion.1 +
+                      self.quaternion.2 * other.quaternion.2 +
+                      self.quaternion.3 * other.quaternion.3;
             let mut product = dot;
 
             // Clamp product to -1.0 <= product <= 1.0
@@ -1232,23 +1282,21 @@ impl Interpolate for LengthOrNone {
             product = product.min(-1.0);
 
             if product == 1.0 {
-                return Ok(*self);
+                return Ok(interpolated);
             }
 
-            // TODO(canaltinova): dot variable is not specified in spec. I assumed it is dot product at first.
             let theta = dot.acos();
             let w = (time as f32 * theta).sin() * 1.0 / (1.0 - product * product).sqrt();
 
-            let mut matrix = *self;
             let mut a = *self;
             let mut b = *other;
             % for i in range(4):
                 a.quaternion.${i} *= (time as f32 * theta).cos() - product * w;
                 b.quaternion.${i} *= w;
-                matrix.quaternion.${i} = a.quaternion.${i} + b.quaternion.${i};
+                interpolated.quaternion.${i} = a.quaternion.${i} + b.quaternion.${i};
             % endfor
 
-            Ok(matrix)
+            Ok(interpolated)
         }
     }
 
@@ -1271,7 +1319,7 @@ impl Interpolate for LengthOrNone {
             // Apply translation
             % for i in range(1, 4):
                 % for j in range(1, 4):
-                    matrix.m3${i} += decomposed.translate.${i - 1} * matrix.m${j}${i};
+                    matrix.m4${i} += decomposed.translate.${j - 1} * matrix.m${j}${i};
                 % endfor
             % endfor
 
