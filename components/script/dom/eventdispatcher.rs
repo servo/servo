@@ -112,18 +112,22 @@ pub fn dispatch_event(target: &EventTarget,
     assert_eq!(event.phase(), EventPhase::None);
     assert!(event.GetCurrentTarget().is_none());
 
+    // Step 1.
+    event.mark_as_dispatching();
+
     // Step 2.
     event.set_target(target_override.unwrap_or(target));
 
     if event.stop_propagation() {
         // If the event's stop propagation flag is set, we can skip everything because
-        // it prevents the calls of the invoke algorithm in the spec and we asserted
-        // at the beginning that steps 10-12 don't need to be executed.
+        // it prevents the calls of the invoke algorithm in the spec.
+
+        // Step 10-12.
+        event.clear_dispatching_flags();
+
+        // Step 14.
         return !event.DefaultPrevented();
     }
-
-    // Step 1. Postponed here for the reason stated above.
-    event.mark_as_dispatching();
 
     // Step 3. The "invoke" algorithm is only used on `target` separately,
     // so we don't put it in the path.
