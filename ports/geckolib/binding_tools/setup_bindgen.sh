@@ -42,4 +42,4 @@ fi
 cd rust-bindgen
 
 multirust override nightly
-cargo build --features llvm_stable
+cargo build
