@@ -55,6 +55,7 @@
   "layout.text-orientation.enabled": false,
   "layout.viewport.enabled": false,
   "layout.writing-mode.enabled": false,
+  "network.http.block-read-size": 16384,
   "network.http.redirection-limit": 20,
   "network.mime.sniff": false,
   "shell.homepage": "http://servo.org",
