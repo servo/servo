@@ -17,6 +17,7 @@ use canvas_traits::CanvasMsg;
 use compositing::SendableFrameTree;
 use compositing::compositor_thread::CompositorProxy;
 use compositing::compositor_thread::Msg as ToCompositorMsg;
+use debugger;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg};
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::{Size2D, TypedSize2D};
@@ -113,6 +114,9 @@ pub struct Constellation<Message, LTF, STF> {
     /// A channel through which messages can be sent to the image cache thread.
     image_cache_thread: ImageCacheThread,
 
+    /// A channel through which messages can be sent to the debugger.
+    debugger_chan: Option<debugger::Sender>,
+
     /// A channel through which messages can be sent to the developer tools.
     devtools_chan: Option<Sender<DevtoolsControlMsg>>,
 
@@ -190,6 +194,8 @@ pub struct Constellation<Message, LTF, STF> {
 pub struct InitialConstellationState {
     /// A channel through which messages can be sent to the compositor.
     pub compositor_proxy: Box<CompositorProxy + Send>,
+    /// A channel to the debugger, if applicable.
+    pub debugger_chan: Option<debugger::Sender>,
     /// A channel to the developer tools, if applicable.
     pub devtools_chan: Option<Sender<DevtoolsControlMsg>>,
     /// A channel to the bluetooth thread.
@@ -482,6 +488,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 compositor_receiver: compositor_receiver,
                 layout_receiver: layout_receiver,
                 compositor_proxy: state.compositor_proxy,
+                debugger_chan: state.debugger_chan,
                 devtools_chan: state.devtools_chan,
                 bluetooth_thread: state.bluetooth_thread,
                 public_resource_threads: state.public_resource_threads,
@@ -1068,6 +1075,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         debug!("Exiting core resource threads.");
         if let Err(e) = self.public_resource_threads.send(net_traits::CoreResourceMsg::Exit(core_sender)) {
             warn!("Exit resource thread failed ({})", e);
+        }
+
+        if let Some(ref chan) = self.debugger_chan {
+            debugger::shutdown_server(chan);
         }
 
         if let Some(ref chan) = self.devtools_chan {
