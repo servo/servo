@@ -5,14 +5,21 @@
 
 void main(void) {
     RectangleClip rect = fetch_rectangle_clip(gl_InstanceID);
+
+#ifdef WR_FEATURE_TRANSFORM
+    TransformVertexInfo vi = write_transform_vertex(rect.info);
+    vPos = vi.local_pos;
+    vLocalRect = vi.clipped_local_rect;
+#else
     VertexInfo vi = write_vertex(rect.info);
+    vPos = vi.local_clamped_pos;
+#endif
 
     vClipRect = vec4(rect.clip.rect.xy, rect.clip.rect.xy + rect.clip.rect.zw);
     vClipRadius = vec4(rect.clip.top_left.outer_inner_radius.x,
                        rect.clip.top_right.outer_inner_radius.x,
                        rect.clip.bottom_right.outer_inner_radius.x,
                        rect.clip.bottom_left.outer_inner_radius.x);
-    vPos = vi.local_clamped_pos;
 
     vColor = rect.color;
 }

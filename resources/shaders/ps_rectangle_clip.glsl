@@ -5,6 +5,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 varying vec4 vColor;
-varying vec2 vPos;
 flat varying vec4 vClipRect;
 flat varying vec4 vClipRadius;
+
+#ifdef WR_FEATURE_TRANSFORM
+varying vec3 vPos;
+flat varying vec4 vLocalRect;
+#else
+varying vec2 vPos;
+#endif
