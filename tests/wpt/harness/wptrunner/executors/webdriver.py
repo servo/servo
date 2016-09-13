@@ -177,7 +177,7 @@ class Transport(object):
         self.host = host
         self.port = port
         self.port_timeout = port_timeout
-        if url_prefix == "":
+        if url_prefix == "" or url_prefix == "/":
             self.path_prefix = "/"
         else:
             self.path_prefix = "/%s/" % url_prefix.strip("/")
