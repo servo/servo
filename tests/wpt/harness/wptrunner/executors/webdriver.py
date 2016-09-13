@@ -385,6 +385,7 @@ class Session(object):
         self.timeouts = Timeouts(self)
         self.window = Window(self)
         self.find = Find(self)
+        self.alert = Alert(self)
         if self.extension_cls:
             self.extension = self.extension_cls(self)
 
@@ -621,6 +622,16 @@ class Element(object):
     @command
     def attribute(self, name):
         return self.session.send_command("GET", self.url("attribute/%s" % name))
+
+
+class Alert(object):
+    def __init__(self, session):
+        self.session = session
+
+    @command
+    def dismiss(self):
+        return self.session.send_command("POST", "alert/dismiss")
+
 
 class ServoExtensions(object):
     def __init__(self, session):
