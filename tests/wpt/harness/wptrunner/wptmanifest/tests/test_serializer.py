@@ -2,9 +2,12 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import sys
 import unittest
 
 from cStringIO import StringIO
+
+import pytest
 
 from .. import parser, serializer
 
@@ -196,6 +199,7 @@ class TokenizerTest(unittest.TestCase):
                      r"""key: "#"
 """)
 
+    @pytest.mark.xfail(sys.maxunicode == 0xFFFF, reason="narrow unicode")
     def test_escape_9(self):
         self.compare(r"""key: \U10FFFFabc""",
                      u"""key: \U0010FFFFabc
