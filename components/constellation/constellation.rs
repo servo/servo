@@ -16,7 +16,7 @@ use canvas_traits::CanvasMsg;
 use compositing::SendableFrameTree;
 use compositing::compositor_thread::CompositorProxy;
 use compositing::compositor_thread::Msg as ToCompositorMsg;
-use debugger::{DebuggerMessageSender, shutdown_server};
+use debugger::{DebuggerSender, shutdown_server};
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg};
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::{Size2D, TypedSize2D};
@@ -116,7 +116,7 @@ pub struct Constellation<Message, LTF, STF> {
     image_cache_thread: ImageCacheThread,
 
     /// A channel through which messages can be sent to the debugger.
-    debugger_chan: Option<DebuggerMessageSender>,
+    debugger_chan: Option<DebuggerSender>,
 
     /// A channel through which messages can be sent to the developer tools.
     devtools_chan: Option<Sender<DevtoolsControlMsg>>,
@@ -202,7 +202,7 @@ pub struct InitialConstellationState {
     /// A channel through which messages can be sent to the compositor.
     pub compositor_proxy: Box<CompositorProxy + Send>,
     /// A channel to the debugger, if applicable,
-    pub debugger_chan: Option<DebuggerMessageSender>,
+    pub debugger_chan: Option<DebuggerSender>,
     /// A channel to the developer tools, if applicable.
     pub devtools_chan: Option<Sender<DevtoolsControlMsg>>,
     /// A channel to the bluetooth thread.

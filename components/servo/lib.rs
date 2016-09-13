@@ -69,7 +69,7 @@ use constellation::{Constellation, InitialConstellationState, UnprivilegedPipeli
 use constellation::{FromCompositorLogger, FromScriptLogger};
 #[cfg(not(target_os = "windows"))]
 use constellation::content_process_sandbox_profile;
-use debugger::DebuggerMessageSender;
+use debugger::DebuggerSender;
 use env_logger::Logger as EnvLogger;
 #[cfg(not(target_os = "windows"))]
 use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
@@ -238,7 +238,7 @@ fn create_constellation(opts: opts::Opts,
                         compositor_proxy: Box<CompositorProxy + Send>,
                         time_profiler_chan: time::ProfilerChan,
                         mem_profiler_chan: mem::ProfilerChan,
-                        debugger_chan: Option<DebuggerMessageSender>,
+                        debugger_chan: Option<DebuggerSender>,
                         devtools_chan: Option<Sender<devtools_traits::DevtoolsControlMsg>>,
                         supports_clipboard: bool,
                         webrender_api_sender: Option<webrender_traits::RenderApiSender>)
