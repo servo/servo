@@ -16,7 +16,6 @@ sys.path.append(path.join(path.dirname(sys.argv[0]), "components", "style", "pro
 import os
 import shutil
 import subprocess
-import mako.template
 
 from mach.registrar import Registrar
 from datetime import datetime
@@ -66,46 +65,6 @@ def install_name_tool(old, new, binary):
         print("install_name_tool exited with return value %d" % e.returncode)
 
 
-def is_system_library(lib):
-    return lib.startswith("/System/Library") or lib.startswith("/usr/lib")
-
-
-def change_non_system_libraries_path(libraries, relative_path, binary):
-    for lib in libraries:
-        if is_system_library(lib):
-            continue
-        new_path = path.join(relative_path, path.basename(lib))
-        install_name_tool(lib, new_path, binary)
-
-
-def copy_dependencies(binary_path, lib_path):
-
-    relative_path = path.relpath(lib_path, path.dirname(binary_path)) + "/"
-
-    # Update binary libraries
-    binary_dependencies = set(otool(binary_path))
-    change_non_system_libraries_path(binary_dependencies, relative_path, binary_path)
-
-    # Update dependencies libraries
-    need_checked = binary_dependencies
-    checked = set()
-    while need_checked:
-        checking = set(need_checked)
-        need_checked = set()
-        for f in checking:
-            # No need to check these for their dylibs
-            if is_system_library(f):
-                continue
-            need_relinked = set(otool(f))
-            new_path = path.join(lib_path, path.basename(f))
-            if not path.exists(new_path):
-                shutil.copyfile(f, new_path)
-            change_non_system_libraries_path(need_relinked, relative_path, new_path)
-            need_checked.update(need_relinked)
-        checked.update(checking)
-        need_checked.difference_update(checked)
-
-
 @CommandProvider
 class PackageCommands(CommandBase):
     @Command('package',
@@ -135,15 +94,6 @@ class PackageCommands(CommandBase):
 
             target_dir = path.dirname(binary_path)
             output_apk = "{}.apk".format(binary_path)
-            blurdroid_path = find_dep_path_newest('blurdroid', binary_path)
-            if blurdroid_path is None:
-                print("Could not find blurdroid package; perhaps you haven't built Servo.")
-                return 1
-            else:
-                dir_to_libs = path.join("support", "android", "apk", "libs")
-                if not path.exists(dir_to_libs):
-                    os.makedirs(dir_to_libs)
-                shutil.copy2(blurdroid_path + '/out/blurdroid.jar', dir_to_libs)
             try:
                 with cd(path.join("support", "android", "build-apk")):
                     subprocess.check_call(["cargo", "run", "--", dev_flag, "-o", output_apk, "-t", target_dir,
@@ -152,15 +102,11 @@ class PackageCommands(CommandBase):
                 print("Packaging Android exited with return value %d" % e.returncode)
                 return e.returncode
         elif is_macosx():
-
             dir_to_build = '/'.join(binary_path.split('/')[:-1])
-            dir_to_root = '/'.join(binary_path.split('/')[:-3])
-            now = datetime.utcnow()
-
-            print("Creating Servo.app")
             dir_to_dmg = '/'.join(binary_path.split('/')[:-2]) + '/dmg'
             dir_to_app = dir_to_dmg + '/Servo.app'
             dir_to_resources = dir_to_app + '/Contents/Resources/'
+            dir_to_root = '/'.join(binary_path.split('/')[:-3])
             if path.exists(dir_to_dmg):
                 print("Cleaning up from previous packaging")
                 delete(dir_to_dmg)
@@ -182,37 +128,37 @@ class PackageCommands(CommandBase):
             delete(dir_to_resources + '/package-prefs.json')
 
             print("Finding dylibs and relinking")
-            copy_dependencies(dir_to_app + '/Contents/MacOS/servo', dir_to_app + '/Contents/MacOS/')
-
-            print("Adding version to Credits.rtf")
-            version_command = [binary_path, '--version']
-            p = subprocess.Popen(version_command,
-                                 stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE,
-                                 universal_newlines=True)
-            version, stderr = p.communicate()
-            if p.returncode != 0:
-                raise Exception("Error occurred when getting Servo version: " + stderr)
-            version = "Nightly version: " + version
-
-            template_path = os.path.join(dir_to_resources, 'Credits.rtf.mako')
-            credits_path = os.path.join(dir_to_resources, 'Credits.rtf')
-            with open(template_path) as template_file:
-                template = mako.template.Template(template_file.read())
-                with open(credits_path, "w") as credits_file:
-                    credits_file.write(template.render(version=version))
-            delete(template_path)
+            need_checked = set([dir_to_app + '/Contents/MacOS/servo'])
+            checked = set()
+            while need_checked:
+                checking = set(need_checked)
+                need_checked = set()
+                for f in checking:
+                    # No need to check these for their dylibs
+                    if '/System/Library' in f or '/usr/lib' in f:
+                        continue
+                    need_relinked = set(otool(f))
+                    new_path = dir_to_app + '/Contents/MacOS/' + f.split('/')[-1]
+                    if not path.exists(new_path):
+                        shutil.copyfile(f, new_path)
+                    for dylib in need_relinked:
+                        if '/System/Library' in dylib or '/usr/lib' in dylib or 'servo' in dylib:
+                            continue
+                        install_name_tool(dylib, dylib.split('/')[-1], new_path)
+                    need_checked.update(need_relinked)
+                checked.update(checking)
+                need_checked.difference_update(checked)
 
             print("Writing run-servo")
             bhtml_path = path.join('${0%/*}/../Resources', browserhtml_path.split('/')[-1], 'out', 'index.html')
             runservo = os.open(dir_to_app + '/Contents/MacOS/run-servo', os.O_WRONLY | os.O_CREAT, int("0755", 8))
-            os.write(runservo, '#!/bin/bash\nexec ${0%/*}/servo ' + bhtml_path)
+            os.write(runservo, '#!/bin/bash\nexec ${0%/*}/servo -M -S ' + bhtml_path)
             os.close(runservo)
 
             print("Creating dmg")
             os.symlink('/Applications', dir_to_dmg + '/Applications')
             dmg_path = '/'.join(dir_to_build.split('/')[:-1]) + '/'
-            time = now.replace(microsecond=0).isoformat()
+            time = datetime.utcnow().replace(microsecond=0).isoformat()
             time = time.replace(':', '-')
             dmg_path += time + "-servo-tech-demo.dmg"
             try:
@@ -223,30 +169,6 @@ class PackageCommands(CommandBase):
             print("Cleaning up")
             delete(dir_to_dmg)
             print("Packaged Servo into " + dmg_path)
-
-            print("Creating brew package")
-            dir_to_brew = '/'.join(binary_path.split('/')[:-2]) + '/brew_tmp/'
-            dir_to_tar = '/'.join(dir_to_build.split('/')[:-1]) + '/brew/'
-            if not path.exists(dir_to_tar):
-                os.makedirs(dir_to_tar)
-            tar_path = dir_to_tar + now.strftime("servo-%Y-%m-%d.tar.gz")
-            if path.exists(dir_to_brew):
-                print("Cleaning up from previous packaging")
-                delete(dir_to_brew)
-            if path.exists(tar_path):
-                print("Deleting existing package")
-                os.remove(tar_path)
-            shutil.copytree(dir_to_root + '/resources', dir_to_brew + "/resources/")
-            os.makedirs(dir_to_brew + '/bin/')
-            shutil.copy2(dir_to_build + '/servo', dir_to_brew + '/bin/servo')
-            # Note that in the context of Homebrew, libexec is reserved for private use by the formula
-            # and therefore is not symlinked into HOMEBREW_PREFIX.
-            os.makedirs(dir_to_brew + '/libexec/')
-            copy_dependencies(dir_to_brew + '/bin/servo', dir_to_brew + '/libexec/')
-            archive_deterministically(dir_to_brew, tar_path, prepend_path='servo/')
-            delete(dir_to_brew)
-            print("Packaged Servo into " + tar_path)
-
         elif is_windows():
             dir_to_package = path.dirname(binary_path)
             dir_to_root = self.get_top_dir()
@@ -287,43 +209,43 @@ class PackageCommands(CommandBase):
             msi_path = path.join(dir_to_msi, "Servo.msi")
             print("Packaged Servo into {}".format(msi_path))
         else:
-            dir_to_package = '/'.join(binary_path.split('/')[:-1])
-            dir_to_root = '/'.join(binary_path.split('/')[:-3])
-            resources_dir = dir_to_package + '/resources'
-            if os.path.exists(resources_dir):
-                delete(resources_dir)
-            shutil.copytree(dir_to_root + '/resources', resources_dir)
+            dir_to_temp = path.join(path.dirname(binary_path)) + "/targz"
+            resources_dir = dir_to_temp + '/resources'
             browserhtml_path = find_dep_path_newest('browserhtml', binary_path)
             if browserhtml_path is None:
                 print("Could not find browserhtml package; perhaps you haven't built Servo.")
                 return 1
-            print("Deleting unused files")
-            keep = ['servo', 'resources', 'build']
-            for f in os.listdir(dir_to_package + '/'):
-                if f not in keep:
-                    delete(dir_to_package + '/' + f)
-            for f in os.listdir(dir_to_package + '/build/'):
-                if 'browserhtml' not in f:
-                    delete(dir_to_package + '/build/' + f)
+            if os.path.exists(dir_to_temp):
+                print("Cleaning up from previous packaging")
+                delete(dir_to_temp)
+            print("Copying files")
+            shutil.copytree(path.join(self.get_top_dir(), 'resources'), resources_dir)
+            shutil.copytree(browserhtml_path, path.join(dir_to_temp + "/build"))
+            shutil.copytree(path.join(dir_to_temp[:-5], 'servo'), dir_to_temp)
+            
             print("Writing runservo.sh")
             # TODO: deduplicate this arg list from post_build_commands
-            servo_args = ['-w', '-b',
+            servo_args = ['-w', '-b', '-M', '-S',
                           '--pref', 'dom.mozbrowser.enabled',
                           '--pref', 'dom.forcetouch.enabled',
                           '--pref', 'shell.builtin-key-shortcuts.enabled=false',
                           path.join('./build/' + browserhtml_path.split('/')[-1], 'out', 'index.html')]
 
-            runservo = os.open(dir_to_package + '/runservo.sh', os.O_WRONLY | os.O_CREAT, int("0755", 8))
+            runservo = os.open(dir_to_temp + '/runservo.sh', os.O_WRONLY | os.O_CREAT, int("0755", 8))
             os.write(runservo, "#!/usr/bin/env sh\n./servo " + ' '.join(servo_args))
             os.close(runservo)
+
             print("Creating tarball")
-            tar_path = '/'.join(dir_to_package.split('/')[:-1]) + '/'
+            tar_path = self.get_target_dir()
             time = datetime.utcnow().replace(microsecond=0).isoformat()
             time = time.replace(':', "-")
-            tar_path += time + "-servo-tech-demo.tar.gz"
+            tar_path = path.join(tar_path, time + "-servo-tech-demo.tar.gz")
 
-            archive_deterministically(dir_to_package, tar_path, prepend_path='servo/')
+            archive_deterministically(dir_to_temp, tar_path, prepend_path='servo/')
 
+            print("Cleaning up")
+            print("DIR_TO_TEMP: " + dir_to_temp)
+            #delete(dir_to_temp)
             print("Packaged Servo into " + tar_path)
 
     @Command('install',
