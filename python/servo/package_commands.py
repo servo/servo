@@ -244,7 +244,6 @@ class PackageCommands(CommandBase):
             archive_deterministically(dir_to_temp, tar_path, prepend_path='servo/')
 
             print("Cleaning up")
-            print("DIR_TO_TEMP: " + dir_to_temp)
             #delete(dir_to_temp)
             print("Packaged Servo into " + tar_path)
 
