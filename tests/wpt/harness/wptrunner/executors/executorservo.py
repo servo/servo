@@ -301,6 +301,7 @@ class ServoWdspecProtocol(Protocol):
                 "Establishing new WebDriver session with %s" % self.server.url)
             self.session = webdriver.Session(
                 self.server.host, self.server.port, self.server.base_path)
+            self.session.start()
         except Exception:
             self.logger.error(traceback.format_exc())
             self.executor.runner.send_message("init_failed")
