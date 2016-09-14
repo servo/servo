@@ -190,7 +190,7 @@ pub fn add_user_prefs() {
 fn init_user_prefs(path: &mut PathBuf) {
     path.push("prefs.json");
     if let Ok(file) = File::open(path) {
-        match read_prefs_from_file(file){
+        match read_prefs_from_file(file) {
             Ok(x) => {
                 PREFS.extend(x);
             },
