@@ -287,23 +287,27 @@ class PackageCommands(CommandBase):
             msi_path = path.join(dir_to_msi, "Servo.msi")
             print("Packaged Servo into {}".format(msi_path))
         else:
-            dir_to_temp = path.join(path.dirname(binary_path)) + "/targz"
-            resources_dir = dir_to_temp + '/resources'
+            dir_to_temp = path.join(binary_path[:-5], 'targz')
+            resources_dir = path.join(dir_to_temp, 'resources')
             browserhtml_path = find_dep_path_newest('browserhtml', binary_path)
+            
             if browserhtml_path is None:
                 print("Could not find browserhtml package; perhaps you haven't built Servo.")
                 return 1
-            if os.path.exists(dir_to_temp):
+                
+            if path.exists(dir_to_temp):
+            # TODO(aneeshusa): lock dir_to_temp to prevent simultaneous builds
                 print("Cleaning up from previous packaging")
                 delete(dir_to_temp)
+                
             print("Copying files")
             shutil.copytree(path.join(self.get_top_dir(), 'resources'), resources_dir)
-            shutil.copytree(browserhtml_path, path.join(dir_to_temp + "/build"))
-            shutil.copytree(path.join(dir_to_temp[:-5], 'servo'), dir_to_temp)
+            shutil.copytree(browserhtml_path, path.join(dir_to_temp, "build"))
+            shutil.copy(binary_path, dir_to_temp)
             
             print("Writing runservo.sh")
             # TODO: deduplicate this arg list from post_build_commands
-            servo_args = ['-w', '-b', '-M', '-S',
+            servo_args = ['-w', '-b',
                           '--pref', 'dom.mozbrowser.enabled',
                           '--pref', 'dom.forcetouch.enabled',
                           '--pref', 'shell.builtin-key-shortcuts.enabled=false',
@@ -314,10 +318,9 @@ class PackageCommands(CommandBase):
             os.close(runservo)
 
             print("Creating tarball")
-            tar_path = self.get_target_dir()
             time = datetime.utcnow().replace(microsecond=0).isoformat()
             time = time.replace(':', "-")
-            tar_path = path.join(tar_path, time + "-servo-tech-demo.tar.gz")
+            tar_path = path.join(self.get_target_dir(), time + "-servo-tech-demo.tar.gz")
 
             archive_deterministically(dir_to_temp, tar_path, prepend_path='servo/')
 
