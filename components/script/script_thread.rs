@@ -65,7 +65,7 @@ use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use mem::heap_size_of_self_and_children;
 use msg::constellation_msg::{FrameType, LoadData, PipelineId, PipelineNamespace};
-use msg::constellation_msg::{ReferrerPolicy, SubpageId, WindowSizeType};
+use msg::constellation_msg::{ReferrerPolicy, WindowSizeType};
 use net_traits::{AsyncResponseTarget, CoreResourceMsg, LoadConsumer, LoadContext, Metadata, ResourceThreads};
 use net_traits::{IpcSend, LoadData as NetLoadData};
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
@@ -131,8 +131,8 @@ pub unsafe fn trace_thread(tr: *mut JSTracer) {
 struct InProgressLoad {
     /// The pipeline which requested this load.
     pipeline_id: PipelineId,
-    /// The parent pipeline and child subpage associated with this load, if any.
-    parent_info: Option<(PipelineId, SubpageId, FrameType)>,
+    /// The parent pipeline and frame type associated with this load, if any.
+    parent_info: Option<(PipelineId, FrameType)>,
     /// The current window size associated with this pipeline.
     window_size: Option<WindowSizeData>,
     /// Channel to the layout thread associated with this pipeline.
@@ -150,7 +150,7 @@ struct InProgressLoad {
 impl InProgressLoad {
     /// Create a new InProgressLoad object.
     fn new(id: PipelineId,
-           parent_info: Option<(PipelineId, SubpageId, FrameType)>,
+           parent_info: Option<(PipelineId, FrameType)>,
            layout_chan: Sender<message::Msg>,
            window_size: Option<WindowSizeData>,
            url: Url) -> InProgressLoad {
@@ -484,11 +484,11 @@ impl ScriptThreadFactory for ScriptThread {
 }
 
 impl ScriptThread {
-    pub fn page_headers_available(id: &PipelineId, subpage: Option<&SubpageId>, metadata: Option<Metadata>)
+    pub fn page_headers_available(id: &PipelineId, metadata: Option<Metadata>)
                                   -> Option<ParserRoot> {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
-            script_thread.handle_page_headers_available(id, subpage, metadata)
+            script_thread.handle_page_headers_available(id, metadata)
         })
     }
 
@@ -644,7 +644,7 @@ impl ScriptThread {
                 let window = context.active_window();
                 let resize_event = window.steal_resize_event();
                 match resize_event {
-                    Some(size) => resizes.push((window.pipeline(), size)),
+                    Some(size) => resizes.push((window.pipeline_id(), size)),
                     None => ()
                 }
             }
@@ -877,8 +877,8 @@ impl ScriptThread {
 
     fn handle_msg_from_constellation(&self, msg: ConstellationControlMsg) {
         match msg {
-            ConstellationControlMsg::Navigate(pipeline_id, subpage_id, load_data) =>
-                self.handle_navigate(pipeline_id, Some(subpage_id), load_data),
+            ConstellationControlMsg::Navigate(parent_pipeline_id, pipeline_id, load_data) =>
+                self.handle_navigate(parent_pipeline_id, Some(pipeline_id), load_data),
             ConstellationControlMsg::SendEvent(id, event) =>
                 self.handle_event(id, event),
             ConstellationControlMsg::ResizeInactive(id, new_size) =>
@@ -891,24 +891,22 @@ impl ScriptThread {
                 self.handle_thaw_msg(pipeline_id),
             ConstellationControlMsg::ChangeFrameVisibilityStatus(pipeline_id, visible) =>
                 self.handle_visibility_change_msg(pipeline_id, visible),
-            ConstellationControlMsg::NotifyVisibilityChange(containing_id, pipeline_id, visible) =>
-                self.handle_visibility_change_complete_msg(containing_id, pipeline_id, visible),
+            ConstellationControlMsg::NotifyVisibilityChange(parent_pipeline_id, pipeline_id, visible) =>
+                self.handle_visibility_change_complete_msg(parent_pipeline_id, pipeline_id, visible),
             ConstellationControlMsg::MozBrowserEvent(parent_pipeline_id,
-                                                     subpage_id,
+                                                     pipeline_id,
                                                      event) =>
                 self.handle_mozbrowser_event_msg(parent_pipeline_id,
-                                                 subpage_id,
+                                                 pipeline_id,
                                                  event),
-            ConstellationControlMsg::UpdateSubpageId(containing_pipeline_id,
-                                                     old_subpage_id,
-                                                     new_subpage_id,
-                                                     new_pipeline_id) =>
-                self.handle_update_subpage_id(containing_pipeline_id,
-                                              old_subpage_id,
-                                              new_subpage_id,
-                                              new_pipeline_id),
-            ConstellationControlMsg::FocusIFrame(containing_pipeline_id, subpage_id) =>
-                self.handle_focus_iframe_msg(containing_pipeline_id, subpage_id),
+            ConstellationControlMsg::UpdatePipelineId(parent_pipeline_id,
+                                                      old_pipeline_id,
+                                                      new_pipeline_id) =>
+                self.handle_update_pipeline_id(parent_pipeline_id,
+                                               old_pipeline_id,
+                                               new_pipeline_id),
+            ConstellationControlMsg::FocusIFrame(parent_pipeline_id, pipeline_id) =>
+                self.handle_focus_iframe_msg(parent_pipeline_id, pipeline_id),
             ConstellationControlMsg::WebDriverScriptCommand(pipeline_id, msg) =>
                 self.handle_webdriver_msg(pipeline_id, msg),
             ConstellationControlMsg::TickAllAnimations(pipeline_id) =>
@@ -916,10 +914,10 @@ impl ScriptThread {
             ConstellationControlMsg::WebFontLoaded(pipeline_id) =>
                 self.handle_web_font_loaded(pipeline_id),
             ConstellationControlMsg::DispatchFrameLoadEvent {
-                target: pipeline_id, parent: containing_id } =>
-                self.handle_frame_load_event(containing_id, pipeline_id),
-            ConstellationControlMsg::FramedContentChanged(containing_pipeline_id, subpage_id) =>
-                self.handle_framed_content_changed(containing_pipeline_id, subpage_id),
+                target: pipeline_id, parent: parent_pipeline_id } =>
+                self.handle_frame_load_event(parent_pipeline_id, pipeline_id),
+            ConstellationControlMsg::FramedContentChanged(parent_pipeline_id, pipeline_id) =>
+                self.handle_framed_content_changed(parent_pipeline_id, pipeline_id),
             ConstellationControlMsg::ReportCSSError(pipeline_id, filename, line, column, msg) =>
                 self.handle_css_error_reporting(pipeline_id, filename, line, column, msg),
             ConstellationControlMsg::Reload(pipeline_id) =>
@@ -935,8 +933,8 @@ impl ScriptThread {
 
     fn handle_msg_from_script(&self, msg: MainThreadScriptMsg) {
         match msg {
-            MainThreadScriptMsg::Navigate(id, load_data) =>
-                self.handle_navigate(id, None, load_data),
+            MainThreadScriptMsg::Navigate(parent_pipeline_id, load_data) =>
+                self.handle_navigate(parent_pipeline_id, None, load_data),
             MainThreadScriptMsg::ExitWindow(id) =>
                 self.handle_exit_window_msg(id),
             MainThreadScriptMsg::DocumentLoadsComplete(id) =>
@@ -1128,9 +1126,8 @@ impl ScriptThread {
 
     fn handle_new_layout(&self, new_layout_info: NewLayoutInfo) {
         let NewLayoutInfo {
-            containing_pipeline_id,
+            parent_pipeline_id,
             new_pipeline_id,
-            subpage_id,
             frame_type,
             load_data,
             paint_chan,
@@ -1158,7 +1155,7 @@ impl ScriptThread {
         };
 
         let context = self.root_browsing_context();
-        let parent_context = context.find(containing_pipeline_id).expect("ScriptThread: received a layout
+        let parent_context = context.find(parent_pipeline_id).expect("ScriptThread: received a layout
             whose parent has a PipelineId which does not correspond to a pipeline in the script
             thread's browsing context tree. This is a bug.");
         let parent_window = parent_context.active_window();
@@ -1169,7 +1166,7 @@ impl ScriptThread {
                      .unwrap();
 
         // Kick off the fetch for the new resource.
-        let new_load = InProgressLoad::new(new_pipeline_id, Some((containing_pipeline_id, subpage_id, frame_type)),
+        let new_load = InProgressLoad::new(new_pipeline_id, Some((parent_pipeline_id, frame_type)),
                                            layout_chan, parent_window.window_size(),
                                            load_data.url.clone());
         self.start_page_load(new_load, load_data);
@@ -1254,10 +1251,10 @@ impl ScriptThread {
     }
 
     /// Updates iframe element after a change in visibility
-    fn handle_visibility_change_complete_msg(&self, containing_id: PipelineId, id: PipelineId, visible: bool) {
+    fn handle_visibility_change_complete_msg(&self, parent_pipeline_id: PipelineId, id: PipelineId, visible: bool) {
         if let Some(root_context) = self.browsing_context.get() {
-            if let Some(ref inner_context) = root_context.find(containing_id) {
-                if let Some(iframe) = inner_context.active_document().find_iframe_by_pipeline(id) {
+            if let Some(ref inner_context) = root_context.find(parent_pipeline_id) {
+                if let Some(iframe) = inner_context.active_document().find_iframe(id) {
                     iframe.change_visibility_status(visible);
                 }
             }
@@ -1323,12 +1320,12 @@ impl ScriptThread {
 
     fn handle_focus_iframe_msg(&self,
                                parent_pipeline_id: PipelineId,
-                               subpage_id: SubpageId) {
+                               pipeline_id: PipelineId) {
         let borrowed_context = self.root_browsing_context();
         let context = borrowed_context.find(parent_pipeline_id).unwrap();
 
         let doc = context.active_document();
-        let frame_element = doc.find_iframe(subpage_id);
+        let frame_element = doc.find_iframe(pipeline_id);
 
         if let Some(ref frame_element) = frame_element {
             doc.begin_focus_transaction();
@@ -1339,11 +1336,11 @@ impl ScriptThread {
 
     fn handle_framed_content_changed(&self,
                                      parent_pipeline_id: PipelineId,
-                                     subpage_id: SubpageId) {
+                                     pipeline_id: PipelineId) {
         let root_context = self.root_browsing_context();
         let context = root_context.find(parent_pipeline_id).unwrap();
         let doc = context.active_document();
-        let frame_element = doc.find_iframe(subpage_id);
+        let frame_element = doc.find_iframe(pipeline_id);
         if let Some(ref frame_element) = frame_element {
             frame_element.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
             let window = context.active_window();
@@ -1357,33 +1354,32 @@ impl ScriptThread {
     /// https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserloadstart
     fn handle_mozbrowser_event_msg(&self,
                                    parent_pipeline_id: PipelineId,
-                                   subpage_id: Option<SubpageId>,
+                                   pipeline_id: Option<PipelineId>,
                                    event: MozBrowserEvent) {
         match self.root_browsing_context().find(parent_pipeline_id) {
             None => warn!("Mozbrowser event after pipeline {:?} closed.", parent_pipeline_id),
-            Some(context) => match subpage_id {
+            Some(context) => match pipeline_id {
                 None => context.active_window().dispatch_mozbrowser_event(event),
-                Some(subpage_id) => match context.active_document().find_iframe(subpage_id) {
-                    None => warn!("Mozbrowser event after iframe {:?}/{:?} closed.", parent_pipeline_id, subpage_id),
+                Some(pipeline_id) => match context.active_document().find_iframe(pipeline_id) {
+                    None => warn!("Mozbrowser event after iframe {:?}/{:?} closed.", parent_pipeline_id, pipeline_id),
                     Some(frame_element) => frame_element.dispatch_mozbrowser_event(event),
                 },
             },
         }
     }
 
-    fn handle_update_subpage_id(&self,
-                                containing_pipeline_id: PipelineId,
-                                old_subpage_id: SubpageId,
-                                new_subpage_id: SubpageId,
-                                new_pipeline_id: PipelineId) {
+    fn handle_update_pipeline_id(&self,
+                                 parent_pipeline_id: PipelineId,
+                                 old_pipeline_id: PipelineId,
+                                 new_pipeline_id: PipelineId) {
         let borrowed_context = self.root_browsing_context();
 
-        let frame_element = borrowed_context.find(containing_pipeline_id).and_then(|context| {
+        let frame_element = borrowed_context.find(parent_pipeline_id).and_then(|context| {
             let doc = context.active_document();
-            doc.find_iframe(old_subpage_id)
+            doc.find_iframe(old_pipeline_id)
         });
 
-        frame_element.unwrap().update_subpage_id(new_subpage_id, new_pipeline_id);
+        frame_element.unwrap().update_pipeline_id(new_pipeline_id);
     }
 
     /// Window was resized, but this script was not active, so don't reflow yet
@@ -1412,11 +1408,9 @@ impl ScriptThread {
 
     /// We have received notification that the response associated with a load has completed.
     /// Kick off the document and frame tree creation process using the result.
-    fn handle_page_headers_available(&self, id: &PipelineId, subpage: Option<&SubpageId>,
+    fn handle_page_headers_available(&self, id: &PipelineId,
                                      metadata: Option<Metadata>) -> Option<ParserRoot> {
-        let idx = self.incomplete_loads.borrow().iter().position(|load| {
-            load.pipeline_id == *id && load.parent_info.as_ref().map(|info| &info.1) == subpage
-        });
+        let idx = self.incomplete_loads.borrow().iter().position(|load| { load.pipeline_id == *id });
         // The matching in progress load structure may not exist if
         // the pipeline exited before the page load completed.
         match idx {
@@ -1502,7 +1496,7 @@ impl ScriptThread {
         // If root is being exited, shut down all contexts
         let context = self.root_browsing_context();
         let window = context.active_window();
-        if window.pipeline() == id {
+        if window.pipeline_id() == id {
             debug!("shutting down layout for root context {:?}", id);
             shut_down_layout(&context);
             let _ = self.constellation_chan.send(ConstellationMsg::PipelineExited(id));
@@ -1534,12 +1528,12 @@ impl ScriptThread {
     }
 
     /// Notify the containing document of a child frame that has completed loading.
-    fn handle_frame_load_event(&self, containing_pipeline: PipelineId, id: PipelineId) {
-        let document = match self.root_browsing_context().find(containing_pipeline) {
+    fn handle_frame_load_event(&self, parent_pipeline_id: PipelineId, id: PipelineId) {
+        let document = match self.root_browsing_context().find(parent_pipeline_id) {
             Some(browsing_context) => browsing_context.active_document(),
-            None => return warn!("Message sent to closed pipeline {}.", containing_pipeline),
+            None => return warn!("Message sent to closed pipeline {}.", parent_pipeline_id),
         };
-        if let Some(iframe) = document.find_iframe_by_pipeline(id) {
+        if let Some(iframe) = document.find_iframe(id) {
             iframe.iframe_load_event_steps(id);
         }
     }
@@ -1561,7 +1555,7 @@ impl ScriptThread {
         }
         debug!("ScriptThread: loading {} on pipeline {:?}", incomplete.url, incomplete.pipeline_id);
 
-        let frame_element = incomplete.parent_info.and_then(|(parent_id, subpage_id, _)| {
+        let frame_element = incomplete.parent_info.and_then(|(parent_id, _)| {
             // The root context may not exist yet, if the parent of this frame
             // exists in a different script thread.
             let root_context = self.browsing_context.get();
@@ -1576,7 +1570,7 @@ impl ScriptThread {
             root_context.and_then(|root_context| {
                 root_context.find(parent_id).and_then(|context| {
                     let doc = context.active_document();
-                    doc.find_iframe(subpage_id)
+                    doc.find_iframe(incomplete.pipeline_id)
                 })
             })
         });
@@ -1664,7 +1658,7 @@ impl ScriptThread {
             // We have a new root frame tree.
             self.browsing_context.set(Some(&new_context));
             (new_context, ContextToRemove::Root)
-        } else if let Some((parent, _, _)) = incomplete.parent_info {
+        } else if let Some((parent, _)) = incomplete.parent_info {
             // Create a new context tree entry. This will be a child context.
             let new_context = BrowsingContext::new(&window, frame_element, incomplete.pipeline_id);
 
@@ -1698,7 +1692,7 @@ impl ScriptThread {
         });
 
         let loader = DocumentLoader::new_with_threads(self.resource_threads.clone(),
-                                                      Some(browsing_context.pipeline()),
+                                                      Some(browsing_context.pipeline_id()),
                                                       Some(incomplete.url.clone()));
 
         let is_html_document = match metadata.content_type {
@@ -1754,7 +1748,7 @@ impl ScriptThread {
             .unwrap();
 
         // Notify devtools that a new script global exists.
-        self.notify_devtools(document.Title(), final_url.clone(), (browsing_context.pipeline(), None));
+        self.notify_devtools(document.Title(), final_url.clone(), (browsing_context.pipeline_id(), None));
 
         let is_javascript = incomplete.url.scheme() == "javascript";
         let parse_input = if is_javascript {
@@ -1818,7 +1812,7 @@ impl ScriptThread {
         }
 
         if !incomplete.is_visible {
-            self.alter_resource_utilization(browsing_context.pipeline(), false);
+            self.alter_resource_utilization(browsing_context.pipeline_id(), false);
         }
 
         context_remover.neuter();
@@ -2006,30 +2000,30 @@ impl ScriptThread {
     /// https://html.spec.whatwg.org/multipage/#navigating-across-documents
     /// The entry point for content to notify that a new load has been requested
     /// for the given pipeline (specifically the "navigate" algorithm).
-    fn handle_navigate(&self, pipeline_id: PipelineId, subpage_id: Option<SubpageId>, load_data: LoadData) {
+    fn handle_navigate(&self, parent_pipeline_id: PipelineId, pipeline_id: Option<PipelineId>, load_data: LoadData) {
         // Step 7.
         {
             let nurl = &load_data.url;
             if let Some(fragment) = nurl.fragment() {
-                let document = match self.root_browsing_context().find(pipeline_id) {
+                let document = match self.root_browsing_context().find(parent_pipeline_id) {
                     Some(browsing_context) => browsing_context.active_document(),
-                    None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
+                    None => return warn!("Message sent to closed pipeline {}.", parent_pipeline_id),
                 };
                 let url = document.url();
                 if &url[..Position::AfterQuery] == &nurl[..Position::AfterQuery] &&
                     load_data.method == Method::Get {
-                    self.check_and_scroll_fragment(fragment, pipeline_id, document.r());
+                    self.check_and_scroll_fragment(fragment, parent_pipeline_id, document.r());
                     return;
                 }
             }
         }
 
-        match subpage_id {
-            Some(subpage_id) => {
+        match pipeline_id {
+            Some(pipeline_id) => {
                 let root_context = self.root_browsing_context();
-                let iframe = root_context.find(pipeline_id).and_then(|context| {
+                let iframe = root_context.find(parent_pipeline_id).and_then(|context| {
                     let doc = context.active_document();
-                    doc.find_iframe(subpage_id)
+                    doc.find_iframe(pipeline_id)
                 });
                 if let Some(iframe) = iframe.r() {
                     iframe.navigate_or_reload_child_browsing_context(Some(load_data));
@@ -2037,7 +2031,7 @@ impl ScriptThread {
             }
             None => {
                 self.constellation_chan
-                    .send(ConstellationMsg::LoadUrl(pipeline_id, load_data))
+                    .send(ConstellationMsg::LoadUrl(parent_pipeline_id, load_data))
                     .unwrap();
             }
         }
@@ -2076,9 +2070,8 @@ impl ScriptThread {
     /// argument until a notification is received that the fetch is complete.
     fn start_page_load(&self, incomplete: InProgressLoad, mut load_data: LoadData) {
         let id = incomplete.pipeline_id.clone();
-        let subpage = incomplete.parent_info.clone().map(|p| p.1);
 
-        let context = Arc::new(Mutex::new(ParserContext::new(id, subpage, load_data.url.clone())));
+        let context = Arc::new(Mutex::new(ParserContext::new(id, load_data.url.clone())));
         let (action_sender, action_receiver) = ipc::channel().unwrap();
         let listener = NetworkListener {
             context: context,

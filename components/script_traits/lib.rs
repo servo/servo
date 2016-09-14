@@ -54,7 +54,7 @@ use layers::geometry::DevicePixel;
 use libc::c_void;
 use msg::constellation_msg::{FrameId, FrameType, Image, Key, KeyModifiers, KeyState, LoadData};
 use msg::constellation_msg::{PipelineId, PipelineNamespaceId, ReferrerPolicy};
-use msg::constellation_msg::{SubpageId, TraversalDirection, WindowSizeType};
+use msg::constellation_msg::{TraversalDirection, WindowSizeType};
 use net_traits::{LoadOrigin, ResourceThreads};
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::ImageCacheThread;
@@ -130,11 +130,9 @@ pub enum LayoutControlMsg {
 #[derive(Deserialize, Serialize)]
 pub struct NewLayoutInfo {
     /// Id of the parent of this new pipeline.
-    pub containing_pipeline_id: PipelineId,
+    pub parent_pipeline_id: PipelineId,
     /// Id of the newly-created pipeline.
     pub new_pipeline_id: PipelineId,
-    /// Id of the new frame associated with this pipeline.
-    pub subpage_id: SubpageId,
     /// Type of the new frame associated with this pipeline.
     pub frame_type: FrameType,
     /// Network request data which will be initiated by the script thread.
@@ -178,16 +176,22 @@ pub enum ConstellationControlMsg {
     /// Notifies script thread whether frame is visible
     ChangeFrameVisibilityStatus(PipelineId, bool),
     /// Notifies script thread that frame visibility change is complete
+    /// First PipelineId is for the parent, second PipelineId is for the actual pipeline.
     NotifyVisibilityChange(PipelineId, PipelineId, bool),
     /// Notifies script thread that a url should be loaded in this iframe.
-    Navigate(PipelineId, SubpageId, LoadData),
+    /// First PipelineId is for the parent, second PipelineId is for the actual pipeline.
+    Navigate(PipelineId, PipelineId, LoadData),
     /// Requests the script thread forward a mozbrowser event to an iframe it owns,
-    /// or to the window if no subpage id is provided.
-    MozBrowserEvent(PipelineId, Option<SubpageId>, MozBrowserEvent),
-    /// Updates the current subpage and pipeline IDs of a given iframe
-    UpdateSubpageId(PipelineId, SubpageId, SubpageId, PipelineId),
+    /// or to the window if no child pipeline id is provided.
+    /// First PipelineId is for the parent, second PipelineId is for the actual pipeline.
+    MozBrowserEvent(PipelineId, Option<PipelineId>, MozBrowserEvent),
+    /// Updates the current pipeline ID of a given iframe.
+    /// First PipelineId is for the parent, second is the old PipelineId for the frame,
+    /// third is the new PipelineId for the frame.
+    UpdatePipelineId(PipelineId, PipelineId, PipelineId),
     /// Set an iframe to be focused. Used when an element in an iframe gains focus.
-    FocusIFrame(PipelineId, SubpageId),
+    /// First PipelineId is for the parent, second PipelineId is for the actual pipeline.
+    FocusIFrame(PipelineId, PipelineId),
     /// Passes a webdriver command to the script thread for execution
     WebDriverScriptCommand(PipelineId, WebDriverScriptCommand),
     /// Notifies script thread that all animations are done
@@ -203,7 +207,8 @@ pub enum ConstellationControlMsg {
         parent: PipelineId,
     },
     /// Notifies a parent frame that one of its child frames is now active.
-    FramedContentChanged(PipelineId, SubpageId),
+    /// First PipelineId is for the parent, second PipelineId is for the actual pipeline.
+    FramedContentChanged(PipelineId, PipelineId),
     /// Report an error from a CSS parser for the given pipeline
     ReportCSSError(PipelineId, String, usize, usize, String),
     /// Reload the given page.
@@ -228,7 +233,7 @@ impl fmt::Debug for ConstellationControlMsg {
             NotifyVisibilityChange(..) => "NotifyVisibilityChange",
             Navigate(..) => "Navigate",
             MozBrowserEvent(..) => "MozBrowserEvent",
-            UpdateSubpageId(..) => "UpdateSubpageId",
+            UpdatePipelineId(..) => "UpdatePipelineId",
             FocusIFrame(..) => "FocusIFrame",
             WebDriverScriptCommand(..) => "WebDriverScriptCommand",
             TickAllAnimations(..) => "TickAllAnimations",
@@ -389,7 +394,7 @@ pub struct InitialScriptState {
     pub id: PipelineId,
     /// The subpage ID of this pipeline to create in its pipeline parent.
     /// If `None`, this is the root.
-    pub parent_info: Option<(PipelineId, SubpageId, FrameType)>,
+    pub parent_info: Option<(PipelineId, FrameType)>,
     /// A channel with which messages can be sent to us (the script thread).
     pub control_chan: IpcSender<ConstellationControlMsg>,
     /// A port on which messages sent by the constellation to script can be received.
@@ -444,11 +449,9 @@ pub struct IFrameLoadInfo {
     /// Load data containing the url to load
     pub load_data: Option<LoadData>,
     /// Pipeline ID of the parent of this iframe
-    pub containing_pipeline_id: PipelineId,
-    /// The new subpage ID for this load
-    pub new_subpage_id: SubpageId,
-    /// The old subpage ID for this iframe, if a page was previously loaded.
-    pub old_subpage_id: Option<SubpageId>,
+    pub parent_pipeline_id: PipelineId,
+    /// The old pipeline ID for this iframe, if a page was previously loaded.
+    pub old_pipeline_id: Option<PipelineId>,
     /// The new pipeline ID that the iframe has generated.
     pub new_pipeline_id: PipelineId,
     /// Sandbox type of this iframe

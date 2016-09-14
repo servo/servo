@@ -17,8 +17,7 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layers::geometry::DevicePixel;
 use layout_traits::LayoutThreadFactory;
-use msg::constellation_msg::{FrameId, FrameType, LoadData, PipelineId};
-use msg::constellation_msg::{PipelineNamespaceId, SubpageId};
+use msg::constellation_msg::{FrameId, FrameType, LoadData, PipelineId, PipelineNamespaceId};
 use net_traits::{IpcSend, ResourceThreads};
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::ImageCacheThread;
@@ -51,7 +50,7 @@ pub enum ChildProcess {
 /// A uniquely-identifiable pipeline of script thread, layout thread, and paint thread.
 pub struct Pipeline {
     pub id: PipelineId,
-    pub parent_info: Option<(PipelineId, SubpageId, FrameType)>,
+    pub parent_info: Option<(PipelineId, FrameType)>,
     pub script_chan: IpcSender<ConstellationControlMsg>,
     /// A channel to layout, for performing reflows and shutdown.
     pub layout_chan: IpcSender<LayoutControlMsg>,
@@ -84,9 +83,9 @@ pub struct Pipeline {
 pub struct InitialPipelineState {
     /// The ID of the pipeline to create.
     pub id: PipelineId,
-    /// The subpage ID of this pipeline to create in its pipeline parent.
+    /// The ID of the parent pipeline and frame type, if any.
     /// If `None`, this is the root.
-    pub parent_info: Option<(PipelineId, SubpageId, FrameType)>,
+    pub parent_info: Option<(PipelineId, FrameType)>,
     /// A channel to the associated constellation.
     pub constellation_chan: IpcSender<ScriptMsg>,
     /// A channel for the layout thread to send messages to the constellation.
@@ -150,12 +149,11 @@ impl Pipeline {
 
         let (script_chan, content_ports) = match state.script_chan {
             Some(script_chan) => {
-                let (containing_pipeline_id, subpage_id, frame_type) =
-                    state.parent_info.expect("script_pipeline != None but subpage_id == None");
+                let (parent_pipeline_id, frame_type) =
+                    state.parent_info.expect("script_pipeline != None but parent_info == None");
                 let new_layout_info = NewLayoutInfo {
-                    containing_pipeline_id: containing_pipeline_id,
+                    parent_pipeline_id: parent_pipeline_id,
                     new_pipeline_id: state.id,
-                    subpage_id: subpage_id,
                     frame_type: frame_type,
                     load_data: state.load_data.clone(),
                     paint_chan: layout_to_paint_chan.clone().to_opaque(),
@@ -273,7 +271,7 @@ impl Pipeline {
     }
 
     fn new(id: PipelineId,
-           parent_info: Option<(PipelineId, SubpageId, FrameType)>,
+           parent_info: Option<(PipelineId, FrameType)>,
            script_chan: IpcSender<ConstellationControlMsg>,
            layout_chan: IpcSender<LayoutControlMsg>,
            compositor_proxy: Box<CompositorProxy + 'static + Send>,
@@ -377,12 +375,12 @@ impl Pipeline {
     }
 
     pub fn trigger_mozbrowser_event(&self,
-                                     subpage_id: Option<SubpageId>,
+                                     child_id: Option<PipelineId>,
                                      event: MozBrowserEvent) {
         assert!(PREFS.is_mozbrowser_enabled());
 
         let event = ConstellationControlMsg::MozBrowserEvent(self.id,
-                                                             subpage_id,
+                                                             child_id,
                                                              event);
         if let Err(e) = self.script_chan.send(event) {
             warn!("Sending mozbrowser event to script failed ({}).", e);
@@ -409,7 +407,7 @@ impl Pipeline {
 #[derive(Deserialize, Serialize)]
 pub struct UnprivilegedPipelineContent {
     id: PipelineId,
-    parent_info: Option<(PipelineId, SubpageId, FrameType)>,
+    parent_info: Option<(PipelineId, FrameType)>,
     constellation_chan: IpcSender<ScriptMsg>,
     layout_to_constellation_chan: IpcSender<LayoutMsg>,
     scheduler_chan: IpcSender<TimerEventRequest>,
