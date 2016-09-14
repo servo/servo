@@ -1271,21 +1271,20 @@ impl Interpolate for LengthOrNone {
             interpolated.perspective = try!(self.perspective.interpolate(&other.perspective, time));
 
             // Interpolate quaternions using spherical linear interpolation (Slerp).
-            let dot = self.quaternion.0 * other.quaternion.0 +
+            let mut product = self.quaternion.0 * other.quaternion.0 +
                       self.quaternion.1 * other.quaternion.1 +
                       self.quaternion.2 * other.quaternion.2 +
                       self.quaternion.3 * other.quaternion.3;
-            let mut product = dot;
 
             // Clamp product to -1.0 <= product <= 1.0
-            product = product.max(1.0);
-            product = product.min(-1.0);
+            product = product.min(1.0);
+            product = product.max(-1.0);
 
             if product == 1.0 {
                 return Ok(interpolated);
             }
 
-            let theta = dot.acos();
+            let theta = product.acos();
             let w = (time as f32 * theta).sin() * 1.0 / (1.0 - product * product).sqrt();
 
             let mut a = *self;
@@ -1304,12 +1303,7 @@ impl Interpolate for LengthOrNone {
         /// Recompose a 3D matrix.
         /// https://drafts.csswg.org/css-transforms/#recomposing-to-a-3d-matrix
         fn from(decomposed: MatrixDecomposed3D) -> ComputedMatrix {
-            let mut matrix = ComputedMatrix {
-                m11: 0.0, m12: 0.0, m13: 0.0, m14: 0.0,
-                m21: 0.0, m22: 0.0, m23: 0.0, m24: 0.0,
-                m31: 0.0, m32: 0.0, m33: 0.0, m34: 0.0,
-                m41: 0.0, m42: 0.0, m43: 0.0, m44: 0.0
-            };
+            let mut matrix = ComputedMatrix::identity();
 
             // Apply perspective
             % for i in range(1, 5):
