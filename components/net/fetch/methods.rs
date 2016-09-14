@@ -361,13 +361,14 @@ fn main_fetch(request: Rc<Request>, cache: &mut CORSCache, cors_flag: bool,
             }
         }
     } else if let Some(ref mut target) = *target {
-        if let ResponseBody::Done(ref vec) = *response.body.lock().unwrap() {
+        let body = response.body.lock().unwrap();
+        if let ResponseBody::Done(ref vec) = *body {
             // in case there was no channel to wait for, the body was
             // obtained synchronously via basic_fetch for data/file/about/etc
             // We should still send the body across as a chunk
             target.process_response_chunk(vec.clone());
         } else {
-            assert!(*response.body.lock().unwrap() == ResponseBody::Empty)
+            assert!(*body == ResponseBody::Empty)
         }
     }
 
