@@ -1017,7 +1017,8 @@ pub fn load<A, B>(load_data: &LoadData,
         new_auth_header = None;
 
         if let Some(auth_header) = request_headers.get::<Authorization<Basic>>() {
-            if response.status().class() == StatusClass::Success {
+            if response.status().class() == StatusClass::Success ||
+               response.status().class() == StatusClass::Redirection {
                 let auth_entry = AuthCacheEntry {
                     user_name: auth_header.username.to_owned(),
                     password: auth_header.password.to_owned().unwrap(),
