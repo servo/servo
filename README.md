@@ -35,26 +35,18 @@ pip install virtualenv
 ``` sh
 sudo port install python27 py27-virtualenv cmake
 ```
-#### On OS X 10.11 (El Capitan), you also have to install openssl
+#### On OS X <= 10.11 (El Capitan), you also have to install openssl
 
 ``` sh
 brew install openssl
-brew link --force openssl
-```
 
-If you get this error during the brew link step:
-```sh
-Warning: Refusing to link: openssl
-```
-followed by a compile error not being able to find one or more
-openssl/ include files, you may want to try:
-```sh
 export OPENSSL_INCLUDE_DIR="$(brew --prefix openssl)/include"
 export OPENSSL_LIB_DIR="$(brew --prefix openssl)/lib"
+
 ./mach build ...
 ```
 
-If you've already partially compiled servo but forgot to do this step, run ./mach clean, link openssl, and recompile.
+If you've already partially compiled servo but forgot to do this step, run ./mach clean, set the shell variables, and recompile.
 
 #### On Debian-based Linuxes
 
