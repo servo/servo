@@ -180,12 +180,12 @@ impl HTMLIFrameElement {
         // network load can begin.
         if let Some(receiver) = sync_receiver {
             let msg = receiver.recv().unwrap();
-            assert!(match msg {
-                ConstellationControlMsg::AttachLayout(_) => true,
-                _ => false,
-            });
+            let new_layout_info = match msg {
+                ConstellationControlMsg::AttachLayout(new_layout_info) => new_layout_info,
+                _ => panic!("Expected AttachLayout"),
+            };
             // Synchronously perform the network load associated with this frame.
-            ScriptThread::process_constellation_event(msg);
+            ScriptThread::process_attach_layout(new_layout_info);
         }
 
         if PREFS.is_mozbrowser_enabled() {

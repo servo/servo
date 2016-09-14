@@ -553,11 +553,13 @@ impl ScriptThread {
         });
     }
 
-    pub fn process_constellation_event(msg: ConstellationControlMsg) {
+    pub fn process_attach_layout(new_layout_info: NewLayoutInfo) {
         SCRIPT_THREAD_ROOT.with(|root| {
             if let Some(script_thread) = root.get() {
                 let script_thread = unsafe { &*script_thread };
-                script_thread.handle_msg_from_constellation(msg, true);
+                script_thread.profile_event(ScriptThreadEventCategory::AttachLayout, || {
+                    script_thread.handle_new_layout(new_layout_info);
+                })
             }
         });
     }
@@ -811,7 +813,7 @@ impl ScriptThread {
                             return Some(false)
                         }
                     },
-                    FromConstellation(inner_msg) => self.handle_msg_from_constellation(inner_msg, false),
+                    FromConstellation(inner_msg) => self.handle_msg_from_constellation(inner_msg),
                     FromScript(inner_msg) => self.handle_msg_from_script(inner_msg),
                     FromScheduler(inner_msg) => self.handle_timer_event(inner_msg),
                     FromDevtools(inner_msg) => self.handle_msg_from_devtools(inner_msg),
@@ -910,20 +912,10 @@ impl ScriptThread {
         }
     }
 
-    fn handle_msg_from_constellation(&self,
-                                     msg: ConstellationControlMsg,
-                                     allow_attach_layout: bool) {
+    fn handle_msg_from_constellation(&self, msg: ConstellationControlMsg) {
         match msg {
             ConstellationControlMsg::Navigate(parent_pipeline_id, pipeline_id, load_data, replace) =>
                 self.handle_navigate(parent_pipeline_id, Some(pipeline_id), load_data, replace),
-            ConstellationControlMsg::AttachLayout(new_layout_info) => {
-                if !allow_attach_layout {
-                    panic!("should have handled AttachLayout already");
-                }
-                self.profile_event(ScriptThreadEventCategory::AttachLayout, || {
-                    self.handle_new_layout(new_layout_info);
-                })
-            }
             ConstellationControlMsg::SendEvent(id, event) =>
                 self.handle_event(id, event),
             ConstellationControlMsg::ResizeInactive(id, new_size) =>
@@ -969,6 +961,7 @@ impl ScriptThread {
                 self.handle_css_error_reporting(pipeline_id, filename, line, column, msg),
             ConstellationControlMsg::Reload(pipeline_id) =>
                 self.handle_reload(pipeline_id),
+            msg @ ConstellationControlMsg::AttachLayout(..) |
             msg @ ConstellationControlMsg::Viewport(..) |
             msg @ ConstellationControlMsg::SetScrollState(..) |
             msg @ ConstellationControlMsg::Resize(..) |
