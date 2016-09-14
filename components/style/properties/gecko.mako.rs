@@ -1640,7 +1640,7 @@ clip-path
                 fn init_shape(clip_path: &mut StyleClipPath, ty: StyleBasicShapeType) -> &mut StyleBasicShape {
                     unsafe {
                         // We have to be very careful to avoid a copy here!
-                        let ref mut union = clip_path.StyleShapeSource_nsStyleStruct_h_unnamed_26;
+                        let ref mut union = clip_path.__bindgen_anon_1;
                         let mut shape: &mut *mut StyleBasicShape = union.mBasicShape.as_mut();
                         *shape = Gecko_NewBasicShape(ty);
                         &mut **shape
@@ -1738,7 +1738,7 @@ clip-path
                 } else {
                     Some(clip_path.mReferenceBox.into())
                 };
-                let union = clip_path.StyleShapeSource_nsStyleStruct_h_unnamed_26;
+                let union = clip_path.__bindgen_anon_1;
                 let shape = unsafe { &**union.mBasicShape.as_ref() };
                 ShapeSource::Shape(shape.into(), reference)
             }
