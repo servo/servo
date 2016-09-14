@@ -28,7 +28,7 @@ COMPILATION_TARGETS = {
         "clang_flags": [
             "-x", "c++", "-std=c++14",
             "-DTRACING=1", "-DIMPL_LIBXUL", "-DMOZ_STYLO_BINDINGS=1",
-            "-DMOZILLA_INTERNAL_API", "-DRUST_BINDGEN",
+            "-DMOZILLA_INTERNAL_API", "-DRUST_BINDGEN", "-DMOZ_STYLO"
         ],
         "search_dirs": [
             "{}/dist/include",
@@ -145,7 +145,9 @@ COMPILATION_TARGETS = {
             "nsAString_internal_incompatible_char_type",
             "nsACString_internal_char_traits",
             "nsACString_internal_incompatible_char_type",
+            "RefPtr_Proxy", "nsAutoPtr_Proxy", "Pair_Base",
             "RefPtr_Proxy_member_function", "nsAutoPtr_Proxy_member_function",
+            "nsWritingIterator_reference", "nsReadingIterator_reference",
             "Heap", "TenuredHeap", "Rooted", "WeakPtr",  # <- More template magic than what
                                                          #    we support.
             "nsTObserverArray",  # <- Inherits from nsAutoTObserverArray<T, 0>
