@@ -66,29 +66,29 @@ class Session(object):
 
     def dismiss_user_prompts(self):
         """Dismisses any open user prompts in windows."""
-        current_window = self.client.window_handle
+        current_window = self.client.handle
 
         for window in self.windows():
-            self.client.window_handle = window
+            self.client.handle = window
             try:
                 self.client.alert.dismiss()
             except webdriver.NoSuchAlertException:
                 pass
 
-        self.client.window_handle = current_window
+        self.client.handle = current_window
 
     def restore_windows(self):
         """Closes superfluous windows opened by the test without ending
         the session implicitly by closing the last window.
         """
-        current_window = self.client.window_handle
+        current_window = self.client.handle
 
         for window in self.windows(exclude=[current_window]):
-            self.client.window_handle = window
-            if len(self.client.window_handles) > 1:
+            self.client.handle = window
+            if len(self.client.handles) > 1:
                 self.client.close()
 
-        self.client.window_handle = current_window
+        self.client.handle = current_window
 
     def switch_to_top_level_browsing_context(self):
         """If the current browsing context selected by WebDriver is a
@@ -103,5 +103,5 @@ class Session(object):
         """
         if exclude is None:
             exclude = []
-        wins = [w for w in self.client.window_handles if w not in exclude]
+        wins = [w for w in self.client.handles if w not in exclude]
         return set(wins)
