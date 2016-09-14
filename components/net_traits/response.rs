@@ -4,7 +4,7 @@
 
 //! The [Response](https://fetch.spec.whatwg.org/#responses) object
 //! resulting from a [fetch operation](https://fetch.spec.whatwg.org/#concept-fetch)
-use {Metadata, NetworkError};
+use {FetchMetadata, FilteredMetadata, Metadata, NetworkError};
 use hyper::header::{AccessControlExposeHeaders, ContentType, Headers};
 use hyper::status::StatusCode;
 use hyper_serde::Serde;
@@ -225,24 +225,42 @@ impl Response {
         response
     }
 
-    pub fn metadata(&self) -> Result<Metadata, NetworkError> {
-        let mut metadata = if let Some(ref url) = self.url {
-            Metadata::default(url.clone())
-        } else {
-            return Err(NetworkError::Internal("No url found in response".to_string()));
+    pub fn metadata(&self) -> Result<FetchMetadata, NetworkError> {
+        fn init_metadata(response: &Response, url: &Url) -> Metadata {
+            let mut metadata = Metadata::default(url.clone());
+            metadata.set_content_type(match response.headers.get() {
+                Some(&ContentType(ref mime)) => Some(mime),
+                None => None
+            });
+            metadata.headers = Some(Serde(response.headers.clone()));
+            metadata.status = response.raw_status.clone();
+            metadata.https_state = response.https_state;
+            metadata
         };
 
         if self.is_network_error() {
-            return Err(NetworkError::Internal("Cannot extract metadata from network error".to_string()));
+            return Err(NetworkError::Internal("Cannot extract metadata from network error".to_owned()));
         }
 
-        metadata.set_content_type(match self.headers.get() {
-            Some(&ContentType(ref mime)) => Some(mime),
-            None => None
-        });
-        metadata.headers = Some(Serde(self.headers.clone()));
-        metadata.status = self.raw_status.clone();
-        metadata.https_state = self.https_state;
-        return Ok(metadata);
+        let metadata = self.url.as_ref().map(|url| init_metadata(self, url));
+
+        if let Some(ref response) = self.internal_response {
+            match response.url {
+                Some(ref url) => {
+                    let unsafe_metadata = init_metadata(response, url);
+
+                    Ok(FetchMetadata::Filtered {
+                        filtered: match metadata {
+                            Some(m) => FilteredMetadata::Transparent(m),
+                            None => FilteredMetadata::Opaque
+                        },
+                        unsafe_: unsafe_metadata
+                    })
+                }
+                None => Err(NetworkError::Internal("No url found in unsafe response".to_owned()))
+            }
+        } else {
+            Ok(FetchMetadata::Unfiltered(metadata.unwrap()))
+        }
     }
 }

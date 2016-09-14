@@ -31,7 +31,7 @@ use html5ever::tree_builder::NextParserState;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsval::UndefinedValue;
-use net_traits::{FetchResponseListener, Metadata, NetworkError};
+use net_traits::{FetchMetadata, FetchResponseListener, Metadata, NetworkError};
 use net_traits::request::{CORSSettings, CredentialsMode, Destination, RequestInit, RequestMode, Type as RequestType};
 use network_listener::{NetworkListener, PreInvoke};
 use std::ascii::AsciiExt;
@@ -159,8 +159,12 @@ impl FetchResponseListener for ScriptContext {
 
     fn process_request_eof(&mut self) {} // TODO(KiChjang): Perhaps add custom steps to perform fetch here?
 
-    fn process_response(&mut self, metadata: Result<Metadata, NetworkError>) {
-        self.metadata = metadata.ok();
+    fn process_response(&mut self,
+                        metadata: Result<FetchMetadata, NetworkError>) {
+        self.metadata = metadata.ok().map(|meta| match meta {
+            FetchMetadata::Unfiltered(m) => m,
+            FetchMetadata::Filtered { unsafe_, .. } => unsafe_
+        });
 
         let status_code = self.metadata.as_ref().and_then(|m| {
             match m.status {

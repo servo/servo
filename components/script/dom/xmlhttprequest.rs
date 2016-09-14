@@ -45,8 +45,8 @@ use js::jsapi::{JSContext, JS_ParseJSON};
 use js::jsapi::JS_ClearPendingException;
 use js::jsval::{JSVal, NullValue, UndefinedValue};
 use msg::constellation_msg::{PipelineId, ReferrerPolicy};
-use net_traits::{CoreResourceThread, LoadOrigin};
-use net_traits::{FetchResponseListener, Metadata, NetworkError};
+use net_traits::{CoreResourceThread, FetchMetadata, FilteredMetadata};
+use net_traits::{FetchResponseListener, LoadOrigin, NetworkError};
 use net_traits::CoreResourceMsg::Fetch;
 use net_traits::request::{CredentialsMode, Destination, RequestInit, RequestMode};
 use net_traits::trim_http_whitespace;
@@ -227,10 +227,10 @@ impl XMLHttpRequest {
                 // todo
             }
 
-            fn process_response(&mut self, metadata: Result<Metadata, NetworkError>) {
+            fn process_response(&mut self,
+                                metadata: Result<FetchMetadata, NetworkError>) {
                 let xhr = self.xhr.root();
-                let rv = xhr.process_headers_available(self.gen_id,
-                                                       metadata);
+                let rv = xhr.process_headers_available(self.gen_id, metadata);
                 if rv.is_err() {
                     *self.sync_status.borrow_mut() = Some(rv);
                 }
@@ -869,10 +869,16 @@ impl XMLHttpRequest {
     }
 
     fn process_headers_available(&self,
-                                 gen_id: GenerationId, metadata: Result<Metadata, NetworkError>)
+                                 gen_id: GenerationId, metadata: Result<FetchMetadata, NetworkError>)
                                  -> Result<(), Error> {
         let metadata = match metadata {
-            Ok(meta) => meta,
+            Ok(meta) => match meta {
+                FetchMetadata::Unfiltered(m) => m,
+                FetchMetadata::Filtered { filtered, .. } => match filtered {
+                    FilteredMetadata::Opaque => return Err(Error::Network),
+                    FilteredMetadata::Transparent(m) => m
+                }
+            },
             Err(_) => {
                 self.process_partial_response(XHRProgress::Errored(gen_id, Error::Network));
                 return Err(Error::Network);
