@@ -49,7 +49,7 @@ use gfx_traits::StackingContextId;
 use heapsize::HeapSizeOf;
 use hyper::header::Headers;
 use hyper::method::Method;
-use ipc_channel::ipc::{IpcReceiver, IpcSender};
+use ipc_channel::ipc::{IpcReceiver, IpcSender, OpaqueIpcSender};
 use libc::c_void;
 use msg::constellation_msg::{FrameId, FrameType, Key, KeyModifiers, KeyState};
 use msg::constellation_msg::{PipelineId, PipelineNamespaceId, ReferrerPolicy, TraversalDirection};
@@ -178,6 +178,8 @@ pub struct NewLayoutInfo {
     pub content_process_shutdown_chan: IpcSender<()>,
     /// Number of threads to use for layout.
     pub layout_threads: usize,
+    /// True if this new pipeline load should occur synchronously.
+    pub is_sync: bool,
 }
 
 /// Messages sent from the constellation or layout to the script thread.
@@ -478,19 +480,35 @@ pub enum IFrameSandboxState {
 
 /// Specifies the information required to load a URL in an iframe.
 #[derive(Deserialize, Serialize)]
-pub struct IFrameLoadInfo {
+pub struct AsyncIFrameLoad {
+    /// The old pipeline ID for this iframe, if a page was previously loaded.
+    pub old_pipeline_id: Option<PipelineId>,
+    /// Sandbox type of this iframe
+    pub sandbox: IFrameSandboxState,
     /// Load data containing the url to load
     pub load_data: Option<LoadData>,
+}
+
+/// XXX
+#[derive(Deserialize, Serialize)]
+pub enum IFrameLoadType {
+    /// The initial target event loop for a synchronous about:blank creation, and the
+    /// replacement event loop for all subsequent messages after the frame is created
+    /// by the constellation.
+    Sync((OpaqueIpcSender, OpaqueIpcSender)),
+    /// XXX
+    Async(AsyncIFrameLoad),
+}
+
+/// Specifies the information required to load a URL in an iframe.
+#[derive(Deserialize, Serialize)]
+pub struct IFrameLoadInfo {
     /// Pipeline ID of the parent of this iframe
     pub parent_pipeline_id: PipelineId,
     /// The ID for this iframe.
     pub frame_id: FrameId,
-    /// The old pipeline ID for this iframe, if a page was previously loaded.
-    pub old_pipeline_id: Option<PipelineId>,
     /// The new pipeline ID that the iframe has generated.
     pub new_pipeline_id: PipelineId,
-    /// Sandbox type of this iframe
-    pub sandbox: IFrameSandboxState,
     ///  Whether this iframe should be considered private
     pub is_private: bool,
     /// Whether this iframe is a mozbrowser iframe
@@ -498,6 +516,8 @@ pub struct IFrameLoadInfo {
     /// Wether this load should replace the current entry (reload). If true, the current
     /// entry will be replaced instead of a new entry being added.
     pub replace: bool,
+    /// The type of load the is being requested.
+    pub load_type: IFrameLoadType,
 }
 
 // https://developer.mozilla.org/en-US/docs/Web/API/Using_the_Browser_API#Events
