@@ -1010,7 +1010,7 @@ impl Interpolate for LengthOrNone {
             rotate_matrix.m22 = cos_angle;
 
             // Multiplication of computed_matrix and rotate_matrix
-            computed_matrix = multiply(computed_matrix, rotate_matrix);
+            computed_matrix = multiply(rotate_matrix, computed_matrix);
 
             // Scale matrix.
             computed_matrix.m11 *= decomposed.scale.0;
@@ -1268,13 +1268,14 @@ impl Interpolate for LengthOrNone {
             // Interpolate translate, scale, skew and perspective components.
             interpolated.translate = try!(self.translate.interpolate(&other.translate, time));
             interpolated.scale = try!(self.scale.interpolate(&other.scale, time));
+            interpolated.skew = try!(self.skew.interpolate(&other.skew, time));
             interpolated.perspective = try!(self.perspective.interpolate(&other.perspective, time));
 
             // Interpolate quaternions using spherical linear interpolation (Slerp).
             let mut product = self.quaternion.0 * other.quaternion.0 +
-                      self.quaternion.1 * other.quaternion.1 +
-                      self.quaternion.2 * other.quaternion.2 +
-                      self.quaternion.3 * other.quaternion.3;
+                              self.quaternion.1 * other.quaternion.1 +
+                              self.quaternion.2 * other.quaternion.2 +
+                              self.quaternion.3 * other.quaternion.3;
 
             // Clamp product to -1.0 <= product <= 1.0
             product = product.min(1.0);
@@ -1327,23 +1328,22 @@ impl Interpolate for LengthOrNone {
             // rotationMatrix is a identity 4x4 matrix initially
             let mut rotation_matrix = ComputedMatrix::identity();
             rotation_matrix.m11 = 1.0 - 2.0 * (y * y + z * z);
-            rotation_matrix.m12 = 2.0 * (x * y - z * w);
-            rotation_matrix.m13 = 2.0 * (x * z + y * w);
-            rotation_matrix.m21 = 2.0 * (x * y + z * w);
+            rotation_matrix.m12 = 2.0 * (x * y + z * w);
+            rotation_matrix.m13 = 2.0 * (x * z - y * w);
+            rotation_matrix.m21 = 2.0 * (x * y - z * w);
             rotation_matrix.m22 = 1.0 - 2.0 * (x * x + z * z);
-            rotation_matrix.m23 = 2.0 * (y * z - x * w);
-            rotation_matrix.m31 = 2.0 * (x * z - y * w);
-            rotation_matrix.m32 = 2.0 * (y * z + x * w);
+            rotation_matrix.m23 = 2.0 * (y * z + x * w);
+            rotation_matrix.m31 = 2.0 * (x * z + y * w);
+            rotation_matrix.m32 = 2.0 * (y * z - x * w);
             rotation_matrix.m33 = 1.0 - 2.0 * (x * x + y * y);
 
-            matrix = multiply(matrix, rotation_matrix);
+            matrix = multiply(rotation_matrix, matrix);
 
             // Apply skew
             let mut temp = ComputedMatrix::identity();
             if decomposed.skew.2 != 0.0 {
                 temp.m32 = decomposed.skew.2;
                 matrix = multiply(matrix, temp);
-
             }
 
             if decomposed.skew.1 != 0.0 {
