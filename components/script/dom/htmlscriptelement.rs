@@ -159,8 +159,10 @@ impl FetchResponseListener for ScriptContext {
 
     fn process_request_eof(&mut self) {} // TODO(KiChjang): Perhaps add custom steps to perform fetch here?
 
-    fn process_response(&mut self, metadata: Result<Metadata, NetworkError>) {
-        self.metadata = metadata.ok();
+    fn process_response(&mut self,
+                        metadata: Result<Metadata, NetworkError>,
+                        actual_metadata: Option<Result<Metadata, NetworkError>>) {
+        self.metadata = actual_metadata.unwrap_or(metadata).ok();
 
         let status_code = self.metadata.as_ref().and_then(|m| {
             match m.status {

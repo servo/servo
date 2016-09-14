@@ -227,10 +227,11 @@ impl XMLHttpRequest {
                 // todo
             }
 
-            fn process_response(&mut self, metadata: Result<Metadata, NetworkError>) {
+            fn process_response(&mut self,
+                                metadata: Result<Metadata, NetworkError>,
+                                _: Option<Result<Metadata, NetworkError>>) {
                 let xhr = self.xhr.root();
-                let rv = xhr.process_headers_available(self.gen_id,
-                                                       metadata);
+                let rv = xhr.process_headers_available(self.gen_id, metadata);
                 if rv.is_err() {
                     *self.sync_status.borrow_mut() = Some(rv);
                 }

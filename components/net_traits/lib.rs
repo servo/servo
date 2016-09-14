@@ -170,7 +170,7 @@ pub enum FetchResponseMsg {
     ProcessRequestBody,
     ProcessRequestEOF,
     // todo: send more info about the response (or perhaps the entire Response)
-    ProcessResponse(Result<Metadata, NetworkError>),
+    ProcessResponse(Result<Metadata, NetworkError>, Option<Result<Metadata, NetworkError>>),
     ProcessResponseChunk(Vec<u8>),
     ProcessResponseEOF(Result<(), NetworkError>),
 }
@@ -203,7 +203,9 @@ pub trait FetchTaskTarget {
 pub trait FetchResponseListener {
     fn process_request_body(&mut self);
     fn process_request_eof(&mut self);
-    fn process_response(&mut self, metadata: Result<Metadata, NetworkError>);
+    fn process_response(&mut self,
+                        metadata: Result<Metadata, NetworkError>,
+                        actual_metadata: Option<Result<Metadata, NetworkError>>);
     fn process_response_chunk(&mut self, chunk: Vec<u8>);
     fn process_response_eof(&mut self, response: Result<(), NetworkError>);
 }
@@ -218,7 +220,13 @@ impl FetchTaskTarget for IpcSender<FetchResponseMsg> {
     }
 
     fn process_response(&mut self, response: &Response) {
-        let _ = self.send(FetchResponseMsg::ProcessResponse(response.metadata()));
+        let actual_metadata = if response.internal_response.is_some() && response.return_internal.get() {
+            Some(response.actual_response().metadata())
+        } else {
+            None
+        };
+
+        let _ = self.send(FetchResponseMsg::ProcessResponse(response.metadata(), actual_metadata));
     }
 
     fn process_response_chunk(&mut self, chunk: Vec<u8>) {
@@ -282,7 +290,7 @@ impl<T: FetchResponseListener> Action<T> for FetchResponseMsg {
         match self {
             FetchResponseMsg::ProcessRequestBody => listener.process_request_body(),
             FetchResponseMsg::ProcessRequestEOF => listener.process_request_eof(),
-            FetchResponseMsg::ProcessResponse(meta) => listener.process_response(meta),
+            FetchResponseMsg::ProcessResponse(meta, actual) => listener.process_response(meta, actual),
             FetchResponseMsg::ProcessResponseChunk(data) => listener.process_response_chunk(data),
             FetchResponseMsg::ProcessResponseEOF(data) => listener.process_response_eof(data),
         }
