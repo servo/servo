@@ -4,10 +4,10 @@
 
 void main(void) {
 #ifdef WR_FEATURE_TRANSFORM
-    float alpha = 0;
+    float alpha = 0.0;
     vec2 local_pos = init_transform_fs(vLocalPos, vLocalRect, alpha);
 #else
-    float alpha = 1;
+    float alpha = 1.0;
     vec2 local_pos = vPos;
 #endif
 

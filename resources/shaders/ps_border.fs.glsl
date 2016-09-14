@@ -24,7 +24,7 @@ float alpha_for_solid_border(float distance_from_ref,
                              float outer_radius,
                              float pixels_per_fragment) {
   // We want to start anti-aliasing one pixel in from the border.
-  float nudge = 1 * pixels_per_fragment;
+  float nudge = pixels_per_fragment;
   inner_radius += nudge;
   outer_radius -= nudge;
 
@@ -41,7 +41,7 @@ float alpha_for_solid_border(float distance_from_ref,
   // Apply a more gradual fade out to transparent.
   distance_from_border -= 0.5;
 
-  return smoothstep(1.0, 0, distance_from_border);
+  return smoothstep(1.0, 0.0, distance_from_border);
 }
 
 float alpha_for_solid_border_corner(vec2 local_pos,
@@ -56,22 +56,22 @@ vec4 draw_dotted_edge(vec2 local_pos, vec4 piece_rect, float pixels_per_fragment
   // We don't use pixels_per_fragment here, since it can change along the edge
   // of a transformed border edge. We want this calculation to be consistent
   // across the entire edge so that the positioning of the dots stays the same.
-  float two_pixels = 2 * length(fwidth(vLocalPos.xy));
+  float two_pixels = 2.0 * length(fwidth(vLocalPos.xy));
 
   // Circle diameter is stroke width, minus a couple pixels to account for anti-aliasing.
   float circle_diameter = max(piece_rect.z - two_pixels, min(piece_rect.z, two_pixels));
 
   // We want to spread the circles across the edge, but keep one circle diameter at the end
   // reserved for two half-circles which connect to the corners.
-  float edge_available = piece_rect.w - (circle_diameter * 2);
-  float number_of_circles = floor(edge_available / (circle_diameter * 2));
+  float edge_available = piece_rect.w - (circle_diameter * 2.0);
+  float number_of_circles = floor(edge_available / (circle_diameter * 2.0));
 
   // Here we are initializing the distance from the y coordinate of the center of the circle to
   // the closest end half-circle.
   vec2 relative_pos = local_pos - piece_rect.xy;
   float y_distance = min(relative_pos.y, piece_rect.w - relative_pos.y);
 
-  if (number_of_circles > 0) {
+  if (number_of_circles > 0.0) {
     // Spread the circles throughout the edge, to distribute the extra space evenly. We want
     // to ensure that we have at last two pixels of space for each circle so that they aren't
     // touching.
@@ -80,41 +80,41 @@ vec4 draw_dotted_edge(vec2 local_pos, vec4 piece_rect, float pixels_per_fragment
     float first_half_circle_space = circle_diameter;
 
     float circle_index = (relative_pos.y - first_half_circle_space) / space_for_each_circle;
-    circle_index = floor(clamp(circle_index, 0, number_of_circles - 1));
+    circle_index = floor(clamp(circle_index, 0.0, number_of_circles - 1.0));
 
     float circle_y_pos =
-      circle_index * space_for_each_circle + (space_for_each_circle / 2) + circle_diameter;
+      circle_index * space_for_each_circle + (space_for_each_circle / 2.0) + circle_diameter;
     y_distance = min(abs(circle_y_pos - relative_pos.y), y_distance);
   }
 
-  float distance_from_circle_center = length(vec2(relative_pos.x - (piece_rect.z / 2), y_distance));
-  float distance_from_circle_edge = distance_from_circle_center - (circle_diameter / 2);
+  float distance_from_circle_center = length(vec2(relative_pos.x - (piece_rect.z / 2.0), y_distance));
+  float distance_from_circle_edge = distance_from_circle_center - (circle_diameter / 2.0);
 
   // Don't anti-alias if the circle diameter is small to avoid a blur of color.
-  if (circle_diameter < two_pixels && distance_from_circle_edge > 0)
-    return vec4(0, 0, 0, 0);
+  if (circle_diameter < two_pixels && distance_from_circle_edge > 0.0)
+    return vec4(0.0);
 
   // Move the distance back into pixels.
   distance_from_circle_edge /= pixels_per_fragment;
 
-  float alpha = smoothstep(1.0, 0.0, min(1.0, max(0, distance_from_circle_edge)));
-  return vHorizontalColor * vec4(1, 1, 1, alpha);
+  float alpha = smoothstep(1.0, 0.0, min(1.0, max(0.0, distance_from_circle_edge)));
+  return vHorizontalColor * vec4(1.0, 1.0, 1.0, alpha);
 }
 
 vec4 draw_dashed_edge(float position, float border_width, float pixels_per_fragment) {
   // TODO: Investigate exactly what FF does.
-  float size = border_width * 3;
+  float size = border_width * 3.0;
   float segment = floor(position / size);
 
   float alpha = alpha_for_solid_border(position,
                                        segment * size,
-                                       (segment + 1) * size,
+                                       (segment + 1.0) * size,
                                        pixels_per_fragment);
 
-  if (mod(segment + 2, 2) == 0) {
-    return vHorizontalColor * vec4(1, 1, 1, 1 - alpha);
+  if (mod(segment + 2.0, 2.0) == 0.0) {
+    return vHorizontalColor * vec4(1.0, 1.0, 1.0, 1.0 - alpha);
   } else {
-    return vHorizontalColor * vec4(1, 1, 1, alpha);
+    return vHorizontalColor * vec4(1.0, 1.0, 1.0, alpha);
   }
 }
 
@@ -131,7 +131,7 @@ void draw_dashed_or_dotted_border(vec2 local_pos, float distance_from_mix_line) 
     {
       oFragColor = get_fragment_color(distance_from_mix_line, pixels_per_fragment);
       if (vRadii.x > 0.0) {
-        oFragColor *= vec4(1, 1, 1, alpha_for_solid_border_corner(local_pos,
+        oFragColor *= vec4(1.0, 1.0, 1.0, alpha_for_solid_border_corner(local_pos,
                                                                   vRadii.z,
                                                                   vRadii.x,
                                                                   pixels_per_fragment));
@@ -179,8 +179,8 @@ vec4 draw_double_edge(float pos,
                                        pixels_per_fragment);
 
   // Contribution of the inner border segment.
-  alpha += alpha_for_solid_border(pos, 0, one_third_width, pixels_per_fragment);
-  return get_fragment_color(distance_from_mix_line, pixels_per_fragment) * vec4(1, 1, 1, alpha);
+  alpha += alpha_for_solid_border(pos, 0.0, one_third_width, pixels_per_fragment);
+  return get_fragment_color(distance_from_mix_line, pixels_per_fragment) * vec4(1.0, 1.0, 1.0, alpha);
 }
 
 vec4 draw_double_edge_vertical(vec2 local_pos,
@@ -216,20 +216,20 @@ vec4 draw_double_edge_corner_with_radius(vec2 local_pos,
                                          vRadii.z,
                                          vRadii.z + one_third_width,
                                          pixels_per_fragment);
-  return get_fragment_color(distance_from_mix_line, pixels_per_fragment) * vec4(1, 1, 1, alpha);
+  return get_fragment_color(distance_from_mix_line, pixels_per_fragment) * vec4(1.0, 1.0, 1.0, alpha);
 }
 
 vec4 draw_double_edge_corner(vec2 local_pos,
                              float distance_from_mix_line,
                              float pixels_per_fragment) {
-  if (vRadii.x > 0) {
+  if (vRadii.x > 0.0) {
       return draw_double_edge_corner_with_radius(local_pos,
                                                  distance_from_mix_line,
                                                  pixels_per_fragment);
   }
 
-  bool is_vertical = (vBorderPart == PST_TOP_LEFT) ? distance_from_mix_line < 0 :
-                                                     distance_from_mix_line >= 0;
+  bool is_vertical = (vBorderPart == PST_TOP_LEFT) ? distance_from_mix_line < 0.0 :
+                                                     distance_from_mix_line >= 0.0;
   if (is_vertical) {
     return draw_double_edge_vertical(local_pos, distance_from_mix_line, pixels_per_fragment);
   } else {
@@ -280,7 +280,7 @@ void draw_solid_border(float distanceFromMixLine, vec2 localPos) {
 
       if (vRadii.x > 0.0) {
         float alpha = alpha_for_solid_border_corner(localPos, vRadii.z, vRadii.x, pixelsPerFragment);
-        oFragColor *= vec4(1, 1, 1, alpha);
+        oFragColor *= vec4(1.0, 1.0, 1.0, alpha);
       }
 
       break;
@@ -295,7 +295,7 @@ void draw_solid_border(float distanceFromMixLine, vec2 localPos) {
 //       if it's worthwhile splitting it / removing branches etc.
 void main(void) {
 #ifdef WR_FEATURE_TRANSFORM
-    float alpha = 0;
+    float alpha = 0.0;
     vec2 local_pos = init_transform_fs(vLocalPos, vLocalRect, alpha);
 #else
     vec2 local_pos = vLocalPos;
@@ -330,6 +330,6 @@ void main(void) {
     }
 
 #ifdef WR_FEATURE_TRANSFORM
-    oFragColor *= vec4(1, 1, 1, alpha);
+    oFragColor *= vec4(1.0, 1.0, 1.0, alpha);
 #endif
 }

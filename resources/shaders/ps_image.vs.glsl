@@ -24,7 +24,7 @@ void main(void) {
         case UV_NORMALIZED:
             break;
         case UV_PIXEL: {
-                vec2 texture_size = textureSize(sDiffuse, 0);
+                vec2 texture_size = vec2(textureSize(sDiffuse, 0));
                 st0 /= texture_size;
                 st1 /= texture_size;
             }

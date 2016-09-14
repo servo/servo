@@ -5,17 +5,23 @@
 
 void main(void) {
     ImageClip image = fetch_image_clip(gl_InstanceID);
+
+#ifdef WR_FEATURE_TRANSFORM
+    TransformVertexInfo vi = write_transform_vertex(image.info);
+    vLocalRect = vi.clipped_local_rect;
+    vLocalPos = vi.local_pos;
+    vStretchSize = image.stretch_size_uvkind.xy;
+#else
     VertexInfo vi = write_vertex(image.info);
+    vUv = (vi.local_clamped_pos - vi.local_rect.p0) / image.stretch_size_uvkind.xy;
+    vLocalPos = vi.local_clamped_pos;
+#endif
 
     vClipRect = vec4(image.clip.rect.xy, image.clip.rect.xy + image.clip.rect.zw);
     vClipRadius = vec4(image.clip.top_left.outer_inner_radius.x,
                        image.clip.top_right.outer_inner_radius.x,
                        image.clip.bottom_right.outer_inner_radius.x,
                        image.clip.bottom_left.outer_inner_radius.x);
-    vPos = vi.local_clamped_pos;
-
-    // vUv will contain how many times this image has wrapped around the image size.
-    vUv = (vi.local_clamped_pos - image.info.local_rect.xy) / image.stretch_size_uvkind.xy;
 
     vec2 st0 = image.st_rect.xy;
     vec2 st1 = image.st_rect.zw;
@@ -24,7 +30,7 @@ void main(void) {
         case UV_NORMALIZED:
             break;
         case UV_PIXEL: {
-                vec2 texture_size = textureSize(sDiffuse, 0);
+                vec2 texture_size = vec2(textureSize(sDiffuse, 0));
                 st0 /= texture_size;
                 st1 /= texture_size;
             }

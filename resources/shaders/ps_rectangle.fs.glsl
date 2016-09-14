@@ -4,7 +4,7 @@
 
 void main(void) {
 #ifdef WR_FEATURE_TRANSFORM
-    float alpha = 0;
+    float alpha = 0.0;
     init_transform_fs(vLocalPos, vLocalRect, alpha);
     oFragColor = vec4(1, 1, 1, alpha) * vColor;
 #else
