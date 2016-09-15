@@ -1,0 +1,15 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="match" href="basic-auth-cache-test-ref.html">
+<html>
+  <div id="auth"> </div>
+  <div id="noauth"> </div>
+  <script type="text/javascript">
+    var authImg = '<img src="http://testuser:testpass@' + window.location.host + '/http/resources/securedimage.py">';
+    document.getElementById('auth').innerHTML = authImg;
+    setTimeout(function() {
+        var noAuthImg = '<img src="http://' + window.location.host + '/http/resources/securedimage.py">';
+        document.getElementById('noauth').innerHTML = noAuthImg;
+    }, 100);
+  </script>
+</html>

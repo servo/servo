@@ -37478,8 +37478,36 @@
   "local_changes": {
     "deleted": [],
     "deleted_reftests": {},
-    "items": {},
-    "reftest_nodes": {}
+    "items": {
+      "reftest": {
+        "http/basic-auth-cache-test.html": [
+          {
+            "path": "http/basic-auth-cache-test.html",
+            "references": [
+              [
+                "/http/basic-auth-cache-test-ref.html",
+                "=="
+              ]
+            ],
+            "url": "/http/basic-auth-cache-test.html"
+          }
+        ]
+      }
+    },
+    "reftest_nodes": {
+      "http/reftest-basic-auth-cache-test.html": [
+        {
+          "path": "http/basic-auth-cache-test.html",
+          "references": [
+            [
+              "/http/basic-auth-cache-test-ref.html",
+              "=="
+            ]
+          ],
+          "url": "/http/basic-auth-cache-test.html"
+        }
+      ]
+    }
   },
   "reftest_nodes": {
     "2dcontext/building-paths/canvas_complexshapes_arcto_001.htm": [
