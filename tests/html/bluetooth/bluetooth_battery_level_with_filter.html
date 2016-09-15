@@ -20,26 +20,30 @@
         if (filterNamePrefix)
             options.filters[0].namePrefix = filterNamePrefix;
 
-        try {
-            log('Requesting Bluetooth Device...');
-            var bluetooth = window.navigator.bluetooth;
-            var device = bluetooth.requestDevice(options);
-
+        log('Requesting Bluetooth Device...');
+        window.navigator.bluetooth.requestDevice(options)
+        .then(device => {
             log('Connecting to GATT Server on device...');
-            var server = device.gatt.connect();
-
+            return device.gatt.connect();
+        })
+        .then(server => {
             log('Getting Battery Service...');
-            var service = server.getPrimaryService('battery_service');
-
+            return server.getPrimaryService('battery_service');
+        })
+        .then(service => {
             log('Getting Battery Level Characteristic...');
-            var characteristic = service.getCharacteristic('battery_level');
-
+            return service.getCharacteristic('battery_level');
+        })
+        .then(characteristic => {
             log('Reading Battery Level...');
-            var value = asciiToDecimal(characteristic.readValue());
-            log('> Battery Level is ' + value + '%');
-        } catch(err) {
+            return characteristic.readValue();
+        })
+        .then(value => {
+            log('> Battery Level is ' + asciiToDecimal(value) + '%');
+        })
+        .catch(err => {
             log(err);
-        }
+        });
     }
     </script>
 </body>

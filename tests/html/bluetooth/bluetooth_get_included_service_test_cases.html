@@ -37,27 +37,32 @@
     testCases.push({ requestedService: 'battery_service', requestedIncludedService: 0xf000ffc0, options: {filters: [{services: ['battery_service']}]} });
     //Test 15
     testCases.push({ requestedService: 'battery_service', requestedIncludedService: 0x00001530, options: {filters: [{services: ['battery_service']}]} });
+
     function onButtonClick(testNumber) {
         clear();
-        try {
-            log('Requesting Bluetooth Device...');
-            var device = window.navigator.bluetooth.requestDevice(testCases[testNumber].options);
 
+        log('Requesting Bluetooth Device...');
+        window.navigator.bluetooth.requestDevice(testCases[testNumber].options)
+        .then(device => {
             log('Connecting to GATTserver on device...');
-            var server = device.gatt.connect();
-
+            return device.gatt.connect();
+        })
+        .then(server => {
             log('Getting Primary Service "' + testCases[testNumber].requestedService + '"...');
-            var primaryService = server.getPrimaryService(testCases[testNumber].requestedService);
-
+            return server.getPrimaryService(testCases[testNumber].requestedService);
+        })
+        .then(service => {
             log('Getting Included Service "' + testCases[testNumber].requestedIncludedService + '"...')
-            var includedService = primaryService.getIncludedService(testCases[testNumber].requestedIncludedService);
-
+            return service.getIncludedService(testCases[testNumber].requestedIncludedService);
+        })
+        .then(includedService => {
             log('Primary Service found on device: ' + includedService.device.name);
             log('> UUID:                          ' + includedService.uuid);
             log('> Is primary:                    ' + includedService.isPrimary);
-        } catch(err) {
+        })
+        .catch(err => {
             log(err);
-        }
+        });
     }
 
     populate(testCases);

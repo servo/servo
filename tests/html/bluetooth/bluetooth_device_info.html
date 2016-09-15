@@ -28,19 +28,19 @@
         if (filterNamePrefix)
             options.filters.push({namePrefix: filterNamePrefix});
 
-        try {
-            log('Requesting Bluetooth Device...');
-            var device = window.navigator.bluetooth.requestDevice(options);
-
+        log('Requesting Bluetooth Device...');
+        window.navigator.bluetooth.requestDevice(options)
+        .then(device => {
             log('Found a device!');
             log('> Name:             ' + device.name);
             log('> Id:               ' + device.id);
             log('> Appearance:       ' + device.adData.appearance);
             log('> Tx Power:         ' + device.adData.txPower + ' dBm');
             log('> RSSI:             ' + device.adData.rssi + ' dBm');
-        } catch(err) {
+        })
+        .catch(err => {
             log(err);
-        }
+        });
     }
     </script>
 </body>

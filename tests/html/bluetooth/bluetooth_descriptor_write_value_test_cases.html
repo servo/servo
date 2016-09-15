@@ -22,31 +22,44 @@
 
     function onButtonClick(testNumber) {
         clear();
-        try {
-            log('Requesting Bluetooth Device...');
-            var device = window.navigator.bluetooth.requestDevice({filters: [{services: [0x1234]}]});
 
+        var bt_server;
+        var bt_descriptor;
+
+        log('Requesting Bluetooth Device...');
+        window.navigator.bluetooth.requestDevice({filters: [{services: [0x1234]}]})
+        .then(device => {
             log('Connecting to GATTserver on device...');
-            var server = device.gatt.connect();
+            return device.gatt.connect();
+        })
+        .then(server => {
+            bt_server = server;
 
             log('Getting Primary Service "Test Service"...');
-            var primaryService = server.getPrimaryService(0x1234);
-
+            return server.getPrimaryService(0x1234);
+        })
+        .then(service => {
             log('Getting Characteristic "Test Characteristic (0x2345)"...');
-            var characteristic = primaryService.getCharacteristic(0x2345);
-
+            return service.getCharacteristic(0x2345);
+        })
+        .then(characteristic => {
             log('Characteristic found!');
 
             log('Getting Descriptor "' + testCases[testNumber].descriptor + '"...');
-            var descriptor = characteristic.getDescriptor(testCases[testNumber].descriptor);
+            return characteristic.getDescriptor(testCases[testNumber].descriptor);
+        })
+        .then(descriptor => {
+            bt_descriptor = descriptor;
 
             log('Reading the old value of the Descriptor...');
-            descriptor.readValue();
-            log('> Descriptor value:   ' + asciiToDecimal(descriptor.value));
+            return descriptor.readValue();
+        })
+        .then(value => {
+            log('> Descriptor value:   ' + asciiToDecimal(value));
 
             if (testCases[testNumber].mustDisconnect) {
                 log('Disconnecting from server...');
-                device.gatt.disconnect();
+                bt_server.disconnect();
             }
 
             if (testNumber !== 1) {
@@ -55,14 +68,18 @@
                 log('Writing the value of the Descriptor with a 513 long array...');
             }
 
-            descriptor.writeValue(testCases[testNumber].valueToWrite);
-
+            return bt_descriptor.writeValue(testCases[testNumber].valueToWrite);
+        })
+        .then(_ => {
             log('Reading the new value of the Descriptor...');
-            descriptor.readValue();
-            log('> Descriptor value:   ' + asciiToDecimal(descriptor.value));
-        } catch(err) {
+            return bt_descriptor.readValue();
+        })
+        .then(value => {
+            log('> Descriptor value:   ' + asciiToDecimal(value));
+        })
+        .catch(err => {
             log(err);
-        }
+        });
     }
 
     populate(testCases);

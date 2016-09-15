@@ -35,31 +35,39 @@
 
     function onButtonClick(testNumber) {
         clear();
-        try {
-            log('Requesting Bluetooth Device...');
-            var device = window.navigator.bluetooth.requestDevice({filters: [{services: ['heart_rate']}]});
 
+        log('Requesting Bluetooth Device...');
+        window.navigator.bluetooth.requestDevice({filters: [{services: ['heart_rate']}]})
+        .then(device => {
             log('Connecting to GATTserver on device...');
-            var server = device.gatt.connect();
-
+            return device.gatt.connect();
+        })
+        .then(server => {
             log('Getting Primary Service "heart_rate"...');
-            var primaryService = server.getPrimaryService('heart_rate');
-
+            return server.getPrimaryService('heart_rate');
+        })
+        .then(service => {
             log('Getting Characteristic "heart_rate_measurement"...');
-            var characteristic = primaryService.getCharacteristic('heart_rate_measurement');
-
+            return service.getCharacteristic('heart_rate_measurement');
+        })
+        .then(characteristic => {
             log('Getting Descriptors "' + testCases[testNumber] + '"...');
-            var descriptors = characteristic.getDescriptors(testCases[testNumber]);
-
+            return characteristic.getDescriptors(testCases[testNumber]);
+        })
+        .then(descriptors => {
             for(i = 0; i < descriptors.length; ++i) {
                 log('> #' + (i+1));
                 log('> UUID:                      ' + descriptors[i].uuid);
-                    descriptors[i].readValue();
-                log('> Descriptor value:          ' + asciiToDecimal(descriptors[i].value));
+
+                descriptors[i].readValue()
+                .then(value => {
+                    log('> #' + (i+1)) + 'Descriptor value:       ' + asciiToDecimal(value);
+                });
             }
-        } catch(err) {
+        })
+        .catch(err => {
             log(err);
-        }
+        });
     }
 
     populate(testCases);
