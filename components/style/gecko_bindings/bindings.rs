@@ -165,6 +165,7 @@ use gecko_bindings::structs::nsINode;
 use gecko_bindings::structs::nsIDocument;
 use gecko_bindings::structs::nsIPrincipal;
 use gecko_bindings::structs::nsIURI;
+use gecko_bindings::structs::nsString;
 use gecko_bindings::structs::RawGeckoNode;
 use gecko_bindings::structs::RawGeckoElement;
 use gecko_bindings::structs::RawGeckoDocument;
@@ -398,6 +399,11 @@ extern "C" {
                                           aString:
                                               *const ::std::os::raw::c_char,
                                           aLength: u32) -> bool;
+}
+extern "C" {
+    pub fn Gecko_Utf8SliceToString(aString: *mut nsString,
+                                   aBuffer: *const u8,
+                                   aBufferLen: usize);
 }
 extern "C" {
     pub fn Gecko_FontFamilyList_Clear(aList: *mut FontFamilyList);

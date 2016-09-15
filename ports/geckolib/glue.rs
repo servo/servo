@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use cssparser::Parser;
+use cssparser::{Parser, ToCss};
 use env_logger;
 use euclid::Size2D;
 use parking_lot::RwLock;
@@ -30,11 +30,13 @@ use style::gecko_bindings::bindings::{RawServoStyleSheetStrong, ServoComputedVal
 use style::gecko_bindings::bindings::{ServoDeclarationBlockBorrowed, ServoDeclarationBlockStrong};
 use style::gecko_bindings::bindings::{ThreadSafePrincipalHolder, ThreadSafeURIHolder};
 use style::gecko_bindings::bindings::{nsHTMLCSSStyleSheet, ServoComputedValuesBorrowedOrNull};
+use style::gecko_bindings::bindings::Gecko_Utf8SliceToString;
 use style::gecko_bindings::bindings::RawServoStyleSetBorrowedMut;
 use style::gecko_bindings::ptr::{GeckoArcPrincipal, GeckoArcURI};
 use style::gecko_bindings::structs::{SheetParsingMode, nsIAtom};
 use style::gecko_bindings::structs::ServoElementSnapshot;
 use style::gecko_bindings::structs::nsRestyleHint;
+use style::gecko_bindings::structs::nsString;
 use style::gecko_bindings::sugar::ownership::{FFIArcHelpers, HasArcFFI, HasBoxFFI};
 use style::gecko_bindings::sugar::ownership::{HasSimpleFFI, Strong};
 use style::parallel;
@@ -434,6 +436,39 @@ pub extern "C" fn Servo_DeclarationBlock_SetImmutable(declarations: ServoDeclara
 #[no_mangle]
 pub extern "C" fn Servo_DeclarationBlock_ClearCachePointer(declarations: ServoDeclarationBlockBorrowed) {
     GeckoDeclarationBlock::as_arc(&declarations).cache.store(ptr::null_mut(), Ordering::Relaxed)
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_DeclarationBlock_SerializeOneValue(
+    declarations: ServoDeclarationBlockBorrowed,
+    buffer: *mut nsString)
+{
+    let mut string = String::new();
+
+    if let Some(ref declarations) = GeckoDeclarationBlock::as_arc(&declarations).declarations {
+        declarations.read().to_css(&mut string).unwrap();
+        // FIXME: We are expecting |declarations| to be a declaration block with either a single
+        // longhand property-declaration or a series of longhand property-declarations that make
+        // up a single shorthand property. As a result, it should be possible to serialize
+        // |declarations| as a single declaration. However, we only want to return the *value* from
+        // that single declaration. For now, we just manually strip the property name, colon,
+        // leading spacing, and trailing space. In future we should find a more robust way to do
+        // this.
+        //
+        // See https://github.com/servo/servo/issues/13423
+        debug_assert!(string.find(':').is_some());
+        let position = string.find(':').unwrap();
+        // Get the value after the first colon and any following whitespace.
+        let value = &string[(position + 1)..].trim_left();
+        debug_assert!(value.ends_with(';'));
+        let length = value.len() - 1; // Strip last semicolon.
+
+        // FIXME: Once we have nsString bindings for Servo (bug 1294742), we should be able to drop
+        // this and fill in |buffer| directly.
+        unsafe {
+            Gecko_Utf8SliceToString(buffer, value.as_ptr(), length);
+        }
+    }
 }
 
 #[no_mangle]
