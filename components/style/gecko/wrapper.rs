@@ -70,6 +70,16 @@ pub struct GeckoDeclarationBlock {
     pub immutable: AtomicBool,
 }
 
+impl PartialEq for GeckoDeclarationBlock {
+    fn eq(&self, other: &GeckoDeclarationBlock) -> bool {
+        match (&self.declarations, &other.declarations) {
+            (&None, &None) => true,
+            (&Some(ref s), &Some(ref other)) => *s.read() == *other.read(),
+            _ => false,
+        }
+    }
+}
+
 unsafe impl HasFFI for GeckoDeclarationBlock {
     type FFIType = bindings::ServoDeclarationBlock;
 }

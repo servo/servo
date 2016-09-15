@@ -872,6 +872,11 @@ extern "C" {
                                               ServoDeclarationBlockBorrowed);
 }
 extern "C" {
+    pub fn Servo_DeclarationBlock_Equals(a: ServoDeclarationBlockBorrowed,
+                                         b: ServoDeclarationBlockBorrowed)
+     -> bool;
+}
+extern "C" {
     pub fn Servo_DeclarationBlock_GetCache(declarations:
                                                ServoDeclarationBlockBorrowed)
      -> *mut nsHTMLCSSStyleSheet;

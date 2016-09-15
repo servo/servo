@@ -414,6 +414,13 @@ pub extern "C" fn Servo_DeclarationBlock_Release(declarations: ServoDeclarationB
 }
 
 #[no_mangle]
+pub extern "C" fn Servo_DeclarationBlock_Equals(a: ServoDeclarationBlockBorrowed,
+                                                b: ServoDeclarationBlockBorrowed)
+                                                -> bool {
+    GeckoDeclarationBlock::as_arc(&a) == GeckoDeclarationBlock::as_arc(&b)
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_DeclarationBlock_GetCache(declarations: ServoDeclarationBlockBorrowed)
                                                  -> *mut nsHTMLCSSStyleSheet {
     GeckoDeclarationBlock::as_arc(&declarations).cache.load(Ordering::Relaxed)
