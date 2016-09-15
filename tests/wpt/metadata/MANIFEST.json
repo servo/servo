@@ -37479,14 +37479,6 @@
     "deleted": [],
     "deleted_reftests": {},
     "items": {
-      "testharness": {
-        "dom/lists/DOMTokenList-Iterable.html": [
-          {
-            "path": "dom/lists/DOMTokenList-Iterable.html",
-            "url": "/dom/lists/DOMTokenList-Iterable.html"
-          }
-        ]
-      },
       "reftest": {
         "http/basic-auth-cache-test.html": [
           {
@@ -37500,10 +37492,18 @@
             "url": "/http/basic-auth-cache-test.html"
           }
         ]
+      },
+      "testharness": {
+        "dom/lists/DOMTokenList-Iterable.html": [
+          {
+            "path": "dom/lists/DOMTokenList-Iterable.html",
+            "url": "/dom/lists/DOMTokenList-Iterable.html"
+          }
+        ]
       }
     },
     "reftest_nodes": {
-      "http/reftest-basic-auth-cache-test.html": [
+      "http/basic-auth-cache-test.html": [
         {
           "path": "http/basic-auth-cache-test.html",
           "references": [
