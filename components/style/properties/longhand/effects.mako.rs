@@ -1099,7 +1099,8 @@ ${helpers.predefined_type("opacity",
                         result.push(computed_value::ComputedOperation::Scale(sx, sy, sz));
                     }
                     SpecifiedOperation::Rotate(ax, ay, az, theta) => {
-                        result.push(computed_value::ComputedOperation::Rotate(ax, ay, az, theta));
+                        let len = (ax * ax + ay * ay + az * az).sqrt();
+                        result.push(computed_value::ComputedOperation::Rotate(ax / len, ay / len, az / len, theta));
                     }
                     SpecifiedOperation::Skew(theta_x, theta_y) => {
                         result.push(computed_value::ComputedOperation::Skew(theta_x, theta_y));
