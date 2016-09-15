@@ -50,22 +50,25 @@
 
     function onButtonClick(testNumber) {
         clear();
-        try {
-            log('Requesting Bluetooth Device...');
-            var device = window.navigator.bluetooth.requestDevice(testCases[testNumber].options);
 
+        log('Requesting Bluetooth Device...');
+        window.navigator.bluetooth.requestDevice(testCases[testNumber].options)
+        .then(device => {
             log('Connecting to GATTserver on device...');
-            var server = device.gatt.connect();
-
+            return device.gatt.connect();
+        })
+        .then(server => {
             log('Getting Primary Service "' + testCases[testNumber].requestedService + '"...');
-            var primaryService = server.getPrimaryService(testCases[testNumber].requestedService);
-
-            log('Primary Service found on device: ' + primaryService.device.name);
-            log('> UUID:                          ' + primaryService.uuid);
-            log('> Is primary:                    ' + primaryService.isPrimary);
-        } catch(err) {
+            return server.getPrimaryService(testCases[testNumber].requestedService);
+        })
+        .then(service => {
+            log('Primary Service found on device: ' + service.device.name);
+            log('> UUID:                          ' + service.uuid);
+            log('> Is primary:                    ' + service.isPrimary);
+        })
+        .catch(err => {
             log(err);
-        }
+        });
     }
 
     populate(testCases);

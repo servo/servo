@@ -32,32 +32,42 @@
 
     function onButtonClick(testNumber) {
         clear();
-        try {
-            log('Requesting Bluetooth Device...');
-            var device = window.navigator.bluetooth.requestDevice({filters: [{services: ['heart_rate']}]});
 
+        var bt_server;
+
+        log('Requesting Bluetooth Device...');
+        window.navigator.bluetooth.requestDevice({filters: [{services: ['heart_rate']}]})
+        .then(device => {
             log('Connecting to GATTserver on device...');
-            var server = device.gatt.connect();
+            return device.gatt.connect();
+        })
+        .then(server => {
+            bt_server = server;
 
             log('Getting Primary Service "heart_rate"...');
-            var primaryService = server.getPrimaryService('heart_rate');
-
+            return server.getPrimaryService('heart_rate');
+        })
+        .then(service => {
             log('Getting Characteristic "' + testCases[testNumber].characteristic + '"...');
-            var characteristic = primaryService.getCharacteristic(testCases[testNumber].characteristic);
-
+            return service.getCharacteristic(testCases[testNumber].characteristic);
+        })
+        .then(characteristic => {
             log('Characteristic found!');
 
             if (testCases[testNumber].mustDisconnect) {
                 log('Disconnecting from server...');
-                device.gatt.disconnect();
+                bt_server.disconnect();
             }
 
             log('Reading the value of the Characteristic...');
-            characteristic.readValue();
-            log('> Characteristic value:   ' + asciiToDecimal(characteristic.value));
-        } catch(err) {
+            return characteristic.readValue();
+        })
+        .then(value => {
+            log('> Characteristic value:   ' + asciiToDecimal(value));
+        })
+        .catch(err => {
             log(err);
-        }
+        });
     }
 
     populate(testCases);
