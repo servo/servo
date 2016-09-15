@@ -37478,7 +37478,16 @@
   "local_changes": {
     "deleted": [],
     "deleted_reftests": {},
-    "items": {},
+    "items": {
+      "testharness": {
+        "dom/lists/DOMTokenList-Iterable.html": [
+          {
+            "path": "dom/lists/DOMTokenList-Iterable.html",
+            "url": "/dom/lists/DOMTokenList-Iterable.html"
+          }
+        ]
+      }
+    },
     "reftest_nodes": {}
   },
   "reftest_nodes": {

@@ -25,4 +25,5 @@ interface DOMTokenList {
            attribute DOMString value;
 
   stringifier;
+  iterable<DOMString?>;
 };
