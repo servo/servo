@@ -28,14 +28,23 @@ pub struct BluetoothScanfilter {
     name: String,
     name_prefix: String,
     services: ServiceUUIDSequence,
+    manufacturer_id: Option<u16>,
+    service_data_uuid: String,
 }
 
 impl BluetoothScanfilter {
-    pub fn new(name: String, name_prefix: String, services: Vec<String>) -> BluetoothScanfilter {
+    pub fn new(name: String,
+               name_prefix: String,
+               services: Vec<String>,
+               manufacturer_id: Option<u16>,
+               service_data_uuid: String)
+               -> BluetoothScanfilter {
         BluetoothScanfilter {
             name: name,
             name_prefix: name_prefix,
             services: ServiceUUIDSequence::new(services),
+            manufacturer_id: manufacturer_id,
+            service_data_uuid: service_data_uuid,
         }
     }
 
@@ -51,8 +60,20 @@ impl BluetoothScanfilter {
         &self.services.0
     }
 
+    pub fn get_manufacturer_id(&self) -> Option<u16> {
+        self.manufacturer_id
+    }
+
+    pub fn get_service_data_uuid(&self) -> &str {
+        &self.service_data_uuid
+    }
+
     pub fn is_empty_or_invalid(&self) -> bool {
-        (self.name.is_empty() && self.name_prefix.is_empty() && self.get_services().is_empty()) ||
+        (self.name.is_empty() &&
+         self.name_prefix.is_empty() &&
+         self.get_services().is_empty() &&
+         self.manufacturer_id.is_none() &&
+         self.service_data_uuid.is_empty()) ||
         self.name.len() > MAX_NAME_LENGTH ||
         self.name_prefix.len() > MAX_NAME_LENGTH
     }
@@ -67,7 +88,6 @@ impl BluetoothScanfilterSequence {
     }
 
     pub fn has_empty_or_invalid_filter(&self) -> bool {
-        self.0.is_empty() ||
         self.0.iter().any(BluetoothScanfilter::is_empty_or_invalid)
     }
 
@@ -77,6 +97,10 @@ impl BluetoothScanfilterSequence {
 
     fn get_services_set(&self) -> HashSet<String> {
         self.iter().flat_map(|filter| filter.services.get_services_set()).collect()
+    }
+
+    fn is_empty(&self) -> bool {
+        self.0.is_empty()
     }
 }
 
@@ -102,5 +126,9 @@ impl RequestDeviceoptions {
 
     pub fn get_services_set(&self) -> HashSet<String> {
         &self.filters.get_services_set() | &self.optional_services.get_services_set()
+    }
+
+    pub fn is_accepting_all_devices(&self) -> bool {
+        self.filters.is_empty()
     }
 }
