@@ -1,15 +1,30 @@
 <!doctype html>
-<meta charset="utf-8">
-<link rel="match" href="basic-auth-cache-test-ref.html">
-<html>
-  <div id="auth"> </div>
-  <div id="noauth"> </div>
+<html id="doc" class="reftest-wait">
+  <head>
+    <meta charset="utf-8">
+  </head>
+
+  <link rel="match" href="basic-auth-cache-test-ref.html">
+
+  <img id="auth" onload="loadNoAuth()">
+  <img id="noauth" onload="removeWait()">
+
+
   <script type="text/javascript">
-    var authImg = '<img src="http://testuser:testpass@' + window.location.host + '/http/resources/securedimage.py">';
-    document.getElementById('auth').innerHTML = authImg;
-    setTimeout(function() {
-        var noAuthImg = '<img src="http://' + window.location.host + '/http/resources/securedimage.py">';
-        document.getElementById('noauth').innerHTML = noAuthImg;
-    }, 100);
+    function loadAuth() {
+        var authUrl = 'http://testuser:testpass@' + window.location.host + '/http/resources/securedimage.py';
+        document.getElementById('auth').src = authUrl;
+    }
+
+    function loadNoAuth() {
+        var noAuthUrl = 'http://' + window.location.host + '/http/resources/securedimage.py';
+        document.getElementById('noauth').src = noAuthUrl;
+    }
+
+    function removeWait() {
+        document.getElementById('doc').className = "";
+    }
+
+    window.onload = loadAuth;
   </script>
 </html>
