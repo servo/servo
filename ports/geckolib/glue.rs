@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
+use cssparser::Parser;
 use env_logger;
 use euclid::Size2D;
 use parking_lot::RwLock;
@@ -37,8 +38,10 @@ use style::gecko_bindings::structs::nsRestyleHint;
 use style::gecko_bindings::sugar::ownership::{FFIArcHelpers, HasArcFFI, HasBoxFFI};
 use style::gecko_bindings::sugar::ownership::{HasSimpleFFI, Strong};
 use style::parallel;
-use style::parser::ParserContextExtraData;
-use style::properties::{ComputedValues, parse_one_declaration};
+use style::parser::{ParserContext, ParserContextExtraData};
+use style::properties::{ComputedValues, Importance, PropertyDeclaration};
+use style::properties::{PropertyDeclarationParseResult, PropertyDeclarationBlock};
+use style::properties::parse_one_declaration;
 use style::selector_impl::PseudoElementCascadeType;
 use style::sequential;
 use style::string_cache::Atom;
@@ -338,6 +341,54 @@ pub extern "C" fn Servo_StyleSet_Drop(data: RawServoStyleSetOwned) -> () {
     let _ = data.into_box::<PerDocumentStyleData>();
 }
 
+
+#[no_mangle]
+pub extern "C" fn Servo_ParseProperty(property_bytes: *const u8,
+                                      property_length: u32,
+                                      value_bytes: *const u8,
+                                      value_length: u32,
+                                      base_bytes: *const u8,
+                                      base_length: u32,
+                                      base: *mut ThreadSafeURIHolder,
+                                      referrer: *mut ThreadSafeURIHolder,
+                                      principal: *mut ThreadSafePrincipalHolder)
+                                      -> ServoDeclarationBlockStrong {
+    // All this string wrangling is temporary until the Gecko string bindings land (bug 1294742).
+    let name = unsafe { from_utf8_unchecked(slice::from_raw_parts(property_bytes,
+                                                                  property_length as usize)) };
+    let value_str = unsafe { from_utf8_unchecked(slice::from_raw_parts(value_bytes,
+                                                                       value_length as usize)) };
+    let base_str = unsafe { from_utf8_unchecked(slice::from_raw_parts(base_bytes,
+                                                                      base_length as usize)) };
+    let base_url = Url::parse(base_str).unwrap();
+    let extra_data = ParserContextExtraData {
+        base: Some(GeckoArcURI::new(base)),
+        referrer: Some(GeckoArcURI::new(referrer)),
+        principal: Some(GeckoArcPrincipal::new(principal)),
+    };
+
+    let context = ParserContext::new_with_extra_data(Origin::Author, &base_url,
+                                                     Box::new(StdoutErrorReporter),
+                                                     extra_data);
+
+    let mut results = vec![];
+    match PropertyDeclaration::parse(name, &context, &mut Parser::new(value_str),
+                                     &mut results, false) {
+        PropertyDeclarationParseResult::ValidOrIgnoredDeclaration => {},
+        _ => return ServoDeclarationBlockStrong::null(),
+    }
+
+    let results = results.into_iter().map(|r| (r, Importance::Normal)).collect();
+
+    Arc::new(GeckoDeclarationBlock {
+        declarations: Some(Arc::new(RwLock::new(PropertyDeclarationBlock {
+            declarations: results,
+            important_count: 0,
+        }))),
+        cache: AtomicPtr::new(ptr::null_mut()),
+        immutable: AtomicBool::new(false),
+    }).into_strong()
+}
 #[no_mangle]
 pub extern "C" fn Servo_ParseStyleAttribute(bytes: *const u8, length: u32,
                                             cache: *mut nsHTMLCSSStyleSheet)

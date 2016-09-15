@@ -13,6 +13,7 @@ doctest = false
 
 [dependencies]
 app_units = "0.3"
+cssparser = {version = "0.7"}
 env_logger = "0.3"
 euclid = "0.10.1"
 lazy_static = "0.2"

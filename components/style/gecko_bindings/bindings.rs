@@ -848,6 +848,18 @@ extern "C" {
                                                      RawServoStyleSheetBorrowed);
 }
 extern "C" {
+    pub fn Servo_ParseProperty(property_bytes: *const u8,
+                               property_length: u32,
+                               value_bytes: *const u8,
+                               value_length: u32,
+                               base_bytes: *const u8,
+                               base_length: u32,
+                               base: *mut ThreadSafeURIHolder,
+                               referrer: *mut ThreadSafeURIHolder,
+                               principal: *mut ThreadSafePrincipalHolder)
+    -> ServoDeclarationBlockStrong;
+}
+extern "C" {
     pub fn Servo_ParseStyleAttribute(bytes: *const u8, length: u32,
                                      cache: *mut nsHTMLCSSStyleSheet)
      -> ServoDeclarationBlockStrong;
