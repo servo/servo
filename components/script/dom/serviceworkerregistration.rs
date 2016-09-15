@@ -25,21 +25,21 @@ pub struct ServiceWorkerRegistration {
 }
 
 impl ServiceWorkerRegistration {
-    fn new_inherited(active_sw: &ServiceWorker, scope: String) -> ServiceWorkerRegistration {
+    fn new_inherited(active_sw: &ServiceWorker, scope: Url) -> ServiceWorkerRegistration {
         ServiceWorkerRegistration {
             eventtarget: EventTarget::new_inherited(),
             active: Some(JS::from_ref(active_sw)),
             installing: None,
             waiting: None,
-            scope: scope,
+            scope: scope.as_str().to_owned(),
         }
     }
     #[allow(unrooted_must_root)]
     pub fn new(global: GlobalRef,
                script_url: Url,
-               scope: String,
+               scope: Url,
                container: &Controllable) -> Root<ServiceWorkerRegistration> {
-        let active_worker = ServiceWorker::install_serviceworker(global, script_url.clone(), true);
+        let active_worker = ServiceWorker::install_serviceworker(global, script_url.clone(), scope.clone(), true);
         active_worker.set_transition_state(ServiceWorkerState::Installed);
         container.set_controller(&*active_worker.clone());
         reflect_dom_object(box ServiceWorkerRegistration::new_inherited(&*active_worker, scope), global, Wrap)

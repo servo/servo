@@ -996,6 +996,13 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 debug!("constellation got store registration scope message");
                 self.handle_register_serviceworker(scope_things, scope);
             }
+            FromScriptMsg::ForwardDOMMessage(msg_vec, scope_url) => {
+                if let Some(ref mgr) = self.swmanager_chan {
+                    let _ = mgr.send(ServiceWorkerMsg::ForwardDOMMessage(msg_vec, scope_url));
+                } else {
+                    warn!("Unable to forward DOMMessage for postMessage call");
+                }
+            }
         }
     }
 

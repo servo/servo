@@ -1450,7 +1450,7 @@ impl ScriptThread {
             let scope_things = ServiceWorkerRegistration::create_scope_things(global_ref, script_url);
             let _ = self.constellation_chan.send(ConstellationMsg::RegisterServiceWorker(scope_things, scope));
         } else {
-            warn!("Registration failed for {}", pipeline_id);
+            warn!("Registration failed for {}", scope);
         }
     }
 

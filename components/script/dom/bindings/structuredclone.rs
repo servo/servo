@@ -12,11 +12,14 @@ use js::jsapi::{JSContext, JS_ReadStructuredClone, JS_STRUCTURED_CLONE_VERSION};
 use js::jsapi::{JS_ClearPendingException, JS_WriteStructuredClone};
 use libc::size_t;
 use std::ptr;
+use std::slice;
 
 /// A buffer for a structured clone.
-pub struct StructuredCloneData {
-    data: *mut u64,
-    nbytes: size_t,
+pub enum StructuredCloneData {
+    /// A non-serializable (default) variant
+    Struct(*mut u64, size_t),
+    /// A variant that can be serialized
+    Vector(Vec<u8>)
 }
 
 impl StructuredCloneData {
@@ -39,24 +42,45 @@ impl StructuredCloneData {
             }
             return Err(Error::DataClone);
         }
-        Ok(StructuredCloneData {
-            data: data,
-            nbytes: nbytes,
-        })
+        Ok(StructuredCloneData::Struct(data, nbytes))
+    }
+
+    /// Converts a StructuredCloneData to Vec<u8> for inter-thread sharing
+    pub fn move_to_arraybuffer(self) -> Vec<u8> {
+        match self {
+            StructuredCloneData::Struct(data, nbytes) => {
+                unsafe {
+                    slice::from_raw_parts(data as *mut u8, nbytes).to_vec()
+                }
+            }
+            StructuredCloneData::Vector(msg) => msg
+        }
     }
 
     /// Reads a structured clone.
     ///
     /// Panics if `JS_ReadStructuredClone` fails.
-    pub fn read(self, global: GlobalRef, rval: MutableHandleValue) {
+    fn read_clone(global: GlobalRef, data: *mut u64, nbytes: size_t, rval: MutableHandleValue) {
         unsafe {
             assert!(JS_ReadStructuredClone(global.get_cx(),
-                                           self.data,
-                                           self.nbytes,
+                                           data,
+                                           nbytes,
                                            JS_STRUCTURED_CLONE_VERSION,
                                            rval,
                                            ptr::null(),
                                            ptr::null_mut()));
+        }
+    }
+
+    /// Thunk for the actual `read_clone` method. Resolves proper variant for read_clone.
+    pub fn read(self, global: GlobalRef, rval: MutableHandleValue) {
+        match self {
+            StructuredCloneData::Vector(mut vec_msg) => {
+                let nbytes = vec_msg.len();
+                let data = vec_msg.as_mut_ptr() as *mut u64;
+                StructuredCloneData::read_clone(global, data, nbytes, rval);
+            }
+            StructuredCloneData::Struct(data, nbytes) => StructuredCloneData::read_clone(global, data, nbytes, rval)
         }
     }
 }
