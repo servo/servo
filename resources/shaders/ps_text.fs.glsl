@@ -5,7 +5,7 @@
 void main(void) {
     float a = texture(sDiffuse, vUv).a;
 #ifdef WR_FEATURE_TRANSFORM
-    float alpha = 0;
+    float alpha = 0.0;
     init_transform_fs(vLocalPos, vLocalRect, alpha);
     a *= alpha;
 #endif
