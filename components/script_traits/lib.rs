@@ -6,7 +6,6 @@
 //! The traits are here instead of in script so that these modules won't have
 //! to depend on script.
 
-#![feature(core_intrinsics)]
 #![feature(custom_derive, plugin)]
 #![plugin(heapsize_plugin, plugins, serde_macros)]
 #![deny(missing_docs)]
