@@ -43,8 +43,7 @@ fn is_unrooted_ty(cx: &LateContext, ty: &ty::TyS, in_new_function: bool) -> bool
     let mut ret = false;
     ty.maybe_walk(|t| {
         match t.sty {
-            ty::TyStruct(did, _) |
-            ty::TyEnum(did, _) => {
+            ty::TyAdt(did, _) => {
                 if cx.tcx.has_attr(did.did, "must_root") {
                     ret = true;
                     false

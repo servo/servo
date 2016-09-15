@@ -140,6 +140,7 @@ impl Worker {
         worker.upcast().fire_simple_event("error");
     }
 
+    #[allow(unsafe_code)]
     fn dispatch_error(&self, error_info: ErrorInfo) {
         let global = self.global();
         let event = ErrorEvent::new(global.r(),
@@ -150,14 +151,14 @@ impl Worker {
                                     error_info.filename.as_str().into(),
                                     error_info.lineno,
                                     error_info.column,
-                                    NullHandleValue);
+                                    unsafe { NullHandleValue });
 
         let handled = !event.upcast::<Event>().fire(self.upcast::<EventTarget>());
         if handled {
             return;
         }
 
-        global.r().report_an_error(error_info, NullHandleValue);
+        global.r().report_an_error(error_info, unsafe { NullHandleValue });
     }
 }
 
