@@ -5,12 +5,13 @@
 use document_loader::DocumentLoader;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
+use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding;
-use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::BodyInit;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestMethods;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseType;
+use dom::bindings::codegen::UnionTypes::BodyInit;
 use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::{GlobalRef, GlobalRoot};
@@ -35,6 +36,7 @@ use encoding::label::encoding_from_whatwg_label;
 use encoding::types::{DecoderTrap, EncoderTrap, Encoding, EncodingRef};
 use euclid::length::Length;
 use hyper::header::{ContentLength, ContentType};
+use html5ever::serialize::Serializable;
 use hyper::header::Headers;
 use hyper::method::Method;
 use hyper::mime::{self, Attr as MimeAttr, Mime, Value as MimeValue};
@@ -1354,6 +1356,7 @@ impl XHRTimeoutCallback {
 trait Extractable {
     fn extract(&self) -> (Vec<u8>, Option<DOMString>);
 }
+
 impl Extractable for BodyInit {
     // https://fetch.spec.whatwg.org/#concept-bodyinit-extract
     fn extract(&self) -> (Vec<u8>, Option<DOMString>) {
@@ -1382,6 +1385,29 @@ impl Extractable for BodyInit {
                 let bytes = encode_multipart_form_data(&mut formdata.datums(), boundary.clone(),
                                                        UTF_8 as EncodingRef);
                 (bytes, Some(DOMString::from(format!("multipart/form-data;boundary={}", boundary))))
+                (data.get_bytes().to_vec(), content_type)
+            },
+            BodyInit::Document(ref d) => {
+                let data: Vec<u8> = d.serialize().unwrap().into();
+                let decoded_data: Vec<u8> = match &*d.CharacterSet() {
+                    "UTF-8" => {
+                        debug!("Document is already utf-8, skipping conversion {:?}", d.url());
+                        data
+                    },
+                    document_charset => {
+                        debug!("Document is {:?} we have to decode", document_charset);
+                        let charset = encoding_from_whatwg_label(&*d.CharacterSet()).unwrap_or(UTF_8);
+                        charset.decode(&*data, DecoderTrap::Replace).unwrap().into_bytes()
+                    }
+                };
+                let mut content_type = String::new();
+                if d.is_html_document() {
+                    content_type.push_str("text/html");
+                } else {
+                    content_type.push_str("application/xml");
+                };
+                content_type.push_str(";charset=UTF-8");
+                (decoded_data, Some(DOMString::from(content_type)))
             }
         }
     }
