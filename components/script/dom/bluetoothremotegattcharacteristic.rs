@@ -18,12 +18,15 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutHeap, Root};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::{ByteString, DOMString};
+use dom::bluetooth::result_to_promise;
 use dom::bluetoothcharacteristicproperties::BluetoothCharacteristicProperties;
 use dom::bluetoothremotegattdescriptor::BluetoothRemoteGATTDescriptor;
 use dom::bluetoothremotegattservice::BluetoothRemoteGATTService;
 use dom::bluetoothuuid::{BluetoothDescriptorUUID, BluetoothUUID};
+use dom::promise::Promise;
 use ipc_channel::ipc::{self, IpcSender};
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
+use std::rc::Rc;
 
 // Maximum length of an attribute value.
 // https://www.bluetooth.org/DocMan/handlers/DownloadDoc.ashx?doc_id=286439 (Vol. 3, page 2169)
@@ -79,26 +82,9 @@ impl BluetoothRemoteGATTCharacteristic {
     fn get_instance_id(&self) -> String {
         self.instance_id.clone()
     }
-}
-
-impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteristic {
-    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-properties
-    fn Properties(&self) -> Root<BluetoothCharacteristicProperties> {
-        self.properties.get()
-    }
-
-    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-service
-    fn Service(&self) -> Root<BluetoothRemoteGATTService> {
-        self.service.get()
-    }
-
-    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-uuid
-    fn Uuid(&self) -> DOMString {
-        self.uuid.clone()
-    }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-getdescriptor
-    fn GetDescriptor(&self, descriptor: BluetoothDescriptorUUID) -> Fallible<Root<BluetoothRemoteGATTDescriptor>> {
+    fn get_descriptor(&self, descriptor: BluetoothDescriptorUUID) -> Fallible<Root<BluetoothRemoteGATTDescriptor>> {
         let uuid = try!(BluetoothUUID::GetDescriptor(self.global().r(), descriptor)).to_string();
         if uuid_is_blacklisted(uuid.as_ref(), Blacklist::All) {
             return Err(Security)
@@ -121,9 +107,9 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-getdescriptors
-    fn GetDescriptors(&self,
-                      descriptor: Option<BluetoothDescriptorUUID>)
-                      -> Fallible<Vec<Root<BluetoothRemoteGATTDescriptor>>> {
+    fn get_descriptors(&self,
+                       descriptor: Option<BluetoothDescriptorUUID>)
+                       -> Fallible<Vec<Root<BluetoothRemoteGATTDescriptor>>> {
         let mut uuid: Option<String> = None;
         if let Some(d) = descriptor {
             uuid = Some(try!(BluetoothUUID::GetDescriptor(self.global().r(), d)).to_string());
@@ -152,13 +138,8 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
         }
     }
 
-    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-value
-    fn GetValue(&self) -> Option<ByteString> {
-        self.value.borrow().clone()
-    }
-
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-readvalue
-    fn ReadValue(&self) -> Fallible<ByteString> {
+    fn read_value(&self) -> Fallible<ByteString> {
         if uuid_is_blacklisted(self.uuid.as_ref(), Blacklist::Reads) {
             return Err(Security)
         }
@@ -185,7 +166,7 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-writevalue
-    fn WriteValue(&self, value: Vec<u8>) -> ErrorResult {
+    fn write_value(&self, value: Vec<u8>) -> ErrorResult {
         if uuid_is_blacklisted(self.uuid.as_ref(), Blacklist::Writes) {
             return Err(Security)
         }
@@ -211,5 +192,53 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
                 Err(Error::from(error))
             },
         }
+    }
+}
+
+impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteristic {
+    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-properties
+    fn Properties(&self) -> Root<BluetoothCharacteristicProperties> {
+        self.properties.get()
+    }
+
+    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-service
+    fn Service(&self) -> Root<BluetoothRemoteGATTService> {
+        self.service.get()
+    }
+
+    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-uuid
+    fn Uuid(&self) -> DOMString {
+        self.uuid.clone()
+    }
+
+    #[allow(unrooted_must_root)]
+    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-getdescriptor
+    fn GetDescriptor(&self, descriptor: BluetoothDescriptorUUID) -> Rc<Promise> {
+        result_to_promise(self.global().r(), self.get_descriptor(descriptor))
+    }
+
+    #[allow(unrooted_must_root)]
+    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-getdescriptors
+    fn GetDescriptors(&self,
+                      descriptor: Option<BluetoothDescriptorUUID>)
+                      -> Rc<Promise> {
+        result_to_promise(self.global().r(), self.get_descriptors(descriptor))
+    }
+
+    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-value
+    fn GetValue(&self) -> Option<ByteString> {
+        self.value.borrow().clone()
+    }
+
+    #[allow(unrooted_must_root)]
+    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-readvalue
+    fn ReadValue(&self) -> Rc<Promise> {
+        result_to_promise(self.global().r(), self.read_value())
+    }
+
+    #[allow(unrooted_must_root)]
+    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-writevalue
+    fn WriteValue(&self, value: Vec<u8>) -> Rc<Promise> {
+        result_to_promise(self.global().r(), self.write_value(value))
     }
 }

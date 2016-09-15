@@ -28,27 +28,30 @@
         if (filterNamePrefix)
             options.filters.push({namePrefix: filterNamePrefix});
 
-        try {
-            log('Requesting Bluetooth Device...');
-            var device = window.navigator.bluetooth.requestDevice(options);
-
+        log('Requesting Bluetooth Device...');
+        window.navigator.bluetooth.requestDevice(options)
+        .then(device => {
             log('Connecting to GATTserver on device...');
-            var server = device.gatt.connect();
-
+            return device.gatt.connect();
+        })
+        .then(server => {
             log('Getting Primary Service...');
-            var primaryService = server.getPrimaryService(filterService);
-
-            log('Primary Service found on device: ' + primaryService.device.name);
-            log('> UUID:                          ' + primaryService.uuid);
+            return server.getPrimaryService(filterService);
+        })
+        .then(service => {
+            log('Primary Service found on device: ' + service.device.name);
+            log('> UUID:                          ' + service.uuid);
 
             log('Getting Included Services...');
-            var includedServices = primaryService.getIncludedServices();
-
+            return service.getIncludedServices();
+        })
+        .then(includedServices => {
             log('> Included Services: ' +
                 includedServices.map(s => s.uuid).join('\n' + ' '.repeat(21)));
-        } catch(err) {
+        })
+        .catch(err => {
             log(err);
-        }
+        });
     }
     </script>
 </body>

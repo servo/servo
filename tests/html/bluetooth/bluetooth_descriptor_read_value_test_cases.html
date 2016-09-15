@@ -22,33 +22,46 @@
 
     function onButtonClick(testNumber) {
         clear();
-        try {
-            log('Requesting Bluetooth Device...');
-            var device = window.navigator.bluetooth.requestDevice({filters: [{services: ['heart_rate']}]});
 
+        var bt_server;
+
+        log('Requesting Bluetooth Device...');
+        window.navigator.bluetooth.requestDevice({filters: [{services: ['heart_rate']}]})
+        .then(device => {
             log('Connecting to GATTserver on device...');
-            var server = device.gatt.connect();
+            return device.gatt.connect();
+        })
+        .then(server => {
+            bt_server = server;
 
             log('Getting Primary Service "heart_rate"...');
-            var primaryService = server.getPrimaryService('heart_rate');
-
+            return server.getPrimaryService('heart_rate');
+        })
+        .then(service => {
             log('Getting Characteristic "heart_rate_measurement"...');
-            var characteristic = primaryService.getCharacteristic('heart_rate_measurement');
-
+            return service.getCharacteristic('heart_rate_measurement');
+        })
+        .then(characteristic => {
             log('Getting Descriptor "' + testCases[testNumber].descriptor + '"...');
-            var descriptor = characteristic.getDescriptor(testCases[testNumber].descriptor);
-
+            return characteristic.getDescriptor(testCases[testNumber].descriptor);
+        })
+        .then(descriptor => {
             log('Descriptor found!');
+
             if (testCases[testNumber].mustDisconnect) {
                 log('Disconecting from GATTserver');
-                device.gatt.disconnect();
+                bt_server.disconnect();
             }
+
             log("Reading descriptor's value...");
-            descriptor.readValue();
-            log('> Descriptor value:          ' + asciiToDecimal(descriptor.value));
-        } catch(err) {
+            return descriptor.readValue();
+        })
+        .then(value => {
+            log('> Descriptor value:          ' + asciiToDecimal(value));
+        })
+        .catch(err => {
             log(err);
-        }
+        });
     }
 
     populate(testCases);
