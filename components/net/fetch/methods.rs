@@ -827,7 +827,7 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
             let mut authorization_value = None;
 
             // Substep 4
-            if let Some(basic) = auth_from_cache(&context.state.auth_cache, &current_url) {
+            if let Some(basic) = auth_from_cache(&context.state.auth_cache, &current_url.origin()) {
                 if !http_request.use_url_credentials || !has_credentials(&current_url) {
                     authorization_value = Some(basic);
                 }

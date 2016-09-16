@@ -1533,7 +1533,7 @@ fn test_if_auth_creds_not_in_url_but_in_cache_it_sets_it() {
                         password: "test".to_owned(),
                      };
 
-    http_state.auth_cache.write().unwrap().entries.insert(url.clone(), auth_entry);
+    http_state.auth_cache.write().unwrap().entries.insert(url.origin().clone().ascii_serialization(), auth_entry);
 
     let mut load_data = LoadData::new(LoadContext::Browsing, url, &HttpTest);
     load_data.credentials_flag = true;

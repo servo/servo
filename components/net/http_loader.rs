@@ -52,7 +52,7 @@ use time;
 use time::Tm;
 #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
 use tinyfiledialogs;
-use url::{Position, Url};
+use url::{Position, Url, Origin};
 use util::prefs::PREFS;
 use util::thread::spawn_named;
 use uuid;
@@ -688,15 +688,15 @@ fn set_auth_header(headers: &mut Headers,
         if let Some(auth) = auth_from_url(url) {
             headers.set(auth);
         } else {
-            if let Some(basic) = auth_from_cache(auth_cache, url) {
+            if let Some(basic) = auth_from_cache(auth_cache, &url.origin()) {
                 headers.set(Authorization(basic));
             }
         }
     }
 }
 
-pub fn auth_from_cache(auth_cache: &Arc<RwLock<AuthCache>>, url: &Url) -> Option<Basic> {
-    if let Some(ref auth_entry) = auth_cache.read().unwrap().entries.get(url) {
+pub fn auth_from_cache(auth_cache: &Arc<RwLock<AuthCache>>, origin: &Origin) -> Option<Basic> {
+    if let Some(ref auth_entry) = auth_cache.read().unwrap().entries.get(&origin.ascii_serialization()) {
         let user_name = auth_entry.user_name.clone();
         let password  = Some(auth_entry.password.clone());
         Some(Basic { username: user_name, password: password })
@@ -1017,13 +1017,15 @@ pub fn load<A, B>(load_data: &LoadData,
         new_auth_header = None;
 
         if let Some(auth_header) = request_headers.get::<Authorization<Basic>>() {
-            if response.status().class() == StatusClass::Success {
+            if response.status().class() == StatusClass::Success ||
+               response.status().class() == StatusClass::Redirection {
                 let auth_entry = AuthCacheEntry {
                     user_name: auth_header.username.to_owned(),
                     password: auth_header.password.to_owned().unwrap(),
                 };
 
-                http_state.auth_cache.write().unwrap().entries.insert(doc_url.clone(), auth_entry);
+                let serialized_origin = doc_url.origin().ascii_serialization();
+                http_state.auth_cache.write().unwrap().entries.insert(serialized_origin, auth_entry);
             }
         }
 

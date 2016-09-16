@@ -466,7 +466,7 @@ impl AuthCache {
 #[derive(RustcDecodable, RustcEncodable, Clone)]
 pub struct AuthCache {
     pub version: u32,
-    pub entries: HashMap<Url, AuthCacheEntry>,
+    pub entries: HashMap<String, AuthCacheEntry>,
 }
 
 pub struct CoreResourceManager {
