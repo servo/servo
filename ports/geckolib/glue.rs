@@ -43,8 +43,9 @@ use style::parallel;
 use style::parser::{ParserContext, ParserContextExtraData};
 use style::properties::{ComputedValues, Importance, PropertyDeclaration};
 use style::properties::{PropertyDeclarationParseResult, PropertyDeclarationBlock};
-use style::properties::parse_one_declaration;
+use style::properties::{cascade, parse_one_declaration};
 use style::selector_impl::PseudoElementCascadeType;
+use style::selector_matching::ApplicableDeclarationBlock;
 use style::sequential;
 use style::string_cache::Atom;
 use style::stylesheets::{Origin, Stylesheet};
@@ -96,6 +97,7 @@ fn restyle_subtree(node: GeckoNode, raw_data: RawServoStyleSetBorrowedMut) {
         LocalStyleContextCreationInfo::new(per_doc_data.new_animations_sender.clone());
 
     let shared_style_context = SharedStyleContext {
+        // FIXME (bug 1303229): Use the actual viewport size here
         viewport_size: Size2D::new(Au(0), Au(0)),
         screen_size_changed: false,
         generation: 0,
@@ -123,6 +125,35 @@ pub extern "C" fn Servo_RestyleSubtree(node: RawGeckoNodeBorrowed,
                                        raw_data: RawServoStyleSetBorrowedMut) -> () {
     let node = GeckoNode(node);
     restyle_subtree(node, raw_data);
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_RestyleWithAddedDeclaration(declarations: ServoDeclarationBlockBorrowed,
+                                                    previous_style: ServoComputedValuesBorrowed)
+  -> ServoComputedValuesStrong
+{
+    match GeckoDeclarationBlock::as_arc(&declarations).declarations {
+        Some(ref declarations) => {
+            let declaration_block = ApplicableDeclarationBlock {
+                mixed_declarations: declarations.clone(),
+                importance: Importance::Normal,
+                source_order: 0,
+                specificity: ::std::u32::MAX,
+            };
+            let previous_style = ComputedValues::as_arc(&previous_style);
+
+            // FIXME (bug 1303229): Use the actual viewport size here
+            let (computed, _) = cascade(Size2D::new(Au(0), Au(0)),
+                                        &[declaration_block],
+                                        false,
+                                        Some(previous_style),
+                                        None,
+                                        None,
+                                        Box::new(StdoutErrorReporter));
+            Arc::new(computed).into_strong()
+        },
+        None => ServoComputedValuesStrong::null(),
+    }
 }
 
 #[no_mangle]
