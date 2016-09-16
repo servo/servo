@@ -267,6 +267,8 @@ pub mod event;
 pub mod eventdispatcher;
 pub mod eventsource;
 pub mod eventtarget;
+pub mod extendableevent;
+pub mod extendablemessageevent;
 pub mod file;
 pub mod filelist;
 pub mod filereader;
