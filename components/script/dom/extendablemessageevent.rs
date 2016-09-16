@@ -27,13 +27,6 @@ pub struct ExtendableMessageEvent {
 }
 
 impl ExtendableMessageEvent {
-    pub fn new_uninitialized(global: GlobalRef) -> Root<ExtendableMessageEvent> {
-        ExtendableMessageEvent::new_initialized(global,
-                                      HandleValue::undefined(),
-                                      DOMString::new(),
-                                      DOMString::new())
-    }
-
     pub fn new_initialized(global: GlobalRef,
                            data: HandleValue,
                            origin: DOMString,

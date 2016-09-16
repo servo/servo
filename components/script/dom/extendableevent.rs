@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::ExtendableEventBinding;
-use dom::bindings::error::Fallible;
+use dom::bindings::error::{Fallible, Error};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
@@ -28,18 +28,18 @@ impl ExtendableEvent {
             extensions_allowed: true
         }
     }
-    pub fn new_uninitialized(global: GlobalRef) -> Root<ExtendableEvent> {
-        reflect_dom_object(box ExtendableEvent::new_inherited(),
-                           global,
-                           ExtendableEventBinding::Wrap)
-    }
     pub fn new(global: GlobalRef,
                type_: Atom,
                bubbles: bool,
                cancelable: bool)
                -> Root<ExtendableEvent> {
-        let ev = ExtendableEvent::new_uninitialized(global);
-        ev.init_extendable_event(type_, bubbles, cancelable);
+        let ev = reflect_dom_object(box ExtendableEvent::new_inherited(), global, ExtendableEventBinding::Wrap);
+        {
+            let ev = ev.upcast::<Event>();
+            if !ev.dispatching() {
+                ev.init_event(type_, bubbles, cancelable);
+            }
+        }
         ev
     }
 
@@ -47,30 +47,20 @@ impl ExtendableEvent {
                    type_: DOMString,
                    init: &ExtendableEventBinding::ExtendableEventInit) -> Fallible<Root<ExtendableEvent>> {
         Ok(ExtendableEvent::new(global,
-                            Atom::from(type_),
-                            init.parent.bubbles,
-                            init.parent.cancelable))
-    }
-
-    fn init_extendable_event(&self,
-                         type_: Atom,
-                         can_bubble: bool,
-                         cancelable: bool) {
-        let event = self.upcast::<Event>();
-        if event.dispatching() {
-            return;
-        }
-        event.init_event(type_, can_bubble, cancelable);
+                                Atom::from(type_),
+                                init.parent.bubbles,
+                                init.parent.cancelable))
     }
 
     // https://w3c.github.io/ServiceWorker/#wait-until-method
-    pub fn WaitUntil(&self, _cx: *mut JSContext, val: HandleValue) {
+    pub fn WaitUntil(&self, _cx: *mut JSContext, val: HandleValue) -> Fallible<()> {
         // Step 1
         if !self.extensions_allowed {
-            // TODO throw invalid state error, but this does not return a `Fallible` ?
+            return Err(Error::InvalidState);
         }
         // Step 2
         // TODO add a extended_promises array to enqueue the `val`
+        Ok(())
     }
 
     // https://dom.spec.whatwg.org/#dom-event-istrusted
