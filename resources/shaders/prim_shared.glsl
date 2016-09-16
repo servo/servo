@@ -30,7 +30,15 @@
 #define MAX_STOPS_PER_ANGLE_GRADIENT 8
 
 #ifdef WR_VERTEX_SHADER
+
+#define VECS_PER_LAYER      13
+#define LAYERS_PER_ROW      (WR_MAX_VERTEX_TEXTURE_WIDTH / VECS_PER_LAYER)
+
+#define VECS_PER_TILE       2
+#define TILES_PER_ROW       (WR_MAX_VERTEX_TEXTURE_WIDTH / VECS_PER_TILE)
+
 uniform sampler2D sLayers;
+uniform sampler2D sRenderTasks;
 
 struct Layer {
     mat4 transform;
@@ -43,10 +51,6 @@ layout(std140) uniform Data {
     vec4 data[WR_MAX_UBO_VECTORS];
 };
 
-layout(std140) uniform Tiles {
-    vec4 tiles[WR_MAX_UBO_VECTORS];
-};
-
 Layer fetch_layer(int index) {
     Layer layer;
 
@@ -54,8 +58,11 @@ Layer fetch_layer(int index) {
     // This is required because trying to use an offset
     // of more than 8 texels doesn't work on some versions
     // of OSX.
-    ivec2 uv0 = ivec2(0, index);
-    ivec2 uv1 = ivec2(8, index);
+    int y = index / LAYERS_PER_ROW;
+    int x = VECS_PER_LAYER * (index % LAYERS_PER_ROW);
+
+    ivec2 uv0 = ivec2(x + 0, y);
+    ivec2 uv1 = ivec2(x + 8, y);
 
     layer.transform[0] = texelFetchOffset(sLayers, uv0, 0, ivec2(0, 0));
     layer.transform[1] = texelFetchOffset(sLayers, uv0, 0, ivec2(1, 0));
@@ -85,10 +92,13 @@ struct Tile {
 Tile fetch_tile(int index) {
     Tile tile;
 
-    int offset = index * 2;
+    int y = index / TILES_PER_ROW;
+    int x = VECS_PER_TILE * (index % TILES_PER_ROW);
 
-    tile.actual_rect = tiles[offset + 0];
-    tile.target_rect = tiles[offset + 1];
+    ivec2 uv = ivec2(x + 0, y);
+
+    tile.actual_rect = texelFetchOffset(sRenderTasks, uv, 0, ivec2(0, 0));
+    tile.target_rect = texelFetchOffset(sRenderTasks, uv, 0, ivec2(1, 0));
 
     return tile;
 }
