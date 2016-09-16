@@ -43,11 +43,11 @@ pub enum Origin {
 
 /// A [referer](https://fetch.spec.whatwg.org/#concept-request-referrer)
 #[derive(Clone, PartialEq, HeapSizeOf)]
-pub enum Referer {
-    NoReferer,
-    /// Default referer if nothing is specified
+pub enum Referrer {
+    NoReferrer,
+    /// Default referrer if nothing is specified
     Client,
-    RefererUrl(Url)
+    ReferrerUrl(Url)
 }
 
 /// A [request mode](https://fetch.spec.whatwg.org/#concept-request-mode)
@@ -132,7 +132,7 @@ pub struct RequestInit {
     // doesn't have info about the client right now
     pub origin: Url,
     // XXXManishearth these should be part of the client object
-    pub referer_url: Option<Url>,
+    pub referrer_url: Option<Url>,
     pub referrer_policy: Option<ReferrerPolicy>,
     pub pipeline_id: Option<PipelineId>,
 }
@@ -164,7 +164,7 @@ pub struct Request {
     pub omit_origin_header: Cell<bool>,
     pub same_origin_data: Cell<bool>,
     /// https://fetch.spec.whatwg.org/#concept-request-referrer
-    pub referer: RefCell<Referer>,
+    pub referrer: RefCell<Referrer>,
     pub referrer_policy: Cell<Option<ReferrerPolicy>>,
     pub pipeline_id: Cell<Option<PipelineId>>,
     pub synchronous: bool,
@@ -205,7 +205,7 @@ impl Request {
             origin: RefCell::new(origin.unwrap_or(Origin::Client)),
             omit_origin_header: Cell::new(false),
             same_origin_data: Cell::new(false),
-            referer: RefCell::new(Referer::Client),
+            referrer: RefCell::new(Referrer::Client),
             referrer_policy: Cell::new(None),
             pipeline_id: Cell::new(pipeline_id),
             synchronous: false,
@@ -238,10 +238,10 @@ impl Request {
         req.use_cors_preflight = init.use_cors_preflight;
         req.credentials_mode = init.credentials_mode;
         req.use_url_credentials = init.use_url_credentials;
-        *req.referer.borrow_mut() = if let Some(url) = init.referer_url {
-            Referer::RefererUrl(url)
+        *req.referrer.borrow_mut() = if let Some(url) = init.referrer_url {
+            Referrer::ReferrerUrl(url)
         } else {
-            Referer::NoReferer
+            Referrer::NoReferrer
         };
         req.referrer_policy.set(init.referrer_policy);
         req.pipeline_id.set(init.pipeline_id);
@@ -271,7 +271,7 @@ impl Request {
             origin: RefCell::new(Origin::Client),
             omit_origin_header: Cell::new(false),
             same_origin_data: Cell::new(false),
-            referer: RefCell::new(Referer::Client),
+            referrer: RefCell::new(Referrer::Client),
             referrer_policy: Cell::new(None),
             synchronous: false,
             // Step 1-2
@@ -325,26 +325,26 @@ impl Request {
     }
 }
 
-impl Referer {
+impl Referrer {
     pub fn to_url(&self) -> Option<&Url> {
         match *self {
-            Referer::NoReferer | Referer::Client => None,
-            Referer::RefererUrl(ref url) => Some(url)
+            Referrer::NoReferrer | Referrer::Client => None,
+            Referrer::ReferrerUrl(ref url) => Some(url)
         }
     }
     pub fn from_url(url: Option<Url>) -> Self {
         if let Some(url) = url {
-            Referer::RefererUrl(url)
+            Referrer::ReferrerUrl(url)
         } else {
-            Referer::NoReferer
+            Referrer::NoReferrer
         }
     }
     pub fn take(&mut self) -> Option<Url> {
-        let mut new = Referer::Client;
+        let mut new = Referrer::Client;
         swap(self, &mut new);
         match new {
-            Referer::NoReferer | Referer::Client => None,
-            Referer::RefererUrl(url) => Some(url)
+            Referrer::NoReferrer | Referrer::Client => None,
+            Referrer::ReferrerUrl(url) => Some(url)
         }
     }
 }

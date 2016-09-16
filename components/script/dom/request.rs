@@ -28,7 +28,7 @@ use net_traits::request::CacheMode as NetTraitsRequestCache;
 use net_traits::request::CredentialsMode as NetTraitsRequestCredentials;
 use net_traits::request::Destination as NetTraitsRequestDestination;
 use net_traits::request::RedirectMode as NetTraitsRequestRedirect;
-use net_traits::request::Referer as NetTraitsRequestReferer;
+use net_traits::request::Referrer as NetTraitsRequestReferrer;
 use net_traits::request::Request as NetTraitsRequest;
 use net_traits::request::RequestMode as NetTraitsRequestMode;
 use net_traits::request::Type as NetTraitsRequestType;
@@ -154,7 +154,7 @@ impl Request {
         *request.origin.borrow_mut() = Origin::Client;
         request.omit_origin_header = temporary_request.omit_origin_header;
         request.same_origin_data.set(true);
-        request.referer = temporary_request.referer;
+        request.referrer = temporary_request.referrer;
         request.referrer_policy = temporary_request.referrer_policy;
         request.mode = temporary_request.mode;
         request.credentials_mode = temporary_request.credentials_mode;
@@ -182,7 +182,7 @@ impl Request {
                 // Step 13.2
                 request.omit_origin_header.set(false);
                 // Step 13.3
-                *request.referer.borrow_mut() = NetTraitsRequestReferer::Client;
+                *request.referrer.borrow_mut() = NetTraitsRequestReferrer::Client;
                 // Step 13.4
                 request.referrer_policy.set(None);
             }
@@ -193,7 +193,7 @@ impl Request {
             let ref referrer = init_referrer.0;
             // Step 14.2
             if referrer.is_empty() {
-                *request.referer.borrow_mut() = NetTraitsRequestReferer::NoReferer;
+                *request.referrer.borrow_mut() = NetTraitsRequestReferrer::NoReferrer;
             } else {
                 // Step 14.3
                 let parsed_referrer = base_url.join(referrer);
@@ -207,7 +207,7 @@ impl Request {
                     if parsed_referrer.cannot_be_a_base() &&
                         parsed_referrer.scheme() == "about" &&
                         parsed_referrer.path() == "client" {
-                            *request.referer.borrow_mut() = NetTraitsRequestReferer::Client;
+                            *request.referrer.borrow_mut() = NetTraitsRequestReferrer::Client;
                         } else {
                             // Step 14.6
                             if parsed_referrer.origin() != origin {
@@ -215,7 +215,7 @@ impl Request {
                                     "RequestInit's referrer has invalid origin".to_string()));
                             }
                             // Step 14.7
-                            *request.referer.borrow_mut() = NetTraitsRequestReferer::RefererUrl(parsed_referrer);
+                            *request.referrer.borrow_mut() = NetTraitsRequestReferrer::ReferrerUrl(parsed_referrer);
                         }
                 }
             }
@@ -538,11 +538,11 @@ impl RequestMethods for Request {
     // https://fetch.spec.whatwg.org/#dom-request-referrer
     fn Referrer(&self) -> USVString {
         let r = self.request.borrow();
-        let referrer = r.referer.borrow();
+        let referrer = r.referrer.borrow();
         USVString(match &*referrer {
-            &NetTraitsRequestReferer::NoReferer => String::from("no-referrer"),
-            &NetTraitsRequestReferer::Client => String::from("client"),
-            &NetTraitsRequestReferer::RefererUrl(ref u) => {
+            &NetTraitsRequestReferrer::NoReferrer => String::from("no-referrer"),
+            &NetTraitsRequestReferrer::Client => String::from("client"),
+            &NetTraitsRequestReferrer::ReferrerUrl(ref u) => {
                 let u_c = u.clone();
                 u_c.into_string()
             }

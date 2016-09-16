@@ -676,8 +676,8 @@ pub fn modify_request_headers(headers: &mut Headers,
                                                referrer_url.clone(),
                                                url.clone());
 
-    if let Some(referer_val) = referrer_url.clone() {
-        headers.set(Referer(referer_val.into_string()));
+    if let Some(referrer_val) = referrer_url.clone() {
+        headers.set(Referer(referrer_val.into_string()));
     }
 }
 
