@@ -501,7 +501,7 @@ interface WebGLRenderingContextBase
     [Throws]
     void bufferSubData(GLenum target, GLintptr offset, object? data);
 
-    //[WebGLHandlesContextLoss] GLenum checkFramebufferStatus(GLenum target);
+    [WebGLHandlesContextLoss] GLenum checkFramebufferStatus(GLenum target);
     void clear(GLbitfield mask);
     void clearColor(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha);
     void clearDepth(GLclampf depth);

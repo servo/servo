@@ -2519,6 +2519,23 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn TexParameteri(&self, target: u32, name: u32, value: i32) {
         self.tex_parameter(target, name, TexParameterValue::Int(value))
     }
+
+    fn CheckFramebufferStatus(&self, target: u32) -> u32 {
+        // From the GLES 2.0.25 spec, 4.4 ("Framebuffer Objects"):
+        //
+        //    "If target is not FRAMEBUFFER, INVALID_ENUM is
+        //     generated. If CheckFramebufferStatus generates an
+        //     error, 0 is returned."
+        if target != constants::FRAMEBUFFER {
+            self.webgl_error(InvalidEnum);
+            return 0;
+        }
+
+        match self.bound_framebuffer.get() {
+            Some(fb) => return fb.check_status(),
+            None => return constants::FRAMEBUFFER_COMPLETE,
+        }
+    }
 }
 
 pub trait LayoutCanvasWebGLRenderingContextHelpers {
