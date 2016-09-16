@@ -952,6 +952,11 @@ extern "C" {
                                 set: RawServoStyleSetBorrowedMut);
 }
 extern "C" {
+    pub fn Servo_RestyleWithAddedDeclaration(declarations: ServoDeclarationBlockBorrowed,
+                                             previous_style: ServoComputedValuesBorrowed)
+     -> ServoComputedValuesStrong;
+}
+extern "C" {
     pub fn Servo_GetStyleFont(computed_values:
                                   ServoComputedValuesBorrowedOrNull)
      -> *const nsStyleFont;
