@@ -18,7 +18,7 @@ use dom::htmlelement::HTMLElement;
 use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmlformelement::{FormDatumValue, FormControl, FormDatum, HTMLFormElement};
 use dom::htmloptionelement::HTMLOptionElement;
-use dom::node::{Node, UnbindContext, window_from_node};
+use dom::node::{document_from_node, Node, UnbindContext, window_from_node};
 use dom::nodelist::NodeList;
 use dom::validation::Validatable;
 use dom::validitystate::ValidityState;
@@ -191,31 +191,21 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
         let node = self.upcast::<Node>();
         if value < length {     // truncate the number of option elements
             for _ in 0..(length - value) {
-                let lastChild = node.GetLastChild();
-                if lastChild.is_some() {
-                    let removed = node.RemoveChild(&lastChild.unwrap());
-                    match removed {
-                        Ok(_) => {},
-                        Err(e) => println!("error removing child of HTML Select: {:?}", e),
+                if let Some(lastChild) = node.GetLastChild() {
+                    if let Err(e) = node.RemoveChild(&lastChild) {
+                        warn!("error removing child of HTML Select: {:?}", e);
                     }
                 } else {
-                    println!("error: there is no child of HTML Select" );
+                    warn!("error: there is no child of HTML Select" );
                 }
             }
         } else if value > length {  // add new blank option elements
-            let document = node.GetOwnerDocument();
-            if document.is_some() {
-                let document = document.unwrap();
-                for _ in 0..(value - length) {
-                    let element = HTMLOptionElement::new(atom!("option"), None, &document.upcast());
-                    let appended = node.AppendChild(element.upcast());
-                    match appended {
-                        Ok(_) => {},
-                        Err(e) => println!("error appending child of HTML Select: {:?}", e),
-                    }
+            let document = document_from_node(self);
+            for _ in 0..(value - length) {
+                let element = HTMLOptionElement::new(atom!("option"), None, &document.upcast());
+                if let Err(e) = node.AppendChild(element.upcast()) {
+                    warn!("error appending child of HTMLSelectElement: {:?}", e);
                 }
-            } else {
-                println!("error: there is no document of HTML Select" );
             }
         }
     }
@@ -228,20 +218,16 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-select-item
     fn Item(&self, index: u32) -> Option<Root<Element>> {
-        let node = self.upcast::<Node>();
-        let item = node.traverse_preorder().filter_map(Root::downcast::<HTMLOptionElement>).nth(index as usize);
-        if item.is_some() {
-            Some(Root::from_ref(item.unwrap().upcast::<Element>()))
-        } else {
-            None
-        }
+        self.upcast::<Node>()
+            .traverse_preorder()
+            .filter_map(Root::downcast::<HTMLOptionElement>)
+            .nth(index as usize)
+            .map(|item| Root::from_ref(item.upcast()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-select-item
-    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Root<Element>> {
-        let maybe_elem = self.Item(index);
-        *found = maybe_elem.is_some();
-        maybe_elem
+    fn IndexedGetter(&self, index: u32) -> Option<Root<Element>> {
+        self.Item(index)
     }
 }
 
