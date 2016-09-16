@@ -7,9 +7,9 @@
 [Constructor(DOMString type,
  optional ExtendableEventInit eventInitDict),
  Exposed=ServiceWorker,
- Pref="dom.serviceworker.enabled" ]
+ Pref="dom.serviceworker.enabled"]
 interface ExtendableEvent : Event {
-  void waitUntil(/*Promise<*/any/*>*/ f);
+  [Throws] void waitUntil(/*Promise<*/any/*>*/ f);
 };
 
 dictionary ExtendableEventInit : EventInit {

@@ -15,8 +15,8 @@ use dom::bindings::reflector::Reflectable;
 use dom::bindings::str::DOMString;
 use dom::event::Event;
 use dom::eventtarget::EventTarget;
-use dom::extendablemessageevent::ExtendableMessageEvent;
 use dom::extendableevent::ExtendableEvent;
+use dom::extendablemessageevent::ExtendableMessageEvent;
 use dom::workerglobalscope::WorkerGlobalScope;
 use ipc_channel::ipc::{self, IpcSender, IpcReceiver};
 use ipc_channel::router::ROUTER;
@@ -313,10 +313,8 @@ impl ServiceWorkerGlobalScope {
     }
 
     fn dispatch_activate(&self) {
-        let event = ExtendableEvent::new(GlobalRef::Worker(self.upcast::<WorkerGlobalScope>()),
-                                         atom!("activate"),
-                                         false,
-                                         false);
+        let global = GlobalRef::Worker(self.upcast::<WorkerGlobalScope>());
+        let event = ExtendableEvent::new(global, atom!("activate"), false, false);
         let event = (&*event).upcast::<Event>();
         self.upcast::<EventTarget>().dispatch_event(event);
     }

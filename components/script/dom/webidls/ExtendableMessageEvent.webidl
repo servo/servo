@@ -4,9 +4,9 @@
 
 // https://w3c.github.io/ServiceWorker/#extendablemessage-event-section
 
-[ Constructor(DOMString type, optional ExtendableMessageEventInit eventInitDict),
-  Exposed=ServiceWorker,
-  Pref="dom.serviceworker.enabled" ]
+[Constructor(DOMString type, optional ExtendableMessageEventInit eventInitDict),
+ Exposed=ServiceWorker,
+ Pref="dom.serviceworker.enabled"]
 interface ExtendableMessageEvent : ExtendableEvent {
   readonly attribute any data;
   readonly attribute DOMString origin;

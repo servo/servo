@@ -27,17 +27,10 @@ pub struct ExtendableMessageEvent {
 }
 
 impl ExtendableMessageEvent {
-    pub fn new_uninitialized(global: GlobalRef) -> Root<ExtendableMessageEvent> {
-        ExtendableMessageEvent::new_initialized(global,
-                                      HandleValue::undefined(),
-                                      DOMString::new(),
-                                      DOMString::new())
-    }
-
-    pub fn new_initialized(global: GlobalRef,
-                           data: HandleValue,
-                           origin: DOMString,
-                           lastEventId: DOMString) -> Root<ExtendableMessageEvent> {
+    pub fn new(global: GlobalRef, type_: Atom,
+               bubbles: bool, cancelable: bool,
+               data: HandleValue, origin: DOMString, lastEventId: DOMString)
+               -> Root<ExtendableMessageEvent> {
         let mut ev = box ExtendableMessageEvent {
             event: ExtendableEvent::new_inherited(),
             data: Heap::default(),
@@ -45,19 +38,11 @@ impl ExtendableMessageEvent {
             lastEventId: lastEventId,
         };
         ev.data.set(data.get());
-        reflect_dom_object(ev, global, ExtendableMessageEventBinding::Wrap)
-    }
-
-    pub fn new(global: GlobalRef, type_: Atom,
-               bubbles: bool, cancelable: bool,
-               data: HandleValue, origin: DOMString, lastEventId: DOMString)
-               -> Root<ExtendableMessageEvent> {
-        let ev = ExtendableMessageEvent::new_initialized(global, data, origin, lastEventId);
         {
             let event = ev.upcast::<Event>();
             event.init_event(type_, bubbles, cancelable);
         }
-        ev
+        reflect_dom_object(ev, global, ExtendableMessageEventBinding::Wrap)
     }
 
     pub fn Constructor(global: GlobalRef,
