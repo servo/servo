@@ -24,7 +24,7 @@ use mime_guess::guess_mime_type;
 use msg::constellation_msg::ReferrerPolicy;
 use net_traits::FetchTaskTarget;
 use net_traits::request::{CacheMode, CredentialsMode, Destination};
-use net_traits::request::{RedirectMode, Referer, Request, RequestMode, ResponseTainting};
+use net_traits::request::{RedirectMode, Referrer, Request, RequestMode, ResponseTainting};
 use net_traits::request::{Type, Origin, Window};
 use net_traits::response::{HttpsState, TerminationReason};
 use net_traits::response::{Response, ResponseBody, ResponseType};
@@ -156,8 +156,8 @@ fn main_fetch(request: Rc<Request>, cache: &mut CORSCache, cors_flag: bool,
     // TODO this step (CSP port/content blocking)
 
     // Step 6
-    // TODO this step (referer policy)
-    // currently the clients themselves set referer policy in RequestInit
+    // TODO this step (referrer policy)
+    // currently the clients themselves set referrer policy in RequestInit
 
     // Step 7
     if request.referrer_policy.get().is_none() {
@@ -165,15 +165,15 @@ fn main_fetch(request: Rc<Request>, cache: &mut CORSCache, cors_flag: bool,
     }
 
     // Step 8
-    if *request.referer.borrow() != Referer::NoReferer {
-        // remove Referer headers set in past redirects/preflights
+    if *request.referrer.borrow() != Referrer::NoReferrer {
+        // remove Referrer headers set in past redirects/preflights
         // this stops the assertion in determine_request_referrer from failing
         request.headers.borrow_mut().remove::<RefererHeader>();
         let referrer_url = determine_request_referrer(&mut *request.headers.borrow_mut(),
                                                       request.referrer_policy.get(),
-                                                      request.referer.borrow_mut().take(),
+                                                      request.referrer.borrow_mut().take(),
                                                       request.current_url().clone());
-        *request.referer.borrow_mut() = Referer::from_url(referrer_url);
+        *request.referrer.borrow_mut() = Referrer::from_url(referrer_url);
     }
 
     // Step 9
@@ -745,12 +745,12 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
     }
 
     // Step 6
-    match *http_request.referer.borrow() {
-        Referer::NoReferer => (),
-        Referer::RefererUrl(ref http_request_referer) =>
-            http_request.headers.borrow_mut().set(RefererHeader(http_request_referer.to_string())),
-        Referer::Client =>
-            // it should be impossible for referer to be anything else during fetching
+    match *http_request.referrer.borrow() {
+        Referrer::NoReferrer => (),
+        Referrer::ReferrerUrl(ref http_request_referrer) =>
+            http_request.headers.borrow_mut().set(RefererHeader(http_request_referrer.to_string())),
+        Referrer::Client =>
+            // it should be impossible for referrer to be anything else during fetching
             // https://fetch.spec.whatwg.org/#concept-request-referrer
             unreachable!()
     };
@@ -796,7 +796,7 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
     let current_url = http_request.current_url();
     // Step 12
     // todo: pass referrer url and policy
-    // this can only be uncommented when the referer header is set, else it crashes
+    // this can only be uncommented when the referrer header is set, else it crashes
     // in the meantime, we manually set the headers in the block below
     // modify_request_headers(&mut http_request.headers.borrow_mut(), &current_url,
     //                        None, None, None);
@@ -1112,7 +1112,7 @@ fn cors_preflight_fetch(request: Rc<Request>, cache: &mut CORSCache,
     preflight.initiator = request.initiator.clone();
     preflight.type_ = request.type_.clone();
     preflight.destination = request.destination.clone();
-    *preflight.referer.borrow_mut() = request.referer.borrow().clone();
+    *preflight.referrer.borrow_mut() = request.referrer.borrow().clone();
     preflight.referrer_policy.set(request.referrer_policy.get());
 
     // Step 2

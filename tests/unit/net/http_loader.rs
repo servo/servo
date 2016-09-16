@@ -1625,9 +1625,9 @@ fn test_auth_ui_needs_www_auth() {
     }
 }
 
-fn assert_referer_header_matches(origin_info: &LoadOrigin,
-                                 request_url: &str,
-                                 expected_referrer: &str) {
+fn assert_referrer_header_matches(origin_info: &LoadOrigin,
+                                  request_url: &str,
+                                  expected_referrer: &str) {
     let url = Url::parse(request_url).unwrap();
     let ui_provider = TestProvider::new();
 
@@ -1635,20 +1635,20 @@ fn assert_referer_header_matches(origin_info: &LoadOrigin,
                                   url.clone(),
                                   origin_info);
 
-    let mut referer_headers = Headers::new();
-    referer_headers.set(Referer(expected_referrer.to_owned()));
+    let mut referrer_headers = Headers::new();
+    referrer_headers.set(Referer(expected_referrer.to_owned()));
 
     let http_state = HttpState::new();
 
     let _ = load(&load_data.clone(), &ui_provider, &http_state, None,
                  &AssertMustIncludeHeadersRequestFactory {
-                     expected_headers: referer_headers,
+                     expected_headers: referrer_headers,
                      body: <[_]>::to_vec(&[])
                  }, DEFAULT_USER_AGENT.to_owned(),
                  &CancellationListener::new(None), None);
 }
 
-fn assert_referer_header_not_included(origin_info: &LoadOrigin, request_url: &str) {
+fn assert_referrer_header_not_included(origin_info: &LoadOrigin, request_url: &str) {
     let url = Url::parse(request_url).unwrap();
     let ui_provider = TestProvider::new();
 
@@ -1667,7 +1667,7 @@ fn assert_referer_header_not_included(origin_info: &LoadOrigin, request_url: &st
 }
 
 #[test]
-fn test_referer_set_to_origin_with_origin_policy() {
+fn test_referrer_set_to_origin_with_origin_policy() {
     let request_url = "http://mozilla.com";
     let referrer_url = "http://username:password@someurl.com/some/path#fragment";
     let referrer_policy = Some(ReferrerPolicy::Origin);
@@ -1678,11 +1678,11 @@ fn test_referer_set_to_origin_with_origin_policy() {
         referrer_policy: referrer_policy
     };
 
-    assert_referer_header_matches(&origin_info, request_url, expected_referrer);
+    assert_referrer_header_matches(&origin_info, request_url, expected_referrer);
 }
 
 #[test]
-fn test_referer_set_to_ref_url_with_sameorigin_policy_same_orig() {
+fn test_referrer_set_to_ref_url_with_sameorigin_policy_same_orig() {
     let request_url = "http://mozilla.com";
     let referrer_url = "http://username:password@mozilla.com/some/path#fragment";
     let referrer_policy = Some(ReferrerPolicy::SameOrigin);
@@ -1693,11 +1693,11 @@ fn test_referer_set_to_ref_url_with_sameorigin_policy_same_orig() {
         referrer_policy: referrer_policy
     };
 
-    assert_referer_header_matches(&origin_info, request_url, expected_referrer);
+    assert_referrer_header_matches(&origin_info, request_url, expected_referrer);
 }
 
 #[test]
-fn test_no_referer_set_with_sameorigin_policy_cross_orig() {
+fn test_no_referrer_set_with_sameorigin_policy_cross_orig() {
     let request_url = "http://mozilla.com";
     let referrer_url = "http://username:password@someurl.com/some/path#fragment";
     let referrer_policy = Some(ReferrerPolicy::SameOrigin);
@@ -1707,11 +1707,11 @@ fn test_no_referer_set_with_sameorigin_policy_cross_orig() {
         referrer_policy: referrer_policy
     };
 
-    assert_referer_header_not_included(&origin_info, request_url);
+    assert_referrer_header_not_included(&origin_info, request_url);
 }
 
 #[test]
-fn test_referer_set_to_stripped_url_with_unsafeurl_policy() {
+fn test_referrer_set_to_stripped_url_with_unsafeurl_policy() {
     let request_url = "http://mozilla.com";
     let referrer_url = "http://username:password@someurl.com/some/path#fragment";
     let referrer_policy = Some(ReferrerPolicy::UnsafeUrl);
@@ -1721,11 +1721,11 @@ fn test_referer_set_to_stripped_url_with_unsafeurl_policy() {
         referrer_policy: referrer_policy
     };
 
-    assert_referer_header_matches(&origin_info, request_url, expected_referrer);
+    assert_referrer_header_matches(&origin_info, request_url, expected_referrer);
 }
 
 #[test]
-fn test_referer_with_originwhencrossorigin_policy_cross_orig() {
+fn test_referrer_with_originwhencrossorigin_policy_cross_orig() {
     let request_url = "http://mozilla.com";
     let referrer_url = "http://username:password@someurl.com/some/path#fragment";
     let referrer_policy = Some(ReferrerPolicy::OriginWhenCrossOrigin);
@@ -1736,11 +1736,11 @@ fn test_referer_with_originwhencrossorigin_policy_cross_orig() {
         referrer_policy: referrer_policy
     };
 
-    assert_referer_header_matches(&origin_info, request_url, expected_referrer);
+    assert_referrer_header_matches(&origin_info, request_url, expected_referrer);
 }
 
 #[test]
-fn test_referer_with_originwhencrossorigin_policy_same_orig() {
+fn test_referrer_with_originwhencrossorigin_policy_same_orig() {
     let request_url = "http://mozilla.com";
     let referrer_url = "http://username:password@mozilla.com/some/path#fragment";
     let referrer_policy = Some(ReferrerPolicy::OriginWhenCrossOrigin);
@@ -1751,11 +1751,11 @@ fn test_referer_with_originwhencrossorigin_policy_same_orig() {
         referrer_policy: referrer_policy
     };
 
-    assert_referer_header_matches(&origin_info, request_url, expected_referrer);
+    assert_referrer_header_matches(&origin_info, request_url, expected_referrer);
 }
 
 #[test]
-fn test_http_to_https_considered_cross_origin_for_referer_header_logic() {
+fn test_http_to_https_considered_cross_origin_for_referrer_header_logic() {
     let request_url = "https://mozilla.com";
     let referrer_url = "http://mozilla.com/some/path";
     let referrer_policy = Some(ReferrerPolicy::OriginWhenCrossOrigin);
@@ -1766,11 +1766,11 @@ fn test_http_to_https_considered_cross_origin_for_referer_header_logic() {
         referrer_policy: referrer_policy
     };
 
-    assert_referer_header_matches(&origin_info, request_url, expected_referrer);
+    assert_referrer_header_matches(&origin_info, request_url, expected_referrer);
 }
 
 #[test]
-fn test_referer_set_to_ref_url_with_noreferrerwhendowngrade_policy_https_to_https() {
+fn test_referrer_set_to_ref_url_with_noreferrerwhendowngrade_policy_https_to_https() {
     let request_url = "https://mozilla.com";
     let referrer_url = "https://username:password@mozilla.com/some/path#fragment";
     let referrer_policy = Some(ReferrerPolicy::NoReferrerWhenDowngrade);
@@ -1781,11 +1781,11 @@ fn test_referer_set_to_ref_url_with_noreferrerwhendowngrade_policy_https_to_http
         referrer_policy: referrer_policy,
     };
 
-    assert_referer_header_matches(&origin_info, request_url, expected_referrer);
+    assert_referrer_header_matches(&origin_info, request_url, expected_referrer);
 }
 
 #[test]
-fn test_no_referer_set_with_noreferrerwhendowngrade_policy_https_to_http() {
+fn test_no_referrer_set_with_noreferrerwhendowngrade_policy_https_to_http() {
     let request_url = "http://mozilla.com";
     let referrer_url = "https://username:password@mozilla.com/some/path#fragment";
     let referrer_policy = Some(ReferrerPolicy::NoReferrerWhenDowngrade);
@@ -1795,11 +1795,11 @@ fn test_no_referer_set_with_noreferrerwhendowngrade_policy_https_to_http() {
         referrer_policy: referrer_policy
     };
 
-    assert_referer_header_not_included(&origin_info, request_url)
+    assert_referrer_header_not_included(&origin_info, request_url)
 }
 
 #[test]
-fn test_referer_set_to_ref_url_with_noreferrerwhendowngrade_policy_http_to_https() {
+fn test_referrer_set_to_ref_url_with_noreferrerwhendowngrade_policy_http_to_https() {
     let request_url = "https://mozilla.com";
     let referrer_url = "http://username:password@mozilla.com/some/path#fragment";
     let referrer_policy = Some(ReferrerPolicy::NoReferrerWhenDowngrade);
@@ -1810,11 +1810,11 @@ fn test_referer_set_to_ref_url_with_noreferrerwhendowngrade_policy_http_to_https
         referrer_policy: referrer_policy
     };
 
-    assert_referer_header_matches(&origin_info, request_url, expected_referrer);
+    assert_referrer_header_matches(&origin_info, request_url, expected_referrer);
 }
 
 #[test]
-fn test_referer_set_to_ref_url_with_noreferrerwhendowngrade_policy_http_to_http() {
+fn test_referrer_set_to_ref_url_with_noreferrerwhendowngrade_policy_http_to_http() {
     let request_url = "http://mozilla.com";
     let referrer_url = "http://username:password@mozilla.com/some/path#fragment";
     let referrer_policy = Some(ReferrerPolicy::NoReferrerWhenDowngrade);
@@ -1825,7 +1825,7 @@ fn test_referer_set_to_ref_url_with_noreferrerwhendowngrade_policy_http_to_http(
         referrer_policy: referrer_policy
     };
 
-    assert_referer_header_matches(&origin_info, request_url, expected_referrer);
+    assert_referrer_header_matches(&origin_info, request_url, expected_referrer);
 }
 
 #[test]
@@ -1840,7 +1840,7 @@ fn test_no_referrer_policy_follows_noreferrerwhendowngrade_https_to_https() {
         referrer_policy: referrer_policy
     };
 
-    assert_referer_header_matches(&origin_info, request_url, expected_referrer);
+    assert_referrer_header_matches(&origin_info, request_url, expected_referrer);
 }
 
 #[test]
@@ -1854,7 +1854,7 @@ fn test_no_referrer_policy_follows_noreferrerwhendowngrade_https_to_http() {
         referrer_policy: referrer_policy
     };
 
-    assert_referer_header_not_included(&origin_info, request_url);
+    assert_referrer_header_not_included(&origin_info, request_url);
 }
 
 #[test]
@@ -1869,7 +1869,7 @@ fn test_no_referrer_policy_follows_noreferrerwhendowngrade_http_to_https() {
         referrer_policy: referrer_policy
     };
 
-    assert_referer_header_matches(&origin_info, request_url, expected_referrer);
+    assert_referrer_header_matches(&origin_info, request_url, expected_referrer);
 }
 
 #[test]
@@ -1884,11 +1884,11 @@ fn test_no_referrer_policy_follows_noreferrerwhendowngrade_http_to_http() {
         referrer_policy: referrer_policy
     };
 
-    assert_referer_header_matches(&origin_info, request_url, expected_referrer);
+    assert_referrer_header_matches(&origin_info, request_url, expected_referrer);
 }
 
 #[test]
-fn test_no_referer_set_with_noreferrer_policy() {
+fn test_no_referrer_set_with_noreferrer_policy() {
     let request_url = "http://mozilla.com";
     let referrer_url = "http://someurl.com";
     let referrer_policy = Some(ReferrerPolicy::NoReferrer);
@@ -1898,7 +1898,7 @@ fn test_no_referer_set_with_noreferrer_policy() {
         referrer_policy: referrer_policy,
     };
 
-    assert_referer_header_not_included(&origin_info, request_url)
+    assert_referrer_header_not_included(&origin_info, request_url)
 }
 
 fn load_request_for_custom_response(expected_body: Vec<u8>) -> (Metadata, String) {
