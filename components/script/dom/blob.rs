@@ -73,7 +73,7 @@ pub struct Blob {
     #[ignore_heap_size_of = "No clear owner"]
     blob_impl: DOMRefCell<BlobImpl>,
     /// content-type string
-    typeString: String,
+    type_string: String,
     isClosed_: Cell<bool>,
 }
 
@@ -85,13 +85,13 @@ impl Blob {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new_inherited(blob_impl: BlobImpl, typeString: String) -> Blob {
+    pub fn new_inherited(blob_impl: BlobImpl, type_string: String) -> Blob {
         Blob {
             reflector_: Reflector::new(),
             blob_impl: DOMRefCell::new(blob_impl),
             // NOTE: Guarding the format correctness here,
             // https://w3c.github.io/FileAPI/#dfn-type
-            typeString: normalize_type_string(&typeString),
+            type_string: normalize_type_string(&type_string),
             isClosed_: Cell::new(false),
         }
     }
@@ -222,7 +222,7 @@ impl Blob {
 
         let blob_buf = BlobBuf {
             filename: None,
-            type_string: self.typeString.clone(),
+            type_string: self.type_string.clone(),
             size: bytes.len() as u64,
             bytes: bytes.to_vec(),
         };
@@ -366,7 +366,7 @@ impl BlobMethods for Blob {
 
     // https://w3c.github.io/FileAPI/#dfn-type
     fn Type(&self) -> DOMString {
-        DOMString::from(self.typeString.clone())
+        DOMString::from(self.type_string.clone())
     }
 
     // https://w3c.github.io/FileAPI/#slice-method-algo
