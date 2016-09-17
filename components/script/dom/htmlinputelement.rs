@@ -1275,7 +1275,7 @@ impl Activatable for HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#implicit-submission
     #[allow(unsafe_code)]
-    fn implicit_submission(&self, ctrl_key: bool, shift_key: bool, alt_key: bool, metaKey: bool) {
+    fn implicit_submission(&self, ctrl_key: bool, shift_key: bool, alt_key: bool, meta_key: bool) {
         let doc = document_from_node(self);
         let node = doc.upcast::<Node>();
         let owner = self.form_owner();
@@ -1298,7 +1298,7 @@ impl Activatable for HTMLInputElement {
                                                ctrl_key,
                                                shift_key,
                                                alt_key,
-                                               metaKey,
+                                               meta_key,
                                                ActivationSource::NotFromClick)
                 }
             }

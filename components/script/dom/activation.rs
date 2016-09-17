@@ -65,7 +65,7 @@ pub fn synthetic_click_activation(element: &Element,
                                   ctrl_key: bool,
                                   shift_key: bool,
                                   alt_key: bool,
-                                  metaKey: bool,
+                                  meta_key: bool,
                                   source: ActivationSource) {
     // Step 1
     if element.click_in_progress() {
@@ -96,7 +96,7 @@ pub fn synthetic_click_activation(element: &Element,
                                 ctrl_key,
                                 shift_key,
                                 alt_key,
-                                metaKey,
+                                meta_key,
                                 0,
                                 None);
     let event = mouse.upcast::<Event>();
