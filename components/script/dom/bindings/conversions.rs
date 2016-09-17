@@ -532,9 +532,11 @@ unsafe impl ArrayBufferViewContents for f64 {
     }
 }
 
-/// Returns a mutable slice of the Array Buffer View data, viewed as T, without checking the real
-/// type of it.
-pub unsafe fn array_buffer_view_data<'a, T: ArrayBufferViewContents>(abv: *mut JSObject) -> Option<&'a mut [T]> {
+/// Returns a mutable slice of the Array Buffer View data, viewed as T, without
+/// checking the real type of it.
+pub unsafe fn array_buffer_view_data<'a, T>(abv: *mut JSObject) -> Option<&'a mut [T]>
+    where T: ArrayBufferViewContents
+{
     assert!(!abv.is_null());
 
     let mut byte_length = 0;
@@ -548,17 +550,19 @@ pub unsafe fn array_buffer_view_data<'a, T: ArrayBufferViewContents>(abv: *mut J
     Some(slice::from_raw_parts_mut(ptr as *mut T, byte_length as usize / mem::size_of::<T>()))
 }
 
-/// Returns a copy of the ArrayBufferView data, viewed as T, without checking the real type of it.
-pub fn array_buffer_view_to_vec<T: ArrayBufferViewContents>(abv: *mut JSObject) -> Option<Vec<T>> {
-    unsafe {
-        array_buffer_view_data(abv).map(|data| data.to_vec())
-    }
+/// Returns a copy of the ArrayBufferView data, viewed as T, without checking
+/// the real type of it.
+pub unsafe fn array_buffer_view_to_vec<T>(abv: *mut JSObject) -> Option<Vec<T>>
+    where T: ArrayBufferViewContents
+{
+    array_buffer_view_data(abv).map(|data| data.to_vec())
 }
 
-/// Returns a mutable slice of the Array Buffer View data, viewed as T, checking that the real type
-/// of it is ty.
-pub unsafe fn array_buffer_view_data_checked<'a, T: ArrayBufferViewContents>(abv: *mut JSObject)
-                                                                             -> Option<&'a mut [T]> {
+/// Returns a mutable slice of the Array Buffer View data, viewed as T, checking
+/// that the real type of it is ty.
+pub unsafe fn array_buffer_view_data_checked<'a, T>(abv: *mut JSObject) -> Option<&'a mut [T]>
+    where T: ArrayBufferViewContents
+{
     array_buffer_view_data::<T>(abv).and_then(|data| {
         if T::is_type_compatible(JS_GetArrayBufferViewType(abv)) {
             Some(data)
@@ -568,12 +572,12 @@ pub unsafe fn array_buffer_view_data_checked<'a, T: ArrayBufferViewContents>(abv
     })
 }
 
-/// Returns a copy of the ArrayBufferView data, viewed as T, checking that the real type
-/// of it is ty.
-pub fn array_buffer_view_to_vec_checked<T: ArrayBufferViewContents>(abv: *mut JSObject) -> Option<Vec<T>> {
-    unsafe {
-        array_buffer_view_data_checked(abv).map(|data| data.to_vec())
-    }
+/// Returns a copy of the ArrayBufferView data, viewed as T, checking that the
+/// real type of it is ty.
+pub unsafe fn array_buffer_view_to_vec_checked<T>(abv: *mut JSObject) -> Option<Vec<T>>
+    where T: ArrayBufferViewContents
+{
+    array_buffer_view_data_checked(abv).map(|data| data.to_vec())
 }
 
 /// Returns whether `value` is an array-like object.
