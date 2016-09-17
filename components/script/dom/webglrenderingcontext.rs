@@ -2602,6 +2602,32 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         // FIXME: We need to clear the renderbuffer before it can be
         // accessed.  See https://github.com/servo/servo/issues/13710
     }
+
+    fn FramebufferRenderbuffer(&self, target: u32, attachment: u32,
+                               renderbuffertarget: u32,
+                               rb: Option<&WebGLRenderbuffer>) {
+        if target != constants::FRAMEBUFFER || renderbuffertarget != constants::RENDERBUFFER {
+            return self.webgl_error(InvalidEnum);
+        }
+
+        match self.bound_framebuffer.get() {
+            Some(fb) => handle_potential_webgl_error!(self, fb.renderbuffer(attachment, rb)),
+            None => self.webgl_error(InvalidOperation),
+        };
+    }
+
+    fn FramebufferTexture2D(&self, target: u32, attachment: u32,
+                            textarget: u32, texture: Option<&WebGLTexture>,
+                            level: i32) {
+        if target != constants::FRAMEBUFFER {
+            return self.webgl_error(InvalidEnum);
+        }
+
+        match self.bound_framebuffer.get() {
+            Some(fb) => handle_potential_webgl_error!(self, fb.texture2d(attachment, textarget, texture, level)),
+            None => self.webgl_error(InvalidOperation),
+        };
+    }
 }
 
 pub trait LayoutCanvasWebGLRenderingContextHelpers {
