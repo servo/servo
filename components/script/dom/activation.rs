@@ -63,7 +63,7 @@ pub enum ActivationSource {
 // https://html.spec.whatwg.org/multipage/#run-synthetic-click-activation-steps
 pub fn synthetic_click_activation(element: &Element,
                                   ctrl_key: bool,
-                                  shiftKey: bool,
+                                  shift_key: bool,
                                   altKey: bool,
                                   metaKey: bool,
                                   source: ActivationSource) {
@@ -94,7 +94,7 @@ pub fn synthetic_click_activation(element: &Element,
                                 0,
                                 0,
                                 ctrl_key,
-                                shiftKey,
+                                shift_key,
                                 altKey,
                                 metaKey,
                                 0,

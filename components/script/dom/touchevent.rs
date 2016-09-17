@@ -64,7 +64,7 @@ impl TouchEvent {
                target_touches: &TouchList,
                ctrl_key: bool,
                altKey: bool,
-               shiftKey: bool,
+               shift_key: bool,
                metaKey: bool) -> Root<TouchEvent> {
         let ev = TouchEvent::new_uninitialized(window, touches, changed_touches, target_touches);
         ev.upcast::<UIEvent>().InitUIEvent(type_,
@@ -73,7 +73,7 @@ impl TouchEvent {
                                            view, detail);
         ev.ctrl_key.set(ctrl_key);
         ev.alt_key.set(altKey);
-        ev.shift_key.set(shiftKey);
+        ev.shift_key.set(shift_key);
         ev.meta_key.set(metaKey);
         ev
     }
