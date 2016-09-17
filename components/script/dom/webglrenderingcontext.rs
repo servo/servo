@@ -776,6 +776,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 Err(err) => return self.webgl_error(err),
             }
         } else {
+            slot.set(None);
             // Unbind the currently bound texture
             self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::BindTexture(target, None)))
