@@ -749,9 +749,11 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             // case: Chromium currently unbinds, and Gecko silently
             // returns.  The conformance tests don't cover this case.
             Some(renderbuffer) if !renderbuffer.is_deleted() => {
-                renderbuffer.bind(target)
+                self.bound_renderbuffer.set(Some(renderbuffer));
+                renderbuffer.bind(target);
             }
             _ => {
+                self.bound_renderbuffer.set(None);
                 // Unbind the currently bound renderbuffer
                 self.ipc_renderer
                     .send(CanvasMsg::WebGL(WebGLCommand::BindRenderbuffer(target, None)))
