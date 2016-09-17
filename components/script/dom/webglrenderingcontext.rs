@@ -815,7 +815,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             _ => return self.webgl_error(InvalidEnum),
         }
 
-        if let Some(data_vec) = array_buffer_view_to_vec::<u8>(data) {
+        if let Some(data_vec) = unsafe { array_buffer_view_to_vec::<u8>(data) } {
             handle_potential_webgl_error!(self, bound_buffer.buffer_data(target, &data_vec, usage));
         } else {
             // NB: array_buffer_view_to_vec should never fail when we have
@@ -846,7 +846,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return self.webgl_error(InvalidValue);
         }
 
-        if let Some(data_vec) = array_buffer_view_to_vec::<u8>(data) {
+        if let Some(data_vec) = unsafe { array_buffer_view_to_vec::<u8>(data) } {
             if (offset as usize) + data_vec.len() > bound_buffer.capacity() {
                 return self.webgl_error(InvalidValue);
             }
@@ -1892,8 +1892,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    #[allow(unsafe_code)]
     fn VertexAttrib1fv(&self, _cx: *mut JSContext, indx: u32, data: *mut JSObject) {
-        if let Some(data_vec) = array_buffer_view_to_vec_checked::<f32>(data) {
+        assert!(!data.is_null());
+        if let Some(data_vec) = unsafe { array_buffer_view_to_vec_checked::<f32>(data) } {
             if data_vec.len() < 1 {
                 return self.webgl_error(InvalidOperation);
             }
@@ -1909,8 +1911,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    #[allow(unsafe_code)]
     fn VertexAttrib2fv(&self, _cx: *mut JSContext, indx: u32, data: *mut JSObject) {
-        if let Some(data_vec) = array_buffer_view_to_vec_checked::<f32>(data) {
+        assert!(!data.is_null());
+        if let Some(data_vec) = unsafe { array_buffer_view_to_vec_checked::<f32>(data) } {
             if data_vec.len() < 2 {
                 return self.webgl_error(InvalidOperation);
             }
@@ -1926,8 +1930,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    #[allow(unsafe_code)]
     fn VertexAttrib3fv(&self, _cx: *mut JSContext, indx: u32, data: *mut JSObject) {
-        if let Some(data_vec) = array_buffer_view_to_vec_checked::<f32>(data) {
+        assert!(!data.is_null());
+        if let Some(data_vec) = unsafe { array_buffer_view_to_vec_checked::<f32>(data) } {
             if data_vec.len() < 3 {
                 return self.webgl_error(InvalidOperation);
             }
@@ -1943,8 +1949,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    #[allow(unsafe_code)]
     fn VertexAttrib4fv(&self, _cx: *mut JSContext, indx: u32, data: *mut JSObject) {
-        if let Some(data_vec) = array_buffer_view_to_vec_checked::<f32>(data) {
+        assert!(!data.is_null());
+        if let Some(data_vec) = unsafe { array_buffer_view_to_vec_checked::<f32>(data) } {
             if data_vec.len() < 4 {
                 return self.webgl_error(InvalidOperation);
             }
@@ -2025,8 +2033,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         let buff = if data.is_null() {
             vec![0u8; expected_byte_length as usize]
         } else {
-            array_buffer_view_to_vec::<u8>(data)
-                .expect("Can't reach here without being an ArrayBufferView!")
+            unsafe {
+                array_buffer_view_to_vec::<u8>(data)
+                    .expect("Can't reach here without being an ArrayBufferView!")
+            }
         };
 
         if buff.len() != expected_byte_length as usize {
@@ -2118,8 +2128,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         let buff = if data.is_null() {
             vec![0u8; expected_byte_length as usize]
         } else {
-            array_buffer_view_to_vec::<u8>(data)
-                .expect("Can't reach here without being an ArrayBufferView!")
+            unsafe {
+                array_buffer_view_to_vec::<u8>(data)
+                    .expect("Can't reach here without being an ArrayBufferView!")
+            }
         };
 
         if expected_byte_length != 0 &&
