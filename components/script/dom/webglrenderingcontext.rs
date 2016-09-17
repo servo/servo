@@ -511,6 +511,19 @@ impl WebGLRenderingContext {
             .send(CanvasMsg::WebGL(msg))
             .unwrap()
     }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14
+    fn validate_feature_enum(&self, cap: u32) -> bool {
+        match cap {
+            constants::BLEND | constants::CULL_FACE | constants::DEPTH_TEST | constants::DITHER |
+            constants::POLYGON_OFFSET_FILL | constants::SAMPLE_ALPHA_TO_COVERAGE | constants::SAMPLE_COVERAGE |
+            constants::SAMPLE_COVERAGE_INVERT | constants::SCISSOR_TEST => true,
+            _ => {
+                self.webgl_error(InvalidEnum);
+                false
+            },
+        }
+    }
 }
 
 impl Drop for WebGLRenderingContext {
@@ -1114,27 +1127,19 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn Enable(&self, cap: u32) {
-        match cap {
-            constants::BLEND | constants::CULL_FACE | constants::DEPTH_TEST | constants::DITHER |
-            constants::POLYGON_OFFSET_FILL | constants::SAMPLE_ALPHA_TO_COVERAGE | constants::SAMPLE_COVERAGE |
-            constants::SAMPLE_COVERAGE_INVERT | constants::SCISSOR_TEST =>
-                self.ipc_renderer
-                    .send(CanvasMsg::WebGL(WebGLCommand::Enable(cap)))
-                    .unwrap(),
-            _ => self.webgl_error(InvalidEnum),
+        if self.validate_feature_enum(cap) {
+            self.ipc_renderer
+                .send(CanvasMsg::WebGL(WebGLCommand::Enable(cap)))
+                .unwrap();
         }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn Disable(&self, cap: u32) {
-        match cap {
-            constants::BLEND | constants::CULL_FACE | constants::DEPTH_TEST | constants::DITHER |
-            constants::POLYGON_OFFSET_FILL | constants::SAMPLE_ALPHA_TO_COVERAGE | constants::SAMPLE_COVERAGE |
-            constants::SAMPLE_COVERAGE_INVERT | constants::SCISSOR_TEST =>
-                self.ipc_renderer
-                    .send(CanvasMsg::WebGL(WebGLCommand::Disable(cap)))
-                    .unwrap(),
-            _ => self.webgl_error(InvalidEnum),
+        if self.validate_feature_enum(cap) {
+            self.ipc_renderer
+                .send(CanvasMsg::WebGL(WebGLCommand::Disable(cap)))
+                .unwrap()
         }
     }
 
@@ -1453,6 +1458,20 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     fn IsBuffer(&self, buffer: Option<&WebGLBuffer>) -> bool {
         buffer.map_or(false, |buf| buf.target().is_some() && !buf.is_deleted())
+    }
+
+    // TODO: We could write this without IPC, recording the calls to `enable` and `disable`.
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    fn IsEnabled(&self, cap: u32) -> bool {
+        if self.validate_feature_enum(cap) {
+            let (sender, receiver) = ipc::channel().unwrap();
+            self.ipc_renderer
+                .send(CanvasMsg::WebGL(WebGLCommand::IsEnabled(cap, sender)))
+                .unwrap();
+            return receiver.recv().unwrap();
+        }
+
+        false
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
