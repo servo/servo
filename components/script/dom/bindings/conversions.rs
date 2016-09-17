@@ -535,6 +535,8 @@ unsafe impl ArrayBufferViewContents for f64 {
 /// Returns a mutable slice of the Array Buffer View data, viewed as T, without checking the real
 /// type of it.
 pub unsafe fn array_buffer_view_data<'a, T: ArrayBufferViewContents>(abv: *mut JSObject) -> Option<&'a mut [T]> {
+    assert!(!abv.is_null());
+
     let mut byte_length = 0;
     let mut ptr = ptr::null_mut();
     let mut is_shared = false;
