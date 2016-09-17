@@ -2108,6 +2108,66 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         Ok(())
     }
 
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    #[allow(unsafe_code)]
+    fn UniformMatrix2fv(&self,
+                        cx: *mut JSContext,
+                        uniform: Option<&WebGLUniformLocation>,
+                        transpose: bool,
+                        data: *mut JSObject) -> Fallible<()> {
+        assert!(!data.is_null());
+        let data_vec = try!(unsafe { typed_array_or_sequence_to_vec::<f32>(cx, data, ()) });
+        if self.validate_uniform_parameters(uniform,
+                                            UniformSetterType::FloatMat2,
+                                            &data_vec) {
+            self.ipc_renderer
+                .send(CanvasMsg::WebGL(WebGLCommand::UniformMatrix2fv(uniform.unwrap().id(), transpose, data_vec)))
+                .unwrap()
+        }
+
+        Ok(())
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    #[allow(unsafe_code)]
+    fn UniformMatrix3fv(&self,
+                        cx: *mut JSContext,
+                        uniform: Option<&WebGLUniformLocation>,
+                        transpose: bool,
+                        data: *mut JSObject) -> Fallible<()> {
+        assert!(!data.is_null());
+        let data_vec = try!(unsafe { typed_array_or_sequence_to_vec::<f32>(cx, data, ()) });
+        if self.validate_uniform_parameters(uniform,
+                                            UniformSetterType::FloatMat3,
+                                            &data_vec) {
+            self.ipc_renderer
+                .send(CanvasMsg::WebGL(WebGLCommand::UniformMatrix3fv(uniform.unwrap().id(), transpose, data_vec)))
+                .unwrap()
+        }
+
+        Ok(())
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    #[allow(unsafe_code)]
+    fn UniformMatrix4fv(&self,
+                        cx: *mut JSContext,
+                        uniform: Option<&WebGLUniformLocation>,
+                        transpose: bool,
+                        data: *mut JSObject) -> Fallible<()> {
+        assert!(!data.is_null());
+        let data_vec = try!(unsafe { typed_array_or_sequence_to_vec::<f32>(cx, data, ()) });
+        if self.validate_uniform_parameters(uniform,
+                                            UniformSetterType::FloatMat4,
+                                            &data_vec) {
+            self.ipc_renderer
+                .send(CanvasMsg::WebGL(WebGLCommand::UniformMatrix4fv(uniform.unwrap().id(), transpose, data_vec)))
+                .unwrap()
+        }
+
+        Ok(())
+    }
+
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn UseProgram(&self, program: Option<&WebGLProgram>) {
         if let Some(program) = program {
@@ -2480,6 +2540,9 @@ pub enum UniformSetterType {
     FloatVec2,
     FloatVec3,
     FloatVec4,
+    FloatMat2,
+    FloatMat3,
+    FloatMat4,
 }
 
 impl UniformSetterType {
@@ -2493,6 +2556,9 @@ impl UniformSetterType {
             UniformSetterType::FloatVec2 => 2,
             UniformSetterType::FloatVec3 => 3,
             UniformSetterType::FloatVec4 => 4,
+            UniformSetterType::FloatMat2 => 4,
+            UniformSetterType::FloatMat3 => 9,
+            UniformSetterType::FloatMat4 => 16,
         }
     }
 
@@ -2525,6 +2591,9 @@ impl UniformSetterType {
             UniformSetterType::FloatVec2 => constants::FLOAT_VEC2,
             UniformSetterType::FloatVec3 => constants::FLOAT_VEC3,
             UniformSetterType::FloatVec4 => constants::FLOAT_VEC4,
+            UniformSetterType::FloatMat2 => constants::FLOAT_MAT2,
+            UniformSetterType::FloatMat3 => constants::FLOAT_MAT3,
+            UniformSetterType::FloatMat4 => constants::FLOAT_MAT4,
         }
     }
 }
