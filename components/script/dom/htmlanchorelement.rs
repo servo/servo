@@ -540,7 +540,7 @@ impl Activatable for HTMLAnchorElement {
     }
 
     //TODO:https://html.spec.whatwg.org/multipage/#the-a-element
-    fn implicit_submission(&self, _ctrlKey: bool, _shiftKey: bool, _altKey: bool, _metaKey: bool) {
+    fn implicit_submission(&self, _ctrl_key: bool, _shiftKey: bool, _altKey: bool, _metaKey: bool) {
     }
 }
 

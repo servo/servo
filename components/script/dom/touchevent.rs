@@ -62,7 +62,7 @@ impl TouchEvent {
                touches: &TouchList,
                changed_touches: &TouchList,
                target_touches: &TouchList,
-               ctrlKey: bool,
+               ctrl_key: bool,
                altKey: bool,
                shiftKey: bool,
                metaKey: bool) -> Root<TouchEvent> {
@@ -71,7 +71,7 @@ impl TouchEvent {
                                            bool::from(canBubble),
                                            bool::from(cancelable),
                                            view, detail);
-        ev.ctrl_key.set(ctrlKey);
+        ev.ctrl_key.set(ctrl_key);
         ev.alt_key.set(altKey);
         ev.shift_key.set(shiftKey);
         ev.meta_key.set(metaKey);
