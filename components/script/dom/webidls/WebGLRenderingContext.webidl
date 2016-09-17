@@ -493,9 +493,12 @@ interface WebGLRenderingContextBase
     // FIXME(dmarcos) The function below is the original function in the webIdl:
     // void bufferData(GLenum target, BufferDataSource? data, GLenum usage);
     // The Code generator doesn't handle BufferDataSource so we're using 'object?'
-    // in the meantime
+    // in the meantime, and marking the function as [Throws], so we can handle
+    // the type error from inside.
+    [Throws]
     void bufferData(GLenum target, object? data, GLenum usage);
     //void bufferSubData(GLenum target, GLintptr offset, BufferDataSource? data);
+    [Throws]
     void bufferSubData(GLenum target, GLintptr offset, object? data);
 
     //[WebGLHandlesContextLoss] GLenum checkFramebufferStatus(GLenum target);
@@ -507,10 +510,12 @@ interface WebGLRenderingContextBase
     void compileShader(WebGLShader? shader);
 
     // FIXME(simartin) The Code generator doesn't handle ArrayBufferView so we're
-    // using 'object' in the meantime
+    // using 'object' in the meantime, and marking the function as Throws to
+    // handle the type error from inside.
     // void compressedTexImage2D(GLenum target, GLint level, GLenum internalformat,
     //                           GLsizei width, GLsizei height, GLint border,
     //                           ArrayBufferView data);
+    [Throws]
     void compressedTexImage2D(GLenum target, GLint level, GLenum internalformat,
                               GLsizei width, GLsizei height, GLint border,
                               object data);
@@ -518,6 +523,7 @@ interface WebGLRenderingContextBase
     //                              GLint xoffset, GLint yoffset,
     //                              GLsizei width, GLsizei height, GLenum format,
     //                              ArrayBufferView data);
+    [Throws]
     void compressedTexSubImage2D(GLenum target, GLint level,
                                  GLint xoffset, GLint yoffset,
                                  GLsizei width, GLsizei height, GLenum format,
@@ -616,6 +622,7 @@ interface WebGLRenderingContextBase
 
     //void readPixels(GLint x, GLint y, GLsizei width, GLsizei height,
     //                GLenum format, GLenum type, ArrayBufferView? pixels);
+    [Throws]
     void readPixels(GLint x, GLint y, GLsizei width, GLsizei height,
                     GLenum format, GLenum type, object? pixels);
 
@@ -637,56 +644,69 @@ interface WebGLRenderingContextBase
     //                GLsizei width, GLsizei height, GLint border, GLenum format,
     //                GLenum type, ArrayBufferView? pixels);
     // FIXME: SM interface arguments
+    [Throws]
     void texImage2D(GLenum target, GLint level, GLenum internalformat,
                     GLsizei width, GLsizei height, GLint border, GLenum format,
                     GLenum type, object? data);
+    [Throws]
     void texImage2D(GLenum target, GLint level, GLenum internalformat,
                     GLenum format, GLenum type, TexImageSource? source); // May throw DOMException
 
     void texParameterf(GLenum target, GLenum pname, GLfloat param);
     void texParameteri(GLenum target, GLenum pname, GLint param);
 
+    [Throws]
     void texSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
                       GLsizei width, GLsizei height,
                       GLenum format, GLenum type, object? data);
+    [Throws]
     void texSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
                       GLenum format, GLenum type, TexImageSource? source); // May throw DOMException
 
     void uniform1f(WebGLUniformLocation? location, GLfloat x);
     //void uniform1fv(WebGLUniformLocation? location, Float32Array v);
     //void uniform1fv(WebGLUniformLocation? location, sequence<GLfloat> v);
+    [Throws]
     void uniform1fv(WebGLUniformLocation? location, object v);
     void uniform1i(WebGLUniformLocation? location, GLint x);
     //void uniform1iv(WebGLUniformLocation? location, Int32Array v);
     //void uniform1iv(WebGLUniformLocation? location, sequence<long> v);
+    [Throws]
     void uniform1iv(WebGLUniformLocation? location, object v);
     void uniform2f(WebGLUniformLocation? location, GLfloat x, GLfloat y);
     //void uniform2fv(WebGLUniformLocation? location, Float32Array v);
     //void uniform2fv(WebGLUniformLocation? location, sequence<GLfloat> v);
+    [Throws]
     void uniform2fv(WebGLUniformLocation? location, object v);
     //void uniform2i(WebGLUniformLocation? location, GLint x, GLint y);
     void uniform2i(WebGLUniformLocation? location, GLint x, GLint y);
     //void uniform2iv(WebGLUniformLocation? location, Int32Array v);
     //void uniform2iv(WebGLUniformLocation? location, sequence<long> v);
+    [Throws]
     void uniform2iv(WebGLUniformLocation? location, object v);
     void uniform3f(WebGLUniformLocation? location, GLfloat x, GLfloat y, GLfloat z);
+    [Throws]
     void uniform3fv(WebGLUniformLocation? location, object v);
     //void uniform3fv(WebGLUniformLocation? location, Float32Array v);
     //void uniform3fv(WebGLUniformLocation? location, sequence<GLfloat> v);
     void uniform3i(WebGLUniformLocation? location, GLint x, GLint y, GLint z);
     //void uniform3iv(WebGLUniformLocation? location, Int32Array v);
     //void uniform3iv(WebGLUniformLocation? location, sequence<long> v);
+    [Throws]
     void uniform3iv(WebGLUniformLocation? location, object v);
     void uniform4f(WebGLUniformLocation? location, GLfloat x, GLfloat y, GLfloat z, GLfloat w);
     // FIXME(dmarcos) The function below is the original function in the webIdl:
     //void uniform4fv(WebGLUniformLocation? location, Float32Array v);
-    // The Code genearator doesn't handle typed arrays, so we use object instead.
+    // The Code genearator doesn't handle typed arrays, so we use object
+    // instead, and handle the type error ourselves.
+    [Throws]
     void uniform4fv(WebGLUniformLocation? location, object v);
     //void uniform4fv(WebGLUniformLocation? location, sequence<GLfloat> v);
     void uniform4i(WebGLUniformLocation? location, GLint x, GLint y, GLint z, GLint w);
     //void uniform4iv(WebGLUniformLocation? location, Int32Array v);
     //void uniform4iv(WebGLUniformLocation? location, sequence<long> v);
     // See FIXME above
+    [Throws]
     void uniform4iv(WebGLUniformLocation? location, object v);
 
     //void uniformMatrix2fv(WebGLUniformLocation? location, GLboolean transpose,
@@ -709,18 +729,22 @@ interface WebGLRenderingContextBase
     // The code generator doesn't handle Float32Array so we're using 'object'
     void vertexAttrib1f(GLuint indx, GLfloat x);
     //void vertexAttrib1fv(GLuint indx, Float32Array values);
+    [Throws]
     void vertexAttrib1fv(GLuint indx, object values);
     //void vertexAttrib1fv(GLuint indx, sequence<GLfloat> values);
     void vertexAttrib2f(GLuint indx, GLfloat x, GLfloat y);
     //void vertexAttrib2fv(GLuint indx, Float32Array values);
+    [Throws]
     void vertexAttrib2fv(GLuint indx, object values);
     //void vertexAttrib2fv(GLuint indx, sequence<GLfloat> values);
     void vertexAttrib3f(GLuint indx, GLfloat x, GLfloat y, GLfloat z);
     //void vertexAttrib3fv(GLuint indx, Float32Array values);
+    [Throws]
     void vertexAttrib3fv(GLuint indx, object values);
     //void vertexAttrib3fv(GLuint indx, sequence<GLfloat> values);
     void vertexAttrib4f(GLuint indx, GLfloat x, GLfloat y, GLfloat z, GLfloat w);
     //void vertexAttrib4fv(GLuint indx, Float32Array values);
+    [Throws]
     void vertexAttrib4fv(GLuint indx, object values);
     //void vertexAttrib4fv(GLuint indx, sequence<GLfloat> values);
     void vertexAttribPointer(GLuint indx, GLint size, GLenum type,
