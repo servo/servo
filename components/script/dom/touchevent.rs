@@ -63,7 +63,7 @@ impl TouchEvent {
                changed_touches: &TouchList,
                target_touches: &TouchList,
                ctrl_key: bool,
-               altKey: bool,
+               alt_key: bool,
                shift_key: bool,
                metaKey: bool) -> Root<TouchEvent> {
         let ev = TouchEvent::new_uninitialized(window, touches, changed_touches, target_touches);
@@ -72,7 +72,7 @@ impl TouchEvent {
                                            bool::from(cancelable),
                                            view, detail);
         ev.ctrl_key.set(ctrl_key);
-        ev.alt_key.set(altKey);
+        ev.alt_key.set(alt_key);
         ev.shift_key.set(shift_key);
         ev.meta_key.set(metaKey);
         ev

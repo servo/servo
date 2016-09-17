@@ -64,7 +64,7 @@ pub enum ActivationSource {
 pub fn synthetic_click_activation(element: &Element,
                                   ctrl_key: bool,
                                   shift_key: bool,
-                                  altKey: bool,
+                                  alt_key: bool,
                                   metaKey: bool,
                                   source: ActivationSource) {
     // Step 1
@@ -95,7 +95,7 @@ pub fn synthetic_click_activation(element: &Element,
                                 0,
                                 ctrl_key,
                                 shift_key,
-                                altKey,
+                                alt_key,
                                 metaKey,
                                 0,
                                 None);
