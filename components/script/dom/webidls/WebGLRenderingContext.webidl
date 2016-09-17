@@ -566,11 +566,11 @@ interface WebGLRenderingContextBase
     void enableVertexAttribArray(GLuint index);
     void finish();
     void flush();
-    //void framebufferRenderbuffer(GLenum target, GLenum attachment,
-    //                             GLenum renderbuffertarget,
-    //                             WebGLRenderbuffer? renderbuffer);
-    //void framebufferTexture2D(GLenum target, GLenum attachment, GLenum textarget,
-    //                          WebGLTexture? texture, GLint level);
+    void framebufferRenderbuffer(GLenum target, GLenum attachment,
+                                 GLenum renderbuffertarget,
+                                 WebGLRenderbuffer? renderbuffer);
+    void framebufferTexture2D(GLenum target, GLenum attachment, GLenum textarget,
+                              WebGLTexture? texture, GLint level);
     void frontFace(GLenum mode);
 
     void generateMipmap(GLenum target);
