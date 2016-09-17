@@ -1399,6 +1399,25 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         buffer.map_or(false, |buf| buf.target().is_some() && !buf.is_deleted())
     }
 
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    fn IsEnabled(&self, cap: u32) -> bool {
+        match cap {
+            constants::BLEND | constants::CULL_FACE | constants::DEPTH_TEST | constants::DITHER |
+            constants::POLYGON_OFFSET_FILL | constants::SAMPLE_ALPHA_TO_COVERAGE | constants::SAMPLE_COVERAGE |
+            constants::SAMPLE_COVERAGE_INVERT | constants::SCISSOR_TEST => {
+                let (sender, receiver) = ipc::channel().unwrap();
+                self.ipc_renderer
+                    .send(CanvasMsg::WebGL(WebGLCommand::IsEnabled(cap, sender)))
+                    .unwrap();
+                receiver.recv().unwrap()
+            },
+            _ => {
+                self.webgl_error(InvalidEnum);
+                false
+            },
+        }
+    }
+
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
     fn IsFramebuffer(&self, frame_buffer: Option<&WebGLFramebuffer>) -> bool {
         frame_buffer.map_or(false, |buf| buf.target().is_some() && !buf.is_deleted())

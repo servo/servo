@@ -603,7 +603,7 @@ interface WebGLRenderingContextBase
 
     void hint(GLenum target, GLenum mode);
     [WebGLHandlesContextLoss] GLboolean isBuffer(WebGLBuffer? buffer);
-    //[WebGLHandlesContextLoss] GLboolean isEnabled(GLenum cap);
+    [WebGLHandlesContextLoss] GLboolean isEnabled(GLenum cap);
     [WebGLHandlesContextLoss] GLboolean isFramebuffer(WebGLFramebuffer? framebuffer);
     [WebGLHandlesContextLoss] GLboolean isProgram(WebGLProgram? program);
     [WebGLHandlesContextLoss] GLboolean isRenderbuffer(WebGLRenderbuffer? renderbuffer);
