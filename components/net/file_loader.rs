@@ -14,7 +14,7 @@ use std::borrow::ToOwned;
 use std::error::Error;
 use std::fs::File;
 use std::io::Read;
-use std::path::PathBuf;
+use std::path::Path;
 use std::sync::Arc;
 use url::Url;
 use util::thread::spawn_named;
@@ -68,11 +68,11 @@ fn read_all(reader: &mut File, progress_chan: &ProgressSender, cancel_listener: 
     Ok(LoadResult::Cancelled)
 }
 
-fn get_progress_chan(load_data: LoadData, file_path: PathBuf,
+fn get_progress_chan(load_data: LoadData, file_path: &Path,
                      senders: LoadConsumer, classifier: Arc<MimeClassifier>, buf: &[u8])
                      -> Result<ProgressSender, ()> {
     let mut metadata = Metadata::default(load_data.url);
-    let mime_type = guess_mime_type(file_path.as_path());
+    let mime_type = guess_mime_type(file_path);
     metadata.set_content_type(Some(&mime_type));
     return start_sending_sniffed_opt(senders, metadata, classifier, buf, load_data.context);
 }
@@ -105,7 +105,7 @@ pub fn factory(load_data: LoadData,
         };
 
         if cancel_listener.is_cancelled() {
-            if let Ok(progress_chan) = get_progress_chan(load_data, file_path,
+            if let Ok(progress_chan) = get_progress_chan(load_data, &file_path,
                                                          senders, classifier, &[]) {
                 let _ = progress_chan.send(Done(Err(NetworkError::LoadCancelled)));
             }
@@ -114,7 +114,7 @@ pub fn factory(load_data: LoadData,
 
         match read_block(reader) {
             Ok(ReadStatus::Partial(buf)) => {
-                let progress_chan = get_progress_chan(load_data, file_path,
+                let progress_chan = get_progress_chan(load_data, &file_path,
                                                       senders, classifier, &buf).ok().unwrap();
                 progress_chan.send(Payload(buf)).unwrap();
                 let read_result = read_all(reader, &progress_chan, &cancel_listener);
@@ -126,7 +126,7 @@ pub fn factory(load_data: LoadData,
                 }
             }
             Ok(ReadStatus::EOF) => {
-                if let Ok(chan) = get_progress_chan(load_data, file_path,
+                if let Ok(chan) = get_progress_chan(load_data, &file_path,
                                                     senders, classifier, &[]) {
                     let _ = chan.send(Done(Ok(())));
                 }
