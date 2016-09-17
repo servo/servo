@@ -13,8 +13,10 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{Root, RootCollection};
 use dom::bindings::reflector::Reflectable;
 use dom::bindings::str::DOMString;
+use dom::event::Event;
 use dom::eventtarget::EventTarget;
-use dom::messageevent::MessageEvent;
+use dom::extendableevent::ExtendableEvent;
+use dom::extendablemessageevent::ExtendableMessageEvent;
 use dom::workerglobalscope::WorkerGlobalScope;
 use ipc_channel::ipc::{self, IpcSender, IpcReceiver};
 use ipc_channel::router::ROUTER;
@@ -195,7 +197,7 @@ impl ServiceWorkerGlobalScope {
                 let _ = timer_chan.send(());
             });
 
-            scope.upcast::<EventTarget>().fire_simple_event("activate");
+            global.dispatch_activate();
             let reporter_name = format!("service-worker-reporter-{}", random::<u64>());
             scope.mem_profiler_chan().run_with_memory_reporting(|| {
                 while let Ok(event) = global.receive_event() {
@@ -243,7 +245,7 @@ impl ServiceWorkerGlobalScope {
                 let _ac = JSAutoCompartment::new(scope.get_cx(), scope.reflector().get_jsobject().get());
                 rooted!(in(scope.get_cx()) let mut message = UndefinedValue());
                 data.read(GlobalRef::Worker(scope), message.handle_mut());
-                MessageEvent::dispatch_jsval(target, GlobalRef::Worker(scope), message.handle());
+                ExtendableMessageEvent::dispatch_jsval(target, GlobalRef::Worker(scope), message.handle());
             },
             CommonWorker(WorkerScriptMsg::Common(CommonScriptMsg::RunnableMsg(_, runnable))) => {
                 runnable.handler()
@@ -308,6 +310,13 @@ impl ServiceWorkerGlobalScope {
         box ServiceWorkerChan {
             sender: self.own_sender.clone()
         }
+    }
+
+    fn dispatch_activate(&self) {
+        let global = GlobalRef::Worker(self.upcast::<WorkerGlobalScope>());
+        let event = ExtendableEvent::new(global, atom!("activate"), false, false);
+        let event = (&*event).upcast::<Event>();
+        self.upcast::<EventTarget>().dispatch_event(event);
     }
 }
 
