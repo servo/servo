@@ -2087,6 +2087,27 @@ impl ElementMethods for Element {
         // Step 4.
         self.insert_adjacent(position, fragment.upcast()).map(|_| ())
     }
+
+    // check-tidy: no specs after this line
+    fn EnterFormalActivationState(&self) -> ErrorResult {
+        match self.as_maybe_activatable() {
+            Some(a) => {
+                a.enter_formal_activation_state();
+                return Ok(());
+            },
+            None => return Err(Error::NotSupported)
+        }
+    }
+
+    fn ExitFormalActivationState(&self) -> ErrorResult {
+        match self.as_maybe_activatable() {
+            Some(a) => {
+                a.exit_formal_activation_state();
+                return Ok(());
+            },
+            None => return Err(Error::NotSupported)
+        }
+    }
 }
 
 pub fn fragment_affecting_attributes() -> [Atom; 3] {

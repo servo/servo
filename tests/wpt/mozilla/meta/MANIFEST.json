@@ -6510,6 +6510,12 @@
             "url": "/_mozilla/mozilla/MouseEvent.html"
           }
         ],
+        "mozilla/activation.html": [
+          {
+            "path": "mozilla/activation.html",
+            "url": "/_mozilla/mozilla/activation.html"
+          }
+        ],
         "mozilla/bad_cert_detected.html": [
           {
             "path": "mozilla/bad_cert_detected.html",
