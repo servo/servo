@@ -591,6 +591,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         let error_code = if let Some(error) = self.last_error.get() {
             match error {
                 WebGLError::InvalidEnum => constants::INVALID_ENUM,
+                WebGLError::InvalidFramebufferOperation => constants::INVALID_FRAMEBUFFER_OPERATION,
                 WebGLError::InvalidValue => constants::INVALID_VALUE,
                 WebGLError::InvalidOperation => constants::INVALID_OPERATION,
                 WebGLError::OutOfMemory => constants::OUT_OF_MEMORY,
