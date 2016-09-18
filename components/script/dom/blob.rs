@@ -373,10 +373,10 @@ impl BlobMethods for Blob {
     fn Slice(&self,
              start: Option<i64>,
              end: Option<i64>,
-             contentType: Option<DOMString>)
+             content_type: Option<DOMString>)
              -> Root<Blob> {
         let rel_pos = RelativePos::from_opts(start, end);
-        Blob::new_sliced(self, rel_pos, contentType.unwrap_or(DOMString::from("")))
+        Blob::new_sliced(self, rel_pos, content_type.unwrap_or(DOMString::from("")))
     }
 
     // https://w3c.github.io/FileAPI/#dfn-isClosed

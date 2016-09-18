@@ -15,7 +15,7 @@ pub struct BluetoothCharacteristicProperties {
     reflector_: Reflector,
     broadcast: bool,
     read: bool,
-    writeWithoutResponse: bool,
+    write_without_response: bool,
     write: bool,
     notify: bool,
     indicate: bool,
@@ -27,7 +27,7 @@ pub struct BluetoothCharacteristicProperties {
 impl BluetoothCharacteristicProperties {
     pub fn new_inherited(broadcast: bool,
                          read: bool,
-                         writeWithoutResponse: bool,
+                         write_without_response: bool,
                          write: bool,
                          notify: bool,
                          indicate: bool,
@@ -39,7 +39,7 @@ impl BluetoothCharacteristicProperties {
             reflector_: Reflector::new(),
             broadcast: broadcast,
             read: read,
-            writeWithoutResponse: writeWithoutResponse,
+            write_without_response: write_without_response,
             write: write,
             notify: notify,
             indicate: indicate,
@@ -87,7 +87,7 @@ impl BluetoothCharacteristicPropertiesMethods for BluetoothCharacteristicPropert
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothcharacteristicproperties-writewithoutresponse
     fn WriteWithoutResponse(&self) -> bool {
-        self.writeWithoutResponse
+        self.write_without_response
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothcharacteristicproperties-write
