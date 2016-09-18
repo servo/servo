@@ -74,7 +74,7 @@ pub struct Blob {
     blob_impl: DOMRefCell<BlobImpl>,
     /// content-type string
     type_string: String,
-    isClosed_: Cell<bool>,
+    is_closed: Cell<bool>,
 }
 
 impl Blob {
@@ -92,13 +92,13 @@ impl Blob {
             // NOTE: Guarding the format correctness here,
             // https://w3c.github.io/FileAPI/#dfn-type
             type_string: normalize_type_string(&type_string),
-            isClosed_: Cell::new(false),
+            is_closed: Cell::new(false),
         }
     }
 
     #[allow(unrooted_must_root)]
     fn new_sliced(parent: &Blob, rel_pos: RelativePos,
-                  relativeContentType: DOMString) -> Root<Blob> {
+                  relative_content_type: DOMString) -> Root<Blob> {
         let global = parent.global();
         let blob_impl = match *parent.blob_impl.borrow() {
             BlobImpl::File(_) => {
@@ -115,7 +115,7 @@ impl Blob {
             }
         };
 
-        Blob::new(global.r(), blob_impl, relativeContentType.into())
+        Blob::new(global.r(), blob_impl, relative_content_type.into())
     }
 
     // https://w3c.github.io/FileAPI/#constructorBlob
@@ -381,18 +381,18 @@ impl BlobMethods for Blob {
 
     // https://w3c.github.io/FileAPI/#dfn-isClosed
     fn IsClosed(&self) -> bool {
-        self.isClosed_.get()
+        self.is_closed.get()
     }
 
     // https://w3c.github.io/FileAPI/#dfn-close
     fn Close(&self) {
         // Step 1
-        if self.isClosed_.get() {
+        if self.is_closed.get() {
             return;
         }
 
         // Step 2
-        self.isClosed_.set(true);
+        self.is_closed.set(true);
 
         // Step 3
         self.clean_up_file_resource();
