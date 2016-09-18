@@ -9,8 +9,8 @@ use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderi
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
 use dom::bindings::codegen::UnionTypes::ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement;
 use dom::bindings::conversions::{ArrayBufferViewContents, ConversionResult, FromJSValConvertible, ToJSValConvertible};
-use dom::bindings::conversions::{array_buffer_view_data, array_buffer_view_data_checked, array_buffer_view_to_vec};
-use dom::bindings::conversions::array_buffer_view_to_vec_checked;
+use dom::bindings::conversions::{array_buffer_to_vec, array_buffer_view_data, array_buffer_view_data_checked};
+use dom::bindings::conversions::{array_buffer_view_to_vec, array_buffer_view_to_vec_checked};
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap, Root};
@@ -883,7 +883,13 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return Ok(self.webgl_error(InvalidValue));
         }
 
-        let data_vec = try!(unsafe { fallible_array_buffer_view_to_vec::<u8>(data) });
+        let data_vec = unsafe {
+            match array_buffer_to_vec::<u8>(data) {
+                Some(data) => data,
+                // Not an ArrayBuffer object, maybe an ArrayBufferView?
+                None => try!(fallible_array_buffer_view_to_vec::<u8>(data)),
+            }
+        };
 
         let bound_buffer = match target {
             constants::ARRAY_BUFFER => self.bound_buffer_array.get(),
@@ -915,7 +921,13 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return Ok(self.webgl_error(InvalidValue));
         }
 
-        let data_vec = try!(unsafe { fallible_array_buffer_view_to_vec::<u8>(data) });
+        let data_vec = unsafe {
+            match array_buffer_to_vec::<u8>(data) {
+                Some(data) => data,
+                // Not an ArrayBuffer object, maybe an ArrayBufferView?
+                None => try!(fallible_array_buffer_view_to_vec::<u8>(data)),
+            }
+        };
 
         let bound_buffer = match target {
             constants::ARRAY_BUFFER => self.bound_buffer_array.get(),
