@@ -796,10 +796,10 @@ impl Node {
     }
 
     pub fn summarize(&self) -> NodeInfo {
-        let USVString(baseURI) = self.BaseURI();
+        let USVString(base_uri) = self.BaseURI();
         NodeInfo {
             uniqueId: self.unique_id(),
-            baseURI: baseURI,
+            baseURI: base_uri,
             parent: self.GetParentNode().map_or("".to_owned(), |node| node.unique_id()),
             nodeType: self.NodeType(),
             namespaceURI: String::new(), //FIXME
@@ -2296,8 +2296,8 @@ impl NodeMethods for Node {
     }
 
     // https://dom.spec.whatwg.org/#dom-node-issamenode
-    fn IsSameNode(&self, otherNode: Option<&Node>) -> bool {
-        match otherNode {
+    fn IsSameNode(&self, other_node: Option<&Node>) -> bool {
+        match other_node {
             Some(node) => self == node,
             None => false,
         }

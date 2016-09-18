@@ -59,26 +59,26 @@ impl MouseEvent {
 
     pub fn new(window: &Window,
                type_: DOMString,
-               canBubble: EventBubbles,
+               can_bubble: EventBubbles,
                cancelable: EventCancelable,
                view: Option<&Window>,
                detail: i32,
-               screenX: i32,
-               screenY: i32,
-               clientX: i32,
-               clientY: i32,
-               ctrlKey: bool,
-               altKey: bool,
-               shiftKey: bool,
-               metaKey: bool,
+               screen_x: i32,
+               screen_y: i32,
+               client_x: i32,
+               client_y: i32,
+               ctrl_key: bool,
+               alt_key: bool,
+               shift_key: bool,
+               meta_key: bool,
                button: i16,
-               relatedTarget: Option<&EventTarget>) -> Root<MouseEvent> {
+               related_target: Option<&EventTarget>) -> Root<MouseEvent> {
         let ev = MouseEvent::new_uninitialized(window);
-        ev.InitMouseEvent(type_, bool::from(canBubble), bool::from(cancelable),
+        ev.InitMouseEvent(type_, bool::from(can_bubble), bool::from(cancelable),
                           view, detail,
-                          screenX, screenY, clientX, clientY,
-                          ctrlKey, altKey, shiftKey, metaKey,
-                          button, relatedTarget);
+                          screen_x, screen_y, client_x, client_y,
+                          ctrl_key, alt_key, shift_key, meta_key,
+                          button, related_target);
         ev
     }
 
@@ -166,37 +166,37 @@ impl MouseEventMethods for MouseEvent {
 
     // https://w3c.github.io/uievents/#widl-MouseEvent-initMouseEvent
     fn InitMouseEvent(&self,
-                      typeArg: DOMString,
-                      canBubbleArg: bool,
-                      cancelableArg: bool,
-                      viewArg: Option<&Window>,
-                      detailArg: i32,
-                      screenXArg: i32,
-                      screenYArg: i32,
-                      clientXArg: i32,
-                      clientYArg: i32,
-                      ctrlKeyArg: bool,
-                      altKeyArg: bool,
-                      shiftKeyArg: bool,
-                      metaKeyArg: bool,
-                      buttonArg: i16,
-                      relatedTargetArg: Option<&EventTarget>) {
+                      type_arg: DOMString,
+                      can_bubble_arg: bool,
+                      cancelable_arg: bool,
+                      view_arg: Option<&Window>,
+                      detail_arg: i32,
+                      screen_x_arg: i32,
+                      screen_y_arg: i32,
+                      client_x_arg: i32,
+                      client_y_arg: i32,
+                      ctrl_key_arg: bool,
+                      alt_key_arg: bool,
+                      shift_key_arg: bool,
+                      meta_key_arg: bool,
+                      button_arg: i16,
+                      related_target_arg: Option<&EventTarget>) {
         if self.upcast::<Event>().dispatching() {
             return;
         }
 
         self.upcast::<UIEvent>()
-            .InitUIEvent(typeArg, canBubbleArg, cancelableArg, viewArg, detailArg);
-        self.screen_x.set(screenXArg);
-        self.screen_y.set(screenYArg);
-        self.client_x.set(clientXArg);
-        self.client_y.set(clientYArg);
-        self.ctrl_key.set(ctrlKeyArg);
-        self.alt_key.set(altKeyArg);
-        self.shift_key.set(shiftKeyArg);
-        self.meta_key.set(metaKeyArg);
-        self.button.set(buttonArg);
-        self.related_target.set(relatedTargetArg);
+            .InitUIEvent(type_arg, can_bubble_arg, cancelable_arg, view_arg, detail_arg);
+        self.screen_x.set(screen_x_arg);
+        self.screen_y.set(screen_y_arg);
+        self.client_x.set(client_x_arg);
+        self.client_y.set(client_y_arg);
+        self.ctrl_key.set(ctrl_key_arg);
+        self.alt_key.set(alt_key_arg);
+        self.shift_key.set(shift_key_arg);
+        self.meta_key.set(meta_key_arg);
+        self.button.set(button_arg);
+        self.related_target.set(related_target_arg);
     }
 
     // https://dom.spec.whatwg.org/#dom-event-istrusted

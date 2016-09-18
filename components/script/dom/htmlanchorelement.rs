@@ -39,22 +39,22 @@ pub struct HTMLAnchorElement {
 }
 
 impl HTMLAnchorElement {
-    fn new_inherited(localName: Atom,
+    fn new_inherited(local_name: Atom,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLAnchorElement {
         HTMLAnchorElement {
             htmlelement:
-                HTMLElement::new_inherited(localName, prefix, document),
+                HTMLElement::new_inherited(local_name, prefix, document),
             rel_list: Default::default(),
             url: DOMRefCell::new(None),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: Atom,
+    pub fn new(local_name: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLAnchorElement> {
-        Node::reflect_node(box HTMLAnchorElement::new_inherited(localName, prefix, document),
+        Node::reflect_node(box HTMLAnchorElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLAnchorElementBinding::Wrap)
     }
@@ -157,7 +157,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
             None => USVString(String::new()),
             Some(ref url) => {
                 // Steps 3-4.
-                UrlHelper::Hash(url)
+                UrlHelper::hash(url)
             }
         }
     }
@@ -174,7 +174,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
             None => return,
             // Steps 4-5.
             Some(url) => {
-                UrlHelper::SetHash(url, value);
+                UrlHelper::set_hash(url, value);
                 DOMString::from(url.as_str())
             }
         };
@@ -195,7 +195,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
                     USVString(String::new())
                 } else {
                     // Steps 4-5.
-                    UrlHelper::Host(url)
+                    UrlHelper::host(url)
                 }
             }
         }
@@ -213,7 +213,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
             None => return,
             // Step 4.
             Some(url) => {
-                UrlHelper::SetHost(url, value);
+                UrlHelper::set_host(url, value);
                 DOMString::from(url.as_str())
             }
         };
@@ -231,7 +231,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
             None => USVString(String::new()),
             Some(ref url) => {
                 // Step 4.
-                UrlHelper::Hostname(url)
+                UrlHelper::hostname(url)
             }
         }
     }
@@ -248,7 +248,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
             None => return,
             // Step 4.
             Some(url) => {
-                UrlHelper::SetHostname(url, value);
+                UrlHelper::set_hostname(url, value);
                 DOMString::from(url.as_str())
             }
         };
@@ -291,7 +291,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
             // Step 3.
             None => USVString(String::new()),
             // Steps 3-4.
-            Some(ref url) => UrlHelper::Password(url)
+            Some(ref url) => UrlHelper::password(url)
         }
     }
 
@@ -307,7 +307,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
             None => return,
             // Step 4.
             Some(url) => {
-                UrlHelper::SetPassword(url, value);
+                UrlHelper::set_password(url, value);
                 DOMString::from(url.as_str())
             }
         };
@@ -324,7 +324,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
             // Step 3.
             None => USVString(String::new()),
             // Steps 4-5.
-            Some(ref url) => UrlHelper::Pathname(url)
+            Some(ref url) => UrlHelper::pathname(url)
         }
     }
 
@@ -340,7 +340,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
             None => return,
             // Step 5.
             Some(url) => {
-                UrlHelper::SetPathname(url, value);
+                UrlHelper::set_pathname(url, value);
                 DOMString::from(url.as_str())
             }
         };
@@ -357,7 +357,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
             // Step 3.
             None => USVString(String::new()),
             // Step 4.
-            Some(ref url) => UrlHelper::Port(url)
+            Some(ref url) => UrlHelper::port(url)
         }
     }
 
@@ -374,7 +374,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
             None => return,
             // Step 4.
             Some(url) => {
-                UrlHelper::SetPort(url, value);
+                UrlHelper::set_port(url, value);
                 DOMString::from(url.as_str())
             }
         };
@@ -391,7 +391,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
             // Step 2.
             None => USVString(":".to_owned()),
             // Step 3.
-            Some(ref url) => UrlHelper::Protocol(url)
+            Some(ref url) => UrlHelper::protocol(url)
         }
     }
 
@@ -405,7 +405,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
             None => return,
             // Step 3.
             Some(url) => {
-                UrlHelper::SetProtocol(url, value);
+                UrlHelper::set_protocol(url, value);
                 DOMString::from(url.as_str())
             }
         };
@@ -422,7 +422,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
             // Step 2.
             None => USVString(String::new()),
             // Step 3.
-            Some(ref url) => UrlHelper::Search(url)
+            Some(ref url) => UrlHelper::search(url)
         }
     }
 
@@ -439,7 +439,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
             // TODO add this element's node document character encoding as
             // encoding override (as described in the spec)
             Some(url) => {
-                UrlHelper::SetSearch(url, value);
+                UrlHelper::set_search(url, value);
                 DOMString::from(url.as_str())
             }
         };
@@ -456,7 +456,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
             // Step 2.
             None => USVString(String::new()),
             // Step 3.
-            Some(ref url) => UrlHelper::Username(url)
+            Some(ref url) => UrlHelper::username(url)
         }
     }
 
@@ -472,7 +472,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
             None => return,
             // Step 4.
             Some(url) => {
-                UrlHelper::SetUsername(url, value);
+                UrlHelper::set_username(url, value);
                 DOMString::from(url.as_str())
             }
         };

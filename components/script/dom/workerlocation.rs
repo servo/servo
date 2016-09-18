@@ -37,42 +37,42 @@ impl WorkerLocation {
 impl WorkerLocationMethods for WorkerLocation {
     // https://html.spec.whatwg.org/multipage/#dom-workerlocation-hash
     fn Hash(&self) -> USVString {
-        UrlHelper::Hash(&self.url)
+        UrlHelper::hash(&self.url)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-workerlocation-host
     fn Host(&self) -> USVString {
-        UrlHelper::Host(&self.url)
+        UrlHelper::host(&self.url)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-workerlocation-hostname
     fn Hostname(&self) -> USVString {
-        UrlHelper::Hostname(&self.url)
+        UrlHelper::hostname(&self.url)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-workerlocation-href
     fn Href(&self) -> USVString {
-        UrlHelper::Href(&self.url)
+        UrlHelper::href(&self.url)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-workerlocation-pathname
     fn Pathname(&self) -> USVString {
-        UrlHelper::Pathname(&self.url)
+        UrlHelper::pathname(&self.url)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-workerlocation-port
     fn Port(&self) -> USVString {
-        UrlHelper::Port(&self.url)
+        UrlHelper::port(&self.url)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-workerlocation-protocol
     fn Protocol(&self) -> USVString {
-        UrlHelper::Protocol(&self.url)
+        UrlHelper::protocol(&self.url)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-workerlocation-search
     fn Search(&self) -> USVString {
-        UrlHelper::Search(&self.url)
+        UrlHelper::search(&self.url)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-workerlocation-href

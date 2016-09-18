@@ -23,18 +23,18 @@ pub struct HTMLAreaElement {
 }
 
 impl HTMLAreaElement {
-    fn new_inherited(localName: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLAreaElement {
+    fn new_inherited(local_name: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLAreaElement {
         HTMLAreaElement {
-            htmlelement: HTMLElement::new_inherited(localName, prefix, document),
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             rel_list: Default::default(),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: Atom,
+    pub fn new(local_name: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLAreaElement> {
-        Node::reflect_node(box HTMLAreaElement::new_inherited(localName, prefix, document),
+        Node::reflect_node(box HTMLAreaElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLAreaElementBinding::Wrap)
     }

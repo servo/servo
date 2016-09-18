@@ -14,20 +14,20 @@ use dom::window::Window;
 #[dom_struct]
 pub struct PerformanceTiming {
     reflector_: Reflector,
-    navigationStart: u64,
-    navigationStartPrecise: f64,
+    navigation_start: u64,
+    navigation_start_precise: f64,
     document: JS<Document>,
 }
 
 impl PerformanceTiming {
-    fn new_inherited(navStart: u64,
-                     navStartPrecise: f64,
+    fn new_inherited(nav_start: u64,
+                     nav_start_precise: f64,
                      document: &Document)
                          -> PerformanceTiming {
         PerformanceTiming {
             reflector_: Reflector::new(),
-            navigationStart: navStart,
-            navigationStartPrecise: navStartPrecise,
+            navigation_start: nav_start,
+            navigation_start_precise: nav_start_precise,
             document: JS::from_ref(document),
         }
     }
@@ -48,7 +48,7 @@ impl PerformanceTiming {
 impl PerformanceTimingMethods for PerformanceTiming {
     // https://w3c.github.io/navigation-timing/#widl-PerformanceTiming-navigationStart
     fn NavigationStart(&self) -> u64 {
-        self.navigationStart
+        self.navigation_start
     }
 
     // https://w3c.github.io/navigation-timing/#widl-PerformanceTiming-domLoading
@@ -89,7 +89,7 @@ impl PerformanceTimingMethods for PerformanceTiming {
 
 
 impl PerformanceTiming {
-    pub fn NavigationStartPrecise(&self) -> f64 {
-        self.navigationStartPrecise
+    pub fn navigation_start_precise(&self) -> f64 {
+        self.navigation_start_precise
     }
 }

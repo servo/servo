@@ -194,9 +194,9 @@ impl HTMLImageElement {
             }
         }
     }
-    fn new_inherited(localName: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLImageElement {
+    fn new_inherited(local_name: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLImageElement {
         HTMLImageElement {
-            htmlelement: HTMLElement::new_inherited(localName, prefix, document),
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             current_request: DOMRefCell::new(ImageRequest {
                 state: State::Unavailable,
                 parsed_url: None,
@@ -215,10 +215,10 @@ impl HTMLImageElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: Atom,
+    pub fn new(local_name: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLImageElement> {
-        Node::reflect_node(box HTMLImageElement::new_inherited(localName, prefix, document),
+        Node::reflect_node(box HTMLImageElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLImageElementBinding::Wrap)
     }

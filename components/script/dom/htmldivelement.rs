@@ -16,19 +16,19 @@ pub struct HTMLDivElement {
 }
 
 impl HTMLDivElement {
-    fn new_inherited(localName: Atom,
+    fn new_inherited(local_name: Atom,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLDivElement {
         HTMLDivElement {
-            htmlelement: HTMLElement::new_inherited(localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: Atom,
+    pub fn new(local_name: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLDivElement> {
-        Node::reflect_node(box HTMLDivElement::new_inherited(localName, prefix, document),
+        Node::reflect_node(box HTMLDivElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLDivElementBinding::Wrap)
     }

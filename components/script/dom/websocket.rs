@@ -238,7 +238,7 @@ impl WebSocket {
         }
 
         // Step 6: Origin.
-        let origin = UrlHelper::Origin(&global.get_url()).0;
+        let origin = UrlHelper::origin(&global.get_url()).0;
 
         // Step 7.
         let ws = WebSocket::new(global, resource_url.clone());

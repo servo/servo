@@ -16,19 +16,19 @@ pub struct HTMLOListElement {
 }
 
 impl HTMLOListElement {
-    fn new_inherited(localName: Atom,
+    fn new_inherited(local_name: Atom,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLOListElement {
         HTMLOListElement {
-            htmlelement: HTMLElement::new_inherited(localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: Atom,
+    pub fn new(local_name: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLOListElement> {
-        Node::reflect_node(box HTMLOListElement::new_inherited(localName, prefix, document),
+        Node::reflect_node(box HTMLOListElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLOListElementBinding::Wrap)
     }

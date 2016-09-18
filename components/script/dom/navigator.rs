@@ -21,7 +21,7 @@ pub struct Navigator {
     bluetooth: MutNullableHeap<JS<Bluetooth>>,
     plugins: MutNullableHeap<JS<PluginArray>>,
     mime_types: MutNullableHeap<JS<MimeTypeArray>>,
-    serviceWorker: MutNullableHeap<JS<ServiceWorkerContainer>>,
+    service_worker: MutNullableHeap<JS<ServiceWorkerContainer>>,
 }
 
 impl Navigator {
@@ -31,7 +31,7 @@ impl Navigator {
             bluetooth: Default::default(),
             plugins: Default::default(),
             mime_types: Default::default(),
-            serviceWorker: Default::default(),
+            service_worker: Default::default(),
         }
     }
 
@@ -105,7 +105,7 @@ impl NavigatorMethods for Navigator {
 
     // https://slightlyoff.github.io/ServiceWorker/spec/service_worker/#navigator-service-worker-attribute
     fn ServiceWorker(&self) -> Root<ServiceWorkerContainer> {
-        self.serviceWorker.or_init(|| ServiceWorkerContainer::new(self.global().r()))
+        self.service_worker.or_init(|| ServiceWorkerContainer::new(self.global().r()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator-cookieenabled

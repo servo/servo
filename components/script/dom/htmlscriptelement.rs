@@ -64,11 +64,11 @@ pub struct HTMLScriptElement {
 }
 
 impl HTMLScriptElement {
-    fn new_inherited(localName: Atom, prefix: Option<DOMString>, document: &Document,
+    fn new_inherited(local_name: Atom, prefix: Option<DOMString>, document: &Document,
                      creator: ElementCreator) -> HTMLScriptElement {
         HTMLScriptElement {
             htmlelement:
-                HTMLElement::new_inherited(localName, prefix, document),
+                HTMLElement::new_inherited(local_name, prefix, document),
             already_started: Cell::new(false),
             parser_inserted: Cell::new(creator == ElementCreator::ParserCreated),
             non_blocking: Cell::new(creator != ElementCreator::ParserCreated),
@@ -79,9 +79,9 @@ impl HTMLScriptElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: Atom, prefix: Option<DOMString>, document: &Document,
+    pub fn new(local_name: Atom, prefix: Option<DOMString>, document: &Document,
                creator: ElementCreator) -> Root<HTMLScriptElement> {
-        Node::reflect_node(box HTMLScriptElement::new_inherited(localName, prefix, document, creator),
+        Node::reflect_node(box HTMLScriptElement::new_inherited(local_name, prefix, document, creator),
                            document,
                            HTMLScriptElementBinding::Wrap)
     }

@@ -203,7 +203,7 @@ impl Runnable for StorageEventRunnable {
         for it_context in root_context.iter() {
             let it_window_root = it_context.active_window();
             let it_window = it_window_root.r();
-            assert!(UrlHelper::SameOrigin(&ev_url, &it_window.get_url()));
+            assert!(UrlHelper::same_origin(&ev_url, &it_window.get_url()));
             // TODO: Such a Document object is not necessarily fully active, but events fired on such
             // objects are ignored by the event loop until the Document becomes fully active again.
             if ev_window.pipeline_id() != it_window.pipeline_id() {

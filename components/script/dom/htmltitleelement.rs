@@ -22,17 +22,17 @@ pub struct HTMLTitleElement {
 }
 
 impl HTMLTitleElement {
-    fn new_inherited(localName: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLTitleElement {
+    fn new_inherited(local_name: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLTitleElement {
         HTMLTitleElement {
-            htmlelement: HTMLElement::new_inherited(localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: Atom,
+    pub fn new(local_name: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLTitleElement> {
-        Node::reflect_node(box HTMLTitleElement::new_inherited(localName, prefix, document),
+        Node::reflect_node(box HTMLTitleElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLTitleElementBinding::Wrap)
     }

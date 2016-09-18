@@ -51,8 +51,8 @@ impl PerformanceMethods for Performance {
 
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/HighResolutionTime/Overview.html#dom-performance-now
     fn Now(&self) -> DOMHighResTimeStamp {
-        let navStart = self.timing.NavigationStartPrecise();
-        let now = (time::precise_time_ns() as f64 - navStart) / 1000000 as f64;
+        let nav_start = self.timing.navigation_start_precise();
+        let now = (time::precise_time_ns() as f64 - nav_start) / 1000000 as f64;
         Finite::wrap(now)
     }
 }

@@ -16,17 +16,17 @@ pub struct HTMLFrameElement {
 }
 
 impl HTMLFrameElement {
-    fn new_inherited(localName: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLFrameElement {
+    fn new_inherited(local_name: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLFrameElement {
         HTMLFrameElement {
-            htmlelement: HTMLElement::new_inherited(localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: Atom,
+    pub fn new(local_name: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLFrameElement> {
-        Node::reflect_node(box HTMLFrameElement::new_inherited(localName, prefix, document),
+        Node::reflect_node(box HTMLFrameElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLFrameElementBinding::Wrap)
     }

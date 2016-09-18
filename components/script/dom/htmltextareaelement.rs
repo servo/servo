@@ -96,14 +96,14 @@ static DEFAULT_COLS: u32 = 20;
 static DEFAULT_ROWS: u32 = 2;
 
 impl HTMLTextAreaElement {
-    fn new_inherited(localName: Atom,
+    fn new_inherited(local_name: Atom,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLTextAreaElement {
         let chan = document.window().constellation_chan().clone();
         HTMLTextAreaElement {
             htmlelement:
                 HTMLElement::new_inherited_with_state(IN_ENABLED_STATE | IN_READ_WRITE_STATE,
-                                                      localName, prefix, document),
+                                                      local_name, prefix, document),
             textinput: DOMRefCell::new(TextInput::new(
                     Lines::Multiple, DOMString::new(), chan, None, SelectionDirection::None)),
             value_changed: Cell::new(false),
@@ -111,10 +111,10 @@ impl HTMLTextAreaElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: Atom,
+    pub fn new(local_name: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLTextAreaElement> {
-        Node::reflect_node(box HTMLTextAreaElement::new_inherited(localName, prefix, document),
+        Node::reflect_node(box HTMLTextAreaElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLTextAreaElementBinding::Wrap)
     }

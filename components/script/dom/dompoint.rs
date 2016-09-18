@@ -49,7 +49,7 @@ impl DOMPointMethods for DOMPoint {
 
     // https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-x
     fn SetX(&self, value: f64) {
-        self.point.SetX(value);
+        self.point.set_x(value);
     }
 
     // https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-y
@@ -59,7 +59,7 @@ impl DOMPointMethods for DOMPoint {
 
     // https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-y
     fn SetY(&self, value: f64) {
-        self.point.SetY(value);
+        self.point.set_y(value);
     }
 
     // https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-z
@@ -69,7 +69,7 @@ impl DOMPointMethods for DOMPoint {
 
     // https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-z
     fn SetZ(&self, value: f64) {
-        self.point.SetZ(value);
+        self.point.set_z(value);
     }
 
     // https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-w
@@ -79,6 +79,6 @@ impl DOMPointMethods for DOMPoint {
 
     // https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-w
     fn SetW(&self, value: f64) {
-        self.point.SetW(value);
+        self.point.set_w(value);
     }
 }

@@ -16,18 +16,18 @@ pub struct HTMLDListElement {
 }
 
 impl HTMLDListElement {
-    fn new_inherited(localName: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLDListElement {
+    fn new_inherited(local_name: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLDListElement {
         HTMLDListElement {
             htmlelement:
-                HTMLElement::new_inherited(localName, prefix, document)
+                HTMLElement::new_inherited(local_name, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: Atom,
+    pub fn new(local_name: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLDListElement> {
-        Node::reflect_node(box HTMLDListElement::new_inherited(localName, prefix, document),
+        Node::reflect_node(box HTMLDListElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLDListElementBinding::Wrap)
     }

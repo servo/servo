@@ -32,17 +32,17 @@ pub struct HTMLBodyElement {
 }
 
 impl HTMLBodyElement {
-    fn new_inherited(localName: Atom, prefix: Option<DOMString>, document: &Document)
+    fn new_inherited(local_name: Atom, prefix: Option<DOMString>, document: &Document)
                      -> HTMLBodyElement {
         HTMLBodyElement {
-            htmlelement: HTMLElement::new_inherited(localName, prefix, document),
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: Atom, prefix: Option<DOMString>, document: &Document)
+    pub fn new(local_name: Atom, prefix: Option<DOMString>, document: &Document)
                -> Root<HTMLBodyElement> {
-        Node::reflect_node(box HTMLBodyElement::new_inherited(localName, prefix, document),
+        Node::reflect_node(box HTMLBodyElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLBodyElementBinding::Wrap)
     }

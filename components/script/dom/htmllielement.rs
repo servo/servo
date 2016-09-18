@@ -20,17 +20,17 @@ pub struct HTMLLIElement {
 }
 
 impl HTMLLIElement {
-    fn new_inherited(localName: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLLIElement {
+    fn new_inherited(local_name: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLLIElement {
         HTMLLIElement {
-            htmlelement: HTMLElement::new_inherited(localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: Atom,
+    pub fn new(local_name: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLLIElement> {
-        Node::reflect_node(box HTMLLIElement::new_inherited(localName, prefix, document),
+        Node::reflect_node(box HTMLLIElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLLIElementBinding::Wrap)
     }

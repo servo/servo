@@ -49,10 +49,10 @@ impl CollectionFilter for TableRowFilter {
 }
 
 impl HTMLTableElement {
-    fn new_inherited(localName: Atom, prefix: Option<DOMString>, document: &Document)
+    fn new_inherited(local_name: Atom, prefix: Option<DOMString>, document: &Document)
                      -> HTMLTableElement {
         HTMLTableElement {
-            htmlelement: HTMLElement::new_inherited(localName, prefix, document),
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             border: Cell::new(None),
             cellspacing: Cell::new(None),
             tbodies: Default::default(),
@@ -60,9 +60,9 @@ impl HTMLTableElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: Atom, prefix: Option<DOMString>, document: &Document)
+    pub fn new(local_name: Atom, prefix: Option<DOMString>, document: &Document)
                -> Root<HTMLTableElement> {
-        Node::reflect_node(box HTMLTableElement::new_inherited(localName, prefix, document),
+        Node::reflect_node(box HTMLTableElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLTableElementBinding::Wrap)
     }

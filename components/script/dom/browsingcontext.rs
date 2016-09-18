@@ -239,7 +239,7 @@ unsafe fn get_subframe_window(cx: *mut JSContext,
         rooted!(in(cx) let target = GetProxyPrivate(*proxy.ptr).to_object());
         let win = root_from_handleobject::<Window>(target.handle()).unwrap();
         let mut found = false;
-        return win.IndexedGetter(index, &mut found);
+        return win.indexed_getter(index, &mut found);
     }
 
     None

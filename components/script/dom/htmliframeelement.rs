@@ -173,11 +173,11 @@ impl HTMLIFrameElement {
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 
-    fn new_inherited(localName: Atom,
+    fn new_inherited(local_name: Atom,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLIFrameElement {
         HTMLIFrameElement {
-            htmlelement: HTMLElement::new_inherited(localName, prefix, document),
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             pipeline_id: Cell::new(None),
             sandbox: Default::default(),
             sandbox_allowance: Cell::new(None),
@@ -187,10 +187,10 @@ impl HTMLIFrameElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: Atom,
+    pub fn new(local_name: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLIFrameElement> {
-        Node::reflect_node(box HTMLIFrameElement::new_inherited(localName, prefix, document),
+        Node::reflect_node(box HTMLIFrameElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLIFrameElementBinding::Wrap)
     }
@@ -402,7 +402,7 @@ unsafe fn build_mozbrowser_event_detail(event: MozBrowserEvent,
     }
 }
 
-pub fn Navigate(iframe: &HTMLIFrameElement, direction: TraversalDirection) -> ErrorResult {
+pub fn navigate(iframe: &HTMLIFrameElement, direction: TraversalDirection) -> ErrorResult {
     if iframe.Mozbrowser() {
         if iframe.upcast::<Node>().is_in_doc() {
             let window = window_from_node(iframe);
@@ -450,7 +450,7 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
             let self_url = self.get_url();
             let win_url = window_from_node(self).get_url();
 
-            if UrlHelper::SameOrigin(&self_url, &win_url) {
+            if UrlHelper::same_origin(&self_url, &win_url) {
                 Some(window.Document())
             } else {
                 None
@@ -479,16 +479,16 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/goBack
     fn GoBack(&self) -> ErrorResult {
-        Navigate(self, TraversalDirection::Back(1))
+        navigate(self, TraversalDirection::Back(1))
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/goForward
     fn GoForward(&self) -> ErrorResult {
-        Navigate(self, TraversalDirection::Forward(1))
+        navigate(self, TraversalDirection::Forward(1))
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/reload
-    fn Reload(&self, _hardReload: bool) -> ErrorResult {
+    fn Reload(&self, _hard_reload: bool) -> ErrorResult {
         if self.Mozbrowser() {
             if self.upcast::<Node>().is_in_doc() {
                 self.navigate_or_reload_child_browsing_context(None);
@@ -632,7 +632,7 @@ impl VirtualMethods for HTMLIFrameElement {
                 //                HTMLIFrameElement::contentDocument.
                 let self_url = self.get_url();
                 let win_url = window_from_node(self).get_url();
-                UrlHelper::SameOrigin(&self_url, &win_url)
+                UrlHelper::same_origin(&self_url, &win_url)
             };
             let (sender, receiver) = if same_origin {
                 (None, None)

@@ -55,7 +55,7 @@ impl TouchEvent {
 
     pub fn new(window: &Window,
                type_: DOMString,
-               canBubble: EventBubbles,
+               can_bubble: EventBubbles,
                cancelable: EventCancelable,
                view: Option<&Window>,
                detail: i32,
@@ -68,7 +68,7 @@ impl TouchEvent {
                meta_key: bool) -> Root<TouchEvent> {
         let ev = TouchEvent::new_uninitialized(window, touches, changed_touches, target_touches);
         ev.upcast::<UIEvent>().InitUIEvent(type_,
-                                           bool::from(canBubble),
+                                           bool::from(can_bubble),
                                            bool::from(cancelable),
                                            view, detail);
         ev.ctrl_key.set(ctrl_key);
