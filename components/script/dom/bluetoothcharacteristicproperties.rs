@@ -19,9 +19,9 @@ pub struct BluetoothCharacteristicProperties {
     write: bool,
     notify: bool,
     indicate: bool,
-    authenticatedSignedWrites: bool,
-    reliableWrite: bool,
-    writableAuxiliaries: bool,
+    authenticated_signed_writes: bool,
+    reliable_write: bool,
+    writable_auxiliaries: bool,
 }
 
 impl BluetoothCharacteristicProperties {
@@ -31,9 +31,9 @@ impl BluetoothCharacteristicProperties {
                          write: bool,
                          notify: bool,
                          indicate: bool,
-                         authenticatedSignedWrites: bool,
-                         reliableWrite: bool,
-                         writableAuxiliaries: bool)
+                         authenticated_signed_writes: bool,
+                         reliable_write: bool,
+                         writable_auxiliaries: bool)
                          -> BluetoothCharacteristicProperties {
         BluetoothCharacteristicProperties {
             reflector_: Reflector::new(),
@@ -43,9 +43,9 @@ impl BluetoothCharacteristicProperties {
             write: write,
             notify: notify,
             indicate: indicate,
-            authenticatedSignedWrites: authenticatedSignedWrites,
-            reliableWrite: reliableWrite,
-            writableAuxiliaries: writableAuxiliaries,
+            authenticated_signed_writes: authenticated_signed_writes,
+            reliable_write: reliable_write,
+            writable_auxiliaries: writable_auxiliaries,
         }
     }
 
@@ -107,16 +107,16 @@ impl BluetoothCharacteristicPropertiesMethods for BluetoothCharacteristicPropert
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothcharacteristicproperties-authenticatedsignedwrites
     fn AuthenticatedSignedWrites(&self) -> bool {
-        self.authenticatedSignedWrites
+        self.authenticated_signed_writes
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothcharacteristicproperties-reliablewrite
     fn ReliableWrite(&self) -> bool {
-        self.reliableWrite
+        self.reliable_write
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothcharacteristicproperties-writableauxiliaries
     fn WritableAuxiliaries(&self) -> bool {
-        self.writableAuxiliaries
+        self.writable_auxiliaries
     }
 }

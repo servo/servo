@@ -17,20 +17,20 @@ pub struct BluetoothDevice {
     reflector_: Reflector,
     id: DOMString,
     name: Option<DOMString>,
-    adData: MutHeap<JS<BluetoothAdvertisingData>>,
+    ad_data: MutHeap<JS<BluetoothAdvertisingData>>,
     gatt: MutNullableHeap<JS<BluetoothRemoteGATTServer>>,
 }
 
 impl BluetoothDevice {
     pub fn new_inherited(id: DOMString,
                          name: Option<DOMString>,
-                         adData: &BluetoothAdvertisingData)
+                         ad_data: &BluetoothAdvertisingData)
                          -> BluetoothDevice {
         BluetoothDevice {
             reflector_: Reflector::new(),
             id: id,
             name: name,
-            adData: MutHeap::new(adData),
+            ad_data: MutHeap::new(ad_data),
             gatt: Default::default(),
         }
     }
@@ -61,7 +61,7 @@ impl BluetoothDeviceMethods for BluetoothDevice {
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-addata
     fn AdData(&self) -> Root<BluetoothAdvertisingData> {
-        self.adData.get()
+        self.ad_data.get()
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-gatt
