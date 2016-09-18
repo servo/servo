@@ -226,6 +226,7 @@ impl WebGLFramebuffer {
 
             _ => {
                 *binding.borrow_mut() = None;
+                self.update_status();
                 None
             }
         };
@@ -238,6 +239,49 @@ impl WebGLFramebuffer {
 
         self.update_status();
         Ok(())
+    }
+
+    pub fn detach_renderbuffer(&self, rb: &WebGLRenderbuffer) {
+        let attachments = vec![&self.color,
+                               &self.depth,
+                               &self.stencil,
+                               &self.depthstencil];
+
+        for attachment in &attachments {
+            let matched = {
+                match *attachment.borrow() {
+                    Some(WebGLFramebufferAttachment::Renderbuffer(ref att_rb))
+                        if rb.id() == att_rb.id() => true,
+                    _ => false,
+                }
+            };
+
+            if matched {
+                *attachment.borrow_mut() = None;
+                self.update_status();
+            }
+        }
+    }
+
+    pub fn detach_texture(&self, texture: &WebGLTexture) {
+        let attachments = vec![&self.color,
+                               &self.depth,
+                               &self.stencil,
+                               &self.depthstencil];
+
+        for attachment in &attachments {
+            let matched = {
+                match *attachment.borrow() {
+                    Some(WebGLFramebufferAttachment::Texture(ref att_texture))
+                        if texture.id() == att_texture.id() => true,
+                    _ => false,
+                }
+            };
+
+            if matched {
+                *attachment.borrow_mut() = None;
+            }
+        }
     }
 
     pub fn target(&self) -> Option<u32> {
