@@ -69,26 +69,26 @@ impl DOMPointReadOnlyMethods for DOMPointReadOnly {
 }
 
 pub trait DOMPointWriteMethods {
-    fn set_x(&self, value: f64);
-    fn set_y(&self, value: f64);
-    fn set_z(&self, value: f64);
-    fn set_w(&self, value: f64);
+    fn SetX(&self, value: f64);
+    fn SetY(&self, value: f64);
+    fn SetZ(&self, value: f64);
+    fn SetW(&self, value: f64);
 }
 
 impl DOMPointWriteMethods for DOMPointReadOnly {
-    fn set_x(&self, value: f64) {
+    fn SetX(&self, value: f64) {
         self.x.set(value);
     }
 
-    fn set_y(&self, value: f64) {
+    fn SetY(&self, value: f64) {
         self.y.set(value);
     }
 
-    fn set_z(&self, value: f64) {
+    fn SetZ(&self, value: f64) {
         self.z.set(value);
     }
 
-    fn set_w(&self, value: f64) {
+    fn SetW(&self, value: f64) {
         self.w.set(value);
     }
 }

@@ -1536,7 +1536,7 @@ impl Window {
     }
 
     // https://html.spec.whatwg.org/multipage/#accessing-other-browsing-contexts
-    pub fn indexed_getter(&self, _index: u32, _found: &mut bool) -> Option<Root<Window>> {
+    pub fn IndexedGetter(&self, _index: u32, _found: &mut bool) -> Option<Root<Window>> {
         None
     }
 

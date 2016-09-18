@@ -402,7 +402,7 @@ unsafe fn build_mozbrowser_event_detail(event: MozBrowserEvent,
     }
 }
 
-pub fn navigate(iframe: &HTMLIFrameElement, direction: TraversalDirection) -> ErrorResult {
+pub fn Navigate(iframe: &HTMLIFrameElement, direction: TraversalDirection) -> ErrorResult {
     if iframe.Mozbrowser() {
         if iframe.upcast::<Node>().is_in_doc() {
             let window = window_from_node(iframe);
@@ -450,7 +450,7 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
             let self_url = self.get_url();
             let win_url = window_from_node(self).get_url();
 
-            if UrlHelper::same_origin(&self_url, &win_url) {
+            if UrlHelper::SameOrigin(&self_url, &win_url) {
                 Some(window.Document())
             } else {
                 None
@@ -479,12 +479,12 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/goBack
     fn GoBack(&self) -> ErrorResult {
-        navigate(self, TraversalDirection::Back(1))
+        Navigate(self, TraversalDirection::Back(1))
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/goForward
     fn GoForward(&self) -> ErrorResult {
-        navigate(self, TraversalDirection::Forward(1))
+        Navigate(self, TraversalDirection::Forward(1))
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/reload
@@ -632,7 +632,7 @@ impl VirtualMethods for HTMLIFrameElement {
                 //                HTMLIFrameElement::contentDocument.
                 let self_url = self.get_url();
                 let win_url = window_from_node(self).get_url();
-                UrlHelper::same_origin(&self_url, &win_url)
+                UrlHelper::SameOrigin(&self_url, &win_url)
             };
             let (sender, receiver) = if same_origin {
                 (None, None)

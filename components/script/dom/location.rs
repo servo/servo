@@ -62,7 +62,7 @@ impl LocationMethods for Location {
 
     // https://html.spec.whatwg.org/multipage/#dom-location-hash
     fn Hash(&self) -> USVString {
-        UrlHelper::hash(&self.get_url())
+        UrlHelper::Hash(&self.get_url())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-hash
@@ -70,37 +70,37 @@ impl LocationMethods for Location {
         if value.0.is_empty() {
             value = USVString("#".to_owned());
         }
-        self.set_url_component(value, UrlHelper::set_hash);
+        self.set_url_component(value, UrlHelper::SetHash);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-host
     fn Host(&self) -> USVString {
-        UrlHelper::host(&self.get_url())
+        UrlHelper::Host(&self.get_url())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-host
     fn SetHost(&self, value: USVString) {
-        self.set_url_component(value, UrlHelper::set_host);
+        self.set_url_component(value, UrlHelper::SetHost);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-origin
     fn Origin(&self) -> USVString {
-        UrlHelper::origin(&self.get_url())
+        UrlHelper::Origin(&self.get_url())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-hostname
     fn Hostname(&self) -> USVString {
-        UrlHelper::hostname(&self.get_url())
+        UrlHelper::Hostname(&self.get_url())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-hostname
     fn SetHostname(&self, value: USVString) {
-        self.set_url_component(value, UrlHelper::set_hostname);
+        self.set_url_component(value, UrlHelper::SetHostname);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-href
     fn Href(&self) -> USVString {
-        UrlHelper::href(&self.get_url())
+        UrlHelper::Href(&self.get_url())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-href
@@ -112,32 +112,32 @@ impl LocationMethods for Location {
 
     // https://html.spec.whatwg.org/multipage/#dom-location-pathname
     fn Pathname(&self) -> USVString {
-        UrlHelper::pathname(&self.get_url())
+        UrlHelper::Pathname(&self.get_url())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-pathname
     fn SetPathname(&self, value: USVString) {
-        self.set_url_component(value, UrlHelper::set_pathname);
+        self.set_url_component(value, UrlHelper::SetPathname);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-port
     fn Port(&self) -> USVString {
-        UrlHelper::port(&self.get_url())
+        UrlHelper::Port(&self.get_url())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-port
     fn SetPort(&self, value: USVString) {
-        self.set_url_component(value, UrlHelper::set_port);
+        self.set_url_component(value, UrlHelper::SetPort);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-protocol
     fn Protocol(&self) -> USVString {
-        UrlHelper::protocol(&self.get_url())
+        UrlHelper::Protocol(&self.get_url())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-protocol
     fn SetProtocol(&self, value: USVString) {
-        self.set_url_component(value, UrlHelper::set_protocol);
+        self.set_url_component(value, UrlHelper::SetProtocol);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-href
@@ -147,11 +147,11 @@ impl LocationMethods for Location {
 
     // https://html.spec.whatwg.org/multipage/#dom-location-search
     fn Search(&self) -> USVString {
-        UrlHelper::search(&self.get_url())
+        UrlHelper::Search(&self.get_url())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-search
     fn SetSearch(&self, value: USVString) {
-        self.set_url_component(value, UrlHelper::set_search);
+        self.set_url_component(value, UrlHelper::SetSearch);
     }
 }
