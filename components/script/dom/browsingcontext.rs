@@ -230,7 +230,7 @@ impl SessionHistoryEntry {
 }
 
 #[allow(unsafe_code)]
-unsafe fn GetSubframeWindow(cx: *mut JSContext,
+unsafe fn get_subframe_window(cx: *mut JSContext,
                             proxy: HandleObject,
                             id: HandleId)
                             -> Option<Root<Window>> {
@@ -251,7 +251,7 @@ unsafe extern "C" fn getOwnPropertyDescriptor(cx: *mut JSContext,
                                               id: HandleId,
                                               mut desc: MutableHandle<PropertyDescriptor>)
                                               -> bool {
-    let window = GetSubframeWindow(cx, proxy, id);
+    let window = get_subframe_window(cx, proxy, id);
     if let Some(window) = window {
         rooted!(in(cx) let mut val = UndefinedValue());
         window.to_jsval(cx, val.handle_mut());
@@ -300,7 +300,7 @@ unsafe extern "C" fn has(cx: *mut JSContext,
                          id: HandleId,
                          bp: *mut bool)
                          -> bool {
-    let window = GetSubframeWindow(cx, proxy, id);
+    let window = get_subframe_window(cx, proxy, id);
     if window.is_some() {
         *bp = true;
         return true;
@@ -323,7 +323,7 @@ unsafe extern "C" fn get(cx: *mut JSContext,
                          id: HandleId,
                          vp: MutableHandleValue)
                          -> bool {
-    let window = GetSubframeWindow(cx, proxy, id);
+    let window = get_subframe_window(cx, proxy, id);
     if let Some(window) = window {
         window.to_jsval(cx, vp);
         return true;

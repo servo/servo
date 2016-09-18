@@ -1096,16 +1096,16 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
                      imagedata: &ImageData,
                      dx: Finite<f64>,
                      dy: Finite<f64>,
-                     dirtyX: Finite<f64>,
-                     dirtyY: Finite<f64>,
-                     dirtyWidth: Finite<f64>,
-                     dirtyHeight: Finite<f64>) {
+                     dirty_x: Finite<f64>,
+                     dirty_y: Finite<f64>,
+                     dirty_width: Finite<f64>,
+                     dirty_height: Finite<f64>) {
         let data = imagedata.get_data_array();
         let offset = Point2D::new(*dx, *dy);
         let image_data_size = Size2D::new(imagedata.Width() as f64, imagedata.Height() as f64);
 
-        let dirty_rect = Rect::new(Point2D::new(*dirtyX, *dirtyY),
-                                   Size2D::new(*dirtyWidth, *dirtyHeight));
+        let dirty_rect = Rect::new(Point2D::new(*dirty_x, *dirty_y),
+                                   Size2D::new(*dirty_width, *dirty_height));
         let msg = CanvasMsg::Canvas2d(Canvas2dMsg::PutImageData(data,
                                                                 offset,
                                                                 image_data_size,
