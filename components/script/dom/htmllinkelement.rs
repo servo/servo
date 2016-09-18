@@ -357,7 +357,16 @@ impl HTMLLinkElementMethods for HTMLLinkElement {
     make_setter!(SetHref, "href");
 
     // https://html.spec.whatwg.org/multipage/#dom-link-rel
-    make_getter!(Rel, "rel");
+    fn Rel(&self) -> DOMString {
+        let atomVec: Vec<Atom> = self.upcast::<Element>().get_tokenlist_attribute(&atom!("rel"));
+        let mut string_concat = "".to_string();
+        for data in &atomVec {
+            let dataStr = String::from(data as &str);
+            string_concat = string_concat + " " + &dataStr;
+        }
+
+        DOMString::from_string(string_concat)
+    }
 
     // https://html.spec.whatwg.org/multipage/#dom-link-rel
     fn SetRel(&self, rel: DOMString) {
