@@ -11,7 +11,7 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestMethods;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseType;
-use dom::bindings::codegen::UnionTypes::BodyInit;
+use dom::bindings::codegen::UnionTypes::DocumentOrBodyInit;
 use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::{GlobalRef, GlobalRoot};
@@ -36,7 +36,6 @@ use encoding::label::encoding_from_whatwg_label;
 use encoding::types::{DecoderTrap, EncoderTrap, Encoding, EncodingRef};
 use euclid::length::Length;
 use hyper::header::{ContentLength, ContentType};
-use html5ever::serialize::Serializable;
 use hyper::header::Headers;
 use hyper::method::Method;
 use hyper::mime::{self, Attr as MimeAttr, Mime, Value as MimeValue};
@@ -501,7 +500,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     }
 
     // https://xhr.spec.whatwg.org/#the-send()-method
-    fn Send(&self, data: Option<BodyInit>) -> ErrorResult {
+    fn Send(&self, data: Option<DocumentOrBodyInit>) -> ErrorResult {
         // Step 1, 2
         if self.ready_state.get() != XMLHttpRequestState::Opened || self.send_flag.get() {
             return Err(Error::InvalidState);
@@ -608,7 +607,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         match extracted {
             Some((_, ref content_type)) => {
                 // this should handle Document bodies too, not just BodyInit
-                let encoding = if let Some(BodyInit::String(_)) = data {
+                let encoding = if let Some(DocumentOrBodyInit::String(_)) = data {
                     // XHR spec differs from http, and says UTF-8 should be in capitals,
                     // instead of "utf-8", which is what Hyper defaults to. So not
                     // using content types provided by Hyper.
@@ -1357,21 +1356,21 @@ trait Extractable {
     fn extract(&self) -> (Vec<u8>, Option<DOMString>);
 }
 
-impl Extractable for BodyInit {
+impl Extractable for DocumentOrBodyInit {
     // https://fetch.spec.whatwg.org/#concept-bodyinit-extract
     fn extract(&self) -> (Vec<u8>, Option<DOMString>) {
         match *self {
-            BodyInit::String(ref s) => {
+            DocumentOrBodyInit::String(ref s) => {
                 let encoding = UTF_8 as EncodingRef;
                 (encoding.encode(s, EncoderTrap::Replace).unwrap(),
                     Some(DOMString::from("text/plain;charset=UTF-8")))
             }
-            BodyInit::URLSearchParams(ref usp) => {
+            DocumentOrBodyInit::URLSearchParams(ref usp) => {
                 // Default encoding is UTF-8.
                 (usp.serialize(None).into_bytes(),
                     Some(DOMString::from("application/x-www-form-urlencoded;charset=UTF-8")))
             }
-            BodyInit::Blob(ref b) => {
+            DocumentOrBodyInit::Blob(ref b) => {
                 let content_type = if b.Type().as_ref().is_empty() {
                     None
                 } else {
@@ -1380,14 +1379,13 @@ impl Extractable for BodyInit {
                 let bytes = b.get_bytes().unwrap_or(vec![]);
                 (bytes, content_type)
             }
-            BodyInit::FormData(ref formdata) => {
+            DocumentOrBodyInit::FormData(ref formdata) => {
                 let boundary = generate_boundary();
                 let bytes = encode_multipart_form_data(&mut formdata.datums(), boundary.clone(),
                                                        UTF_8 as EncodingRef);
                 (bytes, Some(DOMString::from(format!("multipart/form-data;boundary={}", boundary))))
-                (data.get_bytes().to_vec(), content_type)
             },
-            BodyInit::Document(ref d) => {
+            DocumentOrBodyInit::Document(ref d) => {
                 let data: Vec<u8> = d.serialize().unwrap().into();
                 let decoded_data: Vec<u8> = match &*d.CharacterSet() {
                     "UTF-8" => {
