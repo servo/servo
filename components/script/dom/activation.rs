@@ -31,7 +31,7 @@ pub trait Activatable {
     fn activation_behavior(&self, event: &Event, target: &EventTarget);
 
     // https://html.spec.whatwg.org/multipage/#implicit-submission
-    fn implicit_submission(&self, ctrlKey: bool, shiftKey: bool, altKey: bool, metaKey: bool);
+    fn implicit_submission(&self, ctrl_key: bool, shift_key: bool, alt_key: bool, meta_key: bool);
 
     // https://html.spec.whatwg.org/multipage/#concept-selector-active
     fn enter_formal_activation_state(&self) {
