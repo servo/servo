@@ -102,6 +102,7 @@ impl<'a> Drop for StackRootTLS<'a> {
     }
 }
 
+/// A promise callback scheduled to run during the next microtask checkpoint.
 #[derive(JSTraceable, HeapSizeOf)]
 pub struct EnqueuedPromiseCallback {
     #[ignore_heap_size_of = "Rc has unclear ownership"]
@@ -109,14 +110,21 @@ pub struct EnqueuedPromiseCallback {
     pipeline: PipelineId,
 }
 
+/// A collection of promise callbacks in FIFO order.
 #[derive(JSTraceable, HeapSizeOf)]
 pub struct PromiseJobQueue {
+    /// A snapshot of `promise_job_queue` that was taken at the start of the microtask checkpoint.
+    /// Used to work around mutability errors when appending new promise jobs while performing
+    /// a microtask checkpoint.
     flushing_job_queue: DOMRefCell<Vec<EnqueuedPromiseCallback>>,
+    /// The list of enqueued promise callbacks that will be invoked at the next microtask checkpoint.
     promise_job_queue: DOMRefCell<Vec<EnqueuedPromiseCallback>>,
+    /// True if there is an outstanding runnable responsible for evaluating the promise job queue.
     pending_promise_job_runnable: Cell<bool>,
 }
 
 impl PromiseJobQueue {
+    /// Create a new PromiseJobQueue instance.
     pub fn new() -> PromiseJobQueue {
         PromiseJobQueue {
             promise_job_queue: DOMRefCell::new(vec![]),
@@ -125,6 +133,8 @@ impl PromiseJobQueue {
         }
     }
 
+    /// Add a new promise job callback to this queue. It will be invoked as part of the next
+    /// microtask checkpoint.
     pub fn enqueue(&self, job: EnqueuedPromiseCallback, global: GlobalRef) {
         self.promise_job_queue.borrow_mut().push(job);
         if !self.pending_promise_job_runnable.get() {
@@ -133,6 +143,8 @@ impl PromiseJobQueue {
         }
     }
 
+    /// Perform a microtask checkpoint, by invoking all of the pending promise job callbacks in
+    /// FIFO order.
     pub fn flush_promise_jobs<F>(&self, target_provider: F)
         where F: Fn(PipelineId) -> Option<GlobalRoot>
     {
@@ -141,6 +153,9 @@ impl PromiseJobQueue {
             let mut pending_queue = self.promise_job_queue.borrow_mut();
             *self.flushing_job_queue.borrow_mut() = pending_queue.drain(..).collect();
         }
+        // N.B. borrowing this vector is safe w.r.t. mutability, since any promise job that
+        // is enqueued while invoking these callbacks will be placed in `pending_queue`;
+        // `flushing_queue` is a static snapshot during this checkpoint.
         for job in &*self.flushing_job_queue.borrow() {
             if let Some(target) = target_provider(job.pipeline) {
                 let _ = job.callback.Call_(&target.r(), ExceptionHandling::Report);
@@ -150,6 +165,9 @@ impl PromiseJobQueue {
     }
 }
 
+/// SM callback for promise job resolution. Adds a promise callback to the current global's
+/// promise job queue, and enqueues a runnable to perform a microtask checkpoint if one
+/// is not already pending.
 #[allow(unsafe_code)]
 unsafe extern "C" fn enqueue_job(_cx: *mut JSContext,
                                  job: HandleObject,

@@ -196,7 +196,7 @@ class Descriptor(DescriptorProvider):
 
         spiderMonkeyInterface = desc.get('spiderMonkeyInterface', False)
 
-        # Callback types do not use JS smart pointers, so we should not use the
+        # Callback and SpiderMonkey types do not use JS smart pointers, so we should not use the
         # built-in rooting mechanisms for them.
         if spiderMonkeyInterface:
             self.needsRooting = False

@@ -154,7 +154,7 @@ impl Promise {
     pub fn maybe_reject_error(&self, cx: *mut JSContext, error: Error) {
         rooted!(in(cx) let mut v = UndefinedValue());
         unsafe {
-            error.to_jsval(cx, self.global().r(), v.handle_mut());
+            error.maybe_to_jsval(cx, self.global().r(), v.handle_mut());
         }
         self.maybe_reject(cx, v.handle());
     }
@@ -242,13 +242,8 @@ unsafe extern fn native_handler_callback(cx: *mut JSContext, argc: u32, vp: *mut
     rooted!(in(cx) let v = *GetFunctionNativeReserved(args.callee(), SLOT_NATIVEHANDLER));
     assert!(v.get().is_object());
 
-    let handler = match root_from_object::<PromiseNativeHandler>(v.to_object()) {
-        Ok(h) => h,
-        Err(_) => {
-            //TODO throw an exception
-            return false;
-        }
-    };
+    let handler = root_from_object::<PromiseNativeHandler>(v.to_object())
+        .ok().expect("unexpected value for native handler in promise native handler callback");
 
     rooted!(in(cx) let v = *GetFunctionNativeReserved(args.callee(), SLOT_NATIVEHANDLER_TASK));
     match v.to_int32() {
