@@ -2484,6 +2484,18 @@
             "url": "/_mozilla/css/inline_block_border_intrinsic_size_a.html"
           }
         ],
+        "css/inline_block_height_with_out_of_flow_child_a.html": [
+          {
+            "path": "css/inline_block_height_with_out_of_flow_child_a.html",
+            "references": [
+              [
+                "/_mozilla/css/inline_block_height_with_out_of_flow_child_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/inline_block_height_with_out_of_flow_child_a.html"
+          }
+        ],
         "css/inline_block_img_a.html": [
           {
             "path": "css/inline_block_img_a.html",
@@ -11906,6 +11918,18 @@
             ]
           ],
           "url": "/_mozilla/css/inline_block_border_intrinsic_size_a.html"
+        }
+      ],
+      "css/inline_block_height_with_out_of_flow_child_a.html": [
+        {
+          "path": "css/inline_block_height_with_out_of_flow_child_a.html",
+          "references": [
+            [
+              "/_mozilla/css/inline_block_height_with_out_of_flow_child_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/inline_block_height_with_out_of_flow_child_a.html"
         }
       ],
       "css/inline_block_img_a.html": [

@@ -1405,7 +1405,8 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
                 return kid.as_inline().baseline_offset_of_last_line()
             }
             if kid.is_block_like() &&
-                    kid.as_block().formatting_context_type() == FormattingContextType::None {
+                    kid.as_block().formatting_context_type() == FormattingContextType::None &&
+                    !base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED) {
                 if let Some(baseline_offset) = kid.baseline_offset_of_last_line_box_in_flow() {
                     return Some(base(kid).position.start.b + baseline_offset)
                 }
