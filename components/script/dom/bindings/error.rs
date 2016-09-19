@@ -269,8 +269,11 @@ pub unsafe fn throw_invalid_this(cx: *mut JSContext, proto_id: u16) {
 }
 
 impl Error {
-    /// Convert this error value to a JS value, consuming it in the process.
-    pub unsafe fn to_jsval(self, cx: *mut JSContext, global: GlobalRef, rval: MutableHandleValue) {
+    /// Attempt to convert this error value to a JS value, consuming it in the process. If
+    /// there is a JS exception already pending on the provided context, it is converted to
+    /// a value and returned instead of the given error. Any such pending exception is also
+    /// cleared in the process.
+    pub unsafe fn maybe_to_jsval(self, cx: *mut JSContext, global: GlobalRef, rval: MutableHandleValue) {
         // Do not clobber any existing pending exception.
         if !JS_IsExceptionPending(cx) {
             throw_dom_exception(cx, global, self);
