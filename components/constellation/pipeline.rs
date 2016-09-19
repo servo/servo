@@ -121,8 +121,8 @@ pub struct InitialPipelineState {
     pub load_data: LoadData,
     /// The ID of the pipeline namespace for this script thread.
     pub pipeline_namespace_id: PipelineNamespaceId,
-    /// Pipeline visibility is inherited from parent
-    pub parent_visibility: Option<bool>,
+    /// Pipeline visibility to be inherited
+    pub prev_visibility: Option<bool>,
     /// Optional webrender api (if enabled).
     pub webrender_api_sender: Option<webrender_traits::RenderApiSender>,
     /// Whether this pipeline is considered private.
@@ -263,7 +263,7 @@ impl Pipeline {
                                      state.is_private,
                                      state.load_data.url,
                                      state.window_size,
-                                     state.parent_visibility.unwrap_or(true));
+                                     state.prev_visibility.unwrap_or(true));
 
         pipeline.notify_visibility();
 
