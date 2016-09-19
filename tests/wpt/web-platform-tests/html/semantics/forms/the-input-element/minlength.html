@@ -13,10 +13,11 @@
 
     <div style="display: none">
       <input id="none" />
-      <input id="negative" type="-5" />
-      <input id="non-numeric" type="not-a-number" />
+      <input id="negative" minlength=-5 />
+      <input id="non-numeric" minlength="not-a-number" />
       <input id="assign-negative" />
       <input id="assign-non-numeric" />
+      <input id="min-greater-than-max" minlength=5 maxlength=3 />
     </div>
 
     <div id="log"></div>
@@ -49,6 +50,13 @@
             document.getElementById("assign-non-numeric").minLength = "not-a-number";
             assert_equals(document.getElementById("assign-non-numeric").minLength, 0);
           }, "Assigning non-numeric to minlength sets minlength to 0");
+
+      test(
+          function() {
+            let minGtMax = document.getElementById("min-greater-than-max");
+            assert_equals(minGtMax.minLength, 0);
+            assert_equals(minGtMax.minLength, minGtMax.maxLength);
+          }, "A minLength value greater than maxLength results in minLength = maxLength = 0");
     </script>
   </body>
 </html>
