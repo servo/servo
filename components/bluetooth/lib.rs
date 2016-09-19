@@ -312,6 +312,17 @@ impl BluetoothManager {
         device_id
     }
 
+    fn device_from_service_id(&self, service_id: &str) -> Option<BluetoothDevice> {
+        let device_id = match self.service_to_device.get(service_id) {
+            Some(id) => id,
+            None => return None,
+        };
+        match self.cached_devices.get(device_id) {
+            Some(d) => Some(d.clone()),
+            None => None,
+        }
+    }
+
     // Service
 
     fn get_and_cache_gatt_services(&mut self,
@@ -617,11 +628,15 @@ impl BluetoothManager {
             Some(a) => a,
             None => return drop(sender.send(Err(BluetoothError::Type(ADAPTER_ERROR.to_string())))),
         };
+        let device = match self.device_from_service_id(&service_id) {
+            Some(device) => device,
+            None => return drop(sender.send(Err(BluetoothError::NotFound))),
+        };
         let primary_service = match self.get_gatt_service(&mut adapter, &service_id) {
             Some(s) => s,
             None => return drop(sender.send(Err(BluetoothError::NotFound))),
         };
-        let services = primary_service.get_includes().unwrap_or(vec!());
+        let services = primary_service.get_includes(device).unwrap_or(vec!());
         for service in services {
             if let Ok(service_uuid) = service.get_uuid() {
                 if uuid == service_uuid {
@@ -644,11 +659,15 @@ impl BluetoothManager {
             Some(a) => a,
             None => return drop(sender.send(Err(BluetoothError::Type(ADAPTER_ERROR.to_string())))),
         };
+        let device = match self.device_from_service_id(&service_id) {
+            Some(device) => device,
+            None => return drop(sender.send(Err(BluetoothError::NotFound))),
+        };
         let primary_service = match self.get_gatt_service(&mut adapter, &service_id) {
             Some(s) => s,
             None => return drop(sender.send(Err(BluetoothError::NotFound))),
         };
-        let services = primary_service.get_includes().unwrap_or(vec!());
+        let services = primary_service.get_includes(device).unwrap_or(vec!());
         let mut services_vec = vec!();
         for service in services {
             if let Ok(service_uuid) = service.get_uuid() {
