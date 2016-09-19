@@ -173,20 +173,20 @@ impl DedicatedWorkerGlobalScope {
 
             let roots = RootCollection::new();
             let _stack_roots_tls = StackRootTLS::new(&roots);
-            let (url, source) = match load_whole_resource(LoadContext::Script,
-                                                          &init.resource_threads.sender(),
-                                                          worker_url,
-                                                          &worker_load_origin) {
+            let (metadata, bytes) = match load_whole_resource(LoadContext::Script,
+                                                              &init.resource_threads.sender(),
+                                                              worker_url,
+                                                              &worker_load_origin) {
                 Err(_) => {
                     println!("error loading script {}", serialized_worker_url);
                     parent_sender.send(CommonScriptMsg::RunnableMsg(WorkerEvent,
                         box SimpleWorkerErrorHandler::new(worker))).unwrap();
                     return;
                 }
-                Ok((metadata, bytes)) => {
-                    (metadata.final_url, String::from_utf8(bytes).unwrap())
-                }
+                Ok((metadata, bytes)) => (metadata, bytes)
             };
+            let url = metadata.final_url;
+            let source = String::from_utf8_lossy(&bytes);
 
             let runtime = unsafe { new_rt_and_cx() };
             *worker_rt_for_mainthread.lock().unwrap() = Some(SharedRt::new(&runtime));
