@@ -174,7 +174,7 @@ unsafe extern "C" fn enqueue_job(_cx: *mut JSContext,
                                  _allocation_site: HandleObject,
                                  _data: *mut c_void) -> bool {
     let global = global_root_from_object(job.get());
-    let pipeline = global.r().pipeline();
+    let pipeline = global.r().pipeline_id();
     global.r().enqueue_promise_job(EnqueuedPromiseCallback {
         callback: PromiseJobCallback::new(job.get()),
         pipeline: pipeline,
