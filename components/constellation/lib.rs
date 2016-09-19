@@ -16,6 +16,7 @@ extern crate backtrace;
 extern crate canvas;
 extern crate canvas_traits;
 extern crate compositing;
+extern crate debugger;
 extern crate devtools_traits;
 extern crate euclid;
 #[cfg(not(target_os = "windows"))]

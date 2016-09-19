@@ -358,6 +358,7 @@ dependencies = [
  "canvas 0.0.1",
  "canvas_traits 0.0.1",
  "compositing 0.0.1",
+ "debugger 0.0.1",
  "devtools_traits 0.0.1",
  "euclid 0.10.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "gaol 0.0.1 (git+https://github.com/servo/gaol)",
