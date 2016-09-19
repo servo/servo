@@ -248,7 +248,7 @@ impl WorkerGlobalScope {
 
     fn do_flush_promise_jobs(&self) {
         self.promise_job_queue.flush_promise_jobs(|id| {
-            assert_eq!(self.pipeline(), id);
+            assert_eq!(self.pipeline_id(), id);
             Some(GlobalRoot::Worker(Root::from_ref(self)))
         });
     }
