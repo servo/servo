@@ -26,9 +26,9 @@ interface HTMLInputElement : HTMLElement {
            attribute DOMString max;
           [SetterThrows]
           attribute long maxLength;
+           attribute DOMString min;
           [SetterThrows]
           attribute long minLength;
-           attribute DOMString min;
            attribute boolean multiple;
            attribute DOMString name;
            attribute DOMString pattern;
