@@ -17,13 +17,18 @@ use script::dom::bindings::str::DOMString;
 use script::textinput::{TextInput, TextPoint, Selection, Lines, Direction, SelectionDirection};
 
 fn text_input(lines: Lines, s: &str) -> TextInput<DummyClipboardContext> {
-    TextInput::new(lines, DOMString::from(s), DummyClipboardContext::new(""), None, SelectionDirection::None)
+    TextInput::new(lines,
+                   DOMString::from(s),
+                   DummyClipboardContext::new(""),
+                   None,
+                   None,
+                   SelectionDirection::None)
 }
 
 #[test]
 fn test_set_content_ignores_max_length() {
     let mut textinput = TextInput::new(
-        Lines::Single, DOMString::from(""), DummyClipboardContext::new(""), Some(1), SelectionDirection::None
+        Lines::Single, DOMString::from(""), DummyClipboardContext::new(""), Some(1), None, SelectionDirection::None
     );
 
     textinput.set_content(DOMString::from("mozilla rocks"));
@@ -37,6 +42,7 @@ fn test_textinput_when_inserting_multiple_lines_over_a_selection_respects_max_le
         DOMString::from("hello\nworld"),
         DummyClipboardContext::new(""),
         Some(17),
+        None,
         SelectionDirection::None,
     );
 
@@ -61,6 +67,7 @@ fn test_textinput_when_inserting_multiple_lines_still_respects_max_length() {
         DOMString::from("hello\nworld"),
         DummyClipboardContext::new(""),
         Some(17),
+        None,
         SelectionDirection::None
     );
 
@@ -78,6 +85,7 @@ fn test_textinput_when_content_is_already_longer_than_max_length_and_theres_no_s
         DOMString::from("abc"),
         DummyClipboardContext::new(""),
         Some(1),
+        None,
         SelectionDirection::None,
     );
 
@@ -93,6 +101,7 @@ fn test_multi_line_textinput_with_maxlength_doesnt_allow_appending_characters_wh
         DOMString::from("abc\nd"),
         DummyClipboardContext::new(""),
         Some(5),
+        None,
         SelectionDirection::None,
     );
 
@@ -108,6 +117,7 @@ fn test_single_line_textinput_with_max_length_doesnt_allow_appending_characters_
         DOMString::from("abcde"),
         DummyClipboardContext::new(""),
         Some(5),
+        None,
         SelectionDirection::None,
     );
 
@@ -129,6 +139,7 @@ fn test_single_line_textinput_with_max_length_multibyte() {
         DOMString::from(""),
         DummyClipboardContext::new(""),
         Some(2),
+        None,
         SelectionDirection::None,
     );
 
@@ -147,6 +158,7 @@ fn test_single_line_textinput_with_max_length_multi_code_unit() {
         DOMString::from(""),
         DummyClipboardContext::new(""),
         Some(3),
+        None,
         SelectionDirection::None,
     );
 
@@ -167,6 +179,7 @@ fn test_single_line_textinput_with_max_length_inside_char() {
         DOMString::from("\u{10437}"),
         DummyClipboardContext::new(""),
         Some(1),
+        None,
         SelectionDirection::None,
     );
 
@@ -181,6 +194,7 @@ fn test_single_line_textinput_with_max_length_doesnt_allow_appending_characters_
         DOMString::from("a"),
         DummyClipboardContext::new(""),
         Some(1),
+        None,
         SelectionDirection::None,
     );
 
@@ -397,6 +411,7 @@ fn test_clipboard_paste() {
     let mut textinput = TextInput::new(Lines::Single,
                                        DOMString::from("defg"),
                                        DummyClipboardContext::new("abc"),
+                                       None,
                                        None,
                                        SelectionDirection::None);
     assert_eq!(textinput.get_content(), "defg");
