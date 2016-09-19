@@ -8,15 +8,9 @@ use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::trace::JSTraceable;
 use heapsize::HeapSizeOf;
-use js::jsapi::{JSContext, HandleValue, JSTracer};
+use js::jsapi::{JSContext, HandleValue};
 
 pub type CallbackType = Box<Callback>;
-
-impl JSTraceable for Box<Callback> {
-    fn trace(&self, trc: *mut JSTracer) {
-        (**self).trace(trc);
-    }
-}
 
 pub trait Callback: JSTraceable + HeapSizeOf {
     fn callback(&self, cx: *mut JSContext, v: HandleValue);

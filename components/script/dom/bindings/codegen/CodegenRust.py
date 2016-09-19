@@ -804,8 +804,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             #    our own implementation code.
             templateBody = fill(
                 """
-                { // Scope for our GlobalObject, ErrorResult, JSAutoCompartment,
-                  // etc.
+                { // Scope for our JSAutoCompartment.
 
                   rooted!(in(cx) let globalObj = CurrentGlobalOrNull(cx));
                   let _ac = JSAutoCompartment::new(cx, globalObj.handle().get());
