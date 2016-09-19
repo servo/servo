@@ -649,6 +649,11 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
     if exceptionCode is None:
         exceptionCode = "return false;"
 
+    if failureCode is None:
+        failOrPropagate = "throw_type_error(cx, &error);\n%s" % exceptionCode
+    else:
+        failOrPropagate = failureCode
+
     needsRooting = typeNeedsRooting(type, descriptorProvider)
 
     def handleOptional(template, declType, default):
@@ -732,11 +737,10 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         templateBody = ("match FromJSValConvertible::from_jsval(cx, ${val}, %s) {\n"
                         "    Ok(ConversionResult::Success(value)) => value,\n"
                         "    Ok(ConversionResult::Failure(error)) => {\n"
-                        "        throw_type_error(cx, &error);\n"
-                        "        %s\n"
+                        "%s\n"
                         "    }\n"
                         "    _ => { %s },\n"
-                        "}" % (config, exceptionCode, exceptionCode))
+                        "}" % (config, indent(failOrPropagate, 8), exceptionCode))
 
         return handleOptional(templateBody, declType, handleDefaultNull("None"))
 
@@ -748,11 +752,10 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         templateBody = ("match FromJSValConvertible::from_jsval(cx, ${val}, ()) {\n"
                         "    Ok(ConversionResult::Success(value)) => value,\n"
                         "    Ok(ConversionResult::Failure(error)) => {\n"
-                        "        throw_type_error(cx, &error);\n"
-                        "        %s\n"
+                        "%s\n"
                         "    }\n"
                         "    _ => { %s },\n"
-                        "}" % (exceptionCode, exceptionCode))
+                        "}" % (indent(failOrPropagate, 8), exceptionCode))
 
         return handleOptional(templateBody, declType, handleDefaultNull("None"))
 
@@ -823,11 +826,10 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             "match FromJSValConvertible::from_jsval(cx, ${val}, %s) {\n"
             "    Ok(ConversionResult::Success(strval)) => strval,\n"
             "    Ok(ConversionResult::Failure(error)) => {\n"
-            "        throw_type_error(cx, &error);\n"
-            "        %s\n"
+            "%s\n"
             "    }\n"
             "    _ => { %s },\n"
-            "}" % (nullBehavior, exceptionCode, exceptionCode))
+            "}" % (nullBehavior, indent(failOrPropagate, 8), exceptionCode))
 
         if defaultValue is None:
             default = None
@@ -853,11 +855,10 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             "match FromJSValConvertible::from_jsval(cx, ${val}, ()) {\n"
             "    Ok(ConversionResult::Success(strval)) => strval,\n"
             "    Ok(ConversionResult::Failure(error)) => {\n"
-            "        throw_type_error(cx, &error);\n"
-            "        %s\n"
+            "%s\n"
             "    }\n"
             "    _ => { %s },\n"
-            "}" % (exceptionCode, exceptionCode))
+            "}" % (indent(failOrPropagate, 8), exceptionCode))
 
         if defaultValue is None:
             default = None
@@ -883,11 +884,10 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             "match FromJSValConvertible::from_jsval(cx, ${val}, ()) {\n"
             "    Ok(ConversionResult::Success(strval)) => strval,\n"
             "    Ok(ConversionResult::Failure(error)) => {\n"
-            "        throw_type_error(cx, &error);\n"
-            "        %s\n"
+            "%s\n"
             "    }\n"
             "    _ => { %s },\n"
-            "}" % (exceptionCode, exceptionCode))
+            "}" % (indent(failOrPropagate, 8), exceptionCode))
 
         if defaultValue is None:
             default = None
@@ -1042,11 +1042,10 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         template = ("match %s::new(cx, ${val}) {\n"
                     "    Ok(ConversionResult::Success(dictionary)) => dictionary,\n"
                     "    Ok(ConversionResult::Failure(error)) => {\n"
-                    "        throw_type_error(cx, &error);\n"
-                    "        %s\n"
+                    "%s\n"
                     "    }\n"
                     "    _ => { %s },\n"
-                    "}" % (typeName, exceptionCode, exceptionCode))
+                    "}" % (typeName, indent(failOrPropagate, 8), exceptionCode))
 
         return handleOptional(template, declType, handleDefaultNull("%s::empty(cx)" % typeName))
 
@@ -1071,11 +1070,10 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         "match FromJSValConvertible::from_jsval(cx, ${val}, %s) {\n"
         "    Ok(ConversionResult::Success(v)) => v,\n"
         "    Ok(ConversionResult::Failure(error)) => {\n"
-        "        throw_type_error(cx, &error);\n"
-        "        %s\n"
+        "%s\n"
         "    }\n"
         "    _ => { %s }\n"
-        "}" % (conversionBehavior, exceptionCode, exceptionCode))
+        "}" % (conversionBehavior, indent(failOrPropagate, 8), exceptionCode))
 
     if defaultValue is not None:
         if isinstance(defaultValue, IDLNullValue):
