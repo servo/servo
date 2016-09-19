@@ -325,7 +325,7 @@ dependencies = [
  "cssparser 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "matches 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "string_cache 0.2.28 (registry+https://github.com/rust-lang/crates.io-index)",
+ "string_cache 0.2.29 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -340,7 +340,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "string_cache"
-version = "0.2.28"
+version = "0.2.29"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "debug_unreachable 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -542,7 +542,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum selectors 0.13.1 (registry+https://github.com/rust-lang/crates.io-index)" = "1f844a32e73a0d8e59a76036751fcb5581ca1ded4f2f2f3dc21720a80ba908af"
 "checksum serde 0.8.8 (registry+https://github.com/rust-lang/crates.io-index)" = "8523fd515099dac5b5abd25b0b9f9709d40eedf03f72ca519903bf138a6577be"
 "checksum smallvec 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)" = "fcc8d19212aacecf95e4a7a2179b26f7aeb9732a915cf01f05b0d3e044865410"
-"checksum string_cache 0.2.28 (registry+https://github.com/rust-lang/crates.io-index)" = "5e6c7f40dbb924dc17fa0cb1b5f72e8e2498ecf6a78c5e2029d9b89b4c3551fc"
+"checksum string_cache 0.2.29 (registry+https://github.com/rust-lang/crates.io-index)" = "f585562982abf1301fa97bd2226a3c4c5712b8beb9bcd16ed72b5e96810f8657"
 "checksum thread-id 2.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "a9539db560102d1cef46b8b78ce737ff0bb64e7e18d35b2a5688f7d097d0ff03"
 "checksum thread_local 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)" = "55dd963dbaeadc08aa7266bf7f91c3154a7805e32bb94b820b769d2ef3b4744d"
 "checksum time 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)" = "3c7ec6d62a20df54e07ab3b78b9a3932972f4b7981de295563686849eb3989af"
