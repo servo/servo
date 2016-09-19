@@ -1924,28 +1924,34 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             self.pipelines.get(&old_pipeline_id).and_then(|pipeline| pipeline.frame)
         });
 
-        if let Some(frame_id) = frame_id {
-            // Add new pipeline to navigation frame, and return frames evicted from history.
-            self.pipelines.get_mut(&frame_change.new_pipeline_id)
-                          .map(|pipeline| pipeline.frame = Some(frame_id));
-            self.frames.get_mut(&frame_id).map(|frame| frame.load(frame_change.new_pipeline_id));
-        }
-
-        if let None = frame_id {
-            // The new pipeline is in a new frame with no history
-            let frame_id = self.new_frame(frame_change.new_pipeline_id);
-
-            // If a child frame, add it to the parent pipeline. Otherwise
-            // it must surely be the root frame being created!
-            match self.pipelines.get(&frame_change.new_pipeline_id).and_then(|pipeline| pipeline.parent_info) {
-                Some((parent_id, _)) => {
-                    if let Some(parent) = self.pipelines.get_mut(&parent_id) {
-                        parent.add_child(frame_id);
-                    }
+        match frame_id {
+            Some(frame_id) => {
+                // Add new pipeline to navigation frame, and return frames evicted from history.
+                if let Some(ref mut pipeline) = self.pipelines.get_mut(&frame_change.new_pipeline_id) {
+                    pipeline.frame = Some(frame_id);
                 }
-                None => {
-                    assert!(self.root_frame_id.is_none());
-                    self.root_frame_id = Some(frame_id);
+
+                if let Some(ref mut frame) = self.frames.get_mut(&frame_id) {
+                    frame.load(frame_change.new_pipeline_id);
+                }
+            }
+            None => {
+                // The new pipeline is in a new frame with no history
+                let frame_id = self.new_frame(frame_change.new_pipeline_id);
+
+                // If a child frame, add it to the parent pipeline. Otherwise
+                // it must surely be the root frame being created!
+                match self.pipelines.get(&frame_change.new_pipeline_id)
+                                    .and_then(|pipeline| pipeline.parent_info) {
+                    Some((parent_id, _)) => {
+                        if let Some(parent) = self.pipelines.get_mut(&parent_id) {
+                            parent.add_child(frame_id);
+                        }
+                    }
+                    None => {
+                        assert!(self.root_frame_id.is_none());
+                        self.root_frame_id = Some(frame_id);
+                    }
                 }
             }
         }
