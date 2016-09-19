@@ -16,17 +16,17 @@ pub struct HTMLBRElement {
 }
 
 impl HTMLBRElement {
-    fn new_inherited(localName: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLBRElement {
+    fn new_inherited(local_name: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLBRElement {
         HTMLBRElement {
-            htmlelement: HTMLElement::new_inherited(localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: Atom,
+    pub fn new(local_name: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLBRElement> {
-        Node::reflect_node(box HTMLBRElement::new_inherited(localName, prefix, document),
+        Node::reflect_node(box HTMLBRElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLBRElementBinding::Wrap)
     }

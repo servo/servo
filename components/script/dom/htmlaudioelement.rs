@@ -16,20 +16,20 @@ pub struct HTMLAudioElement {
 }
 
 impl HTMLAudioElement {
-    fn new_inherited(localName: Atom,
+    fn new_inherited(local_name: Atom,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLAudioElement {
         HTMLAudioElement {
             htmlmediaelement:
-                HTMLMediaElement::new_inherited(localName, prefix, document)
+                HTMLMediaElement::new_inherited(local_name, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: Atom,
+    pub fn new(local_name: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLAudioElement> {
-        Node::reflect_node(box HTMLAudioElement::new_inherited(localName, prefix, document),
+        Node::reflect_node(box HTMLAudioElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLAudioElementBinding::Wrap)
     }

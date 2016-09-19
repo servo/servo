@@ -43,22 +43,22 @@ pub struct HTMLButtonElement {
 }
 
 impl HTMLButtonElement {
-    fn new_inherited(localName: Atom,
+    fn new_inherited(local_name: Atom,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLButtonElement {
         HTMLButtonElement {
             htmlelement:
                 HTMLElement::new_inherited_with_state(IN_ENABLED_STATE,
-                                                      localName, prefix, document),
+                                                      local_name, prefix, document),
             button_type: Cell::new(ButtonType::Submit)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: Atom,
+    pub fn new(local_name: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLButtonElement> {
-        Node::reflect_node(box HTMLButtonElement::new_inherited(localName, prefix, document),
+        Node::reflect_node(box HTMLButtonElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLButtonElementBinding::Wrap)
     }
@@ -283,7 +283,7 @@ impl Activatable for HTMLButtonElement {
 
     // https://html.spec.whatwg.org/multipage/#implicit-submission
     #[allow(unsafe_code)]
-    fn implicit_submission(&self, ctrlKey: bool, shiftKey: bool, altKey: bool, metaKey: bool) {
+    fn implicit_submission(&self, ctrl_key: bool, shift_key: bool, alt_key: bool, meta_key: bool) {
         let doc = document_from_node(self);
         let node = doc.upcast::<Node>();
         let owner = self.form_owner();
@@ -294,10 +294,10 @@ impl Activatable for HTMLButtonElement {
             .filter_map(Root::downcast::<HTMLButtonElement>)
             .find(|r| r.form_owner() == owner)
             .map(|s| synthetic_click_activation(s.r().as_element(),
-                                                ctrlKey,
-                                                shiftKey,
-                                                altKey,
-                                                metaKey,
+                                                ctrl_key,
+                                                shift_key,
+                                                alt_key,
+                                                meta_key,
                                                 ActivationSource::NotFromClick));
     }
 }

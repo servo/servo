@@ -16,17 +16,17 @@ pub struct HTMLSpanElement {
 }
 
 impl HTMLSpanElement {
-    fn new_inherited(localName: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLSpanElement {
+    fn new_inherited(local_name: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLSpanElement {
         HTMLSpanElement {
-            htmlelement: HTMLElement::new_inherited(localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: Atom,
+    pub fn new(local_name: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLSpanElement> {
-        Node::reflect_node(box HTMLSpanElement::new_inherited(localName, prefix, document),
+        Node::reflect_node(box HTMLSpanElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLSpanElementBinding::Wrap)
     }

@@ -31,7 +31,7 @@ pub trait Activatable {
     fn activation_behavior(&self, event: &Event, target: &EventTarget);
 
     // https://html.spec.whatwg.org/multipage/#implicit-submission
-    fn implicit_submission(&self, ctrlKey: bool, shiftKey: bool, altKey: bool, metaKey: bool);
+    fn implicit_submission(&self, ctrl_key: bool, shift_key: bool, alt_key: bool, meta_key: bool);
 
     // https://html.spec.whatwg.org/multipage/#concept-selector-active
     fn enter_formal_activation_state(&self) {
@@ -62,10 +62,10 @@ pub enum ActivationSource {
 
 // https://html.spec.whatwg.org/multipage/#run-synthetic-click-activation-steps
 pub fn synthetic_click_activation(element: &Element,
-                                  ctrlKey: bool,
-                                  shiftKey: bool,
-                                  altKey: bool,
-                                  metaKey: bool,
+                                  ctrl_key: bool,
+                                  shift_key: bool,
+                                  alt_key: bool,
+                                  meta_key: bool,
                                   source: ActivationSource) {
     // Step 1
     if element.click_in_progress() {
@@ -93,10 +93,10 @@ pub fn synthetic_click_activation(element: &Element,
                                 0,
                                 0,
                                 0,
-                                ctrlKey,
-                                shiftKey,
-                                altKey,
-                                metaKey,
+                                ctrl_key,
+                                shift_key,
+                                alt_key,
+                                meta_key,
                                 0,
                                 None);
     let event = mouse.upcast::<Event>();

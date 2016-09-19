@@ -21,20 +21,20 @@ pub struct HTMLOutputElement {
 }
 
 impl HTMLOutputElement {
-    fn new_inherited(localName: Atom,
+    fn new_inherited(local_name: Atom,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLOutputElement {
         HTMLOutputElement {
             htmlelement:
-                HTMLElement::new_inherited(localName, prefix, document)
+                HTMLElement::new_inherited(local_name, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: Atom,
+    pub fn new(local_name: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLOutputElement> {
-        Node::reflect_node(box HTMLOutputElement::new_inherited(localName, prefix, document),
+        Node::reflect_node(box HTMLOutputElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLOutputElementBinding::Wrap)
     }

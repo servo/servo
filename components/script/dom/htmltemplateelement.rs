@@ -25,21 +25,21 @@ pub struct HTMLTemplateElement {
 }
 
 impl HTMLTemplateElement {
-    fn new_inherited(localName: Atom,
+    fn new_inherited(local_name: Atom,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLTemplateElement {
         HTMLTemplateElement {
             htmlelement:
-                HTMLElement::new_inherited(localName, prefix, document),
+                HTMLElement::new_inherited(local_name, prefix, document),
             contents: MutNullableHeap::new(None),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: Atom,
+    pub fn new(local_name: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLTemplateElement> {
-        Node::reflect_node(box HTMLTemplateElement::new_inherited(localName, prefix, document),
+        Node::reflect_node(box HTMLTemplateElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLTemplateElementBinding::Wrap)
     }

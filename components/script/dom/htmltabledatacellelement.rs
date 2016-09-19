@@ -16,19 +16,19 @@ pub struct HTMLTableDataCellElement {
 }
 
 impl HTMLTableDataCellElement {
-    fn new_inherited(localName: Atom,
+    fn new_inherited(local_name: Atom,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLTableDataCellElement {
         HTMLTableDataCellElement {
             htmltablecellelement:
-                HTMLTableCellElement::new_inherited(localName, prefix, document)
+                HTMLTableCellElement::new_inherited(local_name, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: Atom, prefix: Option<DOMString>, document: &Document)
+    pub fn new(local_name: Atom, prefix: Option<DOMString>, document: &Document)
                -> Root<HTMLTableDataCellElement> {
-        Node::reflect_node(box HTMLTableDataCellElement::new_inherited(localName,
+        Node::reflect_node(box HTMLTableDataCellElement::new_inherited(local_name,
                                                                        prefix,
                                                                        document),
                            document,

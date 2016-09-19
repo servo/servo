@@ -16,20 +16,20 @@ pub struct HTMLDirectoryElement {
 }
 
 impl HTMLDirectoryElement {
-    fn new_inherited(localName: Atom,
+    fn new_inherited(local_name: Atom,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLDirectoryElement {
         HTMLDirectoryElement {
             htmlelement:
-                HTMLElement::new_inherited(localName, prefix, document)
+                HTMLElement::new_inherited(local_name, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: Atom,
+    pub fn new(local_name: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLDirectoryElement> {
-        Node::reflect_node(box HTMLDirectoryElement::new_inherited(localName, prefix, document),
+        Node::reflect_node(box HTMLDirectoryElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLDirectoryElementBinding::Wrap)
     }

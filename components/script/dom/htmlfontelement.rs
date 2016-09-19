@@ -25,17 +25,17 @@ pub struct HTMLFontElement {
 
 
 impl HTMLFontElement {
-    fn new_inherited(localName: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLFontElement {
+    fn new_inherited(local_name: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLFontElement {
         HTMLFontElement {
-            htmlelement: HTMLElement::new_inherited(localName, prefix, document),
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: Atom,
+    pub fn new(local_name: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLFontElement> {
-        Node::reflect_node(box HTMLFontElement::new_inherited(localName, prefix, document),
+        Node::reflect_node(box HTMLFontElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLFontElementBinding::Wrap)
     }

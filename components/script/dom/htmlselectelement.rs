@@ -34,21 +34,21 @@ pub struct HTMLSelectElement {
 static DEFAULT_SELECT_SIZE: u32 = 0;
 
 impl HTMLSelectElement {
-    fn new_inherited(localName: Atom,
+    fn new_inherited(local_name: Atom,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLSelectElement {
         HTMLSelectElement {
             htmlelement:
                 HTMLElement::new_inherited_with_state(IN_ENABLED_STATE,
-                                                      localName, prefix, document)
+                                                      local_name, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: Atom,
+    pub fn new(local_name: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLSelectElement> {
-        Node::reflect_node(box HTMLSelectElement::new_inherited(localName, prefix, document),
+        Node::reflect_node(box HTMLSelectElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLSelectElementBinding::Wrap)
     }

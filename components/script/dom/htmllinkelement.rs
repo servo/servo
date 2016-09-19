@@ -57,10 +57,10 @@ pub struct HTMLLinkElement {
 }
 
 impl HTMLLinkElement {
-    fn new_inherited(localName: Atom, prefix: Option<DOMString>, document: &Document,
+    fn new_inherited(local_name: Atom, prefix: Option<DOMString>, document: &Document,
                      creator: ElementCreator) -> HTMLLinkElement {
         HTMLLinkElement {
-            htmlelement: HTMLElement::new_inherited(localName, prefix, document),
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             rel_list: Default::default(),
             parser_inserted: Cell::new(creator == ElementCreator::ParserCreated),
             stylesheet: DOMRefCell::new(None),
@@ -68,11 +68,11 @@ impl HTMLLinkElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: Atom,
+    pub fn new(local_name: Atom,
                prefix: Option<DOMString>,
                document: &Document,
                creator: ElementCreator) -> Root<HTMLLinkElement> {
-        Node::reflect_node(box HTMLLinkElement::new_inherited(localName, prefix, document, creator),
+        Node::reflect_node(box HTMLLinkElement::new_inherited(local_name, prefix, document, creator),
                            document,
                            HTMLLinkElementBinding::Wrap)
     }

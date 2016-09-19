@@ -733,13 +733,13 @@ impl Document {
         // https://w3c.github.io/uievents/#event-type-click
         let client_x = client_point.x as i32;
         let client_y = client_point.y as i32;
-        let clickCount = 1;
+        let click_count = 1;
         let event = MouseEvent::new(&self.window,
                                     DOMString::from(mouse_event_type_string),
                                     EventBubbles::Bubbles,
                                     EventCancelable::Cancelable,
                                     Some(&self.window),
-                                    clickCount,
+                                    click_count,
                                     client_x,
                                     client_y,
                                     client_x,
@@ -804,7 +804,7 @@ impl Document {
             if  now.duration_since(last_time) < DBL_CLICK_TIMEOUT &&
                 dist < DBL_CLICK_DIST_THRESHOLD as f64 {
                 // A double click has occurred if this click is within a certain time and dist. of previous click.
-                let clickCount = 2;
+                let click_count = 2;
                 let client_x = click_pos.x as i32;
                 let client_y = click_pos.y as i32;
 
@@ -813,7 +813,7 @@ impl Document {
                                             EventBubbles::Bubbles,
                                             EventCancelable::Cancelable,
                                             Some(&self.window),
-                                            clickCount,
+                                            click_count,
                                             client_x,
                                             client_y,
                                             client_x,
@@ -1617,7 +1617,7 @@ impl Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#fire-a-focus-event
-    fn fire_focus_event(&self, focus_event_type: FocusEventType, node: &Node, relatedTarget: Option<&EventTarget>) {
+    fn fire_focus_event(&self, focus_event_type: FocusEventType, node: &Node, related_target: Option<&EventTarget>) {
         let (event_name, does_bubble) = match focus_event_type {
             FocusEventType::Focus => (DOMString::from("focus"), EventBubbles::DoesNotBubble),
             FocusEventType::Blur => (DOMString::from("blur"), EventBubbles::DoesNotBubble),
@@ -1628,7 +1628,7 @@ impl Document {
                                     EventCancelable::NotCancelable,
                                     Some(&self.window),
                                     0i32,
-                                    relatedTarget);
+                                    related_target);
         let event = event.upcast::<Event>();
         event.set_trusted(true);
         let target = node.upcast();
@@ -2380,10 +2380,10 @@ impl DocumentMethods for Document {
     // https://dom.spec.whatwg.org/#dom-document-createnodeiteratorroot-whattoshow-filter
     fn CreateNodeIterator(&self,
                           root: &Node,
-                          whatToShow: u32,
+                          what_to_show: u32,
                           filter: Option<Rc<NodeFilter>>)
                           -> Root<NodeIterator> {
-        NodeIterator::new(self, root, whatToShow, filter)
+        NodeIterator::new(self, root, what_to_show, filter)
     }
 
     // https://w3c.github.io/touch-events/#idl-def-Document
@@ -2391,22 +2391,22 @@ impl DocumentMethods for Document {
                    window: &Window,
                    target: &EventTarget,
                    identifier: i32,
-                   pageX: Finite<f64>,
-                   pageY: Finite<f64>,
-                   screenX: Finite<f64>,
-                   screenY: Finite<f64>)
+                   page_x: Finite<f64>,
+                   page_y: Finite<f64>,
+                   screen_x: Finite<f64>,
+                   screen_y: Finite<f64>)
                    -> Root<Touch> {
-        let clientX = Finite::wrap(*pageX - window.PageXOffset() as f64);
-        let clientY = Finite::wrap(*pageY - window.PageYOffset() as f64);
+        let client_x = Finite::wrap(*page_x - window.PageXOffset() as f64);
+        let client_y = Finite::wrap(*page_y - window.PageYOffset() as f64);
         Touch::new(window,
                    identifier,
                    target,
-                   screenX,
-                   screenY,
-                   clientX,
-                   clientY,
-                   pageX,
-                   pageY)
+                   screen_x,
+                   screen_y,
+                   client_x,
+                   client_y,
+                   page_x,
+                   page_y)
     }
 
     // https://w3c.github.io/touch-events/#idl-def-document-createtouchlist(touch...)
@@ -2417,10 +2417,10 @@ impl DocumentMethods for Document {
     // https://dom.spec.whatwg.org/#dom-document-createtreewalker
     fn CreateTreeWalker(&self,
                         root: &Node,
-                        whatToShow: u32,
+                        what_to_show: u32,
                         filter: Option<Rc<NodeFilter>>)
                         -> Root<TreeWalker> {
-        TreeWalker::new(self, root, whatToShow, filter)
+        TreeWalker::new(self, root, what_to_show, filter)
     }
 
     // https://html.spec.whatwg.org/multipage/#document.title

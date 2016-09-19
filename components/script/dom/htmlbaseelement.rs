@@ -23,17 +23,17 @@ pub struct HTMLBaseElement {
 }
 
 impl HTMLBaseElement {
-    fn new_inherited(localName: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLBaseElement {
+    fn new_inherited(local_name: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLBaseElement {
         HTMLBaseElement {
-            htmlelement: HTMLElement::new_inherited(localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: Atom,
+    pub fn new(local_name: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLBaseElement> {
-        Node::reflect_node(box HTMLBaseElement::new_inherited(localName, prefix, document),
+        Node::reflect_node(box HTMLBaseElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLBaseElementBinding::Wrap)
     }

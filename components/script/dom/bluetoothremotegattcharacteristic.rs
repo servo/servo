@@ -37,14 +37,14 @@ pub struct BluetoothRemoteGATTCharacteristic {
     uuid: DOMString,
     properties: MutHeap<JS<BluetoothCharacteristicProperties>>,
     value: DOMRefCell<Option<ByteString>>,
-    instanceID: String,
+    instance_id: String,
 }
 
 impl BluetoothRemoteGATTCharacteristic {
     pub fn new_inherited(service: &BluetoothRemoteGATTService,
                          uuid: DOMString,
                          properties: &BluetoothCharacteristicProperties,
-                         instanceID: String)
+                         instance_id: String)
                          -> BluetoothRemoteGATTCharacteristic {
         BluetoothRemoteGATTCharacteristic {
             reflector_: Reflector::new(),
@@ -52,7 +52,7 @@ impl BluetoothRemoteGATTCharacteristic {
             uuid: uuid,
             properties: MutHeap::new(properties),
             value: DOMRefCell::new(None),
-            instanceID: instanceID,
+            instance_id: instance_id,
         }
     }
 
@@ -77,7 +77,7 @@ impl BluetoothRemoteGATTCharacteristic {
     }
 
     fn get_instance_id(&self) -> String {
-        self.instanceID.clone()
+        self.instance_id.clone()
     }
 }
 

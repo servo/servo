@@ -31,20 +31,20 @@ pub struct HTMLMetaElement {
 }
 
 impl HTMLMetaElement {
-    fn new_inherited(localName: Atom,
+    fn new_inherited(local_name: Atom,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLMetaElement {
         HTMLMetaElement {
-            htmlelement: HTMLElement::new_inherited(localName, prefix, document),
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             stylesheet: DOMRefCell::new(None),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: Atom,
+    pub fn new(local_name: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLMetaElement> {
-        Node::reflect_node(box HTMLMetaElement::new_inherited(localName, prefix, document),
+        Node::reflect_node(box HTMLMetaElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLMetaElementBinding::Wrap)
     }

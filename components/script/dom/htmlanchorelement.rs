@@ -39,22 +39,22 @@ pub struct HTMLAnchorElement {
 }
 
 impl HTMLAnchorElement {
-    fn new_inherited(localName: Atom,
+    fn new_inherited(local_name: Atom,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLAnchorElement {
         HTMLAnchorElement {
             htmlelement:
-                HTMLElement::new_inherited(localName, prefix, document),
+                HTMLElement::new_inherited(local_name, prefix, document),
             rel_list: Default::default(),
             url: DOMRefCell::new(None),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: Atom,
+    pub fn new(local_name: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLAnchorElement> {
-        Node::reflect_node(box HTMLAnchorElement::new_inherited(localName, prefix, document),
+        Node::reflect_node(box HTMLAnchorElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLAnchorElementBinding::Wrap)
     }
@@ -540,7 +540,7 @@ impl Activatable for HTMLAnchorElement {
     }
 
     //TODO:https://html.spec.whatwg.org/multipage/#the-a-element
-    fn implicit_submission(&self, _ctrlKey: bool, _shiftKey: bool, _altKey: bool, _metaKey: bool) {
+    fn implicit_submission(&self, _ctrl_key: bool, _shift_key: bool, _alt_key: bool, _meta_key: bool) {
     }
 }
 

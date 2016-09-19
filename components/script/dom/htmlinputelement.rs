@@ -125,12 +125,12 @@ static DEFAULT_INPUT_SIZE: u32 = 20;
 static DEFAULT_MAX_LENGTH: i32 = -1;
 
 impl HTMLInputElement {
-    fn new_inherited(localName: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLInputElement {
+    fn new_inherited(local_name: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLInputElement {
         let chan = document.window().constellation_chan().clone();
         HTMLInputElement {
             htmlelement:
                 HTMLElement::new_inherited_with_state(IN_ENABLED_STATE | IN_READ_WRITE_STATE,
-                                                      localName, prefix, document),
+                                                      local_name, prefix, document),
             input_type: Cell::new(InputType::InputText),
             placeholder: DOMRefCell::new(DOMString::new()),
             checked_changed: Cell::new(false),
@@ -145,10 +145,10 @@ impl HTMLInputElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: Atom,
+    pub fn new(local_name: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLInputElement> {
-        Node::reflect_node(box HTMLInputElement::new_inherited(localName, prefix, document),
+        Node::reflect_node(box HTMLInputElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLInputElementBinding::Wrap)
     }
@@ -1275,7 +1275,7 @@ impl Activatable for HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#implicit-submission
     #[allow(unsafe_code)]
-    fn implicit_submission(&self, ctrlKey: bool, shiftKey: bool, altKey: bool, metaKey: bool) {
+    fn implicit_submission(&self, ctrl_key: bool, shift_key: bool, alt_key: bool, meta_key: bool) {
         let doc = document_from_node(self);
         let node = doc.upcast::<Node>();
         let owner = self.form_owner();
@@ -1295,10 +1295,10 @@ impl Activatable for HTMLInputElement {
             Some(ref button) => {
                 if button.is_instance_activatable() {
                     synthetic_click_activation(button.as_element(),
-                                               ctrlKey,
-                                               shiftKey,
-                                               altKey,
-                                               metaKey,
+                                               ctrl_key,
+                                               shift_key,
+                                               alt_key,
+                                               meta_key,
                                                ActivationSource::NotFromClick)
                 }
             }

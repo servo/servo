@@ -19,20 +19,20 @@ pub struct HTMLFrameSetElement {
 }
 
 impl HTMLFrameSetElement {
-    fn new_inherited(localName: Atom,
+    fn new_inherited(local_name: Atom,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLFrameSetElement {
         HTMLFrameSetElement {
             htmlelement:
-                HTMLElement::new_inherited(localName, prefix, document)
+                HTMLElement::new_inherited(local_name, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: Atom,
+    pub fn new(local_name: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLFrameSetElement> {
-        Node::reflect_node(box HTMLFrameSetElement::new_inherited(localName, prefix, document),
+        Node::reflect_node(box HTMLFrameSetElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLFrameSetElementBinding::Wrap)
     }

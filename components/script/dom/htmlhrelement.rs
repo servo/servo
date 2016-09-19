@@ -21,17 +21,17 @@ pub struct HTMLHRElement {
 }
 
 impl HTMLHRElement {
-    fn new_inherited(localName: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLHRElement {
+    fn new_inherited(local_name: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLHRElement {
         HTMLHRElement {
-            htmlelement: HTMLElement::new_inherited(localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: Atom,
+    pub fn new(local_name: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLHRElement> {
-        Node::reflect_node(box HTMLHRElement::new_inherited(localName, prefix, document),
+        Node::reflect_node(box HTMLHRElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLHRElementBinding::Wrap)
     }

@@ -101,11 +101,11 @@ fn timestamp_in_ms(time: Timespec) -> u64 {
     (time.sec * 1000 + (time.nsec / 1000000) as i64) as u64
 }
 
-fn prepare_message(logLevel: LogLevel, message: DOMString) -> ConsoleMessage {
+fn prepare_message(log_level: LogLevel, message: DOMString) -> ConsoleMessage {
     // TODO: Sending fake values for filename, lineNumber and columnNumber in LogMessage; adjust later
     ConsoleMessage {
         message: String::from(message),
-        logLevel: logLevel,
+        logLevel: log_level,
         filename: "test".to_owned(),
         lineNumber: 1,
         columnNumber: 1,

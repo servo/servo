@@ -370,11 +370,11 @@ unsafe extern "C" fn gc_slice_callback(_rt: *mut JSRuntime, progress: GCProgress
     };
     if !desc.is_null() {
         let desc: &GCDescription = &*desc;
-        let invocationKind = match desc.invocationKind_ {
+        let invocation_kind = match desc.invocationKind_ {
             JSGCInvocationKind::GC_NORMAL => "GC_NORMAL",
             JSGCInvocationKind::GC_SHRINK => "GC_SHRINK",
         };
-        println!("  isCompartment={}, invocationKind={}", desc.isCompartment_, invocationKind);
+        println!("  isCompartment={}, invocation_kind={}", desc.isCompartment_, invocation_kind);
     }
     let _ = stdout().flush();
 }

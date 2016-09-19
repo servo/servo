@@ -16,20 +16,20 @@ pub struct HTMLModElement {
 }
 
 impl HTMLModElement {
-    fn new_inherited(localName: Atom,
+    fn new_inherited(local_name: Atom,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLModElement {
         HTMLModElement {
             htmlelement:
-                HTMLElement::new_inherited(localName, prefix, document)
+                HTMLElement::new_inherited(local_name, prefix, document)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: Atom,
+    pub fn new(local_name: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLModElement> {
-        Node::reflect_node(box HTMLModElement::new_inherited(localName, prefix, document),
+        Node::reflect_node(box HTMLModElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLModElementBinding::Wrap)
     }

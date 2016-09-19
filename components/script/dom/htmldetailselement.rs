@@ -28,21 +28,21 @@ pub struct HTMLDetailsElement {
 }
 
 impl HTMLDetailsElement {
-    fn new_inherited(localName: Atom,
+    fn new_inherited(local_name: Atom,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLDetailsElement {
         HTMLDetailsElement {
             htmlelement:
-                HTMLElement::new_inherited(localName, prefix, document),
+                HTMLElement::new_inherited(local_name, prefix, document),
             toggle_counter: Cell::new(0)
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: Atom,
+    pub fn new(local_name: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLDetailsElement> {
-        Node::reflect_node(box HTMLDetailsElement::new_inherited(localName, prefix, document),
+        Node::reflect_node(box HTMLDetailsElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLDetailsElementBinding::Wrap)
     }

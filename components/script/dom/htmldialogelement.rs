@@ -22,21 +22,21 @@ pub struct HTMLDialogElement {
 }
 
 impl HTMLDialogElement {
-    fn new_inherited(localName: Atom,
+    fn new_inherited(local_name: Atom,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLDialogElement {
         HTMLDialogElement {
             htmlelement:
-                HTMLElement::new_inherited(localName, prefix, document),
+                HTMLElement::new_inherited(local_name, prefix, document),
             return_value: DOMRefCell::new(DOMString::new()),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: Atom,
+    pub fn new(local_name: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLDialogElement> {
-        Node::reflect_node(box HTMLDialogElement::new_inherited(localName, prefix, document),
+        Node::reflect_node(box HTMLDialogElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLDialogElementBinding::Wrap)
     }

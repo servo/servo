@@ -10,7 +10,7 @@ use url::{Url, quirks};
 pub struct UrlHelper;
 
 impl UrlHelper {
-    pub fn SameOrigin(urlA: &Url, urlB: &Url) -> bool { urlA.origin() == urlB.origin() }
+    pub fn SameOrigin(url_a: &Url, url_b: &Url) -> bool { url_a.origin() == url_b.origin() }
     pub fn Origin(url: &Url) -> USVString { USVString(quirks::origin(url)) }
     pub fn Href(url: &Url) -> USVString { USVString(quirks::href(url).to_owned()) }
     pub fn Hash(url: &Url) -> USVString { USVString(quirks::hash(url).to_owned()) }

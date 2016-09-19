@@ -173,11 +173,11 @@ impl HTMLIFrameElement {
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 
-    fn new_inherited(localName: Atom,
+    fn new_inherited(local_name: Atom,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLIFrameElement {
         HTMLIFrameElement {
-            htmlelement: HTMLElement::new_inherited(localName, prefix, document),
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             pipeline_id: Cell::new(None),
             sandbox: Default::default(),
             sandbox_allowance: Cell::new(None),
@@ -187,10 +187,10 @@ impl HTMLIFrameElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: Atom,
+    pub fn new(local_name: Atom,
                prefix: Option<DOMString>,
                document: &Document) -> Root<HTMLIFrameElement> {
-        Node::reflect_node(box HTMLIFrameElement::new_inherited(localName, prefix, document),
+        Node::reflect_node(box HTMLIFrameElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLIFrameElementBinding::Wrap)
     }
@@ -488,7 +488,7 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/reload
-    fn Reload(&self, _hardReload: bool) -> ErrorResult {
+    fn Reload(&self, _hard_reload: bool) -> ErrorResult {
         if self.Mozbrowser() {
             if self.upcast::<Node>().is_in_doc() {
                 self.navigate_or_reload_child_browsing_context(None);
