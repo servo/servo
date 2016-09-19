@@ -105,7 +105,7 @@ impl HTMLTextAreaElement {
                 HTMLElement::new_inherited_with_state(IN_ENABLED_STATE | IN_READ_WRITE_STATE,
                                                       local_name, prefix, document),
             textinput: DOMRefCell::new(TextInput::new(
-                    Lines::Multiple, DOMString::new(), chan, None, SelectionDirection::None)),
+                    Lines::Multiple, DOMString::new(), chan, None, None, SelectionDirection::None)),
             value_changed: Cell::new(false),
         }
     }

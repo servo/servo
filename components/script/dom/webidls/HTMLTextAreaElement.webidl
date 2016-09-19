@@ -12,8 +12,8 @@ interface HTMLTextAreaElement : HTMLElement {
            attribute boolean disabled;
   readonly attribute HTMLFormElement? form;
   //         attribute DOMString inputMode;
-  //         attribute long maxLength;
-  //         attribute long minLength;
+  //       attribute long maxLength;
+  //       attribute long minLength;
            attribute DOMString name;
            attribute DOMString placeholder;
            attribute boolean readOnly;

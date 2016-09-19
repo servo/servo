@@ -140,7 +140,7 @@ impl HTMLInputElement {
             maxlength: Cell::new(DEFAULT_MAX_LENGTH),
             minlength: Cell::new(DEFAULT_MIN_LENGTH),
             size: Cell::new(DEFAULT_INPUT_SIZE),
-            textinput: DOMRefCell::new(TextInput::new(Single, DOMString::new(), chan, None, SelectionDirection::None)),
+            textinput: DOMRefCell::new(TextInput::new(Single, DOMString::new(), chan, None, None, SelectionDirection::None)),
             activation_state: DOMRefCell::new(InputActivationState::new()),
             value_dirty: Cell::new(false),
             filelist: MutNullableHeap::new(None),

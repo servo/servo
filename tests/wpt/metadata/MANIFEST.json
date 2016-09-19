@@ -37499,6 +37499,12 @@
             "path": "dom/lists/DOMTokenList-Iterable.html",
             "url": "/dom/lists/DOMTokenList-Iterable.html"
           }
+        ],
+        "html/semantics/forms/the-input-element/minlength.html": [
+          {
+            "path": "html/semantics/forms/the-input-element/minlength.html",
+            "url": "/html/semantics/forms/the-input-element/minlength.html"
+          }
         ]
       }
     },
