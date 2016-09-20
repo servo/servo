@@ -1844,6 +1844,8 @@ impl Flow for BlockFlow {
             if !self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
                 self.base.position.size.block = self.fragment.border_box.size.block;
             }
+            self.base.restyle_damage.remove(REFLOW_OUT_OF_FLOW | REFLOW);
+            self.fragment.restyle_damage.remove(REFLOW_OUT_OF_FLOW | REFLOW);
             None
         } else if self.is_root() || self.formatting_context_type() != FormattingContextType::None {
             // Root element margins should never be collapsed according to CSS § 8.3.1.
