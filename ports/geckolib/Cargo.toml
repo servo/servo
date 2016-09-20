@@ -23,3 +23,6 @@ selectors = "0.13"
 style = {path = "../../components/style", features = ["gecko"]}
 style_traits = {path = "../../components/style_traits"}
 url = "1.2"
+
+[dev-dependencies]
+stylo_tests = {path = "../../tests/unit/stylo"}

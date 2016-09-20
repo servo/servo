@@ -1,0 +1,17 @@
+[package]
+name = "stylo_tests"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+
+[lib]
+name = "stylo_tests"
+path = "lib.rs"
+doctest = false
+
+[dependencies]
+app_units = "0.3"
+cssparser = {version = "0.7", features = ["heap_size"]}
+gecko_bindings = {path = "../../../ports/geckolib/gecko_bindings"}
+style = {path = "../../../components/style", features = ["gecko"]}
+style_traits = {path = "../../../components/style_traits"}
