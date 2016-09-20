@@ -42,7 +42,8 @@ use model::{CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo};
 use multicol::MulticolFlow;
 use parallel::FlowParallelInfo;
 use rustc_serialize::{Encodable, Encoder};
-use script_layout_interface::restyle_damage::{RECONSTRUCT_FLOW, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, RestyleDamage};
+use script_layout_interface::restyle_damage::{RECONSTRUCT_FLOW, REFLOW, REFLOW_OUT_OF_FLOW};
+use script_layout_interface::restyle_damage::{REPAINT, REPOSITION, RestyleDamage};
 use script_layout_interface::wrapper_traits::{PseudoElementType, ThreadSafeLayoutNode};
 use std::{fmt, mem, raw};
 use std::iter::Zip;
@@ -320,6 +321,7 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
     /// Phase 4 of reflow: computes absolute positions.
     fn compute_absolute_position(&mut self, _: &SharedLayoutContext) {
         // The default implementation is a no-op.
+        mut_base(self).restyle_damage.remove(REPOSITION)
     }
 
     /// Phase 5 of reflow: builds display lists.
