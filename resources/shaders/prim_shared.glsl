@@ -508,39 +508,31 @@ AngleGradient fetch_angle_gradient(int index) {
 }
 
 struct Blend {
-    vec4 target_rect;
-    vec4 src_rect;
-    vec4 opacity;
+    vec4 src_id_target_id_opacity;
 };
 
 Blend fetch_blend(int index) {
     Blend blend;
 
-    int offset = index * 3;
+    int offset = index * 1;
 
-    blend.target_rect = data[offset + 0];
-    blend.src_rect = data[offset + 1];
-    blend.opacity = data[offset + 2];
+    blend.src_id_target_id_opacity = data[offset + 0];
 
     return blend;
 }
 
 struct Composite {
-    vec4 src0;
-    vec4 src1;
-    vec4 target_rect;
+    vec4 src0_src1_target_id;
     vec4 info_amount;
 };
 
 Composite fetch_composite(int index) {
     Composite composite;
 
-    int offset = index * 4;
+    int offset = index * 2;
 
-    composite.src0 = data[offset + 0];
-    composite.src1 = data[offset + 1];
-    composite.target_rect = data[offset + 2];
-    composite.info_amount = data[offset + 3];
+    composite.src0_src1_target_id = data[offset + 0];
+    composite.info_amount = data[offset + 1];
 
     return composite;
 }
