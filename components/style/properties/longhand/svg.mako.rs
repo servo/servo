@@ -87,7 +87,7 @@ ${helpers.single_keyword("mask-mode",
 // TODO implement all of repeat-style for background and mask
 // https://drafts.csswg.org/css-backgrounds-3/#repeat-style
 ${helpers.single_keyword("mask-repeat",
-                         "repeat repeat-x repeat-y no-repeat",
+                         "repeat repeat-x repeat-y space round no-repeat",
                          vector=True,
                          products="gecko",
                          animatable=False)}

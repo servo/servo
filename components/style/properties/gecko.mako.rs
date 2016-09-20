@@ -1011,14 +1011,20 @@ fn static_assert() {
         use gecko_bindings::structs::nsStyleImageLayers_Repeat;
         use gecko_bindings::structs::NS_STYLE_IMAGELAYER_REPEAT_REPEAT;
         use gecko_bindings::structs::NS_STYLE_IMAGELAYER_REPEAT_NO_REPEAT;
+        use gecko_bindings::structs::NS_STYLE_IMAGELAYER_REPEAT_SPACE;
+        use gecko_bindings::structs::NS_STYLE_IMAGELAYER_REPEAT_ROUND;
 
         let (repeat_x, repeat_y) = match servo {
           T::repeat_x => (NS_STYLE_IMAGELAYER_REPEAT_REPEAT,
                           NS_STYLE_IMAGELAYER_REPEAT_NO_REPEAT),
           T::repeat_y => (NS_STYLE_IMAGELAYER_REPEAT_NO_REPEAT,
                           NS_STYLE_IMAGELAYER_REPEAT_REPEAT),
-          T::repeat => (NS_STYLE_IMAGELAYER_REPEAT_REPEAT,
-                        NS_STYLE_IMAGELAYER_REPEAT_REPEAT),
+          T::repeat  => (NS_STYLE_IMAGELAYER_REPEAT_REPEAT,
+                         NS_STYLE_IMAGELAYER_REPEAT_REPEAT),
+          T::space => (NS_STYLE_IMAGELAYER_REPEAT_SPACE,
+                       NS_STYLE_IMAGELAYER_REPEAT_SPACE),
+          T::round => (NS_STYLE_IMAGELAYER_REPEAT_ROUND,
+                       NS_STYLE_IMAGELAYER_REPEAT_ROUND),
           T::no_repeat => (NS_STYLE_IMAGELAYER_REPEAT_NO_REPEAT,
                            NS_STYLE_IMAGELAYER_REPEAT_NO_REPEAT),
         };
