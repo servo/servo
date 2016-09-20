@@ -62,7 +62,7 @@ fn assert_basic_pseudo_elements() {
         };
     }
 
-    include!("../../components/style/generated/gecko_pseudo_element_helper.rs");
+    include!("../../../components/style/generated/gecko_pseudo_element_helper.rs");
 
     assert!(saw_before);
     assert!(saw_after);
