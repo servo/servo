@@ -93,13 +93,15 @@ def stripTrailingWhitespace(text):
 
 
 def innerContainerType(type):
-    assert type.isSequence()
+    assert type.isSequence() or type.isMozMap()
     return type.inner.inner if type.nullable() else type.inner
 
 
 def wrapInNativeContainerType(type, inner):
     if type.isSequence():
         containerType = "Vec"
+    elif type.isMozMap():
+        containerType = "MozMap"
     else:
         raise TypeError("Unexpected container type %s", type)
 
@@ -733,7 +735,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
     if type.isArray():
         raise TypeError("Can't handle array arguments yet")
 
-    if type.isSequence():
+    if type.isSequence() or type.isMozMap():
         innerInfo = getJSToNativeConversionInfo(innerContainerType(type),
                                                 descriptorProvider,
                                                 isMember=isMember)
@@ -1274,7 +1276,7 @@ def typeNeedsCx(type, retVal=False):
 
 # Returns a conversion behavior suitable for a type
 def getConversionConfigForType(type, isEnforceRange, isClamp, treatNullAs):
-    if type.isSequence():
+    if type.isSequence() or type.isMozMap():
         return getConversionConfigForType(innerContainerType(type), isEnforceRange, isClamp, treatNullAs)
     if type.isDOMString():
         assert not isEnforceRange and not isClamp
@@ -1359,7 +1361,7 @@ def getRetvalDeclarationForType(returnType, descriptorProvider):
         if returnType.nullable():
             result = CGWrapper(result, pre="Option<", post=">")
         return result
-    if returnType.isSequence():
+    if returnType.isSequence() or returnType.isMozMap():
         result = getRetvalDeclarationForType(innerContainerType(returnType), descriptorProvider)
         result = wrapInNativeContainerType(returnType, result)
         if returnType.nullable():
@@ -1894,6 +1896,8 @@ class CGImports(CGWrapper):
                     parentName = getIdentifier(descriptor.interface.parent).name
                     descriptor = descriptorProvider.getDescriptor(parentName)
                     extras += [descriptor.path, descriptor.bindingPath]
+            elif t.isType() and t.isMozMap():
+                extras += ['dom::bindings::mozmap::MozMap']
             else:
                 if t.isEnum():
                     extras += [getModuleFromObject(t) + '::' + getIdentifier(t).name + 'Values']
@@ -2186,6 +2190,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, typedefs, config):
         'dom::bindings::conversions::root_from_handlevalue',
         'dom::bindings::error::throw_not_in_union',
         'dom::bindings::js::Root',
+        'dom::bindings::mozmap::MozMap',
         'dom::bindings::str::ByteString',
         'dom::bindings::str::DOMString',
         'dom::bindings::str::USVString',
@@ -4004,7 +4009,7 @@ def getUnionTypeTemplateVars(type, descriptorProvider):
     elif type.isEnum():
         name = type.inner.identifier.name
         typeName = name
-    elif type.isSequence():
+    elif type.isSequence() or type.isMozMap():
         name = type.name
         inner = getUnionTypeTemplateVars(innerContainerType(type), descriptorProvider)
         typeName = wrapInNativeContainerType(type, CGGeneric(inner["typeName"])).define()
@@ -4153,14 +4158,25 @@ class CGUnionConversionStruct(CGThing):
         else:
             object = None
 
-        hasObjectTypes = interfaceObject or arrayObject or dateObject or nonPlatformObject or object
+        mozMapMemberTypes = filter(lambda t: t.isMozMap(), memberTypes)
+        if len(mozMapMemberTypes) > 0:
+            assert len(mozMapMemberTypes) == 1
+            typeName = mozMapMemberTypes[0].name
+            mozMapObject = CGGeneric(get_match(typeName))
+            names.append(typeName)
+        else:
+            mozMapObject = None
+
+        hasObjectTypes = interfaceObject or arrayObject or dateObject or nonPlatformObject or object or mozMapObject
         if hasObjectTypes:
-            assert interfaceObject or arrayObject
+            assert interfaceObject or arrayObject or mozMapObject
             templateBody = CGList([], "\n")
             if interfaceObject:
                 templateBody.append(interfaceObject)
             if arrayObject:
                 templateBody.append(arrayObject)
+            if mozMapObject:
+                templateBody.append(mozMapObject)
             conversions.append(CGIfWrapper("value.get().is_object()", templateBody))
         stringTypes = [t for t in memberTypes if t.isString() or t.isEnum()]
         numericTypes = [t for t in memberTypes if t.isNumeric()]
@@ -5545,6 +5561,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'dom::bindings::proxyhandler::fill_property_descriptor',
         'dom::bindings::proxyhandler::get_expando_object',
         'dom::bindings::proxyhandler::get_property_descriptor',
+        'dom::bindings::mozmap::MozMap',
         'dom::bindings::num::Finite',
         'dom::bindings::str::ByteString',
         'dom::bindings::str::DOMString',

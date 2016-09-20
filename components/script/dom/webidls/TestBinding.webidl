@@ -429,6 +429,34 @@ interface TestBinding {
   sequence<sequence<long>> returnSequenceSequence();
   void passUnionSequenceSequence((long or sequence<sequence<long>>) seq);
 
+  void passMozMap(MozMap<long> arg);
+  void passNullableMozMap(MozMap<long>? arg);
+  void passMozMapOfNullableInts(MozMap<long?> arg);
+  void passOptionalMozMapOfNullableInts(optional MozMap<long?> arg);
+  void passOptionalNullableMozMapOfNullableInts(optional MozMap<long?>? arg);
+  void passCastableObjectMozMap(MozMap<TestBinding> arg);
+  void passNullableCastableObjectMozMap(MozMap<TestBinding?> arg);
+  void passCastableObjectNullableMozMap(MozMap<TestBinding>? arg);
+  void passNullableCastableObjectNullableMozMap(MozMap<TestBinding?>? arg);
+  void passOptionalMozMap(optional MozMap<long> arg);
+  void passOptionalNullableMozMap(optional MozMap<long>? arg);
+  void passOptionalNullableMozMapWithDefaultValue(optional MozMap<long>? arg = null);
+  void passOptionalObjectMozMap(optional MozMap<TestBinding> arg);
+  void passStringMozMap(MozMap<DOMString> arg);
+  void passByteStringMozMap(MozMap<ByteString> arg);
+  void passMozMapOfMozMaps(MozMap<MozMap<long>> arg);
+
+  void passMozMapUnion((long or MozMap<ByteString>) init);
+  void passMozMapUnion2((TestBinding or MozMap<ByteString>) init);
+  void passMozMapUnion3((TestBinding or sequence<sequence<ByteString>> or MozMap<ByteString>) init);
+
+  MozMap<long> receiveMozMap();
+  MozMap<long>? receiveNullableMozMap();
+  MozMap<long?> receiveMozMapOfNullableInts();
+  MozMap<long?>? receiveNullableMozMapOfNullableInts();
+  MozMap<MozMap<long>> receiveMozMapOfMozMaps();
+  MozMap<any> receiveAnyMozMap();
+
   static attribute boolean booleanAttributeStatic;
   static void receiveVoidStatic();
   boolean BooleanMozPreference(DOMString pref_name);

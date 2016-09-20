@@ -10,6 +10,7 @@ use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::TestBindingBinding;
 use dom::bindings::codegen::Bindings::TestBindingBinding::{TestBindingMethods, TestDictionary};
 use dom::bindings::codegen::Bindings::TestBindingBinding::{TestDictionaryDefaults, TestEnum};
+use dom::bindings::codegen::UnionTypes;
 use dom::bindings::codegen::UnionTypes::{BlobOrBoolean, BlobOrBlobSequence, LongOrLongSequenceSequence};
 use dom::bindings::codegen::UnionTypes::{BlobOrString, BlobOrUnsignedLong, EventOrString};
 use dom::bindings::codegen::UnionTypes::{ByteStringOrLong, ByteStringSequenceOrLongOrString};
@@ -21,6 +22,7 @@ use dom::bindings::codegen::UnionTypes::{StringOrUnsignedLong, StringOrBoolean, 
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
+use dom::bindings::mozmap::MozMap;
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::{ByteString, DOMString, USVString};
@@ -618,6 +620,32 @@ impl TestBindingMethods for TestBinding {
     fn FuncControlledAttributeEnabled(&self) -> bool { false }
     fn FuncControlledMethodDisabled(&self) {}
     fn FuncControlledMethodEnabled(&self) {}
+
+    fn PassMozMap(&self, _: MozMap<i32>) {}
+    fn PassNullableMozMap(&self, _: Option<MozMap<i32> >) {}
+    fn PassMozMapOfNullableInts(&self, _: MozMap<Option<i32>>) {}
+    fn PassOptionalMozMapOfNullableInts(&self, _: Option<MozMap<Option<i32>>>) {}
+    fn PassOptionalNullableMozMapOfNullableInts(&self, _: Option<Option<MozMap<Option<i32>> >>) {}
+    fn PassCastableObjectMozMap(&self, _: MozMap<Root<TestBinding>>) {}
+    fn PassNullableCastableObjectMozMap(&self, _: MozMap<Option<Root<TestBinding>>>) {}
+    fn PassCastableObjectNullableMozMap(&self, _: Option<MozMap<Root<TestBinding>>>) {}
+    fn PassNullableCastableObjectNullableMozMap(&self, _: Option<MozMap<Option<Root<TestBinding>>>>) {}
+    fn PassOptionalMozMap(&self, _: Option<MozMap<i32>>) {}
+    fn PassOptionalNullableMozMap(&self, _: Option<Option<MozMap<i32>>>) {}
+    fn PassOptionalNullableMozMapWithDefaultValue(&self, _: Option<MozMap<i32>>) {}
+    fn PassOptionalObjectMozMap(&self, _: Option<MozMap<Root<TestBinding>>>) {}
+    fn PassStringMozMap(&self, _: MozMap<DOMString>) {}
+    fn PassByteStringMozMap(&self, _: MozMap<ByteString>) {}
+    fn PassMozMapOfMozMaps(&self, _: MozMap<MozMap<i32>>) {}
+    fn PassMozMapUnion(&self, _: UnionTypes::LongOrByteStringMozMap) {}
+    fn PassMozMapUnion2(&self, _: UnionTypes::TestBindingOrByteStringMozMap) {}
+    fn PassMozMapUnion3(&self, _: UnionTypes::TestBindingOrByteStringSequenceSequenceOrByteStringMozMap) {}
+    fn ReceiveMozMap(&self) -> MozMap<i32> { MozMap::new() }
+    fn ReceiveNullableMozMap(&self) -> Option<MozMap<i32>> { Some(MozMap::new()) }
+    fn ReceiveMozMapOfNullableInts(&self) -> MozMap<Option<i32>> { MozMap::new() }
+    fn ReceiveNullableMozMapOfNullableInts(&self) -> Option<MozMap<Option<i32>>> { Some(MozMap::new()) }
+    fn ReceiveMozMapOfMozMaps(&self) -> MozMap<MozMap<i32>> { MozMap::new() }
+    fn ReceiveAnyMozMap(&self) -> MozMap<JSVal> { MozMap::new() }
 
     fn PassSequenceSequence(&self, _seq: Vec<Vec<i32>>) {}
     fn ReturnSequenceSequence(&self) -> Vec<Vec<i32>> { vec![] }
