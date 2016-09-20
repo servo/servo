@@ -14,7 +14,7 @@ use dom::bindings::codegen::Bindings::RequestBinding::RequestMethods;
 use dom::bindings::codegen::Bindings::RequestBinding::RequestMode;
 use dom::bindings::codegen::Bindings::RequestBinding::RequestRedirect;
 use dom::bindings::codegen::Bindings::RequestBinding::RequestType;
-use dom::bindings::codegen::UnionTypes::HeadersOrByteStringSequenceSequence;
+use dom::bindings::codegen::UnionTypes::HeadersOrByteStringSequenceSequenceOrByteStringMozMap  as HeadersInitType;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
@@ -312,7 +312,7 @@ impl Request {
 
         // Step 28
         if let Some(possible_header) = init.headers.as_ref() {
-            if let &HeadersOrByteStringSequenceSequence::Headers(ref init_headers) = possible_header {
+            if let &HeadersInitType::Headers(ref init_headers) = possible_header {
                 headers_copy = init_headers.clone();
             }
         }
@@ -337,7 +337,7 @@ impl Request {
         }
 
         // Step 31
-        try!(r.Headers().fill(Some(HeadersOrByteStringSequenceSequence::Headers(headers_copy))));
+        try!(r.Headers().fill(Some(HeadersInitType::Headers(headers_copy))));
 
         // Step 32
         let input_body = if let RequestInfo::Request(ref input_request) = input {
@@ -796,13 +796,18 @@ impl Into<RequestRedirect> for NetTraitsRequestRedirect {
     }
 }
 
-impl Clone for HeadersOrByteStringSequenceSequence {
-    fn clone(&self) -> HeadersOrByteStringSequenceSequence {
+impl Clone for HeadersInitType {
+    fn clone(&self) -> HeadersInitType {
     match self {
-        &HeadersOrByteStringSequenceSequence::Headers(ref h) =>
-            HeadersOrByteStringSequenceSequence::Headers(h.clone()),
-        &HeadersOrByteStringSequenceSequence::ByteStringSequenceSequence(ref b) =>
-            HeadersOrByteStringSequenceSequence::ByteStringSequenceSequence(b.clone()),
-        }
+        &HeadersInitType::Headers(ref h) =>
+            HeadersInitType::Headers(h.clone()),
+        &HeadersInitType::ByteStringSequenceSequence(ref b) =>
+            HeadersInitType::ByteStringSequenceSequence(b.clone()),
+        &HeadersInitType::ByteStringMozMap(ref m) =>
+        {
+            let mc = m.clone();
+            HeadersInitType::ByteStringMozMap(mc)
+        },
+    }
     }
 }
