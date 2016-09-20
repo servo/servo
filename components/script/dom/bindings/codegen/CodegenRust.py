@@ -4658,7 +4658,7 @@ class CGProxyNamedOperation(CGProxySpecialOperation):
     def define(self):
         # Our first argument is the id we're getting.
         argName = self.arguments[0].identifier.name
-        return ("let %s = jsid_to_str(cx, id);\n"
+        return ("let %s = string_jsid_to_string(cx, id);\n"
                 "let this = UnwrapProxy(proxy);\n"
                 "let this = &*this;\n" % argName +
                 CGProxySpecialOperation.define(self))
@@ -5528,13 +5528,13 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'dom::bindings::conversions::StringificationBehavior',
         'dom::bindings::conversions::ToJSValConvertible',
         'dom::bindings::conversions::is_array_like',
-        'dom::bindings::conversions::jsid_to_str',
         'dom::bindings::conversions::native_from_handlevalue',
         'dom::bindings::conversions::native_from_object',
         'dom::bindings::conversions::private_from_object',
         'dom::bindings::conversions::root_from_handleobject',
         'dom::bindings::conversions::root_from_handlevalue',
         'dom::bindings::conversions::root_from_object',
+        'dom::bindings::conversions::string_jsid_to_string',
         'dom::bindings::codegen::PrototypeList',
         'dom::bindings::codegen::RegisterBindings',
         'dom::bindings::codegen::UnionTypes',
