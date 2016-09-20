@@ -1843,6 +1843,8 @@ impl Flow for BlockFlow {
             self.fragment.assign_replaced_block_size_if_necessary(containing_block_block_size);
             if !self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
                 self.base.position.size.block = self.fragment.border_box.size.block;
+                self.base.restyle_damage.remove(REFLOW_OUT_OF_FLOW | REFLOW);
+                self.fragment.restyle_damage.remove(REFLOW_OUT_OF_FLOW | REFLOW);
             }
             None
         } else if self.is_root() || self.formatting_context_type() != FormattingContextType::None {
