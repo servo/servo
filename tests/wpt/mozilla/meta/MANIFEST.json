@@ -652,6 +652,18 @@
             "url": "/_mozilla/css/block_formatting_context_max_width_a.html"
           }
         ],
+        "css/block_formatting_context_negative_margins_a.html": [
+          {
+            "path": "css/block_formatting_context_negative_margins_a.html",
+            "references": [
+              [
+                "/_mozilla/css/block_formatting_context_negative_margins_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/block_formatting_context_negative_margins_a.html"
+          }
+        ],
         "css/block_formatting_context_overflow_a.html": [
           {
             "path": "css/block_formatting_context_overflow_a.html",
@@ -10062,6 +10074,18 @@
             ]
           ],
           "url": "/_mozilla/css/block_formatting_context_max_width_a.html"
+        }
+      ],
+      "css/block_formatting_context_negative_margins_a.html": [
+        {
+          "path": "css/block_formatting_context_negative_margins_a.html",
+          "references": [
+            [
+              "/_mozilla/css/block_formatting_context_negative_margins_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/block_formatting_context_negative_margins_a.html"
         }
       ],
       "css/block_formatting_context_overflow_a.html": [

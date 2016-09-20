@@ -1666,33 +1666,40 @@ impl BlockFlow {
         // Now compute the real value.
         self.propagate_and_compute_used_inline_size(shared_context);
 
-        // Now for some speculation.
-        match self.formatting_context_type() {
-            FormattingContextType::Block => {
-                // We can't actually compute the inline-size of this block now, because floats
-                // might affect it. Speculate that its inline-size is equal to the inline-size
-                // computed above minus the inline-size of the previous left and/or right floats.
-                //
-                // (If `max-width` is set, then don't perform this speculation. We guess that the
-                // page set `max-width` in order to avoid hitting floats. The search box on Google
-                // SERPs falls into this category.)
-                if self.fragment.style.max_inline_size() == LengthOrPercentageOrNone::None {
-                    let speculated_left_float_size =
-                        max(Au(0),
-                            self.base.speculated_float_placement_in.left -
-                            self.fragment.margin.inline_start);
-                    let speculated_right_float_size =
-                        max(Au(0),
-                            self.base.speculated_float_placement_in.right -
-                            self.fragment.margin.inline_end);
-                    self.fragment.border_box.size.inline =
-                        self.fragment.border_box.size.inline -
-                        speculated_left_float_size -
-                        speculated_right_float_size;
-                }
-            }
-            FormattingContextType::None | FormattingContextType::Other => {}
+        self.guess_inline_size_for_block_formatting_context_if_necessary()
+    }
+
+    fn guess_inline_size_for_block_formatting_context_if_necessary(&mut self) {
+        // We don't need to guess anything unless this is a block formatting context.
+        if self.formatting_context_type() != FormattingContextType::Block {
+            return
         }
+
+        // If `max-width` is set, then don't perform this speculation. We guess that the
+        // page set `max-width` in order to avoid hitting floats. The search box on Google
+        // SERPs falls into this category.
+        if self.fragment.style.max_inline_size() != LengthOrPercentageOrNone::None {
+            return
+        }
+
+        // At this point, we know we can't precisely compute the inline-size of this block now,
+        // because floats might affect it. Speculate that its inline-size is equal to the
+        // inline-size computed above minus the inline-size of the previous left and/or right
+        // floats.
+        let speculated_left_float_size = if self.fragment.margin.inline_start >= Au(0) &&
+                self.base.speculated_float_placement_in.left > self.fragment.margin.inline_start {
+            self.base.speculated_float_placement_in.left - self.fragment.margin.inline_start
+        } else {
+            Au(0)
+        };
+        let speculated_right_float_size = if self.fragment.margin.inline_end >= Au(0) &&
+                self.base.speculated_float_placement_in.right > self.fragment.margin.inline_end {
+            self.base.speculated_float_placement_in.right - self.fragment.margin.inline_end
+        } else {
+            Au(0)
+        };
+        self.fragment.border_box.size.inline = self.fragment.border_box.size.inline -
+            speculated_left_float_size - speculated_right_float_size
     }
 
     fn definitely_has_zero_block_size(&self) -> bool {
