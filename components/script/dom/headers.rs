@@ -6,7 +6,7 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HeadersBinding;
 use dom::bindings::codegen::Bindings::HeadersBinding::HeadersMethods;
 use dom::bindings::codegen::Bindings::HeadersBinding::HeadersWrap;
-use dom::bindings::codegen::UnionTypes::HeadersOrByteStringSequenceSequence;
+use dom::bindings::codegen::UnionTypes::HeadersOrByteStringSequenceSequenceOrByteStringMozMap as HeadersInitType;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::iterable::Iterable;
@@ -172,7 +172,7 @@ impl Headers {
     pub fn fill(&self, filler: Option<HeadersBinding::HeadersInit>) -> ErrorResult {
         match filler {
             // Step 1
-            Some(HeadersOrByteStringSequenceSequence::Headers(h)) => {
+            Some(HeadersInitType::Headers(h)) => {
                 for header in h.header_list.borrow().iter() {
                     try!(self.Append(
                         ByteString::new(Vec::from(header.name())),
@@ -182,7 +182,7 @@ impl Headers {
                 Ok(())
             },
             // Step 2
-            Some(HeadersOrByteStringSequenceSequence::ByteStringSequenceSequence(v)) => {
+            Some(HeadersInitType::ByteStringSequenceSequence(v)) => {
                 for mut seq in v {
                     if seq.len() == 2 {
                         let val = seq.pop().unwrap();
@@ -196,7 +196,14 @@ impl Headers {
                 }
                 Ok(())
             },
-            // Step 3 TODO constructor for when init is an open-ended dictionary
+            Some(HeadersInitType::ByteStringMozMap(m)) => {
+                for (key, value) in m.iter() {
+                    let key_vec = key.as_ref().to_string().into();
+                    let headers_key = ByteString::new(key_vec);
+                    try!(self.Append(headers_key, value.clone()));
+                }
+                Ok(())
+            },
             None => Ok(()),
         }
     }
