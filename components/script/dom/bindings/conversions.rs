@@ -115,9 +115,14 @@ impl <T: Reflectable + IDLInterface> FromJSValConvertible for Root<T> {
     }
 }
 
-/// Convert the given `jsid` to a `DOMString`. Fails if the `jsid` is not a
-/// string, or if the string does not contain valid UTF-16.
-pub fn jsid_to_str(cx: *mut JSContext, id: HandleId) -> DOMString {
+/// Convert `id` to a `DOMString`, assuming it is string-valued.
+///
+/// Handling of invalid UTF-16 in strings depends on the relevant option.
+///
+/// # Panics
+///
+/// Panics if `id` is not string-valued.
+pub fn string_jsid_to_string(cx: *mut JSContext, id: HandleId) -> DOMString {
     unsafe {
         assert!(RUST_JSID_IS_STRING(id));
         jsstring_to_str(cx, RUST_JSID_TO_STRING(id))
