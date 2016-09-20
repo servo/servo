@@ -1423,14 +1423,14 @@ impl Document {
         loader.add_blocking_load(load)
     }
 
-    pub fn prepare_async_load(&self, load: LoadType) -> PendingAsyncLoad {
+    pub fn prepare_async_load(&self, load: LoadType, referrer_policy: Option<ReferrerPolicy>) -> PendingAsyncLoad {
         let mut loader = self.loader.borrow_mut();
-        loader.prepare_async_load(load, self)
+        loader.prepare_async_load(load, self, referrer_policy)
     }
 
-    pub fn load_async(&self, load: LoadType, listener: AsyncResponseTarget) {
+    pub fn load_async(&self, load: LoadType, listener: AsyncResponseTarget, referrer_policy: Option<ReferrerPolicy>) {
         let mut loader = self.loader.borrow_mut();
-        loader.load_async(load, listener, self);
+        loader.load_async(load, listener, self, referrer_policy);
     }
 
     pub fn finish_load(&self, load: LoadType) {
@@ -1725,17 +1725,6 @@ impl Document {
             // Default to DOM standard behaviour
             Origin::opaque_identifier()
         };
-
-        // TODO: we currently default to Some(NoReferrer) instead of None (i.e. unset)
-        // for an important reason. Many of the methods by which a referrer policy is communicated
-        // are currently unimplemented, and so in such cases we may be ignoring the desired policy.
-        // If the default were left unset, then in Step 7 of the Fetch algorithm we adopt
-        // no-referrer-when-downgrade. However, since we are potentially ignoring a stricter
-        // referrer policy, this might be passing too much info. Hence, we default to the
-        // strictest policy, which is no-referrer.
-        // Once other delivery methods are implemented, make the unset case really
-        // unset (i.e. None).
-        let referrer_policy = referrer_policy.or(Some(ReferrerPolicy::NoReferrer));
 
         Document {
             node: Node::new_document_node(),

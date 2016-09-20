@@ -519,7 +519,7 @@ impl HTMLMediaElement {
 
             // FIXME: we're supposed to block the load event much earlier than now
             let doc = document_from_node(self);
-            doc.load_async(LoadType::Media(url), response_target);
+            doc.load_async(LoadType::Media(url), response_target, None);
         } else {
             // TODO local resource fetch
             self.queue_dedicated_media_source_failure_steps();

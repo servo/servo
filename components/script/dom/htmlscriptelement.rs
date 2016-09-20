@@ -236,7 +236,7 @@ fn fetch_a_classic_script(script: &HTMLScriptElement,
         listener.notify_action(message.to().unwrap());
     });
 
-    doc.load_async(LoadType::Script(url), response_target);
+    doc.load_async(LoadType::Script(url), response_target, None);
 }
 
 impl HTMLScriptElement {
@@ -355,6 +355,7 @@ impl HTMLScriptElement {
 
                 // Step 18.6.
                 fetch_a_classic_script(self, url, encoding);
+
                 true
             },
             None => false,

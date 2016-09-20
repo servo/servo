@@ -6,6 +6,7 @@ use cssparser::Parser as CssParser;
 use document_loader::LoadType;
 use dom::attr::Attr;
 use dom::bindings::cell::DOMRefCell;
+use dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListMethods;
 use dom::bindings::codegen::Bindings::HTMLLinkElementBinding;
 use dom::bindings::codegen::Bindings::HTMLLinkElementBinding::HTMLLinkElementMethods;
 use dom::bindings::inheritance::Castable;
@@ -26,6 +27,7 @@ use hyper::mime::{Mime, TopLevel, SubLevel};
 use hyper_serde::Serde;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
+use msg::constellation_msg::ReferrerPolicy;
 use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata, NetworkError};
 use network_listener::{NetworkListener, PreInvoke};
 use script_layout_interface::message::Msg;
@@ -239,7 +241,13 @@ impl HTMLLinkElement {
                 if self.parser_inserted.get() {
                     document.increment_script_blocking_stylesheet_count();
                 }
-                document.load_async(LoadType::Stylesheet(url), response_target);
+
+                let referrer_policy = match self.RelList().Contains("noreferrer".into()) {
+                    true => Some(ReferrerPolicy::NoReferrer),
+                    false => None,
+                };
+
+                document.load_async(LoadType::Stylesheet(url), response_target, referrer_policy);
             }
             Err(e) => debug!("Parsing url {} failed: {}", href, e)
         }
