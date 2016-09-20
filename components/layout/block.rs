@@ -51,6 +51,7 @@ use model::{self, IntrinsicISizes, MarginCollapseInfo};
 use model::{CollapsibleMargins, MaybeAuto, specified, specified_or_none};
 use rustc_serialize::{Encodable, Encoder};
 use script_layout_interface::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW};
+use script_layout_interface::restyle_damage::REPOSITION;
 use std::cmp::{max, min};
 use std::fmt;
 use std::sync::Arc;
@@ -2114,6 +2115,8 @@ impl Flow for BlockFlow {
             flow::mut_base(kid).stacking_relative_position_of_display_port =
                 stacking_relative_position_of_display_port_for_children;
         }
+
+        self.base.restyle_damage.remove(REPOSITION)
     }
 
     fn mark_as_root(&mut self) {

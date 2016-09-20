@@ -75,7 +75,7 @@ use layout::query::{process_margin_style_query, process_node_overflow_request, p
 use layout::query::{process_node_geometry_request, process_node_layer_id_request, process_node_scroll_area_request};
 use layout::query::process_offset_parent_query;
 use layout::sequential;
-use layout::traversal::RecalcStyleAndConstructFlows;
+use layout::traversal::{ComputeAbsolutePositions, RecalcStyleAndConstructFlows};
 use layout::webrender_helpers::{WebRenderDisplayListConverter, WebRenderFrameBuilder};
 use layout::wrapper::{LayoutNodeLayoutData, NonOpaqueStyleAndLayoutData};
 use layout_traits::LayoutThreadFactory;
@@ -89,7 +89,8 @@ use script::layout_wrapper::{ServoLayoutDocument, ServoLayoutNode};
 use script_layout_interface::{OpaqueStyleAndLayoutData, PartialStyleAndLayoutData};
 use script_layout_interface::message::{Msg, NewLayoutThreadInfo, Reflow, ReflowQueryType, ScriptReflow};
 use script_layout_interface::reporter::CSSErrorReporter;
-use script_layout_interface::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, STORE_OVERFLOW};
+use script_layout_interface::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, REPOSITION};
+use script_layout_interface::restyle_damage::STORE_OVERFLOW;
 use script_layout_interface::rpc::{LayoutRPC, MarginStyleResponse, NodeOverflowResponse, OffsetParentResponse};
 use script_layout_interface::wrapper_traits::LayoutNode;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutMsg as ConstellationMsg};
@@ -918,6 +919,12 @@ impl LayoutThread {
 
             flow::mut_base(layout_root).clip =
                 ClippingRegion::from_rect(&data.page_clip_rect);
+
+            if flow::base(layout_root).restyle_damage.contains(REPOSITION) {
+                layout_root.traverse_preorder(&ComputeAbsolutePositions {
+                    layout_context: shared_layout_context
+                });
+            }
 
             if flow::base(layout_root).restyle_damage.contains(REPAINT) ||
                     rw_data.display_list.is_none() {
