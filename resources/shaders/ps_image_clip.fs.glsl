@@ -11,17 +11,22 @@ void main(void) {
 
     // We clamp the texture coordinate calculation here to the local rectangle boundaries,
     // which makes the edge of the texture stretch instead of repeat.
-    vec2 uv = clamp(local_pos.xy, vLocalRect.xy, vLocalRect.xy + vLocalRect.zw);
-
-    uv = (uv - vLocalRect.xy) / vStretchSize;
+    vec2 pos_for_texture =
+         clamp(pos, vLocalRect.xy, vLocalRect.xy + vLocalRect.zw) - vLocalRect.xy;
 #else
     float alpha = 1;
     vec2 local_pos = vLocalPos;
-    vec2 uv = vUv;
+    vec2 relative_pos_in_rect = vLocalPos - vLocalRect.xy;
 #endif
 
-    vec2 st = vTextureOffset + vTextureSize * fract(uv);
-
     alpha = min(alpha, do_clip(local_pos, vClipRect, vClipRadius));
+
+    // We calculate the particular tile this fragment belongs to, taking into
+    // account the spacing in between tiles. We only paint if our fragment does
+    // not fall into that spacing.
+    vec2 position_in_tile = mod(relative_pos_in_rect, vStretchSize + vTileSpacing);
+    vec2 st = vTextureOffset + ((position_in_tile / vStretchSize) * vTextureSize);
+    alpha = alpha * float(all(bvec2(step(position_in_tile, vStretchSize))));
+
     oFragColor = texture(sDiffuse, st) * vec4(1, 1, 1, alpha);
 }

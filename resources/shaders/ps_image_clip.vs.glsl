@@ -8,13 +8,11 @@ void main(void) {
 
 #ifdef WR_FEATURE_TRANSFORM
     TransformVertexInfo vi = write_transform_vertex(image.info);
-    vLocalRect = vi.clipped_local_rect;
     vLocalPos = vi.local_pos;
-    vStretchSize = image.stretch_size_uvkind.xy;
 #else
     VertexInfo vi = write_vertex(image.info);
-    vUv = (vi.local_clamped_pos - vi.local_rect.p0) / image.stretch_size_uvkind.xy;
     vLocalPos = vi.local_clamped_pos;
+    vLocalRect = image.info.local_rect;
 #endif
 
     vClipRect = vec4(image.clip.rect.xy, image.clip.rect.xy + image.clip.rect.zw);
@@ -26,7 +24,7 @@ void main(void) {
     vec2 st0 = image.st_rect.xy;
     vec2 st1 = image.st_rect.zw;
 
-    switch (uint(image.stretch_size_uvkind.z)) {
+    switch (uint(image.uvkind.x)) {
         case UV_NORMALIZED:
             break;
         case UV_PIXEL: {
@@ -39,4 +37,6 @@ void main(void) {
 
     vTextureSize = st1 - st0;
     vTextureOffset = st0;
+    vStretchSize = image.stretch_size_and_tile_spacing.xy;
+    vTileSpacing = image.stretch_size_and_tile_spacing.zw;
 }

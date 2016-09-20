@@ -10,17 +10,18 @@ void main(void) {
     TransformVertexInfo vi = write_transform_vertex(image.info);
     vLocalRect = vi.clipped_local_rect;
     vLocalPos = vi.local_pos;
-    vStretchSize = image.stretch_size_uvkind.xy;
+    vStretchSize = image.stretch_size_and_tile_spacing.xy;
 #else
     VertexInfo vi = write_vertex(image.info);
-    vUv = (vi.local_clamped_pos - vi.local_rect.p0) / image.stretch_size_uvkind.xy;
+    vStretchSize = image.stretch_size_and_tile_spacing.xy;
+    vLocalPos = vi.local_clamped_pos - vi.local_rect.p0;
 #endif
 
     // vUv will contain how many times this image has wrapped around the image size.
     vec2 st0 = image.st_rect.xy;
     vec2 st1 = image.st_rect.zw;
 
-    switch (uint(image.stretch_size_uvkind.z)) {
+    switch (uint(image.uvkind.x)) {
         case UV_NORMALIZED:
             break;
         case UV_PIXEL: {
@@ -33,4 +34,5 @@ void main(void) {
 
     vTextureSize = st1 - st0;
     vTextureOffset = st0;
+    vTileSpacing = image.stretch_size_and_tile_spacing.zw;
 }
