@@ -58,7 +58,7 @@ use style::attr::AttrValue;
 use style::computed_values::display;
 use style::context::SharedStyleContext;
 use style::data::PrivateStyleData;
-use style::dom::{OpaqueNode, PresentationalHintsSynthetizer, TDocument, TElement, TNode, UnsafeNode};
+use style::dom::{NodeInfo, OpaqueNode, PresentationalHintsSynthetizer, TDocument, TElement, TNode, UnsafeNode};
 use style::element_state::*;
 use style::properties::{ComputedValues, PropertyDeclarationBlock};
 use style::refcell::{Ref, RefCell, RefMut};
@@ -111,6 +111,18 @@ impl<'ln> ServoLayoutNode<'ln> {
     }
 }
 
+impl<'ln> NodeInfo for ServoLayoutNode<'ln> {
+    fn is_element(&self) -> bool {
+        unsafe {
+            self.node.is_element_for_layout()
+        }
+    }
+
+    fn is_text_node(&self) -> bool {
+        self.script_type_id() == NodeTypeId::CharacterData(CharacterDataTypeId::Text)
+    }
+}
+
 impl<'ln> TNode for ServoLayoutNode<'ln> {
     type ConcreteElement = ServoLayoutElement<'ln>;
     type ConcreteDocument = ServoLayoutDocument<'ln>;
@@ -126,16 +138,6 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
     unsafe fn from_unsafe(n: &UnsafeNode) -> Self {
         let (node, _) = *n;
         transmute(node)
-    }
-
-    fn is_text_node(&self) -> bool {
-        self.script_type_id() == NodeTypeId::CharacterData(CharacterDataTypeId::Text)
-    }
-
-    fn is_element(&self) -> bool {
-        unsafe {
-            self.node.is_element_for_layout()
-        }
     }
 
     fn dump(self) {
@@ -724,6 +726,15 @@ impl<'ln> ServoThreadSafeLayoutNode<'ln> {
     /// call and as such is marked `unsafe`.
     unsafe fn get_jsmanaged(&self) -> &LayoutJS<Node> {
         self.node.get_jsmanaged()
+    }
+}
+
+impl<'ln> NodeInfo for ServoThreadSafeLayoutNode<'ln> {
+    fn is_element(&self) -> bool {
+        if let Some(LayoutNodeType::Element(_)) = self.type_id() { true } else { false }
+    }
+    fn is_text_node(&self) -> bool {
+        if let Some(LayoutNodeType::Text) = self.type_id() { true } else { false }
     }
 }
 

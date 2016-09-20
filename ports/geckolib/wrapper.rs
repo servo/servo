@@ -40,7 +40,7 @@ use std::ptr;
 use std::sync::Arc;
 use style::data::PrivateStyleData;
 use style::dom::{OpaqueNode, PresentationalHintsSynthetizer};
-use style::dom::{TDocument, TElement, TNode, TRestyleDamage, UnsafeNode};
+use style::dom::{NodeInfo, TDocument, TElement, TNode, TRestyleDamage, UnsafeNode};
 use style::element_state::ElementState;
 use style::error_reporting::StdoutErrorReporter;
 use style::gecko_selector_impl::{GeckoSelectorImpl, NonTSPseudoClass, PseudoElement};
@@ -125,6 +125,19 @@ impl BitOr for GeckoRestyleDamage {
 }
 
 
+impl<'ln> NodeInfo for GeckoNode<'ln> {
+    fn is_element(&self) -> bool {
+        unsafe {
+            Gecko_NodeIsElement(self.0)
+        }
+    }
+
+    fn is_text_node(&self) -> bool {
+        unsafe {
+            Gecko_IsTextNode(self.0)
+        }
+    }
+}
 
 impl<'ln> TNode for GeckoNode<'ln> {
     type ConcreteDocument = GeckoDocument<'ln>;
@@ -138,18 +151,6 @@ impl<'ln> TNode for GeckoNode<'ln> {
 
     unsafe fn from_unsafe(n: &UnsafeNode) -> Self {
         GeckoNode(&*(n.0 as *mut RawGeckoNode))
-    }
-
-    fn is_text_node(&self) -> bool {
-        unsafe {
-            Gecko_IsTextNode(self.0)
-        }
-    }
-
-    fn is_element(&self) -> bool {
-        unsafe {
-            Gecko_NodeIsElement(self.0)
-        }
     }
 
     fn dump(self) {

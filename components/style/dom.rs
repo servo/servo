@@ -64,7 +64,16 @@ pub trait TRestyleDamage : Debug + PartialEq + BitOr<Output=Self> + Copy {
     fn rebuild_and_reflow() -> Self;
 }
 
-pub trait TNode : Sized + Copy + Clone {
+/// Simple trait to provide basic information about the type of an element.
+///
+/// We avoid exposing the full type id, since computing it in the general case
+/// would be difficult for Gecko nodes.
+pub trait NodeInfo {
+    fn is_element(&self) -> bool;
+    fn is_text_node(&self) -> bool;
+}
+
+pub trait TNode : Sized + Copy + Clone + NodeInfo {
     type ConcreteElement: TElement<ConcreteNode = Self, ConcreteDocument = Self::ConcreteDocument>;
     type ConcreteDocument: TDocument<ConcreteNode = Self, ConcreteElement = Self::ConcreteElement>;
     type ConcreteRestyleDamage: TRestyleDamage;
@@ -72,13 +81,6 @@ pub trait TNode : Sized + Copy + Clone {
 
     fn to_unsafe(&self) -> UnsafeNode;
     unsafe fn from_unsafe(n: &UnsafeNode) -> Self;
-
-    /// Returns whether this is a text node. It turns out that this is all the style system cares
-    /// about, and thus obviates the need to compute the full type id, which would be expensive in
-    /// Gecko.
-    fn is_text_node(&self) -> bool;
-
-    fn is_element(&self) -> bool;
 
     fn dump(self);
 

@@ -15,7 +15,7 @@ use std::sync::Arc;
 use string_cache::{Atom, Namespace};
 use style::computed_values::display;
 use style::context::SharedStyleContext;
-use style::dom::{PresentationalHintsSynthetizer, TNode};
+use style::dom::{NodeInfo, PresentationalHintsSynthetizer, TNode};
 use style::dom::OpaqueNode;
 use style::properties::ServoComputedValues;
 use style::refcell::{Ref, RefCell};
@@ -137,7 +137,7 @@ impl<ConcreteNode> Iterator for TreeIterator<ConcreteNode>
 
 /// A thread-safe version of `LayoutNode`, used during flow construction. This type of layout
 /// node does not allow any parents or siblings of nodes to be accessed, to avoid races.
-pub trait ThreadSafeLayoutNode: Clone + Copy + Sized + PartialEq {
+pub trait ThreadSafeLayoutNode: Clone + Copy + NodeInfo + PartialEq + Sized {
     type ConcreteThreadSafeLayoutElement:
         ThreadSafeLayoutElement<ConcreteThreadSafeLayoutNode = Self>
         + ::selectors::Element<Impl=ServoSelectorImpl>;
@@ -170,9 +170,6 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Sized + PartialEq {
 
     /// Returns an iterator over this node's children.
     fn children(&self) -> Self::ChildrenIterator;
-
-    #[inline]
-    fn is_element(&self) -> bool { if let Some(LayoutNodeType::Element(_)) = self.type_id() { true } else { false } }
 
     /// If this is an element, accesses the element data. Fails if this is not an element node.
     #[inline]
