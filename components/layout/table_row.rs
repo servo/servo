@@ -21,6 +21,7 @@ use gfx_traits::print_tree::PrintTree;
 use layout_debug;
 use model::MaybeAuto;
 use rustc_serialize::{Encodable, Encoder};
+use script_layout_interface::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW};
 use std::cmp::max;
 use std::fmt;
 use std::iter::{Enumerate, IntoIterator, Peekable};
@@ -106,73 +107,84 @@ impl TableRowFlow {
     /// methods
     #[inline(always)]
     fn assign_block_size_table_row_base(&mut self, layout_context: &LayoutContext) {
-        // Per CSS 2.1 § 17.5.3, find max_y = max(computed `block-size`, minimum block-size of all
-        // cells).
-        let mut max_block_size = Au(0);
-        let thread_id = self.block_flow.base.thread_id;
-        for kid in self.block_flow.base.child_iter_mut() {
-            kid.place_float_if_applicable();
-            if !flow::base(kid).flags.is_float() {
-                kid.assign_block_size_for_inorder_child_if_necessary(layout_context, thread_id);
+        if self.block_flow.base.restyle_damage.contains(REFLOW) {
+            // Per CSS 2.1 § 17.5.3, find max_y = max(computed `block-size`, minimum block-size of
+            // all cells).
+            let mut max_block_size = Au(0);
+            let thread_id = self.block_flow.base.thread_id;
+            for kid in self.block_flow.base.child_iter_mut() {
+                kid.place_float_if_applicable();
+                if !flow::base(kid).flags.is_float() {
+                    kid.assign_block_size_for_inorder_child_if_necessary(layout_context,
+                                                                         thread_id);
+                }
+
+                {
+                    let child_fragment = kid.as_mut_table_cell().fragment();
+                    // TODO: Percentage block-size
+                    let child_specified_block_size =
+                        MaybeAuto::from_style(child_fragment.style().content_block_size(),
+                                              Au(0)).specified_or_zero();
+                    max_block_size =
+                        max(max_block_size,
+                            child_specified_block_size +
+                            child_fragment.border_padding.block_start_end());
+                }
+                let child_node = flow::mut_base(kid);
+                child_node.position.start.b = Au(0);
+                max_block_size = max(max_block_size, child_node.position.size.block);
             }
 
-            {
-                let child_fragment = kid.as_mut_table_cell().fragment();
-                // TODO: Percentage block-size
-                let child_specified_block_size =
-                    MaybeAuto::from_style(child_fragment.style().content_block_size(),
-                                          Au(0)).specified_or_zero();
-                max_block_size =
-                    max(max_block_size,
-                        child_specified_block_size +
-                        child_fragment.border_padding.block_start_end());
+            let mut block_size = max_block_size;
+            // TODO: Percentage block-size
+            block_size = match MaybeAuto::from_style(self.block_flow
+                                                         .fragment
+                                                         .style()
+                                                         .content_block_size(),
+                                                     Au(0)) {
+                MaybeAuto::Auto => block_size,
+                MaybeAuto::Specified(value) => max(value, block_size),
+            };
+
+            // Assign the block-size of own fragment
+            let mut position = self.block_flow.fragment.border_box;
+            position.size.block = block_size;
+            self.block_flow.fragment.border_box = position;
+            self.block_flow.base.position.size.block = block_size;
+
+            // Assign the block-size of kid fragments, which is the same value as own block-size.
+            for kid in self.block_flow.base.child_iter_mut() {
+                let child_table_cell = kid.as_mut_table_cell();
+                {
+                    let kid_fragment = child_table_cell.mut_fragment();
+                    let mut position = kid_fragment.border_box;
+                    position.size.block = block_size;
+                    kid_fragment.border_box = position;
+                }
+
+                // Assign the child's block size.
+                child_table_cell.block_flow.base.position.size.block = block_size;
+
+                // Now we know the cell height, vertical align the cell's children.
+                child_table_cell.valign_children();
+
+                // Write in the size of the relative containing block for children. (This
+                // information is also needed to handle RTL.)
+                child_table_cell.block_flow.base.early_absolute_position_info =
+                    EarlyAbsolutePositionInfo {
+                        relative_containing_block_size: self.block_flow
+                                                            .fragment
+                                                            .content_box()
+                                                            .size,
+                        relative_containing_block_mode: self.block_flow
+                                                            .fragment
+                                                            .style()
+                                                            .writing_mode,
+                    };
             }
-            let child_node = flow::mut_base(kid);
-            child_node.position.start.b = Au(0);
-            max_block_size = max(max_block_size, child_node.position.size.block);
         }
 
-        let mut block_size = max_block_size;
-        // TODO: Percentage block-size
-        block_size = match MaybeAuto::from_style(self.block_flow
-                                                     .fragment
-                                                     .style()
-                                                     .content_block_size(),
-                                                 Au(0)) {
-            MaybeAuto::Auto => block_size,
-            MaybeAuto::Specified(value) => max(value, block_size),
-        };
-
-        // Assign the block-size of own fragment
-        let mut position = self.block_flow.fragment.border_box;
-        position.size.block = block_size;
-        self.block_flow.fragment.border_box = position;
-        self.block_flow.base.position.size.block = block_size;
-
-        // Assign the block-size of kid fragments, which is the same value as own block-size.
-        for kid in self.block_flow.base.child_iter_mut() {
-            let child_table_cell = kid.as_mut_table_cell();
-            {
-                let kid_fragment = child_table_cell.mut_fragment();
-                let mut position = kid_fragment.border_box;
-                position.size.block = block_size;
-                kid_fragment.border_box = position;
-            }
-
-            // Assign the child's block size.
-            child_table_cell.block_flow.base.position.size.block = block_size;
-
-            // Now we know the cell height, vertical align the cell's children.
-            child_table_cell.valign_children();
-
-            // Write in the size of the relative containing block for children. (This information
-            // is also needed to handle RTL.)
-            child_table_cell.block_flow.base.early_absolute_position_info =
-                EarlyAbsolutePositionInfo {
-                    relative_containing_block_size: self.block_flow.fragment.content_box().size,
-                    relative_containing_block_mode: self.block_flow.fragment.style().writing_mode,
-                };
-        }
+        self.block_flow.base.restyle_damage.remove(REFLOW_OUT_OF_FLOW | REFLOW);
     }
 
     pub fn populate_collapsed_border_spacing<'a, I>(
