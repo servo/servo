@@ -28,6 +28,7 @@ use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
 use dom::headers::is_forbidden_header_name;
 use dom::htmlformelement::{encode_multipart_form_data, generate_boundary};
+use dom::node::Node;
 use dom::progressevent::ProgressEvent;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 use dom::xmlhttprequestupload::XMLHttpRequestUpload;
@@ -35,6 +36,9 @@ use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;
 use encoding::types::{DecoderTrap, EncoderTrap, Encoding, EncodingRef};
 use euclid::length::Length;
+use html5ever::serialize;
+use html5ever::serialize::SerializeOpts;
+use html5ever::serialize::TraversalScope::ChildrenOnly;
 use hyper::header::{ContentLength, ContentType};
 use hyper::header::Headers;
 use hyper::method::Method;
@@ -1386,7 +1390,7 @@ impl Extractable for DocumentOrBodyInit {
                 (bytes, Some(DOMString::from(format!("multipart/form-data;boundary={}", boundary))))
             },
             DocumentOrBodyInit::Document(ref d) => {
-                let data: Vec<u8> = d.serialize().unwrap().into();
+                let data: Vec<u8> = serialize_document(d).unwrap().into();
                 let decoded_data: Vec<u8> = match &*d.CharacterSet() {
                     "UTF-8" => {
                         debug!("Document is already utf-8, skipping conversion {:?}", d.url());
@@ -1473,4 +1477,15 @@ pub fn is_field_value(slice: &[u8]) -> bool {
             _ => false // Previous character was a CR/LF but not part of the [CRLF] (SP|HT) rule
         }
     })
+}
+
+// Serialize a Document struct
+fn serialize_document(document: &Document) -> Fallible<DOMString> {
+    let mut writer = vec![];
+    if let Ok(()) = serialize(&mut writer, &document.upcast::<Node>(),
+        SerializeOpts { traversal_scope: ChildrenOnly, ..Default::default() }) {
+        Ok(DOMString::from(String::from_utf8(writer).unwrap()))
+    } else {
+        Err(Error::InvalidState)
+    }
 }
