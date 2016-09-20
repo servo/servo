@@ -1148,6 +1148,10 @@ pub struct ImageDisplayItem {
     /// direction to tile the entire bounds.
     pub stretch_size: Size2D<Au>,
 
+    /// The amount of space to add to the right and bottom part of each tile, when the image
+    /// is tiled.
+    pub tile_spacing: Size2D<Au>,
+
     /// The algorithm we should use to stretch the image. See `image_rendering` in CSS-IMAGES-3 §
     /// 5.3.
     pub image_rendering: image_rendering::T,
@@ -1360,6 +1364,7 @@ impl DisplayItem {
                 paint_context.draw_image(
                     &image_item.base.bounds,
                     &image_item.stretch_size,
+                    &image_item.tile_spacing,
                     &image_item.webrender_image,
                     &image_item.image_data
                                .as_ref()

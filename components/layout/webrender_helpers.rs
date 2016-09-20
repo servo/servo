@@ -427,12 +427,10 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 if let Some(id) = item.webrender_image.key {
                     if item.stretch_size.width > Au(0) &&
                        item.stretch_size.height > Au(0) {
-                        // TODO(gw): Pass through the tile spacing once the other
-                        //           changes related to this land (parsing etc).
                         builder.push_image(item.base.bounds.to_rectf(),
                                            item.base.clip.to_clip_region(frame_builder),
                                            item.stretch_size.to_sizef(),
-                                           Size2D::zero(),
+                                           item.tile_spacing.to_sizef(),
                                            item.image_rendering.to_image_rendering(),
                                            id);
                     }
