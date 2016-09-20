@@ -3989,13 +3989,6 @@ class CGConstant(CGThing):
 
 
 def getUnionTypeTemplateVars(type, descriptorProvider):
-    # For dictionaries and sequences we need to pass None as the failureCode
-    # for getJSToNativeConversionInfo.
-    # Also, for dictionaries we would need to handle conversion of
-    # null/undefined to the dictionary correctly.
-    if type.isDictionary():
-        raise TypeError("Can't handle dictionaries in unions")
-
     if type.isGeckoInterface():
         name = type.inner.identifier.name
         typeName = descriptorProvider.getDescriptor(name).returnType
@@ -4006,10 +3999,6 @@ def getUnionTypeTemplateVars(type, descriptorProvider):
         name = type.name
         inner = getUnionTypeTemplateVars(innerSequenceType(type), descriptorProvider)
         typeName = "Vec<" + inner["typeName"] + ">"
-    elif type.isArray():
-        name = str(type)
-        # XXXjdm dunno about typeName here
-        typeName = "/*" + type.name + "*/"
     elif type.isByteString():
         name = type.name
         typeName = "ByteString"
@@ -4023,8 +4012,7 @@ def getUnionTypeTemplateVars(type, descriptorProvider):
         name = type.name
         typeName = builtinNames[type.tag()]
     else:
-        name = type.name
-        typeName = "/*" + type.name + "*/"
+        raise TypeError("Can't handle %s in unions yet" % type)
 
     info = getJSToNativeConversionInfo(
         type, descriptorProvider, failureCode="return Ok(None);",
