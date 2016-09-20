@@ -3,10 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::cell::DOMRefCell;
-use dom::bindings::codegen::Bindings::HeadersBinding;
-use dom::bindings::codegen::Bindings::HeadersBinding::HeadersMethods;
-use dom::bindings::codegen::Bindings::HeadersBinding::HeadersWrap;
-use dom::bindings::codegen::UnionTypes::HeadersOrByteStringSequenceSequence;
+use dom::bindings::codegen::Bindings::HeadersBinding::{HeadersInit, HeadersMethods, HeadersWrap};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::iterable::Iterable;
@@ -51,7 +48,7 @@ impl Headers {
     }
 
     // https://fetch.spec.whatwg.org/#dom-headers
-    pub fn Constructor(global: GlobalRef, init: Option<HeadersBinding::HeadersInit>)
+    pub fn Constructor(global: GlobalRef, init: Option<HeadersInit>)
                        -> Fallible<Root<Headers>> {
         let dom_headers_new = Headers::new(global);
         try!(dom_headers_new.fill(init));
@@ -169,10 +166,10 @@ impl HeadersMethods for Headers {
 
 impl Headers {
     // https://fetch.spec.whatwg.org/#concept-headers-fill
-    pub fn fill(&self, filler: Option<HeadersBinding::HeadersInit>) -> ErrorResult {
+    pub fn fill(&self, filler: Option<HeadersInit>) -> ErrorResult {
         match filler {
             // Step 1
-            Some(HeadersOrByteStringSequenceSequence::Headers(h)) => {
+            Some(HeadersInit::Headers(h)) => {
                 for header in h.header_list.borrow().iter() {
                     try!(self.Append(
                         ByteString::new(Vec::from(header.name())),
@@ -182,7 +179,7 @@ impl Headers {
                 Ok(())
             },
             // Step 2
-            Some(HeadersOrByteStringSequenceSequence::ByteStringSequenceSequence(v)) => {
+            Some(HeadersInit::ByteStringSequenceSequence(v)) => {
                 for mut seq in v {
                     if seq.len() == 2 {
                         let val = seq.pop().unwrap();
@@ -196,7 +193,14 @@ impl Headers {
                 }
                 Ok(())
             },
-            // Step 3 TODO constructor for when init is an open-ended dictionary
+            Some(HeadersInit::ByteStringMozMap(m)) => {
+                for (key, value) in m.iter() {
+                    let key_vec = key.as_ref().to_string().into();
+                    let headers_key = ByteString::new(key_vec);
+                    try!(self.Append(headers_key, value.clone()));
+                }
+                Ok(())
+            },
             None => Ok(()),
         }
     }
