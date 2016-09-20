@@ -612,18 +612,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         self.pipelines.insert(pipeline_id, pipeline);
     }
 
-    // Push a new (loading) pipeline to the list of pending frame changes
-    fn push_pending_frame(&mut self, new_pipeline_id: PipelineId,
-                          old_pipeline_id: Option<PipelineId>,
-                          replace: bool) {
-        self.pending_frames.push(FrameChange {
-            old_pipeline_id: old_pipeline_id,
-            new_pipeline_id: new_pipeline_id,
-            document_ready: false,
-            replace: replace,
-        });
-    }
-
     // Get an iterator for the current frame tree. Specify self.root_frame_id to
     // iterate the entire tree, or a specific frame id to iterate only that sub-tree.
     fn current_frame_tree_iter(&self, frame_id_root: Option<FrameId>) -> FrameTreeIterator {
@@ -1158,7 +1146,12 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             let load_data = LoadData::new(failure_url, None, None);
             self.new_pipeline(new_pipeline_id, parent_info, Some(pipeline_id), window_size, None, load_data, false);
 
-            self.push_pending_frame(new_pipeline_id, Some(pipeline_id), false);
+            self.pending_frames.push(FrameChange {
+                old_pipeline_id: Some(pipeline_id),
+                new_pipeline_id: new_pipeline_id,
+                document_ready: false,
+                replace: false,
+            });
         }
     }
 
@@ -1183,7 +1176,12 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         self.new_pipeline(root_pipeline_id, None, None, Some(window_size), None,
                           LoadData::new(url.clone(), None, None), false);
         self.handle_load_start_msg(root_pipeline_id);
-        self.push_pending_frame(root_pipeline_id, None, false);
+        self.pending_frames.push(FrameChange {
+            old_pipeline_id: None,
+            new_pipeline_id: root_pipeline_id,
+            document_ready: false,
+            replace: false,
+        });
         self.compositor_proxy.send(ToCompositorMsg::ChangePageUrl(root_pipeline_id, url));
     }
 
@@ -1305,7 +1303,12 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                           load_data,
                           is_private);
 
-        self.push_pending_frame(load_info.new_pipeline_id, load_info.old_pipeline_id, load_info.replace);
+        self.pending_frames.push(FrameChange {
+            old_pipeline_id: load_info.old_pipeline_id,
+            new_pipeline_id: load_info.new_pipeline_id,
+            document_ready: false,
+            replace: load_info.replace,
+        });
     }
 
     fn handle_set_cursor_msg(&mut self, cursor: Cursor) {
@@ -1437,7 +1440,12 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 let window_size = self.pipelines.get(&source_id).and_then(|source| source.size);
                 let new_pipeline_id = PipelineId::new();
                 self.new_pipeline(new_pipeline_id, None, None, window_size, None, load_data, false);
-                self.push_pending_frame(new_pipeline_id, Some(source_id), replace);
+                self.pending_frames.push(FrameChange {
+                    old_pipeline_id: Some(source_id),
+                    new_pipeline_id: new_pipeline_id,
+                    document_ready: false,
+                    replace: replace,
+                });
 
                 // Send message to ScriptThread that will suspend all timers
                 match self.pipelines.get(&source_id) {
