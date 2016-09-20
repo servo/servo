@@ -401,6 +401,7 @@ version = "0.0.1"
 dependencies = [
  "app_units 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "cssparser 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gecko_bindings 0.0.1",
  "style 0.0.1",
  "style_traits 0.0.1",
 ]

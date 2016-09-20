@@ -208,6 +208,8 @@ class MachCommands(CommandBase):
         if not packages:
             packages = set(os.listdir(path.join(self.context.topdir, "tests", "unit")))
 
+        packages.remove('stylo')
+
         args = ["cargo", "test"]
         for crate in packages:
             args += ["-p", "%s_tests" % crate]
@@ -235,10 +237,7 @@ class MachCommands(CommandBase):
     @Command('test-stylo',
              description='Run stylo unit tests',
              category='testing')
-    def test_unit(self, test_name=None, package=None):
-        if test_name is None:
-            test_name = []
-
+    def test_stylo(self):
         self.set_use_stable_rust()
         self.ensure_bootstrapped()
 

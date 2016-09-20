@@ -22,7 +22,6 @@ mod snapshot;
 mod snapshot_helpers;
 #[allow(non_snake_case)]
 pub mod glue;
-mod sanity_checks;
 mod traversal;
 mod wrapper;
 
