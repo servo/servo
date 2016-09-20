@@ -97,6 +97,11 @@ def innerSequenceType(type):
     return type.inner.inner if type.nullable() else type.inner
 
 
+def innerMozMapType(type):
+    assert type.isMozMap()
+    return type.inner.inner if type.nullable() else type.inner
+
+
 builtinNames = {
     IDLType.Tags.bool: 'bool',
     IDLType.Tags.int8: 'i8',
@@ -744,6 +749,26 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
 
         return handleOptional(templateBody, declType, handleDefaultNull("None"))
 
+    if type.isMozMap():
+        innerInfo = getJSToNativeConversionInfo(innerMozMapType(type),
+                                                descriptorProvider,
+                                                isMember=isMember)
+        declType = CGWrapper(innerInfo.declType, pre="MozMap<", post=">")
+        config = getConversionConfigForType(type, isEnforceRange, isClamp, treatNullAs)
+
+        if type.nullable():
+            declType = CGWrapper(declType, pre="Option<", post=">")
+
+        templateBody = ("match FromJSValConvertible::from_jsval(cx, ${val}, %s) {\n"
+                        "    Ok(ConversionResult::Success(value)) => value,\n"
+                        "    Ok(ConversionResult::Failure(error)) => {\n"
+                        "%s\n"
+                        "    }\n"
+                        "    _ => { %s },\n"
+                        "}" % (config, indent(failOrPropagate, 8), exceptionCode))
+
+        return handleOptional(templateBody, declType, handleDefaultNull("None"))
+
     if type.isUnion():
         declType = CGGeneric(union_native_type(type))
         if type.nullable():
@@ -1267,6 +1292,10 @@ def typeNeedsCx(type, retVal=False):
 def getConversionConfigForType(type, isEnforceRange, isClamp, treatNullAs):
     if type.isSequence():
         return getConversionConfigForType(type.unroll(), isEnforceRange, isClamp, treatNullAs)
+
+    if type.isMozMap():
+        return getConversionConfigForType(innerMozMapType(type), isEnforceRange, isClamp, treatNullAs)
+
     if type.isDOMString():
         assert not isEnforceRange and not isClamp
 
@@ -1353,6 +1382,12 @@ def getRetvalDeclarationForType(returnType, descriptorProvider):
     if returnType.isSequence():
         result = getRetvalDeclarationForType(innerSequenceType(returnType), descriptorProvider)
         result = CGWrapper(result, pre="Vec<", post=">")
+        if returnType.nullable():
+            result = CGWrapper(result, pre="Option<", post=">")
+        return result
+    if returnType.isMozMap():
+        result = getRetvalDeclarationForType(innerMozMapType(returnType), descriptorProvider)
+        result = CGWrapper(result, pre="MozMap<", post=">")
         if returnType.nullable():
             result = CGWrapper(result, pre="Option<", post=">")
         return result
@@ -1885,6 +1920,8 @@ class CGImports(CGWrapper):
                     parentName = getIdentifier(descriptor.interface.parent).name
                     descriptor = descriptorProvider.getDescriptor(parentName)
                     extras += [descriptor.path, descriptor.bindingPath]
+            elif t.isType() and t.isMozMap():
+                extras += ['dom::bindings::mozmap::MozMap']
             else:
                 if t.isEnum():
                     extras += [getModuleFromObject(t) + '::' + getIdentifier(t).name + 'Values']
@@ -2177,6 +2214,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, typedefs, config):
         'dom::bindings::conversions::root_from_handlevalue',
         'dom::bindings::error::throw_not_in_union',
         'dom::bindings::js::Root',
+        'dom::bindings::mozmap::MozMap',
         'dom::bindings::str::ByteString',
         'dom::bindings::str::DOMString',
         'dom::bindings::str::USVString',
@@ -3999,6 +4037,10 @@ def getUnionTypeTemplateVars(type, descriptorProvider):
         name = type.name
         inner = getUnionTypeTemplateVars(innerSequenceType(type), descriptorProvider)
         typeName = "Vec<" + inner["typeName"] + ">"
+    elif type.isMozMap():
+        name = type.name
+        inner = getUnionTypeTemplateVars(innerMozMapType(type), descriptorProvider)
+        typeName = "MozMap<" + inner["typeName"] + ">"
     elif type.isByteString():
         name = type.name
         typeName = "ByteString"
@@ -4144,14 +4186,25 @@ class CGUnionConversionStruct(CGThing):
         else:
             object = None
 
-        hasObjectTypes = interfaceObject or arrayObject or dateObject or nonPlatformObject or object
+        mozMapMemberTypes = filter(lambda t: t.isMozMap(), memberTypes)
+        if len(mozMapMemberTypes) > 0:
+            assert len(mozMapMemberTypes) == 1
+            typeName = mozMapMemberTypes[0].name
+            mozMapObject = CGGeneric(get_match(typeName))
+            names.append(typeName)
+        else:
+            mozMapObject = None
+
+        hasObjectTypes = interfaceObject or arrayObject or dateObject or nonPlatformObject or object or mozMapObject
         if hasObjectTypes:
-            assert interfaceObject or arrayObject
+            assert interfaceObject or arrayObject or mozMapObject
             templateBody = CGList([], "\n")
             if interfaceObject:
                 templateBody.append(interfaceObject)
             if arrayObject:
                 templateBody.append(arrayObject)
+            if mozMapObject:
+                templateBody.append(mozMapObject)
             conversions.append(CGIfWrapper("value.get().is_object()", templateBody))
         stringTypes = [t for t in memberTypes if t.isString() or t.isEnum()]
         numericTypes = [t for t in memberTypes if t.isNumeric()]
@@ -5536,6 +5589,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'dom::bindings::proxyhandler::fill_property_descriptor',
         'dom::bindings::proxyhandler::get_expando_object',
         'dom::bindings::proxyhandler::get_property_descriptor',
+        'dom::bindings::mozmap::MozMap',
         'dom::bindings::num::Finite',
         'dom::bindings::str::ByteString',
         'dom::bindings::str::DOMString',

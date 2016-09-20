@@ -140,6 +140,7 @@ pub mod inheritance;
 pub mod interface;
 pub mod iterable;
 pub mod js;
+pub mod mozmap;
 pub mod namespace;
 pub mod num;
 pub mod proxyhandler;
