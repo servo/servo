@@ -94,10 +94,9 @@ ${helpers.single_keyword("mask-repeat",
 
 <%helpers:longhand name="mask-position" products="gecko" animatable="True">
     use properties::longhands::background_position;
-    pub mod computed_value {
-        pub type T = ::properties::longhands::background_position::computed_value::T;
-    }
-    pub type SpecifiedValue = background_position::SpecifiedValue;
+    pub use ::properties::longhands::background_position::SpecifiedValue;
+    pub use ::properties::longhands::background_position::single_value as single_value;
+    pub use ::properties::longhands::background_position::computed_value as computed_value;
 
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
@@ -127,10 +126,9 @@ ${helpers.single_keyword("mask-origin",
 
 <%helpers:longhand name="mask-size" products="gecko" animatable="True">
     use properties::longhands::background_size;
-    pub mod computed_value {
-        pub type T = ::properties::longhands::background_size::computed_value::T;
-    }
-    pub type SpecifiedValue = background_size::SpecifiedValue;
+    pub use ::properties::longhands::background_size::SpecifiedValue;
+    pub use ::properties::longhands::background_size::single_value as single_value;
+    pub use ::properties::longhands::background_size::computed_value as computed_value;
 
     #[inline]
     pub fn get_initial_value() -> computed_value::T {

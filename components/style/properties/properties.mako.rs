@@ -130,6 +130,7 @@ pub mod shorthands {
     <%include file="/shorthand/inherited_text.mako.rs" />
     <%include file="/shorthand/list.mako.rs" />
     <%include file="/shorthand/margin.mako.rs" />
+    <%include file="/shorthand/mask.mako.rs" />
     <%include file="/shorthand/outline.mako.rs" />
     <%include file="/shorthand/padding.mako.rs" />
     <%include file="/shorthand/position.mako.rs" />
