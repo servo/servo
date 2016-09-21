@@ -85,6 +85,7 @@ pub struct HTMLInputElement {
     value_changed: Cell<bool>,
     size: Cell<u32>,
     maxlength: Cell<i32>,
+    minlength: Cell<i32>,
     #[ignore_heap_size_of = "#7193"]
     textinput: DOMRefCell<TextInput<IpcSender<ConstellationMsg>>>,
     activation_state: DOMRefCell<InputActivationState>,
@@ -123,6 +124,7 @@ impl InputActivationState {
 
 static DEFAULT_INPUT_SIZE: u32 = 20;
 static DEFAULT_MAX_LENGTH: i32 = -1;
+static DEFAULT_MIN_LENGTH: i32 = -1;
 
 impl HTMLInputElement {
     fn new_inherited(local_name: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLInputElement {
@@ -136,8 +138,14 @@ impl HTMLInputElement {
             checked_changed: Cell::new(false),
             value_changed: Cell::new(false),
             maxlength: Cell::new(DEFAULT_MAX_LENGTH),
+            minlength: Cell::new(DEFAULT_MIN_LENGTH),
             size: Cell::new(DEFAULT_INPUT_SIZE),
-            textinput: DOMRefCell::new(TextInput::new(Single, DOMString::new(), chan, None, SelectionDirection::None)),
+            textinput: DOMRefCell::new(TextInput::new(Single,
+                                                      DOMString::new(),
+                                                      chan,
+                                                      None,
+                                                      None,
+                                                      SelectionDirection::None)),
             activation_state: DOMRefCell::new(InputActivationState::new()),
             value_dirty: Cell::new(false),
             filelist: MutNullableHeap::new(None),
@@ -478,6 +486,12 @@ impl HTMLInputElementMethods for HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-input-maxlength
     make_limited_int_setter!(SetMaxLength, "maxlength", DEFAULT_MAX_LENGTH);
+
+    // https://html.spec.whatwg.org/multipage/#dom-input-minlength
+    make_int_getter!(MinLength, "minlength", DEFAULT_MIN_LENGTH);
+
+    // https://html.spec.whatwg.org/multipage/#dom-input-minlength
+    make_limited_int_setter!(SetMinLength, "minlength", DEFAULT_MIN_LENGTH);
 
     // https://html.spec.whatwg.org/multipage/#dom-input-min
     make_getter!(Min, "min");
@@ -993,7 +1007,19 @@ impl VirtualMethods for HTMLInputElement {
                     },
                     _ => panic!("Expected an AttrValue::Int"),
                 }
-            }
+            },
+            &atom!("minlength") => {
+                match *attr.value() {
+                    AttrValue::Int(_, value) => {
+                        if value < 0 {
+                            self.textinput.borrow_mut().min_length = None
+                        } else {
+                            self.textinput.borrow_mut().min_length = Some(value as usize)
+                        }
+                    },
+                    _ => panic!("Expected an AttrValue::Int"),
+                }
+            },
             &atom!("placeholder") => {
                 {
                     let mut placeholder = self.placeholder.borrow_mut();
@@ -1027,6 +1053,7 @@ impl VirtualMethods for HTMLInputElement {
             &atom!("size") => AttrValue::from_limited_u32(value.into(), DEFAULT_INPUT_SIZE),
             &atom!("type") => AttrValue::from_atomic(value.into()),
             &atom!("maxlength") => AttrValue::from_limited_i32(value.into(), DEFAULT_MAX_LENGTH),
+            &atom!("minlength") => AttrValue::from_limited_i32(value.into(), DEFAULT_MIN_LENGTH),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>input min length</title>
+    <link rel="author" title="Taryn Hill" href="mailto:Phrohdoh@gmail.com">
+    <link rel=help href="https://html.spec.whatwg.org/multipage/forms.html#the-minlength-and-minlength-attributes">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+
+  <body>
+    <h1>Text input element</h1>
+
+    <div style="display: none">
+      <input id="none" />
+      <input id="negative" minlength=-5 />
+      <input id="non-numeric" minlength="not-a-number" />
+      <input id="assign-negative" />
+      <input id="assign-non-numeric" />
+    </div>
+
+    <div id="log"></div>
+
+    <script type="text/javascript">
+      test(
+        function() {
+          assert_equals(document.getElementById("none").minLength, -1);
+        }, "Unset minlength is -1");
+
+      test(
+        function() {
+          assert_equals(document.getElementById("negative").minLength, -1);
+        }, "Negative minlength is always -1");
+
+      test(
+        function() {
+          assert_equals(document.getElementById("non-numeric").minLength, -1);
+        }, "Non-numeric minlength is -1");
+
+      test(
+          function() {
+            assert_throws("INDEX_SIZE_ERR", function() {
+              document.getElementById("assign-negative").minLength = -5;
+            });
+          }, "Assigning negative integer throws IndexSizeError");
+
+      test(
+          function() {
+            document.getElementById("assign-non-numeric").minLength = "not-a-number";
+            assert_equals(document.getElementById("assign-non-numeric").minLength, 0);
+          }, "Assigning non-numeric to minlength sets minlength to 0");
+    </script>
+  </body>
+</html>
+
