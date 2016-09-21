@@ -17,16 +17,14 @@ use gecko_bindings::bindings::{Gecko_GetPrevSibling, Gecko_GetPrevSiblingElement
 use gecko_bindings::bindings::{Gecko_GetServoDeclarationBlock, Gecko_IsHTMLElementInHTMLDocument};
 use gecko_bindings::bindings::{Gecko_IsLink, Gecko_IsRootElement, Gecko_IsTextNode};
 use gecko_bindings::bindings::{Gecko_IsUnvisitedLink, Gecko_IsVisitedLink};
-use gecko_bindings::bindings::{Gecko_LocalName, Gecko_Namespace, Gecko_NodeIsElement, Gecko_SetNodeData};
-use gecko_bindings::bindings::{RawGeckoDocument, RawGeckoElement, RawGeckoNode};
+use gecko_bindings::bindings::{Gecko_LocalName, Gecko_Namespace, Gecko_NodeIsElement};
 use gecko_bindings::bindings::Gecko_ClassOrClassList;
-use gecko_bindings::bindings::Gecko_GetNodeData;
 use gecko_bindings::bindings::Gecko_GetStyleContext;
-use gecko_bindings::bindings::ServoNodeData;
 use gecko_bindings::structs::{NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO, NODE_IS_DIRTY_FOR_SERVO};
+use gecko_bindings::structs::{RawGeckoDocument, RawGeckoElement, RawGeckoNode};
 use gecko_bindings::structs::{nsChangeHint, nsIAtom, nsStyleContext};
-use gecko_bindings::sugar::ownership::{FFIArcHelpers, HasBoxFFI, HasFFI, HasSimpleFFI};
-use gecko_bindings::sugar::ownership::Borrowed;
+use gecko_bindings::structs::OpaqueStyleData;
+use gecko_bindings::sugar::ownership::FFIArcHelpers;
 use gecko_string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
 use glue::GeckoDeclarationBlock;
 use libc::uintptr_t;
@@ -55,16 +53,19 @@ use url::Url;
 
 pub struct NonOpaqueStyleData(RefCell<PrivateStyleData>);
 
-unsafe impl HasFFI for NonOpaqueStyleData {
-    type FFIType = ServoNodeData;
-}
-unsafe impl HasSimpleFFI for NonOpaqueStyleData {}
-unsafe impl HasBoxFFI for NonOpaqueStyleData {}
-
 impl NonOpaqueStyleData {
     pub fn new() -> Self {
         NonOpaqueStyleData(RefCell::new(PrivateStyleData::new()))
     }
+}
+
+
+// We can eliminate OpaqueStyleData when the bindings move into the style crate.
+fn to_opaque_style_data(d: *mut NonOpaqueStyleData) -> *mut OpaqueStyleData {
+    d as *mut OpaqueStyleData
+}
+fn from_opaque_style_data(d: *mut OpaqueStyleData) -> *mut NonOpaqueStyleData {
+    d as *mut NonOpaqueStyleData
 }
 
 // Important: We don't currently refcount the DOM, because the wrapper lifetime
@@ -76,18 +77,25 @@ impl NonOpaqueStyleData {
 pub struct GeckoNode<'ln>(pub &'ln RawGeckoNode);
 
 impl<'ln> GeckoNode<'ln> {
-    fn get_node_data(&self) -> Borrowed<NonOpaqueStyleData> {
+    fn get_node_data(&self) -> Option<&NonOpaqueStyleData> {
             unsafe {
-                Borrowed::from_ffi(Gecko_GetNodeData(&*self.0))
+                from_opaque_style_data(self.0.mServoData.get()).as_ref()
             }
     }
 
     pub fn initialize_data(self) {
-        unsafe {
-            if self.get_node_data().is_null() {
-                let ptr = Box::new(NonOpaqueStyleData::new());
-                Gecko_SetNodeData(self.0, ptr.into_ffi());
-            }
+        if self.get_node_data().is_none() {
+            let ptr = Box::new(NonOpaqueStyleData::new());
+            debug_assert!(self.0.mServoData.get().is_null());
+            self.0.mServoData.set(to_opaque_style_data(Box::into_raw(ptr)));
+        }
+    }
+
+    pub fn clear_data(self) {
+        if !self.get_node_data().is_none() {
+            let d = from_opaque_style_data(self.0.mServoData.get());
+            let _ = unsafe { Box::from_raw(d) };
+            self.0.mServoData.set(ptr::null_mut());
         }
     }
 }
@@ -210,7 +218,7 @@ impl<'ln> TNode for GeckoNode<'ln> {
     fn is_dirty(&self) -> bool {
         // Return true unconditionally if we're not yet styled. This is a hack
         // and should go away soon.
-        if self.get_node_data().is_null() {
+        if self.get_node_data().is_none() {
             return true;
         }
 
@@ -229,7 +237,7 @@ impl<'ln> TNode for GeckoNode<'ln> {
     fn has_dirty_descendants(&self) -> bool {
         // Return true unconditionally if we're not yet styled. This is a hack
         // and should go away soon.
-        if self.get_node_data().is_null() {
+        if self.get_node_data().is_none() {
             return true;
         }
         let flags = unsafe { Gecko_GetNodeFlags(self.0) };
@@ -257,18 +265,18 @@ impl<'ln> TNode for GeckoNode<'ln> {
 
     #[inline(always)]
     unsafe fn borrow_data_unchecked(&self) -> Option<*const PrivateStyleData> {
-        self.get_node_data().borrow_opt().map(|d| d.0.as_unsafe_cell().get()
+        self.get_node_data().as_ref().map(|d| d.0.as_unsafe_cell().get()
                                                   as *const PrivateStyleData)
     }
 
     #[inline(always)]
     fn borrow_data(&self) -> Option<Ref<PrivateStyleData>> {
-        self.get_node_data().borrow_opt().map(|d| d.0.borrow())
+        self.get_node_data().as_ref().map(|d| d.0.borrow())
     }
 
     #[inline(always)]
     fn mutate_data(&self) -> Option<RefMut<PrivateStyleData>> {
-        self.get_node_data().borrow_opt().map(|d| d.0.borrow_mut())
+        self.get_node_data().as_ref().map(|d| d.0.borrow_mut())
     }
 
     fn restyle_damage(self) -> Self::ConcreteRestyleDamage {

@@ -9,7 +9,7 @@ use data::{NUM_THREADS, PerDocumentStyleData};
 use env_logger;
 use euclid::Size2D;
 use gecko_bindings::bindings::{RawGeckoElementBorrowed, RawGeckoNodeBorrowed};
-use gecko_bindings::bindings::{RawServoStyleSetBorrowed, RawServoStyleSetOwned, ServoNodeDataOwned};
+use gecko_bindings::bindings::{RawServoStyleSetBorrowed, RawServoStyleSetOwned};
 use gecko_bindings::bindings::{RawServoStyleSetBorrowedMut, RawGeckoDocumentBorrowed};
 use gecko_bindings::bindings::{RawServoStyleSheetBorrowed, ServoComputedValuesBorrowed};
 use gecko_bindings::bindings::{RawServoStyleSheetStrong, ServoComputedValuesStrong};
@@ -44,7 +44,7 @@ use style::stylesheets::{Origin, Stylesheet};
 use style::timer::Timer;
 use traversal::RecalcStyleOnly;
 use url::Url;
-use wrapper::{DUMMY_BASE_URL, GeckoDocument, GeckoElement, GeckoNode, NonOpaqueStyleData};
+use wrapper::{DUMMY_BASE_URL, GeckoDocument, GeckoElement, GeckoNode};
 
 /*
  * For Gecko->Servo function calls, we need to redeclare the same signature that was declared in
@@ -126,8 +126,9 @@ pub extern "C" fn Servo_StyleWorkerThreadCount() -> u32 {
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_NodeData_Drop(data: ServoNodeDataOwned) -> () {
-    let _ = data.into_box::<NonOpaqueStyleData>();
+pub extern "C" fn Servo_Node_ClearNodeData(node: RawGeckoNodeBorrowed) -> () {
+    let node = GeckoNode(node);
+    node.clear_data();
 }
 
 #[no_mangle]

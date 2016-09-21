@@ -66,6 +66,10 @@ COMPILATION_TARGETS = {
             "release": {
             }
         },
+        "raw_lines": [
+            # We can get rid of this when the bindings move into the style crate.
+            "pub enum OpaqueStyleData {}",
+        ],
         "whitelist_vars": [
             "NS_THEME_.*",
             "NODE_.*",
@@ -77,6 +81,9 @@ COMPILATION_TARGETS = {
             "BORDER_STYLE_.*"
         ],
         "whitelist": [
+            "RawGeckoNode",
+            "RawGeckoElement",
+            "RawGeckoDocument",
             "Element",
             "Side",
             "nsTArrayHeader",
@@ -168,6 +175,21 @@ COMPILATION_TARGETS = {
             "gfxSize",  # <- Same, union { struct { T width; T height; }; T components[2] };
             "gfxSize_Super",  # Ditto.
         ],
+        "servo_mapped_generic_types": [
+            {
+                "generic": True,
+                "gecko": "ServoUnsafeCell",
+                "servo": "::std::cell::UnsafeCell"
+            }, {
+                "generic": True,
+                "gecko": "ServoCell",
+                "servo": "::std::cell::Cell"
+            }, {
+                "generic": False,
+                "gecko": "ServoNodeData",
+                "servo": "OpaqueStyleData"
+            }
+        ],
     },
     # Generation of the ffi bindings.
     "bindings": {
@@ -206,6 +228,8 @@ COMPILATION_TARGETS = {
             "FontFamilyType", "nsIAtom", "nsStyleContext", "StyleClipPath",
             "StyleBasicShapeType", "StyleBasicShape", "nsCSSShadowArray",
             "nsINode", "nsIDocument", "nsIPrincipal", "nsIURI",
+            "RawGeckoNode", "RawGeckoElement", "RawGeckoDocument",
+            "ServoNodeData",
         ],
         "servo_nullable_arc_types": [
             "ServoComputedValues", "RawServoStyleSheet",
@@ -213,7 +237,6 @@ COMPILATION_TARGETS = {
         ],
         "servo_owned_types": [
             "RawServoStyleSet",
-            "ServoNodeData",
             "StyleChildrenIterator",
         ],
         "servo_immutable_borrow_types": [
@@ -430,7 +453,17 @@ def build(objdir, target_name, debug, debugger, kind_name=None,
             flags.append("{}BorrowedOrNull".format(ty))
             flags.append("--raw-line")
             flags.append("pub type {0}BorrowedOrNull<'a> = ::sugar::ownership::Borrowed<'a, {0}>;".format(ty))
-            zero_size_type(ty, flags)
+            # Right now the only immutable borrow types are ones which we import
+            # from the |structs| module. As such, we don't need to create an opaque
+            # type with zero_size_type. If we ever introduce immutable borrow types
+            # which _do_ need to be opaque, we'll need a separate mode.
+
+    if "servo_mapped_generic_types" in current_target:
+        for ty in current_target["servo_mapped_generic_types"]:
+            flags.append("--blacklist-type")
+            flags.append("{}".format(ty["gecko"]))
+            flags.append("--raw-line")
+            flags.append("pub type {0}{2} = {1}{2};".format(ty["gecko"], ty["servo"], "<T>" if ty["generic"] else ""))
 
     if "servo_owned_types" in current_target:
         for ty in current_target["servo_owned_types"]:
