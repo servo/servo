@@ -98,7 +98,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
     make_setter!(SetAcceptCharset, "accept-charset");
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-action
-    make_url_or_base_getter!(Action, "action");
+    make_string_or_document_url_getter!(Action, "action");
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-action
     make_setter!(SetAction, "action");
@@ -295,7 +295,7 @@ impl HTMLFormElement {
     pub fn submit(&self, submit_method_flag: SubmittedFrom, submitter: FormSubmitter) {
         // Step 1
         let doc = document_from_node(self);
-        let base = doc.url();
+        let base = doc.base_url();
         // TODO: Handle browsing contexts (Step 2, 3)
         // Step 4
         if submit_method_flag == SubmittedFrom::NotFromForm &&
