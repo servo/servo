@@ -314,6 +314,10 @@ impl Stylist {
         &self.viewport_constraints
     }
 
+    pub fn quirks_mode(&self) -> bool {
+        self.quirks_mode
+    }
+
     pub fn set_quirks_mode(&mut self, enabled: bool) {
         self.quirks_mode = enabled;
     }
