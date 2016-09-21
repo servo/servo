@@ -92,7 +92,7 @@ def stripTrailingWhitespace(text):
     return '\n'.join(lines) + tail
 
 
-def innerSequenceType(type):
+def innerContainerType(type):
     assert type.isSequence()
     return type.inner.inner if type.nullable() else type.inner
 
@@ -725,7 +725,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         raise TypeError("Can't handle array arguments yet")
 
     if type.isSequence():
-        innerInfo = getJSToNativeConversionInfo(innerSequenceType(type),
+        innerInfo = getJSToNativeConversionInfo(innerContainerType(type),
                                                 descriptorProvider,
                                                 isMember=isMember)
         declType = CGWrapper(innerInfo.declType, pre="Vec<", post=">")
@@ -1351,7 +1351,7 @@ def getRetvalDeclarationForType(returnType, descriptorProvider):
             result = CGWrapper(result, pre="Option<", post=">")
         return result
     if returnType.isSequence():
-        result = getRetvalDeclarationForType(innerSequenceType(returnType), descriptorProvider)
+        result = getRetvalDeclarationForType(innerContainerType(returnType), descriptorProvider)
         result = CGWrapper(result, pre="Vec<", post=">")
         if returnType.nullable():
             result = CGWrapper(result, pre="Option<", post=">")
@@ -3997,7 +3997,7 @@ def getUnionTypeTemplateVars(type, descriptorProvider):
         typeName = name
     elif type.isSequence():
         name = type.name
-        inner = getUnionTypeTemplateVars(innerSequenceType(type), descriptorProvider)
+        inner = getUnionTypeTemplateVars(innerContainerType(type), descriptorProvider)
         typeName = "Vec<" + inner["typeName"] + ">"
     elif type.isByteString():
         name = type.name
