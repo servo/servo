@@ -2,12 +2,8 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
-  function formactionurltest() {
-    test(function(){
-      var t = async_test();
-      var success = t.step_func_done();
-    }, "The form was submitted successfully");
-  }
+  var t = async_test("Submit a form from an iframe with a base url");
+  var success = t.step_func_done();
 </script>
 
 <iframe src="form-action-url-iframe.html">
