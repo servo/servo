@@ -39,8 +39,8 @@ use std::ops::BitOr;
 use std::ptr;
 use std::sync::Arc;
 use style::data::PrivateStyleData;
+use style::dom::{LayoutIterator, NodeInfo, TDocument, TElement, TNode, TRestyleDamage, UnsafeNode};
 use style::dom::{OpaqueNode, PresentationalHintsSynthetizer};
-use style::dom::{NodeInfo, TDocument, TElement, TNode, TRestyleDamage, UnsafeNode};
 use style::element_state::ElementState;
 use style::error_reporting::StdoutErrorReporter;
 use style::gecko_selector_impl::{GeckoSelectorImpl, NonTSPseudoClass, PseudoElement};
@@ -161,12 +161,12 @@ impl<'ln> TNode for GeckoNode<'ln> {
         unimplemented!()
     }
 
-    fn children(self) -> GeckoChildrenIterator<'ln> {
+    fn children(self) -> LayoutIterator<GeckoChildrenIterator<'ln>> {
         let maybe_iter = unsafe { Gecko_MaybeCreateStyleChildrenIterator(self.0) };
         if let Some(iter) = maybe_iter.into_owned_opt() {
-            GeckoChildrenIterator::GeckoIterator(iter)
+            LayoutIterator(GeckoChildrenIterator::GeckoIterator(iter))
         } else {
-            GeckoChildrenIterator::Current(self.first_child())
+            LayoutIterator(GeckoChildrenIterator::Current(self.first_child()))
         }
     }
 

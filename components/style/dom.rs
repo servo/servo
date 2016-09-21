@@ -73,6 +73,14 @@ pub trait NodeInfo {
     fn is_text_node(&self) -> bool;
 }
 
+pub struct LayoutIterator<T>(pub T);
+impl<T, I> Iterator for LayoutIterator<T> where T: Iterator<Item=I>, I: NodeInfo {
+    type Item = I;
+    fn next(&mut self) -> Option<I> {
+        self.0.next()
+    }
+}
+
 pub trait TNode : Sized + Copy + Clone + NodeInfo {
     type ConcreteElement: TElement<ConcreteNode = Self, ConcreteDocument = Self::ConcreteDocument>;
     type ConcreteDocument: TDocument<ConcreteNode = Self, ConcreteElement = Self::ConcreteElement>;
@@ -87,7 +95,7 @@ pub trait TNode : Sized + Copy + Clone + NodeInfo {
     fn dump_style(self);
 
     /// Returns an iterator over this node's children.
-    fn children(self) -> Self::ConcreteChildrenIterator;
+    fn children(self) -> LayoutIterator<Self::ConcreteChildrenIterator>;
 
     /// Converts self into an `OpaqueNode`.
     fn opaque(&self) -> OpaqueNode;

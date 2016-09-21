@@ -58,7 +58,8 @@ use style::attr::AttrValue;
 use style::computed_values::display;
 use style::context::SharedStyleContext;
 use style::data::PrivateStyleData;
-use style::dom::{NodeInfo, OpaqueNode, PresentationalHintsSynthetizer, TDocument, TElement, TNode, UnsafeNode};
+use style::dom::{LayoutIterator, NodeInfo, OpaqueNode, PresentationalHintsSynthetizer, TDocument, TElement, TNode};
+use style::dom::UnsafeNode;
 use style::element_state::*;
 use style::properties::{ComputedValues, PropertyDeclarationBlock};
 use style::refcell::{Ref, RefCell, RefMut};
@@ -149,10 +150,10 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
         self.dump_style_indent(0);
     }
 
-    fn children(self) -> ServoChildrenIterator<'ln> {
-        ServoChildrenIterator {
+    fn children(self) -> LayoutIterator<ServoChildrenIterator<'ln>> {
+        LayoutIterator(ServoChildrenIterator {
             current: self.first_child(),
-        }
+        })
     }
 
     fn opaque(&self) -> OpaqueNode {
@@ -771,8 +772,8 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
         self.node.debug_id()
     }
 
-    fn children(&self) -> Self::ChildrenIterator {
-        ThreadSafeLayoutNodeChildrenIterator::new(*self)
+    fn children(&self) -> LayoutIterator<Self::ChildrenIterator> {
+        LayoutIterator(ThreadSafeLayoutNodeChildrenIterator::new(*self))
     }
 
     fn as_element(&self) -> ServoThreadSafeLayoutElement<'ln> {
