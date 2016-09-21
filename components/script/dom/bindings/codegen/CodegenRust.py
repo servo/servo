@@ -97,6 +97,15 @@ def innerContainerType(type):
     return type.inner.inner if type.nullable() else type.inner
 
 
+def wrapInNativeContainerType(type, inner):
+    if type.isSequence():
+        containerType = "Vec"
+    else:
+        raise TypeError("Unexpected container type %s", type)
+
+    return CGWrapper(inner, pre=containerType + "<", post=">")
+
+
 builtinNames = {
     IDLType.Tags.bool: 'bool',
     IDLType.Tags.int8: 'i8',
@@ -728,7 +737,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         innerInfo = getJSToNativeConversionInfo(innerContainerType(type),
                                                 descriptorProvider,
                                                 isMember=isMember)
-        declType = CGWrapper(innerInfo.declType, pre="Vec<", post=">")
+        declType = wrapInNativeContainerType(type, innerInfo.declType)
         config = getConversionConfigForType(type, isEnforceRange, isClamp, treatNullAs)
 
         if type.nullable():
@@ -1352,7 +1361,7 @@ def getRetvalDeclarationForType(returnType, descriptorProvider):
         return result
     if returnType.isSequence():
         result = getRetvalDeclarationForType(innerContainerType(returnType), descriptorProvider)
-        result = CGWrapper(result, pre="Vec<", post=">")
+        result = wrapInNativeContainerType(returnType, result)
         if returnType.nullable():
             result = CGWrapper(result, pre="Option<", post=">")
         return result
@@ -3998,7 +4007,7 @@ def getUnionTypeTemplateVars(type, descriptorProvider):
     elif type.isSequence():
         name = type.name
         inner = getUnionTypeTemplateVars(innerContainerType(type), descriptorProvider)
-        typeName = "Vec<" + inner["typeName"] + ">"
+        typeName = wrapInNativeContainerType(type, CGGeneric(inner["typeName"])).define()
     elif type.isByteString():
         name = type.name
         typeName = "ByteString"
