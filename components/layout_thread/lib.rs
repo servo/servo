@@ -1038,6 +1038,12 @@ impl LayoutThread {
         let document = unsafe { ServoLayoutNode::new(&data.document) };
         let document = document.as_document().unwrap();
 
+        // FIXME(pcwalton): Combine `ReflowGoal` and `ReflowQueryType`. Then remove this assert.
+        debug_assert!((data.reflow_info.goal == ReflowGoal::ForDisplay &&
+                       data.query_type == ReflowQueryType::NoQuery) ||
+                      (data.reflow_info.goal == ReflowGoal::ForScriptQuery &&
+                       data.query_type != ReflowQueryType::NoQuery));
+
         debug!("layout: received layout request for: {}", self.url);
 
         let mut rw_data = possibly_locked_rw_data.lock();
