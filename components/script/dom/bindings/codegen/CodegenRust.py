@@ -1266,7 +1266,7 @@ def typeNeedsCx(type, retVal=False):
 # Returns a conversion behavior suitable for a type
 def getConversionConfigForType(type, isEnforceRange, isClamp, treatNullAs):
     if type.isSequence():
-        return getConversionConfigForType(type.unroll(), isEnforceRange, isClamp, treatNullAs)
+        return getConversionConfigForType(innerContainerType(type), isEnforceRange, isClamp, treatNullAs)
     if type.isDOMString():
         assert not isEnforceRange and not isClamp
 
