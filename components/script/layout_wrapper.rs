@@ -737,6 +737,10 @@ impl<'ln> NodeInfo for ServoThreadSafeLayoutNode<'ln> {
     fn is_text_node(&self) -> bool {
         if let Some(LayoutNodeType::Text) = self.type_id() { true } else { false }
     }
+
+    fn needs_layout(&self) -> bool {
+        self.pseudo != PseudoElementType::Normal || self.is_element() || self.is_text_node()
+    }
 }
 
 impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
