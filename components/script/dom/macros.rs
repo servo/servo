@@ -135,7 +135,7 @@ macro_rules! make_string_or_document_url(
 
             if val.is_empty() {
                 let doc = document_from_node(self);
-                DOMString::from(doc.url().into_string())
+                DOMString::from(doc.url().clone().into_string())
             } else {
                 val
             }
