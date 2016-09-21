@@ -92,9 +92,20 @@ def stripTrailingWhitespace(text):
     return '\n'.join(lines) + tail
 
 
-def innerSequenceType(type):
-    assert type.isSequence()
+def innerContainerType(type):
+    assert type.isSequence() or type.isMozMap()
     return type.inner.inner if type.nullable() else type.inner
+
+
+def wrapInNativeContainerType(type, inner):
+    if type.isSequence():
+        containerType = "Vec"
+    elif type.isMozMap():
+        containerType = "MozMap"
+    else:
+        raise TypeError("Unexpected container type %s", type)
+
+    return CGWrapper(inner, pre=containerType + "<", post=">")
 
 
 builtinNames = {
@@ -649,6 +660,11 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
     if exceptionCode is None:
         exceptionCode = "return false;"
 
+    if failureCode is None:
+        failOrPropagate = "throw_type_error(cx, &error);\n%s" % exceptionCode
+    else:
+        failOrPropagate = failureCode
+
     needsRooting = typeNeedsRooting(type, descriptorProvider)
 
     def handleOptional(template, declType, default):
@@ -719,11 +735,11 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
     if type.isArray():
         raise TypeError("Can't handle array arguments yet")
 
-    if type.isSequence():
-        innerInfo = getJSToNativeConversionInfo(innerSequenceType(type),
+    if type.isSequence() or type.isMozMap():
+        innerInfo = getJSToNativeConversionInfo(innerContainerType(type),
                                                 descriptorProvider,
                                                 isMember=isMember)
-        declType = CGWrapper(innerInfo.declType, pre="Vec<", post=">")
+        declType = wrapInNativeContainerType(type, innerInfo.declType)
         config = getConversionConfigForType(type, isEnforceRange, isClamp, treatNullAs)
 
         if type.nullable():
@@ -732,11 +748,10 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         templateBody = ("match FromJSValConvertible::from_jsval(cx, ${val}, %s) {\n"
                         "    Ok(ConversionResult::Success(value)) => value,\n"
                         "    Ok(ConversionResult::Failure(error)) => {\n"
-                        "        throw_type_error(cx, &error);\n"
-                        "        %s\n"
+                        "%s\n"
                         "    }\n"
                         "    _ => { %s },\n"
-                        "}" % (config, exceptionCode, exceptionCode))
+                        "}" % (config, indent(failOrPropagate, 8), exceptionCode))
 
         return handleOptional(templateBody, declType, handleDefaultNull("None"))
 
@@ -748,11 +763,10 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         templateBody = ("match FromJSValConvertible::from_jsval(cx, ${val}, ()) {\n"
                         "    Ok(ConversionResult::Success(value)) => value,\n"
                         "    Ok(ConversionResult::Failure(error)) => {\n"
-                        "        throw_type_error(cx, &error);\n"
-                        "        %s\n"
+                        "%s\n"
                         "    }\n"
                         "    _ => { %s },\n"
-                        "}" % (exceptionCode, exceptionCode))
+                        "}" % (indent(failOrPropagate, 8), exceptionCode))
 
         return handleOptional(templateBody, declType, handleDefaultNull("None"))
 
@@ -823,11 +837,10 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             "match FromJSValConvertible::from_jsval(cx, ${val}, %s) {\n"
             "    Ok(ConversionResult::Success(strval)) => strval,\n"
             "    Ok(ConversionResult::Failure(error)) => {\n"
-            "        throw_type_error(cx, &error);\n"
-            "        %s\n"
+            "%s\n"
             "    }\n"
             "    _ => { %s },\n"
-            "}" % (nullBehavior, exceptionCode, exceptionCode))
+            "}" % (nullBehavior, indent(failOrPropagate, 8), exceptionCode))
 
         if defaultValue is None:
             default = None
@@ -853,11 +866,10 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             "match FromJSValConvertible::from_jsval(cx, ${val}, ()) {\n"
             "    Ok(ConversionResult::Success(strval)) => strval,\n"
             "    Ok(ConversionResult::Failure(error)) => {\n"
-            "        throw_type_error(cx, &error);\n"
-            "        %s\n"
+            "%s\n"
             "    }\n"
             "    _ => { %s },\n"
-            "}" % (exceptionCode, exceptionCode))
+            "}" % (indent(failOrPropagate, 8), exceptionCode))
 
         if defaultValue is None:
             default = None
@@ -883,11 +895,10 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             "match FromJSValConvertible::from_jsval(cx, ${val}, ()) {\n"
             "    Ok(ConversionResult::Success(strval)) => strval,\n"
             "    Ok(ConversionResult::Failure(error)) => {\n"
-            "        throw_type_error(cx, &error);\n"
-            "        %s\n"
+            "%s\n"
             "    }\n"
             "    _ => { %s },\n"
-            "}" % (exceptionCode, exceptionCode))
+            "}" % (indent(failOrPropagate, 8), exceptionCode))
 
         if defaultValue is None:
             default = None
@@ -1042,11 +1053,10 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         template = ("match %s::new(cx, ${val}) {\n"
                     "    Ok(ConversionResult::Success(dictionary)) => dictionary,\n"
                     "    Ok(ConversionResult::Failure(error)) => {\n"
-                    "        throw_type_error(cx, &error);\n"
-                    "        %s\n"
+                    "%s\n"
                     "    }\n"
                     "    _ => { %s },\n"
-                    "}" % (typeName, exceptionCode, exceptionCode))
+                    "}" % (typeName, indent(failOrPropagate, 8), exceptionCode))
 
         return handleOptional(template, declType, handleDefaultNull("%s::empty(cx)" % typeName))
 
@@ -1071,11 +1081,10 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         "match FromJSValConvertible::from_jsval(cx, ${val}, %s) {\n"
         "    Ok(ConversionResult::Success(v)) => v,\n"
         "    Ok(ConversionResult::Failure(error)) => {\n"
-        "        throw_type_error(cx, &error);\n"
-        "        %s\n"
+        "%s\n"
         "    }\n"
         "    _ => { %s }\n"
-        "}" % (conversionBehavior, exceptionCode, exceptionCode))
+        "}" % (conversionBehavior, indent(failOrPropagate, 8), exceptionCode))
 
     if defaultValue is not None:
         if isinstance(defaultValue, IDLNullValue):
@@ -1267,8 +1276,8 @@ def typeNeedsCx(type, retVal=False):
 
 # Returns a conversion behavior suitable for a type
 def getConversionConfigForType(type, isEnforceRange, isClamp, treatNullAs):
-    if type.isSequence():
-        return getConversionConfigForType(type.unroll(), isEnforceRange, isClamp, treatNullAs)
+    if type.isSequence() or type.isMozMap():
+        return getConversionConfigForType(innerContainerType(type), isEnforceRange, isClamp, treatNullAs)
     if type.isDOMString():
         assert not isEnforceRange and not isClamp
 
@@ -1352,9 +1361,9 @@ def getRetvalDeclarationForType(returnType, descriptorProvider):
         if returnType.nullable():
             result = CGWrapper(result, pre="Option<", post=">")
         return result
-    if returnType.isSequence():
-        result = getRetvalDeclarationForType(innerSequenceType(returnType), descriptorProvider)
-        result = CGWrapper(result, pre="Vec<", post=">")
+    if returnType.isSequence() or returnType.isMozMap():
+        result = getRetvalDeclarationForType(innerContainerType(returnType), descriptorProvider)
+        result = wrapInNativeContainerType(returnType, result)
         if returnType.nullable():
             result = CGWrapper(result, pre="Option<", post=">")
         return result
@@ -1887,6 +1896,8 @@ class CGImports(CGWrapper):
                     parentName = getIdentifier(descriptor.interface.parent).name
                     descriptor = descriptorProvider.getDescriptor(parentName)
                     extras += [descriptor.path, descriptor.bindingPath]
+            elif t.isType() and t.isMozMap():
+                extras += ['dom::bindings::mozmap::MozMap']
             else:
                 if t.isEnum():
                     extras += [getModuleFromObject(t) + '::' + getIdentifier(t).name + 'Values']
@@ -2179,6 +2190,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, typedefs, config):
         'dom::bindings::conversions::root_from_handlevalue',
         'dom::bindings::error::throw_not_in_union',
         'dom::bindings::js::Root',
+        'dom::bindings::mozmap::MozMap',
         'dom::bindings::str::ByteString',
         'dom::bindings::str::DOMString',
         'dom::bindings::str::USVString',
@@ -3991,27 +4003,16 @@ class CGConstant(CGThing):
 
 
 def getUnionTypeTemplateVars(type, descriptorProvider):
-    # For dictionaries and sequences we need to pass None as the failureCode
-    # for getJSToNativeConversionInfo.
-    # Also, for dictionaries we would need to handle conversion of
-    # null/undefined to the dictionary correctly.
-    if type.isDictionary():
-        raise TypeError("Can't handle dictionaries in unions")
-
     if type.isGeckoInterface():
         name = type.inner.identifier.name
         typeName = descriptorProvider.getDescriptor(name).returnType
     elif type.isEnum():
         name = type.inner.identifier.name
         typeName = name
-    elif type.isSequence():
+    elif type.isSequence() or type.isMozMap():
         name = type.name
-        inner = getUnionTypeTemplateVars(innerSequenceType(type), descriptorProvider)
-        typeName = "Vec<" + inner["typeName"] + ">"
-    elif type.isArray():
-        name = str(type)
-        # XXXjdm dunno about typeName here
-        typeName = "/*" + type.name + "*/"
+        inner = getUnionTypeTemplateVars(innerContainerType(type), descriptorProvider)
+        typeName = wrapInNativeContainerType(type, CGGeneric(inner["typeName"])).define()
     elif type.isByteString():
         name = type.name
         typeName = "ByteString"
@@ -4025,8 +4026,7 @@ def getUnionTypeTemplateVars(type, descriptorProvider):
         name = type.name
         typeName = builtinNames[type.tag()]
     else:
-        name = type.name
-        typeName = "/*" + type.name + "*/"
+        raise TypeError("Can't handle %s in unions yet" % type)
 
     info = getJSToNativeConversionInfo(
         type, descriptorProvider, failureCode="return Ok(None);",
@@ -4158,14 +4158,25 @@ class CGUnionConversionStruct(CGThing):
         else:
             object = None
 
-        hasObjectTypes = interfaceObject or arrayObject or dateObject or nonPlatformObject or object
+        mozMapMemberTypes = filter(lambda t: t.isMozMap(), memberTypes)
+        if len(mozMapMemberTypes) > 0:
+            assert len(mozMapMemberTypes) == 1
+            typeName = mozMapMemberTypes[0].name
+            mozMapObject = CGGeneric(get_match(typeName))
+            names.append(typeName)
+        else:
+            mozMapObject = None
+
+        hasObjectTypes = interfaceObject or arrayObject or dateObject or nonPlatformObject or object or mozMapObject
         if hasObjectTypes:
-            assert interfaceObject or arrayObject
+            assert interfaceObject or arrayObject or mozMapObject
             templateBody = CGList([], "\n")
             if interfaceObject:
                 templateBody.append(interfaceObject)
             if arrayObject:
                 templateBody.append(arrayObject)
+            if mozMapObject:
+                templateBody.append(mozMapObject)
             conversions.append(CGIfWrapper("value.get().is_object()", templateBody))
         stringTypes = [t for t in memberTypes if t.isString() or t.isEnum()]
         numericTypes = [t for t in memberTypes if t.isNumeric()]
@@ -4658,7 +4669,7 @@ class CGProxyNamedOperation(CGProxySpecialOperation):
     def define(self):
         # Our first argument is the id we're getting.
         argName = self.arguments[0].identifier.name
-        return ("let %s = jsid_to_str(cx, id);\n"
+        return ("let %s = string_jsid_to_string(cx, id);\n"
                 "let this = UnwrapProxy(proxy);\n"
                 "let this = &*this;\n" % argName +
                 CGProxySpecialOperation.define(self))
@@ -5528,13 +5539,13 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'dom::bindings::conversions::StringificationBehavior',
         'dom::bindings::conversions::ToJSValConvertible',
         'dom::bindings::conversions::is_array_like',
-        'dom::bindings::conversions::jsid_to_str',
         'dom::bindings::conversions::native_from_handlevalue',
         'dom::bindings::conversions::native_from_object',
         'dom::bindings::conversions::private_from_object',
         'dom::bindings::conversions::root_from_handleobject',
         'dom::bindings::conversions::root_from_handlevalue',
         'dom::bindings::conversions::root_from_object',
+        'dom::bindings::conversions::string_jsid_to_string',
         'dom::bindings::codegen::PrototypeList',
         'dom::bindings::codegen::RegisterBindings',
         'dom::bindings::codegen::UnionTypes',
@@ -5550,6 +5561,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'dom::bindings::proxyhandler::fill_property_descriptor',
         'dom::bindings::proxyhandler::get_expando_object',
         'dom::bindings::proxyhandler::get_property_descriptor',
+        'dom::bindings::mozmap::MozMap',
         'dom::bindings::num::Finite',
         'dom::bindings::str::ByteString',
         'dom::bindings::str::DOMString',
