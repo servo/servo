@@ -124,6 +124,26 @@ macro_rules! make_url_or_base_getter(
 );
 
 #[macro_export]
+macro_rules! make_string_or_document_url_getter(
+    ( $attr:ident, $htmlname:tt ) => (
+        fn $attr(&self) -> DOMString {
+            use dom::bindings::inheritance::Castable;
+            use dom::element::Element;
+            use dom::node::document_from_node;
+            let element = self.upcast::<Element>();
+            let val = element.get_string_attribute(&atom!($htmlname));
+
+            if val.is_empty() {
+                let doc = document_from_node(self);
+                DOMString::from(doc.url().clone().into_string())
+            } else {
+                val
+            }
+        }
+    );
+);
+
+#[macro_export]
 macro_rules! make_enumerated_getter(
     ( $attr:ident, $htmlname:tt, $default:expr, $(($choices: pat))|+) => (
         fn $attr(&self) -> DOMString {
