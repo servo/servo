@@ -141,6 +141,7 @@ COMPILATION_TARGETS = {
             "StyleBasicShape", "nsCSSShadowArray",
         ],
         "opaque_types": [
+            "atomic___base",
             "nsAString_internal_char_traits",
             "nsAString_internal_incompatible_char_type",
             "nsACString_internal_char_traits",
