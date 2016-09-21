@@ -23,13 +23,12 @@ COMPILATION_TARGETS = {
     # Flags common for all the targets.
     COMMON_BUILD_KEY: {
         "flags": [
-            "--allow-unknown-types", "--no-unstable-rust",
-            "--no-type-renaming", "--no-namespaced-constants",
+            "--no-unstable-rust", "--no-type-renaming",
         ],
         "clang_flags": [
             "-x", "c++", "-std=c++14",
             "-DTRACING=1", "-DIMPL_LIBXUL", "-DMOZ_STYLO_BINDINGS=1",
-            "-DMOZILLA_INTERNAL_API", "-DRUST_BINDGEN",
+            "-DMOZILLA_INTERNAL_API", "-DRUST_BINDGEN", "-DMOZ_STYLO"
         ],
         "search_dirs": [
             "{}/dist/include",
@@ -52,6 +51,7 @@ COMPILATION_TARGETS = {
             "{}/dist/include/nsThemeConstants.h",
             "{}/dist/include/mozilla/dom/AnimationEffectReadOnlyBinding.h",
             "{}/dist/include/mozilla/ServoElementSnapshot.h",
+            "{}/dist/include/mozilla/dom/Element.h",
         ],
         "files": [
             "{}/dist/include/nsStyleStruct.h",
@@ -66,48 +66,107 @@ COMPILATION_TARGETS = {
             "release": {
             }
         },
-        "match_headers": [
-            "RefCountType.h", "nscore.h", "nsError.h", "nsID.h", "nsString",
-            "nsAString", "nsSubstring", "nsTSubstring", "nsTString",
-            "nsISupportsBase.h", "nsCOMPtr.h", "nsIAtom.h", "nsIURI.h",
-            "nsAutoPtr.h", "nsColor.h", "nsCoord.h", "nsPoint.h", "nsRect.h",
-            "nsMargin.h", "nsThemeConstants.h", "nsCSSProperty.h", "nsCSSPropertyID.h",
-            "CSSVariableValues.h", "nsFont.h", "nsTHashtable.h",
-            "PLDHashTable.h", "nsColor.h", "nsStyleStruct.h", "nsStyleCoord.h",
-            "RefPtr.h", "nsISupportsImpl.h", "gfxFontConstants.h",
-            "gfxFontFamilyList.h", "gfxFontFeatures.h", "imgRequestProxy.h",
-            "nsIRequest.h", "imgIRequest.h", "CounterStyleManager.h",
-            "nsStyleConsts.h", "nsCSSValue.h", "SheetType.h", "nsIPrincipal.h",
-            "nsDataHashtable.h", "nsCSSScanner.h", "nsTArray",
-            "pair", "SheetParsingMode.h", "StaticPtr.h", "nsProxyRelease.h",
-            "mozilla/dom/AnimationEffectReadOnlyBinding.h",
-            "nsChangeHint.h", "ServoElementSnapshot.h",
-            "EventStates.h", "nsAttrValue.h", "nsAttrName.h",
-            "/Types.h",   # <- Disallow UnionTypes.h
-            "/utility",   # <- Disallow xutility
-            "nsINode.h",  # <- For `NodeFlags`.
-            "UniquePtr.h"
+        "whitelist_vars": [
+            "NS_THEME_.*",
+            "NODE_.*",
+            "NS_FONT_STYLE_.*",
+            "NS_STYLE_.*",
+            "NS_CORNER_.*",
+            "NS_RADIUS_.*",
+            "BORDER_COLOR_.*",
+            "BORDER_STYLE_.*"
         ],
-        "blacklist": [
-            "IsDestructibleFallbackImpl", "IsDestructibleFallback",
-            "ProxyReleaseEvent", "FallibleTArray", "nsTArray_Impl",
-            "__is_tuple_like_impl", "tuple_size", "tuple",
-            "__make_pair_return_impl", "__make_pair_return", "tuple_element",
-            "_Itup_cat", "AnimationEffectTimingProperties",
-            "FastAnimationEffectTimingProperties", "ComputedTimingProperties",
-            "FastComputedTimingProperties",
-            "nsINode",
-            "HasPointerType"
+        "whitelist": [
+            "Element",
+            "Side",
+            "nsTArrayHeader",
+            "nsCSSValueGradient",
+            "nsCSSValueList_heap",
+            "FrameRequestCallback",
+            "nsCSSValueTriplet_heap",
+            "nsCSSRect_heap",
+            "AnonymousContent",
+            "nsCSSValuePairList",
+            "nsCSSValuePairList_heap",
+            "nsCSSValuePair_heap",
+            "CapturingContentInfo",
+            "Runnable",
+            "AudioContext",
+            "FontFamilyListRefCnt",
+            "ImageURL",
+            "Image",
+            "nsCSSValueFloatColor",
+            "ServoAttrSnapshot",
+            "GridNamedArea",
+            "nsAttrName",
+            "nsAttrValue",
+            "nsCSSRect",
+            "gfxFontFeature",
+            "gfxAlternateValue",
+            "nsCSSValueTokenStream",
+            "nsSize",
+            "pair",
+            "StyleClipPathGeometryBox",
+            "FontFamilyName",
+            "nsCSSPropertyID",
+            "StyleAnimation",
+            "StyleTransition",
+            "nsresult",
+            "nsCSSValueGradientStop",
+            "nsBorderColors",
+            "Position",
+            "nsCSSValueList",
+            "nsCSSValue",
+            "UniquePtr", "DefaultDelete",
+            "StyleBasicShape",
+            "nsMargin",
+            "nsStyleContentData",
+            "nsStyleFilter", "nsRect", "FragmentOrURL", "nsStyleCoord",
+            "nsStyleCounterData", "StaticRefPtr", "nsTArray", "nsStyleFont",
+            "nsStyleColor", "nsStyleList", "nsStyleText", "nsStyleVisibility",
+            "nsStyleUserInterface", "nsStyleTableBorder", "nsStyleSVG",
+            "nsStyleVariables", "nsStyleBackground", "nsStylePosition",
+            "nsStyleTextReset", "nsStyleDisplay", "nsStyleContent",
+            "nsStyleUIReset", "nsStyleTable", "nsStyleMargin",
+            "nsStylePadding", "nsStyleBorder", "nsStyleOutline", "nsStyleXUL",
+            "nsStyleSVGReset", "nsStyleColumn", "nsStyleEffects",
+            "nsStyleImage", "nsStyleGradient", "nsStyleCoord",
+            "nsStyleGradientStop", "nsStyleImageLayers",
+            "nsStyleImageLayers_Layer", "nsStyleImageLayers_LayerType",
+            "nsStyleUnit", "nsStyleUnion", "nsStyleCoord", "nsRestyleHint",
+            "ServoElementSnapshot", "nsChangeHint", "SheetParsingMode",
+            "nsMainThreadPtrHandle", "nsMainThreadPtrHolder", "nscolor",
+            "nsFont", "FontFamilyList", "FontFamilyType", "nsIAtom",
+            "nsStyleContext", "StyleClipPath", "StyleBasicShapeType",
+            "StyleBasicShape", "nsCSSShadowArray",
         ],
         "opaque_types": [
-            "nsIntMargin", "nsIntPoint", "nsIntRect", "nsCOMArray",
-            "nsDependentString", "EntryStore", "gfxFontFeatureValueSet",
-            "imgRequestProxy", "imgRequestProxyStatic", "CounterStyleManager",
-            "ImageValue", "URLValue", "URLValueData", "nsIPrincipal",
-            "nsDataHashtable", "imgIRequest",
+            "atomic___base",
+            "nsAString_internal_char_traits",
+            "nsAString_internal_incompatible_char_type",
+            "nsACString_internal_char_traits",
+            "nsACString_internal_incompatible_char_type",
+            "RefPtr_Proxy", "nsAutoPtr_Proxy", "Pair_Base",
+            "RefPtr_Proxy_member_function", "nsAutoPtr_Proxy_member_function",
+            "nsWritingIterator_reference", "nsReadingIterator_reference",
+            "Heap", "TenuredHeap", "Rooted", "WeakPtr",  # <- More template magic than what
+                                                         #    we support.
+            "nsTObserverArray",  # <- Inherits from nsAutoTObserverArray<T, 0>
+            "PLArenaPool",  # <- Bindgen bug
+            "nsTHashtable",  # <- Inheriting from inner typedefs that clang
+                             #    doesn't expose properly.
+            "nsRefPtrHashtable", "nsDataHashtable", "nsClassHashtable",  # <- Ditto
+            "nsIDocument_SelectorCache",  # <- Inherits from nsExpirationTracker<.., 4>
+            "nsIPresShell_ScrollAxis",  # <- For some reason the alignment of this is 4
+                                        # for clang.
+            "nsPIDOMWindow",  # <- Takes the vtable from a template parameter, and we can't
+                              #    generate it conditionally.
+            "SupportsWeakPtr",
             "Maybe",  # <- AlignedStorage, which means templated union, which
-                      # means impossible to represent in stable rust as of
-                      # right now.
+                      #    means impossible to represent in stable rust as of
+                      #    right now.
+            "gfxSize",  # <- Same, union { struct { T width; T height; }; T components[2] };
+            "gfxSize_Super",  # Ditto.
         ],
     },
     # Generation of the ffi bindings.
@@ -139,15 +198,13 @@ COMPILATION_TARGETS = {
             "nsStyleOutline", "nsStyleXUL", "nsStyleSVGReset", "nsStyleColumn",
             "nsStyleEffects", "nsStyleImage", "nsStyleGradient",
             "nsStyleCoord", "nsStyleGradientStop", "nsStyleImageLayers",
-            "nsStyleImageLayers::Layer", "nsStyleImageLayers::LayerType",
-            "nsStyleUnit", "nsStyleUnion", "nsStyleCoord::CalcValue",
-            "nsStyleCoord::Calc", "nsRestyleHint", "ServoElementSnapshot",
+            "nsStyleImageLayers_Layer", "nsStyleImageLayers_LayerType",
+            "nsStyleUnit", "nsStyleUnion", "nsStyleCoord_CalcValue",
+            "nsStyleCoord_Calc", "nsRestyleHint", "ServoElementSnapshot",
             "nsChangeHint", "SheetParsingMode", "nsMainThreadPtrHandle",
             "nsMainThreadPtrHolder", "nscolor", "nsFont", "FontFamilyList",
             "FontFamilyType", "nsIAtom", "nsStyleContext", "StyleClipPath",
             "StyleBasicShapeType", "StyleBasicShape", "nsCSSShadowArray",
-        ],
-        "void_types": [
             "nsINode", "nsIDocument", "nsIPrincipal", "nsIURI",
         ],
         "servo_nullable_arc_types": [
@@ -164,6 +221,10 @@ COMPILATION_TARGETS = {
             "RawGeckoElement",
             "RawGeckoDocument",
         ],
+        "whitelist_functions": [
+            "Servo_.*",
+            "Gecko_.*"
+        ]
     },
 
     "atoms": {
@@ -323,24 +384,26 @@ def build(objdir, target_name, debug, debugger, kind_name=None,
             clang_flags.append("-include")
             clang_flags.append(file_name.format(objdir))
 
-    if "match_headers" in current_target:
-        for header in current_target["match_headers"]:
-            flags.append("--match")
-            flags.append(header.format(objdir))
+    if "whitelist" in current_target:
+        for header in current_target["whitelist"]:
+            flags.append("--whitelist-type")
+            flags.append(header)
 
-    if "blacklist" in current_target:
-        for ty in current_target["blacklist"]:
-            flags.append("--blacklist-type")
-            flags.append(ty)
+    if "whitelist_functions" in current_target:
+        for header in current_target["whitelist_functions"]:
+            flags.append("--whitelist-function")
+            flags.append(header)
+
+    if "whitelist_vars" in current_target:
+        for header in current_target["whitelist_vars"]:
+            flags.append("--whitelist-var")
+            flags.append(header)
 
     if "opaque_types" in current_target:
         for ty in current_target["opaque_types"]:
             flags.append("--opaque-type")
             flags.append(ty)
-    if "void_types" in current_target:
-        for ty in current_target["void_types"]:
-            flags.append("--raw-line")
-            flags.append("pub enum {} {{}}".format(ty))
+
     if "servo_nullable_arc_types" in current_target:
         for ty in current_target["servo_nullable_arc_types"]:
             flags.append("--blacklist-type")
@@ -356,6 +419,7 @@ def build(objdir, target_name, debug, debugger, kind_name=None,
             flags.append("--raw-line")
             flags.append("pub type {0}Borrowed<'a> = &'a {0};".format(ty))
             zero_size_type(ty, flags)
+
     if "servo_immutable_borrow_types" in current_target:
         for ty in current_target["servo_immutable_borrow_types"]:
             flags.append("--blacklist-type")
@@ -367,6 +431,7 @@ def build(objdir, target_name, debug, debugger, kind_name=None,
             flags.append("--raw-line")
             flags.append("pub type {0}BorrowedOrNull<'a> = ::sugar::ownership::Borrowed<'a, {0}>;".format(ty))
             zero_size_type(ty, flags)
+
     if "servo_owned_types" in current_target:
         for ty in current_target["servo_owned_types"]:
             flags.append("--blacklist-type")
@@ -396,38 +461,34 @@ def build(objdir, target_name, debug, debugger, kind_name=None,
             flags.append("--raw-line")
             flags.append("pub type {0}OwnedOrNull = ::sugar::ownership::OwnedOrNull<{0}>;".format(ty))
             zero_size_type(ty, flags)
+
     if "structs_types" in current_target:
         for ty in current_target["structs_types"]:
-            ty_fragments = ty.split("::")
-            mangled_name = ty.replace("::", "_")
             flags.append("--blacklist-type")
-            flags.append(ty_fragments[-1])
+            flags.append(ty)
             flags.append("--raw-line")
-            if len(ty_fragments) > 1:
-                flags.append("use structs::{} as {};".format(mangled_name, ty_fragments[-1]))
-            else:
-                flags.append("use structs::{};".format(mangled_name))
+            flags.append("use structs::{};".format(ty))
+
             # TODO: this is hacky, figure out a better way to do it without
             # hardcoding everything...
-            if ty_fragments[-1].startswith("nsStyle"):
+            if ty.startswith("nsStyle"):
                 flags.extend([
                     "--raw-line",
-                    "unsafe impl Send for {} {{}}".format(ty_fragments[-1]),
+                    "unsafe impl Send for {} {{}}".format(ty),
                     "--raw-line",
-                    "unsafe impl Sync for {} {{}}".format(ty_fragments[-1]),
-                    "--raw-line",
-                    "impl HeapSizeOf for {} {{ fn heap_size_of_children(&self) -> usize {{ 0 }} }}"
-                    .format(ty_fragments[-1])
+                    "unsafe impl Sync for {} {{}}".format(ty),
                 ])
 
     flags.append("-o")
     flags.append(output_filename)
 
-    # TODO: support more files, that's the whole point of this.
     assert len(current_target["files"]) == 1
     flags.append(current_target["files"][0].format(objdir))
 
     flags = bindgen + flags + ["--"] + clang_flags
+
+    if verbose:
+        print(flags)
 
     output = ""
     try:
