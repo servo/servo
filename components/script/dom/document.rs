@@ -95,9 +95,10 @@ use js::jsapi::JS_GetRuntime;
 use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState};
 use msg::constellation_msg::{PipelineId, ReferrerPolicy};
-use net_traits::{AsyncResponseTarget, IpcSend, PendingAsyncLoad};
+use net_traits::{AsyncResponseTarget, FetchResponseMsg, IpcSend, PendingAsyncLoad};
 use net_traits::CookieSource::NonHTTP;
 use net_traits::CoreResourceMsg::{GetCookiesForUrl, SetCookiesForUrl};
+use net_traits::request::RequestInit;
 use net_traits::response::HttpsState;
 use num_traits::ToPrimitive;
 use origin::Origin;
@@ -1433,6 +1434,14 @@ impl Document {
         loader.load_async(load, listener, self, referrer_policy);
     }
 
+    pub fn fetch_async(&self, load: LoadType,
+                       request: RequestInit,
+                       fetch_target: IpcSender<FetchResponseMsg>,
+                       referrer_policy: Option<ReferrerPolicy>) {
+        let mut loader = self.loader.borrow_mut();
+        loader.fetch_async(load, request, fetch_target, self, referrer_policy);
+    }
+
     pub fn finish_load(&self, load: LoadType) {
         debug!("Document got finish_load: {:?}", load);
         // The parser might need the loader, so restrict the lifetime of the borrow.
@@ -1520,7 +1529,7 @@ impl Document {
     }
 
     /// https://html.spec.whatwg.org/multipage/#the-end step 5 and the latter parts of
-    /// https://html.spec.whatwg.org/multipage/#prepare-a-script 15.d and 15.e.
+    /// https://html.spec.whatwg.org/multipage/#prepare-a-script 20.d and 20.e.
     pub fn process_asap_scripts(&self) {
         // Execute the first in-order asap-executed script if it's ready, repeat as required.
         // Re-borrowing the list for each step because it can also be borrowed under execute.

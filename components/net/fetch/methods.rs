@@ -22,7 +22,7 @@ use hyper::status::StatusCode;
 use hyper_serde::Serde;
 use mime_guess::guess_mime_type;
 use msg::constellation_msg::ReferrerPolicy;
-use net_traits::FetchTaskTarget;
+use net_traits::{FetchTaskTarget, FetchMetadata};
 use net_traits::request::{CacheMode, CredentialsMode, Destination};
 use net_traits::request::{RedirectMode, Referrer, Request, RequestMode, ResponseTainting};
 use net_traits::request::{Type, Origin, Window};
@@ -361,13 +361,14 @@ fn main_fetch(request: Rc<Request>, cache: &mut CORSCache, cors_flag: bool,
             }
         }
     } else if let Some(ref mut target) = *target {
-        if let ResponseBody::Done(ref vec) = *response.body.lock().unwrap() {
+        let body = response.body.lock().unwrap();
+        if let ResponseBody::Done(ref vec) = *body {
             // in case there was no channel to wait for, the body was
             // obtained synchronously via basic_fetch for data/file/about/etc
             // We should still send the body across as a chunk
             target.process_response_chunk(vec.clone());
         } else {
-            assert!(*response.body.lock().unwrap() == ResponseBody::Empty)
+            assert!(*body == ResponseBody::Empty)
         }
     }
 
@@ -981,7 +982,10 @@ fn http_network_fetch(request: Rc<Request>,
 
             // We're about to spawn a thread to be waited on here
             *done_chan = Some(channel());
-            let meta = response.metadata().expect("Response metadata should exist at this stage");
+            let meta = match response.metadata().expect("Response metadata should exist at this stage") {
+                FetchMetadata::Unfiltered(m) => m,
+                FetchMetadata::Filtered { unsafe_, .. } => unsafe_
+            };
             let done_sender = done_chan.as_ref().map(|ch| ch.0.clone());
             let devtools_sender = devtools_chan.clone();
             let meta_status = meta.status.clone();
