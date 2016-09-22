@@ -76,14 +76,16 @@ util = {path = "../util"}
 webdriver_server = {path = "../webdriver_server", optional = true}
 
 [dependencies.webrender]
-git = "https://github.com/servo/webrender"
+git = "https://github.com/glennw/webrender"
 default-features = false
 features = ["serde_macros"]
+branch = "headless-webgl"
 
 [dependencies.webrender_traits]
-git = "https://github.com/servo/webrender"
+git = "https://github.com/glennw/webrender"
 default_features = false
 features = ["serde_macros"]
+branch = "headless-webgl"
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 sig = "0.1"

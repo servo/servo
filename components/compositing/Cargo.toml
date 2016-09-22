@@ -32,11 +32,13 @@ url = {version = "1.2", features = ["heap_size"]}
 util = {path = "../util"}
 
 [dependencies.webrender]
-git = "https://github.com/servo/webrender"
+git = "https://github.com/glennw/webrender"
 default-features = false
 features = ["serde_macros"]
+branch = "headless-webgl"
 
 [dependencies.webrender_traits]
-git = "https://github.com/servo/webrender"
+git = "https://github.com/glennw/webrender"
 default_features = false
 features = ["serde_macros"]
+branch = "headless-webgl"

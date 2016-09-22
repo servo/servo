@@ -147,6 +147,12 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
                     }
                 };
 
+                let renderer_kind = if opts.headless {
+                    webrender_traits::RendererKind::OSMesa
+                } else {
+                    webrender_traits::RendererKind::Native
+                };
+
                 let (webrender, webrender_sender) =
                     webrender::Renderer::new(webrender::RendererOptions {
                         device_pixel_ratio: device_pixel_ratio,
@@ -158,6 +164,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
                         enable_recording: false,
                         precache_shaders: opts.precache_shaders,
                         enable_scrollbars: opts.output_file.is_none(),
+                        renderer_kind: renderer_kind,
                     });
                 (Some(webrender), Some(webrender_sender))
             } else {

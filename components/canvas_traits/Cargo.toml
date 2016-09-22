@@ -22,6 +22,7 @@ serde = {version = "0.8", features = ["unstable"]}
 serde_macros = "0.8"
 
 [dependencies.webrender_traits]
-git = "https://github.com/servo/webrender"
+git = "https://github.com/glennw/webrender"
 default_features = false
 features = ["serde_macros"]
+branch = "headless-webgl"

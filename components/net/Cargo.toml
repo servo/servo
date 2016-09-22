@@ -43,9 +43,10 @@ uuid = {version = "0.3.1", features = ["v4"]}
 websocket = "0.17"
 
 [dependencies.webrender_traits]
-git = "https://github.com/servo/webrender"
+git = "https://github.com/glennw/webrender"
 default_features = false
 features = ["serde_macros"]
+branch = "headless-webgl"
 
 [target.'cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))'.dependencies]
 tinyfiledialogs = {git = "https://github.com/jdm/tinyfiledialogs"}

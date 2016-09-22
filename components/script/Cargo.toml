@@ -75,6 +75,7 @@ websocket = "0.17"
 xml5ever = {version = "0.1.2", features = ["unstable"]}
 
 [dependencies.webrender_traits]
-git = "https://github.com/servo/webrender"
+git = "https://github.com/glennw/webrender"
 default_features = false
 features = ["nightly", "serde_macros"]
+branch = "headless-webgl"
