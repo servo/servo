@@ -98,7 +98,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
     make_setter!(SetAcceptCharset, "accept-charset");
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-action
-    make_string_or_document_url!(Action, "action");
+    make_string_or_document_url_getter!(Action, "action");
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-action
     make_setter!(SetAction, "action");
