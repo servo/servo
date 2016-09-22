@@ -173,7 +173,7 @@ def create_parser(product_choices=None):
                              default=[], action="append", dest="user_stylesheets",
                              help="Inject a user CSS stylesheet into every test.")
     servo_group.add_argument("--servo-backend",
-                             default="cpu", choices=["cpu", "webrender"],
+                             default="webrender", choices=["cpu", "webrender"],
                              help="Rendering backend to use with Servo.")
 
 
