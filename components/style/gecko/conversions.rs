@@ -112,7 +112,7 @@ pub mod basic_shape {
     use gecko_bindings::structs::{nsStyleCoord, nsStyleCorners};
     use gecko_bindings::structs::StyleClipPathGeometryBox;
     use gecko_bindings::sugar::ns_style_coord::{CoordDataMut, CoordDataValue};
-    use gecko_values::GeckoStyleCoordConvertible;
+    use gecko::values::GeckoStyleCoordConvertible;
     use std::borrow::Borrow;
     use values::computed::{BorderRadiusSize, LengthOrPercentage};
     use values::computed::basic_shape::*;

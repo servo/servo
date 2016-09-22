@@ -70,7 +70,7 @@ impl PseudoElement {
             }}
         }
 
-        include!("generated/gecko_pseudo_element_helper.rs");
+        include!("../generated/gecko_pseudo_element_helper.rs");
 
         None
     }
@@ -88,7 +88,7 @@ impl PseudoElement {
             }}
         }
 
-        include!("generated/gecko_pseudo_element_helper.rs");
+        include!("../generated/gecko_pseudo_element_helper.rs");
 
         None
     }
@@ -238,7 +238,7 @@ impl GeckoSelectorImpl {
             }}
         }
 
-        include!("generated/gecko_pseudo_element_helper.rs")
+        include!("../generated/gecko_pseudo_element_helper.rs")
     }
 
     #[inline]

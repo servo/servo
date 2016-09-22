@@ -41,7 +41,6 @@ use style::dom::{LayoutIterator, NodeInfo, TDocument, TElement, TNode, TRestyleD
 use style::dom::{OpaqueNode, PresentationalHintsSynthetizer};
 use style::element_state::ElementState;
 use style::error_reporting::StdoutErrorReporter;
-use style::gecko_selector_impl::{GeckoSelectorImpl, NonTSPseudoClass, PseudoElement};
 use style::parser::ParserContextExtraData;
 use style::properties::{ComputedValues, parse_style_attribute};
 use style::properties::PropertyDeclarationBlock;
@@ -49,6 +48,7 @@ use style::refcell::{Ref, RefCell, RefMut};
 use style::selector_impl::ElementExt;
 use style::selector_matching::ApplicableDeclarationBlock;
 use style::sink::Push;
+use style::gecko::selector_impl::{GeckoSelectorImpl, NonTSPseudoClass, PseudoElement};
 use url::Url;
 
 pub struct NonOpaqueStyleData(RefCell<PrivateStyleData>);
