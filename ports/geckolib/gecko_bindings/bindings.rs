@@ -944,10 +944,6 @@ extern "C" {
      -> nsRestyleHint;
 }
 extern "C" {
-    pub fn Servo_RestyleDocument(doc: RawGeckoDocumentBorrowed,
-                                 set: RawServoStyleSetBorrowedMut);
-}
-extern "C" {
     pub fn Servo_RestyleSubtree(node: RawGeckoNodeBorrowed,
                                 set: RawServoStyleSetBorrowedMut);
 }
