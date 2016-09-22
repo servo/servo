@@ -145,9 +145,7 @@ impl Promise {
     }
 
     #[allow(unrooted_must_root, unsafe_code)]
-    pub fn resolve(&self,
-                         cx: *mut JSContext,
-                         value: HandleValue) {
+    pub fn resolve(&self, cx: *mut JSContext, value: HandleValue) {
         unsafe {
             if !ResolvePromise(cx, self.promise_obj(), value) {
                 JS_ClearPendingException(cx);

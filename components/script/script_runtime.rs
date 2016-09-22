@@ -30,6 +30,7 @@ use std::io::{Write, stdout};
 use std::marker::PhantomData;
 use std::os;
 use std::os::raw::c_void;
+use std::panic;
 use std::ptr;
 use std::rc::Rc;
 use style::thread_state;
@@ -175,13 +176,22 @@ unsafe extern "C" fn enqueue_job(_cx: *mut JSContext,
                                  job: HandleObject,
                                  _allocation_site: HandleObject,
                                  _data: *mut c_void) -> bool {
-    let global = global_root_from_object(job.get());
-    let pipeline = global.r().pipeline_id();
-    global.r().enqueue_promise_job(EnqueuedPromiseCallback {
-        callback: PromiseJobCallback::new(job.get()),
-        pipeline: pipeline,
+    let result = panic::catch_unwind(AssertUnwindSafe(|| {
+        let global = global_root_from_object(job.get());
+        let pipeline = global.r().pipeline_id();
+        global.r().enqueue_promise_job(EnqueuedPromiseCallback {
+            callback: PromiseJobCallback::new(job.get()),
+            pipeline: pipeline,
+        });
+        true
     });
-    true
+    match result {
+        Ok(result) => result,
+        Err(error) => {
+            store_panic_result(error);
+            return false;
+        }
+    }
 }
 
 #[allow(unsafe_code)]
