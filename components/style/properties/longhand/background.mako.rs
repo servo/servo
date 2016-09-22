@@ -119,7 +119,7 @@ ${helpers.predefined_type("background-color", "CSSColor",
 </%helpers:vector_longhand>
 
 ${helpers.single_keyword("background-repeat",
-                         "repeat repeat-x repeat-y no-repeat",
+                         "repeat repeat-x repeat-y space round no-repeat",
                          vector=True,
                          animatable=False)}
 
