@@ -1,0 +1,194 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
+use dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
+use dom::bindings::codegen::Bindings::HTMLOptionsCollectionBinding;
+use dom::bindings::codegen::Bindings::HTMLOptionsCollectionBinding::HTMLOptionsCollectionMethods;
+use dom::bindings::codegen::Bindings::NodeBinding::NodeBinding::NodeMethods;
+use dom::bindings::codegen::UnionTypes::{HTMLOptionElementOrHTMLOptGroupElement, HTMLElementOrLong};
+use dom::bindings::error::{Error, ErrorResult};
+use dom::bindings::global::GlobalRef;
+use dom::bindings::inheritance::Castable;
+use dom::bindings::js::{JS, MutHeap, Root, RootedReference};
+use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::str::DOMString;
+use dom::element::{Element, ElementCreator};
+use dom::htmlcollection::{CollectionFilter, HTMLCollection};
+use dom::htmloptionelement::HTMLOptionElement;
+use dom::node::{document_from_node, Node};
+use dom::window::Window;
+use string_cache::{Atom, QualName};
+
+#[dom_struct]
+pub struct HTMLOptionsCollection {
+    collection: HTMLCollection,
+    root: MutHeap<JS<Node>>
+}
+
+impl HTMLOptionsCollection {
+    fn new_inherited(root: &Node, filter: Box<CollectionFilter + 'static>) -> HTMLOptionsCollection {
+        HTMLOptionsCollection {
+            collection: HTMLCollection::new_inherited(root, filter),
+            root: MutHeap::new(root)
+        }
+    }
+
+    pub fn new(window: &Window, root: &Node, filter: Box<CollectionFilter + 'static>)
+        -> Root<HTMLOptionsCollection>
+    {
+        reflect_dom_object(box HTMLOptionsCollection::new_inherited(root, filter),
+                           GlobalRef::Window(window),
+                           HTMLOptionsCollectionBinding::Wrap)
+    }
+
+    fn add_new_elements(&self, count: u32) -> ErrorResult {
+        let root = self.root.get();
+        let document = document_from_node(root.r());
+        let name_atom = Atom::from(DOMString::from("option".to_owned()));
+
+        for _ in 0..count {
+            let name = QualName::new(ns!(html), name_atom.clone());
+            let element = Element::create(name, None, document.r(), ElementCreator::ScriptCreated);
+            let node = element.r().upcast::<Node>();
+            try!(Node::pre_insert(node, root.r(), None));
+        };
+        Ok(())
+    }
+}
+
+impl HTMLOptionsCollectionMethods for HTMLOptionsCollection {
+    // FIXME: This shouldn't need to be implemented here since HTMLCollection (the parent of
+    // HTMLOptionsCollection) implements NamedGetter.
+    // https://github.com/servo/servo/issues/5875
+    //
+    // https://dom.spec.whatwg.org/#dom-htmlcollection-nameditem
+    fn NamedGetter(&self, name: DOMString) -> Option<Root<Element>> {
+        self.collection.NamedItem(name)
+    }
+
+    // https://heycam.github.io/webidl/#dfn-supported-property-names
+    fn SupportedPropertyNames(&self) -> Vec<DOMString> {
+        self.collection.SupportedPropertyNames()
+    }
+
+    // FIXME: This shouldn't need to be implemented here since HTMLCollection (the parent of
+    // HTMLOptionsCollection) implements IndexedGetter.
+    // https://github.com/servo/servo/issues/5875
+    //
+    // https://dom.spec.whatwg.org/#dom-htmlcollection-item
+    fn IndexedGetter(&self, index: u32) -> Option<Root<Element>> {
+        self.collection.IndexedGetter(index)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-setter
+    fn IndexedSetter(&self, index: u32, value: Option<&HTMLOptionElement>) -> ErrorResult {
+        if let Some(value) = value {
+            // Step 2
+            let length = self.collection.Length();
+
+            // Step 3
+            let n = index as i32 - length as i32;
+
+            // Step 4
+            if n > 0 {
+                try!(self.add_new_elements(n as u32));
+            }
+
+            // Step 5
+            let node = value.upcast::<Node>();
+            let root = self.root.get();
+            if n >= 0 {
+                Node::pre_insert(node, root.r(), None).map(|_| ())
+            } else {
+                let child = self.collection.IndexedGetter(index).unwrap();
+                let child_node = child.r().upcast::<Node>();
+
+                root.r().ReplaceChild(node, child_node).map(|_| ())
+            }
+        } else {
+            // Step 1
+            self.Remove(index as i32)
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-length
+    fn Length(&self) -> u32 {
+        self.collection.Length()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-length
+    fn SetLength(&self, length: u32) {
+        let current_length = self.collection.Length();
+        let delta = length as i32 - current_length as i32;
+        if delta < 0 {
+            // new length is lower - deleting last option elements
+            for index in (length..current_length).rev() {
+                self.Remove(index as i32).unwrap()
+            }
+        } else if delta > 0 {
+            // new length is higher - adding new option elements
+            self.add_new_elements(delta as u32).unwrap();
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-add
+    fn Add(&self, element: HTMLOptionElementOrHTMLOptGroupElement, before: Option<HTMLElementOrLong >) -> ErrorResult {
+        // TODO
+        let root = self.root.get();
+
+        let node = match element {
+            HTMLOptionElementOrHTMLOptGroupElement::HTMLOptionElement(ref element) => element.upcast::<Node>(),
+            HTMLOptionElementOrHTMLOptGroupElement::HTMLOptGroupElement(ref element) => element.upcast::<Node>(),
+        };
+
+        // Step 1
+        if node.is_ancestor_of(root.r()) {
+            return Err(Error::HierarchyRequest);
+        }
+
+        if let Some(HTMLElementOrLong::HTMLElement(ref before_element)) = before {
+            // Step 2
+            let before_node = before_element.upcast::<Node>();
+            if !root.r().is_ancestor_of(before_node) {
+                return Err(Error::NotFound);
+            }
+
+            // Step 3
+            if node == before_node {
+                return Ok(());
+            }
+        }
+
+        // Step 4
+        let reference_node = before.and_then(|before| {
+            match before {
+                HTMLElementOrLong::HTMLElement(element) => Some(Root::upcast::<Node>(element)),
+                HTMLElementOrLong::Long(index) => {
+                    self.collection.IndexedGetter(index as u32).map(Root::upcast::<Node>)
+                }
+            }
+        });
+
+        // Step 5
+        let parent = if let Some(reference_node) = reference_node.r() {
+            reference_node.GetParentNode().unwrap()
+        } else {
+            root
+        };
+
+        // Step 6
+        Node::pre_insert(node, parent.r(), reference_node.r()).map(|_| ())
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-remove
+    fn Remove(&self, index: i32) -> ErrorResult {
+        if let Some(element) = self.collection.IndexedGetter(index as u32) {
+            element.r().Remove();
+            Ok(())
+        } else {
+            Err(Error::NotFound)
+        }
+    }
+}
