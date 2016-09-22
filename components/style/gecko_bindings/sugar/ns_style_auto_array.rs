@@ -4,7 +4,7 @@
 
 use std::iter::{once, Chain, Once, IntoIterator};
 use std::slice::{Iter, IterMut};
-use structs::nsStyleAutoArray;
+use gecko_bindings::structs::nsStyleAutoArray;
 
 impl<T> nsStyleAutoArray<T> {
     pub fn iter_mut(&mut self) -> Chain<Once<&mut T>, IterMut<T>> {

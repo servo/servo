@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use euclid::size::TypedSize2D;
-use gecko_bindings::bindings::RawServoStyleSet;
-use gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
+use style::gecko_bindings::bindings::RawServoStyleSet;
+use style::gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
 use num_cpus;
 use std::cmp;
 use std::collections::HashMap;

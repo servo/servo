@@ -1,10 +1,10 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-use gecko_bindings::bindings;
-use gecko_bindings::structs::ServoElementSnapshot;
-use gecko_bindings::structs::ServoElementSnapshotFlags as Flags;
-use gecko_string_cache::Atom;
+use style::gecko_bindings::bindings;
+use style::gecko_bindings::structs::ServoElementSnapshot;
+use style::gecko_bindings::structs::ServoElementSnapshotFlags as Flags;
+use style::string_cache::Atom;
 use selectors::parser::AttrSelector;
 use snapshot_helpers;
 use style::element_state::ElementState;
