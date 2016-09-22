@@ -658,7 +658,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
     # failureCode will prevent pending exceptions from being set in cases when
     # they really should be!
     if exceptionCode is None:
-        exceptionCode = "return false;\n"
+        exceptionCode = "return false;"
 
     if failureCode is None:
         failOrPropagate = "throw_type_error(cx, &error);\n%s" % exceptionCode
@@ -679,9 +679,12 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
     # Helper functions for dealing with failures due to the JS value being the
     # wrong type of value.
     def onFailureNotAnObject(failureCode):
-        return CGGeneric(failureCode or
-                         ('throw_type_error(cx, "%s is not an object.");\n'
-                          '%s' % (firstCap(sourceDescription), exceptionCode)))
+        return CGWrapper(
+            CGGeneric(
+                failureCode or
+                ('throw_type_error(cx, "%s is not an object.");\n'
+                 '%s' % (firstCap(sourceDescription), exceptionCode))),
+            post="\n")
 
     def onFailureInvalidEnumValue(failureCode, passedVarName):
         return CGGeneric(
