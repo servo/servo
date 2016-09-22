@@ -67,4 +67,33 @@ test(function () {
     assert_equals(selly.children.length, 4,
                   "Number of children should have changed");
 }, "Setting a length lower than the old length trims nodes from the end");
+
+test(function () {
+    var opts = selly.options;
+    opts[3] = null;
+    assert_equals(selly[3], undefined,
+                  "previously set node is now undefined");
+    assert_equals(selly.length, 3,
+                  "Number of nodes in collection is correctly changed");
+    assert_equals(selly.children.length, 3,
+                  "Number of children should have changed");
+}, "Setting element to null by index removed the element");
+
+test(function () {
+    var opts = selly.options;
+    var new_option = document.createElement("option");
+    var replace_option = new_option.cloneNode(true);
+    new_option.value = "-1";
+    replace_option.value = "a";
+    opts[5] = new_option;
+    opts[0] = replace_option;
+
+    var elarray = [];
+    for (var i = 0; i < selly.length; i++) {
+        elarray.push(selly[i].value);
+    }
+    assert_array_equals(elarray, ["a", "2", "3", "", "", "-1"]);
+
+}, "Setting element by index should correctly append and replace elements");
+
 </script>
