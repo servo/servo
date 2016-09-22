@@ -4842,13 +4842,12 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
                     "    let this = UnwrapProxy(proxy);\n" +
                     "    let this = &*this;\n" +
                     CGIndenter(CGProxyIndexedSetter(self.descriptor)).define() +
-                    "    return true;\n" +
+                    "    return (*opresult).succeed();\n" +
                     "}\n")
         elif self.descriptor.operations['IndexedGetter']:
             set += ("if get_array_index_from_id(cx, id).is_some() {\n" +
-                    "    return false;\n" +
-                    "    //return ThrowErrorMessage(cx, MSG_NO_PROPERTY_SETTER, \"%s\");\n" +
-                    "}\n") % self.descriptor.name
+                    "    return (*opresult).failNoIndexedSetter();\n" +
+                    "}\n")
 
         namedSetter = self.descriptor.operations['NamedSetter']
         if namedSetter:
@@ -4864,15 +4863,10 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
         else:
             set += ("if RUST_JSID_IS_STRING(id) {\n" +
                     CGIndenter(CGProxyNamedGetter(self.descriptor)).define() +
-                    "    if (found) {\n"
-                    # TODO(Issue 5876)
-                    "        //return js::IsInNonStrictPropertySet(cx)\n" +
-                    "        //       ? opresult.succeed()\n" +
-                    "        //       : ThrowErrorMessage(cx, MSG_NO_NAMED_SETTER, \"${name}\");\n" +
-                    "        return (*opresult).succeed();\n" +
-                    "    }\n" +
-                    "    return (*opresult).succeed();\n"
-                    "}\n") % (self.descriptor.name, self.descriptor.name)
+                    "    if result.is_some() {\n"
+                    "        return (*opresult).failNoNamedSetter();\n"
+                    "    }\n"
+                    "}\n")
             set += "return proxyhandler::define_property(%s);" % ", ".join(a.name for a in self.args)
         return set
 
