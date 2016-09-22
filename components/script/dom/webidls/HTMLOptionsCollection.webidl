@@ -14,7 +14,6 @@ interface HTMLOptionsCollection : HTMLCollection {
    [Throws]
    void add((HTMLOptionElement or HTMLOptGroupElement) element, optional (HTMLElement or long)? before = null);
 //   [CEReactions]
-   [Throws]
    void remove(long index);
    //attribute long selectedIndex;
 };
