@@ -22,7 +22,7 @@ bitflags! {
     }
 }
 
-macro_rules! thread_types ( ( $( $fun:ident = $flag:ident ; )* ) => (
+macro_rules! thread_types (($( $fun:ident = $flag:ident ; )* ) => (
     impl ThreadState {
         $(
             #[cfg(debug_assertions)]
