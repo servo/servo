@@ -508,8 +508,23 @@ interface TestBinding {
   [Func="TestBinding::condition_satisfied"]
   const unsigned short funcControlledConstEnabled = 0;
 
+  [Throws]
+  Promise<any> returnResolvedPromise(any value);
+  [Throws]
+  Promise<any> returnRejectedPromise(any value);
+  readonly attribute Promise<boolean> promiseAttribute;
+  void acceptPromise(Promise<DOMString> string);
+  void acceptNullablePromise(Promise<DOMString>? string);
+  Promise<any> promiseNativeHandler(SimpleCallback? resolve, SimpleCallback? reject);
+  void promiseResolveNative(Promise<any> p, any value);
+  void promiseRejectNative(Promise<any> p, any value);
+  void promiseRejectWithTypeError(Promise<any> p, USVString message);
+  void resolvePromiseDelayed(Promise<any> p, DOMString value, unsigned long long ms);
+
   void panic();
 };
+
+callback SimpleCallback = void(any value);
 
 partial interface TestBinding {
   [Pref="dom.testable_crash.enabled"]

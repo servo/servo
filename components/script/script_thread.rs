@@ -27,7 +27,7 @@ use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, Documen
 use dom::bindings::codegen::Bindings::LocationBinding::LocationMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::{ConversionResult, FromJSValConvertible, StringificationBehavior};
-use dom::bindings::global::GlobalRef;
+use dom::bindings::global::{GlobalRef, GlobalRoot};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root, RootCollection};
 use dom::bindings::js::{RootCollectionPtr, RootedReference};
@@ -77,8 +77,8 @@ use parse::xml::{self, parse_xml};
 use profile_traits::mem::{self, OpaqueSender, Report, ReportKind, ReportsChan};
 use profile_traits::time::{self, ProfilerCategory, profile};
 use script_layout_interface::message::{self, NewLayoutThreadInfo, ReflowQueryType};
-use script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
-use script_runtime::{ScriptPort, StackRootTLS, get_reports, new_rt_and_cx};
+use script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory, EnqueuedPromiseCallback};
+use script_runtime::{ScriptPort, StackRootTLS, get_reports, new_rt_and_cx, PromiseJobQueue};
 use script_traits::{CompositorEvent, ConstellationControlMsg, EventResult};
 use script_traits::{InitialScriptState, MouseButton, MouseEventType, MozBrowserEvent};
 use script_traits::{NewLayoutInfo, ScriptMsg as ConstellationMsg};
@@ -394,6 +394,8 @@ pub struct ScriptThread {
     timer_event_port: Receiver<TimerEvent>,
 
     content_process_shutdown_chan: IpcSender<()>,
+
+    promise_job_queue: PromiseJobQueue,
 }
 
 /// In the event of thread panic, all data on the stack runs its destructor. However, there
@@ -599,6 +601,8 @@ impl ScriptThread {
             timer_event_port: timer_event_port,
 
             content_process_shutdown_chan: state.content_process_shutdown_chan,
+
+            promise_job_queue: PromiseJobQueue::new(),
         }
     }
 
@@ -2173,6 +2177,33 @@ impl ScriptThread {
             let location = win.Location();
             location.Reload();
         }
+    }
+
+    pub fn enqueue_promise_job(job: EnqueuedPromiseCallback, global: GlobalRef) {
+        SCRIPT_THREAD_ROOT.with(|root| {
+            let script_thread = unsafe { &*root.get().unwrap() };
+            script_thread.promise_job_queue.enqueue(job, global);
+        });
+    }
+
+    pub fn flush_promise_jobs(global: GlobalRef) {
+        SCRIPT_THREAD_ROOT.with(|root| {
+            let script_thread = unsafe { &*root.get().unwrap() };
+            let _ = script_thread.dom_manipulation_task_source.queue(box FlushPromiseJobs, global);
+        })
+    }
+
+    fn do_flush_promise_jobs(&self) {
+        self.promise_job_queue.flush_promise_jobs(|id| {
+            self.find_child_context(id).map(|context| GlobalRoot::Window(context.active_window()))
+        });
+    }
+}
+
+struct FlushPromiseJobs;
+impl Runnable for FlushPromiseJobs {
+    fn main_thread_handler(self: Box<FlushPromiseJobs>, script_thread: &ScriptThread) {
+        script_thread.do_flush_promise_jobs();
     }
 }
 

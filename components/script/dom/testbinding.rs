@@ -5,9 +5,10 @@
 // check-tidy: no specs after this line
 
 use core::nonzero::NonZero;
+use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
-use dom::bindings::codegen::Bindings::TestBindingBinding;
+use dom::bindings::codegen::Bindings::TestBindingBinding::{self, SimpleCallback};
 use dom::bindings::codegen::Bindings::TestBindingBinding::{TestBindingMethods, TestDictionary};
 use dom::bindings::codegen::Bindings::TestBindingBinding::{TestDictionaryDefaults, TestEnum};
 use dom::bindings::codegen::UnionTypes;
@@ -19,22 +20,27 @@ use dom::bindings::codegen::UnionTypes::{EventOrUSVString, HTMLElementOrLong, Lo
 use dom::bindings::codegen::UnionTypes::{HTMLElementOrUnsignedLongOrStringOrBoolean, LongSequenceOrBoolean};
 use dom::bindings::codegen::UnionTypes::{StringOrLongSequence, StringOrStringSequence, StringSequenceOrUnsignedLong};
 use dom::bindings::codegen::UnionTypes::{StringOrUnsignedLong, StringOrBoolean, UnsignedLongOrBoolean};
-use dom::bindings::error::Fallible;
-use dom::bindings::global::GlobalRef;
+use dom::bindings::error::{Error, Fallible};
+use dom::bindings::global::{GlobalRef, global_root_from_context};
 use dom::bindings::js::Root;
 use dom::bindings::mozmap::MozMap;
 use dom::bindings::num::Finite;
+use dom::bindings::refcounted::TrustedPromise;
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::{ByteString, DOMString, USVString};
 use dom::bindings::weakref::MutableWeakRef;
 use dom::blob::{Blob, BlobImpl};
+use dom::promise::Promise;
+use dom::promisenativehandler::{PromiseNativeHandler, Callback};
 use dom::url::URL;
-use js::jsapi::{HandleObject, HandleValue, JSContext, JSObject};
+use js::jsapi::{HandleObject, HandleValue, JSContext, JSObject, JSAutoCompartment};
 use js::jsapi::{JS_NewPlainObject, JS_NewUint8ClampedArray};
 use js::jsval::{JSVal, NullValue};
+use script_traits::MsDuration;
 use std::borrow::ToOwned;
 use std::ptr;
 use std::rc::Rc;
+use timers::OneshotTimerCallback;
 use util::prefs::PREFS;
 
 #[dom_struct]
@@ -647,6 +653,81 @@ impl TestBindingMethods for TestBinding {
     fn ReceiveMozMapOfMozMaps(&self) -> MozMap<MozMap<i32>> { MozMap::new() }
     fn ReceiveAnyMozMap(&self) -> MozMap<JSVal> { MozMap::new() }
 
+    #[allow(unrooted_must_root)]
+    fn ReturnResolvedPromise(&self, cx: *mut JSContext, v: HandleValue) -> Fallible<Rc<Promise>> {
+        Promise::Resolve(self.global().r(), cx, v)
+    }
+
+    #[allow(unrooted_must_root)]
+    fn ReturnRejectedPromise(&self, cx: *mut JSContext, v: HandleValue) -> Fallible<Rc<Promise>> {
+        Promise::Reject(self.global().r(), cx, v)
+    }
+
+    fn PromiseResolveNative(&self, cx: *mut JSContext, p: &Promise, v: HandleValue) {
+        p.resolve(cx, v);
+    }
+
+    fn PromiseRejectNative(&self, cx: *mut JSContext, p: &Promise, v: HandleValue) {
+        p.reject(cx, v);
+    }
+
+    fn PromiseRejectWithTypeError(&self, p: &Promise, s: USVString) {
+        p.reject_error(self.global().r().get_cx(), Error::Type(s.0));
+    }
+
+    #[allow(unrooted_must_root)]
+    fn ResolvePromiseDelayed(&self, p: &Promise, value: DOMString, delay: u64) {
+        let promise = p.duplicate();
+        let cb = TestBindingCallback {
+            promise: TrustedPromise::new(promise),
+            value: value,
+        };
+        let _ = self.global().r().schedule_callback(OneshotTimerCallback::TestBindingCallback(cb),
+                                                    MsDuration::new(delay));
+    }
+
+    #[allow(unrooted_must_root)]
+    fn PromiseNativeHandler(&self,
+                            resolve: Option<Rc<SimpleCallback>>,
+                            reject: Option<Rc<SimpleCallback>>) -> Rc<Promise> {
+        let global = self.global();
+        let handler = PromiseNativeHandler::new(global.r(),
+                                                resolve.map(SimpleHandler::new),
+                                                reject.map(SimpleHandler::new));
+        let p = Promise::new(global.r());
+        p.append_native_handler(&handler);
+        return p;
+
+        #[derive(JSTraceable, HeapSizeOf)]
+        struct SimpleHandler {
+            #[ignore_heap_size_of = "Rc has unclear ownership semantics"]
+            handler: Rc<SimpleCallback>,
+        }
+        impl SimpleHandler {
+            fn new(callback: Rc<SimpleCallback>) -> Box<Callback> {
+                box SimpleHandler { handler: callback }
+            }
+        }
+        impl Callback for SimpleHandler {
+            #[allow(unsafe_code)]
+            fn callback(&self, cx: *mut JSContext, v: HandleValue) {
+                let global = unsafe { global_root_from_context(cx) };
+                let _ = self.handler.Call_(&global.r(), v, ExceptionHandling::Report);
+            }
+        }
+    }
+
+    #[allow(unrooted_must_root)]
+    fn PromiseAttribute(&self) -> Rc<Promise> {
+        Promise::new(self.global().r())
+    }
+
+    fn AcceptPromise(&self, _promise: &Promise) {
+    }
+
+    fn AcceptNullablePromise(&self, _promise: Option<&Promise>) {
+    }
+
     fn PassSequenceSequence(&self, _seq: Vec<Vec<i32>>) {}
     fn ReturnSequenceSequence(&self) -> Vec<Vec<i32>> { vec![] }
     fn PassUnionSequenceSequence(&self, seq: LongOrLongSequenceSequence) {
@@ -692,4 +773,21 @@ impl TestBinding {
 impl TestBinding {
     pub unsafe fn condition_satisfied(_: *mut JSContext, _: HandleObject) -> bool { true }
     pub unsafe fn condition_unsatisfied(_: *mut JSContext, _: HandleObject) -> bool { false }
+}
+
+#[derive(JSTraceable, HeapSizeOf)]
+pub struct TestBindingCallback {
+    #[ignore_heap_size_of = "unclear ownership semantics"]
+    promise: TrustedPromise,
+    value: DOMString,
+}
+
+impl TestBindingCallback {
+    #[allow(unrooted_must_root)]
+    pub fn invoke(self) {
+        let p = self.promise.root();
+        let cx = p.global().r().get_cx();
+        let _ac = JSAutoCompartment::new(cx, p.reflector().get_jsobject().get());
+        p.resolve_native(cx, &self.value);
+    }
 }

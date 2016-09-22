@@ -36,7 +36,7 @@ use devtools_traits::CSSError;
 use devtools_traits::WorkerId;
 use dom::abstractworker::SharedRt;
 use dom::bindings::js::{JS, Root};
-use dom::bindings::refcounted::Trusted;
+use dom::bindings::refcounted::{Trusted, TrustedPromise};
 use dom::bindings::reflector::{Reflectable, Reflector};
 use dom::bindings::str::{DOMString, USVString};
 use dom::bindings::utils::WindowProxyHandler;
@@ -156,7 +156,7 @@ impl<T: JSTraceable> JSTraceable for Rc<T> {
     }
 }
 
-impl<T: JSTraceable> JSTraceable for Box<T> {
+impl<T: JSTraceable + ?Sized> JSTraceable for Box<T> {
     fn trace(&self, trc: *mut JSTracer) {
         (**self).trace(trc)
     }
@@ -303,6 +303,7 @@ no_jsmanaged_fields!(Metadata);
 no_jsmanaged_fields!(NetworkError);
 no_jsmanaged_fields!(Atom, Namespace, QualName);
 no_jsmanaged_fields!(Trusted<T: Reflectable>);
+no_jsmanaged_fields!(TrustedPromise);
 no_jsmanaged_fields!(PropertyDeclarationBlock);
 no_jsmanaged_fields!(HashSet<T>);
 // These three are interdependent, if you plan to put jsmanaged data

@@ -41,7 +41,7 @@ hyper = "0.9.9"
 hyper_serde = "0.1.4"
 image = "0.10"
 ipc-channel = "0.5"
-js = {git = "https://github.com/servo/rust-mozjs"}
+js = {git = "https://github.com/servo/rust-mozjs", features = ["promises"]}
 libc = "0.2"
 log = "0.3.5"
 mime = "0.2.1"

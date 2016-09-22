@@ -18,13 +18,14 @@ use dom::window::{self, ScriptHelpers};
 use dom::workerglobalscope::WorkerGlobalScope;
 use ipc_channel::ipc::IpcSender;
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
+use js::glue::{IsWrapper, UnwrapObject};
 use js::jsapi::{CurrentGlobalOrNull, GetGlobalForObjectCrossCompartment};
 use js::jsapi::{JSContext, JSObject, JS_GetClass, MutableHandleValue};
 use js::jsapi::HandleValue;
 use msg::constellation_msg::PipelineId;
 use net_traits::{CoreResourceThread, IpcSend, ResourceThreads};
 use profile_traits::{mem, time};
-use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
+use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, EnqueuedPromiseCallback};
 use script_thread::{MainThreadScriptChan, RunnableWrapper, ScriptThread};
 use script_traits::{MsDuration, ScriptMsg as ConstellationMsg, TimerEventRequest};
 use task_source::dom_manipulation::DOMManipulationTaskSource;
@@ -289,6 +290,23 @@ impl<'a> GlobalRef<'a> {
         }
     }
 
+    /// Enqueue a promise callback for subsequent execution.
+    pub fn enqueue_promise_job(&self, job: EnqueuedPromiseCallback) {
+        match *self {
+            GlobalRef::Window(_) => ScriptThread::enqueue_promise_job(job, *self),
+            GlobalRef::Worker(ref worker) => worker.enqueue_promise_job(job),
+        }
+    }
+
+    /// Start the process of executing the pending promise callbacks. They will be invoked
+    /// in FIFO order, synchronously, at some point in the future.
+    pub fn flush_promise_jobs(&self) {
+        match *self {
+            GlobalRef::Window(_) => ScriptThread::flush_promise_jobs(*self),
+            GlobalRef::Worker(ref worker) => worker.flush_promise_jobs(),
+        }
+    }
+
     /// https://html.spec.whatwg.org/multipage/#report-the-error
     pub fn report_an_error(&self, error_info: ErrorInfo, value: HandleValue) {
         match *self {
@@ -355,4 +373,14 @@ pub unsafe fn global_root_from_object(obj: *mut JSObject) -> GlobalRoot {
 pub unsafe fn global_root_from_context(cx: *mut JSContext) -> GlobalRoot {
     let global = CurrentGlobalOrNull(cx);
     global_root_from_global(global)
+}
+
+/// Returns the global object of the realm that the given JS object was created in,
+/// after unwrapping any wrappers.
+pub unsafe fn global_root_from_object_maybe_wrapped(mut obj: *mut JSObject) -> GlobalRoot {
+    if IsWrapper(obj) {
+        obj = UnwrapObject(obj, /* stopAtWindowProxy = */ 0);
+        assert!(!obj.is_null());
+    }
+    global_root_from_object(obj)
 }
