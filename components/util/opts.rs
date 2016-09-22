@@ -791,8 +791,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         !PREFS.get("shell.native-titlebar.enabled").as_boolean().unwrap();
 
     let use_webrender =
-        (PREFS.get("gfx.webrender.enabled").as_boolean().unwrap() || opt_match.opt_present("w")) &&
-        !opt_match.opt_present("z");
+        PREFS.get("gfx.webrender.enabled").as_boolean().unwrap() || opt_match.opt_present("w");
 
     let render_api = match opt_match.opt_str("G") {
         Some(ref ga) if ga == "gl" => RenderApi::GL,
