@@ -14,5 +14,5 @@ interface Body {
   // [NewObject] Promise<Blob> blob();
   // [NewObject] Promise<FormData> formData();
   // [NewObject] Promise<JSON> json();
-  [NewObject, Throws] Promise<USVString> text();
+  [NewObject] Promise<USVString> text();
 };

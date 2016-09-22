@@ -622,7 +622,7 @@ impl RequestMethods for Request {
 
     #[allow(unrooted_must_root)]
     // https://fetch.spec.whatwg.org/#dom-body-text
-    fn Text(&self) -> Fallible<Rc<Promise>> {
+    fn Text(&self) -> Rc<Promise> {
         unimplemented!();
     }
 }

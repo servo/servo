@@ -4,7 +4,6 @@
 
 // https://fetch.spec.whatwg.org/#response-class
 
-// TODO: pass 'optional ResponseBodyInit? body = null' to constructor in place of USVString
  [Constructor(optional BodyInit? body = null, optional ResponseInit init),
   Exposed=(Window,Worker)]
 interface Response {

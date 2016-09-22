@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use body::{BodyTrait, BodyType, consume_body};
 use core::cell::Cell;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HeadersBinding::HeadersMethods;
@@ -17,12 +18,12 @@ use dom::headers::{Headers, Guard};
 use dom::headers::{is_vchar, is_obs_text};
 use dom::promise::Promise;
 use dom::xmlhttprequest::Extractable;
-use encoding::all::UTF_8;
-use encoding::types::{DecoderTrap, Encoding};
 use hyper::status::StatusCode;
 use net_traits::response::{ResponseBody as NetTraitsResponseBody};
+use std::mem;
 use std::rc::Rc;
 use std::str::FromStr;
+use style::refcell::Ref;
 use url::Position;
 use url::Url;
 
@@ -106,9 +107,8 @@ impl Response {
             };
 
             // Step 7.3
-            let extracted_body_tmp = body.extract();
-            *r.body.borrow_mut() = NetTraitsResponseBody::Done(extracted_body_tmp.0);
-            let content_type = extracted_body_tmp.1;
+            let (extracted_body, content_type) = body.extract();
+            *r.body.borrow_mut() = NetTraitsResponseBody::Done(extracted_body);
 
             // Step 7.4
             if let Some(content_type_contents) = content_type {
@@ -179,64 +179,40 @@ impl Response {
         Ok(r)
     }
 
-    // https://fetch.spec.whatwg.org/#concept-body-consume-body
-    #[allow(unrooted_must_root)]
-    fn consume_body(&self, body_type: BodyType) -> Fallible<Rc<Promise>> {
-        let promise = Promise::new(self.global().r());
-
-        // Step 1
-        if self.BodyUsed() || self.locked() {
-            promise.maybe_reject_error(promise.global().r().get_cx(), Error::Type(
-                "The response's stream is disturbed or locked".to_string()));
-            return Ok(promise);
-        }
-
-        // Steps 2-4
-        // TODO: Body does not yet have a stream.
-
-        // Step 5
-        let pkg_data_results: String = try!(self.run_package_data_algorithm(body_type));
-        let pkg_data_results: USVString = USVString(pkg_data_results);
-        promise.maybe_resolve_native(promise.global().r().get_cx(), &pkg_data_results);
-        Ok(promise)
-    }
-
     // https://fetch.spec.whatwg.org/#concept-body-locked
-    fn locked(&self) -> bool {
+    pub fn locked(&self) -> bool {
         // TODO: ReadableStream is unimplemented. Just return false
         // for now.
         false
     }
-
-    // https://fetch.spec.whatwg.org/#concept-body-package-data
-    fn run_package_data_algorithm(&self, body_type: BodyType) -> Fallible<String> {
-        match body_type {
-            BodyType::Text => {
-                // return result of running utf-8 decode here
-                // using encoding crate on all bytes instead of
-                // individually processing each token
-                // TODO: also check NetTraitsResponseBody::Receiving(bytes) = *self.body.borrow()
-                if let NetTraitsResponseBody::Done(ref bytes) = *self.body.borrow() {
-                    self.body_used.set(true);
-                    let result: Result<String, Error> =
-                        UTF_8.decode(bytes, DecoderTrap::Replace).map_err(|e| Error::Type((&*e).to_owned()));
-                    *self.body.borrow_mut() = NetTraitsResponseBody::Empty;
-                    return result;
-                }
-                return Ok("".to_owned());
-            },
-            _ => Err(Error::Type(
-                "Unable to process bytes".to_string()))
-        }
-    }
 }
 
-pub enum BodyType {
-    ArrayBuffer,
-    Blob,
-    FormData,
-    Json,
-    Text
+impl BodyTrait for Response {
+    fn get_body_used_trait(&self) -> bool {
+        self.BodyUsed()
+    }
+
+    fn locked_trait(&self) -> bool {
+        self.locked()
+    }
+
+    fn take_body(&self) -> Option<Vec<u8>> {
+        let body: NetTraitsResponseBody = mem::replace(&mut *self.body.borrow_mut(), NetTraitsResponseBody::Empty);
+        if let NetTraitsResponseBody::Done(bytes) = body {
+            self.body_used.set(true);
+            Some(bytes)
+        } else if let NetTraitsResponseBody::Receiving(bytes) = body {
+            self.body_used.set(true);
+            Some(bytes)
+        } else {
+            None
+        }
+    }
+
+    fn get_mime_type(&self) -> Ref<Vec<u8>> {
+        self.mime_type.borrow()
+        //r.map(|vec| &*vec)
+    }
 }
 
 // https://fetch.spec.whatwg.org/#redirect-status
@@ -330,7 +306,6 @@ impl ResponseMethods for Response {
         if *self.body.borrow() != NetTraitsResponseBody::Empty {
             *new_response.body.borrow_mut() = self.body.borrow().clone();
         }
-        new_response.body_used.set(self.BodyUsed());
 
         // Step 3
         // TODO: This step relies on promises, which are still unimplemented.
@@ -346,8 +321,8 @@ impl ResponseMethods for Response {
 
     #[allow(unrooted_must_root)]
     // https://fetch.spec.whatwg.org/#dom-body-text
-    fn Text(&self) -> Fallible<Rc<Promise>> {
-        self.consume_body(BodyType::Text)
+    fn Text(&self) -> Rc<Promise> {
+        consume_body(self, BodyType::Text)
     }
 }
 
