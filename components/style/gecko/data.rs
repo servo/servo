@@ -3,23 +3,23 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use euclid::size::TypedSize2D;
-use style::gecko_bindings::bindings::RawServoStyleSet;
-use style::gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
+use gecko_bindings::bindings::RawServoStyleSet;
+use gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
 use num_cpus;
 use std::cmp;
 use std::collections::HashMap;
 use std::env;
 use std::sync::{Arc, RwLock};
 use std::sync::mpsc::{Receiver, Sender, channel};
-use style::animation::Animation;
-use style::context::SharedStyleContext;
-use style::dom::OpaqueNode;
-use style::media_queries::{Device, MediaType};
-use style::parallel::WorkQueueData;
-use style::selector_matching::Stylist;
-use style::stylesheets::Stylesheet;
-use style::thread_state;
-use style::workqueue::WorkQueue;
+use animation::Animation;
+use context::SharedStyleContext;
+use dom::OpaqueNode;
+use media_queries::{Device, MediaType};
+use parallel::WorkQueueData;
+use selector_matching::Stylist;
+use stylesheets::Stylesheet;
+use thread_state;
+use workqueue::WorkQueue;
 use style_traits::ViewportPx;
 
 pub struct PerDocumentStyleData {

@@ -1,16 +1,16 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-use style::gecko_bindings::bindings;
-use style::gecko_bindings::structs::ServoElementSnapshot;
-use style::gecko_bindings::structs::ServoElementSnapshotFlags as Flags;
-use style::string_cache::Atom;
+use gecko_bindings::bindings;
+use gecko_bindings::structs::ServoElementSnapshot;
+use gecko_bindings::structs::ServoElementSnapshotFlags as Flags;
+use string_cache::Atom;
 use selectors::parser::AttrSelector;
-use snapshot_helpers;
-use style::element_state::ElementState;
-use style::restyle_hints::ElementSnapshot;
-use style::selector_impl::TheSelectorImpl;
-use wrapper::AttrSelectorHelpers;
+use gecko::snapshot_helpers;
+use element_state::ElementState;
+use restyle_hints::ElementSnapshot;
+use selector_impl::TheSelectorImpl;
+use gecko::wrapper::AttrSelectorHelpers;
 
 // NB: This is sound, in some sense, because during computation of restyle hints
 // the snapshot is kept alive by the modified elements table.

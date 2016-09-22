@@ -7,22 +7,12 @@
 extern crate app_units;
 extern crate env_logger;
 extern crate euclid;
-#[macro_use] extern crate lazy_static;
 extern crate libc;
 #[macro_use] extern crate log;
-extern crate num_cpus;
-extern crate selectors;
-extern crate style_traits;
 extern crate url;
 
-mod context;
-mod data;
-mod snapshot;
-mod snapshot_helpers;
 #[allow(non_snake_case)]
 pub mod glue;
-mod traversal;
-mod wrapper;
 
 // FIXME(bholley): This should probably go away once we harmonize the allocators.
 #[no_mangle]

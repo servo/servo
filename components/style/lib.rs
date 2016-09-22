@@ -53,11 +53,13 @@ extern crate heapsize;
 extern crate lazy_static;
 #[macro_use]
 extern crate log;
+extern crate libc;
 #[allow(unused_extern_crates)]
 #[macro_use]
 extern crate matches;
 extern crate num_integer;
 extern crate num_traits;
+#[cfg(feature = "gecko")] extern crate num_cpus;
 extern crate ordered_float;
 extern crate quickersort;
 extern crate rand;
