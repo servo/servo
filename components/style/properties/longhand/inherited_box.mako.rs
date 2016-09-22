@@ -88,14 +88,8 @@ ${helpers.single_keyword("color-adjust",
         }
     }
 
-    impl ToComputedValue for SpecifiedValue {
-        type ComputedValue = computed_value::T;
-
-        #[inline]
-        fn to_computed_value(&self, _: &Context) -> computed_value::T {
-            *self
-        }
-    }
+    use values::computed::ComputedValueAsSpecified;
+    impl ComputedValueAsSpecified for SpecifiedValue { }
 </%helpers:longhand>
 
 // Used in the bottom-up flow construction traversal to avoid constructing flows for

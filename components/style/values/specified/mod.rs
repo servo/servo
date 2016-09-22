@@ -17,7 +17,7 @@ use std::fmt;
 use std::ops::Mul;
 use style_traits::values::specified::AllowedNumericType;
 use super::{CSSFloat, FONT_MEDIUM_PX, HasViewportPercentage, LocalToCss, NoViewportPercentage};
-use super::computed::{self, Context, ToComputedValue};
+use super::computed::{self, ComputedValueAsSpecified, Context, ToComputedValue};
 use url::Url;
 
 pub mod basic_shape;
@@ -1525,14 +1525,7 @@ impl Time {
     }
 }
 
-impl ToComputedValue for Time {
-    type ComputedValue = Time;
-
-    #[inline]
-    fn to_computed_value(&self, _: &Context) -> Time {
-        *self
-    }
-}
+impl ComputedValueAsSpecified for Time {}
 
 impl ToCss for Time {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {

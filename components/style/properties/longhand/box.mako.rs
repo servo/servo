@@ -266,6 +266,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 
   use cssparser::ToCss;
   use std::fmt;
+  use values::computed::ComputedValueAsSpecified;
 
   pub use self::computed_value::T as SpecifiedValue;
 
@@ -284,14 +285,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
       pub struct T(pub super::super::overflow_x::computed_value::T);
   }
 
-  impl ToComputedValue for SpecifiedValue {
-      type ComputedValue = computed_value::T;
-
-      #[inline]
-      fn to_computed_value(&self, context: &Context) -> computed_value::T {
-          computed_value::T(self.0.to_computed_value(context))
-      }
-  }
+  impl ComputedValueAsSpecified for SpecifiedValue {}
 
   pub fn get_initial_value() -> computed_value::T {
       computed_value::T(overflow_x::get_initial_value())
@@ -372,6 +366,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 
     use euclid::point::{Point2D, TypedPoint2D};
     use std::marker::PhantomData;
+    use values::computed::ComputedValueAsSpecified;
 
     pub use self::computed_value::SingleComputedValue as SingleSpecifiedValue;
     pub use self::computed_value::T as SpecifiedValue;
@@ -416,6 +411,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
         use cssparser::ToCss;
         use euclid::point::Point2D;
         use std::fmt;
+        use values::computed::ComputedValueAsSpecified;
 
         pub use self::TransitionTimingFunction as SingleComputedValue;
 
@@ -490,14 +486,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     use values::NoViewportPercentage;
     impl NoViewportPercentage for SpecifiedValue {}
 
-    impl ToComputedValue for SpecifiedValue {
-        type ComputedValue = computed_value::T;
-
-        #[inline]
-        fn to_computed_value(&self, _: &Context) -> computed_value::T {
-            (*self).clone()
-        }
-    }
+    impl ComputedValueAsSpecified for SpecifiedValue {}
 
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
@@ -567,6 +556,9 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 <%helpers:longhand name="transition-property"
                    need_index="True"
                    animatable="False">
+
+    use values::computed::ComputedValueAsSpecified;
+
     pub use self::computed_value::SingleComputedValue as SingleSpecifiedValue;
     pub use self::computed_value::T as SpecifiedValue;
 
@@ -616,14 +608,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     use values::NoViewportPercentage;
     impl NoViewportPercentage for SpecifiedValue {}
 
-    impl ToComputedValue for SpecifiedValue {
-        type ComputedValue = computed_value::T;
-
-        #[inline]
-        fn to_computed_value(&self, _: &Context) -> computed_value::T {
-            (*self).clone()
-        }
-    }
+    impl ComputedValueAsSpecified for SpecifiedValue { }
 </%helpers:longhand>
 
 <%helpers:longhand name="transition-delay"
