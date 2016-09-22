@@ -23,6 +23,9 @@ style_traits = {path = "../../components/style_traits"}
 url = {version = "1.2", features = ["heap_size"]}
 util = {path = "../../components/util"}
 
+[target.'cfg(any(target_os = "linux", target_os = "macos"))'.dependencies]
+osmesa-sys = {git = "https://github.com/daggerbot/osmesa-rs"}
+
 [target.'cfg(target_os = "linux")'.dependencies]
 x11 = "2.0.0"
 
@@ -33,3 +36,9 @@ servo-egl = "0.2"
 winapi = "0.2"
 user32-sys = "0.2"
 gdi32-sys = "0.2"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+osmesa-src = {git = "https://github.com/servo/osmesa-src"}
+
+[target.x86_64-unknown-linux-gnu.dependencies]
+osmesa-src = {git = "https://github.com/servo/osmesa-src"}
