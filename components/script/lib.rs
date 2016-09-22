@@ -114,10 +114,8 @@ mod webdriver_handlers;
 
 use dom::bindings::codegen::RegisterBindings;
 use dom::bindings::proxyhandler;
-use js::jsapi::{Handle, JSContext, JSObject};
 use script_traits::SWManagerSenders;
 use serviceworker_manager::ServiceWorkerManager;
-use util::opts;
 
 #[cfg(target_os = "linux")]
 #[allow(unsafe_code)]
@@ -174,14 +172,4 @@ pub fn init(sw_senders: SWManagerSenders) {
     RegisterBindings::RegisterProxyHandlers();
 
     perform_platform_specific_initialization();
-}
-
-/// FIXME(pcwalton): Currently WebRender cannot handle DOM-initiated scrolls. Remove this when it
-/// can. See PR #11680 for details.
-///
-/// This function is only marked `unsafe` because the `[Func=foo]` WebIDL attribute requires it. It
-/// shouldn't actually do anything unsafe.
-#[allow(unsafe_code)]
-pub unsafe fn script_can_initiate_scroll(_: *mut JSContext, _: Handle<*mut JSObject>) -> bool {
-    !opts::get().use_webrender
 }

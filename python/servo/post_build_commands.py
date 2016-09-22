@@ -9,7 +9,6 @@
 
 from __future__ import print_function, unicode_literals
 
-from glob import glob
 import os
 import os.path as path
 import subprocess
@@ -23,7 +22,7 @@ from mach.decorators import (
     Command,
 )
 
-from servo.command_base import CommandBase, cd, call, check_call, is_windows, is_macosx
+from servo.command_base import CommandBase, call, check_call, find_dep_path_newest, is_windows, is_macosx
 
 
 def read_file(filename, if_exists=False):
@@ -31,18 +30,6 @@ def read_file(filename, if_exists=False):
         return None
     with open(filename) as f:
         return f.read()
-
-
-def find_dep_path_newest(package, bin_path):
-    deps_path = path.join(path.split(bin_path)[0], "build")
-    with cd(deps_path):
-        print(os.getcwd())
-        candidates = glob(package + '-*')
-    candidates = (path.join(deps_path, c) for c in candidates)
-    candidate_times = sorted(((path.getmtime(c), c) for c in candidates), reverse=True)
-    if len(candidate_times) > 0:
-        return candidate_times[0][1]
-    return None
 
 
 @CommandProvider
