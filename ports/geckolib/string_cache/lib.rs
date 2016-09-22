@@ -28,6 +28,7 @@ use std::ops::Deref;
 use std::slice;
 
 #[macro_use]
+#[allow(improper_ctypes)]
 pub mod atom_macro;
 pub mod namespace;
 
