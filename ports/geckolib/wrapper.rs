@@ -39,8 +39,8 @@ use std::ops::BitOr;
 use std::ptr;
 use std::sync::Arc;
 use style::data::PrivateStyleData;
+use style::dom::{LayoutIterator, NodeInfo, TDocument, TElement, TNode, TRestyleDamage, UnsafeNode};
 use style::dom::{OpaqueNode, PresentationalHintsSynthetizer};
-use style::dom::{TDocument, TElement, TNode, TRestyleDamage, UnsafeNode};
 use style::element_state::ElementState;
 use style::error_reporting::StdoutErrorReporter;
 use style::gecko_selector_impl::{GeckoSelectorImpl, NonTSPseudoClass, PseudoElement};
@@ -125,6 +125,19 @@ impl BitOr for GeckoRestyleDamage {
 }
 
 
+impl<'ln> NodeInfo for GeckoNode<'ln> {
+    fn is_element(&self) -> bool {
+        unsafe {
+            Gecko_NodeIsElement(self.0)
+        }
+    }
+
+    fn is_text_node(&self) -> bool {
+        unsafe {
+            Gecko_IsTextNode(self.0)
+        }
+    }
+}
 
 impl<'ln> TNode for GeckoNode<'ln> {
     type ConcreteDocument = GeckoDocument<'ln>;
@@ -140,18 +153,6 @@ impl<'ln> TNode for GeckoNode<'ln> {
         GeckoNode(&*(n.0 as *mut RawGeckoNode))
     }
 
-    fn is_text_node(&self) -> bool {
-        unsafe {
-            Gecko_IsTextNode(self.0)
-        }
-    }
-
-    fn is_element(&self) -> bool {
-        unsafe {
-            Gecko_NodeIsElement(self.0)
-        }
-    }
-
     fn dump(self) {
         unimplemented!()
     }
@@ -160,12 +161,12 @@ impl<'ln> TNode for GeckoNode<'ln> {
         unimplemented!()
     }
 
-    fn children(self) -> GeckoChildrenIterator<'ln> {
+    fn children(self) -> LayoutIterator<GeckoChildrenIterator<'ln>> {
         let maybe_iter = unsafe { Gecko_MaybeCreateStyleChildrenIterator(self.0) };
         if let Some(iter) = maybe_iter.into_owned_opt() {
-            GeckoChildrenIterator::GeckoIterator(iter)
+            LayoutIterator(GeckoChildrenIterator::GeckoIterator(iter))
         } else {
-            GeckoChildrenIterator::Current(self.first_child())
+            LayoutIterator(GeckoChildrenIterator::Current(self.first_child()))
         }
     }
 

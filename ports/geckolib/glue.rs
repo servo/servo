@@ -32,7 +32,7 @@ use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, AtomicPtr, Ordering};
 use style::arc_ptr_eq;
 use style::context::{LocalStyleContextCreationInfo, ReflowGoal, SharedStyleContext};
-use style::dom::{TDocument, TElement, TNode};
+use style::dom::{NodeInfo, TDocument, TElement, TNode};
 use style::error_reporting::StdoutErrorReporter;
 use style::gecko_selector_impl::{GeckoSelectorImpl, PseudoElement};
 use style::parallel;

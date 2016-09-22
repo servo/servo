@@ -12,7 +12,7 @@ use cache::{LRUCache, SimpleHashCache};
 use cascade_info::CascadeInfo;
 use context::{SharedStyleContext, StyleContext};
 use data::PrivateStyleData;
-use dom::{TElement, TNode, TRestyleDamage, UnsafeNode};
+use dom::{NodeInfo, TElement, TNode, TRestyleDamage, UnsafeNode};
 use properties::{ComputedValues, PropertyDeclarationBlock, cascade};
 use properties::longhands::display::computed_value as display;
 use selector_impl::{PseudoElement, TheSelectorImpl};

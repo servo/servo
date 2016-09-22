@@ -58,7 +58,8 @@ use style::attr::AttrValue;
 use style::computed_values::display;
 use style::context::SharedStyleContext;
 use style::data::PrivateStyleData;
-use style::dom::{OpaqueNode, PresentationalHintsSynthetizer, TDocument, TElement, TNode, UnsafeNode};
+use style::dom::{LayoutIterator, NodeInfo, OpaqueNode, PresentationalHintsSynthetizer, TDocument, TElement, TNode};
+use style::dom::UnsafeNode;
 use style::element_state::*;
 use style::properties::{ComputedValues, PropertyDeclarationBlock};
 use style::refcell::{Ref, RefCell, RefMut};
@@ -111,6 +112,18 @@ impl<'ln> ServoLayoutNode<'ln> {
     }
 }
 
+impl<'ln> NodeInfo for ServoLayoutNode<'ln> {
+    fn is_element(&self) -> bool {
+        unsafe {
+            self.node.is_element_for_layout()
+        }
+    }
+
+    fn is_text_node(&self) -> bool {
+        self.script_type_id() == NodeTypeId::CharacterData(CharacterDataTypeId::Text)
+    }
+}
+
 impl<'ln> TNode for ServoLayoutNode<'ln> {
     type ConcreteElement = ServoLayoutElement<'ln>;
     type ConcreteDocument = ServoLayoutDocument<'ln>;
@@ -128,16 +141,6 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
         transmute(node)
     }
 
-    fn is_text_node(&self) -> bool {
-        self.script_type_id() == NodeTypeId::CharacterData(CharacterDataTypeId::Text)
-    }
-
-    fn is_element(&self) -> bool {
-        unsafe {
-            self.node.is_element_for_layout()
-        }
-    }
-
     fn dump(self) {
         self.dump_indent(0);
     }
@@ -147,10 +150,10 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
         self.dump_style_indent(0);
     }
 
-    fn children(self) -> ServoChildrenIterator<'ln> {
-        ServoChildrenIterator {
+    fn children(self) -> LayoutIterator<ServoChildrenIterator<'ln>> {
+        LayoutIterator(ServoChildrenIterator {
             current: self.first_child(),
-        }
+        })
     }
 
     fn opaque(&self) -> OpaqueNode {
@@ -727,6 +730,20 @@ impl<'ln> ServoThreadSafeLayoutNode<'ln> {
     }
 }
 
+impl<'ln> NodeInfo for ServoThreadSafeLayoutNode<'ln> {
+    fn is_element(&self) -> bool {
+        if let Some(LayoutNodeType::Element(_)) = self.type_id() { true } else { false }
+    }
+
+    fn is_text_node(&self) -> bool {
+        if let Some(LayoutNodeType::Text) = self.type_id() { true } else { false }
+    }
+
+    fn needs_layout(&self) -> bool {
+        self.pseudo != PseudoElementType::Normal || self.is_element() || self.is_text_node()
+    }
+}
+
 impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
     type ConcreteThreadSafeLayoutElement = ServoThreadSafeLayoutElement<'ln>;
     type ChildrenIterator = ThreadSafeLayoutNodeChildrenIterator<Self>;
@@ -760,8 +777,8 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
         self.node.debug_id()
     }
 
-    fn children(&self) -> Self::ChildrenIterator {
-        ThreadSafeLayoutNodeChildrenIterator::new(*self)
+    fn children(&self) -> LayoutIterator<Self::ChildrenIterator> {
+        LayoutIterator(ThreadSafeLayoutNodeChildrenIterator::new(*self))
     }
 
     fn as_element(&self) -> ServoThreadSafeLayoutElement<'ln> {
