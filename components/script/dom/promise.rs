@@ -136,18 +136,16 @@ impl Promise {
     }
 
     #[allow(unsafe_code)]
-    pub fn maybe_resolve_native<T>(&self, cx: *mut JSContext, val: &T) where T: ToJSValConvertible {
+    pub fn resolve_native<T>(&self, cx: *mut JSContext, val: &T) where T: ToJSValConvertible {
         rooted!(in(cx) let mut v = UndefinedValue());
         unsafe {
             val.to_jsval(cx, v.handle_mut());
         }
-        self.maybe_resolve(cx, v.handle());
+        self.resolve(cx, v.handle());
     }
 
     #[allow(unrooted_must_root, unsafe_code)]
-    pub fn maybe_resolve(&self,
-                         cx: *mut JSContext,
-                         value: HandleValue) {
+    pub fn resolve(&self, cx: *mut JSContext, value: HandleValue) {
         unsafe {
             if !ResolvePromise(cx, self.promise_obj(), value) {
                 JS_ClearPendingException(cx);
@@ -156,25 +154,25 @@ impl Promise {
     }
 
     #[allow(unsafe_code)]
-    pub fn maybe_reject_native<T>(&self, cx: *mut JSContext, val: &T) where T: ToJSValConvertible {
+    pub fn reject_native<T>(&self, cx: *mut JSContext, val: &T) where T: ToJSValConvertible {
         rooted!(in(cx) let mut v = UndefinedValue());
         unsafe {
             val.to_jsval(cx, v.handle_mut());
         }
-        self.maybe_reject(cx, v.handle());
+        self.reject(cx, v.handle());
     }
 
     #[allow(unsafe_code)]
-    pub fn maybe_reject_error(&self, cx: *mut JSContext, error: Error) {
+    pub fn reject_error(&self, cx: *mut JSContext, error: Error) {
         rooted!(in(cx) let mut v = UndefinedValue());
         unsafe {
-            error.maybe_to_jsval(cx, self.global().r(), v.handle_mut());
+            error.to_jsval(cx, self.global().r(), v.handle_mut());
         }
-        self.maybe_reject(cx, v.handle());
+        self.reject(cx, v.handle());
     }
 
     #[allow(unrooted_must_root, unsafe_code)]
-    pub fn maybe_reject(&self,
+    pub fn reject(&self,
                         cx: *mut JSContext,
                         value: HandleValue) {
         unsafe {
