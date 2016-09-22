@@ -664,15 +664,15 @@ impl TestBindingMethods for TestBinding {
     }
 
     fn PromiseResolveNative(&self, cx: *mut JSContext, p: &Promise, v: HandleValue) {
-        p.maybe_resolve(cx, v);
+        p.resolve(cx, v);
     }
 
     fn PromiseRejectNative(&self, cx: *mut JSContext, p: &Promise, v: HandleValue) {
-        p.maybe_reject(cx, v);
+        p.reject(cx, v);
     }
 
     fn PromiseRejectWithTypeError(&self, p: &Promise, s: USVString) {
-        p.maybe_reject_error(self.global().r().get_cx(), Error::Type(s.0));
+        p.reject_error(self.global().r().get_cx(), Error::Type(s.0));
     }
 
     #[allow(unrooted_must_root)]
@@ -692,8 +692,8 @@ impl TestBindingMethods for TestBinding {
                             reject: Option<Rc<SimpleCallback>>) -> Rc<Promise> {
         let global = self.global();
         let handler = PromiseNativeHandler::new(global.r(),
-                                                resolve.map(|r| SimpleHandler::new(r)),
-                                                reject.map(|r| SimpleHandler::new(r)));
+                                                resolve.map(SimpleHandler::new),
+                                                reject.map(SimpleHandler::new));
         let p = Promise::new(global.r());
         p.append_native_handler(&handler);
         return p;
@@ -788,6 +788,6 @@ impl TestBindingCallback {
         let p = self.promise.root();
         let cx = p.global().r().get_cx();
         let _ac = JSAutoCompartment::new(cx, p.reflector().get_jsobject().get());
-        p.maybe_resolve_native(cx, &self.value);
+        p.resolve_native(cx, &self.value);
     }
 }

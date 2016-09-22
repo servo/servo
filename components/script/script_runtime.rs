@@ -102,7 +102,7 @@ impl<'a> Drop for StackRootTLS<'a> {
     }
 }
 
-/// A promise callback scheduled to run during the next microtask checkpoint.
+/// A promise callback scheduled to run during the next microtask checkpoint (#4283).
 #[derive(JSTraceable, HeapSizeOf)]
 pub struct EnqueuedPromiseCallback {
     #[ignore_heap_size_of = "Rc has unclear ownership"]
@@ -120,6 +120,8 @@ pub struct PromiseJobQueue {
     /// The list of enqueued promise callbacks that will be invoked at the next microtask checkpoint.
     promise_job_queue: DOMRefCell<Vec<EnqueuedPromiseCallback>>,
     /// True if there is an outstanding runnable responsible for evaluating the promise job queue.
+    /// This prevents runnables flooding the event queue needlessly, since the first one will
+    /// execute all pending runnables.
     pending_promise_job_runnable: Cell<bool>,
 }
 
@@ -144,7 +146,7 @@ impl PromiseJobQueue {
     }
 
     /// Perform a microtask checkpoint, by invoking all of the pending promise job callbacks in
-    /// FIFO order.
+    /// FIFO order (#4283).
     pub fn flush_promise_jobs<F>(&self, target_provider: F)
         where F: Fn(PipelineId) -> Option<GlobalRoot>
     {

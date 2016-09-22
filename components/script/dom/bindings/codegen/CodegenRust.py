@@ -821,7 +821,6 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
                 { // Scope for our JSAutoCompartment.
 
                   rooted!(in(cx) let globalObj = CurrentGlobalOrNull(cx));
-                  let _ac = JSAutoCompartment::new(cx, globalObj.handle().get());
                   let promiseGlobal = global_root_from_object_maybe_wrapped(globalObj.handle().get());
 
                   rooted!(in(cx) let mut valueToResolve = $${val}.get());

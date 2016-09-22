@@ -239,11 +239,11 @@ impl WorkerGlobalScope {
     }
 
     pub fn flush_promise_jobs(&self) {
-        let _ = self.script_chan().send(CommonScriptMsg::RunnableMsg(
+        self.script_chan().send(CommonScriptMsg::RunnableMsg(
             ScriptThreadEventCategory::WorkerEvent,
             box FlushPromiseJobs {
                 global: Trusted::new(self),
-            }));
+            })).unwrap();
     }
 
     fn do_flush_promise_jobs(&self) {

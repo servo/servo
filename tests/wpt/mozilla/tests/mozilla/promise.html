@@ -56,11 +56,11 @@
       var t = new TestBinding;
       var resolved;
       var p = new Promise(function() {});
-      var timeoutFired = false;
+      var start = Date.now();
       t.resolvePromiseDelayed(p, 'success', 100);
-      setTimeout(function() { timeoutFired = true }, 100);
       return p.then(function(v) {
-          assert_true(timeoutFired);
+          var end = Date.now();
+          assert_true(end - start > 100);
           assert_equals(v, 'success');
       });
   }, 'Native promise from async callback can be resolved');

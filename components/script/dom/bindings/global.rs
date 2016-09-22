@@ -293,7 +293,7 @@ impl<'a> GlobalRef<'a> {
     /// Enqueue a promise callback for subsequent execution.
     pub fn enqueue_promise_job(&self, job: EnqueuedPromiseCallback) {
         match *self {
-            GlobalRef::Window(ref _window) => ScriptThread::enqueue_promise_job(job, *self),
+            GlobalRef::Window(_) => ScriptThread::enqueue_promise_job(job, *self),
             GlobalRef::Worker(ref worker) => worker.enqueue_promise_job(job),
         }
     }
@@ -302,7 +302,7 @@ impl<'a> GlobalRef<'a> {
     /// in FIFO order, synchronously, at some point in the future.
     pub fn flush_promise_jobs(&self) {
         match *self {
-            GlobalRef::Window(ref _window) => ScriptThread::flush_promise_jobs(*self),
+            GlobalRef::Window(_) => ScriptThread::flush_promise_jobs(*self),
             GlobalRef::Worker(ref worker) => worker.flush_promise_jobs(),
         }
     }

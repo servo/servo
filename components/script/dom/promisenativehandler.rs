@@ -10,8 +10,6 @@ use dom::bindings::trace::JSTraceable;
 use heapsize::HeapSizeOf;
 use js::jsapi::{JSContext, HandleValue};
 
-pub type CallbackType = Box<Callback>;
-
 pub trait Callback: JSTraceable + HeapSizeOf {
     fn callback(&self, cx: *mut JSContext, v: HandleValue);
 }
@@ -19,14 +17,15 @@ pub trait Callback: JSTraceable + HeapSizeOf {
 #[dom_struct]
 pub struct PromiseNativeHandler {
     reflector: Reflector,
-    resolve: Option<CallbackType>,
-    reject: Option<CallbackType>,
+    resolve: Option<Box<Callback>>,
+    reject: Option<Box<Callback>>,
 }
 
 impl PromiseNativeHandler {
     pub fn new(global: GlobalRef,
-           resolve: Option<CallbackType>,
-           reject: Option<CallbackType>) -> Root<PromiseNativeHandler> {
+               resolve: Option<Box<Callback>>,
+               reject: Option<Box<Callback>>)
+               -> Root<PromiseNativeHandler> {
         reflect_dom_object(box PromiseNativeHandler {
             reflector: Reflector::new(),
             resolve: resolve,
@@ -34,8 +33,8 @@ impl PromiseNativeHandler {
         }, global, PromiseNativeHandlerBinding::Wrap)
     }
 
-    fn callback(callback: &Option<CallbackType>, cx: *mut JSContext, v: HandleValue) {
-        if let &Some(ref callback) = callback {
+    fn callback(callback: &Option<Box<Callback>>, cx: *mut JSContext, v: HandleValue) {
+        if let Some(ref callback) = *callback {
             callback.callback(cx, v)
         }
     }

@@ -21,13 +21,27 @@ use js::jsval::{JSVal, UndefinedValue, ObjectValue, Int32Value};
 use std::ptr;
 use std::rc::Rc;
 
+//! Native representation of JS Promise values.
+//!
+//! This implementation differs from the traditional Rust DOM object, because the reflector
+//! is provided by SpiderMonkey and has no knowledge of an associated native representation
+//! (ie. dom::Promise). This means that native instances use native reference counting (Rc)
+//! to ensure that no memory is leaked, which means that there can be multiple instances of
+//! native Promise values that refer to the same JS value yet are distinct native objects
+//! (ie. address equality for the native objects is meaningless).
+
 #[dom_struct]
 pub struct Promise {
     reflector: Reflector,
+    /// Since Promise values are natively reference counted without the knowledge of
+    /// the SpiderMonkey GC, an explicit root for the reflector is stored while any
+    /// native instance exists. This ensures that the reflector will never be GCed
+    /// while native code could still interact with its native representation.
     #[ignore_heap_size_of = "SM handles JS values"]
-    root: MutHeapJSVal,
+    permanent_js_root: MutHeapJSVal,
 }
 
+/// Private helper to enable adding new methods to Rc<Promise>.
 trait PromiseHelper {
     #[allow(unsafe_code)]
     unsafe fn initialize(&self, cx: *mut JSContext);
@@ -37,9 +51,9 @@ impl PromiseHelper for Rc<Promise> {
     #[allow(unsafe_code)]
     unsafe fn initialize(&self, cx: *mut JSContext) {
         let obj = self.reflector().get_jsobject();
-        self.root.set(ObjectValue(&**obj));
+        self.permanent_js_root.set(ObjectValue(&**obj));
         assert!(AddRawValueRoot(cx,
-                                self.root.get_unsafe(),
+                                self.permanent_js_root.get_unsafe(),
                                 b"Promise::root\0" as *const _ as *const _));
     }
 }
@@ -49,7 +63,7 @@ impl Drop for Promise {
     fn drop(&mut self) {
         let cx = self.global().r().get_cx();
         unsafe {
-            RemoveRawValueRoot(cx, self.root.get_unsafe());
+            RemoveRawValueRoot(cx, self.permanent_js_root.get_unsafe());
         }
     }
 }
@@ -78,7 +92,7 @@ impl Promise {
         assert!(IsPromiseObject(obj));
         let mut promise = Promise {
             reflector: Reflector::new(),
-            root: MutHeapJSVal::new(),
+            permanent_js_root: MutHeapJSVal::new(),
         };
         promise.init_reflector(obj.get());
         let promise = Rc::new(promise);
@@ -122,16 +136,16 @@ impl Promise {
     }
 
     #[allow(unsafe_code)]
-    pub fn maybe_resolve_native<T>(&self, cx: *mut JSContext, val: &T) where T: ToJSValConvertible {
+    pub fn resolve_native<T>(&self, cx: *mut JSContext, val: &T) where T: ToJSValConvertible {
         rooted!(in(cx) let mut v = UndefinedValue());
         unsafe {
             val.to_jsval(cx, v.handle_mut());
         }
-        self.maybe_resolve(cx, v.handle());
+        self.resolve(cx, v.handle());
     }
 
     #[allow(unrooted_must_root, unsafe_code)]
-    pub fn maybe_resolve(&self,
+    pub fn resolve(&self,
                          cx: *mut JSContext,
                          value: HandleValue) {
         unsafe {
@@ -142,25 +156,25 @@ impl Promise {
     }
 
     #[allow(unsafe_code)]
-    pub fn maybe_reject_native<T>(&self, cx: *mut JSContext, val: &T) where T: ToJSValConvertible {
+    pub fn reject_native<T>(&self, cx: *mut JSContext, val: &T) where T: ToJSValConvertible {
         rooted!(in(cx) let mut v = UndefinedValue());
         unsafe {
             val.to_jsval(cx, v.handle_mut());
         }
-        self.maybe_reject(cx, v.handle());
+        self.reject(cx, v.handle());
     }
 
     #[allow(unsafe_code)]
-    pub fn maybe_reject_error(&self, cx: *mut JSContext, error: Error) {
+    pub fn reject_error(&self, cx: *mut JSContext, error: Error) {
         rooted!(in(cx) let mut v = UndefinedValue());
         unsafe {
-            error.maybe_to_jsval(cx, self.global().r(), v.handle_mut());
+            error.to_jsval(cx, self.global().r(), v.handle_mut());
         }
-        self.maybe_reject(cx, v.handle());
+        self.reject(cx, v.handle());
     }
 
     #[allow(unrooted_must_root, unsafe_code)]
-    pub fn maybe_reject(&self,
+    pub fn reject(&self,
                         cx: *mut JSContext,
                         value: HandleValue) {
         unsafe {

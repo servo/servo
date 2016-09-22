@@ -197,12 +197,7 @@ impl LiveDOMReferences {
     #[allow(unrooted_must_root)]
     fn addref_promise(&self, promise: Rc<Promise>) {
         let mut table = self.promise_table.borrow_mut();
-        match table.entry(&*promise) {
-            Occupied(mut entry) => entry.get_mut().push(promise),
-            Vacant(entry) => {
-                entry.insert(vec![promise]);
-            }
-        }
+        table.entry(&*promise).or_insert(vec![]).push(promise)
     }
 
     fn addref<T: Reflectable>(&self, ptr: *const T) -> Arc<TrustedReference> {
