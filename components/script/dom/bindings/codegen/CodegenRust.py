@@ -4866,7 +4866,6 @@ return true;"""
         return CGGeneric(self.getBody())
 
 
-# TODO(Issue 5876)
 class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
     def __init__(self, descriptor):
         args = [Argument('*mut JSContext', 'cx'), Argument('HandleObject', 'proxy'),
