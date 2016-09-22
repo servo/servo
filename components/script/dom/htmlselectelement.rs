@@ -6,6 +6,7 @@ use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptionElementMethods;
 use dom::bindings::codegen::Bindings::HTMLSelectElementBinding;
 use dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementMethods;
+use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::UnionTypes::HTMLElementOrLong;
 use dom::bindings::codegen::UnionTypes::HTMLOptionElementOrHTMLOptGroupElement;
 use dom::bindings::inheritance::Castable;
@@ -17,7 +18,7 @@ use dom::htmlelement::HTMLElement;
 use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmlformelement::{FormDatumValue, FormControl, FormDatum, HTMLFormElement};
 use dom::htmloptionelement::HTMLOptionElement;
-use dom::node::{Node, UnbindContext, window_from_node};
+use dom::node::{document_from_node, Node, UnbindContext, window_from_node};
 use dom::nodelist::NodeList;
 use dom::validation::Validatable;
 use dom::validitystate::ValidityState;
@@ -182,6 +183,50 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
     fn Labels(&self) -> Root<NodeList> {
         self.upcast::<HTMLElement>().labels()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-select-length
+    fn SetLength(&self, value: u32) {
+        let length  = self.Length();
+        let node = self.upcast::<Node>();
+        if value < length {     // truncate the number of option elements
+            let mut iter = node.rev_children().take((length - value) as usize);
+            while let Some(child) = iter.next() {
+                if let Err(e) = node.RemoveChild(&child) {
+                    warn!("Error removing child of HTMLSelectElement: {:?}", e);
+                }
+            }
+        } else if value > length {  // add new blank option elements
+            let document = document_from_node(self);
+            for _ in 0..(value - length) {
+                let element = HTMLOptionElement::new(atom!("option"), None, &document.upcast());
+                if let Err(e) = node.AppendChild(element.upcast()) {
+                    warn!("error appending child of HTMLSelectElement: {:?}", e);
+                }
+            }
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-select-length
+    fn Length(&self) -> u32 {
+        self.upcast::<Node>()
+            .traverse_preorder()
+            .filter_map(Root::downcast::<HTMLOptionElement>)
+            .count() as u32
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-select-item
+    fn Item(&self, index: u32) -> Option<Root<Element>> {
+        self.upcast::<Node>()
+            .traverse_preorder()
+            .filter_map(Root::downcast::<HTMLOptionElement>)
+            .nth(index as usize)
+            .map(|item| Root::from_ref(item.upcast()))
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-select-item
+    fn IndexedGetter(&self, index: u32) -> Option<Root<Element>> {
+        self.Item(index)
     }
 }
 
