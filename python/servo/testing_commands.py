@@ -25,7 +25,7 @@ from mach.decorators import (
     Command,
 )
 
-from servo.command_base import CommandBase, call, cd, check_call, host_triple
+from servo.command_base import BuildNotFound, CommandBase, call, cd, check_call, find_dep_path_newest, host_triple
 from wptrunner import wptcommandline
 from update import updatecommandline
 from servo_tidy import tidy
@@ -413,6 +413,32 @@ class MachCommands(CommandBase):
 
     # Helper for test_css and test_wpt:
     def wptrunner(self, run_file, **kwargs):
+        # On Linux and mac, find the OSMesa software rendering library and
+        # add it to the dynamic linker search path.
+        if sys.platform.startswith('linux'):
+            try:
+                args = [self.get_binary_path(True, False)]
+                osmesa_path = path.join(find_dep_path_newest('osmesa-src', args[0]), "out", "lib", "gallium")
+                os.environ["LD_LIBRARY_PATH"] = osmesa_path
+                os.environ["GALLIUM_DRIVER"] = "softpipe"
+            except BuildNotFound:
+                # This can occur when cross compiling (e.g. arm64), in which case
+                # we won't run the tests anyway so can safely ignore this step.
+                pass
+        if sys.platform.startswith('darwin'):
+            try:
+                args = [self.get_binary_path(True, False)]
+                osmesa_path = path.join(find_dep_path_newest('osmesa-src', args[0]),
+                                        "out", "src", "gallium", "targets", "osmesa", ".libs")
+                glapi_path = path.join(find_dep_path_newest('osmesa-src', args[0]),
+                                       "out", "src", "mapi", "shared-glapi", ".libs")
+                os.environ["DYLD_LIBRARY_PATH"] = osmesa_path + ":" + glapi_path
+                os.environ["GALLIUM_DRIVER"] = "softpipe"
+            except BuildNotFound:
+                # This can occur when cross compiling (e.g. arm64), in which case
+                # we won't run the tests anyway so can safely ignore this step.
+                pass
+
         os.environ["RUST_BACKTRACE"] = "1"
         kwargs["debug"] = not kwargs["release"]
         if kwargs.pop("chaos"):

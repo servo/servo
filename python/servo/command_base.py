@@ -7,6 +7,7 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
+from glob import glob
 import gzip
 import itertools
 import locale
@@ -45,6 +46,17 @@ def setlocale(name):
         yield locale.setlocale(locale.LC_ALL, name)
     finally:
         locale.setlocale(locale.LC_ALL, saved_locale)
+
+
+def find_dep_path_newest(package, bin_path):
+    deps_path = path.join(path.split(bin_path)[0], "build")
+    with cd(deps_path):
+        candidates = glob(package + '-*')
+    candidates = (path.join(deps_path, c) for c in candidates)
+    candidate_times = sorted(((path.getmtime(c), c) for c in candidates), reverse=True)
+    if len(candidate_times) > 0:
+        return candidate_times[0][1]
+    return None
 
 
 def archive_deterministically(dir_to_archive, dest_archive, prepend_path=None):

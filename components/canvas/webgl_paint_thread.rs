@@ -7,15 +7,87 @@ use canvas_traits::{FromLayoutMsg, byte_swap};
 use euclid::size::Size2D;
 use gleam::gl;
 use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
-use offscreen_gl_context::{ColorAttachmentType, GLContext, GLLimits, GLContextAttributes, NativeGLContext};
+use offscreen_gl_context::{ColorAttachmentType, GLContext, GLLimits};
+use offscreen_gl_context::{GLContextAttributes, NativeGLContext, OSMesaContext};
 use std::borrow::ToOwned;
 use std::sync::mpsc::channel;
+use util::opts;
 use util::thread::spawn_named;
 use webrender_traits;
 
+enum GLContextWrapper {
+    Native(GLContext<NativeGLContext>),
+    OSMesa(GLContext<OSMesaContext>),
+}
+
+impl GLContextWrapper {
+    fn new(size: Size2D<i32>,
+           attributes: GLContextAttributes) -> Result<GLContextWrapper, &'static str> {
+        if opts::get().should_use_osmesa() {
+            let ctx = GLContext::<OSMesaContext>::new(size,
+                                                      attributes,
+                                                      ColorAttachmentType::Texture,
+                                                      None);
+            ctx.map(GLContextWrapper::OSMesa)
+        } else {
+            let ctx = GLContext::<NativeGLContext>::new(size,
+                                                        attributes,
+                                                        ColorAttachmentType::Texture,
+                                                        None);
+            ctx.map(GLContextWrapper::Native)
+        }
+    }
+
+    pub fn get_limits(&self) -> GLLimits {
+        match *self {
+            GLContextWrapper::Native(ref ctx) => {
+                ctx.borrow_limits().clone()
+            }
+            GLContextWrapper::OSMesa(ref ctx) => {
+                ctx.borrow_limits().clone()
+            }
+        }
+    }
+
+    fn resize(&mut self, size: Size2D<i32>) -> Result<Size2D<i32>, &'static str> {
+        match *self {
+            GLContextWrapper::Native(ref mut ctx) => {
+                try!(ctx.resize(size));
+                Ok(ctx.borrow_draw_buffer().unwrap().size())
+            }
+            GLContextWrapper::OSMesa(ref mut ctx) => {
+                try!(ctx.resize(size));
+                Ok(ctx.borrow_draw_buffer().unwrap().size())
+            }
+        }
+    }
+
+    pub fn make_current(&self) {
+        match *self {
+            GLContextWrapper::Native(ref ctx) => {
+                ctx.make_current().unwrap();
+            }
+            GLContextWrapper::OSMesa(ref ctx) => {
+                ctx.make_current().unwrap();
+            }
+        }
+    }
+
+    pub fn apply_command(&self, cmd: webrender_traits::WebGLCommand) {
+        match *self {
+            GLContextWrapper::Native(ref ctx) => {
+                cmd.apply(ctx);
+            }
+            GLContextWrapper::OSMesa(ref ctx) => {
+                cmd.apply(ctx);
+            }
+        }
+    }
+}
+
 enum WebGLPaintTaskData {
     WebRender(webrender_traits::RenderApi, webrender_traits::WebGLContextId),
-    Readback(GLContext<NativeGLContext>, (Option<(webrender_traits::RenderApi, webrender_traits::ImageKey)>)),
+    Readback(GLContextWrapper, (Option<(webrender_traits::RenderApi, webrender_traits::ImageKey)>)),
 }
 
 pub struct WebGLPaintThread {
@@ -27,8 +99,8 @@ fn create_readback_painter(size: Size2D<i32>,
                            attrs: GLContextAttributes,
                            webrender_api: Option<webrender_traits::RenderApi>)
     -> Result<(WebGLPaintThread, GLLimits), String> {
-    let context = try!(GLContext::<NativeGLContext>::new(size, attrs, ColorAttachmentType::Texture, None));
-    let limits = context.borrow_limits().clone();
+    let context = try!(GLContextWrapper::new(size, attrs));
+    let limits = context.get_limits();
     let webrender_api_and_image_key = webrender_api.map(|wr| {
         let key = wr.alloc_image();
         (wr, key)
@@ -73,7 +145,7 @@ impl WebGLPaintThread {
                 api.send_webgl_command(id, message);
             }
             WebGLPaintTaskData::Readback(ref ctx, _) => {
-                message.apply(ctx);
+                ctx.apply_command(message);
             }
         }
     }
@@ -174,8 +246,7 @@ impl WebGLPaintThread {
             WebGLPaintTaskData::Readback(ref mut context, _) => {
                 if size.width > self.size.width ||
                    size.height > self.size.height {
-                    try!(context.resize(size));
-                    self.size = context.borrow_draw_buffer().unwrap().size();
+                    self.size = try!(context.resize(size));
                 } else {
                     self.size = size;
                     unsafe { gl::Scissor(0, 0, size.width, size.height); }
@@ -191,7 +262,7 @@ impl WebGLPaintThread {
 
     fn init(&mut self) {
         if let WebGLPaintTaskData::Readback(ref context, _) = self.data {
-            context.make_current().unwrap();
+            context.make_current();
         }
     }
 }

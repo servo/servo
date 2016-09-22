@@ -222,6 +222,9 @@ class ServoRefTestExecutor(ProcessTestExecutor):
             if dpi:
                 command += ["--device-pixel-ratio", dpi]
 
+            # Run ref tests in headless mode
+            command += ["-z"]
+
             self.command = debug_args + command
 
             env = os.environ.copy()
