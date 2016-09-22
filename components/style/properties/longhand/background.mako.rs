@@ -191,7 +191,7 @@ ${helpers.single_keyword("background-origin",
         }
     }
 
-    impl HasViewportPercentage for SpecifiedExplicitSize {
+    impl HasViewportPercentage for ExplicitSize {
         fn has_viewport_percentage(&self) -> bool {
             return self.width.has_viewport_percentage() || self.height.has_viewport_percentage();
         }
@@ -199,12 +199,12 @@ ${helpers.single_keyword("background-origin",
 
     #[derive(Clone, PartialEq, Debug)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub struct SpecifiedExplicitSize {
+    pub struct ExplicitSize {
         pub width: specified::LengthOrPercentageOrAuto,
         pub height: specified::LengthOrPercentageOrAuto,
     }
 
-    impl ToCss for SpecifiedExplicitSize {
+    impl ToCss for ExplicitSize {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             try!(self.width.to_css(dest));
             try!(dest.write_str(" "));
@@ -232,7 +232,7 @@ ${helpers.single_keyword("background-origin",
     #[derive(Clone, PartialEq, Debug)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SpecifiedValue {
-        Explicit(SpecifiedExplicitSize),
+        Explicit(ExplicitSize),
         Cover,
         Contain,
     }
@@ -274,7 +274,7 @@ ${helpers.single_keyword("background-origin",
     }
     #[inline]
     pub fn get_initial_specified_value() -> SpecifiedValue {
-        SpecifiedValue::Explicit(SpecifiedExplicitSize {
+        SpecifiedValue::Explicit(ExplicitSize {
             width: specified::LengthOrPercentageOrAuto::Auto,
             height: specified::LengthOrPercentageOrAuto::Auto,
         })
@@ -311,7 +311,7 @@ ${helpers.single_keyword("background-origin",
             height = try!(specified::LengthOrPercentageOrAuto::parse(input));
         }
 
-        Ok(SpecifiedValue::Explicit(SpecifiedExplicitSize {
+        Ok(SpecifiedValue::Explicit(ExplicitSize {
             width: width,
             height: height,
         }))
