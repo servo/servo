@@ -324,6 +324,7 @@ pub mod htmlobjectelement;
 pub mod htmlolistelement;
 pub mod htmloptgroupelement;
 pub mod htmloptionelement;
+pub mod htmloptionscollection;
 pub mod htmloutputelement;
 pub mod htmlparagraphelement;
 pub mod htmlparamelement;
