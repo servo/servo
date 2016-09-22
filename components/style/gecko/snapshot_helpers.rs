@@ -4,9 +4,9 @@
 
 //! Element an snapshot common logic.
 
-use style::gecko_bindings::structs::nsIAtom;
-use style::string_cache::Atom;
+use gecko_bindings::structs::nsIAtom;
 use std::{ptr, slice};
+use string_cache::Atom;
 
 pub type ClassOrClassList<T> = unsafe extern fn (T, *mut *mut nsIAtom, *mut *mut *mut nsIAtom) -> u32;
 

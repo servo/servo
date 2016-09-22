@@ -3,11 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use gecko_bindings::bindings;
+use gecko_bindings::structs::{nsTArray, nsTArrayHeader};
 use std::mem;
 use std::ops::{Deref, DerefMut};
 use std::os::raw::c_void;
 use std::slice;
-use gecko_bindings::structs::{nsTArray, nsTArrayHeader};
 
 impl<T> Deref for nsTArray<T> {
     type Target = [T];

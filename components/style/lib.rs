@@ -51,6 +51,7 @@ extern crate heapsize;
 #[allow(unused_extern_crates)]
 #[macro_use]
 extern crate lazy_static;
+extern crate libc;
 #[macro_use]
 extern crate log;
 #[allow(unused_extern_crates)]
@@ -58,11 +59,13 @@ extern crate log;
 extern crate matches;
 extern crate num_integer;
 extern crate num_traits;
+#[cfg(feature = "gecko")] extern crate num_cpus;
 extern crate ordered_float;
 extern crate quickersort;
 extern crate rand;
 extern crate rustc_serialize;
 extern crate selectors;
+#[cfg(feature = "servo")]
 extern crate serde;
 extern crate smallvec;
 #[cfg(feature = "servo")] #[macro_use] extern crate string_cache;
@@ -74,7 +77,6 @@ extern crate util;
 
 #[cfg(feature = "gecko")]
 #[path = "./gecko_string_cache/mod.rs"]
-#[allow(unsafe_code)]
 #[macro_use] pub mod string_cache;
 
 pub mod animation;

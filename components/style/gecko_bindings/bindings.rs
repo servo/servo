@@ -165,10 +165,10 @@ use gecko_bindings::structs::nsINode;
 use gecko_bindings::structs::nsIDocument;
 use gecko_bindings::structs::nsIPrincipal;
 use gecko_bindings::structs::nsIURI;
-use structs::RawGeckoNode;
-use structs::RawGeckoElement;
-use structs::RawGeckoDocument;
-use structs::ServoNodeData;
+use gecko_bindings::structs::RawGeckoNode;
+use gecko_bindings::structs::RawGeckoElement;
+use gecko_bindings::structs::RawGeckoDocument;
+use gecko_bindings::structs::ServoNodeData;
 
 extern "C" {
     pub fn Gecko_EnsureTArrayCapacity(aArray: *mut ::std::os::raw::c_void,

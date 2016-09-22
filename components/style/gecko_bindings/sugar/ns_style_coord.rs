@@ -3,9 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use gecko_bindings::bindings::{Gecko_ResetStyleCoord, Gecko_SetStyleCoordCalcValue, Gecko_AddRefCalcArbitraryThread};
-use std::mem;
 use gecko_bindings::structs::{nsStyleCoord_Calc, nsStyleUnit, nsStyleUnion, nsStyleCoord, nsStyleSides, nsStyleCorners};
 use gecko_bindings::structs::{nsStyleCoord_CalcValue, nscoord};
+use std::mem;
 
 impl nsStyleCoord {
     #[inline]
@@ -245,8 +245,8 @@ pub trait CoordDataMut : CoordData {
 
     #[inline(always)]
     fn set_value(&mut self, value: CoordDataValue) {
-        use self::CoordDataValue::*;
         use gecko_bindings::structs::nsStyleUnit::*;
+        use self::CoordDataValue::*;
         self.reset();
         unsafe {
             let (unit, union) = self.values_mut();
@@ -337,8 +337,8 @@ pub trait CoordData {
 
     #[inline(always)]
     fn as_value(&self) -> CoordDataValue {
-        use self::CoordDataValue::*;
         use gecko_bindings::structs::nsStyleUnit::*;
+        use self::CoordDataValue::*;
         unsafe {
             match self.unit() {
                 eStyleUnit_Null => Null,

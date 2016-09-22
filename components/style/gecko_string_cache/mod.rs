@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#![allow(unsafe_code)]
+
 use gecko_bindings::bindings::Gecko_AddRefAtom;
 use gecko_bindings::bindings::Gecko_Atomize;
 use gecko_bindings::bindings::Gecko_ReleaseAtom;
@@ -9,7 +11,6 @@ use gecko_bindings::structs::nsIAtom;
 use heapsize::HeapSizeOf;
 use selectors::bloom::BloomHash;
 use selectors::parser::FromCowStr;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::ascii::AsciiExt;
 use std::borrow::{Cow, Borrow};
 use std::char::{self, DecodeUtf16};
@@ -233,19 +234,6 @@ impl Default for Atom {
 impl HeapSizeOf for Atom {
     fn heap_size_of_children(&self) -> usize {
         0
-    }
-}
-
-impl Serialize for Atom {
-    fn serialize<S>(&self, serializer: &mut S) -> Result<(), S::Error> where S: Serializer {
-        self.with_str(|s| s.serialize(serializer))
-    }
-}
-
-impl Deserialize for Atom {
-    fn deserialize<D>(deserializer: &mut D) -> Result<Atom, D::Error> where D: Deserializer {
-        let string: String = try!(Deserialize::deserialize(deserializer));
-        Ok(Atom::from(&*string))
     }
 }
 
