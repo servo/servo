@@ -37713,7 +37713,16 @@
   "local_changes": {
     "deleted": [],
     "deleted_reftests": {},
-    "items": {},
+    "items": {
+      "testharness": {
+        "html/semantics/forms/the-select-element/common-HTMLOptionsCollection-add.html": [
+          {
+            "path": "html/semantics/forms/the-select-element/common-HTMLOptionsCollection-add.html",
+            "url": "/html/semantics/forms/the-select-element/common-HTMLOptionsCollection-add.html"
+          }
+        ]
+      }
+    },
     "reftest_nodes": {}
   },
   "reftest_nodes": {
