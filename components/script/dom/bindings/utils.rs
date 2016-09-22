@@ -513,3 +513,18 @@ unsafe extern "C" fn instance_class_has_proto_at_depth(clasp: *const js::jsapi::
 pub const DOM_CALLBACKS: DOMCallbacks = DOMCallbacks {
     instanceClassMatchesProto: Some(instance_class_has_proto_at_depth),
 };
+
+/// Generic wrapper for JS engine callbacks panic-catching
+pub fn wrap_panic<T: FnMut() -> R, R>(function: T, generic_return_type: R) -> R {
+    use script_runtime::store_panic_result;
+    use std::panic;
+    use std::panic::AssertUnwindSafe;
+    let result = panic::catch_unwind(AssertUnwindSafe(function));
+    match result {
+        Ok(result) => result,
+        Err(error) => {
+            store_panic_result(error);
+            return generic_return_type;
+        }
+    }
+}

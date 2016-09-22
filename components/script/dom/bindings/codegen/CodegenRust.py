@@ -2383,16 +2383,8 @@ class CGAbstractMethod(CGThing):
 
         if self.catchPanic:
             body = CGWrapper(CGIndenter(body),
-                             pre="let result = panic::catch_unwind(AssertUnwindSafe(|| {\n",
-                             post=("""}));
-match result {
-    Ok(result) => result,
-    Err(error) => {
-        store_panic_result(error);
-        return%s;
-    }
-}
-""" % ("" if self.returnType == "void" else " false")))
+                             pre="return wrap_panic(|| {\n",
+                             post=("""}, %s);""" % ("()" if self.returnType == "void" else "false")))
 
         return CGWrapper(CGIndenter(body),
                          pre=self.definition_prologue(),
@@ -5567,6 +5559,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'dom::bindings::utils::resolve_global',
         'dom::bindings::utils::set_dictionary_property',
         'dom::bindings::utils::trace_global',
+        'dom::bindings::utils::wrap_panic',
         'dom::bindings::trace::JSTraceable',
         'dom::bindings::trace::RootedTraceable',
         'dom::bindings::callback::CallSetup',
