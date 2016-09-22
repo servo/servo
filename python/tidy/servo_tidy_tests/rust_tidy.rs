@@ -55,4 +55,6 @@ impl test {
         test_fun( 1);
     }
 
+    // Should not be triggered
+    macro_rules! test_macro ( ( $( $fun:ident = $flag:ident ; )* ) => ());
 }
