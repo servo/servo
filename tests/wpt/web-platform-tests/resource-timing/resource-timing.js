@@ -434,6 +434,21 @@ window.onload =
             output.textContent += text + "\r\n";
         }
 
+        add_completion_callback(function () {
+            var output = document.getElementById("output");
+            var button = document.createElement('button');
+            output.parentNode.insertBefore(button, output);
+            button.onclick = function () {
+                var showButton = output.style.display == 'none';
+                output.style.display = showButton ? null : 'none';
+                button.textContent = showButton ? 'Hide details' : 'Show details';
+            }
+            button.onclick();
+            var iframes = document.querySelectorAll('iframe');
+            for (var i = 0; i < iframes.length; i++)
+                iframes[i].parentNode.removeChild(iframes[i]);
+        });
+
         /** pretty print a resource timeline entry. */
         function logResourceEntry(entry) {
             log("[" + entry.entryType + "] " + entry.name);

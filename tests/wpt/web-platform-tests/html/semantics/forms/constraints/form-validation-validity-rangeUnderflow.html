@@ -12,20 +12,20 @@
   var testElements = [
     {
       tag: "input",
-      types: ["datetime"],
+      types: ["datetime-local"],
       testData: [
-        {conditions: {min: "", value: "2000-01-01T12:00:00Z"}, expected: false, name: "[target] The min attribute is not set"},
-        {conditions: {min: "2000-01-01T12:00:00Z", value: ""}, expected: false, name: "[target] Value is empty string"},
-        {conditions: {min: "2001-01-01  12:00:00Z", value: "2000-01-01T12:00:00Z"}, expected: false, name: "[target] The min attribute is an invalid global date time string"},
-        {conditions: {min: "2000-01-01T11:00:00Z", value: "2000-01-01T12:00:00Z"}, expected: false, name: "[target] The min attribute is less than the value attribute"},
-        {conditions: {min: "2001-01-01T23:59:59Z", value: "2000-01-01T24:00:00Z"}, expected: false, name: "[target] The value is an invalid datetime string(hour is greater than 23)"},
-        {conditions: {min: "1980-01-01T12:00Z", value: "79-01-01T12:00Z"}, expected: false, name: "[target] The value is an invalid date time string(year is two digits)"},
-        {conditions: {min: "2000-01-01T13:00:00Z", value: "2000-01-01T12:00:00Z"}, expected: true, name: "[target] The value is less than min"},
-        {conditions: {min: "2000-01-01T12:00:00.2Z", value: "2000-01-01T12:00:00.1Z"}, expected: true, name: "[target] The value is less than min(with millisecond in 1 digit)"},
-        {conditions: {min: "2000-01-01T12:00:00.02Z", value: "2000-01-01T12:00:00.01Z"}, expected: true, name: "[target] The value is less than min(with millisecond in 2 digits)"},
-        {conditions: {min: "2000-01-01T12:00:00.002Z", value: "2000-01-01T12:00:00.001Z"}, expected: true, name: "[target] The value is less than min(with millisecond in 3 digits)"},
-        {conditions: {min: "10000-01-01T12:00:00Z", value: "2000-01-01T12:00:00Z"}, expected: true, name: "[target] The value is less than min(Year is 10000 should be valid)"},
-        {conditions: {min: "8593-01-01T02:09+02:09", value: "8592-01-01T02:09+02:09"}, expected: true, name: "[target] The value is greater than max(with timezone)"}
+        {conditions: {min: "", value: "2000-01-01T12:00:00"}, expected: false, name: "[target] The min attribute is not set"},
+        {conditions: {min: "2000-01-01T12:00:00", value: ""}, expected: false, name: "[target] Value is empty string"},
+        {conditions: {min: "2001-01-01  12:00:00", value: "2000-01-01T12:00:00"}, expected: false, name: "[target] The min attribute is an invalid local date time string"},
+        {conditions: {min: "2000-01-01T11:00:00", value: "2000-01-01T12:00:00"}, expected: false, name: "[target] The min attribute is less than the value attribute"},
+        {conditions: {min: "2001-01-01T23:59:59", value: "2000-01-01T24:00:00"}, expected: false, name: "[target] The value is an invalid local date time string(hour is greater than 23)"},
+        {conditions: {min: "1980-01-01T12:00", value: "79-01-01T12:00"}, expected: false, name: "[target] The value is an invalid local date time string(year is two digits)"},
+        {conditions: {min: "2000-01-01T13:00:00", value: "2000-01-01T12:00:00"}, expected: true, name: "[target] The value is less than min"},
+        {conditions: {min: "2000-01-01T12:00:00.2", value: "2000-01-01T12:00:00.1"}, expected: true, name: "[target] The value is less than min(with millisecond in 1 digit)"},
+        {conditions: {min: "2000-01-01T12:00:00.02", value: "2000-01-01T12:00:00.01"}, expected: true, name: "[target] The value is less than min(with millisecond in 2 digits)"},
+        {conditions: {min: "2000-01-01T12:00:00.002", value: "2000-01-01T12:00:00.001"}, expected: true, name: "[target] The value is less than min(with millisecond in 3 digits)"},
+        {conditions: {min: "10000-01-01T12:00:00", value: "2000-01-01T12:00:00"}, expected: true, name: "[target] The value is less than min(Year is 10000 should be valid)"},
+        {conditions: {max: "8593-01-01T02:09", value: "8592-01-01T02:09"}, expected: false, name: "[target] The value is greater than max"}
       ]
     },
     {

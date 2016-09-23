@@ -1,7 +1,6 @@
 import BaseHTTPServer
 import errno
 import os
-import re
 import socket
 from SocketServer import ThreadingMixIn
 import ssl
@@ -12,12 +11,12 @@ import traceback
 import types
 import urlparse
 
-import routes as default_routes
-from logger import get_logger
-from request import Server, Request
-from response import Response
-from router import Router
-from utils import HTTPException
+from . import routes as default_routes
+from .logger import get_logger
+from .request import Server, Request
+from .response import Response
+from .router import Router
+from .utils import HTTPException
 
 
 """HTTP server designed for testing purposes.
@@ -183,12 +182,11 @@ class WebTestServer(ThreadingMixIn, BaseHTTPServer.HTTPServer):
                                           server_side=True)
 
     def handle_error(self, request, client_address):
-        error = sys.exc_value
+        error = sys.exc_info()[1]
 
         if ((isinstance(error, socket.error) and
              isinstance(error.args, tuple) and
-             error.args[0] in self.acceptable_errors)
-            or
+             error.args[0] in self.acceptable_errors) or
             (isinstance(error, IOError) and
              error.errno in self.acceptable_errors)):
             pass  # remote hang up before the result is sent
@@ -282,7 +280,7 @@ class WebTestRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 # Ensure that the whole request has been read from the socket
                 request.raw_input.read()
 
-        except socket.timeout, e:
+        except socket.timeout as e:
             self.log_error("Request timed out: %r", e)
             self.close_connection = True
             return
@@ -419,7 +417,7 @@ class WebTestHttpd(object):
 
             _host, self.port = self.httpd.socket.getsockname()
         except Exception:
-            self.logger.error('Init failed! You may need to modify your hosts file. Refer to README.md.');
+            self.logger.error('Init failed! You may need to modify your hosts file. Refer to README.md.')
             raise
 
     def start(self, block=False):

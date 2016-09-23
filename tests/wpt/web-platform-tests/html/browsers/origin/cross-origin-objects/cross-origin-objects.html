@@ -299,7 +299,7 @@ addTest(function() {
   checkFunction(get_self_parent, Function.prototype);
   checkFunction(get_parent_A, Function.prototype);
   checkFunction(get_parent_B, B.Function.prototype);
-}, "Same-origin obsevers get different accessors for cross-origin Window");
+}, "Same-origin observers get different accessors for cross-origin Window");
 
 addTest(function() {
   var set_self_href = Object.getOwnPropertyDescriptor(window.location, 'href').set;

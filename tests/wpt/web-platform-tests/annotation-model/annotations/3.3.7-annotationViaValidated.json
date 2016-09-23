@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
-  "id": "3.3.7-annotationviaValidated.json",
+  "id": "3.3.7-annotationViaValidated.json",
   "assertionType": "must",
   "expectedResult": "valid",
   "onUnexpectedResult" : "failAndContinue",

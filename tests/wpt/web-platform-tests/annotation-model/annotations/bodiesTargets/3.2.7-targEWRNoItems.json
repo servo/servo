@@ -1,0 +1,25 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "3.2.7-targEWRNoItems.json",
+    "assertionType": "must",
+    "expectedResult": "valid",
+    "onUnexpectedResult" : "failAndContinue",
+    "errorMessage": "The description of an External Web Resource target cannot include an items key. items key is only valid with Choice or Set.",
+    "title": "If an **External Web Resource** is a target, it does NOT have an **_items_ key** - [model 3.2.7](https://www.w3.org/TR/annotation-model/#choice-of-targets-and-targets)",
+    "description": "True when no External Web Resource targets (incl. as source or item) or when none of the External Web Recource targets include the items key. (Section 3.2.7)",
+    "type": "object",
+    "properties":
+    {
+        "target":
+        {
+           "allOf": [
+                      { "not": { "$ref": "bodyTarget.json#/definitions/ewrWithItems" } },
+                      { "items": { "not": { "$ref": "bodyTarget.json#/definitions/ewrWithItems" } } },
+                      { "not": { "$ref": "bodyTarget.json#/definitions/sourceEwrWithItems" } },
+                      { "items": { "not": { "$ref": "bodyTarget.json#/definitions/sourceEwrWithItems" } } },
+                      { "not": { "$ref": "bodyTarget.json#/definitions/itemEwrWithItems" }  },
+                      { "items": { "not": { "$ref": "bodyTarget.json#/definitions/itemEwrWithItems" } } }
+                     ]
+         }
+     }
+}

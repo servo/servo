@@ -2,7 +2,6 @@
 <html>
   <head>
     <meta charset=utf-8>
-    <meta name="timeout" content="long">
     <title>Encrypted Media Extensions: persistent-usage-record, playback and retrieve record in new window,  DRM, mp4</title>
     <link rel="help" href="https://w3c.github.io/encrypted-media/">
 
@@ -46,7 +45,6 @@
                         videoType:              contentitem.video.type,
                         initDataType:           contentitem.initDataType,
                         servercertificate:      handler.servercertificate,
-                        duration:               2,
                         windowscript:           'resources/drm-retrieve-persistent-usage-record.html' };
 
         runTest(config);

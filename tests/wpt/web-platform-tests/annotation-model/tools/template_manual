@@ -2,6 +2,7 @@
 <html>
 <head>
 <title>{{TESTTITLE}}</title>
+<link rel="stylesheet" href="/resources/testharness.css">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/annotation-model/scripts/ajv.min.js"></script>
@@ -30,13 +31,13 @@ var runningTest = new JSONtest( {
 <p>Fill the textarea below with JSON output from your annotation client
 implementation that supports the following criteria:</p>
 <div id="testDescription"></div>
-<p>Specifically, the following assertions will be evaluated:</p>
-<div id="assertion"></div>
 <form name="annotation" id="annotation">
     <textarea name="annotation-input" id="annotation-input" style="width: 90%; height: 10em" ></textarea>
     <p><input type="button" id="annotation-run" name="Loading..." value="Loading...">
        <input style="display: none" type="button" id="annotation-close"
        name="Close" value="Close"></p>
 </form>
+<p>Specifically, the following assertions will be evaluated:</p>
+<div id="assertion"></div>
 </body>
 </html>

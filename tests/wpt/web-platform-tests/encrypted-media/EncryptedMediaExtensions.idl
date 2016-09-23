@@ -4,6 +4,7 @@
 //       which this IDL was extracted.
 //
 // https://www.w3.org/TR/2016/WD-encrypted-media-20160610/
+//  + commit 5499821932391ae2c2e53756ae7ab9fae89d5863
 //
 
 partial interface Navigator {
@@ -86,15 +87,15 @@ enum MediaKeyMessageType {
     "individualization-request"
 };
 
-[ Constructor (DOMString type, optional MediaKeyMessageEventInit eventInitDict)]
+[Constructor(DOMString type, MediaKeyMessageEventInit eventInitDict)]
 interface MediaKeyMessageEvent : Event {
     readonly        attribute MediaKeyMessageType messageType;
     readonly        attribute ArrayBuffer         message;
 };
 
 dictionary MediaKeyMessageEventInit : EventInit {
-             MediaKeyMessageType messageType = "license-request";
-             ArrayBuffer         message;
+             required MediaKeyMessageType messageType;
+             required ArrayBuffer         message;
 };
 
 // partial interface HTMLMediaElement : EventTarget {
@@ -105,7 +106,7 @@ partial interface HTMLMediaElement {
     Promise<void> setMediaKeys (MediaKeys? mediaKeys);
 };
 
-[ Constructor (DOMString type, optional MediaEncryptedEventInit eventInitDict)]
+[Constructor(DOMString type, optional MediaEncryptedEventInit eventInitDict)]
 interface MediaEncryptedEvent : Event {
     readonly        attribute DOMString    initDataType;
     readonly        attribute ArrayBuffer? initData;

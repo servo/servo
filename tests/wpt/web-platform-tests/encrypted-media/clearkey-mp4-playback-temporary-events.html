@@ -2,7 +2,6 @@
 <html>
   <head>
     <meta charset=utf-8>
-    <meta name="timeout" content="long">
     <title>Encrypted Media Extensions: Successful playback, Temporary session with Clear Key, mp4, validating events</title>
     <link rel="help" href="https://w3c.github.io/encrypted-media/">
 
@@ -44,8 +43,8 @@
                         audioType:          contentitem.audio.type,
                         videoType:          contentitem.video.type,
                         initDataType:       'keyids',
-                        initData:           getInitData(contentitem,'keyids'),
-                        duration:           2 };
+                        initData:           getInitData(contentitem,'keyids')
+                      };
 
         runTest(config);
     </script>

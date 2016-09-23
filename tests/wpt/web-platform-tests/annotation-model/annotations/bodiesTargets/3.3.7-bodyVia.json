@@ -1,0 +1,28 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "3.3.7-bodyVia.json",
+    "assertionType": "may",
+    "expectedResult": "valid",
+    "onUnexpectedResult" : "passAndContinue",
+    "errorMessage": "The description of a body resource may include via key with one or more values that are each of format uri.",
+    "title": "Implements **body _via_ key** which has one or more values, each of which is a **string of format uri** - [model 3.3.7](https://www.w3.org/TR/annotation-model/#other-identities)",
+    "description": "True when Annotation includes one or more bodies, one or more of which include via key with one or more values that are each of format uri. (Section 3.3.7)",
+    "type": "object",
+    "required": ["body"],
+    "properties":
+    {
+        "body":
+        {
+           "oneOf": [
+                      { "$ref": "otherProperties.json#/definitions/viaPropertyFound" },
+                       { "not":
+                         { "items":
+                            { "not":
+                               { "$ref": "otherProperties.json#/definitions/viaPropertyFound" }
+                             }
+                         }
+                       }
+                     ]
+         }
+     }
+}

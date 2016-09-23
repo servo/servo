@@ -44,12 +44,12 @@
     },
     {
       tag: "input",
-      types: ["datetime"],
+      types: ["datetime-local"],
       testData: [
         {conditions: {}, expected: true, name: "[target] no constraint"},
-        {conditions: {max: "2000-01-01T12:00:00Z", value: "2001-01-01T12:00:00Z"}, expected: false, name: "[target] suffering from an overflow"},
-        {conditions: {min: "2001-01-01T12:00:00Z", value: "2000-01-01T12:00:00Z"}, expected: false, name: "[target] suffering from an underflow"},
-        {conditions: {step: 2 * 60 * 1000, value: "2001-01-01T12:03:00Z"}, expected: false, name: "[target] suffering from a step mismatch"},
+        {conditions: {max: "2000-01-01T12:00:00", value: "2001-01-01T12:00:00"}, expected: false, name: "[target] suffering from an overflow"},
+        {conditions: {min: "2001-01-01T12:00:00", value: "2000-01-01T12:00:00"}, expected: false, name: "[target] suffering from an underflow"},
+        {conditions: {step: 2 * 60 * 1000, value: "2001-01-01T12:03:00"}, expected: false, name: "[target] suffering from a step mismatch"},
         {conditions: {required: true, value: ""}, expected: false, name: "[target] suffering from being missing"}
       ]
     },
@@ -71,7 +71,7 @@
         {conditions: {}, expected: true, name: "[target] no constraint"},
         {conditions: {max: "2000-01", value: "2001-01"}, expected: false, name: "[target] suffering from an overflow"},
         {conditions: {min: "2001-01", value: "2000-01"}, expected: false, name: "[target] suffering from an underflow"},
-        {conditions: {step: 2 * 1 * 1, value: "2001-03"}, expected: false, name: "[target] suffering from a step mismatch"},
+        {conditions: {step: 3 * 1 * 1, value: "2001-03"}, expected: false, name: "[target] suffering from a step mismatch"},
         {conditions: {required: true, value: ""}, expected: false, name: "[target] suffering from being missing"}
       ]
     },

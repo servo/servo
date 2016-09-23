@@ -2,7 +2,6 @@
 <html>
   <head>
     <meta charset=utf-8>
-    <meta name="timeout" content="long">
     <title>Encrypted Media Extensions: Verify MediaKeySession.keyStatuses with multiple sessions, DRM</title>
     <link rel="help" href="https://w3c.github.io/encrypted-media/">
 
@@ -42,7 +41,7 @@
                             content:            contentitem,
                             messagehandler:     handler.messagehandler,
                             initDataType:       contentitem.initDataType,
-                            initData:           base64DecodeToUnit8Array( getProprietaryInitDatas(contentitem).initDatas[ 0 ] ),
+                            initData:           base64DecodeToUnit8Array( getProprietaryInitDatas(contentitem).initDatas[ 0 ] )
                         };
 
             runTest(config);

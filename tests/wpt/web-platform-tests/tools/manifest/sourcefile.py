@@ -7,9 +7,6 @@ try:
 except ImportError:
     from xml.etree import ElementTree
 
-here = os.path.dirname(__file__)
-localpaths = imp.load_source("localpaths", os.path.abspath(os.path.join(here, os.pardir, "localpaths.py")))
-
 import html5lib
 
 from . import vcs

@@ -11,8 +11,7 @@ drmconfig = {
     "com.widevine.alpha": [ {
         "serverURL": "https://lic.staging.drmtoday.com/license-proxy-widevine/cenc/",
         "servertype" : "drmtoday",
-        "userId" : "12345",
-        "merchant" : "cablelabs",
+        "merchant" : "w3c-eme-test",
     } ],
     "com.microsoft.playready": [ {
         "serverURL": "http://playready-testserver.azurewebsites.net/rightsmanager.asmx",
@@ -30,8 +29,7 @@ drmconfig = {
         "serverURL": "https://lic.staging.drmtoday.com/license-proxy-headerauth/drmtoday/RightsManager.asmx",
         "servertype" : "drmtoday",
         "sessionTypes" : [ "temporary", "persistent-usage-record", "persistent-license" ],
-        "userId" : "12345",
-        "merchant" : "cablelabs"
+        "merchant" : "w3c-eme-test"
     } ]
 };
 
@@ -135,19 +133,9 @@ MessageHandler.prototype.messagehandler = function messagehandler( messageType, 
                 return serverURL;
             },
             getCustomHeaders : function( drmconfig, sessionType, messageType ) {
-
-                var customToken;
-                if ( messageType === 'license-request' ) {
-                    var customToken = { outputProtection: { digital : false, analogue: false, enforce: false },
-                                        profile: { purchase: { } },
-                                        storeLicense: ( sessionType === 'persistent-license' ) };
-                } else {
-                    customToken = {};
-                }
-
-                var customHeader = {    userId: drmconfig.userId,
-                                        merchant: drmconfig.merchant,
-                                        sessionId: btoa( JSON.stringify( customToken )) };
+                var customHeader = {    merchant: drmconfig.merchant,
+                                        userId: "purchase",
+                                        sessionId: "a0d0f0p" + ( ( sessionType === 'persistent-license' ) ? "1" : "0" ) };
                 return { "dt-custom-data" : btoa( JSON.stringify( customHeader ) ) };
             }
         },

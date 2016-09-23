@@ -2,7 +2,6 @@
 <html>
   <head>
     <meta charset=utf-8>
-    <meta name="timeout" content="long">
     <title>Encrypted Media Extensions: Verify MediaKeySession.keyStatuses with multiple sessions, Clear Key</title>
     <link rel="help" href="https://w3c.github.io/encrypted-media/">
 
@@ -40,7 +39,7 @@
                             content:            contentitem,
                             messagehandler:     handler.messagehandler,
                             initDataType:       'keyids',
-                            initData:           getInitData(contentitem,'keyids'),
+                            initData:           getInitData(contentitem,'keyids')
                         };
 
             runTest(config);

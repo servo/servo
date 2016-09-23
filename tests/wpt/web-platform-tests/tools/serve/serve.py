@@ -16,15 +16,13 @@ import uuid
 from collections import defaultdict, OrderedDict
 from multiprocessing import Process, Event
 
-from .. import localpaths
+from ..localpaths import repo_root
 
 import sslutils
 from wptserve import server as wptserve, handlers
 from wptserve import stash
 from wptserve.logger import set_logger
 from mod_pywebsocket import standalone as pywebsocket
-
-repo_root = localpaths.repo_root
 
 def replace_end(s, old, new):
     """

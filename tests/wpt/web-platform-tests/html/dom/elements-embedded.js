@@ -26,7 +26,6 @@ var embeddedElements = {
     srcdoc: "string",
     name: "string",
     sandbox: "settable tokenlist",
-    seamless: "boolean",
     allowFullscreen: "boolean",
     width: "string",
     height: "string",
@@ -135,11 +134,9 @@ var embeddedElements = {
     shape: "string",
     target: "string",
     download: "string",
-    ping: "urls",
+    ping: "string",
     rel: "string",
     relList: {type: "tokenlist", domAttrName: "rel"},
-    hreflang: "string",
-    type: "string",
 
     // HTMLHyperlinkElementUtils
     href: "url",

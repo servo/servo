@@ -1,0 +1,43 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "3.3.7-targViaValidated.json",
+    "assertionType": "must",
+    "expectedResult": "valid",
+    "onUnexpectedResult" : "failAndContinue",
+    "errorMessage": "ERROR: A target or target/source has one or more via key values that are not of format uri.",
+    "title": "If present all target-level or target/source-level **_via_ key values** are strings of **format uri** - [model 3.3.7](https://www.w3.org/TR/annotation-model/#other-identities)",
+    "description": "True when no target-level or target/source-level (SR target) via key present or when all via key values are strings of format uri (Section 3.3.7)",
+    "type": "object",
+    "properties":
+    {
+      "target":
+       {
+          "oneOf":
+          [
+            { "$ref": "id.json#/definitions/arraySingleStringUri" },
+            { "allOf":
+               [
+                  { "$ref": "otherProperties.json#/definitions/viaValidIfPresent" },
+                  { "$ref": "specificResource.json#/definitions/sourceWithVia" }
+               ]
+            },
+            {
+                "type": "array",
+                "minItems": 1,
+                "items":
+                {
+                    "oneOf":
+                    [
+                        { "$ref": "id.json#/definitions/arraySingleStringUri" },
+                        { "allOf":
+                           [
+                              { "$ref": "otherProperties.json#/definitions/viaValidIfPresent" },
+                              { "$ref": "specificResource.json#/definitions/sourceWithVia" }
+                           ]
+                        }
+                    ]
+                }
+            }
+          ]
+       }
+   }}
