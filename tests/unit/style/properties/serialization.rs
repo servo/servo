@@ -742,7 +742,7 @@ mod shorthand_serialization {
 
             let size = single_vec_variant_value!(size,
                 size::single_value::SpecifiedValue::Explicit(
-                    size::single_value::SpecifiedExplicitSize {
+                    size::single_value::ExplicitSize {
                         width: LengthOrPercentageOrAuto::Length(Length::from_px(70f32)),
                         height: LengthOrPercentageOrAuto::Length(Length::from_px(50f32))
                     }
@@ -797,7 +797,7 @@ mod shorthand_serialization {
 
             let size = single_vec_variant_value!(size,
                 size::single_value::SpecifiedValue::Explicit(
-                    size::single_value::SpecifiedExplicitSize {
+                    size::single_value::ExplicitSize {
                         width: LengthOrPercentageOrAuto::Length(Length::from_px(70f32)),
                         height: LengthOrPercentageOrAuto::Length(Length::from_px(50f32))
                     }

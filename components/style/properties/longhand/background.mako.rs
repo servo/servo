@@ -74,6 +74,15 @@ ${helpers.predefined_type("background-color", "CSSColor",
                     computed_value::T(Some(image.to_computed_value(context))),
             }
         }
+
+        #[inline]
+        fn from_computed_value(computed: &computed_value::T) -> Self {
+            match *computed {
+                computed_value::T(None) => SpecifiedValue(None),
+                computed_value::T(Some(ref image)) =>
+                    SpecifiedValue(Some(ToComputedValue::from_computed_value(image))),
+            }
+        }
     }
 </%helpers:vector_longhand>
 
@@ -191,7 +200,7 @@ ${helpers.single_keyword("background-origin",
         }
     }
 
-    impl HasViewportPercentage for SpecifiedExplicitSize {
+    impl HasViewportPercentage for ExplicitSize {
         fn has_viewport_percentage(&self) -> bool {
             return self.width.has_viewport_percentage() || self.height.has_viewport_percentage();
         }
@@ -199,12 +208,12 @@ ${helpers.single_keyword("background-origin",
 
     #[derive(Clone, PartialEq, Debug)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub struct SpecifiedExplicitSize {
+    pub struct ExplicitSize {
         pub width: specified::LengthOrPercentageOrAuto,
         pub height: specified::LengthOrPercentageOrAuto,
     }
 
-    impl ToCss for SpecifiedExplicitSize {
+    impl ToCss for ExplicitSize {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             try!(self.width.to_css(dest));
             try!(dest.write_str(" "));
@@ -232,7 +241,7 @@ ${helpers.single_keyword("background-origin",
     #[derive(Clone, PartialEq, Debug)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SpecifiedValue {
-        Explicit(SpecifiedExplicitSize),
+        Explicit(ExplicitSize),
         Cover,
         Contain,
     }
@@ -263,6 +272,19 @@ ${helpers.single_keyword("background-origin",
                 SpecifiedValue::Contain => computed_value::T::Contain,
             }
         }
+        #[inline]
+        fn from_computed_value(computed: &computed_value::T) -> Self {
+            match *computed {
+                computed_value::T::Explicit(ref size) => {
+                    SpecifiedValue::Explicit(ExplicitSize {
+                        width: ToComputedValue::from_computed_value(&size.width),
+                        height: ToComputedValue::from_computed_value(&size.height),
+                    })
+                }
+                computed_value::T::Cover => SpecifiedValue::Cover,
+                computed_value::T::Contain => SpecifiedValue::Contain,
+            }
+        }
     }
 
     #[inline]
@@ -274,7 +296,7 @@ ${helpers.single_keyword("background-origin",
     }
     #[inline]
     pub fn get_initial_specified_value() -> SpecifiedValue {
-        SpecifiedValue::Explicit(SpecifiedExplicitSize {
+        SpecifiedValue::Explicit(ExplicitSize {
             width: specified::LengthOrPercentageOrAuto::Auto,
             height: specified::LengthOrPercentageOrAuto::Auto,
         })
@@ -311,7 +333,7 @@ ${helpers.single_keyword("background-origin",
             height = try!(specified::LengthOrPercentageOrAuto::parse(input));
         }
 
-        Ok(SpecifiedValue::Explicit(SpecifiedExplicitSize {
+        Ok(SpecifiedValue::Explicit(ExplicitSize {
             width: width,
             height: height,
         }))

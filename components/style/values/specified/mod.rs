@@ -17,7 +17,7 @@ use std::fmt;
 use std::ops::Mul;
 use style_traits::values::specified::AllowedNumericType;
 use super::{CSSFloat, FONT_MEDIUM_PX, HasViewportPercentage, LocalToCss, NoViewportPercentage};
-use super::computed::{self, Context, ToComputedValue};
+use super::computed::{self, ComputedValueAsSpecified, Context, ToComputedValue};
 use url::Url;
 
 pub mod basic_shape;
@@ -456,7 +456,7 @@ enum CalcUnit {
     Time,
 }
 
-#[derive(Clone, PartialEq, Copy, Debug)]
+#[derive(Clone, PartialEq, Copy, Debug, Default)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct CalcLengthOrPercentage {
     pub absolute: Option<Au>,
@@ -1525,14 +1525,7 @@ impl Time {
     }
 }
 
-impl ToComputedValue for Time {
-    type ComputedValue = Time;
-
-    #[inline]
-    fn to_computed_value(&self, _: &Context) -> Time {
-        *self
-    }
-}
+impl ComputedValueAsSpecified for Time {}
 
 impl ToCss for Time {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
@@ -1572,6 +1565,11 @@ impl ToComputedValue for Number {
 
     #[inline]
     fn to_computed_value(&self, _: &Context) -> CSSFloat { self.0 }
+
+    #[inline]
+    fn from_computed_value(computed: &CSSFloat) -> Self {
+        Number(*computed)
+    }
 }
 
 impl ToCss for Number {
@@ -1604,6 +1602,11 @@ impl ToComputedValue for Opacity {
         } else {
             self.0
         }
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &CSSFloat) -> Self {
+        Opacity(*computed)
     }
 }
 

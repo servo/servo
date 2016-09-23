@@ -329,6 +329,16 @@ impl ToComputedValue for Position {
             vertical: vertical,
         }
     }
+
+    #[inline]
+    fn from_computed_value(computed: &computed_position::Position) -> Position {
+        Position {
+            horiz_keyword: None,
+            horiz_position: Some(ToComputedValue::from_computed_value(&computed.horizontal)),
+            vert_keyword: None,
+            vert_position: Some(ToComputedValue::from_computed_value(&computed.vertical)),
+        }
+    }
 }
 
 impl HasViewportPercentage for PositionComponent {

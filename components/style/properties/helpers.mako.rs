@@ -147,6 +147,12 @@
                 fn to_computed_value(&self, context: &Context) -> computed_value::T {
                     computed_value::T(self.0.iter().map(|x| x.to_computed_value(context)).collect())
                 }
+                #[inline]
+                fn from_computed_value(computed: &computed_value::T) -> Self {
+                    SpecifiedValue(computed.0.iter()
+                                       .map(|x| ToComputedValue::from_computed_value(x))
+                                       .collect())
+                }
             }
         % else:
             ${caller.body()}
