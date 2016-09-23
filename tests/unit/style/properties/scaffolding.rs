@@ -21,6 +21,7 @@ fn properties_list_json() {
         .arg(&script)
         .arg("servo")
         .arg("html")
+        .arg("regular")
         .status()
         .unwrap();
     assert!(status.success());
