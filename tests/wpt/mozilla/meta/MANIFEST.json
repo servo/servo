@@ -1592,6 +1592,18 @@
             "url": "/_mozilla/css/float_clearance_intrinsic_width_a.html"
           }
         ],
+        "css/float_cleared_with_just_height.html": [
+          {
+            "path": "css/float_cleared_with_just_height.html",
+            "references": [
+              [
+                "/_mozilla/css/float_cleared_with_just_height_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/float_cleared_with_just_height.html"
+          }
+        ],
         "css/float_intrinsic_height.html": [
           {
             "path": "css/float_intrinsic_height.html",
@@ -15228,6 +15240,18 @@
             ]
           ],
           "url": "/_mozilla/css/float_clearance_intrinsic_width_a.html"
+        }
+      ],
+      "css/float_cleared_with_just_height.html": [
+        {
+          "path": "css/float_cleared_with_just_height.html",
+          "references": [
+            [
+              "/_mozilla/css/float_cleared_with_just_height_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/float_cleared_with_just_height.html"
         }
       ],
       "css/float_intrinsic_height.html": [
