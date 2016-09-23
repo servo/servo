@@ -23,10 +23,12 @@ def main():
         abort(usage)
     product = sys.argv[1]
     output = sys.argv[2]
+    testing = len(sys.argv) > 3 and sys.argv[3] == "testing"
+
     if product not in ["servo", "gecko"] or output not in ["style-crate", "geckolib", "html"]:
         abort(usage)
 
-    properties = data.PropertiesData(product=product)
+    properties = data.PropertiesData(product=product, testing=testing)
     rust = render(os.path.join(BASE, "properties.mako.rs"), product=product, data=properties)
     if output == "style-crate":
         write(os.environ["OUT_DIR"], "properties.rs", rust)
