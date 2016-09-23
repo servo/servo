@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::cell::DOMRefCell;
+use dom::bindings::codegen::Bindings::HeadersBinding::HeadersInit;
 use dom::bindings::codegen::Bindings::RequestBinding;
 use dom::bindings::codegen::Bindings::RequestBinding::ReferrerPolicy;
 use dom::bindings::codegen::Bindings::RequestBinding::RequestCache;
@@ -14,7 +15,6 @@ use dom::bindings::codegen::Bindings::RequestBinding::RequestMethods;
 use dom::bindings::codegen::Bindings::RequestBinding::RequestMode;
 use dom::bindings::codegen::Bindings::RequestBinding::RequestRedirect;
 use dom::bindings::codegen::Bindings::RequestBinding::RequestType;
-use dom::bindings::codegen::UnionTypes::HeadersOrByteStringSequenceSequence;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
@@ -312,7 +312,7 @@ impl Request {
 
         // Step 28
         if let Some(possible_header) = init.headers.as_ref() {
-            if let &HeadersOrByteStringSequenceSequence::Headers(ref init_headers) = possible_header {
+            if let &HeadersInit::Headers(ref init_headers) = possible_header {
                 headers_copy = init_headers.clone();
             }
         }
@@ -337,7 +337,7 @@ impl Request {
         }
 
         // Step 31
-        try!(r.Headers().fill(Some(HeadersOrByteStringSequenceSequence::Headers(headers_copy))));
+        try!(r.Headers().fill(Some(HeadersInit::Headers(headers_copy))));
 
         // Step 32
         let input_body = if let RequestInfo::Request(ref input_request) = input {
@@ -796,13 +796,15 @@ impl Into<RequestRedirect> for NetTraitsRequestRedirect {
     }
 }
 
-impl Clone for HeadersOrByteStringSequenceSequence {
-    fn clone(&self) -> HeadersOrByteStringSequenceSequence {
+impl Clone for HeadersInit {
+    fn clone(&self) -> HeadersInit {
     match self {
-        &HeadersOrByteStringSequenceSequence::Headers(ref h) =>
-            HeadersOrByteStringSequenceSequence::Headers(h.clone()),
-        &HeadersOrByteStringSequenceSequence::ByteStringSequenceSequence(ref b) =>
-            HeadersOrByteStringSequenceSequence::ByteStringSequenceSequence(b.clone()),
+        &HeadersInit::Headers(ref h) =>
+            HeadersInit::Headers(h.clone()),
+        &HeadersInit::ByteStringSequenceSequence(ref b) =>
+            HeadersInit::ByteStringSequenceSequence(b.clone()),
+        &HeadersInit::ByteStringMozMap(ref m) =>
+            HeadersInit::ByteStringMozMap(m.clone()),
         }
     }
 }
