@@ -368,7 +368,9 @@ impl HTMLLinkElementMethods for HTMLLinkElement {
     make_getter!(Rel, "rel");
 
     // https://html.spec.whatwg.org/multipage/#dom-link-rel
-    make_setter!(SetRel, "rel");
+    fn SetRel(&self, rel: DOMString) {
+        self.upcast::<Element>().set_tokenlist_attribute(&atom!("rel"), rel);
+    }
 
     // https://html.spec.whatwg.org/multipage/#dom-link-media
     make_getter!(Media, "media");
