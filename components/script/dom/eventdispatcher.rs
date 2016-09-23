@@ -103,10 +103,15 @@ fn dispatch_to_listeners(event: &Event, target: &EventTarget, event_path: &[&Eve
     }
 }
 
+pub enum EventStatus {
+    Canceled,
+    NotCanceled
+}
+
 // https://dom.spec.whatwg.org/#concept-event-dispatch
 pub fn dispatch_event(target: &EventTarget,
                       target_override: Option<&EventTarget>,
-                      event: &Event) -> bool {
+                      event: &Event) -> EventStatus {
     assert!(!event.dispatching());
     assert!(event.initialized());
     assert_eq!(event.phase(), EventPhase::None);
@@ -126,7 +131,10 @@ pub fn dispatch_event(target: &EventTarget,
         event.clear_dispatching_flags();
 
         // Step 14.
-        return !event.DefaultPrevented();
+        return match event.DefaultPrevented() {
+            true => EventStatus::Canceled,
+            false => EventStatus::NotCanceled
+        };
     }
 
     // Step 3. The "invoke" algorithm is only used on `target` separately,
@@ -165,8 +173,11 @@ pub fn dispatch_event(target: &EventTarget,
     // Step 10-12.
     event.clear_dispatching_flags();
 
-    // Step 13.
-    !event.DefaultPrevented()
+    // Step 14.
+    match event.DefaultPrevented() {
+        true => EventStatus::Canceled,
+        false => EventStatus::NotCanceled
+    }
 }
 
 // https://dom.spec.whatwg.org/#concept-event-listener-invoke
